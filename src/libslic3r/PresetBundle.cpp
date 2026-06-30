@@ -1498,6 +1498,9 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
             ConfigOptionString *option_str = dynamic_cast<ConfigOptionString *>(inherits_config);
             inherits_value                 = option_str->value;
             inherit_preset                 = collection->find_preset2(inherits_value, true);
+            Preset::normalize_inherits(config, inherit_preset);
+            if (inherit_preset)
+                inherits_value = inherit_preset->name;  // keep the base_id redo below in sync
         }
         if (inherit_preset) {
             new_config = inherit_preset->config;
@@ -1869,6 +1872,8 @@ bool PresetBundle::save_preset_to_bundle_dir(Preset& preset, PresetCollection* c
             if (!parent_preset) {
                 BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " cannot find parent preset for " << preset.name << ", inherits " << inherits;
             } else {
+                // Orca: take the saved diff against the resolved parent (renamed / library-matched).
+                Preset::normalize_inherits(preset.config, parent_preset);
                 if (preset.base_id.empty())
                     preset.base_id = parent_preset->setting_id;
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " saved preset " << preset.name
@@ -3827,9 +3832,9 @@ void PresetBundle::update_filament_count()
         : filament_presets.back());
 }
 
-bool PresetBundle::support_different_extruders()
+bool PresetBundle::support_different_extruders() const
 {
-    Preset& printer_preset = this->printers.get_edited_preset();
+    const Preset& printer_preset = this->printers.get_edited_preset();
     int extruder_count;
     bool supported = printer_preset.config.support_different_extruders(extruder_count);
 
@@ -5039,6 +5044,13 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             loaded.version = current_vendor_profile->config_version;
             loaded.description = description;
             loaded.setting_id = setting_id;
+            // Derive the preset setting_id on the fly when a profile ships without one,
+            // matching scripts/assign_vendor_setting_ids.py. Only instantiated presets
+            // carry an id; non-instantiated base profiles return earlier above. This never
+            // touches the per-user cloud-sync setting_id written into user .info files.
+            if (loaded.setting_id.empty() && instantiation == "true")
+                loaded.setting_id = generate_preset_setting_id(
+                    vendor_name, Preset::get_type_string(presets_collection->type()), preset_name);
             loaded.filament_id = filament_id;
             loaded.m_from_orca_filament_lib = is_from_lib;
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << " " << __LINE__ << ", " << loaded.name << " load filament_id: " << filament_id;
@@ -5459,7 +5471,7 @@ void PresetBundle::set_default_suppressed(bool default_suppressed)
     printers.set_default_suppressed(default_suppressed);
 }
 
-bool PresetBundle::has_errors() const
+bool PresetBundle::has_errors(bool check_duplicate_filament_subtypes) const
 {
     if (m_errors != 0 || printers.m_errors != 0 || filaments.m_errors != 0 || prints.m_errors != 0)
         return true;
@@ -5479,7 +5491,104 @@ bool PresetBundle::has_errors() const
         }
     }
 
+    if (check_duplicate_filament_subtypes && this->check_duplicate_filament_subtypes())
+        has_errors = true;
+
     return has_errors;
+}
+
+// Orca: turn a preset file path into an absolute file:// URI for log messages.
+// Printed unquoted on its own line, this is the one format clickable in both the
+// VS Code integrated terminal (Cmd/Ctrl+click) and macOS Terminal.app
+// (Cmd+double-click); quotes or literal spaces break link detection in both, so
+// the characters that would terminate the URI token are percent-encoded.
+static std::string preset_file_uri(const std::string &file)
+{
+    std::string path;
+    try {
+        path = boost::filesystem::canonical(file).generic_string();
+    } catch (...) {
+        path = file;
+    }
+    std::string uri = "file://";
+    if (path.empty() || path.front() != '/')
+        uri += '/'; // Windows drive paths (e.g. C:/...) need the extra leading slash
+    for (char c : path) {
+        switch (c) {
+        case ' ': uri += "%20"; break;
+        case '#': uri += "%23"; break;
+        case '%': uri += "%25"; break;
+        default:  uri += c;
+        }
+    }
+    return uri;
+}
+
+// Orca: a filament is matched from the AMS by (filament_id + printer compatibility).
+// For any one printer, at most one instantiated filament preset with a given
+// filament_id may be compatible - otherwise the AMS match is ambiguous and the
+// runtime silently picks whichever loads first. This validator-only check flags
+// any printer that has two or more compatible filament presets sharing a filament_id.
+bool PresetBundle::check_duplicate_filament_subtypes() const
+{
+    // Pre-collect system filament presets (each carries its effective filament_id,
+    // inherited from its @base at load time), grouped by vendor so we only test a
+    // printer against its own vendor's filaments. A vendor's compatible_printers
+    // only names that vendor's printers, so same-vendor scoping is correctness
+    // preserving and avoids an O(all printers x all filaments) sweep.
+    std::map<std::string, std::vector<const Preset *>> filaments_by_vendor;
+    for (const auto &preset : filaments) {
+        if (!preset.is_system || preset.filament_id.empty() || preset.vendor == nullptr)
+            continue;
+        filaments_by_vendor[preset.vendor->name].push_back(&preset);
+    }
+
+    bool found_duplicates = false;
+    for (const auto &printer : printers) {
+        if (!printer.is_system || printer.vendor == nullptr)
+            continue;
+        auto vendor_it = filaments_by_vendor.find(printer.vendor->name);
+        if (vendor_it == filaments_by_vendor.end())
+            continue;
+
+        const PresetWithVendorProfile active_printer = printers.get_preset_with_vendor_profile(printer);
+        // std::map keeps the reported errors in a deterministic (sorted) order.
+        std::map<std::string, std::vector<const Preset *>> by_filament_id;
+        for (const Preset *fil : vendor_it->second)
+            if (is_compatible_with_printer(filaments.get_preset_with_vendor_profile(*fil), active_printer))
+                by_filament_id[fil->filament_id].push_back(fil);
+
+        for (const auto &entry : by_filament_id) {
+            if (entry.second.size() < 2)
+                continue;
+            found_duplicates = true;
+            // List each conflicting preset with a clickable file:// URI on its own
+            // line, so the profile author can jump straight to the files to fix.
+            std::string presets;
+            for (const Preset *p : entry.second)
+                presets += "\n    - " + p->name + "\n      " + preset_file_uri(p->file);
+            BOOST_LOG_TRIVIAL(error)
+                << "Ambiguous AMS filament match: " << entry.second.size()
+                << " filament presets share filament_id \"" << entry.first
+                << "\" and are all compatible with printer \"" << printer.name
+                << "\". When matching an AMS spool the slicer cannot tell them apart and"
+                   " silently picks whichever loads first." << presets;
+        }
+    }
+
+    // Print the troubleshooting guidance once, not per error, to keep the log readable.
+    if (found_duplicates)
+        BOOST_LOG_TRIVIAL(error) << "\n========================================\n"
+            << "How to fix \"Ambiguous AMS filament match\" errors: make sure only ONE filament"
+               " preset with a given filament_id is compatible with each printer. Either"
+               "\n    (a) remove the overlapping printer from a preset's \"compatible_printers\""
+               " list (e.g. a '@printer' preset over-claiming a nozzle that already has its own"
+               " '@printer 0.x nozzle' preset), or"
+               "\n    (b) if these are genuinely different materials, give each its own"
+               " \"filament_id\" - a common cause is a wrong \"inherits\" pointing at another"
+               " material's @base preset.";
+
+    return found_duplicates;
 }
 
 // Orca: BundleMetadata method implementations

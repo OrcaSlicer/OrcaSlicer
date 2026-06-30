@@ -3,6 +3,7 @@
 	"name": "Flashforge ABS-CF @FF G4",
 	"inherits": "Flashforge Generic ABS",
 	"from": "system",
+	"setting_id": "d4EGsmMeEDCOUBF2",
 	"instantiation": "true",
 	"complete_print_exhaust_fan_speed": [
 		"50"

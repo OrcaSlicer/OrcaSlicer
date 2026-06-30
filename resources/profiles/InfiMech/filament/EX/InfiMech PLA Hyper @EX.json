@@ -3,7 +3,7 @@
 	"name": "InfiMech PLA Hyper @EX",
 	"inherits": "fdm_filament_pla_Hyper @EX",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "y8A92Dw8EMplnZAM",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

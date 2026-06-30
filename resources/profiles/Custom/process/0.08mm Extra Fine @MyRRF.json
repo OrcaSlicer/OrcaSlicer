@@ -3,7 +3,7 @@
 	"name": "0.08mm Extra Fine @MyRRF",
 	"inherits": "fdm_process_rrf_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "zhi1tw9y210xSTmh",
 	"instantiation": "true",
 	"layer_height": "0.08",
 	"bottom_shell_layers": "7",

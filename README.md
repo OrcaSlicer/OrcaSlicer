@@ -161,6 +161,8 @@ It can also be installed through graphical software managers (KDE Discover, GNOM
 
 ### AppImage
 
+AppImages are published for both **x86_64** and **aarch64** (ARM64). Pick the file matching your CPU — the ARM64 build has `aarch64` in its name (e.g. `OrcaSlicer_Linux_AppImage_Ubuntu2404_aarch64_*.AppImage`).
+
  1. Download App image from the [releases page](https://github.com/OrcaSlicer/OrcaSlicer/releases).
  2. Double click the downloaded file to run it.
 

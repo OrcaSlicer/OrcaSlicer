@@ -3,7 +3,7 @@
 	"name": "RatRig Generic PCTG",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFCA04",
+	"setting_id": "SG4Gt87iS1ql3s8S",
 	"filament_id": "GFC99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [

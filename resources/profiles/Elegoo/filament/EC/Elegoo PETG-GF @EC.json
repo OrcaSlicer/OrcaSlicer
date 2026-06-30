@@ -3,7 +3,7 @@
 	"name": "Elegoo PETG-GF @EC",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "EPETGFEC",
+	"setting_id": "jDvyk3UkeiNb2U9m",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.024"

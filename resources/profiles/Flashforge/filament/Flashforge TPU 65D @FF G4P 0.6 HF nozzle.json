@@ -3,6 +3,7 @@
 	"name": "Flashforge TPU 65D @FF G4P 0.6 HF nozzle",
 	"inherits": "Flashforge Generic PETG @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "8xgu0AnMuKbPWyVd",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

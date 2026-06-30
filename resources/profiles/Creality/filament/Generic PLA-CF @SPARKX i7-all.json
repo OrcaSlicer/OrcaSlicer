@@ -3,7 +3,7 @@
     "name": "Generic PLA-CF @SPARKX i7-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "KnXh5yN3mZ1zFs7t",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

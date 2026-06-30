@@ -3,7 +3,7 @@
 	"name": "Creality K1 Max (0.6 nozzle)",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "MWaZ3DC8NiQn7vbW",
 	"instantiation": "true",
 	"printer_model": "Creality K1 Max",
 	"gcode_flavor": "klipper",

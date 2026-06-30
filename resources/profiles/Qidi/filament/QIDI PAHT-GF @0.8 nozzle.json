@@ -3,7 +3,7 @@
 	"name": "QIDI PAHT-GF @0.8 nozzle",
 	"inherits": "QIDI PAHT-GF",
 	"from": "system",
-	"setting_id": "GFSL98",
+	"setting_id": "ic09uwyOjmjgZhCY",
 	"filament_id": "GFL98",
 	"instantiation": "true",
 	"pressure_advance": [

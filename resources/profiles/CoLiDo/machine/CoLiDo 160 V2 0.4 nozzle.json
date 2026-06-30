@@ -2,7 +2,7 @@
 	"type": "machine",
 	"name": "CoLiDo 160 V2 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "RRzVDMk3GxAV3tMW",
 	"instantiation": "true",
 	"printer_model": "CoLiDo 160 V2",
 	"adaptive_bed_mesh_margin": "0",

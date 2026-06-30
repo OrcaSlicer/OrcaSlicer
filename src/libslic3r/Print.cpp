@@ -23,7 +23,9 @@
 
 #include <algorithm>
 #include <limits>
+#include <numeric>
 #include <unordered_set>
+#include <sstream>
 #include <boost/filesystem/path.hpp>
 #include <boost/format.hpp>
 #include <boost/log/trivial.hpp>
@@ -204,6 +206,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "is_infill_first",
         // Orca
         "chamber_temperature",
+        "chamber_minimal_temperature",
         "thumbnails",
         "thumbnails_format",
         "seam_gap",
@@ -1347,8 +1350,8 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         const auto all_regions = m_objects.front()->all_regions();
         if (all_regions.size() > 1) {
             // Orca: make sure regions are not compatible
-            if (std::any_of(all_regions.begin() + 1, all_regions.end(), [ra = all_regions.front()](const auto rb) {
-                return !Layer::is_perimeter_compatible(ra, rb);
+            if (std::any_of(all_regions.begin() + 1, all_regions.end(), [this, ra = all_regions.front()](const auto rb) {
+                return !Layer::is_perimeter_compatible(*this, ra, rb);
             })) {
                 return {L("Spiral (vase) mode does not work when an object contains more than one material."), nullptr, "spiral_mode"};
             }
@@ -1780,150 +1783,173 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
         // shrinkage warnings below.
         StringObjectException motion_warning;
         try {
-            auto check_motion_ability_object_setting = [&](const std::vector<std::string>& keys_to_check, double limit) -> std::string {
-                std::string warning_key;
-                for (const auto& key : keys_to_check) {
-                    if (m_default_object_config.get_abs_value(key) > limit) {
-                        warning_key = key;
-                        break;
-                    }
-                }
-                return warning_key;
-            };
-            auto check_motion_ability_region_setting = [&](const std::vector<std::string>& keys_to_check, double limit) -> std::string {
-                std::string warning_key;
-                for (const auto& key : keys_to_check) {
-                    if (m_default_region_config.get_abs_value(key) > limit) {
-                        warning_key = key;
-                        break;
-                    }
-                }
-                return warning_key;
-            };
-            std::string warning_key;
-
-            const auto max_junction_deviation = m_config.machine_max_junction_deviation.values[0];
-            const bool ignore_jerk_validation = m_config.gcode_flavor == gcfMarlinFirmware && max_junction_deviation > 0;
-
-            // check jerk
-            if (!ignore_jerk_validation) {
-                if (m_default_object_config.default_jerk == 1 || m_default_object_config.outer_wall_jerk == 1 ||
-                    m_default_object_config.inner_wall_jerk == 1) {
-                   motion_warning.string = L("Setting the jerk speed too low could lead to artifacts on curved surfaces");
-                   if (m_default_object_config.outer_wall_jerk == 1)
-                        warning_key = "outer_wall_jerk";
-                   else if (m_default_object_config.inner_wall_jerk == 1)
-                        warning_key = "inner_wall_jerk";
-                   else
-                        warning_key = "default_jerk";
-
-                   motion_warning.opt_key = warning_key;
-                }
-
-                if (warning_key.empty() && m_default_object_config.default_jerk > 0) {
-                   std::vector<std::string> jerk_to_check = {"default_jerk",     "outer_wall_jerk",    "inner_wall_jerk", "infill_jerk",
-                                                             "top_surface_jerk", "initial_layer_jerk", "travel_jerk"};
-                   const auto               max_jerk = std::min(m_config.machine_max_jerk_x.values[0], m_config.machine_max_jerk_y.values[0]);
-                   warning_key.clear();
-                   warning_key = check_motion_ability_object_setting(jerk_to_check, max_jerk);
-                   if (!warning_key.empty()) {
-                        motion_warning.string = L(
-                            "The jerk setting exceeds the printer's maximum jerk (machine_max_jerk_x/machine_max_jerk_y).\n"
-                            "Orca will automatically cap the jerk speed to ensure it doesn't surpass the printer's capabilities.\n"
-                            "You can adjust the maximum jerk setting in your printer's configuration to get higher speeds.");
-                        motion_warning.opt_key = warning_key;
-                   }
-                }
-            }
-            // check junction deviation
-            else if (m_default_object_config.default_junction_deviation.value > max_junction_deviation) {
-                motion_warning.string  = L( "Junction deviation setting exceeds the printer's maximum value (machine_max_junction_deviation).\n"
-                                      "Orca will automatically cap the junction deviation to ensure it doesn't surpass the printer's capabilities.\n"
-                                      "You can adjust the machine_max_junction_deviation value in your printer's configuration to get higher limits.");
-                motion_warning.opt_key = "default_junction_deviation";
-            }
-            
-            // check acceleration
-            const auto max_accel = m_config.machine_max_acceleration_extruding.values[0];
-            if (warning_key.empty() && m_default_object_config.default_acceleration > 0 && max_accel > 0) {
-               const bool support_travel_acc = (m_config.gcode_flavor == gcfRepetier || m_config.gcode_flavor == gcfMarlinFirmware ||
-                                                m_config.gcode_flavor == gcfRepRapFirmware);
-
-               std::vector<std::string> accel_to_check;
-               if (!support_travel_acc)
-                    accel_to_check = {
-                        "default_acceleration",
-                        "inner_wall_acceleration",
-                        "outer_wall_acceleration",
-                        "bridge_acceleration",
-                        "initial_layer_acceleration",
-                        "sparse_infill_acceleration",
-                        "internal_solid_infill_acceleration",
-                        "top_surface_acceleration",
-                        "travel_acceleration",
-                    };
-               else
-                    accel_to_check = {
-                        "default_acceleration",
-                        "inner_wall_acceleration",
-                        "outer_wall_acceleration",
-                        "bridge_acceleration",
-                        "initial_layer_acceleration",
-                        "sparse_infill_acceleration",
-                        "internal_solid_infill_acceleration",
-                        "top_surface_acceleration",
-                    };
-               warning_key = check_motion_ability_object_setting(accel_to_check, max_accel);
-               if (!warning_key.empty()) {
-                    motion_warning.string  = L("The acceleration setting exceeds the printer's maximum acceleration "
-                                          "(machine_max_acceleration_extruding).\nOrca will "
-                                          "automatically cap the acceleration speed to ensure it doesn't surpass the printer's "
-                                          "capabilities.\nYou can adjust the "
-                                          "machine_max_acceleration_extruding value in your printer's configuration to get higher speeds.");
-                    motion_warning.opt_key = warning_key;
-               }
-               if (support_travel_acc) {
-                    const auto max_travel = m_config.machine_max_acceleration_travel.values[0];
-                    if (max_travel > 0) {
-                        accel_to_check = {
-                            "travel_acceleration",
-                        };
-                        warning_key = check_motion_ability_object_setting(accel_to_check, max_travel);
-                        if (!warning_key.empty()) {
-                            motion_warning.string = L(
-                                "The travel acceleration setting exceeds the printer's maximum travel acceleration "
-                                "(machine_max_acceleration_travel).\nOrca will "
-                                "automatically cap the travel acceleration speed to ensure it doesn't surpass the printer's "
-                                "capabilities.\nYou can adjust the "
-                                "machine_max_acceleration_travel value in your printer's configuration to get higher speeds.");
-                            motion_warning.opt_key = warning_key;
+            auto check_extruder = [&](const int extruder_id) {
+                auto check_motion_ability_object_setting = [&](const std::vector<std::string>& keys_to_check, double limit) -> std::string {
+                    std::string warning_key;
+                    for (const auto& key : keys_to_check) {
+                        if (m_default_object_config.get_abs_value_at(key, extruder_id) > limit) {
+                            warning_key = key;
+                            break;
                         }
                     }
-               }
-            }
+                    return warning_key;
+                };
+                auto check_motion_ability_region_setting = [&](const std::vector<std::string>& keys_to_check, double limit) -> std::string {
+                    std::string warning_key;
+                    for (const auto& key : keys_to_check) {
+                        if (m_default_region_config.get_abs_value_at(key, extruder_id) > limit) {
+                            warning_key = key;
+                            break;
+                        }
+                    }
+                    return warning_key;
+                };
+                std::string warning_key;
 
-            // check speed
-            // Orca: disable the speed check for now as we don't cap the speed
-            // if (warning_key.empty()) {
-            //    auto       speed_to_check = {"inner_wall_speed",  "outer_wall_speed", "sparse_infill_speed",   "internal_solid_infill_speed",
-            //                                 "top_surface_speed", "bridge_speed",     "internal_bridge_speed", "gap_infill_speed"};
-            //    const auto max_speed      = std::min(m_config.machine_max_speed_x.values[0], m_config.machine_max_speed_y.values[0]);
-            //    warning_key.clear();
-            //    warning_key = check_motion_ability_region_setting(speed_to_check, max_speed);
-            //    if (warning_key.empty() && m_config.travel_speed > max_speed)
-            //         warning_key = "travel_speed";
-            //    if (!warning_key.empty()) {
-            //         warning->string = L(
-            //             "The speed setting exceeds the printer's maximum speed (machine_max_speed_x/machine_max_speed_y).\nOrca will "
-            //             "automatically cap the print speed to ensure it doesn't surpass the printer's capabilities.\nYou can adjust the "
-            //             "maximum speed setting in your printer's configuration to get higher speeds.");
-            //         warning->opt_key = warning_key;
-            //    }
-            // }
+                const auto max_junction_deviation = m_config.machine_max_junction_deviation.values[0]; // TODO: fix this
+                const bool ignore_jerk_validation = m_config.gcode_flavor == gcfMarlinFirmware && max_junction_deviation > 0;
+
+                // check jerk
+                if (!ignore_jerk_validation) {
+                    if (m_default_object_config.default_jerk.get_at(extruder_id) == 1 || m_default_object_config.outer_wall_jerk.get_at(extruder_id) == 1 ||
+                        m_default_object_config.inner_wall_jerk.get_at(extruder_id) == 1) {
+                       motion_warning.string = L("Setting the jerk speed too low could lead to artifacts on curved surfaces");
+                       if (m_default_object_config.outer_wall_jerk.get_at(extruder_id) == 1)
+                            warning_key = "outer_wall_jerk";
+                       else if (m_default_object_config.inner_wall_jerk.get_at(extruder_id) == 1)
+                            warning_key = "inner_wall_jerk";
+                       else
+                            warning_key = "default_jerk";
+
+                       motion_warning.opt_key = warning_key;
+                    }
+
+                    if (warning_key.empty() && m_default_object_config.default_jerk.get_at(extruder_id) > 0) {
+                       std::vector<std::string> jerk_to_check = {"default_jerk",     "outer_wall_jerk",    "inner_wall_jerk", "infill_jerk",
+                                                                 "top_surface_jerk", "initial_layer_jerk", "travel_jerk"};
+                       const auto               max_jerk = std::min(m_config.machine_max_jerk_x.values[0], m_config.machine_max_jerk_y.values[0]);
+                       warning_key.clear();
+                       warning_key = check_motion_ability_object_setting(jerk_to_check, max_jerk);
+                       if (!warning_key.empty()) {
+                            motion_warning.string = L(
+                                "The jerk setting exceeds the printer's maximum jerk (machine_max_jerk_x/machine_max_jerk_y).\n"
+                                "Orca will automatically cap the jerk speed to ensure it doesn't surpass the printer's capabilities.\n"
+                                "You can adjust the maximum jerk setting in your printer's configuration to get higher speeds.");
+                            motion_warning.opt_key = warning_key;
+                       }
+                    }
+                }
+
+                // Check junction deviation
+                // Orca: Only marlin FW supports max junction deviation. Dont display warning if firmware is not supporting it.
+                const bool support_max_junction_deviation = ( m_config.gcode_flavor == gcfMarlinFirmware);
+                if (warning_key.empty() && m_default_object_config.default_junction_deviation.get_at(extruder_id) > max_junction_deviation && support_max_junction_deviation) {
+                    motion_warning.string  = L( "Junction deviation setting exceeds the printer's maximum value (machine_max_junction_deviation).\n"
+                                          "Orca will automatically cap the junction deviation to ensure it doesn't surpass the printer's capabilities.\n"
+                                          "You can adjust the machine_max_junction_deviation value in your printer's configuration to get higher limits.");
+                    motion_warning.opt_key = "default_junction_deviation";
+                }
+                
+                // check acceleration
+                const auto max_accel = m_config.machine_max_acceleration_extruding.values[0];
+                if (warning_key.empty() && m_default_object_config.default_acceleration.get_at(extruder_id) > 0 && max_accel > 0) {
+                   const bool support_travel_acc = (m_config.gcode_flavor == gcfRepetier || m_config.gcode_flavor == gcfMarlinFirmware ||
+                                                    m_config.gcode_flavor == gcfRepRapFirmware);
+
+                   std::vector<std::string> accel_to_check;
+                   if (!support_travel_acc)
+                        accel_to_check = {
+                            "default_acceleration",
+                            "inner_wall_acceleration",
+                            "outer_wall_acceleration",
+                            "bridge_acceleration",
+                            "initial_layer_acceleration",
+                            "sparse_infill_acceleration",
+                            "internal_solid_infill_acceleration",
+                            "top_surface_acceleration",
+                            "travel_acceleration",
+                        };
+                   else
+                        accel_to_check = {
+                            "default_acceleration",
+                            "inner_wall_acceleration",
+                            "outer_wall_acceleration",
+                            "bridge_acceleration",
+                            "initial_layer_acceleration",
+                            "sparse_infill_acceleration",
+                            "internal_solid_infill_acceleration",
+                            "top_surface_acceleration",
+                        };
+                   warning_key = check_motion_ability_object_setting(accel_to_check, max_accel);
+                   if (!warning_key.empty()) {
+                        motion_warning.string  = L("The acceleration setting exceeds the printer's maximum acceleration "
+                                              "(machine_max_acceleration_extruding).\nOrca will "
+                                              "automatically cap the acceleration speed to ensure it doesn't surpass the printer's "
+                                              "capabilities.\nYou can adjust the "
+                                              "machine_max_acceleration_extruding value in your printer's configuration to get higher speeds.");
+                        motion_warning.opt_key = warning_key;
+                   }
+                   if (support_travel_acc) {
+                        const auto max_travel = m_config.machine_max_acceleration_travel.values[0];
+                        if (max_travel > 0) {
+                            accel_to_check = {
+                                "travel_acceleration",
+                            };
+                            warning_key = check_motion_ability_object_setting(accel_to_check, max_travel);
+                            if (!warning_key.empty()) {
+                                motion_warning.string = L(
+                                    "The travel acceleration setting exceeds the printer's maximum travel acceleration "
+                                    "(machine_max_acceleration_travel).\nOrca will "
+                                    "automatically cap the travel acceleration speed to ensure it doesn't surpass the printer's "
+                                    "capabilities.\nYou can adjust the "
+                                    "machine_max_acceleration_travel value in your printer's configuration to get higher speeds.");
+                                motion_warning.opt_key = warning_key;
+                            }
+                        }
+                   }
+                }
+
+                // check speed
+                // Orca: disable the speed check for now as we don't cap the speed
+                // if (warning_key.empty()) {
+                //    auto       speed_to_check = {"inner_wall_speed",  "outer_wall_speed", "sparse_infill_speed",   "internal_solid_infill_speed",
+                //                                 "top_surface_speed", "bridge_speed",     "internal_bridge_speed", "gap_infill_speed"};
+                //    const auto max_speed      = std::min(m_config.machine_max_speed_x.values[0], m_config.machine_max_speed_y.values[0]);
+                //    warning_key.clear();
+                //    warning_key = check_motion_ability_region_setting(speed_to_check, max_speed);
+                //    if (warning_key.empty() && m_config.travel_speed > max_speed)
+                //         warning_key = "travel_speed";
+                //    if (!warning_key.empty()) {
+                //         motion_warning.string = L(
+                //             "The speed setting exceeds the printer's maximum speed (machine_max_speed_x/machine_max_speed_y).\nOrca will "
+                //             "automatically cap the print speed to ensure it doesn't surpass the printer's capabilities.\nYou can adjust the "
+                //             "maximum speed setting in your printer's configuration to get higher speeds.");
+                //         motion_warning.opt_key = warning_key;
+                //    }
+                // }
+            };
+            check_extruder(0); // TODO: check used extruder variants
 
             // check wall sequence and precise outer wall
             if (m_default_region_config.precise_outer_wall && m_default_region_config.wall_sequence != WallSequence::InnerOuter)
                 warn(L("The precise wall option will be ignored for outer-inner or inner-outer-inner wall sequences."), "precise_outer_wall");
+
+            // check adaptive pressure advance model
+            for (unsigned int extruder_id : extruders) {
+                if (m_config.adaptive_pressure_advance.get_at(extruder_id) && 
+                    m_config.enable_pressure_advance.get_at(extruder_id)) {
+                    
+                    const std::string pa_model = m_config.adaptive_pressure_advance_model.get_at(extruder_id);
+                    if (!pa_model.empty()) {
+                        std::string validation_error = AdaptivePAProcessor::validate_adaptive_pa_model(pa_model);
+                        if (!validation_error.empty()) {
+                            warn(L("The Adaptive Pressure Advance model for one or more extruders may contain invalid values."),
+                                 "adaptive_pressure_advance_model");
+                            break;
+                        }
+                    }
+                }
+            }
 
         } catch (std::exception& e) {
             BOOST_LOG_TRIVIAL(warning) << "Orca: validate motion ability failed: " << e.what() << std::endl;
@@ -2021,21 +2047,23 @@ Flow Print::brim_flow() const
 
 Flow Print::skirt_flow() const
 {
+
+    // Orca: fall back to m_config if no objects are present
     ConfigOptionFloatOrPercent width = m_config.initial_layer_line_width;
     if (width.value <= 0)
-        width = m_objects.front()->config().line_width;
+        width = m_objects.empty() ? m_config.initial_layer_line_width : m_objects.front()->config().line_width;
 
     /* We currently use a random object's support material extruder.
        While this works for most cases, we should probably consider all of the support material
        extruders and take the one with, say, the smallest index;
        The same logic should be applied to the code that selects the extruder during G-code
        generation as well. */
-    return Flow::new_from_config_width(
-        frPerimeter,
-        // Flow::new_from_config_width takes care of the percent to value substitution
-		width,
-		(float)m_config.nozzle_diameter.get_at(m_objects.front()->config().support_filament-1),
-		(float)this->skirt_first_layer_height());
+    return Flow::new_from_config_width(frPerimeter,
+                                       // Flow::new_from_config_width takes care of the percent to value substitution
+                                       width,
+                                       (float) m_config.nozzle_diameter.get_at(
+                                           m_objects.empty() ? 0 : m_objects.front()->config().support_filament - 1),
+                                       (float) this->skirt_first_layer_height());
 }
 
 bool Print::has_support_material() const
@@ -2438,17 +2466,13 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             start_time = (long long)Slic3r::Utils::get_current_time_utc();
 
         m_skirt.clear();
+        m_skirt_brim_groups.clear();
+        m_has_shared_per_object_skirt = false;
         m_skirt_convex_hull.clear();
+        m_objectBrimAreas.clear();
+        m_supportBrimAreas.clear();
         m_first_layer_convex_hull.points.clear();
         for (PrintObject *object : m_objects)  object->m_skirt.clear();
-
-        const bool draft_shield = config().draft_shield != dsDisabled;
-
-        if (this->has_skirt() && draft_shield) {
-            // In case that draft shield is active, generate skirt first so brim
-            // can be trimmed to make room for it.
-            _make_skirt();
-        }
 
         //BBS: get the objects' indices when GCodes are generated
         ToolOrdering tool_ordering;
@@ -2532,7 +2556,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         if (this->has_brim()) {
             Polygons islands_area;
             make_brim(*this, this->make_try_cancel(), islands_area, m_brimMap,
-                m_supportBrimMap, objPrintVec, printExtruders);
+                m_supportBrimMap, objPrintVec, printExtruders, &m_objectBrimAreas, &m_supportBrimAreas);
             for (Polygon& poly_ex : islands_area)
                 poly_ex.douglas_peucker(SCALED_RESOLUTION);
             for (Polygon &poly : union_(this->first_layer_islands(), islands_area))
@@ -2540,11 +2564,16 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
 
 
-        if (has_skirt() && ! draft_shield) {
-            // In case that draft shield is NOT active, generate skirt now.
-            // It will be placed around the brim, so brim has to be ready.
+        if (has_skirt() || has_infinite_skirt() || has_brim()) {
+            // Generate skirt/brim groups after brim so per-object and draft-shield footprints
+            // include brims when grouping and offsetting skirt loops.
             assert(m_skirt.empty());
             _make_skirt();
+            if (m_config.print_sequence == PrintSequence::ByObject &&
+                m_config.skirt_type == stPerObject &&
+                this->has_shared_per_object_skirt()) {
+                throw Slic3r::SlicingError(L("Per-object skirts cannot fit between the objects in By object print sequence.\n\nMove the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."));
+            }
         }
 
         this->finalize_first_layer_convex_hull();
@@ -2636,6 +2665,8 @@ std::string Print::export_gcode(const std::string& path_template, GCodeProcessor
 
 void Print::_make_skirt()
 {
+    const bool generate_skirt = this->has_skirt() || this->has_infinite_skirt();
+
     // First off we need to decide how tall the skirt must be.
     // The skirt_height option from config is expressed in layers, but our
     // object might have different layer heights, so we need to find the print_z
@@ -2647,23 +2678,27 @@ void Print::_make_skirt()
     // prepended to the first 'n' layers (with 'n' = skirt_height).
     // $skirt_height_z in this case is the highest possible skirt height for safety.
     coordf_t skirt_height_z = 0.;
-    for (const PrintObject *object : m_objects) {
-        size_t skirt_layers = this->has_infinite_skirt() ?
-            object->layer_count() :
-            std::min(size_t(m_config.skirt_height.value), object->layer_count());
-        skirt_height_z = std::max(skirt_height_z, object->m_layers[skirt_layers-1]->print_z);
+    if (generate_skirt) {
+        for (const PrintObject *object : m_objects) {
+            size_t skirt_layers = this->has_infinite_skirt() ?
+                object->layer_count() :
+                std::min(size_t(m_config.skirt_height.value), object->layer_count());
+            skirt_height_z = std::max(skirt_height_z, object->m_layers[skirt_layers-1]->print_z);
+        }
     }
 
-    // Collect points from all layers contained in skirt height.
-    Points points;
+    struct ObjectSkirtHull {
+        PrintObject* object;
+        Polygon      hull;
+    };
 
-    // BBS
-    std::map<PrintObject*, Polygon> object_convex_hulls;
+    // Orca: build one local occupied hull per object from object and support geometry up to skirt height.
+    std::vector<ObjectSkirtHull> object_convex_hulls;
     for (PrintObject *object : m_objects) {
         Points object_points;
         // Get object layers up to skirt_height_z.
         for (const Layer *layer : object->m_layers) {
-            if (layer->print_z > skirt_height_z)
+            if (generate_skirt && layer->print_z > skirt_height_z)
                 break;
             for (const ExPolygon &expoly : layer->lslices)
                 // Collect the outer contour points only, ignore holes for the calculation of the convex hull.
@@ -2671,35 +2706,18 @@ void Print::_make_skirt()
         }
         // Get support layers up to skirt_height_z.
         for (const SupportLayer *layer : object->support_layers()) {
-            if (layer->print_z > skirt_height_z)
+            if (generate_skirt && layer->print_z > skirt_height_z)
                 break;
             layer->support_fills.collect_points(object_points);
         }
 
-        object_convex_hulls.insert({ object, Slic3r::Geometry::convex_hull(object_points) });
-
-        // Repeat points for each object copy.
-        for (const PrintInstance &instance : object->instances()) {
-            Points copy_points = object_points;
-            for (Point &pt : copy_points)
-                pt += instance.shift;
-            append(points, copy_points);
-        }
+        object_convex_hulls.push_back({ object, Slic3r::Geometry::convex_hull(object_points) });
     }
 
-    // Include the wipe tower.
-    append(points, this->first_layer_wipe_tower_corners());
-
-    // Unless draft shield is enabled, include all brims as well.
-    if (config().draft_shield == dsDisabled)
-        append(points, m_first_layer_convex_hull.points);
-
-    if (points.size() < 3)
-        // At least three points required for a convex hull.
+    if (object_convex_hulls.empty())
         return;
 
     this->throw_if_canceled();
-    Polygon convex_hull = Slic3r::Geometry::convex_hull(points);
 
     // Skirt may be printed on several layers, having distinct layer heights,
     // but loops must be aligned so can't vary width/spacing
@@ -2721,13 +2739,13 @@ void Print::_make_skirt()
         }
     }
 
-    // Initial offset of the brim inner edge from the object (possible with a support & raft).
-    // The skirt will touch the brim if the brim is extruded.
-    auto   distance = float(scale_(m_config.skirt_distance.value - spacing/2.));
-    // Draw outlines from outside to inside.
+    // Initial skirt centerline offset from the occupied outline.
+    // The skirt will touch the occupied outline if skirt_distance is zero.
+    // Generate loops inward to outward; callers reverse them before G-code export.
     // Loop while we have less skirts than required or any extruder hasn't reached the min length if any.
-    std::vector<coordf_t> extruded_length(extruders.size(), 0.);
-    if (m_config.skirt_type == stCombined) {
+    auto append_skirt_loops_for_hull = [&](const Polygon& hull, ExtrusionEntityCollection& dst, bool collect_skirt_hull) {
+        float distance = float(scale_(m_config.skirt_distance.value - spacing/2.));
+        std::vector<coordf_t> extruded_length(extruders.size(), 0.);
         for (size_t i = m_config.skirt_loops, extruder_idx = 0; i > 0; -- i) {
             this->throw_if_canceled();
             // Offset the skirt outside.
@@ -2735,8 +2753,8 @@ void Print::_make_skirt()
             // Generate the skirt centerline.
             Polygon loop;
             {
-                // BBS. skirt_distance is defined as the gap between skirt and outer most brim, so no need to add max_brim_width
-                Polygons loops = offset(convex_hull, distance, ClipperLib::jtRound, float(scale_(0.1)));
+                // Orca: the hull already represents the occupied outline used for this skirt.
+                Polygons loops = offset(hull, distance, ClipperLib::jtRound, float(scale_(0.1)));
                 Geometry::simplify_polygons(loops, scale_(0.05), &loops);
 			    if (loops.empty())
 				    break;
@@ -2752,7 +2770,7 @@ void Print::_make_skirt()
 				    (float)initial_layer_print_height  // this will be overridden at G-code export time
                 )));
             eloop.paths.back().polyline = Polyline3(loop.split_at_first_point());
-            m_skirt.append(eloop);
+            dst.append(eloop);
             if (m_config.min_skirt_length.value > 0) {
                 // The skirt length is limited. Sum the total amount of filament length extruded, in mm.
                 extruded_length[extruder_idx] += unscale<double>(loop.length()) * extruders_e_per_mm[extruder_idx];
@@ -2768,69 +2786,228 @@ void Print::_make_skirt()
                         ++ extruder_idx;
                 }
             } else {
-                // The skirt lenght is not limited, extrude the skirt with the 1st extruder only.
+                // The skirt length is not limited, extrude the skirt with the 1st extruder only.
             }
         }
-    } else {
-        m_skirt.clear();
-    }
-    // Brims were generated inside out, reverse to print the outmost contour first.
-    m_skirt.reverse();
 
-    // Remember the outer edge of the last skirt line extruded as m_skirt_convex_hull.
-    for (Polygon &poly : offset(convex_hull, distance + 0.5f * float(scale_(spacing)), ClipperLib::jtRound, float(scale_(0.1))))
-        append(m_skirt_convex_hull, std::move(poly.points));
+        if (collect_skirt_hull)
+            for (Polygon &poly : offset(hull, distance + 0.5f * float(scale_(spacing)), ClipperLib::jtRound, float(scale_(0.1))))
+                append(m_skirt_convex_hull, std::move(poly.points));
+    };
 
-    if (m_config.skirt_type == stPerObject) {
-        // BBS
-        for (auto obj_cvx_hull : object_convex_hulls) {
-            double object_skirt_distance = float(scale_(m_config.skirt_distance.value - spacing/2.));
-            PrintObject* object = obj_cvx_hull.first;
-            object->m_skirt.clear();
-            extruded_length.assign(extruded_length.size(), 0.);
-            for (size_t i = m_config.skirt_loops.value, extruder_idx = 0; i > 0; -- i) {
-                object_skirt_distance += float(scale_(spacing));
-                Polygon loop;
-                {
-                    // BBS. skirt_distance is defined as the gap between skirt and outer most brim, so no need to add max_brim_width
-                    Polygons loops = offset(obj_cvx_hull.second, object_skirt_distance, ClipperLib::jtRound, float(scale_(0.1)));
-                    Geometry::simplify_polygons(loops, scale_(0.05), &loops);
-                    if (loops.empty())
-                        break;
-                    loop = loops.front();
-                }
+    m_skirt.clear();
+    m_skirt_brim_groups.clear();
+    m_has_shared_per_object_skirt = false;
+    for (const ObjectSkirtHull& object_hull : object_convex_hulls)
+        object_hull.object->m_skirt.clear();
 
-                // Extrude the skirt loop.
-                ExtrusionLoop eloop(elrSkirt);
-                eloop.paths.emplace_back(ExtrusionPath(
-                    ExtrusionPath(
-                        erSkirt,
-                        (float)mm3_per_mm,         // this will be overridden at G-code export time
-                        flow.width(),
-                        (float)initial_layer_print_height  // this will be overridden at G-code export time
-                    )));
-                eloop.paths.back().polyline = Polyline3(loop.split_at_first_point());
-                object->m_skirt.append(std::move(eloop));
-                if (m_config.min_skirt_length.value > 0) {
-                    // The skirt length is limited. Sum the total amount of filament length extruded, in mm.
-                    extruded_length[extruder_idx] += unscale<double>(loop.length()) * extruders_e_per_mm[extruder_idx];
-                    if (extruded_length[extruder_idx] < m_config.min_skirt_length.value) {
-                        // Not extruded enough yet with the current extruder. Add another loop.
-                        if (i == 1)
-                            ++ i;
-                    } else {
-                        assert(extruded_length[extruder_idx] >= m_config.min_skirt_length.value);
-                        // Enough extruded with the current extruder. Extrude with the next one,
-                        // until the prescribed number of skirt loops is extruded.
-                        if (extruder_idx + 1 < extruders.size())
-                            ++ extruder_idx;
-                    }
-                } else {
-                    // The skirt lenght is not limited, extrude the skirt with the 1st extruder only.
-                }
+    if (m_config.skirt_type == stCombined || m_config.skirt_type == stPerObject) {
+        struct SkirtGroupItem {
+            Points       occupied_points;
+            ObjectID     object_id;
+            bool         emits_skirt;
+        };
 
+        // Orca: group items represent occupied first-layer areas. Object items emit skirts;
+        // obstacle-only items, such as wipe tower, only force nearby object groups to merge.
+        std::vector<SkirtGroupItem> group_items;
+        const coord_t grouping_offset = scale_(m_config.skirt_distance.value + m_config.skirt_loops.value * spacing);
+        for (const ObjectSkirtHull& object_hull : object_convex_hulls) {
+            PrintObject* object = object_hull.object;
+            Points occupied_points;
+            for (const PrintInstance &instance : object->instances()) {
+                Points copy_points = object_hull.hull.points;
+                for (Point &pt : copy_points)
+                    pt += instance.shift;
+                append(occupied_points, copy_points);
             }
-            object->m_skirt.reverse();
+
+            auto append_brim_points = [&occupied_points](const ExPolygons& areas) {
+                for (const ExPolygon& area : areas)
+                    append(occupied_points, area.contour.points);
+            };
+            if (auto it = m_objectBrimAreas.find(object->id()); it != m_objectBrimAreas.end())
+                append_brim_points(it->second);
+            if (auto it = m_supportBrimAreas.find(object->id()); it != m_supportBrimAreas.end())
+                append_brim_points(it->second);
+            if (occupied_points.size() < 3)
+                continue;
+
+            // Orca: include the object's brim/support-brim footprint before checking skirt collisions.
+            group_items.push_back({ std::move(occupied_points), object->id(), true });
+        }
+
+        // Orca: the wipe tower contributes occupied area, but does not emit a skirt by itself.
+        Points wipe_tower_points = this->first_layer_wipe_tower_corners();
+        if (wipe_tower_points.size() >= 3)
+            group_items.push_back({ std::move(wipe_tower_points), ObjectID(), false });
+
+        std::vector<size_t> parent(group_items.size());
+        std::iota(parent.begin(), parent.end(), 0);
+        // Orca: union-find keeps collision merging local without repeatedly rebuilding item lists.
+        auto find_parent = [&parent](size_t idx) {
+            while (parent[idx] != idx) {
+                parent[idx] = parent[parent[idx]];
+                idx = parent[idx];
+            }
+            return idx;
+        };
+        auto unite = [&parent, &find_parent](size_t a, size_t b) {
+            a = find_parent(a);
+            b = find_parent(b);
+            if (a != b)
+                parent[b] = a;
+        };
+
+        // Orca: combined skirt is the same grouping model with all items forced into one group.
+        if (m_config.skirt_type == stCombined && !group_items.empty())
+            for (size_t i = 1; i < group_items.size(); ++i)
+                unite(0, i);
+
+        auto build_grouped_points = [&]() {
+            struct GroupData {
+                Points                points;
+                std::vector<ObjectID> object_ids;
+                bool                  emits_skirt = false;
+            };
+
+            std::map<size_t, GroupData> grouped;
+            for (size_t i = 0; i < group_items.size(); ++i) {
+                GroupData& group = grouped[find_parent(i)];
+                append(group.points, group_items[i].occupied_points);
+                if (group_items[i].object_id.valid())
+                    group.object_ids.push_back(group_items[i].object_id);
+                group.emits_skirt = group.emits_skirt || group_items[i].emits_skirt;
+            }
+            return grouped;
+        };
+
+        bool groups_changed = m_config.skirt_type == stPerObject;
+        while (groups_changed) {
+            groups_changed = false;
+            auto grouped_points = build_grouped_points();
+            std::vector<std::pair<size_t, Polygon>> group_envelopes;
+            for (const auto& [root, group] : grouped_points) {
+                if (group.points.size() < 3)
+                    continue;
+
+                // Orca: emitting groups are expanded to their final skirt reach; obstacle groups are not.
+                Polygon envelope = Geometry::convex_hull(group.points);
+                if (group.emits_skirt) {
+                    // Orca: merge groups when a skirt envelope intersects another group or obstacle.
+                    Polygons envelopes = offset(envelope, grouping_offset, ClipperLib::jtRound, float(scale_(0.1)));
+                    if (envelopes.empty())
+                        continue;
+                    envelope = std::move(envelopes.front());
+                }
+                group_envelopes.emplace_back(root, std::move(envelope));
+            }
+
+            for (size_t i = 0; i < group_envelopes.size(); ++i) {
+                for (size_t j = i + 1; j < group_envelopes.size(); ++j) {
+                    const size_t root_i = find_parent(group_envelopes[i].first);
+                    const size_t root_j = find_parent(group_envelopes[j].first);
+                    if (root_i != root_j && !intersection(group_envelopes[i].second, group_envelopes[j].second).empty()) {
+                        unite(root_i, root_j);
+                        groups_changed = true;
+                    }
+                }
+            }
+        }
+
+        auto make_group_brims = [this](const std::vector<ObjectID>& group_object_ids) {
+            std::vector<SkirtBrimGroup::Brim> brims;
+            std::vector<ObjectID> brim_object_ids;
+            for (ObjectID object_id : group_object_ids) {
+                const auto brim_it = m_brimMap.find(object_id);
+                if (brim_it != m_brimMap.end() && !brim_it->second.empty())
+                    brim_object_ids.push_back(object_id);
+            }
+
+            const bool global_combined_brim = m_config.combine_brims && m_config.skirt_type != stPerObject && m_brimMap.size() == 1;
+            auto brim_owner_ids = [&group_object_ids, global_combined_brim](const std::vector<ObjectID>& object_ids) {
+                return global_combined_brim ? group_object_ids : object_ids;
+            };
+
+            const bool combine_group_brims = m_config.combine_brims && brim_object_ids.size() > 1;
+            if (!combine_group_brims) {
+                for (ObjectID object_id : brim_object_ids)
+                    brims.push_back({ m_brimMap.at(object_id), brim_owner_ids({ object_id }) });
+                return brims;
+            }
+
+            std::vector<size_t> brim_parent(brim_object_ids.size());
+            std::iota(brim_parent.begin(), brim_parent.end(), 0);
+            auto find_brim_parent = [&brim_parent](size_t idx) {
+                while (brim_parent[idx] != idx) {
+                    brim_parent[idx] = brim_parent[brim_parent[idx]];
+                    idx = brim_parent[idx];
+                }
+                return idx;
+            };
+            auto unite_brims = [&brim_parent, &find_brim_parent](size_t a, size_t b) {
+                a = find_brim_parent(a);
+                b = find_brim_parent(b);
+                if (a != b)
+                    brim_parent[b] = a;
+            };
+
+            const coord_t brim_contact_distance = coord_t(brim_flow().scaled_spacing() * 2.);
+            for (size_t i = 0; i < brim_object_ids.size(); ++i) {
+                const auto area_i = m_objectBrimAreas.find(brim_object_ids[i]);
+                if (area_i == m_objectBrimAreas.end())
+                    continue;
+                for (size_t j = i + 1; j < brim_object_ids.size(); ++j) {
+                    const auto area_j = m_objectBrimAreas.find(brim_object_ids[j]);
+                    if (area_j != m_objectBrimAreas.end() &&
+                        !intersection_ex(offset_ex(area_i->second, brim_contact_distance, jtRound, SCALED_RESOLUTION), area_j->second).empty())
+                        unite_brims(i, j);
+                }
+            }
+
+            std::map<size_t, std::vector<ObjectID>> combined_brim_ids;
+            for (size_t i = 0; i < brim_object_ids.size(); ++i)
+                combined_brim_ids[find_brim_parent(i)].push_back(brim_object_ids[i]);
+
+            for (const auto& [_, object_ids] : combined_brim_ids) {
+                if (object_ids.size() == 1) {
+                    brims.push_back({ m_brimMap.at(object_ids.front()), brim_owner_ids(object_ids) });
+                    continue;
+                }
+
+                ExPolygons combined_area;
+                for (ObjectID object_id : object_ids)
+                    expolygons_append(combined_area, m_objectBrimAreas.at(object_id));
+                combined_area = union_ex(combined_area);
+                const float scaled_resolution  = float(scaled(m_config.resolution.value));
+                const float brim_cleanup_delta = std::max(scaled_resolution, float(SCALED_EPSILON));
+                combined_area = offset2_ex(combined_area, brim_cleanup_delta, -brim_cleanup_delta, jtRound, scaled_resolution);
+
+                Polygons islands_area;
+                brims.push_back({ makeBrimInfillFromPlateCoordinates(combined_area, *this, islands_area), object_ids });
+            }
+
+            return brims;
+        };
+
+        auto grouped_points = build_grouped_points();
+        for (auto& [_, group] : grouped_points) {
+            if (!group.emits_skirt || group.points.size() < 3)
+                continue;
+            if (generate_skirt && m_config.skirt_type == stPerObject && group.object_ids.size() > 1)
+                m_has_shared_per_object_skirt = true;
+            // Orca: after merging, use the occupied outline directly; do not add skirt distance twice.
+            ExtrusionEntityCollection group_skirt;
+            if (generate_skirt)
+                append_skirt_loops_for_hull(Geometry::convex_hull(group.points), group_skirt, true);
+            std::vector<SkirtBrimGroup::Brim> group_brims = make_group_brims(group.object_ids);
+            if (!group_skirt.empty()) {
+                group_skirt.reverse();
+                // Orca: keep m_skirt as a flattened compatibility mirror for preview/extents.
+                m_skirt.append(group_skirt.entities);
+            }
+            if (!group_skirt.empty() || !group_brims.empty())
+                m_skirt_brim_groups.push_back({ std::move(group_skirt), std::move(group.object_ids), std::move(group_brims) });
         }
     }
 }
@@ -3619,7 +3796,7 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
 
 std::tuple<float, float> Print::object_skirt_offset(double margin_height) const
 {
-    if (config().skirt_loops == 0 || config().skirt_type != stPerObject)
+    if (config().skirt_loops == 0 || config().skirt_type != stPerObject || m_objects.empty())
         return std::make_tuple(0, 0);
     
     float max_nozzle_diameter = *std::max_element(m_config.nozzle_diameter.values.begin(), m_config.nozzle_diameter.values.end());

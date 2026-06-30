@@ -3,7 +3,7 @@
 	"name": "Chuanying Generic TPU",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "HYciEf4160uMYGnH",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [

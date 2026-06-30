@@ -3,7 +3,7 @@
 	"name": "Voron 2.4 350 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "b1Bu76BOqWx9hn8u",
 	"instantiation": "true",
 	"printer_model": "Voron 2.4 350",
 	"default_print_profile": "0.20mm Standard @Voron",

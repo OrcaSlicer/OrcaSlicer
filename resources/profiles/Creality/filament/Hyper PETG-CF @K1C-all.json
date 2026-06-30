@@ -3,7 +3,7 @@
     "name": "Hyper PETG-CF @K1C-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "Qb08ZrBwuO8zt4AH",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

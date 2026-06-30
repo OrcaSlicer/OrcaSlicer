@@ -3,7 +3,7 @@
 	"name": "DeltaMaker Generic TPU",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "2L1U33wC0LofrMWs",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

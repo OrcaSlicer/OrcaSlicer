@@ -9,12 +9,28 @@
 #include "libslic3r/MaterialType.hpp"
 #include "MsgDialog.hpp"
 #include "libslic3r/PrintConfig.hpp"
+#include "libslic3r/GCode/AdaptivePAProcessor.hpp"
 #include "Plater.hpp"
 
+#include <sstream>
 #include <wx/msgdlg.h>
 
 namespace Slic3r {
 namespace GUI {
+
+namespace {
+
+std::string trim_copy(const std::string& text)
+{
+    const auto first = text.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos)
+        return {};
+
+    const auto last = text.find_last_not_of(" \t\r\n");
+    return text.substr(first, last - first + 1);
+}
+
+} // namespace
 
 void ConfigManipulation::apply(DynamicPrintConfig* config, DynamicPrintConfig* new_config)
 {
@@ -141,6 +157,30 @@ void ConfigManipulation::check_nozzle_temperature_initial_layer_range(DynamicPri
     }
 }
 
+void ConfigManipulation::check_adaptive_pressure_advance_model(DynamicPrintConfig* config)
+{
+    if (is_msg_dlg_already_exist || !config->has("adaptive_pressure_advance_model"))
+        return;
+
+    const auto* model = config->option<ConfigOptionStrings>("adaptive_pressure_advance_model");
+    if (model == nullptr || model->values.empty())
+        return;
+
+    std::string raw_model;
+    for (const std::string& chunk : model->values)
+        raw_model += chunk;
+
+    std::string error = AdaptivePAProcessor::validate_adaptive_pa_model(raw_model);
+    if (!error.empty()) {
+        wxString msg_text = _L("Adaptive Pressure Advance model validation failed:\n");
+        msg_text += from_u8(error);
+        MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
+        is_msg_dlg_already_exist = true;
+        dialog.ShowModal();
+        is_msg_dlg_already_exist = false;
+    }
+}
+
 
 void ConfigManipulation::check_filament_max_volumetric_speed(DynamicPrintConfig *config)
 {
@@ -176,6 +216,30 @@ void ConfigManipulation::check_chamber_temperature(DynamicPrintConfig* config)
                 dialog.ShowModal();
                 is_msg_dlg_already_exist = false;
             }
+        }
+    }
+}
+
+void ConfigManipulation::check_chamber_minimal_temperature(DynamicPrintConfig* config)
+{
+    // Orca: the minimal chamber temperature is a "start printing" threshold that is passed to the
+    // print start macro. It must not exceed the target chamber temperature, otherwise the macro
+    // could wait forever for a temperature the heater is never asked to reach.
+    if (config->has("chamber_minimal_temperature") && config->has("chamber_temperature")) {
+        const int chamber_min_temp    = config->option<ConfigOptionInts>("chamber_minimal_temperature")->get_at(0);
+        const int chamber_target_temp = config->option<ConfigOptionInts>("chamber_temperature")->get_at(0);
+        if (chamber_min_temp > chamber_target_temp) {
+            wxString msg_text = wxString::Format(_L("The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). "
+                                                    "The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, "
+                                                    "so it should not exceed it. It will be clamped to the target."),
+                                                 chamber_min_temp, chamber_target_temp);
+            MessageDialog dialog(m_msg_dlg_parent, msg_text, "", wxICON_WARNING | wxOK);
+            DynamicPrintConfig new_conf = *config;
+            is_msg_dlg_already_exist    = true;
+            dialog.ShowModal();
+            new_conf.set_key_value("chamber_minimal_temperature", new ConfigOptionInts({chamber_target_temp}));
+            apply(config, &new_conf);
+            is_msg_dlg_already_exist = false;
         }
     }
 }
@@ -555,7 +619,7 @@ void ConfigManipulation::apply_null_fff_config(DynamicPrintConfig *config, std::
     }
 }
 
-void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, const bool is_global_config)
+void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, int variant_index, const bool is_global_config)
 {
     PresetBundle *preset_bundle  = wxGetApp().preset_bundle;
 
@@ -579,9 +643,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
 
     bool have_perimeters = config->opt_int("wall_loops") > 0;
     for (auto el : { "extra_perimeters_on_overhangs", "ensure_vertical_shell_thickness", "detect_thin_wall", "detect_overhang_wall",
-        "seam_position", "staggered_inner_seams", "wall_sequence", "outer_wall_line_width",
-        "inner_wall_speed", "outer_wall_speed", "small_perimeter_speed", "small_perimeter_threshold" })
+        "seam_position", "staggered_inner_seams", "wall_sequence", "outer_wall_line_width" })
         toggle_field(el, have_perimeters);
+    for (auto el : { "inner_wall_speed", "outer_wall_speed", "small_perimeter_speed", "small_perimeter_threshold" })
+        toggle_field(el, have_perimeters, variant_index);
 
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament_id uses the same logic as in Print::extruders()
@@ -647,50 +712,47 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     toggle_field("bottom_surface_density", has_bottom_shell);
 
     for (auto el : { "infill_direction", "sparse_infill_line_width", "gap_fill_target","filter_out_gap_fill","infill_wall_overlap",
-        "sparse_infill_speed", "bridge_speed", "internal_bridge_speed", "bridge_angle", "internal_bridge_angle", "relative_bridge_angle",
+        "bridge_angle", "internal_bridge_angle", "relative_bridge_angle",
         "solid_infill_direction", "solid_infill_rotate_template", "internal_solid_infill_pattern", "internal_solid_filament_id", "top_surface_filament_id", "bottom_surface_filament_id",
         })
         toggle_field(el, have_infill || has_solid_infill);
+    for (auto el : { "sparse_infill_speed", "bridge_speed", "internal_bridge_speed"})
+        toggle_field(el, have_infill || has_solid_infill, variant_index);
 
     toggle_field("top_shell_thickness", ! has_spiral_vase && has_top_shell);
     toggle_field("bottom_shell_thickness", ! has_spiral_vase && has_bottom_shell);
 
     // Gap fill is newly allowed in between perimeter lines even for empty infill (see GH #1476).
-    toggle_field("gap_infill_speed", have_perimeters);
+    toggle_field("gap_infill_speed", have_perimeters, variant_index);
+    
+    toggle_field("top_surface_line_width", has_top_shell);
+    toggle_field("top_surface_speed", has_top_shell, variant_index);
 
-    for (auto el : { "top_surface_line_width", "top_surface_speed" })
-        toggle_field(el, has_top_shell);
-
-    bool have_default_acceleration = config->opt_float("default_acceleration") > 0;
+    bool have_default_acceleration = config->opt_float_nullable("default_acceleration", variant_index) > 0;
 
     for (auto el : {"outer_wall_acceleration", "inner_wall_acceleration", "initial_layer_acceleration", "initial_layer_travel_acceleration",
         "top_surface_acceleration", "travel_acceleration", "bridge_acceleration", "sparse_infill_acceleration", "internal_solid_infill_acceleration"})
-        toggle_field(el, have_default_acceleration);
+        toggle_field(el, have_default_acceleration, variant_index);
 
-    const bool junction_deviation_enabled =
-        gcf_is_marlin_firmware &&
-        [&]() {
-            const auto *machine_jd = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation");
-            return machine_jd && !machine_jd->values.empty() && machine_jd->values.front() > 0.0;
-        }();
-
-    toggle_line("default_junction_deviation", gcf_is_marlin_firmware);
-    toggle_field("default_junction_deviation", junction_deviation_enabled);
-    toggle_field("default_jerk", !junction_deviation_enabled);
-
-    const std::initializer_list<const char*> jerk_options = {
-        "outer_wall_jerk", "inner_wall_jerk", "initial_layer_jerk",
-        "initial_layer_travel_jerk", "top_surface_jerk", "travel_jerk", "infill_jerk"
-    };
-
-    if (junction_deviation_enabled) {
-        for (auto el : jerk_options)
-            toggle_line(el, false);
+    bool machine_supports_junction_deviation = false;
+    if (gcf_is_marlin_firmware) {
+        if (const auto *machine_jd = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloats>("machine_max_junction_deviation")) {
+            machine_supports_junction_deviation = !machine_jd->values.empty() && machine_jd->values.front() > 0.0;
+        }
+    }
+    toggle_line("default_junction_deviation", gcf_is_marlin_firmware, variant_index);
+    if (machine_supports_junction_deviation) {
+        toggle_field("default_junction_deviation", true, variant_index);
+        toggle_field("default_jerk", false, variant_index);
+        for (auto el : { "outer_wall_jerk", "inner_wall_jerk", "initial_layer_jerk", "initial_layer_travel_jerk", "top_surface_jerk", "travel_jerk", "infill_jerk"})
+            toggle_line(el, false, variant_index);
     } else {
-        const bool have_default_jerk = config->has("default_jerk") && config->opt_float("default_jerk") > 0;
-        for (auto el : jerk_options) {
-            toggle_line(el, true);
-            toggle_field(el, have_default_jerk);
+        toggle_field("default_junction_deviation", false, variant_index);
+        toggle_field("default_jerk", true, variant_index);
+        bool have_default_jerk = config->has("default_jerk") && config->opt_float_nullable("default_jerk", variant_index) > 0;
+        for (auto el : { "outer_wall_jerk", "inner_wall_jerk", "initial_layer_jerk", "initial_layer_travel_jerk", "top_surface_jerk", "travel_jerk", "infill_jerk"}) {
+            toggle_line(el, true, variant_index);
+            toggle_field(el, have_default_jerk, variant_index);
         }
     }
 
@@ -864,11 +926,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, co
     for (auto el : {"first_layer_flow_ratio", "outer_wall_flow_ratio", "inner_wall_flow_ratio", "overhang_flow_ratio", "sparse_infill_flow_ratio", "internal_solid_infill_flow_ratio", "gap_fill_flow_ratio", "support_flow_ratio", "support_interface_flow_ratio"})
         toggle_line(el, has_set_other_flow_ratios);
 
-    bool has_overhang_speed = config->opt_bool("enable_overhang_speed");
+    bool has_overhang_speed = config->opt_bool_nullable("enable_overhang_speed", variant_index);
     for (auto el : {"overhang_1_4_speed", "overhang_2_4_speed", "overhang_3_4_speed", "overhang_4_4_speed"})
-        toggle_line(el, has_overhang_speed);
+        toggle_line(el, has_overhang_speed, variant_index);
 
-    toggle_line("slowdown_for_curled_perimeters", has_overhang_speed);
+    toggle_line("slowdown_for_curled_perimeters", has_overhang_speed, variant_index);
 
     toggle_line("flush_into_objects", !is_global_config);
 

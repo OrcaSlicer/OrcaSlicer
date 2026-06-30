@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PA-CF @MK3.5 0.8",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "b2fjpGuYwbeo7O9K",
 	"filament_id": "GFN98_3",
 	"instantiation": "true",
 	"filament_type": [

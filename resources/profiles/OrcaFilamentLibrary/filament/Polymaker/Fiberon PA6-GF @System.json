@@ -3,7 +3,7 @@
 	"name": "Fiberon PA6-GF @System",
 	"inherits": "Fiberon PA6-GF @base",
 	"from": "system",
-	"setting_id": "OGFSL51_00",
+	"setting_id": "XWAJ7Lf0AdyQMnG0",
 	"instantiation": "true",
 	"compatible_printers": []
 }
