@@ -97,12 +97,52 @@ json describe_tools()
                  {"params", json::array()}},
             json{{"name", "describe_scene"}, {"summary", "Feature tree + per-body bounding boxes of the Design document."},
                  {"params", json::array()}},
-            json{{"name", "extrude"}, {"summary", "Create a new solid: a centred rectangle sketch extruded to a depth."},
+            json{{"name", "extrude"}, {"summary", "Extrude a profile to a depth. Give an explicit closed `profile` (list of [x,y]) or default to a centred width x height rectangle."},
                  {"params", json::array({
                      json{{"name", "width"},    {"type", "number"}, {"unit", "mm"}, {"default", 20}, {"min", 0.01}},
                      json{{"name", "height"},   {"type", "number"}, {"unit", "mm"}, {"default", 20}, {"min", 0.01}},
                      json{{"name", "distance"}, {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
                      json{{"name", "plane"},    {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
+                     json{{"name", "profile"},  {"type", "array"}, {"description", "optional closed contour [[x,y],...] in plane mm; overrides width/height"}},
+                     json{{"name", "boolean"},  {"type", "string"}, {"enum", json::array({"new", "union", "subtract", "intersect"})}, {"default", "new"}},
+                 })}},
+            json{{"name", "revolve"}, {"summary", "Revolve a profile about a plane axis. Give an explicit `profile` offset from the axis (or a rectangle) — angle degrees about axis 0=plane X / 1=plane Y."},
+                 {"params", json::array({
+                     json{{"name", "width"},   {"type", "number"}, {"unit", "mm"}, {"default", 20}, {"min", 0.01}},
+                     json{{"name", "height"},  {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
+                     json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 360}},
+                     json{{"name", "axis"},    {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}},
+                     json{{"name", "flip"},    {"type", "boolean"}, {"default", false}},
+                     json{{"name", "plane"},   {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
+                     json{{"name", "profile"}, {"type", "array"}, {"description", "optional closed contour [[x,y],...] in plane mm; overrides width/height"}},
+                     json{{"name", "boolean"}, {"type", "string"}, {"enum", json::array({"new", "union", "subtract", "intersect"})}, {"default", "new"}},
+                 })}},
+            json{{"name", "fillet"}, {"summary", "Round a measured edge of the current body (edge id from query_topology)."},
+                 {"params", json::array({
+                     json{{"name", "edge"},   {"type", "integer"}},
+                     json{{"name", "radius"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
+                 })}},
+            json{{"name", "chamfer"}, {"summary", "Chamfer a measured edge of the current body (edge id from query_topology)."},
+                 {"params", json::array({
+                     json{{"name", "edge"},     {"type", "integer"}},
+                     json{{"name", "distance"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
+                 })}},
+            json{{"name", "hole"}, {"summary", "Drill a circular hole into the current body at (x,y) on a plane."},
+                 {"params", json::array({
+                     json{{"name", "diameter"}, {"type", "number"}, {"unit", "mm"}, {"default", 5}, {"min", 0.01}},
+                     json{{"name", "depth"},    {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
+                     json{{"name", "through"},  {"type", "boolean"}, {"default", false}},
+                     json{{"name", "x"},        {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "y"},        {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "plane"},    {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
+                 })}},
+            json{{"name", "boolean"}, {"summary", "Combine two bodies: union | subtract (tool from target) | intersect."},
+                 {"params", json::array({
+                     json{{"name", "op"},        {"type", "string"}, {"enum", json::array({"union", "subtract", "intersect"})}, {"default", "subtract"}},
+                     json{{"name", "target"},    {"type", "integer"}, {"default", 0}},
+                     json{{"name", "tool"},      {"type", "integer"}, {"default", 1}},
+                     json{{"name", "keep_tool"}, {"type", "boolean"}, {"default", false}},
+                     json{{"name", "tolerance"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
                  })}},
             json{{"name", "query_topology"}, {"summary", "Measured faces (centroid/normal/cylinder) and edges (length/circle) of a body."},
                  {"params", json::array({
@@ -170,6 +210,32 @@ json describe_scene(DesignPanel* panel)
 
 // --- Measure layer (read-only "evidence" half of the RE loop) ------------------
 inline json vec3(const Vec3d& v) { return json::array({v.x(), v.y(), v.z()}); }
+
+// Shared Build helpers.
+SketchPlane plane_from(const json& params, const CadDocument& doc)
+{
+    std::string n = params.value("plane", std::string("XY"));
+    SketchPlane pl = n == "XZ" ? SketchPlane::XZ() : n == "YZ" ? SketchPlane::YZ() : SketchPlane::XY();
+    pl.origin = doc.modeling_origin;   // land on the bed centre, like the GUI
+    return pl;
+}
+BooleanMode bool_from(const std::string& s)
+{
+    if (s == "union" || s == "add")       return BooleanMode::Add;
+    if (s == "subtract" || s == "cut")    return BooleanMode::Cut;
+    if (s == "intersect" || s == "common")return BooleanMode::Intersect;
+    return BooleanMode::New;
+}
+// Optional explicit closed profile: params["profile"] = [[x,y],...] in plane mm.
+// This is the Measure->Build bridge — feed a measured contour straight back.
+bool profile_from(const json& params, SketchProfile& out)
+{
+    if (!params.contains("profile")) return false;
+    out.points.clear();
+    for (const auto& p : params["profile"]) out.points.emplace_back(p[0].get<double>(), p[1].get<double>());
+    out.closed = true;
+    return out.points.size() >= 3;
+}
 
 // Resolve body index -> shape, throwing a clear error if out of range / null.
 const TopoDS_Shape& body_shape(DesignPanel* panel, const json& params)
@@ -365,28 +431,124 @@ json validate_against(DesignPanel* panel, const json& params)
 
 json action_extrude(DesignPanel* panel, const json& params)
 {
-    const double w = params.value("width", 20.0);
-    const double h = params.value("height", 20.0);
     const double d = params.value("distance", 10.0);
-    const std::string plane_name = params.value("plane", std::string("XY"));
-    if (w <= 0 || h <= 0 || d <= 0)
-        throw std::runtime_error("width, height and distance must be > 0");
-
+    if (d <= 0) throw std::runtime_error("distance must be > 0");
     CadDocument& doc = panel->mcp_doc();
-    SketchPlane pl = plane_name == "XZ" ? SketchPlane::XZ()
-                   : plane_name == "YZ" ? SketchPlane::YZ()
-                                        : SketchPlane::XY();
-    pl.origin = doc.modeling_origin;   // land on the bed centre, like the GUI
+    SketchPlane pl = plane_from(params, doc);
+    BooleanMode mode = bool_from(params.value("boolean", std::string("new")));
 
-    doc.checkpoint();                  // one undo step for this action
-    int s = doc.add_sketch(SketchShape::Rectangle, pl, w, h, 0.0, "Sketch");
-    int e = doc.add_extrude(s, d, /*symmetric*/false, BooleanMode::New, "Extrude");
+    SketchProfile prof;
+    bool has_prof = profile_from(params, prof);
+    double w = 0, h = 0;
+    if (!has_prof) {
+        w = params.value("width", 20.0); h = params.value("height", 20.0);
+        if (w <= 0 || h <= 0) throw std::runtime_error("width and height must be > 0");
+    }
+    doc.checkpoint();
+    int s = has_prof ? doc.add_sketch_profile(prof, pl, "Sketch")
+                     : doc.add_sketch(SketchShape::Rectangle, pl, w, h, 0.0, "Sketch");
+    int e = doc.add_extrude(s, d, /*symmetric*/false, mode, "Extrude");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();               // never leave a broken feature tree
-    panel->mcp_after_change();         // refresh tree + viewport + status
-
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
     return json{{"ok", ok}, {"sketch_index", s}, {"extrude_index", e},
                 {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+json action_revolve(DesignPanel* panel, const json& params)
+{
+    const double angle = params.value("angle", 360.0);
+    const int    axis  = params.value("axis", 0);          // 0 = plane X, 1 = plane Y
+    const bool   flip  = params.value("flip", false);
+    CadDocument& doc = panel->mcp_doc();
+    SketchPlane pl = plane_from(params, doc);
+    BooleanMode mode = bool_from(params.value("boolean", std::string("new")));
+
+    SketchProfile prof;
+    bool has_prof = profile_from(params, prof);
+    double w = 0, h = 0;
+    if (!has_prof) {   // ponytail: rectangle centred on the axis may self-overlap; offset via `profile`
+        w = params.value("width", 20.0); h = params.value("height", 10.0);
+        if (w <= 0 || h <= 0) throw std::runtime_error("width and height must be > 0");
+    }
+    doc.checkpoint();
+    int s = has_prof ? doc.add_sketch_profile(prof, pl, "Sketch")
+                     : doc.add_sketch(SketchShape::Rectangle, pl, w, h, 0.0, "Sketch");
+    int r = doc.add_revolve(s, angle, axis, flip, mode, "Revolve");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"sketch_index", s}, {"revolve_index", r},
+                {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+json action_fillet(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("edge")) throw std::runtime_error("fillet needs 'edge' (id from query_topology)");
+    const double radius = params.value("radius", 1.0);
+    if (radius <= 0) throw std::runtime_error("radius must be > 0");
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to fillet");
+    doc.checkpoint();
+    int f = doc.add_fillet(radius, params["edge"].get<int>(), "Fillet");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"fillet_index", f}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+json action_chamfer(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("edge")) throw std::runtime_error("chamfer needs 'edge' (id from query_topology)");
+    const double dist = params.value("distance", 1.0);
+    if (dist <= 0) throw std::runtime_error("distance must be > 0");
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to chamfer");
+    doc.checkpoint();
+    int c = doc.add_chamfer(dist, params["edge"].get<int>(), "Chamfer");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"chamfer_index", c}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+json action_hole(DesignPanel* panel, const json& params)
+{
+    const double dia   = params.value("diameter", 5.0);
+    const double depth = params.value("depth", 10.0);
+    const bool   thru  = params.value("through", false);
+    const double x = params.value("x", 0.0), y = params.value("y", 0.0);
+    if (dia <= 0) throw std::runtime_error("diameter must be > 0");
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to drill");
+    SketchPlane pl = plane_from(params, doc);
+    doc.checkpoint();
+    int h = doc.add_hole(dia, depth, thru, x, y, pl, "Hole");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"hole_index", h}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+json action_boolean(DesignPanel* panel, const json& params)
+{
+    BooleanMode m = bool_from(params.value("op", std::string("subtract")));
+    if (m == BooleanMode::New) throw std::runtime_error("op must be union | subtract | intersect");
+    const int target = params.value("target", 0);
+    const int tool   = params.value("tool", 1);
+    const bool keep  = params.value("keep_tool", false);
+    const double tol = params.value("tolerance", 0.0);
+    CadDocument& doc = panel->mcp_doc();
+    int n = int(doc.bodies.size());
+    if (target < 0 || target >= n || tool < 0 || tool >= n)
+        throw std::runtime_error("target/tool body index out of range (have " + std::to_string(n) + ")");
+    if (target == tool) throw std::runtime_error("target and tool must differ");
+    doc.checkpoint();
+    int b = doc.add_boolean(m, target, tool, keep, tol, -1, -1, "Boolean");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"boolean_index", b}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
 // Dispatch one parsed request ON THE MAIN THREAD. Returns a JSON-RPC reply string.
@@ -405,6 +567,11 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "import_step")    return rpc_result(id, import_step(panel, params));
         if (method == "validate_against") return rpc_result(id, validate_against(panel, params));
         if (method == "extrude")        return rpc_result(id, action_extrude(panel, params));
+        if (method == "revolve")        return rpc_result(id, action_revolve(panel, params));
+        if (method == "fillet")         return rpc_result(id, action_fillet(panel, params));
+        if (method == "chamfer")        return rpc_result(id, action_chamfer(panel, params));
+        if (method == "hole")           return rpc_result(id, action_hole(panel, params));
+        if (method == "boolean")        return rpc_result(id, action_boolean(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
         return rpc_error(id, -32000, std::string("OCCT: ") + (ex.GetMessageString() ? ex.GetMessageString() : "failure"));
