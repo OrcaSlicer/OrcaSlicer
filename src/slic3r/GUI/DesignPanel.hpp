@@ -111,6 +111,7 @@ private:
 
     // Feature-tree editing (Onshape-style): act on the selected tree row.
     void on_delete_feature();
+    void on_new_design();
     void on_move_feature(int delta);   // -1 = up, +1 = down
     void on_toggle_visibility();       // show/hide the selected feature (CadFeature::enabled)
 

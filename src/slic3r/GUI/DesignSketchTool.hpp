@@ -819,6 +819,7 @@ private:
     GLModel             m_vertex_model;
     GLModel             m_highlight_model;
     int                 m_dim_label_seq{0};
+    float               m_render_scale{1.0f};   // canvas scale for Measure-style dim labels
     GLModel             m_fill_model;       // translucent face fill for closed regions
     std::vector<DisplaySketch> m_display_sketches;  // committed sketches drawn persistently
     int m_display_pick{-1};        // FEATURE index of the click-selected display sketch (-1 none)

@@ -884,7 +884,9 @@ void CadDocument::clear()
 {
     features.clear();
     body = TopoDS_Shape();
+    bodies.clear();                // multibody result — must clear too (else solids linger)
     display_mesh = TriangleMesh{};
+    display_body_meshes.clear();
     display_tri_face.clear();
     error.clear();
     // A cleared document is a fresh start with no history.

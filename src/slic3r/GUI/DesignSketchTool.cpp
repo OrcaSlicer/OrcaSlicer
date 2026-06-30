@@ -5,6 +5,7 @@
 #include "Plater.hpp"
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 #include "libslic3r/BuildVolume.hpp"
 #include "Camera.hpp"
 #include "3DScene.hpp"
@@ -39,7 +40,9 @@ static double ray_segment_dist3(const Vec3d& ro, const Vec3d& rd, const Vec3d& a
 // needs the design canvas's own camera/viewport, not the plater's.)
 [[maybe_unused]] static wxPoint world_to_screen_px(const Camera& cam, const Vec3d& world)
 {
-    const Eigen::Matrix4d m = (cam.get_projection_matrix() * cam.get_view_matrix()).matrix();
+    // NB: multiply the raw 4x4 matrices, NOT the Transform3d objects — the projection is not
+    // affine, so Transform*Transform mangles it (Eigen assumes affine) and yields garbage w.
+    const Eigen::Matrix4d m = cam.get_projection_matrix().matrix() * cam.get_view_matrix().matrix();
     const Eigen::Vector4d clip = m * world.homogeneous();
     if (std::abs(clip.w()) < 1e-9) return wxPoint(-1, -1);
     const Vec3d ndc = clip.head<3>() / clip.w();
@@ -4913,15 +4916,21 @@ void DesignSketchTool::draw_dim_label(const std::string& txt, const Vec2d& plane
     const wxPoint sp = world_to_screen_px(cam, m_plane.to_world(plane_center));
     if (sp.x < 0 && sp.y < 0) return;
     ImGuiWrapper* imgui = wxGetApp().imgui();
+    // Identical to the Prepare/Preview Measure gizmo label (GLGizmoMeasure::render_dimensioning):
+    // push_common_window_style sets the white text colour + font/scale (without it the text is
+    // invisible); BringWindowToDisplayFront keeps the per-frame label window on top.
+    ImGuiWrapper::push_common_window_style(m_render_scale);
+    imgui->set_next_window_pos((float)sp.x, (float)sp.y, ImGuiCond_Always, 0.5f, 0.5f);
+    imgui->set_next_window_bg_alpha(0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(1.0f, 1.0f));
-    imgui->set_next_window_pos((float)sp.x, (float)sp.y, ImGuiCond_Always, 0.5f, 0.5f);
-    imgui->set_next_window_bg_alpha(0.0f);
     const std::string win = "##sketchdim" + std::to_string(m_dim_label_seq++);
     imgui->begin(win, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoDecoration
                        | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing
                        | ImGuiWindowFlags_NoNav);
+    ImGui::BringWindowToDisplayFront(ImGui::GetCurrentWindow());
+    ImGui::AlignTextToFramePadding();
     ImDrawList* dl = ImGui::GetWindowDrawList();
     const ImVec2 pos = ImGui::GetCursorScreenPos();
     const ImVec2 ts  = ImGui::CalcTextSize(txt.c_str());
@@ -4934,6 +4943,7 @@ void DesignSketchTool::draw_dim_label(const std::string& txt, const Vec2d& plane
     imgui->text(txt);
     imgui->end();
     ImGui::PopStyleVar(3);
+    ImGuiWrapper::pop_common_window_style();
 }
 
 void DesignSketchTool::draw_text(GLModel& /*model*/, const std::string& s, const Vec2d& center,
@@ -4969,15 +4979,18 @@ bool DesignSketchTool::draw_dim_quote(const DimAnnot& a, double th, const ColorR
         if (L < 1e-6) return false;
         const Vec2d u = d / L;
         const Vec2d nrm(-u.y(), u.x());
-        segs.emplace_back(pa, pb);                       // single point-to-point dimension line
+        const double side = (a.side != 0.0) ? a.side : 1.0;
+        const double off  = side * std::max(L * 0.18, 8.0);
+        const Vec2d A2 = pa + nrm * off, B2 = pb + nrm * off;   // offset clear of the sketch line
+        segs.emplace_back(A2, B2);                              // dimension line (not on the geometry)
         const double as = std::max(L * 0.04, 2.0);
         auto arrow = [&](const Vec2d& tip, const Vec2d& dir) {
             const Vec2d back = tip + dir * as;
             segs.emplace_back(tip, back + nrm * (as * 0.5));
             segs.emplace_back(tip, back - nrm * (as * 0.5));
         };
-        arrow(pa, u); arrow(pb, -u);
-        out_label = (pa + pb) * 0.5 + nrm * (th * 0.8);
+        arrow(A2, u); arrow(B2, -u);
+        out_label = (A2 + B2) * 0.5 + nrm * (side * (th * 0.7 + 1.5));
     } else if (a.kind == DimType::Diameter || a.kind == DimType::Radius) {
         if (a.ea < 0 || a.ea >= int(m_entities.size())) return false;
         const SketchEntity& e = m_entities[a.ea];
@@ -5035,7 +5048,7 @@ bool DesignSketchTool::draw_dim_quote(const DimAnnot& a, double th, const ColorR
     } else {
         return false;
     }
-    draw_strokes(m_highlight_model, segs, 0.6, dimcol);
+    draw_strokes(m_highlight_model, segs, 0.2, dimcol);
     draw_text(m_line_model, dim_text(a), out_label, th, dimcol);
     return true;
 }
@@ -6272,6 +6285,7 @@ void DesignSketchTool::confirm_transform()
 void DesignSketchTool::render(GLCanvas3D& canvas)
 {
     m_dim_label_seq = 0;
+    m_render_scale  = canvas.get_scale();
     (void)canvas;
     if (!has_display()) {
         if (on_readout) on_readout(std::string());   // nothing to show -> hide HUD
@@ -6282,6 +6296,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         if (on_readout) on_readout(std::string());
         return;
     }
+
 
     // Draw-then-edit: a creation tool that just committed a new entity/feature (gesture now
     // idle) gets its result auto-selected — so render_live_quotes below computes its quotes —

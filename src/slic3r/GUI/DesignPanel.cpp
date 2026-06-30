@@ -1410,7 +1410,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     root->Add(m_box_constraints, 0, wxEXPAND);
 
     root->Add(new wxStaticText(m_form, wxID_ANY, _L("Feature tree")), 0, wxLEFT | wxTOP, 12);
-    m_tree = new wxTreeCtrl(m_form, wxID_ANY, wxDefaultPosition, wxSize(-1, 140),
+    m_tree = new wxTreeCtrl(m_form, wxID_ANY, wxDefaultPosition, wxSize(-1, 64),
                             wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES |
                             wxTR_FULL_ROW_HIGHLIGHT | wxBORDER_SIMPLE);
     if (!dp_dark()) m_tree->SetBackgroundColour(dp_panel_bg());
@@ -1511,6 +1511,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_dof_status->SetFont(f);
     }
     root->Add(m_dof_status, 0, wxLEFT | wxRIGHT | wxBOTTOM, 12);
+
+    auto* new_design = new wxButton(m_form, wxID_ANY, _L("New Design"));
+    new_design->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_new_design(); });
+    root->Add(new_design, 0, wxLEFT | wxRIGHT | wxTOP, 12);
 
     auto* commit = new wxButton(m_form, wxID_ANY, _L("Commit to Plate"));
     commit->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_commit(); });
@@ -2941,6 +2945,17 @@ void DesignPanel::refresh_tree()
     }
     if (keep >= 0 && keep < int(m_tree_items.size()))
         m_tree->SelectItem(m_tree_items[keep]);
+
+    // Size the tree to its content (clamped) so it doesn't waste a fixed-height block when
+    // there are few features, and scrolls internally past ~9 rows instead of growing forever.
+    int rows = int(m_tree_items.size());
+    if (m_doc.bodies.size() > 1) rows += 1 + int(m_doc.bodies.size());   // "Bodies" header + rows
+    const int rowH  = std::max(m_tree->GetCharHeight() + 8, 20);
+    const int shown = std::min(std::max(rows, 1), 9);
+    const wxSize ts(-1, shown * rowH + 8);
+    m_tree->SetMinSize(ts);
+    m_tree->SetMaxSize(ts);
+    if (m_form && m_form->GetSizer()) { m_form->Layout(); m_form->FitInside(); }
 }
 
 int DesignPanel::tree_body_selection() const
@@ -3143,8 +3158,37 @@ void DesignPanel::after_tree_edit(bool ok)
     m_status->Refresh();
 }
 
+// Erase the whole document (every feature + body) and start fresh. The single "wipe" the
+// feature tree's per-row Delete can't give you — also the way out when a body has no
+// removable owning feature.
+void DesignPanel::on_new_design()
+{
+    if (m_doc.features.empty() && m_doc.bodies.empty()) { set_status_ok(); return; }
+    wxMessageDialog dlg(this,
+        _L("Erase all features and bodies and start a new design? This cannot be undone."),
+        _L("New Design"), wxYES_NO | wxICON_EXCLAMATION);
+    if (dlg.ShowModal() != wxID_YES) return;
+    tool_cancel();                 // leave any active tool / sketch / constrain cleanly
+    m_doc.clear();                 // features + bodies + meshes + history
+    m_edit_index = -1;
+    m_move_body  = -1;
+    m_body_xform.clear();
+    if (m_viewport) { m_viewport->clear_move_gizmo(); m_viewport->clear_mesh(); }
+    after_tree_edit(true);         // rebuild the (now empty) tree + clear the viewport
+    update_action_bar();
+    set_status_ok();
+}
+
 void DesignPanel::on_delete_feature()
 {
+    // A Body row has no directly-removable feature (bodies are recomputed results); guide the
+    // user to delete the feature that created it, or use New Design to wipe everything.
+    if (tree_body_selection() >= 0) {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        m_status->SetLabel(_L("Select the FEATURE that created this body (or use New Design)"));
+        m_status->Refresh();
+        return;
+    }
     int sel = tree_selection();
     if (sel == wxNOT_FOUND) {
         m_status->SetLabel(_L("Select a feature in the tree first"));
