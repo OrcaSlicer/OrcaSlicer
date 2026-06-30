@@ -521,16 +521,22 @@ public:
 
     // Pick per-extruder values from a variant-space source vector (e.g. a modifier override loaded
     // from a 3mf, stored with one entry per extruder variant). For each destination extruder i,
-    // copy rhs[dest_index[i]] when present and not nil, otherwise keep rhs.front() (a non-nil
-    // scalar override the GUI wrote into the active variant slot). Mirrors BambuStudio.
+    // copy rhs[dest_index[i]] only when that slot is present and not nil; nil slots keep the value
+    // *this* (the base per-extruder config) already holds — i.e. the override only touches the
+    // variants the user actually set, leaving the others at their base value. This is why resize()
+    // (which preserves existing elements) is used rather than assign(): clobbering with rhs.front()
+    // would leak that slot's value (often nil -> NaN) into extruders the override never specified,
+    // e.g. the LEFT nozzle when only the RIGHT nozzle's speed is set. Mirrors BambuStudio.
     // rhs: source option in extruder-variant space
     // dest_index: variant slot to use for each physical extruder
     virtual void set_to_index(const ConfigOptionVectorBase* rhs, const std::vector<int>& dest_index, int stride) override
     {
         if (rhs->type() == this->type()) {
             auto other = static_cast<const ConfigOptionVector<T>*>(rhs);
-            T v = other->values.empty() ? T{} : other->values.front();
-            this->values.assign(dest_index.size() * stride, v);
+            // Preserve the existing base values; only grow (never clobber) using a non-nil source
+            // value as the fill for any newly added slots.
+            T fill = this->values.empty() ? (other->values.empty() ? T{} : other->values.front()) : this->values.back();
+            this->values.resize(dest_index.size() * stride, fill);
 
             for (size_t i = 0; i < dest_index.size(); i++) {
                 for (int j = 0; j < stride; j++) {

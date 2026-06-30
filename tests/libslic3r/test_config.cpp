@@ -49,31 +49,54 @@ SCENARIO("ConfigOptionVector::set_to_index reduces variant-space overrides witho
         REQUIRE(src.is_nil(1));
         REQUIRE(src.is_nil(3));
 
-        WHEN("reduced with both extruders on their Standard (non-nil) variant slot {0,2}") {
+        WHEN("reduced over a base [166,166] with both extruders on their Standard slot {0,2}") {
             ConfigOptionFloatsNullable dst;
-            dst.values = {0., 0.};
+            dst.values = {166., 166.};
             std::vector<int> variant_index = {0, 2};
             dst.set_to_index(&src, variant_index, 1);
-            THEN("each extruder gets the real value, none is nil/NaN") {
+            THEN("both extruders take the override value, none is nil/NaN") {
                 REQUIRE(dst.size() == 2);
                 REQUIRE_FALSE(dst.is_nil(0));
                 REQUIRE_FALSE(dst.is_nil(1));
-                REQUIRE(dst.values[0] == Approx(200.));
-                REQUIRE(dst.values[1] == Approx(200.));
+                REQUIRE(dst.values[0] == Catch::Approx(200.));
+                REQUIRE(dst.values[1] == Catch::Approx(200.));
             }
         }
 
-        WHEN("reduced with both extruders on their High Flow (nil) variant slot {1,3}") {
+        WHEN("reduced over a base [166,166] with both extruders on their High Flow (nil) slot {1,3}") {
             ConfigOptionFloatsNullable dst;
-            dst.values = {0., 0.};
+            dst.values = {166., 166.};
             std::vector<int> variant_index = {1, 3};
             dst.set_to_index(&src, variant_index, 1);
-            THEN("nil slots fall back to the override's scalar value instead of NaN") {
+            THEN("nil slots keep the base value instead of becoming NaN") {
                 REQUIRE(dst.size() == 2);
                 REQUIRE_FALSE(dst.is_nil(0));
                 REQUIRE_FALSE(dst.is_nil(1));
-                REQUIRE(dst.values[0] == Approx(200.));
-                REQUIRE(dst.values[1] == Approx(200.));
+                REQUIRE(dst.values[0] == Catch::Approx(166.));
+                REQUIRE(dst.values[1] == Catch::Approx(166.));
+            }
+        }
+    }
+
+    // Regression: only the RIGHT nozzle's speed is overridden ("nil,nil,200,nil"), so the LEFT
+    // nozzle slot is nil. The LEFT extruder must keep its base value, NOT inherit the override's
+    // nil front() (which previously produced NaN -> negative wall speeds).
+    GIVEN("A nullable float override \"nil,nil,200,nil\" (only the RIGHT nozzle Standard set)") {
+        ConfigOptionFloatsNullable src;
+        REQUIRE(src.deserialize("nil,nil,200,nil"));
+        REQUIRE(src.is_nil(0));
+
+        WHEN("reduced over base [166,166] with extruders on Standard slots {0,2}") {
+            ConfigOptionFloatsNullable dst;
+            dst.values = {166., 166.};
+            std::vector<int> variant_index = {0, 2};
+            dst.set_to_index(&src, variant_index, 1);
+            THEN("LEFT keeps its base value, RIGHT gets the override, neither is nil/NaN") {
+                REQUIRE(dst.size() == 2);
+                REQUIRE_FALSE(dst.is_nil(0));
+                REQUIRE_FALSE(dst.is_nil(1));
+                REQUIRE(dst.values[0] == Catch::Approx(166.)); // LEFT: base preserved (was NaN before fix)
+                REQUIRE(dst.values[1] == Catch::Approx(200.)); // RIGHT: override applied
             }
         }
     }
