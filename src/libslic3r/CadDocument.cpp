@@ -39,6 +39,9 @@
 #include <gp_Pnt2d.hxx>
 #include <gp_Vec.hxx>
 #include <gp_Trsf.hxx>             // pattern: rigid copy transforms
+#include <STEPControl_Writer.hxx>  // STEP export (native B-rep)
+#include <STEPControl_StepModelType.hxx>
+#include <IFSelect_ReturnStatus.hxx>
 #include <gp_Ax1.hxx>             // pattern: rotation axis (circular)
 #include <BRepBuilderAPI_Transform.hxx>
 #include <cmath>
@@ -1778,6 +1781,50 @@ bool CadDocument::deserialize_recipe(const std::string& blob)
     } catch (...) {
         return false;
     }
+}
+
+bool CadDocument::export_step(const std::string& path,
+                             const std::vector<Transform3d>& body_xforms,
+                             std::string& err) const
+{
+    err.clear();
+    if (bodies.empty()) { err = "nothing to export"; return false; }
+    try {
+        // Compound every body at its displayed (Move-gizmo) position so the STEP matches
+        // what Commit ships. Move transforms are rigid, so gp_Trsf::SetValues is valid.
+        BRep_Builder bld;
+        TopoDS_Compound comp;
+        bld.MakeCompound(comp);
+        for (size_t i = 0; i < bodies.size(); ++i) {
+            if (bodies[i].shape.IsNull()) continue;
+            TopoDS_Shape s = bodies[i].shape;
+            if (i < body_xforms.size() && !body_xforms[i].isApprox(Transform3d::Identity())) {
+                const Transform3d& m = body_xforms[i];
+                gp_Trsf t;
+                t.SetValues(m(0,0), m(0,1), m(0,2), m(0,3),
+                            m(1,0), m(1,1), m(1,2), m(1,3),
+                            m(2,0), m(2,1), m(2,2), m(2,3));
+                s = BRepBuilderAPI_Transform(s, t, true).Shape();
+            }
+            bld.Add(comp, s);
+        }
+        STEPControl_Writer writer;
+        if (writer.Transfer(comp, STEPControl_AsIs) != IFSelect_RetDone) {
+            err = "STEP transfer failed";
+            return false;
+        }
+        if (writer.Write(path.c_str()) != IFSelect_RetDone) {
+            err = "cannot write STEP file";
+            return false;
+        }
+    } catch (const Standard_Failure& e) {
+        err = e.GetMessageString() ? e.GetMessageString() : "OCCT failed to write STEP";
+        return false;
+    } catch (const std::exception& e) {
+        err = e.what();
+        return false;
+    }
+    return true;
 }
 
 } // namespace Slic3r

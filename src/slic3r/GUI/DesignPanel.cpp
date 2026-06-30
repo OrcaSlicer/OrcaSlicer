@@ -1514,7 +1514,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     auto* commit = new wxButton(m_form, wxID_ANY, _L("Commit to Plate"));
     commit->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_commit(); });
-    root->Add(commit, 0, wxALL, 12);
+    root->Add(commit, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+
+    auto* export_step = new wxButton(m_form, wxID_ANY, _L("Export STEP…"));
+    export_step->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_export_step(); });
+    root->Add(export_step, 0, wxALL, 12);
 
     m_shape->Bind(wxEVT_CHOICE, [this](wxCommandEvent& e) { on_shape_changed(); e.Skip(); });
     on_shape_changed();
@@ -4764,6 +4768,31 @@ void DesignPanel::on_edit_feature()
         m_status->Refresh();
         break;
     }
+}
+
+void DesignPanel::on_export_step()
+{
+    // Bake any open feature preview first, so the STEP matches what is shown (mirrors on_commit).
+    if (m_active != Tool::None)
+        confirm_tool();
+    if (m_doc.bodies.empty()) {
+        m_status->SetForegroundColour(wxNullColour);
+        m_status->SetLabel(_L("Nothing to export — add a feature first"));
+        m_status->Refresh();
+        return;
+    }
+    wxFileDialog dlg(this, _L("Export STEP"), wxEmptyString, "model.step",
+                     "STEP files (*.step;*.stp)|*.step;*.stp",
+                     wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    if (dlg.ShowModal() != wxID_OK)
+        return;
+    sync_body_xform();   // export bodies at their displayed Move-gizmo positions
+    std::string err;
+    const bool ok = m_doc.export_step(dlg.GetPath().ToUTF8().data(), m_body_xform, err);
+    m_status->SetForegroundColour(ok ? wxColour(120, 210, 120) : wxColour(235, 110, 110));
+    m_status->SetLabel(ok ? _L("Exported STEP")
+                          : _L("STEP export failed: ") + wxString::FromUTF8(err));
+    m_status->Refresh();
 }
 
 void DesignPanel::on_commit()

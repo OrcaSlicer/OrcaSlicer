@@ -360,6 +360,13 @@ public:
     std::string serialize_recipe() const;
     bool deserialize_recipe(const std::string& blob);
 
+    // Export every body to a STEP file as native B-rep (not mesh). body_xforms is the
+    // per-body display transform (Move gizmo); when supplied the bodies are written at
+    // those positions so the STEP matches what Commit ships. false + err on failure.
+    bool export_step(const std::string& path,
+                     const std::vector<Transform3d>& body_xforms,
+                     std::string& err) const;
+
     // Undo/redo of the feature recipe (Onshape-style Ctrl+Z). The caller marks a
     // user-action boundary by calling checkpoint() BEFORE the mutation(s) for that
     // action (add/delete/move/replace, or a direct features edit). undo()/redo() then
