@@ -105,10 +105,11 @@ const std::vector<BaseMaterialCompatibility>& MaterialType::base_compatibilities
     // Lookups are symmetric, so each pair is listed once.
     // Extend as more bonding data becomes available.
     static const std::vector<BaseMaterialCompatibility> base_compatibilities = {
-        // base    compatible  incompatible
-        {"ABS",    {"ASA"},    {"PLA", "PETG", "PP"}},
-        {"PLA",    {},         {"PETG", "PP"}},
-        {"PETG",   {},         {"PP"}},
+        // base    compatible      incompatible
+        {"ABS",    {"ASA", "PC"},  {"PLA", "PETG", "PP"}},
+        {"PC",     {"ABS"},        {}},
+        {"PLA",    {},             {"PETG", "PP"}},
+        {"PETG",   {},             {"PP"}},
     };
 
     return base_compatibilities;
