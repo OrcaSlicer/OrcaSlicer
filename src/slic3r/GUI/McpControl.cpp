@@ -15,6 +15,7 @@
 #include <memory>
 #include <cmath>
 #include <algorithm>
+#include <utility>
 
 #include <nlohmann/json.hpp>
 #include <boost/log/trivial.hpp>
@@ -86,18 +87,18 @@ std::string rpc_error(const json& id, int code, const std::string& msg)
 
 json describe_tools()
 {
-    // Hand-written descriptor for slice 1. The bridge turns this into MCP tool
-    // schemas; later slices grow this list (ideally from the kernel directly).
+    // Hand-written descriptor. The bridge turns this into MCP tool schemas; later
+    // slices grow this list (ideally from the kernel directly).
     return json{
         {"app", "SnapOrca CAD"},
         {"protocol", "jsonrpc-2.0"},
-        {"slice", 1},
+        {"slice", 5},
         {"tools", json::array({
             json{{"name", "describe_tools"}, {"summary", "List callable tools and their parameters."},
                  {"params", json::array()}},
             json{{"name", "describe_scene"}, {"summary", "Feature tree + per-body bounding boxes of the Design document."},
                  {"params", json::array()}},
-            json{{"name", "extrude"}, {"summary", "Extrude a profile to a depth. Give an explicit closed `profile` (list of [x,y]) or default to a centred width x height rectangle."},
+            json{{"name", "extrude"}, {"summary", "Extrude a profile to a depth. Give an explicit closed `profile` (list of [x,y]) or default to a centred width x height rectangle. End conditions match Onshape."},
                  {"params", json::array({
                      json{{"name", "width"},    {"type", "number"}, {"unit", "mm"}, {"default", 20}, {"min", 0.01}},
                      json{{"name", "height"},   {"type", "number"}, {"unit", "mm"}, {"default", 20}, {"min", 0.01}},
@@ -105,6 +106,11 @@ json describe_tools()
                      json{{"name", "plane"},    {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
                      json{{"name", "profile"},  {"type", "array"}, {"description", "optional closed contour [[x,y],...] in plane mm; overrides width/height"}},
                      json{{"name", "boolean"},  {"type", "string"}, {"enum", json::array({"new", "union", "subtract", "intersect"})}, {"default", "new"}},
+                     json{{"name", "end"},      {"type", "string"}, {"enum", json::array({"blind", "symmetric", "two_sided", "through_all", "up_to_face"})}, {"default", "blind"}},
+                     json{{"name", "distance2"},{"type", "number"}, {"unit", "mm"}, {"description", "second-side depth when end=two_sided"}},
+                     json{{"name", "up_to_face"},{"type", "integer"}, {"description", "target face id (query_topology on the last body) when end=up_to_face"}},
+                     json{{"name", "taper"},    {"type", "number"}, {"unit", "deg"}, {"default", 0}, {"description", "draft/taper of the side wall"}},
+                     json{{"name", "flip"},     {"type", "boolean"}, {"default", false}},
                  })}},
             json{{"name", "revolve"}, {"summary", "Revolve a profile about a plane axis. Give an explicit `profile` offset from the axis (or a rectangle) — angle degrees about axis 0=plane X / 1=plane Y."},
                  {"params", json::array({
@@ -117,15 +123,17 @@ json describe_tools()
                      json{{"name", "profile"}, {"type", "array"}, {"description", "optional closed contour [[x,y],...] in plane mm; overrides width/height"}},
                      json{{"name", "boolean"}, {"type", "string"}, {"enum", json::array({"new", "union", "subtract", "intersect"})}, {"default", "new"}},
                  })}},
-            json{{"name", "fillet"}, {"summary", "Round a measured edge of the current body (edge id from query_topology)."},
+            json{{"name", "fillet"}, {"summary", "Round a measured edge of a body (edge id from query_topology on that body)."},
                  {"params", json::array({
                      json{{"name", "edge"},   {"type", "integer"}},
                      json{{"name", "radius"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
+                     json{{"name", "body"},   {"type", "integer"}, {"description", "target body; omit for the last body. edge id is resolved against THIS body."}},
                  })}},
-            json{{"name", "chamfer"}, {"summary", "Chamfer a measured edge of the current body (edge id from query_topology)."},
+            json{{"name", "chamfer"}, {"summary", "Chamfer a measured edge of a body (edge id from query_topology on that body)."},
                  {"params", json::array({
                      json{{"name", "edge"},     {"type", "integer"}},
                      json{{"name", "distance"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
+                     json{{"name", "body"},     {"type", "integer"}, {"description", "target body; omit for the last body. edge id is resolved against THIS body."}},
                  })}},
             json{{"name", "hole"}, {"summary", "Drill a circular hole into the current body at (x,y) on a plane."},
                  {"params", json::array({
@@ -144,6 +152,28 @@ json describe_tools()
                      json{{"name", "keep_tool"}, {"type", "boolean"}, {"default", false}},
                      json{{"name", "tolerance"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
                  })}},
+            json{{"name", "pattern"}, {"summary", "Replicate a body: linear (count along a plane axis at spacing) or circular (count over an angle about the plane normal)."},
+                 {"params", json::array({
+                     json{{"name", "circular"}, {"type", "boolean"}, {"default", false}},
+                     json{{"name", "count"},    {"type", "integer"}, {"default", 3}, {"min", 1}},
+                     json{{"name", "spacing"},  {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"description", "linear step"}},
+                     json{{"name", "dir"},      {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}, {"description", "linear axis: 0=plane X, 1=plane Y"}},
+                     json{{"name", "angle"},    {"type", "number"}, {"unit", "deg"}, {"default", 360}, {"description", "circular total sweep"}},
+                     json{{"name", "plane"},    {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
+                     json{{"name", "body"},     {"type", "integer"}, {"description", "target body; omit for the last body"}},
+                 })}},
+            json{{"name", "shell"}, {"summary", "Hollow a body to a wall thickness (inward); optionally leave one face open."},
+                 {"params", json::array({
+                     json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
+                     json{{"name", "face"},      {"type", "integer"}, {"description", "face id to leave open (query_topology); omit for a closed hollow"}},
+                     json{{"name", "body"},      {"type", "integer"}, {"description", "target body; omit for the last body"}},
+                 })}},
+            json{{"name", "draft"}, {"summary", "Taper a body face by an angle about its base (pull direction +Z)."},
+                 {"params", json::array({
+                     json{{"name", "face"},  {"type", "integer"}, {"description", "face id to draft (query_topology)"}},
+                     json{{"name", "angle"}, {"type", "number"}, {"unit", "deg"}, {"default", 5}},
+                     json{{"name", "body"},  {"type", "integer"}, {"description", "target body; omit for the last body"}},
+                 })}},
             json{{"name", "query_topology"}, {"summary", "Measured faces (centroid/normal/cylinder) and edges (length/circle) of a body."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
@@ -154,7 +184,7 @@ json describe_tools()
                      json{{"name", "a"}, {"type", "object"}},
                      json{{"name", "b"}, {"type", "object"}},
                  })}},
-            json{{"name", "slice_body"}, {"summary", "Cross-section of a body by a base plane at an offset (sections-as-evidence); returns world polylines."},
+            json{{"name", "slice_body"}, {"summary", "Cross-section of a body by a base plane at an offset (sections-as-evidence); returns ordered world contours, each flagged closed/open."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
                      json{{"name", "plane"}, {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
@@ -164,7 +194,7 @@ json describe_tools()
                  {"params", json::array({
                      json{{"name", "path"}, {"type", "string"}},
                  })}},
-            json{{"name", "validate_against"}, {"summary", "Volume + bbox/centroid deviation of a body vs a reference {step:path|body:id} (the RE acceptance metric)."},
+            json{{"name", "validate_against"}, {"summary", "Volume + bbox/centroid + surface deviation (max/mean/rms mm) of a body vs a reference {step:path|body:id} (the RE acceptance metric)."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
                      json{{"name", "reference"}, {"type", "object"}},
@@ -322,6 +352,40 @@ json measure(DesignPanel* panel, const json& params)
     return r;
 }
 
+// Chain raw section segments (each a sampled-edge polyline) into ordered contours by joining
+// endpoints within tol. Grows the tail; when the tail is stuck, reverses the contour and grows
+// the other end. A contour is closed when its two ends meet. OCCT section vertices are exact,
+// so a small absolute tol suffices.
+std::vector<std::pair<std::vector<Vec3d>, bool>>
+chain_segments(std::vector<std::vector<Vec3d>> segs, double tol)
+{
+    std::vector<std::pair<std::vector<Vec3d>, bool>> contours;
+    std::vector<char> used(segs.size(), 0);
+    auto near = [&](const Vec3d& a, const Vec3d& b) { return (a - b).norm() <= tol; };
+    for (size_t i = 0; i < segs.size(); ++i) {
+        if (used[i] || segs[i].size() < 2) continue;
+        used[i] = 1;
+        std::vector<Vec3d> c = segs[i];
+        for (int side = 0; side < 2; ) {           // grow tail; reverse once when stuck
+            bool grew = false;
+            for (size_t j = 0; j < segs.size(); ++j) {
+                if (used[j] || segs[j].size() < 2) continue;
+                if (near(c.back(), segs[j].front())) {
+                    c.insert(c.end(), segs[j].begin() + 1, segs[j].end()); used[j] = 1; grew = true;
+                } else if (near(c.back(), segs[j].back())) {
+                    for (auto it = segs[j].rbegin() + 1; it != segs[j].rend(); ++it) c.push_back(*it);
+                    used[j] = 1; grew = true;
+                }
+            }
+            if (grew) { side = 0; continue; }
+            std::reverse(c.begin(), c.end()); ++side;   // try the other end
+        }
+        bool closed = c.size() > 2 && near(c.front(), c.back());
+        contours.emplace_back(std::move(c), closed);
+    }
+    return contours;
+}
+
 // sections-as-evidence: cross-section of a body by a named base plane at an offset.
 json slice_body(DesignPanel* panel, const json& params)
 {
@@ -338,18 +402,24 @@ json slice_body(DesignPanel* panel, const json& params)
     sect.Approximation(Standard_True);
     sect.Build();
     if (!sect.IsDone()) throw std::runtime_error("section failed");
-    // ponytail: return raw section segments (one polyline per edge), unordered. Chain into
-    // loops later if a downstream step needs ordered contours.
-    json polylines = json::array();
+    std::vector<std::vector<Vec3d>> segs;
     for (TopExp_Explorer ex(sect.Shape(), TopAbs_EDGE); ex.More(); ex.Next()) {
         std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(TopoDS::Edge(ex.Current()));
-        if (pts.size() < 2) continue;
-        json pl = json::array();
-        for (const Vec3d& p : pts) pl.push_back(vec3(p));
-        polylines.push_back(std::move(pl));
+        if (pts.size() >= 2) segs.push_back(std::move(pts));
+    }
+    const int raw = int(segs.size());
+    auto contours = chain_segments(std::move(segs), 1e-3);
+    json jcont = json::array();
+    int closed_n = 0;
+    for (auto& pc : contours) {
+        if (pc.second) ++closed_n;
+        json pts = json::array();
+        for (const Vec3d& p : pc.first) pts.push_back(vec3(p));
+        jcont.push_back(json{{"closed", pc.second}, {"points", std::move(pts)}});
     }
     return json{{"body", params.value("body", 0)}, {"plane", plane_name}, {"offset", offset},
-                {"segment_count", int(polylines.size())}, {"polylines", std::move(polylines)}};
+                {"segment_count", raw}, {"contour_count", int(contours.size())},
+                {"closed_count", closed_n}, {"contours", std::move(jcont)}};
 }
 
 // --- Build: bring a reference part in (Import STEP as native B-rep bodies) ------
@@ -420,12 +490,17 @@ json validate_against(DesignPanel* panel, const json& params)
     double dv = b.volume > 0 ? (a.volume - b.volume) / b.volume * 100.0 : 0.0;
     Vec3d coff = a.centroid - b.centroid;
     Vec3d dmin = a.bmin - b.bmin, dmax = a.bmax - b.bmax;
+    // Surface-level deviation (one-sided Hausdorff, candidate vertices -> reference solid):
+    // catches local shape error that matching volume + bbox can hide.
+    GeometryEngine::Deviation dev = GeometryEngine::surface_deviation(cand, ref);
     return json{
         {"volume", a.volume}, {"volume_reference", b.volume}, {"volume_delta_pct", dv},
         {"centroid_offset", vec3(coff)}, {"centroid_offset_mm", coff.norm()},
         {"bbox", json{{"min", vec3(a.bmin)}, {"max", vec3(a.bmax)}}},
         {"bbox_reference", json{{"min", vec3(b.bmin)}, {"max", vec3(b.bmax)}}},
         {"bbox_delta", json{{"min", vec3(dmin)}, {"max", vec3(dmax)}}},
+        {"surface_deviation", json{{"max_mm", dev.max_mm}, {"mean_mm", dev.mean_mm},
+                                   {"rms_mm", dev.rms_mm}, {"samples", dev.sample_count}}},
     };
 }
 
@@ -448,10 +523,22 @@ json action_extrude(DesignPanel* panel, const json& params)
     int s = has_prof ? doc.add_sketch_profile(prof, pl, "Sketch")
                      : doc.add_sketch(SketchShape::Rectangle, pl, w, h, 0.0, "Sketch");
     int e = doc.add_extrude(s, d, /*symmetric*/false, mode, "Extrude");
+    // End condition (Onshape parity). apply reads extrude_end directly; the kernel `symmetric`
+    // bool is unused, so set the field here. up_to_face id comes from query_topology on the
+    // target (last) body. taper_deg lofts the side wall; flip negates the direction.
+    const std::string end = params.value("end", std::string("blind"));
+    CadFeature& fe = doc.features[e];
+    fe.flip      = params.value("flip", false);
+    fe.taper_deg = params.value("taper", 0.0);
+    if      (end == "symmetric")   fe.extrude_end = ExtrudeEnd::Symmetric;
+    else if (end == "two_sided")  { fe.extrude_end = ExtrudeEnd::TwoSided; fe.distance2 = params.value("distance2", d); }
+    else if (end == "through_all")  fe.extrude_end = ExtrudeEnd::ThroughAll;
+    else if (end == "up_to_face")  { fe.extrude_end = ExtrudeEnd::UpToFace; fe.up_to_face = params.value("up_to_face", -1); }
+    else                            fe.extrude_end = ExtrudeEnd::Blind;
     bool ok = doc.recompute();
     if (!ok) doc.undo();
     panel->mcp_after_change();
-    return json{{"ok", ok}, {"sketch_index", s}, {"extrude_index", e},
+    return json{{"ok", ok}, {"sketch_index", s}, {"extrude_index", e}, {"end", end},
                 {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
@@ -482,6 +569,16 @@ json action_revolve(DesignPanel* panel, const json& params)
                 {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+// Resolve an optional explicit body target. Default (no `body`, or <0) = last body, which is
+// what the kernel picks anyway. Validated BEFORE any checkpoint so a bad index throws clean.
+int target_body_arg(const json& params, const CadDocument& doc)
+{
+    int bi = params.value("body", -1);
+    if (bi >= int(doc.bodies.size()))
+        throw std::runtime_error("body index out of range (have " + std::to_string(doc.bodies.size()) + ")");
+    return bi;   // <0 -> kernel uses the last body
+}
+
 json action_fillet(DesignPanel* panel, const json& params)
 {
     if (!params.contains("edge")) throw std::runtime_error("fillet needs 'edge' (id from query_topology)");
@@ -489,12 +586,15 @@ json action_fillet(DesignPanel* panel, const json& params)
     if (radius <= 0) throw std::runtime_error("radius must be > 0");
     CadDocument& doc = panel->mcp_doc();
     if (doc.bodies.empty()) throw std::runtime_error("no body to fillet");
+    int bi = target_body_arg(params, doc);
     doc.checkpoint();
     int f = doc.add_fillet(radius, params["edge"].get<int>(), "Fillet");
+    if (bi >= 0) doc.features[f].target_body = bi;   // edge id resolved against THIS body's shape
     bool ok = doc.recompute();
     if (!ok) doc.undo();
     panel->mcp_after_change();
-    return json{{"ok", ok}, {"fillet_index", f}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+    return json{{"ok", ok}, {"fillet_index", f}, {"body", bi < 0 ? int(doc.bodies.size()) - 1 : bi},
+                {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
 json action_chamfer(DesignPanel* panel, const json& params)
@@ -504,12 +604,15 @@ json action_chamfer(DesignPanel* panel, const json& params)
     if (dist <= 0) throw std::runtime_error("distance must be > 0");
     CadDocument& doc = panel->mcp_doc();
     if (doc.bodies.empty()) throw std::runtime_error("no body to chamfer");
+    int bi = target_body_arg(params, doc);
     doc.checkpoint();
     int c = doc.add_chamfer(dist, params["edge"].get<int>(), "Chamfer");
+    if (bi >= 0) doc.features[c].target_body = bi;   // edge id resolved against THIS body's shape
     bool ok = doc.recompute();
     if (!ok) doc.undo();
     panel->mcp_after_change();
-    return json{{"ok", ok}, {"chamfer_index", c}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+    return json{{"ok", ok}, {"chamfer_index", c}, {"body", bi < 0 ? int(doc.bodies.size()) - 1 : bi},
+                {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
 json action_hole(DesignPanel* panel, const json& params)
@@ -551,6 +654,57 @@ json action_boolean(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"boolean_index", b}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_pattern(DesignPanel* panel, const json& params)
+{
+    const bool   circular = params.value("circular", false);
+    const int    count    = params.value("count", 3);
+    const double spacing  = params.value("spacing", 10.0);   // linear step (mm)
+    const int    dir      = params.value("dir", 0);          // 0 = plane X, 1 = plane Y
+    const double angle    = params.value("angle", 360.0);    // circular total sweep (deg)
+    if (count < 1) throw std::runtime_error("count must be >= 1");
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to pattern");
+    int bi = target_body_arg(params, doc);
+    doc.checkpoint();
+    int p = doc.add_pattern(circular, count, spacing, dir, angle, bi, "Pattern");
+    doc.features[p].plane = plane_from(params, doc);   // axis (circular) / step dirs (linear)
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"pattern_index", p}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+json action_shell(DesignPanel* panel, const json& params)
+{
+    const double thickness = params.value("thickness", 1.0);
+    if (thickness <= 0) throw std::runtime_error("thickness must be > 0");
+    const int face = params.value("face", -1);   // face id to leave open (-1 = closed hollow)
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to shell");
+    int bi = target_body_arg(params, doc);
+    doc.checkpoint();
+    int s = doc.add_shell(thickness, face, bi, "Shell");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"shell_index", s}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+json action_draft(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("face")) throw std::runtime_error("draft needs 'face' (id from query_topology)");
+    const double angle = params.value("angle", 5.0);
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to draft");
+    int bi = target_body_arg(params, doc);
+    doc.checkpoint();
+    int d = doc.add_draft(angle, params["face"].get<int>(), bi, "Draft");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"draft_index", d}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 // Dispatch one parsed request ON THE MAIN THREAD. Returns a JSON-RPC reply string.
 std::string handle_on_main(const std::string& method, const json& params, const json& id)
 {
@@ -572,6 +726,9 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "chamfer")        return rpc_result(id, action_chamfer(panel, params));
         if (method == "hole")           return rpc_result(id, action_hole(panel, params));
         if (method == "boolean")        return rpc_result(id, action_boolean(panel, params));
+        if (method == "pattern")        return rpc_result(id, action_pattern(panel, params));
+        if (method == "shell")          return rpc_result(id, action_shell(panel, params));
+        if (method == "draft")          return rpc_result(id, action_draft(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
         return rpc_error(id, -32000, std::string("OCCT: ") + (ex.GetMessageString() ? ex.GetMessageString() : "failure"));

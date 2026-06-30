@@ -59,6 +59,11 @@ public:
     // already linked via Format/STEP.cpp — no new dependency. err is set on failure (empty result).
     static std::vector<TopoDS_Shape> read_step_solids(const std::string& path, std::string& err);
 
+    struct Deviation { double max_mm{0}; double mean_mm{0}; double rms_mm{0}; int sample_count{0}; };
+    static Deviation surface_deviation(const TopoDS_Shape& candidate,
+                                       const TopoDS_Shape& reference,
+                                       double linear_deflection = 0.5);
+
     static TopoDS_Shape apply_fillet(const TopoDS_Shape& solid, double radius,
                                      FaceGroup faces = FaceGroup::All);
     static TopoDS_Shape apply_fillet(const TopoDS_Shape& solid, double radius,

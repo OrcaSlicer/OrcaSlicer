@@ -28,6 +28,9 @@
 #include <STEPControl_Reader.hxx>
 #include <IFSelect_ReturnStatus.hxx>
 #include <Standard_Failure.hxx>
+#include <BRepExtrema_DistShapeShape.hxx>
+#include <BRepBuilderAPI_MakeVertex.hxx>
+#include <cmath>
 
 namespace Slic3r {
 
@@ -273,6 +276,31 @@ TriangleMesh GeometryEngine::tessellate(const TopoDS_Shape& shape,
         ndOff += tri->NbNodes(); trOff += tri->NbTriangles();
     }
     TriangleMesh result; result.from_stl(stl); return result;
+}
+
+GeometryEngine::Deviation
+GeometryEngine::surface_deviation(const TopoDS_Shape& candidate,
+                                  const TopoDS_Shape& reference,
+                                  double linear_deflection)
+{
+    Deviation d;
+    if (candidate.IsNull() || reference.IsNull()) return d;
+    TriangleMesh mesh = tessellate(candidate, linear_deflection, 0.5);
+    const auto& verts = mesh.its.vertices;
+    if (verts.empty()) return d;
+    double sum = 0.0, sumsq = 0.0;
+    int n = 0;
+    for (const auto& v : verts) {
+        gp_Pnt p(v.x(), v.y(), v.z());
+        BRepExtrema_DistShapeShape dss(BRepBuilderAPI_MakeVertex(p).Vertex(), reference);
+        if (!dss.IsDone() || dss.NbSolution() < 1) continue;
+        double dist = dss.Value();
+        d.max_mm = std::max(d.max_mm, dist);
+        sum += dist; sumsq += dist * dist; ++n;
+    }
+    d.sample_count = n;
+    if (n > 0) { d.mean_mm = sum / n; d.rms_mm = std::sqrt(sumsq / n); }
+    return d;
 }
 
 std::string GeometryEngine::primitive_name(PrimitiveType type)
