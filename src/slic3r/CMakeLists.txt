@@ -109,6 +109,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/DownloadProgressDialog.hpp
     GUI/DesignPanel.cpp
     GUI/DesignPanel.hpp
+    GUI/McpControl.cpp
+    GUI/McpControl.hpp
     GUI/DesignCanvas.cpp
     GUI/DesignCanvas.hpp
     GUI/DesignSketchTool.cpp

@@ -37,6 +37,11 @@ public:
     explicit DesignPanel(wxWindow* parent);
     void on_tab_shown();        // re-sync bed to the active printer when the Design tab is activated
 
+    // MCP control hooks: let the external control server (McpControl.cpp) drive and
+    // perceive the SAME kernel the GUI uses. Called only on the wx main thread.
+    CadDocument& mcp_doc()        { return m_doc; }            // live document (read + mutate)
+    void         mcp_after_change() { after_tree_edit(true); } // refresh tree + viewport + status
+
 private:
     enum class Tool { None, Sketch, Extrude, Dressup, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Boolean, Cut, Insert };
     // Plane tool: which datum reference the next solid pick fills (declared early so the
