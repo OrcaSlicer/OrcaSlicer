@@ -85,6 +85,33 @@ bool check_filament_printable_after_group(const std::vector<unsigned int> &used_
 
 namespace {
 
+// Decide whether layer `layer_index` (0-based, within an object of
+// `total_layers` layers) should print component A for a two-colour Z-direction
+// gradient whose component-A fraction ramps linearly from `frac_bottom` (first
+// layer) to `frac_top` (top layer).
+//
+// Stateless 1-D error diffusion: the running count of A-layers expected through
+// layer i is the integral of the linear A-fraction ramp; an A-layer is emitted
+// whenever that rounded count increases. The local A/B ratio thus tracks the
+// target fraction at every height with no per-call accumulator, so the answer
+// is identical no matter how often a given layer is queried.
+bool gradient_layer_uses_component_a(int layer_index, size_t total_layers, float frac_bottom, float frac_top)
+{
+    const double gs = std::clamp(double(frac_bottom), 0.0, 1.0);
+    const double ge = std::clamp(double(frac_top),    0.0, 1.0);
+    if (total_layers <= 1)
+        return gs >= 0.5;
+    const double span = double(total_layers - 1);
+    auto a_count = [gs, ge, span](long i) -> long {
+        if (i < 0)
+            return 0;
+        const double n = double(i) + 1.0; // layers 0..i inclusive
+        return std::lround(n * gs + (ge - gs) * (double(i) * n * 0.5) / span);
+    };
+    const long li = long(std::max(0, layer_index));
+    return a_count(li) > a_count(li - 1);
+}
+
 // Resolve a 1-based mixed/virtual filament ID to a 1-based physical extruder for
 // the given layer context. Honors optional explicit Local-Z A/B cadence heights.
 // Field-name independent (operates purely on the manager + IDs).
@@ -104,15 +131,21 @@ unsigned int resolve_mixed_with_layer_heights(const MixedFilamentManager *mixed_
 
     const MixedFilament *mixed_row = mixed_mgr->mixed_filament_from_id(filament_id_1based, num_physical);
 
-    // Z-direction gradient short-circuits the legacy A/B layer cycle below: the
-    // gradient path needs the per-(object, layer) run lookup performed inside
-    // MixedFilamentManager::resolve.
-    const bool gradient_active =
-        (mixed_row != nullptr && current_object != nullptr) &&
-        (mixed_row->gradient_enabled && mixed_row->component_a != mixed_row->component_b) &&
-        (layer_index > 0);
+    // Two-colour Z-direction gradient: vary the A/B choice across the object
+    // height (gradient_start at the first layer -> gradient_end at the top),
+    // dithered at layer granularity. Handled here rather than in the engine
+    // resolve() because it needs the object's layer span (PrintObject), which
+    // the field-independent engine translation unit cannot include.
+    if (mixed_row != nullptr && current_object != nullptr &&
+        mixed_row->gradient_enabled && mixed_row->component_a != mixed_row->component_b) {
+        const size_t total_layers = current_object->layer_count();
+        if (total_layers > 1)
+            return gradient_layer_uses_component_a(layer_index, total_layers,
+                                                   mixed_row->gradient_start, mixed_row->gradient_end)
+                       ? mixed_row->component_a : mixed_row->component_b;
+    }
 
-    if (mixed_row != nullptr && !mixed_row->custom && !gradient_active && (layer_height_a > 0.f || layer_height_b > 0.f)) {
+    if (mixed_row != nullptr && !mixed_row->custom && (layer_height_a > 0.f || layer_height_b > 0.f)) {
         const float safe_base = std::max<float>(0.01f, base_layer_height);
         const int ratio_a = std::max(1, int(std::lround((layer_height_a > 0.f ? layer_height_a : safe_base) / safe_base)));
         const int ratio_b = std::max(1, int(std::lround((layer_height_b > 0.f ? layer_height_b : safe_base) / safe_base)));
