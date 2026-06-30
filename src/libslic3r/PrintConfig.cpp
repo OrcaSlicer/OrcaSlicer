@@ -10278,6 +10278,11 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
             }
         }
 
+        // H2C: remember the per-extruder variant slot mapping for the print options so that
+        // modifier/volume overrides (loaded in extruder-variant space) can be reduced identically.
+        if (variant_name == "print_extruder_variant" && extruder_id == 0)
+            this->set_print_variant_index(variant_index);
+
         const ConfigDef       *config_def     = this->def();
         if (!config_def) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", Line %1%: can not find config define")%__LINE__;

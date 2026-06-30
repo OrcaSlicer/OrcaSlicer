@@ -361,6 +361,10 @@ public:
     virtual void append(const ConfigOption* rhs)                                                                            = 0;
     virtual void set(const ConfigOption* rhs, size_t start, size_t len)                                                     = 0;
     virtual void set_with_restore(const ConfigOptionVectorBase* rhs, std::vector<int>& restore_index, int stride)           = 0;
+    // Assign per-extruder values picked from a variant-space source vector (rhs) using dest_index.
+    // Used to reduce a modifier/volume override stored in extruder-variant space into the active
+    // per-extruder space, honoring nil entries (falls back to rhs.front()).
+    virtual void set_to_index(const ConfigOptionVectorBase* rhs, const std::vector<int>& dest_index, int stride)           = 0;
     virtual void set_with_restore_2(const ConfigOptionVectorBase* rhs, std::vector<int>& restore_index, int start, int len, bool skip_error = false) = 0;
     virtual void set_only_diff(const ConfigOptionVectorBase* rhs, std::vector<int>& diff_index, int stride)                 = 0;
     virtual void set_with_nil(const ConfigOptionVectorBase* rhs, const ConfigOptionVectorBase* inherits, int stride)        = 0;
@@ -513,6 +517,30 @@ public:
         }
         else
             throw ConfigurationError("ConfigOptionVector::set_with_restore(): Assigning an incompatible type");
+    }
+
+    // Pick per-extruder values from a variant-space source vector (e.g. a modifier override loaded
+    // from a 3mf, stored with one entry per extruder variant). For each destination extruder i,
+    // copy rhs[dest_index[i]] when present and not nil, otherwise keep rhs.front() (a non-nil
+    // scalar override the GUI wrote into the active variant slot). Mirrors BambuStudio.
+    // rhs: source option in extruder-variant space
+    // dest_index: variant slot to use for each physical extruder
+    virtual void set_to_index(const ConfigOptionVectorBase* rhs, const std::vector<int>& dest_index, int stride) override
+    {
+        if (rhs->type() == this->type()) {
+            auto other = static_cast<const ConfigOptionVector<T>*>(rhs);
+            T v = other->values.empty() ? T{} : other->values.front();
+            this->values.assign(dest_index.size() * stride, v);
+
+            for (size_t i = 0; i < dest_index.size(); i++) {
+                for (int j = 0; j < stride; j++) {
+                    if (dest_index[i] >= 0 && (dest_index[i] * stride + j) < (int)other->values.size() && !other->is_nil(dest_index[i] * stride + j))
+                        this->values[i * stride + j] = other->values[dest_index[i] * stride + j];
+                }
+            }
+        }
+        else
+            throw ConfigurationError("ConfigOptionVector::set_to_index(): Assigning an incompatible type");
     }
 
     // set a item related with extruder variants when loading config from filament json, replace the original filament items

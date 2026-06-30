@@ -642,13 +642,13 @@ class DynamicPrintConfig : public DynamicConfig
 {
 public:
     DynamicPrintConfig() {}
-    DynamicPrintConfig(const DynamicPrintConfig &rhs) : DynamicConfig(rhs), m_variant_overrides(rhs.m_variant_overrides), m_active_variant_index(rhs.m_active_variant_index) {}
-    DynamicPrintConfig(DynamicPrintConfig &&rhs) noexcept : DynamicConfig(std::move(rhs)), m_variant_overrides(std::move(rhs.m_variant_overrides)), m_active_variant_index(rhs.m_active_variant_index) {}
+    DynamicPrintConfig(const DynamicPrintConfig &rhs) : DynamicConfig(rhs), m_variant_overrides(rhs.m_variant_overrides), m_active_variant_index(rhs.m_active_variant_index), m_print_variant_index(rhs.m_print_variant_index) {}
+    DynamicPrintConfig(DynamicPrintConfig &&rhs) noexcept : DynamicConfig(std::move(rhs)), m_variant_overrides(std::move(rhs.m_variant_overrides)), m_active_variant_index(rhs.m_active_variant_index), m_print_variant_index(std::move(rhs.m_print_variant_index)) {}
     explicit DynamicPrintConfig(const StaticPrintConfig &rhs);
     explicit DynamicPrintConfig(const ConfigBase &rhs) : DynamicConfig(rhs) {}
 
-    DynamicPrintConfig& operator=(const DynamicPrintConfig &rhs) { DynamicConfig::operator=(rhs); m_variant_overrides = rhs.m_variant_overrides; m_active_variant_index = rhs.m_active_variant_index; return *this; }
-    DynamicPrintConfig& operator=(DynamicPrintConfig &&rhs) noexcept { DynamicConfig::operator=(std::move(rhs)); m_variant_overrides = std::move(rhs.m_variant_overrides); m_active_variant_index = rhs.m_active_variant_index; return *this; }
+    DynamicPrintConfig& operator=(const DynamicPrintConfig &rhs) { DynamicConfig::operator=(rhs); m_variant_overrides = rhs.m_variant_overrides; m_active_variant_index = rhs.m_active_variant_index; m_print_variant_index = rhs.m_print_variant_index; return *this; }
+    DynamicPrintConfig& operator=(DynamicPrintConfig &&rhs) noexcept { DynamicConfig::operator=(std::move(rhs)); m_variant_overrides = std::move(rhs.m_variant_overrides); m_active_variant_index = rhs.m_active_variant_index; m_print_variant_index = std::move(rhs.m_print_variant_index); return *this; }
 
     static DynamicPrintConfig  full_print_config();
     static DynamicPrintConfig* new_from_defaults_keys(const std::vector<std::string> &keys);
@@ -725,6 +725,14 @@ public:
     // Set by apply_variant_overrides(); read by expand_variant_overrides_to_vectors().
     int active_variant_index() const { return m_active_variant_index; }
 
+    // H2C: Per-physical-extruder variant slot mapping computed when the full print config is
+    // reduced from extruder-variant space to per-extruder space (update_values_to_printer_extruders
+    // for the "print_extruder_variant" keys). Reused to reduce modifier/volume overrides the same
+    // way, so a modifier override stored in variant space (e.g. "200,nil,200,nil") collapses to the
+    // correct per-extruder value instead of leaking nil (NaN) into wall speeds. Empty == unknown.
+    const std::vector<int>& print_variant_index() const { return m_print_variant_index; }
+    void set_print_variant_index(const std::vector<int>& idx) { m_print_variant_index = idx; }
+
     // Apply variant values from the overlay into the scalar config.
     // variant_index: index into the variant array (e.g. 0=Standard, 1=HighFlow for single-extruder)
     // keys: set of option keys to apply (typically print_options_with_variant)
@@ -756,6 +764,8 @@ private:
     // H2C: Index of the nozzle variant whose values are currently in the scalar config.
     // -1 means unknown / not yet applied.
     int m_active_variant_index = -1;
+    // H2C: variant slot per physical extruder, see print_variant_index().
+    std::vector<int> m_print_variant_index;
 };
 extern std::set<std::string> printer_extruder_options;
 // print_options_with_variant is now in VariantOverrides.hpp

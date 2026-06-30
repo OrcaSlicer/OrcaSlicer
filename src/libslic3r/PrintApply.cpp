@@ -729,7 +729,7 @@ PrintObjectRegions::BoundingBox find_modifier_volume_extents(const PrintObjectRe
     return out;
 }
 
-PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders);
+PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders, const std::vector<int> &variant_index);
 
 void print_region_ref_inc(PrintRegion &r) { ++ r.m_ref_cnt; }
 void print_region_ref_reset(PrintRegion &r) { r.m_ref_cnt = 0; }
@@ -742,6 +742,7 @@ bool verify_update_print_object_regions(
     ModelVolumePtrs                     model_volumes,
     const PrintRegionConfig            &default_region_config,
     size_t                              num_extruders,
+    const std::vector<int>             &variant_index,
     PrintObjectRegions                 &print_object_regions,
     const std::function<void(const PrintRegionConfig&, const PrintRegionConfig&, const t_config_option_keys&)> &callback_invalidate)
 {
@@ -788,7 +789,7 @@ bool verify_update_print_object_regions(
                             } else if (PrintObjectRegions::BoundingBox parent_bbox = find_modifier_volume_extents(layer_range, parent_region_id); parent_bbox.intersects(*bbox))
                                 // Such parent region does not exist. If it is needed, then we need to reslice.
                                 // Only create new region for a modifier, which actually modifies config of it's parent.
-                                if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, **it_model_volume, num_extruders);
+                                if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, **it_model_volume, num_extruders, variant_index);
                                     config != parent_region.region->config())
                                     // This modifier newly overrides a region, which it did not before. We need to reslice.
                                     return false;
@@ -796,8 +797,8 @@ bool verify_update_print_object_regions(
                     }
                 }
                 PrintRegionConfig cfg = region.parent == -1 ?
-                    region_config_from_model_volume(default_region_config, layer_range.config, **it_model_volume, num_extruders) :
-                    region_config_from_model_volume(layer_range.volume_regions[region.parent].region->config(), nullptr, **it_model_volume, num_extruders);
+                    region_config_from_model_volume(default_region_config, layer_range.config, **it_model_volume, num_extruders, variant_index) :
+                    region_config_from_model_volume(layer_range.volume_regions[region.parent].region->config(), nullptr, **it_model_volume, num_extruders, variant_index);
                 if (cfg != region.region->config()) {
                     // Region configuration changed.
                     if (print_region_ref_cnt(*region.region) == 0) {
@@ -967,6 +968,7 @@ static PrintObjectRegions* generate_print_object_regions(
     const PrintRegionConfig                     &default_region_config,
     const Transform3d                           &trafo,
     size_t                                       num_extruders,
+    const std::vector<int>                      &variant_index,
     const float                                  xy_contour_compensation,
     const std::vector<unsigned int>             &painting_extruders,
     const bool                                   has_painted_fuzzy_skin)
@@ -1027,7 +1029,7 @@ static PrintObjectRegions* generate_print_object_regions(
                         // Add a model volume, assign an existing region or generate a new one.
                         layer_range.volume_regions.push_back({
                             &volume, -1,
-                            get_create_region(region_config_from_model_volume(default_region_config, layer_range.config, volume, num_extruders)),
+                            get_create_region(region_config_from_model_volume(default_region_config, layer_range.config, volume, num_extruders, variant_index)),
                             bbox
                         });
                     } else if (volume.is_negative_volume()) {
@@ -1044,7 +1046,7 @@ static PrintObjectRegions* generate_print_object_regions(
                             if (parent_volume.is_model_part() || parent_volume.is_modifier())
                                 if (PrintObjectRegions::BoundingBox parent_bbox = find_modifier_volume_extents(layer_range, parent_region_id); parent_bbox.intersects(*bbox)) {
                                     // Only create new region for a modifier, which actually modifies config of it's parent.
-                                    if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, volume, num_extruders);
+                                    if (PrintRegionConfig config = region_config_from_model_volume(parent_region.region->config(), nullptr, volume, num_extruders, variant_index);
                                         config != parent_region.region->config()) {
                                         added = true;
                                         layer_range.volume_regions.push_back({ &volume, parent_region_id, get_create_region(std::move(config)), bbox });
@@ -1173,12 +1175,19 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     }
 
     //apply extruder related values
+    // H2C: per-physical-extruder variant slot mapping, used to reduce modifier/volume overrides
+    // stored in extruder-variant space (see region_config_from_model_volume). Empty == single
+    // variant / unknown, in which case overrides are applied verbatim (legacy behavior).
+    std::vector<int> print_variant_index;
     if (!extruder_applied) {
         // variant_2 must be processed first, because variant_1 will make `printer_extruder_id` and `printer_extruder_variant` half of the size that makes `get_index_for_extruder` no longer work properly
         new_full_config.update_values_to_printer_extruders(new_full_config, printer_options_with_variant_2, "printer_extruder_id", "printer_extruder_variant", 2);
         new_full_config.update_values_to_printer_extruders(new_full_config, printer_options_with_variant_1, "printer_extruder_id", "printer_extruder_variant");
         //update print config related with variants
         new_full_config.update_values_to_printer_extruders(new_full_config, print_options_with_variant, "print_extruder_id", "print_extruder_variant");
+        // H2C: capture the per-extruder variant slot mapping before new_full_config is moved out
+        // below; reused to reduce modifier/volume variant overrides consistently (see below).
+        print_variant_index = new_full_config.print_variant_index();
 
         m_ori_full_print_config = new_full_config;
         new_full_config.update_values_to_printer_extruders_for_multiple_filaments(new_full_config, filament_options_with_variant,  "filament_self_index", "filament_extruder_variant");
@@ -1776,6 +1785,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                     print_object.model_object()->volumes,
                     m_default_region_config,
                     num_extruders,
+                    print_variant_index,
                     *print_object_regions,
                     [it_print_object, it_print_object_end, &update_apply_status](const PrintRegionConfig &old_config, const PrintRegionConfig &new_config, const t_config_option_keys &diff_keys) {
                         for (auto it = it_print_object; it != it_print_object_end; ++it)
@@ -1801,6 +1811,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 m_default_region_config,
                 model_object_status.print_instances.front().trafo,
                 num_extruders ,
+                print_variant_index,
                 print_object.is_mm_painted() ? 0.f : float(print_object.config().xy_contour_compensation.value),
                 painting_extruders,
                 print_object.is_fuzzy_skin_painted());
