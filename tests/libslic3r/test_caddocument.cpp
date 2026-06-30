@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
 
 #include "libslic3r/CadDocument.hpp"
+#include "libslic3r/GeometryEngine.hpp"
 #include "libslic3r/SketchEngine.hpp"
 #include "libslic3r/SketchImport.hpp"
 #include "libslic3r/ThreadStandards.hpp"
@@ -13,6 +14,9 @@
 #include <Bnd_Box.hxx>
 #include <BRepBndLib.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
+#include <BRepBuilderAPI_Transform.hxx>
+#include <gp_Trsf.hxx>
+#include <gp_Vec.hxx>
 #include <cereal/archives/binary.hpp>
 
 using namespace Slic3r;
@@ -1602,4 +1606,22 @@ TEST_CASE("datum plane construction methods", "[CadDocument][plane]")
         CHECK_THAT(std::abs(sp.x_axis.dot(sp.normal)), WithinAbs(0.0, 1e-6));
         CHECK_THAT(std::abs(sp.y_axis.dot(sp.normal)), WithinAbs(0.0, 1e-6));
     }
+}
+
+// Mirrors the snaporca [Deviation] case (snaporca carries it in test_geometry.cpp; here it lives
+// alongside the CAD suite). GeometryEngine::surface_deviation = one-sided Hausdorff used by the
+// MCP validate_against acceptance metric.
+TEST_CASE("surface_deviation: identical solids ~0, shifted solid ~shift", "[Deviation]")
+{
+    TopoDS_Shape ref = BRepPrimAPI_MakeBox(10.0, 10.0, 10.0).Shape();
+    auto d0 = GeometryEngine::surface_deviation(ref, ref, 0.5);
+    REQUIRE(d0.sample_count > 0);
+    REQUIRE_THAT(d0.max_mm, Catch::Matchers::WithinAbs(0.0, 1e-6));
+
+    // candidate shifted +2mm in X: far corner vertices sit 2mm outside the reference
+    gp_Trsf t; t.SetTranslation(gp_Vec(2.0, 0.0, 0.0));
+    TopoDS_Shape shifted = BRepBuilderAPI_Transform(ref, t, true).Shape();
+    auto d1 = GeometryEngine::surface_deviation(shifted, ref, 0.5);
+    REQUIRE_THAT(d1.max_mm, Catch::Matchers::WithinAbs(2.0, 0.05));
+    REQUIRE(d1.mean_mm > 0.0);
 }
