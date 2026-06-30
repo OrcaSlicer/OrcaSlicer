@@ -831,6 +831,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             if (!filament_end_gcode.empty()) {
                 DynamicConfig config;
                 config.set_key_value("layer_num", new ConfigOptionInt(gcodegen.m_layer_index));
+                config.set_key_value("layer_z", new ConfigOptionFloat(tcr.print_z));
                 auto gr = gcodegen.m_print ? gcodegen.m_print->get_layered_nozzle_group_result() : nullptr;
                 config.set_key_value("current_filament_id", new ConfigOptionInt((int)old_filament_id));
                 config.set_key_value("current_extruder_id", new ConfigOptionInt((int)gcodegen.writer().filament()->extruder_id()));
