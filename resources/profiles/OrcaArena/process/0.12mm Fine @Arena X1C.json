@@ -3,7 +3,7 @@
 	"name": "0.12mm Fine @Arena X1C",
 	"inherits": "fdm_process_arena_0.12",
 	"from": "system",
-	"setting_id": "GP002",
+	"setting_id": "orfsZJWNnKXKdxaZ",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Orca Arena X1 Carbon 0.4 nozzle",

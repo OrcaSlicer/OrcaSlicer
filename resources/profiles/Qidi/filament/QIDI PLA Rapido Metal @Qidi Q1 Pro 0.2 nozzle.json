@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido Metal @Qidi Q1 Pro 0.2 nozzle",
 	"inherits": "QIDI PLA Rapido Metal",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "6obXUws35j7OkE2v",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

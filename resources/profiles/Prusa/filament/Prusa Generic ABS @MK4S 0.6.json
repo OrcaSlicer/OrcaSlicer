@@ -3,7 +3,7 @@
 	"name": "Prusa Generic ABS @MK4S 0.6",
 	"inherits": "Prusa Generic ABS @MK4S",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "VVzzIN41B5ADTIeQ",
 	"filament_id": "Generic ABS @MK4S 0.6",
 	"instantiation": "true",
 	"compatible_printers": [

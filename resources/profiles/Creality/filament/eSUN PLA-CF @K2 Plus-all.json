@@ -3,7 +3,7 @@
     "name": "eSUN PLA-CF @K2 Plus-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "DYF2ppm40yQWEtnp",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
         "80"

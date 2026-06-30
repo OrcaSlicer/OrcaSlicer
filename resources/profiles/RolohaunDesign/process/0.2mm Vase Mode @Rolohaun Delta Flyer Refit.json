@@ -3,6 +3,7 @@
 	"name": "0.2mm Vase Mode @Delta Flyer Refit",
 	"inherits": "fdm_process_Rook MK1 LDO_common",
 	"from": "system",
+	"setting_id": "V5m4C9uPTfM2RE32",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"initial_layer_infill_speed": "100",

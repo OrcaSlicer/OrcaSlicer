@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Matte @System",
 	"inherits": "Bambu PLA Matte @base",
 	"from": "system",
-	"setting_id": "OGFSA01",
+	"setting_id": "POQTCsM5qwSXswgr",
 	"instantiation": "true",
 	"filament_long_retractions_when_cut": [
 		"1"

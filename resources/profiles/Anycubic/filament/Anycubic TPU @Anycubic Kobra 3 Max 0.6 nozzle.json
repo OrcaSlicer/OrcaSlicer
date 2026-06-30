@@ -3,7 +3,7 @@
 	"name": "Anycubic TPU @Anycubic Kobra 3 Max 0.6 nozzle",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "F3l2tNcFwp9qG7W6",
 	"filament_id": "GFU99",
 	"instantiation": "true",
 	"filament_settings_id": [

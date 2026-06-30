@@ -3,6 +3,7 @@
 	"name": "Flashforge HIPS @FF G4P",
 	"inherits": "Flashforge Generic HS PLA",
 	"from": "system",
+	"setting_id": "yAGyGjF6uDrjfjLn",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"0"

@@ -3,7 +3,7 @@
 	"name": "0.12mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "ES10Vs7eo1TLB3T5",
 	"instantiation": "true",
 	"print_settings_id": "0.12mm Standard @Anycubic Kobra 3 Max 0.4 nozzle",
 	"layer_height": "0.12",

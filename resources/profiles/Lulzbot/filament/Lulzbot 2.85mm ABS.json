@@ -3,7 +3,7 @@
 	"name": "Lulzbot 2.85mm ABS",
 	"inherits": "Generic ABS @System",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "XwsWBVH2xIwyRMm4",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_diameter": [

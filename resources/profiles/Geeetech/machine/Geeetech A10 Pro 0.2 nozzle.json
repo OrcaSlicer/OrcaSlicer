@@ -3,7 +3,7 @@
 	"name": "Geeetech A10 Pro 0.2 nozzle",
 	"inherits": "fdm_geeetech_common",
 	"from": "system",
-	"setting_id": "GM_GEEETECH_021",
+	"setting_id": "KAcVvCaNu9EE30pd",
 	"instantiation": "true",
 	"printer_model": "Geeetech A10 Pro",
 	"default_filament_profile": [

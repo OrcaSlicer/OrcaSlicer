@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PC @0.8 nozzle",
 	"inherits": "Qidi Generic PC",
 	"from": "system",
-	"setting_id": "GFSC99",
+	"setting_id": "8mJysYABmQTBlWLw",
 	"filament_id": "GFC99",
 	"instantiation": "true",
 	"pressure_advance": [

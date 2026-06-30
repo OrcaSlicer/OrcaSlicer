@@ -3865,13 +3865,13 @@ int CLI::run(int argc, char **argv)
         }
 
         //travel_acceleration
-        ConfigOptionFloat *travel_acceleration_option = m_print_config.option<ConfigOptionFloat>("travel_acceleration", true);
-        ConfigOptionFloat *default_acceleration_option = m_print_config.option<ConfigOptionFloat>("default_acceleration");
-        travel_acceleration_option->value = default_acceleration_option->value;
+        ConfigOptionFloatsNullable *travel_acceleration_option = m_print_config.option<ConfigOptionFloatsNullable>("travel_acceleration", true);
+        ConfigOptionFloatsNullable *default_acceleration_option = m_print_config.option<ConfigOptionFloatsNullable>("default_acceleration");
+        travel_acceleration_option->values = default_acceleration_option->values;
 
-        ConfigOptionFloat *initial_layer_travel_acceleration_option = m_print_config.option<ConfigOptionFloat>("initial_layer_travel_acceleration", true);
-        ConfigOptionFloat *initial_layer_acceleration_option = m_print_config.option<ConfigOptionFloat>("initial_layer_acceleration");
-        initial_layer_travel_acceleration_option->value = initial_layer_acceleration_option->value;
+        ConfigOptionFloatsNullable *initial_layer_travel_acceleration_option = m_print_config.option<ConfigOptionFloatsNullable>("initial_layer_travel_acceleration", true);
+        ConfigOptionFloatsNullable *initial_layer_acceleration_option = m_print_config.option<ConfigOptionFloatsNullable>("initial_layer_acceleration");
+        initial_layer_travel_acceleration_option->values = initial_layer_acceleration_option->values;
     }
 
     auto get_print_sequence = [](Slic3r::GUI::PartPlate* plate, DynamicPrintConfig& print_config, bool &is_seq_print) {

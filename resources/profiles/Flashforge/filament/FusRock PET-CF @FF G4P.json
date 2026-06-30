@@ -3,6 +3,7 @@
 	"name": "FusRock PET-CF @FF G4P",
 	"inherits": "Flashforge Generic TPU",
 	"from": "system",
+	"setting_id": "JXf7KCy4KY65xuzO",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"0"

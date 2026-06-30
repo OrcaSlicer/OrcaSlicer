@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_2_1_12",
-	"setting_id": "GFSA04",
 	"name": "QIDI ABS-GF@Q2C-Series",
 	"from": "system",
 	"instantiation": "false",

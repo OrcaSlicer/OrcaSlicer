@@ -1,9 +1,10 @@
 {
 	"type": "process",
 	"name": "0.08mm Optimal @Elegoo N4Max 0.2 nozzle",
+	"from": "system",
 	"inherits": "0.10mm Standard @Elegoo N4Max 0.2 nozzle",
+	"setting_id": "n72kCNTZ1ILUzaiJ",
 	"instantiation": "true",
 	"layer_height": "0.08",
-	"settings_id": "PEN4Max02008",
 	"renamed_from": "0.08mm Extra Fine @Elegoo Neptune4Max (0.2 nozzle);0.16mm Optimal @Elegoo Neptune4Max (0.2 nozzle)"
 }

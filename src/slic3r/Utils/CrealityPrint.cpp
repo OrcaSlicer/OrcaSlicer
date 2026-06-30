@@ -298,36 +298,6 @@ std::string CrealityPrint::query_boxes_info() const
     }
 }
 
-std::string CrealityPrint::get_print_host_webui(DynamicPrintConfig* config)
-{
-    // K-series printers (K2 / K2 Plus / K2 Pro) ship with Mainsail on port 4408.
-    // Port 80 hosts only the Creality control / upload API, which returns 404
-    // for unknown paths and therefore renders as a blank/404 page in Orca's
-    // Device WebView. Default to the Mainsail URL when the user hasn't
-    // explicitly set print_host_webui.
-    if (config == nullptr)
-        return {};
-
-    std::string explicit_url = config->opt_string("print_host_webui");
-    if (!explicit_url.empty())
-        return explicit_url;
-
-    std::string host = config->opt_string("print_host");
-    if (host.empty())
-        return {};
-
-    if (boost::algorithm::istarts_with(host, "http://"))
-        host = host.substr(7);
-    else if (boost::algorithm::istarts_with(host, "https://"))
-        host = host.substr(8);
-    if (auto slash = host.find('/'); slash != std::string::npos)
-        host = host.substr(0, slash);
-    if (auto colon = host.find(':'); colon != std::string::npos)
-        host = host.substr(0, colon);
-
-    return "http://" + host + ":4408/";
-}
-
 bool CrealityPrint::start_print(wxString &msg, const std::string &filename, const std::map<std::string, std::string>& extended_info) const
 {
     try {
@@ -414,11 +384,19 @@ bool CrealityPrint::start_print(wxString &msg, const std::string &filename, cons
             };
             ws.write(net::buffer(to_string(cmd)));
 
+            // K1-family firmware closes the WebSocket right after accepting the
+            // start command, so a blocking read here surfaces a benign
+            // "End of file [asio.misc:2]" even though the print already started
+            // (the command is delivered by write()). Read best-effort, ignore errors.
             beast::flat_buffer buffer;
-            ws.read(buffer);
+            beast::error_code  read_ec;
+            ws.read(buffer, read_ec);
         }
 
-        ws.close(websocket::close_code::normal);
+        // Same reason: the printer may have already closed the connection. A close
+        // error here is not a failure — the start command was sent above.
+        beast::error_code close_ec;
+        ws.close(websocket::close_code::normal, close_ec);
         return true;
     } catch(std::exception const& e) {
         BOOST_LOG_TRIVIAL(error) << "CrealityPrint: Error starting print: " << e.what();

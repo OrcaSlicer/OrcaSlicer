@@ -3,7 +3,7 @@
 	"name": "0.12mm Draft @WonderMaker ZR 0.2 nozzle",
 	"inherits": "fdm_process_wm_0.12_nozzle_0.2",
 	"from": "system",
-	"setting_id": "GP026",
+	"setting_id": "kI8JZdjGYo0TzG37",
 	"instantiation": "true",
 	"description": "Compared with the default profile of a 0.2 mm nozzle, it has a slightly bigger layer height, and results in almost negligible layer lines, and slightly shorter printing time.",
 	"elefant_foot_compensation": "0.15",

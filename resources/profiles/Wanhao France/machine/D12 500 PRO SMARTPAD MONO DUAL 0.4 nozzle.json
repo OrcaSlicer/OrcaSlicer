@@ -3,7 +3,7 @@
 	"name": "D12 500 PRO SMARTPAD MONO DUAL 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "xya7tlhSORyjAw4O",
 	"instantiation": "true",
 	"printer_model": "D12 500 PRO SMARTPAD MONO DUAL",
 	"gcode_flavor": "klipper",

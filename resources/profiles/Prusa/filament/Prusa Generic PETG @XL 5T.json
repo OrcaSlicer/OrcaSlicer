@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PETG @XL 5T",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFG99_PRUSA_0",
+	"setting_id": "FbtB9og6yXm2ZktD",
 	"instantiation": "true",
 	"nozzle_temperature_intial_layer": "230",
 	"nozzle_temperature": "240",

@@ -20,7 +20,7 @@ class ObjColorPanel : public wxPanel
 {
 public:
     // BBS
-    ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, const std::vector<std::string> &extruder_colours);
+    ObjColorPanel(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, const std::vector<std::string> &extruder_colours, bool semm);
     ~ObjColorPanel();
     void msw_rescale();
     bool is_ok();
@@ -90,6 +90,7 @@ private:
     int m_color_num_recommend{0};
     int m_color_cluster_num_by_algo{0};
     int m_input_colors_size{0};
+    bool m_semm; // only SEMM printer can add more colors
     std::vector<wxColour> m_colours;//from project and show right
     std::vector<int>      m_cluster_map_filaments;//show middle
     int                   m_max_filament_index = 0;
@@ -112,7 +113,7 @@ private:
 class ObjColorDialog : public Slic3r::GUI::DPIDialog
 {
 public:
-    ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, const std::vector<std::string> &extruder_colours);
+    ObjColorDialog(wxWindow *parent, Slic3r::ObjDialogInOut &in_out, const std::vector<std::string> &extruder_colours, bool semm);
     wxBoxSizer *create_btn_sizer(long flags, bool exist_error);
     void on_dpi_changed(const wxRect &suggested_rect) override;
     void update_layout();

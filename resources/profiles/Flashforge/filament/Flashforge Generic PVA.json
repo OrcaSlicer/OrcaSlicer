@@ -3,7 +3,7 @@
 	"name": "Flashforge Generic PVA",
 	"inherits": "Flashforge Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "NA0PhaTNDvEH38lF",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

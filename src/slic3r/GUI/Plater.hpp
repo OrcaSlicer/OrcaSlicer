@@ -717,7 +717,7 @@ public:
     int delete_plate(int plate_index = -1);
     int duplicate_plate(int plate_index = -1);
     //BBS: select the sliced plate by index
-    int select_sliced_plate(int plate_index);
+    int select_sliced_plate(int plate_index, bool skip_zoom = false);
     //BBS: set bed positions
     void set_bed_position(Vec2d& pos);
     //BBS: is the background process slicing currently

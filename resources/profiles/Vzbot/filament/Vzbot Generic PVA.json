@@ -3,7 +3,7 @@
 	"name": "Vzbot Generic PVA",
 	"inherits": "fdm_filament_pva",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "DX4eZb2tlNVqeUrn",
 	"filament_id": "GFS99",
 	"instantiation": "true",
 	"filament_flow_ratio": [
