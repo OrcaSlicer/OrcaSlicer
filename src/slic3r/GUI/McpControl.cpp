@@ -13,6 +13,8 @@
 #include <future>
 #include <chrono>
 #include <memory>
+#include <cmath>
+#include <algorithm>
 
 #include <nlohmann/json.hpp>
 #include <boost/log/trivial.hpp>
@@ -24,8 +26,15 @@
 
 #include "libslic3r/CadDocument.hpp"
 #include "libslic3r/SketchEngine.hpp"
+#include "libslic3r/GeometryEngine.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/BoundingBox.hpp"
+
+#include <gp_Pln.hxx>
+#include <BRepAlgoAPI_Section.hxx>
+#include <TopExp_Explorer.hxx>
+#include <TopoDS.hxx>
+#include <TopoDS_Edge.hxx>
 
 using json = nlohmann::json;
 
@@ -89,6 +98,22 @@ json describe_tools()
                      json{{"name", "distance"}, {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
                      json{{"name", "plane"},    {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
                  })}},
+            json{{"name", "query_topology"}, {"summary", "Measured faces (centroid/normal/cylinder) and edges (length/circle) of a body."},
+                 {"params", json::array({
+                     json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
+                 })}},
+            json{{"name", "measure"}, {"summary", "Distance (and angle, when both have direction) between two refs {face|edge|point} on a body."},
+                 {"params", json::array({
+                     json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
+                     json{{"name", "a"}, {"type", "object"}},
+                     json{{"name", "b"}, {"type", "object"}},
+                 })}},
+            json{{"name", "slice_body"}, {"summary", "Cross-section of a body by a base plane at an offset (sections-as-evidence); returns world polylines."},
+                 {"params", json::array({
+                     json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
+                     json{{"name", "plane"}, {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
+                     json{{"name", "offset"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                 })}},
         })},
     };
 }
@@ -128,6 +153,124 @@ json describe_scene(DesignPanel* panel)
     };
 }
 
+// --- Measure layer (read-only "evidence" half of the RE loop) ------------------
+inline json vec3(const Vec3d& v) { return json::array({v.x(), v.y(), v.z()}); }
+
+// Resolve body index -> shape, throwing a clear error if out of range / null.
+const TopoDS_Shape& body_shape(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    int idx = params.value("body", 0);
+    if (idx < 0 || idx >= int(doc.bodies.size()))
+        throw std::runtime_error("body index out of range (have " + std::to_string(doc.bodies.size()) + ")");
+    if (doc.bodies[idx].shape.IsNull())
+        throw std::runtime_error("body has no shape");
+    return doc.bodies[idx].shape;
+}
+
+json query_topology(DesignPanel* panel, const json& params)
+{
+    const TopoDS_Shape& shape = body_shape(panel, params);
+    json faces = json::array();
+    int nf = GeometryEngine::face_count(shape);
+    for (int i = 0; i < nf; ++i) {
+        TopoDS_Face f = GeometryEngine::face_by_index(shape, i);
+        if (f.IsNull()) continue;
+        json jf{{"id", i}, {"centroid", vec3(GeometryEngine::face_centroid_world(f))},
+                {"normal", vec3(GeometryEngine::face_normal_world(f))}, {"kind", "planar"}};
+        GeometryEngine::CylinderFace cyl = GeometryEngine::cylinder_of_face(f);
+        if (cyl.ok) { jf["kind"] = "cylindrical"; jf["radius"] = cyl.radius;
+                      jf["axis"] = vec3(cyl.axis); jf["internal"] = cyl.internal; }
+        faces.push_back(std::move(jf));
+    }
+    json edges = json::array();
+    int ne = GeometryEngine::edge_count(shape);
+    for (int i = 0; i < ne; ++i) {
+        TopoDS_Edge e = GeometryEngine::edge_by_index(shape, i);
+        if (e.IsNull()) continue;
+        std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
+        if (pts.size() < 2) continue;
+        double len = 0; for (size_t k = 1; k < pts.size(); ++k) len += (pts[k] - pts[k-1]).norm();
+        json je{{"id", i}, {"length", len}, {"p0", vec3(pts.front())}, {"p1", vec3(pts.back())},
+                {"kind", "line"}};
+        GeometryEngine::CylinderFace circ = GeometryEngine::circle_of_edge(e);
+        if (circ.ok) { je["kind"] = "circle"; je["radius"] = circ.radius; je["center"] = vec3(circ.base); }
+        edges.push_back(std::move(je));
+    }
+    return json{{"body", params.value("body", 0)}, {"face_count", nf}, {"edge_count", ne},
+                {"faces", std::move(faces)}, {"edges", std::move(edges)}};
+}
+
+// One measurement reference -> a representative point and (optionally) a direction.
+// ref = {"face": id} | {"edge": id} | {"point": [x,y,z]} on the given body.
+bool resolve_ref(const TopoDS_Shape& shape, const json& ref, Vec3d& point, Vec3d& dir, bool& has_dir)
+{
+    has_dir = false;
+    if (ref.contains("point")) { auto p = ref["point"]; point = Vec3d(p[0], p[1], p[2]); return true; }
+    if (ref.contains("face")) {
+        TopoDS_Face f = GeometryEngine::face_by_index(shape, ref["face"].get<int>());
+        if (f.IsNull()) return false;
+        point = GeometryEngine::face_centroid_world(f);
+        dir = GeometryEngine::face_normal_world(f); has_dir = true; return true;
+    }
+    if (ref.contains("edge")) {
+        TopoDS_Edge e = GeometryEngine::edge_by_index(shape, ref["edge"].get<int>());
+        if (e.IsNull()) return false;
+        std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
+        if (pts.empty()) return false;
+        point = pts[pts.size() / 2];                       // midpoint sample
+        if (pts.size() >= 2) { dir = (pts.back() - pts.front()).normalized(); has_dir = true; }
+        return true;
+    }
+    return false;
+}
+
+json measure(DesignPanel* panel, const json& params)
+{
+    const TopoDS_Shape& shape = body_shape(panel, params);
+    Vec3d pa, pb, da, db; bool hda = false, hdb = false;
+    if (!params.contains("a") || !params.contains("b"))
+        throw std::runtime_error("measure needs refs 'a' and 'b' ({face|edge|point})");
+    if (!resolve_ref(shape, params["a"], pa, da, hda) || !resolve_ref(shape, params["b"], pb, db, hdb))
+        throw std::runtime_error("could not resolve a measurement reference");
+    json r{{"distance", (pa - pb).norm()}, {"point_a", vec3(pa)}, {"point_b", vec3(pb)}};
+    if (hda && hdb) {
+        double c = std::max(-1.0, std::min(1.0, da.normalized().dot(db.normalized())));
+        r["angle_deg"] = std::acos(c) * 180.0 / M_PI;
+    }
+    return r;
+}
+
+// sections-as-evidence: cross-section of a body by a named base plane at an offset.
+json slice_body(DesignPanel* panel, const json& params)
+{
+    const TopoDS_Shape& shape = body_shape(panel, params);
+    const std::string plane_name = params.value("plane", std::string("XY"));
+    const double offset = params.value("offset", 0.0);
+    // Base plane normal; offset shifts the plane along it.
+    gp_Dir n = plane_name == "XZ" ? gp_Dir(0, 1, 0)
+             : plane_name == "YZ" ? gp_Dir(1, 0, 0)
+                                  : gp_Dir(0, 0, 1);
+    gp_Pnt o(n.X() * offset, n.Y() * offset, n.Z() * offset);
+    BRepAlgoAPI_Section sect(shape, gp_Pln(o, n), Standard_False);
+    sect.ComputePCurveOn1(Standard_False);
+    sect.Approximation(Standard_True);
+    sect.Build();
+    if (!sect.IsDone()) throw std::runtime_error("section failed");
+    // ponytail: return raw section segments (one polyline per edge), unordered. Chain into
+    // loops later if a downstream step needs ordered contours.
+    json polylines = json::array();
+    for (TopExp_Explorer ex(sect.Shape(), TopAbs_EDGE); ex.More(); ex.Next()) {
+        std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(TopoDS::Edge(ex.Current()));
+        if (pts.size() < 2) continue;
+        json pl = json::array();
+        for (const Vec3d& p : pts) pl.push_back(vec3(p));
+        polylines.push_back(std::move(pl));
+    }
+    return json{{"body", params.value("body", 0)}, {"plane", plane_name}, {"offset", offset},
+                {"segment_count", int(polylines.size())}, {"polylines", std::move(polylines)}};
+}
+
 json action_extrude(DesignPanel* panel, const json& params)
 {
     const double w = params.value("width", 20.0);
@@ -164,6 +307,9 @@ std::string handle_on_main(const std::string& method, const json& params, const 
     try {
         if (method == "describe_tools") return rpc_result(id, describe_tools());
         if (method == "describe_scene") return rpc_result(id, describe_scene(panel));
+        if (method == "query_topology") return rpc_result(id, query_topology(panel, params));
+        if (method == "measure")        return rpc_result(id, measure(panel, params));
+        if (method == "slice_body")     return rpc_result(id, slice_body(panel, params));
         if (method == "extrude")        return rpc_result(id, action_extrude(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
