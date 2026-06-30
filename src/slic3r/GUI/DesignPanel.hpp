@@ -74,7 +74,10 @@ private:
     void on_add_draft();
     void on_add_boolean();
     void on_add_cut();              // commit a plane Cut (split-by-plane)
-    void populate_body_choices();   // fill m_bool_target / m_bool_tool / m_cut_target from m_doc.bodies
+    // Fill m_bool_target / m_bool_tool / m_cut_target. as_of_feature < 0 = current bodies (add);
+    // >= 0 = the bodies as they existed just before that feature index (Boolean re-edit, so a
+    // consumed tool body still appears and its saved selection round-trips).
+    void populate_body_choices(int as_of_feature = -1);
     // Import rigid 2D art (Text / SVG) as a new Sketch feature carrying
     // imported_regions (no solver entities). on_add_text/on_import_svg gather
     // input; add_imported_sketch builds the feature, refreshes tree + display.

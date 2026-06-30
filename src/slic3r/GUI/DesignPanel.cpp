@@ -2649,13 +2649,24 @@ void DesignPanel::on_add_pattern()
     refresh_tree();
 }
 
-void DesignPanel::populate_body_choices()
+void DesignPanel::populate_body_choices(int as_of_feature)
 {
+    // Re-editing a Boolean: list the bodies as they existed just before it ran, so a tool body
+    // it consumed still shows and the saved target/tool selections round-trip. Replay a copy of
+    // the recipe truncated to [0, as_of_feature). Fall back to the live bodies if the replay is
+    // degenerate (e.g. fewer than the saved refs need).
+    const std::vector<CadBody>* src = &m_doc.bodies;
+    std::vector<CadBody> as_of;
+    if (as_of_feature >= 0 && as_of_feature <= int(m_doc.features.size())) {
+        CadDocument tmp = m_doc;
+        tmp.features.resize(as_of_feature);
+        if (tmp.recompute() && !tmp.bodies.empty()) { as_of = tmp.bodies; src = &as_of; }
+    }
     auto fill = [&](wxChoice* c, int def) {
         if (!c) return;
         c->Clear();
-        for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
-            const std::string& n = m_doc.bodies[i].name;
+        for (size_t i = 0; i < src->size(); ++i) {
+            const std::string& n = (*src)[i].name;
             c->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
         }
         if (c->GetCount() > 0)
@@ -4624,6 +4635,19 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
             ? wxString::Format(_L("Face %d"), f.draft_face)
             : _L("(pick a side face)"));
         break;
+    case CadFeatureType::Boolean:
+        // List the bodies available to the boolean (as-of its timeline slot), so the consumed
+        // tool body still appears and the saved selections below land on the right entries.
+        populate_body_choices(m_edit_index);
+        m_bool_op->SetSelection(f.mode == BooleanMode::Cut       ? 1
+                              : f.mode == BooleanMode::Intersect ? 2 : 0);  // 0 = Union/Add
+        if (f.target_body >= 0 && f.target_body < int(m_bool_target->GetCount()))
+            m_bool_target->SetSelection(f.target_body);
+        if (f.bool_tool_body >= 0 && f.bool_tool_body < int(m_bool_tool->GetCount()))
+            m_bool_tool->SetSelection(f.bool_tool_body);
+        m_bool_keep->SetValue(f.bool_keep_tool);
+        m_bool_tol->SetValue(f.bool_tolerance);
+        break;
     default: break;
     }
 }
@@ -4727,8 +4751,13 @@ void DesignPanel::on_edit_feature()
         load_feature_into_dialog(f);
         open_tool(Tool::Draft);
         break;
+    case CadFeatureType::Boolean:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::Boolean);
+        break;
     default:
-        // Import / Boolean / Cut have no parametric edit dialog yet (follow-up
+        // Import / Cut have no parametric edit dialog yet (follow-up
         // snaporca-nu9). Don't silently swallow the Edit click — tell the user.
         m_status->SetForegroundColour(wxNullColour);
         m_status->SetLabel(_L("This feature type can't be edited yet"));
