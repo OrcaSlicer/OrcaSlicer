@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-26 10:26+0800\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "PO-Revision-Date: 2025-10-25 23:01+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -1725,7 +1725,12 @@ msgid ""
 "To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
 "\n"
 "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
-msgstr "Nuo 2.4.0 versijos OrcaSlicer sinchronizuoja naudotojo profilius per Orca Cloud, o ne Bambu Cloud.\n\nNorėdami perkelti esamus profilius, prisijunkite prie Orca Cloud ir jie bus perkelti automatiškai. Norėdami sužinoti daugiau apie tai, kaip OrcaSlicer saugo ir sinchronizuoja jūsų profilius, arba norėdami perkelti profilius rankiniu būdu, apsilankykite mūsų wiki.\n\nJei profiliams sinchronizuoti nenaudojote Bambu Cloud, šis pakeitimas jums neaktualus ir šį pranešimą galite ignoruoti."
+msgstr ""
+"Nuo 2.4.0 versijos OrcaSlicer sinchronizuoja naudotojo profilius per Orca Cloud, o ne Bambu Cloud.\n"
+"\n"
+"Norėdami perkelti esamus profilius, prisijunkite prie Orca Cloud ir jie bus perkelti automatiškai. Norėdami sužinoti daugiau apie tai, kaip OrcaSlicer saugo ir sinchronizuoja jūsų profilius, arba norėdami perkelti profilius rankiniu būdu, apsilankykite mūsų wiki.\n"
+"\n"
+"Jei profiliams sinchronizuoti nenaudojote Bambu Cloud, šis pakeitimas jums neaktualus ir šį pranešimą galite ignoruoti."
 
 msgid "Profile syncing change"
 msgstr ""
@@ -4091,6 +4096,10 @@ msgstr ""
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Dabartinė kameros temperatūra yra aukštesnė už saugią medžiagos temperatūrą, dėl to medžiaga gali suminkštėti ir užkimšti spausdinimo galvutę. Maksimali saugi medžiagos temperatūra yra %d laipsnių Celsijaus"
 
+#, c-format, boost-format
+msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
@@ -5284,7 +5293,7 @@ msgstr "Tūris:"
 msgid "Size:"
 msgstr "Dydis:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Rasta G-kode judėjimo kelių konfliktų %d sluoksnyje, Z = %.2lfmm. Prašome labiau atskirti konfliktinius objektus (%s <-> %s)."
 
@@ -9164,6 +9173,12 @@ msgstr "Ištrinti šį išankstinį nustatymą"
 msgid "Search in preset"
 msgstr "Ieškoti nustatymuose"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Paspauskite, norėdami atkurti visus nustatymus pagal paskutinį išsaugotą profilį."
 
@@ -9456,6 +9471,18 @@ msgstr "Srauto santykis ir slėgis"
 
 msgid "Print chamber temperature"
 msgstr "Spausdinimo kameros temperatūra"
+
+msgid "Chamber temperature"
+msgstr "Kameros temperatūra"
+
+msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "Minimal"
+msgstr ""
 
 msgid "Print temperature"
 msgstr "Spausdinimo temperatūra"
@@ -9781,11 +9808,21 @@ msgid "Don't warn again for this preset"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Left: %s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
 msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
@@ -9806,7 +9843,7 @@ msgid "Transfer or discard changes"
 msgstr "Pakeitimų perkėlimas arba atmetimas"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Old value"
+msgid "Old Value"
 msgstr "Sena vertė"
 
 msgid "New Value"
@@ -9927,6 +9964,12 @@ msgstr "Ekstruderių skaičius"
 
 msgid "Capabilities"
 msgstr "Galimybės"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "Rodyti visus išankstinius nustatymus (įskaitant nesuderinamus)"
@@ -12017,6 +12060,23 @@ msgstr "Įprastas spausdinimas"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Tai numatytasis pagreitis tiek įprastam spausdinimui, tiek judėjimui po pirmojo sluoksnio."
 
+msgid "Acceleration of travel moves."
+msgstr "Judėjimo judesių pagreitis."
+
+msgid "First layer travel"
+msgstr ""
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+
+msgid "mm/s² or %"
+msgstr "mm/s² arba %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr "Tiltų pagreitis. Jei reikšmė išreikšta procentais (pvz., 50 %), ji bus apskaičiuota pagal išorinės sienos pagreitį."
+
 msgid "Default filament profile"
 msgstr "Numatytasis gijų profilis"
 
@@ -12224,12 +12284,28 @@ msgstr "Archimedo akordai"
 msgid "Octagram Spiral"
 msgstr "Oktagramos spiralė"
 
+msgid "Top surface density"
+msgstr "Viršutinio paviršiaus tankis"
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr "Viršutinio paviršiaus sluoksnio tankis. 100 % vertė sukuria visiškai vientisą, lygų viršutinį sluoksnį. Sumažinus šią vertę, viršutinis paviršius tampa tekstūruotas, atsižvelgiant į pasirinktą viršutinio paviršiaus raštą. 0 % vertė reiškia, kad bus sukurti tik ant viršutinio sluoksnio sienos. Skirta estetiniais ar funkciniais tikslais, ne tam, kad išspręstų tokias problemas kaip per didelis ekstruzijos kiekis."
+
 msgid "Bottom surface pattern"
 msgstr "Apatinio paviršiaus užpildo linijų raštas"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Tai apatinio paviršiaus užpildymo linijioms raštas, išskyrus tiltų užpildymą."
+
+msgid "Bottom surface density"
+msgstr "Apatinio paviršiaus tankis"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
+"Apatinio paviršiaus sluoksnio tankis. Skirtas estetinėms arba funkcinėms reikmėms, ne tam, kad išspręstų tokias problemas kaip per didelis ekstruzijos kiekis. \n"
+"ĮSPĖJIMAS: Šio parametro sumažinimas gali neigiamai paveikti sluoksnio sukibimą su pagrindu."
 
 msgid "Internal solid infill pattern"
 msgstr "Vidinis vientiso užpildo raštas"
@@ -12526,18 +12602,6 @@ msgid "Auto For Flush"
 msgstr ""
 
 msgid "Auto For Match"
-msgstr ""
-
-msgid "Enable filament dynamic map"
-msgstr ""
-
-msgid "Enable dynamic filament mapping during print."
-msgstr ""
-
-msgid "Has filament switcher"
-msgstr ""
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
 msgstr ""
 
 msgid "Flush temperature"
@@ -12879,6 +12943,7 @@ msgstr "Naudoti kelias linijas užpildymo šablonui, jei tai palaiko užpildymo 
 msgid "Z-buckling bias optimization (experimental)"
 msgstr ""
 
+#, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr ""
 
@@ -12946,79 +13011,6 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Giroidas"
 
-msgid "Lateral lattice angle 1"
-msgstr "Rašto kampas 1"
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Pirmojo 2D grotelių elementų rinkinio kampas Z kryptimi. Nulis yra vertikalus."
-
-msgid "Lateral lattice angle 2"
-msgstr "Rašto kampas 2"
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Antrojo 2D grotelių elementų rinkinio kampas Z kryptimi. Nulis yra vertikalus."
-
-msgid "Infill overhang angle"
-msgstr "Užpildymo iškyšos kampas"
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr "Užpildymo kampuoto linijų kampas. 60° kampas sukurs gryną korį."
-
-msgid "Lightning overhang angle"
-msgstr ""
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr ""
-
-msgid "Prune angle"
-msgstr ""
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-
-msgid "Straightening angle"
-msgstr ""
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr ""
-
-msgid "Sparse infill anchor length"
-msgstr "Reto užpildo tvirtinimo ilgis"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr ""
-"Sujunkite užpildymo liniją su vidiniu perimetru trumpa papildomo perimetro atkarpa. Jei išreiškiama procentais (pvz., 15 %), ji apskaičiuojama per užpildymo ekstruzijos plotį. Programa \"Orca Slicer\" bando sujungti dvi artimas užpildymo linijas su trumpu perimetro segmentu. Jei tokio perimetro segmento, trumpesnio už infill_anchor_max, nerandama, užpildo linija sujungiama su perimetro segmentu tik vienoje pusėje, o paimto perimetro segmento ilgis apribojamas šiuo parametru, bet ne ilgesnis už anchor_length_max.\n"
-"Nustatykite šį parametrą lygų nuliui, jei norite išjungti perimetro, sujungto su viena užpildo linija, įtvirtinimą."
-
-msgid "0 (no open anchors)"
-msgstr "0 (nėra atvirų tvirtinimų)"
-
-msgid "1000 (unlimited)"
-msgstr "1000 (neribota)"
-
-msgid "Maximum length of the infill anchor"
-msgstr "Maksimalus užpildymo tvirtinimų ilgis"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr ""
-"Sujunkite užpildymo liniją su vidiniu perimetru trumpa papildomo perimetro atkarpa. Jei išreiškiama procentais (pvz., 15 %), ji apskaičiuojama per užpildymo ekstruzijos plotį. Programa \"Orca Slicer\" bando sujungti dvi artimas užpildymo linijas su trumpu perimetro segmentu. Jei tokio trumpesnio už šį parametrą perimetro segmento nerandama, užpildo linija prijungiama prie perimetro segmento tik vienoje pusėje, o paimto perimetro segmento ilgis apribojamas iki infill_anchor, bet ne ilgesnis už šį parametrą.\n"
-"Jei nustatyta 0, bus naudojamas senasis užpildymo sujungimo algoritmas, jis turėtų sukurti tokį patį rezultatą kaip ir naudojant 1000 & 0."
-
-msgid "0 (Simple connect)"
-msgstr "0 (paprastas prijungimas)"
-
-msgid "Acceleration of inner walls."
-msgstr "Vidinių sienų pagreitis."
-
-msgid "Acceleration of travel moves."
-msgstr "Judėjimo judesių pagreitis."
-
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Viršutinio paviršiaus užpildymo pagreitis. Naudojant mažesnę vertę gali pagerėti viršutinio paviršiaus kokybė."
@@ -13027,11 +13019,8 @@ msgstr "Viršutinio paviršiaus užpildymo pagreitis. Naudojant mažesnę vertę
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Išorinės sienos pagreitis: naudojant mažesnę vertę galima pagerinti kokybę."
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
-msgstr "Tiltų pagreitis. Jei reikšmė išreikšta procentais (pvz., 50 %), ji bus apskaičiuota pagal išorinės sienos pagreitį."
-
-msgid "mm/s² or %"
-msgstr "mm/s² arba %"
+msgid "Acceleration of inner walls."
+msgstr "Vidinių sienų pagreitis."
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Retų užpildų pagreitis. Jei reikšmė išreikšta procentais (pvz., 100 %), ji bus apskaičiuota pagal numatytąjį pagreitį."
@@ -13042,14 +13031,6 @@ msgstr "Vidinio vientiso užpildo pagreitis. Jei reikšmė išreikšta procentai
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Tai pirmojo sluoksnio spausdinimo pagreitis. Naudojant ribotą pagreitį galima pagerinti sukibimą su pagrindu."
-
-msgid "First layer travel"
-msgstr ""
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
 
 msgid "Enable accel_to_decel"
 msgstr "Įjungti accel_to_decel"
@@ -13663,6 +13644,73 @@ msgstr ""
 
 msgid "Probing exclude area of clumping."
 msgstr ""
+
+msgid "Lateral lattice angle 1"
+msgstr "Rašto kampas 1"
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Pirmojo 2D grotelių elementų rinkinio kampas Z kryptimi. Nulis yra vertikalus."
+
+msgid "Lateral lattice angle 2"
+msgstr "Rašto kampas 2"
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Antrojo 2D grotelių elementų rinkinio kampas Z kryptimi. Nulis yra vertikalus."
+
+msgid "Infill overhang angle"
+msgstr "Užpildymo iškyšos kampas"
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr "Užpildymo kampuoto linijų kampas. 60° kampas sukurs gryną korį."
+
+msgid "Lightning overhang angle"
+msgstr ""
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr ""
+
+msgid "Prune angle"
+msgstr ""
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+
+msgid "Straightening angle"
+msgstr ""
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr ""
+
+msgid "Sparse infill anchor length"
+msgstr "Reto užpildo tvirtinimo ilgis"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr ""
+"Sujunkite užpildymo liniją su vidiniu perimetru trumpa papildomo perimetro atkarpa. Jei išreiškiama procentais (pvz., 15 %), ji apskaičiuojama per užpildymo ekstruzijos plotį. Programa \"Orca Slicer\" bando sujungti dvi artimas užpildymo linijas su trumpu perimetro segmentu. Jei tokio perimetro segmento, trumpesnio už infill_anchor_max, nerandama, užpildo linija sujungiama su perimetro segmentu tik vienoje pusėje, o paimto perimetro segmento ilgis apribojamas šiuo parametru, bet ne ilgesnis už anchor_length_max.\n"
+"Nustatykite šį parametrą lygų nuliui, jei norite išjungti perimetro, sujungto su viena užpildo linija, įtvirtinimą."
+
+msgid "0 (no open anchors)"
+msgstr "0 (nėra atvirų tvirtinimų)"
+
+msgid "1000 (unlimited)"
+msgstr "1000 (neribota)"
+
+msgid "Maximum length of the infill anchor"
+msgstr "Maksimalus užpildymo tvirtinimų ilgis"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr ""
+"Sujunkite užpildymo liniją su vidiniu perimetru trumpa papildomo perimetro atkarpa. Jei išreiškiama procentais (pvz., 15 %), ji apskaičiuojama per užpildymo ekstruzijos plotį. Programa \"Orca Slicer\" bando sujungti dvi artimas užpildymo linijas su trumpu perimetro segmentu. Jei tokio trumpesnio už šį parametrą perimetro segmento nerandama, užpildo linija prijungiama prie perimetro segmento tik vienoje pusėje, o paimto perimetro segmento ilgis apribojamas iki infill_anchor, bet ne ilgesnis už šį parametrą.\n"
+"Jei nustatyta 0, bus naudojamas senasis užpildymo sujungimo algoritmas, jis turėtų sukurti tokį patį rezultatą kaip ir naudojant 1000 & 0."
+
+msgid "0 (Simple connect)"
+msgstr "0 (paprastas prijungimas)"
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14529,6 +14577,18 @@ msgstr "Direct Drive"
 msgid "Bowden"
 msgstr "Bowden"
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Extra length on restart"
 msgstr "Papildomas ilgis paleidus iš naujo"
 
@@ -15312,9 +15372,6 @@ msgstr ""
 "\n"
 "Ši parinktis priklauso nuo to, ar programinė įranga palaiko komandas M191 ir M141 per makrokomandas, ar gimtąja kalba, ir paprastai naudojama, kai įrengtas aktyvus kameros šildytuvas."
 
-msgid "Chamber temperature"
-msgstr "Kameros temperatūra"
-
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
 "\n"
@@ -15327,6 +15384,17 @@ msgstr ""
 "PLA, PETG, TPU, PVA ir kitoms žemos temperatūros medžiagoms ši parinktis turėtų būti išjungta (nustatyta į 0), nes kameros temperatūra turėtų būti žema, kad būtų išvengta ekstruderio užsikimšimo dėl medžiagos suminkštėjimo šilumos slenkstyje.\n"
 "\n"
 "Jei įjungtas, šis parametras taip pat nustato gkodo kintamąjį chamber_temperature, kuris gali būti naudojamas norimai kameros temperatūrai perduoti spausdinimo pradžios makrokomandai arba tokiai šiluminio įšilimo makrokomandai: (kiti kintamieji) CHAMBER_TEMP=[chamber_temperature]. Tai gali būti naudinga, jei jūsų spausdintuvas nepalaiko M141/M191 komandų arba jei norite, kad spausdinimo pradžios makrokomandoje būtų tvarkomas šilumos įšildymas, jei nėra aktyvaus kameros šildytuvo."
+
+msgid ""
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"\n"
+"Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+msgstr ""
+
+msgid "Chamber minimal temperature"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
@@ -15372,22 +15440,6 @@ msgstr "Viršutinio apvalkalo storis"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Sluoksniuojant didinamas viršutinių vientisų sluoksnių skaičius, jei pagal viršutinius apvalkalo sluoksnius apskaičiuotas storis yra plonesnis už šią vertę. Taip galima išvengti per plono apvalkalo, kai sluoksnių aukštis yra mažas. 0 reiškia, kad šis nustatymas išjungtas ir viršutinio apvalkalo storis visiškai nustatomas pagal viršutinio apvalkalo sluoksnius."
-
-msgid "Top surface density"
-msgstr "Viršutinio paviršiaus tankis"
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr "Viršutinio paviršiaus sluoksnio tankis. 100 % vertė sukuria visiškai vientisą, lygų viršutinį sluoksnį. Sumažinus šią vertę, viršutinis paviršius tampa tekstūruotas, atsižvelgiant į pasirinktą viršutinio paviršiaus raštą. 0 % vertė reiškia, kad bus sukurti tik ant viršutinio sluoksnio sienos. Skirta estetiniais ar funkciniais tikslais, ne tam, kad išspręstų tokias problemas kaip per didelis ekstruzijos kiekis."
-
-msgid "Bottom surface density"
-msgstr "Apatinio paviršiaus tankis"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
-"Apatinio paviršiaus sluoksnio tankis. Skirtas estetinėms arba funkcinėms reikmėms, ne tam, kad išspręstų tokias problemas kaip per didelis ekstruzijos kiekis. \n"
-"ĮSPĖJIMAS: Šio parametro sumažinimas gali neigiamai paveikti sluoksnio sukibimą su pagrindu."
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."

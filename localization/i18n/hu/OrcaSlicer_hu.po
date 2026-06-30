@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-26 10:26+0800\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -1714,7 +1714,12 @@ msgid ""
 "To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
 "\n"
 "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
-msgstr "A 2.4.0-s verziótól kezdve az OrcaSlicer a felhasználói profilokat a Bambu Cloud helyett az Orca Cloudon keresztül szinkronizálja.\n\nMeglévő profiljai átviteléhez jelentkezzen be az Orca Cloudba, és azok automatikusan átkerülnek. Ha többet szeretne megtudni arról, hogyan tárolja és szinkronizálja az OrcaSlicer a profiljait, vagy ha kézzel szeretné átvinni a beállításait, tekintse meg a wikinket.\n\nHa nem használta a Bambu Cloudot a profilok szinkronizálásához, ez a változás nem érinti Önt, és nyugodtan figyelmen kívül hagyhatja ezt az üzenetet."
+msgstr ""
+"A 2.4.0-s verziótól kezdve az OrcaSlicer a felhasználói profilokat a Bambu Cloud helyett az Orca Cloudon keresztül szinkronizálja.\n"
+"\n"
+"Meglévő profiljai átviteléhez jelentkezzen be az Orca Cloudba, és azok automatikusan átkerülnek. Ha többet szeretne megtudni arról, hogyan tárolja és szinkronizálja az OrcaSlicer a profiljait, vagy ha kézzel szeretné átvinni a beállításait, tekintse meg a wikinket.\n"
+"\n"
+"Ha nem használta a Bambu Cloudot a profilok szinkronizálásához, ez a változás nem érinti Önt, és nyugodtan figyelmen kívül hagyhatja ezt az üzenetet."
 
 msgid "Profile syncing change"
 msgstr ""
@@ -4098,6 +4103,10 @@ msgstr ""
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "A kamra aktuális hőmérséklete magasabb az anyag biztonságos hőmérsékleténél, ez az anyag meglágyulásához és eltömődéshez vezethet. Az anyag maximális biztonságos hőmérséklete: %d"
 
+#, c-format, boost-format
+msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
@@ -5291,7 +5300,7 @@ msgstr "Térfogat:"
 msgid "Size:"
 msgstr "Méret:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "G-kód útvonalütközés található a(z) %d. rétegen, Z = %.2lfmm. Helyezd távolabb egymástól az ütköző objektumokat (%s <-> %s)."
 
@@ -9206,6 +9215,12 @@ msgstr "Ezen beállítás törlése"
 msgid "Search in preset"
 msgstr "Keresés a beállításokban"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Kattints az összes beállítás utolsó mentett változatának visszaállításához."
 
@@ -9495,6 +9510,18 @@ msgstr "Anyagáramlási arány és nyomáskiegyenlítés"
 
 msgid "Print chamber temperature"
 msgstr "Nyomtatókamra hőmérséklete"
+
+msgid "Chamber temperature"
+msgstr "Kamra hőmérséklete"
+
+msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "Minimal"
+msgstr ""
 
 msgid "Print temperature"
 msgstr "Nyomtatási hőmérséklet"
@@ -9828,12 +9855,22 @@ msgid "Don't warn again for this preset"
 msgstr "Ne legyen több figyelmeztetés ennél az előbeállításnál"
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "Bal: %s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "Jobb: %s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Kattints ide az érték visszaállításához és a globális érték használatához."
@@ -9853,7 +9890,7 @@ msgid "Transfer or discard changes"
 msgstr "Változások elvetése vagy megtartása"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Old value"
+msgid "Old Value"
 msgstr "Régi érték"
 
 msgid "New Value"
@@ -9985,6 +10022,12 @@ msgstr "Extruderek száma"
 
 msgid "Capabilities"
 msgstr "Képességek"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "Minden beállítás megjelenítése (beleértve az inkompatibiliseket is)"
@@ -12121,6 +12164,25 @@ msgstr "Normál nyomtatás"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Ez az alapértelmezett gyorsulás mind a normál nyomtatáshoz, mind az első réteg utáni mozgáshoz."
 
+msgid "Acceleration of travel moves."
+msgstr "Az utazó mozgások gyorsulása."
+
+msgid "First layer travel"
+msgstr "Első réteg mozgás"
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+"Az első réteg mozgási gyorsulása.\n"
+"A százalékos érték az mozgási gyorsuláshoz van viszonyítva."
+
+msgid "mm/s² or %"
+msgstr "mm/s² vagy %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr "A hidak gyorsulása. Ha az érték százalékban van megadva (pl. 50%), a külső fal gyorsulása alapján lesz kiszámítva."
+
 msgid "Default filament profile"
 msgstr "Alapértelmezett filament profil"
 
@@ -12327,12 +12389,28 @@ msgstr "Archimédeszi vonalak"
 msgid "Octagram Spiral"
 msgstr "Nyolcágú spirál"
 
+msgid "Top surface density"
+msgstr "Felső felületi sűrűség"
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr "A felső felületi réteg sűrűsége. A 100%-os érték teljesen tömör, sima felső réteget hoz létre. Ennek az értéknek a csökkentése a kiválasztott felső felületi mintázatnak megfelelően texturált felső felületet eredményez. A 0%-os érték azt eredményezi, hogy a felső rétegen csak a falak jönnek létre. Esztétikai vagy funkcionális célokra szolgál, nem pedig olyan problémák javítására, mint a túlextrudálás."
+
 msgid "Bottom surface pattern"
 msgstr "Alsó felület mintázata"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Ez az alsó felület kitöltésének mintája, kivéve az áthidalásokat."
+
+msgid "Bottom surface density"
+msgstr "Alsó felületi sűrűség"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
+"Az alsó felületi réteg sűrűsége. Esztétikai vagy funkcionális célokra szolgál, nem pedig olyan problémák javítására, mint a túlextrudálás.\n"
+"FIGYELMEZTETÉS: Ennek az értéknek a csökkentése kedvezőtlenül befolyásolhatja a tárgyasztalhoz való tapadást."
 
 msgid "Internal solid infill pattern"
 msgstr "Belső tömör kitöltés mintája"
@@ -12635,18 +12713,6 @@ msgstr "Automatikus öblítéshez"
 
 msgid "Auto For Match"
 msgstr "Automatikus egyeztetéshez"
-
-msgid "Enable filament dynamic map"
-msgstr "Filament dinamikus leképezés engedélyezése"
-
-msgid "Enable dynamic filament mapping during print."
-msgstr "Dinamikus filament-leképezés engedélyezése nyomtatás közben."
-
-msgid "Has filament switcher"
-msgstr "Filament-váltóval rendelkezik"
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
-msgstr "A nyomtató rendelkezik filament-váltó hardverrel (pl. AMS)."
 
 msgid "Flush temperature"
 msgstr "Öblítési hőmérséklet"
@@ -12991,7 +13057,7 @@ msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z-kihajlási torzítás optimalizálása (kísérleti)"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, fuzzy
+#, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "Alacsony feltöltési sűrűség mellett megfeszíti a gyroid hullámot a Z (függőleges) tengely mentén, hogy lerövidítse a tényleges függőleges oszlophosszt és javítsa a Z-tengely összenyomódási kihajlási ellenállását. A filamenthasználat megmarad. Nincs hatása ~30%-os és afeletti ritka kitöltési sűrűségnél. Csak akkor érvényes, ha a Ritka kitöltési minta Gyroid-ra van állítva."
 
@@ -13059,79 +13125,6 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr ""
 
-msgid "Lateral lattice angle 1"
-msgstr "Oldalsó rács 1. szöge"
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Az oldalsó rács elemeinek első készletének szöge Z irányban. A nulla függőlegeset jelent."
-
-msgid "Lateral lattice angle 2"
-msgstr "Oldalsó rács 2. szöge"
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Az oldalsó rács elemeinek második készletének szöge Z irányban. A nulla függőlegeset jelent."
-
-msgid "Infill overhang angle"
-msgstr "Kitöltés túlnyúlási szöge"
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr "A kitöltés ferde vonalainak szöge. A 60° tiszta méhsejtmintát eredményez."
-
-msgid "Lightning overhang angle"
-msgstr ""
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr ""
-
-msgid "Prune angle"
-msgstr ""
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-
-msgid "Straightening angle"
-msgstr ""
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr ""
-
-msgid "Sparse infill anchor length"
-msgstr "Ritka kitöltés horgonyhossza"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr ""
-"A kitöltési vonalat egy további rövid kerületszakasszal kapcsolja a belső kerülethez. Ha százalékban van megadva (például: 15%), a kitöltési extrudálási szélesség alapján lesz kiszámítva. Az Orca Slicer megpróbál két közeli kitöltési vonalat egy rövid kerületszakaszhoz kapcsolni. Ha nem talál az infill_anchor_max értéknél rövidebb ilyen kerületszakaszt, akkor a kitöltési vonal csak az egyik oldalon kapcsolódik egy kerületszakaszhoz, és az igénybe vett kerületszakasz hossza erre a paraméterre lesz korlátozva, de nem lehet hosszabb, mint az anchor_length_max.\n"
-"Állítsd ezt a paramétert 0-ra az egyetlen kitöltési vonalhoz kapcsolódó horgonyzó kerületek kikapcsolásához."
-
-msgid "0 (no open anchors)"
-msgstr "0 (nincs nyitott horgony)"
-
-msgid "1000 (unlimited)"
-msgstr "1000 (korlátlan)"
-
-msgid "Maximum length of the infill anchor"
-msgstr "A kitöltőhorgony maximális hossza"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr ""
-"Egy kitöltési vonalat egy további rövid kerületszakasszal kapcsol a belső kerülethez. Ha százalékban van megadva (például 15%), akkor a kitöltés extrudálási szélessége alapján kerül kiszámításra. Az Orca Slicer megpróbál két közeli kitöltési vonalat egy rövid kerületszakaszhoz kapcsolni. Ha nem talál ennél a paraméternél rövidebb ilyen kerületszakaszt, akkor a kitöltési vonal csak az egyik oldalon kapcsolódik egy kerületszakaszhoz, és a felhasznált kerületszakasz hossza az infill_anchor értékre lesz korlátozva, de ennél a paraméternél nem lehet hosszabb.\n"
-"Ha 0-ra állítod, a régi kitöltéskapcsolási algoritmus lesz használva, amely ugyanazt az eredményt adja, mint az 1000 és 0 értékek kombinációja."
-
-msgid "0 (Simple connect)"
-msgstr "0 (egyszerű kapcsolás)"
-
-msgid "Acceleration of inner walls."
-msgstr "A belső falak gyorsulása."
-
-msgid "Acceleration of travel moves."
-msgstr "Az utazó mozgások gyorsulása."
-
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "A felső felületi kitöltés gyorsulása. Alacsonyabb érték használata javíthatja a felső felület minőségét"
@@ -13140,11 +13133,8 @@ msgstr "A felső felületi kitöltés gyorsulása. Alacsonyabb érték használa
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Gyorsulás a külső falnál: alacsonyabb érték használata javíthatja a minőséget."
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
-msgstr "A hidak gyorsulása. Ha az érték százalékban van megadva (pl. 50%), a külső fal gyorsulása alapján lesz kiszámítva."
-
-msgid "mm/s² or %"
-msgstr "mm/s² vagy %"
+msgid "Acceleration of inner walls."
+msgstr "A belső falak gyorsulása."
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Gyorsulás a ritkás kitöltéseknél. Ha az érték százalékban van megadva (pl. 100%), akkor az alapértelmezett gyorsulás alapján kerül kiszámításra."
@@ -13155,16 +13145,6 @@ msgstr "A belső tömör kitöltés gyorsulása. Ha az érték százalékban van
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "A kezdőréteg gyorsulása. Alacsonyabb érték használata javíthatja a tárgyasztalhoz való tapadást"
-
-msgid "First layer travel"
-msgstr "Első réteg mozgás"
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
-"Az első réteg mozgási gyorsulása.\n"
-"A százalékos érték az mozgási gyorsuláshoz van viszonyítva."
 
 msgid "Enable accel_to_decel"
 msgstr "accel_to_decel engedélyezése"
@@ -13800,6 +13780,73 @@ msgstr "Csomósodás kizárási területének szondázása"
 
 msgid "Probing exclude area of clumping."
 msgstr "Csomósodás kizárási területének szondázása."
+
+msgid "Lateral lattice angle 1"
+msgstr "Oldalsó rács 1. szöge"
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Az oldalsó rács elemeinek első készletének szöge Z irányban. A nulla függőlegeset jelent."
+
+msgid "Lateral lattice angle 2"
+msgstr "Oldalsó rács 2. szöge"
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Az oldalsó rács elemeinek második készletének szöge Z irányban. A nulla függőlegeset jelent."
+
+msgid "Infill overhang angle"
+msgstr "Kitöltés túlnyúlási szöge"
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr "A kitöltés ferde vonalainak szöge. A 60° tiszta méhsejtmintát eredményez."
+
+msgid "Lightning overhang angle"
+msgstr ""
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr ""
+
+msgid "Prune angle"
+msgstr ""
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+
+msgid "Straightening angle"
+msgstr ""
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr ""
+
+msgid "Sparse infill anchor length"
+msgstr "Ritka kitöltés horgonyhossza"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr ""
+"A kitöltési vonalat egy további rövid kerületszakasszal kapcsolja a belső kerülethez. Ha százalékban van megadva (például: 15%), a kitöltési extrudálási szélesség alapján lesz kiszámítva. Az Orca Slicer megpróbál két közeli kitöltési vonalat egy rövid kerületszakaszhoz kapcsolni. Ha nem talál az infill_anchor_max értéknél rövidebb ilyen kerületszakaszt, akkor a kitöltési vonal csak az egyik oldalon kapcsolódik egy kerületszakaszhoz, és az igénybe vett kerületszakasz hossza erre a paraméterre lesz korlátozva, de nem lehet hosszabb, mint az anchor_length_max.\n"
+"Állítsd ezt a paramétert 0-ra az egyetlen kitöltési vonalhoz kapcsolódó horgonyzó kerületek kikapcsolásához."
+
+msgid "0 (no open anchors)"
+msgstr "0 (nincs nyitott horgony)"
+
+msgid "1000 (unlimited)"
+msgstr "1000 (korlátlan)"
+
+msgid "Maximum length of the infill anchor"
+msgstr "A kitöltőhorgony maximális hossza"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr ""
+"Egy kitöltési vonalat egy további rövid kerületszakasszal kapcsol a belső kerülethez. Ha százalékban van megadva (például 15%), akkor a kitöltés extrudálási szélessége alapján kerül kiszámításra. Az Orca Slicer megpróbál két közeli kitöltési vonalat egy rövid kerületszakaszhoz kapcsolni. Ha nem talál ennél a paraméternél rövidebb ilyen kerületszakaszt, akkor a kitöltési vonal csak az egyik oldalon kapcsolódik egy kerületszakaszhoz, és a felhasznált kerületszakasz hossza az infill_anchor értékre lesz korlátozva, de ennél a paraméternél nem lehet hosszabb.\n"
+"Ha 0-ra állítod, a régi kitöltéskapcsolási algoritmus lesz használva, amely ugyanazt az eredményt adja, mint az 1000 és 0 értékek kombinációja."
+
+msgid "0 (Simple connect)"
+msgstr "0 (egyszerű kapcsolás)"
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14696,6 +14743,18 @@ msgstr "Direct Drive"
 msgid "Bowden"
 msgstr "Bowden"
 
+msgid "Enable filament dynamic map"
+msgstr "Filament dinamikus leképezés engedélyezése"
+
+msgid "Enable dynamic filament mapping during print."
+msgstr "Dinamikus filament-leképezés engedélyezése nyomtatás közben."
+
+msgid "Has filament switcher"
+msgstr "Filament-váltóval rendelkezik"
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr "A nyomtató rendelkezik filament-váltó hardverrel (pl. AMS)."
+
 msgid "Extra length on restart"
 msgstr "Extra hossz újraindításkor"
 
@@ -15489,9 +15548,6 @@ msgstr ""
 "\n"
 "Ez az opció feltételezi, hogy a firmware makrókon keresztül vagy natívan támogatja az M191 és M141 parancsokat, és általában akkor használják, ha létezik aktív kamrafűtő."
 
-msgid "Chamber temperature"
-msgstr "Kamra hőmérséklete"
-
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
 "\n"
@@ -15504,6 +15560,17 @@ msgstr ""
 "PLA, PETG, TPU, PVA és más alacsony hőmérsékletű anyagok esetén ezt az opciót ki kell kapcsolni (0-ra kell állítani), mert a kamrahőmérsékletnek alacsonynak kell maradnia, hogy elkerülhető legyen az extruder eltömődése, amit a hőhatárolónál fellépő anyaglágyulás okozhat.\n"
 "\n"
 "Bekapcsolva ez a paraméter egy chamber_temperature nevű G-code változót is beállít, amely felhasználható a kívánt kamrahőmérséklet átadására a nyomtatásindító makrónak, vagy egy ilyen hőkiegyenlítő makrónak: PRINT_START (egyéb változók) CHAMBER_TEMP=[chamber_temperature]. Ez akkor lehet hasznos, ha a nyomtatód nem támogatja az M141/M191 parancsokat, vagy ha az aktív kamrafűtés hiányában a hőkiegyenlítést a nyomtatásindító makróban szeretnéd kezelni."
+
+msgid ""
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"\n"
+"Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+msgstr ""
+
+msgid "Chamber minimal temperature"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
@@ -15549,22 +15616,6 @@ msgstr "Felső héj vastagság"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "A felső szilárd rétegek száma szeleteléskor megnő, ha a felső héjrétegekből számított vastagság kisebb ennél az értéknél. Ezzel elkerülhető, hogy túl vékony legyen a héj kis rétegmagasságnál. A 0 azt jelenti, hogy ez a beállítás ki van kapcsolva, és a felső héj vastagságát egyszerűen a felső héjrétegek száma határozza meg."
-
-msgid "Top surface density"
-msgstr "Felső felületi sűrűség"
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr "A felső felületi réteg sűrűsége. A 100%-os érték teljesen tömör, sima felső réteget hoz létre. Ennek az értéknek a csökkentése a kiválasztott felső felületi mintázatnak megfelelően texturált felső felületet eredményez. A 0%-os érték azt eredményezi, hogy a felső rétegen csak a falak jönnek létre. Esztétikai vagy funkcionális célokra szolgál, nem pedig olyan problémák javítására, mint a túlextrudálás."
-
-msgid "Bottom surface density"
-msgstr "Alsó felületi sűrűség"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
-"Az alsó felületi réteg sűrűsége. Esztétikai vagy funkcionális célokra szolgál, nem pedig olyan problémák javítására, mint a túlextrudálás.\n"
-"FIGYELMEZTETÉS: Ennek az értéknek a csökkentése kedvezőtlenül befolyásolhatja a tárgyasztalhoz való tapadást."
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19433,6 +19484,14 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor a tárgyasztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "Bal: %s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "Jobb: %s"
 
 #~ msgid "Enable network plug-in"
 #~ msgstr "Hálózati bővítmény engedélyezése"

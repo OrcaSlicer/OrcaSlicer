@@ -8,6 +8,7 @@ add_executable(${_TEST_NAME}_tests
     test_arachne_walls.cpp
     test_arrange.cpp
     test_bambu_networking.cpp
+    test_calib.cpp
     test_clipper_offset.cpp
     test_clipper_utils.cpp
     test_config.cpp

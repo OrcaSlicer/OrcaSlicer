@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-26 10:26+0800\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -1753,7 +1753,12 @@ msgid ""
 "To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
 "\n"
 "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
-msgstr "Начиная с версии 2.4.0, OrcaSlicer синхронизирует пользовательские профили через Orca Cloud вместо Bambu Cloud.\n\nЧтобы перенести существующие профили, войдите в Orca Cloud, и они будут перенесены автоматически. Чтобы узнать больше о том, как OrcaSlicer хранит и синхронизирует ваши профили, или перенести профили вручную, посетите нашу вики.\n\nЕсли вы не использовали Bambu Cloud для синхронизации профилей, это изменение вас не затрагивает, и вы можете спокойно проигнорировать это сообщение."
+msgstr ""
+"Начиная с версии 2.4.0, OrcaSlicer синхронизирует пользовательские профили через Orca Cloud вместо Bambu Cloud.\n"
+"\n"
+"Чтобы перенести существующие профили, войдите в Orca Cloud, и они будут перенесены автоматически. Чтобы узнать больше о том, как OrcaSlicer хранит и синхронизирует ваши профили, или перенести профили вручную, посетите нашу вики.\n"
+"\n"
+"Если вы не использовали Bambu Cloud для синхронизации профилей, это изменение вас не затрагивает, и вы можете спокойно проигнорировать это сообщение."
 
 msgid "Profile syncing change"
 msgstr ""
@@ -4100,6 +4105,10 @@ msgstr ""
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Текущая температура внутри термокамеры превышает безопасную температуру для этого материала, что может привести к размягчению материала или засорению экструдера. Безопасная температура текущего материала составляет %d"
 
+#, c-format, boost-format
+msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
+msgstr ""
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -5332,7 +5341,7 @@ msgstr "Объём:"
 msgid "Size:"
 msgstr "Размер:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "В G-коде на %d слое (z = %.2lf мм) обнаружен конфликт путей. Пожалуйста, разместите конфликтующие модели дальше друг от друга (%s <-> %s)."
 
@@ -5356,22 +5365,34 @@ msgstr "%d"
 # Подставляется номер материала (по порядку), предыдущая 
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr "Материал %s назначен на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n\n%s экструдер:"
+msgstr ""
+"Материал %s назначен на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n"
+"\n"
+"%s экструдер:"
 
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable range of the %s."
-msgstr "Материалы %s назначены на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n\n%s экструдер:"
+msgstr ""
+"Материалы %s назначены на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n"
+"\n"
+"%s экструдер:"
 
 # Возможно, какая-то специфичная проверка для тулченджеров, на профиле H2D при
 # превышении высоты через подъём при откате оно не выводится. Последнее
 # предложение – костыль для обхода кривизны системы локализации.
 #, c-format, boost-format
 msgid "Filament %s is placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr "Материал %s назначен на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n\n%s экструдер:"
+msgstr ""
+"Материал %s назначен на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n"
+"\n"
+"%s экструдер:"
 
 #, c-format, boost-format
 msgid "Filaments %s are placed in the %s, but the generated G-code path exceeds the printable height of the %s."
-msgstr "Материалы %s назначены на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n\n%s экструдер:"
+msgstr ""
+"Материалы %s назначены на %s экструдер, но итоговый G-код выходит за его предел высоты печати.\n"
+"\n"
+"%s экструдер:"
 
 msgid "Open wiki for more information."
 msgstr "Подробнее на Вики."
@@ -9257,6 +9278,12 @@ msgstr "Удалить этот профиль"
 msgid "Search in preset"
 msgstr "Поиск в профиле"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Сбросить все изменения"
 
@@ -9556,6 +9583,18 @@ msgstr "Поток и коррекция давления (PA)"
 
 msgid "Print chamber temperature"
 msgstr "Температура в термокамере при печати"
+
+msgid "Chamber temperature"
+msgstr "Температура термокамеры"
+
+msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "Minimal"
+msgstr ""
 
 msgid "Print temperature"
 msgstr "Температура печати"
@@ -9903,12 +9942,22 @@ msgid "Don't warn again for this preset"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "Левый: %s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "Правый: %s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Сбросить значение до сохранённого"
@@ -9925,7 +9974,7 @@ msgstr "несохранённые изменения"
 msgid "Transfer or discard changes"
 msgstr "Выбор действия при изменённых параметрах профиля"
 
-msgid "Old value"
+msgid "Old Value"
 msgstr "Старое значение"
 
 msgid "New Value"
@@ -10045,6 +10094,12 @@ msgstr "Количество экструдеров"
 
 msgid "Capabilities"
 msgstr "Характеристики принтера"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "Показать все профили (включая несовместимые)"
@@ -12151,6 +12206,23 @@ msgstr "По умолчанию"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Ускорение по умолчанию для обычной печати и перемещений (кроме первого слоя)."
 
+msgid "Acceleration of travel moves."
+msgstr "Ускорение холостого перемещения."
+
+msgid "First layer travel"
+msgstr ""
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+
+msgid "mm/s² or %"
+msgstr "мм/с² или %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr "Ускорение на мостах. Можно указать процент от ускорения внешних периметров."
+
 msgid "Default filament profile"
 msgstr "Профиль материала по умолчанию"
 
@@ -12378,6 +12450,14 @@ msgstr "Спираль Архимеда"
 msgid "Octagram Spiral"
 msgstr "Спиральная октаграмма"
 
+# ??? Плотность верхней оболочки
+msgid "Top surface density"
+msgstr "Плотность верхней поверхности"
+
+# ??? Плотность верхней поверхности. При 100% создаётся сплошной верхний слой.
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr "Плотность верхней поверхности. Если установить 100%, поверхность будет сплошной и гладкой. Уменьшение этого параметра создаст текстурированную поверхность в соответствии с выбранным шаблоном заполнения верхней поверхности. При значении 0% останутся только стенки верхнего слоя. Эта функция предназначена для улучшения внешнего вида или функциональности объекта, но не для решения проблем, таких как чрезмерная экструзия."
+
 msgid "Bottom surface pattern"
 msgstr "Шаблон заполнения нижней поверхности"
 
@@ -12398,6 +12478,16 @@ msgstr ""
 "🞄 Спираль Архимеда: декоративный шаблон, в отличие от эквидистант\n"
 "  не создаёт горизонтального шва.\n"
 "🞄 Спиральная октаграмма: декоративный шаблон."
+
+msgid "Bottom surface density"
+msgstr "Плотность нижней поверхности"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
+"Плотность нижней поверхности. Эта функция предназначена для улучшения внешнего вида или функциональности объекта, а не для решения проблем, таких как чрезмерная экструзия.\n"
+"Внимание: уменьшение этого значения может негативно повлиять на адгезию к печатной платформе."
 
 msgid "Internal solid infill pattern"
 msgstr "Шаблон сплошного заполнения"
@@ -12736,18 +12826,6 @@ msgstr "Авто для промывки"
 
 msgid "Auto For Match"
 msgstr "Авто для сопоставления"
-
-msgid "Enable filament dynamic map"
-msgstr ""
-
-msgid "Enable dynamic filament mapping during print."
-msgstr ""
-
-msgid "Has filament switcher"
-msgstr ""
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
-msgstr ""
 
 msgid "Flush temperature"
 msgstr "Температура прочистки"
@@ -13100,6 +13178,7 @@ msgstr ""
 msgid "Z-buckling bias optimization (experimental)"
 msgstr ""
 
+#, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr ""
 
@@ -13209,91 +13288,14 @@ msgstr "ТПМП Фишера-Коха S"
 msgid "Gyroid"
 msgstr "Гироид"
 
-msgid "Lateral lattice angle 1"
-msgstr "Наклон боковой сетки 1"
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Угол наклона первой линии для шаблона заполнения «Боковая решётка» относительно вертикальной оси Z (0 - вертикально)."
-
-msgid "Lateral lattice angle 2"
-msgstr "Наклон боковой сетки 2"
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Угол наклона второй линии для шаблона заполнения «Боковая решётка» относительно вертикальной оси Z (0 - вертикально)."
-
-msgid "Infill overhang angle"
-msgstr "Угол нависания заполнения"
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr "Угол нависания линий заполнения. При 60° получаются правильные соты."
-
-msgid "Lightning overhang angle"
-msgstr ""
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr ""
-
-msgid "Prune angle"
-msgstr ""
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-
-msgid "Straightening angle"
-msgstr ""
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr ""
-
-msgid "Sparse infill anchor length"
-msgstr "Длина привязок шаблона заполнения"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr ""
-"Максимальная длина одиночных привязок. Можно указать процент от ширины линии заполнения. 0 – отключить привязки.\n"
-"\n"
-"Внимание: фактическая длина может быть ограничена пределом стыковки линий.\n"
-"\n"
-"Примечание: привязка – продолжение линии заполнения, которое печатается вдоль внутреннего периметра для улучшения сцепления с ним."
-
-msgid "0 (no open anchors)"
-msgstr "0 (без привязок)"
-
-msgid "1000 (unlimited)"
-msgstr "1000 (не ограничено)"
-
-msgid "Maximum length of the infill anchor"
-msgstr "Предел стыковки линий шаблона"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr "Максимальная длина стыковки отдельных линий шаблона заполнения в одну непрерывную. Можно указать процент от ширины линии заполнения. 0 – отключить стыковку."
-
-msgid "0 (Simple connect)"
-msgstr "0 (без стыковки)"
-
-msgid "Acceleration of inner walls."
-msgstr "Ускорение на внутренних периметрах."
-
-msgid "Acceleration of travel moves."
-msgstr "Ускорение холостого перемещения."
-
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Ускорение на верхней поверхности. Использование меньшего значения может улучшить качество верхней поверхности."
 
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Ускорение на внешнем периметре. Использование меньшего значения может улучшить качество."
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
-msgstr "Ускорение на мостах. Можно указать процент от ускорения внешних периметров."
-
-msgid "mm/s² or %"
-msgstr "мм/с² или %"
+msgid "Acceleration of inner walls."
+msgstr "Ускорение на внутренних периметрах."
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Ускорение на разреженном заполнении. Можно указать процент от ускорения по умолчанию."
@@ -13303,14 +13305,6 @@ msgstr "Ускорение на сплошном заполнении. Можн�
 
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Ускорение на первом слое. Использование меньшего значения может улучшить адгезию к столу."
-
-msgid "First layer travel"
-msgstr ""
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
 
 msgid "Enable accel_to_decel"
 msgstr "Заменять \"max_accel_to_decel\""
@@ -13965,6 +13959,74 @@ msgstr "Исключаемая область зондирования комк�
 
 msgid "Probing exclude area of clumping."
 msgstr "Исключаемая область зондирования комкования."
+
+msgid "Lateral lattice angle 1"
+msgstr "Наклон боковой сетки 1"
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Угол наклона первой линии для шаблона заполнения «Боковая решётка» относительно вертикальной оси Z (0 - вертикально)."
+
+msgid "Lateral lattice angle 2"
+msgstr "Наклон боковой сетки 2"
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Угол наклона второй линии для шаблона заполнения «Боковая решётка» относительно вертикальной оси Z (0 - вертикально)."
+
+msgid "Infill overhang angle"
+msgstr "Угол нависания заполнения"
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr "Угол нависания линий заполнения. При 60° получаются правильные соты."
+
+msgid "Lightning overhang angle"
+msgstr ""
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr ""
+
+msgid "Prune angle"
+msgstr ""
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+
+msgid "Straightening angle"
+msgstr ""
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr ""
+
+msgid "Sparse infill anchor length"
+msgstr "Длина привязок шаблона заполнения"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr ""
+"Максимальная длина одиночных привязок. Можно указать процент от ширины линии заполнения. 0 – отключить привязки.\n"
+"\n"
+"Внимание: фактическая длина может быть ограничена пределом стыковки линий.\n"
+"\n"
+"Примечание: привязка – продолжение линии заполнения, которое печатается вдоль внутреннего периметра для улучшения сцепления с ним."
+
+msgid "0 (no open anchors)"
+msgstr "0 (без привязок)"
+
+msgid "1000 (unlimited)"
+msgstr "1000 (не ограничено)"
+
+msgid "Maximum length of the infill anchor"
+msgstr "Предел стыковки линий шаблона"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr "Максимальная длина стыковки отдельных линий шаблона заполнения в одну непрерывную. Можно указать процент от ширины линии заполнения. 0 – отключить стыковку."
+
+msgid "0 (Simple connect)"
+msgstr "0 (без стыковки)"
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14724,7 +14786,10 @@ msgstr "Параметр устанавливает высоту подложк�
 
 # Расширение контекста от Andy. Хотя тут мы имеем дело с очередной логической ошибкой в исходнике: разрешение повышает нагрузку при увеличении, а здесь увеличение значения, наоборот, ведёт к её уменьшению вместе со снижением качества. То есть, это именно "допуск", "Допустимое отклонение", "Gcode tolerance". Не уверен, стоит ли ломать то, что работает – народ уже давно запомнил эту настройку именно как "разрешение". Хороший компромисс – оставить название, но убрать путающее "разрешение" из описания. + перефразировал и изменил порядок изложения информации, чтобы обеспечить линейные логические связи.
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
-msgstr "Максимальное отклонение планируемой траектории движения экструдера от среза модели. Повышение отклонения снижает время нарезки и нагрузку на электронику принтера, а понижение – позволяет устранить артефакты упрощения геометрии модели.\n\nВнимание: для нарезки и визуализации G-кода с очень низким отклонением требуется большой объём оперативной памяти, а высокая плотность команд может привести к перегрузке электроники принтера."
+msgstr ""
+"Максимальное отклонение планируемой траектории движения экструдера от среза модели. Повышение отклонения снижает время нарезки и нагрузку на электронику принтера, а понижение – позволяет устранить артефакты упрощения геометрии модели.\n"
+"\n"
+"Внимание: для нарезки и визуализации G-кода с очень низким отклонением требуется большой объём оперативной памяти, а высокая плотность команд может привести к перегрузке электроники принтера."
 
 msgid "Travel distance threshold"
 msgstr "Порог перемещения"
@@ -14865,6 +14930,18 @@ msgstr "Прямой (Direct)"
 
 msgid "Bowden"
 msgstr "Внешний (Bowden)"
+
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
 
 msgid "Extra length on restart"
 msgstr "Доп. подача после отката"
@@ -15142,7 +15219,10 @@ msgstr "Тип юбки"
 
 # Про расширенное описание см. в комментарии к перевод подсказки настройки "Skirt minimum extrusion length" 
 msgid "Combined - single skirt for all objects, Per object - individual object skirt."
-msgstr "Выбор типа печатаемой юбки – одна общая для всех моделей или отдельные юбки для каждой модели.\n\nВнимание: при создании индивидуальных юбок проверка пересечения не совершается, из-за чего при близком расположении моделей они могут накладываться друг на друга. В таких случаях рекомендуется понизить количество контуров."
+msgstr ""
+"Выбор типа печатаемой юбки – одна общая для всех моделей или отдельные юбки для каждой модели.\n"
+"\n"
+"Внимание: при создании индивидуальных юбок проверка пересечения не совершается, из-за чего при близком расположении моделей они могут накладываться друг на друга. В таких случаях рекомендуется понизить количество контуров."
 
 # Отдельный (антоним к "совместный")
 msgid "Per object"
@@ -15171,7 +15251,9 @@ msgid ""
 "Using a non-zero value is useful if the printer is set up to print without a prime line.\n"
 "Final number of loops is not taking into account while arranging or validating objects distance. Increase loop number in such case."
 msgstr ""
-"Минимальная длина прутка для прочистки на юбке (в миллиметрах). Позволяет автоматически расчитывать количество контуров юбки для её использования в качестве альтернативы линии прочистки.\n\n0 – отключить автоматический расчёт."
+"Минимальная длина прутка для прочистки на юбке (в миллиметрах). Позволяет автоматически расчитывать количество контуров юбки для её использования в качестве альтернативы линии прочистки.\n"
+"\n"
+"0 – отключить автоматический расчёт."
 
 msgid "The printing speed in exported G-code will be slowed down when the estimated layer time is shorter than this value in order to get better cooling for these layers."
 msgstr "Скорость печати в экспортированном G-коде будет замедлена, если расчётное время печати слоя меньше заданного здесь значения, для обеспечения лучшего охлаждения этих слоёв."
@@ -15747,9 +15829,6 @@ msgstr ""
 "\n"
 "Эта опция зависит от поддержки прошивкой команд M191 и M141, либо через макросы, либо нативно, и обычно используется, когда имеется активный нагреватель камеры."
 
-msgid "Chamber temperature"
-msgstr "Температура термокамеры"
-
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
 "\n"
@@ -15764,6 +15843,17 @@ msgstr ""
 "Доступ к значению можно получить через переменную с именем chamber_temperature. Её можно использовать в макросах начала печати или прогрева термокамеры, например:\n"
 "PRINT_START <...> CHAMBER_TEMP=[chamber_temperature].\n"
 "Это особенно полезно, если принтер не поддерживает команды M141/M191, или если управление температурой термокамеры реализовано через макросы (например, при отсутствии активного нагревателя камеры)."
+
+msgid ""
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"\n"
+"Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+msgstr ""
+
+msgid "Chamber minimal temperature"
+msgstr ""
 
 msgid "Nozzle temperature after the first layer"
 msgstr "Температура при печати последующих слоёв."
@@ -15806,24 +15896,6 @@ msgstr "Толщина оболочки сверху"
 
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Минимальная толщина оболочки сверху в мм. Если толщина оболочки, рассчитанная по количеству сплошных слоёв сверху, меньше этого значения, количество сплошных слоёв сверху будет автоматически увеличено при нарезке, для удовлетворения минимальной толщины оболочки. Это позволяет избежать слишком тонкой оболочки при небольшой высоте слоя. 0 означает, что этот параметр отключён, а толщина оболочки сверху задаётся количеством сплошных слоёв сверху."
-
-# ??? Плотность верхней оболочки
-msgid "Top surface density"
-msgstr "Плотность верхней поверхности"
-
-# ??? Плотность верхней поверхности. При 100% создаётся сплошной верхний слой.
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr "Плотность верхней поверхности. Если установить 100%, поверхность будет сплошной и гладкой. Уменьшение этого параметра создаст текстурированную поверхность в соответствии с выбранным шаблоном заполнения верхней поверхности. При значении 0% останутся только стенки верхнего слоя. Эта функция предназначена для улучшения внешнего вида или функциональности объекта, но не для решения проблем, таких как чрезмерная экструзия."
-
-msgid "Bottom surface density"
-msgstr "Плотность нижней поверхности"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
-"Плотность нижней поверхности. Эта функция предназначена для улучшения внешнего вида или функциональности объекта, а не для решения проблем, таких как чрезмерная экструзия.\n"
-"Внимание: уменьшение этого значения может негативно повлиять на адгезию к печатной платформе."
 
 msgid "This is the speed at which traveling is done."
 msgstr "Ограничение скорости холостых перемещений печатающей головы."
@@ -16013,7 +16085,10 @@ msgid "Infill gap."
 msgstr "Управление отступом между линиями сброса материала."
 
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
-msgstr "Прочистка сопла после смены материала будет производиться в заполнение модели. Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню.\n\nПримечание: не рекомендуется при печати стенок прозрачным материалом."
+msgstr ""
+"Прочистка сопла после смены материала будет производиться в заполнение модели. Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню.\n"
+"\n"
+"Примечание: не рекомендуется при печати стенок прозрачным материалом."
 
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "Прочистка сопла после смены материала будет производиться в поддержку модели. Это снижает количество отходов и сокращает время печати. Требуется включить черновую башню."
@@ -19794,6 +19869,14 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "Левый: %s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "Правый: %s"
 
 #~ msgid "Enable network plug-in"
 #~ msgstr "Включить сетевой плагин"
