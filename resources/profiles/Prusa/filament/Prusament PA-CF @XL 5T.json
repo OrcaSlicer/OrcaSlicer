@@ -3,7 +3,7 @@
 	"name": "Prusament PA-CF @XL 5T",
 	"inherits": "fdm_filament_pa11cf",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "FYerOcjToJ3ABpu1",
 	"instantiation": "true",
 	"nozzle_temperature_intial_layer": "275",
 	"nozzle_temperature": "285",

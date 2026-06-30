@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-26 10:26+0800\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -1726,7 +1726,12 @@ msgid ""
 "To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
 "\n"
 "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
-msgstr "Des de la versió 2.4.0, OrcaSlicer sincronitza els perfils d'usuari a través d'Orca Cloud en lloc de Bambu Cloud.\n\nPer migrar els teus perfils existents, inicia la sessió a Orca Cloud i es transferiran automàticament. Per obtenir més informació sobre com OrcaSlicer emmagatzema i sincronitza els teus perfils, o per migrar els teus perfils manualment, consulta la nostra wiki.\n\nSi no feies servir Bambu Cloud per sincronitzar perfils, aquest canvi no t'afecta i pots ignorar aquest missatge amb tranquil·litat."
+msgstr ""
+"Des de la versió 2.4.0, OrcaSlicer sincronitza els perfils d'usuari a través d'Orca Cloud en lloc de Bambu Cloud.\n"
+"\n"
+"Per migrar els teus perfils existents, inicia la sessió a Orca Cloud i es transferiran automàticament. Per obtenir més informació sobre com OrcaSlicer emmagatzema i sincronitza els teus perfils, o per migrar els teus perfils manualment, consulta la nostra wiki.\n"
+"\n"
+"Si no feies servir Bambu Cloud per sincronitzar perfils, aquest canvi no t'afecta i pots ignorar aquest missatge amb tranquil·litat."
 
 msgid "Profile syncing change"
 msgstr ""
@@ -4106,6 +4111,10 @@ msgstr ""
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "La temperatura actual de la cambra és superior a la temperatura segura del material, pot provocar un estovament i obstrucció del material. La temperatura màxima segura per al material és %d"
 
+#, c-format, boost-format
+msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
@@ -5301,7 +5310,7 @@ msgid "Size:"
 msgstr "Mida:"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "S'han trobat conflictes de rutes gcode a la capa %d, Z = %.2lfmm. Si us plau, separeu els objectes conflictius més lluny ( %s <-> %s )."
 
@@ -9210,6 +9219,12 @@ msgstr "Suprimeix aquest perfil"
 msgid "Search in preset"
 msgstr "Cercar al perfil"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Feu clic per restablir tots els paràmetres a l'última configuració desada."
 
@@ -9502,6 +9517,18 @@ msgstr "Relació de Flux i Avanç de Pressió Lineal( Pressure advance )"
 
 msgid "Print chamber temperature"
 msgstr "Temperatura de la cambra d'impressió"
+
+msgid "Chamber temperature"
+msgstr "Temperatura de la cambra"
+
+msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "Minimal"
+msgstr ""
 
 msgid "Print temperature"
 msgstr "Temperatura d'impressió"
@@ -9825,12 +9852,22 @@ msgid "Don't warn again for this preset"
 msgstr ""
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "Esquerra: %s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "Dreta: %s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Feu clic per esborrar el valor actual i agafar el valor global."
@@ -9850,7 +9887,7 @@ msgid "Transfer or discard changes"
 msgstr "Transferir o descartar canvis"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Old value"
+msgid "Old Value"
 msgstr "Valor antic"
 
 msgid "New Value"
@@ -9971,6 +10008,12 @@ msgstr "Nombre d'extrusors"
 
 msgid "Capabilities"
 msgstr "Capacitats"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "Mostra tots els perfils ( inclosos els incompatibles )"
@@ -12096,6 +12139,23 @@ msgstr "Impressió normal"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "L'acceleració predeterminada tant de la impressió normal com dels viatges excepte a la capa inicial"
 
+msgid "Acceleration of travel moves."
+msgstr "Acceleració en desplaçaments"
+
+msgid "First layer travel"
+msgstr ""
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+
+msgid "mm/s² or %"
+msgstr "mm/s o %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr "Acceleració de ponts. Si el valor s'expressa en percentatge ( per exemple, 50% ), es calcularà a partir de l'acceleració del perímetre exterior."
+
 msgid "Default filament profile"
 msgstr "Perfil de filament predeterminat"
 
@@ -12308,12 +12368,28 @@ msgstr "Acords d'Arquimedes"
 msgid "Octagram Spiral"
 msgstr "Octograma en Espiral"
 
+msgid "Top surface density"
+msgstr "Densitat de la superfície superior"
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr "Densitat de la capa de superfície superior. Un valor del 100% crea una capa superior completament sòlida i llisa. Reduir aquest valor resulta en una superfície superior texturada, segons el patró de superfície superior triat. Un valor del 0% resultarà en la creació de només les parets a la capa superior. Destinat a fins estètics o funcionals, no per solucionar problemes com la sobreextrusió."
+
 msgid "Bottom surface pattern"
 msgstr "Patró de superfície inferior"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Patró de línia del farciment de la superfície inferior, no del farciment de pont"
+
+msgid "Bottom surface density"
+msgstr "Densitat de la superfície inferior"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
+"Densitat de la capa de superfície inferior. Destinat a fins estètics o funcionals, no per solucionar problemes com la sobreextrusió.\n"
+"AVÍS: reduir aquest valor pot afectar negativament l'adhesió al llit."
 
 msgid "Internal solid infill pattern"
 msgstr "Patró de farciment sòlid intern"
@@ -12614,18 +12690,6 @@ msgstr "Automàtic per a purga"
 
 msgid "Auto For Match"
 msgstr "Automàtic per a coincidència"
-
-msgid "Enable filament dynamic map"
-msgstr ""
-
-msgid "Enable dynamic filament mapping during print."
-msgstr ""
-
-msgid "Has filament switcher"
-msgstr ""
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
-msgstr ""
 
 msgid "Flush temperature"
 msgstr "Temperatura de purga"
@@ -12969,6 +13033,7 @@ msgstr "Ús de múltiples línies per al patró de farciment, si el patró de fa
 msgid "Z-buckling bias optimization (experimental)"
 msgstr ""
 
+#, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr ""
 
@@ -13036,79 +13101,6 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Giroide"
 
-msgid "Lateral lattice angle 1"
-msgstr "Angle de gelosia 1"
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "L'angle del primer conjunt d'elements de gelosia 2D en la direcció Z. El zero és vertical."
-
-msgid "Lateral lattice angle 2"
-msgstr "Angle de gelosia 2"
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "L'angle del segon conjunt d'elements de gelosia 2D en la direcció Z. El zero és vertical."
-
-msgid "Infill overhang angle"
-msgstr "Angle de voladís del farciment"
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr "L'angle de les línies inclinades del farciment. 60° resultarà en un rusc pur."
-
-msgid "Lightning overhang angle"
-msgstr ""
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr ""
-
-msgid "Prune angle"
-msgstr ""
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-
-msgid "Straightening angle"
-msgstr ""
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr ""
-
-msgid "Sparse infill anchor length"
-msgstr "Longitud d'ancoratge de farciment poc dens"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr ""
-"Connectar una línia de farciment a un perímetre intern amb un segment curt d'un perímetre addicional. Si s'expressa en percentatge ( per exemple: 15% ) es calcula sobre l'amplada d'extrusió de farciment. Orca Slicer intenta connectar dues línies de farciment properes a un segment perimetral curt. Si no es troba aquest segment perimetral més curt que infill_anchor_max, la línia de farciment es connecta a un segment perimetral a un sol costat i la longitud del segment perimetral pres es limita a aquest paràmetre, però no més de anchor_length_max.\n"
-"Establiu aquest paràmetre a zero per desactivar els perímetres d'ancoratge connectats a una sola línia de farciment."
-
-msgid "0 (no open anchors)"
-msgstr "0 ( sense ancoratges oberts )"
-
-msgid "1000 (unlimited)"
-msgstr "1000 ( il·limitat )"
-
-msgid "Maximum length of the infill anchor"
-msgstr "Màxima longitud de l'ancoratge de farciment"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr ""
-"Connectar una línia de farciment a un perímetre intern amb un segment curt d'un perímetre addicional. Si s'expressa en percentatge ( per exemple: 15% ) es calcula sobre l'amplada d'extrusió de farciment. Orca Slicer intenta connectar dues línies de farciment properes a un segment perimetral curt. Si no es troba aquest segment perimetral més curt que aquest paràmetre, la línia de farciment es connecta a un segment perimetral a un sol costat i la longitud del segment perimetral pres es limita a infill_anchor, però no més llarga que aquest paràmetre.\n"
-"Si s'estableix a 0, s'utilitzarà l'algorisme antic per a la connexió de farciment, hauria de crear el mateix resultat que amb 1000 i 0."
-
-msgid "0 (Simple connect)"
-msgstr "0 ( Connexió simple )"
-
-msgid "Acceleration of inner walls."
-msgstr "Acceleració en perímetres interiors"
-
-msgid "Acceleration of travel moves."
-msgstr "Acceleració en desplaçaments"
-
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Acceleració del farciment superficial superior. L'ús d'un valor inferior pot millorar la qualitat de la superfície superior"
@@ -13117,11 +13109,8 @@ msgstr "Acceleració del farciment superficial superior. L'ús d'un valor inferi
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Acceleració del perímetre exterior. L'ús d'un valor inferior pot millorar la qualitat"
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
-msgstr "Acceleració de ponts. Si el valor s'expressa en percentatge ( per exemple, 50% ), es calcularà a partir de l'acceleració del perímetre exterior."
-
-msgid "mm/s² or %"
-msgstr "mm/s o %"
+msgid "Acceleration of inner walls."
+msgstr "Acceleració en perímetres interiors"
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Acceleració del farciment poc dens. Si el valor s'expressa en percentatge ( per exemple, 100% ), es calcularà a partir de l'acceleració predeterminada."
@@ -13132,14 +13121,6 @@ msgstr "Acceleració del farciment sòlid intern. Si el valor s'expressa en perc
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Acceleració de la capa inicial. L'ús d'un valor inferior pot millorar l'adherència de la placa d'impressió"
-
-msgid "First layer travel"
-msgstr ""
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
 
 msgid "Enable accel_to_decel"
 msgstr "Habilita accel_to_decel"
@@ -13754,6 +13735,73 @@ msgstr "Àrea d'exclusió de sondeig d'acumulació"
 
 msgid "Probing exclude area of clumping."
 msgstr "Àrea d'exclusió de sondeig d'acumulació."
+
+msgid "Lateral lattice angle 1"
+msgstr "Angle de gelosia 1"
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "L'angle del primer conjunt d'elements de gelosia 2D en la direcció Z. El zero és vertical."
+
+msgid "Lateral lattice angle 2"
+msgstr "Angle de gelosia 2"
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "L'angle del segon conjunt d'elements de gelosia 2D en la direcció Z. El zero és vertical."
+
+msgid "Infill overhang angle"
+msgstr "Angle de voladís del farciment"
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr "L'angle de les línies inclinades del farciment. 60° resultarà en un rusc pur."
+
+msgid "Lightning overhang angle"
+msgstr ""
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr ""
+
+msgid "Prune angle"
+msgstr ""
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+
+msgid "Straightening angle"
+msgstr ""
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr ""
+
+msgid "Sparse infill anchor length"
+msgstr "Longitud d'ancoratge de farciment poc dens"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr ""
+"Connectar una línia de farciment a un perímetre intern amb un segment curt d'un perímetre addicional. Si s'expressa en percentatge ( per exemple: 15% ) es calcula sobre l'amplada d'extrusió de farciment. Orca Slicer intenta connectar dues línies de farciment properes a un segment perimetral curt. Si no es troba aquest segment perimetral més curt que infill_anchor_max, la línia de farciment es connecta a un segment perimetral a un sol costat i la longitud del segment perimetral pres es limita a aquest paràmetre, però no més de anchor_length_max.\n"
+"Establiu aquest paràmetre a zero per desactivar els perímetres d'ancoratge connectats a una sola línia de farciment."
+
+msgid "0 (no open anchors)"
+msgstr "0 ( sense ancoratges oberts )"
+
+msgid "1000 (unlimited)"
+msgstr "1000 ( il·limitat )"
+
+msgid "Maximum length of the infill anchor"
+msgstr "Màxima longitud de l'ancoratge de farciment"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr ""
+"Connectar una línia de farciment a un perímetre intern amb un segment curt d'un perímetre addicional. Si s'expressa en percentatge ( per exemple: 15% ) es calcula sobre l'amplada d'extrusió de farciment. Orca Slicer intenta connectar dues línies de farciment properes a un segment perimetral curt. Si no es troba aquest segment perimetral més curt que aquest paràmetre, la línia de farciment es connecta a un segment perimetral a un sol costat i la longitud del segment perimetral pres es limita a infill_anchor, però no més llarga que aquest paràmetre.\n"
+"Si s'estableix a 0, s'utilitzarà l'algorisme antic per a la connexió de farciment, hauria de crear el mateix resultat que amb 1000 i 0."
+
+msgid "0 (Simple connect)"
+msgstr "0 ( Connexió simple )"
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14623,6 +14671,18 @@ msgstr "Direct Drive"
 msgid "Bowden"
 msgstr "Bowden"
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Extra length on restart"
 msgstr "Longitud addicional en reiniciar"
 
@@ -15409,9 +15469,6 @@ msgstr ""
 "\n"
 "Aquesta opció es basa en el microprogramari que admet les ordres M191 i M141, ja sigui mitjançant macros o de manera nativa i s'utilitza normalment quan s'instal·la un escalfador de cambra actiu."
 
-msgid "Chamber temperature"
-msgstr "Temperatura de la cambra"
-
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
 "\n"
@@ -15424,6 +15481,17 @@ msgstr ""
 "Per a PLA, PETG, TPU, PVA i altres materials de baixa temperatura, aquesta opció s'hauria de desactivar (establir a 0) ja que la temperatura de la cambra hauria de ser baixa per evitar l'obstrucció de l'extrusora causada pel suavització del material durant el trencament de calor.\n"
 "\n"
 "Si està activat, aquest paràmetre també estableix una variable de codi g anomenada chamber_temperature, que es pot utilitzar per passar la temperatura de la cambra desitjada a la macro d'inici d'impressió, o una macro de remull tèrmic com aquesta: PRINT_START (altres variables) CHAMBER_TEMP=[chamber_temperature]. Això pot ser útil si la vostra impressora no admet les ordres M141/M191, o si voleu gestionar el remull de calor a la macro d'inici d'impressió si no hi ha instal·lat un escalfador de cambra actiu."
+
+msgid ""
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"\n"
+"Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+msgstr ""
+
+msgid "Chamber minimal temperature"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
@@ -15469,22 +15537,6 @@ msgstr "Gruix mínim de la carcassa superior"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "El nombre de capes sòlides superiors augmenta quan es tallen si el gruix calculat per les capes de closca superior és més prim que aquest valor. Això pot evitar tenir una closca massa fina quan l'alçada de la capa és petita. 0 significa que aquesta configuració està desactivada i que el gruix de la carcassa superior està absolutament determinat per les capes de la carcassa superior"
-
-msgid "Top surface density"
-msgstr "Densitat de la superfície superior"
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr "Densitat de la capa de superfície superior. Un valor del 100% crea una capa superior completament sòlida i llisa. Reduir aquest valor resulta en una superfície superior texturada, segons el patró de superfície superior triat. Un valor del 0% resultarà en la creació de només les parets a la capa superior. Destinat a fins estètics o funcionals, no per solucionar problemes com la sobreextrusió."
-
-msgid "Bottom surface density"
-msgstr "Densitat de la superfície inferior"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
-"Densitat de la capa de superfície inferior. Destinat a fins estètics o funcionals, no per solucionar problemes com la sobreextrusió.\n"
-"AVÍS: reduir aquest valor pot afectar negativament l'adhesió al llit."
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19367,6 +19419,14 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "Esquerra: %s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "Dreta: %s"
 
 #~ msgid "Enable network plug-in"
 #~ msgstr "Habilita el plugin de xarxa"

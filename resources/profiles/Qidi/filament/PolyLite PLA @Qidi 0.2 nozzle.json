@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA @Qidi 0.2 nozzle",
 	"inherits": "PolyLite PLA @Qidi",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "uXrENPoTa7HWapCV",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"pressure_advance": [

@@ -3,7 +3,7 @@
 	"name": "0.28mm Extra Draft @Geeetech common",
 	"inherits": "fdm_process_geeetech_0.28",
 	"from": "system",
-	"setting_id": "GP_Geeetech_025",
+	"setting_id": "flsrRhwKpNEQMjch",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Geeetech A10 Pro 0.4 nozzle",

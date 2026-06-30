@@ -3,7 +3,7 @@
 	"name": "Elegoo Centauri 2 0.2 nozzle",
 	"inherits": "Elegoo Centauri 2 0.4 nozzle",
 	"from": "system",
-	"setting_id": "EC202",
+	"setting_id": "m8Qdj0hA47eDYqRW",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.2"

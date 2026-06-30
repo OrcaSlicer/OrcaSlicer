@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Creality Ender5Plus",
 	"inherits": "fdm_process_creality_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "y5dNuwrcPQ1xUKOM",
 	"instantiation": "true",
 	"adaptive_layer_height": "1",
 	"reduce_crossing_wall": "0",

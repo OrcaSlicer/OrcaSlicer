@@ -3,7 +3,7 @@
 	"name": "Sovol SV08 0.8 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "Isk4WSQ4RH23P3Wy",
 	"instantiation": "true",
 	"printer_model": "Sovol SV08",
 	"default_print_profile": "0.20mm Standard @Sovol SV08 0.8 nozzle",

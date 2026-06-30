@@ -3,7 +3,7 @@
 	"name": "Blocks Generic PA",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "BSSI006",
+	"setting_id": "3L5IYVTlkt8V0EiW",
 	"filament_id": "BSFI006",
 	"instantiation": "true",
 	"filament_flow_ratio": [

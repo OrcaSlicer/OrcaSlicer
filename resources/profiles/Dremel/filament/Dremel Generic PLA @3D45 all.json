@@ -3,7 +3,7 @@
 	"name": "Dremel Generic PLA @3D45 all",
 	"inherits": "Dremel Generic PLA",
 	"from": "system",
-	"setting_id": "GFSL99_00",
+	"setting_id": "pIlkZjNrXnHJDszp",
 	"instantiation": "true",
 	"slow_down_min_speed": "10",
 	"close_fan_the_first_x_layers": "3",

@@ -130,7 +130,7 @@ public:
 
     const FoundOption &operator[](const size_t pos) const noexcept { return found[pos]; }
     const Option &     get_option(size_t pos_in_filter) const;
-    const Option &     get_option(const std::string &opt_key, Preset::Type type) const;
+    const Option &     get_option(const std::string &opt_key, Preset::Type type, int &variant_index) const;
     Option             get_option(const std::string &opt_key, const wxString &label, Preset::Type type) const;
 
     const std::vector<FoundOption> &found_options() { return found; }

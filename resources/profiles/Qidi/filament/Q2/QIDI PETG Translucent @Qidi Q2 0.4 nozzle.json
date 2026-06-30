@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Translucent @Qidi Q2 0.4 nozzle",
 	"inherits": "QIDI PETG Translucent@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "MvQfqR0nQw2Nzprt",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q2 0.4 nozzle"

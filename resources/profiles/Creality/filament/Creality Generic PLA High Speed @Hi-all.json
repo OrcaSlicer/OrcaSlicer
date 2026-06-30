@@ -3,7 +3,7 @@
 	"name": "Creality Generic PLA High Speed @Hi-all",
 	"inherits": "Creality Generic PLA @Hi-all",
 	"from": "system",
-	"setting_id": "GFSL95_00",
+	"setting_id": "KzaopZGQPw5OJFFD",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.95"

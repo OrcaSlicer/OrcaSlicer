@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido Matte @0.6 nozzle",
 	"inherits": "QIDI PLA Rapido Matte",
 	"from": "User",
-	"setting_id": "GFSL99",
+	"setting_id": "syivJeR1eO6H8wsK",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

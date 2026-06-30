@@ -3,7 +3,7 @@
 	"name": "Overture Easy PLA @System",
 	"inherits": "Overture Easy PLA @base",
 	"from": "system",
-	"setting_id": "OGFOT003",
+	"setting_id": "luYNb9RmaDS1wMB5",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.95"

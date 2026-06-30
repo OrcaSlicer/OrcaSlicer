@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_2_0_11",
-	"setting_id": "GFSA04",
 	"name": "Generic ABS@Q2C-Series",
 	"from": "system",
 	"instantiation": "false",

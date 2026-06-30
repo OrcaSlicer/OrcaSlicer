@@ -3,7 +3,7 @@
 	"name": "HATCHBOX PLA @Qidi",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "jWtANauqr4Azj7fo",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_type": [

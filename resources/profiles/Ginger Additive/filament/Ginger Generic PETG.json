@@ -3,6 +3,7 @@
 	"name": "Ginger Generic PETG",
 	"inherits": "fdm_filament_common",
 	"from": "system",
+	"setting_id": "ue95N2e65rdp5K6c",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Generic"

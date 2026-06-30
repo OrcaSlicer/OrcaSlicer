@@ -3,7 +3,7 @@
 	"name": "Creality Generic PA-CF @K1-all",
 	"inherits": "Creality Generic PA-CF",
 	"from": "system",
-	"setting_id": "GFSN99_01",
+	"setting_id": "3j6MMw59d8UigcH7",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Creality K1 (0.4 nozzle)",

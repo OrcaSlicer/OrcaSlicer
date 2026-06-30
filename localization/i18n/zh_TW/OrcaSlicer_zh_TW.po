@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-26 10:26+0800\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -1718,7 +1718,12 @@ msgid ""
 "To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
 "\n"
 "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
-msgstr "自 2.4.0 版本起，OrcaSlicer 透過 Orca Cloud（而非 Bambu Cloud）同步使用者設定檔。\n\n若要移轉您現有的設定檔，請登入 Orca Cloud，設定檔將會自動轉移。若要進一步了解 OrcaSlicer 如何儲存與同步您的設定檔，或手動移轉您的預設，請參閱我們的 wiki。\n\n若您先前並未使用 Bambu Cloud 同步設定檔，則此變更不會影響您，您可以放心忽略此訊息。"
+msgstr ""
+"自 2.4.0 版本起，OrcaSlicer 透過 Orca Cloud（而非 Bambu Cloud）同步使用者設定檔。\n"
+"\n"
+"若要移轉您現有的設定檔，請登入 Orca Cloud，設定檔將會自動轉移。若要進一步了解 OrcaSlicer 如何儲存與同步您的設定檔，或手動移轉您的預設，請參閱我們的 wiki。\n"
+"\n"
+"若您先前並未使用 Bambu Cloud 同步設定檔，則此變更不會影響您，您可以放心忽略此訊息。"
 
 msgid "Profile syncing change"
 msgstr "設定檔同步方式變更"
@@ -1757,7 +1762,10 @@ msgid ""
 "The Microsoft WebView2 Runtime could not be installed.\n"
 "Some features, including the setup wizard, may appear blank until it is installed.\n"
 "Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart Orca Slicer."
-msgstr "無法安裝 Microsoft WebView2 Runtime。\n在安裝完成前，包括設定精靈在內的部分功能可能顯示為空白。\n請從 https://developer.microsoft.com/microsoft-edge/webview2/ 手動安裝，然後重新啟動 Orca Slicer。"
+msgstr ""
+"無法安裝 Microsoft WebView2 Runtime。\n"
+"在安裝完成前，包括設定精靈在內的部分功能可能顯示為空白。\n"
+"請從 https://developer.microsoft.com/microsoft-edge/webview2/ 手動安裝，然後重新啟動 Orca Slicer。"
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -4114,6 +4122,10 @@ msgstr ""
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "目前列印設備內部溫度高於線材的安全溫度，可能會導致線材軟化和堵塞。線材的最高安全溫度為：%d"
 
+#, c-format, boost-format
+msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
@@ -5327,7 +5339,7 @@ msgstr "體積："
 msgid "Size:"
 msgstr "尺寸："
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "發現 G-code 路徑在 %d 層，Z = %.2lf mm 處的衝突。請將有衝突的物件分離得更遠（%s <-> %s）。"
 
@@ -8220,7 +8232,10 @@ msgid ""
 "Applies smooth normals to the realistic view.\n"
 "\n"
 "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
-msgstr "將平滑法線套用至擬真檢視。\n\n需要手動重新載入場景才能生效（在 3D 檢視中按一下滑鼠右鍵 →「重新載入所有物件」）。"
+msgstr ""
+"將平滑法線套用至擬真檢視。\n"
+"\n"
+"需要手動重新載入場景才能生效（在 3D 檢視中按一下滑鼠右鍵 →「重新載入所有物件」）。"
 
 msgid "Anti-aliasing"
 msgstr "抗鋸齒"
@@ -9240,6 +9255,12 @@ msgstr "刪除此預設"
 msgid "Search in preset"
 msgstr "在預設中搜尋"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "點擊以將所有設定還原到最後一次儲存的版本。"
 
@@ -9528,6 +9549,18 @@ msgstr "流量比與壓力補償"
 
 msgid "Print chamber temperature"
 msgstr "列印設備內部溫度"
+
+msgid "Chamber temperature"
+msgstr "列印設備內部溫度"
+
+msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "Minimal"
+msgstr ""
 
 msgid "Print temperature"
 msgstr "列印溫度"
@@ -9862,12 +9895,22 @@ msgid "Don't warn again for this preset"
 msgstr "不再為此預設顯示警告"
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "左：%s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "右：%s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "點擊該圖示，恢復到全域的設定數值，並與全域設定同步變化。"
@@ -9887,7 +9930,7 @@ msgid "Transfer or discard changes"
 msgstr "放棄或保留更改"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Old value"
+msgid "Old Value"
 msgstr "舊值"
 
 msgid "New Value"
@@ -10019,6 +10062,12 @@ msgstr "擠出機數量"
 
 msgid "Capabilities"
 msgstr "能力"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "顯示所有預設（包括不相容的）"
@@ -11273,7 +11322,10 @@ msgid ""
 "Per-object skirts cannot fit between the objects in By object print sequence.\n"
 "\n"
 "Move the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."
-msgstr "在「逐件」列印順序下，物件之間無法容納各別物件的 Skirt。\n\n請加大物件之間的距離、縮小 Brim/Skirt 尺寸、將 Skirt 類型切換為「合併」，或將列印順序切換為「逐層」。"
+msgstr ""
+"在「逐件」列印順序下，物件之間無法容納各別物件的 Skirt。\n"
+"\n"
+"請加大物件之間的距離、縮小 Brim/Skirt 尺寸、將 Skirt 類型切換為「合併」，或將列印順序切換為「逐層」。"
 
 msgid "Exporting G-code"
 msgstr "正在匯出 G-code"
@@ -12192,6 +12244,25 @@ msgstr "普通列印"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "除首層之外的預設的列印和空駛的加速度"
 
+msgid "Acceleration of travel moves."
+msgstr "空駛加速度"
+
+msgid "First layer travel"
+msgstr "首層空駛"
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+"首層的空駛加速度。\n"
+"百分比數值是相對於空駛加速度。"
+
+msgid "mm/s² or %"
+msgstr "mm/s² 或 %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr "橋接加速度。 如果該值以百分比表示（例如 50%），則將根據外牆加速度進行計算。"
+
 msgid "Default filament profile"
 msgstr "預設線材設定檔"
 
@@ -12404,12 +12475,28 @@ msgstr "阿基米德和弦"
 msgid "Octagram Spiral"
 msgstr "八角螺旋"
 
+msgid "Top surface density"
+msgstr "頂面密度"
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr "頂面層的密度。100% 將建立完全實心且平滑的頂層。降低此數值會根據所選的頂面圖案產生紋理表面。0% 則只會建立頂層的牆體。此功能旨在實現美觀或功能需求，而非修正過擠等問題"
+
 msgid "Bottom surface pattern"
 msgstr "底面圖案"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "除了橋接外的底面填充的走線圖案"
+
+msgid "Bottom surface density"
+msgstr "底面密度"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
+"底面層的密度。此功能旨在實現美觀或功能需求，而非修正過擠等問題。\n"
+"警告：降低此數值可能會對熱床附著力產生負面影響"
 
 msgid "Internal solid infill pattern"
 msgstr "內部實心填充圖案"
@@ -12624,7 +12711,9 @@ msgstr "啟用懸挑自適應壓力補償 (beta)"
 msgid ""
 "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
 "Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
-msgstr "針對懸空以及同一特徵內的流量變化啟用自適應壓力補償 (PA)。這是一個實驗性選項，因為若 PA 設定檔設定不準確，將會導致懸空前後的外表面出現均勻性問題。\n與 Prusa 印表機不相容，因為它們會暫停以處理 PA 變更，進而導致延遲與瑕疵。"
+msgstr ""
+"針對懸空以及同一特徵內的流量變化啟用自適應壓力補償 (PA)。這是一個實驗性選項，因為若 PA 設定檔設定不準確，將會導致懸空前後的外表面出現均勻性問題。\n"
+"與 Prusa 印表機不相容，因為它們會暫停以處理 PA 變更，進而導致延遲與瑕疵。"
 
 msgid "Pressure advance for bridges"
 msgstr "橋接的壓力補償"
@@ -12703,18 +12792,6 @@ msgstr "自動清理"
 
 msgid "Auto For Match"
 msgstr "自動匹配"
-
-msgid "Enable filament dynamic map"
-msgstr "啟用線材動態映射"
-
-msgid "Enable dynamic filament mapping during print."
-msgstr "在列印期間啟用動態線材映射。"
-
-msgid "Has filament switcher"
-msgstr "具有線材切換器"
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
-msgstr "列印設備具有線材切換硬體（例如 AMS）。"
 
 msgid "Flush temperature"
 msgstr "清理溫度"
@@ -13060,7 +13137,7 @@ msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z 軸挫曲偏置最佳化（實驗性）"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, fuzzy
+#, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "在低填充密度時，沿 Z（垂直）軸收緊螺旋體波形，以縮短有效垂直柱長度並提升 Z 軸抗壓挫曲能力。線材用量維持不變。在約 30% 稀疏填充密度及以上時無效果。僅在稀疏填充圖案設為螺旋體時適用。"
 
@@ -13128,79 +13205,6 @@ msgstr "TPMS-FK結構"
 msgid "Gyroid"
 msgstr "螺旋體"
 
-msgid "Lateral lattice angle 1"
-msgstr "網格結構角度 1"
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Z 軸方向第一組 2D 網格結構的角度，0° 表示垂直方向。"
-
-msgid "Lateral lattice angle 2"
-msgstr "網格結構角度 2"
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Z 軸方向第二組 2D 網格結構的角度，0° 表示垂直方向。"
-
-msgid "Infill overhang angle"
-msgstr "填充懸空角度"
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr "填充傾斜線的角度。60° 將產生純蜂窩結構。"
-
-msgid "Lightning overhang angle"
-msgstr "閃電懸空角度"
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr "閃電填充支撐傳播的最大懸空角度。"
-
-msgid "Prune angle"
-msgstr "修剪角度"
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-"控制短的或無支撐的閃電分支被修剪的積極程度。\n"
-"此角度會在內部轉換為每層的距離。"
-
-msgid "Straightening angle"
-msgstr "矯直角度"
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr "用於簡化閃電分支的最大拉直角度。"
-
-msgid "Sparse infill anchor length"
-msgstr "稀疏填充錨線長度"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr ""
-"將填充線透過一小段額外的牆與內牆連接。如果以百分比形式設定（如 15%），此數值是基於填充擠出寬度進行計算。Orca Slicer 會嘗試將兩條靠近的填充線連接到一段較短的牆。如果沒有找到比 infill_anchor_max 更短的牆，則填充線會只連接到一側的牆，且該段的長度受此參數限制，但不會超過 anchor_length_max。 \n"
-"將此參數設為 0 可停用單條填充線與牆的錨接功能。"
-
-msgid "0 (no open anchors)"
-msgstr "0（無錨線）"
-
-msgid "1000 (unlimited)"
-msgstr "1000（無限制）"
-
-msgid "Maximum length of the infill anchor"
-msgstr "填充錨線的最大長度"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr "將填充線透過一小段額外的牆與內牆連接。如果以百分比形式設定（如 15%），此數值是基於填充擠出寬度進行計算。Orca Slicer 會嘗試將兩條靠近的填充線連接到一段較短的牆。如果沒有找到短於此參數的牆，則填充線會只連接到單側牆，且該牆的長度受 infill_anchor 限制，但不會超過此參數的設定值。若此參數設定為 0，將啟用舊版填充連接算法，並產生與設置為 1000 和 0 相同的結果。"
-
-msgid "0 (Simple connect)"
-msgstr "0（簡單連接）"
-
-msgid "Acceleration of inner walls."
-msgstr "內牆加速度，使用較低值可以改善列印品質"
-
-msgid "Acceleration of travel moves."
-msgstr "空駛加速度"
-
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "頂面填充的加速度。使用較低值可能會改善頂面列印品質"
@@ -13209,11 +13213,8 @@ msgstr "頂面填充的加速度。使用較低值可能會改善頂面列印品
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "外牆加速度。使用較小的值可以提高列印品質"
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
-msgstr "橋接加速度。 如果該值以百分比表示（例如 50%），則將根據外牆加速度進行計算。"
-
-msgid "mm/s² or %"
-msgstr "mm/s² 或 %"
+msgid "Acceleration of inner walls."
+msgstr "內牆加速度，使用較低值可以改善列印品質"
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "稀疏填充的加速度。如果該值表示為百分比（例如 100%），則將根據預設加速度進行計算。"
@@ -13224,16 +13225,6 @@ msgstr "內部實心填充加速度。 如果該值以百分比表示（例如 1
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "首層加速度。使用較低值可以改善和列印板的黏附"
-
-msgid "First layer travel"
-msgstr "首層空駛"
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
-"首層的空駛加速度。\n"
-"百分比數值是相對於空駛加速度。"
 
 msgid "Enable accel_to_decel"
 msgstr "啟用煞車速度"
@@ -13867,6 +13858,73 @@ msgstr "結塊檢測排除區域"
 
 msgid "Probing exclude area of clumping."
 msgstr "結塊檢測排除區域"
+
+msgid "Lateral lattice angle 1"
+msgstr "網格結構角度 1"
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Z 軸方向第一組 2D 網格結構的角度，0° 表示垂直方向。"
+
+msgid "Lateral lattice angle 2"
+msgstr "網格結構角度 2"
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Z 軸方向第二組 2D 網格結構的角度，0° 表示垂直方向。"
+
+msgid "Infill overhang angle"
+msgstr "填充懸空角度"
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr "填充傾斜線的角度。60° 將產生純蜂窩結構。"
+
+msgid "Lightning overhang angle"
+msgstr "閃電懸空角度"
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr "閃電填充支撐傳播的最大懸空角度。"
+
+msgid "Prune angle"
+msgstr "修剪角度"
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+"控制短的或無支撐的閃電分支被修剪的積極程度。\n"
+"此角度會在內部轉換為每層的距離。"
+
+msgid "Straightening angle"
+msgstr "矯直角度"
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr "用於簡化閃電分支的最大拉直角度。"
+
+msgid "Sparse infill anchor length"
+msgstr "稀疏填充錨線長度"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr ""
+"將填充線透過一小段額外的牆與內牆連接。如果以百分比形式設定（如 15%），此數值是基於填充擠出寬度進行計算。Orca Slicer 會嘗試將兩條靠近的填充線連接到一段較短的牆。如果沒有找到比 infill_anchor_max 更短的牆，則填充線會只連接到一側的牆，且該段的長度受此參數限制，但不會超過 anchor_length_max。 \n"
+"將此參數設為 0 可停用單條填充線與牆的錨接功能。"
+
+msgid "0 (no open anchors)"
+msgstr "0（無錨線）"
+
+msgid "1000 (unlimited)"
+msgstr "1000（無限制）"
+
+msgid "Maximum length of the infill anchor"
+msgstr "填充錨線的最大長度"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr "將填充線透過一小段額外的牆與內牆連接。如果以百分比形式設定（如 15%），此數值是基於填充擠出寬度進行計算。Orca Slicer 會嘗試將兩條靠近的填充線連接到一段較短的牆。如果沒有找到短於此參數的牆，則填充線會只連接到單側牆，且該牆的長度受 infill_anchor 限制，但不會超過此參數的設定值。若此參數設定為 0，將啟用舊版填充連接算法，並產生與設置為 1000 和 0 相同的結果。"
+
+msgid "0 (Simple connect)"
+msgstr "0（簡單連接）"
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14767,6 +14825,18 @@ msgstr "直驅（近程）"
 msgid "Bowden"
 msgstr "遠程擠出機"
 
+msgid "Enable filament dynamic map"
+msgstr "啟用線材動態映射"
+
+msgid "Enable dynamic filament mapping during print."
+msgstr "在列印期間啟用動態線材映射。"
+
+msgid "Has filament switcher"
+msgstr "具有線材切換器"
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr "列印設備具有線材切換硬體（例如 AMS）。"
+
 msgid "Extra length on restart"
 msgstr "額外回填長度"
 
@@ -15552,9 +15622,6 @@ msgid ""
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr "啟用此選項後，將自動控制機箱溫度。此功能會在執行『machine_start_gcode』之前發送 M191 指令，用於設定機箱溫度並等待達到設定值。此外，在列印結束時會傳送 M141 指令以關閉機箱加熱器（若設備有加熱器）。此功能需要韌體原生支援或通過宏指令支援 M191 和 M141 指令，通常用於配備主動機箱加熱器的列印設備。"
 
-msgid "Chamber temperature"
-msgstr "列印設備內部溫度"
-
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
 "\n"
@@ -15562,6 +15629,17 @@ msgid ""
 "\n"
 "If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr "對於 ABS、ASA、PC 和 PA 等高溫材料，較高的機箱溫度能有效抑制或減少翹曲，並可能提升層間結合強度。然而，較高的機箱溫度也會降低 ABS 和 ASA 的空氣過濾效率。對於 PLA、PETG、TPU、PVA 和其他低溫材料，建議將此選項停用（設為 0），因機箱溫度應保持較低，以避免因材料在熱端軟化而導致擠出機堵塞。啟用此選項後，會設置一個名為 chamber_temperature 的 G-code 變數，可用於將所需的機箱溫度傳遞給列印開始宏，或像以下的熱浸泡宏（預熱）：PRINT_START (其他變數) CHAMBER_TEMP=[chamber_temperature]。這對於不支援 M141/M191 指令的列印設備，或者希望在列印開始宏中處理熱浸泡（預熱）但未安裝主動機箱加熱器的情況下非常實用。"
+
+msgid ""
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"\n"
+"Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+msgstr ""
+
+msgid "Chamber minimal temperature"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
@@ -15606,22 +15684,6 @@ msgstr "頂部外殼厚度"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "當切片時，如果通過頂部殼層計算的厚度小於設定值，將自動增加頂部實心層的數量，以避免層高較小時頂部殼層過薄。若設為 0，則停用此功能，頂部殼層厚度完全由設定的頂部殼層數決定"
-
-msgid "Top surface density"
-msgstr "頂面密度"
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr "頂面層的密度。100% 將建立完全實心且平滑的頂層。降低此數值會根據所選的頂面圖案產生紋理表面。0% 則只會建立頂層的牆體。此功能旨在實現美觀或功能需求，而非修正過擠等問題"
-
-msgid "Bottom surface density"
-msgstr "底面密度"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
-"底面層的密度。此功能旨在實現美觀或功能需求，而非修正過擠等問題。\n"
-"警告：降低此數值可能會對熱床附著力產生負面影響"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19525,6 +19587,14 @@ msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度\n"
 "可以降低翹曲的機率。"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "左：%s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "右：%s"
 
 #~ msgid "Enable network plug-in"
 #~ msgstr "啟用網路外掛程式"

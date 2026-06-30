@@ -3,6 +3,7 @@
 	"name": "Artillery ABS",
 	"inherits": "Artillery Generic PLA",
 	"from": "system",
+	"setting_id": "fsbfMiamVemzRxkG",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Artillery Sidewinder X3 Pro 0.4 nozzle",

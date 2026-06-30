@@ -3,7 +3,7 @@
 	"name": "Prusa Generic ABS @XL",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "fN9NUlg8l5DWy4LN",
 	"instantiation": "true",
 	"nozzle_temperature_intial_layer": "255",
 	"nozzle_temperature": "255",

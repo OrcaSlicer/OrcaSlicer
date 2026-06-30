@@ -3,6 +3,7 @@
     "name": "FilAr PLA Dorado",
     "inherits": "FilAr PLA @base",
     "from": "system",
+    "setting_id": "KHIdy0oNw9YYDNOD",
     "filament_id": "FILAR0029",
     "instantiation": "true",
     "filament_vendor": [

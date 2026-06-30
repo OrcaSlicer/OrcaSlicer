@@ -3,6 +3,7 @@
 	"name": "Flashforge ASA Basic @FF G4P 0.6 HF nozzle",
 	"inherits": "Flashforge Generic ABS @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "CBLZqLhkwf5XKO12",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

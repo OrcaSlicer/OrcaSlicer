@@ -161,7 +161,7 @@ size_t count_opt_key(const std::vector<StringObjectException>& warnings, const s
 void trigger_acceleration_warning(DynamicPrintConfig& c)
 {
     c.set_key_value("machine_max_acceleration_extruding", new ConfigOptionFloats{ 100. });
-    c.set_key_value("default_acceleration", new ConfigOptionFloat(100000.));
+    c.set_key_value("default_acceleration", new ConfigOptionFloatsNullable{ 100000. });
 }
 
 // Make `default_jerk` exceed the machine's jerk limit (junction deviation off so
@@ -171,7 +171,7 @@ void trigger_jerk_warning(DynamicPrintConfig& c)
     c.set_key_value("machine_max_junction_deviation", new ConfigOptionFloats{ 0. });
     c.set_key_value("machine_max_jerk_x", new ConfigOptionFloats{ 1. });
     c.set_key_value("machine_max_jerk_y", new ConfigOptionFloats{ 1. });
-    c.set_key_value("default_jerk", new ConfigOptionFloat(9999.));
+    c.set_key_value("default_jerk", new ConfigOptionFloatsNullable{ 9999. });
 }
 
 // Precise outer wall is ignored unless the wall sequence is inner-outer.

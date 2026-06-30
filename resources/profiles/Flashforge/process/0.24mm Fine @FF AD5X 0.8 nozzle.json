@@ -3,6 +3,7 @@
 	"name": "0.24mm Fine @FF AD5X 0.8 nozzle",
 	"inherits": "0.24mm Fine @Flashforge AD5M Pro 0.8 Nozzle",
 	"from": "system",
+	"setting_id": "M9MmoZSXup35gDA0",
 	"instantiation": "true",
 	"enable_prime_tower": "1",
 	"exclude_object": "1",

@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PP@300HS",
 	"inherits": "fdm_filament_pp",
 	"from": "system",
+	"setting_id": "lx9zoOh3ALDlLasf",
 	"filament_id": "GFP97_01",
 	"instantiation": "true",
 	"compatible_printers": [

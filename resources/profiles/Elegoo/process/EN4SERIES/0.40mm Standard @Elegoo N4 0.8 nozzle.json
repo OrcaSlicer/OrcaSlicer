@@ -3,7 +3,7 @@
 	"name": "0.40mm Standard @Elegoo N4 0.8 nozzle",
 	"inherits": "fdm_process_elegoo_08040",
 	"from": "system",
-	"setting_id": "PEN408040",
+	"setting_id": "VnE7I5kpYjaWE9TQ",
 	"instantiation": "true",
 	"filename_format": "EN4_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
 	"compatible_printers": [
