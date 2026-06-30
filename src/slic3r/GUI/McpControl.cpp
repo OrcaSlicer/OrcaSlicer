@@ -35,6 +35,12 @@
 #include <TopExp_Explorer.hxx>
 #include <TopoDS.hxx>
 #include <TopoDS_Edge.hxx>
+#include <TopoDS_Compound.hxx>
+#include <BRep_Builder.hxx>
+#include <GProp_GProps.hxx>
+#include <BRepGProp.hxx>
+#include <Bnd_Box.hxx>
+#include <BRepBndLib.hxx>
 
 using json = nlohmann::json;
 
@@ -113,6 +119,15 @@ json describe_tools()
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
                      json{{"name", "plane"}, {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
                      json{{"name", "offset"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                 })}},
+            json{{"name", "import_step"}, {"summary", "Import a STEP file as native B-rep bodies (the reference part to measure)."},
+                 {"params", json::array({
+                     json{{"name", "path"}, {"type", "string"}},
+                 })}},
+            json{{"name", "validate_against"}, {"summary", "Volume + bbox/centroid deviation of a body vs a reference {step:path|body:id} (the RE acceptance metric)."},
+                 {"params", json::array({
+                     json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
+                     json{{"name", "reference"}, {"type", "object"}},
                  })}},
         })},
     };
@@ -271,6 +286,83 @@ json slice_body(DesignPanel* panel, const json& params)
                 {"segment_count", int(polylines.size())}, {"polylines", std::move(polylines)}};
 }
 
+// --- Build: bring a reference part in (Import STEP as native B-rep bodies) ------
+json import_step(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("path")) throw std::runtime_error("import_step needs 'path'");
+    const std::string path = params["path"].get<std::string>();
+    std::string err;
+    std::vector<TopoDS_Shape> solids = GeometryEngine::read_step_solids(path, err);
+    if (solids.empty()) throw std::runtime_error(err.empty() ? "no solids in STEP" : err);
+
+    CadDocument& doc = panel->mcp_doc();
+    doc.checkpoint();
+    int first = int(doc.features.size());
+    for (const TopoDS_Shape& s : solids) {
+        CadFeature f;
+        f.type           = CadFeatureType::Import;
+        f.name           = "STEP" + std::to_string(int(doc.features.size()) + 1);
+        f.imported_solid = s;
+        f.mode           = BooleanMode::New;   // each solid = its own coexisting body
+        doc.features.push_back(f);
+    }
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"imported", int(solids.size())}, {"first_feature", first},
+                {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+// --- Validate: volume + bbox deviation of a body vs a reference (the "scarto %") --
+// ponytail: volume delta + bbox/centroid offset (the RE skill's actual acceptance metric).
+// Surface-deviation heat-map is the upgrade path (per-vertex BRepExtrema), add when needed.
+struct ShapeMetrics { double volume; Vec3d centroid, bmin, bmax; };
+ShapeMetrics shape_metrics(const TopoDS_Shape& s)
+{
+    GProp_GProps vp; BRepGProp::VolumeProperties(s, vp);
+    gp_Pnt c = vp.CentreOfMass();
+    Bnd_Box bb; BRepBndLib::Add(s, bb);
+    Standard_Real x0, y0, z0, x1, y1, z1; bb.Get(x0, y0, z0, x1, y1, z1);
+    return {vp.Mass(), Vec3d(c.X(), c.Y(), c.Z()), Vec3d(x0, y0, z0), Vec3d(x1, y1, z1)};
+}
+
+json validate_against(DesignPanel* panel, const json& params)
+{
+    const TopoDS_Shape& cand = body_shape(panel, params);   // candidate = the reconstruction
+    if (!params.contains("reference")) throw std::runtime_error("validate_against needs 'reference' {step|body}");
+    const json& r = params["reference"];
+
+    TopoDS_Shape ref;
+    if (r.contains("step")) {
+        std::string err;
+        std::vector<TopoDS_Shape> solids = GeometryEngine::read_step_solids(r["step"].get<std::string>(), err);
+        if (solids.empty()) throw std::runtime_error(err.empty() ? "reference STEP has no solids" : err);
+        BRep_Builder b; TopoDS_Compound comp; b.MakeCompound(comp);
+        for (const TopoDS_Shape& s : solids) if (!s.IsNull()) b.Add(comp, s);
+        ref = comp;
+    } else if (r.contains("body")) {
+        CadDocument& doc = panel->mcp_doc();
+        int idx = r["body"].get<int>();
+        if (idx < 0 || idx >= int(doc.bodies.size()) || doc.bodies[idx].shape.IsNull())
+            throw std::runtime_error("reference body index out of range / null");
+        ref = doc.bodies[idx].shape;
+    } else {
+        throw std::runtime_error("reference must be {\"step\": path} or {\"body\": id}");
+    }
+
+    ShapeMetrics a = shape_metrics(cand), b = shape_metrics(ref);
+    double dv = b.volume > 0 ? (a.volume - b.volume) / b.volume * 100.0 : 0.0;
+    Vec3d coff = a.centroid - b.centroid;
+    Vec3d dmin = a.bmin - b.bmin, dmax = a.bmax - b.bmax;
+    return json{
+        {"volume", a.volume}, {"volume_reference", b.volume}, {"volume_delta_pct", dv},
+        {"centroid_offset", vec3(coff)}, {"centroid_offset_mm", coff.norm()},
+        {"bbox", json{{"min", vec3(a.bmin)}, {"max", vec3(a.bmax)}}},
+        {"bbox_reference", json{{"min", vec3(b.bmin)}, {"max", vec3(b.bmax)}}},
+        {"bbox_delta", json{{"min", vec3(dmin)}, {"max", vec3(dmax)}}},
+    };
+}
+
 json action_extrude(DesignPanel* panel, const json& params)
 {
     const double w = params.value("width", 20.0);
@@ -310,6 +402,8 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "query_topology") return rpc_result(id, query_topology(panel, params));
         if (method == "measure")        return rpc_result(id, measure(panel, params));
         if (method == "slice_body")     return rpc_result(id, slice_body(panel, params));
+        if (method == "import_step")    return rpc_result(id, import_step(panel, params));
+        if (method == "validate_against") return rpc_result(id, validate_against(panel, params));
         if (method == "extrude")        return rpc_result(id, action_extrude(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
