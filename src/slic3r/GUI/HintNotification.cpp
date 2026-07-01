@@ -172,7 +172,8 @@ namespace {
 	{
 		if (const GUI::Tab* tab = wxGetApp().get_tab(Preset::Type::TYPE_FILAMENT)) {
 			// search PrintConfig filament_type to find if allowed tag
-			if (wxGetApp().app_config->get("filament_type").find(tag)) {
+			const std::string filament_type = wxGetApp().app_config->get("filament_type");
+			if (filament_type.find(tag) != std::string::npos) {
 				const Preset& preset = tab->m_presets->get_edited_preset();
 				const auto* opt = preset.config.opt<ConfigOptionStrings>("filament_type");
 				if (opt->values[0] == tag)
