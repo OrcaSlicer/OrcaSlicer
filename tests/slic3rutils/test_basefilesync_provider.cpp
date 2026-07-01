@@ -2,10 +2,19 @@
 
 #include "slic3r/Utils/BaseFileSyncProvider.hpp"
 #include "slic3r/Utils/SyncBackend.hpp"
+#include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Utils.hpp"
 
+#include <boost/filesystem.hpp>
+
+#include <atomic>
+#include <chrono>
 #include <map>
 #include <memory>
+#include <set>
 #include <string>
+
+namespace fs = boost::filesystem;
 
 using namespace Slic3r;
 
@@ -36,15 +45,29 @@ public:
     {
         std::string prefix = dir;
         if (!prefix.empty() && prefix.back() != '/') prefix.push_back('/');
+        std::set<std::string> subdirs;
         for (const auto& [path, e] : files) {
             if (path.rfind(prefix, 0) != 0) continue;
-            // direct children only
-            if (path.substr(prefix.size()).find('/') != std::string::npos) continue;
-            RemoteFileInfo info;
-            info.path = path;
-            info.etag = e.etag;
-            info.size = e.content.size();
-            out.push_back(info);
+            const std::string rest  = path.substr(prefix.size());
+            const auto        slash = rest.find('/');
+            if (slash == std::string::npos) {
+                RemoteFileInfo info;
+                info.path = path;
+                info.etag = e.etag;
+                info.size = e.content.size();
+                out.push_back(info);
+            } else {
+                // Emit each immediate subdirectory once so bundle discovery
+                // (which enumerates <prefix>bundles/<id> dirs) has something to
+                // iterate -- a real WebDAV/Git listing reports directories too.
+                const std::string d = prefix + rest.substr(0, slash);
+                if (subdirs.insert(d).second) {
+                    RemoteFileInfo info;
+                    info.path         = d;
+                    info.is_directory = true;
+                    out.push_back(info);
+                }
+            }
         }
         return true;
     }
@@ -87,7 +110,8 @@ public:
 
     SyncBackendType type() const override { return SyncBackendType::WebDAV; }
     std::string     display_name() const override { return "fake"; }
-    std::string     fingerprint() const override { return "fake"; }
+    std::string     fp{"fake"};
+    std::string     fingerprint() const override { return fp; }
 
     bool flush(std::string& err) override
     {
@@ -106,6 +130,38 @@ public:
         : BaseFileSyncProvider(std::move(backend)) {}
     std::string provider_id() const override { return "fake"; }
 };
+
+// Points Slic3r::data_dir() at a fresh temp dir for the duration of a test so
+// save_state()/load_state() (which write "<provider_id>_sync_state.json" under
+// data_dir) stay isolated, then removes it.
+struct ScopedDataDir {
+    fs::path dir;
+    ScopedDataDir()
+    {
+        static std::atomic<unsigned> seq{0};
+        const auto stamp = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+        dir = fs::temp_directory_path() /
+              ("orca-bfs-" + std::to_string(stamp) + "-" + std::to_string(seq++));
+        fs::create_directories(dir);
+        Slic3r::set_data_dir(dir.string());
+    }
+    ~ScopedDataDir()
+    {
+        boost::system::error_code ec;
+        fs::remove_all(dir, ec);
+    }
+};
+
+// Bundle ids currently visible through list_subscribed_bundles.
+std::set<std::string> subscribed_ids(BaseFileSyncProvider& provider)
+{
+    std::vector<std::pair<std::string, std::string>> out;
+    std::vector<std::string>                         notfound, unauthorized;
+    provider.list_subscribed_bundles(&out, notfound, unauthorized);
+    std::set<std::string> ids;
+    for (const auto& pr : out) ids.insert(pr.first);
+    return ids;
+}
 
 } // namespace
 
@@ -218,4 +274,135 @@ TEST_CASE("BaseFileSyncProvider list_presets returns pushed presets", "[ProfileS
     });
     CHECK(seen["print/A"] == "print");
     CHECK(seen["printer/B"] == "printer");
+}
+
+// ============================================================
+// pull_preset returns the stored content and maps a missing file
+// to 404.
+// ============================================================
+
+TEST_CASE("BaseFileSyncProvider pull_preset returns content and maps not-found", "[ProfileSync][BaseFileSync]") {
+    auto         backend = std::make_unique<FakeBackend>();
+    FakeProvider provider(std::move(backend));
+
+    provider.push_preset("print", "P", R"({"v":"1"})", "", "");
+
+    std::string out;
+    auto hit = provider.pull_preset("print", "print/P", out);
+    CHECK(hit.http_code == 200);
+    CHECK(out == R"({"v":"1"})");
+    CHECK_FALSE(hit.etag.empty());
+
+    std::string missing;
+    auto miss = provider.pull_preset("print", "print/Nope", missing);
+    CHECK(miss.http_code == 404);
+}
+
+// ============================================================
+// IBundleProvider: publish -> fetch must preserve the metadata
+// fields and the per-type preset values (the value_map <-> JSON
+// serialization that also carries WebDAV/Git preset content).
+// ============================================================
+
+TEST_CASE("BaseFileSyncProvider publishes and fetches a bundle round-trip", "[ProfileSync][BaseFileSync]") {
+    auto         backend = std::make_unique<FakeBackend>();
+    FakeProvider provider(std::move(backend));
+
+    BundleMetadata meta;
+    meta.id            = "B1";
+    meta.name          = "My Bundle";
+    meta.version       = "1.0";
+    meta.description   = "desc";
+    meta.author        = "me";
+    meta.imported_time = 111;
+    meta.updated_time  = 222;
+
+    const std::map<std::string, std::map<std::string, std::string>> presets = {
+        {"print/PA",    {{"layer_height", "0.2"}}},
+        {"filament/FA", {{"temperature", "210"}}},
+    };
+    std::string published_version;
+    REQUIRE(provider.publish_local_bundle(meta, presets, published_version) == 0);
+    CHECK(published_version == "1.0");
+
+    BundleMetadata got;
+    std::map<std::string, std::map<std::string, std::string>> got_presets;
+    REQUIRE(provider.fetch_bundle("B1", "", &got_presets, &got) == 0);
+
+    CHECK(got.id            == "B1");
+    CHECK(got.name          == "My Bundle");
+    CHECK(got.version       == "1.0");
+    CHECK(got.author        == "me");
+    CHECK(got.description   == "desc");
+    CHECK(got.imported_time == 111);
+    CHECK(got.updated_time  == 222);
+
+    REQUIRE(got_presets.count("PA") == 1);
+    REQUIRE(got_presets.count("FA") == 1);
+    CHECK(got_presets["PA"]["layer_height"] == "0.2");
+    CHECK(got_presets["FA"]["temperature"]  == "210");
+}
+
+// ============================================================
+// unsubscribe hides a bundle from the local listing (file
+// backends have no server-side subscription list).
+// ============================================================
+
+TEST_CASE("BaseFileSyncProvider list_subscribed_bundles hides unsubscribed ids", "[ProfileSync][BaseFileSync]") {
+    ScopedDataDir data_dir;
+
+    auto         backend = std::make_unique<FakeBackend>();
+    FakeProvider provider(std::move(backend));
+
+    auto publish = [&](const std::string& id) {
+        BundleMetadata m; m.id = id; m.name = id; m.version = "1";
+        std::map<std::string, std::map<std::string, std::string>> p = {{"print/X", {{"a", "1"}}}};
+        std::string v;
+        provider.publish_local_bundle(m, p, v);
+    };
+    publish("B1");
+    publish("B2");
+
+    CHECK(subscribed_ids(provider) == std::set<std::string>{"B1", "B2"});
+    provider.unsubscribe_bundle("B1");
+    CHECK(subscribed_ids(provider) == std::set<std::string>{"B2"});
+}
+
+// ============================================================
+// State persistence: a hidden bundle survives save_state/load_state
+// when the fingerprint matches, and is dropped when it changes
+// (the backend now points at a different remote).
+// ============================================================
+
+TEST_CASE("BaseFileSyncProvider persists hidden bundles and honours the fingerprint", "[ProfileSync][BaseFileSync]") {
+    ScopedDataDir data_dir;
+
+    // Shared remote contents: two published bundles.
+    std::map<std::string, FakeBackend::Entry> remote;
+    for (const std::string& id : {"B1", "B2"}) {
+        remote["bundles/" + id + "/bundle_metadata.json"] =
+            FakeBackend::Entry{ "{\"id\":\"" + id + "\",\"name\":\"" + id + "\",\"version\":\"1\"}", "e" };
+    }
+
+    // Provider 1 unsubscribes B1 and persists the hidden set.
+    {
+        auto backend    = std::make_unique<FakeBackend>();
+        backend->files  = remote;
+        FakeProvider provider(std::move(backend));
+        provider.unsubscribe_bundle("B1"); // updates m_hidden_bundles + save_state()
+    }
+
+    auto visible_with_fingerprint = [&](const std::string& fingerprint) {
+        auto backend   = std::make_unique<FakeBackend>();
+        backend->files = remote;
+        backend->fp    = fingerprint;
+        FakeProvider provider(std::move(backend));
+        provider.load_state();
+        return subscribed_ids(provider);
+    };
+
+    // Matching fingerprint -> the hidden B1 is restored from disk.
+    CHECK(visible_with_fingerprint("fake") == std::set<std::string>{"B2"});
+    // Different fingerprint -> cached state dropped, B1 visible again.
+    CHECK(visible_with_fingerprint("other") == std::set<std::string>{"B1", "B2"});
 }
