@@ -463,7 +463,7 @@ function CapabilityCanRun(plugin, capability) {
 }
 
 function IsPluginChecked(plugin) {
-  return GetStatus(plugin) === "Activated";
+  return plugin.is_loaded;
 }
 
 function HasMixedCapabilityState(plugin) {
