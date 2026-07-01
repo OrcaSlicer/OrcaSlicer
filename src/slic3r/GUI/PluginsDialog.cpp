@@ -232,6 +232,7 @@ nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
     payload_item["label"]                 = dialog_item.display_name;
     payload_item["source"]                = to_string(dialog_item.source);
     payload_item["status"]                = to_string(dialog_item.status);
+    payload_item["is_loaded"]             = dialog_item.is_loaded;
     payload_item["error"]                 = dialog_item.error_text;
     payload_item["update_status"]         = to_string(dialog_item.update_status);
     payload_item["unauthorized"]          = dialog_item.unauthorized;
