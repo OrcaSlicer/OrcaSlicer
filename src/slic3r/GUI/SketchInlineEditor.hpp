@@ -2,10 +2,12 @@
 #define slic3r_SketchInlineEditor_hpp_
 
 #include <functional>
+#include <string>
 
 class wxWindow;
 class wxFrame;
 class wxTextCtrl;
+class wxStaticText;
 class wxPoint;
 
 namespace Slic3r {
@@ -24,7 +26,7 @@ public:
 
     // Show the editor centred on `screen_px` (absolute screen coords), pre-filled with
     // `value`. on_commit(parsed) fires on Enter with a valid number; on_cancel() on Esc.
-    void open(const wxPoint& screen_px, double value,
+    void open(const wxPoint& screen_px, double value, const std::string& title,
               std::function<void(double)> on_commit,
               std::function<void()> on_cancel);
     void close();
@@ -37,6 +39,7 @@ private:
 
     wxFrame*                    m_frame{nullptr};
     wxTextCtrl*                 m_ctrl{nullptr};
+    wxStaticText*               m_title{nullptr};
     std::function<void(double)> m_commit;
     std::function<void()>       m_cancel;
     bool                        m_open{false};

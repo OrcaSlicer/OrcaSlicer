@@ -51,6 +51,7 @@ public:
                      const std::vector<SketchEntityConstraintDef>& constraints,
                      const SketchPlane& plane);
     void set_sketch_tool(DesignSketchTool::Mode mode);
+    void set_sketch_plane(const SketchPlane& plane);   // re-plane the live sketch when the Plane dropdown changes
     void set_sketch_construction(bool c);
     void set_sketch_polygon_sides(int n);
     void set_sketch_polygon_circumscribed(bool c);
@@ -178,6 +179,9 @@ public:
     void set_body_hidden(bool on);      // preview-only: hide base bodies, show only the result ghost
     void set_on_move_exit(std::function<void()> cb);   // right-click finished the move-body gizmo
     void delete_selected_sketch_entities();
+    bool inline_busy() const;                         // a sketch value field is open (guard keys)
+    bool undo_last_sketch_entity();                   // Ctrl+Z in a sketch: drop the last entity
+    bool delete_selected_or_last_sketch_entity();     // Delete in a sketch: selected, else last
     void clear_sketch_selection();
 
     // Dimension tool: act on the current sketch selection.

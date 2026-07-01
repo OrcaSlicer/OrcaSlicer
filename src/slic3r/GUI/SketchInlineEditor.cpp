@@ -2,6 +2,7 @@
 
 #include <wx/frame.h>
 #include <wx/textctrl.h>
+#include <wx/stattext.h>
 #include <wx/sizer.h>
 #include <wx/window.h>
 #include <wx/toplevel.h>
@@ -47,8 +48,12 @@ SketchInlineEditor::SketchInlineEditor(wxWindow* parent_canvas)
                           wxFRAME_NO_TASKBAR | wxBORDER_NONE | wxSTAY_ON_TOP);
     m_ctrl = new wxTextCtrl(m_frame, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(82, -1),
                             wxTE_PROCESS_ENTER | wxTE_RIGHT | wxBORDER_SIMPLE);
+    m_frame->SetBackgroundColour(wxColour(40, 42, 46));
+    m_title = new wxStaticText(m_frame, wxID_ANY, wxEmptyString);
+    m_title->SetForegroundColour(wxColour(160, 162, 168));
     auto* sizer = new wxBoxSizer(wxVERTICAL);
-    sizer->Add(m_ctrl, 1, wxEXPAND);
+    sizer->Add(m_title, 0, wxLEFT | wxRIGHT | wxTOP, 3);
+    sizer->Add(m_ctrl, 1, wxEXPAND | wxALL, 2);
     m_frame->SetSizerAndFit(sizer);
     m_frame->Hide();
 
@@ -60,6 +65,7 @@ SketchInlineEditor::SketchInlineEditor(wxWindow* parent_canvas)
 }
 
 void SketchInlineEditor::open(const wxPoint& screen_px, double value,
+                              const std::string& title,
                               std::function<void(double)> on_commit,
                               std::function<void()> on_cancel)
 {
@@ -68,6 +74,10 @@ void SketchInlineEditor::open(const wxPoint& screen_px, double value,
     m_commit = std::move(on_commit);
     m_cancel = std::move(on_cancel);
     m_ctrl->ChangeValue(en_format(value));
+    if (m_title) {
+        m_title->SetLabel(wxString::FromUTF8(title.c_str()));
+        m_title->Show(!title.empty());
+    }
     m_frame->Fit();
     const wxSize sz = m_frame->GetSize();
     wxPoint pos(screen_px.x - sz.GetWidth() / 2, screen_px.y - sz.GetHeight() / 2);

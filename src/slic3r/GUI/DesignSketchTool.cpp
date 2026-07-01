@@ -989,7 +989,7 @@ void DesignSketchTool::open_value_editor(int di)
     const std::array<int, 4>& vp = cam.get_viewport();
     if (lp.x >= vp[0] && lp.y >= vp[1] && lp.x <= vp[0] + vp[2] && lp.y <= vp[1] + vp[3])
         px = lp;
-    on_inline_edit(px, a.value,
+    on_inline_edit(px, a.value, dimtype_title(a.kind),
                    [this](double v) { set_dimension_value(v); },
                    [this]()         { cancel_dimension_value(); });
 }
@@ -1006,7 +1006,7 @@ void DesignSketchTool::open_angle_editor(int ei)
     if (!on_inline_edit) return;
     DimAnnot a; a.kind = DimType::Angle; a.ea = ei;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, measure_dim(a),
+    on_inline_edit(px, measure_dim(a), "Angle",
                    [this, ei](double deg) { set_line_angle(ei, deg); },
                    []()                   {});
 }
@@ -1051,7 +1051,7 @@ void DesignSketchTool::open_next_autoedit_dim()
     wxPoint px(m_last_mouse_x, m_last_mouse_y + m_autoedit_dim_idx * 34);
     if (lp.x >= vp[0] && lp.y >= vp[1] && lp.x <= vp[0] + vp[2] && lp.y <= vp[1] + vp[3])
         px = lp;
-    on_inline_edit(px, step.value,
+    on_inline_edit(px, step.value, step.title,
         [this, step](double v) {                 // commit: apply this dimension, then next
             if (step.apply) step.apply(v);
             ++m_autoedit_dim_idx;
@@ -1083,16 +1083,28 @@ void DesignSketchTool::arm_polyline_segment_edit()
             Vec2d dd = m_points[k] - a; const double n = dd.norm();
             if (n > 1e-9 && len > 1e-9) m_points[k] = a + (len / n) * dd;
         }
-    } });
+    }, {}, "Length" });
     m_autoedit_dims.push_back({ mid, deg, [this, k, a](double dg) {     // Angle
         if (k < int(m_points.size())) {
             const double len = (m_points[k] - a).norm();
             const double r   = dg * M_PI / 180.0;
             m_points[k] = a + len * Vec2d(std::cos(r), std::sin(r));
         }
-    } });
+    }, {}, "Angle" });
     m_autoedit_dim_idx = 0;
     wxGetApp().CallAfter([this] { open_next_autoedit_dim(); });
+}
+
+std::string DesignSketchTool::dimtype_title(DimType k) const {
+    switch (k) {
+        case DimType::Length:         return "Length";
+        case DimType::Diameter:       return "Diameter";
+        case DimType::Radius:         return "Radius";
+        case DimType::Angle:          return "Angle";
+        case DimType::Distance:       return "Distance";
+        case DimType::DistanceToLine: return "Distance";
+        default:                      return "Value";
+    }
 }
 
 // Draw-then-edit dispatcher: mirror the Select-mode quote-click logic, but target the
@@ -1118,7 +1130,7 @@ void DesignSketchTool::open_primary_autoedit()
         if (q.kind == DimType::Angle) {
             const int ei = q.ea;
             m_autoedit_dims.push_back({ q.label_pos, measure_dim(q),
-                [this, ei](double v) { set_line_angle(ei, v); }, { ei } });
+                [this, ei](double v) { set_line_angle(ei, v); }, { ei }, "Angle" });
             continue;
         }
         DimAnnot a = q;
@@ -1130,7 +1142,7 @@ void DesignSketchTool::open_primary_autoedit()
                 m_constraints.push_back(constraint_for(a));
                 m_dimensions.push_back(a);
                 resolve_live();
-            }, { a.ea, a.eb } });
+            }, { a.ea, a.eb }, dimtype_title(a.kind) });
     }
 
     // (2) Geometric editors (mutate geometry directly, no constraint). Each reads the CURRENT
@@ -1150,8 +1162,8 @@ void DesignSketchTool::open_primary_autoedit()
             const double side = (m_entities[f.begin].p1 - m_entities[f.begin].p0).norm();
             const Vec2d  sp   = m_entities[f.begin].p0 - f.c0;
             double deg = std::atan2(sp.y(), sp.x()) * 180.0 / M_PI; if (deg < 0.0) deg += 360.0;
-            m_autoedit_dims.push_back({ m_live_poly_side_label,  side, [this, fi](double v){ set_polygon_side(fi, v); }, span(fi) });
-            m_autoedit_dims.push_back({ m_live_poly_angle_label, deg,  [this, fi](double v){ set_polygon_angle(fi, v); }, span(fi) });
+            m_autoedit_dims.push_back({ m_live_poly_side_label,  side, [this, fi](double v){ set_polygon_side(fi, v); }, span(fi), "Side" });
+            m_autoedit_dims.push_back({ m_live_poly_angle_label, deg,  [this, fi](double v){ set_polygon_angle(fi, v); }, span(fi), "Angle" });
         }
     }
     if (m_live_rrect_fi >= 0) {
@@ -1161,16 +1173,16 @@ void DesignSketchTool::open_primary_autoedit()
         auto rr_w = [this, fi](double v){ const Feature& g = m_features[fi]; set_rounded_rect(fi, v, std::abs(g.c1.y()-g.c0.y()), g.param); };
         auto rr_h = [this, fi](double v){ const Feature& g = m_features[fi]; set_rounded_rect(fi, std::abs(g.c1.x()-g.c0.x()), v, g.param); };
         auto rr_r = [this, fi](double v){ const Feature& g = m_features[fi]; set_rounded_rect(fi, std::abs(g.c1.x()-g.c0.x()), std::abs(g.c1.y()-g.c0.y()), v); };
-        m_autoedit_dims.push_back({ m_live_rrect_w_label, w, rr_w, span(fi) });
-        m_autoedit_dims.push_back({ m_live_rrect_h_label, h, rr_h, span(fi) });
-        m_autoedit_dims.push_back({ m_live_rrect_r_label, r, rr_r, span(fi) });
+        m_autoedit_dims.push_back({ m_live_rrect_w_label, w, rr_w, span(fi), "Width" });
+        m_autoedit_dims.push_back({ m_live_rrect_h_label, h, rr_h, span(fi), "Height" });
+        m_autoedit_dims.push_back({ m_live_rrect_r_label, r, rr_r, span(fi), "Radius" });
     }
     if (m_live_aslot_fi >= 0) {
         const Feature& f = m_features[m_live_aslot_fi];
         const int fi = m_live_aslot_fi;
         const double Rc = (f.c1 - f.c0).norm(), fw = 2.0 * f.param;
-        m_autoedit_dims.push_back({ m_live_aslot_r_label, Rc, [this, fi](double v){ const Feature& g = m_features[fi]; set_arc_slot(fi, v, g.param); }, span(fi) });
-        m_autoedit_dims.push_back({ m_live_aslot_w_label, fw, [this, fi](double v){ const Feature& g = m_features[fi]; set_arc_slot(fi, (g.c1-g.c0).norm(), std::max(1e-3, v*0.5)); }, span(fi) });
+        m_autoedit_dims.push_back({ m_live_aslot_r_label, Rc, [this, fi](double v){ const Feature& g = m_features[fi]; set_arc_slot(fi, v, g.param); }, span(fi), "Radius" });
+        m_autoedit_dims.push_back({ m_live_aslot_w_label, fw, [this, fi](double v){ const Feature& g = m_features[fi]; set_arc_slot(fi, (g.c1-g.c0).norm(), std::max(1e-3, v*0.5)); }, span(fi), "Width" });
     }
     if (m_live_slot_fi >= 0) {
         const Feature& f = m_features[m_live_slot_fi];
@@ -1179,25 +1191,25 @@ void DesignSketchTool::open_primary_autoedit()
         const Vec2d  d  = f.c1 - f.c0;
         const double Lc = d.norm();
         double deg = std::atan2(d.y(), d.x()) * 180.0 / M_PI; if (deg < 0.0) deg += 360.0;
-        m_autoedit_dims.push_back({ m_live_slot_len_label, Lc, [this, fi](double v){ const Feature& g = m_features[fi]; set_slot(fi, v, g.param); }, span(fi) });
-        m_autoedit_dims.push_back({ m_live_slot_w_label, f.param, [this, fi](double v){ const Feature& g = m_features[fi]; set_slot(fi, (g.c1-g.c0).norm(), std::max(1e-3, v)); }, span(fi) });
-        m_autoedit_dims.push_back({ m_live_slot_angle_label, deg, [this, fi](double v){ set_slot_angle(fi, v); }, span(fi) });
+        m_autoedit_dims.push_back({ m_live_slot_len_label, Lc, [this, fi](double v){ const Feature& g = m_features[fi]; set_slot(fi, v, g.param); }, span(fi), "Length" });
+        m_autoedit_dims.push_back({ m_live_slot_w_label, f.param, [this, fi](double v){ const Feature& g = m_features[fi]; set_slot(fi, (g.c1-g.c0).norm(), std::max(1e-3, v)); }, span(fi), "Width" });
+        m_autoedit_dims.push_back({ m_live_slot_angle_label, deg, [this, fi](double v){ set_slot_angle(fi, v); }, span(fi), "Angle" });
     }
     if (m_live_arc_ei >= 0) {   // arc Radius is already a scalar step above; add its sweep angle
         const int ei = m_live_arc_ei;
         const SketchEntity& e = m_entities[ei];
         const double swdeg = std::abs(e.end_angle - e.start_angle) * 180.0 / M_PI;
-        m_autoedit_dims.push_back({ m_live_arc_angle_label, swdeg, [this, ei](double v){ set_arc_sweep(ei, v); }, { ei } });
+        m_autoedit_dims.push_back({ m_live_arc_angle_label, swdeg, [this, ei](double v){ set_arc_sweep(ei, v); }, { ei }, "Angle" });
     }
     if (m_live_ellipse_ei >= 0) {
         const int ei = m_live_ellipse_ei;
         const SketchEntity& e = m_entities[ei];
-        m_autoedit_dims.push_back({ m_live_ellipse_major_label, e.radius, [this, ei](double v){ set_ellipse_axis(ei, true,  v); }, { ei } });
-        m_autoedit_dims.push_back({ m_live_ellipse_minor_label, e.rminor, [this, ei](double v){ set_ellipse_axis(ei, false, v); }, { ei } });
+        m_autoedit_dims.push_back({ m_live_ellipse_major_label, e.radius, [this, ei](double v){ set_ellipse_axis(ei, true,  v); }, { ei }, "Major" });
+        m_autoedit_dims.push_back({ m_live_ellipse_minor_label, e.rminor, [this, ei](double v){ set_ellipse_axis(ei, false, v); }, { ei }, "Minor" });
         if (e.type == SketchEntity::Type::EllipseArc) {   // + included sweep
             const double swdeg = std::abs(e.end_angle - e.start_angle) * 180.0 / M_PI;
             m_autoedit_dims.push_back({ m_live_ellipsearc_sweep_label, swdeg,
-                [this, ei](double v){ set_ellipsearc_sweep(ei, v); }, { ei } });
+                [this, ei](double v){ set_ellipsearc_sweep(ei, v); }, { ei }, "Angle" });
         }
     }
     if (m_live_obrect_fi >= 0) {   // oblique rect: W,H already added as scalars; + orientation
@@ -1207,7 +1219,7 @@ void DesignSketchTool::open_primary_autoedit()
         double adeg = std::atan2(e0.p1.y() - e0.p0.y(), e0.p1.x() - e0.p0.x()) * 180.0 / M_PI;
         if (adeg < 0.0) adeg += 360.0;
         m_autoedit_dims.push_back({ m_live_obrect_angle_label, adeg,
-            [this, fi](double v){ set_rect_angle(fi, v); }, span(fi) });
+            [this, fi](double v){ set_rect_angle(fi, v); }, span(fi), "Angle" });
     }
 
     if (!m_autoedit_dims.empty()) {
@@ -1225,7 +1237,7 @@ void DesignSketchTool::open_polygon_side_editor(int fi)
     if (f.begin < 0 || f.begin >= int(m_entities.size())) return;
     const double side = (m_entities[f.begin].p1 - m_entities[f.begin].p0).norm();
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, side,
+    on_inline_edit(px, side, "Side",
                    [this, fi](double v) { set_polygon_side(fi, v); },
                    []()                 {});
 }
@@ -1239,7 +1251,7 @@ void DesignSketchTool::open_polygon_angle_editor(int fi)
     double deg = std::atan2(sp.y(), sp.x()) * 180.0 / M_PI;
     if (deg < 0.0) deg += 360.0;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, deg,
+    on_inline_edit(px, deg, "Angle",
                    [this, fi](double v) { set_polygon_angle(fi, v); },
                    []()                 {});
 }
@@ -1494,7 +1506,7 @@ void DesignSketchTool::open_arc_angle_editor(int ei)
     if (e.type != SketchEntity::Type::Arc) return;
     double swdeg = std::abs(e.end_angle - e.start_angle) * 180.0 / M_PI;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, swdeg,
+    on_inline_edit(px, swdeg, "Angle",
                    [this, ei](double v) { set_arc_sweep(ei, v); },
                    []()                 {});
 }
@@ -1579,7 +1591,7 @@ void DesignSketchTool::open_ellipse_axis_editor(int ei, bool major)
     if (e.type != SketchEntity::Type::Ellipse && e.type != SketchEntity::Type::EllipseArc) return;
     const double v = major ? e.radius : e.rminor;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, v,
+    on_inline_edit(px, v, major ? "Major" : "Minor",
                    [this, ei, major](double nv) { set_ellipse_axis(ei, major, nv); },
                    []()                         {});
 }
@@ -1674,7 +1686,7 @@ void DesignSketchTool::open_rounded_rect_editor(int fi, int which)
     const double r = f.param;
     const double v = (which == 0) ? w : (which == 1) ? h : r;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, v,
+    on_inline_edit(px, v, which == 0 ? "Width" : which == 1 ? "Height" : "Radius",
         [this, fi, which](double nv) {
             const Feature& g = m_features[fi];
             double gw = std::abs(g.c1.x() - g.c0.x());
@@ -1715,7 +1727,7 @@ void DesignSketchTool::open_arc_slot_editor(int fi, bool radius)
     const double Rc = (f.c1 - f.c0).norm();
     const double v  = radius ? Rc : (2.0 * f.param);     // width quote shows the FULL width
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, v,
+    on_inline_edit(px, v, radius ? "Radius" : "Width",
         [this, fi, radius](double nv) {
             const Feature& g = m_features[fi];
             const double gRc = (g.c1 - g.c0).norm();
@@ -1762,7 +1774,7 @@ void DesignSketchTool::open_slot_editor(int fi, int which)
     double deg = std::atan2(d.y(), d.x()) * 180.0 / M_PI; if (deg < 0.0) deg += 360.0;
     const double v = (which == 0) ? d.norm() : (which == 1) ? f.param : deg;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, v,
+    on_inline_edit(px, v, which == 0 ? "Length" : which == 1 ? "Width" : "Angle",
         [this, fi, which](double nv) {
             const Feature& g = m_features[fi];
             if      (which == 0) set_slot(fi, nv, g.param);
@@ -3040,7 +3052,7 @@ void DesignSketchTool::open_extrude_editor(int which)
     if (!on_inline_edit) return;
     const double cur = (which == 1) ? m_ex_depth2 : m_ex_depth;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, cur,
+    on_inline_edit(px, cur, "",
         [this, which](double v) {
             const double d = std::max(0.01, v);
             if (which == 1) m_ex_depth2 = d; else m_ex_depth = d;
@@ -3466,7 +3478,7 @@ void DesignSketchTool::open_move_editor(int axis)
 {
     if (!on_inline_edit) return;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, m_mv_offset[axis],
+    on_inline_edit(px, m_mv_offset[axis], "",
         [this, axis](double v) {
             m_mv_offset[axis] = v;
             if (on_body_move_changed) on_body_move_changed(m_mv_body, compose_move_xform());
@@ -3660,7 +3672,7 @@ void DesignSketchTool::open_fillet_editor()
 {
     if (!on_inline_edit) return;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, m_fl_radius,
+    on_inline_edit(px, m_fl_radius, "",
         [this](double v) {
             m_fl_radius = std::max(0.01, v);
             if (on_fillet_radius_changed) on_fillet_radius_changed(m_fl_radius);
@@ -3890,14 +3902,14 @@ void DesignSketchTool::open_hole_editor(int which)
     if (!on_inline_edit) return;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
     if (which == 1) {
-        on_inline_edit(px, m_hl_diameter,
+        on_inline_edit(px, m_hl_diameter, "",
             [this](double v) {
                 m_hl_diameter = std::max(0.01, v);
                 if (on_hole_changed) on_hole_changed(m_hl_x, m_hl_y, m_hl_diameter, m_hl_depth);
             },
             []() {});
     } else if (which == 2) {
-        on_inline_edit(px, m_hl_depth,
+        on_inline_edit(px, m_hl_depth, "",
             [this](double v) {
                 m_hl_depth = std::max(0.01, v);
                 if (on_hole_changed) on_hole_changed(m_hl_x, m_hl_y, m_hl_diameter, m_hl_depth);
@@ -3905,7 +3917,7 @@ void DesignSketchTool::open_hole_editor(int which)
             []() {});
     } else if (which == 3) {                       // #2 Part B: edit the distance from the u-side
         const double ru = m_hl_has_bounds ? m_hl_umin : 0.0;
-        on_inline_edit(px, m_hl_x - ru,
+        on_inline_edit(px, m_hl_x - ru, "",
             [this, ru](double v) {
                 m_hl_x = ru + v;
                 if (on_hole_changed) on_hole_changed(m_hl_x, m_hl_y, m_hl_diameter, m_hl_depth);
@@ -3913,7 +3925,7 @@ void DesignSketchTool::open_hole_editor(int which)
             []() {});
     } else if (which == 4) {                       // edit the distance from the v-side
         const double rv = m_hl_has_bounds ? m_hl_vmin : 0.0;
-        on_inline_edit(px, m_hl_y - rv,
+        on_inline_edit(px, m_hl_y - rv, "",
             [this, rv](double v) {
                 m_hl_y = rv + v;
                 if (on_hole_changed) on_hole_changed(m_hl_x, m_hl_y, m_hl_diameter, m_hl_depth);
@@ -4089,14 +4101,14 @@ void DesignSketchTool::open_thread_editor(int which)
     if (!on_inline_edit) return;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
     if (which == 1) {
-        on_inline_edit(px, m_th_radius,
+        on_inline_edit(px, m_th_radius, "",
             [this](double v) {
                 m_th_radius = std::max(0.01, v);
                 if (on_thread_changed) on_thread_changed(m_th_x, m_th_y, m_th_radius, m_th_height);
             },
             []() {});
     } else if (which == 2) {
-        on_inline_edit(px, m_th_height,
+        on_inline_edit(px, m_th_height, "",
             [this](double v) {
                 m_th_height = std::max(0.01, v);
                 if (on_thread_changed) on_thread_changed(m_th_x, m_th_y, m_th_radius, m_th_height);
@@ -4191,7 +4203,7 @@ void DesignSketchTool::open_shell_editor()
 {
     if (!on_inline_edit) return;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, m_sh_thickness,
+    on_inline_edit(px, m_sh_thickness, "",
         [this](double v) {
             m_sh_thickness = std::max(0.01, v);
             if (on_shell_thickness_changed) on_shell_thickness_changed(m_sh_thickness);
@@ -4572,7 +4584,7 @@ void DesignSketchTool::open_revolve_editor()
 {
     if (!on_inline_edit) return;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, m_rv_angle,
+    on_inline_edit(px, m_rv_angle, "",
         [this](double v) {
             m_rv_angle = std::min(360.0, std::max(1.0, v));
             if (on_revolve_angle_changed) on_revolve_angle_changed(m_rv_angle);
@@ -4758,7 +4770,7 @@ void DesignSketchTool::open_pattern_editor()
     if (!on_inline_edit) return;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
     const double cur = m_pt_circular ? m_pt_angle : m_pt_spacing;
-    on_inline_edit(px, cur,
+    on_inline_edit(px, cur, "",
         [this](double v) {
             if (m_pt_circular) m_pt_angle = std::min(360.0, std::max(1.0, v));
             else               m_pt_spacing = std::max(0.1, v);
@@ -6014,7 +6026,7 @@ void DesignSketchTool::open_op_editor()
     if (!on_inline_edit || !op_ready() || m_mode == Mode::Mirror) return;
     const double sign = (m_mode == Mode::Offset && m_op_value < 0) ? -1.0 : 1.0;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, std::abs(m_op_value),
+    on_inline_edit(px, std::abs(m_op_value), "",
         [this, sign](double v) {
             m_op_value = (m_mode == Mode::Offset) ? sign * std::abs(v) : std::max(0.001, v);
             recompute_op_ghost();
@@ -6321,7 +6333,7 @@ void DesignSketchTool::open_tf_editor_a()
     else                                                       cur = m_tf_delta.norm();
     Vec2d dir = m_tf_delta; if (dir.norm() > 1e-9) dir.normalize(); else dir = Vec2d(1, 0);
     const double sgn = (m_tf_angle < 0) ? -1.0 : 1.0;
-    on_inline_edit(px, cur,
+    on_inline_edit(px, cur, "",
         [this, dir, sgn](double v) {
             switch (m_mode) {
             case Mode::Move: case Mode::Array:        m_tf_delta = dir * v; break;
@@ -6339,7 +6351,7 @@ void DesignSketchTool::open_tf_editor_count()
     if (!on_inline_edit || !tf_ready()) return;
     if (m_mode != Mode::Array && m_mode != Mode::PolarArray) return;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, double(std::max(2, m_tf_count)),
+    on_inline_edit(px, double(std::max(2, m_tf_count)), "",
         [this](double v) { m_tf_count = std::max(2, int(v + 0.5)); recompute_tf_ghost(); },
         []() {});
 }

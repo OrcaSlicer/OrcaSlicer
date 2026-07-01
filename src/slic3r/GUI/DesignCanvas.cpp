@@ -74,6 +74,7 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // px and wrap the callbacks so each one re-solves and re-renders the viewport.
     m_inline_editor = std::make_unique<SketchInlineEditor>(m_canvas_widget);
     m_sketch_tool.on_inline_edit = [this](wxPoint screen_px, double current,
+                                          const std::string& title,
                                           std::function<void(double)> commit,
                                           std::function<void()> cancel) {
         if (!m_inline_editor) { if (cancel) cancel(); return; }
@@ -85,7 +86,7 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
         // Freeze the sketch tool while the field is open so a stray click/move on the GL
         // canvas can't draw under the floating editor; released on commit or cancel.
         m_sketch_tool.set_inline_busy(true);
-        m_inline_editor->open(scr, current,
+        m_inline_editor->open(scr, current, title,
             [this, commit](double v) {
                 m_sketch_tool.set_inline_busy(false);
                 if (commit) commit(v);
@@ -332,6 +333,13 @@ void DesignCanvas::set_view(const std::string& view_name)
 void DesignCanvas::begin_sketch(const SketchPlane& plane, DesignSketchTool::Mode mode)
 {
     m_sketch_tool.begin(plane, mode);
+    if (m_canvas) m_canvas->set_as_dirty();
+    if (m_canvas_widget) m_canvas_widget->Refresh();
+}
+
+void DesignCanvas::set_sketch_plane(const SketchPlane& plane)
+{
+    m_sketch_tool.set_plane(plane);   // keeps the 2D entities; only the carrier plane changes
     if (m_canvas) m_canvas->set_as_dirty();
     if (m_canvas_widget) m_canvas_widget->Refresh();
 }
@@ -833,6 +841,25 @@ void DesignCanvas::delete_selected_sketch_entities()
     request_repaint();
 }
 
+bool DesignCanvas::inline_busy() const
+{
+    return m_sketch_tool.inline_busy();
+}
+
+bool DesignCanvas::undo_last_sketch_entity()
+{
+    const bool did = m_sketch_tool.undo_last_entity();
+    if (did) request_repaint();
+    return did;
+}
+
+bool DesignCanvas::delete_selected_or_last_sketch_entity()
+{
+    const bool did = m_sketch_tool.delete_selected_or_last();
+    if (did) request_repaint();
+    return did;
+}
+
 void DesignCanvas::clear_sketch_selection()
 {
     m_sketch_tool.clear_selection();
@@ -879,7 +906,7 @@ void DesignCanvas::open_inline_value(double current, std::function<void(double)>
     // Freeze the canvas so focus-follows-mouse can't steal keyboard focus off the field — the
     // same fix the draw-then-edit path uses (cursor focus stays on the field, no pre-click).
     m_sketch_tool.set_inline_busy(true);
-    m_inline_editor->open(scr, current,
+    m_inline_editor->open(scr, current, "",
         [this, commit](double v) {
             m_sketch_tool.set_inline_busy(false);
             if (commit) commit(v);

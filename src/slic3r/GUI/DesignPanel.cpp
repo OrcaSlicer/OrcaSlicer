@@ -1389,6 +1389,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_draw_plane = new wxChoice(m_form, wxID_ANY);
         m_draw_plane->Append(_L("XY")); m_draw_plane->Append(_L("XZ")); m_draw_plane->Append(_L("YZ"));
         m_draw_plane->SetSelection(0);
+        // Live re-plane: begin_sketch captures the plane only at first-tool-pick, so changing the
+        // dropdown afterwards used to be inert (sketch stayed on its original plane while the
+        // committed feature would silently land on the new one). Honour the change immediately —
+        // the 2D entities are re-lifted through the chosen plane, matching what Finish commits.
+        m_draw_plane->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) {
+            if (m_viewport && m_viewport->is_sketching())
+                m_viewport->set_sketch_plane(plane_from_choice(m_draw_plane->GetSelection()));
+        });
         prow->Add(m_draw_plane, 0, wxALIGN_CENTER_VERTICAL);
         m_box_sketch_session->Add(prow, 0, wxLEFT | wxRIGHT | wxTOP, 12);
         auto* hint = new wxStaticText(m_form, wxID_ANY,
@@ -1952,8 +1960,33 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // Sketch/Constrain keep the viewport's per-gesture Esc (abort the current point first),
     // so we only intercept Esc here when a feature/insert card is the thing to dismiss.
     Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& e) {
+        const int  key  = e.GetKeyCode();
+        const bool ctrl = e.ControlDown() || e.CmdDown();
+        const bool sketching = (m_ui_mode == UiMode::Sketch) && m_viewport && m_viewport->is_sketching();
+        // Never steal editing keys from a focused text field or an open in-canvas value field —
+        // Delete/Ctrl+Z there must edit the text, not the model.
+        const bool in_text = (dynamic_cast<wxTextCtrl*>(wxWindow::FindFocus()) != nullptr)
+                             || (m_viewport && m_viewport->inline_busy());
+
         const bool dismissable = m_active != Tool::None || (m_viewport && m_viewport->moving_body());
-        if (e.GetKeyCode() == WXK_ESCAPE && dismissable) { tool_cancel(); return; }
+        if (key == WXK_ESCAPE && dismissable) { tool_cancel(); return; }
+
+        // Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y — undo/redo handled here (not only in the GL canvas) so
+        // it works even when the canvas lost keyboard focus. In a sketch, undo drops the last entity.
+        if (!in_text && ctrl && (key == 'Z' || key == 'z' || key == WXK_CONTROL_Z ||
+                                 key == 'Y' || key == 'y' || key == WXK_CONTROL_Y)) {
+            const bool redo = (key == 'Y' || key == 'y' || key == WXK_CONTROL_Y) || e.ShiftDown();
+            if (sketching) { if (!redo) m_viewport->undo_last_sketch_entity(); }
+            else           { do_undo_redo(redo); }
+            return;
+        }
+        // Delete — the selected sketch entities (or the last drawn one if none is selected), or the
+        // selected feature in Feature mode. Focus-independent, same reason as undo above.
+        if (!in_text && key == WXK_DELETE) {
+            if (sketching) { m_viewport->delete_selected_or_last_sketch_entity(); return; }
+            if (m_ui_mode == UiMode::Feature && m_active == Tool::None
+                && tree_selection() != wxNOT_FOUND) { on_delete_feature(); return; }
+        }
         e.Skip();
     });
 
@@ -3204,6 +3237,13 @@ void DesignPanel::on_delete_feature()
         m_status->SetLabel(_L("Select a feature in the tree first"));
         m_status->Refresh();
         return;
+    }
+    // If a feature dialog is open (e.g. the feature is being edited), dismiss it first —
+    // otherwise the deleted feature's settings card lingers in the left panel, out of sync
+    // with the tree. reset_edit_state() drops the stale m_edit_index; close_tool() hides the card.
+    if (m_active != Tool::None || m_edit_index >= 0) {
+        reset_edit_state();
+        close_tool();
     }
     m_doc.checkpoint();   // undo boundary: deleting a feature
     after_tree_edit(m_doc.remove_feature(sel));

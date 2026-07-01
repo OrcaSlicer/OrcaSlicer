@@ -78,6 +78,7 @@ public:
                     const std::vector<SketchEntityConstraintDef>& constraints,
                     const SketchPlane& plane);
     void set_tool(Mode mode);                 // switch tool, keep accumulated entities
+    void set_plane(const SketchPlane& plane) { m_plane = plane; }  // re-plane a live sketch (Plane dropdown changed mid-session); entities are 2D, re-lifted through the new plane
     void set_construction(bool c) { m_construction = c; }
     void set_polygon_sides(int n) { m_polygon_sides = (n < 3 ? 3 : n); }
     void set_polygon_circumscribed(bool c) { m_polygon_circumscribed = c; }
@@ -320,6 +321,36 @@ public:
     const std::vector<int>& selection() const { return m_selection; }
     void clear_selection();
     void delete_selected();                         // erase selected entities
+    // Abort any pending/queued draw-then-edit value-field sequence. Removing an entity that
+    // still has a deferred auto-edit would otherwise open a field on a now-deleted entity and
+    // freeze the flow (its live quote label also lingers). Mirrors set_tool's resync.
+    void reset_autoedit() {
+        m_awaiting_length  = false;
+        m_autoedit_pending = false;
+        m_autoedit_dims.clear();
+        m_autoedit_dim_idx = -1;
+        m_autoedit_seen    = int(m_entities.size());
+        m_live_quotes.clear();   // rebuilt from current geometry on the next render
+    }
+    // Ctrl+Z while sketching: drop the last drawn entity (reuses delete_selected's remap).
+    bool undo_last_entity() {
+        if (!m_active || m_entities.empty()) return false;
+        m_selection.assign(1, int(m_entities.size()) - 1);
+        delete_selected();
+        reset_autoedit();
+        return true;
+    }
+    // Delete while sketching: the selected entities, or the last drawn one if none is selected.
+    bool delete_selected_or_last() {
+        if (!m_active) return false;
+        if (m_selection.empty()) {
+            if (m_entities.empty()) return false;
+            m_selection.assign(1, int(m_entities.size()) - 1);
+        }
+        delete_selected();
+        reset_autoedit();
+        return true;
+    }
     std::function<void(int count)> on_selection_changed;
 
     // Dimension tool: infer a driving dimension from the current selection and set
@@ -348,9 +379,9 @@ public:
     // screen pixel, pre-filled with `current`; commit applies the value, cancel keeps
     // it. The owner (DesignCanvas) hosts the wxTextCtrl over the GL canvas. This is the
     // single numeric-entry path for all sketch dimensions (replaces the modal cards).
-    std::function<void(wxPoint screen_px, double current,
-                       std::function<void(double)> commit,
-                       std::function<void()> cancel)> on_inline_edit;
+    std::function<void(wxPoint screen_px, double current, const std::string& title,
+                        std::function<void(double)> commit,
+                        std::function<void()> cancel)> on_inline_edit;
     // Force-close any open inline field (runs its cancel = keep-as-drawn). Used by the polyline
     // terminators (right-click / double-click) to end the chain even mid per-segment edit.
     std::function<void()> on_inline_dismiss;
@@ -562,6 +593,7 @@ private:
     // circumradius + orientation together).
     void drag_polygon_vertex(int fi, int ei, SketchPointRole role, const Vec2d& target);
     double measure_dim(const DimAnnot& a) const;                            // value from geometry
+    std::string dimtype_title(DimType k) const;
     SketchEntityConstraintDef constraint_for(const DimAnnot& a) const;      // driving def
     int  place_dimension(DimAnnot a);                                       // create+drive+notify
     std::string dim_text(const DimAnnot& a) const;                          // rendered label string
@@ -697,6 +729,7 @@ private:
         double                      value;   // initial value shown
         std::function<void(double)> apply;   // commit: set the dimension
         std::vector<int>            hi;      // entities to highlight while THIS field is open
+        std::string                 title;   // label shown above the value field
     };
     std::vector<AutoEditStep> m_autoedit_dims;    // queued steps to edit in sequence
     int                 m_autoedit_dim_idx{-1};   // index into m_autoedit_dims (-1 = idle)
