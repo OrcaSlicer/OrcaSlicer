@@ -224,14 +224,19 @@ MaterialCompatibility MaterialType::compatibility(const std::string& type_a, con
     const std::vector<std::string> bases_a = base_materials(type_a);
     const std::vector<std::string> bases_b = base_materials(type_b);
 
-    // Compare every base-material pairing. An explicit incompatibility anywhere wins; otherwise a
-    // shared base or a listed compatibility means the materials adhere.
+    // Compare every base-material pairing. A material always bonds with itself, so a shared base is
+    // compatible even when a material is flagged incompatible with all ("*"). Otherwise an explicit
+    // incompatibility anywhere wins; failing that, a listed compatibility means the materials adhere.
     bool compatible = false;
     for (const std::string& ba : bases_a) {
         for (const std::string& bb : bases_b) {
+            if (ba == bb) {
+                compatible = true;
+                continue;
+            }
             if (bases_listed(ba, bb, /*incompatible=*/true))
                 return MaterialCompatibility::Incompatible;
-            if (ba == bb || bases_listed(ba, bb, /*incompatible=*/false))
+            if (bases_listed(ba, bb, /*incompatible=*/false))
                 compatible = true;
         }
     }
