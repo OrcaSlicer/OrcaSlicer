@@ -93,12 +93,13 @@ public:
     // own plane. render() draws these as translucent faces + outlines.
     struct DisplaySketch { std::vector<SketchEntity> entities; SketchPlane plane; int feature{-1}; };
     void set_display_sketches(std::vector<DisplaySketch> ds) { m_display_sketches = std::move(ds); }
+    void set_highlight_sketches(std::vector<std::pair<int, ColorRGBA>> hl) { m_hl_sketches = std::move(hl); }
     bool has_display() const { return m_active || !m_display_sketches.empty()
                                       || (m_solid_bodies != nullptr && !m_solid_bodies->empty())
                                       || !m_datum_planes.empty()
                                       || m_ex_active || m_mv_active || m_fl_active
                                       || m_hl_active || m_th_active || m_sh_active
-                                      || m_dz_active || m_dbp_active; }
+                                      || m_dr_active || m_ct_active || m_dz_active || m_dbp_active; }
 
     // Solid topology selection on the committed bodies: clicking a solid cycles
     // whole-solid -> face -> edge (Onshape-style) to target fillet/chamfer/extrude. With
@@ -237,6 +238,18 @@ public:
     void clear_revolve_gizmo();
     bool revolving() const { return m_rv_active; }
     std::function<void(double angle)> on_revolve_angle_changed;
+
+    // Visual Draft angle-arc gizmo (taper a picked face; axis = world +Z, arc in XY).
+    void set_draft_gizmo(const Vec3d& face_centroid, const Vec3d& face_normal, double angle);
+    void clear_draft_gizmo();
+    bool drafting() const { return m_dr_active; }
+    void set_on_draft_angle_changed(std::function<void(double)> cb) { m_on_draft_angle_changed = std::move(cb); }
+
+    // Visual Cut gizmo (plane normal arrow + plane rectangle preview).
+    void set_cut_gizmo(const SketchPlane& plane, double offset, const Vec3d& body_center, double half_extent);
+    void clear_cut_gizmo();
+    bool cutting() const { return m_ct_active; }
+    void set_on_cut_offset_changed(std::function<void(double)> cb) { m_on_cut_offset_changed = std::move(cb); }
 
     // Visual Pattern gizmo. Linear: a 3D arrow along the world axis (plane X/Y per `dir`) of length
     // spacing*(count-1) with a tick at each copy; dragging the end sets the spacing. Circular: a
@@ -660,6 +673,7 @@ private:
     void draw_vertices(GLModel& model, const std::vector<Vec2d>& pts, const ColorRGBA& color,
                        double half_size = 1.3);
     void draw_fill(GLModel& model, const std::vector<Vec2d>& poly, const ColorRGBA& color);
+    const ColorRGBA* sketch_hl_color(int feature) const;
 
     bool                m_active{false};
     SketchPlane         m_plane;
@@ -822,6 +836,7 @@ private:
     float               m_render_scale{1.0f};   // canvas scale for Measure-style dim labels
     GLModel             m_fill_model;       // translucent face fill for closed regions
     std::vector<DisplaySketch> m_display_sketches;  // committed sketches drawn persistently
+    std::vector<std::pair<int, ColorRGBA>> m_hl_sketches;  // feature index -> outline colour (Sweep/Loft operands)
     int m_display_pick{-1};        // FEATURE index of the click-selected display sketch (-1 none)
 
     // Solid (whole/face/edge) selection on the committed bodies. Pointers are non-owning,
@@ -1010,6 +1025,40 @@ private:
     void   drag_revolve_arc(GLCanvas3D& canvas, const wxMouseEvent& evt);
     void   open_revolve_editor();
     GLModel m_rv_stroke_model;
+
+    // Draft gizmo state (arc center = picked face centroid; axis = world +Z, taper pull direction).
+    bool        m_dr_active{false};
+    Vec3d       m_dr_center{Vec3d::Zero()};   // arc center = face centroid (world)
+    Vec3d       m_dr_axis{Vec3d::UnitZ()};    // draft axis = world +Z (pull direction)
+    Vec3d       m_dr_ref{Vec3d::UnitX()};     // angle-0 reference dir (perp to axis)
+    double      m_dr_radius{10.0};            // arc radius (world)
+    double      m_dr_angle{5.0};              // current sweep magnitude (deg, [-89, 89])
+    bool        m_dr_drag{false};
+    int         m_dr_press_x{0}, m_dr_press_y{0};
+    void   render_draft_gizmo();
+    bool   hit_test_draft_handle(GLCanvas3D& canvas, const wxMouseEvent& evt) const;
+    void   drag_draft_arc(GLCanvas3D& canvas, const wxMouseEvent& evt);
+    GLModel m_dr_stroke_model;
+    std::function<void(double)> m_on_draft_angle_changed;
+
+    // Cut gizmo state (plane normal arrow + wire rectangle at the current offset).
+    bool        m_ct_active{false};
+    Vec3d       m_ct_base{Vec3d::Zero()};       // body centre projected into the cut plane
+    Vec3d       m_ct_n{Vec3d::UnitZ()};         // cut plane normal (unit)
+    Vec3d       m_ct_u{Vec3d::UnitX()};         // cut plane U axis (unit)
+    Vec3d       m_ct_v{Vec3d::UnitY()};         // cut plane V axis (unit)
+    double      m_ct_offset{0.0};
+    double      m_ct_half{10.0};
+    bool        m_ct_drag{false};
+    double      m_ct_grab_val{0.0};
+    double      m_ct_grab_proj{0.0};
+    void   render_cut_gizmo();
+    bool   hit_test_cut_arrow(GLCanvas3D& canvas, const wxMouseEvent& evt) const;
+    void   start_cut_drag(GLCanvas3D& canvas, const wxMouseEvent& evt);
+    void   drag_cut_arrow(GLCanvas3D& canvas, const wxMouseEvent& evt);
+    GLModel m_ct_stroke_model;
+    GLModel m_ct_rect_model;
+    std::function<void(double)> m_on_cut_offset_changed;
 
     // Pattern gizmo state. Linear arrow along m_pt_dirw from m_pt_base; circular arc like Revolve
     // but axis = m_pt_normal through m_pt_origin (the world XY plane by default).

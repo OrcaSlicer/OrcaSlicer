@@ -4211,6 +4211,238 @@ static Vec3d rv_yaxis(const Vec3d& axis, const Vec3d& ref, bool flip)
     return flip ? -y : y;
 }
 
+// Arc in the draft plane (perpendicular to the world +Z axis through the face centroid).
+// The arc sweeps from angle 0 to m_dr_angle, representing the taper amount.
+static Vec3d dr_yaxis(const Vec3d& axis, const Vec3d& ref)
+{
+    Vec3d y = axis.cross(ref);
+    if (y.norm() < 1e-9) return ref;
+    y.normalize();
+    return y;
+}
+
+void DesignSketchTool::set_draft_gizmo(const Vec3d& face_centroid, const Vec3d& face_normal, double angle)
+{
+    m_dr_center = face_centroid;
+    m_dr_angle  = std::min(89.0, std::max(-89.0, angle));
+    m_dr_axis   = Vec3d::UnitZ();                    // pull direction is world +Z
+    Vec3d ref = face_normal - face_normal.dot(m_dr_axis) * m_dr_axis;  // horizontal component
+    if (ref.norm() < 1e-6) ref = Vec3d::UnitX();     // fallback: face normal is parallel to Z
+    m_dr_ref    = ref / ref.norm();
+    m_dr_radius = 12.0;                              // fixed world-size manipulator
+    if (!m_dr_active) m_dr_drag = false;
+    m_dr_active = true;
+}
+
+void DesignSketchTool::clear_draft_gizmo()
+{
+    m_dr_active = false;
+    m_dr_drag   = false;
+}
+
+void DesignSketchTool::render_draft_gizmo()
+{
+    if (!m_dr_active) return;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double th  = std::max(15.0 * upp, 1e-4);
+    const Vec3d yax  = dr_yaxis(m_dr_axis, m_dr_ref);
+
+    const SketchPlane saved = m_plane;
+    SketchPlane rp; rp.origin = m_dr_center; rp.x_axis = m_dr_ref; rp.y_axis = yax; rp.normal = m_dr_axis;
+    m_plane = rp;
+    const ColorRGBA arcc(0.15f, 0.92f, 1.0f, 1.0f);
+    const double r = m_dr_radius;
+    // Draft angle can be negative: sweep counter-clockwise (positive) or clockwise (negative)
+    const double a = m_dr_angle * M_PI / 180.0;
+    const int    N = std::max(8, int(std::abs(a) / (M_PI / 32.0)));   // ~ every 5.6°
+
+    std::vector<std::pair<Vec2d, Vec2d>> segs;
+    Vec2d prev(r, 0.0);
+    for (int i = 1; i <= N; ++i) {
+        const double t = a * double(i) / double(N);
+        const Vec2d cur(r * std::cos(t), r * std::sin(t));
+        segs.emplace_back(prev, cur);
+        prev = cur;
+    }
+    const Vec2d tip(r * std::cos(a), r * std::sin(a));
+    segs.emplace_back(Vec2d(0, 0), Vec2d(r, 0));   // spoke at angle 0
+    segs.emplace_back(Vec2d(0, 0), tip);           // spoke at the swept angle (the handle)
+    const Vec2d tang(-std::sin(a), std::cos(a));
+    const Vec2d radial = tip.normalized();
+    const double as = std::max(r * 0.14, th);
+    segs.emplace_back(tip, tip - tang * as - radial * (as * 0.5));
+    segs.emplace_back(tip, tip - tang * as + radial * (as * 0.5));
+    const double hs = std::max(th * 0.8, r * 0.05);
+    const Vec2d du = radial * hs, dv = Vec2d(-radial.y(), radial.x()) * hs;
+    segs.emplace_back(tip + du, tip + dv);
+    segs.emplace_back(tip + dv, tip - du);
+    segs.emplace_back(tip - du, tip - dv);
+    segs.emplace_back(tip - dv, tip + du);
+
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    draw_strokes(m_dr_stroke_model, segs, std::max(0.8 * upp, 1e-4), arcc);
+    DimAnnot da; da.kind = DimType::Angle; da.value = m_dr_angle;
+    draw_text(m_line_model, dim_text(da), tip * 1.14, th, arcc);
+    m_plane = saved;
+}
+
+bool DesignSketchTool::hit_test_draft_handle(GLCanvas3D& canvas, const wxMouseEvent& evt) const
+{
+    if (!m_dr_active) return false;
+    const Linef3 ray = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+    const Vec3d ro = ray.a, rd = ray.b - ray.a;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const Vec3d yax = dr_yaxis(m_dr_axis, m_dr_ref);
+    const double a  = m_dr_angle * M_PI / 180.0;
+    const double tol = 16.0 * upp;
+    auto ray_pt = [&](const Vec3d& p) {
+        const double t = (p - ro).dot(rd) / std::max(rd.dot(rd), 1e-12);
+        return (p - (ro + t * rd)).norm();
+    };
+    const Vec3d tip = m_dr_center + m_dr_radius * (std::cos(a) * m_dr_ref + std::sin(a) * yax);
+    const Vec3d ref = m_dr_center + m_dr_radius * m_dr_ref;   // angle-0 spoke end
+    const int N = 48;
+    for (int i = 0; i <= N; ++i) {
+        const double f = double(i) / double(N);
+        const double th = a * f;
+        const Vec3d arc = m_dr_center + m_dr_radius * (std::cos(th) * m_dr_ref + std::sin(th) * yax);
+        if (ray_pt(arc) <= tol) return true;
+        if (ray_pt(m_dr_center + f * (tip - m_dr_center)) <= tol) return true;
+        if (ray_pt(m_dr_center + f * (ref - m_dr_center)) <= tol) return true;
+    }
+    return false;
+}
+
+void DesignSketchTool::drag_draft_arc(GLCanvas3D& canvas, const wxMouseEvent& evt)
+{
+    const Linef3 ray = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+    const Vec3d ro = ray.a, rd = ray.b - ray.a;
+    const double denom = rd.dot(m_dr_axis);
+    if (std::abs(denom) < 1e-9) return;
+    const double t = (m_dr_center - ro).dot(m_dr_axis) / denom;
+    const Vec3d  p = ro + t * rd;
+    const Vec3d yax = dr_yaxis(m_dr_axis, m_dr_ref);
+    const double u = (p - m_dr_center).dot(m_dr_ref);
+    const double v = (p - m_dr_center).dot(yax);
+    double deg = std::atan2(v, u) * 180.0 / M_PI;
+    deg = std::min(89.0, std::max(-89.0, deg));
+    m_dr_angle = deg;
+    if (m_on_draft_angle_changed) m_on_draft_angle_changed(deg);
+}
+
+// ---- Cut gizmo (plane normal arrow + wire rectangle preview) --------------------------------
+// Arrow: shaft + arrowhead billboarded along the cut-plane normal from the projected body
+// centre, with a signed Distance label = offset. Drag is RELATIVE via hole_axis_proj.
+// Rectangle: 4 segments in the cut plane at the current offset, sized to the target body.
+
+void DesignSketchTool::set_cut_gizmo(const SketchPlane& plane, double offset, const Vec3d& body_center, double half_extent)
+{
+    m_ct_n  = plane.normal.normalized();
+    m_ct_u  = plane.x_axis.normalized();
+    m_ct_v  = plane.y_axis.normalized();
+    Vec3d rel = body_center - plane.origin;
+    m_ct_base = plane.origin + (rel - rel.dot(m_ct_n) * m_ct_n);  // body center projected into the cut plane
+    m_ct_offset = offset;
+    m_ct_half   = std::max(half_extent, 10.0);
+    if (!m_ct_active) m_ct_drag = false;
+    m_ct_active = true;
+}
+
+void DesignSketchTool::clear_cut_gizmo()
+{
+    m_ct_active = false;
+    m_ct_drag   = false;
+}
+
+void DesignSketchTool::render_cut_gizmo()
+{
+    if (!m_ct_active) return;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const Vec3d right = cam.get_dir_right().normalized();
+    const Vec3d up    = cam.get_dir_up().normalized();
+    const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double th   = std::max(15.0 * upp, 1e-4);
+    const ColorRGBA teal(0.20f, 0.80f, 0.75f, 1.0f);
+
+    // ---- Wire rectangle in the cut plane  ----
+    {
+        const Vec3d cutpos = m_ct_base + m_ct_offset * m_ct_n;
+        const SketchPlane saved = m_plane;
+        SketchPlane rp; rp.origin = cutpos; rp.x_axis = m_ct_u; rp.y_axis = m_ct_v; rp.normal = m_ct_n;
+        m_plane = rp;
+        const double h = m_ct_half;
+        std::vector<std::pair<Vec2d, Vec2d>> segs;
+        segs.emplace_back(Vec2d(-h, -h), Vec2d( h, -h));
+        segs.emplace_back(Vec2d( h, -h), Vec2d( h,  h));
+        segs.emplace_back(Vec2d( h,  h), Vec2d(-h,  h));
+        segs.emplace_back(Vec2d(-h,  h), Vec2d(-h, -h));
+        glsafe(::glDisable(GL_DEPTH_TEST));
+        draw_strokes(m_ct_rect_model, segs, std::max(0.7 * upp, 1e-4), teal);
+        m_plane = saved;
+    }
+
+    // ---- Offset arrow (billboarded, clone of render_shell_gizmo) ----
+    {
+        const double L_sign = (std::abs(m_ct_offset) < 40.0 * upp)
+            ? std::copysign(40.0 * upp, (m_ct_offset == 0.0 ? 1.0 : m_ct_offset))
+            : m_ct_offset;
+        const Vec3d tipw = m_ct_base + m_ct_n * L_sign;
+
+        const SketchPlane saved = m_plane;
+        SketchPlane bb; bb.origin = m_ct_base; bb.x_axis = right; bb.y_axis = up;
+        bb.normal = cam.get_dir_forward().normalized();
+        m_plane = bb;
+
+        const Vec2d tip2((tipw - m_ct_base).dot(right), (tipw - m_ct_base).dot(up));
+        if (tip2.norm() > 1e-6) {
+            const Vec2d u = tip2.normalized();
+            const Vec2d nrm(-u.y(), u.x());
+            std::vector<std::pair<Vec2d, Vec2d>> segs;
+            segs.emplace_back(Vec2d(0, 0), tip2);
+            const double as = std::max(tip2.norm() * 0.20, th * 0.9);
+            const Vec2d back = tip2 - u * as;
+            segs.emplace_back(tip2, back + nrm * (as * 0.5));
+            segs.emplace_back(tip2, back - nrm * (as * 0.5));
+            glsafe(::glDisable(GL_DEPTH_TEST));
+            draw_strokes(m_ct_stroke_model, segs, std::max(0.7 * upp, 1e-4), teal);
+            DimAnnot da; da.kind = DimType::Distance; da.value = m_ct_offset;
+            draw_text(m_line_model, dim_text(da), tip2 + u * (th * 1.4), th, teal);
+        }
+        m_plane = saved;
+    }
+}
+
+bool DesignSketchTool::hit_test_cut_arrow(GLCanvas3D& canvas, const wxMouseEvent& evt) const
+{
+    if (!m_ct_active) return false;
+    const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+    const Vec3d ro = r.a, rd = r.b - r.a;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double L_sign = (std::abs(m_ct_offset) < 40.0 * upp)
+        ? std::copysign(40.0 * upp, (m_ct_offset == 0.0 ? 1.0 : m_ct_offset))
+        : m_ct_offset;
+    return ray_segment_dist3(ro, rd, m_ct_base, m_ct_base + m_ct_n * L_sign) <= 12.0 * upp;
+}
+
+void DesignSketchTool::start_cut_drag(GLCanvas3D& canvas, const wxMouseEvent& evt)
+{
+    m_ct_drag      = true;
+    m_ct_grab_val  = m_ct_offset;
+    const double p = hole_axis_proj(canvas, evt, m_ct_base, m_ct_n);
+    m_ct_grab_proj = std::isnan(p) ? 0.0 : p;
+}
+
+void DesignSketchTool::drag_cut_arrow(GLCanvas3D& canvas, const wxMouseEvent& evt)
+{
+    const double proj = hole_axis_proj(canvas, evt, m_ct_base, m_ct_n);
+    if (std::isnan(proj)) return;
+    m_ct_offset = m_ct_grab_val + (proj - m_ct_grab_proj);
+    if (m_on_cut_offset_changed) m_on_cut_offset_changed(m_ct_offset);
+}
+
 void DesignSketchTool::set_revolve_gizmo(const SketchPlane& plane, const Vec2d& centroid,
                                          int axis_sel, double angle, bool flip)
 {
@@ -6282,6 +6514,12 @@ void DesignSketchTool::confirm_transform()
     if (on_selection_changed) on_selection_changed(0);
 }
 
+const ColorRGBA* DesignSketchTool::sketch_hl_color(int feature) const
+{
+    for (const auto& h : m_hl_sketches) if (h.first == feature) return &h.second;
+    return nullptr;
+}
+
 void DesignSketchTool::render(GLCanvas3D& canvas)
 {
     m_dim_label_seq = 0;
@@ -6338,7 +6576,10 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
             const std::vector<RegionLoop> loops = region_loops(ds.entities);
             for (int r = 0; r < int(loops.size()); ++r) {
                 const bool sel = (ds.feature == m_display_pick && r == m_display_pick_region);
-                draw_fill(m_fill_model, loops[r].poly, sel ? sface : dface);
+                const ColorRGBA* hlc = sketch_hl_color(ds.feature);
+                ColorRGBA fc = sel ? sface : dface;
+                if (hlc && !sel) { fc = *hlc; fc.a(0.20f); }
+                draw_fill(m_fill_model, loops[r].poly, fc);
             }
         }
         glsafe(::glDisable(GL_BLEND));
@@ -6357,7 +6598,9 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
                 if (e.type == SketchEntity::Type::Point) continue;
                 bool closed = false;
                 std::vector<Vec2d> poly = entity_polyline(e, closed);
-                draw_quad_strip(m_line_model, poly, closed, sel_ent[i] ? swire : dwire);
+                const ColorRGBA* hlc = sketch_hl_color(ds.feature);
+                ColorRGBA wc = sel_ent[i] ? swire : (hlc ? *hlc : dwire);
+                draw_quad_strip(m_line_model, poly, closed, wc);
             }
         }
         m_plane = saved_plane;
@@ -6377,6 +6620,8 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         if (m_th_active) render_thread_gizmo();
         if (m_sh_active) render_shell_gizmo();
         if (m_rv_active) render_revolve_gizmo();
+        if (m_dr_active) render_draft_gizmo();
+        if (m_ct_active) render_cut_gizmo();
         if (m_pt_active) render_pattern_gizmo();
         shader->stop_using();
         glsafe(::glEnable(GL_CULL_FACE));
@@ -7183,6 +7428,37 @@ bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
             }
             if (evt.LeftDown() && hit_test_revolve_handle(canvas, evt)) {
                 m_rv_drag = true; m_rv_press_x = evt.GetX(); m_rv_press_y = evt.GetY();
+                return true;
+            }
+        }
+        // Draft angle-arc gizmo: drag the arc tip to sweep the draft angle; a stationary click
+        // edits it. A LeftDown that misses falls through to normal picking.
+        if (m_dr_active) {
+            if (m_dr_drag && evt.Dragging() && evt.LeftIsDown()) {
+                drag_draft_arc(canvas, evt);
+                return true;
+            }
+            if (evt.LeftUp() && m_dr_drag) {
+                m_dr_drag = false;
+                return true;
+            }
+            if (evt.LeftDown() && hit_test_draft_handle(canvas, evt)) {
+                m_dr_drag = true; m_dr_press_x = evt.GetX(); m_dr_press_y = evt.GetY();
+                return true;
+            }
+        }
+        // Cut gizmo: drag the offset arrow along the cut-plane normal; no positive clamp (offset is signed).
+        if (m_ct_active) {
+            if (m_ct_drag && evt.Dragging() && evt.LeftIsDown()) {
+                drag_cut_arrow(canvas, evt);
+                return true;
+            }
+            if (evt.LeftUp() && m_ct_drag) {
+                m_ct_drag = false;
+                return true;
+            }
+            if (evt.LeftDown() && hit_test_cut_arrow(canvas, evt)) {
+                start_cut_drag(canvas, evt);
                 return true;
             }
         }

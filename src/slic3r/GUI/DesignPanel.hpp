@@ -184,6 +184,9 @@ private:
     void       update_thread_gizmo();     // footprint circle + radius/length arrows (Thread card)
     void       update_shell_gizmo();      // inward thickness arrow on the picked face (Shell card)
     void       update_revolve_gizmo();    // angle-arc around the axis (Revolve card)
+    void       update_draft_gizmo();      // angle-arc around the face centroid (Draft card)
+    void       update_cut_gizmo();        // plane-rectangle + offset arrow (Cut card)
+    void       update_operand_highlight(); // Boolean/Sweep/Loft operand tinting on the canvas
     void       update_pattern_gizmo();    // linear spacing arrow / circular angle-arc (Pattern card)
     void       update_datum_gizmo();      // resize handles on the datum plane being created/edited (C3)
     void       refresh_datum_planes();    // push resolved datum frames + per-plane u/v extents to viewport

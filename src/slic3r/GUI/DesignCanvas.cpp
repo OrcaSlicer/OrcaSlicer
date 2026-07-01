@@ -216,6 +216,8 @@ void DesignCanvas::reload(bool keep_view)
                 // Selection tint wins; otherwise the per-body override (Color tool) or the
                 // auto palette via body_color().
                 ColorRGBA c = m_body_selected ? sel_gold : body_color(b);
+                if (b == m_hl_body_target)    c = ColorRGBA(0.30f, 0.90f, 0.70f, 1.0f); // target = teal-green
+                else if (b == m_hl_body_tool) c = ColorRGBA(1.00f, 0.55f, 0.15f, 1.0f); // tool = orange
                 if (m_body_translucent) c.a(0.30f);
                 v->set_color(c);
             }
@@ -610,6 +612,44 @@ void DesignCanvas::set_on_revolve_angle_changed(std::function<void(double)> cb)
     m_sketch_tool.on_revolve_angle_changed = std::move(cb);
 }
 
+void DesignCanvas::set_draft_gizmo(const Vec3d& face_centroid, const Vec3d& face_normal, double angle)
+{
+    m_sketch_tool.set_draft_gizmo(face_centroid, face_normal, angle);
+    request_repaint();
+}
+
+void DesignCanvas::clear_draft_gizmo()
+{
+    m_sketch_tool.clear_draft_gizmo();
+    request_repaint();
+}
+
+bool DesignCanvas::drafting() const { return m_sketch_tool.drafting(); }
+
+void DesignCanvas::set_on_draft_angle_changed(std::function<void(double)> cb)
+{
+    m_sketch_tool.set_on_draft_angle_changed(std::move(cb));
+}
+
+void DesignCanvas::set_cut_gizmo(const SketchPlane& plane, double offset, const Vec3d& body_center, double half_extent)
+{
+    m_sketch_tool.set_cut_gizmo(plane, offset, body_center, half_extent);
+    request_repaint();
+}
+
+void DesignCanvas::clear_cut_gizmo()
+{
+    m_sketch_tool.clear_cut_gizmo();
+    request_repaint();
+}
+
+bool DesignCanvas::cutting() const { return m_sketch_tool.cutting(); }
+
+void DesignCanvas::set_on_cut_offset_changed(std::function<void(double)> cb)
+{
+    m_sketch_tool.set_on_cut_offset_changed(std::move(cb));
+}
+
 void DesignCanvas::begin_pattern_gizmo(const SketchPlane& plane, const Vec3d& body_centroid,
                                        bool circular, int count, int dir, double spacing, double angle)
 {
@@ -757,6 +797,20 @@ void DesignCanvas::set_body_highlight(bool on)
     if (m_body_selected == on) return;
     m_body_selected = on;
     reload(true);   // recolours the body volume (selected = cyan tint)
+}
+
+void DesignCanvas::set_operand_bodies(int target_body, int tool_body)
+{
+    if (m_hl_body_target == target_body && m_hl_body_tool == tool_body) return;
+    m_hl_body_target = target_body;
+    m_hl_body_tool   = tool_body;
+    reload(true);      // recolours the body volumes (same idiom set_body_highlight uses)
+}
+
+void DesignCanvas::set_highlight_sketches(std::vector<std::pair<int, ColorRGBA>> hl)
+{
+    m_sketch_tool.set_highlight_sketches(std::move(hl));
+    request_repaint();
 }
 
 void DesignCanvas::set_body_translucent(bool on)

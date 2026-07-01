@@ -1907,6 +1907,16 @@ DesignPanel::DesignPanel(wxWindow* parent)
         refresh_preview();
     });
 
+    m_viewport->set_on_draft_angle_changed([this](double angle) {
+        if (m_draft_angle) m_draft_angle->SetValue(angle);
+        refresh_preview();
+    });
+
+    m_viewport->set_on_cut_offset_changed([this](double v) {
+        if (m_cut_offset) m_cut_offset->SetValue(v);
+        refresh_preview();
+    });
+
     m_viewport->set_on_pattern_changed([this](double value) {
         // Linear drag feeds spacing; circular drag feeds angle. The card knows which is live.
         if (m_pattern_type && m_pattern_type->GetSelection() == 1) {
@@ -5171,6 +5181,60 @@ void DesignPanel::update_revolve_gizmo()
                                     m_revolve_angle->GetValue(), m_revolve_flip->GetValue());
 }
 
+void DesignPanel::update_draft_gizmo()
+{
+    if (!m_viewport) return;
+    if (m_active != Tool::Draft || m_sel_solid_face < 0 || m_sel_solid_body < 0
+        || m_sel_solid_body >= int(m_doc.bodies.size())) {
+        m_viewport->clear_draft_gizmo();
+        return;
+    }
+    const TopoDS_Face f = GeometryEngine::face_by_index(m_doc.bodies[m_sel_solid_body].shape, m_sel_solid_face);
+    const Vec3d c = GeometryEngine::face_centroid_world(f);
+    const Vec3d n = GeometryEngine::face_normal_world(f);
+    m_viewport->set_draft_gizmo(c, n, m_draft_angle->GetValue());
+}
+
+void DesignPanel::update_cut_gizmo()
+{
+    if (!m_viewport) return;
+    if (m_active != Tool::Cut) { m_viewport->clear_cut_gizmo(); return; }
+    const int bi = m_cut_target ? m_cut_target->GetSelection() : -1;
+    if (bi < 0 || bi >= int(m_doc.bodies.size()) || bi >= int(m_doc.display_body_meshes.size())) {
+        m_viewport->clear_cut_gizmo();
+        return;
+    }
+    const SketchPlane plane = plane_from_choice(m_cut_plane->GetSelection());
+    const BoundingBoxf3 bb = m_doc.display_body_meshes[bi].bounding_box();
+    const Vec3d center = bb.center();
+    const double half = std::max(0.5 * (bb.max - bb.min).norm(), 10.0);
+    m_viewport->set_cut_gizmo(plane, m_cut_offset->GetValue(), center, half);
+}
+
+void DesignPanel::update_operand_highlight()
+{
+    if (!m_viewport) return;
+    // default: nothing highlighted
+    int bt = -1, bl = -1;
+    std::vector<std::pair<int, ColorRGBA>> sk;
+    if (m_active == Tool::Boolean) {
+        if (m_bool_target) bt = m_bool_target->GetSelection();
+        if (m_bool_tool)   bl = m_bool_tool->GetSelection();
+    } else if (m_active == Tool::Sweep) {
+        if (m_sweep_profile_ref >= 0) sk.emplace_back(m_sweep_profile_ref, ColorRGBA(0.30f, 0.85f, 1.0f, 1.0f)); // profile = cyan
+        if (m_sweep_path_ref    >= 0) sk.emplace_back(m_sweep_path_ref,    ColorRGBA(1.00f, 0.40f, 0.90f, 1.0f)); // path = magenta
+    } else if (m_active == Tool::Loft) {
+        // checked rows of m_loft_list map to feature indices via m_loft_sketch_idx
+        // (exactly as build_candidate(Tool::Loft) reads them).
+        if (m_loft_list)
+            for (unsigned i = 0; i < m_loft_list->GetCount(); ++i)
+                if (m_loft_list->IsChecked(i) && i < m_loft_sketch_idx.size())
+                    sk.emplace_back(m_loft_sketch_idx[i], ColorRGBA(0.40f, 0.90f, 0.50f, 1.0f)); // profiles = green
+    }
+    m_viewport->set_operand_bodies(bt, bl);
+    m_viewport->set_highlight_sketches(std::move(sk));
+}
+
 void DesignPanel::update_pattern_gizmo()
 {
     if (!m_viewport) return;
@@ -5449,6 +5513,12 @@ void DesignPanel::refresh_preview()
     update_shell_gizmo();
     // Same for the Revolve angle-arc around the axis (self-gates: only while the Revolve card is open).
     update_revolve_gizmo();
+    // Same for the Draft angle-arc around the face centroid (self-gates: only while the Draft card is open).
+    update_draft_gizmo();
+    // Same for the Cut plane offset arrow + rectangle (self-gates: only while the Cut card is open).
+    update_cut_gizmo();
+    // Operand highlight for Boolean (body tints) / Sweep / Loft (sketch tints); self-gates by tool.
+    update_operand_highlight();
     // Same for the Pattern spacing arrow / angle-arc (self-gates: only while the Pattern card is open).
     update_pattern_gizmo();
     // Datum-plane resize handles (self-gates: only while the Plane card is open).
@@ -5604,7 +5674,11 @@ void DesignPanel::close_tool()
     m_viewport->clear_thread_gizmo();
     m_viewport->clear_shell_gizmo();
     m_viewport->clear_revolve_gizmo();
+    m_viewport->clear_draft_gizmo();
+    m_viewport->clear_cut_gizmo();
     m_viewport->clear_pattern_gizmo();
+    m_viewport->set_operand_bodies(-1, -1);
+    m_viewport->set_highlight_sketches({});
     m_viewport->clear_datum_gizmo();
     update_reference_planes();   // back to no-tool: show the origin planes if there is no object yet
     m_form->Layout();

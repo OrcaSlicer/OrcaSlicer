@@ -130,6 +130,18 @@ public:
     void clear_revolve_gizmo();
     bool revolving() const;
     void set_on_revolve_angle_changed(std::function<void(double)> cb);
+    // Visual Draft angle-arc gizmo: the panel feeds the face centroid + face normal + angle while
+    // its Draft card is open; drag/edit fire the angle callback.
+    void set_draft_gizmo(const Vec3d& face_centroid, const Vec3d& face_normal, double angle);
+    void clear_draft_gizmo();
+    bool drafting() const;
+    void set_on_draft_angle_changed(std::function<void(double)> cb);
+    // Visual Cut gizmo: plane-rectangle preview + draggable normal offset arrow while
+    // the Cut card is open; drag fires the offset callback.
+    void set_cut_gizmo(const SketchPlane& plane, double offset, const Vec3d& body_center, double half_extent);
+    void clear_cut_gizmo();
+    bool cutting() const;
+    void set_on_cut_offset_changed(std::function<void(double)> cb);
     // Visual Pattern gizmo: the panel feeds the (world XY) plane + target body centroid + mode +
     // count/dir/spacing/angle while its Pattern card is open; drag/edit fire the value callback.
     void begin_pattern_gizmo(const SketchPlane& plane, const Vec3d& body_centroid, bool circular,
@@ -157,9 +169,11 @@ public:
     void set_on_undo_redo(std::function<void(bool /*redo*/)> cb); // Ctrl+Z / Ctrl+Shift+Z
     // Persistently draw committed sketches (un-consumed ones stay visible).
     void set_display_sketches(std::vector<DesignSketchTool::DisplaySketch> ds);
+    void set_highlight_sketches(std::vector<std::pair<int, ColorRGBA>> hl);
     void set_datum_planes(std::vector<SketchPlane> planes,
-                          std::vector<Vec2d> sizes = {});     // draw datum/reference planes (u/v extents)
+                           std::vector<Vec2d> sizes = {});     // draw datum/reference planes (u/v extents)
     void set_body_highlight(bool on);   // tint the solid when its feature is tree-selected
+    void set_operand_bodies(int target_body, int tool_body);  // -1,-1 clears
     void set_body_translucent(bool on); // render the solid see-through (fillet/chamfer preview)
     void set_body_hidden(bool on);      // preview-only: hide base bodies, show only the result ghost
     void set_on_move_exit(std::function<void()> cb);   // right-click finished the move-body gizmo
@@ -229,6 +243,8 @@ private:
     Model       m_model;
     bool        m_first_frame{true};
     bool        m_body_selected{false};   // tree selected a body feature → tint the solid
+    int         m_hl_body_target{-1};
+    int         m_hl_body_tool{-1};
     bool        m_body_translucent{false};// fillet/chamfer preview → render the body see-through
     bool        m_body_hidden{false};     // preview-only mode → hide base bodies, ghost = the result
     std::vector<bool> m_body_visible;     // per-body visibility (empty => all visible)
