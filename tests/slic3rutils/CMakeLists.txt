@@ -4,6 +4,7 @@ add_executable(${_TEST_NAME}_tests
     test_webdav_sync.cpp
     test_appconfig_migration.cpp
     test_basefilesync_provider.cpp
+    test_gitsync.cpp
     )
 
 if (MSVC)
