@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "OaXBvDWS1KlXsk35",
 	"name": "QIDI PETG Rapido @Qidi X-Max 4 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PETG Rapido@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "OaXBvDWS1KlXsk35",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi X-Max 4 0.4 nozzle"
 	]

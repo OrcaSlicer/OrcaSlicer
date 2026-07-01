@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "mEWH2YlONmNpempZ",
 	"name": "HATCHBOX ABS @Qidi Q2C 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "HATCHBOX ABS@Q2C-Series",
+	"from": "system",
+	"setting_id": "mEWH2YlONmNpempZ",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.03"
 	],

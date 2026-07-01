@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "JIvkxvNlR0MCJrQs",
 	"name": "QIDI ABS Rapido Metal @Qidi X-Max 4 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ABS Rapido Metal@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "JIvkxvNlR0MCJrQs",
+	"instantiation": "true",
 	"nozzle_temperature": [
 		"250"
 	],

@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "ZOb1u0Ah3o9PI6I8",
 	"name": "QIDI UltraPA-CF25 @Qidi Q2C 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI UltraPA-CF25@Q2C-Series",
+	"from": "system",
+	"setting_id": "ZOb1u0Ah3o9PI6I8",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.022"
 	],
