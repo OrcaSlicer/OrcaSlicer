@@ -39,7 +39,7 @@ jobs:
           lfs: 'false'
 
       - name: load cached deps
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
