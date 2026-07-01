@@ -16,7 +16,7 @@ float CalibPressureAdvance::find_optimal_PA_speed(const DynamicPrintConfig &conf
     const float  nozzle_diameter               = config.option<ConfigOptionFloats>("nozzle_diameter")->get_at(extruder_id);
     if (line_width <= 0.) line_width = Flow::auto_extrusion_width(frPerimeter, nozzle_diameter);
     Flow         pattern_line = Flow(line_width, layer_height, nozzle_diameter);
-    auto         pa_speed     = std::min(std::max(general_suggested_min_speed, config.option<ConfigOptionFloat>("outer_wall_speed")->value),
+    auto         pa_speed     = std::min(std::max(general_suggested_min_speed, config.option<ConfigOptionFloatsNullable>("outer_wall_speed")->get_at(extruder_id)),
                                          filament_max_volumetric_speed / pattern_line.mm3_per_mm());
 
     return std::floor(pa_speed);
@@ -755,6 +755,16 @@ Vec3d CalibPressureAdvancePattern::get_start_offset()
 {
     return m_starting_point;
 }
+
+double CalibPressureAdvancePattern::line_width_first_layer() const
+{
+    // TODO: FIXME: find out current filament/extruder?
+    const double nozzle_diameter = m_config.opt_float("nozzle_diameter", m_params.extruder_id);
+    const double width           = m_config.get_abs_value("initial_layer_line_width", nozzle_diameter);
+    if (width <= 0.)
+        return Flow::auto_extrusion_width(frExternalPerimeter, nozzle_diameter);
+    return width;
+};
 
 double CalibPressureAdvancePattern::line_width() const
 {

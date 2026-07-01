@@ -3,7 +3,7 @@
     "name": "Generic PLA @SPARKX i7-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "09RAKy1b3XyRqJlV",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"
@@ -48,7 +48,7 @@
         "0"
     ],
     "filament_max_volumetric_speed": [
-        "2"
+        "16"
     ],
     "filament_minimal_purge_on_wipe_tower": [
         "15"

@@ -304,6 +304,9 @@ public:
 
         m_bg_color = StateColor::darkModeColorFor(wxColour("#FFFFFF"));
         m_fg_color = StateColor::darkModeColorFor(wxColour("#6B6A6A"));
+        m_progress_bg_color = StateColor::darkModeColorFor(wxColour("#DFDFDF"));
+        m_progress_fg_color = StateColor::darkModeColorFor(wxColour("#009688"));
+        m_progress_h = FromDIP(6);
         bool dark_mode = m_fg_color != wxColour("#6B6A6A");
         wxSize sz  = m_window->GetClientSize();
         BitmapCache bmp_cache;
@@ -333,20 +336,34 @@ public:
         dc.DrawLabel(m_text_version, rc, wxALIGN_CENTER);
 
         dc.SetFont(m_font_action);
-        rc.y      = c_sz.GetHeight() * 0.88;
+        rc.y      = c_sz.GetHeight() * 0.85;
         rc.height = dc.GetTextExtent(m_text_action).GetHeight();
         dc.DrawLabel(m_text_action, rc, wxALIGN_CENTER);
+
+        const wxRect progress_rc(0, c_sz.GetHeight() - m_progress_h, c_sz.GetWidth(), m_progress_h);
+                
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(m_progress_bg_color));
+        dc.DrawRectangle(progress_rc);
+
+        const int fill_width = progress_rc.GetWidth() * m_progress * 0.01;
+        if (fill_width > 0) {
+            dc.SetBrush(wxBrush(m_progress_fg_color));
+            dc.DrawRectangle(0, progress_rc.GetTop(), fill_width, m_progress_h);
+        }
     }
 
-    void SetText(const wxString& text)
+    void SetText(const wxString& text, int progress)
     {
-        if (!text.empty()) {
+        int calc_progress = std::max(m_progress, std::clamp(progress, 0, 100));
+        if (m_text_action != text || m_progress != calc_progress){
             m_text_action = text;
+            m_progress = calc_progress;
             m_window->Refresh();
             m_window->Update();
 #ifdef __WXOSX__
-            // without this code splash screen wouldn't be updated under OSX
-            wxYield();
+        // without this code splash screen wouldn't be updated under OSX
+        wxYield();
 #endif
         }
     }
@@ -383,9 +400,13 @@ private:
     wxBitmap m_logo_bmp;
     wxColour m_fg_color;
     wxColour m_bg_color;
+    wxColour m_progress_bg_color;
+    wxColour m_progress_fg_color;
 
     wxString m_text_version = GUI_App::format_display_version();
     wxString m_text_action  = _L("Loading configuration") + dots;
+    int      m_progress     = 0;
+    int      m_progress_h   = 6;
 
     wxFont m_font_version = Label::Body_16;
     wxFont m_font_action  = Label::Body_16;
@@ -406,7 +427,7 @@ static void migrate_flatpak_legacy_datadir(const boost::filesystem::path &data_d
     std::cerr << "Migrating Flatpak data dir: " << data_dir_path << std::endl;
 
     std::string legacy_data_dir_str = data_dir_path.string();
-    boost::replace_first(legacy_data_dir_str, "com.orcaslicer.OrcaSlicer", "io.github.orcaslicer.OrcaSlicer");
+    boost::replace_first(legacy_data_dir_str, "com.orcaslicer.OrcaSlicer", "io.github.softfever.OrcaSlicer");
     const fs::path legacy_data_dir(legacy_data_dir_str);
 
     std::cerr << "Legacy Flatpak data dir: " << legacy_data_dir << std::endl;
@@ -472,7 +493,7 @@ static const FileWildcards file_wildcards_by_type[FT_SIZE] = {
     /* FT_OBJ */     { L("OBJ files"),       { ".obj"sv } },
     /* FT_AMF */     { L("AMF files"),       { ".amf"sv, ".zip.amf"sv, ".xml"sv } },
     /* FT_3MF */     { L("3MF files"),       { ".3mf"sv } },
-    /* FT_GCODE_3MF */ {L("Gcode 3MF files"), {".gcode.3mf"sv}},
+    /* FT_GCODE_3MF */ {L("G-code 3MF files"), {".gcode.3mf"sv}},
     /* FT_GCODE */   { L("G-code files"),    { ".gcode"sv} },
 #ifdef __APPLE__
     /* FT_MODEL */
@@ -743,6 +764,15 @@ void GUI_App::post_init()
     if (! this->initialized())
         throw Slic3r::RuntimeError("Calling post_init() while not yet initialized");
 
+#if wxUSE_WEBVIEW_EDGE
+    // Ensure the Microsoft WebView2 runtime is installed before any WebView is
+    // created. The setup wizard and several dialogs render entirely through
+    // WebView2; without the runtime they come up blank. This runs here (not in the
+    // constructor) so that wxWidgets is fully initialized and the event loop is
+    // running, and so it precedes the first WebView creation (the setup wizard).
+    init_webview_runtime();
+#endif
+
     m_open_method = "double_click";
     bool switch_to_3d = false;
 
@@ -940,6 +970,33 @@ void GUI_App::post_init()
         });
     }
 
+    // Orca: notify users upgrading from a pre-2.4.0 version that profile syncing
+    // moved from Bambu Cloud to Orca Cloud.
+    if (is_editor() && m_last_config_version && m_last_config_version->valid()
+        && *m_last_config_version < Semver(2, 4, 0)) {
+        CallAfter([] {
+            const wxString wiki_url = "https://www.orcaslicer.com/wiki/user_profiles/user_profiles.html#profiles-missing-after-updating-from-bambu-cloud";
+            MessageDialog dlg(nullptr,
+                _L("Since version 2.4.0, OrcaSlicer syncs user profiles through Orca Cloud instead of Bambu Cloud.\n\n"
+                   "To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. "
+                   "To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n\n"
+                   "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."),
+                _L("Profile syncing change"),
+                wxOK,
+                "",
+                _L("Learn more"),
+                [wiki_url](const wxString &) { wxLaunchDefaultBrowser(wiki_url); });
+            // Hack: the "Learn more" link renders the message in a wxHtmlWindow whose
+            // height is underestimated for multi-paragraph text, leaving a scrollbar.
+            // The html sits in a proportion-1 sizer chain, so grow the dialog (never
+            // shrink it below its content width) to give the text enough room.
+            const wxSize sz = dlg.GetSize();
+            dlg.SetSize(std::max(sz.x, dlg.FromDIP(280)), std::max(sz.y, dlg.FromDIP(200)));
+            dlg.CenterOnParent();
+            dlg.ShowModal();
+        });
+    }
+
     if(!m_networking_need_update && m_agent) {
         m_agent->set_on_ssdp_msg_fn(
             [this](std::string json_str) {
@@ -1030,9 +1087,10 @@ GUI_App::GUI_App()
 	//app config initializes early becasuse it is used in instance checking in OrcaSlicer.cpp
     this->init_app_config();
     this->init_download_path();
-#if wxUSE_WEBVIEW_EDGE
-    this->init_webview_runtime();
-#endif
+    // Note: the WebView2 runtime check (init_webview_runtime) used to run here, but
+    // the constructor executes before wxWidgets is fully initialized and before the
+    // event loop starts, so its modal prompt/installer could silently fail to appear.
+    // It now runs in post_init(), before the first WebView (the setup wizard) is created.
 
     reset_to_active();
 }
@@ -1116,7 +1174,7 @@ std::string GUI_App::get_plugin_url(std::string name, std::string country_code)
     std::string url = get_http_url(country_code);
 
     std::string curr_version;
-    if (NetworkAgent::use_legacy_network) {
+    if (use_legacy_network_plugin()) {
         curr_version = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
     } else if (name == "plugins" && app_config) {
         std::string user_version = app_config->get_network_plugin_version();
@@ -1171,7 +1229,7 @@ int GUI_App::download_plugin(std::string name, std::string package_name, Install
     // Determine OS type for plugin download (must be set per-request since global
     // extra headers are no longer initialised on this branch).
 #if defined(__WINDOWS__)
-    std::string os_type = (is_running_on_arm64() && !NetworkAgent::use_legacy_network) ? "windows_arm" : "windows";
+    std::string os_type = (is_running_on_arm64() && !use_legacy_network_plugin()) ? "windows_arm" : "windows";
 #elif defined(__APPLE__)
     std::string os_type = "macos";
 #elif defined(__linux__)
@@ -1850,7 +1908,7 @@ bool GUI_App::check_networking_version()
     }
 
     std::string studio_ver;
-    if (NetworkAgent::use_legacy_network) {
+    if (use_legacy_network_plugin()) {
         studio_ver = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
     } else if (app_config) {
         std::string user_version = app_config->get_network_plugin_version();
@@ -1870,6 +1928,11 @@ bool GUI_App::check_networking_version()
 
     m_networking_compatible = false;
     return false;
+}
+
+bool GUI_App::use_legacy_network_plugin() const
+{
+    return app_config && BBLNetworkPlugin::is_legacy_version(app_config->get_network_plugin_version());
 }
 
 bool GUI_App::is_compatibility_version()
@@ -2274,13 +2337,37 @@ void GUI_App::init_download_path()
 #if wxUSE_WEBVIEW_EDGE
 void GUI_App::init_webview_runtime()
 {
-    // Check WebView Runtime
-    if (!WebView::CheckWebViewRuntime()) {
-        int nRet = wxMessageBox(_L("Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\nClick Yes to install it now."),
-                                _L("WebView2 Runtime"), wxYES_NO);
-        if (nRet == wxYES) {
-            WebView::DownloadAndInstallWebViewRuntime();
-        }
+    // Check whether the Microsoft WebView2 runtime is already present.
+    if (WebView::CheckWebViewRuntime()) {
+        BOOST_LOG_TRIVIAL(info) << "WebView2 runtime detected.";
+        return;
+    }
+
+    BOOST_LOG_TRIVIAL(warning) << "WebView2 runtime not found; prompting user to install.";
+    int nRet = wxMessageBox(_L("Orca Slicer requires the Microsoft WebView2 Runtime to operate certain features.\nClick Yes to install it now."),
+                            _L("WebView2 Runtime"), wxYES_NO);
+    if (nRet != wxYES) {
+        BOOST_LOG_TRIVIAL(warning) << "User declined WebView2 runtime installation.";
+        return;
+    }
+
+    // The bootstrapper auto-detects the device architecture (x64/x86/ARM64) and
+    // installs the matching runtime. The install is synchronous, and because this
+    // runs before the first WebView is created, a successful install takes effect
+    // in this same process without a restart.
+    bool installed = WebView::DownloadAndInstallWebViewRuntime();
+
+    // Re-check: the install can still fail (declined UAC elevation, no network,
+    // etc.). Without the runtime the setup wizard and other WebView dialogs render
+    // blank, so surface an explicit message rather than failing silently.
+    if (installed && WebView::CheckWebViewRuntime()) {
+        BOOST_LOG_TRIVIAL(info) << "WebView2 runtime installed successfully.";
+    } else {
+        BOOST_LOG_TRIVIAL(error) << "WebView2 runtime installation failed or still not detected.";
+        wxMessageBox(_L("The Microsoft WebView2 Runtime could not be installed.\n"
+                        "Some features, including the setup wizard, may appear blank until it is installed.\n"
+                        "Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart Orca Slicer."),
+                     _L("WebView2 Runtime"), wxOK | wxICON_WARNING);
     }
 }
 #endif
@@ -2755,25 +2842,28 @@ bool GUI_App::on_init_inner()
 #endif
 #endif
 
-    if (m_last_config_version) {
-        int last_major = m_last_config_version->maj();
-        int last_minor = m_last_config_version->min();
-        int last_patch = m_last_config_version->patch()/100;
-        std::string studio_ver = SLIC3R_VERSION;
-        int cur_major = atoi(studio_ver.substr(0,2).c_str());
-        int cur_minor = atoi(studio_ver.substr(3,2).c_str());
-        int cur_patch = atoi(studio_ver.substr(6,2).c_str());
-        BOOST_LOG_TRIVIAL(info) << boost::format("last app version {%1%.%2%.%3%}, current version {%4%.%5%.%6%}")
-            %last_major%last_minor%last_patch%cur_major%cur_minor%cur_patch;
-        if ((last_major != cur_major)
-            ||(last_minor != cur_minor)
-            ||(last_patch != cur_patch)) {
-            remove_old_networking_plugins();
-        }
-    }
+    // Orca: we allow user to pin the version of plugin, so we don't need to remove old networking plugins when the app version is updated
+    //
+    // if (m_last_config_version) {
+    //     int last_major = m_last_config_version->maj();
+    //     int last_minor = m_last_config_version->min();
+    //     int last_patch = m_last_config_version->patch()/100;
+    //     std::string studio_ver = SLIC3R_VERSION;
+    //     int cur_major = atoi(studio_ver.substr(0,2).c_str());
+    //     int cur_minor = atoi(studio_ver.substr(3,2).c_str());
+    //     int cur_patch = atoi(studio_ver.substr(6,2).c_str());
+    //     BOOST_LOG_TRIVIAL(info) << boost::format("last app version {%1%.%2%.%3%}, current version {%4%.%5%.%6%}")
+    //         %last_major%last_minor%last_patch%cur_major%cur_minor%cur_patch;
+    //     if ((last_major != cur_major)
+    //         ||(last_minor != cur_minor)
+    //         ||(last_patch != cur_patch)) {
+    //         remove_old_networking_plugins();
+    //     }
+    // }
 
-    if(app_config->get("version") != SLIC3R_VERSION) {
-        app_config->set("version", SLIC3R_VERSION);
+    //Orca: write OrcaSlicer version
+    if(app_config->get("version") != SoftFever_VERSION) {
+        app_config->set("version", SoftFever_VERSION);
     }
 
     // Orca: use wxWeakRef to provent wild pointer.
@@ -2792,7 +2882,7 @@ bool GUI_App::on_init_inner()
         //BBS use BBL splashScreen
         scrn = new SplashScreen(splashscreen_pos);
         wxYield();
-        scrn->SetText(_L("Loading configuration") + dots);
+        scrn->SetText(_L("Loading configuration") + dots, 5);
     }
 
     BOOST_LOG_TRIVIAL(info) << "loading systen presets...";
@@ -2939,9 +3029,8 @@ bool GUI_App::on_init_inner()
 
     // Orca: select network plugin version based on configured version string
     std::string configured_version = app_config->get_network_plugin_version();
-    NetworkAgent::use_legacy_network = (configured_version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
     BOOST_LOG_TRIVIAL(info) << "Network plugin mode: "
-        << (NetworkAgent::use_legacy_network ? ("legacy (version: " + std::string(BAMBU_NETWORK_AGENT_VERSION_LEGACY) + ")") : ("modern (version: " + configured_version + ")"));
+        << (use_legacy_network_plugin() ? ("legacy (version: " + std::string(BAMBU_NETWORK_AGENT_VERSION_LEGACY) + ")") : ("modern (version: " + configured_version + ")"));
     // Force legacy network plugin if debugger attached
     // See https://github.com/bambulab/BambuStudio/issues/6726
     /* if (!NetworkAgent::use_legacy_network) {
@@ -2971,7 +3060,7 @@ bool GUI_App::on_init_inner()
             // Enable all substitutions (in both user and system profiles), but log the substitutions in user profiles only.
             // If there are substitutions in system profiles, then a "reconfigure" event shall be triggered, which will force
             // installation of a compatible system preset, thus nullifying the system preset substitutions.
-            if (scrn) { scrn->SetText(_L("Loading printer & filament profiles") + dots); wxYield(); }
+            if (scrn) { scrn->SetText(_L("Loading printer & filament profiles") + dots, 30); wxYield(); }
             init_params->preset_substitutions = preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::EnableSystemSilent);
         }
         catch (const std::exception& ex) {
@@ -3002,7 +3091,7 @@ bool GUI_App::on_init_inner()
 
     if (scrn) {
         const auto scrn_txt = _L("Creating main window") + dots;
-        scrn->SetText(scrn_txt);
+        scrn->SetText(scrn_txt, 70);
         wxYield();
     }
     BOOST_LOG_TRIVIAL(info) << "create the main window";
@@ -3030,7 +3119,7 @@ bool GUI_App::on_init_inner()
             plater_->set_printer_technology(ptFFF);
     }
     else {
-        if (scrn) { scrn->SetText(_L("Loading current preset") + dots); wxYield(); }
+        if (scrn) { scrn->SetText(_L("Loading current preset") + dots, 85); wxYield(); }
         load_current_presets();
     }
 
@@ -3044,10 +3133,10 @@ bool GUI_App::on_init_inner()
 #ifdef __WINDOWS__
     mainframe->topbar()->SaveNormalRect();
 #endif
-    if (scrn) { scrn->SetText(_L("Showing main window") + dots); wxYield(); }
+    if (scrn) { scrn->SetText(_L("Showing main window") + dots, 95); wxYield(); }
     mainframe->Show(true);
     // Close the splash now that the main UI is visible.
-    if (scrn) { scrn->Destroy(); scrn = nullptr; }
+    if (scrn) { scrn->SetText(_L("Showing main window") + dots, 100); scrn->Destroy(); scrn = nullptr; }
     BOOST_LOG_TRIVIAL(info) << "main frame firstly shown";
 
 //#if BBL_HAS_FIRST_PAGE
@@ -3220,7 +3309,7 @@ void GUI_App::copy_network_if_available()
         fs::remove(network_library);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Copying network library from " << network_library << " to " << network_library_dst << " successfully.";
 
-        app_config->set(SETTING_NETWORK_PLUGIN_VERSION, cached_version);
+        app_config->set_network_plugin_version(cached_version);
         app_config->save();
     }
 
@@ -3285,7 +3374,7 @@ bool GUI_App::on_init_network(bool try_backup)
                 if (config_base != loaded_version) {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version << " to loaded "
                                             << loaded_version;
-                    app_config->set(SETTING_NETWORK_PLUGIN_VERSION, loaded_version);
+                    app_config->set_network_plugin_version(loaded_version);
                     app_config->save();
                 }
             }
@@ -3411,7 +3500,7 @@ bool GUI_App::on_init_network(bool try_backup)
             m_user_manager = new Slic3r::UserManager();
     }
 
-    if (should_load_networking_plugin && m_networking_compatible && !NetworkAgent::use_legacy_network) {
+    if (should_load_networking_plugin && m_networking_compatible && !use_legacy_network_plugin()) {
         app_config->clear_remind_network_update_later();
 
         if (has_network_update_available()) {
@@ -4493,7 +4582,7 @@ void GUI_App::request_user_logout(const std::string& provider/* = ORCA_CLOUD_PRO
             /* delete old user settings */
             bool     transfer_preset_changes = false;
             wxString header = _L("Some presets are modified.") + "\n" +
-                _L("You can keep the modified presets to the new project, discard or save changes as new presets.");
+                _L("You can keep the modified presets for the new project, discard, or save changes as new presets.");
             wxGetApp().check_and_keep_current_preset_changes(_L("User logged out"), header, ActionButtons::KEEP | ActionButtons::SAVE, &transfer_preset_changes);
 
             remove_user_presets();
@@ -6241,8 +6330,11 @@ bool GUI_App::maybe_migrate_user_presets_on_login()
 
 bool GUI_App::check_preset_parent_available(const std::pair<std::string, std::map<std::string, std::string>>& preset_data)
 {
-    std::string inherits_name = preset_data.second.at(BBL_JSON_KEY_INHERITS);
-    // // If contains "fdm_", "@System", and "@base", is a common base template that doesn't need to be installed
+    auto it = preset_data.second.find(BBL_JSON_KEY_INHERITS);
+    if (it == preset_data.second.end() || it->second.empty())
+        return true;
+    const std::string& inherits_name = it->second;
+    // If contains "fdm_", "@System", and "@base", is a common base template that doesn't need to be installed
     if (inherits_name.find("fdm_") != std::string::npos || inherits_name.find("@System") != std::string::npos || inherits_name.find("@base") != std::string::npos)
         return true;
 
@@ -6785,6 +6877,9 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
     // BBS
     m_user_sync_token.reset(new int(0));
     if (with_progress_dlg) {
+        // Mark a manual progress dialog as active so restart_sync_user_preset() ignores
+        // repeat triggers while it is on screen (prevents stacking modal dialogs).
+        m_sync_user_preset_dlg_active = true;
         auto dlg = new ProgressDialog(_L("Loading"), "", 100, this->mainframe, wxPD_AUTO_HIDE | wxPD_APP_MODAL | wxPD_CAN_ABORT);
         dlg->Update(0, _L("Loading user preset"));
         progressFn = [this, dlg](int percent) {
@@ -6796,7 +6891,9 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
             return is_closing() || dlg->WasCanceled() || t.expired();
         };
         finishFn = [this, dlg](bool) {
-            CallAfter([=]{ dlg->Destroy(); });
+            // Clear the guard together with destroying the dialog, on the GUI thread, so the
+            // next manual sync is allowed exactly once this dialog leaves the screen.
+            CallAfter([=]{ dlg->Destroy(); m_sync_user_preset_dlg_active = false; });
         };
     }
     else {
@@ -6810,7 +6907,10 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
 
     m_sync_update_thread = Slic3r::create_thread(
         [this, progressFn, cancelFn, finishFn, t = std::weak_ptr<int>(m_user_sync_token)] {
-            if (!m_agent) return;
+            // finishFn tears down the progress dialog (and clears the re-entrancy guard), so it
+            // must run on every exit path — otherwise an early bail-out would leak the modal
+            // dialog and leave the guard stuck, blocking all later manual syncs.
+            if (!m_agent) { finishFn(false); return; }
 
             // One-time scan for orphaned .info files left over from offline deletions; queues HTTP DELETEs.
             scan_orphaned_info_files();
@@ -7070,6 +7170,14 @@ void GUI_App::stop_sync_user_preset()
 
 void GUI_App::restart_sync_user_preset()
 {
+    // A manual sync's progress dialog is already on screen — ignore repeat triggers so a
+    // second modal dialog can never stack. This matters most offline: each attempt blocks
+    // on a long HTTP timeout and can't be cancelled mid-request, and on macOS the global
+    // menu bar stays clickable even while the dialog disables the main window, so without
+    // this guard repeated clicks pile up modal dialogs and wedge the UI (force-quit only).
+    if (m_sync_user_preset_dlg_active)
+        return;
+
     if (!m_user_sync_token) {
         // No sync running. If a restart helper is already in flight it will
         // start the new sync once the old thread is joined — don't race it.

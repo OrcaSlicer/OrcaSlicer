@@ -3,6 +3,7 @@
 	"name": "0.10mm Standard @Thinker X400 0.2 nozzle",
 	"inherits": "0.20mm Standard @Thinker X400",
 	"from": "system",
+	"setting_id": "tO27DW2I42BFee5R",
 	"instantiation": "true",
 	"bottom_shell_layers": "5",
 	"gap_infill_speed": "150",

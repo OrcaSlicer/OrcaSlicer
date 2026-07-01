@@ -3,7 +3,7 @@
 	"name": "0.32mm Balanced Strength @OpenEYE Peacock V2 0.8 nozzle",
 	"inherits": "fdm_process_openeye_0.32_nozzle_0.8",
 	"from": "system",
-	"setting_id": "GP149",
+	"setting_id": "ABm7CjdRKhvk1yYQ",
 	"instantiation": "true",
 	"description": "Strength profile for 0.8mm nozzle, prioritizing strength.",
 	"bridge_speed": "50",

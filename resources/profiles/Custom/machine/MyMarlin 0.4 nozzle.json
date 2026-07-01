@@ -3,7 +3,7 @@
 	"name": "MyMarlin 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "80333z8YjBojDweT",
 	"instantiation": "true",
 	"printer_model": "Generic Marlin Printer",
 	"gcode_flavor": "marlin",

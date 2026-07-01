@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA Galaxy @Snapmaker U1",
 	"inherits": "PolyLite PLA Galaxy @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL63_00",
+	"setting_id": "mNMTe346QAgo61NH",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

@@ -3,7 +3,7 @@
 	"name": "QIDI PET-GF @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "QIDI PET-GF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "hGLyYZ2WBTIFnWnc",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [

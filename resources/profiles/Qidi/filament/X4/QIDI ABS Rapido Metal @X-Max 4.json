@@ -1,11 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "QD_3_1_13",
-	"setting_id": "GFSA04",
 	"name": "QIDI ABS Rapido Metal@X-Max 4-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_x4_common",
+	"from": "system",
+	"filament_id": "QD_3_1_13",
+	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"
 	],

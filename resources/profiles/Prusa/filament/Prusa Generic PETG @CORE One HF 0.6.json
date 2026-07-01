@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PETG @CORE One HF 0.6",
 	"inherits": "Prusa Generic PETG @CORE One",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "29TFTfss7xVear5j",
 	"filament_id": "Prusa Generic PETG @CORE One HF 0.6",
 	"instantiation": "true",
 	"compatible_printers": [

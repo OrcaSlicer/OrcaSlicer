@@ -3,7 +3,7 @@
 	"name": "MM hj SK 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "lqwfkkjWuhZa5W1i",
 	"instantiation": "true",
 	"printer_model": "MM hj SK",
 	"default_print_profile": "0.10mm Fine @MM hj SK",

@@ -3,7 +3,7 @@
 	"name": "Prusa Generic ABS @CORE One",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "NajoyXhNAiyJyaRq",
 	"filament_id": "Prusa Generic ABS @CORE One",
 	"instantiation": "true",
 	"chamber_temperature": [

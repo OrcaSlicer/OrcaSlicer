@@ -3,7 +3,7 @@
 	"name": "Eryone PETG",
 	"inherits": "Eryone Standard PLA",
 	"from": "system",
-	"setting_id": "EFSA03",
+	"setting_id": "rJCPgQiIXRsfQwWY",
 	"filament_id": "EFL93",
 	"instantiation": "true",
 	"compatible_printers": [

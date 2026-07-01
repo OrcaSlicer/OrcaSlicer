@@ -3,6 +3,7 @@
 	"name": "Generic BVOH @FF C5P",
 	"inherits": "Generic BVOH @System",
 	"from": "system",
+	"setting_id": "Eemk4OAny5OMKhgz",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

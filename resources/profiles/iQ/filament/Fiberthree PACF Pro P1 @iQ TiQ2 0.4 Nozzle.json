@@ -3,7 +3,7 @@
 	"name": "Fiberthree PACF Pro P1 @iQ TiQ2 0.4 Nozzle",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"setting_id": "IQS1",
+	"setting_id": "7YUqT6co3NfvJ8L9",
 	"filament_id": "IQM1",
 	"instantiation": "true",
 	"activate_air_filtration": [

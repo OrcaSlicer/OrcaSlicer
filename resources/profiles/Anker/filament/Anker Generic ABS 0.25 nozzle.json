@@ -3,7 +3,7 @@
 	"name": "Anker Generic ABS 0.25 nozzle",
 	"inherits": "Anker Generic ABS @base",
 	"from": "system",
-	"setting_id": "GFSB99_25",
+	"setting_id": "WS5wXckNuiQqSVwO",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3"

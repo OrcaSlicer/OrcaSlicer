@@ -3,7 +3,7 @@
 	"name": "0.12mm Fine 0.4 nozzle @Blocks_RF50",
 	"inherits": "fdm_process_blocks_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "qM5TCMjtTCThNyIS",
 	"instantiation": "true",
 	"layer_height": "0.12",
 	"initial_layer_print_height": "0.2",

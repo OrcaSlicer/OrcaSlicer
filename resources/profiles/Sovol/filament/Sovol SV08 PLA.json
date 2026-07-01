@@ -3,7 +3,7 @@
 	"name": "Sovol SV08 PLA",
 	"inherits": "Generic PLA @System",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "nnU0222BS0F1c5ki",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

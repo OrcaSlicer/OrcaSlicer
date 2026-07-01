@@ -1439,9 +1439,7 @@ void UpgradePanel::update(MachineObject *obj)
                     }
                 });
             }
-            force_dlg->update_text(_L(
-                 "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Upgrade firmware'."
-            ));
+            force_dlg->update_text(_L("An important update was detected and needs to be run before printing can continue. Do you want to update now\? You can also update later from \'Update firmware\'."));
             force_dlg->on_show();
         }
     }
@@ -1462,9 +1460,7 @@ void UpgradePanel::update(MachineObject *obj)
                     }
                 });
             }
-            consistency_dlg->update_text(_L(
-                 "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on printer or update next time starting Orca."
-            ));
+            consistency_dlg->update_text(_L("The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now\? You can also update later on the printer or update next time you start Orca Slicer."));
             consistency_dlg->on_show();
         }
     }

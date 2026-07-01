@@ -22,7 +22,7 @@ using namespace Slic3r;
 	GCodeReader parser;
     parser.parse_buffer(gcode, [&tool, &brim_tool] (Slic3r::GCodeReader &self, const Slic3r::GCodeReader::GCodeLine &line)
     {
-        // if the command is a T command, set the the current tool
+        // if the command is a T command, set the current tool
         if (boost::starts_with(line.cmd(), "T")) {
             tool = atoi(line.cmd().data() + 1);
         } else if (line.cmd() == "G1" && line.extruding(self) && line.dist_XY(self) > 0 && brim_tool < 0) {

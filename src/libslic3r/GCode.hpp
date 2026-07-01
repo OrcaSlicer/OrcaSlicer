@@ -343,7 +343,16 @@ private:
         const float skirt_start_angle,
         const LayerTools &layer_tools,
         const Layer& layer,
+        unsigned int extruder_id,
+        std::vector<coordf_t> &skirt_done);
+    std::string generate_object_skirt_group(const Print &print,
+        const PrintObject &object,
+        const LayerTools &layer_tools,
+        const Layer& layer,
         unsigned int extruder_id);
+    std::string generate_object_brim(const Print &print,
+        const PrintObject &object,
+        bool first_layer);
 
     LayerResult process_layer(
         const Print                     &print,
@@ -383,6 +392,7 @@ private:
 
     //BBS
     void check_placeholder_parser_failed();
+    size_t cur_extruder_index() const;
     size_t get_extruder_id(unsigned int filament_id) const;
 
     void            set_last_pos(const Point &pos) { m_last_pos = Point3(pos, 0); m_last_pos_defined = true; }
@@ -609,8 +619,8 @@ private:
 
     std::unique_ptr<SmallAreaInfillFlowCompensator> m_small_area_infill_flow_compensator;
     
-    // Heights (print_z) at which the skirt has already been extruded.
-    std::vector<coordf_t>               m_skirt_done;
+    // Heights (print_z) at which each grouped skirt has already been extruded.
+    std::vector<std::vector<coordf_t>>   m_skirt_group_done;
     // Has the brim been extruded already? Brim is being extruded only for the first object of a multi-object print.
     bool                                m_brim_done;
     // Flag indicating whether the nozzle temperature changes from 1st to 2nd layer were performed.

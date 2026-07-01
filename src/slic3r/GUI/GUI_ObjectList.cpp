@@ -669,16 +669,16 @@ void ObjectList::set_tooltip_for_item(const wxPoint& pt)
     if (col->GetModelColumn() == (unsigned int)colEditing) {
         if (node->IsActionEnabled())
 #ifdef __WXOSX__
-            tooltip = _(L("Right button click the icon to drop the object settings"));
+            tooltip = _(L("Right click the icon to drop the object settings"));
 #else
             tooltip = _(L("Click the icon to reset all settings of the object"));
 #endif //__WXMSW__
     }
     else if (col->GetModelColumn() == (unsigned int)colPrint)
 #ifdef __WXOSX__
-        tooltip = _(L("Right button click the icon to drop the object printable property"));
+        tooltip = _(L("Right click the icon to drop the object printable property"));
 #else
-        tooltip = _(L("Click the icon to toggle printable property of the object"));
+        tooltip = _(L("Click the icon to toggle printable properties of the object"));
 #endif //__WXMSW__
     // BBS
     else if (col->GetModelColumn() == (unsigned int)colSupportPaint) {
@@ -688,7 +688,7 @@ void ObjectList::set_tooltip_for_item(const wxPoint& pt)
     }
     else if (col->GetModelColumn() == (unsigned int)colColorPaint) {
         if (node->HasColorPainting())
-            tooltip = _(L("Click the icon to edit color painting of the object"));
+            tooltip = _(L("Click the icon to edit color painting for the object"));
     }
     else if (col->GetModelColumn() == (unsigned int)colSinking) {
         if (node->HasSinking())
@@ -2782,10 +2782,7 @@ bool ObjectList::del_from_cut_object(bool is_cut_connector, bool is_model_part/*
     const wxString msg_end   = is_cut_connector   ? ("\n" + _L("To save cut correspondence you can delete all connectors from all related objects.")) : "";
 
     InfoDialog dialog(wxGetApp().plater(), title,
-                      (_L("This action will break a cut correspondence.\n"
-                         "After that model consistency can't be guaranteed.\n"
-                         "\n"
-                         "To manipulate with solid parts or negative volumes you have to invalidate cut information first.") + msg_end ),
+                      (_L("This action will break a cut correspondence.\nAfter that, model consistency can\'t be guaranteed.\n\nTo manipulate with solid parts or negative volumes you have to invalidate cut information first.") + msg_end ),
                       false, buttons_style | wxCANCEL_DEFAULT | wxICON_WARNING);
 
     dialog.SetButtonLabel(wxID_YES, _L("Invalidate cut info"));
@@ -3718,16 +3715,16 @@ void ObjectList::part_selection_changed()
             else {
                 if (type & itSettings) {
                     if (parent_type & itObject) {
-                        og_name  = _L("Object Settings to modify");
+                        og_name  = _L("Object Settings to Modify");
                         m_config = &(*m_objects)[obj_idx]->config;
                     }
                     else if (parent_type & itVolume) {
-                        og_name   = _L("Part Settings to modify");
+                        og_name   = _L("Part Settings to Modify");
                         volume_id = m_objects_model->GetVolumeIdByItem(parent);
                         m_config = &(*m_objects)[obj_idx]->volumes[volume_id]->config;
                     }
                     else if (parent_type & itLayer) {
-                        og_name  = _L("Layer range Settings to modify");
+                        og_name  = _L("Layer Range Settings to Modify");
                         m_config = &get_item_config(parent);
                     }
                     update_and_show_settings = true;
@@ -5506,7 +5503,7 @@ void ObjectList::change_part_type()
       }
 
       if (model_part_cnt == 1) {
-        Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part is not to be changed.")));
+        Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part cannot be changed.")));
         return;
       }
     }
@@ -5619,7 +5616,7 @@ void ObjectList::change_part_type()
     }
 
     if (would_remove_all_for_any) {
-      Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part is not to be changed.")));
+      Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part cannot be changed.")));
       return;
     }
   }
@@ -5796,7 +5793,7 @@ void ObjectList::set_volume_type(ModelVolumeType new_type)
         for (const auto& sel : selected_part_cnt) {
             auto it = total_part_cnt.find(sel.first);
             if (it != total_part_cnt.end() && it->second > 0 && sel.second == it->second) {
-                Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part is not to be changed.")));
+                Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part cannot be changed.")));
                 return;
             }
         }
@@ -6200,13 +6197,13 @@ void ObjectList::fix_through_cgal()
     wxString msg;
     wxString bullet_suf = "\n   - ";
     if (!succes_models.empty()) {
-        msg = _L_PLURAL("Following model object has been repaired", "Following model objects have been repaired", succes_models.size()) + ":";
+        msg = _L_PLURAL("The following model object has been repaired", "The following model objects have been repaired", succes_models.size()) + ":";
         for (auto& model : succes_models)
             msg += bullet_suf + from_u8(model);
         msg += "\n\n";
     }
     if (!failed_models.empty()) {
-        msg += _L_PLURAL("Failed to repair following model object", "Failed to repair following model objects", failed_models.size()) + ":\n";
+        msg += _L_PLURAL("Failed to repair the following model object", "Failed to repair the following model objects", failed_models.size()) + ":\n";
         for (auto& model : failed_models)
             msg += bullet_suf + from_u8(model.first) + ": " + _(model.second);
     }

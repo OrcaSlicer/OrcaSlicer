@@ -32,8 +32,6 @@ int invoke_on_all_cloud_agents(const std::map<std::string, std::shared_ptr<IClou
 
 } // namespace
 
-bool NetworkAgent::use_legacy_network = true;
-
 // ============================================================================
 // Static methods - delegate to BBLNetworkPlugin
 // ============================================================================

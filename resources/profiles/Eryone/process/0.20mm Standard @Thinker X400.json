@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Thinker X400",
 	"inherits": "fdm_process_common",
 	"from": "",
-	"setting_id": "GP004",
+	"setting_id": "XuXFgmQdgSDywHuc",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Thinker X400 0.4 nozzle"
