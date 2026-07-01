@@ -112,6 +112,9 @@ const std::vector<BaseMaterialCompatibility>& MaterialType::base_compatibilities
         {"PC",     {"ABS"},        {}},
         {"PLA",    {},             {"PETG", "PP"}},
         {"PETG",   {},             {"PP"}},
+        // Soluble support materials: bond with nothing ("*" wildcard).
+        {"BVOH",   {},             {"*"}},
+        {"PVA",    {},             {"*"}},
     };
 
     return base_compatibilities;
@@ -205,7 +208,9 @@ bool base_in_list(const std::string& base, const std::string& other, bool incomp
     if (it == table.end())
         return false;
     const auto& list = incompatible ? it->incompatible : it->compatible;
-    return std::find(list.begin(), list.end(), other) != list.end();
+    // "*" is a wildcard matching every other base material (e.g. soluble materials bond with nothing).
+    return std::find(list.begin(), list.end(), "*") != list.end() ||
+           std::find(list.begin(), list.end(), other) != list.end();
 }
 
 bool bases_listed(const std::string& base_a, const std::string& base_b, bool incompatible)
