@@ -9,6 +9,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "3DScene.hpp"
+#include "MeshUtils.hpp"   // ClippingPlane (section view)
 #include "libslic3r/Config.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -138,6 +139,7 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
         if (m_canvas_widget && !m_sketch_tool.inline_busy()) m_canvas_widget->SetFocus();
         e.Skip();
     });
+
 
     auto* sizer = new wxBoxSizer(wxVERTICAL);
     sizer->Add(m_canvas_widget, 1, wxEXPAND);
@@ -780,6 +782,53 @@ void DesignCanvas::set_datum_planes(std::vector<SketchPlane> planes, std::vector
 {
     m_sketch_tool.set_datum_planes(std::move(planes), std::move(sizes));
     request_repaint();
+}
+
+bool DesignCanvas::toggle_planes()
+{
+    const bool on = m_sketch_tool.toggle_show_planes();
+    request_repaint();
+    return on;
+}
+
+bool DesignCanvas::toggle_axes()
+{
+    const bool on = m_sketch_tool.toggle_show_axes();
+    request_repaint();
+    return on;
+}
+
+void DesignCanvas::set_section_plane(bool on, double z, bool keep_upper)
+{
+    m_section_on = on;
+    // The kept half must read as a SOLID part, never a see-through ghost: make sure no leftover
+    // preview translucency is applied while the section is on. Guarded — a no-op if already opaque.
+    if (on) { set_body_translucent(false); set_body_hidden(false); }
+    if (m_canvas) {
+        if (on) {
+            // GLCanvas3D turns the two clipping planes into a Z-RANGE: set_z_range(-p0.offset,
+            // p1.offset). keep_upper=false keeps the LOWER half (z in [-1e5, z]); keep_upper=true
+            // keeps the OPPOSITE, UPPER half (z in [z, +1e5]). Only HIDES geometry — no bodies.
+            if (keep_upper) {
+                m_canvas->set_clipping_plane(0, ClippingPlane(Vec3d(0.0, 0.0, 1.0), -z));     // min_z = z
+                m_canvas->set_clipping_plane(1, ClippingPlane(Vec3d(0.0, 0.0, 1.0), 1.0e5));  // max_z = +1e5
+            } else {
+                m_canvas->set_clipping_plane(0, ClippingPlane(Vec3d(0.0, 0.0, 1.0), 1.0e5));  // min_z = -1e5
+                m_canvas->set_clipping_plane(1, ClippingPlane(Vec3d(0.0, 0.0, 1.0), z));      // max_z = z
+            }
+            m_canvas->set_use_clipping_planes(true);
+        } else {
+            m_canvas->set_use_clipping_planes(false);
+        }
+        m_canvas->set_as_dirty();
+    }
+    request_repaint();
+}
+
+double DesignCanvas::model_mid_z() const
+{
+    const BoundingBoxf3 bb = m_model.bounding_box_exact();
+    return bb.defined ? bb.center().z() : 0.0;
 }
 
 void DesignCanvas::set_readout(const std::string& text)

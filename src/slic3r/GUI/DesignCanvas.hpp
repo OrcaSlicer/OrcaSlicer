@@ -184,6 +184,16 @@ public:
     bool delete_selected_or_last_sketch_entity();     // Delete in a sketch: selected, else last
     void clear_sketch_selection();
 
+    // View toggles (keys P / A): origin planes, world axis triad. Each returns the new on/off
+    // state so the caller can echo it in the status bar.
+    bool toggle_planes();
+    bool toggle_axes();
+
+    // Section views (non-destructive): the panel owns the named "Section View N" list; the canvas
+    // just applies/clears one horizontal clip at a time. model_mid_z() is the default cut height.
+    void   set_section_plane(bool on, double z, bool keep_upper = false);
+    double model_mid_z() const;
+
     // Dimension tool: act on the current sketch selection.
     DesignSketchTool::DimType sketch_dimension_kind() const;
     double sketch_dimension_current() const;
@@ -257,6 +267,11 @@ private:
     const std::vector<CadBody>* m_color_bodies{nullptr};
 
     DesignSketchTool m_sketch_tool;
+
+    // Section view: whether a horizontal clip is currently applied (guards Alt+Wheel). The cut
+    // height and the named-view list live in DesignPanel; the canvas is a dumb applier.
+    bool m_section_on{false};
+
     std::unique_ptr<SketchInlineEditor> m_inline_editor;  // floating in-canvas value editor
     // Bottom-right viewport HUD: a borderless float label over the GL canvas showing the
     // active tool's current values (fed by the tool's on_readout). Empty text hides it.

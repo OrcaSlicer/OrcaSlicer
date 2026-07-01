@@ -2887,6 +2887,64 @@ void DesignSketchTool::render_solid_highlight()
 // rectangle + border so it is visible in the viewport (Onshape-style finite plane). World
 // space, depth-test off so it reads over the bed; indigo to stay distinct from the cyan
 // solid-selection tint, orange sketches and amber feature ghosts.
+void DesignSketchTool::render_view_helpers()
+{
+    if (!m_show_planes && !m_show_axes) return;
+    using EPT = GLModel::Geometry::EPrimitiveType;
+    using EVL = GLModel::Geometry::EVertexLayout;
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const Vec3d vd = cam.get_dir_forward();
+    const double hw = 1.5 / std::max(cam.get_zoom(), 1e-6);   // billboard ribbon half-width (px)
+
+    glsafe(::glDisable(GL_DEPTH_TEST));
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+
+    if (m_show_planes) {
+        const double H = 40.0;   // half-extent (mm)
+        SketchPlane pl[3];       // XY / XZ / YZ through the world origin
+        pl[0].origin = Vec3d(0,0,0); pl[0].x_axis = Vec3d(1,0,0); pl[0].y_axis = Vec3d(0,1,0); pl[0].normal = Vec3d(0,0,1);
+        pl[1].origin = Vec3d(0,0,0); pl[1].x_axis = Vec3d(1,0,0); pl[1].y_axis = Vec3d(0,0,1); pl[1].normal = Vec3d(0,1,0);
+        pl[2].origin = Vec3d(0,0,0); pl[2].x_axis = Vec3d(0,1,0); pl[2].y_axis = Vec3d(0,0,1); pl[2].normal = Vec3d(1,0,0);
+        GLModel::Geometry fill; fill.format = { EPT::Triangles, EVL::P3 };
+        unsigned int fb = 0;
+        for (const SketchPlane& p : pl) {
+            const Vec3d c[4] = { p.to_world(Vec2d(-H,-H)), p.to_world(Vec2d(H,-H)),
+                                 p.to_world(Vec2d(H,H)),   p.to_world(Vec2d(-H,H)) };
+            fill.add_vertex((Vec3f)c[0].cast<float>()); fill.add_vertex((Vec3f)c[1].cast<float>());
+            fill.add_vertex((Vec3f)c[2].cast<float>()); fill.add_triangle(fb, fb+1, fb+2); fb += 3;
+            fill.add_vertex((Vec3f)c[0].cast<float>()); fill.add_vertex((Vec3f)c[2].cast<float>());
+            fill.add_vertex((Vec3f)c[3].cast<float>()); fill.add_triangle(fb, fb+1, fb+2); fb += 3;
+        }
+        if (fb > 0) { GLModel fm; fm.init_from(std::move(fill));
+            fm.set_color(ColorRGBA(0.42f, 0.52f, 0.78f, 0.20f)); fm.render(); }
+    }
+
+    if (m_show_axes) {
+        const double L = 60.0;   // axis length (mm)
+        struct Ax { Vec3d dir; ColorRGBA col; };
+        const Ax axes[3] = { { Vec3d(1,0,0), ColorRGBA(0.92f, 0.28f, 0.28f, 0.9f) },
+                             { Vec3d(0,1,0), ColorRGBA(0.30f, 0.80f, 0.34f, 0.9f) },
+                             { Vec3d(0,0,1), ColorRGBA(0.32f, 0.55f, 0.95f, 0.9f) } };
+        for (const Ax& ax : axes) {
+            // Lines don't rasterise under the reused software GL context, so each axis is a
+            // thin view-facing ribbon (two triangles), like the datum-plane border.
+            const Vec3d a = Vec3d(0,0,0), b = ax.dir * L;
+            Vec3d dir = (b - a).normalized();
+            Vec3d off = dir.cross(vd);
+            if (off.norm() < 1e-9) off = dir.cross(cam.get_dir_up());
+            if (off.norm() < 1e-9) continue;
+            off.normalize(); off *= hw * 1.5;
+            GLModel::Geometry g; g.format = { EPT::Triangles, EVL::P3 };
+            g.add_vertex((Vec3f)(a + off).cast<float>()); g.add_vertex((Vec3f)(b + off).cast<float>());
+            g.add_vertex((Vec3f)(b - off).cast<float>()); g.add_vertex((Vec3f)(a - off).cast<float>());
+            g.add_triangle(0, 1, 2); g.add_triangle(0, 2, 3);
+            GLModel m; m.init_from(std::move(g)); m.set_color(ax.col); m.render();
+        }
+    }
+    glsafe(::glDisable(GL_BLEND));
+}
+
 void DesignSketchTool::render_datum_planes()
 {
     if (m_datum_planes.empty()) return;
@@ -6541,6 +6599,7 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         if (on_readout) on_readout(std::string());   // nothing to show -> hide HUD
         return;
     }
+    render_view_helpers();   // origin planes / world axes — drawn whenever their toggle is on
     if (m_active && m_mode != Mode::Constrain && m_entities.empty() && m_points.empty()
         && m_display_sketches.empty()) {
         if (on_readout) on_readout(std::string());

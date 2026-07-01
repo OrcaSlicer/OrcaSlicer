@@ -8,6 +8,7 @@
 #include <vector>
 #include <memory>
 #include <functional>
+#include <map>
 
 #include "libslic3r/CadDocument.hpp"
 
@@ -195,6 +196,15 @@ private:
     CadDocument m_doc;
 
     Tool      m_active{Tool::None};
+
+    // Keyboard shortcuts (Onshape-style, three scoped layers). Keys are encoded as the
+    // upper-cased letter, OR'd with 0x10000 when Shift is required. m_keys_sketch fires only
+    // while a sketch is open (single letters = sketch tools); m_keys_feature fires only when
+    // no sketch is open (Shift+letter = feature tools; single letters = view toggles/section).
+    static constexpr int SC_SHIFT = 0x10000;
+    std::map<int, std::function<void()>> m_keys_sketch;
+    std::map<int, std::function<void()>> m_keys_feature;
+
     wxSizer*  m_box_sketch{nullptr};
     wxSizer*  m_box_extrude{nullptr};
     wxSizer*  m_box_dressup{nullptr};
@@ -416,6 +426,20 @@ private:
     // Parts list: tree rows for each body (parallel to m_doc.bodies). Selecting one
     // highlights that body and makes it the target for the next op.
     std::vector<wxTreeItemId> m_tree_body_items;
+
+    // Section views (non-destructive): named "Section View N" entries listed in the tree, each a
+    // horizontal clip height. View-only — NOT bodies/features, never serialized. Key X adds one;
+    // clicking a row activates it (again = off); Delete removes it; Alt+Wheel moves the active one.
+    // Section view (single, non-destructive): ONE horizontal clip that hides half the model to
+    // inspect inside — solid, no ghost of the hidden half. Toggled on/off; Flip shows the other
+    // half. Never a body, no tree entry.
+    bool      m_section_on{false};
+    double    m_section_cut_z{0.0};
+    bool      m_section_upper{false};             // false = keep lower half, true = upper
+    wxButton* m_section_flip_btn{nullptr};        // enabled only while the section is on
+    void toggle_section_view();                   // Section View button / X: on <-> off
+    void flip_section_view();                     // Flip button / F: opposite half
+    void update_section_flip_btn();               // enable the Flip button iff the section is on
     // Per-body visibility (parallel to m_doc.bodies; index stable across recompute since
     // bodies are appended in feature order). Empty/grown to all-visible by sync_body_visible().
     std::vector<bool> m_body_visible;

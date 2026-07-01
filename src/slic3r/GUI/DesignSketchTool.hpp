@@ -98,9 +98,17 @@ public:
     bool has_display() const { return m_active || !m_display_sketches.empty()
                                       || (m_solid_bodies != nullptr && !m_solid_bodies->empty())
                                       || !m_datum_planes.empty()
+                                      || m_show_planes || m_show_axes
                                       || m_ex_active || m_mv_active || m_fl_active
                                       || m_hl_active || m_th_active || m_sh_active
                                       || m_dr_active || m_ct_active || m_dz_active || m_dbp_active; }
+
+    // View helpers: the 3 world origin planes (XY/XZ/YZ) and the world axis triad, each
+    // shown/hidden by a toggle (keys P / A). Off by default so the idle scene stays clean.
+    void set_show_planes(bool s) { m_show_planes = s; }
+    void set_show_axes(bool s)   { m_show_axes = s; }
+    bool toggle_show_planes() { m_show_planes = !m_show_planes; return m_show_planes; }
+    bool toggle_show_axes()   { m_show_axes   = !m_show_axes;   return m_show_axes; }
 
     // Solid topology selection on the committed bodies: clicking a solid cycles
     // whole-solid -> face -> edge (Onshape-style) to target fillet/chamfer/extrude. With
@@ -891,6 +899,9 @@ private:
     bool handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent& evt);  // cycle + notify
     void render_solid_highlight();
     void render_datum_planes();           // translucent rectangles for datum/reference planes
+    void render_view_helpers();           // world origin planes + axis triad (P / A toggles)
+    bool m_show_planes{false};
+    bool m_show_axes{false};
     std::vector<SketchPlane> m_datum_planes;
     std::vector<Vec2d>       m_datum_sizes;   // per-plane (u,v) full extent; empty -> default
     GLModel m_solid_face_model;

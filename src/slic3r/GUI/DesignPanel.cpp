@@ -234,6 +234,66 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_status->Refresh();
     };
 
+    // Sketch-tool shortcuts (single letters, active only while a sketch is open). Family tools
+    // bind to their default mode; the other modes stay in the toolbar flyout. Registered here
+    // where select_tool is in scope; the closures run at key-press time (members are live by then).
+    auto sk_key = [this, select_tool](int ch, DesignSketchTool::Mode m, const wxString& h) {
+        m_keys_sketch[ch] = [this, select_tool, m, h] { select_tool(m, h); };
+    };
+    sk_key('L', DesignSketchTool::Mode::Line,         _L("Line — click start, then end"));
+    sk_key('R', DesignSketchTool::Mode::CornerRect,   _L("Rectangle — click two opposite corners"));
+    sk_key('C', DesignSketchTool::Mode::CenterCircle, _L("Circle — click center, then radius"));
+    sk_key('A', DesignSketchTool::Mode::ThreePointArc,_L("Arc — click start, end, then a point"));
+    sk_key('S', DesignSketchTool::Mode::Slot,         _L("Slot — two centerline ends, then width"));
+    sk_key('E', DesignSketchTool::Mode::Ellipse,      _L("Ellipse — center, major end, minor point"));
+    sk_key('B', DesignSketchTool::Mode::BSpline,      _L("Spline — click control points"));
+    sk_key('P', DesignSketchTool::Mode::Point,        _L("Point — click to place"));
+    sk_key('D', DesignSketchTool::Mode::Dimension,    _L("Dimension — click 2 points or an entity"));
+    sk_key('T', DesignSketchTool::Mode::Trim,         _L("Trim — click a segment to trim it"));
+    sk_key('X', DesignSketchTool::Mode::Extend,       _L("Extend — click a line/arc to extend it"));
+    sk_key('O', DesignSketchTool::Mode::Offset,       _L("Offset — pick an entity, drag the distance"));
+    sk_key('M', DesignSketchTool::Mode::Mirror,       _L("Mirror — pick axis, then entities"));
+    sk_key('F', DesignSketchTool::Mode::Fillet,       _L("Fillet — pick two lines, set the radius"));
+    sk_key('H', DesignSketchTool::Mode::Chamfer,      _L("Chamfer — pick two lines, set the distance"));
+    // Polygon needs its side count / circumscribed flag pushed to the tool before it starts.
+    m_keys_sketch['G'] = [this, select_tool] {
+        if (m_viewport) {
+            m_viewport->set_sketch_polygon_sides(m_sides ? m_sides->GetValue() : 6);
+            m_viewport->set_sketch_polygon_circumscribed(m_poly_circ && m_poly_circ->GetValue());
+        }
+        select_tool(DesignSketchTool::Mode::Polygon, _L("Polygon — click center, then a vertex"));
+    };
+    // Constrain (finish the live sketch + enter constrain), and Construction toggle.
+    m_keys_sketch['K'] = [this] { enter_constrain_inline(); };
+    m_keys_sketch['Q'] = [this] {
+        if (m_construction) {
+            m_construction->SetValue(!m_construction->GetValue());
+            if (m_viewport && m_viewport->is_sketching())
+                m_viewport->set_sketch_construction(m_construction->GetValue());
+        }
+    };
+
+    // Shift+letter encoder for the feature-tool shortcuts (registered via FeatVar::key below,
+    // and explicitly for the standalone feature buttons).
+    auto SHIFT = [](int ch) { return ch | SC_SHIFT; };
+
+    // View toggles (single letters, active when no sketch is open): P origin planes, A world
+    // axes, X section view (Alt+Wheel slides the cut). Distinct from Shift+P/Shift+X features.
+    auto status_flag = [this](const wxString& on_msg, const wxString& off_msg, bool on) {
+        m_status->SetForegroundColour(wxNullColour);
+        m_status->SetLabel(on ? on_msg : off_msg);
+        m_status->Refresh();
+    };
+    m_keys_feature['P'] = [this, status_flag] {
+        if (m_viewport) status_flag(_L("Origin planes shown"), _L("Origin planes hidden"),
+                                    m_viewport->toggle_planes());
+    };
+    m_keys_feature['A'] = [this, status_flag] {
+        if (m_viewport) status_flag(_L("World axes shown"), _L("World axes hidden"),
+                                    m_viewport->toggle_axes());
+    };
+    m_keys_feature['X'] = [this] { toggle_section_view(); };   // toggle the single section on/off
+
     // Shared flyout glyph tint (used by BOTH the feature and sketch toolbars). Re-tint each
     // design_* glyph to the DropDown's resolved TEXT colour so it reads on the popup in either
     // theme: text_color is 0x363636, which darkModeColorFor() maps to a light tone in dark mode
@@ -261,7 +321,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Onshape-style FEATURE flyouts: same themed-DropDown pattern as the sketch toolbar
         // (tinted glyphs, Body_14 measure, content-width popup) but each entry runs an
         // arbitrary action — the existing per-feature handler — instead of selecting a Mode.
-        struct FeatVar { const char* icon; wxString tip; wxString hint; std::function<void()> action; };
+        struct FeatVar { const char* icon; wxString tip; wxString hint; std::function<void()> action; int key = 0; };
         struct FeatFlyout {
             std::vector<DropDown::Item> items;   // mainline DropDown is Item-based (text/tip/icon per row)
             std::vector<std::function<void()>> actions;
@@ -282,6 +342,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 fo->items.push_back(it);
                 fo->actions.push_back(std::move(v.action));
                 fo->icon_names.emplace_back(v.icon);
+                if (v.key) m_keys_feature[v.key] = fo->actions.back();   // key runs the same action
             }
             fo->btn = b;
             fo->drop.Create(b);
@@ -316,13 +377,15 @@ DesignPanel::DesignPanel(wxWindow* parent)
         };
 
         auto* b_sketch = icon_btn("design_sketch", _L("Sketch"));
-        b_sketch->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        std::function<void()> act_sketch = [this] {
             populate_plane_choices(m_draw_plane);   // surface datum planes in the picker
             set_ui_mode(UiMode::Sketch);
             m_status->SetForegroundColour(wxNullColour);
             m_status->SetLabel(_L("Pick a plane and a sketch tool, then draw"));
             m_status->Refresh();
-        });
+        };
+        b_sketch->Bind(wxEVT_BUTTON, [act_sketch](wxCommandEvent&) { act_sketch(); });
+        m_keys_feature[SHIFT('S')] = act_sketch;
         fadd(b_sketch);
         add_sep(m_tb_feature);
         // Add material: Extrude / Revolve / Sweep / Loft
@@ -347,7 +410,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                     return;
                 }
                 open_tool(Tool::Extrude);
-             }},
+             }, SHIFT('E')},
             {"design_revolve", _L("Revolve"), _L("Revolve a profile about an axis"),
              [this] {
                 m_revolve_sketch_ref = resolve_extrude_sketch();
@@ -358,7 +421,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                     return;
                 }
                 open_tool(Tool::Revolve);
-             }},
+             }, SHIFT('R')},
             {"design_sweep", _L("Sweep"), _L("Sweep a profile along a path"),
              [this] {
                 m_sweep_profile_ref = resolve_extrude_sketch();
@@ -370,7 +433,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                     return;
                 }
                 open_tool(Tool::Sweep);
-             }},
+             }, SHIFT('W')},
             {"design_loft", _L("Loft"), _L("Loft (skin) between two or more profiles"),
              [this] {
                 // Loft skins 2+ profile sketches; need at least two to be meaningful.
@@ -385,11 +448,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 }
                 m_loft_refs.clear();   // fresh loft: nothing pre-checked
                 open_tool(Tool::Loft);
-             }},
+             }, SHIFT('L')},
         });
 
         auto* b_pattern = icon_btn("design_pattern", _L("Pattern"));
-        b_pattern->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        std::function<void()> act_pattern = [this] {
             // Pattern replicates an existing body — needs at least one solid.
             if (m_doc.bodies.empty()) {
                 m_status->SetForegroundColour(wxColour(235, 110, 110));
@@ -398,19 +461,23 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 return;
             }
             open_tool(Tool::Pattern);
-        });
+        };
+        b_pattern->Bind(wxEVT_BUTTON, [act_pattern](wxCommandEvent&) { act_pattern(); });
+        m_keys_feature[SHIFT('N')] = act_pattern;
         fadd(b_pattern);
 
         auto* b_plane = icon_btn("design_plane", _L("Plane"));
-        b_plane->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        std::function<void()> act_plane = [this] {
             populate_plane_choices(m_plane_base);   // refresh base list w/ existing datum planes
             reset_plane_refs();                     // fresh datum: no captured face/edge refs
             open_tool(Tool::Plane);
-        });
+        };
+        b_plane->Bind(wxEVT_BUTTON, [act_plane](wxCommandEvent&) { act_plane(); });
+        m_keys_feature[SHIFT('P')] = act_plane;
         fadd(b_plane);
 
         auto* b_boolean = icon_btn("design_boolean", _L("Boolean (combine bodies)"));
-        b_boolean->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        std::function<void()> act_boolean = [this] {
             // A body-body boolean needs at least two solids to combine.
             if (m_doc.bodies.size() < 2) {
                 m_status->SetForegroundColour(wxColour(235, 110, 110));
@@ -420,11 +487,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
             }
             populate_body_choices();
             open_tool(Tool::Boolean);
-        });
+        };
+        b_boolean->Bind(wxEVT_BUTTON, [act_boolean](wxCommandEvent&) { act_boolean(); });
+        m_keys_feature[SHIFT('B')] = act_boolean;
         fadd(b_boolean);
 
         auto* b_cut = icon_btn("design_cut", _L("Cut (split a body with a plane)"));
-        b_cut->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+        std::function<void()> act_cut = [this] {
             // A plane cut needs at least one solid to slice.
             if (m_doc.bodies.empty()) {
                 m_status->SetForegroundColour(wxColour(235, 110, 110));
@@ -435,7 +504,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
             populate_plane_choices(m_cut_plane);
             populate_body_choices();
             open_tool(Tool::Cut);
-        });
+        };
+        b_cut->Bind(wxEVT_BUTTON, [act_cut](wxCommandEvent&) { act_cut(); });
+        m_keys_feature[SHIFT('X')] = act_cut;
         fadd(b_cut);
 
         // Color — override the selected body's display colour (per-body, survives recompute).
@@ -446,11 +517,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Dress-up: Fillet/Chamfer / Draft / Shell
         feat_dropdown("design_dressup", _L("Dress-up (fillet / chamfer / draft / shell)"), {
             {"design_dressup", _L("Fillet / Chamfer"), _L("Round or bevel a picked edge"),
-             [this] { open_tool(Tool::Dressup); }},
+             [this] { open_tool(Tool::Dressup); }, SHIFT('F')},
             {"design_draft", _L("Draft (taper a face)"), _L("Tilt a picked face by a draft angle"),
-             [this] { open_tool(Tool::Draft); }},
+             [this] { open_tool(Tool::Draft); }, SHIFT('D')},
             {"design_shell", _L("Shell"), _L("Hollow the body to a wall thickness, opening a picked face"),
-             [this] { open_tool(Tool::Shell); }},
+             [this] { open_tool(Tool::Shell); }, SHIFT('K')},
         });
 
         // Hole / Thread — drilling into a solid (both face-aware)
@@ -484,7 +555,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                     }
                 }
                 open_tool(Tool::Hole);
-             }},
+             }, SHIFT('H')},
             {"design_thread", _L("Thread"), _L("Thread a cylindrical surface (inner bore / outer) or a circular edge"),
              [this] {
                 // Driven by a picked CYLINDRICAL surface (inner bore = internal, outer = external)
@@ -521,7 +592,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                     m_status->Refresh();
                 }
                 open_tool(Tool::Thread);
-             }},
+             }, SHIFT('T')},
         });
         add_sep(m_tb_feature);
         // Text / SVG insert tools live in the SKETCH toolbar (they produce 2D profiles =
@@ -529,6 +600,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Import STEP — standalone: a STEP comes in as a whole editable B-rep body, not a profile.
         auto* b_step = icon_btn("design_step", _L("Import STEP (editable B-rep solid)"));
         b_step->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_import_step(); });
+        m_keys_feature[SHIFT('I')] = [this] { on_import_step(); };
         fadd(b_step);
         add_sep(m_tb_feature);
         auto* b_constrain = icon_btn("design_constrain", _L("Constrain selected sketch"));
@@ -1520,6 +1592,21 @@ DesignPanel::DesignPanel(wxWindow* parent)
     }
     root->Add(m_dof_status, 0, wxLEFT | wxRIGHT | wxBOTTOM, 12);
 
+    // Section View — clear text button (non-destructive: hides part of the model to inspect
+    // inside; adds a named "Section View N", never a body). Distinct from the Cut tool.
+    auto* section_btn = new wxButton(m_form, wxID_ANY, _L("Section View"));
+    section_btn->SetToolTip(_L("Hide part of the model to see inside (non-destructive). "
+                               "PageUp/PageDown move the plane; Delete removes it."));
+    section_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { toggle_section_view(); });
+    root->Add(section_btn, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+
+    // Flip the active section to the opposite half — only usable while a section view is active.
+    m_section_flip_btn = new wxButton(m_form, wxID_ANY, _L("Flip Section"));
+    m_section_flip_btn->SetToolTip(_L("Show the opposite half of the active section view"));
+    m_section_flip_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { flip_section_view(); });
+    m_section_flip_btn->Enable(false);
+    root->Add(m_section_flip_btn, 0, wxLEFT | wxRIGHT | wxTOP, 6);
+
     auto* new_design = new wxButton(m_form, wxID_ANY, _L("New Design"));
     new_design->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_new_design(); });
     root->Add(new_design, 0, wxLEFT | wxRIGHT | wxTOP, 12);
@@ -1986,6 +2073,30 @@ DesignPanel::DesignPanel(wxWindow* parent)
             if (sketching) { m_viewport->delete_selected_or_last_sketch_entity(); return; }
             if (m_ui_mode == UiMode::Feature && m_active == Tool::None
                 && tree_selection() != wxNOT_FOUND) { on_delete_feature(); return; }
+        }
+        // Section view controls while it is on (Alt+Wheel is unreliable under remote desktops / is
+        // grabbed by GLCanvas3D, so the keyboard drives it): PageUp/PageDown move the plane, F flips
+        // which half is kept (so you can inspect the opposite part).
+        if (!in_text && !sketching && m_section_on) {
+            if (key == WXK_PAGEUP || key == WXK_PAGEDOWN) {
+                m_section_cut_z += (key == WXK_PAGEUP ? 2.0 : -2.0);
+                if (m_viewport) m_viewport->set_section_plane(true, m_section_cut_z, m_section_upper);
+                return;
+            }
+            if (key == 'F' || key == 'f') { flip_section_view(); return; }
+        }
+        // Tool shortcuts (Onshape-style). While a sketch is open, single letters drive sketch
+        // tools; otherwise Shift+letter drives feature tools and single letters drive view
+        // toggles / section. Ctrl-combos and focused text fields are never intercepted.
+        if (!in_text && !ctrl) {
+            const int up = (key >= 'a' && key <= 'z') ? key - 'a' + 'A' : key;   // normalise case
+            if (sketching) {
+                auto it = m_keys_sketch.find(up);
+                if (it != m_keys_sketch.end()) { it->second(); return; }
+            } else {
+                auto it = m_keys_feature.find(up | (e.ShiftDown() ? SC_SHIFT : 0));
+                if (it != m_keys_feature.end()) { it->second(); return; }
+            }
         }
         e.Skip();
     });
@@ -3008,6 +3119,41 @@ int DesignPanel::tree_body_selection() const
     for (size_t i = 0; i < m_tree_body_items.size(); ++i)
         if (m_tree_body_items[i] == sel) return int(i);
     return -1;
+}
+
+void DesignPanel::update_section_flip_btn()
+{
+    if (m_section_flip_btn) m_section_flip_btn->Enable(m_section_on);
+}
+
+void DesignPanel::toggle_section_view()
+{
+    if (!m_viewport) return;
+    m_section_on = !m_section_on;
+    m_status->SetForegroundColour(wxNullColour);
+    if (m_section_on) {
+        m_section_cut_z = m_viewport->model_mid_z();   // start at the model's mid-height
+        m_section_upper = false;                       // keep the lower half by default
+        m_viewport->set_section_plane(true, m_section_cut_z, m_section_upper);
+        m_status->SetLabel(_L("Section view on — hides half the model to see inside; "
+                              "PageUp / PageDown move the plane, Flip shows the other half"));
+    } else {
+        m_viewport->set_section_plane(false, 0.0);
+        m_status->SetLabel(_L("Section view off"));
+    }
+    m_status->Refresh();
+    update_section_flip_btn();
+}
+
+void DesignPanel::flip_section_view()
+{
+    if (!m_viewport || !m_section_on) return;
+    m_section_upper = !m_section_upper;
+    m_viewport->set_section_plane(true, m_section_cut_z, m_section_upper);
+    m_status->SetForegroundColour(wxNullColour);
+    m_status->SetLabel(wxString::Format(_L("Section view — showing the %s half"),
+        m_section_upper ? _L("upper") : _L("lower")));
+    m_status->Refresh();
 }
 
 void DesignPanel::sync_body_visible()
