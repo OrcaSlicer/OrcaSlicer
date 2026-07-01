@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_3_1_7",
-	"setting_id": "GFSL99",
 	"name": "QIDI PLA Basic@X-Max 4-Series",
 	"from": "system",
 	"instantiation": "false",
@@ -63,5 +62,23 @@
 	"hot_plate_temp": [
 		"55"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"eng_plate_temp": [
+		"55"
+	],
+	"textured_plate_temp": [
+		"55"
+	],
+	"textured_cool_plate_temp": [
+		"45"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"textured_plate_temp_initial_layer": [
+		"55"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"45"
+	]
 }

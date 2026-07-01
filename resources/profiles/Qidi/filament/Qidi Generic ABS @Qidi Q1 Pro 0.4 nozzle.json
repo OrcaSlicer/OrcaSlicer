@@ -3,7 +3,7 @@
 	"name": "Qidi Generic ABS @Qidi Q1 Pro 0.4 nozzle",
 	"inherits": "Qidi Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "XfuwzYZzTauK0ADk",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_max_speed": [
@@ -14,12 +14,6 @@
 	],
 	"filament_settings_id": [
 		"Qidi Generic ABS @Qidi Q1 Pro 0.4 nozzle"
-	],
-	"hot_plate_temp": [
-		"90"
-	],
-	"hot_plate_temp_initial_layer": [
-		"90"
 	],
 	"nozzle_temperature": [
 		"250"

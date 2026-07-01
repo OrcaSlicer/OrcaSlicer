@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Rapido 0.6 nozzle",
 	"inherits": "QIDI ABS Rapido",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "VzAotqGZviabVuS4",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"enable_pressure_advance": [

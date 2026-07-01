@@ -3,7 +3,7 @@
 	"name": "Peopoly Lancer PLA-C",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "EFHW4uKJCsBCjAEU",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

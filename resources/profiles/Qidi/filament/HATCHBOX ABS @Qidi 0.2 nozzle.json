@@ -3,7 +3,7 @@
 	"name": "HATCHBOX ABS @Qidi 0.2 nozzle",
 	"inherits": "HATCHBOX ABS @Qidi",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "QASmOwd2vpLRwI9I",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

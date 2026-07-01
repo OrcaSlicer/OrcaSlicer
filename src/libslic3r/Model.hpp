@@ -516,7 +516,7 @@ public:
     void delete_connectors();
     void clone_for_cut(ModelObject **obj);
 
-    void split(ModelObjectPtrs*new_objects);
+    void split(ModelObjectPtrs*new_objects, bool remap_paint);
     void merge();
 
     // BBS: Boolean opts - Musang King
@@ -731,6 +731,7 @@ public:
     void assign(const FacetsAnnotation &rhs) { if (! this->timestamp_matches(rhs)) { m_data = rhs.m_data; this->copy_timestamp(rhs); } }
     void assign(FacetsAnnotation &&rhs) { if (! this->timestamp_matches(rhs)) { m_data = std::move(rhs.m_data); this->copy_timestamp(rhs); } }
     const TriangleSelector::TriangleSplittingData &get_data() const noexcept { return m_data; }
+    void set_data(TriangleSelector::TriangleSplittingData &&data) { m_data = std::move(data); this->touch(); }
     bool set(const TriangleSelector& selector);
     indexed_triangle_set get_facets(const ModelVolume& mv, EnforcerBlockerType type) const;
     // BBS
@@ -877,12 +878,17 @@ public:
     // List of mesh facets painted for fuzzy skin.
     FacetsAnnotation    fuzzy_skin_facets;
 
+    // Save painting data before reset_extra_facets() discards it.
+    // Used for replacing mesh without losing painting data.
+    // Only for model parts (not modifiers/connectors).
+    std::optional<TriangleSelector::SavedPainting> save_painting() const;
+    
+    // Remap painting data from previous saved source to this mesh
+    void restore_painting(const std::optional<TriangleSelector::SavedPainting>& saved, bool keep_existing_paint = false);
+
     // BBS: quick access for volume extruders, 1 based
     mutable std::vector<int> mmuseg_extruders;
     mutable Timestamp        mmuseg_ts;
-
-    // List of exterior faces
-    FacetsAnnotation    exterior_facets;
 
     // Is set only when volume is Embossed Text type
     // Contain information how to re-create volume
@@ -924,7 +930,7 @@ public:
     // Split this volume, append the result to the object owning this volume.
     // Return the number of volumes created from this one.
     // This is useful to assign different materials to different volumes of an object.
-    size_t              split(unsigned int max_extruders);
+    size_t              split(unsigned int max_extruders, bool remap_paint);
     void                translate(double x, double y, double z) { translate(Vec3d(x, y, z)); }
     void                translate(const Vec3d& displacement);
     void                scale(const Vec3d& scaling_factors);
@@ -1007,6 +1013,7 @@ public:
     bool is_seam_painted() const { return !this->seam_facets.empty(); }
     bool is_mm_painted() const { return !this->mmu_segmentation_facets.empty(); }
     bool is_fuzzy_skin_painted() const { return !this->fuzzy_skin_facets.empty(); }
+    bool is_any_painted() const { return is_fdm_support_painted() || is_seam_painted() || is_mm_painted() || is_fuzzy_skin_painted(); }
     
     // Orca: Implement prusa's filament shrink compensation approach
     // Returns 0-based indices of extruders painted by multi-material painting gizmo.

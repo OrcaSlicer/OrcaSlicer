@@ -62,16 +62,21 @@ GizmoObjectManipulation::GizmoObjectManipulation(GLCanvas3D& glcanvas)
 
     m_shortcuts_move = {
         {alt + _L("Left mouse button"),     _L("Part selection")},
-        {shift + _L("Left mouse button"),   _L("Fixed step drag")}
+        {shift + _L("Left mouse button"),   _L("Fixed step drag")},
+        {_L("Context Menu"),                _L("Toggle Auto-Drop")}
     };
 
     m_shortcuts_rotate = {
-        {alt + _L("Left mouse button"),     _L("Part selection")}};
+        {alt + _L("Left mouse button"),     _L("Part selection")},
+        {_L("Context Menu"),                _L("Toggle Auto-Drop")}
+    };
 
     m_shortcuts_scale = {
         {alt + _L("Left mouse button"),     _L("Part selection")},
         {shift + _L("Left mouse button"),   _L("Fixed step drag")},
-        {ctrl + _L("Left mouse button"),    _L("Single sided scaling")}};
+        {ctrl + _L("Left mouse button"),    _L("Single sided scaling")},
+        {_L("Context Menu"),                _L("Toggle Auto-Drop")}
+    };
 }
 
 void GizmoObjectManipulation::UpdateAndShow(const bool show)
@@ -133,7 +138,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
 
         m_new_enabled  = true;
         // BBS: change "Instance Operations" to "Object Operations"
-        m_new_title_string = L("Object Operations");
+        m_new_title_string = L("Object operations");
     }
     else if (selection.is_single_full_object() && obj_list->is_selected(itObject)) {
         const BoundingBoxf3& box = selection.get_bounding_box();
@@ -142,7 +147,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
         m_new_size     = selection.get_bounding_box_in_current_reference_system().first.size();
 		m_new_scale_label_string  = L("Scale");
         m_new_enabled  = true;
-        m_new_title_string = L("Object Operations");
+        m_new_title_string = L("Object operations");
     } else if (selection.is_single_volume_or_modifier()) {
         const GLVolume *volume = selection.get_first_volume();
         auto            rotation = volume->get_volume_transformation().get_rotation_by_quaternion();
@@ -168,7 +173,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
             m_new_size                = selection.get_bounding_box_in_current_reference_system().first.size();
         }
         m_new_enabled = true;
-        m_new_title_string = L("Volume Operations");
+        m_new_title_string = L("Volume operations");
     } else if (obj_list->is_connectors_item_selected() || obj_list->multiple_selection() || obj_list->is_selected(itInstanceRoot)) {
         reset_settings_value();
 		m_new_move_label_string   = L("Translate");
@@ -176,7 +181,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
         m_unscale_size            = selection.get_bounding_box_in_current_reference_system().first.size();
         m_new_size                = selection.get_bounding_box_in_current_reference_system().first.size();
         m_new_enabled  = true;
-        m_new_title_string = L("Group Operations");
+        m_new_title_string = L("Group operations");
     } else if (selection.is_wipe_tower()) {
         const BoundingBoxf3 &box = selection.get_bounding_box();
         m_new_position           = box.center();
@@ -356,7 +361,7 @@ void GizmoObjectManipulation::change_rotation_value(int axis, double value)
 
     selection.setup_cache();
     selection.rotate((M_PI / 180.0) * (transformation_type.absolute() ? rotation : rotation - m_cache.rotation), transformation_type);
-    wxGetApp().plater()->take_snapshot(_u8L("Set Orientation"), UndoRedo::SnapshotType::GizmoAction);
+    wxGetApp().plater()->take_snapshot(_u8L("Set orientation"), UndoRedo::SnapshotType::GizmoAction);
     m_glcanvas.do_rotate("");
 
     m_cache.rotation = rotation;
@@ -464,7 +469,7 @@ void GizmoObjectManipulation::do_scale(int axis, const Vec3d &scale) const
 
     selection.setup_cache();
     selection.scale(scaling_factor, transformation_type);
-    m_glcanvas.do_scale(L("Set Scale"));
+    m_glcanvas.do_scale(L("Set scale"));
 }
 
 
@@ -544,7 +549,7 @@ void GizmoObjectManipulation::reset_position_value()
         return;
 
     // Copy position values from GLVolumes into Model (ModelInstance / ModelVolume), trigger background processing.
-    wxGetApp().plater()->take_snapshot(_u8L("Reset Position"), UndoRedo::SnapshotType::GizmoAction);
+    wxGetApp().plater()->take_snapshot(_u8L("Reset position"), UndoRedo::SnapshotType::GizmoAction);
     m_glcanvas.do_move("");
 
     UpdateAndShow(true);
@@ -585,7 +590,7 @@ void GizmoObjectManipulation::reset_rotation_value(bool reset_relative)
     selection.synchronize_unselected_instances(Selection::SyncRotationType::RESET);
     selection.synchronize_unselected_volumes();
     // Copy rotation values from GLVolumes into Model (ModelInstance / ModelVolume), trigger background processing.
-    m_glcanvas.do_rotate(L("Reset Rotation"));
+    m_glcanvas.do_rotate(L("Reset rotation"));
 
     UpdateAndShow(true);
 }
@@ -860,13 +865,25 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         }
     }
     if (!focued_on_text) m_glcanvas.handle_sidebar_focus_event("", false);
-    
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+    float f_scale = m_glcanvas.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+
     GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_move, x, y);
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (imgui_wrapper->button(_L("Done"))) {
+        m_glcanvas.reset_all_gizmos();
+    }
 
     m_last_active_item = current_active_id;
     last_move_input_window_width = ImGui::GetWindowWidth();
     imgui_wrapper->end();
-    ImGui::PopStyleVar(1);
+    ImGui::PopStyleVar(2);
     ImGuiWrapper::pop_toolbar_style();
 }
 
@@ -1052,14 +1069,26 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     if (!focued_on_text  && !absolute_focued_on_text)
         m_glcanvas.handle_sidebar_focus_event("", false);
 
+    ImGui::Spacing(); // needed after Text
+    ImGui::Separator();
+    ImGui::Spacing();
+    float f_scale = m_glcanvas.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+
     GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_rotate, x, y);
+    
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (imgui_wrapper->button(_L("Done"))) {
+        m_glcanvas.reset_all_gizmos();
+    }
 
     m_last_active_item = current_active_id;
     last_rotate_input_window_width = ImGui::GetWindowWidth();
     imgui_wrapper->end();
 
     // BBS
-    ImGui::PopStyleVar(1);
+    ImGui::PopStyleVar(2);
     ImGuiWrapper::pop_toolbar_style();
 }
 
@@ -1214,7 +1243,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     if (display_size.x() > 0 && display_size.y() > 0 && display_size.z() > 0) {
         m_buffered_size = display_size;
     }
-    ImGui::Separator();
+
     ImGui::AlignTextToFramePadding();
     bool is_avoid_one_update{false};
     if (combox_changed) {
@@ -1286,8 +1315,18 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         }
     if (!focued_on_text)
         m_glcanvas.handle_sidebar_focus_event("", false);
+    
+    ImGui::Separator();
+    float f_scale = m_glcanvas.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
 
     GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_scale, x, y);
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (imgui_wrapper->button(_L("Done"))) {
+        m_glcanvas.reset_all_gizmos();
+    }
 
     m_last_active_item = current_active_id;
 
@@ -1295,6 +1334,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     imgui_wrapper->end();
 
     //BBS
+    ImGui::PopStyleVar(1);
     ImGuiWrapper::pop_toolbar_style();
 }
 

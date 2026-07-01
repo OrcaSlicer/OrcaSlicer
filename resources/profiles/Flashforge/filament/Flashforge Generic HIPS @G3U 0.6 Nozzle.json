@@ -3,7 +3,7 @@
 	"name": "Flashforge Generic HIPS @G3U 0.6 Nozzle",
 	"inherits": "Flashforge Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "b3CFhGGnZLzpyAWa",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"compatible_printers": [

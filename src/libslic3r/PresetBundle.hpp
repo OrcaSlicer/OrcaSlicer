@@ -370,7 +370,13 @@ public:
 
     //BBS: add some functions for multiple extruders
     int get_printer_extruder_count() const;
-    bool support_different_extruders();
+    bool support_different_extruders() const;
+
+    // Orca: Ensure filament_presets has at least one slot per nozzle on FFF printers.
+    // Called from (load|update)_selections before the parallel project_config arrays
+    // (filament_colour/colour_type/map) are sized off filament_presets.size(), so a
+    // short saved filament list doesn't truncate the loaded colors.
+    void update_filament_count();
 
     // Load user configuration and store it into the user profiles.
     // This method is called by the configuration wizard.
@@ -465,6 +471,7 @@ public:
 	static const char *ORCA_DEFAULT_PRINTER_VARIANT;
 	static const char *ORCA_DEFAULT_FILAMENT;
     static const char *ORCA_FILAMENT_LIBRARY;
+    static const char *ORCA_DEFAULT_FILAMENT_PLACEHOLDER;
 
 
     static std::array<Preset::Type, 3>  types_list(PrinterTechnology pt) {
@@ -473,10 +480,14 @@ public:
         return      { Preset::TYPE_PRINTER, Preset::TYPE_SLA_PRINT, Preset::TYPE_SLA_MATERIAL };
     }
 
-    // Orca: for validation only
-    bool has_errors() const;
+    // Orca: for validation only. The duplicate filament subtype check is opt-in for now
+    bool has_errors(bool check_duplicate_filament_subtypes = false) const;
 
 private:
+    // Orca: validation only - flag any printer with two or more compatible
+    // filament presets sharing one filament_id (ambiguous AMS subtype match).
+    bool check_duplicate_filament_subtypes() const;
+
     //std::pair<PresetsConfigSubstitutions, std::string> load_system_presets(ForwardCompatibilitySubstitutionRule compatibility_rule);
     //BBS: add json related logic
     std::pair<PresetsConfigSubstitutions, std::string> load_system_presets_from_json(ForwardCompatibilitySubstitutionRule compatibility_rule);

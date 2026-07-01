@@ -29,10 +29,11 @@
 static std::map<int, std::string> error_messages = {
     {1, L("The device cannot handle more conversations. Please retry later.")},
     {2, L("Player is malfunctioning. Please reinstall the system player.")},
-    {100, L("The player is not loaded, please click \"play\" button to retry.")},
-    {101, L("The player is not loaded, please click \"play\" button to retry.")},
-    {102, L("The player is not loaded, please click \"play\" button to retry.")},
-    {103, L("The player is not loaded, please click \"play\" button to retry.")}
+    {100, L("The player is not loaded; please click the \"play\" button to retry.")},
+    {101, L("The player is not loaded; please click the \"play\" button to retry.")},
+    {102, L("The player is not loaded; please click the \"play\" button to retry.")},
+    {103, L("The player is not loaded; please click the \"play\" button to retry.")},
+    {104, L("The player is not loaded because the GStreamer GTK video sink is missing or failed to initialize.")}
 };
 
 namespace Slic3r {
@@ -183,7 +184,7 @@ void MediaPlayCtrl::SetMachineObject(MachineObject* obj)
                 && m_last_user_play + wxTimeSpan::Seconds(3) < wxDateTime::Now()) {
             // resend ttcode to printer
             if (auto agent = wxGetApp().getAgent())
-                agent->get_camera_url(machine, [](auto) {});
+                agent->get_camera_url(machine, [](auto) {}, wxGetApp().get_printer_cloud_provider());
             m_last_user_play = wxDateTime::Now();
         }
         return;
@@ -251,7 +252,7 @@ void refresh_agora_url(char const* device, char const* dev_ver, char const* chan
     device2 += channel;
     wxGetApp().getAgent()->get_camera_url(device2, [context, callback](std::string url) {
         callback(context, url.c_str());
-    });
+    }, wxGetApp().get_printer_cloud_provider());
 }
 
 void MediaPlayCtrl::Play()
@@ -329,7 +330,7 @@ void MediaPlayCtrl::Play()
     if (!m_remote_proto) { // not support tutk
         m_failed_code = -1;
         m_url = "bambu:///local/";
-        Stop(_L("Please enter the IP of printer to connect."));
+        Stop(_L("Please enter the IP of the printer to connect."));
         return;
     }
 
@@ -377,7 +378,7 @@ void MediaPlayCtrl::Play()
                     BOOST_LOG_TRIVIAL(info) << "MediaPlayCtrl drop late ttcode for state: " << m_last_state;
                 }
             });
-        });
+        }, wxGetApp().get_printer_cloud_provider());
     }
 }
 
@@ -579,7 +580,7 @@ void MediaPlayCtrl::ToggleStream()
             file.close();
             m_streaming = true;
         });
-    });
+    }, wxGetApp().get_printer_cloud_provider());
 }
 
 void MediaPlayCtrl::msw_rescale() { 
@@ -839,6 +840,12 @@ void wxMediaCtrl2::DoSetSize(int x, int y, int width, int height, int sizeFlags)
 #else
     wxMediaCtrl::DoSetSize(x, y, width, height, sizeFlags);
 #endif
+#if defined(__LINUX__) && defined(__WXGTK__)
+    if (m_gtk_video_window) {
+        const wxSize client_size = GetClientSize();
+        m_gtk_video_window->SetSize(0, 0, client_size.GetWidth(), client_size.GetHeight());
+    }
+#endif
     if (sizeFlags & wxSIZE_USE_EXISTING) return;
     wxSize size = m_video_size;
     int maxHeight = (width * size.GetHeight() + size.GetHeight() - 1) / size.GetWidth();
@@ -853,4 +860,3 @@ void wxMediaCtrl2::DoSetSize(int x, int y, int width, int height, int sizeFlags)
         });
     }
 }
-

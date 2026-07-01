@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Cubicon PC @base",
 	"inherits": "fdm_filament_pc",
+	"setting_id": "Mzg6jfwb2nqfGkdV",
 	"filament_id": "P510cfd0",
 	"instantiation": "true",
 	"compatible_printers": [

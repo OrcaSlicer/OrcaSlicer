@@ -3,7 +3,7 @@
 	"name": "QIDI ASA",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "v2LrEujF68PPbrux",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_type": [
@@ -20,30 +20,6 @@
 	],
 	"nozzle_temperature": [
 		"270"
-	],
-	"cool_plate_temp": [
-		"90"
-	],
-	"eng_plate_temp": [
-		"90"
-	],
-	"hot_plate_temp": [
-		"90"
-	],
-	"textured_plate_temp": [
-		"90"
-	],
-	"cool_plate_temp_initial_layer": [
-		"90"
-	],
-	"eng_plate_temp_initial_layer": [
-		"90"
-	],
-	"hot_plate_temp_initial_layer": [
-		"90"
-	],
-	"textured_plate_temp_initial_layer": [
-		"90"
 	],
 	"enable_pressure_advance": [
 		"1"

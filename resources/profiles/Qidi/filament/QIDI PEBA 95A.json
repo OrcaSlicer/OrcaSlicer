@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"filament_id": "QD_0_1_36",
-	"setting_id": "GFSR98",
+	"setting_id": "qkErLCeMU5ufGB0k",
 	"name": "QIDI PEBA 95A",
 	"from": "system",
 	"instantiation": "true",
@@ -56,12 +56,6 @@
 	],
 	"temperature_vitrification": [
 		"30"
-	],
-	"hot_plate_temp_initial_layer": [
-		"35"
-	],
-	"hot_plate_temp": [
-		"35"
 	],
 	"compatible_printers": [
 		"Qidi X-Smart 3 0.4 nozzle",

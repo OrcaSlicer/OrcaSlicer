@@ -3,7 +3,7 @@
 	"name": "Prusa Generic FLEX @XL 5T",
 	"inherits": "fdm_filament_flex",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "PaXKTb31IFVovWiK",
 	"instantiation": "true",
 	"filament_loading_speed_start": "3",
 	"filament_loading_speed": "28",

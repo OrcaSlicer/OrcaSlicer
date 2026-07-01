@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_3_1_32",
-	"setting_id": "GFSN95",
 	"name": "QIDI Support For PAHT@X-Max 4-Series",
 	"from": "system",
 	"instantiation": "false",
@@ -87,5 +86,29 @@
 	"supertack_plate_temp": [
 		"80"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"cool_plate_temp": [
+		"80"
+	],
+	"eng_plate_temp": [
+		"80"
+	],
+	"textured_plate_temp": [
+		"80"
+	],
+	"textured_cool_plate_temp": [
+		"80"
+	],
+	"cool_plate_temp_initial_layer": [
+		"80"
+	],
+	"eng_plate_temp_initial_layer": [
+		"80"
+	],
+	"textured_plate_temp_initial_layer": [
+		"80"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"80"
+	]
 }

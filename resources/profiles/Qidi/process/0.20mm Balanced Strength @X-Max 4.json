@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
+	"setting_id": "oM72sw3mW85qL45A",
 	"name": "0.20mm Balanced Strength @X-Max 4",
 	"from": "system",
 	"inherits": "fdm_process_n_common",

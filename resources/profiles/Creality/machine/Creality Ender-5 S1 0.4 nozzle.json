@@ -3,7 +3,7 @@
 	"name": "Creality Ender-5 S1 0.4 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "1wZtkdPmvwYS53L6",
 	"instantiation": "true",
 	"printer_model": "Creality Ender-5 S1",
 	"default_print_profile": "0.20mm Standard @Creality Ender5S1",

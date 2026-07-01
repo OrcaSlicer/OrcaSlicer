@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "QD_3_1_39",
-	"setting_id": "GFSG99",
 	"name": "QIDI PETG Basic@X-Max 4-Series",
 	"from": "system",
 	"instantiation": "false",
@@ -70,10 +69,34 @@
 		"70"
 	],
 	"supertack_plate_temp_initial_layer": [
-		"70"
+		"60"
 	],
 	"supertack_plate_temp": [
+		"60"
+	],
+	"compatible_printers": [],
+	"cool_plate_temp": [
+		"60"
+	],
+	"eng_plate_temp": [
 		"70"
 	],
-	"compatible_printers": []
+	"textured_plate_temp": [
+		"70"
+	],
+	"textured_cool_plate_temp": [
+		"60"
+	],
+	"cool_plate_temp_initial_layer": [
+		"60"
+	],
+	"eng_plate_temp_initial_layer": [
+		"70"
+	],
+	"textured_plate_temp_initial_layer": [
+		"70"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"60"
+	]
 }

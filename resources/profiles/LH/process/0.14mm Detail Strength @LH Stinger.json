@@ -3,7 +3,7 @@
 	"name": "0.14mm Detail Strength @LH Stinger",
 	"inherits": "fdm_process_lh_common",
 	"from": "system",
-	"setting_id": "LHS_P_detail_strength",
+	"setting_id": "c3dgsHRrgdfhu5OQ",
 	"instantiation": "true",
 	"compatible_printers": [
 		"LH Stinger 0.4 nozzle",

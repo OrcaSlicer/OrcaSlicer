@@ -28,9 +28,6 @@ namespace Slic3r { namespace GUI {
 #define DESIGN_INPUT_SIZE wxSize(FromDIP(120), -1)
 #define DESIGN_LEFT_MARGIN 25
 
-class CheckBox;
-class TextInput;
-
 class PreferencesDialog : public DPIDialog
 {
 private:
@@ -71,9 +68,10 @@ public:
     ::CheckBox * m_developer_mode_ckeckbox   = {nullptr};
     ::CheckBox * m_internal_developer_mode_ckeckbox = {nullptr};
     ::CheckBox * m_dark_mode_ckeckbox        = {nullptr};
+    ::CheckBox * m_sync_user_preset_checkbox = {nullptr};
+    ::CheckBox * m_bambu_cloud_checkbox      = {nullptr};
     ::TextInput *m_backup_interval_textinput = {nullptr};
     ::ComboBox * m_network_version_combo     = {nullptr};
-    wxBoxSizer * m_network_version_sizer     = {nullptr};
     std::vector<NetworkLibraryVersionInfo> m_available_versions;
 
     wxString m_developer_mode_def;
@@ -84,30 +82,30 @@ public:
     std::vector<wxFlexGridSizer*> f_sizers;
 
     wxBoxSizer *create_item_title(wxString title);
-    wxBoxSizer *create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::function<void(wxString)> onchange = {});
-    wxBoxSizer *create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::vector<std::string> config_name_index);
+    wxBoxSizer *create_item_label(wxString label, const wxString tooltip = "", const wxString wiki_url = "");
+    wxBoxSizer *create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::function<void(wxString)> onchange = {}, const wxString wiki_url = "");
+    wxBoxSizer *create_item_combobox(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, std::vector<std::string> config_name_index, const wxString wiki_url = "");
     wxBoxSizer *create_item_region_combobox(wxString title, wxString tooltip);
     wxBoxSizer *create_item_language_combobox(wxString title, wxString tooltip);
     wxBoxSizer *create_item_loglevel_combobox(wxString title, wxString tooltip, std::vector<wxString> vlist);
-    wxBoxSizer *create_item_checkbox(wxString title, wxString tooltip, std::string param, const wxString secondary_title = "");
+    wxBoxSizer *create_item_checkbox(wxString title, wxString tooltip, std::string param, const wxString secondary_title = "", const wxString wiki_url = "");
     wxBoxSizer *create_item_darkmode(wxString title,wxString tooltip, std::string param);
     void set_dark_mode();
-    wxBoxSizer *create_item_button(wxString title, wxString title2, wxString tooltip, wxString tooltip2, std::function<void()> onclick);
+    wxBoxSizer *create_item_button(wxString title, wxString title2, wxString tooltip, wxString tooltip2, std::function<void()> onclick, const wxString wiki_url = "");
     wxBoxSizer *create_item_downloads(wxString title, wxString tooltip);
-    wxBoxSizer *create_item_input(wxString title, wxString title2, wxString tooltip, std::string param, std::function<void(wxString)> onchange = {});
-    wxBoxSizer *create_item_spinctrl(wxString title, wxString title2, wxString side_label, wxString tooltip, std::string param, int min, int max, std::function<void(int)> onchange = nullptr);
+    wxBoxSizer *create_item_input(wxString title, wxString title2, wxString tooltip, std::string param, std::function<void(wxString)> onchange = {}, const wxString wiki_url = "");
+    wxBoxSizer *create_item_spinctrl(wxString title, wxString title2, wxString side_label, wxString tooltip, std::string param, int min, int max, std::function<void(int)> onchange = nullptr, const wxString wiki_url = "");
     wxBoxSizer *create_camera_orbit_mult_input(wxString title, wxString tooltip);
     wxBoxSizer *create_item_backup(wxString title, wxString tooltip);
     wxBoxSizer *create_item_auto_reslice(wxString title, wxString checkbox_tooltip, wxString delay_tooltip);
-    wxBoxSizer *create_item_draco(wxString title, wxString side_label, wxString tooltip);
-    wxBoxSizer *create_item_multiple_combobox(wxString title, wxString tooltip, std::string parama, std::vector<wxString> vlista, std::vector<wxString> vlistb);
+    wxBoxSizer *create_item_bambu_cloud(wxString title, wxString tooltip);
+    wxBoxSizer *create_item_network_plugin_version(wxString title, wxString tooltip);
 #ifdef WIN32
     wxBoxSizer *create_item_link_association(wxString url_prefix, wxString website_name);
 #endif // WIN32
 
     void create_items();
     void create_sync_page();
-    void create_shortcuts_page();
     wxBoxSizer* create_debug_page();
 
     void UpdateSidebarLayout();
@@ -119,7 +117,7 @@ public:
     int m_current_language_selected = {0};
 
 private:
-    std::tuple<wxBoxSizer*, ComboBox*> create_item_combobox_base(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, unsigned int current_index);
+    std::tuple<wxBoxSizer*, ComboBox*> create_item_combobox_base(wxString title, wxString tooltip, std::string param, std::vector<wxString> vlist, unsigned int current_index, const wxString wiki_url = "");
 };
 
 }} // namespace Slic3r::GUI

@@ -3,6 +3,7 @@
 	"name": "Tiertime ASA",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
+	"setting_id": "6rwe3zrsvad1oq4C",
 	"filament_id": "GFB01",
 	"instantiation": "true",
 	"fan_max_speed": [

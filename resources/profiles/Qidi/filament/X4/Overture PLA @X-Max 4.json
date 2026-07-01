@@ -1,7 +1,6 @@
 {
 	"type": "filament",
 	"filament_id": "GFL99",
-	"setting_id": "GFSL99",
 	"name": "Overture PLA@X-Max 4-Series",
 	"from": "system",
 	"instantiation": "false",
@@ -66,5 +65,29 @@
 	"hot_plate_temp": [
 		"55"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"cool_plate_temp": [
+		"45"
+	],
+	"eng_plate_temp": [
+		"55"
+	],
+	"textured_plate_temp": [
+		"55"
+	],
+	"textured_cool_plate_temp": [
+		"45"
+	],
+	"cool_plate_temp_initial_layer": [
+		"45"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"textured_plate_temp_initial_layer": [
+		"55"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"45"
+	]
 }

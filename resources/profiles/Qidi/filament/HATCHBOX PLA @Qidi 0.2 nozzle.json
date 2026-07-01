@@ -3,7 +3,7 @@
 	"name": "HATCHBOX PLA @0.2 nozzle",
 	"inherits": "HATCHBOX PLA @Qidi",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "GrYmKcX6ghgUO8z0",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

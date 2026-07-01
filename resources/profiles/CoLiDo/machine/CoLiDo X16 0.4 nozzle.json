@@ -2,7 +2,7 @@
 	"type": "machine",
 	"name": "CoLiDo X16 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "ciVF4ZFTo8Kjqvv1",
 	"instantiation": "true",
 	"printer_model": "CoLiDo X16",
 	"adaptive_bed_mesh_margin": "0",

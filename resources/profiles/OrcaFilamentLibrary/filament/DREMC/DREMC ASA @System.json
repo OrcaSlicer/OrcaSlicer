@@ -1,0 +1,8 @@
+{
+	"type": "filament",
+	"name": "DREMC ASA @System",
+	"inherits": "DREMC ASA @base",
+	"from": "system",
+	"instantiation": "false",
+	"compatible_printers": []
+}

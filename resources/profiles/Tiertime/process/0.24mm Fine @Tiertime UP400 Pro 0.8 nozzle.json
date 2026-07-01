@@ -3,7 +3,7 @@
 	"name": "0.24mm Fine @Tiertime UP400 Pro 0.8 nozzle",
 	"inherits": "fdm_process_tiertime_0.24_nozzle_0.8",
 	"from": "system",
-	"setting_id": "GP027",
+	"setting_id": "aIJRdPXiyB5yUtVg",
 	"instantiation": "true",
 	"description": "It has a smaller layer height and results in smoother surface and higher printing quality.",
 	"elefant_foot_compensation": "0.15",

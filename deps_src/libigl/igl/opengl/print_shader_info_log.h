@@ -14,8 +14,8 @@ namespace igl
 {
   namespace opengl
   {
-    // Inputs:
-    //   obj  OpenGL index of shader to print info log about
+    /// Print the info log for a shader object
+    /// @param[in] obj  OpenGL index of shader to print info log about
     IGL_INLINE void print_shader_info_log(const GLuint obj);
   }
 }

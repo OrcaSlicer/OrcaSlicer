@@ -304,7 +304,7 @@ void HistoryWindow::reqeust_history_result(MachineObject* obj)
             cali_info.use_nozzle_volume_type = false;
             cali_info.use_extruder_id        = false;
             CalibUtils::emit_get_PA_calib_infos(cali_info);
-            m_tips->SetLabel(_L("Refreshing the historical Flow Dynamics Calibration records"));
+            m_tips->SetLabel(_L("Refreshing the previous Flow Dynamics Calibration records"));
             BOOST_LOG_TRIVIAL(info) << "request calib history";
         }
     }
@@ -476,7 +476,7 @@ int HistoryWindow::get_extruder_id()
 void HistoryWindow::on_click_new_button(wxCommandEvent& event)
 {
     if (curr_obj && curr_obj->get_printer_series() == PrinterSeries::SERIES_P1P && m_calib_results_history.size() >= 16) {
-        MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold %d history results per nozzle."), 16), wxEmptyString, wxICON_WARNING | wxOK);
+        MessageDialog msg_dlg(nullptr, wxString::Format(_L("This machine type can only hold %d historical results per nozzle."), 16), wxEmptyString, wxICON_WARNING | wxOK);
         msg_dlg.ShowModal();
         return;
     }
@@ -644,7 +644,14 @@ wxArrayString NewCalibrationHistoryDialog::get_all_filaments(const MachineObject
     std::set<std::string> filament_id_set;
     std::set<std::string> printer_names;
     std::ostringstream    stream;
-    stream << std::fixed << std::setprecision(1) << obj->GetExtderSystem()->GetNozzleDiameter(0);
+    // If the machine didn't report a nozzle diameter (0.0 = unknown), fall back to the currently
+    // selected printer preset so the filament list isn't empty.
+    float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
+    if (machine_diameter == 0.0f && preset_bundle) {
+        const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
+        if (opt) machine_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
+    }
+    stream << std::fixed << std::setprecision(1) << machine_diameter;
     std::string nozzle_diameter_str = stream.str();
 
     for (auto printer_it = preset_bundle->printers.begin(); printer_it != preset_bundle->printers.end(); printer_it++) {
@@ -906,8 +913,7 @@ void NewCalibrationHistoryDialog::on_ok(wxCommandEvent &event)
 
         if (iter != m_history_results.end()) {
 
-            wxString duplicate_name_info = wxString::Format(_L("There is already a historical calibration result with the same name: %s. Only one of the results with the same name "
-                                                      "is saved. Are you sure you want to override the historical result?"), m_new_result.name);
+            wxString duplicate_name_info = wxString::Format(_L("There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result\?"), m_new_result.name);
 
             duplicate_name_info = wxString::Format(_L("Within the same extruder, the name(%s) must be unique when the filament type, nozzle diameter, and nozzle flow are the same.\n"
                                                       "Are you sure you want to override the historical result?"), m_new_result.name);

@@ -3,7 +3,7 @@
 	"name": "QIDI ABS-GF",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "FW543AnWfRtseB8W",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [
@@ -35,12 +35,6 @@
 	],
 	"chamber_temperature": [
 		"55"
-	],
-	"hot_plate_temp_initial_layer": [
-		"100"
-	],
-	"hot_plate_temp": [
-		"100"
 	],
 	"overhang_fan_speed": [
 		"80"

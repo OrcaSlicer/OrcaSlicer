@@ -3,7 +3,7 @@
 	"name": "0.48mm Standard @Arena X1C 0.8 nozzle",
 	"inherits": "fdm_process_arena_0.48_nozzle_0.8",
 	"from": "system",
-	"setting_id": "GP034",
+	"setting_id": "ZcviTCabCemJLEEa",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Orca Arena X1 Carbon 0.8 nozzle",

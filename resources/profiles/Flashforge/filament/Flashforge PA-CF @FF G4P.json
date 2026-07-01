@@ -3,6 +3,7 @@
 	"name": "Flashforge PA-CF @FF G4P",
 	"inherits": "Flashforge Generic PLA-CF10",
 	"from": "system",
+	"setting_id": "Yu7hL4izNsgDVqMT",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"0"

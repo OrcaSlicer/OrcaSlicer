@@ -3,7 +3,7 @@
 	"name": "CoPrint Generic TPU",
 	"inherits": "CoPrint Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "2mWqeih012I5D2CK",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"fan_max_speed": [

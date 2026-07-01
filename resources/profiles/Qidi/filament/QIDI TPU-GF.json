@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"filament_id": "QD_0_1_15",
-	"setting_id": "GFSR99",
+	"setting_id": "r8sdMolKGn3b52NX",
 	"name": "QIDI TPU-GF",
 	"from": "system",
 	"instantiation": "true",
@@ -44,12 +44,6 @@
 	],
 	"temperature_vitrification": [
 		"30"
-	],
-	"hot_plate_temp_initial_layer": [
-		"35"
-	],
-	"hot_plate_temp": [
-		"35"
 	],
 	"compatible_printers": [
 		"Qidi X-Smart 3 0.4 nozzle",

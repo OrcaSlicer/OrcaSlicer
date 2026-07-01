@@ -3,6 +3,7 @@
 	"name": "Prusa MK4S 0.8 nozzle",
 	"inherits": "Prusa MK4S 0.4 nozzle",
 	"from": "system",
+	"setting_id": "rMzjWvSpqLsRK0gP",
 	"instantiation": "true",
 	"default_filament_profile": "Prusa Generic PLA @MK4S 0.8",
 	"default_print_profile": "0.40mm QUALITY @MK4S 0.8",

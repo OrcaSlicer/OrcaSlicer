@@ -3,7 +3,7 @@
 	"name": "QIDI PETG-CF",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSN99",
+	"setting_id": "vg3YJMhVaXTMTVLJ",
 	"filament_id": "GFN98",
 	"instantiation": "true",
 	"filament_type": [
@@ -41,12 +41,6 @@
 	],
 	"pressure_advance": [
 		"0.048"
-	],
-	"hot_plate_temp_initial_layer": [
-		"80"
-	],
-	"hot_plate_temp": [
-		"80"
 	],
 	"slow_down_layer_time": [
 		"6"

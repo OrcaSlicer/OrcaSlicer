@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Odorless @Qidi Q2 0.8 nozzle",
 	"inherits": "QIDI ABS Odorless@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "4ipzt6SeTyaywGZF",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"24.5"
