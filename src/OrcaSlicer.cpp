@@ -1472,7 +1472,7 @@ int CLI::run(int argc, char **argv)
     //int arrange_option;
     int plate_to_slice = 0, filament_count = 0, duplicate_count = 0, real_duplicate_count = 0, current_extruder_count = 1, new_extruder_count = 1, current_printer_variant_count = 1, current_print_variant_count = 1, new_printer_variant_count = 1;
     bool first_file = true, is_bbl_3mf = false, need_arrange = true, has_thumbnails = false, up_config_to_date = false, normative_check = true, duplicate_single_object = false, use_first_fila_as_default = false, minimum_save = false, enable_timelapse = false;
-    bool allow_rotations = false, skip_modified_gcodes = false, avoid_extrusion_cali_region = false, skip_useless_pick = false, allow_newer_file = false, current_is_multi_extruder = false, new_is_multi_extruder = false, allow_mix_temp = false, enable_wrapping_detect = false;
+    bool allow_rotations = false, skip_modified_gcodes = false, avoid_extrusion_cali_region = false, skip_useless_pick = false, allow_newer_file = false, current_is_multi_extruder = false, new_is_multi_extruder = false, allow_mix_temp = false, allow_mix_incompatible_material = false, enable_wrapping_detect = false;
     Semver file_version;
     std::map<size_t, bool> orients_requirement;
     std::vector<Preset*> project_presets;
@@ -1546,6 +1546,10 @@ int CLI::run(int argc, char **argv)
     ConfigOptionBool* allow_mix_temp_option = m_config.option<ConfigOptionBool>("allow_mix_temp");
     if (allow_mix_temp_option)
         allow_mix_temp = allow_mix_temp_option->value;
+
+    ConfigOptionBool* allow_mix_incompatible_material_option = m_config.option<ConfigOptionBool>("allow_mix_incompatible_material");
+    if (allow_mix_incompatible_material_option)
+        allow_mix_incompatible_material = allow_mix_incompatible_material_option->value;
 
     const ConfigOptionBool* export_statistics_option = m_config.option<ConfigOptionBool>("export_statistics");
     const bool              export_statistics        = export_statistics_option != nullptr && export_statistics_option->value;
@@ -6894,6 +6898,7 @@ int CLI::run(int argc, char **argv)
 
                         std::vector<StringObjectException> warnings;
                         print_fff->set_check_multi_filaments_compatibility(!allow_mix_temp);
+                        print_fff->set_check_multi_filaments_material_compatibility(!allow_mix_incompatible_material);
                         auto err = print->validate(&warnings);
                         if (!err.string.empty()) {
                             if ((STRING_EXCEPT_LAYER_HEIGHT_EXCEEDS_LIMIT == err.type) && no_check) {
