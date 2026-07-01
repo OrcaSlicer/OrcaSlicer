@@ -387,7 +387,7 @@ void PresetBundleDialog::ListBundles()
 
         temp["printers"]  = strip_prefix(metadata.printer_presets);
         temp["filaments"] = strip_prefix(metadata.filament_presets);
-        temp["presets"]   = strip_prefix(metadata.print_presets);
+        temp["processes"]   = strip_prefix(metadata.print_presets);
 
         temp["update_available"]   = metadata.update_available;
         temp["unauthorized"]       = metadata.unauthorized;
