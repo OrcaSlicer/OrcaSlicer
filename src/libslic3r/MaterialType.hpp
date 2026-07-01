@@ -29,9 +29,10 @@ struct MaterialTypeInfo {
 // Centralising the lists here avoids repeating them on every type/variant.
 struct BaseMaterialCompatibility {
     std::string base_material;
-    // Base materials this one is known to bond/adhere with (beyond itself).
+    // Base materials this one is known to bond/adhere with (beyond itself). "*" matches every base.
     std::vector<std::string> compatible;
-    // Base materials this one is known not to bond/adhere with.
+    // Base materials this one is known not to bond/adhere with. "*" matches every base
+    // (e.g. soluble support materials such as PVA/BVOH bond with nothing).
     std::vector<std::string> incompatible;
 };
 
