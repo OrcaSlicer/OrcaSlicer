@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "QD_3_1_5",
 	"name": "QIDI PLA-CF@X-Max 4-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_x4_common",
+	"from": "system",
+	"filament_id": "QD_3_1_5",
+	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"0"
 	],

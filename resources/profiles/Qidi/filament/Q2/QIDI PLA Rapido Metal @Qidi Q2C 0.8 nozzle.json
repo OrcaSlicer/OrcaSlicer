@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "cAFmKJHPAshlluST",
 	"name": "QIDI PLA Rapido Metal @Qidi Q2C 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Rapido Metal@Q2C-Series",
+	"from": "system",
+	"setting_id": "cAFmKJHPAshlluST",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.01"
 	],
