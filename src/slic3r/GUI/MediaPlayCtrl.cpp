@@ -7,7 +7,7 @@
 #include "I18N.hpp"
 #include "MsgDialog.hpp"
 #include "DownloadProgressDialog.hpp"
-#include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/BBLNetworkPlugin.hpp"
 
 
 #include <boost/lexical_cast.hpp>
@@ -161,7 +161,7 @@ void MediaPlayCtrl::SetMachineObject(MachineObject* obj)
         m_device_busy    = obj->is_camera_busy_off();
         m_tutk_state     = obj->tutk_state;
 
-        if (DevPrinterConfigUtil::get_printer_series_str(obj->printer_type) == "series_o" && NetworkAgent::use_legacy_network) {
+        if (DevPrinterConfigUtil::get_printer_series_str(obj->printer_type) == "series_o" && BBLNetworkPlugin::instance().use_legacy_network()) {
             // Legacy plugin cannot support remote play for H2D, force using local mode
             m_remote_proto = MachineObject::LVR_None;
         }

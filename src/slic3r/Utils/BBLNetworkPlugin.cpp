@@ -79,7 +79,7 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
 
     // Auto-migration: If loading legacy version and versioned library doesn't exist,
     // but unversioned legacy library does exist, copy it to versioned format
-    if (version == BAMBU_NETWORK_AGENT_VERSION_LEGACY) {
+    if (is_legacy_version(version)) {
         boost::filesystem::path versioned_path;
         boost::filesystem::path legacy_path;
 #if defined(_MSC_VER) || defined(_WIN32)
@@ -162,12 +162,15 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
     // Load all function pointers
     load_all_function_pointers();
 
-    // Sync legacy network flag from NetworkAgent (set during GUI_App initialization)
-    m_use_legacy_network = NetworkAgent::use_legacy_network;
+    // Sync legacy network flag from loaded plugin
+    m_use_legacy_network = is_legacy_version(version);
 
     std::string loaded_version;
     if (m_get_version) {
         loaded_version = m_get_version();
+        if (!loaded_version.empty()) {
+            m_use_legacy_network = is_legacy_version(loaded_version);
+        }
     }
 
     BOOST_LOG_TRIVIAL(info) << "BBLNetworkPlugin::initialize: legacy_mode="
@@ -207,6 +210,8 @@ int BBLNetworkPlugin::unload()
 #endif
 
     clear_all_function_pointers();
+
+    m_use_legacy_network = false;
 
     return 0;
 }
@@ -377,7 +382,7 @@ bool BBLNetworkPlugin::versioned_library_exists(const std::string& version)
 
     if (boost::filesystem::exists(path)) return true;
 
-    if (version == BAMBU_NETWORK_AGENT_VERSION_LEGACY) {
+    if (is_legacy_version(version)) {
         return legacy_library_exists();
     }
 

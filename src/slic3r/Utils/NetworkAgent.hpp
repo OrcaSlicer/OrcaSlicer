@@ -36,7 +36,6 @@ public:
 #endif
     static std::string get_version();
     static void* get_network_function(const char* name);
-    static bool use_legacy_network;
 
     static NetworkLibraryLoadError get_load_error();
     static void clear_load_error();

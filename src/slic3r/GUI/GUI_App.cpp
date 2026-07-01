@@ -1153,7 +1153,7 @@ std::string GUI_App::get_plugin_url(std::string name, std::string country_code)
     std::string url = get_http_url(country_code);
 
     std::string curr_version;
-    if (NetworkAgent::use_legacy_network) {
+    if (use_legacy_network_plugin()) {
         curr_version = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
     } else if (name == "plugins" && app_config) {
         std::string user_version = app_config->get_network_plugin_version();
@@ -1208,7 +1208,7 @@ int GUI_App::download_plugin(std::string name, std::string package_name, Install
     // Determine OS type for plugin download (must be set per-request since global
     // extra headers are no longer initialised on this branch).
 #if defined(__WINDOWS__)
-    std::string os_type = (is_running_on_arm64() && !NetworkAgent::use_legacy_network) ? "windows_arm" : "windows";
+    std::string os_type = (is_running_on_arm64() && !use_legacy_network_plugin()) ? "windows_arm" : "windows";
 #elif defined(__APPLE__)
     std::string os_type = "macos";
 #elif defined(__linux__)
@@ -1887,7 +1887,7 @@ bool GUI_App::check_networking_version()
     }
 
     std::string studio_ver;
-    if (NetworkAgent::use_legacy_network) {
+    if (use_legacy_network_plugin()) {
         studio_ver = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
     } else if (app_config) {
         std::string user_version = app_config->get_network_plugin_version();
@@ -1907,6 +1907,11 @@ bool GUI_App::check_networking_version()
 
     m_networking_compatible = false;
     return false;
+}
+
+bool GUI_App::use_legacy_network_plugin() const
+{
+    return app_config && BBLNetworkPlugin::is_legacy_version(app_config->get_network_plugin_version());
 }
 
 bool GUI_App::is_compatibility_version()
@@ -3003,9 +3008,8 @@ bool GUI_App::on_init_inner()
 
     // Orca: select network plugin version based on configured version string
     std::string configured_version = app_config->get_network_plugin_version();
-    NetworkAgent::use_legacy_network = (configured_version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
     BOOST_LOG_TRIVIAL(info) << "Network plugin mode: "
-        << (NetworkAgent::use_legacy_network ? ("legacy (version: " + std::string(BAMBU_NETWORK_AGENT_VERSION_LEGACY) + ")") : ("modern (version: " + configured_version + ")"));
+        << (use_legacy_network_plugin() ? ("legacy (version: " + std::string(BAMBU_NETWORK_AGENT_VERSION_LEGACY) + ")") : ("modern (version: " + configured_version + ")"));
     // Force legacy network plugin if debugger attached
     // See https://github.com/bambulab/BambuStudio/issues/6726
     /* if (!NetworkAgent::use_legacy_network) {
@@ -3284,7 +3288,7 @@ void GUI_App::copy_network_if_available()
         fs::remove(network_library);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Copying network library from " << network_library << " to " << network_library_dst << " successfully.";
 
-        app_config->set(SETTING_NETWORK_PLUGIN_VERSION, cached_version);
+        app_config->set_network_plugin_version(cached_version);
         app_config->save();
     }
 
@@ -3349,7 +3353,7 @@ bool GUI_App::on_init_network(bool try_backup)
                 if (config_base != loaded_version) {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version << " to loaded "
                                             << loaded_version;
-                    app_config->set(SETTING_NETWORK_PLUGIN_VERSION, loaded_version);
+                    app_config->set_network_plugin_version(loaded_version);
                     app_config->save();
                 }
             }
@@ -3475,7 +3479,7 @@ bool GUI_App::on_init_network(bool try_backup)
             m_user_manager = new Slic3r::UserManager();
     }
 
-    if (should_load_networking_plugin && m_networking_compatible && !NetworkAgent::use_legacy_network) {
+    if (should_load_networking_plugin && m_networking_compatible && !use_legacy_network_plugin()) {
         app_config->clear_remind_network_update_later();
 
         if (has_network_update_available()) {
