@@ -12244,6 +12244,13 @@ CLIMiscConfigDef::CLIMiscConfigDef()
     def->tooltip = "Allow filaments with high/low temperature to be printed together.";
     def->cli_params = "option";
     def->set_default_value(new  ConfigOptionBool(false));
+
+    def = this->add("allow_mix_incompatible_material", coBool);
+    // internal use only, don't need translation
+    def->label = "Allow filaments with incompatible material types to be printed together";
+    def->tooltip = "Allow filaments with incompatible material types to be printed together.";
+    def->cli_params = "option";
+    def->set_default_value(new  ConfigOptionBool(false));
 }
 
 const CLIActionsConfigDef    cli_actions_config_def;

@@ -1180,6 +1180,30 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
             }
         }
 
+        if (param == "enable_incompatible_material_mixed_printing") {
+            if (checkbox->GetValue()) {
+                const wxString warning_title = _L("Material Compatibility Warning");
+                const wxString warning_message =
+                    _L("Printing materials that are not known to bond with each other may cause:\n"
+                        "• Poor layer adhesion between materials\n"
+                        "• Delamination of the printed parts\n\n"
+                        "Continue with enabling this feature?");
+
+                MessageDialog msg_dialog(
+                    nullptr,
+                    warning_message,
+                    warning_title,
+                    wxICON_WARNING | wxYES_NO | wxYES_DEFAULT | wxCENTRE
+                );
+
+                if (msg_dialog.ShowModal() != wxID_YES) {
+                    checkbox->SetValue(false);
+                    app_config->set_bool(param, false);
+                    app_config->save();
+                }
+            }
+        }
+
         e.Skip();
     });
 
@@ -1796,7 +1820,10 @@ void PreferencesDialog::create_items()
 
     auto item_mix_print_high_low_temperature = create_item_checkbox(_L("Remove mixed temperature restriction"), _L("With this option enabled, you can print materials with a large temperature difference together."), "enable_high_low_temp_mixed_printing");
     g_sizer->Add(item_mix_print_high_low_temperature);
- 
+
+    auto item_mix_print_incompatible_material = create_item_checkbox(_L("Remove incompatible material type restriction"), _L("With this option enabled, you can print materials that are not known to bond with each other together."), "enable_incompatible_material_mixed_printing");
+    g_sizer->Add(item_mix_print_incompatible_material);
+
     //// CONTROL > Camera
     g_sizer->Add(create_item_title(_L("Camera")), 1, wxEXPAND);
 

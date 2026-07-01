@@ -471,6 +471,10 @@ void AppConfig::set_defaults()
         set_bool("enable_high_low_temp_mixed_printing", false);
     }
 
+    if (get("enable_incompatible_material_mixed_printing").empty()){
+        set_bool("enable_incompatible_material_mixed_printing", false);
+    }
+
     if (get("ignore_ext_filament_in_filament_map").empty()){
         set_bool("ignore_ext_filament_in_filament_map", false);
     }
