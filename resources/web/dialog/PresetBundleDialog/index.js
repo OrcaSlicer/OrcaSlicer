@@ -2,7 +2,7 @@
 const bundlesById = new Map();        // bundleId -> bundle object
 const printersByBundle = new Map();   // bundleId -> Map(index -> printerName)
 const filamentsByBundle = new Map();  // bundleId -> Map(index -> filamentName)
-const presetsByBundle = new Map();    // bundleId -> Map(index -> presetName)
+const processesByBundle = new Map();    // bundleId -> Map(index -> presetName)
 const UPDATE_TOOLTIP = "Update available";
 const UNAUTHORIZED_TOOLTIP = "Unauthorized bundle";
 
@@ -193,7 +193,7 @@ function unpackPayload(payload) {
   bundlesById.clear();
   printersByBundle.clear();
   filamentsByBundle.clear();
-  presetsByBundle.clear();
+  processesByBundle.clear();
 
   const list = payload?.data || [];
   for (const bundle of list) {
@@ -212,7 +212,7 @@ function unpackPayload(payload) {
 
     printersByBundle.set(id, new Map((bundle.printers || []).map((name, i) => [i, name])));
     filamentsByBundle.set(id, new Map((bundle.filaments || []).map((name, i) => [i, name])));
-    presetsByBundle.set(id, new Map((bundle.presets || []).map((name, i) => [i, name])));
+    processesByBundle.set(id, new Map((bundle.processes || []).map((name, i) => [i, name])));
   }
 }
 
@@ -277,14 +277,14 @@ function renderBottomForBundle(bundleId) {
   const key = String(bundleId || "");
   const printers = printersByBundle.get(key) || new Map();
   const filaments = filamentsByBundle.get(key) || new Map();
-  const presets = presetsByBundle.get(key) || new Map();
+  const processes = processesByBundle.get(key) || new Map();
 
   // Convert to a flat list of rows { typeLabel, name }
   const rows = [];
 
   for (const [, name] of printers) rows.push({ type: "Printer", name });
   for (const [, name] of filaments) rows.push({ type: "Filament", name });
-  for (const [, name] of presets) rows.push({ type: "Preset", name });
+  for (const [, name] of processes) rows.push({ type: "Process", name });
 
   bottomList.innerHTML = rows.map((r, idx) => `
     <div class="row" data-id="${escapeAttr(bundleId)}" data-idx="${idx}">

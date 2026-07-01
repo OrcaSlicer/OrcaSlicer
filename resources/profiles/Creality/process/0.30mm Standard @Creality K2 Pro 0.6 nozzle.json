@@ -3,7 +3,7 @@
 	"name": "0.30mm Standard @Creality K2 Pro 0.6 nozzle",
 	"inherits": "fdm_process_creality_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "BUhyANei4GEhKLTW",
 	"instantiation": "true",
 	"max_travel_detour_distance": "0",
 	"bottom_surface_pattern": "monotonic",

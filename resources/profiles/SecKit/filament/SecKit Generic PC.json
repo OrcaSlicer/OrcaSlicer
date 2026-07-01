@@ -3,7 +3,7 @@
 	"name": "SecKit Generic PC",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "8DHToBaqE7g5VNvN",
 	"filament_id": "GFC99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

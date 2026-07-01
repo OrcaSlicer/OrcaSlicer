@@ -5,6 +5,7 @@
 	"elefant_foot_compensation": "0",
 	"from": "system",
 	"inherits": "fdm_process_ER20_0.20",
+	"setting_id": "GFfpctaMRI4Nuqk9",
 	"instantiation": "true",
 	"name": "0.20mm Strength @Eryone ER20",
 	"sparse_infill_density": "25%",

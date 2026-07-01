@@ -3,6 +3,7 @@
     "name": "FilAr PLA-mate Violeta",
     "inherits": "FilAr PLA-mate @base",
     "from": "system",
+    "setting_id": "z2Pk06JzY9Tr1WjQ",
     "filament_id": "FILAR0046",
     "instantiation": "true",
     "filament_vendor": [

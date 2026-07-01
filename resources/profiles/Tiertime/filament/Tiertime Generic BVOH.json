@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic BVOH",
 	"inherits": "fdm_filament_bvoh",
 	"from": "system",
+	"setting_id": "dhrpnirMnet0hJZl",
 	"filament_id": "GFS97",
 	"instantiation": "true",
 	"compatible_printers": [

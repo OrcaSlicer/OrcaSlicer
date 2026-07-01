@@ -3,7 +3,7 @@
 	"name": "Sovol Zero PETG",
 	"inherits": "Generic PETG @System",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "75OJvkXlmbcaHQfW",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

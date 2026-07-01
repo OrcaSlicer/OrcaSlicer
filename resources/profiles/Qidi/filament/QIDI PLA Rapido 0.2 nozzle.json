@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido 0.2 nozzle",
 	"inherits": "QIDI PLA Rapido",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "jpTA43XolFvODs9f",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

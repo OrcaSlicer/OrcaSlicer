@@ -3,6 +3,7 @@
 	"name": "Generic PET @FF G4",
 	"inherits": "Flashforge Generic TPU",
 	"from": "system",
+	"setting_id": "JvdxJyy7xCm3F0xH",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"0"

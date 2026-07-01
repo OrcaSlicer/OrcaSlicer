@@ -3,7 +3,7 @@
 	"name": "QIDI WOOD Rapido @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "QIDI WOOD Rapido",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "AZB82l14yp3vT5sz",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

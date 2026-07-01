@@ -304,6 +304,9 @@ public:
 
         m_bg_color = StateColor::darkModeColorFor(wxColour("#FFFFFF"));
         m_fg_color = StateColor::darkModeColorFor(wxColour("#6B6A6A"));
+        m_progress_bg_color = StateColor::darkModeColorFor(wxColour("#DFDFDF"));
+        m_progress_fg_color = StateColor::darkModeColorFor(wxColour("#009688"));
+        m_progress_h = FromDIP(6);
         bool dark_mode = m_fg_color != wxColour("#6B6A6A");
         wxSize sz  = m_window->GetClientSize();
         BitmapCache bmp_cache;
@@ -333,20 +336,34 @@ public:
         dc.DrawLabel(m_text_version, rc, wxALIGN_CENTER);
 
         dc.SetFont(m_font_action);
-        rc.y      = c_sz.GetHeight() * 0.88;
+        rc.y      = c_sz.GetHeight() * 0.85;
         rc.height = dc.GetTextExtent(m_text_action).GetHeight();
         dc.DrawLabel(m_text_action, rc, wxALIGN_CENTER);
+
+        const wxRect progress_rc(0, c_sz.GetHeight() - m_progress_h, c_sz.GetWidth(), m_progress_h);
+                
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.SetBrush(wxBrush(m_progress_bg_color));
+        dc.DrawRectangle(progress_rc);
+
+        const int fill_width = progress_rc.GetWidth() * m_progress * 0.01;
+        if (fill_width > 0) {
+            dc.SetBrush(wxBrush(m_progress_fg_color));
+            dc.DrawRectangle(0, progress_rc.GetTop(), fill_width, m_progress_h);
+        }
     }
 
-    void SetText(const wxString& text)
+    void SetText(const wxString& text, int progress)
     {
-        if (!text.empty()) {
+        int calc_progress = std::max(m_progress, std::clamp(progress, 0, 100));
+        if (m_text_action != text || m_progress != calc_progress){
             m_text_action = text;
+            m_progress = calc_progress;
             m_window->Refresh();
             m_window->Update();
 #ifdef __WXOSX__
-            // without this code splash screen wouldn't be updated under OSX
-            wxYield();
+        // without this code splash screen wouldn't be updated under OSX
+        wxYield();
 #endif
         }
     }
@@ -383,9 +400,13 @@ private:
     wxBitmap m_logo_bmp;
     wxColour m_fg_color;
     wxColour m_bg_color;
+    wxColour m_progress_bg_color;
+    wxColour m_progress_fg_color;
 
     wxString m_text_version = GUI_App::format_display_version();
     wxString m_text_action  = _L("Loading configuration") + dots;
+    int      m_progress     = 0;
+    int      m_progress_h   = 6;
 
     wxFont m_font_version = Label::Body_16;
     wxFont m_font_action  = Label::Body_16;
@@ -958,7 +979,7 @@ void GUI_App::post_init()
             MessageDialog dlg(nullptr,
                 _L("Since version 2.4.0, OrcaSlicer syncs user profiles through Orca Cloud instead of Bambu Cloud.\n\n"
                    "To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. "
-                   "If any profiles are still missing afterwards, follow the guide in our wiki to restore them.\n\n"
+                   "To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n\n"
                    "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."),
                 _L("Profile syncing change"),
                 wxOK,
@@ -2816,22 +2837,24 @@ bool GUI_App::on_init_inner()
 #endif
 #endif
 
-    if (m_last_config_version) {
-        int last_major = m_last_config_version->maj();
-        int last_minor = m_last_config_version->min();
-        int last_patch = m_last_config_version->patch()/100;
-        std::string studio_ver = SLIC3R_VERSION;
-        int cur_major = atoi(studio_ver.substr(0,2).c_str());
-        int cur_minor = atoi(studio_ver.substr(3,2).c_str());
-        int cur_patch = atoi(studio_ver.substr(6,2).c_str());
-        BOOST_LOG_TRIVIAL(info) << boost::format("last app version {%1%.%2%.%3%}, current version {%4%.%5%.%6%}")
-            %last_major%last_minor%last_patch%cur_major%cur_minor%cur_patch;
-        if ((last_major != cur_major)
-            ||(last_minor != cur_minor)
-            ||(last_patch != cur_patch)) {
-            remove_old_networking_plugins();
-        }
-    }
+    // Orca: we allow user to pin the version of plugin, so we don't need to remove old networking plugins when the app version is updated
+    //
+    // if (m_last_config_version) {
+    //     int last_major = m_last_config_version->maj();
+    //     int last_minor = m_last_config_version->min();
+    //     int last_patch = m_last_config_version->patch()/100;
+    //     std::string studio_ver = SLIC3R_VERSION;
+    //     int cur_major = atoi(studio_ver.substr(0,2).c_str());
+    //     int cur_minor = atoi(studio_ver.substr(3,2).c_str());
+    //     int cur_patch = atoi(studio_ver.substr(6,2).c_str());
+    //     BOOST_LOG_TRIVIAL(info) << boost::format("last app version {%1%.%2%.%3%}, current version {%4%.%5%.%6%}")
+    //         %last_major%last_minor%last_patch%cur_major%cur_minor%cur_patch;
+    //     if ((last_major != cur_major)
+    //         ||(last_minor != cur_minor)
+    //         ||(last_patch != cur_patch)) {
+    //         remove_old_networking_plugins();
+    //     }
+    // }
 
     //Orca: write OrcaSlicer version
     if(app_config->get("version") != SoftFever_VERSION) {
@@ -2854,7 +2877,7 @@ bool GUI_App::on_init_inner()
         //BBS use BBL splashScreen
         scrn = new SplashScreen(splashscreen_pos);
         wxYield();
-        scrn->SetText(_L("Loading configuration") + dots);
+        scrn->SetText(_L("Loading configuration") + dots, 5);
     }
 
     BOOST_LOG_TRIVIAL(info) << "loading systen presets...";
@@ -3033,7 +3056,7 @@ bool GUI_App::on_init_inner()
             // Enable all substitutions (in both user and system profiles), but log the substitutions in user profiles only.
             // If there are substitutions in system profiles, then a "reconfigure" event shall be triggered, which will force
             // installation of a compatible system preset, thus nullifying the system preset substitutions.
-            if (scrn) { scrn->SetText(_L("Loading printer & filament profiles") + dots); wxYield(); }
+            if (scrn) { scrn->SetText(_L("Loading printer & filament profiles") + dots, 30); wxYield(); }
             init_params->preset_substitutions = preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::EnableSystemSilent);
         }
         catch (const std::exception& ex) {
@@ -3064,7 +3087,7 @@ bool GUI_App::on_init_inner()
 
     if (scrn) {
         const auto scrn_txt = _L("Creating main window") + dots;
-        scrn->SetText(scrn_txt);
+        scrn->SetText(scrn_txt, 70);
         wxYield();
     }
     BOOST_LOG_TRIVIAL(info) << "create the main window";
@@ -3092,7 +3115,7 @@ bool GUI_App::on_init_inner()
             plater_->set_printer_technology(ptFFF);
     }
     else {
-        if (scrn) { scrn->SetText(_L("Loading current preset") + dots); wxYield(); }
+        if (scrn) { scrn->SetText(_L("Loading current preset") + dots, 85); wxYield(); }
         load_current_presets();
     }
 
@@ -3106,10 +3129,10 @@ bool GUI_App::on_init_inner()
 #ifdef __WINDOWS__
     mainframe->topbar()->SaveNormalRect();
 #endif
-    if (scrn) { scrn->SetText(_L("Showing main window") + dots); wxYield(); }
+    if (scrn) { scrn->SetText(_L("Showing main window") + dots, 95); wxYield(); }
     mainframe->Show(true);
     // Close the splash now that the main UI is visible.
-    if (scrn) { scrn->Destroy(); scrn = nullptr; }
+    if (scrn) { scrn->SetText(_L("Showing main window") + dots, 100); scrn->Destroy(); scrn = nullptr; }
     BOOST_LOG_TRIVIAL(info) << "main frame firstly shown";
 
 //#if BBL_HAS_FIRST_PAGE

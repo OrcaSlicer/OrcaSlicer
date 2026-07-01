@@ -30,8 +30,14 @@
 namespace Slic3r {
     struct FloatOrPercent
     {
-        double  value;
-        bool    percent;
+        double  value = 0;
+        bool    percent = false;
+
+        FloatOrPercent() {}
+        FloatOrPercent(double value_, bool percent_) : value(value_), percent(percent_) { }
+
+        double get_abs_value(double ratio_over) const { return this->percent ? (ratio_over * this->value / 100) : this->value; }
+
     private:
         friend class cereal::access;
         template<class Archive> void serialize(Archive& ar) { ar(this->value); ar(this->percent); }
@@ -2726,6 +2732,7 @@ public:
     void set_deserialize_strict(std::initializer_list<SetDeserializeItem> items)
         { ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable }; this->set_deserialize(items, ctxt); }
 
+    double get_abs_value_at(const t_config_option_key &opt_key, size_t index) const;
     double get_abs_value(const t_config_option_key &opt_key) const;
     double get_abs_value(const t_config_option_key &opt_key, double ratio_over) const;
     void setenv_() const;
@@ -2900,13 +2907,17 @@ public:
 
     double&             opt_float(const t_config_option_key &opt_key)                           { return this->option<ConfigOptionFloat>(opt_key)->value; }
     const double&       opt_float(const t_config_option_key &opt_key) const                     { return dynamic_cast<const ConfigOptionFloat*>(this->option(opt_key))->value; }
-    double&             opt_float(const t_config_option_key &opt_key, unsigned int idx)         { return this->option<ConfigOptionFloats>(opt_key)->get_at(idx); }
-    const double&       opt_float(const t_config_option_key &opt_key, unsigned int idx) const   { return dynamic_cast<const ConfigOptionFloats*>(this->option(opt_key))->get_at(idx); }
+    double &            opt_float(const t_config_option_key &opt_key, unsigned int idx);
+    const double &      opt_float(const t_config_option_key &opt_key, unsigned int idx) const;
+    double &            opt_float_nullable(const t_config_option_key &opt_key, unsigned int idx) { return this->option<ConfigOptionFloatsNullable>(opt_key)->get_at(idx); }
+    const double &      opt_float_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionFloatsNullable *>(this->option(opt_key))->get_at(idx); }
 
     int&                opt_int(const t_config_option_key &opt_key)                             { return this->option<ConfigOptionInt>(opt_key)->value; }
     int                 opt_int(const t_config_option_key &opt_key) const                       { return dynamic_cast<const ConfigOptionInt*>(this->option(opt_key))->value; }
     int&                opt_int(const t_config_option_key &opt_key, unsigned int idx)           { return this->option<ConfigOptionInts>(opt_key)->get_at(idx); }
     int                 opt_int(const t_config_option_key &opt_key, unsigned int idx) const     { return dynamic_cast<const ConfigOptionInts*>(this->option(opt_key))->get_at(idx); }
+    int&                opt_int_nullable(const t_config_option_key &opt_key, unsigned int idx)  { return this->option<ConfigOptionIntsNullable>(opt_key)->get_at(idx);}
+    const int &         opt_int_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionIntsNullable*>(this->option(opt_key))->get_at(idx);}
 
     // In ConfigManipulation::toggle_print_fff_options, it is called on option with type ConfigOptionEnumGeneric* and also ConfigOptionEnum*.
     // Thus the virtual method getInt() is used to retrieve the enum value.
@@ -2914,9 +2925,13 @@ public:
     ENUM                opt_enum(const t_config_option_key &opt_key) const                      { return static_cast<ENUM>(this->option(opt_key)->getInt()); }
     // BBS
     int                 opt_enum(const t_config_option_key &opt_key, unsigned int idx) const    { return dynamic_cast<const ConfigOptionEnumsGeneric*>(this->option(opt_key))->get_at(idx); }
+    int                 opt_enum_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionEnumsGenericNullable*>(this->option(opt_key))->get_at(idx); }
+
 
     bool                opt_bool(const t_config_option_key &opt_key) const                      { return this->option<ConfigOptionBool>(opt_key)->value != 0; }
-    bool                opt_bool(const t_config_option_key &opt_key, unsigned int idx) const    { return this->option<ConfigOptionBools>(opt_key)->get_at(idx) != 0; }
+    bool                opt_bool(const t_config_option_key &opt_key, unsigned int idx) const;
+    bool                opt_bool_nullable(const t_config_option_key &opt_key, unsigned int idx) const { return dynamic_cast<const ConfigOptionBoolsNullable*>(this->option(opt_key))->get_at(idx);}
+
 
     // Command line processing
     bool                read_cli(int argc, const char* const argv[], t_config_option_keys* extra, t_config_option_keys* keys = nullptr);

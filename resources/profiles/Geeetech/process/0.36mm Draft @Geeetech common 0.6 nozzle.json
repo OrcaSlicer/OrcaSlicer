@@ -3,7 +3,7 @@
 	"name": "0.36mm Draft @Geeetech common 0.6 nozzle",
 	"inherits": "fdm_process_geeetech_0.36_nozzle_0.6",
 	"from": "system",
-	"setting_id": "GP_Geeetech_030",
+	"setting_id": "K71Uw32oIj7UPbPH",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Geeetech A10 Pro 0.6 nozzle",

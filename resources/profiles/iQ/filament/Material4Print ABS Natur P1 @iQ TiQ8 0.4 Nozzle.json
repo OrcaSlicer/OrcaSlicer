@@ -3,7 +3,7 @@
 	"name": "Material4Print ABS Natur P1 @iQ TiQ8 0.4 Nozzle",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"setting_id": "IQS2",
+	"setting_id": "2gaJup2jw52l27sv",
 	"filament_id": "IQM2",
 	"instantiation": "true",
 	"activate_air_filtration": [

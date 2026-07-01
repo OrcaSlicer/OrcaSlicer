@@ -3,7 +3,7 @@
 	"name": "0.08mm SuperDetail @Creality K2 0.2 nozzle",
 	"inherits": "fdm_process_common_klipper",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "EnApHkeVPFdim9oX",
 	"instantiation": "true",
 	"max_travel_detour_distance": "0",
 	"bottom_surface_pattern": "monotonic",

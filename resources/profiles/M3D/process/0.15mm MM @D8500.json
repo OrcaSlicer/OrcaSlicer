@@ -3,6 +3,7 @@
 	"name": "0.15mm MM @D8500",
 	"inherits": "fdm_process_common",
 	"from": "system",
+	"setting_id": "vVl13K18loFa1fgv",
 	"instantiation": "true",
 	"compatible_printers": [
 		"M3D Enabler D8500 MM"

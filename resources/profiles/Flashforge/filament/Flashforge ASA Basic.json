@@ -3,7 +3,7 @@
 	"name": "Flashforge ASA Basic",
 	"inherits": "Flashforge Generic ASA",
 	"from": "system",
-	"setting_id": "GFSA04_05",
+	"setting_id": "SU6r879TbQMUFCij",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge ASA Basic"

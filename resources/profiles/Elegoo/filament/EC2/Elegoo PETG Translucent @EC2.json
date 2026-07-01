@@ -3,7 +3,7 @@
 	"name": "Elegoo PETG Translucent @EC2",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "EPETGTRANSEC2",
+	"setting_id": "c62Io0F7o3YY9UfY",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.052"

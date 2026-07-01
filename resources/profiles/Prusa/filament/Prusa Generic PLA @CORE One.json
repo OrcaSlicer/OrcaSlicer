@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PLA @CORE One",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "NDBqFGNNvKxlmo3V",
 	"filament_id": "Prusa Generic PLA @CORE One",
 	"instantiation": "true",
 	"chamber_temperature": [

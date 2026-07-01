@@ -3,6 +3,7 @@
 	"name": "0.20mm Standard @iQ TiQ2 P1 - PACF Pro Fiberthree (0.4 Nozzle)",
 	"inherits": "fdm_process_tiq_common",
 	"from": "system",
+	"setting_id": "3n8Yio8keohwR0wt",
 	"instantiation": "true",
 	"bridge_flow": "1.07",
 	"bridge_speed": "25",

@@ -3,7 +3,7 @@
     "name": "Generic ABS @K2 Pro-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "CKz3942iA5I2gfaA",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

@@ -3,7 +3,7 @@
     "name": "Hyper L-W PLA @K2 Plus-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "U1kZq5P21qnFe5NC",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

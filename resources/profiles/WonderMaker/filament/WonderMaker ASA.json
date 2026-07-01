@@ -3,6 +3,7 @@
 	"name": "WonderMaker ASA",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
+	"setting_id": "Wu70ukKHBqIa4TDv",
 	"filament_id": "GFB01",
 	"instantiation": "true",
 	"description": "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",

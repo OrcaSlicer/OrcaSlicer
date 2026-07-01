@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @Wanhao D12-300",
 	"inherits": "fdm_process_wanhao_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "rS2XLUYO7QV9sLuZ",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",
