@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "YCDOpbUtf3MQEMW9",
 	"name": "QIDI PLA-CF @Qidi Q2C 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA-CF@Q2C-Series",
+	"from": "system",
+	"setting_id": "YCDOpbUtf3MQEMW9",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"18"
 	],

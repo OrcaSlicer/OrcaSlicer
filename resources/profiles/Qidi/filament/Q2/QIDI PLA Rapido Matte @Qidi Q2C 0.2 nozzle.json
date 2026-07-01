@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "RJQBUrDfhHtKj6XI",
 	"name": "QIDI PLA Rapido Matte @Qidi Q2C 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Rapido Matte@Q2C-Series",
+	"from": "system",
+	"setting_id": "RJQBUrDfhHtKj6XI",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"
 	],

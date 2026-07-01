@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "lW8UIaUPIj0pljBX",
 	"name": "PolyLite PLA @Qidi X-Max 4 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "PolyLite PLA@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "lW8UIaUPIj0pljBX",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi X-Max 4 0.4 nozzle"
 	]

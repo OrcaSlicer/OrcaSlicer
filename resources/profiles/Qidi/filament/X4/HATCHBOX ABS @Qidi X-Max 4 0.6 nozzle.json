@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "FMrsa95wzL2qFuLP",
 	"name": "HATCHBOX ABS @Qidi X-Max 4 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "HATCHBOX ABS@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "FMrsa95wzL2qFuLP",
+	"instantiation": "true",
 	"nozzle_temperature": [
 		"250"
 	],

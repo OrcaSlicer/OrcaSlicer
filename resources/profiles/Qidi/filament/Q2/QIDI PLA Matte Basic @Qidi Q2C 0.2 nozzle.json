@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "FYKnzaxIcuv1gjpL",
 	"name": "QIDI PLA Matte Basic @Qidi Q2C 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Matte Basic@Q2C-Series",
+	"from": "system",
+	"setting_id": "FYKnzaxIcuv1gjpL",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"
 	],

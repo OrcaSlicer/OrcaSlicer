@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "4GmsTinCKy3DJIRj",
 	"name": "QIDI PETG Basic @Qidi Q2C 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PETG Basic@Q2C-Series",
+	"from": "system",
+	"setting_id": "4GmsTinCKy3DJIRj",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
 	],

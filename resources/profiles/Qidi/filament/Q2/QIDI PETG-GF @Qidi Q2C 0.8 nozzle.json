@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "Gf491nomAtcjhAvJ",
 	"name": "QIDI PETG-GF @Qidi Q2C 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PETG-GF@Q2C-Series",
+	"from": "system",
+	"setting_id": "Gf491nomAtcjhAvJ",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
 	],

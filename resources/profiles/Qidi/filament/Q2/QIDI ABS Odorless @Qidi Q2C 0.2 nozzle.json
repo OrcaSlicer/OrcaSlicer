@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GxP0Whwhk4Cnxdu0",
 	"name": "QIDI ABS Odorless @Qidi Q2C 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ABS Odorless@Q2C-Series",
+	"from": "system",
+	"setting_id": "GxP0Whwhk4Cnxdu0",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.03"
 	],

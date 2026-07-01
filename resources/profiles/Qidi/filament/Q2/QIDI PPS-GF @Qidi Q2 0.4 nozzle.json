@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "VNDS3Q7xaoZKbu92",
 	"name": "QIDI PPS-GF @Qidi Q2 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PPS-GF@Q2-Series",
+	"from": "system",
+	"setting_id": "VNDS3Q7xaoZKbu92",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.03"
 	],

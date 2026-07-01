@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "a8HNWpPJjrCglxFd",
 	"name": "QIDI Support For PAHT @Qidi Q2C 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI Support For PAHT@Q2C-Series",
+	"from": "system",
+	"setting_id": "a8HNWpPJjrCglxFd",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q2C 0.6 nozzle"
 	]
