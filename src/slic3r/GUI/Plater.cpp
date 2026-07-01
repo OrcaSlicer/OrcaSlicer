@@ -10451,6 +10451,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
     }
 
     background_process.fff_print()->set_check_multi_filaments_compatibility(wxGetApp().app_config->get("enable_high_low_temp_mixed_printing") == "false");
+    background_process.fff_print()->set_check_multi_filaments_material_compatibility(wxGetApp().app_config->get("enable_incompatible_material_mixed_printing") == "false");
 
     Print::ApplyStatus invalidated;
     const auto& preset_bundle = wxGetApp().preset_bundle;
@@ -20853,6 +20854,7 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
         Polygons polygons;
         std::vector<std::pair<Polygon, float>> height_polygons;
         p->background_process.fff_print()->set_check_multi_filaments_compatibility(wxGetApp().app_config->get("enable_high_low_temp_mixed_printing") == "false");
+        p->background_process.fff_print()->set_check_multi_filaments_material_compatibility(wxGetApp().app_config->get("enable_incompatible_material_mixed_printing") == "false");
         StringObjectException err = p->background_process.validate(&warnings, &polygons, &height_polygons);
         // update string by type
         post_process_string_object_exception(err);

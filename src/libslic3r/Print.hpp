@@ -901,10 +901,11 @@ enum FilamentTempType {
 
 enum FilamentCompatibilityType {
     Compatible,
-    HighLowMixed,
-    //HighLowMixed,
-    //HighMidMixed,
-    InvalidTemperatureRange
+    HighLowMixed,                        // nozzle temperatures outside mutual recommended ranges (materials compatible/unknown)
+    InvalidTemperatureRange,             // a recommended range has low >= high
+    IncompatibleMaterials,               // materials are known not to bond (e.g. PLA + PETG)
+    PossibleIncompatibleMaterials,       // material bonding unknown, but temperatures are fine
+    HighLowMixedAndPossibleIncompatible  // temperatures mismatched AND material bonding unknown
 };
 
 // The complete print tray with possibly multiple objects.
@@ -1177,6 +1178,8 @@ public:
 
     void set_check_multi_filaments_compatibility(bool check) { m_need_check_multi_filaments_compatibility = check; }
     bool need_check_multi_filaments_compatibility() const { return m_need_check_multi_filaments_compatibility; }
+    void set_check_multi_filaments_material_compatibility(bool check) { m_need_check_multi_filaments_material_compatibility = check; }
+    bool need_check_multi_filaments_material_compatibility() const { return m_need_check_multi_filaments_material_compatibility; }
 
     // scaled point
     Vec2d translate_to_print_space(const Point &point) const;
@@ -1377,6 +1380,7 @@ private:
     Calib_Params m_calib_params;
 
     bool m_need_check_multi_filaments_compatibility{true};
+    bool m_need_check_multi_filaments_material_compatibility{true};
 
     // To allow GCode to set the Print's GCodeExport step status.
     friend class GCode;
