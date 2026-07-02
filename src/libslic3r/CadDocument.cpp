@@ -1406,7 +1406,13 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             // OUTWARD helical groove into its wall. When the thread is invoked on
             // an existing hole the bore cut is coincident (a no-op that may report
             // !IsDone) — tolerate it so the visible groove cut below still runs.
-            TopoDS_Shape bore = BRepPrimAPI_MakeCylinder(ax2, f.thread_radius,
+            // Cut the pocket at the MINOR diameter (radius - depth), not the nominal radius.
+            // A nominal-radius bore that coincides with an existing hole's wall creates
+            // coincident faces that foul the following groove boolean (the groove then removes
+            // ~nothing -> invisible thread). The minor bore stays strictly inside any existing
+            // hole wall, leaving it clean for the groove; on solid stock it forms the tap-drill.
+            const double bore_r = std::max(0.5, f.thread_radius - f.thread_depth);
+            TopoDS_Shape bore = BRepPrimAPI_MakeCylinder(ax2, bore_r,
                                                          f.thread_height).Shape();
             try {
                 BRepAlgoAPI_Cut cut_bore(result, bore);

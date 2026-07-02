@@ -140,6 +140,25 @@ static SketchPlane face_plane_inward(const TopoDS_Face& face)
     return p;
 }
 
+// Highest upward-facing planar face of a solid — the surface the user is looking down on.
+// Hole placement defaults here (instead of the z=0 datum) so the footprint sits on the top
+// face at the right depth, not on the model's underside where a top-view drag reads parallax-
+// shifted. Returns -1 if the shape has no clearly-upward face.
+static int top_face_index_of(const TopoDS_Shape& shape)
+{
+    int best = -1; double bestz = -1e30;
+    const int n = GeometryEngine::face_count(shape);
+    for (int i = 0; i < n; ++i) {
+        const TopoDS_Face f = GeometryEngine::face_by_index(shape, i);
+        if (f.IsNull()) continue;
+        const Vec3d nrm = GeometryEngine::face_normal_world(f);
+        if (nrm.z() < 0.5) continue;                 // only faces pointing substantially up
+        const Vec3d c = GeometryEngine::face_centroid_world(f);
+        if (c.z() > bestz) { bestz = c.z(); best = i; }
+    }
+    return best;
+}
+
 DesignPanel::DesignPanel(wxWindow* parent)
     : wxPanel(parent, wxID_ANY)
 {
@@ -534,14 +553,21 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_hole_on_face   = false;
                 m_hole_face_body = -1;
                 m_hole_has_bounds = false;
-                if (m_sel_solid_face >= 0 && m_sel_solid_body >= 0
-                    && m_sel_solid_body < int(m_doc.bodies.size())) {
+                // Use the explicitly-picked face; otherwise default to the top face of the
+                // selected (or first) body so the hole lands on the surface being viewed, not
+                // the z=0 datum under the model. The XY/XZ/YZ dropdown still overrides.
+                int hb = m_sel_solid_body, hf = m_sel_solid_face;
+                if (hf < 0 && !m_doc.bodies.empty()) {
+                    hb = (hb >= 0 && hb < int(m_doc.bodies.size())) ? hb : 0;
+                    hf = top_face_index_of(m_doc.bodies[hb].shape);
+                }
+                if (hf >= 0 && hb >= 0 && hb < int(m_doc.bodies.size())) {
                     const TopoDS_Face face = GeometryEngine::face_by_index(
-                        m_doc.bodies[m_sel_solid_body].shape, m_sel_solid_face);
+                        m_doc.bodies[hb].shape, hf);
                     if (!face.IsNull()) {
                         m_hole_face_plane = face_plane_inward(face);
                         m_hole_on_face    = true;
-                        m_hole_face_body  = m_sel_solid_body;
+                        m_hole_face_body  = hb;
                         // Face (u,v) extents so the hole dims read from the sides (#2 Part B).
                         m_hole_has_bounds = GeometryEngine::face_plane_bounds(
                             face, m_hole_face_plane.origin, m_hole_face_plane.x_axis,
