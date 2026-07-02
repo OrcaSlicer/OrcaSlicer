@@ -8,6 +8,7 @@
 #include "ElephantFootCompensation.hpp"
 #include "Geometry.hpp"
 #include "I18N.hpp"
+#include "Color.hpp"
 #include "Layer.hpp"
 #include "MaterialType.hpp"
 #include "MutablePolygon.hpp"
@@ -3734,9 +3735,10 @@ static void clamp_feature_filament_to_valid(ConfigOptionInt &opt, size_t num_ext
 // extruder (or 0 for "Default"). The first requisite is that the support is a DIFFERENT material, i.e. it must
 // not bond to any of the object's materials (so it detaches cleanly) - this also rules out picking the same
 // soluble material when the object itself is soluble. Among those non-bonding candidates the preference order
-// is: soluble, then known-incompatible with every object material, then unknown compatibility. If no different
-// material is available (only same-type filaments), it uses the object's own material - the exact same filament,
-// not just the same type - to avoid color mixing. Falls back to "Default" (0) only when support is disabled, on
+// is: soluble, then known-incompatible with every object material, then unknown compatibility. When several
+// filaments fall in the same tier, the one closest in colour to the object is chosen. If no different material
+// is available (only same-type filaments), it uses the object's own material - the exact same filament, not just
+// the same type - to avoid color mixing. Falls back to "Default" (0) only when support is disabled, on
 // single-extruder-multi-material printers, or with a single filament.
 static int resolve_auto_support_filament(const PrintObjectConfig &config, const ModelObject &object, size_t num_extruders, const PrintConfig &print_config)
 {
@@ -3768,9 +3770,28 @@ static int resolve_auto_support_filament(const PrintObjectConfig &config, const 
     if (object_extruders.empty())
         object_extruders.insert(1);
 
-    int best_soluble      = 0;
-    int best_incompatible = 0;
-    int best_unknown      = 0;
+    // Reference colour = the object's primary material colour. Within a tier, the candidate closest to it wins.
+    const std::vector<std::string> &filament_colours = print_config.filament_colour.values;
+    ColorRGB ref_colour;
+    const bool have_ref = (size_t)(*object_extruders.begin() - 1) < filament_colours.size() &&
+                          decode_color(filament_colours[*object_extruders.begin() - 1], ref_colour);
+    auto colour_distance = [&](int extruder_1based) -> float {
+        if (!have_ref)
+            return 0.f; // no reference colour: keep insertion order (lowest extruder wins)
+        ColorRGB c;
+        const size_t idx = (size_t)(extruder_1based - 1);
+        if (idx >= filament_colours.size() || !decode_color(filament_colours[idx], c))
+            return std::numeric_limits<float>::max(); // undecodable candidate colour: least preferred
+        const float dr = c.r() - ref_colour.r(), dg = c.g() - ref_colour.g(), db = c.b() - ref_colour.b();
+        return dr * dr + dg * dg + db * db;
+    };
+    // Keep, per tier, the closest-in-colour candidate seen so far.
+    auto consider = [](int &best_ext, float &best_dist, int cand, float dist) {
+        if (best_ext == 0 || dist < best_dist) { best_ext = cand; best_dist = dist; }
+    };
+
+    int   best_soluble = 0, best_incompatible = 0, best_unknown = 0;
+    float dist_soluble = 0.f, dist_incompatible = 0.f, dist_unknown = 0.f;
     for (int cand = 1; cand <= (int)num_extruders; ++cand) {
         const std::string cand_type = type_of(cand);
         // First requisite: a different material, i.e. it must not bond to any of the object's materials.
@@ -3783,13 +3804,15 @@ static int resolve_auto_support_filament(const PrintObjectConfig &config, const 
         }
         if (bonds_with_any)
             continue;
-        // Among the non-bonding candidates: prefer soluble, then known-incompatible, then unknown compatibility.
+        // Among the non-bonding candidates: prefer soluble, then known-incompatible, then unknown compatibility;
+        // within a tier, prefer the one closest in colour to the object.
+        const float dist = colour_distance(cand);
         if (is_soluble(cand)) {
-            if (best_soluble == 0) best_soluble = cand;
+            consider(best_soluble, dist_soluble, cand, dist);
         } else if (all_incompatible) {
-            if (best_incompatible == 0) best_incompatible = cand;
-        } else if (best_unknown == 0) {
-            best_unknown = cand;
+            consider(best_incompatible, dist_incompatible, cand, dist);
+        } else {
+            consider(best_unknown, dist_unknown, cand, dist);
         }
     }
 
