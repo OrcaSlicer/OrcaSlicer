@@ -469,6 +469,27 @@ std::string CalibPressureAdvanceLine::generate_test(double start_pa /*= 0*/, dou
     return print_pa_lines(startx, starty, start_pa, step_pa, count);
 }
 
+BoundingBoxf CalibPressureAdvanceLine::print_extents(const BoundingBoxf &bed_ext) const
+{
+    BoundingBoxf extent;
+
+    double bed_width     = bed_ext.size().x();
+    // m_length_long adjusts for narrow beds – exactly as in generate_test()
+    double line_long     = 40.0 + std::min(bed_width - 120.0, 0.0);
+    double total_line_len = m_length_short * 2 + line_long;
+    double start_x       = bed_ext.min.x() + (bed_width - 2 * m_length_short - line_long - 20.0) / 2.0;
+    double box_width     = number_spacing() * 8;   // 3.0 * 8 = 24 mm
+
+    extent.min.x() = start_x;
+    extent.max.x() = start_x + total_line_len + m_line_width + box_width;
+
+    // Y bounds are the full bed (the caller will inset them by -25)
+    extent.min.y() = bed_ext.min.y();
+    extent.max.y() = bed_ext.max.y();
+
+    return extent;
+}
+
 bool CalibPressureAdvanceLine::is_delta() const { return mp_gcodegen->config().printable_area.values.size() > 4; }
 
 std::string CalibPressureAdvanceLine::print_pa_lines(double start_x, double start_y, double start_pa, double step_pa, int num)
