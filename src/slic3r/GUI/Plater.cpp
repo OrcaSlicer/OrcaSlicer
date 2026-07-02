@@ -1130,23 +1130,24 @@ struct DynamicSupportFilamentList : DynamicFilamentList
         wxString old_selection = cb->GetStringSelection();
         int old_index  = cb->GetSelection();
         cb->Clear();
+        // Order: Auto, Default, then the filaments. "Default" (value 0) stays the default value.
+        cb->Append(_L("Auto"));
         cb->Append(_L("Default"));
         for (auto i : items)
             cb->Append(i.first, i.second ? *i.second : wxNullBitmap);
-        cb->Append(_L("Auto"));
 
         if (old_index >= 0 && (unsigned int) old_index < cb->GetCount()) {
             cb->SetSelection(old_index);
             return;
         }
         int new_index = cb->FindString(old_selection);
-        cb->SetSelection(new_index != wxNOT_FOUND ? new_index : 0);
+        cb->SetSelection(new_index != wxNOT_FOUND ? new_index : 1); // fall back to "Default"
     }
     wxString get_value(int index) override
     {
         wxString str;
-        // The trailing "Auto" entry sits right after "Default" + all filaments.
-        str << (index == int(items.size()) + 1 ? SUPPORT_FILAMENT_AUTO : index);
+        // Index 0 is "Auto", index 1 is "Default" (value 0), index i>=2 is filament (value i-1).
+        str << (index == 0 ? SUPPORT_FILAMENT_AUTO : index - 1);
         return str;
     }
     int index_of(wxString value) override
@@ -1155,8 +1156,8 @@ struct DynamicSupportFilamentList : DynamicFilamentList
         if (!value.ToLong(&n))
             return -1;
         if (n == SUPPORT_FILAMENT_AUTO)
-            return int(items.size()) + 1;
-        return (n >= 0 && n <= (long) items.size()) ? int(n) : -1;
+            return 0;
+        return (n >= 0 && n <= (long) items.size()) ? int(n) + 1 : -1;
     }
 };
 
