@@ -3731,10 +3731,13 @@ static void clamp_feature_filament_to_valid(ConfigOptionInt &opt, size_t num_ext
 }
 
 // Resolve a "support_filament / support_interface_filament == Auto" object config into a concrete 1-based
-// extruder (or 0 for "Default"). Per object, pick a filament that does not bond to the object so the support
-// detaches cleanly: a soluble filament if available, otherwise one whose material is known-incompatible with
-// every object material, otherwise one of unknown compatibility. Falls back to "Default" (0) when support is
-// disabled, on single-extruder-multi-material printers, with a single filament, or when no suitable filament exists.
+// extruder (or 0 for "Default"). The first requisite is that the support is a DIFFERENT material, i.e. it must
+// not bond to any of the object's materials (so it detaches cleanly) - this also rules out picking the same
+// soluble material when the object itself is soluble. Among those non-bonding candidates the preference order
+// is: soluble, then known-incompatible with every object material, then unknown compatibility. If no different
+// material is available (only same-type filaments), it uses the object's own material - the exact same filament,
+// not just the same type - to avoid color mixing. Falls back to "Default" (0) only when support is disabled, on
+// single-extruder-multi-material printers, or with a single filament.
 static int resolve_auto_support_filament(const PrintObjectConfig &config, const ModelObject &object, size_t num_extruders, const PrintConfig &print_config)
 {
     if (!config.enable_support.value || print_config.single_extruder_multi_material.value || num_extruders <= 1)
@@ -3769,13 +3772,9 @@ static int resolve_auto_support_filament(const PrintObjectConfig &config, const 
     int best_incompatible = 0;
     int best_unknown      = 0;
     for (int cand = 1; cand <= (int)num_extruders; ++cand) {
-        // Soluble filament dissolves away, so it is the ideal support material regardless of bonding.
-        if (is_soluble(cand)) {
-            if (best_soluble == 0) best_soluble = cand;
-            continue;
-        }
         const std::string cand_type = type_of(cand);
-        bool bonds_with_any = false; // candidate is compatible with (bonds to) some model material
+        // First requisite: a different material, i.e. it must not bond to any of the object's materials.
+        bool bonds_with_any = false;
         bool all_incompatible = true;
         for (int e : object_extruders) {
             const MaterialCompatibility c = MaterialType::compatibility(cand_type, type_of(e));
@@ -3784,7 +3783,10 @@ static int resolve_auto_support_filament(const PrintObjectConfig &config, const 
         }
         if (bonds_with_any)
             continue;
-        if (all_incompatible) {
+        // Among the non-bonding candidates: prefer soluble, then known-incompatible, then unknown compatibility.
+        if (is_soluble(cand)) {
+            if (best_soluble == 0) best_soluble = cand;
+        } else if (all_incompatible) {
             if (best_incompatible == 0) best_incompatible = cand;
         } else if (best_unknown == 0) {
             best_unknown = cand;
@@ -3793,7 +3795,12 @@ static int resolve_auto_support_filament(const PrintObjectConfig &config, const 
 
     if (best_soluble != 0)
         return best_soluble;
-    return best_incompatible != 0 ? best_incompatible : best_unknown; // 0 => fall back to "Default"
+    if (best_incompatible != 0)
+        return best_incompatible;
+    if (best_unknown != 0)
+        return best_unknown;
+    // Only same-material filaments are available: use the object's own material (the exact same filament) to avoid color mixing.
+    return *object_extruders.begin();
 }
 
 PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, std::vector<int>& variant_index, const PrintConfig *print_config)
