@@ -2924,20 +2924,21 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             pts->values.emplace_back(bbox.max.x(), bbox.max.y());
             pts->values.emplace_back(bbox.min.x(), bbox.max.y());
 
-        } else if (print.calib_mode() == CalibMode::Calib_PA_Line) {
-            // PA_Line pattern centred on bed, ~100mm wide (2*20 + 40 + 20).
-            // Lock X to bed centre; keep Y unchanged (full bed)
-            bbox = bbox_bed;
-            bbox.offset(-25.0);
-            double bed_cx = bbox_bed.center().x();
-            double half_x = 55.0; // 100mm pattern + 5mm margin
-            bbox.min.x() = bed_cx - half_x;
-            bbox.max.x() = bed_cx + half_x;
-            pts->values.reserve(4);
-            pts->values.emplace_back(bbox.min.x(), bbox.min.y());
-            pts->values.emplace_back(bbox.max.x(), bbox.min.y());
-            pts->values.emplace_back(bbox.max.x(), bbox.max.y());
-            pts->values.emplace_back(bbox.min.x(), bbox.max.y());
+		} else if (print.calib_mode() == CalibMode::Calib_PA_Line) {
+			// Derive X bounds from the actual calibration geometry.
+			CalibPressureAdvanceLine temp_pa_line_forsize(this);
+			BoundingBoxf pattern_extents = temp_pa_line_forsize.print_extents(bbox_bed);
+		
+			bbox = bbox_bed;
+			bbox.offset(-25.0);
+			bbox.min.x() = pattern_extents.min.x();
+			bbox.max.x() = pattern_extents.max.x();
+		
+			pts->values.reserve(4);
+			pts->values.emplace_back(bbox.min.x(), bbox.min.y());
+			pts->values.emplace_back(bbox.max.x(), bbox.min.y());
+			pts->values.emplace_back(bbox.max.x(), bbox.max.y());
+			pts->values.emplace_back(bbox.min.x(), bbox.max.y());
 
         } else {
             // Convex hull of the 1st layer extrusions, for bed leveling and placing the initial purge line.
