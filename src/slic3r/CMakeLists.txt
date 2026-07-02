@@ -109,6 +109,9 @@ set(SLIC3R_GUI_SOURCES
     GUI/Downloader.hpp
     GUI/DownloadProgressDialog.cpp
     GUI/DownloadProgressDialog.hpp
+    GUI/PluginSource.hpp
+    GUI/PluginSort.hpp
+    GUI/PluginStatus.hpp
     GUI/PluginPickerDialog.cpp
     GUI/PluginPickerDialog.hpp
     GUI/PluginsDialog.cpp

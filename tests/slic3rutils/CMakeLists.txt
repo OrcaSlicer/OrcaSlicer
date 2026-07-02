@@ -4,6 +4,7 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_host_api.cpp
     test_plugin_capability_identifier.cpp
     test_plugin_install.cpp
+    test_plugin_sort.cpp
     )
 
 if (MSVC)

@@ -118,6 +118,10 @@ function ShowExploreMenu() {
   if (!exploreMenu || !exploreMenuButton)
     return;
 
+  // why: our stopPropagation blocks the outside-click handler, so close the sibling sort menu ourselves (mirror of ToggleSortMenu).
+  if (typeof HideSortMenu === "function")
+    HideSortMenu();
+
   exploreMenu.hidden = false;
   exploreMenuButton.setAttribute("aria-expanded", "true");
 }
@@ -214,6 +218,10 @@ function HandleStudio(value) {
 
   if (payload.command === "list_plugins") {
     SetSelectedInstallAction(payload.install_action, false);
+    if (typeof NormalizePluginSort === "function") {
+      pluginSort = NormalizePluginSort(payload.sort_key, payload.sort_order);
+      RenderSortMenuState();
+    }
     ApplyPlugins(payload.data || []);
   } else if (payload.command === "status_message") {
     ShowStatusMessage(String(payload.message || ""), String(payload.level || "info"));

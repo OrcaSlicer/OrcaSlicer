@@ -1,0 +1,89 @@
+/* why: isolate dropdown styling from the existing plugin dialog styles. */
+
+.sort-dropdown {
+  position: relative;
+  display: inline-flex;
+  margin-right: auto;
+}
+
+.sort-menu-btn {
+  height: 32px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  /* why: global .ButtonTypeChoice adds margin-left:15px (dialog button rows); as the leftmost
+     toolbar item that stacks on .app's 8px padding - kill it like .explore-dropdown does. */
+  margin-left: 0 !important;
+}
+
+/* note: asc is bars growing downward + up arrow; a vertical flip yields the desc icon. */
+.sort-order-icon {
+  display: block;
+  flex: none;
+}
+
+.sort-menu-btn.order-desc .sort-order-icon,
+.sort-order-icon.desc {
+  transform: scaleY(-1);
+}
+
+.sort-caret {
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.sort-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 2px);
+  z-index: 20;
+  min-width: 200px;
+  padding: 4px 0;
+  background: var(--main-color);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.sort-menu[hidden] {
+  display: none !important;
+}
+
+.sort-group-label {
+  padding: 8px 10px 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.sort-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px 8px 28px; /* why: reserve space for the active-row checkmark. */
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  box-sizing: border-box;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  position: relative;
+}
+
+/* note: same tint as .explore-menu-item hover/.selected, so the two menus match */
+.sort-menu-item:hover,
+.sort-menu-item:focus-visible,
+.sort-menu-item[aria-checked="true"] {
+  outline: none;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.sort-menu-item[aria-checked="true"]::before {
+  content: "\2713"; /* note: checkmark on the active field/order. */
+  position: absolute;
+  left: 10px;
+}

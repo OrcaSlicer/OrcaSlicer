@@ -2,6 +2,9 @@
 #define slic3r_PluginsDialog_hpp_
 
 #include "Widgets/WebViewHostDialog.hpp"
+#include "PluginSource.hpp"
+#include "PluginStatus.hpp"
+#include "PluginSort.hpp"
 #include "slic3r/plugin/PluginDescriptor.hpp"
 
 #include <exception>
@@ -27,21 +30,6 @@ enum class PluginCapabilityType;
 
 namespace GUI {
 
-enum class PluginSource
-{
-    Local,
-    Mine,
-    Subscribed
-};
-
-enum class PluginStatus
-{
-    Inactive,
-    Error,
-    Loading,
-    Activated
-};
-
 class PluginsDialog : public Slic3r::GUI::WebViewHostDialog
 {
 public:
@@ -63,6 +51,7 @@ private:
     void on_script_message(const nlohmann::json& payload) override;
 
     void send_plugins();
+    void set_plugin_sort(const std::string& sort_key, const std::string& sort_order);
     nlohmann::json build_plugins_payload() const;
 
     bool get_descriptor(const std::string& plugin_key, Slic3r::PluginDescriptor& descriptor) const;
@@ -221,6 +210,8 @@ private:
     }
 
     std::function<void()> m_open_terminal_dlg_fn;
+    PluginSortKey m_plugin_sort_key       = PluginSortKey::Status;
+    PluginSortOrder m_plugin_sort_order   = PluginSortOrder::Asc;
 
     // Serializes run_script_plugin. With main-thread execution a plugin's orca.host.ui modal
     // (message/show_dialog) or the result message box pumps a nested event loop, which could

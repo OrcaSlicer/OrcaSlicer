@@ -25,7 +25,6 @@
 #include <boost/log/trivial.hpp>
 
 #include <algorithm>
-#include <cctype>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -103,7 +102,7 @@ struct PluginDialogItem
     PluginUpdateStatus update_status = PluginUpdateStatus::Normal;
     std::string error_text;
     bool has_error = false;
-    bool loaded    = false;
+    bool is_loaded    = false;
     bool loading   = false;
 
     // Installation and capability flags
@@ -187,27 +186,62 @@ void refresh_plugin_catalog_blocking(bool fetch_cloud)
     }
 }
 
-std::string to_string(PluginSource source)
+std::string to_string(PluginUpdateStatus status);
+nlohmann::json build_context_actions_payload(const PluginAvailableActions& available_actions);
+
+nlohmann::json build_plugin_payload_item(const PluginDialogItem& dialog_item)
 {
-    switch (source) {
-    case PluginSource::Local: return "local";
-    case PluginSource::Mine: return "mine";
-    case PluginSource::Subscribed: return "subscribed";
+    nlohmann::json payload_item;
+    payload_item["plugin_key"]  = dialog_item.plugin_key;
+    payload_item["plugin_id"]   = dialog_item.plugin_id;
+    payload_item["name"]        = dialog_item.display_name;
+    payload_item["description"] = dialog_item.description;
+    payload_item["author"]      = dialog_item.author;
+    payload_item["version"]     = dialog_item.version;
+    payload_item["type"]        = dialog_item.type_label;
+    payload_item["type_key"]    = dialog_item.type_key;
+    payload_item["types"]       = dialog_item.type_labels;
+
+    nlohmann::json caps = nlohmann::json::array();
+    for (const PluginCapabilityView& capability : dialog_item.capabilities) {
+        nlohmann::json c;
+        c["name"]       = capability.name;
+        c["type"]       = capability.type_label;
+        c["type_key"]   = capability.type_key;
+        c["enabled"]    = capability.enabled;
+        c["can_toggle"] = capability.can_toggle;
+        c["can_run"]    = capability.can_run;
+        caps.push_back(std::move(c));
     }
+    payload_item["capabilities"] = std::move(caps);
 
-    return "local";
-}
-
-std::string to_string(PluginStatus status)
-{
-    switch (status) {
-    case PluginStatus::Inactive: return "Inactive";
-    case PluginStatus::Error: return "Error";
-    case PluginStatus::Loading: return "Loading";
-    case PluginStatus::Activated: return "Activated";
+    nlohmann::json changelog = nlohmann::json::array();
+    for (const PluginChangelogView& entry : dialog_item.changelog) {
+        nlohmann::json c;
+        c["version"]      = entry.version;
+        c["changelog"]    = entry.changelog;
+        c["created_time"] = entry.created_time;
+        changelog.push_back(std::move(c));
     }
+    payload_item["changelog"] = std::move(changelog);
 
-    return "Inactive";
+    payload_item["label"]                 = dialog_item.display_name;
+    payload_item["source"]                = to_string(dialog_item.source);
+    payload_item["status"]                = to_string(dialog_item.status);
+    payload_item["error"]                 = dialog_item.error_text;
+    payload_item["update_status"]         = to_string(dialog_item.update_status);
+    payload_item["unauthorized"]          = dialog_item.unauthorized;
+    payload_item["context_actions"]       = build_context_actions_payload(dialog_item.available_actions);
+    payload_item["update_available"]      = dialog_item.update_status == PluginUpdateStatus::UpdateAvailable;
+    payload_item["can_toggle"]            = dialog_item.available_actions.can_toggle;
+    payload_item["has_script_capability"] = dialog_item.has_script_capability;
+    payload_item["can_run_script"]        = dialog_item.can_run_script;
+    payload_item["sharing_token"]         = dialog_item.sharing_token;
+    payload_item["thumbnail_url"]         = dialog_item.thumbnail_url;
+    payload_item["installed"]             = dialog_item.has_local_package;
+    payload_item["installed_version"]     = dialog_item.installed_version;
+    payload_item["latest_version"]        = dialog_item.latest_version;
+    return payload_item;
 }
 
 std::string to_string(PluginUpdateStatus status)
@@ -311,9 +345,9 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
     item.has_local_package     = descriptor.has_local_package();
     item.unauthorized          = descriptor.is_unauthorized();
     item.has_script_capability = descriptor.has_capability_type(Slic3r::PluginCapabilityType::Script);
-    item.loaded                = loader.is_plugin_loaded(descriptor.plugin_key);
+    item.is_loaded                = loader.is_plugin_loaded(descriptor.plugin_key);
     item.loading               = loader.is_plugin_load_in_progress(descriptor.plugin_key);
-    if (item.loaded) {
+    if (item.is_loaded) {
         for (const auto& cap : loader.get_loaded_plugin_capabilities(descriptor.plugin_key)) {
             if (cap) {
                 item.capabilities.push_back({cap->name, plugin_capability_type_display_name(cap->type),
@@ -342,7 +376,7 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
         item.status = PluginStatus::Loading;
     else if (item.has_error)
         item.status = PluginStatus::Error;
-    else if (item.loaded)
+    else if (item.is_loaded)
         item.status = PluginStatus::Activated;
     else
         item.status = PluginStatus::Inactive;
@@ -352,7 +386,7 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
                                                 [](const PluginCapabilityView& capability) {
                                                     return capability.type_key == "script" && capability.enabled;
                                                 });
-    item.can_run_script = descriptor.is_metadata_valid() && !descriptor.has_error() && item.has_script_capability && item.loaded &&
+    item.can_run_script = descriptor.is_metadata_valid() && !descriptor.has_error() && item.has_script_capability && item.is_loaded &&
                           !item.loading && has_enabled_script;
     for (PluginCapabilityView& capability : item.capabilities) {
         capability.can_run = item.can_run_script && capability.type_key == "script" && capability.enabled;
@@ -478,6 +512,8 @@ void PluginsDialog::on_script_message(const nlohmann::json& payload)
         open_plugin_on_cloud(payload.value("sharing_token", ""));
     } else if (command == "open_plugin_hub") {
         open_plugin_hub();
+    } else if (command == "set_plugin_sort") {
+        set_plugin_sort(payload.value("sort_key", ""), payload.value("sort_order", ""));
     } else if (command == "set_plugin_install_action") {
         const std::string action = payload.value("action", "");
         if (action == "explore" || action == "install-local")
@@ -487,92 +523,41 @@ void PluginsDialog::on_script_message(const nlohmann::json& payload)
 
 void PluginsDialog::send_plugins() { call_web_handler(build_plugins_payload()); }
 
+void PluginsDialog::set_plugin_sort(const std::string& sort_key, const std::string& sort_order)
+{
+    m_plugin_sort_key   = plugin_sort_key_from_string(sort_key, m_plugin_sort_key);
+    m_plugin_sort_order = plugin_sort_order_from_string(sort_order, m_plugin_sort_order);
+    send_plugins();
+}
+
 nlohmann::json PluginsDialog::build_plugins_payload() const
 {
     nlohmann::json response;
     response["command"]        = "list_plugins";
     response["install_action"] = s_selected_plugin_install_action;
+    response["sort_key"]       = to_string(m_plugin_sort_key);
+    response["sort_order"]     = to_string(m_plugin_sort_order);
     response["data"]           = nlohmann::json::array();
-
-    auto append_plugin = [&response](const PluginDescriptor& row) {
-        const PluginDialogItem dialog_item = build_plugin_dialog_item(row);
-
-        nlohmann::json payload_item;
-        payload_item["plugin_key"]  = dialog_item.plugin_key;
-        payload_item["plugin_id"]   = dialog_item.plugin_id;
-        payload_item["name"]        = row.name;
-        payload_item["description"] = dialog_item.description;
-        payload_item["author"]      = dialog_item.author;
-        payload_item["version"]     = dialog_item.version;
-        payload_item["installed_version"] = dialog_item.installed_version;
-        payload_item["latest_version"]    = dialog_item.latest_version;
-        payload_item["installed"]         = dialog_item.has_local_package;
-        payload_item["type"]        = dialog_item.type_label;
-        payload_item["type_key"]    = dialog_item.type_key;
-        payload_item["types"]       = dialog_item.type_labels;
-        nlohmann::json caps         = nlohmann::json::array();
-        for (const PluginCapabilityView& capability : dialog_item.capabilities) {
-            nlohmann::json c;
-            c["name"]       = capability.name;
-            c["type"]       = capability.type_label;
-            c["type_key"]   = capability.type_key;
-            c["enabled"]    = capability.enabled;
-            c["can_toggle"] = capability.can_toggle;
-            c["can_run"]    = capability.can_run;
-            caps.push_back(std::move(c));
-        }
-        payload_item["capabilities"] = std::move(caps);
-        nlohmann::json changelog     = nlohmann::json::array();
-        for (const PluginChangelogView& entry : dialog_item.changelog) {
-            nlohmann::json c;
-            c["version"]      = entry.version;
-            c["changelog"]    = entry.changelog;
-            c["created_time"] = entry.created_time;
-            changelog.push_back(std::move(c));
-        }
-        payload_item["changelog"]             = std::move(changelog);
-        payload_item["label"]                 = dialog_item.display_name;
-        payload_item["source"]                = to_string(dialog_item.source);
-        payload_item["status"]                = to_string(dialog_item.status);
-        payload_item["error"]                 = dialog_item.error_text;
-        payload_item["update_status"]         = to_string(dialog_item.update_status);
-        payload_item["unauthorized"]          = dialog_item.unauthorized;
-        payload_item["context_actions"]       = build_context_actions_payload(dialog_item.available_actions);
-        payload_item["update_available"]      = dialog_item.update_status == PluginUpdateStatus::UpdateAvailable;
-        payload_item["can_toggle"]            = dialog_item.available_actions.can_toggle;
-        payload_item["has_script_capability"] = dialog_item.has_script_capability;
-        payload_item["can_run_script"]        = dialog_item.can_run_script;
-        payload_item["sharing_token"]         = dialog_item.sharing_token;
-        payload_item["thumbnail_url"]         = dialog_item.thumbnail_url;
-        response["data"].push_back(std::move(payload_item));
-    };
 
     const auto& catalog = PluginManager::instance().get_catalog();
     const auto valid    = catalog.get_all_plugin_descriptors();
     const auto invalid  = catalog.get_invalid_plugins();
     BOOST_LOG_TRIVIAL(info) << "Prepared " << valid.size() + invalid.size() << " plugin rows for Plugins dialog";
 
+    std::vector<PluginDialogItem> items;
+    items.reserve(valid.size() + invalid.size());
+
     for (const PluginDescriptor& row : valid)
-        append_plugin(row);
+        items.push_back(build_plugin_dialog_item(row));
 
     for (const PluginDescriptor& row : invalid)
-        append_plugin(row);
+        items.push_back(build_plugin_dialog_item(row));
 
-    auto sort_value = [](const nlohmann::json& payload_item, const char* key) { return payload_item.value(key, std::string{}); };
+    // In-place sort
+    sort_plugin_items_for_dialog(items, m_plugin_sort_key, m_plugin_sort_order);
 
-    std::sort(response["data"].begin(), response["data"].end(), [&sort_value](const nlohmann::json& lhs, const nlohmann::json& rhs) {
-        const std::string lhs_source = sort_value(lhs, "source");
-        const std::string rhs_source = sort_value(rhs, "source");
-        if (lhs_source != rhs_source)
-            return lhs_source < rhs_source;
-
-        const std::string lhs_type = sort_value(lhs, "type_key");
-        const std::string rhs_type = sort_value(rhs, "type_key");
-        if (lhs_type != rhs_type)
-            return lhs_type < rhs_type;
-
-        return sort_value(lhs, "name") < sort_value(rhs, "name");
-    });
+    for (const PluginDialogItem& item : items)
+        response["data"].push_back(build_plugin_payload_item(item));
 
     return response;
 }
@@ -1274,7 +1259,7 @@ void PluginsDialog::delete_mine_local_and_cloud_plugin(const std::string& plugin
 
     // delete_mine_local_and_cloud_plugin already updated the in-memory catalog
     // (finalize_cloud_plugin_removal removes the row and, when a local package existed,
-    // re-syncs the cloud list itself), so a UI refresh is sufficient here — an extra
+    // re-syncs the cloud list itself), so a UI refresh is sufficient here - an extra
     // clearing rescan + cloud fetch would be redundant.
     send_plugins();
     show_status(wxString::Format(_L("Deleted \"%s\"."), plugin_name), "success");
