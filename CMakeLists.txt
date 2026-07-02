@@ -810,71 +810,29 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
             ${TOP_LEVEL_PROJECT_DIR}/deps/WebView2/lib/win-${_arch}/WebView2Loader.dll
         DESTINATION ${_out_dir})
 
-    file(COPY ${CMAKE_PREFIX_PATH}/bin/occt/TKBO.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKBRep.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKCAF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKCDF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKernel.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKG2d.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKG3d.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKGeomAlgo.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKGeomBase.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKHLR.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKLCAF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKMath.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKMesh.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKPrim.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKService.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKShHealing.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKSTEP.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKSTEP209.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKSTEPAttr.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKSTEPBase.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKTopAlgo.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKV3d.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKVCAF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKXCAF.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKXDESTEP.dll
-            ${CMAKE_PREFIX_PATH}/bin/occt/TKXSBase.dll
+    # Copy EVERY OCCT DLL the deps build produced. Do NOT hand-maintain an explicit
+    # list here: it silently drifts from what libslic3r links (src/libslic3r OCCT_LIBS)
+    # and their transitive OCCT deps, yielding a portable/installer that fails at launch
+    # with "OrcaSlicer.dll error 126 (dependency not found)" — e.g. missing TKFillet/
+    # TKOffset/TKBool/TKFeat. Glob everything instead; the built occt/ dir is the one
+    # source of truth. (OCCT is Shared only on Windows — deps/OCCT/OCCT.cmake.)
+    file(GLOB _occt_dlls "${CMAKE_PREFIX_PATH}/bin/occt/*.dll")
+    file(COPY ${_occt_dlls}
             ${CMAKE_PREFIX_PATH}/bin/freetype.dll
          DESTINATION ${_out_dir})
 
-    set(${output_dlls}
+    set(_dll_list
         ${_out_dir}/libgmp-10.dll
         ${_out_dir}/libmpfr-4.dll
         ${_out_dir}/WebView2Loader.dll
 
-        ${_out_dir}/TKBO.dll
-        ${_out_dir}/TKBRep.dll
-        ${_out_dir}/TKCAF.dll
-        ${_out_dir}/TKCDF.dll
-        ${_out_dir}/TKernel.dll
-        ${_out_dir}/TKG2d.dll
-        ${_out_dir}/TKG3d.dll
-        ${_out_dir}/TKGeomAlgo.dll
-        ${_out_dir}/TKGeomBase.dll
-        ${_out_dir}/TKHLR.dll
-        ${_out_dir}/TKLCAF.dll
-        ${_out_dir}/TKMath.dll
-        ${_out_dir}/TKMesh.dll
-        ${_out_dir}/TKPrim.dll
-        ${_out_dir}/TKService.dll
-        ${_out_dir}/TKShHealing.dll
-        ${_out_dir}/TKSTEP.dll
-        ${_out_dir}/TKSTEP209.dll
-        ${_out_dir}/TKSTEPAttr.dll
-        ${_out_dir}/TKSTEPBase.dll
-        ${_out_dir}/TKTopAlgo.dll
-        ${_out_dir}/TKV3d.dll
-        ${_out_dir}/TKVCAF.dll
-        ${_out_dir}/TKXCAF.dll
-        ${_out_dir}/TKXDESTEP.dll
-        ${_out_dir}/TKXSBase.dll
-
         ${_out_dir}/freetype.dll
-
-        PARENT_SCOPE
     )
+    # Mirror every OCCT DLL staged above (all OpenCASCADE toolkits are named TK*) into
+    # the install/portable manifest, so this list can never drift from what was copied.
+    file(GLOB _occt_staged "${_out_dir}/TK*.dll")
+    list(APPEND _dll_list ${_occt_staged})
+    set(${output_dlls} ${_dll_list} PARENT_SCOPE)
 
 endfunction()
 
