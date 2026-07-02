@@ -21,11 +21,12 @@ void PrintTryCancel::operator()()
 
 size_t PrintStateBase::g_last_timestamp = 0;
 
-// Update "scale", "input_filename", "input_filename_base" placeholders from the current m_objects.
+// Update "scale", "input_filename", "input_filename_base", "first_object_name" placeholders from the current m_objects.
 void PrintBase::update_object_placeholders(DynamicConfig &config, const std::string &default_ext) const
 {
     // get the first input file name
     std::string input_file;
+    std::string first_object_name;
     std::vector<std::string> v_scale;
     int num_objects = 0;
     int num_instances = 0;
@@ -38,6 +39,8 @@ void PrintBase::update_object_placeholders(DynamicConfig &config, const std::str
 			}
 		if (printable) {
             ++ num_objects;
+	        if (num_objects == 1)
+	            first_object_name = model_object->name;
 	        // CHECK_ME -> Is the following correct ?
 			v_scale.push_back("x:" + boost::lexical_cast<std::string>(printable->get_scaling_factor(X) * 100) +
 				"% y:" + boost::lexical_cast<std::string>(printable->get_scaling_factor(Y) * 100) +
@@ -51,6 +54,7 @@ void PrintBase::update_object_placeholders(DynamicConfig &config, const std::str
     config.set_key_value("num_instances", new ConfigOptionInt(num_instances));
 
     config.set_key_value("scale", new ConfigOptionStrings(v_scale));
+    config.set_key_value("first_object_name", new ConfigOptionString(first_object_name));
     if (! input_file.empty()) {
         // get basename with and without suffix
         const std::string input_filename = boost::filesystem::path(input_file).filename().string();
