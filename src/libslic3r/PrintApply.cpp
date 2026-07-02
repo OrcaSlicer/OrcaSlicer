@@ -1615,7 +1615,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 			if (object_config_changed)
 				model_object.config.assign_config(model_object_new.config);
             if (! object_diff.empty() || object_config_changed || num_extruders_changed ) {
-                PrintObjectConfig new_config = PrintObject::object_config_from_model_object(m_default_object_config, model_object, num_extruders, print_variant_index);
+                PrintObjectConfig new_config = PrintObject::object_config_from_model_object(m_default_object_config, model_object, num_extruders, print_variant_index, &this->config());
                 for (const PrintObjectStatus &print_object_status : print_object_status_db.get_range(model_object)) {
                     t_config_option_keys diff = print_object_status.print_object->config().diff(new_config);
                     if (! diff.empty()) {
@@ -1684,7 +1684,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
             auto print_object_apply_config = [this, &print_object_last, model_object, num_extruders, &print_variant_index](PrintObject *print_object) {
                 print_object->config_apply(print_object_last ?
                     print_object_last->config() :
-                    PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_extruders, print_variant_index));
+                    PrintObject::object_config_from_model_object(m_default_object_config, *model_object, num_extruders, print_variant_index, &this->config()));
                 print_object_last = print_object;
             };
             if (old.empty()) {
