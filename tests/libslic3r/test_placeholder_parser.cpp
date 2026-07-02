@@ -11,8 +11,8 @@ SCENARIO("Placeholder parser scripting", "[PlaceholderParser]") {
 
     config.set_deserialize_strict( {
 	    { "printer_notes", "  PRINTER_VENDOR_PRUSA3D  PRINTER_MODEL_MK2  " },
-	    { "nozzle_diameter", "0.6;0.6;0.6;0.6" },
-	    { "nozzle_temperature", "357;359;363;378" }
+	    { "nozzle_diameter", "0.6,0.6,0.6,0.6" },
+	    { "nozzle_temperature", "357,359,363,378" }
 	});
     // To test the "min_width_top_surface" over "inner_wall_line_width".
     config.option<ConfigOptionFloatOrPercent>("inner_wall_line_width")->value = 150.;
@@ -121,8 +121,8 @@ SCENARIO("Placeholder parser variables", "[PlaceholderParser]") {
     config.set_deserialize_strict({
         { "filament_notes", "testnotes" },
         { "enable_pressure_advance", "1" },
-        { "nozzle_diameter", "0.6;0.6;0.6;0.6" },
-        { "nozzle_temperature", "357;359;363;378" }
+        { "nozzle_diameter", "0.6,0.6,0.6,0.6" },
+        { "nozzle_temperature", "357,359,363,378" }
         });
 
     PlaceholderParser::ContextData context_with_global_dict;
