@@ -3772,16 +3772,16 @@ static int resolve_auto_support_filament(const PrintObjectConfig &config, const 
 
     // Reference colour = the object's primary material colour. Within a tier, the candidate closest to it wins.
     const std::vector<std::string> &filament_colours = print_config.filament_colour.values;
-    ColorRGB ref_colour;
-    const bool have_ref = (size_t)(*object_extruders.begin() - 1) < filament_colours.size() &&
-                          decode_color(filament_colours[*object_extruders.begin() - 1], ref_colour);
-    auto colour_distance = [&](int extruder_1based) -> float {
-        if (!have_ref)
-            return 0.f; // no reference colour: keep insertion order (lowest extruder wins)
-        ColorRGB c;
+    auto colour_at = [&](int extruder_1based, ColorRGB &out) -> bool {
         const size_t idx = (size_t)(extruder_1based - 1);
-        if (idx >= filament_colours.size() || !decode_color(filament_colours[idx], c))
-            return std::numeric_limits<float>::max(); // undecodable candidate colour: least preferred
+        return idx < filament_colours.size() && decode_color(filament_colours[idx], out);
+    };
+    ColorRGB ref_colour;
+    const bool have_ref = colour_at(*object_extruders.begin(), ref_colour);
+    auto colour_distance = [&](int cand) -> float {
+        ColorRGB c;
+        if (!have_ref || !colour_at(cand, c))
+            return 0.f; // no comparable colours: keep insertion order (lowest extruder wins)
         const float dr = c.r() - ref_colour.r(), dg = c.g() - ref_colour.g(), db = c.b() - ref_colour.b();
         return dr * dr + dg * dg + db * db;
     };
