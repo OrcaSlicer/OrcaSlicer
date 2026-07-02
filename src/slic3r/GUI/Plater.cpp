@@ -1198,9 +1198,14 @@ struct DynamicSupportFilamentList : DynamicFilamentList
 {
     DynamicSupportFilamentList() : DynamicFilamentList(true) {}
 
-    // Order: Auto, Default, then the filaments. "Default" (value 0) stays the default value.
+    // Order: [Auto,] Default, then the filaments. "Default" (value 0) stays the default value. "Auto" is
+    // left out on single-extruder-multi-material printers, where it would be a no-op; a stored Auto value
+    // then reads back as "Default" through index_of().
     void prepend_extra_items() override
     {
+        if (wxGetApp().preset_bundle &&
+            wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_bool("single_extruder_multi_material"))
+            return;
         items.push_back({_L("Auto"), nullptr});
         slot_map.push_back(SUPPORT_FILAMENT_AUTO);
     }
@@ -19749,11 +19754,15 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
             bed_shape_changed = true;
             update_scheduled = true;
         }
+        else if (opt_key == "single_extruder_multi_material") {
+            // The "Auto" support filament entry is hidden on SEMM printers; refresh the dropdowns.
+            dynamic_support_filament_list.update();
+            update_scheduled = true;
+        }
         else if (boost::starts_with(opt_key, "enable_prime_tower") ||
             boost::starts_with(opt_key, "prime_tower") ||
             boost::starts_with(opt_key, "wipe_tower") ||
             opt_key == "filament_minimal_purge_on_wipe_tower" ||
-            opt_key == "single_extruder_multi_material" ||
             // BBS
             opt_key == "prime_volume") {
             update_scheduled = true;
