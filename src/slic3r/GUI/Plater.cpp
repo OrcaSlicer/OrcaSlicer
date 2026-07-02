@@ -1118,9 +1118,9 @@ struct DynamicFilamentList : DynamicList
     }
 };
 
-// Same as DynamicFilamentList, but appends an "Auto" entry (value SUPPORT_INTERFACE_FILAMENT_AUTO). Used for
-// support_interface_filament, where "Auto" picks a non-bonding filament per object at slicing time.
-struct DynamicSupportInterfaceFilamentList : DynamicFilamentList
+// Same as DynamicFilamentList, but appends an "Auto" entry (value SUPPORT_FILAMENT_AUTO). Used for the
+// support base/interface filaments, where "Auto" picks a non-bonding filament per object at slicing time.
+struct DynamicSupportFilamentList : DynamicFilamentList
 {
     void apply_on(Choice *c) override
     {
@@ -1146,7 +1146,7 @@ struct DynamicSupportInterfaceFilamentList : DynamicFilamentList
     {
         wxString str;
         // The trailing "Auto" entry sits right after "Default" + all filaments.
-        str << (index == int(items.size()) + 1 ? SUPPORT_INTERFACE_FILAMENT_AUTO : index);
+        str << (index == int(items.size()) + 1 ? SUPPORT_FILAMENT_AUTO : index);
         return str;
     }
     int index_of(wxString value) override
@@ -1154,7 +1154,7 @@ struct DynamicSupportInterfaceFilamentList : DynamicFilamentList
         long n = 0;
         if (!value.ToLong(&n))
             return -1;
-        if (n == SUPPORT_INTERFACE_FILAMENT_AUTO)
+        if (n == SUPPORT_FILAMENT_AUTO)
             return int(items.size()) + 1;
         return (n >= 0 && n <= (long) items.size()) ? int(n) : -1;
     }
@@ -1176,7 +1176,7 @@ static bool has_junction_deviation(const DynamicPrintConfig* printer_config)
 }
 
 static DynamicFilamentList dynamic_filament_list;
-static DynamicSupportInterfaceFilamentList dynamic_support_interface_filament_list;
+static DynamicSupportFilamentList dynamic_support_filament_list;
 
 class AMSCountPopupWindow : public PopupWindow
 {
@@ -2398,8 +2398,8 @@ void Sidebar::update_sync_ams_btn_enable(wxUpdateUIEvent &e)
 Sidebar::Sidebar(Plater *parent)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(39 * wxGetApp().em_unit(), -1)), p(new priv(parent))
 {
-    Choice::register_dynamic_list("support_filament", &dynamic_filament_list);
-    Choice::register_dynamic_list("support_interface_filament", &dynamic_support_interface_filament_list);
+    Choice::register_dynamic_list("support_filament", &dynamic_support_filament_list);
+    Choice::register_dynamic_list("support_interface_filament", &dynamic_support_filament_list);
     Choice::register_dynamic_list("outer_wall_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("inner_wall_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("sparse_infill_filament_id", &dynamic_filament_list);
@@ -4081,7 +4081,7 @@ void Sidebar::on_filaments_delete(size_t filament_id)
     p->m_panel_filament_title->Refresh();
     update_ui_from_settings();
     dynamic_filament_list.update();
-    dynamic_support_interface_filament_list.update();
+    dynamic_support_filament_list.update();
 }
 
 void Sidebar::add_filament() {
@@ -4460,7 +4460,7 @@ void Sidebar::sync_ams_list(bool is_from_big_sync_btn)
             wxGetApp().get_tab(Preset::TYPE_FILAMENT)->select_preset(wxGetApp().preset_bundle->filament_presets[0], false, "", false, true);
             wxGetApp().preset_bundle->export_selections(*wxGetApp().app_config);
             dynamic_filament_list.update();
-            dynamic_support_interface_filament_list.update();
+            dynamic_support_filament_list.update();
         }
         m_sync_dlg->set_check_dirty_fialment(false);
         dlg_res = m_sync_dlg->ShowModal();
@@ -4716,7 +4716,7 @@ void Sidebar::enable_nozzle_count_edit(bool enable)
 void Sidebar::update_dynamic_filament_list()
 {
     dynamic_filament_list.update();
-    dynamic_support_interface_filament_list.update();
+    dynamic_support_filament_list.update();
 }
 
 PlaterPresetComboBox* Sidebar::printer_combox()

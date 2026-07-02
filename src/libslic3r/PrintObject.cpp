@@ -3730,12 +3730,12 @@ static void clamp_feature_filament_to_valid(ConfigOptionInt &opt, size_t num_ext
         opt.value = 1;
 }
 
-// Resolve a "support_interface_filament == Auto" object config into a concrete 1-based extruder (or 0 for
-// "Default"). Per object, pick a filament whose material does not bond to any of the object's model materials,
-// preferring a known-incompatible material over one with unknown compatibility. Falls back to "Default" (0)
-// when support is disabled, on single-extruder-multi-material printers, with a single filament, or when no
-// suitable filament exists.
-static int resolve_auto_support_interface_filament(const PrintObjectConfig &config, const ModelObject &object, size_t num_extruders, const PrintConfig &print_config)
+// Resolve a "support_filament / support_interface_filament == Auto" object config into a concrete 1-based
+// extruder (or 0 for "Default"). Per object, pick a filament whose material does not bond to any of the
+// object's model materials, preferring a known-incompatible material over one with unknown compatibility.
+// Falls back to "Default" (0) when support is disabled, on single-extruder-multi-material printers, with a
+// single filament, or when no suitable filament exists.
+static int resolve_auto_support_filament(const PrintObjectConfig &config, const ModelObject &object, size_t num_extruders, const PrintConfig &print_config)
 {
     if (!config.enable_support.value || print_config.single_extruder_multi_material.value || num_extruders <= 1)
         return 0;
@@ -3791,9 +3791,11 @@ PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObject
         src_normalized.normalize_fdm();
         update_static_print_config_from_dynamic(config, src_normalized, variant_index, print_options_with_variant, 1);
     }
-    // Resolve the "Auto" support interface filament to a concrete extruder before anything downstream reads it.
-    if (config.support_interface_filament.value == SUPPORT_INTERFACE_FILAMENT_AUTO)
-        config.support_interface_filament.value = print_config ? resolve_auto_support_interface_filament(config, object, num_extruders, *print_config) : 0;
+    // Resolve the "Auto" support filaments to concrete extruders before anything downstream reads them.
+    if (config.support_filament.value == SUPPORT_FILAMENT_AUTO)
+        config.support_filament.value = print_config ? resolve_auto_support_filament(config, object, num_extruders, *print_config) : 0;
+    if (config.support_interface_filament.value == SUPPORT_FILAMENT_AUTO)
+        config.support_interface_filament.value = print_config ? resolve_auto_support_filament(config, object, num_extruders, *print_config) : 0;
     // Clamp invalid extruders to the default extruder (with index 1).
     clamp_exturder_to_default(config.support_filament,           num_extruders);
     clamp_exturder_to_default(config.support_interface_filament, num_extruders);

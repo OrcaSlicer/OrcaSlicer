@@ -251,8 +251,8 @@ DynamicPrintConfig PresetBundle::construct_full_config(
         std::string key = std::string(keys[i]);
         auto       *opt = dynamic_cast<ConfigOptionInt *>(out.option(key, false));
         assert(opt != nullptr);
-        // support_interface_filament additionally accepts the "Auto" sentinel (a negative value), resolved per object at slicing time.
-        const int lower = (key == "support_interface_filament") ? SUPPORT_INTERFACE_FILAMENT_AUTO : 0;
+        // support_filament / support_interface_filament additionally accept the "Auto" sentinel (a negative value), resolved per object at slicing time.
+        const int lower = (key == "support_filament" || key == "support_interface_filament") ? SUPPORT_FILAMENT_AUTO : 0;
         opt->value = boost::algorithm::clamp<int>(opt->value, lower, int(num_filaments));
     }
 
@@ -4280,8 +4280,8 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
         std::string key = std::string(keys[i]);
         auto *opt = dynamic_cast<ConfigOptionInt*>(out.option(key, false));
         assert(opt != nullptr);
-        // support_interface_filament additionally accepts the "Auto" sentinel (a negative value), resolved per object at slicing time.
-        const int lower = (key == "support_interface_filament") ? SUPPORT_INTERFACE_FILAMENT_AUTO : 0;
+        // support_filament / support_interface_filament additionally accept the "Auto" sentinel (a negative value), resolved per object at slicing time.
+        const int lower = (key == "support_filament" || key == "support_interface_filament") ? SUPPORT_FILAMENT_AUTO : 0;
         opt->value = boost::algorithm::clamp<int>(opt->value, lower, int(num_filaments));
     }
 
