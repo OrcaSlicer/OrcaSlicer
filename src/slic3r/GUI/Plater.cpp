@@ -12901,9 +12901,9 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
 
         auto &obj_config = obj->config;
         if (speeds.size() > 1)
-            set_config_values<double, ConfigOptionFloatsNullable>(obj_config, "outer_wall_speed", tspd);
+            obj_config.set_key_value("outer_wall_speed", new ConfigOptionFloatsNullable(1, tspd));
         if (accels.size() > 1)
-            set_config_values<double, ConfigOptionFloatsNullable>(obj_config, "outer_wall_acceleration", tacc);
+            obj_config.set_key_value("outer_wall_acceleration", new ConfigOptionFloatsNullable(1, tacc));
 
         auto cur_plate = get_partplate_list().get_plate(plate_idx);
         if (!cur_plate) {
