@@ -5525,7 +5525,8 @@ void GCodeProcessor::process_filament_change(int id)
     }
 
     m_cp_color.current = m_extruder_colors[next_filament_id];
-    simulate_st_synchronize(extra_time);
+    simulate_st_synchronize();
+    add_time_to_estimate(extra_time);
     // store tool change move
     store_move_vertex(EMoveType::Tool_change);
 }
@@ -5617,6 +5618,25 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
 
             machine.stop_times.push_back({ m_g1_line_id, 0.0f });
         }
+    }
+}
+
+void GCodeProcessor::add_time_to_estimate(float additional_time)
+{
+    if (additional_time <= 0.0f)
+        return;
+
+    for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
+        TimeMachine& machine = m_time_processor.machines[i];
+        if (!machine.enabled)
+            continue;
+
+        machine.time += additional_time;
+        machine.gcode_time.cache += additional_time;
+        if (m_processing_start_custom_gcode)
+            machine.prepare_time += additional_time;
+        if (std::max<unsigned int>(1, m_layer_id) == 1)
+            machine.first_layer_time += additional_time;
     }
 }
 
