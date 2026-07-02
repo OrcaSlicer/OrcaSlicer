@@ -1023,6 +1023,17 @@ void MenuFactory::append_menu_item_replace_all_with_stl(wxMenu *menu)
         []() { return plater()->can_replace_all_with_stl(); }, m_parent);
 }
 
+void MenuFactory::append_menu_items_variable_layer_height(wxMenu* menu)
+{
+    append_menu_item(menu, wxID_ANY, _L("Copy Variable Layer Height"), _L("Copy the selected object's variable layer height profile"),
+        [](wxCommandEvent&) { obj_list()->copy_variable_layer_height_profile_to_clipboard(); }, "", menu,
+        []() { return obj_list()->can_copy_variable_layer_height_profile(); }, m_parent);
+
+    append_menu_item(menu, wxID_ANY, _L("Paste Variable Layer Height to Selected Objects"), _L("Paste the copied variable layer height profile to selected objects"),
+        [](wxCommandEvent&) { obj_list()->paste_variable_layer_height_profile_to_selection(); }, "", menu,
+        []() { return obj_list()->can_paste_variable_layer_height_profile(); }, m_parent);
+}
+
 void MenuFactory::append_menu_item_change_extruder(wxMenu* menu)
 {
     // BBS
@@ -1463,6 +1474,7 @@ void MenuFactory::create_extra_object_menu()
     //append_menu_item_fill_bed(&m_object_menu);
     // Object Clone
     append_menu_item_clone(&m_object_menu);
+    append_menu_items_variable_layer_height(&m_object_menu);
     // Object Repair
     append_menu_item_fix_through_cgal(&m_object_menu);
     // Object Simplify
@@ -1824,6 +1836,7 @@ void MenuFactory::init(wxWindow* parent)
 
     // create "Instance to Object" menu item
     append_menu_item_instance_to_object(&m_instance_menu);
+    append_menu_items_variable_layer_height(&m_instance_menu);
 }
 
 void MenuFactory::update()
@@ -1929,6 +1942,8 @@ wxMenu* MenuFactory::multi_selection_menu()
             append_menu_item_merge_to_multipart_object(menu);
             index++;
         }
+        append_menu_items_variable_layer_height(menu);
+        menu->AppendSeparator();
         append_menu_item_center(menu);
         append_menu_item_drop(menu);
         append_menu_item_fix_through_cgal(menu);
@@ -1954,6 +1969,8 @@ wxMenu* MenuFactory::multi_selection_menu()
         append_menu_item_export_drc(menu, true);
     }
     else {
+        append_menu_items_variable_layer_height(menu);
+        menu->AppendSeparator();
         append_menu_item_center(menu);
         append_menu_item_drop(menu);
         append_menu_item_fix_through_cgal(menu);
