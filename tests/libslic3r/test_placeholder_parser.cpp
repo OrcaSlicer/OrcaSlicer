@@ -5,6 +5,28 @@
 
 using namespace Slic3r;
 
+TEST_CASE("Placeholder parser resolves float-or-percent vectors without an explicit index", "[PlaceholderParser]")
+{
+    PlaceholderParser parser;
+    auto config = DynamicPrintConfig::full_print_config();
+
+    config.set_deserialize_strict({
+        { "travel_speed", "200" },
+        { "initial_layer_travel_speed", "500" }
+    });
+
+    parser.apply_config(config);
+    REQUIRE(parser.process("M204 P500 T{initial_layer_travel_speed}") == "M204 P500 T500");
+
+    config.set_deserialize_strict({
+        { "initial_layer_travel_speed", "50%" }
+    });
+
+    PlaceholderParser percent_parser;
+    percent_parser.apply_config(config);
+    REQUIRE(percent_parser.process("M204 P500 T{initial_layer_travel_speed}") == "M204 P500 T100");
+}
+
 SCENARIO("Placeholder parser scripting", "[PlaceholderParser]") {
     PlaceholderParser parser;
     auto config = DynamicPrintConfig::full_print_config();
