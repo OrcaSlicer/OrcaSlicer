@@ -241,3 +241,65 @@ SCENARIO("Placeholder parser variables", "[PlaceholderParser]") {
     }
     SECTION("if else completely empty") { REQUIRE(parser.process("{if false then elsif false then else endif}", 0, nullptr, nullptr, nullptr) == ""); }
 }
+
+SCENARIO("Placeholder parser coFloatsOrPercents vector access", "[PlaceholderParser]") {
+    PlaceholderParser parser;
+    auto config = DynamicPrintConfig::full_print_config();
+
+    // outer_wall_speed is the ratio_over target for small_perimeter_speed.
+    // Different values per extruder to verify parent resolves at the same element index.
+    config.set_deserialize_strict({
+        { "outer_wall_speed", "60,70,80,90" },
+        { "nozzle_diameter", "0.4,0.4,0.4,0.4" }
+    });
+    // small_perimeter_speed:
+    //   [0] = 50 absolute
+    //   [1] = 80% of outer_wall_speed[1] (= 70) → 56
+    //   [2] = 0 absolute
+    //   [3] = 50% of outer_wall_speed[3] (= 90) → 45
+    config.option<ConfigOptionFloatsOrPercentsNullable>("small_perimeter_speed")->values = {
+        FloatOrPercent{50.0, false},   // absolute: 50 mm/s
+        FloatOrPercent{80.0, true},    // 80% of outer_wall_speed[1] (70) = 56
+        FloatOrPercent{0.0, false},    // absolute: 0
+        FloatOrPercent{50.0, true},    // 50% of outer_wall_speed[3] (90) = 45
+    };
+
+    parser.apply_config(config);
+    parser.set("foo", 0);
+    parser.set("bar", 1);
+    parser.set("baz", 3);
+    parser.set("num_extruders", 4);
+
+    SECTION("Indexed access - absolute value") {
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[0]}")) == Catch::Approx(50.0));
+    }
+
+    SECTION("Indexed access - percent resolved against parent at same index [1]") {
+        // 80% of outer_wall_speed[1] (70) = 56
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[1]}")) == Catch::Approx(56.0));
+    }
+
+    SECTION("Indexed access - percent resolved against parent at same index [3]") {
+        // 50% of outer_wall_speed[3] (90) = 45
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[3]}")) == Catch::Approx(45.0));
+    }
+
+    SECTION("Extruder-based (no index) access - returns extruder 0 absolute value") {
+        // Extruder 0 is absolute 50
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed}")) == Catch::Approx(50.0));
+    }
+
+    SECTION("Extruder-based access via variable index - percent value") {
+        // bar = 1, 80% of outer_wall_speed[1] (70) = 56
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[bar]}")) == Catch::Approx(56.0));
+    }
+
+    SECTION("Extruder-based access via variable index [3] - percent value") {
+        // baz = 3, 50% of outer_wall_speed[3] (90) = 45
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[baz]}")) == Catch::Approx(45.0));
+    }
+
+    SECTION("Extruder-based access via literal index - absolute value") {
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[2]}")) == Catch::Approx(0.0));
+    }
+}
