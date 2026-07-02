@@ -3,6 +3,7 @@
 	"name": "0.12mm STRUCTURAL @CORE One 0.3",
 	"inherits": "0.12mm STRUCTURAL @MK4S 0.3",
 	"from": "system",
+	"setting_id": "ahndRyDz7TltQVpV",
 	"instantiation": "true",
 	"sparse_infill_acceleration": "5000",
 	"travel_speed": "350",

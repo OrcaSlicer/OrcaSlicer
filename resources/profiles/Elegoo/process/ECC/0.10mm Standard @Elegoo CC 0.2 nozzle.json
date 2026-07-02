@@ -3,7 +3,7 @@
 	"name": "0.10mm Standard @Elegoo CC 0.2 nozzle",
 	"inherits": "fdm_process_elegoo_02010",
 	"from": "system",
-	"setting_id": "PECC02010",
+	"setting_id": "0ZFrD2yN2iKDfHMd",
 	"instantiation": "true",
 	"sparse_infill_pattern": "zig-zag",
 	"filename_format": "ECC_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",

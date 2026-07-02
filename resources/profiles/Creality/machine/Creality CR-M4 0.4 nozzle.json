@@ -3,7 +3,7 @@
 	"name": "Creality CR-M4 0.4 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "8j6T4rBpObLegPyx",
 	"instantiation": "true",
 	"printer_model": "Creality CR-M4",
 	"gcode_flavor": "marlin",

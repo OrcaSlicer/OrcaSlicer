@@ -3,7 +3,7 @@
 	"name": "OrcaArena Generic PLA Silk",
 	"inherits": "OrcaArena Generic PLA Silk @base",
 	"from": "system",
-	"setting_id": "GFSL99_01",
+	"setting_id": "WRy8oYxZ542SX6jO",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"7.5"

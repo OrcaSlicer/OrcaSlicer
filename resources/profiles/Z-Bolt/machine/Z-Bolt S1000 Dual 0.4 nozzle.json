@@ -3,7 +3,7 @@
 	"name": "Z-Bolt S1000 Dual 0.4 nozzle",
 	"inherits": "Z-Bolt S1000 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM033",
+	"setting_id": "t3buunOXSlncNI1F",
 	"instantiation": "true",
 	"printer_settings_id": "Z-Bolt",
 	"manual_filament_change": "0",

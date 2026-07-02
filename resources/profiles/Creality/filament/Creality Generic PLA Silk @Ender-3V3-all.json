@@ -3,7 +3,7 @@
 	"name": "Creality Generic PLA Silk @Ender-3V3-all",
 	"inherits": "Creality Generic PLA @Ender-3V3-all",
 	"from": "system",
-	"setting_id": "GFSL96_00",
+	"setting_id": "uPFnSMh7WoXmMAoy",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"7.5"

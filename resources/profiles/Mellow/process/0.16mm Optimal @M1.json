@@ -3,7 +3,7 @@
 	"name": "0.16mm Optimal @M1",
 	"inherits": "fdm_process_M1_common",
 	"from": "system",
-	"setting_id": "m1_p003",
+	"setting_id": "E6qD120IMsut2kax",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

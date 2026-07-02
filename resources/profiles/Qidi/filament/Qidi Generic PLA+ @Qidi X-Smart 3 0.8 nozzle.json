@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PLA+ @Qidi X-Smart 3 0.8 nozzle",
 	"inherits": "Qidi Generic PLA+",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "3SemJWSvKeN7OXVy",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"pressure_advance": [

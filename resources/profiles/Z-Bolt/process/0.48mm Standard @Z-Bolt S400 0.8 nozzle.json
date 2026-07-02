@@ -3,7 +3,7 @@
 	"name": "0.48mm Standard @Z-Bolt S400 0.8 nozzle",
 	"inherits": "fdm_process_zbolt_0.48_nozzle_0.8",
 	"from": "system",
-	"setting_id": "GP123",
+	"setting_id": "9WxhJWzZzlIc9PWh",
 	"instantiation": "true",
 	"description": "Compared with the default profile of a 0.8 mm nozzle, it has a bigger layer height, and results in very apparent layer lines and much lower printing quality, but shorter printing time in some printing cases.",
 	"elefant_foot_compensation": "0.15",

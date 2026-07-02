@@ -3,7 +3,7 @@
 	"name": "Overture ABS @Qidi",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "rRuO94f0PYlPR3yu",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_type": [

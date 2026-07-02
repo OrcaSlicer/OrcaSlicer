@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-26 10:26+0800\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -1699,7 +1699,12 @@ msgid ""
 "To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
 "\n"
 "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
-msgstr "ตั้งแต่เวอร์ชัน 2.4.0 เป็นต้นไป OrcaSlicer จะซิงค์โปรไฟล์ผู้ใช้ผ่าน Orca Cloud แทน Bambu Cloud\n\nหากต้องการย้ายโปรไฟล์ที่มีอยู่ของคุณ ให้เข้าสู่ระบบ Orca Cloud แล้วระบบจะถ่ายโอนให้โดยอัตโนมัติ หากต้องการเรียนรู้เพิ่มเติมเกี่ยวกับวิธีที่ OrcaSlicer จัดเก็บและซิงค์โปรไฟล์ของคุณ หรือต้องการย้ายพรีเซ็ตด้วยตนเอง โปรดดูที่วิกิของเรา\n\nหากคุณไม่ได้ใช้ Bambu Cloud ในการซิงค์โปรไฟล์ การเปลี่ยนแปลงนี้จะไม่ส่งผลต่อคุณ และคุณสามารถเพิกเฉยต่อข้อความนี้ได้"
+msgstr ""
+"ตั้งแต่เวอร์ชัน 2.4.0 เป็นต้นไป OrcaSlicer จะซิงค์โปรไฟล์ผู้ใช้ผ่าน Orca Cloud แทน Bambu Cloud\n"
+"\n"
+"หากต้องการย้ายโปรไฟล์ที่มีอยู่ของคุณ ให้เข้าสู่ระบบ Orca Cloud แล้วระบบจะถ่ายโอนให้โดยอัตโนมัติ หากต้องการเรียนรู้เพิ่มเติมเกี่ยวกับวิธีที่ OrcaSlicer จัดเก็บและซิงค์โปรไฟล์ของคุณ หรือต้องการย้ายพรีเซ็ตด้วยตนเอง โปรดดูที่วิกิของเรา\n"
+"\n"
+"หากคุณไม่ได้ใช้ Bambu Cloud ในการซิงค์โปรไฟล์ การเปลี่ยนแปลงนี้จะไม่ส่งผลต่อคุณ และคุณสามารถเพิกเฉยต่อข้อความนี้ได้"
 
 msgid "Profile syncing change"
 msgstr ""
@@ -3999,6 +4004,10 @@ msgstr ""
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "อุณหภูมิห้องพิมพ์ปัจจุบันสูงกว่าอุณหภูมิปลอดภัยของวัสดุ ซึ่งอาจทำให้วัสดุนิ่มและหัวฉีดอุดตัน อุณหภูมิปลอดภัยสูงสุดของวัสดุนี้คือ %d"
 
+#, c-format, boost-format
+msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
+msgstr ""
+
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -5175,7 +5184,7 @@ msgstr "ปริมาณ:"
 msgid "Size:"
 msgstr "ขนาด:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "พบความขัดแย้งของเส้นทางรหัส G ที่เลเยอร์ %d, Z = %.2lfmm โปรดแยกวัตถุที่ขัดแย้งกันให้ไกลออกไป (%s <-> %s)"
 
@@ -9012,6 +9021,12 @@ msgstr "ลบค่าที่ตั้งล่วงหน้านี้"
 msgid "Search in preset"
 msgstr "ค้นหาในที่ตั้งไว้ล่วงหน้า"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "คลิกเพื่อรีเซ็ตการตั้งค่าทั้งหมดเป็นค่าที่ตั้งไว้ล่วงหน้าที่บันทึกไว้ล่าสุด"
 
@@ -9294,6 +9309,18 @@ msgstr "อัตราการไหลและแรงดันล่วง
 
 msgid "Print chamber temperature"
 msgstr "อุณหภูมิห้องพิมพ์"
+
+msgid "Chamber temperature"
+msgstr "อุณหภูมิห้องพิมพ์"
+
+msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "Minimal"
+msgstr ""
 
 msgid "Print temperature"
 msgstr "อุณหภูมิพิมพ์"
@@ -9619,12 +9646,22 @@ msgid "Don't warn again for this preset"
 msgstr "ไม่ต้องเตือนอีกสำหรับค่าที่กำหนดล่วงหน้านี้"
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "ซ้าย: %s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "ขวา: %s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "คลิกเพื่อรีเซ็ตค่าปัจจุบันและแนบไปกับค่าส่วนกลาง"
@@ -9641,7 +9678,7 @@ msgstr "การเปลี่ยนแปลงที่ไม่ได้บ
 msgid "Transfer or discard changes"
 msgstr "โอนหรือละทิ้งการเปลี่ยนแปลง"
 
-msgid "Old value"
+msgid "Old Value"
 msgstr "ค่าเก่า"
 
 msgid "New Value"
@@ -9772,6 +9809,12 @@ msgstr "จำนวนชุดดันเส้น"
 
 msgid "Capabilities"
 msgstr "ความสามารถ"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "แสดงค่าที่ตั้งล่วงหน้าทั้งหมด (รวมทั้งเข้ากันไม่ได้)"
@@ -11905,6 +11948,25 @@ msgstr "การพิมพ์ปกติ"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "การเร่งความเร็วเริ่มต้นของทั้งการพิมพ์และการเคลื่อนที่ตามปกติ ยกเว้นเลเยอร์เริ่มต้น"
 
+msgid "Acceleration of travel moves."
+msgstr "การเร่งความเร็วของการเดินทาง"
+
+msgid "First layer travel"
+msgstr "การเดินทางชั้นแรก"
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+"ความเร่งการเคลื่อนที่ของชั้นแรก\n"
+"ค่าเปอร์เซ็นต์สัมพันธ์กับการเร่งความเร็วในการเดินทาง"
+
+msgid "mm/s² or %"
+msgstr "มม./วินาที² หรือ %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr "การเร่งความเร็วของสะพาน หากค่าแสดงเป็นเปอร์เซ็นต์ (เช่น 50%) ค่าดังกล่าวจะคำนวณตามความเร่งของผนังด้านนอก"
+
 msgid "Default filament profile"
 msgstr "โปรไฟล์เส้นพลาสติกเริ่มต้น"
 
@@ -12112,11 +12174,27 @@ msgstr "คอร์ดอาร์คิมีดีน"
 msgid "Octagram Spiral"
 msgstr "เกลียวแปดเหลี่ยม"
 
+msgid "Top surface density"
+msgstr "ความหนาแน่นผิวด้านบน"
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr "ความหนาแน่นของชั้นผิวด้านบน ค่า 100% จะสร้างชั้นบนสุดที่เรียบและแข็งเต็มที่ การลดค่านี้ส่งผลให้พื้นผิวด้านบนมีพื้นผิวตามรูปแบบพื้นผิวด้านบนที่เลือก ค่า 0% จะส่งผลให้มีการสร้างเฉพาะผนังชั้นบนสุดเท่านั้น มีวัตถุประสงค์เพื่อความสวยงามหรือการใช้งาน ไม่ใช่เพื่อแก้ไขปัญหา เช่น การอัดขึ้นรูปมากเกินไป"
+
 msgid "Bottom surface pattern"
 msgstr "รูปแบบผิวด้านล่าง"
 
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "รูปแบบเส้นของไส้ในพื้นผิวด้านล่าง ไม่ใช่ไส้ในแบบบริดจ์"
+
+msgid "Bottom surface density"
+msgstr "ความหนาแน่นผิวด้านล่าง"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
+"ความหนาแน่นของชั้นผิวด้านล่าง มีวัตถุประสงค์เพื่อความสวยงามหรือการใช้งาน ไม่ใช่เพื่อแก้ไขปัญหา เช่น การอัดขึ้นรูปมากเกินไป\n"
+"คำเตือน: การลดค่านี้อาจส่งผลเสียต่อการยึดเกาะของฐานพิมพ์"
 
 msgid "Internal solid infill pattern"
 msgstr "รูปแบบไส้ในของแข็งภายใน"
@@ -12413,18 +12491,6 @@ msgstr "อัตโนมัติสำหรับไล่เส้น"
 
 msgid "Auto For Match"
 msgstr "อัตโนมัติสำหรับการแข่งขัน"
-
-msgid "Enable filament dynamic map"
-msgstr "เปิดใช้งานแผนที่ไดนามิกของเส้นพลาสติก"
-
-msgid "Enable dynamic filament mapping during print."
-msgstr "เปิดใช้งานการแมปเส้นพลาสติกแบบไดนามิกระหว่างการพิมพ์"
-
-msgid "Has filament switcher"
-msgstr "มีตัวสลับเส้นพลาสติก"
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
-msgstr "เครื่องพิมพ์มีฮาร์ดแวร์ตัวสลับเส้นพลาสติก (เช่น AMS)"
 
 msgid "Flush temperature"
 msgstr "อุณหภูมิไล่เส้น"
@@ -12762,7 +12828,7 @@ msgstr "การใช้หลายบรรทัดสำหรับรู
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "การปรับชดเชยการโก่งตัวตามแกน Z ให้เหมาะสม (ทดลอง)"
 
-#, fuzzy
+#, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "ปรับคลื่นไจรอยด์ให้ถี่ขึ้นตามแกน Z (แนวตั้ง) เมื่อความหนาแน่นไส้ในต่ำ เพื่อลดความยาวช่วงเสาแนวตั้งที่มีผลจริง และเพิ่มความต้านทานการโก่งตัวจากแรงอัดตามแกน Z โดยยังใช้เส้นพลาสติกเท่าเดิม ไม่มีผลเมื่อความหนาแน่นไส้ในแบบโปร่งประมาณ ~30% ขึ้นไป ใช้เฉพาะเมื่อรูปแบบไส้ในแบบโปร่งตั้งเป็นไจรอยด์เท่านั้น"
 
@@ -12829,92 +12895,14 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "ไจรอยด์"
 
-msgid "Lateral lattice angle 1"
-msgstr "มุมขัดแตะด้านข้าง 1"
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "มุมขององค์ประกอบขัดแตะด้านข้างชุดแรกในทิศทาง Z ศูนย์คือแนวตั้ง"
-
-msgid "Lateral lattice angle 2"
-msgstr "มุมขัดแตะด้านข้าง 2"
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "มุมขององค์ประกอบขัดแตะด้านข้างชุดที่สองในทิศทาง Z ศูนย์คือแนวตั้ง"
-
-msgid "Infill overhang angle"
-msgstr "ไส้ในมุมยื่น"
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr "มุมของเส้นมุมที่ไส้ในเข้าไป 60° ก็จะได้รังผึ้งที่บริสุทธิ์"
-
-msgid "Lightning overhang angle"
-msgstr "มุมส่วนยื่น Lightning"
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr "มุมส่วนยื่นสูงสุดสำหรับการแพร่กระจายส่วนรองรับไส้ใน Lightning"
-
-msgid "Prune angle"
-msgstr "มุมตัดแต่ง"
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-"กำหนดระดับการตัดกิ่ง Lightning ที่สั้นหรือไม่มีส่วนรองรับออก\n"
-"มุมนี้จะถูกแปลงภายในเป็นระยะทางต่อชั้น"
-
-msgid "Straightening angle"
-msgstr "มุมจัดให้ตรง"
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr "มุมจัดให้ตรงสูงสุดที่ใช้ลดความซับซ้อนของกิ่ง Lightning"
-
-msgid "Sparse infill anchor length"
-msgstr "ความยาวสมอ ไส้ใน เบาบาง"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr ""
-"เชื่อมต่อเส้นไส้ในเข้ากับเส้นรอบวงภายในด้วยส่วนสั้นของเส้นรอบวงเพิ่มเติม หากระบุเป็นเปอร์เซ็นต์ (ตัวอย่าง: 15%) ระบบจะคำนวณจากความกว้างการอัดรีดของไส้ใน Orca Slicer จะพยายามเชื่อมต่อเส้นไส้ในสองเส้นที่อยู่ใกล้กันเข้ากับส่วนเส้นรอบวงสั้น ๆ หากไม่พบส่วนเส้นรอบวงที่สั้นกว่า infill_anchor_max เส้นไส้ในจะถูกเชื่อมต่อกับส่วนเส้นรอบวงเพียงด้านเดียว และความยาวของส่วนเส้นรอบวงที่ใช้จะถูกจำกัดด้วยพารามิเตอร์นี้ แต่ต้องไม่เกิน anchor_length_max\n"
-"ตั้งค่าพารามิเตอร์นี้เป็นศูนย์เพื่อปิดใช้งานเส้นรอบวงยึดที่เชื่อมต่อกับเส้นไส้ในเพียงเส้นเดียว"
-
-msgid "0 (no open anchors)"
-msgstr "0 (ไม่มีพุกเปิด)"
-
-msgid "1000 (unlimited)"
-msgstr "1,000 (ไม่จำกัด)"
-
-msgid "Maximum length of the infill anchor"
-msgstr "ความยาวสูงสุดของพุก ไส้ใน"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr ""
-"เชื่อมต่อเส้นไส้ในเข้ากับเส้นรอบวงภายในด้วยส่วนสั้นของเส้นรอบวงเพิ่มเติม หากระบุเป็นเปอร์เซ็นต์ (ตัวอย่าง: 15%) ระบบจะคำนวณจากความกว้างการอัดรีดของไส้ใน Orca Slicer จะพยายามเชื่อมต่อเส้นไส้ในสองเส้นที่อยู่ใกล้กันเข้ากับส่วนเส้นรอบวงสั้น ๆ หากไม่พบส่วนเส้นรอบวงที่สั้นกว่าพารามิเตอร์นี้ เส้นไส้ในจะถูกเชื่อมต่อกับส่วนเส้นรอบวงเพียงด้านเดียว และความยาวของส่วนเส้นรอบวงที่ใช้จะถูกจำกัดไว้ที่ infill_anchor แต่ต้องไม่ยาวเกินพารามิเตอร์นี้\n"
-"หากตั้งค่าเป็น 0 จะใช้อัลกอริทึมเดิมสำหรับการเชื่อมต่อไส้ใน ซึ่งควรให้ผลลัพธ์เดียวกับ 1000 & 0"
-
-msgid "0 (Simple connect)"
-msgstr "0 (เชื่อมต่อแบบง่าย)"
-
-msgid "Acceleration of inner walls."
-msgstr "การเร่งความเร็วของผนังด้านใน"
-
-msgid "Acceleration of travel moves."
-msgstr "การเร่งความเร็วของการเดินทาง"
-
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "ความเร่งของไส้ในพื้นผิวด้านบน การใช้ค่าที่ต่ำกว่าอาจปรับปรุงคุณภาพพื้นผิวด้านบนได้"
 
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "ความเร่งของผนังด้านนอก การใช้ค่าที่ต่ำกว่าสามารถปรับปรุงคุณภาพได้"
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
-msgstr "การเร่งความเร็วของสะพาน หากค่าแสดงเป็นเปอร์เซ็นต์ (เช่น 50%) ค่าดังกล่าวจะคำนวณตามความเร่งของผนังด้านนอก"
-
-msgid "mm/s² or %"
-msgstr "มม./วินาที² หรือ %"
+msgid "Acceleration of inner walls."
+msgstr "การเร่งความเร็วของผนังด้านใน"
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "ความเร่งของไส้ในแบบโปร่ง หากค่าแสดงเป็นเปอร์เซ็นต์ (เช่น 100%) ค่านั้นจะถูกคำนวณตามความเร่งเริ่มต้น"
@@ -12924,16 +12912,6 @@ msgstr "ความเร่งของไส้ในของแข็งภ
 
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "ความเร่งของชั้นแรก การใช้ค่าที่ต่ำกว่าสามารถปรับปรุงการยึดเกาะของเพลตได้"
-
-msgid "First layer travel"
-msgstr "การเดินทางชั้นแรก"
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
-"ความเร่งการเคลื่อนที่ของชั้นแรก\n"
-"ค่าเปอร์เซ็นต์สัมพันธ์กับการเร่งความเร็วในการเดินทาง"
 
 msgid "Enable accel_to_decel"
 msgstr "เปิดใช้งาน accel_to_decel"
@@ -13554,6 +13532,75 @@ msgstr "การตรวจวัดไม่รวมพื้นที่จ
 
 msgid "Probing exclude area of clumping."
 msgstr "การตรวจวัดไม่รวมพื้นที่จับตัวเป็นก้อน"
+
+msgid "Lateral lattice angle 1"
+msgstr "มุมขัดแตะด้านข้าง 1"
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "มุมขององค์ประกอบขัดแตะด้านข้างชุดแรกในทิศทาง Z ศูนย์คือแนวตั้ง"
+
+msgid "Lateral lattice angle 2"
+msgstr "มุมขัดแตะด้านข้าง 2"
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "มุมขององค์ประกอบขัดแตะด้านข้างชุดที่สองในทิศทาง Z ศูนย์คือแนวตั้ง"
+
+msgid "Infill overhang angle"
+msgstr "ไส้ในมุมยื่น"
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr "มุมของเส้นมุมที่ไส้ในเข้าไป 60° ก็จะได้รังผึ้งที่บริสุทธิ์"
+
+msgid "Lightning overhang angle"
+msgstr "มุมส่วนยื่น Lightning"
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr "มุมส่วนยื่นสูงสุดสำหรับการแพร่กระจายส่วนรองรับไส้ใน Lightning"
+
+msgid "Prune angle"
+msgstr "มุมตัดแต่ง"
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+"กำหนดระดับการตัดกิ่ง Lightning ที่สั้นหรือไม่มีส่วนรองรับออก\n"
+"มุมนี้จะถูกแปลงภายในเป็นระยะทางต่อชั้น"
+
+msgid "Straightening angle"
+msgstr "มุมจัดให้ตรง"
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr "มุมจัดให้ตรงสูงสุดที่ใช้ลดความซับซ้อนของกิ่ง Lightning"
+
+msgid "Sparse infill anchor length"
+msgstr "ความยาวสมอ ไส้ใน เบาบาง"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr ""
+"เชื่อมต่อเส้นไส้ในเข้ากับเส้นรอบวงภายในด้วยส่วนสั้นของเส้นรอบวงเพิ่มเติม หากระบุเป็นเปอร์เซ็นต์ (ตัวอย่าง: 15%) ระบบจะคำนวณจากความกว้างการอัดรีดของไส้ใน Orca Slicer จะพยายามเชื่อมต่อเส้นไส้ในสองเส้นที่อยู่ใกล้กันเข้ากับส่วนเส้นรอบวงสั้น ๆ หากไม่พบส่วนเส้นรอบวงที่สั้นกว่า infill_anchor_max เส้นไส้ในจะถูกเชื่อมต่อกับส่วนเส้นรอบวงเพียงด้านเดียว และความยาวของส่วนเส้นรอบวงที่ใช้จะถูกจำกัดด้วยพารามิเตอร์นี้ แต่ต้องไม่เกิน anchor_length_max\n"
+"ตั้งค่าพารามิเตอร์นี้เป็นศูนย์เพื่อปิดใช้งานเส้นรอบวงยึดที่เชื่อมต่อกับเส้นไส้ในเพียงเส้นเดียว"
+
+msgid "0 (no open anchors)"
+msgstr "0 (ไม่มีพุกเปิด)"
+
+msgid "1000 (unlimited)"
+msgstr "1,000 (ไม่จำกัด)"
+
+msgid "Maximum length of the infill anchor"
+msgstr "ความยาวสูงสุดของพุก ไส้ใน"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr ""
+"เชื่อมต่อเส้นไส้ในเข้ากับเส้นรอบวงภายในด้วยส่วนสั้นของเส้นรอบวงเพิ่มเติม หากระบุเป็นเปอร์เซ็นต์ (ตัวอย่าง: 15%) ระบบจะคำนวณจากความกว้างการอัดรีดของไส้ใน Orca Slicer จะพยายามเชื่อมต่อเส้นไส้ในสองเส้นที่อยู่ใกล้กันเข้ากับส่วนเส้นรอบวงสั้น ๆ หากไม่พบส่วนเส้นรอบวงที่สั้นกว่าพารามิเตอร์นี้ เส้นไส้ในจะถูกเชื่อมต่อกับส่วนเส้นรอบวงเพียงด้านเดียว และความยาวของส่วนเส้นรอบวงที่ใช้จะถูกจำกัดไว้ที่ infill_anchor แต่ต้องไม่ยาวเกินพารามิเตอร์นี้\n"
+"หากตั้งค่าเป็น 0 จะใช้อัลกอริทึมเดิมสำหรับการเชื่อมต่อไส้ใน ซึ่งควรให้ผลลัพธ์เดียวกับ 1000 & 0"
+
+msgid "0 (Simple connect)"
+msgstr "0 (เชื่อมต่อแบบง่าย)"
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14419,6 +14466,18 @@ msgstr "ขับตรง"
 msgid "Bowden"
 msgstr "โบว์เดน"
 
+msgid "Enable filament dynamic map"
+msgstr "เปิดใช้งานแผนที่ไดนามิกของเส้นพลาสติก"
+
+msgid "Enable dynamic filament mapping during print."
+msgstr "เปิดใช้งานการแมปเส้นพลาสติกแบบไดนามิกระหว่างการพิมพ์"
+
+msgid "Has filament switcher"
+msgstr "มีตัวสลับเส้นพลาสติก"
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr "เครื่องพิมพ์มีฮาร์ดแวร์ตัวสลับเส้นพลาสติก (เช่น AMS)"
+
 msgid "Extra length on restart"
 msgstr "ความยาวพิเศษเมื่อรีสตาร์ท"
 
@@ -15184,9 +15243,6 @@ msgstr ""
 "\n"
 "ตัวเลือกนี้ขึ้นอยู่กับเฟิร์มแวร์ที่รองรับคำสั่ง M191 และ M141 ไม่ว่าจะผ่านทางมาโครหรือแบบเนทิฟ และโดยปกติจะใช้เมื่อมีการติดตั้งเครื่องทำความร้อนในห้องแบบแอคทีฟ"
 
-msgid "Chamber temperature"
-msgstr "อุณหภูมิห้องพิมพ์"
-
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
 "\n"
@@ -15199,6 +15255,17 @@ msgstr ""
 "สำหรับ PLA, PETG, TPU, PVA และวัสดุที่มีอุณหภูมิต่ำอื่นๆ ควรปิดใช้งานตัวเลือกนี้ (ตั้งค่าเป็น 0) เนื่องจากอุณหภูมิห้องควรต่ำเพื่อหลีกเลี่ยงการอุดตันของชุดดันเส้นที่เกิดจากวัสดุอ่อนตัวเมื่อความร้อนแตก\n"
 "\n"
 "หากเปิดใช้งาน พารามิเตอร์นี้จะตั้งค่าตัวแปร G-code ชื่อ Chamber_temperature ซึ่งสามารถใช้เพื่อส่งอุณหภูมิห้องเพาะเลี้ยงที่ต้องการไปยังมาโครเริ่มการพิมพ์ของคุณ หรือมาโครความร้อนแช่เช่นนี้: PRINT_START (ตัวแปรอื่นๆ) CHAMBER_TEMP=[chamber_temperature] วิธีนี้อาจเป็นประโยชน์หากเครื่องพิมพ์ของคุณไม่รองรับคำสั่ง M141/M191 หรือหากคุณต้องการจัดการกับความร้อนที่แช่อยู่ในมาโครเริ่มการพิมพ์ หากไม่มีการติดตั้งเครื่องทำความร้อนในห้องที่ใช้งานอยู่"
+
+msgid ""
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"\n"
+"Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+msgstr ""
+
+msgid "Chamber minimal temperature"
+msgstr ""
 
 msgid "Nozzle temperature after the first layer"
 msgstr "อุณหภูมิหัวฉีดสำหรับชั้นหลังจากอันแรก"
@@ -15238,22 +15305,6 @@ msgstr "ความหนาผนังด้านบน"
 
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "จำนวนชั้นทึบด้านบนจะเพิ่มขึ้นเมื่อสไลซ์หากความหนาที่คำนวณโดยชั้นเปลือกด้านบนบางกว่าค่านี้ วิธีนี้สามารถหลีกเลี่ยงไม่ให้เปลือกบางเกินไปเมื่อชั้นมีความสูงน้อย 0 หมายความว่าการตั้งค่านี้ถูกปิดใช้งาน และความหนาของเปลือกด้านบนถูกกำหนดโดยชั้นเปลือกด้านบนอย่างแน่นอน"
-
-msgid "Top surface density"
-msgstr "ความหนาแน่นผิวด้านบน"
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr "ความหนาแน่นของชั้นผิวด้านบน ค่า 100% จะสร้างชั้นบนสุดที่เรียบและแข็งเต็มที่ การลดค่านี้ส่งผลให้พื้นผิวด้านบนมีพื้นผิวตามรูปแบบพื้นผิวด้านบนที่เลือก ค่า 0% จะส่งผลให้มีการสร้างเฉพาะผนังชั้นบนสุดเท่านั้น มีวัตถุประสงค์เพื่อความสวยงามหรือการใช้งาน ไม่ใช่เพื่อแก้ไขปัญหา เช่น การอัดขึ้นรูปมากเกินไป"
-
-msgid "Bottom surface density"
-msgstr "ความหนาแน่นผิวด้านล่าง"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
-"ความหนาแน่นของชั้นผิวด้านล่าง มีวัตถุประสงค์เพื่อความสวยงามหรือการใช้งาน ไม่ใช่เพื่อแก้ไขปัญหา เช่น การอัดขึ้นรูปมากเกินไป\n"
-"คำเตือน: การลดค่านี้อาจส่งผลเสียต่อการยึดเกาะของฐานพิมพ์"
 
 msgid "This is the speed at which traveling is done."
 msgstr "ความเร็วที่ใช้ในการเคลื่อนที่แบบไม่อัดเส้น"
@@ -19075,6 +19126,14 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "ซ้าย: %s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "ขวา: %s"
 
 #~ msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 #~ msgstr "ความสูงของชั้นแรก การทำให้ชั้นแรกหนาขึ้นสามารถปรับปรุงการยึดเกาะของแผ่นรองพื้นได้"

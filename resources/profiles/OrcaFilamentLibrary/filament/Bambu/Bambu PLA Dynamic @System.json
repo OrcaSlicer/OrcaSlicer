@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Dynamic @System",
 	"inherits": "Bambu PLA Dynamic @base",
 	"from": "system",
-	"setting_id": "OGFSA13_00",
+	"setting_id": "NZkeYlElza4KiVEo",
 	"instantiation": "true",
 	"filament_flow_ratio": [
 		"0.98"

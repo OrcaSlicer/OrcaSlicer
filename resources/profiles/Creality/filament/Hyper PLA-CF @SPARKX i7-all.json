@@ -3,7 +3,7 @@
     "name": "Hyper PLA-CF @SPARKX i7-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "18bK3EZVaHGwGmsL",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

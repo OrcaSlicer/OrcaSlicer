@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-26 10:26+0800\n"
+"POT-Creation-Date: 2026-06-28 12:42-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -1719,7 +1719,12 @@ msgid ""
 "To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
 "\n"
 "If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
-msgstr "Od verze 2.4.0 OrcaSlicer synchronizuje uživatelské profily prostřednictvím Orca Cloud namísto Bambu Cloud.\n\nChcete-li migrovat své stávající profily, přihlaste se k Orca Cloud a budou automaticky přeneseny. Další informace o tom, jak OrcaSlicer ukládá a synchronizuje vaše profily, nebo o ruční migraci vašich předvoleb najdete na naší wiki.\n\nPokud jste k synchronizaci profilů nepoužívali Bambu Cloud, tato změna se vás netýká a můžete tuto zprávu klidně ignorovat."
+msgstr ""
+"Od verze 2.4.0 OrcaSlicer synchronizuje uživatelské profily prostřednictvím Orca Cloud namísto Bambu Cloud.\n"
+"\n"
+"Chcete-li migrovat své stávající profily, přihlaste se k Orca Cloud a budou automaticky přeneseny. Další informace o tom, jak OrcaSlicer ukládá a synchronizuje vaše profily, nebo o ruční migraci vašich předvoleb najdete na naší wiki.\n"
+"\n"
+"Pokud jste k synchronizaci profilů nepoužívali Bambu Cloud, tato změna se vás netýká a můžete tuto zprávu klidně ignorovat."
 
 msgid "Profile syncing change"
 msgstr ""
@@ -4104,6 +4109,10 @@ msgstr ""
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Aktuální teplota komory je vyšší než bezpečná teplota materiálu, což může vést ke změkčení materiálu a ucpání. Maximální bezpečná teplota pro materiál je %d"
 
+#, c-format, boost-format
+msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
@@ -5297,7 +5306,7 @@ msgstr "Objem:"
 msgid "Size:"
 msgstr "Velikost:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Byly nalezeny konflikty drah G-kódu ve vrstvě %d, Z = %.2lf mm. Oddělte prosím konfliktní objekty více od sebe (%s <-> %s)."
 
@@ -9202,6 +9211,12 @@ msgstr "Smazat tuto předvolbu"
 msgid "Search in preset"
 msgstr "Hledat v předvolbě"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Kliknutím obnovíte všechna nastavení na poslední uloženou předvolbu."
 
@@ -9496,6 +9511,18 @@ msgstr "Poměr průtoku a Pressure Advance"
 
 msgid "Print chamber temperature"
 msgstr "Teplota tiskové komory"
+
+msgid "Chamber temperature"
+msgstr "Teplota komory"
+
+msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "Minimal"
+msgstr ""
 
 msgid "Print temperature"
 msgstr "Teplota tisku"
@@ -9831,12 +9858,22 @@ msgid "Don't warn again for this preset"
 msgstr "Pro tuto předvolbu již nezobrazovat upozornění"
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "Vlevo: %s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "Vpravo: %s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "Klikněte pro obnovení aktuální hodnoty a navázání na globální hodnotu."
@@ -9855,9 +9892,8 @@ msgstr "Neuložené změny"
 msgid "Transfer or discard changes"
 msgstr "Přenést nebo zahodit změny"
 
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Old value"
-msgstr "Původní hodnota"
+msgid "Old Value"
+msgstr ""
 
 msgid "New Value"
 msgstr "Nová hodnota"
@@ -9977,6 +10013,12 @@ msgstr "Počet extrudérů"
 
 msgid "Capabilities"
 msgstr "Možnosti"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "Zobrazit všechny předvolby (včetně nekompatibilních)"
@@ -12105,6 +12147,25 @@ msgstr "Normální tisk"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Výchozí zrychlení pro běžný tisk i přesuny, kromě první vrstvy."
 
+msgid "Acceleration of travel moves."
+msgstr "Akcelerace pohybů přesunu."
+
+msgid "First layer travel"
+msgstr "Přejezdy první vrstvy"
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+"Zrychlení přejezdů první vrstvy.\n"
+"Procentuální hodnota je vztažena k hodnotě Zrychlení přejezdů."
+
+msgid "mm/s² or %"
+msgstr "mm/s² nebo %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr "Zrychlení mostů Pokud je hodnota vyjádřena v procentech (např. 50 %), bude vypočtena na základě akcelerace vnější stěny."
+
 msgid "Default filament profile"
 msgstr "Výchozí profil filamentu"
 
@@ -12311,12 +12372,28 @@ msgstr "Archimédovy akordy"
 msgid "Octagram Spiral"
 msgstr "Oktagramová spirála"
 
+msgid "Top surface density"
+msgstr "Hustota horního povrchu"
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr "Hustota horní povrchové vrstvy. Hodnota 100 % vytvoří zcela plnou, hladkou horní vrstvu. Snížením této hodnoty vznikne texturovaný horní povrch podle zvoleného vzoru horního povrchu. Hodnota 0 % znamená, že na horní vrstvě budou vytvořeny pouze stěny. Určeno pro estetické nebo funkční účely, nikoli k řešení problémů jako je nadměrná extruze."
+
 msgid "Bottom surface pattern"
 msgstr "Vzor spodního povrchu"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Vzor čáry pro výplň spodního povrchu, ne pro mostovou výplň."
+
+msgid "Bottom surface density"
+msgstr "Hustota spodního povrchu"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
+"Hustota spodní povrchové vrstvy. Určeno pro estetické nebo funkční účely, nikoli k řešení problémů, jako je přeextruze.\n"
+"VAROVÁNÍ: Snížení této hodnoty může negativně ovlivnit přilnavost k podložce."
 
 msgid "Internal solid infill pattern"
 msgstr "Vzor vnitřní plné výplně"
@@ -12619,18 +12696,6 @@ msgstr "Automaticky pro čištění"
 
 msgid "Auto For Match"
 msgstr "Automaticky pro přiřazení"
-
-msgid "Enable filament dynamic map"
-msgstr ""
-
-msgid "Enable dynamic filament mapping during print."
-msgstr ""
-
-msgid "Has filament switcher"
-msgstr ""
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
-msgstr ""
 
 msgid "Flush temperature"
 msgstr "Teplota čištění"
@@ -12974,6 +13039,7 @@ msgstr "Použití více řádků pro vzor výplně, pokud to daný vzor podporuj
 msgid "Z-buckling bias optimization (experimental)"
 msgstr ""
 
+#, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr ""
 
@@ -13041,79 +13107,6 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr ""
 
-msgid "Lateral lattice angle 1"
-msgstr "Úhel boční mřížky 1"
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Úhel první sady bočních mřížkových prvků ve směru Z. Nula je svisle."
-
-msgid "Lateral lattice angle 2"
-msgstr "Úhel boční mřížky 2"
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "Úhel druhé sady bočních mřížkových prvků ve směru Z. Nula je svisle."
-
-msgid "Infill overhang angle"
-msgstr "Úhel převisu výplně"
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr "Úhel šikmých čar výplně. 60° vytvoří čistý šestiúhelníkový vzor."
-
-msgid "Lightning overhang angle"
-msgstr ""
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr ""
-
-msgid "Prune angle"
-msgstr ""
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-
-msgid "Straightening angle"
-msgstr ""
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr ""
-
-msgid "Sparse infill anchor length"
-msgstr "Délka kotvy řídké výplně"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr ""
-"Připojit výplňovou čáru k vnitřnímu obvodu krátkým segmentem dalšího obvodu. Pokud je zadáno v procentech (například: 15 %), počítá se z šířky extruze výplně. Orca Slicer se pokouší propojit dvě blízké výplňové čáry krátkým segmentem obvodu. Pokud není nalezen žádný segment obvodu kratší než infill_anchor_max, výplňová čára se připojí pouze k jednomu segmentu obvodu a délka vybraného segmentu je omezena tímto parametrem, ale ne delší než anchor_length_max.\n"
-"Nastavte tuto hodnotu na nulu pro zakázání kotvení obvodů připojených k jedné výplňové čáře."
-
-msgid "0 (no open anchors)"
-msgstr "0 (žádné otevřené kotvy)"
-
-msgid "1000 (unlimited)"
-msgstr "1000 (neomezeno)"
-
-msgid "Maximum length of the infill anchor"
-msgstr "Maximální délka kotvy výplně"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr ""
-"Připojit výplňovou čáru k vnitřnímu obvodu krátkým segmentem dalšího obvodu. Pokud je zadáno v procentech (například: 15 %), počítá se z šířky extruze výplně. Orca Slicer se pokouší propojit dvě blízké výplňové čáry krátkým segmentem obvodu. Pokud není nalezen žádný segment obvodu kratší než tento parametr, výplňová čára se spojí s obvodem pouze z jedné strany a délka vybraného segmentu obvodu je omezena hodnotou infill_anchor, ale není delší než tento parametr.\n"
-"Pokud je nastaveno na 0, použije se starý algoritmus připojení výplně, což by mělo vytvořit stejný výsledek jako s 1000 & 0."
-
-msgid "0 (Simple connect)"
-msgstr "0 (Jednoduché připojení)"
-
-msgid "Acceleration of inner walls."
-msgstr "Akcelerace vnitřních stěn."
-
-msgid "Acceleration of travel moves."
-msgstr "Akcelerace pohybů přesunu."
-
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Akcelerace výplně horní plochy. Použití nižší hodnoty může zlepšit kvalitu horní plochy."
@@ -13122,11 +13115,8 @@ msgstr "Akcelerace výplně horní plochy. Použití nižší hodnoty může zle
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Akcelerace vnější stěny. Použití nižší hodnoty může zlepšit kvalitu."
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
-msgstr "Zrychlení mostů Pokud je hodnota vyjádřena v procentech (např. 50 %), bude vypočtena na základě akcelerace vnější stěny."
-
-msgid "mm/s² or %"
-msgstr "mm/s² nebo %"
+msgid "Acceleration of inner walls."
+msgstr "Akcelerace vnitřních stěn."
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Akcelerace řídké výplně. Pokud je hodnota vyjádřena v procentech (např. 100 %), bude vypočtena na základě výchozí akcelerace."
@@ -13137,16 +13127,6 @@ msgstr "Akcelerace vnitřní plné výplně. Pokud je hodnota vyjádřena v proc
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Akcelerace první vrstvy. Použití nižší hodnoty může zlepšit přilnavost k podložce."
-
-msgid "First layer travel"
-msgstr "Přejezdy první vrstvy"
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
-"Zrychlení přejezdů první vrstvy.\n"
-"Procentuální hodnota je vztažena k hodnotě Zrychlení přejezdů."
 
 msgid "Enable accel_to_decel"
 msgstr "Povolit accel_to_decel"
@@ -13779,6 +13759,73 @@ msgstr "Oblast vyloučení sondování při shlukování"
 
 msgid "Probing exclude area of clumping."
 msgstr "Oblast vyloučení sondování při shlukování."
+
+msgid "Lateral lattice angle 1"
+msgstr "Úhel boční mřížky 1"
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Úhel první sady bočních mřížkových prvků ve směru Z. Nula je svisle."
+
+msgid "Lateral lattice angle 2"
+msgstr "Úhel boční mřížky 2"
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "Úhel druhé sady bočních mřížkových prvků ve směru Z. Nula je svisle."
+
+msgid "Infill overhang angle"
+msgstr "Úhel převisu výplně"
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr "Úhel šikmých čar výplně. 60° vytvoří čistý šestiúhelníkový vzor."
+
+msgid "Lightning overhang angle"
+msgstr ""
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr ""
+
+msgid "Prune angle"
+msgstr ""
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+
+msgid "Straightening angle"
+msgstr ""
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr ""
+
+msgid "Sparse infill anchor length"
+msgstr "Délka kotvy řídké výplně"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr ""
+"Připojit výplňovou čáru k vnitřnímu obvodu krátkým segmentem dalšího obvodu. Pokud je zadáno v procentech (například: 15 %), počítá se z šířky extruze výplně. Orca Slicer se pokouší propojit dvě blízké výplňové čáry krátkým segmentem obvodu. Pokud není nalezen žádný segment obvodu kratší než infill_anchor_max, výplňová čára se připojí pouze k jednomu segmentu obvodu a délka vybraného segmentu je omezena tímto parametrem, ale ne delší než anchor_length_max.\n"
+"Nastavte tuto hodnotu na nulu pro zakázání kotvení obvodů připojených k jedné výplňové čáře."
+
+msgid "0 (no open anchors)"
+msgstr "0 (žádné otevřené kotvy)"
+
+msgid "1000 (unlimited)"
+msgstr "1000 (neomezeno)"
+
+msgid "Maximum length of the infill anchor"
+msgstr "Maximální délka kotvy výplně"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr ""
+"Připojit výplňovou čáru k vnitřnímu obvodu krátkým segmentem dalšího obvodu. Pokud je zadáno v procentech (například: 15 %), počítá se z šířky extruze výplně. Orca Slicer se pokouší propojit dvě blízké výplňové čáry krátkým segmentem obvodu. Pokud není nalezen žádný segment obvodu kratší než tento parametr, výplňová čára se spojí s obvodem pouze z jedné strany a délka vybraného segmentu obvodu je omezena hodnotou infill_anchor, ale není delší než tento parametr.\n"
+"Pokud je nastaveno na 0, použije se starý algoritmus připojení výplně, což by mělo vytvořit stejný výsledek jako s 1000 & 0."
+
+msgid "0 (Simple connect)"
+msgstr "0 (Jednoduché připojení)"
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14671,6 +14718,18 @@ msgstr "Direct Drive"
 msgid "Bowden"
 msgstr "Bowden"
 
+msgid "Enable filament dynamic map"
+msgstr ""
+
+msgid "Enable dynamic filament mapping during print."
+msgstr ""
+
+msgid "Has filament switcher"
+msgstr ""
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr ""
+
 msgid "Extra length on restart"
 msgstr "Dodatečná délka při restartu"
 
@@ -15453,9 +15512,6 @@ msgstr ""
 "\n"
 "Tato volba spoléhá na firmware, který podporuje příkazy M191 a M141 nativně nebo přes makra, a je obvykle využívána při instalaci aktivního topení komory."
 
-msgid "Chamber temperature"
-msgstr "Teplota komory"
-
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
 "\n"
@@ -15468,6 +15524,17 @@ msgstr ""
 "Pro PLA, PETG, TPU, PVA a další nízkoteplotní materiály by měla být tato volba deaktivována (nastavena na 0), protože teplota komory by měla být nízká, aby se předešlo ucpání extruderu způsobenému změkčením materiálu v tepelném přerušení.\n"
 "\n"
 "Pokud je povoleno, tento parametr rovněž nastaví G-code proměnnou s názvem chamber_temperature, kterou lze použít k předání požadované teploty komory do makra spuštění tisku, nebo do makra pro tepelnou stabilizaci, například takto: PRINT_START (další proměnné) CHAMBER_TEMP=[chamber_temperature]. To může být užitečné, pokud vaše tiskárna nepodporuje příkazy M141/M191, nebo pokud chcete provádět tepelnou stabilizaci v makru spuštění tisku, pokud není instalováno aktivní topení komory."
+
+msgid ""
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"\n"
+"Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+msgstr ""
+
+msgid "Chamber minimal temperature"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
@@ -15512,22 +15579,6 @@ msgstr "Tloušťka horního pláště"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Počet horních pevných vrstev bude při slicování zvýšen, pokud tloušťka vypočtená podle horních vrstev bude menší než tato hodnota. Tím lze předejít příliš tenké skořepině při malé výšce vrstvy. 0 znamená, že je nastavení vypnuté a tloušťka horní skořepiny je určena pouze počtem horních vrstev."
-
-msgid "Top surface density"
-msgstr "Hustota horního povrchu"
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr "Hustota horní povrchové vrstvy. Hodnota 100 % vytvoří zcela plnou, hladkou horní vrstvu. Snížením této hodnoty vznikne texturovaný horní povrch podle zvoleného vzoru horního povrchu. Hodnota 0 % znamená, že na horní vrstvě budou vytvořeny pouze stěny. Určeno pro estetické nebo funkční účely, nikoli k řešení problémů jako je nadměrná extruze."
-
-msgid "Bottom surface density"
-msgstr "Hustota spodního povrchu"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
-"Hustota spodní povrchové vrstvy. Určeno pro estetické nebo funkční účely, nikoli k řešení problémů, jako je přeextruze.\n"
-"VAROVÁNÍ: Snížení této hodnoty může negativně ovlivnit přilnavost k podložce."
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19402,6 +19453,18 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "Vlevo: %s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "Vpravo: %s"
+
+# TODO: Review, changed by lang refactor. PR 14254
+#~ msgid "Old value"
+#~ msgstr "Původní hodnota"
 
 #~ msgid "Enable network plug-in"
 #~ msgstr "Povolit síťový plugin"

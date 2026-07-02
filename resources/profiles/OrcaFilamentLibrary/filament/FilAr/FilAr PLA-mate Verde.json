@@ -3,6 +3,7 @@
     "name": "FilAr PLA-mate Verde",
     "inherits": "FilAr PLA-mate @base",
     "from": "system",
+    "setting_id": "rsLi8jr62hHPgERG",
     "filament_id": "FILAR0045",
     "instantiation": "true",
     "filament_vendor": [

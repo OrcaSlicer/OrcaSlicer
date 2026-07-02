@@ -3,7 +3,7 @@
 	"name": "0.12mm Standard @Qidi Q1 Pro 0.2 nozzle",
 	"inherits": "fdm_process_QIDI_0.12_nozzle_0.2",
 	"from": "system",
-	"setting_id": "GP026",
+	"setting_id": "OSy7OCG3mULyeT1h",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q1 Pro 0.2 nozzle"
