@@ -1105,8 +1105,16 @@ struct DynamicFilamentList : DynamicList
     // physical-only list for all of its keys.
     explicit DynamicFilamentList(bool physical_only = false) : physical_only(physical_only) {}
     bool physical_only;
-    std::vector<std::pair<wxString, wxBitmap *>> items;
-    std::vector<int> slot_map{0}; // combo index -> 1-based filament slot; slot_map[0] = 0 is "Default"
+    std::vector<std::pair<wxString, wxBitmap *>> items; // every combo entry, "Default" included
+    std::vector<int> slot_map;                          // combo index -> config value: 1-based filament slot, 0 is "Default"
+
+    int index_of_slot(int slot) const
+    {
+        for (int i = 0; i < int(slot_map.size()); ++i)
+            if (slot_map[i] == slot)
+                return i;
+        return -1;
+    }
 
     void apply_on(Choice *c) override
     {
@@ -1121,15 +1129,15 @@ struct DynamicFilamentList : DynamicList
         int old_index  = cb->GetSelection();
         // slot_map is already rebuilt here: restoring through it keeps the index of every slot
         // still listed and sends a vanished slot to the fallback below.
-        int old_slot = old_index >= 0 && old_index < int(slot_map.size()) ? slot_map[old_index] : -1;
+        static constexpr int no_slot = INT_MIN;
+        int old_slot = old_index >= 0 && old_index < int(slot_map.size()) ? slot_map[old_index] : no_slot;
         cb->Clear();
-        cb->Append(_L("Default"));
         for (auto i : items) {
             cb->Append(i.first, i.second ? *i.second : wxNullBitmap);
         }
 
-        int restored = index_of(wxString::Format("%d", old_slot));
-        if (restored > 0 || old_slot == 0) {
+        int restored = old_slot == no_slot ? -1 : index_of_slot(old_slot);
+        if (restored >= 0) {
             cb->SetSelection(restored);
             return;
         }
@@ -1140,7 +1148,7 @@ struct DynamicFilamentList : DynamicList
         } else if (new_index != wxNOT_FOUND) {
             cb->SetSelection(new_index);
         } else {
-            cb->SetSelection(0);
+            cb->SetSelection(std::max(index_of_slot(0), 0)); // "Default"
         }
     }
     wxString get_value(int index) override
@@ -1154,17 +1162,18 @@ struct DynamicFilamentList : DynamicList
         long n = 0;
         if (!value.ToLong(&n))
             return -1;
-        for (int i = 0; i < int(slot_map.size()); ++i)
-            if (slot_map[i] == int(n))
-                return i;
-        return 0;
+        int index = index_of_slot(int(n));
+        return index >= 0 ? index : std::max(index_of_slot(0), 0); // unknown slot falls back to "Default"
     }
     void update(bool force = false)
     {
         items.clear();
-        slot_map.assign(1, 0);
+        slot_map.clear();
         if (!force && m_choices.empty())
             return;
+        prepend_extra_items();
+        items.push_back({_L("Default"), nullptr});
+        slot_map.push_back(0);
         auto icons = get_extruder_color_icons(true);
         auto presets = wxGetApp().preset_bundle->filament_presets;
         for (int i = 0; i < presets.size(); ++i) {
@@ -1177,20 +1186,20 @@ struct DynamicFilamentList : DynamicList
             items.push_back({str, i < icons.size() ? icons[i] : nullptr});
             slot_map.push_back(i + 1);
         }
-        append_extra_items();
         DynamicList::update();
     }
-    // Hook for subclasses appending entries past the filament slots (see DynamicSupportFilamentList).
-    virtual void append_extra_items() {}
+    // Hook for subclasses listing entries ahead of "Default" (see DynamicSupportFilamentList).
+    virtual void prepend_extra_items() {}
 };
 
-// Same as DynamicFilamentList, but appends an "Auto" entry (value SUPPORT_FILAMENT_AUTO). Used for the
+// Same as DynamicFilamentList, but leads with an "Auto" entry (value SUPPORT_FILAMENT_AUTO). Used for the
 // support base/interface filaments, where "Auto" picks a non-bonding filament per object at slicing time.
 struct DynamicSupportFilamentList : DynamicFilamentList
 {
     DynamicSupportFilamentList() : DynamicFilamentList(true) {}
 
-    void append_extra_items() override
+    // Order: Auto, Default, then the filaments. "Default" (value 0) stays the default value.
+    void prepend_extra_items() override
     {
         items.push_back({_L("Auto"), nullptr});
         slot_map.push_back(SUPPORT_FILAMENT_AUTO);
