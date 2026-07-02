@@ -2924,7 +2924,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             pts->values.emplace_back(bbox.max.x(), bbox.max.y());
             pts->values.emplace_back(bbox.min.x(), bbox.max.y());
 
-		} else if (print.calib_mode() == CalibMode::Calib_PA_Line) {
+        } else if (print.calib_mode() == CalibMode::Calib_PA_Line) {
 			// Derive X bounds from the actual calibration geometry.
 			CalibPressureAdvanceLine temp_pa_line_forsize(this);
 			BoundingBoxf pattern_extents = temp_pa_line_forsize.print_extents(bbox_bed);
@@ -6771,7 +6771,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     // If adaptive PA is enabled, by default evaluate PA on all extrusion moves
     bool is_pa_calib = m_curr_print->calib_mode() == CalibMode::Calib_PA_Line ||
                        m_curr_print->calib_mode() == CalibMode::Calib_PA_Pattern ||
-                       m_curr_print->calib_mode() == CalibMode::Calib_PA_Tower; 
+                       m_curr_print->calib_mode() == CalibMode::Calib_PA_Tower;
     bool evaluate_adaptive_pa = false;
     bool role_change = (m_last_extrusion_role != path.role());
     if (!is_pa_calib && FILAMENT_CONFIG(adaptive_pressure_advance) && FILAMENT_CONFIG(enable_pressure_advance)) {
