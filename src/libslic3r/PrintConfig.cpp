@@ -6828,8 +6828,9 @@ void PrintConfigDef::init_fff_params()
     def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
     def->label    = L("Support/raft base");
     def->category = L("Support");
-    def->tooltip = L("Filament to print support base and raft.\n\"Default\" means no specific filament for support and current filament is used.");
-    def->min = 0;
+    def->tooltip = L("Filament to print support base and raft.\n\"Default\" means no specific filament for support and current filament is used.\n"
+                     "\"Auto\" picks, per object, a filament that does not bond to the supported material so the support detaches cleanly.");
+    def->min = SUPPORT_FILAMENT_AUTO;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInt(0));
 
@@ -6865,7 +6866,7 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Support");
     def->tooltip = L("Filament to print support interface.\n\"Default\" means no specific filament for support interface and current filament is used.\n"
                      "\"Auto\" picks, per object, a filament that does not bond to the supported material so the interface detaches cleanly.");
-    def->min = SUPPORT_INTERFACE_FILAMENT_AUTO;
+    def->min = SUPPORT_FILAMENT_AUTO;
     // BBS
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInt(0));
