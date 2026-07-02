@@ -1437,8 +1437,32 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
                 boost::filesystem::create_directories(dest_path.parent_path());
                 std::string dest_zip_file = encode_path(dest_path.string().c_str());
                 try {
-                    if (fs::exists(dest_path))
-                        fs::remove(dest_path);
+                    if (fs::exists(dest_path)) {
+                        boost::system::error_code ec;
+                        fs::remove(dest_path, ec);
+                        if (ec) {
+                            // On Windows a currently-loaded DLL (e.g. BambuSource.dll, or the
+                            // networking library in legacy mode) cannot be deleted or overwritten
+                            // in place, which failed the whole install with "The plug-in file may
+                            // be in use" (issue #14373). It CAN however be renamed aside: the
+                            // running module keeps mapping the renamed file while we write the new
+                            // one. The stale ".old" copy is cleared on the next install/launch.
+                            boost::filesystem::path aside = dest_path;
+                            aside += ".old";
+                            boost::system::error_code ec2;
+                            fs::remove(aside, ec2);
+                            fs::rename(dest_path, aside, ec2);
+                            if (ec2) {
+                                close_zip_reader(&archive);
+                                BOOST_LOG_TRIVIAL(error) << "[install_plugin] cannot replace in-use file "
+                                                         << dest_path.string() << ": " << ec2.message();
+                                if (pro_fn) { pro_fn(InstallStatusUnzipFailed, 0, cancel); }
+                                return InstallStatusUnzipFailed;
+                            }
+                            BOOST_LOG_TRIVIAL(warning) << "[install_plugin] " << dest_path.filename().string()
+                                                       << " was in use, renamed aside to .old";
+                        }
+                    }
                     mz_bool res = 0;
 #ifndef WIN32
                     if (S_ISLNK(stat.m_external_attr >> 16)) {
@@ -3324,6 +3348,26 @@ void GUI_App::copy_network_if_available()
 
 bool GUI_App::on_init_network(bool try_backup)
 {
+    // Clean up stale ".old" files left by install_plugin() when it had to rename an in-use
+    // DLL aside (see the rename-aside path in install_plugin). This runs before the plug-in
+    // is (re)loaded - at startup nothing is mapped yet, and on a hot reload the previous
+    // module has already been unloaded - so the previously locked files can now be removed.
+    {
+        boost::filesystem::path plugin_folder = boost::filesystem::path(data_dir()) / "plugins";
+        boost::system::error_code ec;
+        if (boost::filesystem::is_directory(plugin_folder, ec)) {
+            for (boost::filesystem::directory_iterator it(plugin_folder, ec), end; !ec && it != end; it.increment(ec)) {
+                if (it->path().extension() == ".old") {
+                    boost::system::error_code rm_ec;
+                    boost::filesystem::remove(it->path(), rm_ec);
+                    if (rm_ec)
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": could not remove stale " << it->path().filename().string()
+                                                << " (" << rm_ec.message() << "), will retry next launch";
+                }
+            }
+        }
+    }
+
     auto should_load_networking_plugin = app_config->get_bool("installed_networking");
 
     std::string config_version = app_config->get_network_plugin_version();
