@@ -150,7 +150,7 @@ SCENARIO("CAD recipe blob survives a 3mf save/load cycle", "[3mf]") {
         recipe.push_back('\x01');
         recipe.append("SNAPORCA");
         recipe.push_back('\0');
-        recipe.append("\xff\xfe\x00\x10cad-features-blob");
+        recipe.append("\xff\xfe\x00\x10" "cad-features-blob");
         src_model.cad_recipe = recipe;
 
         WHEN("the model is saved+loaded to/from a 3mf file") {
@@ -188,7 +188,7 @@ SCENARIO("CAD recipe is embedded in the BBS 3mf archive", "[3mf]") {
         recipe.push_back('\x01');
         recipe.append("SNAPORCA");
         recipe.push_back('\0');
-        recipe.append("\xff\xfe\x00\x10cad-features-blob");
+        recipe.append("\xff\xfe\x00\x10" "cad-features-blob");
         model.cad_recipe = recipe;
 
         WHEN("saved through the BBS backend (the format the GUI uses)") {
