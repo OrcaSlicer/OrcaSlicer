@@ -513,7 +513,7 @@ public:
     // If ! m_slicing_params.valid, recalculate.
     void                    update_slicing_parameters();
 
-    static PrintObjectConfig object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, std::vector<int>& variant_index);
+    static PrintObjectConfig object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, std::vector<int>& variant_index, const PrintConfig *print_config = nullptr);
 
 private:
     void make_perimeters();
