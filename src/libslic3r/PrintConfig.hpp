@@ -30,9 +30,9 @@
 
 namespace Slic3r {
 
-// Sentinel value for support_interface_filament meaning "auto": pick, per object, a filament whose
-// material does not bond to the supported part (resolved to a concrete extruder at apply time).
-static constexpr int SUPPORT_INTERFACE_FILAMENT_AUTO = -1;
+// Sentinel value for support_filament / support_interface_filament meaning "auto": pick, per object, a
+// filament whose material does not bond to the supported part (resolved to a concrete extruder at apply time).
+static constexpr int SUPPORT_FILAMENT_AUTO = -1;
 
 enum GCodeFlavor : unsigned char {
     gcfMarlinLegacy, 
