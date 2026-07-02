@@ -103,3 +103,72 @@ SCENARIO("Print: Brim generation", "[Print]") {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// {first_object_name} filename placeholder
+// ---------------------------------------------------------------------------
+namespace {
+
+// Add a printable 20mm cube named `name` to `model`; returns it so the caller can tweak it.
+ModelObject* add_named_cube(Model& model, const std::string& name)
+{
+    ModelObject* obj = model.add_object();
+    obj->name = name;
+    obj->add_volume(make_cube(20.0, 20.0, 20.0));
+    obj->add_instance();
+    obj->ensure_on_bed();
+    return obj;
+}
+
+// Resolve `format` to an output file name for a print of `model`. `filename_base`, when set,
+// is the saved-project name passed to output_filename().
+std::string resolved_output_name(Model& model, const std::string& format, const std::string& filename_base = {})
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_key_value("filename_format", new ConfigOptionString(format));
+
+    Print print;
+    for (ModelObject* obj : model.objects)
+        print.auto_assign_extruders(obj);
+    print.apply(model, config);
+    return print.output_filename(filename_base);
+}
+
+} // namespace
+
+TEST_CASE("Print: {first_object_name} names the first printable object on the plate", "[Print]")
+{
+    Model model;
+
+    SECTION("uses the object's name") {
+        add_named_cube(model, "WidgetPart");
+        CHECK(resolved_output_name(model, "{first_object_name}") == "WidgetPart.gcode");
+    }
+
+    SECTION("picks the first when several objects are printable") {
+        add_named_cube(model, "FirstPart");
+        add_named_cube(model, "SecondPart");
+        CHECK(resolved_output_name(model, "{first_object_name}") == "FirstPart.gcode");
+    }
+
+    SECTION("skips objects outside the print volume (e.g. on another plate)") {
+        // First in model order, but not on the current plate, so is_printable() is false.
+        add_named_cube(model, "OtherPlatePart")->instances.front()->print_volume_state = ModelInstancePVS_Fully_Outside;
+        add_named_cube(model, "OnPlatePart");
+        CHECK(resolved_output_name(model, "{first_object_name}") == "OnPlatePart.gcode");
+    }
+
+    SECTION("is empty when the object has no name") {
+        add_named_cube(model, "");
+        CHECK(resolved_output_name(model, "part_{first_object_name}") == "part_.gcode");
+    }
+}
+
+TEST_CASE("Print: {first_object_name} is not replaced by the saved-project file name", "[Print]")
+{
+    // Passing a saved-project file name as the filename_base must not change {first_object_name}.
+    Model model;
+    add_named_cube(model, "WidgetPart");
+    CHECK(resolved_output_name(model, "{first_object_name}", "SavedProject") == "WidgetPart.gcode");
+}
+
