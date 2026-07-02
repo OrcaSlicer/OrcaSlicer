@@ -109,15 +109,15 @@ void DesignSketchTool::rebuild_features_from_entities()
     auto start = [&](int i) { return m_entities[i].p0; };
     auto end   = [&](int i) { const SketchEntity& e = m_entities[i];
         return (e.type == T::Line || e.type == T::Arc) ? e.p1 : e.p0; };
-    auto near  = [](const Vec2d& a, const Vec2d& b) {
+    auto is_near  = [](const Vec2d& a, const Vec2d& b) {
         return (a - b).norm() <= 0.05 + 1e-3 * std::max(a.norm(), b.norm()); };
 
     int i = 0;
     while (i < n) {
         int j = i; bool closed = false;            // greedily extend a consecutive chain
-        while (j + 1 < n && near(end(j), start(j + 1))) {
+        while (j + 1 < n && is_near(end(j), start(j + 1))) {
             ++j;
-            if ((j - i) >= 2 && near(end(j), start(i))) { closed = true; break; }
+            if ((j - i) >= 2 && is_near(end(j), start(i))) { closed = true; break; }
         }
         const int cnt = j - i + 1;
         if (!closed || cnt < 3) { ++i; continue; }
@@ -139,7 +139,7 @@ void DesignSketchTool::rebuild_features_from_entities()
             f.param = m_entities[i + 1].radius;
             m_features.push_back(f);
         } else if (cnt == 4 && arcs == 4 &&
-                   near(m_entities[i].center, m_entities[i + 2].center) &&
+                   is_near(m_entities[i].center, m_entities[i + 2].center) &&
                    std::abs(m_entities[i + 1].radius - m_entities[i + 3].radius) <=
                        0.02 * std::max(m_entities[i + 1].radius, 1e-6) &&
                    m_entities[i].radius > m_entities[i + 2].radius) {
@@ -4845,7 +4845,7 @@ DesignSketchTool::region_loops(const std::vector<SketchEntity>& ents) const
 {
     std::vector<RegionLoop> regions;
     const double eps2 = 1e-3 * 1e-3;
-    auto near = [&](const Vec2d& a, const Vec2d& b) { return (a - b).squaredNorm() < eps2; };
+    auto is_near = [&](const Vec2d& a, const Vec2d& b) { return (a - b).squaredNorm() < eps2; };
 
     // Circles are self-closed regions; lines/arcs are open segments to be chained. Each
     // Seg remembers the entity index it came from.
@@ -4875,15 +4875,15 @@ DesignSketchTool::region_loops(const std::vector<SketchEntity>& ents) const
         const Vec2d start = loop.front();
         Vec2d cur = loop.back();
         bool extended = true;
-        while (extended && !near(cur, start)) {
+        while (extended && !is_near(cur, start)) {
             extended = false;
             for (size_t t = 0; t < segs.size(); ++t) {
                 if (segs[t].used) continue;
                 const std::vector<Vec2d>& q = segs[t].pts;
-                if (near(q.front(), cur)) {
+                if (is_near(q.front(), cur)) {
                     for (size_t k = 1; k < q.size(); ++k) loop.push_back(q[k]);
                     cur = q.back();
-                } else if (near(q.back(), cur)) {
+                } else if (is_near(q.back(), cur)) {
                     for (int k = int(q.size()) - 2; k >= 0; --k) loop.push_back(q[k]);
                     cur = q.front();
                 } else {
@@ -4895,7 +4895,7 @@ DesignSketchTool::region_loops(const std::vector<SketchEntity>& ents) const
                 break;
             }
         }
-        if (near(cur, start) && loop.size() >= 4) {
+        if (is_near(cur, start) && loop.size() >= 4) {
             loop.pop_back();          // drop the duplicate closing vertex
             regions.push_back({ std::move(loop), std::move(loop_ents) });
         }
