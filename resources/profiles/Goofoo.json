@@ -89,7 +89,18 @@
     }
   ],
   "filament_list": [
-    
+    {
+      "name": "fdm_filament_abs",
+      "sub_path": "filament/fdm_filament_abs.json"
+    },
+    {
+      "name": "Goofoo Velo+ ABS@base",
+      "sub_path": "filament/Goofoo Velo+ ABS@base.json"
+    },
+    {
+      "name": "Goofoo Velo+ ABS",
+      "sub_path": "filament/Goofoo Velo+ ABS.json"
+    }
   ],
   "machine_list": [
     {
