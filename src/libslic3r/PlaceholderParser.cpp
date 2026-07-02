@@ -1172,19 +1172,19 @@ namespace client
                 // Allow omitting extruder id when referencing vectors
                 switch (opt.opt->type()) {
                 case coFloats: {
-                    const ConfigOptionFloatsNullable* opt_floatsnullable = static_cast<const ConfigOptionFloatsNullable *>(opt.opt);
+                    const ConfigOptionFloatsNullable* opt_floatsnullable = dynamic_cast<const ConfigOptionFloatsNullable *>(opt.opt);
                     if (opt_floatsnullable) {
                         if (opt_floatsnullable->size() == 1) { // old version
-                            output.set_d(static_cast<const ConfigOptionFloatsNullable*>(opt.opt)->get_at(0));
+                            output.set_d(opt_floatsnullable->get_at(0));
                         } else {
-                            output.set_d(static_cast<const ConfigOptionFloatsNullable*>(opt.opt)->get_at(ctx->get_extruder_id()));
+                            output.set_d(opt_floatsnullable->get_at(ctx->get_extruder_id()));
                         }
                     } else {
                         const ConfigOptionFloats* opt_floats = static_cast<const ConfigOptionFloats*>(opt.opt);
                         if (opt_floats->size() == 1) { // old version
-                            output.set_d(static_cast<const ConfigOptionFloats*>(opt.opt)->get_at(0));
+                            output.set_d(opt_floats->get_at(0));
                         } else {
-                            output.set_d(static_cast<const ConfigOptionFloats*>(opt.opt)->get_at(ctx->get_extruder_id()));
+                            output.set_d(opt_floats->get_at(ctx->get_extruder_id()));
                         }
                     }
                     break;

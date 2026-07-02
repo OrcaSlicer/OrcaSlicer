@@ -250,15 +250,16 @@ SCENARIO("Placeholder parser coFloatsOrPercents vector access", "[PlaceholderPar
     // Different values per extruder to verify parent resolves at the same element index.
     config.set_deserialize_strict({
         { "outer_wall_speed", "60,70,80,90" },
-        { "nozzle_diameter", "0.4,0.4,0.4,0.4" }
+        { "nozzle_diameter", "0.4,0.4,0.4,0.4" },
+        { "pressure_advance", "1.5,2.0,3.0,4.0" }  // coFloats non-nullable
     });
     // small_perimeter_speed:
-    //   [0] = 50 absolute
+    //   [0] = 50% of outer_wall_speed[0] (= 60) → 30
     //   [1] = 80% of outer_wall_speed[1] (= 70) → 56
     //   [2] = 0 absolute
     //   [3] = 50% of outer_wall_speed[3] (= 90) → 45
     config.option<ConfigOptionFloatsOrPercentsNullable>("small_perimeter_speed")->values = {
-        FloatOrPercent{50.0, false},   // absolute: 50 mm/s
+        FloatOrPercent{50.0, true},    // 50% of outer_wall_speed[0] (60) = 30
         FloatOrPercent{80.0, true},    // 80% of outer_wall_speed[1] (70) = 56
         FloatOrPercent{0.0, false},    // absolute: 0
         FloatOrPercent{50.0, true},    // 50% of outer_wall_speed[3] (90) = 45
@@ -270,8 +271,9 @@ SCENARIO("Placeholder parser coFloatsOrPercents vector access", "[PlaceholderPar
     parser.set("baz", 3);
     parser.set("num_extruders", 4);
 
-    SECTION("Indexed access - absolute value") {
-        REQUIRE(std::stod(parser.process("{small_perimeter_speed[0]}")) == Catch::Approx(50.0));
+    SECTION("Indexed access - percent resolved against parent at same index [0]") {
+        // 50% of outer_wall_speed[0] (60) = 30
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[0]}")) == Catch::Approx(30.0));
     }
 
     SECTION("Indexed access - percent resolved against parent at same index [1]") {
@@ -284,22 +286,52 @@ SCENARIO("Placeholder parser coFloatsOrPercents vector access", "[PlaceholderPar
         REQUIRE(std::stod(parser.process("{small_perimeter_speed[3]}")) == Catch::Approx(45.0));
     }
 
-    SECTION("Extruder-based (no index) access - returns extruder 0 absolute value") {
-        // Extruder 0 is absolute 50
-        REQUIRE(std::stod(parser.process("{small_perimeter_speed}")) == Catch::Approx(50.0));
+    SECTION("Variable-indexed access via foo (=0) - percent value") {
+        // 50% of outer_wall_speed[0] (60) = 30
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[foo]}")) == Catch::Approx(30.0));
     }
 
-    SECTION("Extruder-based access via variable index - percent value") {
-        // bar = 1, 80% of outer_wall_speed[1] (70) = 56
+    SECTION("Variable-indexed access via bar (=1) - percent value") {
+        // 80% of outer_wall_speed[1] (70) = 56
         REQUIRE(std::stod(parser.process("{small_perimeter_speed[bar]}")) == Catch::Approx(56.0));
     }
 
-    SECTION("Extruder-based access via variable index [3] - percent value") {
-        // baz = 3, 50% of outer_wall_speed[3] (90) = 45
+    SECTION("Variable-indexed access via baz (=3) - percent value") {
+        // 50% of outer_wall_speed[3] (90) = 45
         REQUIRE(std::stod(parser.process("{small_perimeter_speed[baz]}")) == Catch::Approx(45.0));
     }
 
-    SECTION("Extruder-based access via literal index - absolute value") {
+    SECTION("Literal-indexed access - absolute value") {
         REQUIRE(std::stod(parser.process("{small_perimeter_speed[2]}")) == Catch::Approx(0.0));
+    }
+
+    SECTION("No-index (extruder-based) access - percent resolved via current extruder") {
+        // Extruder 0 = 50% of outer_wall_speed[0] (60) = 30
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed}")) == Catch::Approx(30.0));
+    }
+
+    SECTION("Out-of-range index clamps to index 0") {
+        // Index 99 is out of range, clamps to 0: 50% of outer_wall_speed[0] (60) = 30
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[99]}")) == Catch::Approx(30.0));
+    }
+
+    SECTION("coFloats no-index access - nullable (outer_wall_speed)") {
+        // outer_wall_speed is ConfigOptionFloatsNullable, exercises the 'if' branch
+        REQUIRE(std::stod(parser.process("{outer_wall_speed}")) == Catch::Approx(60.0));
+    }
+
+    SECTION("coFloats indexed access - nullable") {
+        // outer_wall_speed[2] = 80
+        REQUIRE(std::stod(parser.process("{outer_wall_speed[2]}")) == Catch::Approx(80.0));
+    }
+
+    SECTION("coFloats no-index access - non-nullable (pressure_advance)") {
+        // pressure_advance is ConfigOptionFloats (non-nullable), exercises the 'else' branch
+        REQUIRE(std::stod(parser.process("{pressure_advance}")) == Catch::Approx(1.5));
+    }
+
+    SECTION("coFloats indexed access - non-nullable") {
+        // pressure_advance[2] = 3.0
+        REQUIRE(std::stod(parser.process("{pressure_advance[2]}")) == Catch::Approx(3.0));
     }
 }
