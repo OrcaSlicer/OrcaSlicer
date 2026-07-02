@@ -1118,20 +1118,31 @@ struct DynamicFilamentList : DynamicList
     }
 };
 
-// Same as DynamicFilamentList, but appends an "Auto" entry (value SUPPORT_FILAMENT_AUTO). Used for the
+// Same as DynamicFilamentList, but prepends an "Auto" entry (value SUPPORT_FILAMENT_AUTO). Used for the
 // support base/interface filaments, where "Auto" picks a non-bonding filament per object at slicing time.
+// "Auto" is hidden on single-extruder-multi-material printers, where it would be a no-op.
 struct DynamicSupportFilamentList : DynamicFilamentList
 {
+    bool m_show_auto = true; // whether the leading "Auto" entry is present (false on SEMM printers)
+
+    static bool printer_is_semm()
+    {
+        return wxGetApp().preset_bundle &&
+               wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_bool("single_extruder_multi_material");
+    }
+
     void apply_on(Choice *c) override
     {
         if (items.empty())
             update(true);
+        m_show_auto = !printer_is_semm();
         auto cb = dynamic_cast<ComboBox *>(c->window);
         wxString old_selection = cb->GetStringSelection();
         int old_index  = cb->GetSelection();
         cb->Clear();
-        // Order: Auto, Default, then the filaments. "Default" (value 0) stays the default value.
-        cb->Append(_L("Auto"));
+        // Order: [Auto,] Default, then the filaments. "Default" (value 0) stays the default value.
+        if (m_show_auto)
+            cb->Append(_L("Auto"));
         cb->Append(_L("Default"));
         for (auto i : items)
             cb->Append(i.first, i.second ? *i.second : wxNullBitmap);
@@ -1141,13 +1152,17 @@ struct DynamicSupportFilamentList : DynamicFilamentList
             return;
         }
         int new_index = cb->FindString(old_selection);
-        cb->SetSelection(new_index != wxNOT_FOUND ? new_index : 1); // fall back to "Default"
+        cb->SetSelection(new_index != wxNOT_FOUND ? new_index : (m_show_auto ? 1 : 0)); // fall back to "Default"
     }
     wxString get_value(int index) override
     {
         wxString str;
-        // Index 0 is "Auto", index 1 is "Default" (value 0), index i>=2 is filament (value i-1).
-        str << (index == 0 ? SUPPORT_FILAMENT_AUTO : index - 1);
+        // With Auto: index 0 = Auto, 1 = Default (value 0), i>=2 = filament (value i-1).
+        // Without Auto (SEMM): index 0 = Default (value 0), i>=1 = filament (value i).
+        if (m_show_auto)
+            str << (index == 0 ? SUPPORT_FILAMENT_AUTO : index - 1);
+        else
+            str << index;
         return str;
     }
     int index_of(wxString value) override
@@ -1156,8 +1171,8 @@ struct DynamicSupportFilamentList : DynamicFilamentList
         if (!value.ToLong(&n))
             return -1;
         if (n == SUPPORT_FILAMENT_AUTO)
-            return 0;
-        return (n >= 0 && n <= (long) items.size()) ? int(n) + 1 : -1;
+            return 0; // "Auto" if shown, otherwise falls back to "Default" at index 0
+        return (n >= 0 && n <= (long) items.size()) ? int(n) + (m_show_auto ? 1 : 0) : -1;
     }
 };
 
@@ -17842,11 +17857,15 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
             bed_shape_changed = true;
             update_scheduled = true;
         }
+        else if (opt_key == "single_extruder_multi_material") {
+            // The "Auto" support filament entry is hidden on SEMM printers; refresh the dropdowns.
+            dynamic_support_filament_list.update();
+            update_scheduled = true;
+        }
         else if (boost::starts_with(opt_key, "enable_prime_tower") ||
             boost::starts_with(opt_key, "prime_tower") ||
             boost::starts_with(opt_key, "wipe_tower") ||
             opt_key == "filament_minimal_purge_on_wipe_tower" ||
-            opt_key == "single_extruder_multi_material" ||
             // BBS
             opt_key == "prime_volume") {
             update_scheduled = true;
