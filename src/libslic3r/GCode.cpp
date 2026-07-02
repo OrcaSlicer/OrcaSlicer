@@ -5869,36 +5869,33 @@ LayerResult GCode::process_layer(
                     }
                 }
 
-                // BBS: try to print support base with a filament other than interface filament
+                // Default ("don't care") support/interface uses the supported object's own material.
+                unsigned int object_extruder = first_extruder_id;
+                if (const std::vector<unsigned int> obj_extruders = object.object_extruders(); !obj_extruders.empty())
+                    object_extruder = obj_extruders.front();
+
+                // The support base defaults to the object's own material, but avoids the interface filament (and soluble filaments) to keep them distinct.
                 if (support_dontcare && !interface_dontcare) {
-                    unsigned int dontcare_extruder = first_extruder_id;
-                    for (unsigned int extruder_id : layer_tools.extruders) {
-                        if (print.config().filament_soluble.get_at(extruder_id))
-                            continue;
-
-                        //BBS: now we don't consider interface filament used in other object
-                        if (extruder_id == interface_extruder)
-                            continue;
-
-                        dontcare_extruder = extruder_id;
-                        break;
+                    unsigned int dontcare_extruder = object_extruder;
+                    if (dontcare_extruder == interface_extruder || print.config().filament_soluble.get_at(dontcare_extruder)) {
+                        for (unsigned int extruder_id : layer_tools.extruders) {
+                            if (print.config().filament_soluble.get_at(extruder_id))
+                                continue;
+                            //BBS: now we don't consider interface filament used in other object
+                            if (extruder_id == interface_extruder)
+                                continue;
+                            dontcare_extruder = extruder_id;
+                            break;
+                        }
                     }
-                #if 0
-                    //BBS: not found a suitable extruder in current layer ,dontcare_extruider==first_extruder_id==interface_extruder
-                    if (dontcare_extruder == interface_extruder && (object.config().support_interface_not_for_body && object.config().support_interface_filament.value!=0)) {
-                        // BBS : get a suitable extruder from other layer
-                        auto all_extruders = print.extruders();
-                        dontcare_extruder = get_next_extruder(dontcare_extruder, all_extruders);
-                    }
-                #endif
 
                     if (support_dontcare)
                         support_extruder = dontcare_extruder;
                 }
                 else if (support_dontcare || interface_dontcare) {
-                    // Some support will be printed with "don't care" material, preferably non-soluble.
-                    // Is the current extruder assigned a soluble filament?
-                    unsigned int dontcare_extruder = first_extruder_id;
+                    // Some support will be printed with "don't care" material: the object's own material,
+                    // preferably non-soluble and non-support.
+                    unsigned int dontcare_extruder = object_extruder;
                     if (print.config().filament_soluble.get_at(dontcare_extruder)) {
                         // The last extruder printed on the previous layer extrudes soluble filament.
                         // Try to find a non-soluble extruder on the same layer.
