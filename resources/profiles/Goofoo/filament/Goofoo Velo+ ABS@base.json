@@ -1,0 +1,18 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ ABS@base",
+  "from": "system",
+  "instantiation": "false",
+  "inherits": "fdm_filament_abs",
+  "filament_id": "GFG_001",
+  "close_fan_the_first_x_layers": [
+    "1"
+  ],
+  "hot_plate_temp": [
+    "110"
+  ],
+  "hot_plate_temp_initial_layer": [
+    "110"
+  ],
+
+}

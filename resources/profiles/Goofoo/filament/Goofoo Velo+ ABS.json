@@ -1,0 +1,13 @@
+{
+  "type": "filament",
+  "name": "Goofoo Velo+ ABS",
+  "inherits": "Goofoo Velo+ ABS@base",
+  "from": "system",
+  "setting_id": "GFG_002",
+  "instantiation": "true",
+  "compatible_printers": [
+    "Goofoo Velo+ 0.2 nozzle",
+    "Goofoo Velo+ 0.4 nozzle",
+    "Goofoo Velo+ 0.6 nozzle"
+  ]
+}
