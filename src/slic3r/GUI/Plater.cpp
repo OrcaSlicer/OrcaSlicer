@@ -1177,7 +1177,23 @@ struct DynamicFilamentList : DynamicList
             items.push_back({str, i < icons.size() ? icons[i] : nullptr});
             slot_map.push_back(i + 1);
         }
+        append_extra_items();
         DynamicList::update();
+    }
+    // Hook for subclasses appending entries past the filament slots (see DynamicSupportInterfaceFilamentList).
+    virtual void append_extra_items() {}
+};
+
+// Same as DynamicFilamentList, but appends an "Auto" entry (value SUPPORT_INTERFACE_FILAMENT_AUTO). Used for
+// support_interface_filament, where "Auto" picks a non-bonding filament per object at slicing time.
+struct DynamicSupportInterfaceFilamentList : DynamicFilamentList
+{
+    DynamicSupportInterfaceFilamentList() : DynamicFilamentList(true) {}
+
+    void append_extra_items() override
+    {
+        items.push_back({_L("Auto"), nullptr});
+        slot_map.push_back(SUPPORT_INTERFACE_FILAMENT_AUTO);
     }
 };
 
@@ -1197,7 +1213,8 @@ static bool has_junction_deviation(const DynamicPrintConfig* printer_config)
 }
 
 static DynamicFilamentList dynamic_filament_list;                // every slot, mixed included (per-feature *_filament_id keys)
-static DynamicFilamentList dynamic_physical_filament_list(true); // physical slots only (support_*, wipe_tower_filament)
+static DynamicFilamentList dynamic_physical_filament_list(true); // physical slots only (support_filament, wipe_tower_filament)
+static DynamicSupportInterfaceFilamentList dynamic_support_interface_filament_list; // physical slots + "Auto"
 
 class AMSCountPopupWindow : public PopupWindow
 {
@@ -2420,7 +2437,7 @@ Sidebar::Sidebar(Plater *parent)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(39 * wxGetApp().em_unit(), -1)), p(new priv(parent))
 {
     Choice::register_dynamic_list("support_filament", &dynamic_physical_filament_list);
-    Choice::register_dynamic_list("support_interface_filament", &dynamic_physical_filament_list);
+    Choice::register_dynamic_list("support_interface_filament", &dynamic_support_interface_filament_list);
     Choice::register_dynamic_list("outer_wall_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("inner_wall_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("sparse_infill_filament_id", &dynamic_filament_list);
@@ -6140,6 +6157,7 @@ void Sidebar::update_dynamic_filament_list()
 {
     dynamic_filament_list.update();
     dynamic_physical_filament_list.update();
+    dynamic_support_interface_filament_list.update();
 }
 
 PlaterPresetComboBox* Sidebar::printer_combox()

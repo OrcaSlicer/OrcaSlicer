@@ -1583,9 +1583,10 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
             const ConfigOption* support_intf_extr_opt = mo->config.option("support_interface_filament");
             if (support_intf_extr_opt != nullptr)
                 obj_support_intf_extr = support_intf_extr_opt->getInt();
-            if (obj_support_intf_extr != 0)
+            // "Auto" (< 0) resolves to a concrete filament per object at slicing time; not known here, so skip it.
+            if (obj_support_intf_extr > 0)
                 plate_extruders.push_back(obj_support_intf_extr);
-            else if (glb_support_intf_extr != 0)
+            else if (obj_support_intf_extr == 0 && glb_support_intf_extr > 0)
                 plate_extruders.push_back(glb_support_intf_extr);
 
             int                 obj_support_extr = 0;
@@ -1764,9 +1765,10 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
             const ConfigOption* support_intf_extr_opt = object->config.option("support_interface_filament");
             if (support_intf_extr_opt != nullptr)
                 obj_support_intf_extr = support_intf_extr_opt->getInt();
-            if (obj_support_intf_extr != 0)
+            // "Auto" (< 0) resolves to a concrete filament per object at slicing time; not known here, so skip it.
+            if (obj_support_intf_extr > 0)
                 plate_extruders.push_back(obj_support_intf_extr);
-            else if (glb_support_intf_extr != 0)
+            else if (obj_support_intf_extr == 0 && glb_support_intf_extr > 0)
                 plate_extruders.push_back(glb_support_intf_extr);
 
             int obj_support_extr = 0;

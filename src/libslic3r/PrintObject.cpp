@@ -9,6 +9,7 @@
 #include "Geometry.hpp"
 #include "I18N.hpp"
 #include "Layer.hpp"
+#include "MaterialType.hpp"
 #include "MutablePolygon.hpp"
 #include "PrintConfig.hpp"
 #include "SLA/IndexedMesh.hpp"
@@ -3729,7 +3730,60 @@ static void clamp_feature_filament_to_valid(ConfigOptionInt &opt, size_t num_ext
         opt.value = 1;
 }
 
-PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, std::vector<int>& variant_index)
+// Resolve a "support_interface_filament == Auto" object config into a concrete 1-based extruder (or 0 for
+// "Default"). Per object, pick a filament whose material does not bond to any of the object's model materials,
+// preferring a known-incompatible material over one with unknown compatibility. Falls back to "Default" (0)
+// when support is disabled, on single-extruder-multi-material printers, with a single filament, or when no
+// suitable filament exists.
+static int resolve_auto_support_interface_filament(const PrintObjectConfig &config, const ModelObject &object, size_t num_extruders, const PrintConfig &print_config)
+{
+    if (!config.enable_support.value || print_config.single_extruder_multi_material.value || num_extruders <= 1)
+        return 0;
+
+    const std::vector<std::string> &filament_types = print_config.filament_type.values;
+    auto type_of = [&](int extruder_1based) -> std::string {
+        const size_t idx = (size_t)(extruder_1based - 1);
+        return idx < filament_types.size() ? filament_types[idx] : std::string();
+    };
+
+    // Materials the object is actually printed with (1-based extruder ids).
+    std::set<int> object_extruders;
+    for (const ModelVolume *volume : object.volumes) {
+        if (!volume->is_model_part())
+            continue;
+        if (int e = volume->extruder_id(); e > 0)
+            object_extruders.insert(e);
+        for (int e : volume->get_extruders()) // per-face (MMU) painted extruders
+            if (e > 0)
+                object_extruders.insert(e);
+    }
+    if (object_extruders.empty())
+        object_extruders.insert(1);
+
+    int best_incompatible = 0;
+    int best_unknown      = 0;
+    for (int cand = 1; cand <= (int)num_extruders; ++cand) {
+        const std::string cand_type = type_of(cand);
+        bool bonds_with_any = false; // candidate is compatible with (bonds to) some model material
+        bool all_incompatible = true;
+        for (int e : object_extruders) {
+            const MaterialCompatibility c = MaterialType::compatibility(cand_type, type_of(e));
+            if (c == MaterialCompatibility::Compatible) { bonds_with_any = true; break; }
+            if (c != MaterialCompatibility::Incompatible) all_incompatible = false; // Unknown
+        }
+        if (bonds_with_any)
+            continue;
+        if (all_incompatible) {
+            if (best_incompatible == 0) best_incompatible = cand;
+        } else if (best_unknown == 0) {
+            best_unknown = cand;
+        }
+    }
+
+    return best_incompatible != 0 ? best_incompatible : best_unknown; // 0 => fall back to "Default"
+}
+
+PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, std::vector<int>& variant_index, const PrintConfig *print_config)
 {
     PrintObjectConfig config = default_object_config;
     {
@@ -3737,6 +3791,9 @@ PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObject
         src_normalized.normalize_fdm();
         update_static_print_config_from_dynamic(config, src_normalized, variant_index, print_options_with_variant, 1);
     }
+    // Resolve the "Auto" support interface filament to a concrete extruder before anything downstream reads it.
+    if (config.support_interface_filament.value == SUPPORT_INTERFACE_FILAMENT_AUTO)
+        config.support_interface_filament.value = print_config ? resolve_auto_support_interface_filament(config, object, num_extruders, *print_config) : 0;
     // Clamp invalid extruders to the default extruder (with index 1).
     clamp_exturder_to_default(config.support_filament,           num_extruders);
     clamp_exturder_to_default(config.support_interface_filament, num_extruders);
@@ -3923,7 +3980,7 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 	default_region_config.apply(full_config, true);
     // BBS
 	size_t              filament_extruders = print_config.filament_diameter.size();
-	object_config = object_config_from_model_object(object_config, model_object, filament_extruders, variant_index);
+	object_config = object_config_from_model_object(object_config, model_object, filament_extruders, variant_index, &print_config);
 
 	std::vector<unsigned int> object_extruders;
 	for (const ModelVolume* model_volume : model_object.volumes)
