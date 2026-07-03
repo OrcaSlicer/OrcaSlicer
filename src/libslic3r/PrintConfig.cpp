@@ -3348,7 +3348,25 @@ void PrintConfigDef::init_fff_params()
     def->max = 1000;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInts { 0 });
-    
+
+    // ORCA: explicit override for the part cooling fan speed on the first printed layer.
+    def = this->add("initial_layer_fan_speed", coInts);
+    def->label = L("First layer fan speed");
+    def->tooltip = L("Sets an exact fan speed for the first layer, overriding all other cooling settings. "
+                     "Useful for protecting 3D-printed toolhead parts (e.g. Voron-style ABS/ASA ducts) from "
+                     "a hot bed. A small amount of airflow cools the ducts down, without using full cooling that "
+                     "may in certain conditions hurt first-layer adhesion."
+                     "\nFrom the second layer onwards, normal cooling resumes."
+                     "\nIf \"Full fan speed at layer\" is also set, the fan ramps smoothly from this value "
+                     "on the first layer up to your target by the chosen layer."
+                     "\nOnly available when \"No cooling for the first\" is 0."
+                     "\nSet to -1 to disable it.");
+    def->sidetext = "%";
+    def->min = -1;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInts { -1 });
+
     def = this->add("support_material_interface_fan_speed", coInts);
     def->label = L("Support interface fan speed");
     def->tooltip = L("This part cooling fan speed is applied when printing support interfaces. Setting this parameter to a higher than regular speed "

@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "QD_2_1_45",
 	"name": "QIDI PETG Translucent@Q2C-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_q_common",
+	"from": "system",
+	"filament_id": "QD_2_1_45",
+	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"
 	],

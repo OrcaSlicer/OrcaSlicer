@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "e2GEG1ZDjxFPcf3T",
 	"name": "QIDI PETG Translucent @Qidi Q2C 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PETG Translucent@Q2C-Series",
+	"from": "system",
+	"setting_id": "e2GEG1ZDjxFPcf3T",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"1"
 	],

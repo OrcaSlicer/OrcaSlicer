@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "AvqYCDxCnR3mvEw5",
 	"name": "PolyLite PLA @Qidi X-Max 4 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "PolyLite PLA@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "AvqYCDxCnR3mvEw5",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.019"
 	],

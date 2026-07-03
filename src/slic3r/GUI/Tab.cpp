@@ -4368,6 +4368,8 @@ void TabFilament::build()
         //optgroup->append_line(line);
         optgroup = page->new_optgroup(L("Cooling for specific layer"), L"param_cooling_specific_layer");
         optgroup->append_single_option_line("close_fan_the_first_x_layers", "material_cooling#no-cooling-for-the-first");
+        // ORCA: explicit override for the part cooling fan on layer 0; also anchors the ramp when "Full fan speed at layer" is set.
+        optgroup->append_single_option_line("initial_layer_fan_speed", "material_cooling#first-layer-fan-speed");
         optgroup->append_single_option_line("full_fan_speed_layer", "material_cooling#full-fan-speed-at-layer");
 
         optgroup = page->new_optgroup(L("Part cooling fan"), L"param_cooling_part_fan");
@@ -4588,6 +4590,29 @@ void TabFilament::toggle_options()
         // Orca: toggle dont slow down for external perimeters if
         bool has_slow_down_for_layer_cooling = m_config->opt_bool("slow_down_for_layer_cooling", 0);
         toggle_option("dont_slow_down_outer_wall", has_slow_down_for_layer_cooling);
+
+        // ORCA: First layer fan speed override only makes sense when no layers are gated off ("No cooling for
+        // the first" == 0). Otherwise the override would set layer 0 to a non-zero value while the gate forces
+        // layers 1..N-1 to zero, producing a confusing non-monotonic profile. When the gate is active we both
+        // grey out the UI line and force the underlying value to -1 so the cooling buffer never enters the
+        // override branch.
+        const int close_fan_first_n = m_config->opt_int("close_fan_the_first_x_layers", 0);
+        const bool initial_layer_fan_speed_enabled = close_fan_first_n <= 0;
+        toggle_line("initial_layer_fan_speed", initial_layer_fan_speed_enabled);
+        if (!initial_layer_fan_speed_enabled) {
+            if (auto* opt = dynamic_cast<const ConfigOptionInts*>(m_config->option("initial_layer_fan_speed"))) {
+                bool needs_reset = false;
+                for (int v : opt->values) {
+                    if (v != -1) { needs_reset = true; break; }
+                }
+                if (needs_reset) {
+                    std::vector<int> reset_values(opt->values.size(), -1);
+                    m_config->set_key_value("initial_layer_fan_speed", new ConfigOptionInts(reset_values));
+                    update_dirty();
+                    reload_config();
+                }
+            }
+        }
 
         toggle_line("additional_cooling_fan_speed", printer_cfg.opt_bool("auxiliary_fan"));
 
