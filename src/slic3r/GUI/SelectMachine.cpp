@@ -1037,22 +1037,18 @@ bool SelectMachineDialog::do_ams_mapping(MachineObject *obj_,bool use_ams)
             }
 
             bool has_left_ams = false, has_right_ams = false;
-            for (auto ams_item : obj_->GetFilaSystem()->GetAmsList()) {
-                if (ams_item.second->GetExtruderId() == 0) {
-                    if (obj_->is_main_extruder_on_left())
-                        has_left_ams = true;
-                    else
-                        has_right_ams = true;
-                }
-                else if (ams_item.second->GetExtruderId() == 1) {
-                    if (obj_->is_main_extruder_on_left())
-                        has_right_ams = true;
-                    else
-                        has_left_ams = true;
+            for (const auto& ams_item : obj_->GetFilaSystem()->GetAmsList()) {
+                if (ams_item.second->GetBindedExtruderSet().count(MAIN_EXTRUDER_ID) != 0) {
+                    has_right_ams = true;
                 }
 
-                if (has_left_ams && has_right_ams)
+                if (ams_item.second->GetBindedExtruderSet().count(DEPUTY_EXTRUDER_ID) != 0) {
+                    has_left_ams = true;
+                }
+
+                if (has_left_ams && has_right_ams) {
                     break;
+                }
             }
 
             map_opt = {true, false, !has_left_ams, false};   //four values: use_left_ams, use_right_ams, use_left_ext, use_right_ext
@@ -2431,6 +2427,13 @@ void SelectMachineDialog::on_send_print()
     std::string ams_mapping_info;
 
     get_ams_mapping_result(ams_mapping_array,ams_mapping_array2, ams_mapping_info);
+
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " print_job: get_ams_mapping_result begin";
+    print_ams_mapping_result(m_ams_mapping_result);
+    BOOST_LOG_TRIVIAL(info) << "print_job: ams_mapping_array = " << ams_mapping_array;
+    BOOST_LOG_TRIVIAL(info) << "print_job: ams_mapping_array2 = " << ams_mapping_array2;
+    BOOST_LOG_TRIVIAL(info) << "print_job: ams_mapping_info = " << ams_mapping_info;
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " print_job: get_ams_mapping_result end";
 
     if (m_print_type == PrintFromType::FROM_NORMAL) {
         result = m_plater->send_gcode(m_print_plate_idx, [this](int export_stage, int current, int total, bool& cancel) {

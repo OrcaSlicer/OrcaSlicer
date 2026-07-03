@@ -3815,6 +3815,20 @@ void PrintConfigDef::init_fff_params()
     def->mode=comDevelop;
     def->set_default_value(new ConfigOptionBool(true));
 
+    def = this->add("hotend_cooling_rate", coFloats);
+    def->label = L("Hotend cooling rate");
+    def->tooltip = L("Cooling rate used by Bambu filament change G-code timing.");
+    def->sidetext = L("°C/s");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloats { 2. });
+
+    def = this->add("hotend_heating_rate", coFloats);
+    def->label = L("Hotend heating rate");
+    def->tooltip = L("Heating rate used by Bambu filament change G-code timing.");
+    def->sidetext = L("°C/s");
+    def->mode = comDevelop;
+    def->set_default_value(new ConfigOptionFloats { 2. });
+
     def = this->add("gcode_flavor", coEnum);
     def->label = L("G-code flavor");
     def->tooltip = L("What kind of G-code the printer is compatible with.");
@@ -8407,6 +8421,8 @@ std::set<std::string> printer_extruder_options = {
     "extruder_type",
     "nozzle_diameter",
     "default_nozzle_volume_type",
+    "hotend_cooling_rate",
+    "hotend_heating_rate",
     "extruder_printable_area",
     "extruder_printable_height",
     "min_layer_height",

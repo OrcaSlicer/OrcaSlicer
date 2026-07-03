@@ -2303,12 +2303,17 @@ _GetBackupStatus(unsigned int fila_back_group)
         }
     }
 
-    for (int j = 16; j < 32; j++)/* single ams is from 128*/
+    for (int j = 16; j <= 23; j++)/* single ams is from 128*/
     {
         if (fila_back_group & (1 << j))
         {
             trayid_group[128 + j - 16] = true;
         }
+    }
+
+    for (int i = 24; i <= 27; i++) /* AMS Lite mixed, used by A2L/N9 */
+    {
+        if (fila_back_group & (1 << i)) { trayid_group[i] = true; }
     }
 
     return trayid_group;
@@ -2337,19 +2342,13 @@ void  AmsReplaceMaterialDialog::update_to_nozzle(int nozzle_id)
         {
             for (const auto& ams_info : m_obj->GetFilaSystem()->GetAmsList())
             {
-                int ams_device_id = atoi(ams_info.first.c_str());
-                if (ams_device_id < 128)
-                {
-                    int ams_base_id = ams_device_id * 4;
-                    for (auto tray_info : ams_info.second->GetTrays())
-                    {
-                        int tray_offset = atoi(tray_info.first.c_str());
-                        id2tray[ams_base_id + tray_offset] = tray_info.second;
+                for (auto tray_info : ams_info.second->GetTrays()) {
+                    int ams_device_id = atoi(ams_info.first.c_str());
+                    int tray_offset = atoi(tray_info.first.c_str());
+                    int tray_id = m_obj->GetFilaSystem()->GetTrayIdByAmsSlotId(ams_device_id, tray_offset);
+                    if (tray_id != -1) {
+                        id2tray[tray_id] = tray_info.second;
                     }
-                }
-                else if (ams_info.second->GetTrays().size() == 1)/*n3f*/
-                {
-                    id2tray[ams_device_id] = ams_info.second->GetTrays().begin()->second;
                 }
             }
         }

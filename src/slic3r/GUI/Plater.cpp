@@ -3455,7 +3455,10 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         }
     }
 
-    auto get_ams_name = [](int ams_id, int slot_id)->std::string {
+    auto get_ams_name = [](int ams_id, int slot_id, DevAms::AmsType ams_type)->std::string {
+        if (ams_type == DevAms::AMS_LITE && ams_id >= 16 && ams_id < 32) {
+            ams_id -= 16;
+        }
         if (ams_id >= 0 && ams_id < 26) {
             char slot_name = slot_id + '1';
             return std::string(1, 'A' + ams_id) + std::string(1, slot_name);
@@ -3474,7 +3477,7 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         for (auto tray : ams.second->GetTrays()) {
             int  slot_id = std::stoi(tray.first);
             filament_ams_list.emplace(extruder + (ams_id * 4 + slot_id),
-                                      build_tray_config(*tray.second, get_ams_name(ams_id, slot_id), std::to_string(ams_id), std::to_string(slot_id)));
+                                      build_tray_config(*tray.second, get_ams_name(ams_id, slot_id, ams.second->GetAmsType()), std::to_string(ams_id), std::to_string(slot_id)));
         }
     }
     return filament_ams_list;

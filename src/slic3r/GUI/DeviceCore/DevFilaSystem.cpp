@@ -12,6 +12,16 @@ using namespace nlohmann;
 namespace Slic3r {
 static int _hex_digit_to_int(const char c) { return (c >= '0' && c <= '9') ? c - '0' : (c >= 'A' && c <= 'F') ? c - 'A' + 10 : (c >= 'a' && c <= 'f') ? c - 'a' + 10 : -1; }
 
+static bool _is_a_series_ams_lite_id(int ams_id)
+{
+    return ams_id >= 16 && ams_id < 32;
+}
+
+static int _ams_lite_flag_id(int ams_id)
+{
+    return _is_a_series_ams_lite_id(ams_id) ? ams_id - 16 : ams_id;
+}
+
 wxColour DevAmsTray::decode_color(const std::string &color)
 {
     std::array<int, 4> ret = {0, 0, 0, 0};
@@ -111,7 +121,7 @@ DevAms::DevAms(const std::string& ams_id, int nozzle_id, int type)
     m_ams_id = ams_id;
     m_ext_id = nozzle_id;
     m_ams_type = (AmsType)type;
-    assert(DUMMY < type && m_ams_type <= N3S);
+    assert(DUMMY < type && m_ams_type <= AMS_LITE_MIXED);
 }
 
 DevAms::~DevAms()
@@ -131,7 +141,8 @@ static unordered_map<int, wxString> s_ams_display_formats = {
     {DevAms::AMS,      "AMS-%d"},
     {DevAms::AMS_LITE, "AMS Lite-%d"},
     {DevAms::N3F,      "AMS 2 PRO-%d"},
-    {DevAms::N3S,      "AMS HT-%d"}
+    {DevAms::N3S,      "AMS HT-%d"},
+    {DevAms::AMS_LITE_MIXED, "AMS Lite-%d"}
 };
 
 wxString DevAms::GetDisplayName() const
@@ -161,21 +172,44 @@ wxString DevAms::GetDisplayName() const
     }
 
     int loc = (num_id > 127) ? (num_id - 127) : (num_id + 1);
+    if ((m_ams_type == AMS_LITE || m_ams_type == AMS_LITE_MIXED) && num_id >= 16 && num_id < 32) {
+        loc = num_id - 15;
+    }
     return wxString::Format(ams_display_format, loc);
 }
 
 int DevAms::GetSlotCount() const
 {
-    if (m_ams_type == AMS || m_ams_type == AMS_LITE || m_ams_type == N3F)
+    if (GetAmsType() == AMS || GetAmsType() == AMS_LITE || GetAmsType() == N3F)
     {
         return 4;
     }
-    else if (m_ams_type == N3S)
+    else if (GetAmsType() == N3S)
     {
         return 1;
     }
 
     return 1;
+}
+
+int DevAms::GetTrayId(int slot_id) const
+{
+    int ams_id = 0;
+    try {
+        ams_id = std::stoi(m_ams_id);
+    } catch (...) {
+        return -1;
+    }
+
+    if (m_ams_type == AMS || m_ams_type == AMS_LITE || m_ams_type == N3F) {
+        return ams_id * 4 + slot_id;
+    } else if (m_ams_type == AMS_LITE_MIXED) {
+        return AMS_LITE_MIXED_TRAY_INDEX_OFFSET + slot_id;
+    } else if (m_ams_type == N3S) {
+        return 16 + (ams_id - 128) + slot_id;
+    }
+
+    return -1;
 }
 
 DevAmsTray* DevAms::GetTray(const std::string& tray_id) const
@@ -236,6 +270,37 @@ void DevFilaSystem::CollectAmsColors(std::vector<wxColour>& ams_colors) const
             }
         }
     }
+}
+
+std::map<int, DevAmsSlotId> DevFilaSystem::GetTrayIndexMap()
+{
+    std::map<int, DevAmsSlotId> tray_id_map;
+    tray_id_map[VIRTUAL_TRAY_MAIN_ID] = DevAmsSlotId{VIRTUAL_TRAY_MAIN_ID, 0};
+    tray_id_map[VIRTUAL_TRAY_DEPUTY_ID] = DevAmsSlotId{VIRTUAL_TRAY_DEPUTY_ID, 0};
+
+    for (auto& ams_item : GetAmsList()) {
+        int ams_id_int = atoi(ams_item.first.c_str());
+        for (auto& tray_item : ams_item.second->GetTrays()) {
+            int slot_id_int = atoi(tray_item.first.c_str());
+            int tray_index = ams_item.second->GetTrayId(slot_id_int);
+            if (tray_index >= 0) {
+                tray_id_map[tray_index] = {ams_id_int, slot_id_int};
+            }
+        }
+    }
+
+    return tray_id_map;
+}
+
+int DevFilaSystem::GetTrayIdByAmsSlotId(int ams_id, int slot_id)
+{
+    auto tray_ams_slot_map = GetTrayIndexMap();
+    auto tray_it = std::find_if(tray_ams_slot_map.begin(), tray_ams_slot_map.end(),
+        [ams_id, slot_id](auto& item) {
+            return ams_id == item.second.first && slot_id == item.second.second;
+        });
+
+    return tray_it != tray_ams_slot_map.end() ? tray_it->first : -1;
 }
 
 int DevFilaSystem::GetExtruderIdByAmsId(const std::string& ams_id) const
@@ -365,8 +430,11 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                         const std::string& info = (*it)["info"].get<std::string>();
                         type_id = DevUtil::get_flag_bits(info, 0, 4);
                         extuder_id = DevUtil::get_flag_bits(info, 8, 4);
-                    } else {
-                        if (!obj->is_enable_ams_np && obj->get_printer_ams_type() == "f1") {
+                    }
+
+                    if (!obj->is_enable_ams_np && obj->get_printer_ams_type() == "f1") {
+                        int ams_id_int = atoi(ams_id.c_str());
+                        if (!it->contains("info") || _is_a_series_ams_lite_id(ams_id_int)) {
                             type_id = DevAms::AMS_LITE;
                         }
                     }
@@ -380,6 +448,10 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                     }
 
                     ams_id_set.erase(ams_id);
+                    if (type_id == DevAms::AMS_LITE_MIXED) {
+                        extuder_id = MAIN_EXTRUDER_ID;
+                    }
+
                     DevAms* curr_ams = nullptr;
                     auto ams_it = system->amsList.find(ams_id);
                     if (ams_it == system->amsList.end())
@@ -410,10 +482,13 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                         if (!ams_id.empty())
                         {
                             int ams_id_int = atoi(ams_id.c_str());
-
                             if (type_id < 4)
                             {
                                 curr_ams->m_exist = (obj->ams_exist_bits & (1 << ams_id_int)) != 0 ? true : false;
+                            }
+                            else if (type_id == DevAms::AMS_LITE_MIXED)
+                            {
+                                curr_ams->m_exist = DevUtil::get_flag_bits(obj->ams_exist_bits, 12);
                             }
                             else
                             {
@@ -623,10 +698,13 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                 {
                                     ams_id_int = atoi(ams_id.c_str());
                                     tray_id_int = atoi(curr_tray->id.c_str());
-
                                     if (type_id < 4)
                                     {
                                         curr_tray->is_exists = (obj->tray_exist_bits & (1 << (ams_id_int * 4 + tray_id_int))) != 0 ? true : false;
+                                    }
+                                    else if (type_id == DevAms::AMS_LITE_MIXED)
+                                    {
+                                        curr_tray->is_exists = DevUtil::get_flag_bits(obj->tray_exist_bits, curr_ams->GetTrayId(tray_id_int));
                                     }
                                     else
                                     {

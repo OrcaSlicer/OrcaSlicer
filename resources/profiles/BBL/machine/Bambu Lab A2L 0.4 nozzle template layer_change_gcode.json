@@ -1,0 +1,5 @@
+{
+	"name": "Bambu Lab A2L 0.4 nozzle template layer_change_gcode",
+	"instantiation": "false",
+	"layer_change_gcode": ";======== A2L layer_change gcode ==========\n;===== 2026/04/29 ====\n; update layer progress\nM201 N1 Y8000\nM73 L{layer_num+1}\nM991 S0 P{layer_num} ;notify layer change\nM1007 L1"
+}

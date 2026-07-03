@@ -1778,6 +1778,21 @@ bool InputIpAddressDialog::isIp(std::string ipstr)
     return true;
 }
 
+bool InputIpAddressDialog::isValidSerialNumber(const wxString& sn)
+{
+    auto stripped = sn.Strip(wxString::both);
+    const auto len = stripped.length();
+    if (len < 15 || len > 20)
+        return false;
+
+    for (const auto c : stripped.ToStdString()) {
+        if (!std::isalnum(static_cast<unsigned char>(c)))
+            return false;
+    }
+
+    return true;
+}
+
 void InputIpAddressDialog::on_ok(wxMouseEvent& evt)
 {
     if (!m_need_input_sn) {
@@ -2061,7 +2076,7 @@ void InputIpAddressDialog::on_text(wxCommandEvent &evt)
     m_button_ok->Enable(enable_btns);
 
     if (current_input_index == 1)
-        m_button_ok->Enable(!str_name.IsEmpty() && str_sn.length() == 15);
+        m_button_ok->Enable(!str_name.IsEmpty() && isValidSerialNumber(str_sn));
 
 }
 

@@ -65,11 +65,14 @@ public:
     // return false if this extruder was already selected
     bool        need_toolchange(unsigned int filament_id) const;
     std::string set_extruder(unsigned int filament_id);
+    std::string set_extruder(unsigned int filament_id, int nozzle_id);
     void init_extruder(unsigned int filament_id);
+    void init_extruder(unsigned int filament_id, int nozzle_id);
     // Prefix of the toolchange G-code line, to be used by the CoolingBuffer to separate sections of the G-code
     // printed with the same extruder.
     std::string toolchange_prefix() const;
     std::string toolchange(unsigned int filament_id);
+    std::string toolchange(unsigned int filament_id, int nozzle_id);
     std::string set_speed(double F, const std::string &comment = std::string(), const std::string &cooling_marker = std::string());
     // SoftFever NOTE: the returned speed is mm/minute
     double      get_current_speed() const { return m_current_speed;}

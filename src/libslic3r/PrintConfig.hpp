@@ -1372,6 +1372,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                gcode_add_line_number))
     ((ConfigOptionBool,                bbl_bed_temperature_gcode))
     ((ConfigOptionEnum<GCodeFlavor>,   gcode_flavor))
+    ((ConfigOptionFloats,              hotend_cooling_rate))
+    ((ConfigOptionFloats,              hotend_heating_rate))
 
     ((ConfigOptionFloat,               time_cost)) 
     ((ConfigOptionString,              layer_change_gcode))

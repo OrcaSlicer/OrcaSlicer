@@ -137,6 +137,7 @@ public:
         AMS_LITE = 2, // AMS-Lite
         N3F = 3,      // N3F
         N3S = 4,      // N3S
+        AMS_LITE_MIXED = 5, // AMS-Lite for A2L/N9
     };
 
 public:
@@ -150,18 +151,21 @@ public:
 
     void     SetAmsType(int type) { m_ams_type = (AmsType)type; }
     void     SetAmsType(AmsType type) { m_ams_type = type; }
-    AmsType  GetAmsType() const { return m_ams_type; }
+    AmsType  GetAmsType() const { return m_ams_type == AMS_LITE_MIXED ? AMS_LITE : m_ams_type; }
 
     // exist or not
     bool  IsExist() const { return m_exist; }
+    bool  IsAmsLiteMixed() const { return m_ams_type == AMS_LITE_MIXED; }
 
     // slots
     int   GetSlotCount() const;
+    int   GetTrayId(int slot_id) const;
     DevAmsTray* GetTray(const std::string& tray_id) const;
     const std::map<std::string, DevAmsTray*>& GetTrays() const { return m_trays; }
 
     // installed on the extruder
     int   GetExtruderId() const { return m_ext_id; }
+    std::set<int> GetBindedExtruderSet() const { return m_ext_id >= 0 ? std::set<int>{m_ext_id} : std::set<int>{}; }
 
     // temperature and humidity
     float GetCurrentTemperature() const { return m_current_temperature; }
@@ -240,6 +244,8 @@ public:
     /* tray*/
     DevAmsTray* GetAmsTray(const std::string& ams_id, const std::string& tray_id) const;
     void        CollectAmsColors(std::vector<wxColour>& ams_colors) const;
+    std::map<int, DevAmsSlotId> GetTrayIndexMap();
+    int         GetTrayIdByAmsSlotId(int ams_id, int slot_id);
 
     // extruder
     int  GetExtruderIdByAmsId(const std::string& ams_id) const;

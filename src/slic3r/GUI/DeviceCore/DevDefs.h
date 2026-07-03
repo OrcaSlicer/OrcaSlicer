@@ -10,6 +10,7 @@
 
 #pragma once
 #include <string>
+#include <utility>
 
 enum PrinterArch
 {
@@ -47,7 +48,12 @@ enum AmsStatusMain
 #define VIRTUAL_AMS_MAIN_ID_STR   "255"
 #define VIRTUAL_AMS_DEPUTY_ID_STR "254"
 
+// A2L reports AMS Lite slots using tray indexes 24-27 rather than ams_id * 4.
+#define AMS_LITE_MIXED_TRAY_INDEX_OFFSET 24
+
 #define INVALID_AMS_TEMPERATURE std::numeric_limits<float>::min()
+
+using DevAmsSlotId = std::pair<int, int>;
 
 /* Extruder*/
 #define MAIN_EXTRUDER_ID          0

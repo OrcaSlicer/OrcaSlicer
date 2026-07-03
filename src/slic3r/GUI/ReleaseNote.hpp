@@ -344,6 +344,7 @@ public:
     void set_machine_obj(MachineObject* obj);
     void update_test_msg(wxString msg, bool connected);
     bool isIp(std::string ipstr);
+    bool isValidSerialNumber(const wxString& sn);
     void check_ip_address_failed(int result);
     void on_check_ip_address_failed(wxCommandEvent& evt);
     void on_ok(wxMouseEvent& evt);
