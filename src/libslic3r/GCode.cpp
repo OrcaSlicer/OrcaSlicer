@@ -22,6 +22,7 @@
 #include "libslic3r.h"
 #include "LocalesUtils.hpp"
 #include "libslic3r/format.hpp"
+#include "MaterialType.hpp"
 #include "Time.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
 #include <algorithm>
@@ -5871,6 +5872,18 @@ LayerResult GCode::process_layer(
                 unsigned int object_extruder = first_extruder_id;
                 if (const std::vector<unsigned int> obj_extruders = object.object_extruders(); !obj_extruders.empty())
                     object_extruder = obj_extruders.front();
+
+                // The object may switch filament or colour mid-print, so its filament might not be extruded on
+                // this layer at all. Prefer a compatible (bonding) filament that is already used on this layer
+                // to avoid an extra tool change; if none is, keep the object's own filament.
+                if (std::find(layer_tools.extruders.begin(), layer_tools.extruders.end(), object_extruder) == layer_tools.extruders.end()) {
+                    const std::string &object_type = print.config().filament_type.get_at(object_extruder);
+                    for (unsigned int extruder_id : layer_tools.extruders)
+                        if (MaterialType::compatibility(print.config().filament_type.get_at(extruder_id), object_type) == MaterialCompatibility::Compatible) {
+                            object_extruder = extruder_id;
+                            break;
+                        }
+                }
 
                 // The support base defaults to the object's own material, but avoids the interface filament (and soluble filaments) to keep them distinct.
                 if (support_dontcare && !interface_dontcare) {
