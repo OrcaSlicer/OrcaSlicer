@@ -180,7 +180,7 @@ public:
 
     struct VendorCache {
         static constexpr uint32_t CACHE_MAGIC   = 0x4F52435A; // "ORCZ"
-        static constexpr uint32_t CACHE_VERSION = 5; // bumped: Semver serialized as 3-part (to_string_sf)
+        static constexpr uint32_t CACHE_VERSION = 6;
 
         uint32_t    cache_version        = CACHE_VERSION;
         uint32_t    config_options_count = 0; // fixed-width: size_t varies between 32/64-bit builds
