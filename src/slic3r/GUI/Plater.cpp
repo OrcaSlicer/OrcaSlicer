@@ -253,18 +253,6 @@ static void set_config_values(DynamicPrintConfig *config, const std::string &key
     }
 }
 
-template <typename T, typename OptionType>
-static void set_config_values(ModelConfig& config, const std::string &key, T value)
-{
-    auto config_opt = config.get().option<OptionType>(key);
-    if (config_opt) {
-        config.set_key_value(key, new OptionType(config_opt->values.size(), value));
-    }
-    else {
-        BOOST_LOG_TRIVIAL(info) << "set_config_values: the key" << key << "is empty.";
-    }
-}
-
 bool Plater::has_illegal_filename_characters(const wxString& wxs_name)
 {
     std::string name = into_u8(wxs_name);
@@ -12901,9 +12889,9 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
 
         auto &obj_config = obj->config;
         if (speeds.size() > 1)
-            set_config_values<double, ConfigOptionFloatsNullable>(obj_config, "outer_wall_speed", tspd);
+            obj_config.set_key_value("outer_wall_speed", new ConfigOptionFloatsNullable(1, tspd));
         if (accels.size() > 1)
-            set_config_values<double, ConfigOptionFloatsNullable>(obj_config, "outer_wall_acceleration", tacc);
+            obj_config.set_key_value("outer_wall_acceleration", new ConfigOptionFloatsNullable(1, tacc));
 
         auto cur_plate = get_partplate_list().get_plate(plate_idx);
         if (!cur_plate) {
@@ -13325,7 +13313,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     set_config_values<double, ConfigOptionFloats>(filament_config, "filament_max_volumetric_speed", 200);
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats{0.0});
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
-    set_config_values<bool, ConfigOptionBoolsNullable>(obj_cfg, "enable_overhang_speed", false);
+    obj_cfg.set_key_value("enable_overhang_speed", new ConfigOptionBoolsNullable(1, false));
     obj_cfg.set_key_value("wall_loops", new ConfigOptionInt(1));
     obj_cfg.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
     obj_cfg.set_key_value("top_shell_layers", new ConfigOptionInt(0));
