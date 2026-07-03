@@ -89,14 +89,14 @@ void GizmoObjectManipulation::UpdateAndShow(const bool show)
 
 void GizmoObjectManipulation::update_ui_from_settings()
 {
-    if (m_imperial_units != (wxGetApp().app_config->get("use_inches") == "1")) {
-        m_imperial_units = wxGetApp().app_config->get("use_inches") == "1";
-
-        m_new_unit_string = m_imperial_units ? L("in") : L("mm");
-
-        update_buffered_value();
+    bool imperial = Slic3r::GUI::UnitSystem::Get().IsImperial();
+    if (m_imperial_units != imperial) {
+        m_imperial_units  = imperial;
+        m_new_unit_string = imperial ? L("in") : L("mm");
+        update_buffered_value(); // only rebuild when pref actually changed
     }
 }
+
 void delete_negative_sign(Vec3d& value) {
     for (size_t i = 0; i < value.size(); i++) {
         if (abs(value[i]) < 0.001)
@@ -730,6 +730,11 @@ void GizmoObjectManipulation::set_init_rotation(const Geometry::Transformation &
 
 void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper, std::string window_name, float x, float y, float bottom_limit)
 {
+    update_ui_from_settings();
+    bool imperial_display = Slic3r::GUI::UnitSystem::Get().IsImperial();
+    bool temp_swap        = Slic3r::GUI::UnitSystem::Get().IsTempSwapActive();
+    const char* unit_str  = imperial_display ? "in" : "mm";
+    
     // BBS: GUI refactor: move gizmo to the right
     if (abs(last_move_input_window_width) > 0.01f) {
         if (x + last_move_input_window_width > m_glcanvas.get_canvas_size().get_width()) {
@@ -770,12 +775,21 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     float end_text_size = imgui_wrapper->calc_text_size(this->m_new_unit_string).x;
 
     // position
-    Vec3d original_position;
-    if (this->m_imperial_units)
-        original_position = this->m_new_position * this->mm_to_in;
-    else
-        original_position = this->m_new_position;
-    Vec3d display_position = m_buffered_position;
+    // ImGui owns the buffer, only rebuild when unit or underlying data changes:
+    static bool last_imperial_move = imperial_display;
+    if (last_imperial_move != imperial_display) {
+        // Unit flipped — rebuild buffer in new unit
+        m_buffered_position = imperial_display
+            ? this->m_new_position * this->mm_to_in
+            : this->m_new_position;
+        for (int i = 0; i < 3; i++)
+            ImGui::ClearInputTextInitialData(label_values[0][i], m_buffered_position[i]);
+        last_imperial_move = imperial_display;
+    }
+    Vec3d display_position = m_buffered_position;  // ImGui mutates this
+    Vec3d original_position = imperial_display      // used only for change detection
+        ? this->m_new_position * this->mm_to_in
+        : this->m_new_position;
 
     // Rotation
     float unit_size = imgui_wrapper->calc_text_size(MAX_SIZE).x + space_size;
@@ -835,7 +849,23 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_values[0][2], &display_position[2], 0.0f, 0.0f, "%.2f");
     ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
-    imgui_wrapper->text(this->m_new_unit_string);
+    {
+        if (temp_swap)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.8f, 1.0f, 1.0f));
+        imgui_wrapper->text(unit_str);
+        if (temp_swap)
+            ImGui::PopStyleColor();
+    }
+    
+    if (ImGui::IsItemHovered()) {
+        imgui_wrapper->tooltip(
+            imperial_display
+                ? "Hold Alt: preview metric  |  Hold Alt + Press U: switch permanently"
+                : "Hold Alt: preview imperial  |  Hold Alt + Press U: switch permanently",
+            ImGui::CalcTextSize("Hold Alt: preview imperial  |  Hold Alt + Press U: switch permanently").x + 20.f
+        );
+    }
+    
     bool is_avoid_one_update{false};
     if (combox_changed) {
         combox_changed = false;
@@ -849,10 +879,11 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
             if (display_position[i] > MAX_NUM) display_position[i] = MAX_NUM;
             if (display_position[i] < -MAX_NUM) display_position[i] = -MAX_NUM;
         }
+        // Write ImGui's edited values back to the buffer BEFORE update() fires
         m_buffered_position = display_position;
-        update(current_active_id, "position", original_position, m_buffered_position);
+
+        update(current_active_id, "position", original_position, display_position);
     }
-    // the init position values are not zero, won't add reset button
 
     // send focus to m_glcanvas
     bool focued_on_text = false;
@@ -930,13 +961,13 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     float end_text_size = imgui_wrapper->calc_text_size(this->m_new_unit_string).x;
 
     // position
-    Vec3d original_position;
-    if (this->m_imperial_units)
-        original_position = this->m_new_position * this->mm_to_in;
-    else
-        original_position = this->m_new_position;
-    Vec3d display_position = m_buffered_position;
-    // Rotation
+    bool imperial = Slic3r::GUI::UnitSystem::Get().IsImperial();
+    Vec3d original_position = imperial
+        ? this->m_new_position * this->mm_to_in
+        : this->m_new_position;
+    Vec3d display_position = imperial
+        ? this->m_new_position * this->mm_to_in
+        : this->m_new_position;    // Rotation
     Vec3d rotation   = this->m_buffered_rotation;
     Vec3d absolute_rotation = this->m_buffered_absolute_rotation;
     float unit_size = imgui_wrapper->calc_text_size(MAX_SIZE).x + space_size;
@@ -1130,7 +1161,25 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         }
         return -1;
     };
-
+ 
+    // ── Unit system state ────────────────────────────────────────────────
+    // update_ui_from_settings() keeps m_imperial_units in sync with the
+    // persisted preference (used by on_change for correct mm conversion).
+    update_ui_from_settings();
+ 
+    // imperial_display follows the LIVE UnitSystem state so Alt temp-swap
+    // is reflected in the display without touching m_imperial_units.
+    bool imperial_display = Slic3r::GUI::UnitSystem::Get().IsImperial();
+    bool temp_swap        = Slic3r::GUI::UnitSystem::Get().IsTempSwapActive();
+    const char* unit_str  = imperial_display ? "in" : "mm";
+ 
+    // Invalidate ImGui's input caches when the display unit flips
+    static bool last_imperial_scale = imperial_display;
+    if (last_imperial_scale != imperial_display) {
+        // We'll clear caches after computing display_size below
+        last_imperial_scale = imperial_display;
+    }
+ 
     float space_size = imgui_wrapper->get_style_scaling() * 8;
     float scale_size = imgui_wrapper->calc_text_size(_L("Scale")).x + space_size;
     float caption_max   = imgui_wrapper->calc_text_size(_L("Object coordinates")).x + 2 * space_size;
@@ -1139,13 +1188,20 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     unsigned int current_active_id = ImGui::GetActiveID();
 
     Vec3d scale = m_buffered_scale;
-    Vec3d display_size = m_buffered_size;
 
-    Vec3d display_position = m_buffered_position;
+    //ImGui owns the buffer, only rebuild when unit flips:
+    last_imperial_scale = imperial_display;
+    if (last_imperial_scale != imperial_display) {
+        m_buffered_size = imperial_display
+            ? this->m_new_size * this->mm_to_in
+            : this->m_new_size;
+        for (int i = 0; i < 3; i++)
+            ImGui::ClearInputTextInitialData(label_scale_values[1][i], m_buffered_size[i]);
+        last_imperial_scale = imperial_display;
+    }
+    Vec3d display_size = m_buffered_size;  // ImGui mutates this directly
 
     float unit_size = imgui_wrapper->calc_text_size(MAX_SIZE).x + space_size;
-    bool imperial_units = this->m_imperial_units;
-
     int index      = 2;
     int index_unit = 1;
 
@@ -1211,13 +1267,19 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         ImGui::SameLine(caption_max + 3 * unit_size + 5 * space_size + end_text_size);
         ImGui::InvisibleButton("", ImVec2(ImGui::GetFontSize(), ImGui::GetFontSize()));
     }
-
-    //Size
-    Vec3d original_size;
-    if (this->m_imperial_units)
-        original_size = this->m_new_size * this->mm_to_in;
-    else
-        original_size = this->m_new_size;
+    // ── Size row ─────────────────────────────────────────────────────────
+    // original_size: used for on_change() — must be in display units so the
+    // update lambda detects the correct delta.
+    Vec3d original_size = imperial_display
+        ? this->m_new_size * this->mm_to_in
+        : this->m_new_size;
+    // Invalidate ImGui caches when unit flips so fields repaint immediately
+    static bool last_imperial_size = imperial_display;
+    if (last_imperial_size != imperial_display) {
+        for (int i = 0; i < 3; i++)
+            ImGui::ClearInputTextInitialData(label_scale_values[1][i], display_size[i]);
+        last_imperial_size = imperial_display;
+    }
 
     index              = 2;
     index_unit         = 1;
@@ -1233,8 +1295,27 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     ImGui::SameLine(caption_max + (++index_unit) *unit_size + (++index) * space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_scale_values[1][2], &display_size[2], 0.0f, 0.0f, "%.2f");
-    ImGui::SameLine(caption_max + (++index_unit) *unit_size + (++index) * space_size);
-    imgui_wrapper->text(this->m_new_unit_string);
+    ImGui::SameLine(caption_max + (++index_unit) * unit_size + (++index) * space_size);
+ 
+    // ── Unit label (tinted blue during temp swap) ─────────────────────────
+    {
+        if (temp_swap)
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.8f, 1.0f, 1.0f));
+        imgui_wrapper->text(unit_str);
+        if (temp_swap)
+            ImGui::PopStyleColor();
+    }
+    
+    if (ImGui::IsItemHovered()) {
+        imgui_wrapper->tooltip(
+            imperial_display
+                ? "Hold Alt: preview metric  |  Hold Alt + Press U: switch permanently"
+                : "Hold Alt: preview imperial  |  Hold Alt + Press U: switch permanently",
+            ImGui::CalcTextSize("Hold Alt: preview imperial  |  Hold Alt + Press U: switch permanently").x + 20.f
+        );
+    }
+
+    // Clamp display size
     for (int i = 0; i < display_size.size(); i++) {
         if (std::abs(display_size[i]) > MAX_NUM) {
             display_size[i] = MAX_NUM;
@@ -1257,7 +1338,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     ImGui::PushItemWidth(uniform_scale_size);
     int size_sel{-1};
     if (!is_avoid_one_update) {
-        size_sel    = update(current_active_id, "size", original_size, m_buffered_size);
+        size_sel    = update(current_active_id, "size", original_size, display_size);
     }
     ImGui::PopStyleVar(1);
     bool uniform_scale = this->m_uniform_scale;
@@ -1336,6 +1417,103 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     //BBS
     ImGui::PopStyleVar(1);
     ImGuiWrapper::pop_toolbar_style();
+}
+
+
+wxDEFINE_EVENT(wxEVT_UNIT_SYSTEM_CHANGED, wxCommandEvent);
+
+// ── Singleton ─────────────────────────────────────────────────────────────
+
+UnitSystem& UnitSystem::Get()
+{
+    static UnitSystem instance;
+    return instance;
+}
+
+UnitSystem::UnitSystem()
+{
+    // Load persisted preference on first access
+    if (wxGetApp().app_config)
+        m_imperial = wxGetApp().app_config->get("use_inches") == "1";
+}
+
+// ── Core setter ───────────────────────────────────────────────────────────
+
+void UnitSystem::Apply(bool imperial, bool save)
+{
+    if (m_imperial == imperial) return;
+    m_imperial = imperial;
+
+    if (save && wxGetApp().app_config)
+        wxGetApp().app_config->set("use_inches", imperial ? "1" : "0");
+
+    wxCommandEvent evt(wxEVT_UNIT_SYSTEM_CHANGED);
+    evt.SetInt(imperial ? 1 : 0);
+    for (wxWindow* w : m_listeners)
+        if (w) wxPostEvent(w, evt);
+}
+
+// ── Public API ────────────────────────────────────────────────────────────
+
+void UnitSystem::SetImperial(bool imperial)
+{
+    // Called from Preferences dialog — always permanent
+    m_temp_active            = false;
+    m_perm_toggled_this_hold = false;
+    Apply(imperial, /*save=*/true);
+}
+
+void UnitSystem::TogglePermanent()
+{
+    m_perm_toggled_this_hold = true;
+    m_temp_active            = false;
+
+    // The value is already correct (BeginTemporarySwap set it),
+    // but Apply() would early-return since m_imperial hasn't changed.
+    // Force the save directly:
+    if (wxGetApp().app_config)
+        wxGetApp().app_config->set("use_inches", m_imperial ? "1" : "0");
+
+    // Fire the event so all listeners know this is now permanent
+    wxCommandEvent evt(wxEVT_UNIT_SYSTEM_CHANGED);
+    evt.SetInt(m_imperial ? 1 : 0);
+    for (wxWindow* w : m_listeners)
+        if (w) wxPostEvent(w, evt);
+}
+
+void UnitSystem::BeginTemporarySwap()
+{
+    if (m_temp_active) return; // guard against key repeat
+    m_pre_swap_state         = m_imperial;
+    m_perm_toggled_this_hold = false;
+    m_temp_active            = true;
+    Apply(!m_imperial, /*save=*/false);
+}
+
+void UnitSystem::EndTemporarySwap()
+{
+    if (!m_temp_active) return;
+    m_temp_active = false;
+
+    if (!m_perm_toggled_this_hold) {
+        // No permanent toggle during this hold — revert
+        Apply(m_pre_swap_state, /*save=*/false);
+    }
+    // If TogglePermanent() fired, current state is already correct and saved
+}
+
+// ── Listener registration ─────────────────────────────────────────────────
+
+void UnitSystem::Register(wxWindow* listener)
+{
+    m_listeners.push_back(listener);
+}
+
+void UnitSystem::Unregister(wxWindow* listener)
+{
+    m_listeners.erase(
+        std::remove(m_listeners.begin(), m_listeners.end(), listener),
+        m_listeners.end());
 }
 
 

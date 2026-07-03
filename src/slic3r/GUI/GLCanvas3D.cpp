@@ -3728,12 +3728,16 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
 //                    set_cursor(Standard);
                 }
                 else if (keyCode == WXK_ALT) {
+                    Slic3r::GUI::UnitSystem::Get().EndTemporarySwap();
+
                     if (m_picking_enabled && m_rectangle_selection.is_dragging()) {
                         _update_selection_from_hover();
                         m_rectangle_selection.stop_dragging();
                         m_mouse.ignore_left_up = true;
-                        m_dirty = true;
                     }
+                    m_dirty = true;
+                    request_extra_frame();
+
 //                    set_cursor(Standard);
 #ifdef __WXMSW__
                     if (m_camera_movement && m_is_touchpad_navigation) {
@@ -3806,7 +3810,13 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
             }
             else if (evt.GetEventType() == wxEVT_KEY_DOWN) {
                 m_tab_down = keyCode == WXK_TAB && !evt.HasAnyModifiers();
-                if (keyCode == WXK_SHIFT) {
+                if (keyCode == 'U') {
+                    if  (evt.AltDown()) 
+                    {
+                        Slic3r::GUI::UnitSystem::Get().TogglePermanent();
+                        m_dirty = true;
+                        request_extra_frame();
+                    }
                     translationProcessor.process(evt);
 
                     if (m_picking_enabled /*&& (m_gizmos.get_current_type() != GLGizmosManager::SlaSupports)*/)
@@ -3816,11 +3826,15 @@ void GLCanvas3D::on_key(wxKeyEvent& evt)
                     }
                 }
                 else if (keyCode == WXK_ALT) {
+                    Slic3r::GUI::UnitSystem::Get().BeginTemporarySwap();
+
                     if (m_picking_enabled /*&& (m_gizmos.get_current_type() != GLGizmosManager::SlaSupports)*/)
                     {
                         m_mouse.ignore_left_up = false;
 //                        set_cursor(Cross);
                     }
+                    m_dirty = true;
+                    request_extra_frame();
                 }
                 else if (keyCode == WXK_CONTROL)
                     m_dirty = true;
