@@ -1174,7 +1174,7 @@ std::string GUI_App::get_plugin_url(std::string name, std::string country_code)
     std::string url = get_http_url(country_code);
 
     std::string curr_version;
-    if (NetworkAgent::use_legacy_network) {
+    if (use_legacy_network_plugin()) {
         curr_version = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
     } else if (name == "plugins" && app_config) {
         std::string user_version = app_config->get_network_plugin_version();
@@ -1229,7 +1229,7 @@ int GUI_App::download_plugin(std::string name, std::string package_name, Install
     // Determine OS type for plugin download (must be set per-request since global
     // extra headers are no longer initialised on this branch).
 #if defined(__WINDOWS__)
-    std::string os_type = (is_running_on_arm64() && !NetworkAgent::use_legacy_network) ? "windows_arm" : "windows";
+    std::string os_type = (is_running_on_arm64() && !use_legacy_network_plugin()) ? "windows_arm" : "windows";
 #elif defined(__APPLE__)
     std::string os_type = "macos";
 #elif defined(__linux__)
@@ -1458,8 +1458,32 @@ int GUI_App::install_plugin(std::string name, std::string package_name, InstallP
                 boost::filesystem::create_directories(dest_path.parent_path());
                 std::string dest_zip_file = encode_path(dest_path.string().c_str());
                 try {
-                    if (fs::exists(dest_path))
-                        fs::remove(dest_path);
+                    if (fs::exists(dest_path)) {
+                        boost::system::error_code ec;
+                        fs::remove(dest_path, ec);
+                        if (ec) {
+                            // On Windows a currently-loaded DLL (e.g. BambuSource.dll, or the
+                            // networking library in legacy mode) cannot be deleted or overwritten
+                            // in place, which failed the whole install with "The plug-in file may
+                            // be in use" (issue #14373). It CAN however be renamed aside: the
+                            // running module keeps mapping the renamed file while we write the new
+                            // one. The stale ".old" copy is cleared on the next install/launch.
+                            boost::filesystem::path aside = dest_path;
+                            aside += ".old";
+                            boost::system::error_code ec2;
+                            fs::remove(aside, ec2);
+                            fs::rename(dest_path, aside, ec2);
+                            if (ec2) {
+                                close_zip_reader(&archive);
+                                BOOST_LOG_TRIVIAL(error) << "[install_plugin] cannot replace in-use file "
+                                                         << dest_path.string() << ": " << ec2.message();
+                                if (pro_fn) { pro_fn(InstallStatusUnzipFailed, 0, cancel); }
+                                return InstallStatusUnzipFailed;
+                            }
+                            BOOST_LOG_TRIVIAL(warning) << "[install_plugin] " << dest_path.filename().string()
+                                                       << " was in use, renamed aside to .old";
+                        }
+                    }
                     mz_bool res = 0;
 #ifndef WIN32
                     if (S_ISLNK(stat.m_external_attr >> 16)) {
@@ -1908,7 +1932,7 @@ bool GUI_App::check_networking_version()
     }
 
     std::string studio_ver;
-    if (NetworkAgent::use_legacy_network) {
+    if (use_legacy_network_plugin()) {
         studio_ver = BAMBU_NETWORK_AGENT_VERSION_LEGACY;
     } else if (app_config) {
         std::string user_version = app_config->get_network_plugin_version();
@@ -1928,6 +1952,11 @@ bool GUI_App::check_networking_version()
 
     m_networking_compatible = false;
     return false;
+}
+
+bool GUI_App::use_legacy_network_plugin() const
+{
+    return app_config && BBLNetworkPlugin::is_legacy_version(app_config->get_network_plugin_version());
 }
 
 bool GUI_App::is_compatibility_version()
@@ -2232,6 +2261,7 @@ GUI_App::~GUI_App()
 
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< boost::format(": exit");
+    shutdown_console_logging();
 }
 
 bool GUI_App::is_blocking_printing(MachineObject *obj_)
@@ -3024,9 +3054,8 @@ bool GUI_App::on_init_inner()
 
     // Orca: select network plugin version based on configured version string
     std::string configured_version = app_config->get_network_plugin_version();
-    NetworkAgent::use_legacy_network = (configured_version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
     BOOST_LOG_TRIVIAL(info) << "Network plugin mode: "
-        << (NetworkAgent::use_legacy_network ? ("legacy (version: " + std::string(BAMBU_NETWORK_AGENT_VERSION_LEGACY) + ")") : ("modern (version: " + configured_version + ")"));
+        << (use_legacy_network_plugin() ? ("legacy (version: " + std::string(BAMBU_NETWORK_AGENT_VERSION_LEGACY) + ")") : ("modern (version: " + configured_version + ")"));
     // Force legacy network plugin if debugger attached
     // See https://github.com/bambulab/BambuStudio/issues/6726
     /* if (!NetworkAgent::use_legacy_network) {
@@ -3305,7 +3334,7 @@ void GUI_App::copy_network_if_available()
         fs::remove(network_library);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Copying network library from " << network_library << " to " << network_library_dst << " successfully.";
 
-        app_config->set(SETTING_NETWORK_PLUGIN_VERSION, cached_version);
+        app_config->set_network_plugin_version(cached_version);
         app_config->save();
     }
 
@@ -3341,6 +3370,26 @@ void GUI_App::copy_network_if_available()
 
 bool GUI_App::on_init_network(bool try_backup)
 {
+    // Clean up stale ".old" files left by install_plugin() when it had to rename an in-use
+    // DLL aside (see the rename-aside path in install_plugin). This runs before the plug-in
+    // is (re)loaded - at startup nothing is mapped yet, and on a hot reload the previous
+    // module has already been unloaded - so the previously locked files can now be removed.
+    {
+        boost::filesystem::path plugin_folder = boost::filesystem::path(data_dir()) / "plugins";
+        boost::system::error_code ec;
+        if (boost::filesystem::is_directory(plugin_folder, ec)) {
+            for (boost::filesystem::directory_iterator it(plugin_folder, ec), end; !ec && it != end; it.increment(ec)) {
+                if (it->path().extension() == ".old") {
+                    boost::system::error_code rm_ec;
+                    boost::filesystem::remove(it->path(), rm_ec);
+                    if (rm_ec)
+                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": could not remove stale " << it->path().filename().string()
+                                                << " (" << rm_ec.message() << "), will retry next launch";
+                }
+            }
+        }
+    }
+
     auto should_load_networking_plugin = app_config->get_bool("installed_networking");
 
     std::string config_version = app_config->get_network_plugin_version();
@@ -3370,7 +3419,7 @@ bool GUI_App::on_init_network(bool try_backup)
                 if (config_base != loaded_version) {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version << " to loaded "
                                             << loaded_version;
-                    app_config->set(SETTING_NETWORK_PLUGIN_VERSION, loaded_version);
+                    app_config->set_network_plugin_version(loaded_version);
                     app_config->save();
                 }
             }
@@ -3496,7 +3545,7 @@ bool GUI_App::on_init_network(bool try_backup)
             m_user_manager = new Slic3r::UserManager();
     }
 
-    if (should_load_networking_plugin && m_networking_compatible && !NetworkAgent::use_legacy_network) {
+    if (should_load_networking_plugin && m_networking_compatible && !use_legacy_network_plugin()) {
         app_config->clear_remind_network_update_later();
 
         if (has_network_update_available()) {

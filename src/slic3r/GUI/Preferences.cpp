@@ -1251,26 +1251,17 @@ wxBoxSizer *PreferencesDialog::create_item_network_plugin_version(wxString title
                 old_version = get_latest_network_version();
             }
 
-            app_config->set(SETTING_NETWORK_PLUGIN_VERSION, new_version);
+            app_config->set_network_plugin_version(new_version);
             app_config->save();
 
             if (new_version != old_version) {
                 BOOST_LOG_TRIVIAL(info) << "Network plugin version changed from " << old_version << " to " << new_version;
 
-                // Update the use_legacy_network flag immediately
-                bool is_legacy = (new_version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
-                bool was_legacy = (old_version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
-                if (is_legacy != was_legacy) {
-                    Slic3r::NetworkAgent::use_legacy_network = is_legacy;
-                    BOOST_LOG_TRIVIAL(info) << "Updated use_legacy_network flag to " << is_legacy;
-                }
-
                 if (!selected_ver.warning.empty()) {
                     MessageDialog warn_dlg(this, wxString::FromUTF8(selected_ver.warning), _L("Warning"), wxOK | wxCANCEL | wxICON_WARNING);
                     if (warn_dlg.ShowModal() != wxID_OK) {
-                        app_config->set(SETTING_NETWORK_PLUGIN_VERSION, old_version);
+                        app_config->set_network_plugin_version(old_version);
                         app_config->save();
-                        Slic3r::NetworkAgent::use_legacy_network = was_legacy;
                         e.Skip();
                         return;
                     }
