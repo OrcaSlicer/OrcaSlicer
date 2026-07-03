@@ -25,6 +25,7 @@
 #include <cassert>
 #include <limits>
 #include <algorithm>
+#include <map>
 #include <unordered_map>
 
 #include <libslic3r.h>
@@ -382,18 +383,75 @@ bool ToolOrdering::insert_wipe_tower_extruder()
 {
     if (!m_print_config_ptr || !m_print_config_ptr->enable_prime_tower)
         return false;
-    if (m_print_config_ptr->wipe_tower_filament == 0)
-        return false;
 
-    bool changed = false;
-    const unsigned int wipe_extruder = (unsigned int)(m_print_config_ptr->wipe_tower_filament - 1);
-    for (LayerTools &lt : m_layer_tools) {
-        if (lt.wipe_tower_partitions > 0) {
-            if (std::find(lt.extruders.begin(), lt.extruders.end(), wipe_extruder) == lt.extruders.end()) {
-                lt.extruders.emplace_back(wipe_extruder);
-                changed = true;
+    const bool auto_mode = m_print_config_ptr->wipe_tower_filament == 0;
+    int        resolved_extruder;
+    if (!auto_mode) {
+        resolved_extruder = m_print_config_ptr->wipe_tower_filament - 1;
+    } else {
+        // The BBL wipe tower (generate_new) keeps its walls consistent through its own
+        // adhesiveness-category blocks; only the generic tower needs a forced filament.
+        if (!m_print || m_print->wipe_tower_type() != WipeTowerType::Type2)
+            return false;
+        // Auto: resolve to the print's most used filament, so the tower structure is built from one
+        // consistent material instead of mixing incompatible ones layer by layer. Filament types are
+        // weighted by the number of layers they appear on, then the most used filament of the winning
+        // type is chosen. Soluble and support filaments never qualify.
+        std::map<std::string, size_t>  type_counts;
+        std::map<unsigned int, size_t> extruder_counts;
+        for (const LayerTools &lt : m_layer_tools)
+            for (unsigned int extruder_id : lt.extruders) {
+                if (m_print_config_ptr->filament_soluble.get_at(extruder_id) || m_print_config_ptr->filament_is_support.get_at(extruder_id))
+                    continue;
+                ++ type_counts[m_print_config_ptr->filament_type.get_at(extruder_id)];
+                ++ extruder_counts[extruder_id];
             }
+        std::string best_type;
+        size_t      best_count = 0;
+        for (const auto &[type, count] : type_counts)
+            if (count > best_count) {
+                best_count = count;
+                best_type  = type;
+            }
+        resolved_extruder = -1;
+        best_count        = 0;
+        for (const auto &[extruder_id, count] : extruder_counts)
+            if (m_print_config_ptr->filament_type.get_at(extruder_id) == best_type && count > best_count) {
+                best_count        = count;
+                resolved_extruder = int(extruder_id);
+            }
+        if (resolved_extruder < 0)
+            return false;
+    }
+    m_wipe_tower_extruder = resolved_extruder; // expose the resolved filament (see wipe_tower_extruder())
+
+    const unsigned int wipe_extruder = (unsigned int)resolved_extruder;
+    const std::string  wipe_type     = m_print_config_ptr->filament_type.get_at(wipe_extruder);
+    bool               changed       = false;
+    for (LayerTools &lt : m_layer_tools) {
+        if (lt.wipe_tower_partitions <= 0)
+            continue;
+        if (std::find(lt.extruders.begin(), lt.extruders.end(), wipe_extruder) != lt.extruders.end())
+            continue;
+        // Auto mode: if the layer already prints a filament that is the same type as, or compatible
+        // (bonds) with, the resolved one, the tower can finish with that instead of adding a filament
+        // change back to the resolved filament. Only force the change when nothing compatible is present.
+        if (auto_mode) {
+            bool has_compatible = false;
+            for (unsigned int e : lt.extruders) {
+                if (m_print_config_ptr->filament_soluble.get_at(e) || m_print_config_ptr->filament_is_support.get_at(e))
+                    continue;
+                const std::string t = m_print_config_ptr->filament_type.get_at(e);
+                if (t == wipe_type || MaterialType::compatibility(t, wipe_type) == MaterialCompatibility::Compatible) {
+                    has_compatible = true;
+                    break;
+                }
+            }
+            if (has_compatible)
+                continue;
         }
+        lt.extruders.emplace_back(wipe_extruder);
+        changed = true;
     }
     return changed;
 }

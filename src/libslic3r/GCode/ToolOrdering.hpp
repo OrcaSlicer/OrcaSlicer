@@ -253,6 +253,10 @@ public:
     // object's plan continues from the nozzle state the previous object ended with.
     const MultiNozzleUtils::NozzleStatusRecorder &get_nozzle_status() const { return m_nozzle_status; }
     void set_nozzle_status(const MultiNozzleUtils::NozzleStatusRecorder &status) { m_initial_nozzle_status = status; m_nozzle_status = status; }
+
+    // Wipe tower filament resolved by insert_wipe_tower_extruder() (0-based extruder), or -1 if none.
+    // For "wipe_tower_filament == 0" (auto) this is the print's most used non-soluble, non-support filament.
+    int                 wipe_tower_extruder() const { return m_wipe_tower_extruder; }
     /*
     * called in single extruder mode, the value in map are all 0
     * called in dual extruder mode, the value in map will be 0 or 1
@@ -330,6 +334,8 @@ private:
     MultiNozzleUtils::NozzleStatusRecorder     m_nozzle_status;
 
     int                        most_used_extruder;
+    // See wipe_tower_extruder().
+    int                        m_wipe_tower_extruder = -1;
 };
 
 } // namespace SLic3r

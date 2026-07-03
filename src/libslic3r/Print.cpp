@@ -4296,6 +4296,12 @@ void Print::_make_wipe_tower()
         // Initialize the wipe tower.
         WipeTower2 wipe_tower(m_config, m_default_region_config, m_plate_index, m_origin, wipe_volumes,
                               m_wipe_tower_data.tool_ordering.first_extruder());
+        // In auto mode ("wipe_tower_filament" == 0) the tower finishes each layer with the most used
+        // filament type, or a compatible one already on the layer. The tool ordering resolved that
+        // filament and planned it onto layers that had nothing compatible, so a matching filament is
+        // always available and incompatible materials are never used for the tower structure.
+        if (int e = m_wipe_tower_data.tool_ordering.wipe_tower_extruder(); e >= 0)
+            wipe_tower.set_most_used_filament_type(m_config.filament_type.get_at(e));
 
         // wipe_tower.set_retract();
         // wipe_tower.set_zhop();

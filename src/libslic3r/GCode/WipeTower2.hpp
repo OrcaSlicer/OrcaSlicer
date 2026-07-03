@@ -64,6 +64,11 @@ public:
 	// Set the extruder properties.
     void set_extruder(size_t idx, const PrintConfig& config);
 
+    // The most used filament type of the print; in auto mode ("wipe_tower_filament" == 0) the tower
+    // finishes its layers (sparse fill and perimeter) with a filament of this type, or one compatible
+    // with it that is already printing on the layer.
+    void set_most_used_filament_type(const std::string& type) { m_most_used_filament_type = type; }
+
 	// Appends into internal structure m_plan containing info about the future wipe tower
 	// to be used before building begins. The entries must be added ordered in z.
     void plan_toolchange(float z_par, float layer_height_par, unsigned int old_tool, unsigned int new_tool, float wipe_volume = 0.f);
@@ -216,6 +221,7 @@ private:
 	bool   m_enable_filament_ramming = true;
 	bool   m_is_mk4mmu3         = false;
     int    m_wipe_tower_filament = 0;   // 1-based config value, 0 means auto
+    std::string m_most_used_filament_type; // preferred type for finishing layers in auto mode
     Vec2f  m_wipe_tower_pos; 			// Left front corner of the wipe tower in mm.
 	float  m_wipe_tower_width; 			// Width of the wipe tower.
 	float  m_wipe_tower_depth 	= 0.f; 	// Depth of the wipe tower
