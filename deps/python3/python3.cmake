@@ -8,6 +8,10 @@ set(_python_url "https://www.python.org/ftp/python/${_python_version}/Python-${_
 set(_python_sha256 "56bfef1fdfc1221ce6720e43a661e3eb41785dd914ce99698d8c7896af4bdaa1")
 
 if(WIN32)
+    set(_python_patch_args
+        PATCH_COMMAND ${PATCH_CMD} ${CMAKE_CURRENT_LIST_DIR}/windows-api-baseline-8.1.patch
+    )
+
     if(MSVC_VERSION EQUAL 1800)
         set(_python_platform_toolset v120)
     elseif(MSVC_VERSION EQUAL 1900)
@@ -223,6 +227,7 @@ ExternalProject_Add(dep_python3
     URL "${_python_url}"
     URL_HASH SHA256=${_python_sha256}
     DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/python3
+    ${_python_patch_args}
     BUILD_IN_SOURCE ON
     CONFIGURE_COMMAND ${_conf_cmd}
     BUILD_COMMAND ${_build_cmd}
