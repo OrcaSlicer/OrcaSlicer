@@ -6772,7 +6772,8 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Support/raft base");
     def->category = L("Support");
     def->tooltip = L("Filament to print support base and raft.\n\"Default\" uses the supported object's own filament; if that filament is not printing in the current layer, "
-                     "a compatible filament that is printing is used instead. The support base also avoids the interface filament and soluble filaments to stay distinct from the interface.\n"
+                     "a compatible filament that is printing is used instead. If the layer is only printing incompatible materials, the object's own filament is still used. "
+                     "The support base also avoids the interface filament and soluble filaments to stay distinct from the interface.\n"
                      "\"Auto\" picks, per object, a filament that does not bond to the supported material so the support detaches cleanly, "
                      "preferring soluble filaments and, among equal candidates, the colour closest to the object. If every filament bonds to the object, the object's own filament is used.");
     def->min = SUPPORT_FILAMENT_AUTO;
@@ -6810,7 +6811,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Support/raft interface");
     def->category = L("Support");
     def->tooltip = L("Filament to print support interface.\n\"Default\" uses the supported object's own filament; if that filament is not printing in the current layer, "
-                     "a compatible filament that is printing is used instead.\n"
+                     "a compatible filament that is printing is used instead. If the layer is only printing incompatible materials, the object's own filament is still used.\n"
                      "\"Auto\" picks, per object, a filament that does not bond to the supported material so the interface detaches cleanly, "
                      "preferring soluble filaments and, among equal candidates, the colour closest to the object. If every filament bonds to the object, the object's own filament is used.");
     def->min = SUPPORT_FILAMENT_AUTO;
