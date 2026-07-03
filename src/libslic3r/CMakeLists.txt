@@ -498,6 +498,14 @@ cmake_policy(PUSH)
 cmake_policy(SET CMP0011 NEW)
 find_package(CGAL REQUIRED)
 find_package(OpenCV REQUIRED core)
+if(WIN32 AND TARGET opencv_world)
+    # Use the top-level JPEG target on Windows; OpenCV's bundled libjpeg-turbo misses jpeg_mem_dest here.
+    get_target_property(_opencv_world_libs opencv_world INTERFACE_LINK_LIBRARIES)
+    if(_opencv_world_libs)
+        list(FILTER _opencv_world_libs EXCLUDE REGEX "libjpeg-turbo")
+        set_target_properties(opencv_world PROPERTIES INTERFACE_LINK_LIBRARIES "${_opencv_world_libs}")
+    endif()
+endif()
 cmake_policy(POP)
 
 add_library(libslic3r_cgal STATIC
@@ -546,6 +554,8 @@ target_include_directories(libslic3r SYSTEM PUBLIC ${OpenCASCADE_INCLUDE_DIR})
 find_package(JPEG REQUIRED)
 find_package(draco REQUIRED)
 
+set(LIBSLIC3R_JPEG_LIB JPEG::JPEG)
+
 set(OCCT_LIBS
     TKXDESTEP
     TKSTEP
@@ -593,7 +603,7 @@ target_link_libraries(libslic3r
         Clipper2
         draco::draco
         glu-libtess
-        JPEG::JPEG
+        ${LIBSLIC3R_JPEG_LIB}
         libslic3r_cgal
         mcut
         noise::noise

@@ -56,6 +56,15 @@ if (SLIC3R_GUI)
         endif()
     endif()
 
+    if(WIN32 AND TARGET wx::wxcore)
+        # OpenCV's static package already brings libjpeg-turbo; avoid a second JPEG implementation from wx.
+        get_target_property(_wx_core_libs wx::wxcore INTERFACE_LINK_LIBRARIES)
+        if(_wx_core_libs)
+            list(FILTER _wx_core_libs EXCLUDE REGEX "jpeg")
+            set_target_properties(wx::wxcore PROPERTIES INTERFACE_LINK_LIBRARIES "${_wx_core_libs}")
+        endif()
+    endif()
+
     find_package(JPEG QUIET)
 
     string(REGEX MATCH "wxpng" WX_PNG_BUILTIN ${wxWidgets_LIBRARIES})
@@ -65,7 +74,7 @@ if (SLIC3R_GUI)
     endif ()
 
     string(REGEX MATCH "wxjpeg" WX_JPEG_BUILTIN ${wxWidgets_LIBRARIES})
-    if (JPEG_FOUND AND NOT WX_JPEG_BUILTIN)
+    if (JPEG_FOUND AND NOT WX_JPEG_BUILTIN AND NOT WIN32)
         list(FILTER wxWidgets_LIBRARIES EXCLUDE REGEX jpeg)
         list(APPEND wxWidgets_LIBRARIES ${JPEG_LIBRARIES})
     endif ()

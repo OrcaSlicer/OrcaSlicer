@@ -40,6 +40,7 @@ struct PrintHostUpload
 
     // Some extended parameters for different upload methods.
     std::map<std::string, std::string> extended_info;
+    std::map<int, int> output_tool_mapping;
 
     // Safe accessor for an extended_info entry; returns `def` when the key is absent.
     std::string extended(const std::string &key, const std::string &def = {}) const

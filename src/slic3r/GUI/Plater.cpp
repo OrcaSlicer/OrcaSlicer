@@ -1,4 +1,5 @@
 #include "Plater.hpp"
+#include "OutputToolMapping.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r_version.h"
 
@@ -16354,6 +16355,12 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
         upload_job.upload_data.group       = pDlg->group();
         upload_job.upload_data.storage     = pDlg->storage();
         upload_job.upload_data.extended_info = pDlg->extendedInfo();
+
+        std::map<int, int> output_tool_mapping;
+        if (!show_output_tool_mapping_dialog(this, this, plate_idx, output_tool_mapping))
+            return;
+        upload_job.upload_data.output_tool_mapping = output_tool_mapping;
+
         // Orca: gcode inside a .gcode.3mf is index-coded (Metadata/plate_<N>.gcode) and a bundle may
         // carry several of them, so the upload must name which plate to print via a 1-based plateindex.
         // Even a single-plate bundle needs it, since its gcode entry is still indexed. The host upload
@@ -16374,7 +16381,7 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
 
     if (use_3mf) {
         // Process gcode
-        const int result = send_gcode(resolved_plate_idx, nullptr);
+        const int result = send_gcode(resolved_plate_idx, nullptr, upload_job.upload_data.output_tool_mapping);
 
         if (result < 0) {
             wxString msg = _L("Abnormal print file data. Please slice again");
@@ -16387,15 +16394,18 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
 
     p->export_gcode(fs::path(), false, std::move(upload_job));
 }
-int Plater::send_gcode(int plate_idx, Export3mfProgressFn proFn)
+int Plater::send_gcode(int plate_idx, Export3mfProgressFn proFn, const std::map<int, int>& output_tool_mapping)
 {
     int result = 0;
     /* generate 3mf */
     set_print_job_plate_idx(plate_idx);
 
     PartPlate* plate = get_partplate_list().get_curr_plate();
+    fs::path original_gcode_path;
+    fs::path mapped_gcode_path;
     try {
-        p->m_print_job_data._3mf_path = fs::path(plate->get_tmp_gcode_path());
+        original_gcode_path = fs::path(plate->get_tmp_gcode_path());
+        p->m_print_job_data._3mf_path = original_gcode_path;
         p->m_print_job_data._3mf_path.replace_extension("3mf");
     }
     catch (std::exception&) {
@@ -16411,7 +16421,29 @@ int Plater::send_gcode(int plate_idx, Export3mfProgressFn proFn)
         strategy = SaveStrategy::Silence | SaveStrategy::SplitModel | SaveStrategy::WithGcode;
 #endif
 
+    const bool should_remap_tools = has_non_identity_tool_mapping(output_tool_mapping);
+    if (should_remap_tools) {
+        mapped_gcode_path = original_gcode_path;
+        mapped_gcode_path += ".toolmap.gcode";
+
+        std::string error;
+        if (!remap_gcode_file_tools(original_gcode_path, mapped_gcode_path, output_tool_mapping, &error)) {
+            BOOST_LOG_TRIVIAL(error) << "output tool mapping failed: " << error;
+            return -1;
+        }
+
+        plate->set_tmp_gcode_path(mapped_gcode_path.string());
+    }
+
     result = export_3mf(p->m_print_job_data._3mf_path, strategy, plate_idx, proFn);
+
+    if (should_remap_tools) {
+        plate->set_tmp_gcode_path(original_gcode_path.string());
+        boost::system::error_code ec;
+        fs::remove(mapped_gcode_path, ec);
+        if (ec)
+            BOOST_LOG_TRIVIAL(warning) << "failed to remove output tool mapping temporary gcode: " << ec.message();
+    }
 
     return result;
 }

@@ -2,6 +2,7 @@
 #include "GUI_App.hpp"
 #include "GUI.hpp"
 #include "MainFrame.hpp"
+#include "OutputToolMapping.hpp"
 #include "format.hpp"
 
 #include <wx/app.h>
@@ -933,6 +934,19 @@ void BackgroundSlicingProcess::prepare_upload()
                                              m_fff_print->full_print_config()))
 			    m_upload_job.upload_data.upload_path = output_name_str;
 			}
+
+            if (GUI::has_non_identity_tool_mapping(m_upload_job.upload_data.output_tool_mapping)) {
+                boost::filesystem::path mapped_source_path = source_path;
+                mapped_source_path += ".toolmap.gcode";
+
+                std::string error;
+                if (!GUI::remap_gcode_file_tools(source_path, mapped_source_path, m_upload_job.upload_data.output_tool_mapping, &error))
+                    throw Slic3r::RuntimeError((boost::format(_utf8(L("Failed to apply output tool mapping.\nError message: %1%."))) % error).str());
+
+                boost::system::error_code ec;
+                boost::filesystem::remove(source_path, ec);
+                source_path = std::move(mapped_source_path);
+            }
 		}
     } else {
         m_upload_job.upload_data.upload_path = m_sla_print->print_statistics().finalize_output_path(m_upload_job.upload_data.upload_path.string());
