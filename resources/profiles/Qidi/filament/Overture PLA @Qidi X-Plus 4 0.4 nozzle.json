@@ -3,7 +3,7 @@
 	"name": "Overture PLA @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "Overture PLA @Qidi",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "wtl6yNqJQUVhiBnB",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

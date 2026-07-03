@@ -70,15 +70,17 @@ public:
 
     // FFF print
     void    update_print_fff_config(DynamicPrintConfig* config, const bool is_global_config = false, const bool is_plate_config = false);
-    void    toggle_print_fff_options(DynamicPrintConfig* config, const bool is_global_config = false);
+    void    toggle_print_fff_options(DynamicPrintConfig* config, int variant_index, const bool is_global_config = false);
     void    apply_null_fff_config(DynamicPrintConfig *config, std::vector<std::string> const &keys, std::map<ObjectBase*, ModelConfig*> const & configs);
 
     //BBS: FFF filament nozzle temperature range
     void    check_nozzle_recommended_temperature_range(DynamicPrintConfig *config);
     void    check_nozzle_temperature_range(DynamicPrintConfig* config);
     void    check_nozzle_temperature_initial_layer_range(DynamicPrintConfig* config);
+    void    check_adaptive_pressure_advance_model(DynamicPrintConfig* config);
     void    check_filament_max_volumetric_speed(DynamicPrintConfig *config);
     void    check_chamber_temperature(DynamicPrintConfig* config);
+    void    check_chamber_minimal_temperature(DynamicPrintConfig* config);
     void    set_is_BBL_Printer(bool is_bbl_printer) { is_BBL_Printer = is_bbl_printer; };
     bool    get_is_BBL_Printer() { return is_BBL_Printer; };
     // SLA print

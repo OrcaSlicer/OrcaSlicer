@@ -3,7 +3,7 @@
 	"name": "Creality Generic PA-CF @K2-all",
 	"inherits": "Creality Generic PA-CF",
 	"from": "system",
-	"setting_id": "GFSN99_01",
+	"setting_id": "08QXVyyDDpDPhOoJ",
 	"instantiation": "true",
 	"nozzle_temperature_initial_layer": [
 		"280"

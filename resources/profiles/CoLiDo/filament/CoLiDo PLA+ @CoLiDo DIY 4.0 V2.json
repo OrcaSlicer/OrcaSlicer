@@ -3,7 +3,7 @@
 	"name": "CoLiDo PLA+ @CoLiDo DIY 4.0 V2",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA99_07",
+	"setting_id": "IDGh5vNSqKSOVn3z",
 	"filament_id": "GFA99",
 	"instantiation": "true",
 	"filament_vendor": [

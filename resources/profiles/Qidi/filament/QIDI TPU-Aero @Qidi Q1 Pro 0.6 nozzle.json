@@ -3,7 +3,7 @@
 	"name": "QIDI TPU-Aero @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "QIDI TPU-Aero",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "FR1LQ5DM0upGQQfs",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_settings_id": [

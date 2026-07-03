@@ -172,7 +172,8 @@ void PartPlate::init()
 	m_locked = false;
 	m_ready_for_slice = true;
 	m_slice_result_valid = false;
-	m_slice_percent = 0.0f;
+	m_slice_percent = -1.0f; // ORCA create new plates with negative values or it will take "slicing" role on toolbar
+                             // condition for sliced / slicing -- if (plate_list.get_plate(i)->get_slicing_percent() < 0.0f)
 	m_hover_id = -1;
 	m_selected = false;
 	//m_quadric = ::gluNewQuadric();
@@ -1931,11 +1932,20 @@ bool PartPlate::check_filament_printable(const DynamicPrintConfig &config, wxStr
 
     std::vector<int> used_filaments = get_extruders(true);  // 1 base
     if (!used_filaments.empty()) {
+        const std::vector<std::string>& filament_types      = config.option<ConfigOptionStrings>("filament_type")->values;
+        const std::vector<int>&         filament_printables = config.option<ConfigOptionInts>("filament_printable")->values;
+        const std::vector<int>&         filament_map        = get_real_filament_maps(config);
+        // This runs synchronously mid printer-switch (load_current_preset -> reload_scene), before the
+        // filament-count reconciliation clears stale per-object assignments, so the plate objects can
+        // still reference filament indices beyond the freshly selected printer config. Skip those to
+        // avoid an out-of-range access. Matches BambuStudio's guards in the same function.
+        const int filament_count = std::min({(int) filament_types.size(), (int) filament_printables.size(), (int) filament_map.size()});
         for (auto filament_idx : used_filaments) {
             int filament_id = filament_idx - 1;
-            std::string filament_type = config.option<ConfigOptionStrings>("filament_type")->values.at(filament_id);
-            int filament_printable_status = config.option<ConfigOptionInts>("filament_printable")->values.at(filament_id);
-            std::vector<int> filament_map  = get_real_filament_maps(config);
+            if (filament_id < 0 || filament_id >= filament_count)
+                continue;
+            std::string filament_type = filament_types[filament_id];
+            int filament_printable_status = filament_printables[filament_id];
             int extruder_idx = filament_map[filament_id] - 1;
             if (!(filament_printable_status >> extruder_idx & 1)) {
                 wxString extruder_name = extruder_idx == 0 ? _L("left") : _L("right");

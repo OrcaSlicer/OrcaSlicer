@@ -3,7 +3,7 @@
 	"name": "FlyingBear Ghost7 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "z9QfjLoeHAlCIdsj",
 	"instantiation": "true",
 	"printer_model": "FlyingBear Ghost7",
 	"auxiliary_fan": "1",

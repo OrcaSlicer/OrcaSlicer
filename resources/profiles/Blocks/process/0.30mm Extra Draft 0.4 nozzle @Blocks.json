@@ -3,7 +3,7 @@
 	"name": "0.30mm Extra Draft 0.4 nozzle @Blocks",
 	"inherits": "fdm_process_blocks_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "UbuICsmppKDsaaZ4",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"top_shell_layers": "4",

@@ -3,7 +3,7 @@
     "name": "CR-PLA Matte @K1_CFS-C-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "KFNeCYp4ck8diZRG",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

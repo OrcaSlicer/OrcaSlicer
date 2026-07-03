@@ -3,7 +3,7 @@
 	"name": "Flashforge PETG Transparent @FF AD5X 0.6 nozzle",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "Ht7wzk8l0b1kv5tZ",
 	"instantiation": "true",
 	"close_fan_the_first_x_layers": [
 		"2"

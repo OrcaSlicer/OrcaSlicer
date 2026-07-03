@@ -3,6 +3,7 @@
 	"name": "0.12mm Standard @FF G4 0.25 nozzle",
 	"inherits": "0.12mm Standard @Flashforge AD5M Pro 0.25 Nozzle",
 	"from": "system",
+	"setting_id": "lmoOQqYi9swkfzCm",
 	"instantiation": "true",
 	"bridge_acceleration": "10%",
 	"bridge_speed": "15",

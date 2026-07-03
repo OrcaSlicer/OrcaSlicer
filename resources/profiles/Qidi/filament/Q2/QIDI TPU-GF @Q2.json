@@ -1,11 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "QD_1_1_15",
-	"setting_id": "GFSR99",
 	"name": "QIDI TPU-GF@Q2-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_q_common",
+	"from": "system",
+	"filament_id": "QD_1_1_15",
+	"instantiation": "false",
 	"filament_adhesiveness_category": [
 		"600"
 	],

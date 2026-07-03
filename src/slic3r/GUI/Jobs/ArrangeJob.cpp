@@ -592,7 +592,7 @@ void ArrangeJob::process(Ctl &ctl)
     // finalize just here.
     ctl.update_status(100,
         ctl.was_canceled() ? _u8L("Arranging canceled.") :
-        we_have_unpackable_items ? _u8L("Arranging is done but there are unpacked items. Reduce spacing and try again.") : _u8L("Arranging done."));
+        we_have_unpackable_items ? _u8L("Arranging complete, but some items were not able to be arranged. Reduce spacing and try again.") : _u8L("Arranging done."));
 }
 
 ArrangeJob::ArrangeJob() : m_plater{wxGetApp().plater()} { }

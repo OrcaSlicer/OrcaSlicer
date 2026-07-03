@@ -1,9 +1,10 @@
 {
 	"type": "process",
 	"name": "0.48mm Draft @Creality K1C",
+	"renamed_from": "0.48mm Draft @Creality K1C (0.8 nozzle)",
 	"inherits": "fdm_process_common_klipper",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "qaiff3f8gSQ1GVj1",
 	"instantiation": "true",
 	"adaptive_layer_height": "0",
 	"reduce_crossing_wall": "0",

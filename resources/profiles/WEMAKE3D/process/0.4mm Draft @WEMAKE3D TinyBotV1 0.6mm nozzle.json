@@ -2,6 +2,7 @@
 	"type": "process",
 	"name": "0.4mm Draft @WEMAKE3D TinyBotV1 0.6mm nozzle",
 	"inherits": "fdm_process_tinyBotV1_common",
+	"setting_id": "hqBED1cY7X1cXHk2",
 	"instantiation": "true",
 	"print_settings_id": "0.4mm Draft @WEMAKE3D TinyBotV1 0.6mm nozzle",
 	"layer_height": "0.4",

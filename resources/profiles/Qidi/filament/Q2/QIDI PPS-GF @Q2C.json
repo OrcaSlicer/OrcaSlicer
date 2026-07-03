@@ -1,11 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "QD_2_1_46",
-	"setting_id": "GFSN99",
 	"name": "QIDI PPS-GF@Q2C-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_q_common",
+	"from": "system",
+	"filament_id": "QD_2_1_46",
+	"instantiation": "false",
 	"box_temperature_range_high": [
 		"65"
 	],

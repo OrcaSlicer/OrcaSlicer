@@ -1,7 +1,10 @@
 {
+	"type": "process",
 	"inherits": "0.20mm Standard @Elegoo C 0.4 nozzle",
 	"layer_height": "0.12",
 	"name": "0.12mm Fine @Elegoo C 0.4 nozzle",
+	"from": "system",
 	"wall_loops": "3",
+	"setting_id": "0S47zshoJbgOUinj",
 	"instantiation": "true"
 }

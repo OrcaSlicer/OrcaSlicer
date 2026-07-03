@@ -3,7 +3,7 @@
 	"name": "QIDI PLA-CF @Qidi X-Plus 4 0.8 nozzle",
 	"inherits": "Qidi PLA-CF",
 	"from": "system",
-	"setting_id": "GFSL98",
+	"setting_id": "jlUhowcsrMLKZBHH",
 	"filament_id": "QD_0_1_5",
 	"instantiation": "true",
 	"filament_flow_ratio": [

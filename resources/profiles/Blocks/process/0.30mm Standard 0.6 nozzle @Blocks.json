@@ -3,7 +3,7 @@
 	"name": "0.30mm Standard 0.6 nozzle @Blocks",
 	"inherits": "fdm_process_common 0.6 nozzle",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "EPI3PAVK9LpJOZWO",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"top_shell_layers": "3",

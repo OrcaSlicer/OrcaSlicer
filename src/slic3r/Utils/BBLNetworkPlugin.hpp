@@ -266,6 +266,7 @@ public:
     // Legacy Network Flag
     // ========================================================================
 
+    static bool is_legacy_version(const std::string& version) { return version == BAMBU_NETWORK_AGENT_VERSION_LEGACY; }
     bool use_legacy_network() const { return m_use_legacy_network; }
     void set_use_legacy_network(bool legacy) { m_use_legacy_network = legacy; }
 
@@ -404,7 +405,7 @@ private:
     NetworkLibraryLoadError m_load_error;
 
     // Legacy network compatibility flag
-    bool m_use_legacy_network{true};
+    bool m_use_legacy_network{false};
 
     // Function pointers
     func_check_debug_consistent m_check_debug_consistent{nullptr};

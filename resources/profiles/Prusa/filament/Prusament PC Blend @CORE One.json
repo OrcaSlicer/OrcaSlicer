@@ -3,7 +3,7 @@
 	"name": "Prusament PC Blend @CORE One",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "x1SkWhSSkVVIPwCF",
 	"filament_id": "Prusament PC Blend @CORE One",
 	"instantiation": "true",
 	"chamber_temperature": [

@@ -607,7 +607,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     auto completedimg = new wxStaticBitmap(m_panel_finish, wxID_ANY, create_scaled_bitmap("completed", m_panel_finish, 25), wxDefaultPosition, wxSize(imgsize, imgsize), 0);
     m_sizer_finish_h->Add(completedimg, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
 
-    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, L("Send complete"), wxDefaultPosition, wxDefaultSize, 0);
+    m_statictext_finish = new wxStaticText(m_panel_finish, wxID_ANY, _L("Send complete"), wxDefaultPosition, wxDefaultSize, 0);
     m_statictext_finish->Wrap(-1);
     m_statictext_finish->SetForegroundColour(wxColour(0, 150, 136));
     m_sizer_finish_h->Add(m_statictext_finish, 0, wxALIGN_CENTER | wxALL, FromDIP(5));
@@ -1647,7 +1647,7 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         for (auto warning : plate->get_slice_result()->warnings) {
             if (warning.msg == NOT_GENERATE_TIMELAPSE) {
                 if (warning.error_code == "10014001") {
-                    msg_text = _L("When enable spiral vase mode, machines with I3 structure will not generate timelapse videos.");
+                    msg_text = _L("When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos.");
                 }
                 else if (warning.error_code == "10014002") {
                     msg_text = _L("The current printer does not support timelapse in Traditional Mode when printing By-Object.");
@@ -2062,7 +2062,7 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
 
     if (has_unknown_filament) {
         has_slice_warnings = true;
-        confirm_text.push_back(ConfirmBeforeSendInfo(_L("There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, press \"Confirm\" to start printing.")));
+        confirm_text.push_back(ConfirmBeforeSendInfo(_L("There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing.")));
     }
 
     if (has_slice_warnings)
@@ -2909,17 +2909,17 @@ void SelectMachineDialog::on_rename_enter()
     }
 
     if (m_valid_type == Valid && new_file_name.empty()) {
-        info_line = _L("The name is not allowed to be empty.");
+        info_line = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_first_of(' ') == 0) {
-        info_line = _L("The name is not allowed to start with space character.");
+        info_line = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_last_of(' ') == new_file_name.length() - 1) {
-        info_line = _L("The name is not allowed to end with space character.");
+        info_line = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 
@@ -3620,7 +3620,7 @@ bool SelectMachineDialog::has_timelapse_warning(wxString &msg_text)
     for (auto warning : plate->get_slice_result()->warnings) {
         if (warning.msg == NOT_GENERATE_TIMELAPSE) {
             if (warning.error_code == "10014001") {
-                msg_text = _L("When enable spiral vase mode, machines with I3 structure will not generate timelapse videos.");
+                msg_text = _L("When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos.");
             } else if (warning.error_code == "10014002") {
                 msg_text = _L("The current printer does not support timelapse in Traditional Mode when printing By-Object.");
             }

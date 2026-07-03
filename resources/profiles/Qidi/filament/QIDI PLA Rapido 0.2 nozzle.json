@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido 0.2 nozzle",
 	"inherits": "QIDI PLA Rapido",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "jpTA43XolFvODs9f",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [
@@ -19,9 +19,6 @@
 		"2"
 	],
 	"compatible_printers": [
-		"Qidi X-Plus 0.2 nozzle",
-		"Qidi X-Max 0.2 nozzle",
-		"Qidi X-CF Pro 0.2 nozzle",
 		"Qidi X-Smart 3 0.2 nozzle",
 		"Qidi X-Plus 3 0.2 nozzle",
 		"Qidi X-Max 3 0.2 nozzle"

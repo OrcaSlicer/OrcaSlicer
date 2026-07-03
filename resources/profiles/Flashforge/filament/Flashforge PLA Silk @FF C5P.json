@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Silk @FF C5P",
 	"inherits": "Generic PLA Silk @System",
 	"from": "system",
+	"setting_id": "xxeZ6VPjRFevxDnK",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

@@ -3,7 +3,7 @@
 	"name": "OrcaArena Generic PC",
 	"inherits": "OrcaArena Generic PC @base",
 	"from": "system",
-	"setting_id": "GFSC99",
+	"setting_id": "WCiW1Yi88MEZIO2h",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Orca Arena X1 Carbon 0.4 nozzle",

@@ -3,7 +3,7 @@
 	"name": "Other ABS",
 	"inherits": "fdm_filament_abs_other",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "nDLB3RZq23limiBn",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [
