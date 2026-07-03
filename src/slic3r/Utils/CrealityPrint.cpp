@@ -260,7 +260,8 @@ static std::string ws_send_and_read(websocket::stream<beast::tcp_stream>& ws, co
 static bool is_k1_family(const std::string& model)
 {
     static const std::unordered_set<std::string> k1_models = {
-        "K1 SE",
+        "K1",
+	"K1 SE",
         "K1C" ,
     };
     return k1_models.count(model) > 0;
@@ -284,6 +285,7 @@ static const std::map<std::string, std::string>& cfs_capable_models()
         {"F012", "K2 Pro"},
         {"F021", "K2"},
         {"F022", "SPARKX i7"},
+	{"K1", "K1"},
         {"K1 SE", "K1 SE"},
         {"K1C", "K1C"},
     };
