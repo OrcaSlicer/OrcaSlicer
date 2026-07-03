@@ -17,6 +17,7 @@
 #include "PrintConfig.hpp"
 #include "Surface.hpp"
 #include "Fill/FillRectilinear.hpp"
+#include "MaterialType.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
 
@@ -2359,18 +2360,34 @@ int WipeTower2::first_toolchange_to_nonsoluble_nonsupport(
         return -1;
     }
 
-    auto is_wall_filament = [this](size_t tool) {
-        return !m_filpar[tool].is_soluble && !m_filpar[tool].is_support;
-    };
-    for (size_t idx = 0; idx < tool_changes.size(); ++idx)
-        if (is_wall_filament(tool_changes[idx].new_tool))
-            return idx;
-    if (is_wall_filament(tool_changes.front().old_tool))
-        return -1;
-    // Only support/soluble filaments on this layer: keep the first toolchange so the
-    // finish-layer saving and the minimal-purge clamp still apply to it (Orca depth
-    // and wipe volume accounting, see save_on_last_wipe()).
-    return 0;
+    // Auto mode: finish the layer with the print's most used filament type when present, otherwise with a
+    // filament compatible with it, so the tower structure never mixes incompatible materials. The filament
+    // already loaded at the start of the layer can finish it before any toolchange (idx == -1).
+    if (!m_most_used_filament_type.empty()) {
+        // Rank a filament: 2 = the most used type, 1 = a compatible (bonding) type, 0 = otherwise.
+        auto rank = [&](int tool) -> int {
+            const FilamentParameters &f = m_filpar[tool];
+            if (f.is_soluble) return -1;
+            if (f.material == m_most_used_filament_type) return 2;
+            return MaterialType::compatibility(f.material, m_most_used_filament_type) == MaterialCompatibility::Compatible ? 1 : 0;
+        };
+        int best_rank = 0, best_idx = -2; // -2 = nothing compatible chosen yet
+        // The filament already loaded at the start of the layer can finish it before any toolchange.
+        if (!tool_changes.empty())
+            if (int r = rank(tool_changes.front().old_tool); r > best_rank) {
+                best_rank = r;
+                best_idx  = -1;
+            }
+        for (size_t idx = 0; idx < tool_changes.size(); ++idx)
+            if (int r = rank(tool_changes[idx].new_tool); r > best_rank) {
+                best_rank = r;
+                best_idx  = int(idx);
+            }
+        if (best_idx != -2)
+            return best_idx;
+    }
+    // Orca: allow calculation of the required depth and wipe volume for soluble toolchanges as well.
+    return tool_changes.empty() ? -1 : 0;
 }
 
 static WipeTower::ToolChangeResult merge_tcr(WipeTower::ToolChangeResult& first,
