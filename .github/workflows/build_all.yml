@@ -6,6 +6,7 @@ on:
      - main
      - release/*
      - belt-printer
+     - cad-mainline
     paths:
      - 'deps/**'
      - 'src/**'
