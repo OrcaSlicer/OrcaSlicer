@@ -134,6 +134,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "dont_slow_down_outer_wall",
         "fan_cooling_layer_time",
         "full_fan_speed_layer",
+        "initial_layer_fan_speed",
         "fan_kickstart",
         "part_cooling_fan_min_pwm",
         "fan_speedup_overhangs",

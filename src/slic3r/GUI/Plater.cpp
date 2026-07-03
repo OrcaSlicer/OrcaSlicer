@@ -253,18 +253,6 @@ static void set_config_values(DynamicPrintConfig *config, const std::string &key
     }
 }
 
-template <typename T, typename OptionType>
-static void set_config_values(ModelConfig& config, const std::string &key, T value)
-{
-    auto config_opt = config.get().option<OptionType>(key);
-    if (config_opt) {
-        config.set_key_value(key, new OptionType(config_opt->values.size(), value));
-    }
-    else {
-        BOOST_LOG_TRIVIAL(info) << "set_config_values: the key" << key << "is empty.";
-    }
-}
-
 bool Plater::has_illegal_filename_characters(const wxString& wxs_name)
 {
     std::string name = into_u8(wxs_name);
@@ -2110,8 +2098,15 @@ Sidebar::Sidebar(Plater *parent)
     p->m_panel_filament_title->SetBackgroundColor(title_bg);
     p->m_panel_filament_title->SetBackgroundColor2(0xF1F1F1);
     p->m_panel_filament_title->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent &e) {
-        if (e.GetPosition().x > (p->m_flushing_volume_btn->IsShown()
-                ? p->m_flushing_volume_btn->GetPosition().x : (p->m_bpButton_add_filament->GetPosition().x - FromDIP(30)))) // ORCA exclude area of del button from titlebar collapse/expand feature to fix undesired collapse when user spams del filament button 
+        if (!p || !p->m_panel_filament_content || !m_scrolled_sizer || !p->m_bpButton_set_filament || !p->m_flushing_volume_btn || !p->m_bpButton_add_filament || !ams_btn)
+            return;
+        // ORCA exclude area of del button from titlebar collapse/expand feature to fix undesired collapse when user spams del filament button
+        // also block fold/unfold feature when user clicks to spacing between icons
+        int exclude_pt = p->m_bpButton_set_filament->GetPosition().x; // maximum fixed item
+        if      (p->m_flushing_volume_btn->IsShown())   exclude_pt = p->m_flushing_volume_btn->GetPosition().x;
+        else if (p->m_bpButton_add_filament->IsShown()) exclude_pt = p->m_bpButton_add_filament->GetPosition().x - FromDIP(30); // reserve spacing for delete button
+        else if (ams_btn->IsShown())                    exclude_pt = ams_btn->GetPosition().x;
+        if (e.GetPosition().x > exclude_pt)
             return;
         p->m_panel_filament_content->Show(!p->m_panel_filament_content->IsShown());
         m_scrolled_sizer->Layout();
@@ -12894,9 +12889,9 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
 
         auto &obj_config = obj->config;
         if (speeds.size() > 1)
-            set_config_values<double, ConfigOptionFloatsNullable>(obj_config, "outer_wall_speed", tspd);
+            obj_config.set_key_value("outer_wall_speed", new ConfigOptionFloatsNullable(1, tspd));
         if (accels.size() > 1)
-            set_config_values<double, ConfigOptionFloatsNullable>(obj_config, "outer_wall_acceleration", tacc);
+            obj_config.set_key_value("outer_wall_acceleration", new ConfigOptionFloatsNullable(1, tacc));
 
         auto cur_plate = get_partplate_list().get_plate(plate_idx);
         if (!cur_plate) {
@@ -13318,7 +13313,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     set_config_values<double, ConfigOptionFloats>(filament_config, "filament_max_volumetric_speed", 200);
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats{0.0});
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
-    set_config_values<bool, ConfigOptionBoolsNullable>(obj_cfg, "enable_overhang_speed", false);
+    obj_cfg.set_key_value("enable_overhang_speed", new ConfigOptionBoolsNullable(1, false));
     obj_cfg.set_key_value("wall_loops", new ConfigOptionInt(1));
     obj_cfg.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
     obj_cfg.set_key_value("top_shell_layers", new ConfigOptionInt(0));

@@ -32,10 +32,7 @@ using namespace Slic3r;
     return brim_tool;
 }
 
-// [NotWorking]: slice() intermittently throws clipper's "Coordinate outside allowed
-// range" in CI (Linux) while passing locally. Disabled pending a root-cause fix in a
-// follow-up PR.
-TEST_CASE("Skirt height is honored", "[SkirtBrim][NotWorking]") {
+TEST_CASE("Skirt height is honored", "[SkirtBrim]") {
     DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
         { "skirt_loops",    1 },
@@ -55,8 +52,7 @@ TEST_CASE("Skirt height is honored", "[SkirtBrim][NotWorking]") {
     REQUIRE(layers_with_role(gcode, "skirt").size() == (size_t)config.opt_int("skirt_height"));
 }
 
-// [NotWorking]: see "Skirt height is honored" above; same CI-only clipper range throw.
-SCENARIO("Skirt and brim generation", "[SkirtBrim][NotWorking]") {
+SCENARIO("Skirt and brim generation", "[SkirtBrim]") {
     GIVEN("A default configuration") {
 	    DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
 		config.set_num_extruders(4);

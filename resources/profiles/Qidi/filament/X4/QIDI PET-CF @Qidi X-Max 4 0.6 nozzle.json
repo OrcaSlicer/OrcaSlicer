@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "wnPptldjH9zMQbkt",
 	"name": "QIDI PET-CF @Qidi X-Max 4 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PET-CF@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "wnPptldjH9zMQbkt",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.025"
 	],
