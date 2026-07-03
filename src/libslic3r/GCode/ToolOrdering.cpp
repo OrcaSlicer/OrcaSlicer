@@ -11,6 +11,7 @@
 #include "LocalesUtils.hpp"
 #include "Utils.hpp"
 #include "I18N.hpp"
+#include "MaterialType.hpp"
 
 #include <boost/log/trivial.hpp>
 
@@ -497,6 +498,7 @@ ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extrude
 
     // Collect extruders reuqired to print the layers. Add dontcare extruders
     this->collect_extruders(object, std::vector<std::pair<double, unsigned int>>());
+    this->ensure_dontcare_support_extruders(object);
 
     // BBS
     // Reorder the extruders to minimize tool switches.
@@ -560,6 +562,10 @@ ToolOrdering::ToolOrdering(const Print &print, unsigned int first_extruder, bool
     // Collect extruders reuqired to print the layers.
     for (auto object : print.objects())
         this->collect_extruders(*object, per_layer_extruder_switches);
+    // Custom per-layer tool changes (MultiAsSingle) fully dictate the extruder per layer; do not fight them.
+    if (per_layer_extruder_switches.empty())
+        for (auto object : print.objects())
+            this->ensure_dontcare_support_extruders(*object);
 
     // Reorder the extruders to minimize tool switches.
     std::vector<unsigned int> first_layer_tool_order;
@@ -977,6 +983,57 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         // make sure that there are some tools for each object layer (e.g. tall wiping object will result in empty extruders vector)
         if (layer.extruders.empty() && layer.has_object)
             layer.extruders.emplace_back(0); // 0="dontcare" extruder - it will be taken care of in reorder_extruders
+    }
+}
+
+// "Don't care" (Default) support/interface is resolved in GCode::process_layer() to the supported object's
+// own filament, or to a compatible (bonding) filament already printing in the layer. On layers where neither
+// is planned (e.g. the object switched to an incompatible painted filament), the object's filament must be
+// added to the layer here, otherwise the support extrusions would be assigned to an extruder that is never
+// processed and silently dropped, leaving a gap in the support.
+// Must run after collect_extruders() finished for all objects, and before handle_dontcare_extruder().
+void ToolOrdering::ensure_dontcare_support_extruders(const PrintObject &object)
+{
+    const bool support_dontcare   = object.config().support_filament.value == 0;
+    const bool interface_dontcare = object.config().support_interface_filament.value == 0;
+    if (!support_dontcare && !interface_dontcare)
+        return;
+
+    // The object's own filament, 1-based. If unknown, GCode::process_layer() falls back to the
+    // layer's first extruder, which is always planned.
+    unsigned int object_extruder = 0;
+    if (const std::vector<unsigned int> obj_extruders = object.object_extruders(); !obj_extruders.empty())
+        object_extruder = obj_extruders.front() + 1;
+    if (object_extruder == 0)
+        return;
+
+    const PrintConfig &config      = object.print()->config();
+    const std::string &object_type = config.filament_type.get_at(object_extruder - 1);
+    for (const SupportLayer *support_layer : object.support_layers()) {
+        bool has_support = false, has_interface = false;
+        for (const ExtrusionEntity *ee : support_layer->support_fills.entities) {
+            ExtrusionRole er = ee->role();
+            if (er == erSupportMaterial || er == erSupportTransition) has_support = true;
+            if (er == erSupportMaterialInterface) has_interface = true;
+            if (has_support && has_interface) break;
+        }
+        if (!(has_support && support_dontcare) && !(has_interface && interface_dontcare))
+            continue;
+        LayerTools &layer_tools = tools_for_layer(support_layer->print_z);
+        bool        resolvable  = false;
+        for (unsigned int extruder_id : layer_tools.extruders) {
+            if (extruder_id == 0)
+                continue; // "don't care" marker
+            if (extruder_id == object_extruder ||
+                MaterialType::compatibility(config.filament_type.get_at(extruder_id - 1), object_type) == MaterialCompatibility::Compatible) {
+                resolvable = true;
+                break;
+            }
+        }
+        if (!resolvable) {
+            layer_tools.extruders.push_back(object_extruder);
+            sort_remove_duplicates(layer_tools.extruders);
+        }
     }
 }
 
