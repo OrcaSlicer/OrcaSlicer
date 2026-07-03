@@ -5350,8 +5350,15 @@ void GCodeProcessor::process_M702(const GCodeReader::GCodeLine& line)
         // MK3 MMU2 specific M code:
         // M702 C is expected to be sent by the custom end G-code when finalizing a print.
         // The MK3 unit shall unload and park the active filament into the MMU2 unit.
+        const float filament_unload_time = get_filament_unload_time(static_cast<size_t>(filament_id));
         m_time_processor.extruder_unloaded = true;
-        simulate_st_synchronize(get_filament_unload_time(filament_id));
+        if (filament_unload_time > 0.0f) {
+            m_result.lock();
+            m_result.print_statistics.total_filament_unload_time += filament_unload_time;
+            m_result.unlock();
+        }
+        simulate_st_synchronize();
+        add_time_to_estimate(filament_unload_time);
     }
 }
 
@@ -5621,7 +5628,7 @@ void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, 
     }
 }
 
-void GCodeProcessor::add_time_to_estimate(float additional_time)
+void GCodeProcessor::add_time_to_estimate(float additional_time, bool count_as_other)
 {
     if (additional_time <= 0.0f)
         return;
@@ -5637,6 +5644,12 @@ void GCodeProcessor::add_time_to_estimate(float additional_time)
             machine.prepare_time += additional_time;
         if (std::max<unsigned int>(1, m_layer_id) == 1)
             machine.first_layer_time += additional_time;
+    }
+
+    if (count_as_other) {
+        m_result.lock();
+        m_result.print_statistics.total_other_time += additional_time;
+        m_result.unlock();
     }
 }
 
@@ -5933,7 +5946,8 @@ void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_la
 
 void GCodeProcessor::simulate_st_synchronize(float additional_time)
 {
-    calculate_time(m_result, 0, additional_time);
+    calculate_time(m_result);
+    add_time_to_estimate(additional_time, true);
 }
 
 void GCodeProcessor::update_estimated_times_stats()

@@ -3676,9 +3676,9 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         }
 
         // ORCA use % symbol for percentage and use "Usage" for "Used filaments"
-        offsets = calculate_offsets({ {_u8L("Line Type"), labels}, {_u8L("Time"), times}, {"%", percents}, {"", used_filaments_length}, {"", used_filaments_weight}, {_u8L("Display"), {""}}}, icon_size);
+        offsets = calculate_offsets({ {_u8L("Line Type"), labels}, {_u8L("Time"), times}, {"%", percents}, {_u8L("Distance"), used_filaments_length}, {_u8L("Usage"), used_filaments_weight}, {_u8L("Display"), {""}}}, icon_size);
         percents.pop_back();
-        append_headers({{_u8L("Line Type"), offsets[0]}, {_u8L("Time"), offsets[1]}, {"%", offsets[2]}, {_u8L("Usage"), offsets[3]}, {_u8L("Display"), offsets[5]}});
+        append_headers({{_u8L("Line Type"), offsets[0]}, {_u8L("Time"), offsets[1]}, {"%", offsets[2]}, {_u8L("Distance"), offsets[3]}, {_u8L("Usage"), offsets[4]}, {_u8L("Display"), offsets[5]}});
         break;
     }
     case libvgcode::EViewType::Height:         { imgui.title(_u8L("Layer height (mm)")); break; }
@@ -3806,7 +3806,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             const float distance = (option_type == libvgcode::EOptionType::Seams && seam_distance > 0.0f) ? seam_distance : m_move_type_distances[move_type_idx];
             const std::string distance_text = full_layout && (option_type == libvgcode::EOptionType::Wipes || option_type == libvgcode::EOptionType::Retractions || option_type == libvgcode::EOptionType::Unretractions || option_type == libvgcode::EOptionType::Seams)
                 ? format_distance(distance)
-                : "";
+                : "N/A";
             const std::string count_text = full_layout ? format_compact_count(m_move_type_counts[move_type_idx]) : "";
 
             return { time_text, percent_text, distance_text, count_text };
@@ -3905,6 +3905,15 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
                         update_moves_slider();
                     });
             }
+        }
+        if (m_print_statistics.total_other_time > 0.0f) {
+            std::vector<std::pair<std::string, float>> columns_offsets;
+            columns_offsets.push_back({ _u8L("Other"), offsets[0] });
+            columns_offsets.push_back({ short_time(get_time_dhms(m_print_statistics.total_other_time)), offsets[1] });
+            columns_offsets.push_back({ total_estimated_time > 0.0f ? format_percent(m_print_statistics.total_other_time / total_estimated_time) : "", offsets[2] });
+            columns_offsets.push_back({ "N/A", offsets[3] });
+            columns_offsets.push_back({ "N/A", offsets[4] });
+            append_item(EItemType::Rect, ColorRGBA(0.55f, 0.55f, 0.55f, 1.0f), columns_offsets, false);
         }
         break;
     }

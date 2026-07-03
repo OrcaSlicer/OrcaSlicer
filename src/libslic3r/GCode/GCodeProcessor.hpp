@@ -81,6 +81,7 @@ class Print;
         float                                               total_filament_load_time;
         float                                               total_filament_unload_time;
         float                                               total_tool_change_time;
+        float                                               total_other_time;
         float                                               total_travel_distance;
         unsigned int                                        total_travel_moves;
         float                                               total_seam_gap_distance;
@@ -105,6 +106,7 @@ class Print;
             total_filament_load_time = 0.0f;
             total_filament_unload_time = 0.0f;
             total_tool_change_time = 0.0f;
+            total_other_time = 0.0f;
             total_travel_distance = 0.0f;
             total_travel_moves = 0;
             total_seam_gap_distance = 0.0f;
@@ -1088,7 +1090,7 @@ class Print;
 
         //BBS: different path_type is only used for arc move
         void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move, bool internal_only = false);
-        void add_time_to_estimate(float additional_time);
+        void add_time_to_estimate(float additional_time, bool count_as_other = false);
         
         void set_extrusion_role(ExtrusionRole role);
 
