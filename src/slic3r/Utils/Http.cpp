@@ -900,6 +900,23 @@ Http Http::del(std::string url)
 	return http;
 }
 
+// ORCA: WebDAV methods for self-hosted sync
+Http Http::propfind(std::string url)
+{
+	Http http{ std::move(url) };
+	http.p->method = "PROPFIND";
+	curl_easy_setopt(http.p->curl, CURLOPT_CUSTOMREQUEST, "PROPFIND");
+	return http;
+}
+
+Http Http::mkcol(std::string url)
+{
+	Http http{ std::move(url) };
+	http.p->method = "MKCOL";
+	curl_easy_setopt(http.p->curl, CURLOPT_CUSTOMREQUEST, "MKCOL");
+	return http;
+}
+
 void Http::set_extra_headers(std::map<std::string, std::string> headers)
 {
     std::lock_guard<std::mutex> l(g_mutex);

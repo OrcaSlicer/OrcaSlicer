@@ -623,6 +623,12 @@ set(SLIC3R_GUI_SOURCES
     Utils/NetworkAgentFactory.hpp
     Utils/NetworkAgentFactory.cpp
     Utils/ICloudServiceAgent.hpp
+    Utils/IPresetSyncProvider.hpp
+    Utils/IBundleProvider.hpp
+    Utils/BaseFileSyncProvider.hpp
+    Utils/BaseFileSyncProvider.cpp
+    Utils/WebDAVSyncProvider.hpp
+    Utils/GitSyncProvider.hpp
     Utils/IPrinterAgent.hpp
     Utils/OrcaCloudServiceAgent.cpp
     Utils/OrcaCloudServiceAgent.hpp
@@ -675,6 +681,15 @@ set(SLIC3R_GUI_SOURCES
     Utils/WxFontUtils.hpp
     Utils/FileTransferUtils.cpp
     Utils/FileTransferUtils.hpp
+    Utils/SyncBackend.hpp
+    Utils/WebDAVSync.hpp
+    Utils/WebDAVSync.cpp
+    Utils/GitSync.hpp
+    Utils/GitSync.cpp
+    GUI/SyncConflictDialog.hpp
+    GUI/SyncConflictDialog.cpp
+    GUI/SyncMergeDialog.hpp
+    GUI/SyncMergeDialog.cpp
 )
 
 add_subdirectory(GUI/DeviceCore)
@@ -764,7 +779,7 @@ else()
     set(_opengl_link_lib OpenGL::GL)
 endif()
 
-target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi mdns ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise)
+target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi mdns ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise LibGit2::LibGit2)
 
 
 if (MSVC)

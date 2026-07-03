@@ -110,6 +110,10 @@ void ExportPresetBundleDialog::OnScriptMessage(wxWebViewEvent& e)
         } else if (strCmd == "request_export_preset_profile") {
             InitExportData();
             OnRequestPresets();
+        } else if (strCmd == "publish_remote") {
+            // Same data shape as export_local; payload[name] is the bundle name.
+            wxString name = j.value("name", "exported");
+            OnPublishRemote(name, j["data"]);
         } else if (strCmd == "export_local") {
             wxFileDialog dlg(this, _L("Save preset bundle"), "", "export.orca_bundle", "Orca Preset Bundle (*.orca_bundle)|*.orca_bundle",
                              wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
@@ -511,6 +515,97 @@ void ExportPresetBundleDialog::OnExportData(const wxString& path, const wxString
     mz_zip_writer_end(&zip_archive);
     // if (ExportCase::CASE_COUNT != save_result) return save_result;
     BOOST_LOG_TRIVIAL(info) << "ZIP archive created successfully";
+}
+
+// ----------------------------------------------------------------------------
+// Publish the user's selection as a bundle on the active sync provider's
+// remote (WebDAV / Git / Orca). The selection format mirrors export_local.
+// ----------------------------------------------------------------------------
+void ExportPresetBundleDialog::OnPublishRemote(const wxString& filename, json data)
+{
+    auto get_names = [&](const char* key) {
+        std::vector<std::string> out;
+        auto it = data.find(key);
+        if (it == data.end() || !it->is_array()) return out;
+        for (const auto& v : *it)
+            if (v.is_string()) out.push_back(v.get<std::string>());
+        return out;
+    };
+
+    NetworkAgent* agent = wxGetApp().getAgent();
+    if (!agent) {
+        wxMessageBox(_L("No network agent available."), _L("Publish bundle"),
+                     wxOK | wxICON_ERROR, this);
+        return;
+    }
+    auto bp = agent->get_bundle_provider();
+    if (!bp) {
+        wxMessageBox(_L("The active profile sync provider does not support publishing bundles."),
+                     _L("Publish bundle"), wxOK | wxICON_WARNING, this);
+        return;
+    }
+
+    auto preset_to_json_map = [](const Preset& p) {
+        std::map<std::string, std::string> values;
+        for (const auto& key : p.config.keys()) {
+            values[key] = p.config.opt_serialize(key);
+        }
+        values["name"] = p.name;
+        return values;
+    };
+
+    // Pack presets keyed by "<type>/<name>" so BaseFileSyncProvider drops them
+    // into the right subdir. Reuses helpers already established by export_local.
+    std::map<std::string, std::map<std::string, std::string>> presets;
+    BundleMetadata metadata;
+    metadata.name          = filename.utf8_string();
+    metadata.imported_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                std::chrono::system_clock::now().time_since_epoch()).count();
+    metadata.updated_time  = metadata.imported_time;
+    metadata.version       = get_curr_time("%Y%m%d%H%M%S");
+    {
+        // Stable bundle_id: user + name + timestamp (or 'offline' when not logged in).
+        const std::string user = agent->is_user_login() ? agent->get_user_id() : std::string("offline");
+        metadata.id = user + "_" + metadata.name + "_" + metadata.version;
+    }
+
+    for (const auto& name : get_names("machines")) {
+        auto it = m_printer_presets.find(name);
+        if (it == m_printer_presets.end() || !it->second) continue;
+        presets["printer/" + name] = preset_to_json_map(*it->second);
+        metadata.printer_presets.push_back(name);
+    }
+    for (const auto& name : get_names("filaments")) {
+        auto it = m_filament_name_to_presets.find(name);
+        if (it == m_filament_name_to_presets.end()) continue;
+        for (const auto& vp : it->second) {
+            if (!vp.second) continue;
+            presets["filament/" + vp.second->name] = preset_to_json_map(*vp.second);
+            metadata.filament_presets.push_back(vp.second->name);
+        }
+    }
+    for (const auto& name : get_names("presets")) {
+        if (Preset* p = wxGetApp().preset_bundle->prints.find_preset(name, false)) {
+            presets["print/" + name] = preset_to_json_map(*p);
+            metadata.print_presets.push_back(name);
+        }
+    }
+
+    if (presets.empty()) {
+        wxMessageBox(_L("Nothing selected to publish."), _L("Publish bundle"),
+                     wxOK | wxICON_INFORMATION, this);
+        return;
+    }
+
+    std::string published_version;
+    int rc = bp->publish_local_bundle(metadata, presets, published_version);
+    if (rc == 0) {
+        wxMessageBox(_L("Bundle published successfully."), _L("Publish bundle"),
+                     wxOK | wxICON_INFORMATION, this);
+    } else {
+        wxMessageBox(_L("Publishing the bundle failed. Check the log for details."),
+                     _L("Publish bundle"), wxOK | wxICON_ERROR, this);
+    }
 }
 
 void ExportPresetBundleDialog::show_export_result(const ExportCase& export_case)

@@ -4,9 +4,11 @@
 #include <algorithm>
 
 #include <boost/log/trivial.hpp>
+#include <nlohmann/json.hpp>
 #include "libslic3r/Utils.hpp"
 #include "NetworkAgent.hpp"
 #include "BBLNetworkPlugin.hpp"
+#include "bambu_networking.hpp" // IOT_JSON_KEY_* constants
 
 namespace Slic3r {
 
@@ -111,6 +113,38 @@ void NetworkAgent::add_cloud_agent(const std::string& provider, std::shared_ptr<
     if (agent) {
         m_cloud_agents[provider] = std::move(agent);
     }
+}
+
+void NetworkAgent::set_sync_provider(std::shared_ptr<IPresetSyncProvider> provider)
+{
+    // Swap under the lock, then do the (potentially slow / IO-bound) state
+    // persistence outside it. Conflict queues are intentionally not migrated --
+    // they are tied to a specific remote and would be meaningless elsewhere.
+    std::shared_ptr<IPresetSyncProvider> old;
+    {
+        std::lock_guard<std::mutex> lk(m_sync_provider_mutex);
+        if (m_sync_provider == provider) return;
+        old = std::move(m_sync_provider);
+        m_sync_provider = provider;
+    }
+    if (old && old != provider)
+        old->save_state();
+    if (provider)
+        provider->load_state();
+}
+
+std::shared_ptr<IPresetSyncProvider> NetworkAgent::get_sync_provider() const
+{
+    std::lock_guard<std::mutex> lk(m_sync_provider_mutex);
+    return m_sync_provider;
+}
+
+std::shared_ptr<IBundleProvider> NetworkAgent::get_bundle_provider() const
+{
+    // Recover the IBundleProvider face if the active provider implements it.
+    auto provider = get_sync_provider();
+    if (!provider) return nullptr;
+    return std::dynamic_pointer_cast<IBundleProvider>(provider);
 }
 
 void NetworkAgent::set_printer_agent(std::shared_ptr<IPrinterAgent> printer_agent)
@@ -358,8 +392,79 @@ void NetworkAgent::enable_multi_machine(bool enable, const std::string& provider
         cloud_agent->enable_multi_machine(enable);
 }
 
+// ----------------------------------------------------------------------------
+// Per-preset sync surface. Every method below routes through the active
+// IPresetSyncProvider if one is installed (Orca by default, replaced by the
+// WebDAV/Git providers when the user picks them in Preferences). The legacy
+// `provider` parameter is only consulted as a fallback for transitional code
+// paths -- the unified front-end ignores it.
+// ----------------------------------------------------------------------------
+
+namespace {
+
+// Convert {key: value} map (Orca's wire format) to a JSON object string.
+std::string values_map_to_json_string(const std::map<std::string, std::string>* vm)
+{
+    if (!vm) return "{}";
+    nlohmann::json j = nlohmann::json::object();
+    for (auto& [k, v] : *vm) j[k] = v;
+    return j.dump();
+}
+
+// Inverse: parse JSON object into a flat key/value map. Non-string fields are
+// re-serialised with json::dump so the original is reconstructible.
+void json_string_to_values_map(const std::string& json, std::map<std::string, std::string>* vm)
+{
+    if (!vm) return;
+    try {
+        auto j = nlohmann::json::parse(json);
+        if (!j.is_object()) return;
+        for (auto it = j.begin(); it != j.end(); ++it) {
+            if (it.value().is_string()) (*vm)[it.key()] = it.value().get<std::string>();
+            else                        (*vm)[it.key()] = it.value().dump();
+        }
+    } catch (...) {}
+}
+
+std::string pick_type_from_values(const std::map<std::string, std::string>* vm)
+{
+    if (!vm) return "print";
+    auto it = vm->find(IOT_JSON_KEY_TYPE);
+    return (it != vm->end()) ? it->second : std::string("print");
+}
+
+} // anonymous namespace
+
 int NetworkAgent::get_user_presets(std::map<std::string, std::map<std::string, std::string>>* user_presets, const std::string& provider)
 {
+    // Orca delivers preset *content* through its batched cloud API; its
+    // per-preset pull_preset() is a 501 stub. Routing Orca through the generic
+    // list_presets()+pull_preset() path would yield an empty map and wipe the
+    // local user presets on reload. Only file-backed providers (WebDAV/Git),
+    // which implement pull_preset(), use the generic path here; Orca falls
+    // through to its cloud agent below.
+    auto sp = get_sync_provider();
+    if (sp && sp->provider_id() != ORCA_CLOUD_PROVIDER) {
+        if (!user_presets) return -1;
+        struct Item { std::string type, remote_id; long long updated_time{}; };
+        std::vector<Item> items;
+        sp->list_presets([&items](const std::string& t, const std::string& id,
+                                  const std::string& /*etag*/, long long ut) {
+            items.push_back({t, id, ut});
+        });
+        for (const auto& it : items) {
+            std::string json;
+            auto pr = sp->pull_preset(it.type, it.remote_id, json);
+            if (pr.http_code != 200) continue;
+            std::map<std::string, std::string> values;
+            json_string_to_values_map(json, &values);
+            values[IOT_JSON_KEY_SETTING_ID]   = it.remote_id;
+            values[IOT_JSON_KEY_TYPE]         = it.type;
+            values[IOT_JSON_KEY_UPDATED_TIME] = std::to_string(it.updated_time);
+            (*user_presets)[it.remote_id] = std::move(values);
+        }
+        return 0;
+    }
     const auto cloud_agent = get_cloud_agent(provider);
     if (cloud_agent)
         return cloud_agent->get_user_presets(user_presets);
@@ -371,6 +476,16 @@ std::string NetworkAgent::request_setting_id(std::string                        
                                              unsigned int*                       http_code,
                                              const std::string&                  provider)
 {
+    if (auto sp = get_sync_provider()) {
+        const std::string type = pick_type_from_values(values_map);
+        const std::string json = values_map_to_json_string(values_map);
+        auto res = sp->push_preset(type, name, json, "", "");
+        if (http_code) *http_code = static_cast<unsigned int>(res.http_code);
+        if (values_map && res.updated_time != 0) {
+            (*values_map)[IOT_JSON_KEY_UPDATED_TIME] = std::to_string(res.updated_time);
+        }
+        return res.remote_id;
+    }
     const auto cloud_agent = get_cloud_agent(provider);
     if (cloud_agent)
         return cloud_agent->request_setting_id(std::move(name), values_map, http_code);
@@ -384,6 +499,16 @@ int NetworkAgent::put_setting(std::string                         setting_id,
                               const std::string&                  provider,
                               bool force)
 {
+    if (auto sp = get_sync_provider()) {
+        const std::string type = pick_type_from_values(values_map);
+        const std::string json = values_map_to_json_string(values_map);
+        auto res = sp->push_preset(type, name, json, setting_id, "");
+        if (http_code) *http_code = static_cast<unsigned int>(res.http_code);
+        if (values_map && res.updated_time != 0) {
+            (*values_map)[IOT_JSON_KEY_UPDATED_TIME] = std::to_string(res.updated_time);
+        }
+        return res.http_code == 200 ? 0 : -1;
+    }
     const auto cloud_agent = get_cloud_agent(provider);
     if (cloud_agent)
         return cloud_agent->put_setting(std::move(setting_id), std::move(name), values_map, http_code, force);
@@ -392,15 +517,50 @@ int NetworkAgent::put_setting(std::string                         setting_id,
 
 int NetworkAgent::get_setting_list(std::string bundle_version, ProgressFn pro_fn, WasCancelledFn cancel_fn, const std::string& provider)
 {
-    const auto cloud_agent = get_cloud_agent(provider);
-    if (cloud_agent)
-        return cloud_agent->get_setting_list(std::move(bundle_version), pro_fn, cancel_fn);
-    return -1;
+    return get_setting_list2(std::move(bundle_version), nullptr, pro_fn, cancel_fn, provider);
 }
 
 int NetworkAgent::get_setting_list2(
     std::string bundle_version, CheckFn chk_fn, ProgressFn pro_fn, WasCancelledFn cancel_fn, const std::string& provider)
 {
+    // See get_user_presets(): Orca has no per-preset pull, so its content must
+    // come from the cloud agent's batched get_setting_list2. Only file-backed
+    // providers (WebDAV/Git) use the generic list+pull path here.
+    auto sp = get_sync_provider();
+    if (sp && sp->provider_id() != ORCA_CLOUD_PROVIDER) {
+        struct Item { std::string type, remote_id, etag; long long updated_time{}; };
+        std::vector<Item> items;
+        sp->list_presets([&items](const std::string& t, const std::string& id,
+                                  const std::string& etag, long long ut) {
+            items.push_back({t, id, etag, ut});
+        });
+        const int total = static_cast<int>(items.size());
+        int processed = 0;
+        for (const auto& it : items) {
+            if (cancel_fn && cancel_fn()) break;
+            if (chk_fn) {
+                std::string json;
+                auto pr = sp->pull_preset(it.type, it.remote_id, json);
+                if (pr.http_code == 200) {
+                    std::map<std::string, std::string> info;
+                    json_string_to_values_map(json, &info);
+                    info[IOT_JSON_KEY_SETTING_ID]   = it.remote_id;
+                    info[IOT_JSON_KEY_TYPE]         = it.type;
+                    info[IOT_JSON_KEY_UPDATED_TIME] = std::to_string(it.updated_time);
+                    if (!info.count(IOT_JSON_KEY_NAME)) {
+                        // Best-effort name recovery from the canonical remote_id.
+                        auto slash = it.remote_id.find('/');
+                        info[IOT_JSON_KEY_NAME] = (slash == std::string::npos)
+                            ? it.remote_id : it.remote_id.substr(slash + 1);
+                    }
+                    chk_fn(info);
+                }
+            }
+            if (pro_fn && total > 0) pro_fn(++processed * 100 / total);
+        }
+        if (pro_fn) pro_fn(100);
+        return 0;
+    }
     const auto cloud_agent = get_cloud_agent(provider);
     if (cloud_agent)
         return cloud_agent->get_setting_list2(std::move(bundle_version), chk_fn, pro_fn, cancel_fn);
@@ -409,6 +569,13 @@ int NetworkAgent::get_setting_list2(
 
 int NetworkAgent::delete_setting(std::string setting_id, const std::string& provider)
 {
+    if (auto sp = get_sync_provider()) {
+        // remote_id from file backends is "<type>/<name>"; Orca's is opaque.
+        const auto slash = setting_id.find('/');
+        const std::string type = (slash == std::string::npos) ? std::string("print")
+                                                              : setting_id.substr(0, slash);
+        return sp->delete_preset(type, setting_id);
+    }
     const auto cloud_agent = get_cloud_agent(provider);
     if (cloud_agent)
         return cloud_agent->delete_setting(std::move(setting_id));

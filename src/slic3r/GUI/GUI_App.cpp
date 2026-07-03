@@ -1,5 +1,7 @@
 #include "ExportPresetBundleDialog.hpp"
 #include "OrcaCloudServiceAgent.hpp"
+#include "slic3r/Utils/WebDAVSyncProvider.hpp"
+#include "slic3r/Utils/GitSyncProvider.hpp"
 #include "libslic3r/Technologies.hpp"
 #include "GUI_App.hpp"
 #include "GUI_Init.hpp"
@@ -134,6 +136,12 @@
 #include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "slic3r/Utils/BBLNetworkPlugin.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
+// ORCA: self-hosted profile sync
+#include "SyncConflictDialog.hpp"
+#include "SyncMergeDialog.hpp"
+#include <condition_variable>
+#include <thread>
+#include <nlohmann/json.hpp>
 
 //#ifdef WIN32
 //#include "BaseException.h"
@@ -943,6 +951,21 @@ void GUI_App::post_init()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: true";
     } else {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " sync_user_preset: false";
+    }
+
+    // Install the active IPresetSyncProvider (Orca / WebDAV / Git) on m_agent
+    // based on the user's saved choice. Restarts background sync if auto is on.
+    reconfigure_profile_sync();
+
+    // Drain provider conflict queue every 5 s and walk the user through the
+    // merge dialog for each preset conflict. Leaks intentionally -- the timer
+    // lives as long as the process.
+    {
+        auto* conflict_timer = new wxTimer();
+        conflict_timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+            this->poll_sync_conflicts();
+        });
+        conflict_timer->Start(5000);
     }
 
     // The extra CallAfter() is needed because of Mac, where this is the only way
@@ -6611,7 +6634,11 @@ void GUI_App::update_single_bundle(wxCommandEvent& evt)
     // Fetch the latest bundle data from cloud
     std::map<std::string, std::map<std::string, std::string>> bundle_presets;
     BundleMetadata remote_metadata;
-    int result = orca_agent->get_shared_bundle(bundle_id, &bundle_presets, &remote_metadata);
+    int result = [&]() -> int {
+        auto bp = m_agent->get_bundle_provider();
+        if (!bp) return -1;
+        return bp->fetch_bundle(bundle_id, "", &bundle_presets, &remote_metadata);
+    }();
 
     if (result != 0) {
         BOOST_LOG_TRIVIAL(warning) << "sync_bundle: failed to fetch bundle " << bundle_id << ", result=" << result;
@@ -6732,7 +6759,11 @@ int GUI_App::sync_bundle(std::string bundle_id, std::string version)
         // Fetch the latest bundle data from cloud
         std::map<std::string, std::map<std::string, std::string>> bundle_presets;
         BundleMetadata remote_metadata;
-        int result = orca_agent->get_shared_bundle(bundle_id, &bundle_presets, &remote_metadata);
+        int result = [&]() -> int {
+        auto bp = m_agent->get_bundle_provider();
+        if (!bp) return -1;
+        return bp->fetch_bundle(bundle_id, "", &bundle_presets, &remote_metadata);
+    }();
 
         if (result != 0) {
             BOOST_LOG_TRIVIAL(warning) << "sync_bundle: failed to fetch bundle " << bundle_id << ", result=" << result;
@@ -6803,7 +6834,12 @@ void GUI_App::check_bundle_updates()
     std::vector<std::pair<std::string, std::string>> subscribed_bundles;
     std::vector<std::string> notfound;
     std::vector<std::string> unauthorized;
-    int result = orca_agent->get_subscribed_bundles(&subscribed_bundles,notfound,unauthorized);
+    auto bundle_provider = m_agent->get_bundle_provider();
+    if (!bundle_provider) {
+        BOOST_LOG_TRIVIAL(info) << "check_bundle_updates: active sync provider has no bundle support";
+        return;
+    }
+    int result = bundle_provider->list_subscribed_bundles(&subscribed_bundles, notfound, unauthorized);
 
     if (result != 0) {
         BOOST_LOG_TRIVIAL(warning) << "check_bundle_updates: failed to fetch subscribed bundles, result=" << result;
@@ -6834,7 +6870,7 @@ void GUI_App::check_bundle_updates()
     for (const auto& bundle : subscribed_bundles) {
         std::map<std::string, std::map<std::string, std::string>> presets;
         BundleMetadata metadata;
-        int preset_result = orca_agent->get_shared_bundle(bundle.first, &presets, &metadata);
+        int preset_result = bundle_provider->fetch_bundle(bundle.first, "", &presets, &metadata);
 
         if (preset_result == 0) {
             subscribed_bundle_presets[bundle.first] = presets;
@@ -6897,8 +6933,10 @@ void GUI_App::check_bundle_updates()
 
 bool GUI_App::unsubscribe_bundle(const std::string& id)
 {
-    auto orca_agent = std::dynamic_pointer_cast<OrcaCloudServiceAgent>(m_agent->get_cloud_agent());
-    return orca_agent->unsubscribe_bundle(id);
+    if (!m_agent) return false;
+    auto bp = m_agent->get_bundle_provider();
+    if (!bp) return false;
+    return bp->unsubscribe_bundle(id) == 0;
 }
 
 void GUI_App::start_sync_user_preset(bool with_progress_dlg)
@@ -7077,7 +7115,8 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                         std::vector<std::string> not_found;
                         std::vector<std::string> unauthorized;
                         
-                        int result = orca_agent->get_subscribed_bundles(&bundles_to_sync, not_found, unauthorized);
+                        auto bp = m_agent->get_bundle_provider();
+                        int result = bp ? bp->list_subscribed_bundles(&bundles_to_sync, not_found, unauthorized) : -1;
                         if (result != 0) {
                             BOOST_LOG_TRIVIAL(warning) << "start_sync_user_preset: failed to fetch subscribed bundles, result=" << result;
                             continue;
@@ -7212,6 +7251,172 @@ void GUI_App::stop_sync_user_preset()
             m_sync_update_thread.detach();
     }
 }
+
+void GUI_App::reconfigure_profile_sync()
+{
+    if (!m_agent || !app_config) return;
+
+    // Tear down any running background sync.
+    stop_sync_user_preset();
+
+    const std::string provider = app_config->get("profile_sync_provider");
+
+    std::shared_ptr<IPresetSyncProvider> next;
+    if (provider == "orca" || provider.empty()) {
+        // Orca is owned by NetworkAgent's cloud-agent map; just re-expose it.
+        if (auto orca = std::dynamic_pointer_cast<IPresetSyncProvider>(m_agent->get_cloud_agent())) {
+            next = std::move(orca);
+        }
+    } else if (provider == "webdav") {
+        WebDAVConfig cfg;
+        cfg.url      = app_config->get("profile_sync_webdav_url");
+        cfg.username = app_config->get("profile_sync_webdav_user");
+        cfg.password = app_config->get("profile_sync_webdav_pass");
+        next = std::make_shared<WebDAVSyncProvider>(cfg);
+    } else if (provider == "git") {
+        GitSyncConfig cfg;
+        cfg.repo_url = app_config->get("profile_sync_git_url");
+        cfg.branch   = app_config->get("profile_sync_git_branch");
+        if (cfg.branch.empty()) cfg.branch = "main";
+        cfg.token    = app_config->get("profile_sync_git_token");
+        cfg.local_clone_path = (boost::filesystem::path(data_dir()) / "profile_sync_git").string();
+        next = std::make_shared<GitSyncProvider>(cfg);
+    } else if (provider == "disabled") {
+        next.reset();
+    }
+
+    m_agent->set_sync_provider(next);
+
+    if (next && app_config->get_bool("profile_sync_auto")) {
+        // Connect lazily; start_sync_user_preset will hit it on first iteration.
+        start_sync_user_preset();
+    }
+}
+
+void GUI_App::poll_sync_conflicts()
+{
+    if (!m_agent) return;
+    auto sp = m_agent->get_sync_provider();
+    if (!sp) return;
+
+    auto conflicts = sp->take_pending_conflicts();
+    if (conflicts.empty()) return;
+
+    // Apply a resolved preset into PresetBundle (correct user folder, .info
+    // sidecar, in-memory state) instead of writing a bare .json to a guessed
+    // path. Returns true when the preset was loaded so the caller persists and
+    // refreshes the UI once after the batch.
+    auto apply_local = [this](const PresetSyncConflict& pc, const std::string& apply_json) -> bool {
+        if (!preset_bundle || !app_config) return false;
+        std::map<std::string, std::string> values;
+        try {
+            auto j = nlohmann::json::parse(apply_json);
+            if (!j.is_object()) return false;
+            for (auto it = j.begin(); it != j.end(); ++it)
+                values[it.key()] = it.value().is_string() ? it.value().get<std::string>()
+                                                          : it.value().dump();
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "poll_sync_conflicts: parse resolved preset failed: " << e.what();
+            return false;
+        }
+        values[BBL_JSON_KEY_NAME] = pc.preset_name;
+        if (!values.count(BBL_JSON_KEY_TYPE)) values[BBL_JSON_KEY_TYPE] = pc.preset_type;
+
+        PresetCollection* col = (pc.preset_type == "filament") ? &preset_bundle->filaments
+                              : (pc.preset_type == "printer")  ? &preset_bundle->printers
+                                                               : &preset_bundle->prints;
+        PresetsConfigSubstitutions subs;
+        try {
+            return col->load_user_preset(pc.preset_name, values, subs,
+                                         ForwardCompatibilitySubstitutionRule::Enable);
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "poll_sync_conflicts: load_user_preset("
+                << pc.preset_name << ") failed: " << e.what();
+            return false;
+        }
+    };
+    bool any_local_applied = false;
+
+    for (const auto& pc : conflicts) {
+        // Translate the provider-agnostic conflict into the legacy SyncConflict
+        // shape SyncMergeDialog already understands. We don't need every field
+        // -- the dialog reads preset_type, local_content, remote_content.
+        SyncConflict legacy;
+        legacy.path           = pc.remote_id + ".json";
+        legacy.local_content  = pc.local_json;
+        legacy.remote_content = pc.remote_json;
+        legacy.local_time     = 0;
+        legacy.remote_time    = 0;
+        legacy.remote_etag.clear();
+        if      (pc.preset_type == "filament") legacy.preset_type = Preset::Type::TYPE_FILAMENT;
+        else if (pc.preset_type == "printer")  legacy.preset_type = Preset::Type::TYPE_PRINTER;
+        else                                    legacy.preset_type = Preset::Type::TYPE_PRINT;
+
+        wxWindow* parent = wxGetActiveWindow();
+        if (!parent) parent = mainframe ? static_cast<wxWindow*>(mainframe) : wxTheApp->GetTopWindow();
+
+        SyncMergeDialog dlg(parent, legacy);
+        if (!dlg.has_visible_diffs()) continue;
+        if (dlg.ShowModal() != wxID_OK) continue;
+
+        const auto res = dlg.get_result();
+        PresetSyncConflictResolution resolution;
+        std::string apply_json;
+        switch (res.resolution) {
+            case ConflictResolution::KeepLocal:
+                resolution.choice = PresetSyncConflictChoice::KeepLocal;
+                apply_json        = pc.local_json;
+                break;
+            case ConflictResolution::KeepRemote:
+                resolution.choice = PresetSyncConflictChoice::KeepRemote;
+                apply_json        = pc.remote_json;
+                break;
+            case ConflictResolution::Merge:
+                resolution.choice      = PresetSyncConflictChoice::Merge;
+                resolution.merged_json = res.merged_content;
+                apply_json             = res.merged_content;
+                break;
+            case ConflictResolution::Skip:
+            default:
+                resolution.choice = PresetSyncConflictChoice::Skip;
+                break;
+        }
+        sp->apply_conflict_resolution(pc, resolution);
+
+        // Apply the chosen content locally (KeepRemote / Merge) through
+        // PresetBundle so it lands in the user's folder with the correct sync
+        // metadata and the in-memory state matches.
+        if (resolution.choice == PresetSyncConflictChoice::KeepRemote ||
+            resolution.choice == PresetSyncConflictChoice::Merge) {
+            if (apply_local(pc, apply_json))
+                any_local_applied = true;
+        }
+        // Re-push the chosen content (KeepLocal / Merge) so the remote moves
+        // back in sync with what we now consider authoritative.
+        if (resolution.choice == PresetSyncConflictChoice::KeepLocal ||
+            resolution.choice == PresetSyncConflictChoice::Merge) {
+            sp->push_preset(pc.preset_type, pc.preset_name, apply_json, pc.remote_id, "");
+        }
+    }
+
+    // Persist the newly applied presets to disk once and refresh the UI, the
+    // same way reload_settings() does after a cloud sync.
+    if (any_local_applied && preset_bundle && app_config) {
+        std::map<std::string, std::string> need_to_delete; // none here
+        preset_bundle->save_user_presets(*app_config, need_to_delete);
+        if (mainframe) {
+            mainframe->update_side_preset_ui();
+            for (auto tab : tabs_list) {
+                tab->reload_config();
+                tab->update_changed_ui();
+            }
+            if (plater_)
+                plater_->sidebar().update_all_preset_comboboxes();
+        }
+    }
+    sp->save_state();
+}
+
 
 void GUI_App::restart_sync_user_preset()
 {

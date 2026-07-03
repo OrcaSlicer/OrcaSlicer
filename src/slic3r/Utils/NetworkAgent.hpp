@@ -4,9 +4,12 @@
 #include "bambu_networking.hpp"
 #include "libslic3r/ProjectTask.hpp"
 #include "ICloudServiceAgent.hpp"
+#include "IPresetSyncProvider.hpp"
+#include "IBundleProvider.hpp"
 #include "IPrinterAgent.hpp"
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -55,6 +58,17 @@ public:
     void add_cloud_agent(const std::string& provider, std::shared_ptr<ICloudServiceAgent> agent);
     void set_printer_agent(std::shared_ptr<IPrinterAgent> printer_agent);
     int set_queue_on_main_fn(QueueOnMainFn fn, const std::string& provider = ORCA_CLOUD_PROVIDER);
+
+    // Active preset sync provider (Orca / WebDAV / Git / ...). Switched at
+    // runtime when the user changes the provider in Preferences.
+    void set_sync_provider(std::shared_ptr<IPresetSyncProvider> provider);
+    // Returns a thread-safe snapshot of the active provider. The shared_ptr
+    // keeps the instance alive even if another thread swaps the provider
+    // mid-operation, so callers must use the returned copy, not re-query.
+    std::shared_ptr<IPresetSyncProvider> get_sync_provider() const;
+    // Same instance, queried as IBundleProvider via dynamic_cast. Returns null
+    // if the active sync provider does not support bundles.
+    std::shared_ptr<IBundleProvider>     get_bundle_provider() const;
 
     // Get underlying agent handle from BBLNetworkPlugin
     void* get_network_agent();
@@ -192,6 +206,15 @@ private:
     std::map<std::string, std::shared_ptr<ICloudServiceAgent>> m_cloud_agents;
     std::shared_ptr<IPrinterAgent> m_printer_agent;
     std::string m_printer_agent_id;
+
+    // Active preset sync provider. Distinct from m_cloud_agents: the cloud
+    // agents are auth/session/MQTT/etc., while the sync provider is just the
+    // narrow preset-sync surface (potentially backed by something other than
+    // a cloud agent, e.g. WebDAV or Git).
+    std::shared_ptr<IPresetSyncProvider> m_sync_provider;
+    // Guards m_sync_provider: it is read from the background sync thread and
+    // written from the GUI thread (reconfigure_profile_sync / Preferences).
+    mutable std::mutex                   m_sync_provider_mutex;
 };
 
 }

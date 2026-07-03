@@ -473,6 +473,76 @@ void AppConfig::set_defaults()
         set_bool("sync_user_preset", false);
     }
 
+    // ------------------------------------------------------------------
+    // Unified profile sync configuration (replaces sync_user_preset +
+    // selfhost_sync_*). The provider key is the source of truth; the old
+    // keys are kept for one release so users can roll back.
+    // ------------------------------------------------------------------
+    // NOTE: set_defaults() runs from the constructor (reset()) on an *empty*
+    // config, BEFORE load() reads the user's ini from disk. load() merges the
+    // ini into m_storage without clearing it, so the legacy selfhost_sync_* /
+    // sync_user_preset keys only become visible on the set_defaults() call that
+    // load() issues afterwards. Therefore the one-shot must be gated on
+    // profile_sync_migrated_v1 AND on the presence of legacy data -- otherwise
+    // the first (empty) pass would bake "disabled" and mark the migration done,
+    // silently dropping every upgrading user's sync configuration.
+    if (!get_bool("profile_sync_migrated_v1")) {
+        const std::string legacy_backend = get("selfhost_sync_backend"); // "0"/"1"/"2"
+        const bool have_legacy = !legacy_backend.empty()
+                               || !get("selfhost_sync_webdav_url").empty()
+                               || !get("selfhost_sync_git_url").empty()
+                               || get_bool("sync_user_preset");
+        if (have_legacy) {
+            std::string provider = "disabled";
+            if (legacy_backend == "1")      provider = "webdav";
+            else if (legacy_backend == "2") provider = "git";
+            else if (get_bool("sync_user_preset")) provider = "orca";
+            set("profile_sync_provider", provider);
+
+            // Auto-sync follows the legacy auto-sync intent.
+            set_bool("profile_sync_auto",
+                     provider == "orca" ? get_bool("sync_user_preset") :
+                     (get("selfhost_sync_interval") != "0" && !get("selfhost_sync_interval").empty()));
+
+            // Interval in seconds (old enum: 0=manual, 1=5min, 2=15min, 3=30min, 4=1h).
+            int interval_sec = 300;
+            auto legacy_interval = get("selfhost_sync_interval");
+            if      (legacy_interval == "2") interval_sec = 900;
+            else if (legacy_interval == "3") interval_sec = 1800;
+            else if (legacy_interval == "4") interval_sec = 3600;
+            else if (legacy_interval == "0") interval_sec = 0; // manual
+            set("profile_sync_interval_sec", std::to_string(interval_sec));
+
+            // Carry over auxiliary flags.
+            set_bool("profile_sync_read_only",      get_bool("selfhost_sync_readonly"));
+            set_bool("profile_sync_always_review",  get_bool("selfhost_sync_always_review"));
+            set_bool("profile_sync_bundles_local",  true);
+            set_bool("profile_sync_bundles_sub",    true);
+
+            // Carry over credentials verbatim.
+            set("profile_sync_webdav_url",  get("selfhost_sync_webdav_url"));
+            set("profile_sync_webdav_user", get("selfhost_sync_webdav_user"));
+            set("profile_sync_webdav_pass", get("selfhost_sync_webdav_pass"));
+            set("profile_sync_git_url",     get("selfhost_sync_git_url"));
+            set("profile_sync_git_branch",
+                get("selfhost_sync_git_branch").empty() ? std::string("main") : get("selfhost_sync_git_branch"));
+            set("profile_sync_git_token",   get("selfhost_sync_git_token"));
+
+            set_bool("profile_sync_migrated_v1", true);
+        }
+    }
+
+    // Defaults for any unified keys still unset (fresh install, or a config
+    // that predates a given key). These do NOT consume the migration one-shot,
+    // so a later load() bringing in legacy data can still migrate.
+    if (get("profile_sync_provider").empty())      set("profile_sync_provider", "disabled");
+    if (get("profile_sync_interval_sec").empty())  set("profile_sync_interval_sec", "300");
+    if (get("profile_sync_auto").empty())          set_bool("profile_sync_auto", false);
+    if (get("profile_sync_read_only").empty())     set_bool("profile_sync_read_only", false);
+    if (get("profile_sync_always_review").empty()) set_bool("profile_sync_always_review", false);
+    if (get("profile_sync_bundles_local").empty()) set_bool("profile_sync_bundles_local", true);
+    if (get("profile_sync_bundles_sub").empty())   set_bool("profile_sync_bundles_sub", true);
+
     if (get("keyboard_supported").empty()) {
         set("keyboard_supported", std::string("none/alt/control/shift"));
     }

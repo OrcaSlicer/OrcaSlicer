@@ -1,6 +1,7 @@
 #ifndef slic3r_GUI_App_hpp_
 #define slic3r_GUI_App_hpp_
 
+#include <chrono>
 #include <memory>
 #include <string>
 #include "ImGuiWrapper.hpp"
@@ -326,6 +327,7 @@ private:
     std::atomic<bool>    m_sync_user_preset_dlg_active {false}; // a manual "Sync Presets" progress dialog is on screen (see restart_sync_user_preset)
     std::atomic<bool>    m_sync_user_presets_now {false}; // request the sync loop to push user presets on its next tick
     std::atomic<bool>    m_migration_retry_pending {false};
+
     bool             m_is_dark_mode{ false };
     bool             m_adding_script_handler { false };
     bool             m_side_popup_status{false};
@@ -553,6 +555,17 @@ public:
 
     void            start_http_server(const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            start_http_server(int port, const std::string& provider = ORCA_CLOUD_PROVIDER);
+
+    // Build the active IPresetSyncProvider (Orca / WebDAV / Git) from the
+    // current AppConfig profile_sync_* keys and install it on m_agent.
+    // Called at startup and whenever the user picks a different provider in
+    // Preferences. Restarts the background sync thread when auto-sync is on.
+    void            reconfigure_profile_sync();
+
+    // Periodically drains the active provider's conflict queue and walks the
+    // user through SyncMergeDialog for each preset conflict.
+    void            poll_sync_conflicts();
+
     void            stop_http_server();
     void            switch_staff_pick(bool on);
 

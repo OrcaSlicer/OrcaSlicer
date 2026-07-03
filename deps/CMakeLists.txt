@@ -420,6 +420,8 @@ if((REV_PARSE_RESULT EQUAL 0) AND (REV_PARSE_OUTPUT STREQUAL "true"))
     file(RELATIVE_PATH BINARY_DIR_REL  ${CMAKE_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR})
 endif ()
 
+include(LIBGIT2/LIBGIT2.cmake)
+
 include(OCCT/OCCT.cmake)
 include(OpenCV/OpenCV.cmake)
 
@@ -444,6 +446,7 @@ set(_dep_list
     ${ZLIB_PKG}
     ${EXPAT_PKG}
     dep_libnoise
+    dep_LIBGIT2
     )
 
 if (MSVC)

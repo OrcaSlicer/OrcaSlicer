@@ -2,6 +2,8 @@
 #define __ORCA_CLOUD_SERVICE_AGENT_HPP__
 
 #include "ICloudServiceAgent.hpp"
+#include "IPresetSyncProvider.hpp"
+#include "IBundleProvider.hpp"
 #include <string>
 #include <map>
 #include <mutex>
@@ -87,7 +89,9 @@ struct SyncState {
  *
  * This class combines the functionality of the former OrcaAuthAgent and OrcaCloudServiceAgent.
  */
-class OrcaCloudServiceAgent : public ICloudServiceAgent {
+class OrcaCloudServiceAgent : public ICloudServiceAgent,
+                              public IPresetSyncProvider,
+                              public IBundleProvider {
 public:
     // ========================================================================
     // Auth Session Types
@@ -265,10 +269,56 @@ public:
     // ========================================================================
     // Orca-Specific: Bundle Subscription
     // ========================================================================
-    bool unsubscribe_bundle(const std::string& bundle_id);
+    bool unsubscribe_bundle_orca(const std::string& bundle_id);
     std::string get_bundle_url(const std::string& bundle_id) const;
     int get_subscribed_bundles(std::vector<std::pair<std::string, std::string>>* bundles,std::vector<std::string>& notfound, std::vector<std::string>& unauthorized);
     int get_shared_bundle(const std::string& bundle_id, std::map<std::string, std::map<std::string, std::string>>* presets, BundleMetadata* bundle_metadata);
+
+    // ========================================================================
+    // IPresetSyncProvider Implementation (adapters over the per-preset REST API)
+    // ========================================================================
+    std::string provider_id()   const override { return ORCA_CLOUD_PROVIDER; }
+    std::string display_name()  const override { return "Orca Cloud"; }
+    std::string fingerprint()   const override;
+    bool        is_configured() const override;
+    int         connect(std::string& error_out)        override;
+    bool        is_connected()                         override;
+
+    PresetSyncResult push_preset(const std::string& preset_type,
+                                 const std::string& preset_name,
+                                 const std::string& json_content,
+                                 const std::string& remote_id,
+                                 const std::string& expected_etag) override;
+    PresetSyncResult pull_preset(const std::string& preset_type,
+                                 const std::string& remote_id,
+                                 std::string&       out_json) override;
+    int delete_preset(const std::string& preset_type,
+                      const std::string& remote_id) override;
+    int list_presets(const PresetListCallback& cb) override;
+
+    std::vector<PresetSyncConflict> take_pending_conflicts() override;
+    int apply_conflict_resolution(const PresetSyncConflict&           conflict,
+                                  const PresetSyncConflictResolution& resolution) override;
+
+    void load_state() override { load_sync_state(); }
+    void save_state() override { save_sync_state(); }
+
+    // ========================================================================
+    // IBundleProvider Implementation (adapters over the Orca bundle API above)
+    // ========================================================================
+    int list_subscribed_bundles(
+        std::vector<std::pair<std::string, std::string>>* out_id_version,
+        std::vector<std::string>&                         out_notfound,
+        std::vector<std::string>&                         out_unauthorized) override;
+    int fetch_bundle(const std::string& bundle_id,
+                     const std::string& version,
+                     std::map<std::string, std::map<std::string, std::string>>* out_presets,
+                     BundleMetadata*    out_metadata) override;
+    int publish_local_bundle(
+        const BundleMetadata&                                            metadata,
+        const std::map<std::string, std::map<std::string, std::string>>& presets,
+        std::string&                                                     out_published_version) override;
+    int unsubscribe_bundle(const std::string& bundle_id) override;
 
     // ========================================================================
     // Additional Public Methods - Auth
@@ -371,7 +421,7 @@ private:
     mutable std::mutex session_mutex;
 
     // Member variables - connection state
-    bool is_connected{false};
+    bool m_is_connected{false}; // renamed: clashes with the IPresetSyncProvider::is_connected() override
     bool enable_track{false};
     bool multi_machine_enabled{false};
 
