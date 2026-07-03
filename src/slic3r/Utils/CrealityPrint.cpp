@@ -260,9 +260,9 @@ static std::string ws_send_and_read(websocket::stream<beast::tcp_stream>& ws, co
 static bool is_k1_family(const std::string& model)
 {
     static const std::unordered_set<std::string> k1_models = {
-        "K1",
+	"K1",
 	"K1 SE",
-        "K1C" ,
+	"K1C" ,
     };
     return k1_models.count(model) > 0;
 }
