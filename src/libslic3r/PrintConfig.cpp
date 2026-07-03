@@ -2965,7 +2965,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = -1;
     def->max = 360;
-    def->mode = comExpert;
+    def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(-1));
 
     def = this->add("bottom_layer_direction", coFloat);
@@ -2975,7 +2975,7 @@ void PrintConfigDef::init_fff_params()
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = -1;
     def->max = 360;
-    def->mode = comExpert;
+    def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(-1));
 
     def = this->add("sparse_infill_density", coPercent);
