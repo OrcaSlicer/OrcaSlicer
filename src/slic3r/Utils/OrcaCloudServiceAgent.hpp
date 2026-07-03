@@ -287,7 +287,7 @@ public:
     bool          refresh_if_expiring(std::chrono::seconds skew, const std::string& reason);
     RefreshResult refresh_from_storage(const std::string& reason, bool async = false);
     RefreshResult refresh_now(const std::string& refresh_token, const std::string& reason, bool async = false);
-    RefreshResult refresh_session_with_token(const std::string& refresh_token);
+    RefreshResult refresh_session_with_token(const std::string& refresh_token, const std::string& reason = "");
 
     // Session state helpers. nickname is the human-facing UI label after provider fallback resolution.
     bool set_user_session(const std::string& token,
@@ -350,6 +350,9 @@ private:
     std::string map_to_json(const std::map<std::string, std::string>& map);
     void json_to_map(const std::string& json, std::map<std::string, std::string>& map);
 
+    // Refresh token lock
+    std::string token_lock_path() const;
+
     // Member variables - configuration
     std::string log_dir;
     std::string config_dir;
@@ -369,6 +372,12 @@ private:
     OnLoginCompleteHandler on_login_complete_handler;
     SessionInfo session;
     mutable std::mutex session_mutex;
+
+    // Refresh diagnostics (see docs/analysis/refresh_token_already_used.md). Epoch seconds so the
+    // refresh-failure log can report token staleness without holding a lock or logging any token.
+    std::atomic<long long> last_refresh_success_epoch{0};                 // 0 = no success yet this process
+    const long long        agent_start_epoch{std::chrono::duration_cast<std::chrono::seconds>(
+                               std::chrono::system_clock::now().time_since_epoch()).count()};
 
     // Member variables - connection state
     bool is_connected{false};
