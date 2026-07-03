@@ -31,7 +31,7 @@ function Set_RecentFile_MouseRightBtn_Event()
 			
 			if(e.which == 3){
 				//鼠标点击了右键+$(this).attr('ff') );
-				ShowRecnetFileContextMenu();
+				//ShowRecnetFileContextMenu();
 			}else if(e.which == 2){
 				//鼠标点击了中键
 			}else if(e.which == 1){
@@ -44,13 +44,31 @@ function Set_RecentFile_MouseRightBtn_Event()
 		//在这里书写代码，构建个性右键化菜单
 		return false;
 	});	
+
+	// ORCA file actions
+	$(".FileActions").mousedown(function(e){		
+		return false; // Block events on empty area & parent
+	});
+
+	$(".FileActionsReveal").mousedown(function(e){		
+		RightBtnFilePath=$(this).attr('fpath');
+		if(e.which == 1 && RightBtnFilePath != "")
+			OnExploreRecentFile();
+		return false; // Block events from parent
+	});
+	$(".FileActionsRemove").mousedown(function(e){		
+		RightBtnFilePath=$(this).attr('fpath');
+		if(e.which == 1)
+			OnDeleteRecentFile();
+		return false; // Block events from parent
+	});
 	
     $(document).mousemove( function(e){
 		MousePosX=e.pageX;
 		MousePosY=e.pageY;
 		
-		let ContextMenuWidth=$('#recnet_context_menu').width();
-		let ContextMenuHeight=$('#recnet_context_menu').height();
+		//let ContextMenuWidth=$('#recnet_context_menu').width();
+		//let ContextMenuHeight=$('#recnet_context_menu').height();
 	
 		let DocumentWidth=$(document).width();
 		let DocumentHeight=$(document).height();
@@ -65,13 +83,13 @@ function Set_RecentFile_MouseRightBtn_Event()
 		var e = e || window.event;
         var elem = e.target || e.srcElement;
         while (elem) {
-			if (elem.id && elem.id == 'recnet_context_menu') {
-                    return;
-			}
+			//if (elem.id && elem.id == 'recnet_context_menu') {
+            //        return;
+			//}
 			elem = elem.parentNode;
 		}		
 		
-		$("#recnet_context_menu").hide();
+		//$("#recnet_context_menu").hide();
 	} );
 
 	
@@ -187,6 +205,7 @@ function SetOrcaLoginInfo( strAvatar, strName )
 
 	$("#OrcaLogin2").show();
 	$("#OrcaLogin2").css("display","flex");
+	$("#OrcaCloudSection .status-dot").addClass("online");
 }
 
 function SetOrcaUserOffline()
@@ -198,6 +217,7 @@ function SetOrcaUserOffline()
 	$("#OrcaLogin1").show();
 	$("#OrcaLogin1").css("display","flex");
 	$("#OrcaStatusText").show();
+	$("#OrcaCloudSection .status-dot").removeClass("online");
 }
 
 function SetMallUrl( strUrl )
@@ -223,13 +243,23 @@ function ShowRecentFileList( pList )
 		
 		//let index=sPath.lastIndexOf('\\')>0?sPath.lastIndexOf('\\'):sPath.lastIndexOf('\/');
 		//let sShortName=sPath.substring(index+1,sPath.length);
+
+		let isExist  = !isNaN(sTime[0]); // its a valid file with time stamp
+		let btnStyle = isExist ? "ButtonStyleRegular" : "ButtonStyleDisabled";
+		let btnPath  = isExist ? sPath : ""; // blank path will disable btn event
 		
-		let TmpHtml='<div class="FileItem"  fpath="'+sPath+'"  >'+
-				'<a class="FileTip" title="'+sPath+'"></a>'+
-				'<div class="FileImg" ><img src="'+sImg+'" onerror="this.onerror=null;this.src=\'img/d.png\';"  alt="No Image"  /></div>'+
-				'<div class="FileName TextS1">'+sName+'</div>'+
-				'<div class="FileDate">'+sTime+'</div>'+
-			    '</div>';
+		let TmpHtml='<div class="FileItem" fpath="'+sPath+'"  >'+
+						'<a class="FileTip" title="'+sPath+'"></a>'+
+						'<div class="FileImg" ><img src="'+sImg+'" onerror="this.onerror=null;this.src=\'img/d.png\';" alt="No Image"/></div>'+
+						'<div class="FileName">'+sName+'</div>'+
+						'<div class="FileDate">'+sTime+'</div>'+
+						'<div class="FileActions">'+
+							'<div class="FileActionsReveal '+btnStyle+' ButtonTypeWindow trans" fpath="'+btnPath+'">Show in folder</div>'+
+							'<div class="FileActionsRemove ButtonStyleAlert ButtonTypeWindow" fpath="'+sPath+'">'+
+								'<div class="icon16"/></div>'+
+							'</div>'+
+						'</div>'+
+					'</div>';
 		
 		strHtml+=TmpHtml;
 	}
@@ -240,6 +270,7 @@ function ShowRecentFileList( pList )
 	UpdateRecentClearBtnDisplay();
 }
 
+/*
 function ShowRecnetFileContextMenu()
 {
 	$("#recnet_context_menu").offset({top: 10000, left:-10000});
@@ -261,6 +292,7 @@ function ShowRecnetFileContextMenu()
 	
 	$("#recnet_context_menu").offset({top: RealY, left:RealX});
 }
+*/
 
 /*-------RecentFile MX Message------*/
 function SendMsg_GetLoginInfo()
@@ -344,7 +376,7 @@ function OnOpenRecentFile( strPath )
 function OnDeleteRecentFile( )
 {
 	//Clear in UI
-	$("#recnet_context_menu").hide();
+	//$("#recnet_context_menu").hide();
 	
 	let AllFile=$(".FileItem");
 	let nFile=AllFile.length;
@@ -402,7 +434,7 @@ function OnExploreRecentFile( )
 	
 	SendWXMessage( JSON.stringify(tSend) );	
 	
-	$("#recnet_context_menu").hide();
+	//$("#recnet_context_menu").hide();
 }
 
 function OnLogOut()
@@ -414,20 +446,26 @@ function OnLogOut()
 	SendWXMessage( JSON.stringify(tSend) );
 }
 
+function ToggleOrcaSection() {
+	var body = document.getElementById('OrcaCloudSection');
+	if (body){
+		if (!body.classList.contains('expanded'))
+			body.classList.add('expanded');
+		else
+			body.classList.remove('expanded');
+	}
+}
+
 // --- Bambu Cloud Section ---
 
 function ToggleBambuSection() {
-  var body = document.getElementById('BambuCloudBody');
-  var chevron = document.querySelector('.bambu-chevron');
-  if (!body || !chevron) return;
-  bambuSectionExpanded = !bambuSectionExpanded;
-  if (bambuSectionExpanded) {
-    body.classList.add('expanded');
-    chevron.classList.add('expanded');
-  } else {
-    body.classList.remove('expanded');
-    chevron.classList.remove('expanded');
-  }
+	var body = document.getElementById('BambuCloudSection');
+	if (body){
+		if (!body.classList.contains('expanded'))
+			body.classList.add('expanded');
+		else
+			body.classList.remove('expanded');
+	}
 }
 
 function SetBambuLoginInfo(strAvatar, strName) {
@@ -438,9 +476,9 @@ function SetBambuLoginInfo(strAvatar, strName) {
   }
   $("#BambuLogin2").show();
   $("#BambuLogin2").css("display", "flex");
-  $(".bambu-status-dot").addClass("online");
-  $("#BambuStatusText").text("Connected");
-  $("#BambuStatusText").attr("tid", "orca11");
+  $("#BambuCloudSection .status-dot").addClass("online");
+  //$("#BambuStatusText").text("Connected");
+  //$("#BambuStatusText").attr("tid", "orca11");
 }
 
 function SetBambuUserOffline() {
@@ -451,9 +489,9 @@ function SetBambuUserOffline() {
     $("#BambuLogin1").show();
     $("#BambuLogin1").css("display", "flex");
   }
-  $(".bambu-status-dot").removeClass("online");
-  $("#BambuStatusText").text("Not connected");
-  $("#BambuStatusText").attr("tid", "orca10");
+  $("#BambuCloudSection .status-dot").removeClass("online");
+  //$("#BambuStatusText").text("Not connected");
+  //$("#BambuStatusText").attr("tid", "orca10");
 }
 
 function OnBambuLoginOrRegister() { SendSimpleCommand("homepage_bambu_login_or_register"); }

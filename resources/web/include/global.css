@@ -17,7 +17,7 @@
 	--main-color-fixed		: #009688;
 	--bg-color				: #FFFFFF;
 	--bg-color-secondary	: #F4F4F4;
-	--bg-color-alt			: #F0F0F0;
+	--bg-color-alt			: #FDFDFD;
 	--fg-color-text			: #262E30;
 	--fg-color-label		: #363636;
 	--fg-color-disabled		: #ACACAC;
@@ -89,6 +89,12 @@
 	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M2.83,3.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM8.83,3.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM14.83,3.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM2.83,9.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM8.83,9.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM14.83,9.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM2.83,15.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM8.83,15.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67ZM14.83,15.5h-1.67c-.37,0-.67-.3-.67-.67v-1.67c0-.37.3-.67.67-.67h1.67c.37,0,.67.3.67.67v1.67c0,.37-.3.67-.67.67Z" style="fill:none; stroke:currentColor"/></svg>');
 --icon-layout-cover:
 	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><path d="M5.5,6.5H1.5c-.55,0-1-.45-1-1V1.5C.5.95.95.5,1.5.5h4c.55,0,1,.45,1,1v4c0,.55-.45,1-1,1ZM15.5,5.5V1.5c0-.55-.45-1-1-1h-4c-.55,0-1,.45-1,1v4c0,.55.45,1,1,1h4c.55,0,1-.45,1-1ZM5.5,15.5H1.5c-.55,0-1-.45-1-1v-4c0-.55.45-1,1-1h4c.55,0,1,.45,1,1v4c0,.55-.45,1-1,1ZM15.5,14.5v-4c0-.55-.45-1-1-1h-4c-.55,0-1,.45-1,1v4c0,.55.45,1,1,1h4c.55,0,1-.45,1-1Z" style="fill:none; stroke:currentColor"/></svg>');
+--icon-cross:
+	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round"><line x1="2.5" y1="2.5" x2="13.5" y2="13.5"/><line x1="13.5" y1="2.5" x2="2.5" y2="13.5"/></g></svg>');
+--icon-nav-arrow:
+	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round"><path d="M5 12L8.50024 7.6247C8.79242 7.25948 8.79204 6.74005 8.49986 6.37483C7.23348 4.79185 6.38744 3.73431 5 2"/></g></svg>');
+--icon-shortcut:
+	url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><g style="fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round"><path d="M8.5,2.5h3c.55,0,1,.45,1,1v3M5.5,3.5h-2c-.55,0-1,.45-1,1v7c0,.55.45,1,1,1h7c.55,0,1-.45,1-1v-2M12,3l-4.5,4.5"/></g></svg>');
 }
 
 /*////////////////////////////*/
@@ -202,6 +208,19 @@ OPTIONS
 
 .ComboBox option:checked {
     background: var(--focus-bg-item);
+}
+
+/*/// HYPERLINK ///*/
+.HyperLink {
+	font-size:14px;
+	color: var(--main-color-fixed);
+	text-decoration:underline;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.HyperLink:hover {
+	color: var(--main-color-hover);
 }
 
 /*/// SCROLL BARS ///*/

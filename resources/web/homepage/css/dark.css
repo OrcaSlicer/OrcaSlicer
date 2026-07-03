@@ -1,3 +1,5 @@
+/* ORCA disable dark.css. makes css file unusable. tempopary fix until disabling all dark.css usage*/
+@media (invalid-condition) { 
 body
 {
 	background-color:#242428;
@@ -138,3 +140,5 @@ body
 #BambuCloudHeader       { color: #818183; }
 #BambuCloudHeader:hover { color: #efeff0; }
 .bambu-chevron svg path { stroke: currentColor; }
+
+} /* @media (invalid-condition) */
