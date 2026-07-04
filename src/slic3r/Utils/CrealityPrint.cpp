@@ -22,6 +22,7 @@
 #include "slic3r/GUI/GUI_App.hpp"
 #include "slic3r/GUI/format.hpp"
 #include "Http.hpp"
+#include "ASCIIFolding.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "Bonjour.hpp"
 #include "slic3r/GUI/BonjourDialog.hpp"
@@ -192,12 +193,98 @@ std::string CrealityPrint::make_url(const std::string &path) const
     }
 }
 
+// Transliterate a Russian/Ukrainian/Belarusian Cyrillic code point to Latin.
+// Returns nullptr when the code point is not a handled Cyrillic letter, and an
+// empty string for letters that carry no sound (hard/soft signs).
+static const char* cyrillic_to_latin(wchar_t c)
+{
+    switch (c) {
+    case L'А': return "A";    case L'а': return "a";    // А а
+    case L'Б': return "B";    case L'б': return "b";    // Б б
+    case L'В': return "V";    case L'в': return "v";    // В в
+    case L'Г': return "G";    case L'г': return "g";    // Г г
+    case L'Ґ': return "G";    case L'ґ': return "g";    // Ґ ґ
+    case L'Д': return "D";    case L'д': return "d";    // Д д
+    case L'Е': return "E";    case L'е': return "e";    // Е е
+    case L'Ё': return "Yo";   case L'ё': return "yo";   // Ё ё
+    case L'Є': return "Ye";   case L'є': return "ye";   // Є є
+    case L'Ж': return "Zh";   case L'ж': return "zh";   // Ж ж
+    case L'З': return "Z";    case L'з': return "z";    // З з
+    case L'И': return "I";    case L'и': return "i";    // И и
+    case L'І': return "I";    case L'і': return "i";    // І і
+    case L'Ї': return "Yi";   case L'ї': return "yi";   // Ї ї
+    case L'Й': return "Y";    case L'й': return "y";    // Й й
+    case L'К': return "K";    case L'к': return "k";    // К к
+    case L'Л': return "L";    case L'л': return "l";    // Л л
+    case L'М': return "M";    case L'м': return "m";    // М м
+    case L'Н': return "N";    case L'н': return "n";    // Н н
+    case L'О': return "O";    case L'о': return "o";    // О о
+    case L'П': return "P";    case L'п': return "p";    // П п
+    case L'Р': return "R";    case L'р': return "r";    // Р р
+    case L'С': return "S";    case L'с': return "s";    // С с
+    case L'Т': return "T";    case L'т': return "t";    // Т т
+    case L'У': return "U";    case L'у': return "u";    // У у
+    case L'Ў': return "U";    case L'ў': return "u";    // Ў ў
+    case L'Ф': return "F";    case L'ф': return "f";    // Ф ф
+    case L'Х': return "Kh";   case L'х': return "kh";   // Х х
+    case L'Ц': return "Ts";   case L'ц': return "ts";   // Ц ц
+    case L'Ч': return "Ch";   case L'ч': return "ch";   // Ч ч
+    case L'Ш': return "Sh";   case L'ш': return "sh";   // Ш ш
+    case L'Щ': return "Shch"; case L'щ': return "shch"; // Щ щ
+    case L'Ъ': return "";     case L'ъ': return "";     // Ъ ъ
+    case L'Ы': return "Y";    case L'ы': return "y";    // Ы ы
+    case L'Ь': return "";     case L'ь': return "";     // Ь ь
+    case L'Э': return "E";    case L'э': return "e";    // Э э
+    case L'Ю': return "Yu";   case L'ю': return "yu";   // Ю ю
+    case L'Я': return "Ya";   case L'я': return "ya";   // Я я
+    default:        return nullptr;
+    }
+}
+
+// The K1-family firmware ships a minimal HTTP server that aborts the TCP
+// connection (surfacing in the slicer as curl error 55, CURLE_SEND_ERROR)
+// whenever the multipart filename or the upload URL carries non-ASCII bytes.
+// Manually renaming the model to Latin characters is the known community
+// workaround; we do it automatically here so Cyrillic / accented / CJK names
+// upload cleanly. The same normalized name is reused for the URL path and the
+// start-print gcode path, so upload and print stay consistent.
 std::string CrealityPrint::safe_filename(const std::string &filename) const
 {
-    std::string safe_filename = filename;
-    std::replace(safe_filename.begin(), safe_filename.end(), ' ', '_');
+    std::wstring wide = boost::nowide::widen(filename);
+    std::string  result;
+    result.reserve(filename.size());
 
-    return safe_filename;
+    for (wchar_t c : wide) {
+        if (c == L' ') {
+            result.push_back('_');
+        } else if (c < 0x80) {
+            result.push_back(static_cast<char>(c));
+        } else if (const char* tr = cyrillic_to_latin(c)) {
+            result.append(tr);
+        } else {
+            // Fold accented Latin (é -> e, ü -> u, ...) to ASCII. Anything that
+            // still can't be represented as ASCII becomes '_' so the firmware
+            // never receives a high byte.
+            wchar_t  folded[4];
+            wchar_t* end = fold_to_ascii(c, folded);
+            bool     appended = false;
+            for (wchar_t* it = folded; it != end; ++it) {
+                if (*it < 0x80) {
+                    result.push_back(static_cast<char>(*it));
+                    appended = true;
+                }
+            }
+            if (!appended)
+                result.push_back('_');
+        }
+    }
+
+    // Never hand the firmware an empty name (e.g. a purely CJK filename could
+    // collapse to nothing after substitution).
+    if (result.empty())
+        result = "model";
+
+    return result;
 }
 
 static void ws_connect(net::io_context& ioc, websocket::stream<beast::tcp_stream>& ws,
