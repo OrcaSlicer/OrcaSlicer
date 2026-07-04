@@ -5084,35 +5084,66 @@ void ObjectList::update_selections_on_canvas()
         wxDataViewItemArray sels;
         GetSelections(sels);
 
-        // clear selection before adding new elements
-        selection.clear(); //OR remove_all()?
-
         for (auto item : sels)
         {
             add_to_selection(item, selection, instance_idx, mode);
         }
     }
 
-    if (selection.contains_all_volumes(volume_idxs))
-    {
-        // remove
-        volume_idxs = selection.get_missing_volume_idxs_from(volume_idxs);
-        if (volume_idxs.size() > 0)
-        {
+    // Compare sets to see if the selection is already identical.
+    // If it is, skip updating to preserve the click/selection order.
+    const Selection::IndicesList &current_vols = selection.get_volume_idxs();
+    std::set<unsigned int> target_vols(volume_idxs.begin(), volume_idxs.end());
+    if (current_vols == target_vols && selection.get_mode() == mode) {
+        return;
+    }
+
+    if (sel_cnt > 1) {
+        std::vector<unsigned int> vols_to_add;
+        std::vector<unsigned int> vols_to_remove;
+        for (unsigned int v : target_vols) {
+            if (current_vols.find(v) == current_vols.end()) {
+                vols_to_add.push_back(v);
+            }
+        }
+        for (unsigned int v : current_vols) {
+            if (target_vols.find(v) == target_vols.end()) {
+                vols_to_remove.push_back(v);
+            }
+        }
+
+        if (!vols_to_remove.empty()) {
             Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Remove selected from list", UndoRedo::SnapshotType::Selection);
-            selection.remove_volumes(mode, volume_idxs);
+            selection.remove_volumes(mode, vols_to_remove);
+        }
+        if (!vols_to_add.empty()) {
+            Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Add selected to list", UndoRedo::SnapshotType::Selection);
+            selection.add_volumes(mode, vols_to_add, false);
         }
     }
     else
     {
-        // add
-        // to avoid lost of some volumes in selection
-        // check non-selected volumes only if selection mode wasn't changed
-        // OR there is no single selection
-        if (selection.get_mode() == mode || !single_selection)
-            volume_idxs = selection.get_unselected_volume_idxs_from(volume_idxs);
-        Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Add selected to list", UndoRedo::SnapshotType::Selection);
-        selection.add_volumes(mode, volume_idxs, single_selection);
+        if (selection.contains_all_volumes(volume_idxs))
+        {
+            // remove
+            volume_idxs = selection.get_missing_volume_idxs_from(volume_idxs);
+            if (volume_idxs.size() > 0)
+            {
+                Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Remove selected from list", UndoRedo::SnapshotType::Selection);
+                selection.remove_volumes(mode, volume_idxs);
+            }
+        }
+        else
+        {
+            // add
+            // to avoid lost of some volumes in selection
+            // check non-selected volumes only if selection mode wasn't changed
+            // OR there is no single selection
+            if (selection.get_mode() == mode || !single_selection)
+                volume_idxs = selection.get_unselected_volume_idxs_from(volume_idxs);
+            Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Add selected to list", UndoRedo::SnapshotType::Selection);
+            selection.add_volumes(mode, volume_idxs, single_selection);
+        }
     }
 
     if (canvas_type != GLCanvas3D::ECanvasType::CanvasPreview)

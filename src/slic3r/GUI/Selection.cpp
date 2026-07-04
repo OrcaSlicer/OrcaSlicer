@@ -1,5 +1,7 @@
 #include "libslic3r/libslic3r.h"
 #include "Selection.hpp"
+#include <algorithm>
+#include <map>
 
 #include "3DScene.hpp"
 #include "GLCanvas3D.hpp"
@@ -700,7 +702,7 @@ void Selection::remove_all()
     clear();
 }
 
-void Selection::set_deserialized(EMode mode, const std::vector<std::pair<size_t, size_t>> &volumes_and_instances)
+void Selection::set_deserialized(EMode mode, const std::vector<std::pair<size_t, size_t>> &volumes_and_instances, const std::vector<std::pair<size_t, size_t>> &selection_order)
 {
     if (! m_valid)
         return;
@@ -709,9 +711,32 @@ void Selection::set_deserialized(EMode mode, const std::vector<std::pair<size_t,
     for (unsigned int i : m_list)
         (*m_volumes)[i]->selected = false;
     m_list.clear();
-    for (unsigned int i = 0; i < (unsigned int)m_volumes->size(); ++ i)
-		if (std::binary_search(volumes_and_instances.begin(), volumes_and_instances.end(), (*m_volumes)[i]->geometry_id))
-			do_add_volume(i);
+    m_selection_order.clear();
+
+    std::map<std::pair<size_t, size_t>, unsigned int> geo_to_idx;
+    for (unsigned int i = 0; i < (unsigned int)m_volumes->size(); ++ i) {
+        geo_to_idx[(*m_volumes)[i]->geometry_id] = i;
+    }
+
+    // Add volumes in the order they were selected
+    for (const auto& geo_id : selection_order) {
+        auto it = geo_to_idx.find(geo_id);
+        if (it != geo_to_idx.end()) {
+            do_add_volume(it->second);
+        }
+    }
+
+    // Fallback/Backward compatibility: add any remaining volumes that are in volumes_and_instances
+    // but were not in selection_order (or if selection_order was empty)
+    for (const auto& geo_id : volumes_and_instances) {
+        auto it = geo_to_idx.find(geo_id);
+        if (it != geo_to_idx.end()) {
+            if (m_list.find(it->second) == m_list.end()) {
+                do_add_volume(it->second);
+            }
+        }
+    }
+
     update_type();
     set_bounding_boxes_dirty();
 }
@@ -745,6 +770,7 @@ void Selection::clear()
 #endif // ENABLE_MODIFIERS_ALWAYS_TRANSPARENT
 
     m_list.clear();
+    m_selection_order.clear();
 
     update_type();
     set_bounding_boxes_dirty();
@@ -768,13 +794,61 @@ void Selection::instances_changed(const std::vector<size_t> &instance_ids_select
 {
     assert(m_valid);
     assert(m_mode == Instance);
+
+    // 1. Extract the selected instances in their selection order
+    std::vector<std::pair<int, int>> selected_instances_in_order;
+    for (unsigned int idx : m_selection_order) {
+        if (idx < m_volumes->size()) {
+            const GLVolume* volume = (*m_volumes)[idx];
+            std::pair<int, int> inst = {volume->object_idx(), volume->instance_idx()};
+            if (std::find(selected_instances_in_order.begin(), selected_instances_in_order.end(), inst) == selected_instances_in_order.end()) {
+                selected_instances_in_order.push_back(inst);
+            }
+        }
+    }
+
     m_list.clear();
+    m_selection_order.clear();
+
+    std::vector<size_t> remaining_ids = instance_ids_selected;
+
+    // 2. Add volumes for instances in their selection order
+    for (const auto& inst : selected_instances_in_order) {
+        bool found = false;
+        size_t found_id = 0;
+        std::vector<unsigned int> inst_vols;
+        for (unsigned int volume_idx = 0; volume_idx < (unsigned int)m_volumes->size(); ++volume_idx) {
+            const GLVolume *volume = (*m_volumes)[volume_idx];
+            if (volume->object_idx() == inst.first && volume->instance_idx() == inst.second) {
+                inst_vols.push_back(volume_idx);
+                auto it = std::lower_bound(remaining_ids.begin(), remaining_ids.end(), volume->geometry_id.second);
+                if (it != remaining_ids.end() && *it == volume->geometry_id.second) {
+                    found = true;
+                    found_id = volume->geometry_id.second;
+                }
+            }
+        }
+
+        if (found) {
+            for (unsigned int vol_idx : inst_vols) {
+                this->do_add_volume(vol_idx);
+            }
+            auto it = std::find(remaining_ids.begin(), remaining_ids.end(), found_id);
+            if (it != remaining_ids.end()) {
+                remaining_ids.erase(it);
+            }
+        }
+    }
+
+    // 3. Add any remaining instances (which are new)
     for (unsigned int volume_idx = 0; volume_idx < (unsigned int)m_volumes->size(); ++ volume_idx) {
         const GLVolume *volume = (*m_volumes)[volume_idx];
-        auto it = std::lower_bound(instance_ids_selected.begin(), instance_ids_selected.end(), volume->geometry_id.second);
-		if (it != instance_ids_selected.end() && *it == volume->geometry_id.second)
+        auto it = std::lower_bound(remaining_ids.begin(), remaining_ids.end(), volume->geometry_id.second);
+        if (it != remaining_ids.end() && *it == volume->geometry_id.second) {
             this->do_add_volume(volume_idx);
+        }
     }
+
     update_type();
     this->set_bounding_boxes_dirty();
 }
@@ -793,6 +867,16 @@ void Selection::volumes_changed(const std::vector<size_t> &map_volume_old_to_new
             list_new.insert(new_idx);
         }
     m_list = std::move(list_new);
+
+    // Map selection order to preserve click order!
+    std::vector<unsigned int> order_new;
+    for (unsigned int idx : m_selection_order) {
+        if (idx < map_volume_old_to_new.size() && map_volume_old_to_new[idx] != size_t(-1)) {
+            order_new.push_back((unsigned int)map_volume_old_to_new[idx]);
+        }
+    }
+    m_selection_order = std::move(order_new);
+
     update_type();
     this->set_bounding_boxes_dirty();
 }
@@ -2533,6 +2617,9 @@ void Selection::set_caches()
 void Selection::do_add_volume(unsigned int volume_idx)
 {
     m_list.insert(volume_idx);
+    if (std::find(m_selection_order.begin(), m_selection_order.end(), volume_idx) == m_selection_order.end()) {
+        m_selection_order.push_back(volume_idx);
+    }
     GLVolume* v = (*m_volumes)[volume_idx];
     v->selected = true;
     if (v->hover == GLVolume::HS_Select || v->hover == GLVolume::HS_Deselect)
@@ -2555,6 +2642,10 @@ void Selection::do_remove_volume(unsigned int volume_idx)
         return;
 
     m_list.erase(v_it);
+    auto order_it = std::find(m_selection_order.begin(), m_selection_order.end(), volume_idx);
+    if (order_it != m_selection_order.end()) {
+        m_selection_order.erase(order_it);
+    }
 
     (*m_volumes)[volume_idx]->selected = false;
 }
@@ -3384,6 +3475,293 @@ void Selection::transform_volume_relative(GLVolume& volume, const VolumeCache& v
         volume.set_volume_transformation(vol_trafo.get_matrix() * transform);
     else
         assert(false);
+}
+
+void Selection::align(int axis, int align_type, bool distribute)
+{
+    BOOST_LOG_TRIVIAL(info) << "Selection::align started: axis=" << axis << ", align_type=" << align_type << ", distribute=" << distribute;
+    std::string order_str;
+    for (unsigned int idx : m_selection_order) {
+        order_str += std::to_string(idx) + " ";
+    }
+    BOOST_LOG_TRIVIAL(info) << "m_selection_order: " << order_str;
+    BOOST_LOG_TRIVIAL(info) << "m_valid=" << m_valid << ", m_selection_order.size()=" << m_selection_order.size() << ", m_list.size()=" << m_list.size() << ", m_mode=" << (int)m_mode;
+
+    if (!m_valid || m_selection_order.empty() || m_list.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "Selection::align early exit due to invalid selection / empty list";
+        return;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "m_cache.content.size()=" << m_cache.content.size();
+
+    size_t total_selected_instances = 0;
+    for (const auto& [obj_idx, inst_list] : m_cache.content) {
+        total_selected_instances += inst_list.size();
+    }
+    BOOST_LOG_TRIVIAL(info) << "total_selected_instances=" << total_selected_instances;
+
+    EMode old_mode = m_mode;
+    bool mode_changed = false;
+    if (m_mode == Instance && total_selected_instances <= 1 && m_list.size() > 1) {
+        BOOST_LOG_TRIVIAL(info) << "align: only 1 instance selected with multiple volumes. Temporarily switching to Volume mode.";
+        m_mode = Volume;
+        mode_changed = true;
+    }
+
+    // Distribute objects along axis
+    if (distribute) {
+        if (m_mode == Instance) {
+            struct SelectedInstance {
+                int obj_idx;
+                int inst_idx;
+                double val;
+            };
+            std::vector<SelectedInstance> selected_instances;
+            for (const auto& [obj_idx, inst_list] : m_cache.content) {
+                ModelObject* mo = m_model->objects[obj_idx];
+                for (int inst_idx : inst_list) {
+                    BoundingBoxf3 inst_bbox = mo->instance_bounding_box(inst_idx);
+                    double val = 0.0;
+                    if (align_type == 0) {
+                        val = inst_bbox.min[axis];
+                    } else if (align_type == 1) {
+                        val = inst_bbox.center()[axis];
+                    } else if (align_type == 2) {
+                        val = inst_bbox.max[axis];
+                    }
+                    selected_instances.push_back({obj_idx, inst_idx, val});
+                }
+            }
+
+            BOOST_LOG_TRIVIAL(info) << "selected_instances.size()=" << selected_instances.size();
+
+            if (selected_instances.size() <= 2) {
+                BOOST_LOG_TRIVIAL(warning) << "Not enough instances to distribute (need >= 3)";
+                if (mode_changed) m_mode = old_mode;
+                return;
+            }
+
+            std::sort(selected_instances.begin(), selected_instances.end(), [](const SelectedInstance& a, const SelectedInstance& b) {
+                return a.val < b.val;
+            });
+
+            double min_val = selected_instances.front().val;
+            double max_val = selected_instances.back().val;
+            double total_dist = max_val - min_val;
+            size_t N = selected_instances.size();
+
+            BOOST_LOG_TRIVIAL(info) << "distribute min_val=" << min_val << ", max_val=" << max_val << ", total_dist=" << total_dist;
+
+            for (size_t i = 1; i < N - 1; ++i) {
+                const auto& item = selected_instances[i];
+                double target_val = min_val + i * (total_dist / (N - 1));
+                double diff = target_val - item.val;
+                BOOST_LOG_TRIVIAL(info) << "distribute instance item i=" << i << ", val=" << item.val << ", target_val=" << target_val << ", diff=" << diff;
+                if (std::abs(diff) > 1e-6) {
+                    Vec3d displacement(0.0, 0.0, 0.0);
+                    displacement[axis] = diff;
+                    this->translate(item.obj_idx, item.inst_idx, displacement);
+                }
+            }
+        } else if (m_mode == Volume) {
+            struct SelectedVolume {
+                unsigned int gl_vol_idx;
+                int obj_idx;
+                int inst_idx;
+                int vol_idx;
+                double val;
+            };
+            std::vector<SelectedVolume> selected_volumes;
+            for (unsigned int i : m_list) {
+                GLVolume& v = *(*m_volumes)[i];
+                int obj_idx = v.object_idx();
+                int inst_idx = v.instance_idx();
+                int vol_idx = v.volume_idx();
+                if (obj_idx >= 0 && vol_idx >= 0) {
+                    double val = 0.0;
+                    if (align_type == 0) {
+                        val = v.transformed_convex_hull_bounding_box().min[axis];
+                    } else if (align_type == 1) {
+                        val = v.transformed_convex_hull_bounding_box().center()[axis];
+                    } else if (align_type == 2) {
+                        val = v.transformed_convex_hull_bounding_box().max[axis];
+                    }
+                    selected_volumes.push_back({i, obj_idx, inst_idx, vol_idx, val});
+                }
+            }
+
+            BOOST_LOG_TRIVIAL(info) << "selected_volumes.size()=" << selected_volumes.size();
+
+            if (selected_volumes.size() <= 2) {
+                BOOST_LOG_TRIVIAL(warning) << "Not enough volumes to distribute (need >= 3)";
+                if (mode_changed) m_mode = old_mode;
+                return;
+            }
+
+            std::sort(selected_volumes.begin(), selected_volumes.end(), [](const SelectedVolume& a, const SelectedVolume& b) {
+                return a.val < b.val;
+            });
+
+            double min_val = selected_volumes.front().val;
+            double max_val = selected_volumes.back().val;
+            double total_dist = max_val - min_val;
+            size_t N = selected_volumes.size();
+
+            BOOST_LOG_TRIVIAL(info) << "distribute volumes min_val=" << min_val << ", max_val=" << max_val << ", total_dist=" << total_dist;
+
+            set_caches();
+
+            for (size_t i = 1; i < N - 1; ++i) {
+                const auto& item = selected_volumes[i];
+                double target_val = min_val + i * (total_dist / (N - 1));
+                double diff = target_val - item.val;
+                BOOST_LOG_TRIVIAL(info) << "distribute volume item i=" << i << ", val=" << item.val << ", target_val=" << target_val << ", diff=" << diff;
+                if (std::abs(diff) > 1e-6) {
+                    Vec3d displacement(0.0, 0.0, 0.0);
+                    displacement[axis] = diff;
+                    const VolumeCache& volume_data = m_cache.volumes_data[item.gl_vol_idx];
+                    const Vec3d local_displacement = (volume_data.get_instance_rotation_matrix() * volume_data.get_instance_scale_matrix() * volume_data.get_instance_mirror_matrix()).inverse() * displacement;
+                    this->translate(item.obj_idx, item.inst_idx, item.vol_idx, local_displacement);
+                }
+            }
+        }
+    } else {
+        int anchor_obj_idx = -1;
+        int anchor_inst_idx = -1;
+        int anchor_vol_idx = -1;
+        unsigned int anchor_gl_vol_idx = m_selection_order.front();
+        if (anchor_gl_vol_idx < m_volumes->size()) {
+            GLVolume* v = (*m_volumes)[anchor_gl_vol_idx];
+            anchor_obj_idx = v->object_idx();
+            anchor_inst_idx = v->instance_idx();
+            anchor_vol_idx = v->volume_idx();
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "align anchor_gl_vol_idx=" << anchor_gl_vol_idx << ", anchor_obj=" << anchor_obj_idx << ", anchor_inst=" << anchor_inst_idx;
+
+        if (anchor_obj_idx < 0) {
+            BOOST_LOG_TRIVIAL(warning) << "Invalid anchor_obj_idx < 0";
+            if (mode_changed) m_mode = old_mode;
+            return;
+        }
+
+        bool align_to_global = (is_single_full_object() || is_single_full_instance());
+
+        BoundingBoxf3 anchor_bbox;
+        if (m_mode == Instance) {
+            anchor_bbox = m_model->objects[anchor_obj_idx]->instance_bounding_box(anchor_inst_idx);
+        } else if (m_mode == Volume) {
+            if (anchor_gl_vol_idx < m_volumes->size()) {
+                anchor_bbox = (*m_volumes)[anchor_gl_vol_idx]->transformed_convex_hull_bounding_box();
+            } else {
+                BOOST_LOG_TRIVIAL(warning) << "anchor_gl_vol_idx out of bounds";
+                if (mode_changed) m_mode = old_mode;
+                return;
+            }
+        }
+
+        double target_coord = 0.0;
+        if (align_to_global) {
+            BoundingBoxf3 global_bbox = get_bounding_box();
+            if (align_type == 0) {
+                target_coord = global_bbox.min[axis];
+            } else if (align_type == 1) {
+                target_coord = global_bbox.center()[axis];
+            } else if (align_type == 2) {
+                target_coord = global_bbox.max[axis];
+            }
+        } else {
+            if (align_type == 0) {
+                target_coord = anchor_bbox.min[axis];
+            } else if (align_type == 1) {
+                target_coord = anchor_bbox.center()[axis];
+            } else if (align_type == 2) {
+                target_coord = anchor_bbox.max[axis];
+            } else {
+                BOOST_LOG_TRIVIAL(warning) << "Invalid align_type: " << align_type;
+                if (mode_changed) m_mode = old_mode;
+                return;
+            }
+        }
+
+        BOOST_LOG_TRIVIAL(info) << "align target_coord=" << target_coord << ", align_to_global=" << align_to_global;
+
+        if (m_mode == Instance) {
+            for (const auto& [obj_idx, inst_list] : m_cache.content) {
+                ModelObject* mo = m_model->objects[obj_idx];
+                for (int inst_idx : inst_list) {
+                    if (obj_idx == anchor_obj_idx && inst_idx == anchor_inst_idx) {
+                        BOOST_LOG_TRIVIAL(info) << "Skipping anchor object " << obj_idx << ", instance " << inst_idx;
+                        continue;
+                    }
+
+                    BoundingBoxf3 inst_bbox = mo->instance_bounding_box(inst_idx);
+                    double current_coord = 0.0;
+                    if (align_type == 0) {
+                        current_coord = inst_bbox.min[axis];
+                    } else if (align_type == 1) {
+                        current_coord = inst_bbox.center()[axis];
+                    } else if (align_type == 2) {
+                        current_coord = inst_bbox.max[axis];
+                    }
+
+                    double diff = target_coord - current_coord;
+                    BOOST_LOG_TRIVIAL(info) << "align instance object=" << obj_idx << ", instance=" << inst_idx << ", coord=" << current_coord << ", diff=" << diff;
+                    if (std::abs(diff) > 1e-6) {
+                        Vec3d displacement(0.0, 0.0, 0.0);
+                        displacement[axis] = diff;
+                        this->translate(obj_idx, inst_idx, displacement);
+                    }
+                }
+            }
+        } else if (m_mode == Volume) {
+            set_caches();
+            for (unsigned int i : m_list) {
+                if (!align_to_global && i == anchor_gl_vol_idx) {
+                    BOOST_LOG_TRIVIAL(info) << "Skipping anchor volume " << i;
+                    continue;
+                }
+
+                GLVolume& v = *(*m_volumes)[i];
+                int obj_idx = v.object_idx();
+                int inst_idx = v.instance_idx();
+                int vol_idx = v.volume_idx();
+                if (obj_idx >= 0 && vol_idx >= 0) {
+                    const BoundingBoxf3& vol_bbox = v.transformed_convex_hull_bounding_box();
+                    double current_coord = 0.0;
+                    if (align_type == 0) {
+                        current_coord = vol_bbox.min[axis];
+                    } else if (align_type == 1) {
+                        current_coord = vol_bbox.center()[axis];
+                    } else if (align_type == 2) {
+                        current_coord = vol_bbox.max[axis];
+                    }
+
+                    double diff = target_coord - current_coord;
+                    BOOST_LOG_TRIVIAL(info) << "align volume gl_idx=" << i << ", object=" << obj_idx << ", volume=" << vol_idx << ", coord=" << current_coord << ", diff=" << diff;
+                    if (std::abs(diff) > 1e-6) {
+                        Vec3d displacement(0.0, 0.0, 0.0);
+                        displacement[axis] = diff;
+                        const VolumeCache& volume_data = m_cache.volumes_data[i];
+                        const Vec3d local_displacement = (volume_data.get_instance_rotation_matrix() * volume_data.get_instance_scale_matrix() * volume_data.get_instance_mirror_matrix()).inverse() * displacement;
+                        this->translate(obj_idx, inst_idx, vol_idx, local_displacement);
+                    }
+                }
+            }
+        }
+    }
+
+    auto active_canvas = wxGetApp().plater()->canvas3D();
+    if (active_canvas) {
+        BOOST_LOG_TRIVIAL(info) << "Calling do_move on active canvas: " << (int)active_canvas->get_canvas_type();
+        active_canvas->do_move(L("Align objects"));
+    } else {
+        BOOST_LOG_TRIVIAL(error) << "No active canvas found to call do_move!";
+    }
+
+    if (mode_changed) {
+        m_mode = old_mode;
+    }
 }
 
 ModelVolume *get_selected_volume(const Selection &selection)

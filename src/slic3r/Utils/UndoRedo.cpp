@@ -944,6 +944,13 @@ void StackImpl::take_snapshot(const std::string& snapshot_name, const Slic3r::Mo
 	m_selection.mode = selection.get_mode();
 	for (unsigned int volume_idx : selection.get_volume_idxs())
 		m_selection.volumes_and_instances.emplace_back(selection.get_volume(volume_idx)->geometry_id);
+	m_selection.selection_order.clear();
+	m_selection.selection_order.reserve(selection.get_selection_order().size());
+	for (unsigned int volume_idx : selection.get_selection_order()) {
+		if (const auto* vol = selection.get_volume(volume_idx)) {
+			m_selection.selection_order.emplace_back(vol->geometry_id);
+		}
+	}
 	this->save_mutable_object<Selection>(m_selection);
     this->save_mutable_object<Slic3r::GUI::GLGizmosManager>(gizmos);
 

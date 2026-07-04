@@ -149,6 +149,8 @@ private:
     EType m_type;
     // set of indices to m_volumes
     IndicesList m_list;
+    // set of indices to keep selection order
+    std::vector<unsigned int> m_selection_order;
     Cache m_cache;
     Clipboard m_clipboard;
     std::optional<BoundingBoxf3> m_bounding_box;
@@ -245,7 +247,7 @@ public:
     void remove_all();
 
     // To be called after Undo or Redo once the volumes are updated.
-    void set_deserialized(EMode mode, const std::vector<std::pair<size_t, size_t>> &volumes_and_instances);
+    void set_deserialized(EMode mode, const std::vector<std::pair<size_t, size_t>> &volumes_and_instances, const std::vector<std::pair<size_t, size_t>> &selection_order = {});
 
     // Update the selection based on the new instance IDs.
 	void instances_changed(const std::vector<size_t> &instance_ids_selected);
@@ -298,6 +300,8 @@ public:
     const InstanceIdxsList& get_instance_idxs() const;
 
     const IndicesList& get_volume_idxs() const { return m_list; }
+    const std::vector<unsigned int>& get_selection_order() const { return m_selection_order; }
+    size_t get_volumes_size() const { return m_volumes ? m_volumes->size() : 0; }
     const GLVolume* get_volume(unsigned int volume_idx) const;
     const GLVolume* get_first_volume() const { return get_volume(*m_list.begin()); }
     GLVolume* get_volume(unsigned int volume_idx);
@@ -345,6 +349,7 @@ public:
 #endif // ENABLE_ENHANCED_PRINT_VOLUME_FIT
     void scale_and_translate(const Vec3d &scale, const Vec3d &world_translation, TransformationType transformation_type);
     void mirror(Axis axis, TransformationType transformation_type);
+    void align(int axis, int align_type, bool distribute);
 
     void translate(unsigned int object_idx, const Vec3d& displacement);
     void translate(unsigned int object_idx, unsigned int instance_idx, const Vec3d& displacement);

@@ -104,10 +104,11 @@ inline bool snapshot_modifies_project(const Snapshot &snapshot)
 
 // Excerpt of Slic3r::GUI::Selection for serialization onto the Undo / Redo stack.
 struct Selection : public Slic3r::ObjectBase {
-	void clear() { mode = 0; volumes_and_instances.clear(); }
+	void clear() { mode = 0; volumes_and_instances.clear(); selection_order.clear(); }
 	unsigned char							mode = 0;
 	std::vector<std::pair<size_t, size_t>>	volumes_and_instances;
-	template<class Archive> void serialize(Archive &ar) { ar(mode, volumes_and_instances); }
+	std::vector<std::pair<size_t, size_t>>	selection_order;
+	template<class Archive> void serialize(Archive &ar) { ar(mode, volumes_and_instances, selection_order); }
 };
 
 class StackImpl;

@@ -77,6 +77,7 @@ public:
         Move,
         Rotate,
         Scale,
+        Align,
         Flatten,
         Cut,
         MeshBoolean,
