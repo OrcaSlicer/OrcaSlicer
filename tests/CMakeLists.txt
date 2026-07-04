@@ -55,6 +55,7 @@ endfunction()
 add_subdirectory(libnest2d)
 add_subdirectory(libslic3r)
 add_subdirectory(slic3rutils)
+add_subdirectory(slic3rGUI)
 add_subdirectory(fff_print)
 add_subdirectory(sla_print)
 

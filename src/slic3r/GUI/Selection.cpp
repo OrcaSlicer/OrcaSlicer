@@ -116,6 +116,7 @@ Selection::Selection()
     , m_type(Empty)
     , m_valid(false)
     , m_scale_factor(1.0f)
+    , m_is_full_selection(false)
 {
     this->set_bounding_boxes_dirty();
 }
@@ -160,6 +161,8 @@ void Selection::add(unsigned int volume_idx, bool as_single_selection, bool chec
 {
     if (!m_valid || (unsigned int)m_volumes->size() <= volume_idx)
         return;
+
+    m_is_full_selection = false;
 
     const GLVolume* volume = (*m_volumes)[volume_idx];
     //BBS: multiple wipe tower case should be considered
@@ -259,6 +262,8 @@ void Selection::add_object(unsigned int object_idx, bool as_single_selection)
     if (!m_valid)
         return;
 
+    m_is_full_selection = as_single_selection;
+
     std::vector<unsigned int> volume_idxs = get_volume_idxs_from_object(object_idx);
     if ((!as_single_selection && contains_all_volumes(volume_idxs)) ||
         (as_single_selection && matches(volume_idxs)))
@@ -295,6 +300,8 @@ void Selection::add_instance(unsigned int object_idx, unsigned int instance_idx,
 {
     if (!m_valid)
         return;
+
+    m_is_full_selection = as_single_selection;
 
     const std::vector<unsigned int> volume_idxs = get_volume_idxs_from_instance(object_idx, instance_idx);
     if ((!as_single_selection && contains_all_volumes(volume_idxs)) ||
@@ -333,6 +340,8 @@ void Selection::add_volume(unsigned int object_idx, unsigned int volume_idx, int
     if (!m_valid)
         return;
 
+    m_is_full_selection = false;
+
     std::vector<unsigned int> volume_idxs = get_volume_idxs_from_volume(object_idx, instance_idx, volume_idx);
     if ((!as_single_selection && contains_all_volumes(volume_idxs)) ||
         (as_single_selection && matches(volume_idxs)))
@@ -369,6 +378,8 @@ void Selection::add_volumes(EMode mode, const std::vector<unsigned int>& volume_
 {
     if (!m_valid)
         return;
+
+    m_is_full_selection = false;
 
     if ((!as_single_selection && contains_all_volumes(volume_idxs)) ||
         (as_single_selection && matches(volume_idxs)))
@@ -460,6 +471,8 @@ void Selection::add_curr_plate()
 void Selection::add_object_from_idx(std::vector<int>& object_idxs) {
     if (!m_valid)
         return;
+
+    m_is_full_selection = true;
 
     m_mode = Instance;
     clear();
@@ -726,18 +739,20 @@ void Selection::set_deserialized(EMode mode, const std::vector<std::pair<size_t,
         }
     }
 
-    // Fallback/Backward compatibility: add any remaining volumes that are in volumes_and_instances
-    // but were not in selection_order (or if selection_order was empty)
-    for (const auto& geo_id : volumes_and_instances) {
-        auto it = geo_to_idx.find(geo_id);
-        if (it != geo_to_idx.end()) {
-            if (m_list.find(it->second) == m_list.end()) {
-                do_add_volume(it->second);
+    // Fallback/Backward compatibility: if selection_order was empty, add all volumes in volumes_and_instances
+    if (selection_order.empty()) {
+        for (const auto& geo_id : volumes_and_instances) {
+            auto it = geo_to_idx.find(geo_id);
+            if (it != geo_to_idx.end()) {
+                if (m_list.find(it->second) == m_list.end()) {
+                    do_add_volume(it->second);
+                }
             }
         }
     }
 
     update_type();
+    m_is_full_selection = (is_single_full_object() || is_single_full_instance());
     set_bounding_boxes_dirty();
 }
 
@@ -3645,10 +3660,12 @@ void Selection::align(int axis, int align_type, bool distribute)
             return;
         }
 
-        bool align_to_global = (is_single_full_object() || is_single_full_instance());
+        bool align_to_global = (m_mode == Instance) && (is_single_full_object() || is_single_full_instance());
+
+        bool is_single_object_selected = (is_single_full_object() || is_single_full_instance()) && m_is_full_selection;
 
         BoundingBoxf3 anchor_bbox;
-        if (m_mode == Instance) {
+        if (m_mode == Instance || is_single_object_selected) {
             anchor_bbox = m_model->objects[anchor_obj_idx]->instance_bounding_box(anchor_inst_idx);
         } else if (m_mode == Volume) {
             if (anchor_gl_vol_idx < m_volumes->size()) {
@@ -3717,7 +3734,7 @@ void Selection::align(int axis, int align_type, bool distribute)
         } else if (m_mode == Volume) {
             set_caches();
             for (unsigned int i : m_list) {
-                if (!align_to_global && i == anchor_gl_vol_idx) {
+                if (!align_to_global && !is_single_object_selected && i == anchor_gl_vol_idx) {
                     BOOST_LOG_TRIVIAL(info) << "Skipping anchor volume " << i;
                     continue;
                 }
@@ -3751,12 +3768,16 @@ void Selection::align(int axis, int align_type, bool distribute)
         }
     }
 
-    auto active_canvas = wxGetApp().plater()->canvas3D();
-    if (active_canvas) {
-        BOOST_LOG_TRIVIAL(info) << "Calling do_move on active canvas: " << (int)active_canvas->get_canvas_type();
-        active_canvas->do_move(L("Align objects"));
+    if (wxApp::GetInstance() != nullptr && wxGetApp().plater() != nullptr) {
+        auto active_canvas = wxGetApp().plater()->canvas3D();
+        if (active_canvas) {
+            BOOST_LOG_TRIVIAL(info) << "Calling do_move on active canvas: " << (int)active_canvas->get_canvas_type();
+            active_canvas->do_move(L("Align objects"));
+        } else {
+            BOOST_LOG_TRIVIAL(error) << "No active canvas found to call do_move!";
+        }
     } else {
-        BOOST_LOG_TRIVIAL(error) << "No active canvas found to call do_move!";
+        BOOST_LOG_TRIVIAL(info) << "No active plater. Skipping canvas update.";
     }
 
     if (mode_changed) {

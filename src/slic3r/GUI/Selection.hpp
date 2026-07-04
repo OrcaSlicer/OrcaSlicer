@@ -33,6 +33,7 @@ namespace GUI {
 
 class Selection
 {
+    friend class SelectionTest;
 public:
     typedef std::set<unsigned int> IndicesList;
 
@@ -196,6 +197,7 @@ private:
     // BBS
     EMode m_volume_selection_mode{ Instance };
     bool m_volume_selection_locked { false };
+    bool m_is_full_selection { false };
 
 public:
     Selection();
