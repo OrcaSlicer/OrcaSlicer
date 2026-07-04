@@ -91,9 +91,14 @@ Vec3d GLGizmoMeasure::get_feature_offset(const Measure::SurfaceFeature &feature)
     }
     case Measure::SurfaceFeatureType::Edge:
     {
-        std::optional<Vec3d> p = feature.get_extra_point();
-        assert(p.has_value());
-        ret = *p;
+        // Only polygon edges store an extra point (the polygon centre); plain edges have none.
+        const std::optional<Vec3d> extra = feature.get_extra_point();
+        if (extra.has_value())
+            ret = *extra;
+        else {
+            const auto [pt1, pt2] = feature.get_edge();
+            ret = 0.5 * (pt1 + pt2);
+        }
         break;
     }
     case Measure::SurfaceFeatureType::Point:
@@ -1065,7 +1070,7 @@ void GLGizmoMeasure::on_render()
 
         if (requires_raycaster_update) {
             if (m_gripper_id_raycast_map.find(GripperType::SPHERE_2) != m_gripper_id_raycast_map.end()) {
-                m_gripper_id_raycast_map[GripperType::SPHERE_2]->set_transform(Geometry::translation_transform(get_feature_offset(*m_selected_features.first.feature)) *
+                m_gripper_id_raycast_map[GripperType::SPHERE_2]->set_transform(Geometry::translation_transform(get_feature_offset(*m_selected_features.second.feature)) *
                                                                                Geometry::scale_transform(inv_zoom));
             }
         }

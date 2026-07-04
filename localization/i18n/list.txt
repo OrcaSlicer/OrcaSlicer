@@ -227,11 +227,14 @@ src/slic3r/GUI/CreatePresetsDialog.cpp
 src/slic3r/GUI/DailyTips.cpp
 src/slic3r/Utils/CalibUtils.cpp
 src/slic3r/GUI/PhysicalPrinterDialog.cpp
+src/slic3r/GUI/CrealityDiscoveryDialog.cpp
+src/slic3r/GUI/TroubleshootDialog.cpp
 src/slic3r/Utils/3DPrinterOS.cpp
 src/slic3r/Utils/AstroBox.cpp
 src/slic3r/Utils/Duet.cpp
 src/slic3r/Utils/FlashAir.cpp
 src/slic3r/Utils/MKS.cpp
+src/slic3r/Utils/Moonraker.cpp
 src/slic3r/Utils/OctoPrint.cpp
 src/slic3r/Utils/Repetier.cpp
 src/slic3r/Utils/ProfileDescription.hpp
