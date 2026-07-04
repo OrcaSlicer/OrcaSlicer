@@ -1,13 +1,13 @@
 {
 	"type": "filament",
-	"filament_id": "GFB99",
+	"name": "QIDI TPU-GF @Qidi Q1 Pro 0.6 nozzle",
+	"inherits": "QIDI TPU-GF",
 	"setting_id": "nY6q9vd6lpaXiQpc",
+	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"QIDI TPU-GF @Qidi Q1 Pro 0.6 nozzle"
 	],
-	"inherits": "QIDI TPU-GF",
-	"name": "QIDI TPU-GF @Qidi Q1 Pro 0.6 nozzle",
 	"compatible_printers": [
 		"Qidi Q1 Pro 0.6 nozzle"
 	]

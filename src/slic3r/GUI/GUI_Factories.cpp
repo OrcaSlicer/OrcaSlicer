@@ -141,6 +141,8 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"infill_wall_overlap", "", 1},
        {"top_bottom_infill_wall_overlap", "", 1},
        {"solid_infill_direction", "", 1},
+       {"top_layer_direction", "", 1},
+       {"bottom_layer_direction", "", 1},
        {"infill_direction", "", 1},
        {"bridge_angle", "", 1},
        {"internal_bridge_angle", "", 1},
@@ -590,6 +592,7 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
     static const std::vector<HandyModel> handy_models = {
         {L("Orca Cube"),           {"OrcaCube_v2.drc", "OrcaPlug_v2.drc"},                    true},
         {L("OrcaSliced Combo"),    {"OrcaSliced.3mf", "OrcaCube_v2.drc", "OrcaPlug_v2.drc"},  true},
+        {L("Orca Badge"),          {"OrcaBadge.3mf"}},
         {L("Orca Tolerance Test"), {"OrcaToleranceTest.drc"}},
         {L("3DBenchy"),            {"3DBenchy.drc"}},
         {L("Cali Cat"),            {"calicat.drc"}},

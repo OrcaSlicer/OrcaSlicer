@@ -710,6 +710,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_field("bottom_surface_pattern", has_bottom_shell);
     toggle_field("top_surface_density", has_top_shell);
     toggle_field("bottom_surface_density", has_bottom_shell);
+    toggle_field("top_layer_direction", has_top_shell);
+    toggle_field("bottom_layer_direction", has_bottom_shell);
 
     for (auto el : { "infill_direction", "sparse_infill_line_width", "gap_fill_target","filter_out_gap_fill","infill_wall_overlap",
         "bridge_angle", "internal_bridge_angle", "relative_bridge_angle",
@@ -843,6 +845,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 //    (config->opt_int("skirt_height") > 1 || config->opt_enum<DraftShield>("draft_shield") != dsEnabled);
 //    toggle_line("support_speed", have_support_material || have_skirt_height);
 //    toggle_line("support_interface_speed", have_support_material && have_support_interface);
+
+    // Orca:
+    for (auto el : {"small_support_perimeter_speed", "small_support_perimeter_threshold"})
+        toggle_field(el, config->opt_bool("enable_support"));
 
     // BBS
     //toggle_field("support_material_synchronize_layers", have_support_soluble);

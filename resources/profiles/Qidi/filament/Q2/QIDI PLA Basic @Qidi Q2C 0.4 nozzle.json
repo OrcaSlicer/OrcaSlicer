@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "jlX2OfKRNzFI682k",
 	"name": "QIDI PLA Basic @Qidi Q2C 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Basic@Q2C-Series",
+	"from": "system",
+	"setting_id": "jlX2OfKRNzFI682k",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.038"
 	],
