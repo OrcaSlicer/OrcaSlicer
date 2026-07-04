@@ -1685,6 +1685,9 @@ public:
     //BBS: add auxiliary files temp path
     std::string   get_auxiliary_file_temp_path();
 
+    // Builds the per-user backup root under a (possibly shared) temp dir; see issue #10108.
+    static std::string get_model_backup_root(const std::string &temp_dir, const std::string &user_id);
+
     // BBS: backup
     std::string   get_backup_path();
     std::string   get_backup_path(const std::string &sub_path);

@@ -954,22 +954,29 @@ std::string Model::get_auxiliary_file_temp_path()
     return get_backup_path("Auxiliaries");
 }
 
+std::string Model::get_model_backup_root(const std::string &temp_dir, const std::string &user_id)
+{
+    std::string root = temp_dir + "/orcaslicer_model";
+    if (!user_id.empty())
+        root += "_" + user_id;
+    return root;
+}
+
 // BBS: backup dir
 std::string Model::get_backup_path()
 {
     if (backup_path.empty())
     {
         auto pid = get_current_pid();
-        boost::filesystem::path parent_path(temporary_dir());
         std::time_t t = std::time(0);
         std::tm* now_time = std::localtime(&t);
         std::stringstream buf;
-        buf << "/orcaslicer_model/";
-        buf << std::put_time(now_time, "%a_%b_%d/%H_%M_%S#");
+        buf << get_model_backup_root(temporary_dir(), per_user_temp_id());
+        buf << "/" << std::put_time(now_time, "%a_%b_%d/%H_%M_%S#");
         buf << pid << "#";
         buf << this->id().id;
 
-        backup_path = parent_path.string() + buf.str();
+        backup_path = buf.str();
         BOOST_LOG_TRIVIAL(info) << boost::format("model %1%, id %2%, backup_path empty, set to %3%")%this%this->id().id%backup_path;
         boost::filesystem::path temp_path(backup_path);
         if (boost::filesystem::exists(temp_path))

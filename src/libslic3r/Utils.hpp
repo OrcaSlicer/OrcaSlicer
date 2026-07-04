@@ -300,6 +300,8 @@ std::string header_gcodeviewer_generated();
 
 // getpid platform wrapper
 extern unsigned get_current_pid();
+// Per-user identifier for isolating temp/backup dirs (empty on Windows).
+std::string per_user_temp_id();
 // BBS: backup & restore
 std::string get_process_name(int pid);
 

@@ -1285,6 +1285,15 @@ unsigned get_current_pid()
 #endif
 }
 
+std::string per_user_temp_id()
+{
+#ifdef WIN32
+    return {};
+#else
+    return std::to_string(static_cast<unsigned long>(::getuid()));
+#endif
+}
+
 // BBS: backup & restore
 std::string get_process_name(int pid)
 {
