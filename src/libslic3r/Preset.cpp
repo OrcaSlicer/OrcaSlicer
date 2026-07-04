@@ -1857,6 +1857,26 @@ int PresetCollection::get_differed_values_to_update(Preset& preset, std::map<std
             if (opt_src)
                 key_values[option] = opt_src->serialize();
         }
+
+        // Orca: force-emit nullable filament override keys whenever they hold a nil ("off")
+        // value, even when the diff dropped them because the parent is nil too. Otherwise the
+        // key is absent from the synced profile and the cloud re-materializes it against the
+        // option's non-nil default (e.g. filament_retract_before_wipe -> 100%), silently
+        // resurrecting an override the user turned off. See GitHub issue on Retract Before Wipe.
+        if (m_type == Preset::TYPE_FILAMENT) {
+            for (const std::string& opt_key : filament_extruder_override_keys) {
+                if (key_values.count(opt_key))
+                    continue; // already carried by the diff
+                const auto* opt_vec = dynamic_cast<const ConfigOptionVectorBase*>(preset.config.option(opt_key));
+                if (opt_vec == nullptr)
+                    continue;
+                bool has_nil = false;
+                for (size_t i = 0; i < opt_vec->size(); ++i)
+                    if (opt_vec->is_nil(i)) { has_nil = true; break; }
+                if (has_nil)
+                    key_values[opt_key] = opt_vec->serialize();
+            }
+        }
     }
     else {
         for (auto iter = preset.config.cbegin(); iter != preset.config.cend(); ++iter)
