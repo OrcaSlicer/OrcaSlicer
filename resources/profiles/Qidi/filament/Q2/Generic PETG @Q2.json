@@ -3,7 +3,6 @@
 	"name": "Generic PETG@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"setting_id": "GFSG99",
 	"filament_id": "QD_1_0_41",
 	"instantiation": "false",
 	"box_temperature_range_high": [

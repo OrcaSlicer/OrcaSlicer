@@ -3,7 +3,7 @@
 	"name": "InfiMech PA-CF @HSN",
 	"inherits": "fdm_filament_pa @HSN",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "L1j3mDKXjE2RKO1B",
 	"filament_id": "GFN98",
 	"instantiation": "true",
 	"filament_type": [

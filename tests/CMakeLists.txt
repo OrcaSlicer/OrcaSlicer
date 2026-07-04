@@ -47,6 +47,11 @@ function(orcaslicer_copy_test_dlls)
     endforeach()
 endfunction()
 
+# Register Catch2 tags as CTest labels so `ctest -L`/`-LE` can filter by tag.
+function(orcaslicer_discover_tests TARGET)
+    catch_discover_tests(${TARGET} ADD_TAGS_AS_LABELS)
+endfunction()
+
 add_subdirectory(libnest2d)
 add_subdirectory(libslic3r)
 add_subdirectory(slic3rutils)

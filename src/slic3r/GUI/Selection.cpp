@@ -519,22 +519,25 @@ void Selection::center()
     Vec3d distance = Vec3d(tar_pos.x() - src_pos.x(), tar_pos.y() - src_pos.y(), 0);
 
     this->move_to_center(distance);
-    wxGetApp().plater()->get_view3D_canvas3D()->do_move(L("Move Object"));
+    wxGetApp().plater()->get_view3D_canvas3D()->do_move(L("Move object"));
     return;
 }
 
 void Selection::drop()
 {
-    if (this->get_bounding_box().min.z() < SINKING_Z_THRESHOLD) {
+    if (std::abs(this->get_bounding_box().min.z()) < -SINKING_Z_THRESHOLD) {
         return; // shouldnt happen, but better check anyways, already checked in append_menu_item_drop()
     }
 
-    wxGetApp().plater()->take_snapshot(L("Move Object"));
+    wxGetApp().plater()->take_snapshot(L("Move object"));
 
     this->move_to_center(Vec3d(0, 0, -this->get_bounding_box().min.z()));
 
     for (unsigned int i : m_list) {
         GLVolume&    volume = *(*m_volumes)[i];
+        // Skip the wipe tower: its synthetic id (>= 1000) is not an index into m_model->objects.
+        if (volume.object_idx() >= 1000)
+            continue;
         ModelObject* model_object = m_model->objects[volume.object_idx()];
 
         if (model_object != nullptr) {
@@ -563,7 +566,7 @@ void Selection::center_plate(const int plate_idx) {
     Vec3d distance = Vec3d(tar_pos.x() - src_pos.x(), tar_pos.y() - src_pos.y(), 0);
 
     this->move_to_center(distance);
-    wxGetApp().plater()->get_view3D_canvas3D()->do_move(L("Move Object"));
+    wxGetApp().plater()->get_view3D_canvas3D()->do_move(L("Move object"));
     return;
 }
 
@@ -1848,6 +1851,9 @@ void Selection::notify_instance_update(int object_idx, int instance_idx)
         for (unsigned int i : m_list)
         {
             int obj_index = (*m_volumes)[i]->object_idx();
+            // Skip the wipe tower: its synthetic id (>= 1000) is not an index into m_model->objects.
+            if (obj_index >= 1000)
+                continue;
             //-1 means all the instance in this object
             if (instance_idx == -1)
             {

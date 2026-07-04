@@ -1,0 +1,9 @@
+{
+	"type": "process",
+	"name": "0.40mm Optimal @Elegoo N4Pro 1.0 nozzle",
+	"from": "system",
+	"inherits": "0.50mm Standard @Elegoo N4Pro 1.0 nozzle",
+	"setting_id": "tc7tn1h9Sf3B0D0X",
+	"instantiation": "true",
+	"layer_height": "0.4"
+}

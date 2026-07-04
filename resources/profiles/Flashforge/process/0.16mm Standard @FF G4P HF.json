@@ -3,6 +3,7 @@
 	"name": "0.16mm Standard @FF G4P HF",
 	"inherits": "0.20mm Standard @Flashforge G3U 0.4 Nozzle",
 	"from": "system",
+	"setting_id": "OldLqTbxDSL1VKQm",
 	"instantiation": "true",
 	"bridge_speed": "15",
 	"brim_type": "auto_brim",

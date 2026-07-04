@@ -30,7 +30,7 @@ FilamentLoad::FilamentLoad(wxWindow* parent, wxWindowID id, const wxPoint& pos, 
     FILAMENT_CHANGE_STEP_STRING[FilamentStep::STEP_IDLE]                = _L("Idling...");
     FILAMENT_CHANGE_STEP_STRING[FilamentStep::STEP_HEAT_NOZZLE]         = _L("Heat the nozzle");
     FILAMENT_CHANGE_STEP_STRING[FilamentStep::STEP_CUT_FILAMENT]        = _L("Cut filament");
-    FILAMENT_CHANGE_STEP_STRING[FilamentStep::STEP_PULL_CURR_FILAMENT]  = _L("Pull back current filament");
+    FILAMENT_CHANGE_STEP_STRING[FilamentStep::STEP_PULL_CURR_FILAMENT]  = _L("Pull back the current filament");
     FILAMENT_CHANGE_STEP_STRING[FilamentStep::STEP_PUSH_NEW_FILAMENT]   = _L("Push new filament into extruder");
     FILAMENT_CHANGE_STEP_STRING[FilamentStep::STEP_GRAB_NEW_FILAMENT]   = _L("Grab new filament");
     FILAMENT_CHANGE_STEP_STRING[FilamentStep::STEP_PURGE_OLD_FILAMENT]  = _L("Purge old filament");

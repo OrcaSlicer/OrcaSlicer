@@ -3,6 +3,7 @@
 	"name": "Flashforge HS PLA @FF G4 HF",
 	"inherits": "Flashforge Generic ABS @G3U",
 	"from": "system",
+	"setting_id": "BqavrNpwhXDXcZ3r",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

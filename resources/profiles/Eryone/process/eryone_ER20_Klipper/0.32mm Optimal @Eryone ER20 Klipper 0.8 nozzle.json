@@ -5,6 +5,7 @@
 	"elefant_foot_compensation": "0",
 	"from": "system",
 	"inherits": "fdm_process_ER20_Klipper_0.32_nozzle_0.8",
+	"setting_id": "6ULt0zBZlGeQj0zL",
 	"instantiation": "true",
 	"name": "0.32mm Optimal @Eryone ER20 Klipper 0.8 nozzle",
 	"type": "process"

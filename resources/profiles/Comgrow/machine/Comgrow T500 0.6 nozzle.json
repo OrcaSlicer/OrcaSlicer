@@ -3,7 +3,7 @@
 	"name": "Comgrow T500 0.6 nozzle",
 	"inherits": "fdm_comgrow_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "ZGnrVaKEE9cv5jxS",
 	"instantiation": "true",
 	"printer_model": "Comgrow T500",
 	"printer_variant": "0.6",

@@ -1,11 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "QD_2_0_1",
-	"setting_id": "GFSL99",
 	"name": "Generic PLA@Q2C-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_q_common",
+	"from": "system",
+	"filament_id": "QD_2_0_1",
+	"instantiation": "false",
 	"additional_cooling_fan_speed": [
 		"100"
 	],

@@ -3,7 +3,7 @@
 	"name": "QIDI PET-CF @Qidi Q2 0.6 nozzle",
 	"inherits": "QIDI PET-CF@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSN99",
+	"setting_id": "6zRPvpjMwhow7pQw",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.025"

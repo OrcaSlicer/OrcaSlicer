@@ -15,6 +15,8 @@
 #include <wx/time.h>
 
 #include <string>
+#include <functional>
+#include <utility>
 #include <vector>
 #include <deque>
 #include <unordered_set>
@@ -162,6 +164,8 @@ enum class NotificationType
     BBLMixUsePLAAndPETG,
 	BBLNozzleFilamentIncompatible,
     OrcaSharedProfilesAvailable,
+	OrcaCloudAPIError,
+    OrcaSyncConflict,
     NotificationTypeCount
 
 };
@@ -274,6 +278,10 @@ public:
 
 	// Shared profiles available for selected printer
 	void push_shared_profiles_notification(const std::string& explore_url);
+	void push_orca_sync_conflict_notification(const std::string& text,
+		int conflict_code,
+		std::function<bool(wxEvtHandler*)> pull_callback,
+		std::function<bool(wxEvtHandler*)> force_push_callback);
 
     // Download URL progress notif
     void push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback);
@@ -491,6 +499,11 @@ private:
 			                          const float text_x, const float text_y,
 		                              const std::string text,
 		                              bool more = false);
+		// Renders an underlined, hyperlink-style clickable label backed by an invisible button.
+		// on_click runs when pressed; the callback itself decides whether to close().
+		void render_hyperlink_action(ImGuiWrapper& imgui, float text_x, float text_y,
+		                             const std::string& text, const char* button_id,
+		                             const std::function<void()>& on_click);
 		virtual void bbl_render_block_notif_text(ImGuiWrapper& imgui,
 			const float win_size_x, const float win_size_y,
 			const float win_pos_x, const float win_pos_y);
@@ -887,6 +900,31 @@ private:
 		std::string m_explore_url;
 		bool m_dont_show_clicked{ false };
 	};
+
+	class OrcaSyncConflictNotification : public PopNotification
+	{
+	public:
+		OrcaSyncConflictNotification(const NotificationData& n, NotificationIDProvider& id_provider, wxEvtHandler* evt_handler,
+			std::function<bool(wxEvtHandler*)> pull_callback,
+			std::function<bool(wxEvtHandler*)> force_push_callback,
+			int conflict_code)
+			: PopNotification(n, id_provider, evt_handler)
+			, m_pull_callback(std::move(pull_callback))
+			, m_force_push_callback(std::move(force_push_callback))
+			, conflict_code(conflict_code)
+		{
+			m_multiline = true;
+		}
+	protected:
+		void init() override;
+		void render_text(ImGuiWrapper& imgui,
+			const float win_size_x, const float win_size_y,
+			const float win_pos_x, const float win_pos_y) override;
+
+		std::function<bool(wxEvtHandler*)> m_pull_callback;
+		std::function<bool(wxEvtHandler*)> m_force_push_callback;
+		int conflict_code;
+	};
 	class SlicingProgressNotification;
 
 	// in HintNotification.hpp
@@ -967,13 +1005,14 @@ private:
 		NotificationType::PlaterWarning,
 		NotificationType::ProgressBar,
 		NotificationType::PrintHostUpload,
-        NotificationType::SimplifySuggestion
+        NotificationType::SimplifySuggestion,
+        NotificationType::ValidateWarning
 	};
 	//prepared (basic) notifications
 	// non-static so its not loaded too early. If static, the translations wont load correctly.
 	const std::vector<NotificationData> basic_notifications = {
         NotificationData{NotificationType::Mouse3dDisconnected, NotificationLevel::RegularNotificationLevel, 10, _u8L("3D Mouse disconnected.")},
-        NotificationData{NotificationType::PresetUpdateAvailable, NotificationLevel::ImportantNotificationLevel, BBL_NOTICE_MAX_INTERVAL, _u8L("Configuration can update now."), _u8L("Detail."),
+        NotificationData{NotificationType::PresetUpdateAvailable, NotificationLevel::ImportantNotificationLevel, BBL_NOTICE_MAX_INTERVAL, _u8L("A new configuration is available. Update now\?"), _u8L("More"),
 		[](wxEvtHandler* evnthndlr) {
 			if (evnthndlr != nullptr)
 				wxPostEvent(evnthndlr, PresetUpdateAvailableClickedEvent(EVT_PRESET_UPDATE_AVAILABLE_CLICKED));
@@ -1018,8 +1057,8 @@ private:
 
         NotificationData{NotificationType::UndoDesktopIntegrationFail, NotificationLevel::WarningNotificationLevel, 10,
 		_u8L("Undo integration failed.") },
-        NotificationData{NotificationType::ExportOngoing, NotificationLevel::RegularNotificationLevel, 0, _u8L("Exporting.")},
-        NotificationData{NotificationType::NewAppAvailable, NotificationLevel::ImportantNotificationLevel, 20, _u8L("Software has New version."), _u8L("Goto download page."),
+        NotificationData{NotificationType::ExportOngoing, NotificationLevel::RegularNotificationLevel, 0, _u8L("Exporting")},
+        NotificationData{NotificationType::NewAppAvailable, NotificationLevel::ImportantNotificationLevel, 20, _u8L("An update is available!"), _u8L("Go to download page"),
                          [](wxEvtHandler *evnthndlr) {
 				//BBS set feishu release page by default
 				wxGetApp().open_browser_with_warning_dialog("https://www.thingiverse.com/"); return true;

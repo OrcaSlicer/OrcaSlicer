@@ -13,6 +13,7 @@
 #include "../Polygon.hpp"
 #include "SupportCommon.hpp"
 
+#include <algorithm>
 #include <string_view>
 
 namespace Slic3r
@@ -60,12 +61,10 @@ struct TreeSupportMeshGroupSettings {
         this->support_angle             = 0.5 * M_PI - std::clamp<double>((config.support_threshold_angle + 1) * M_PI / 180., 0., 0.5 * M_PI);
         this->support_line_width        = support_material_flow(&print_object, config.layer_height).scaled_width();
         this->support_roof_line_width   = support_material_interface_flow(&print_object, config.layer_height).scaled_width();
-        //FIXME add it to SlicingParameters and reuse in both tree and normal supports?
-        this->support_bottom_enable     = config.support_interface_top_layers.value > 0 && config.support_interface_bottom_layers.value != 0;
+        const int bottom_interface_layers = number_of_support_interface_bottom_layers(config);
+        this->support_bottom_enable     = config.support_interface_top_layers.value > 0 && bottom_interface_layers > 0;
         this->support_bottom_height     = this->support_bottom_enable ?
-            (config.support_interface_bottom_layers.value > 0 ?
-                config.support_interface_bottom_layers.value :
-                config.support_interface_top_layers.value) * this->layer_height :
+            bottom_interface_layers * this->layer_height :
             0;
         this->support_material_buildplate_only = config.support_on_build_plate_only;
         this->support_xy_distance       = scaled<coord_t>(config.support_object_xy_distance.value);
@@ -76,8 +75,8 @@ struct TreeSupportMeshGroupSettings {
         this->support_bottom_distance   = scaled<coord_t>(slicing_params.gap_object_support);
         this->support_roof_enable       = config.support_interface_top_layers.value > 0;
         this->support_roof_layers       = config.support_interface_top_layers.value;
-        this->support_floor_enable      = config.support_interface_bottom_layers.value > 0;
-        this->support_floor_layers      = config.support_interface_bottom_layers.value;
+        this->support_floor_enable      = bottom_interface_layers > 0;
+        this->support_floor_layers      = bottom_interface_layers;
         this->support_roof_pattern      = config.support_interface_pattern;
         this->support_pattern           = config.support_base_pattern;
         this->support_line_spacing      = scaled<coord_t>(config.support_base_pattern_spacing.value);
@@ -614,19 +613,35 @@ inline double layer_z(const SlicingParameters &slicing_params, const TreeSupport
         slicing_params.object_print_z_min + slicing_params.first_object_layer_height + (layer_idx - config.raft_layers.size()) * slicing_params.layer_height :
         config.raft_layers[layer_idx];
 }
+
+inline double first_object_support_layer_z(const SlicingParameters &slicing_params)
+{
+    return slicing_params.object_print_z_min + slicing_params.first_object_layer_height;
+}
+
+// Orca: Reverse layer_z() for support layers below the first object layer.
+// config.raft_layers may include raft/contact/intermediate support Zs, so do not collapse them to the first object support layer.
 // Lowest collision layer
 inline LayerIndex layer_idx_ceil(const SlicingParameters &slicing_params, const TreeSupportSettings &config, const double z)
 {
-    return 
-        LayerIndex(config.raft_layers.size()) +
-        std::max<LayerIndex>(0, ceil((z - slicing_params.object_print_z_min - slicing_params.first_object_layer_height) / slicing_params.layer_height));
+    const double first_object_z = first_object_support_layer_z(slicing_params);
+    if (!config.raft_layers.empty() && z < first_object_z - EPSILON) {
+        auto it = std::lower_bound(config.raft_layers.begin(), config.raft_layers.end(), z - EPSILON);
+        return LayerIndex(it == config.raft_layers.end() ? config.raft_layers.size() : std::distance(config.raft_layers.begin(), it));
+    }
+    return LayerIndex(config.raft_layers.size()) +
+        std::max<LayerIndex>(0, LayerIndex(std::ceil((z - first_object_z) / slicing_params.layer_height)));
 }
 // Highest collision layer
 inline LayerIndex layer_idx_floor(const SlicingParameters &slicing_params, const TreeSupportSettings &config, const double z)
 {
-    return 
-        LayerIndex(config.raft_layers.size()) + 
-        std::max<LayerIndex>(0, floor((z - slicing_params.object_print_z_min - slicing_params.first_object_layer_height) / slicing_params.layer_height));
+    const double first_object_z = first_object_support_layer_z(slicing_params);
+    if (!config.raft_layers.empty() && z < first_object_z - EPSILON) {
+        auto it = std::upper_bound(config.raft_layers.begin(), config.raft_layers.end(), z + EPSILON);
+        return LayerIndex(it == config.raft_layers.begin() ? 0 : std::distance(config.raft_layers.begin(), it) - 1);
+    }
+    return LayerIndex(config.raft_layers.size()) +
+        std::max<LayerIndex>(0, LayerIndex(std::floor((z - first_object_z) / slicing_params.layer_height)));
 }
 
 inline SupportGeneratorLayer& layer_initialize(

@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA-CF @FF G4P",
 	"inherits": "Flashforge Generic HS PLA",
 	"from": "system",
+	"setting_id": "3uC056Y171ZjnQE6",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

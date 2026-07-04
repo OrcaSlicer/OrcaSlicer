@@ -3,7 +3,7 @@
 	"name": "Sovol Zero ABS",
 	"inherits": "Generic ABS @System",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "9pI7op6U4azpfNfb",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

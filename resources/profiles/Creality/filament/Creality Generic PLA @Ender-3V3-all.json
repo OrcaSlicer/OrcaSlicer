@@ -3,7 +3,7 @@
 	"name": "Creality Generic PLA @Ender-3V3-all",
 	"inherits": "Creality Generic PLA",
 	"from": "system",
-	"setting_id": "GFSL99_00",
+	"setting_id": "d9awwT21ZLo1iXoh",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"18"

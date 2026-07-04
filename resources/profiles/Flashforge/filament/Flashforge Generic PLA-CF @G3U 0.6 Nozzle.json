@@ -3,7 +3,7 @@
 	"name": "Flashforge Generic PLA-CF @G3U 0.6 Nozzle",
 	"inherits": "Flashforge Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "KR0LUSD7wd55oNI6",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"compatible_printers": [

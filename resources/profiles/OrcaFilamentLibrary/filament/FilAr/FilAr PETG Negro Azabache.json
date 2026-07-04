@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "FilAr PETG Negro Azabache",
+    "inherits": "FilAr PETG @base",
+    "from": "system",
+    "setting_id": "OPZin7y48ZEeiH8D",
+    "filament_id": "FILAR0059",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#000000"
+    ]
+}

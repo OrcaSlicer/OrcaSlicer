@@ -2318,7 +2318,7 @@ static std::vector<MonotonicRegionLink> chain_monotonic_regions(
 	constexpr float const pheromone_evaporation = 0.1f;
     // Evaporation rate to diversify paths taken by individual ants.
     constexpr float const pheromone_diversification = 0.1f;
-	// Probability at which to take the next best path. Otherwise take the the path based on the cost distribution.
+	// Probability at which to take the next best path. Otherwise take the path based on the cost distribution.
 	constexpr float const probability_take_best = 0.9f;
 	// Exponents of the cost function.
 	constexpr float const pheromone_alpha = 1.f; // pheromone exponent

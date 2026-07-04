@@ -3,7 +3,7 @@
 	"name": "Bambu PETG HF @System",
 	"inherits": "Bambu PETG HF @base",
 	"from": "system",
-	"setting_id": "OGFSG02_00",
+	"setting_id": "yftn2hhK5OuD6W3o",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"20"

@@ -1,11 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "QD_2_1_12",
-	"setting_id": "GFSA04",
 	"name": "QIDI ABS-GF@Q2C-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_q_common",
+	"from": "system",
+	"filament_id": "QD_2_1_12",
+	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"
 	],

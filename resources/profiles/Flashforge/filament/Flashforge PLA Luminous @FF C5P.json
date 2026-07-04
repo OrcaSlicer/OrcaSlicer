@@ -1,4 +1,10 @@
 {
+	"type": "filament",
+	"name": "Flashforge PLA Luminous @FF C5P",
+	"inherits": "Generic PLA @System",
+	"from": "system",
+	"setting_id": "jEUZyaEIBf2eXXeh",
+	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
 	],
@@ -46,11 +52,6 @@
 	"filament_start_gcode": [
 		"; filament start gcode"
 	],
-	"from": "system",
-	"inherits": "Generic PLA @System",
-	"instantiation": "true",
-	"is_custom_defined": "0",
-	"name": "Flashforge PLA Luminous @FF C5P",
 	"nozzle_temperature": [
 		"210"
 	],
@@ -68,6 +69,5 @@
 	],
 	"supertack_plate_temp_initial_layer": [
 		"40"
-	],
-	"version": "2.3.0.3"
+	]
 }

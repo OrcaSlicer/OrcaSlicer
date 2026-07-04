@@ -1882,12 +1882,12 @@ void CalibrationPresetPage::show_status(CaliPresetPageStatus status)
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusNeedForceUpgrading) {
-        wxString msg_text = _L("Cannot send the print job to a printer whose firmware is required to get updated.");
+        wxString msg_text = _L("Cannot send the print job to a printer whose firmware must be updated.");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }
     else if (status == CaliPresetPageStatus::CaliPresetStatusNeedConsistencyUpgrading) {
-        wxString msg_text = _L("Cannot send the print job to a printer whose firmware is required to get updated.");
+        wxString msg_text = _L("Cannot send the print job to a printer whose firmware must be updated.");
         update_print_status_msg(msg_text, true);
         Enable_Send_Button(false);
     }
