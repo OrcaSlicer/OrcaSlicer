@@ -310,6 +310,7 @@ void GCodeProcessor::TimeMachine::reset()
     g1_times_cache = std::vector<G1LinesCacheItem>();
     first_layer_time = 0.0f;
     prepare_time = 0.0f;
+    m_additional_time_buffer.clear();
 }
 
 static void planner_forward_pass_kernel(const GCodeProcessor::TimeBlock& prev, GCodeProcessor::TimeBlock& curr)
@@ -395,12 +396,52 @@ static void recalculate_trapezoids(std::vector<GCodeProcessor::TimeBlock>& block
     }
 }
 
-void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, PrintEstimatedStatistics::ETimeMode mode, size_t keep_last_n_blocks, float additional_time)
+GCodeProcessor::TimeMachine::AdditionalBuffer GCodeProcessor::TimeMachine::merge_adjacent_additional_time_blocks(const AdditionalBuffer& buffer)
 {
-    if (!enabled || blocks.size() < 2)
+    AdditionalBuffer merged;
+    if (buffer.empty())
+        return merged;
+
+    AdditionalBufferBlock current_block = buffer.front();
+    for (size_t idx = 1; idx < buffer.size(); ++idx) {
+        const AdditionalBufferBlock& next_block = buffer[idx];
+        if (current_block.first == next_block.first)
+            current_block.second += next_block.second;
+        else {
+            merged.push_back(current_block);
+            current_block = next_block;
+        }
+    }
+    merged.push_back(current_block);
+    return merged;
+}
+
+void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, PrintEstimatedStatistics::ETimeMode mode, size_t keep_last_n_blocks, float additional_time, EMoveType target_move_type, bool is_final)
+{
+    if (!enabled)
         return;
+    // Orca: on the finalization pass, drain extra time that is still buffered (e.g. a
+    // trailing filament change) even with fewer than two blocks queued -- no later pass
+    // exists to attribute it on. Every other pass keeps the original >= 2 requirement,
+    // and an empty buffer keeps today's early-return unchanged (no behavior change).
+    const bool drain_final = is_final && !m_additional_time_buffer.empty();
+    if (blocks.size() < 2 && !drain_final) {
+        // Not enough blocks to attribute the extra time to yet; buffer it so it is
+        // applied on a later pass instead of being dropped.
+        if (additional_time > 0.0f)
+            m_additional_time_buffer.emplace_back(target_move_type, additional_time);
+        return;
+    }
 
     assert(keep_last_n_blocks <= blocks.size());
+
+    // Merge any previously buffered extra time with this call's extra time. Each
+    // entry is applied, in order, to the first block matching its target move type
+    // (EMoveType::Noop matches any block).
+    AdditionalBuffer additional_buffer = m_additional_time_buffer;
+    if (additional_time > 0.0f)
+        additional_buffer.emplace_back(target_move_type, additional_time);
+    additional_buffer = merge_adjacent_additional_time_blocks(additional_buffer);
 
     // reverse_pass
     for (int i = static_cast<int>(blocks.size()) - 1; i > 0; --i) {
@@ -415,11 +456,17 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
     recalculate_trapezoids(blocks);
 
     const size_t n_blocks_process = blocks.size() - keep_last_n_blocks;
+    size_t additional_buffer_idx = 0;
     for (size_t i = 0; i < n_blocks_process; ++i) {
         const TimeBlock& block = blocks[i];
         float block_time = block.time();
-        if (i == 0)
-            block_time += additional_time;
+        if (additional_buffer_idx < additional_buffer.size()) {
+            const EMoveType buf_move_type = additional_buffer[additional_buffer_idx].first;
+            if (buf_move_type == EMoveType::Noop || buf_move_type == block.move_type) {
+                block_time += additional_buffer[additional_buffer_idx].second;
+                ++additional_buffer_idx;
+            }
+        }
 
         time += double(block_time);
         result.moves[block.move_id].time[static_cast<size_t>(mode)] = block_time;
@@ -530,6 +577,28 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
             [](const StopTime& t, unsigned int value) { return t.g1_line_id < value; });
         if (it_stop_time != stop_times.end() && it_stop_time->g1_line_id == block.g1_line_id)
             it_stop_time->elapsed_time = float(time);
+    }
+
+    // Carry forward any extra time that found no matching block this pass, so it
+    // is retried against the blocks of a later pass.
+    m_additional_time_buffer.clear();
+    if (additional_buffer_idx < additional_buffer.size()) {
+        if (is_final) {
+            // Orca EOF hardening: no later pass remains to attribute this remainder,
+            // so add it to the machine total (and the custom-gcode cache) instead of
+            // dropping it. Deliberately NOT attributed to any move vertex, so a stray
+            // filament-change delay can never leak into an extrusion role's time.
+            // (BambuStudio drops the remainder here.)
+            float leftover = 0.0f;
+            for (size_t i = additional_buffer_idx; i < additional_buffer.size(); ++i)
+                leftover += additional_buffer[i].second;
+            time += double(leftover);
+            gcode_time.cache += leftover;
+        } else {
+            m_additional_time_buffer.insert(m_additional_time_buffer.end(),
+                                            additional_buffer.begin() + additional_buffer_idx,
+                                            additional_buffer.end());
+        }
     }
 
     if (keep_last_n_blocks) {
@@ -2625,7 +2694,9 @@ void GCodeProcessor::finalize(bool post_process)
         }
     }
 
-    calculate_time(m_result);
+    // Orca: final pass -- also drains any filament-change delay still buffered because
+    // calculate_time early-returns with fewer than two queued blocks (see calculate_time).
+    calculate_time(m_result, 0, 0.0f, EMoveType::Noop, /*is_final=*/true);
 
     // process the time blocks
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
@@ -5525,9 +5596,35 @@ void GCodeProcessor::process_filament_change(int id)
     }
 
     m_cp_color.current = m_extruder_colors[next_filament_id];
-    simulate_st_synchronize(extra_time);
-    // store tool change move
+
+    // Store the tool-change move first, then attribute the filament-change delay to
+    // it rather than to whichever motion block happens to be pending. This keeps the
+    // delay out of the per-role feature-time distribution (tool-change moves are not
+    // counted as an extrusion role) while still including it in the total and
+    // per-layer times.
     store_move_vertex(EMoveType::Tool_change);
+
+    // Construct a zero-distance time block for the tool-change move on each enabled
+    // machine so the synchronize below can land the delay on it. The synchronize
+    // flushes with keep_last_n_blocks == 0; if fewer than two blocks are queued it
+    // buffers the delay instead, and this block stays queued to receive it on a
+    // later pass.
+    for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
+        TimeMachine& machine = m_time_processor.machines[i];
+        if (!machine.enabled)
+            continue;
+        TimeBlock block;
+        block.move_id             = static_cast<unsigned int>(m_result.moves.size()) - 1;
+        block.move_type           = EMoveType::Tool_change;
+        block.layer_id            = std::max<unsigned int>(1, m_layer_id);
+        block.g1_line_id          = m_g1_line_id;
+        block.flags.prepare_stage = m_processing_start_custom_gcode;
+        block.distance            = 0.0f;
+        block.calculate_trapezoid();
+        machine.blocks.push_back(block);
+    }
+
+    simulate_st_synchronize(extra_time, EMoveType::Tool_change);
 }
 
 void GCodeProcessor::store_move_vertex(EMoveType type, EMovePathType path_type, bool internal_only)
@@ -5851,13 +5948,13 @@ void GCodeProcessor::process_filaments(CustomGCode::Type code)
     }
 }
 
-void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_last_n_blocks, float additional_time)
+void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_last_n_blocks, float additional_time, EMoveType target_move_type, bool is_final)
 {
     // calculate times
     std::vector<TimeMachine::ActualSpeedMove> actual_speed_moves;
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         TimeMachine& machine = m_time_processor.machines[i];
-        machine.calculate_time(m_result, static_cast<PrintEstimatedStatistics::ETimeMode>(i), keep_last_n_blocks, additional_time);
+        machine.calculate_time(m_result, static_cast<PrintEstimatedStatistics::ETimeMode>(i), keep_last_n_blocks, additional_time, target_move_type, is_final);
         if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal)
             actual_speed_moves = std::move(machine.actual_speed_moves);
     }
@@ -5911,9 +6008,9 @@ void GCodeProcessor::calculate_time(GCodeProcessorResult& result, size_t keep_la
     }
 }
 
-void GCodeProcessor::simulate_st_synchronize(float additional_time)
+void GCodeProcessor::simulate_st_synchronize(float additional_time, EMoveType target_move_type)
 {
-    calculate_time(m_result, 0, additional_time);
+    calculate_time(m_result, 0, additional_time, target_move_type);
 }
 
 void GCodeProcessor::update_estimated_times_stats()
