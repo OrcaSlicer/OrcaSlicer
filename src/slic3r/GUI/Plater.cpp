@@ -253,18 +253,6 @@ static void set_config_values(DynamicPrintConfig *config, const std::string &key
     }
 }
 
-template <typename T, typename OptionType>
-static void set_config_values(ModelConfig& config, const std::string &key, T value)
-{
-    auto config_opt = config.get().option<OptionType>(key);
-    if (config_opt) {
-        config.set_key_value(key, new OptionType(config_opt->values.size(), value));
-    }
-    else {
-        BOOST_LOG_TRIVIAL(info) << "set_config_values: the key" << key << "is empty.";
-    }
-}
-
 bool Plater::has_illegal_filename_characters(const wxString& wxs_name)
 {
     std::string name = into_u8(wxs_name);
@@ -6649,9 +6637,9 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                 };
                 if (boost::iends_with(path.string(), ".stp") ||
                     boost::iends_with(path.string(), ".step")) {
-                        double linear = string_to_double_decimal_point(wxGetApp().app_config->get("linear_defletion"));
+                        double linear = string_to_double_decimal_point(wxGetApp().app_config->get("linear_deflection"));
                         if (linear <= 0) linear = 0.003;
-                        double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_defletion"));
+                        double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_deflection"));
                         if (angle <= 0) angle = 0.5;
                         bool split_compound = wxGetApp().app_config->get_bool("is_split_compound");
                         model = Slic3r::Model:: read_from_step(path.string(), strategy,
@@ -6683,8 +6671,8 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
                             if (wxGetApp().app_config->get_bool("enable_step_mesh_setting")) {
                                 StepMeshDialog mesh_dlg(nullptr, file, linear, angle);
                                 if (mesh_dlg.ShowModal() == wxID_OK) {
-                                    linear_value = mesh_dlg.get_linear_defletion();
-                                    angle_value  = mesh_dlg.get_angle_defletion();
+                                    linear_value = mesh_dlg.get_linear_deflection();
+                                    angle_value  = mesh_dlg.get_angle_deflection();
                                     is_split     = mesh_dlg.get_split_compound_value();
                                     return 1;
                                 }
@@ -8430,8 +8418,8 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
         const bool is_step = boost::algorithm::iends_with(path, ".stp") || boost::algorithm::iends_with(path, ".step");
         if (is_step) {
             auto config = wxGetApp().app_config;
-            double linear = std::max(0.003, string_to_double_decimal_point(config->get("linear_defletion")));
-            double angle = std::max(0.5, string_to_double_decimal_point(config->get("angle_defletion")));
+            double linear = std::max(0.003, string_to_double_decimal_point(config->get("linear_deflection")));
+            double angle = std::max(0.5, string_to_double_decimal_point(config->get("angle_deflection")));
             bool split_compound = config->get_bool("is_split_compound");
             bool is_user_cancel = false;
 
@@ -8439,8 +8427,8 @@ bool Plater::priv::replace_volume_with_stl(int object_idx, int volume_idx, const
                 if (wxGetApp().app_config->get_bool("enable_step_mesh_setting")) {
                     StepMeshDialog mesh_dlg(nullptr, file, linear, angle);
                     if (mesh_dlg.ShowModal() == wxID_OK) {
-                        linear_value = mesh_dlg.get_linear_defletion();
-                        angle_value  = mesh_dlg.get_angle_defletion();
+                        linear_value = mesh_dlg.get_linear_deflection();
+                        angle_value  = mesh_dlg.get_angle_deflection();
                         is_split     = mesh_dlg.get_split_compound_value();
                         return 1;
                     }
@@ -8923,8 +8911,8 @@ void Plater::priv::reload_from_disk()
             // BBS: backup
             if (boost::iends_with(path, ".stp") ||
                 boost::iends_with(path, ".step")) {
-                double linear = string_to_double_decimal_point(wxGetApp().app_config->get("linear_defletion"));
-                double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_defletion"));
+                double linear = string_to_double_decimal_point(wxGetApp().app_config->get("linear_deflection"));
+                double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_deflection"));
                 bool   is_split = wxGetApp().app_config->get_bool("is_split_compound");
                 new_model       = Model::read_from_step(path, LoadStrategy::AddDefaultInstances | LoadStrategy::LoadModel, nullptr, nullptr, nullptr, linear, angle, is_split);
             }else {
@@ -8971,7 +8959,14 @@ void Plater::priv::reload_from_disk()
                 if (has_source && old_volume->source.object_idx < int(new_model.objects.size())) {
                     const ModelObject *obj = new_model.objects[old_volume->source.object_idx];
                     if (old_volume->source.volume_idx < int(obj->volumes.size())) {
-                        if (obj->volumes[old_volume->source.volume_idx]->source.input_file == old_volume->source.input_file) {
+                        const std::string &new_input_file = obj->volumes[old_volume->source.volume_idx]->source.input_file;
+                        const std::string &old_input_file = old_volume->source.input_file;
+                        // Orca: match on the exact source path first, then fall back to filename-only so reload
+                        // still matches when the project stored a bare filename and the file was found next to
+                        // the project (same-folder fallback) or picked via the locate dialog (#12992).
+                        if (new_input_file == old_input_file ||
+                            boost::algorithm::iequals(fs::path(new_input_file).filename().string(),
+                                                      fs::path(old_input_file).filename().string())) {
                             new_volume_idx = old_volume->source.volume_idx;
                             new_object_idx = old_volume->source.object_idx;
                             match_found    = true;
@@ -12901,9 +12896,9 @@ void Plater::_calib_pa_pattern(const Calib_Params& params)
 
         auto &obj_config = obj->config;
         if (speeds.size() > 1)
-            set_config_values<double, ConfigOptionFloatsNullable>(obj_config, "outer_wall_speed", tspd);
+            obj_config.set_key_value("outer_wall_speed", new ConfigOptionFloatsNullable(1, tspd));
         if (accels.size() > 1)
-            set_config_values<double, ConfigOptionFloatsNullable>(obj_config, "outer_wall_acceleration", tacc);
+            obj_config.set_key_value("outer_wall_acceleration", new ConfigOptionFloatsNullable(1, tacc));
 
         auto cur_plate = get_partplate_list().get_plate(plate_idx);
         if (!cur_plate) {
@@ -13322,10 +13317,11 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
             max_lh->values[i] = layer_height;
     }
 
-    set_config_values<double, ConfigOptionFloats>(filament_config, "filament_max_volumetric_speed", 200);
+    const double filament_max_volumetric_speed = filament_config->option<ConfigOptionFloats>("filament_max_volumetric_speed")->get_at(0);
+    set_config_values<double, ConfigOptionFloats>(filament_config, "filament_max_volumetric_speed", std::max(filament_max_volumetric_speed, 200.0));
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats{0.0});
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
-    set_config_values<bool, ConfigOptionBoolsNullable>(obj_cfg, "enable_overhang_speed", false);
+    obj_cfg.set_key_value("enable_overhang_speed", new ConfigOptionBoolsNullable(1, false));
     obj_cfg.set_key_value("wall_loops", new ConfigOptionInt(1));
     obj_cfg.set_key_value("alternate_extra_wall", new ConfigOptionBool(false));
     obj_cfg.set_key_value("top_shell_layers", new ConfigOptionInt(0));
@@ -13516,9 +13512,11 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("spiral_mode_smooth", new ConfigOptionBool(false));
     print_config->set_key_value("bottom_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
-    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_speed", 200.);
-    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_acceleration", 20000.);
-    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_acceleration", 20000.);
+    const double machine_max_speed = std::min(printer_config->option<ConfigOptionFloats>("machine_max_speed_x")->get_at(0), printer_config->option<ConfigOptionFloats>("machine_max_speed_y")->get_at(0));
+    const double machine_max_acceleration = printer_config->option<ConfigOptionFloats>("machine_max_acceleration_extruding")->get_at(0);
+    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_speed", machine_max_speed);
+    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_acceleration", machine_max_acceleration);
+    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_acceleration", machine_max_acceleration);
     print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
     model().objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model().objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(3.0));
@@ -13578,9 +13576,11 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("spiral_mode_smooth", new ConfigOptionBool(false));
     print_config->set_key_value("bottom_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
-    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_speed", 200.);
-    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_acceleration", 20000.);
-    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_acceleration", 20000.);
+    const double machine_max_speed = std::min(printer_config->option<ConfigOptionFloats>("machine_max_speed_x")->get_at(0), printer_config->option<ConfigOptionFloats>("machine_max_speed_y")->get_at(0));
+    const double machine_max_acceleration = printer_config->option<ConfigOptionFloats>("machine_max_acceleration_extruding")->get_at(0);
+    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_speed", machine_max_speed);
+    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_acceleration", machine_max_acceleration);
+    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_acceleration", machine_max_acceleration);
     print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
     model().objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model().objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(3.0));
@@ -13632,7 +13632,8 @@ void Plater::Calib_Cornering(const Calib_Params& params)
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_min_speed", new ConfigOptionFloats { 0.0 });
     filament_config->set_key_value("slow_down_for_layer_cooling", new ConfigOptionBools{false});
-    filament_config->set_key_value("filament_max_volumetric_speed", new ConfigOptionFloats{200});
+    const double filament_max_volumetric_speed = filament_config->option<ConfigOptionFloats>("filament_max_volumetric_speed")->get_at(0);
+    filament_config->set_key_value("filament_max_volumetric_speed", new ConfigOptionFloats{std::max(filament_max_volumetric_speed, 200.0)});
     set_config_values<bool, ConfigOptionBools>(print_config, "enable_overhang_speed", false);
     print_config->set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
     print_config->set_key_value("wall_loops", new ConfigOptionInt(1));
@@ -13643,9 +13644,11 @@ void Plater::Calib_Cornering(const Calib_Params& params)
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("spiral_mode_smooth", new ConfigOptionBool(false));
     print_config->set_key_value("bottom_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
-    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_speed", 200.);
-    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_acceleration", 2000.);
-    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_acceleration", 2000.);
+    const double machine_max_speed = std::min(printer_config->option<ConfigOptionFloats>("machine_max_speed_x")->get_at(0), printer_config->option<ConfigOptionFloats>("machine_max_speed_y")->get_at(0));
+    const double machine_max_acceleration = printer_config->option<ConfigOptionFloats>("machine_max_acceleration_extruding")->get_at(0);
+    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_speed", machine_max_speed);
+    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "default_acceleration", machine_max_acceleration);
+    set_config_values<double, ConfigOptionFloatsNullable>(print_config, "outer_wall_acceleration", machine_max_acceleration);
     print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
     model().objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model().objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(3.0));

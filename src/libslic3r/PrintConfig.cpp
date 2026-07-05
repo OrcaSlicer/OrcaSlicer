@@ -2191,6 +2191,28 @@ void PrintConfigDef::init_fff_params()
     def->nullable = true;
     def->set_default_value(new ConfigOptionFloatsNullable{0});
 
+    def = this->add("small_support_perimeter_speed", coFloatsOrPercents);
+    def->label = L("Small support perimeters");
+    def->category = L("Speed");
+    def->tooltip = L("Same as \"Small perimeters\", but for supports. "
+                    "This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. "
+                    "If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. "
+                    "Set to zero for auto.");
+    def->sidetext = L("mm/s or %");
+    def->ratio_over = "outer_wall_speed";
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatsOrPercentsNullable{FloatOrPercent(50, true)});
+
+    def = this->add("small_support_perimeter_threshold", coFloats);
+    def->label = L("Small support perimeters threshold");
+    def->category = L("Speed");
+    def->tooltip = L("This sets the threshold for small support perimeter length. The default threshold is 0mm.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloatsNullable{0});
+
     def = this->add("wall_sequence", coEnum);
     def->label = L("Walls printing order");
     def->category = L("Quality");
@@ -2426,18 +2448,19 @@ void PrintConfigDef::init_fff_params()
     
     // xgettext:no-c-format, no-boost-format
     def = this->add("adaptive_pressure_advance_overhangs", coBools);
-    def->label = L("Enable adaptive pressure advance for overhangs (beta)");
-    def->tooltip = L("Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, "
-                     "as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-                     "Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.");
+    def->label = L("Enable adaptive pressure advance within features (beta)");
+    def->tooltip = L("Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n\n" 
+					"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n\n"
+					"This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBools{ false });
 
     def = this->add("adaptive_pressure_advance_bridges", coFloats);
-    def->label = L("Pressure advance for bridges");
-    def->tooltip = L("Pressure advance value for bridges. Set to 0 to disable.\n\n"
-                     "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. "
-                     "This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this.");
+    def->label = L("Static pressure advance for bridges");
+    def->tooltip = L("Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+					"equivalent walls (using adaptive settings if enabled).\n\n"
+                    "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. "
+                    "This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this.");
     def->max = 2;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 0.0 });
@@ -2982,6 +3005,26 @@ void PrintConfigDef::init_fff_params()
     def->max = 360;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(45));
+
+    def = this->add("top_layer_direction", coFloat);
+    def->label = L("Top layer direction");
+    def->category = L("Strength");
+    def->tooltip = L("Optional absolute angle for top-layer infill and ironing base direction. Set to -1 to use the current solid infill direction behavior.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min = -1;
+    def->max = 360;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionFloat(-1));
+
+    def = this->add("bottom_layer_direction", coFloat);
+    def->label = L("Bottom layer direction");
+    def->category = L("Strength");
+    def->tooltip = L("Optional absolute angle for bottom-layer infill. Set to -1 to use the current solid infill direction behavior.");
+    def->sidetext = u8"°";	// degrees, don't need translation
+    def->min = -1;
+    def->max = 360;
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionFloat(-1));
 
     def = this->add("sparse_infill_density", coPercent);
     def->label = L("Sparse infill density");
@@ -7093,6 +7136,15 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Rotate the polyhole every layer.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("hole_to_polyhole_max_edges", coInt);
+    def->label = L("Maximum Polyhole edge count");
+    def->category = L("Quality");
+    def->tooltip = L("Maximum number of polyhole edges"
+            "\nThis setting limits the amount of edges a polyhole can have");
+    def->mode = comExpert;
+    def->min = 3;
+    def->set_default_value(new ConfigOptionInt(50));
 
     def = this->add("thumbnails", coString);
     def->label = L("G-code thumbnails");
