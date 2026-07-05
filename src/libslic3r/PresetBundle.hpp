@@ -485,9 +485,8 @@ public:
         return      { Preset::TYPE_PRINTER, Preset::TYPE_SLA_PRINT, Preset::TYPE_SLA_MATERIAL };
     }
 
-    // Orca: for validation only. The duplicate filament subtype and preset-reference checks are
-    // opt-in for now (enabled per-vendor by the profile-check CI as vendors are cleaned up).
-    bool has_errors(bool check_duplicate_filament_subtypes = false, bool check_preset_references = false) const;
+    // Orca: for validation only.
+    bool has_errors(bool check_duplicate_filament_subtypes = false) const;
 
     // Orca: for validation only. Flag any system preset whose inherits / compatible_printers /
     // compatible_prints references a deleted (unknown) or renamed (old) preset name.

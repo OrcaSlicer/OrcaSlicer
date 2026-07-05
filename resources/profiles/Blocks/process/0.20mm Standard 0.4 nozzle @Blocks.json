@@ -9,7 +9,6 @@
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",
 	"compatible_printers": [
-		"BLOCKS Pro S100",
 		"BLOCKS Pro S100 0.4 nozzle"
 	]
 }

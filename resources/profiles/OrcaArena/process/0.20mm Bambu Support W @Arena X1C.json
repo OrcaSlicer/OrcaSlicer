@@ -15,7 +15,6 @@
 	"support_interface_filament": "0",
 	"enable_prime_tower": "1",
 	"compatible_printers": [
-		"Orca Arena X1 Carbon 0.4 nozzle",
-		"Orca Arena X1 0.4 nozzle"
+		"Orca Arena X1 Carbon 0.4 nozzle"
 	]
 }

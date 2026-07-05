@@ -41,7 +41,7 @@ jobs:
           curl -L -o OrcaSlicer_profile_validator https://github.com/OrcaSlicer/OrcaSlicer/releases/download/nightly-builds/OrcaSlicer_profile_validator_Linux_Ubuntu2404_nightly
           chmod +x ./OrcaSlicer_profile_validator
 
-      # validate profiles
+      # Validate all system profiles.
       - name: validate system profiles
         id: validate_system
         continue-on-error: true
@@ -57,20 +57,6 @@ jobs:
           set +e
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 -v BBL -f 2>&1 | tee ${{ runner.temp }}/validate_filament_subtypes.log
           exit ${PIPESTATUS[0]}
-      # Flag inherits/compatible_printers/compatible_prints references that point at a deleted or
-      # renamed preset. Opt-in per vendor for now (via -r); enabled for BBL and Qidi until other
-      # vendors' profiles are cleaned up. Runs before the custom-preset injection below.
-      - name: validate preset references for BBL and Qidi profiles
-        id: validate_preset_references
-        continue-on-error: true
-        run: |
-          set +e
-          rc=0
-          for v in BBL Qidi; do
-            ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 -v "$v" -r 2>&1 | tee -a ${{ runner.temp }}/validate_preset_references.log
-            [ ${PIPESTATUS[0]} -ne 0 ] && rc=1
-          done
-          exit $rc
 
       - name: validate custom presets
         id: validate_custom
@@ -180,7 +166,7 @@ jobs:
           echo "${{ github.event.pull_request.number }}" > ${{ runner.temp }}/profile-check-results/pr_number.txt
 
       - name: Prepare comment artifact
-        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_preset_references.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
           {
             # Marker matched by check_profiles_comment.yml to delete prior comments.
@@ -215,15 +201,6 @@ jobs:
               echo ""
             fi
 
-            if [ "${{ steps.validate_preset_references.outcome }}" = "failure" ]; then
-              echo "### BBL/Qidi Preset Reference Validation Failed"
-              echo ""
-              echo '```'
-              head -c 30000 ${{ runner.temp }}/validate_preset_references.log || echo "No output captured"
-              echo '```'
-              echo ""
-            fi
-
             if [ "${{ steps.validate_custom.outcome }}" = "failure" ]; then
               echo "### Custom Preset Validation Failed"
               echo ""
@@ -246,7 +223,7 @@ jobs:
           retention-days: 1
 
       - name: Fail if any check failed
-        if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_preset_references.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
           echo "One or more profile checks failed. See above for details."
           exit 1

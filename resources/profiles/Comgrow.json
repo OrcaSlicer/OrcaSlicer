@@ -1,6 +1,6 @@
 {
 	"name": "Comgrow",
-	"version": "02.04.00.02",
+	"version": "02.04.00.03",
 	"force_update": "0",
 	"description": "Comgrow configurations",
 	"machine_model_list": [
@@ -49,10 +49,6 @@
 		{
 			"name": "0.20mm Standard @Comgrow T500 0.6",
 			"sub_path": "process/0.20mm Standard @Comgrow T500 0.6.json"
-		},
-		{
-			"name": "0.20mm Standard @Comgrow T500 1.0",
-			"sub_path": "process/0.20mm Standard @Comgrow T500 1.0.json"
 		},
 		{
 			"name": "0.24mm Draft @Comgrow T500 0.4",
