@@ -2316,9 +2316,9 @@ void ObjectList::load_modifier(const wxArrayString& input_files, ModelObject& mo
         try {
             if (boost::iends_with(input_file, ".stp") ||
                 boost::iends_with(input_file, ".step")) {
-                double linear  = string_to_double_decimal_point(wxGetApp().app_config->get("linear_defletion"));
+                double linear  = string_to_double_decimal_point(wxGetApp().app_config->get("linear_deflection"));
                 if (linear <= 0) linear = 0.003;
-                double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_defletion"));
+                double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_deflection"));
                 if (angle <= 0) angle = 0.5;
                 bool split_compound = wxGetApp().app_config->get_bool("is_split_compound");
                 model = Model::read_from_step(
@@ -2328,8 +2328,8 @@ void ObjectList::load_modifier(const wxArrayString& input_files, ModelObject& mo
                         if (wxGetApp().app_config->get_bool("enable_step_mesh_setting")) {
                             StepMeshDialog mesh_dlg(nullptr, file, linear, angle);
                             if (mesh_dlg.ShowModal() == wxID_OK) {
-                                linear_value = mesh_dlg.get_linear_defletion();
-                                angle_value  = mesh_dlg.get_angle_defletion();
+                                linear_value = mesh_dlg.get_linear_deflection();
+                                angle_value  = mesh_dlg.get_angle_deflection();
                                 is_split     = mesh_dlg.get_split_compound_value();
                                 return 1;
                             }

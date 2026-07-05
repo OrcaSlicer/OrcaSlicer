@@ -5,6 +5,7 @@
 #include <locale>
 #include <ctime>
 #include <cstdarg>
+#include <iostream>
 #include <stdio.h>
 #include <filesystem>
 
@@ -46,14 +47,19 @@
 #include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/expressions.hpp>
+#include <boost/log/sinks/async_frontend.hpp>
 #include <boost/log/sinks/text_file_backend.hpp>
+#include <boost/log/sinks/text_ostream_backend.hpp>
 #include <boost/log/utility/setup/file.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/sources/severity_logger.hpp>
 #include <boost/log/sources/record_ostream.hpp>
 #include <boost/log/support/date_time.hpp>
 
+#include <boost/core/null_deleter.hpp>
 #include <boost/locale.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/filesystem.hpp>
@@ -174,6 +180,7 @@ unsigned get_logging_level()
 }
 
 boost::shared_ptr<boost::log::sinks::synchronous_sink<boost::log::sinks::text_file_backend>> g_log_sink;
+boost::shared_ptr<boost::log::sinks::asynchronous_sink<boost::log::sinks::text_ostream_backend>> g_console_log_sink;
 
 // Force set_logging_level(<=error) after loading of the DLL.
 // This is currently only needed if libslic3r is loaded as a shared library into Perl interpreter
@@ -346,6 +353,19 @@ namespace src = boost::log::sources;
 namespace expr = boost::log::expressions;
 namespace keywords = boost::log::keywords;
 namespace attrs = boost::log::attributes;
+namespace sinks = boost::log::sinks;
+
+void shutdown_console_logging()
+{
+	if (!g_console_log_sink)
+		return;
+
+	auto console_sink = g_console_log_sink;
+	boost::log::core::get()->remove_sink(console_sink);
+	console_sink->stop();
+	g_console_log_sink.reset();
+}
+
 void set_log_path_and_level(const std::string& file, unsigned int level)
 {
 #ifdef __APPLE__
@@ -376,6 +396,24 @@ void set_log_path_and_level(const std::string& file, unsigned int level)
 		),
 		keywords::auto_flush = true
 	);
+
+	shutdown_console_logging();
+
+#ifdef SLIC3R_CONSOLE_LOG
+	auto console_backend = boost::make_shared<sinks::text_ostream_backend>();
+	console_backend->add_stream(boost::shared_ptr<std::ostream>(&std::cout, boost::null_deleter()));
+	console_backend->auto_flush(true);
+
+	g_console_log_sink = boost::make_shared<sinks::asynchronous_sink<sinks::text_ostream_backend>>(console_backend);
+	g_console_log_sink->set_formatter(
+		expr::stream
+		<< "[" << expr::attr< logging::trivial::severity_level >("Severity") << "]\t"
+		<< expr::format_date_time< boost::posix_time::ptime >("TimeStamp", "%Y-%m-%d %H:%M:%S.%f") << " "
+		<<"[Thread " << expr::attr<attrs::current_thread_id::value_type>("ThreadID") << "]"
+		<< ": " << expr::smessage
+	);
+	boost::log::core::get()->add_sink(g_console_log_sink);
+#endif
 
 	logging::add_common_attributes();
 

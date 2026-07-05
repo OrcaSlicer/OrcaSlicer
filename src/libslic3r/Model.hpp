@@ -1469,6 +1469,7 @@ struct GlobalSpeedMap
     double topSolidInfillSpeed;
     double supportSpeed;
     double smallPerimeterSpeed;
+    double smallSupportPerimeterSpeed;
     double maxSpeed;
     Polygon bed_poly;
 };
@@ -1590,8 +1591,8 @@ public:
                                 ImportStepProgressFn                                    stepFn,
                                 StepIsUtf8Fn                                            stepIsUtf8Fn,
                                 std::function<int(Slic3r::Step&, double&, double&, bool&)>     step_mesh_fn,
-                                double                                                  linear_defletion,
-                                double                                                  angle_defletion,
+                                double                                                  linear_deflection,
+                                double                                                  angle_deflection,
                                 bool                                                    is_split_compound,
                                 std::function<void(const std::vector<std::string>&)>    open_shell_warn_fn = nullptr);
 

@@ -38,8 +38,8 @@ struct NamedSolid
 //BBS: Load an step file into a provided model.
 extern bool load_step(const char *path, Model *model,
                       bool& is_cancel,
-                      double linear_defletion = 0.003,
-                      double angle_defletion = 0.5,
+                      double linear_deflection = 0.003,
+                      double angle_deflection = 0.5,
                       bool isSplitCompound = false,
                       ImportStepProgressFn proFn = nullptr,
                       StepIsUtf8Fn isUtf8Fn = nullptr,
@@ -98,14 +98,14 @@ public:
     Step(std::string path, ImportStepProgressFn stepFn = nullptr, StepIsUtf8Fn isUtf8Fn = nullptr);
     ~Step();
     Step_Status load();
-    unsigned int get_triangle_num(double linear_defletion, double angle_defletion);
-    unsigned int get_triangle_num_tbb(double linear_defletion, double angle_defletion);
+    unsigned int get_triangle_num(double linear_deflection, double angle_deflection);
+    unsigned int get_triangle_num_tbb(double linear_deflection, double angle_deflection);
     void clean_mesh_data();
     Step_Status mesh(Model* model,
                      bool& is_cancel,
                      bool isSplitCompound,
-                     double linear_defletion = 0.003,
-                     double angle_defletion = 0.5);
+                     double linear_deflection = 0.003,
+                     double angle_deflection = 0.5);
 
     std::atomic<bool> m_stop_mesh{false};
     void update_process(int load_stage, int current, int total, bool& cancel);

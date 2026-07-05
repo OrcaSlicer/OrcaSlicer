@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 12:42-0300\n"
+"POT-Creation-Date: 2026-07-03 14:43+0200\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -5318,7 +5318,7 @@ msgstr "Volumen:"
 msgid "Size:"
 msgstr "Größe:"
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Konflikte von G-Code-Pfaden wurden bei Layer %d, Z = %.2lf mm gefunden.Bitte trennen Sie die konfliktbehafteten Objekte weiter voneinander (%s <-> %s)."
 
@@ -7915,6 +7915,50 @@ msgstr "Wählen Sie den Ordner für heruntergeladene Elemente"
 msgid "Choose Download Directory"
 msgstr "Wählen Sie das Download-Verzeichnis"
 
+msgid "(Latest)"
+msgstr "(Neueste)"
+
+msgid "Network plug-in switched successfully."
+msgstr "Netzwerk-Plugin erfolgreich gewechselt."
+
+msgid "Success"
+msgstr "Erfolgreich"
+
+msgid "Failed to load network plug-in. Please restart the application."
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"You've selected network plug-in version %s.\n"
+"\n"
+"Would you like to download and install this version now?\n"
+"\n"
+"Note: The application may need to restart after installation."
+msgstr ""
+"Sie haben die Netzwerk-Plugin-Version %s ausgewählt.\n"
+"\n"
+"Möchten Sie diese Version jetzt herunterladen und installieren?\n"
+"\n"
+"Hinweis: Die Anwendung muss möglicherweise nach der Installation neu gestartet werden."
+
+msgid "Download Network Plug-in"
+msgstr "Netzwerk-Plugin herunterladen"
+
+msgid "Reload the network plug-in without restarting the application"
+msgstr "Das Netzwerk-Plugin neu laden, ohne die Anwendung neu zu starten"
+
+msgid "Network plug-in reloaded successfully."
+msgstr "Netzwerk-Plugin erfolgreich neu geladen."
+
+msgid "Reload"
+msgstr "Neu laden"
+
+msgid "Failed to reload network plug-in. Please restart the application."
+msgstr "Netzwerk-Plugin konnte nicht neu geladen werden. Bitte starten Sie die Anwendung neu."
+
+msgid "Reload Failed"
+msgstr "Neuladen fehlgeschlagen"
+
 msgid "Associate"
 msgstr "Zuordnen"
 
@@ -7970,12 +8014,6 @@ msgstr "Splash-Screen anzeigen"
 msgid "Show the splash screen during startup."
 msgstr "Zeige den Splash-Screen beim Start."
 
-msgid "Show shared profiles notification"
-msgstr "Benachrichtigung für geteilte Profile anzeigen"
-
-msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
-msgstr "Zeigen Sie eine Benachrichtigung mit einem Link zum Durchsuchen von geteilten Profilen an, wenn der ausgewählte Drucker geändert wird."
-
 msgid "Use window buttons on left side"
 msgstr "Windows Taste auf der linken Seite verwenden"
 
@@ -8006,6 +8044,13 @@ msgstr "Ladeverhalten"
 msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr "sollen Drucker/Filament/Prozess Einstellungen geladen werden beim Öffnen einer .3mf?"
 
+msgid "Auto backup"
+msgstr "Automatische Datensicherung"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Backup your project periodically to help with restoring from an occasional crash."
+msgstr "Erstellen Sie regelmäßig Sicherungskopien Ihres Projekts,um es im Falle eines Absturzes wiederherstellen zu können."
+
 msgid "Maximum recent files"
 msgstr "Maximum zuletzt verwendeter Dateien"
 
@@ -8024,12 +8069,20 @@ msgstr "Optionen beim Importieren von STEP-Dateien anzeigen"
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "Wenn aktiviert, wird während des Imports von STEP-Dateien ein Dialogfeld "
 
-msgid "Auto backup"
-msgstr "Automatische Datensicherung"
+msgid "Quality level for Draco export"
+msgstr "Qualitätsstufe für den Draco-Export"
 
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Backup your project periodically to help with restoring from an occasional crash."
-msgstr "Erstellen Sie regelmäßig Sicherungskopien Ihres Projekts,um es im Falle eines Absturzes wiederherstellen zu können."
+msgid "bits"
+msgstr "Bits"
+
+msgid ""
+"Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
+"0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
+"Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."
+msgstr ""
+"Kontrolliert die Quantisierungs-Bittiefe, die bei der Komprimierung des Netzes in das Draco-Format verwendet wird.\n"
+"0 = verlustfreie Kompression (Geometrie wird mit voller Präzision beibehalten). Gültige verlustbehaftete Werte liegen zwischen 8 und 30.\n"
+"Niedrigere Werte erzeugen kleinere Dateien, verlieren jedoch mehr geometrische Details; höhere Werte bewahren mehr Details auf Kosten größerer Dateien."
 
 msgid "Preset"
 msgstr "Profil"
@@ -8061,6 +8114,12 @@ msgstr "Filamente"
 msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr "Optimiert die maximale Höhe des Filamentbereichs anhand der gewählten Filamentanzahl."
 
+msgid "Show shared profiles notification"
+msgstr "Benachrichtigung für geteilte Profile anzeigen"
+
+msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
+msgstr "Zeigen Sie eine Benachrichtigung mit einem Link zum Durchsuchen von geteilten Profilen an, wenn der ausgewählte Drucker geändert wird."
+
 msgid "Features"
 msgstr "Funktionen"
 
@@ -8072,21 +8131,6 @@ msgstr "Wenn diese Option aktiviert ist, können Sie eine Aufgabe gleichzeitig a
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Popup zum Auswählen des Filament-Gruppierungsmodus"
-
-msgid "Quality level for Draco export"
-msgstr "Qualitätsstufe für den Draco-Export"
-
-msgid "bits"
-msgstr "Bits"
-
-msgid ""
-"Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
-"0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
-"Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."
-msgstr ""
-"Kontrolliert die Quantisierungs-Bittiefe, die bei der Komprimierung des Netzes in das Draco-Format verwendet wird.\n"
-"0 = verlustfreie Kompression (Geometrie wird mit voller Präzision beibehalten). Gültige verlustbehaftete Werte liegen zwischen 8 und 30.\n"
-"Niedrigere Werte erzeugen kleinere Dateien, verlieren jedoch mehr geometrische Details; höhere Werte bewahren mehr Details auf Kosten größerer Dateien."
 
 msgid "Behaviour"
 msgstr "Verhalten"
@@ -8332,19 +8376,6 @@ msgstr "Nur nach stabilen Updates suchen"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Benutzerprofile automatisch synchronisieren (Drucker/Filament/Prozess)"
 
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Update built-in presets automatically."
-msgstr "Aktualisiere integrierte Profile automatisch."
-
-msgid "Use encrypted file for token storage"
-msgstr "Verschlüsselte Datei für die Token-Speicherung verwenden"
-
-msgid "Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"
-msgstr "Speichern Sie Authentifizierungstoken in einer verschlüsselten Datei anstelle des System-Schlüsselbunds. (Erfordert Neustart)"
-
-msgid "Filament Sync Options"
-msgstr "Filament-Synchronisierungsoptionen"
-
 msgid "Filament sync mode"
 msgstr "Filament-Synchronisierungsmodus"
 
@@ -8357,6 +8388,16 @@ msgstr "Filament und Farbe"
 msgid "Color only"
 msgstr "Nur Farbe"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Update built-in presets automatically."
+msgstr "Aktualisiere integrierte Profile automatisch."
+
+msgid "Use encrypted file for token storage"
+msgstr "Verschlüsselte Datei für die Token-Speicherung verwenden"
+
+msgid "Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"
+msgstr "Speichern Sie Authentifizierungstoken in einer verschlüsselten Datei anstelle des System-Schlüsselbunds. (Erfordert Neustart)"
+
 msgid "Bambu network plug-in"
 msgstr "Bambu Netzwerk-Plugin"
 
@@ -8368,35 +8409,6 @@ msgstr "Netzwerk-Plugin-Version"
 
 msgid "Select the network plug-in version to use"
 msgstr "Wählen Sie die zu verwendende Version des Netzwerk-Plugins aus"
-
-msgid "(Latest)"
-msgstr "(Neueste)"
-
-msgid "Network plug-in switched successfully."
-msgstr "Netzwerk-Plugin erfolgreich gewechselt."
-
-msgid "Success"
-msgstr "Erfolgreich"
-
-msgid "Failed to load network plug-in. Please restart the application."
-msgstr ""
-
-#, c-format, boost-format
-msgid ""
-"You've selected network plug-in version %s.\n"
-"\n"
-"Would you like to download and install this version now?\n"
-"\n"
-"Note: The application may need to restart after installation."
-msgstr ""
-"Sie haben die Netzwerk-Plugin-Version %s ausgewählt.\n"
-"\n"
-"Möchten Sie diese Version jetzt herunterladen und installieren?\n"
-"\n"
-"Hinweis: Die Anwendung muss möglicherweise nach der Installation neu gestartet werden."
-
-msgid "Download Network Plug-in"
-msgstr "Netzwerk-Plugin herunterladen"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "Dateien mit OrcaSlicer verknüpfen"
@@ -8446,8 +8458,17 @@ msgstr "Entwickler"
 msgid "Skip AMS blacklist check"
 msgstr "Überspringen der AMS Blacklist-Prüfung"
 
-msgid "(Experimental) Keep painted feature after mesh change"
-msgstr "(Experimentell) Behalte bemalte Funktionen nach Mesh-Änderung bei"
+msgid "Show unsupported presets"
+msgstr "Nicht unterstützte Profile anzeigen"
+
+msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
+msgstr "Zeigt inkompatible/nicht unterstützte Profile in den Dropdown-Listen für Drucker und Filament an. Diese Profile können nicht ausgewählt werden."
+
+msgid "Experimental Features"
+msgstr ""
+
+msgid "Keep painted feature after mesh change"
+msgstr ""
 
 msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
@@ -8455,12 +8476,6 @@ msgid ""
 msgstr ""
 "Versuchen Sie, bemalte Funktionen (Farbe/Naht/Stütze/unscharf usw.) nach Änderung des Objekt-Meshs (z. B. schneiden/neu laden von der Festplatte/vereinfachen/reparieren usw.) beizubehalten\n"
 "Sehr experimentell! Langsam und kann Artefakte erzeugen."
-
-msgid "Show unsupported presets"
-msgstr "Nicht unterstützte Profile anzeigen"
-
-msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
-msgstr "Zeigt inkompatible/nicht unterstützte Profile in den Dropdown-Listen für Drucker und Filament an. Diese Profile können nicht ausgewählt werden."
 
 msgid "Allow Abnormal Storage"
 msgstr "Fehlerhaften Speicher zulassen"
@@ -8490,24 +8505,6 @@ msgstr "Fehlersuche"
 msgid "trace"
 msgstr "Spurensuche"
 
-msgid "Network plug-in"
-msgstr "Netzwerk-Plugin"
-
-msgid "Reload"
-msgstr "Neu laden"
-
-msgid "Reload the network plug-in without restarting the application"
-msgstr "Das Netzwerk-Plugin neu laden, ohne die Anwendung neu zu starten"
-
-msgid "Network plug-in reloaded successfully."
-msgstr "Netzwerk-Plugin erfolgreich neu geladen."
-
-msgid "Failed to reload network plug-in. Please restart the application."
-msgstr "Netzwerk-Plugin konnte nicht neu geladen werden. Bitte starten Sie die Anwendung neu."
-
-msgid "Reload Failed"
-msgstr "Neuladen fehlgeschlagen"
-
 msgid "Debug"
 msgstr "Fehlersuche"
 
@@ -8522,25 +8519,6 @@ msgstr "Profil Synchronisation"
 
 msgid "Preferences sync"
 msgstr "Synchronisierung der Einstellungen"
-
-msgid "View control settings"
-msgstr "Ansicht-Steuerungseinstellungen"
-
-msgid "Rotate view"
-msgstr "Drehen der Ansicht"
-
-msgid "Pan view"
-msgstr "Pan-Ansicht"
-
-msgid "Zoom view"
-msgstr "Ansicht zoomen"
-
-msgid "Other"
-msgstr "Sonstiges"
-
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Reverse scroll direction while zooming"
-msgstr "Scrollrichtung beim Zoomen umkehren"
 
 msgid "Enable SSL(MQTT)"
 msgstr "SSL aktivieren (MQTT)"
@@ -13341,6 +13319,17 @@ msgstr "Die Lüftergeschwindigkeit wird linear von Null bei der Schicht\"close_f
 msgid "layer"
 msgstr "Schicht"
 
+msgid "First layer fan speed"
+msgstr ""
+
+msgid ""
+"Sets an exact fan speed for the first layer, overriding all other cooling settings. Useful for protecting 3D-printed toolhead parts (e.g. Voron-style ABS/ASA ducts) from a hot bed. A small amount of airflow cools the ducts down, without using full cooling that may in certain conditions hurt first-layer adhesion.\n"
+"From the second layer onwards, normal cooling resumes.\n"
+"If \"Full fan speed at layer\" is also set, the fan ramps smoothly from this value on the first layer up to your target by the chosen layer.\n"
+"Only available when \"No cooling for the first\" is 0.\n"
+"Set to -1 to disable it."
+msgstr ""
+
 msgid "Support interface fan speed"
 msgstr "Stützstruktur-Schnittstelle"
 
@@ -15281,6 +15270,9 @@ msgstr "Risse, die kleiner als das 2-fache des Lückenschlussradius sind, werden
 
 msgid "Slicing Mode"
 msgstr "Slicing-Modus"
+
+msgid "Other"
+msgstr "Sonstiges"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Verwenden Sie \"Gerade-ungerade\" für 3DLabPrint-Flugzeugmodelle. Verwenden Sie \"Löcher schließen\", um alle Löcher im Modell zu schließen."
@@ -18363,6 +18355,132 @@ msgstr "Anmelden/Testen"
 msgid "Connection to printers connected via the print host failed."
 msgstr "Die Verbindung zu den über den Druck-Host verbundenen Druckern ist fehlgeschlagen."
 
+msgid "Detect Creality K-series printer"
+msgstr ""
+
+msgid "Click Scan to look for K-series printers on your network."
+msgstr ""
+
+msgid "Use Selected"
+msgstr ""
+
+msgid "Scanning the LAN for K-series printers... this takes a few seconds."
+msgstr ""
+
+msgid "No K-series printers found. Make sure the printer is on the same network and not blocked by Wi-Fi client isolation, then click Scan again."
+msgstr ""
+
+#, c-format
+msgid "Found %zu Creality printer(s). Select one and click Use Selected."
+msgstr ""
+
+msgid "Active"
+msgstr ""
+
+msgid "Printers"
+msgstr ""
+
+msgid "Processes"
+msgstr ""
+
+msgid "Show/Hide system information"
+msgstr ""
+
+msgid "Copy system information to clipboard"
+msgstr ""
+
+msgid "We need information for diagnosing source of the issue. Check wiki page for detailed guide."
+msgstr ""
+
+msgid "Pack button collects project file and logs of current session onto a zip file."
+msgstr ""
+
+msgid "Any additional visual examples like images or screen recordings might be helpful while reporting the issue."
+msgstr ""
+
+msgid "Report issue"
+msgstr ""
+
+msgid "Pack"
+msgstr ""
+
+msgid "Cleans and rebuilds system profiles cache on next launch"
+msgstr ""
+
+msgid "Clean system profiles cache"
+msgstr ""
+
+msgid "Clean"
+msgstr ""
+
+msgid "Loaded profiles overview"
+msgstr ""
+
+msgid "This section shows information for loaded profiles"
+msgstr ""
+
+msgid "Exports detailed overview of loaded profiles in json format"
+msgstr ""
+
+msgid "Configurations folder"
+msgstr ""
+
+msgid "Opens configurations folder"
+msgstr ""
+
+msgid "Log level"
+msgstr ""
+
+msgid "Stored logs"
+msgstr ""
+
+msgid "Packs all stored logs onto a zip file."
+msgstr ""
+
+msgid "Profiles"
+msgstr ""
+
+msgid "Select NO to close dialog and review project"
+msgstr ""
+
+msgid "No project file on current session. Only logs will be included to package"
+msgstr ""
+
+msgid "Select NO to close dialog and review project."
+msgstr ""
+
+msgid "Please make sure any instances of OrcaSlicer are not running"
+msgstr ""
+
+msgid "System folder cannot be deleted because some files are in use by another application. Please close any applications using these files and try again."
+msgstr ""
+
+msgid "Failed to delete system folder..."
+msgstr ""
+
+msgid "Failed to determine executable path."
+msgstr ""
+
+msgid "Failed to launch a new instance."
+msgstr ""
+
+msgid "log(s)"
+msgstr ""
+
+msgid "Choose where to save the exported JSON file"
+msgstr ""
+
+msgid ""
+"Export failed\n"
+"Please check write permissions or file in use by another application"
+msgstr ""
+
+msgid "Choose where to save the exported ZIP file"
+msgstr ""
+
+msgid "File already exists. Overwrite?"
+msgstr ""
+
 msgid "3DPrinterOS Cloud upload options"
 msgstr "3DPrinterOS Cloud-Upload-Optionen"
 
@@ -18444,6 +18562,19 @@ msgstr "Verbindung zu MKS funktioniert korrekt."
 
 msgid "Could not connect to MKS"
 msgstr "Konnte keine Verbindung zu MKS herstellen"
+
+msgid "Connection to Moonraker is working correctly."
+msgstr ""
+
+msgid "Could not connect to Moonraker"
+msgstr ""
+
+msgid "The host responded but it doesn't look like Moonraker (missing result.klippy_state)."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Could not parse Moonraker server response: %s"
+msgstr ""
 
 msgid "Connection to OctoPrint is working correctly."
 msgstr "Verbindung zu OctoPrint funktioniert korrekt."
@@ -19604,6 +19735,31 @@ msgid ""
 msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
+
+#~ msgid "Filament Sync Options"
+#~ msgstr "Filament-Synchronisierungsoptionen"
+
+#~ msgid "(Experimental) Keep painted feature after mesh change"
+#~ msgstr "(Experimentell) Behalte bemalte Funktionen nach Mesh-Änderung bei"
+
+#~ msgid "Network plug-in"
+#~ msgstr "Netzwerk-Plugin"
+
+#~ msgid "View control settings"
+#~ msgstr "Ansicht-Steuerungseinstellungen"
+
+#~ msgid "Rotate view"
+#~ msgstr "Drehen der Ansicht"
+
+#~ msgid "Pan view"
+#~ msgstr "Pan-Ansicht"
+
+#~ msgid "Zoom view"
+#~ msgstr "Ansicht zoomen"
+
+# TODO: Review, changed by lang refactor. PR 14254
+#~ msgid "Reverse scroll direction while zooming"
+#~ msgstr "Scrollrichtung beim Zoomen umkehren"
 
 #, c-format, boost-format
 #~ msgid "Left: %s"

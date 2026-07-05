@@ -96,6 +96,7 @@ int main(int argc, char* argv[])
     ("vendor,v", po::value<std::string>()->default_value(""), "Vendor name. Optional, all profiles present in the folder will be validated if not specified")
     ("generate_presets,g", po::value<bool>()->default_value(false), "Generate user presets for mock test")
     ("check_filament_subtypes,f", po::bool_switch()->default_value(false), "Also flag printers with duplicate (ambiguous) filament subtypes. Off unless this flag is present.")
+    ("check_preset_references,r", po::bool_switch()->default_value(false), "Also flag presets whose inherits/compatible_printers/compatible_prints reference a deleted or renamed preset. Off unless this flag is present.")
     ("log_level,l", po::value<int>()->default_value(2), "Log level. Optional, default is 2 (warning). Higher values produce more detailed logs.");
     // clang-format on
 
@@ -120,6 +121,7 @@ int main(int argc, char* argv[])
     int         log_level            = vm["log_level"].as<int>();
     bool        generate_user_preset = vm["generate_presets"].as<bool>();
     bool        check_filament_subtypes = vm["check_filament_subtypes"].as<bool>();
+    bool        check_preset_references = vm["check_preset_references"].as<bool>();
 
     //  check if path is valid, and return error if not
     if (!fs::exists(path) || !fs::is_directory(path)) {
@@ -166,7 +168,7 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    if (preset_bundle->has_errors(check_filament_subtypes)) {
+    if (preset_bundle->has_errors(check_filament_subtypes, check_preset_references)) {
         std::cout << "Validation failed" << std::endl;
         return 1;
     }

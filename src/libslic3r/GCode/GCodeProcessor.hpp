@@ -649,14 +649,42 @@ class Print;
             std::vector<ActualSpeedMove> actual_speed_moves;
             //BBS: prepare stage time before print model, including start gcode time and mostly same with start gcode time
             float prepare_time;
-            using AdditionalBuffer = std::vector<std::pair<ExtrusionRole, float>>;
+            // Orca: extra time (e.g. a filament-change delay) that can't be attributed to a
+            // matching block on this pass is buffered here and retried on a later pass, so it
+            // is never folded into an unrelated move. On the final pass no later pass remains,
+            // so any still-unmatched remainder is added to the machine total (never to a move
+            // vertex) instead of being dropped, keeping get_time() consistent with the
+            // filament-change statistics. Orca-only EOF hardening; BambuStudio drops it.
+            // A target matches the first block whose move type AND extrusion role both match;
+            // EMoveType::Noop / ExtrusionRole::erNone act as wildcards. The move-type dimension
+            // lands filament-change delay on the synthetic tool-change block (standard path);
+            // the role dimension lands H2C flush/prepare time on wipe-tower moves (process_SYNC).
+            struct AdditionalTimeTarget
+            {
+                EMoveType     move_type;
+                ExtrusionRole role;
+                AdditionalTimeTarget() : move_type(EMoveType::Noop), role(ExtrusionRole::erNone) {}
+                AdditionalTimeTarget(EMoveType mt) : move_type(mt), role(ExtrusionRole::erNone) {}
+                AdditionalTimeTarget(ExtrusionRole r) : move_type(EMoveType::Noop), role(r) {}
+                bool operator==(const AdditionalTimeTarget& o) const { return move_type == o.move_type && role == o.role; }
+                bool matches(EMoveType mt, ExtrusionRole r) const
+                {
+                    return (move_type == EMoveType::Noop || move_type == mt) &&
+                           (role == ExtrusionRole::erNone || role == r);
+                }
+            };
+            using AdditionalBufferBlock = std::pair<AdditionalTimeTarget, float>;
+            using AdditionalBuffer      = std::vector<AdditionalBufferBlock>;
             AdditionalBuffer m_additional_time_buffer;
 
             void reset();
 
-            AdditionalBuffer merge_adjacent_addtional_time_blocks(const AdditionalBuffer& buffer);
+            // Merge adjacent buffer entries that share the same target.
+            static AdditionalBuffer merge_adjacent_additional_time_blocks(const AdditionalBuffer& buffer);
 
-            void calculate_time(GCodeProcessorResult& result, PrintEstimatedStatistics::ETimeMode mode, size_t keep_last_n_blocks = 0, float additional_time = 0.0f, ExtrusionRole target_role = ExtrusionRole::erNone);
+            // additional_time is attributed to the first block matching target (see
+            // AdditionalTimeTarget); is_final drains any still-unmatched remainder at EOF.
+            void calculate_time(GCodeProcessorResult& result, PrintEstimatedStatistics::ETimeMode mode, size_t keep_last_n_blocks = 0, float additional_time = 0.0f, AdditionalTimeTarget target = {}, bool is_final = false);
         };
 
         struct UsedFilaments  // filaments per ColorChange
@@ -1285,10 +1313,10 @@ class Print;
         void process_custom_gcode_time(CustomGCode::Type code);
         void process_filaments(CustomGCode::Type code);
 
-        void calculate_time(GCodeProcessorResult& result, size_t keep_last_n_blocks = 0, float additional_time = 0.0f, ExtrusionRole target_role = ExtrusionRole::erNone);
+        void calculate_time(GCodeProcessorResult& result, size_t keep_last_n_blocks = 0, float additional_time = 0.0f, TimeMachine::AdditionalTimeTarget target = {}, bool is_final = false);
 
         // Simulates firmware st_synchronize() call
-        void simulate_st_synchronize(float additional_time = 0.0f, ExtrusionRole target_role = ExtrusionRole::erNone);
+        void simulate_st_synchronize(float additional_time = 0.0f, TimeMachine::AdditionalTimeTarget target = {});
 
         void update_estimated_times_stats();
 
