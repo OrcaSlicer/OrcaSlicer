@@ -10169,6 +10169,9 @@ void GLCanvas3D::_set_warning_notification_if_needed(EWarning warning)
 
 void GLCanvas3D::_set_warning_notification(EWarning warning, bool state)
 {
+    // Skip on shutdown: Plater's pImpl is already freed, so get_notification_manager() would use-after-free.
+    if (wxGetApp().is_closing())
+        return;
     using NotificationLevel = NotificationManager::NotificationLevel;
     enum ErrorType{
         PLATER_WARNING,
