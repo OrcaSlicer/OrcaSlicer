@@ -145,7 +145,7 @@ void GLGizmosManager::switch_gizmos_icon_filename()
             gizmo->set_icon_filename(m_is_dark ? "toolbar_scale_dark.svg" : "toolbar_scale.svg");
             break;
         case(EType::Align):
-            gizmo->set_icon_filename("align_horizontal_left.svg");
+            gizmo->set_icon_filename(m_is_dark ? "toolbar_align_dark.svg" : "toolbar_align.svg");
             break;
         case(EType::Flatten):
             gizmo->set_icon_filename(m_is_dark ? "toolbar_flatten_dark.svg" : "toolbar_flatten.svg");
@@ -210,7 +210,7 @@ bool GLGizmosManager::init()
     m_gizmos.emplace_back(new GLGizmoMove3D(m_parent, m_is_dark ? "toolbar_move_dark.svg" : "toolbar_move.svg", EType::Move, &m_object_manipulation));
     m_gizmos.emplace_back(new GLGizmoRotate3D(m_parent, m_is_dark ? "toolbar_rotate_dark.svg" : "toolbar_rotate.svg", EType::Rotate, &m_object_manipulation));
     m_gizmos.emplace_back(new GLGizmoScale3D(m_parent, m_is_dark ? "toolbar_scale_dark.svg" : "toolbar_scale.svg", EType::Scale, &m_object_manipulation));
-    m_gizmos.emplace_back(new GLGizmoAlign(m_parent, "align_horizontal_left.svg", EType::Align));
+    m_gizmos.emplace_back(new GLGizmoAlign(m_parent, m_is_dark ? "toolbar_align_dark.svg" : "toolbar_align.svg", EType::Align));
     m_gizmos.emplace_back(new GLGizmoFlatten(m_parent, m_is_dark ? "toolbar_flatten_dark.svg" : "toolbar_flatten.svg", EType::Flatten));
     m_gizmos.emplace_back(new GLGizmoCut3D(m_parent, m_is_dark ? "toolbar_cut_dark.svg" : "toolbar_cut.svg", EType::Cut));
     m_gizmos.emplace_back(new GLGizmoMeshBoolean(m_parent, m_is_dark ? "toolbar_meshboolean_dark.svg" : "toolbar_meshboolean.svg", EType::MeshBoolean));
