@@ -124,6 +124,10 @@ protected:
 private:
     bool on_init() override;
 
+    //ORCA: horizontal-cut toggle for the section view (see GLGizmoFdmSupports).
+    bool m_use_vertical_clip = false;
+    bool m_vertical_clip_inverted = false;
+
     // BBS. remove const.
     void update_model_object() override;
     //BBS: add logic to distinguish the first_time_update and later_update

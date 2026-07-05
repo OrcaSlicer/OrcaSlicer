@@ -72,6 +72,14 @@ private:
     void run_thread();
     float m_angle_threshold_deg = 40.f;
     bool m_volume_valid = false;
+    //ORCA: when true, the clip-plane normal is forced to world Z (horizontal cut)
+    //      regardless of camera direction — lets the operator hide a baseplate
+    //      and keep rotating the view without the clip following the camera.
+    //      `m_vertical_clip_inverted` flips between hiding the top (default) and
+    //      hiding the bottom — needed when the operator wants to look UP at the
+    //      underside of a part from the inside.
+    bool m_use_vertical_clip = false;
+    bool m_vertical_clip_inverted = false;
 
 
     GLVolume *m_support_volume = NULL;

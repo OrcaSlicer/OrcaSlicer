@@ -95,6 +95,8 @@ bool GLGizmoMmuSegmentation::on_init()
 
     m_desc["clipping_of_view"] = _L("Section view");
     m_desc["reset_direction"]  = _L("Reset direction");
+    m_desc["horizontal_cut"]   = _L("Horizontal cut");
+    m_desc["flip"]             = _L("Flip");
     m_desc["cursor_size"]      = _L("Brush size");
     m_desc["cursor_type"]      = _L("Brush shape");
     m_desc["paint"]            = _L("Paint");
@@ -476,14 +478,14 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
 
     m_imgui->text(m_desc.at("tool_type"));
 
-    std::array<wchar_t, 6> tool_ids;
-    tool_ids = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::TriangleButtonIcon, ImGui::HeightRangeIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon };
-    std::array<wchar_t, 6> icons;
+    std::array<wchar_t, 10> tool_ids;
+    tool_ids = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::TriangleButtonIcon, ImGui::HeightRangeIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon, ImGui::LineToolIcon, ImGui::RectangleToolIcon, ImGui::GridToolIcon, ImGui::PolygonToolIcon };
+    std::array<wchar_t, 10> icons;
     if (m_is_dark_mode)
-        icons = { ImGui::CircleButtonDarkIcon, ImGui::SphereButtonDarkIcon, ImGui::TriangleButtonDarkIcon, ImGui::HeightRangeDarkIcon, ImGui::FillButtonDarkIcon, ImGui::GapFillDarkIcon };
+        icons = { ImGui::CircleButtonDarkIcon, ImGui::SphereButtonDarkIcon, ImGui::TriangleButtonDarkIcon, ImGui::HeightRangeDarkIcon, ImGui::FillButtonDarkIcon, ImGui::GapFillDarkIcon, ImGui::LineToolDarkIcon, ImGui::RectangleToolDarkIcon, ImGui::GridToolDarkIcon, ImGui::PolygonToolDarkIcon };
     else
-        icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::TriangleButtonIcon, ImGui::HeightRangeIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon };
-    std::array<wxString, 6> tool_tips = { _L("Circle"), _L("Sphere"), _L("Triangle"), _L("Height Range"), _L("Fill"), _L("Gap Fill") };
+        icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::TriangleButtonIcon, ImGui::HeightRangeIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon, ImGui::LineToolIcon, ImGui::RectangleToolIcon, ImGui::GridToolIcon, ImGui::PolygonToolIcon };
+    std::array<wxString, 10> tool_tips = { _L("Circle"), _L("Sphere"), _L("Triangle"), _L("Height Range"), _L("Fill"), _L("Gap Fill"), _L("Line (two-click swept stroke)"), _L("Rectangle (two-click screen-space box)"), _L("Grid (two-click box + spacing)"), _L("Polygon (N-click closed shape)") };
     for (int i = 0; i < tool_ids.size(); i++) {
         //std::string  str_label = std::string("");
         //std::wstring btn_name  = icons[i] + boost::nowide::widen(str_label);
@@ -629,6 +631,85 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
             m_parent.set_as_dirty();
         }
     }
+    else if (m_current_tool == ImGui::LineToolIcon) {
+        //ORCA: LINE tool — two-click swept stroke. See GLGizmoFdmSupports for rationale.
+        m_cursor_type = TriangleSelector::CursorType::CIRCLE;
+        m_tool_type   = ToolType::LINE;
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(m_desc.at("cursor_size"));
+        ImGui::SameLine(sliders_left_width);
+        ImGui::PushItemWidth(sliders_width);
+        m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+        ImGui::TextDisabled(m_line_pending
+            ? "Click a 2nd point to paint A→B."
+            : "Click 1st point on the mesh. 2nd click paints the swept line.");
+    }
+    else if (m_current_tool == ImGui::RectangleToolIcon) {
+        m_cursor_type = TriangleSelector::CursorType::CIRCLE;
+        m_tool_type   = ToolType::RECTANGLE;
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(m_desc.at("cursor_size"));
+        ImGui::SameLine(sliders_left_width);
+        ImGui::PushItemWidth(sliders_width);
+        m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+        ImGui::TextDisabled(m_rect_pending
+            ? "Click the opposite corner to fill the box."
+            : "Click one corner of the box on the canvas.");
+    }
+    else if (m_current_tool == ImGui::PolygonToolIcon) {
+        m_cursor_type = TriangleSelector::CursorType::CIRCLE;
+        m_tool_type   = ToolType::POLYGON;
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(m_desc.at("cursor_size"));
+        ImGui::SameLine(sliders_left_width);
+        ImGui::PushItemWidth(sliders_width);
+        m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+        ImGui::TextDisabled("Polygon points: %d", int(m_polygon_points.size()));
+        if (m_polygon_points.size() >= 3) {
+            if (m_imgui->button(_L("Close polygon (paint)"))) {
+                Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Polygon paint", UndoRedo::SnapshotType::GizmoAction);
+                close_and_paint_polygon(true);
+                update_model_object();
+                m_parent.set_as_dirty();
+            }
+        } else {
+            ImGui::TextDisabled("Need at least 3 points. Left-click to add. Right-click cancels.");
+        }
+    }
+    else if (m_current_tool == ImGui::GridToolIcon) {
+        m_cursor_type = TriangleSelector::CursorType::CIRCLE;
+        m_tool_type   = ToolType::GRID;
+        ImGui::AlignTextToFramePadding();
+        m_imgui->text(m_desc.at("cursor_size"));
+        ImGui::SameLine(sliders_left_width);
+        ImGui::PushItemWidth(sliders_width);
+        m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Grid spacing (px)");
+        ImGui::SameLine(sliders_left_width);
+        ImGui::PushItemWidth(sliders_width);
+        m_imgui->bbl_slider_float_style("##grid_spacing", &m_grid_spacing_px, 4.f, 200.f, "%.0f", 1.0f, true);
+        ImGui::SameLine(drag_left_width + sliders_left_width);
+        ImGui::PushItemWidth(1.5 * slider_icon_width);
+        ImGui::BBLDragFloat("##grid_spacing_input", &m_grid_spacing_px, 1.f, 0.0f, 0.0f, "%.0f");
+
+        ImGui::TextDisabled(m_rect_pending
+            ? "Click the opposite corner to dot-grid the box."
+            : "Click one corner of the box on the canvas.");
+    }
 
     ImGui::Separator();
     if (m_c->object_clipper()->get_position() == 0.f) {
@@ -647,9 +728,17 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
     ImGui::SameLine(drag_left_width + sliders_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     bool b_clp_dist_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
-
-    if (slider_clp_dist || b_clp_dist_input) {
-        m_c->object_clipper()->set_position_by_ratio(clp_dist, true);
+    //ORCA: horizontal-cut toggle + Flip button + cheap camera-tracking fix.
+    //      See GLGizmoFdmSupports for rationale.
+    bool b_horizontal_toggle = m_imgui->bbl_checkbox(m_desc.at("horizontal_cut"), m_use_vertical_clip);
+    bool b_flip_clicked = false;
+    if (m_use_vertical_clip) {
+        ImGui::SameLine();
+        b_flip_clicked = m_imgui->button(m_desc.at("flip"));
+        if (b_flip_clicked) m_vertical_clip_inverted = !m_vertical_clip_inverted;
+    }
+    if (slider_clp_dist || b_clp_dist_input || b_horizontal_toggle || b_flip_clicked) {
+        m_c->object_clipper()->set_position_by_ratio(clp_dist, false, m_use_vertical_clip, m_vertical_clip_inverted);
     }
 
     ImGui::Separator();
@@ -778,6 +867,15 @@ void GLGizmoMmuSegmentation::update_from_model_object(bool first_update)
 
 void GLGizmoMmuSegmentation::tool_changed(wchar_t old_tool, wchar_t new_tool)
 {
+    //ORCA: cancel any in-flight LINE/RECTANGLE/GRID anchor on tool-switch.
+    if (old_tool == ImGui::LineToolIcon      || new_tool == ImGui::LineToolIcon)
+        m_line_pending = false;
+    if (old_tool == ImGui::RectangleToolIcon || new_tool == ImGui::RectangleToolIcon
+     || old_tool == ImGui::GridToolIcon      || new_tool == ImGui::GridToolIcon)
+        m_rect_pending = false;
+    if (old_tool == ImGui::PolygonToolIcon   || new_tool == ImGui::PolygonToolIcon)
+        m_polygon_points.clear();
+
     if ((old_tool == ImGui::GapFillIcon && new_tool == ImGui::GapFillIcon) ||
         (old_tool != ImGui::GapFillIcon && new_tool != ImGui::GapFillIcon))
         return;
