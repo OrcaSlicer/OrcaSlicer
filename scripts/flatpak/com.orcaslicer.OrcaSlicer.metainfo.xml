@@ -45,6 +45,12 @@
         <color type="primary" scheme_preference="dark">#00695C</color>
     </branding>
     <releases>
+        <release version="2.4.2" date="2026-07-26">
+            <url type="details">https://www.orcaslicer.com/wiki/releases/release_2_4_2</url>
+            <description>
+                <p>See the release page for detailed changelog of OrcaSlicer 2.4.2 release.</p>
+            </description>
+        </release>
         <release version="2.4.1" date="2026-06-26">
             <url type="details">https://www.orcaslicer.com/wiki/releases/release_2_4_1</url>
             <description>
