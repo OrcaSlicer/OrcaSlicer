@@ -2647,6 +2647,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("hole_to_polyhole", "quality_settings_precision#polyholes");
         optgroup->append_single_option_line("hole_to_polyhole_threshold", "quality_settings_precision#polyholes");
         optgroup->append_single_option_line("hole_to_polyhole_twisted", "quality_settings_precision#polyholes");
+        optgroup->append_single_option_line("hole_to_polyhole_max_edges", "quality_settings_precision#polyholes");
 
         optgroup = page->new_optgroup(L("Ironing"), L"param_ironing");
         optgroup->append_single_option_line("ironing_type", "quality_settings_ironing#type");
