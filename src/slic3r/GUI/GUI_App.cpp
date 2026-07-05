@@ -3632,8 +3632,24 @@ void GUI_App::switch_printer_agent()
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
 
-        // Auto-switch MachineObject
+        // Auto-switch MachineObject (new agent has empty device_info, so always re-select)
         select_machine(effective_agent_id);
+    } else if (effective_agent_id != BBL_PRINTER_AGENT_ID) {
+        // Orca: the agent type is unchanged (e.g. switching between two Moonraker/Klipper
+        // printer presets), so the selected machine and the agent's cached device_info still
+        // point at the previously active printer preset. Re-select the machine when the new
+        // preset targets a different host, otherwise filament sync keeps hitting the old
+        // printer. (#12506)
+        if (m_device_manager && preset_bundle) {
+            const DynamicPrintConfig& cfg = preset_bundle->printers.get_edited_preset().config;
+            const std::string print_host = cfg.opt_string("print_host");
+            if (!print_host.empty()) {
+                const std::string dev_id = MachineObject::dev_id_from_address(print_host, cfg.opt_string("printhost_port"));
+                MachineObject* sel = m_device_manager->get_selected_machine();
+                if (!sel || sel->get_dev_id() != dev_id)
+                    select_machine(effective_agent_id);
+            }
+        }
     }
 }
 
