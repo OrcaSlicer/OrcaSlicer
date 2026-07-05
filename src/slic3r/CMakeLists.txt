@@ -682,6 +682,8 @@ set(SLIC3R_GUI_SOURCES
     Utils/Bonjour.hpp
     Utils/MeshInspect.cpp
     Utils/MeshInspect.hpp
+    Utils/PaintCLI.cpp
+    Utils/PaintCLI.hpp
     Utils/CalibUtils.cpp
     Utils/CalibUtils.hpp
     Utils/ColorSpaceConvert.cpp
