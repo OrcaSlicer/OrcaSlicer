@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-06 12:52-0300\n"
+"POT-Creation-Date: 2026-07-06 12:57-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -12970,13 +12970,17 @@ msgstr "선의 시작 또는 기본 방향을 제어하는 솔리드 채우기 �
 msgid "Top layer direction"
 msgstr ""
 
-msgid "Optional absolute angle for top-layer infill and ironing base direction. Set to -1 to use the current solid infill direction behavior."
+msgid ""
+"Fixed angle for the top solid infill and ironing lines.\n"
+"Set to -1 to follow the default solid infill direction."
 msgstr ""
 
 msgid "Bottom layer direction"
 msgstr ""
 
-msgid "Optional absolute angle for bottom-layer infill. Set to -1 to use the current solid infill direction behavior."
+msgid ""
+"Fixed angle for the bottom solid infill lines.\n"
+"Set to -1 to follow the default solid infill direction."
 msgstr ""
 
 msgid "Sparse infill density"
