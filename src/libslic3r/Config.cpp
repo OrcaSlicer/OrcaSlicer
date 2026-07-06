@@ -685,6 +685,32 @@ bool ConfigBase::set_deserialize_raw(const t_config_option_key &opt_key_src, con
     return success;
 }
 
+double ConfigBase::get_abs_value_at(const t_config_option_key &opt_key, size_t index) const
+{
+    const ConfigOption *raw_opt = this->option(opt_key);
+    assert(raw_opt != nullptr);
+    if (raw_opt->type() == coFloats) {
+        return static_cast<const ConfigOptionFloats*>(raw_opt)->get_at(index);
+    }
+    if (raw_opt->type() == coFloatsOrPercents) {
+        const ConfigDef *def = this->def();
+        if (def == nullptr) throw NoDefinitionException(opt_key);
+        const ConfigOptionDef *opt_def = def->get(opt_key);
+        assert(opt_def != nullptr);
+
+        if (opt_def->ratio_over.empty()) {
+            return 0;
+        } else {
+            const ConfigOption *ratio_opt = this->option(opt_def->ratio_over);
+            assert(ratio_opt->type() == coFloats);
+            const ConfigOptionFloats *ratio_values = static_cast<const ConfigOptionFloats *>(ratio_opt);
+            return static_cast<const ConfigOptionFloatsOrPercents *>(raw_opt)->get_at(index).get_abs_value(ratio_values->get_at(index));
+        }
+    }
+
+    throw ConfigurationError("ConfigBase::get_abs_value_at(): Not a valid option type for get_abs_value_at()");
+}
+
 // Return an absolute value of a possibly relative config variable.
 // For example, return absolute infill extrusion width, either from an absolute value, or relative to the layer height.
 double ConfigBase::get_abs_value(const t_config_option_key &opt_key) const
@@ -1498,7 +1524,7 @@ void ConfigBase::save_to_json(const std::string &file, const std::string &name, 
 
     boost::nowide::ofstream c;
     c.open(file, std::ios::out | std::ios::trunc);
-    c << std::setw(4) << j << std::endl;
+    c << j.dump(1, '\t') << std::endl;
     c.close();
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" <<__LINE__ << boost::format(", saved config to %1%\n")%file;
@@ -1884,6 +1910,39 @@ t_config_option_keys DynamicConfig::equal(const DynamicConfig &other) const
             return false;
         });
     return equal;
+}
+
+double& DynamicConfig::opt_float(const t_config_option_key &opt_key, unsigned int idx)
+{
+    if (ConfigOptionFloats *opt_floats = dynamic_cast<ConfigOptionFloats *>(this->option(opt_key))) {
+        return opt_floats->get_at(idx);
+    } else {
+        ConfigOptionFloatsNullable *opt_floats_nullable = dynamic_cast<ConfigOptionFloatsNullable *>(this->option(opt_key));
+        assert(opt_floats_nullable != nullptr);
+        return opt_floats_nullable->get_at(idx);
+    }
+}
+const double& DynamicConfig::opt_float(const t_config_option_key &opt_key, unsigned int idx) const
+{
+    if (const ConfigOptionFloats *opt_floats = dynamic_cast<const ConfigOptionFloats *>(this->option(opt_key))) {
+        return opt_floats->get_at(idx);
+    } else if (const ConfigOptionFloatsNullable *opt_floats_nullable = dynamic_cast<const ConfigOptionFloatsNullable *>(this->option(opt_key))) {
+        return opt_floats_nullable->get_at(idx);
+    } else {
+        assert(false);
+        return 0;
+    }
+}
+
+bool DynamicConfig::opt_bool(const t_config_option_key &opt_key, unsigned int idx) const {
+    if (const ConfigOptionBools *opts = dynamic_cast<const ConfigOptionBools *>(this->option(opt_key))) {
+        return opts->get_at(idx) != 0;
+    }
+    else {
+        const ConfigOptionBoolsNullable *opt_s = dynamic_cast<const ConfigOptionBoolsNullable *>(this->option(opt_key));
+        assert(opt_s != nullptr);
+        return opt_s->get_at(idx) != 0;
+    }
 }
 
 }

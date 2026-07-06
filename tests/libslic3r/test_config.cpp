@@ -77,15 +77,15 @@ SCENARIO("Config accessor functions perform as expected.", "[Config]") {
 	    }
         }
         WHEN("An floating-point option is set through the integer interface") {
-            config.set("default_acceleration", 10);
+            config.set("max_bridge_length", 10);
             THEN("The underlying value is set correctly.") {
-                REQUIRE(config.opt<ConfigOptionFloat>("default_acceleration")->getFloat() == 10.0);
+                REQUIRE(config.opt<ConfigOptionFloat>("max_bridge_length")->getFloat() == 10.0);
             }
         }
         WHEN("A floating-point option is set through the double interface") {
-            config.set("default_acceleration", 5.5);
+            config.set("max_bridge_length", 5.5);
             THEN("The underlying value is set correctly.") {
-                REQUIRE(config.opt<ConfigOptionFloat>("default_acceleration")->getFloat() == 5.5);
+                REQUIRE(config.opt<ConfigOptionFloat>("max_bridge_length")->getFloat() == 5.5);
             }
         }
         WHEN("An integer-based option is set through the double interface") {
@@ -94,12 +94,12 @@ SCENARIO("Config accessor functions perform as expected.", "[Config]") {
             }
         }
         WHEN("A numeric option is set to a non-numeric value.") {
-	    auto prev_value = config.opt<ConfigOptionFloat>("default_acceleration")->getFloat();
+	    auto prev_value = config.opt<ConfigOptionFloat>("max_bridge_length")->getFloat();
             THEN("A BadOptionTypeException exception is thrown.") {
-                REQUIRE_THROWS_AS(config.set_deserialize_strict("default_acceleration", "zzzz"), BadOptionValueException);
+                REQUIRE_THROWS_AS(config.set_deserialize_strict("max_bridge_length", "zzzz"), BadOptionValueException);
             }
             THEN("The value does not change.") {
-                REQUIRE(config.opt<ConfigOptionFloat>("default_acceleration")->getFloat() == prev_value);
+                REQUIRE(config.opt<ConfigOptionFloat>("max_bridge_length")->getFloat() == prev_value);
             }
         }
         WHEN("A string option is set through the string interface") {
@@ -261,6 +261,104 @@ SCENARIO("DynamicPrintConfig serialization", "[Config]") {
             // }
 	    CAPTURE(cfg.diff_report(cfg2));
             REQUIRE(cfg == cfg2);
+        }
+    }
+}
+
+SCENARIO("update_non_diff_values_to_base_config preserves child vectors when child has more extruders than parent",
+         "[Config][Variant]") {
+    GIVEN("A 2-extruder child printer config inheriting from a 1-extruder parent") {
+        Slic3r::DynamicPrintConfig child;
+        Slic3r::DynamicPrintConfig parent;
+
+        child.set_key_value("nozzle_diameter",           new Slic3r::ConfigOptionFloats({0.4, 0.4}));
+        child.set_key_value("printer_extruder_id",       new Slic3r::ConfigOptionInts({1, 2}));
+        child.set_key_value("printer_extruder_variant",  new Slic3r::ConfigOptionStrings({"Direct Drive Standard", "Direct Drive Standard"}));
+        child.set_key_value("retraction_length",         new Slic3r::ConfigOptionFloats({1.5, 1.5}));
+
+        parent.set_key_value("nozzle_diameter",          new Slic3r::ConfigOptionFloats({0.4}));
+        parent.set_key_value("printer_extruder_id",      new Slic3r::ConfigOptionInts({1}));
+        parent.set_key_value("printer_extruder_variant", new Slic3r::ConfigOptionStrings({"Direct Drive Standard"}));
+        parent.set_key_value("retraction_length",        new Slic3r::ConfigOptionFloats({0.8}));
+
+        const Slic3r::t_config_option_keys keys = {
+            "retraction_length", "printer_extruder_id", "printer_extruder_variant"
+        };
+        const std::set<std::string> different_keys = {
+            "retraction_length", "printer_extruder_id", "printer_extruder_variant"
+        };
+
+        WHEN("update_non_diff_values_to_base_config is called") {
+            std::string id_name  = "printer_extruder_id";
+            std::string var_name = "printer_extruder_variant";
+            child.update_non_diff_values_to_base_config(
+                parent, keys, different_keys, id_name, var_name,
+                Slic3r::printer_options_with_variant_1,
+                Slic3r::printer_options_with_variant_2);
+
+            THEN("printer_extruder_id retains size 2") {
+                REQUIRE(child.option<Slic3r::ConfigOptionInts>("printer_extruder_id")->values.size() == 2);
+            }
+            THEN("printer_extruder_variant retains size 2") {
+                REQUIRE(child.option<Slic3r::ConfigOptionStrings>("printer_extruder_variant")->values.size() == 2);
+            }
+            THEN("retraction_length retains size 2") {
+                REQUIRE(child.option<Slic3r::ConfigOptionFloats>("retraction_length")->values.size() == 2);
+            }
+            THEN("printer_extruder_id values are preserved for both extruders") {
+                auto* pe_id = child.option<Slic3r::ConfigOptionInts>("printer_extruder_id");
+                REQUIRE(pe_id->values.size() == 2);
+                REQUIRE(pe_id->values[0] == 1);
+                REQUIRE(pe_id->values[1] == 2);
+            }
+        }
+    }
+}
+
+SCENARIO("update_diff_values_to_child_config tolerates legacy machine-limit vector sizes",
+         "[Config][Variant]") {
+    // Regression: loading a user printer preset that inherits a non-BBL multi-extruder base and
+    // overrides stride-2 machine limits used to throw in ConfigOptionVector::set_only_diff
+    // ("invalid diff_index size"). The base's machine-limit vectors get length-extended by the
+    // nozzle count while it carries no printer_extruder_variant, so the base length (nozzles*2)
+    // no longer matches variant_index.size()*2. The throw was caught upstream and DELETED the
+    // user's preset file. The merge must instead degrade gracefully.
+    GIVEN("A 4-nozzle parent with stride-2 limits extended to nozzles*2 but no printer_extruder_variant") {
+        Slic3r::DynamicPrintConfig parent;
+        Slic3r::DynamicPrintConfig child;
+
+        parent.set_key_value("nozzle_diameter",
+            new Slic3r::ConfigOptionFloats({0.4, 0.4, 0.4, 0.4}));
+        parent.set_key_value("machine_max_acceleration_x",
+            new Slic3r::ConfigOptionFloats({25000, 25000, 25000, 25000, 25000, 25000, 25000, 25000}));
+
+        // Child user preset declares 4 extruder variants and overrides the machine limit.
+        child.set_key_value("printer_extruder_id",
+            new Slic3r::ConfigOptionInts({1, 2, 3, 4}));
+        child.set_key_value("printer_extruder_variant",
+            new Slic3r::ConfigOptionStrings({"Direct Drive Standard", "Direct Drive Standard",
+                                             "Direct Drive Standard", "Direct Drive Standard"}));
+        child.set_key_value("machine_max_acceleration_x",
+            new Slic3r::ConfigOptionFloats({8000, 8000, 8000, 8000, 8000, 8000, 8000, 8000}));
+
+        WHEN("update_diff_values_to_child_config merges the child overrides") {
+            std::string id_name  = "printer_extruder_id";
+            std::string var_name = "printer_extruder_variant";
+
+            THEN("it does not throw on the legacy size mismatch") {
+                REQUIRE_NOTHROW(parent.update_diff_values_to_child_config(
+                    child, id_name, var_name,
+                    Slic3r::printer_options_with_variant_1,
+                    Slic3r::printer_options_with_variant_2));
+
+                AND_THEN("the child's overridden machine limit is preserved") {
+                    auto* mx = parent.option<Slic3r::ConfigOptionFloats>("machine_max_acceleration_x");
+                    REQUIRE(mx != nullptr);
+                    REQUIRE(mx->values.size() >= 2);
+                    REQUIRE_THAT(mx->values[0], Catch::Matchers::WithinAbs(8000.0, 1e-6));
+                    REQUIRE_THAT(mx->values[1], Catch::Matchers::WithinAbs(8000.0, 1e-6));
+                }
+            }
         }
     }
 }

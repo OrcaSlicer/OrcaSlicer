@@ -1,12 +1,13 @@
 {
-    "type": "filament",
-    "name": "Cubicon PC @Cubicon xCeler-I 0.4 nozzle",
-    "inherits": "Cubicon PC @base",
-    "instantiation": "true",
-    "compatible_printers": [
-        "Cubicon xCeler-I 0.4 nozzle"
-    ],
-    "filament_settings_id": [
-        "Cubicon PC @Cubicon xCeler-I 0.4 nozzle"
-    ]
+	"type": "filament",
+	"name": "Cubicon PC @Cubicon xCeler-I 0.4 nozzle",
+	"inherits": "Cubicon PC @base",
+	"setting_id": "c0sUPS0SRYUNjEpB",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Cubicon xCeler-I 0.4 nozzle"
+	],
+	"filament_settings_id": [
+		"Cubicon PC @Cubicon xCeler-I 0.4 nozzle"
+	]
 }

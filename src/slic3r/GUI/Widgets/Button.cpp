@@ -203,6 +203,12 @@ void Button::SetStyle(const ButtonStyle style, const ButtonType type)
         this->SetCornerRadius(this->FromDIP(4));
         this->SetFont(Label::Body_14);
     }
+    else if (type == ButtonType::Icon) {
+        this->SetPaddingSize(FromDIP(wxSize(5,5)));
+        this->SetMinSize(FromDIP(wxSize(26,26)));
+        this->SetSize(FromDIP(wxSize(26,26)));
+        this->SetCornerRadius(this->FromDIP(4));
+    }
     else if (type == ButtonType::Expanded) {
         this->SetMinSize(FromDIP(wxSize(-1,32)));
         this->SetPaddingSize(FromDIP(wxSize(12,8)));
@@ -516,7 +522,9 @@ void Button::OnParentMotion(wxMouseEvent& event)
             tipWindow->SetLabel(tip);
         }
 
-        tipWindow->Position(wxGetMousePosition(), wxSize(0, 0));
+        // Position tooltip relative to the button widget itself rather than
+        // using wxGetMousePosition() which returns (0,0) on Wayland.
+        tipWindow->Position(this->ClientToScreen(wxPoint(0, 0)), this->GetSize());
         tipWindow->Popup();
     }
     else

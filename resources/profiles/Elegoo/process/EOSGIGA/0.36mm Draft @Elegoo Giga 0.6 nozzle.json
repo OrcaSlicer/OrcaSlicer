@@ -1,7 +1,10 @@
 {
-    "type": "process",
-    "name": "0.36mm Draft @Elegoo Giga 0.6 nozzle",
-    "inherits": "0.30mm Standard @Elegoo Giga 0.6 nozzle",
-    "instantiation": "true",
-    "layer_height": "0.36"
+	"type": "process",
+	"from": "system",
+	"inherits": "0.30mm Standard @Elegoo Giga 0.6 nozzle",
+	"layer_height": "0.36",
+	"setting_id": "aFZ4bLGGhFIcwoH5",
+	"instantiation": "true",
+	"renamed_from": "0.36mm Draft @EOS Giga 0.6 nozzle",
+	"name": "0.36mm Draft @Elegoo Giga 0.6 nozzle"
 }

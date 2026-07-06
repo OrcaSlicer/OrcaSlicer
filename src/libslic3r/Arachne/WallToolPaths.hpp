@@ -15,7 +15,7 @@
 namespace Slic3r::Arachne
 {
 
-constexpr bool    fill_outline_gaps                        = true;
+constexpr bool    fill_outline_gaps = true;
 inline coord_t    meshfix_maximum_resolution() { return scaled<coord_t>(0.5); }
 inline coord_t    meshfix_maximum_deviation() { return scaled<coord_t>(0.025); }
 inline coord_t    meshfix_maximum_extrusion_area_deviation() { return scaled<coord_t>(2.); }
@@ -31,6 +31,9 @@ public:
     float   wall_transition_filter_deviation;
     int     wall_distribution_count;
     bool    is_top_or_bottom_layer;
+
+    coord_t wall_maximum_resolution = meshfix_maximum_resolution();
+    coord_t wall_maximum_deviation  = meshfix_maximum_deviation();
 };
 
 WallToolPathsParams make_paths_params(const int layer_id, const PrintObjectConfig &print_object_config, const PrintConfig &print_config);
@@ -116,10 +119,11 @@ protected:
     /*!
      * Simplifies the variable-width toolpaths by calling the simplify on every line in the toolpath using the provided
      * settings.
-     * \param settings The settings as provided by the user
+     * \param toolpaths The toolpaths vector to simplify
+     * \param params The settings as provided by the user
      * \return
      */
-    static void simplifyToolPaths(std::vector<VariableWidthLines>  &toolpaths);
+    static void simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const WallToolPathsParams& params);
 
 private:
     const Polygons& outline; //<! A reference to the outline polygon that is the designated area

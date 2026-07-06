@@ -87,25 +87,6 @@ void ButtonsListCtrl::OnPaint(wxPaintEvent&)
         dc.SetBrush(clr);
         dc.DrawRectangle(pos.x, pos.y + size.y, size.x, sz.y - size.y);
     }
-
-#if 0
-    // highlight selected mode button
-    if (m_mode_sizer) {
-        const std::vector<ModeButton*>& mode_btns = m_mode_sizer->get_btns();
-        for (int idx = 0; idx < int(mode_btns.size()); idx++) {
-            ModeButton* btn = mode_btns[idx];
-            btn->SetBackgroundColor(btn->is_selected() ? selected_btn_bg : default_btn_bg);
-
-            //wxPoint pos = btn->GetPosition();
-            //wxSize size = btn->GetSize();
-            //const wxColour& clr = btn->is_selected() ? btn_marker_color : default_btn_bg;
-            //dc.SetPen(clr);
-            //dc.SetBrush(clr);
-            //dc.DrawRectangle(pos.x, pos.y + size.y, size.x, sz.y - size.y);
-        }
-    }
-#endif
-
     // Draw orange bottom line
 
     dc.SetPen(btn_marker_color);

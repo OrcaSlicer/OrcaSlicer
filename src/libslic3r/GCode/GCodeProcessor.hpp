@@ -78,6 +78,13 @@ class Print;
         std::array<Mode, static_cast<size_t>(ETimeMode::Count)> modes;
         unsigned int                                        total_filament_changes;
         unsigned int                                        total_extruder_changes;
+        float                                               total_filament_load_time;
+        float                                               total_filament_unload_time;
+        float                                               total_tool_change_time;
+        float                                               total_travel_distance;
+        unsigned int                                        total_travel_moves;
+        float                                               total_seam_gap_distance;
+        float                                               total_seam_scarf_distance;
 
         PrintEstimatedStatistics() { reset(); }
 
@@ -95,6 +102,13 @@ class Print;
             used_filaments_per_role.clear();
             total_filament_changes = 0;
             total_extruder_changes = 0;
+            total_filament_load_time = 0.0f;
+            total_filament_unload_time = 0.0f;
+            total_tool_change_time = 0.0f;
+            total_travel_distance = 0.0f;
+            total_travel_moves = 0;
+            total_seam_gap_distance = 0.0f;
+            total_seam_scarf_distance = 0.0f;
         }
     };
 
@@ -186,6 +200,10 @@ class Print;
             float temperature{ 0.0f }; // Celsius degrees
 // ORCA: Add Pressure Advance visualization support
             float pressure_advance{ 0.0f };
+            // ORCA: Add Acceleration visualization support
+            float acceleration{ 0.0f }; // mm/s^2
+            // ORCA: Add Jerk visualization support
+            float jerk{ 0.0f }; // mm/s
             std::array<float, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)> time{ 0.0f, 0.0f }; // s
             float layer_duration{ 0.0f }; // s
             unsigned int layer_id{ 0 };
@@ -247,6 +265,9 @@ class Print;
         std::vector<NozzleType> nozzle_type;
         // first key stores filaments, second keys stores the layer ranges(enclosed) that use the filaments
         std::unordered_map<std::vector<unsigned int>, std::vector<std::pair<int, int>>,FilamentSequenceHash> layer_filaments;
+        std::vector<unsigned int> nozzle_change_sequence;
+        std::vector<unsigned int> filament_change_sequence;
+        std::vector<int> optimal_assignment;
         // first key stores `from` filament, second keys stores the `to` filament
         std::map<std::pair<int,int>, int > filament_change_count_map;
 
@@ -284,6 +305,9 @@ class Print;
             limit_filament_maps = other.limit_filament_maps;
             filament_printable_reuslt = other.filament_printable_reuslt;
             layer_filaments = other.layer_filaments;
+            filament_change_sequence = other.filament_change_sequence;
+            nozzle_change_sequence = other.nozzle_change_sequence;
+            optimal_assignment = other.optimal_assignment;
             filament_change_count_map = other.filament_change_count_map;
             initial_layer_time = other.initial_layer_time;
 #if ENABLE_GCODE_VIEWER_STATISTICS
@@ -536,9 +560,24 @@ class Print;
             //BBS: prepare stage time before print model, including start gcode time and mostly same with start gcode time
             float prepare_time;
 
+            // Orca: extra time (e.g. a filament-change delay) that can't be attributed to a
+            // matching block on this pass is buffered here and retried on a later pass, so it
+            // is never folded into an unrelated move. On the final pass no later pass remains,
+            // so any still-unmatched remainder is added to the machine total (never to a move
+            // vertex) instead of being dropped, keeping get_time() consistent with the
+            // filament-change statistics. Orca-only EOF hardening; BambuStudio drops it.
+            using AdditionalBufferBlock = std::pair<EMoveType, float>;
+            using AdditionalBuffer      = std::vector<AdditionalBufferBlock>;
+            AdditionalBuffer m_additional_time_buffer;
+
             void reset();
 
-            void calculate_time(GCodeProcessorResult& result, PrintEstimatedStatistics::ETimeMode mode, size_t keep_last_n_blocks = 0, float additional_time = 0.0f);
+            // Merge adjacent buffer entries that target the same move type.
+            static AdditionalBuffer merge_adjacent_additional_time_blocks(const AdditionalBuffer& buffer);
+
+            // additional_time is attributed to the first block matching target_move_type
+            // (EMoveType::Noop matches any block, i.e. the first processed block).
+            void calculate_time(GCodeProcessorResult& result, PrintEstimatedStatistics::ETimeMode mode, size_t keep_last_n_blocks = 0, float additional_time = 0.0f, EMoveType target_move_type = EMoveType::Noop, bool is_final = false);
         };
 
         struct UsedFilaments  // filaments per ColorChange
@@ -1074,6 +1113,7 @@ class Print;
         // per-nozzle machine limits (filament_map_2 / get_config_idx_for_filament).
         float get_axis_max_feedrate(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         float get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
+        float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis, float acceleration) const;
         float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         float get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         Vec3f get_xyz_max_jerk(PrintEstimatedStatistics::ETimeMode mode) const;
@@ -1090,10 +1130,10 @@ class Print;
         void process_custom_gcode_time(CustomGCode::Type code);
         void process_filaments(CustomGCode::Type code);
 
-        void calculate_time(GCodeProcessorResult& result, size_t keep_last_n_blocks = 0, float additional_time = 0.0f);
+        void calculate_time(GCodeProcessorResult& result, size_t keep_last_n_blocks = 0, float additional_time = 0.0f, EMoveType target_move_type = EMoveType::Noop, bool is_final = false);
 
         // Simulates firmware st_synchronize() call
-        void simulate_st_synchronize(float additional_time = 0.0f);
+        void simulate_st_synchronize(float additional_time = 0.0f, EMoveType target_move_type = EMoveType::Noop);
 
         void update_estimated_times_stats();
 

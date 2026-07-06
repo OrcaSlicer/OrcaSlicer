@@ -4,6 +4,7 @@
 
 #include "ClipperUtils.hpp"
 #include "ElephantFootCompensation.hpp"
+#include "Exception.hpp"
 #include "I18N.hpp"
 #include "Layer.hpp"
 #include "MultiMaterialSegmentation.hpp"
@@ -20,6 +21,32 @@ namespace Slic3r {
 bool PrintObject::clip_multipart_objects = true;
 bool PrintObject::infill_only_where_needed = false;
 
+static coordf_t compute_slice_z(PrintObject* print_object, size_t i_layer, coordf_t lo, coordf_t hi)
+{
+    bool zaa_active   = false;
+    coordf_t z_offset = 0.0;
+
+    size_t num_regions = print_object->num_printing_regions();
+    for (size_t rid = 0; rid < num_regions; ++rid) {
+        const auto& rcfg = print_object->printing_region(rid).config();
+        if (rcfg.zaa_enabled) {
+            if (!zaa_active || rcfg.zaa_min_z < z_offset)
+                z_offset = rcfg.zaa_min_z;
+            zaa_active = true;
+        }
+    }
+
+    if (!zaa_active || i_layer == 0) {
+        return 0.5 * (lo + hi);
+    }
+
+    coordf_t slice_z = lo + z_offset;
+    if ((slice_z < lo && !is_approx(slice_z, lo)) || (slice_z > hi && !is_approx(slice_z, hi))) {
+        throw RuntimeError("Bad min Z value");
+    }
+    return slice_z;
+}
+
 LayerPtrs new_layers(
     PrintObject                 *print_object,
     // Object layers (pairs of bottom/top Z coordinate), without the raft.
@@ -33,7 +60,8 @@ LayerPtrs new_layers(
     for (size_t i_layer = 0; i_layer < object_layers.size(); i_layer += 2) {
         coordf_t lo = object_layers[i_layer];
         coordf_t hi = object_layers[i_layer + 1];
-        coordf_t slice_z = 0.5 * (lo + hi);
+        coordf_t slice_z = compute_slice_z(print_object, i_layer, lo, hi);
+
         Layer *layer = new Layer(id ++, print_object, hi - lo, hi + zmin, slice_z);
         out.emplace_back(layer);
         if (prev != nullptr) {
@@ -331,7 +359,7 @@ static std::vector<std::vector<ExPolygons>> slices_to_regions(
                         bool rhs_empty  = rhs.region_id < 0 || rhs.expolygons.empty();
                         // Sort the empty items to the end of the list.
                         // Sort by region_id & volume_id lexicographically.
-                        return ! this_empty && (rhs_empty || (this->region_id < rhs.region_id || (this->region_id == rhs.region_id && volume_id < volume_id)));
+                        return ! this_empty && (rhs_empty || (this->region_id < rhs.region_id || (this->region_id == rhs.region_id && volume_id < rhs.volume_id)));
                     }
                 };
 

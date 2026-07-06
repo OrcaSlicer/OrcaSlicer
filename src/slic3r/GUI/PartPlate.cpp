@@ -5,7 +5,7 @@
 #include <string>
 #include <regex>
 #include <future>
-#include <GL/glew.h>
+#include <glad/gl.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/optional.hpp>
 #include <boost/filesystem/path.hpp>
@@ -172,7 +172,8 @@ void PartPlate::init()
 	m_locked = false;
 	m_ready_for_slice = true;
 	m_slice_result_valid = false;
-	m_slice_percent = 0.0f;
+	m_slice_percent = -1.0f; // ORCA create new plates with negative values or it will take "slicing" role on toolbar
+                             // condition for sliced / slicing -- if (plate_list.get_plate(i)->get_slicing_percent() < 0.0f)
 	m_hover_id = -1;
 	m_selected = false;
 	//m_quadric = ::gluNewQuadric();
@@ -1076,8 +1077,11 @@ void PartPlate::render_icon_texture(GLModel &buffer, GLTexture &texture)
 
 void PartPlate::render_plate_name_texture()
 {
-	if (m_name_texture.get_id() == 0)
+	if (m_plate_name_edit_icon.mesh_raycaster == nullptr)
 		generate_plate_name_texture();
+
+	if (m_name_texture.get_id() == 0)
+		return;
 
 	GLuint tex_id = (GLuint)m_name_texture.get_id();
 	glsafe(::glBindTexture(GL_TEXTURE_2D, tex_id));
@@ -1469,6 +1473,9 @@ void PartPlate::render_right_arrow(const ColorRGBA render_color, bool use_lighti
 
 static void register_model_for_picking(GLCanvas3D &canvas, PickingModel &model, int id)
 {
+	if (model.mesh_raycaster == nullptr)
+		return;
+
     canvas.add_raycaster_for_picking(SceneRaycaster::EType::Bed, id, *model.mesh_raycaster, Transform3d::Identity());
 }
 
@@ -1483,7 +1490,10 @@ void PartPlate::register_raycasters_for_picking(GLCanvas3D &canvas)
         register_model_for_picking(canvas, m_plate_settings_icon, picking_id_component(5));
 
     canvas.remove_raycasters_for_picking(SceneRaycaster::EType::Bed, picking_id_component(6));
-    register_model_for_picking(canvas, m_plate_name_edit_icon, picking_id_component(6));
+	// Plate-name edit picking is built lazily together with the plate-name texture.
+	// During reset / reload_scene the icon may not have a raycaster yet, which is valid.
+	if (m_plate_name_edit_icon.mesh_raycaster != nullptr)
+		register_model_for_picking(canvas, m_plate_name_edit_icon, picking_id_component(6));
     register_model_for_picking(canvas, m_move_front_icon, picking_id_component(7));
 
     // Only register filament map button for H2D (dual-extruder Bambu Lab) printers
@@ -1508,9 +1518,16 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
 	const DynamicPrintConfig& glb_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
 	int glb_support_intf_extr = glb_config.opt_int("support_interface_filament");
 	int glb_support_extr = glb_config.opt_int("support_filament");
-	int glb_wall_extr = glb_config.opt_int("wall_filament");
-	int glb_sparse_infill_extr = glb_config.opt_int("sparse_infill_filament");
-	int glb_solid_infill_extr = glb_config.opt_int("solid_infill_filament");
+	int glb_outer_wall_extr = glb_config.opt_int("outer_wall_filament_id");
+	int glb_inner_wall_extr = glb_config.opt_int("inner_wall_filament_id");
+	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
+	if (glb_inner_wall_extr == 0) glb_inner_wall_extr = glb_outer_wall_extr;
+	int glb_sparse_infill_extr = glb_config.opt_int("sparse_infill_filament_id");
+	int glb_internal_solid_extr = glb_config.opt_int("internal_solid_filament_id");
+	int glb_top_surface_extr = glb_config.opt_int("top_surface_filament_id");
+	int glb_bottom_surface_extr = glb_config.opt_int("bottom_surface_filament_id");
+	if (glb_top_surface_extr == 0) glb_top_surface_extr = glb_internal_solid_extr;
+	if (glb_bottom_surface_extr == 0) glb_bottom_surface_extr = glb_internal_solid_extr;
 	bool glb_support = glb_config.opt_bool("enable_support");
     glb_support |= glb_config.opt_int("raft_layers") > 0;
 
@@ -1564,32 +1581,64 @@ std::vector<int> PartPlate::get_extruders(bool conside_custom_gcode) const
                 plate_extruders.push_back(glb_support_extr);
         }
 
-        int obj_wall_extr = 1;
-		const ConfigOption* wall_opt = mo->config.option("wall_filament");
-		if (wall_opt != nullptr)
-			obj_wall_extr = wall_opt->getInt();
-		if (obj_wall_extr != 1)
-			plate_extruders.push_back(obj_wall_extr);
-		else if (glb_wall_extr != 1)
-			plate_extruders.push_back(glb_wall_extr);
+		int obj_outer_wall_extr = 0;
+		if (const ConfigOption* wall_opt = mo->config.option("outer_wall_filament_id"); wall_opt != nullptr)
+			obj_outer_wall_extr = wall_opt->getInt();
+		if (obj_outer_wall_extr == 0)
+			if (const ConfigOption* wall_opt = mo->config.option("inner_wall_filament_id"); wall_opt != nullptr)
+				obj_outer_wall_extr = wall_opt->getInt();
+		if (obj_outer_wall_extr != 0)
+			plate_extruders.push_back(obj_outer_wall_extr);
+		else if (glb_outer_wall_extr != 0)
+			plate_extruders.push_back(glb_outer_wall_extr);
 
-		int obj_sparse_infill_extr = 1;
-		const ConfigOption* sparse_infill_opt = mo->config.option("sparse_infill_filament");
+		int obj_inner_wall_extr = 0;
+		if (const ConfigOption* wall_opt = mo->config.option("inner_wall_filament_id"); wall_opt != nullptr)
+			obj_inner_wall_extr = wall_opt->getInt();
+		if (obj_inner_wall_extr == 0)
+			if (const ConfigOption* wall_opt = mo->config.option("outer_wall_filament_id"); wall_opt != nullptr)
+				obj_inner_wall_extr = wall_opt->getInt();
+		if (obj_inner_wall_extr != 0)
+			plate_extruders.push_back(obj_inner_wall_extr);
+		else if (glb_inner_wall_extr != 0)
+			plate_extruders.push_back(glb_inner_wall_extr);
+
+		int obj_sparse_infill_extr = 0;
+		const ConfigOption* sparse_infill_opt = mo->config.option("sparse_infill_filament_id");
 		if (sparse_infill_opt != nullptr)
 			obj_sparse_infill_extr = sparse_infill_opt->getInt();
-		if (obj_sparse_infill_extr != 1)
+		if (obj_sparse_infill_extr != 0)
 			plate_extruders.push_back(obj_sparse_infill_extr);
-		else if (glb_sparse_infill_extr != 1)
+		else if (glb_sparse_infill_extr != 0)
 			plate_extruders.push_back(glb_sparse_infill_extr);
 
-		int obj_solid_infill_extr = 1;
-		const ConfigOption* solid_infill_opt = mo->config.option("solid_infill_filament");
-		if (solid_infill_opt != nullptr)
-			obj_solid_infill_extr = solid_infill_opt->getInt();
-		if (obj_solid_infill_extr != 1)
-			plate_extruders.push_back(obj_solid_infill_extr);
-		else if (glb_solid_infill_extr != 1)
-			plate_extruders.push_back(glb_solid_infill_extr);
+		int obj_internal_solid_extr = 0;
+		if (const ConfigOption* solid_opt = mo->config.option("internal_solid_filament_id"); solid_opt != nullptr)
+			obj_internal_solid_extr = solid_opt->getInt();
+		if (obj_internal_solid_extr != 0)
+			plate_extruders.push_back(obj_internal_solid_extr);
+		else if (glb_internal_solid_extr != 0)
+			plate_extruders.push_back(glb_internal_solid_extr);
+
+		int obj_top_surface_extr = 0;
+		if (const ConfigOption* top_opt = mo->config.option("top_surface_filament_id"); top_opt != nullptr)
+			obj_top_surface_extr = top_opt->getInt();
+		if (obj_top_surface_extr == 0)
+			obj_top_surface_extr = obj_internal_solid_extr;
+		if (obj_top_surface_extr != 0)
+			plate_extruders.push_back(obj_top_surface_extr);
+		else if (glb_top_surface_extr != 0)
+			plate_extruders.push_back(glb_top_surface_extr);
+
+		int obj_bottom_surface_extr = 0;
+		if (const ConfigOption* bottom_opt = mo->config.option("bottom_surface_filament_id"); bottom_opt != nullptr)
+			obj_bottom_surface_extr = bottom_opt->getInt();
+		if (obj_bottom_surface_extr == 0)
+			obj_bottom_surface_extr = obj_internal_solid_extr;
+		if (obj_bottom_surface_extr != 0)
+			plate_extruders.push_back(obj_bottom_surface_extr);
+		else if (glb_bottom_surface_extr != 0)
+			plate_extruders.push_back(glb_bottom_surface_extr);
 
 	}
 
@@ -1620,9 +1669,16 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
     // if 3mf file
     int glb_support_intf_extr = full_config.opt_int("support_interface_filament");
     int glb_support_extr = full_config.opt_int("support_filament");
-	int glb_wall_extr = full_config.opt_int("wall_filament");
-	int glb_sparse_infill_extr = full_config.opt_int("sparse_infill_filament");
-	int glb_solid_infill_extr = full_config.opt_int("solid_infill_filament");
+	int glb_outer_wall_extr = full_config.opt_int("outer_wall_filament_id");
+	int glb_inner_wall_extr = full_config.opt_int("inner_wall_filament_id");
+	if (glb_outer_wall_extr == 0) glb_outer_wall_extr = glb_inner_wall_extr;
+	if (glb_inner_wall_extr == 0) glb_inner_wall_extr = glb_outer_wall_extr;
+	int glb_sparse_infill_extr = full_config.opt_int("sparse_infill_filament_id");
+	int glb_internal_solid_extr = full_config.opt_int("internal_solid_filament_id");
+	int glb_top_surface_extr = full_config.opt_int("top_surface_filament_id");
+	int glb_bottom_surface_extr = full_config.opt_int("bottom_surface_filament_id");
+	if (glb_top_surface_extr == 0) glb_top_surface_extr = glb_internal_solid_extr;
+	if (glb_bottom_surface_extr == 0) glb_bottom_surface_extr = glb_internal_solid_extr;
 
     bool glb_support = full_config.opt_bool("enable_support");
     glb_support |= full_config.opt_int("raft_layers") > 0;
@@ -1686,32 +1742,64 @@ std::vector<int> PartPlate::get_extruders_under_cli(bool conside_custom_gcode, D
             else if (glb_support_extr != 0)
                 plate_extruders.push_back(glb_support_extr);
 
-			int obj_wall_extr = 1;
-			const ConfigOption* wall_opt = object->config.option("wall_filament");
-			if (wall_opt != nullptr)
-				obj_wall_extr = wall_opt->getInt();
-			if (obj_wall_extr != 1)
-				plate_extruders.push_back(obj_wall_extr);
-			else if (glb_wall_extr != 1)
-				plate_extruders.push_back(glb_wall_extr);
+			int obj_outer_wall_extr = 0;
+			if (const ConfigOption* wall_opt = object->config.option("outer_wall_filament_id"); wall_opt != nullptr)
+				obj_outer_wall_extr = wall_opt->getInt();
+			if (obj_outer_wall_extr == 0)
+				if (const ConfigOption* wall_opt = object->config.option("inner_wall_filament_id"); wall_opt != nullptr)
+					obj_outer_wall_extr = wall_opt->getInt();
+			if (obj_outer_wall_extr != 0)
+				plate_extruders.push_back(obj_outer_wall_extr);
+			else if (glb_outer_wall_extr != 0)
+				plate_extruders.push_back(glb_outer_wall_extr);
 
-			int obj_sparse_infill_extr = 1;
-			const ConfigOption* sparse_infill_opt = object->config.option("sparse_infill_filament");
+			int obj_inner_wall_extr = 0;
+			if (const ConfigOption* wall_opt = object->config.option("inner_wall_filament_id"); wall_opt != nullptr)
+				obj_inner_wall_extr = wall_opt->getInt();
+			if (obj_inner_wall_extr == 0)
+				if (const ConfigOption* wall_opt = object->config.option("outer_wall_filament_id"); wall_opt != nullptr)
+					obj_inner_wall_extr = wall_opt->getInt();
+			if (obj_inner_wall_extr != 0)
+				plate_extruders.push_back(obj_inner_wall_extr);
+			else if (glb_inner_wall_extr != 0)
+				plate_extruders.push_back(glb_inner_wall_extr);
+
+			int obj_sparse_infill_extr = 0;
+			const ConfigOption* sparse_infill_opt = object->config.option("sparse_infill_filament_id");
 			if (sparse_infill_opt != nullptr)
 				obj_sparse_infill_extr = sparse_infill_opt->getInt();
-			if (obj_sparse_infill_extr != 1)
+			if (obj_sparse_infill_extr != 0)
 				plate_extruders.push_back(obj_sparse_infill_extr);
-			else if (glb_sparse_infill_extr != 1)
+			else if (glb_sparse_infill_extr != 0)
 				plate_extruders.push_back(glb_sparse_infill_extr);
 
-			int obj_solid_infill_extr = 1;
-			const ConfigOption* solid_infill_opt = object->config.option("solid_infill_filament");
-			if (solid_infill_opt != nullptr)
-				obj_solid_infill_extr = solid_infill_opt->getInt();
-			if (obj_solid_infill_extr != 1)
-				plate_extruders.push_back(obj_solid_infill_extr);
-			else if (glb_solid_infill_extr != 1)
-				plate_extruders.push_back(glb_solid_infill_extr);
+			int obj_internal_solid_extr = 0;
+			if (const ConfigOption* solid_opt = object->config.option("internal_solid_filament_id"); solid_opt != nullptr)
+				obj_internal_solid_extr = solid_opt->getInt();
+			if (obj_internal_solid_extr != 0)
+				plate_extruders.push_back(obj_internal_solid_extr);
+			else if (glb_internal_solid_extr != 0)
+				plate_extruders.push_back(glb_internal_solid_extr);
+
+			int obj_top_surface_extr = 0;
+			if (const ConfigOption* top_opt = object->config.option("top_surface_filament_id"); top_opt != nullptr)
+				obj_top_surface_extr = top_opt->getInt();
+			if (obj_top_surface_extr == 0)
+				obj_top_surface_extr = obj_internal_solid_extr;
+			if (obj_top_surface_extr != 0)
+				plate_extruders.push_back(obj_top_surface_extr);
+			else if (glb_top_surface_extr != 0)
+				plate_extruders.push_back(glb_top_surface_extr);
+
+			int obj_bottom_surface_extr = 0;
+			if (const ConfigOption* bottom_opt = object->config.option("bottom_surface_filament_id"); bottom_opt != nullptr)
+				obj_bottom_surface_extr = bottom_opt->getInt();
+			if (obj_bottom_surface_extr == 0)
+				obj_bottom_surface_extr = obj_internal_solid_extr;
+			if (obj_bottom_surface_extr != 0)
+				plate_extruders.push_back(obj_bottom_surface_extr);
+			else if (glb_bottom_surface_extr != 0)
+				plate_extruders.push_back(glb_bottom_surface_extr);
         }
     }
 
@@ -1844,11 +1932,20 @@ bool PartPlate::check_filament_printable(const DynamicPrintConfig &config, wxStr
 
     std::vector<int> used_filaments = get_extruders(true);  // 1 base
     if (!used_filaments.empty()) {
+        const std::vector<std::string>& filament_types      = config.option<ConfigOptionStrings>("filament_type")->values;
+        const std::vector<int>&         filament_printables = config.option<ConfigOptionInts>("filament_printable")->values;
+        const std::vector<int>&         filament_map        = get_real_filament_maps(config);
+        // This runs synchronously mid printer-switch (load_current_preset -> reload_scene), before the
+        // filament-count reconciliation clears stale per-object assignments, so the plate objects can
+        // still reference filament indices beyond the freshly selected printer config. Skip those to
+        // avoid an out-of-range access. Matches BambuStudio's guards in the same function.
+        const int filament_count = std::min({(int) filament_types.size(), (int) filament_printables.size(), (int) filament_map.size()});
         for (auto filament_idx : used_filaments) {
             int filament_id = filament_idx - 1;
-            std::string filament_type = config.option<ConfigOptionStrings>("filament_type")->values.at(filament_id);
-            int filament_printable_status = config.option<ConfigOptionInts>("filament_printable")->values.at(filament_id);
-            std::vector<int> filament_map  = get_real_filament_maps(config);
+            if (filament_id < 0 || filament_id >= filament_count)
+                continue;
+            std::string filament_type = filament_types[filament_id];
+            int filament_printable_status = filament_printables[filament_id];
             int extruder_idx = filament_map[filament_id] - 1;
             if (!(filament_printable_status >> extruder_idx & 1)) {
                 wxString extruder_name = extruder_idx == 0 ? _L("left") : _L("right");
@@ -1871,26 +1968,59 @@ bool PartPlate::check_mixture_of_pla_and_petg(const DynamicPrintConfig &config)
     bool has_pla = false;
     bool has_petg = false;
 
-    std::vector<int> used_filaments = get_extruders(true); // 1 base
+    // On a toolchanger (machine_tool_change_time > 0) each filament slot maps to a
+    // separate physical nozzle: only one nozzle is ever mounted or heated at a time, so
+    // there is no cross-nozzle contamination between PLA and PETG.  Track which physical
+    // nozzle each material is on; warn only when PLA and PETG would pass through the
+    // *same* nozzle.
+    //
+    // NOTE: if MMU-on-toolchanger support is added (#10586), the nozzle-mapping logic
+    // will need to be revisited because multiple filaments may then share one tool slot.
+    bool is_toolchanger = false;
+    auto *tool_change_time = config.option<ConfigOptionFloat>("machine_tool_change_time");
+    if (tool_change_time && tool_change_time->value > 0)
+        is_toolchanger = true;
+
+    // nozzle index → whether it carries PLA / PETG
+    std::map<int, bool> nozzle_has_pla;
+    std::map<int, bool> nozzle_has_petg;
+
+    std::vector<int> used_filaments = get_extruders(true); // 1-based
     if (!used_filaments.empty()) {
+        const auto *filament_types = config.option<ConfigOptionStrings>("filament_type");
         for (auto filament_idx : used_filaments) {
-            int                 filament_id        = filament_idx - 1;
-            if (filament_id < config.option<ConfigOptionStrings>("filament_type")->values.size()) {
-                std::string filament_type = config.option<ConfigOptionStrings>("filament_type")->values.at(filament_id);
-                if (filament_type == "PLA")
+            int filament_id = filament_idx - 1;
+            if (filament_id < (int)filament_types->values.size()) {
+                const std::string &filament_type = filament_types->values[filament_id];
+                if (filament_type == "PLA") {
                     has_pla = true;
-                if (filament_type == "PETG")
+                    nozzle_has_pla[filament_id] = true;
+                }
+                if (filament_type == "PETG") {
                     has_petg = true;
+                    nozzle_has_petg[filament_id] = true;
+                }
             } else {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " check error:array bound";
             }
         }
     }
 
-    if (has_pla && has_petg)
-        return false;
+    if (!has_pla || !has_petg)
+        return true; // no mixture — no warning
 
-    return true;
+    if (is_toolchanger) {
+        // Warn only if any single nozzle slot carries both PLA and PETG (e.g. future MMU
+        // on toolchanger).  On a pure toolchanger each slot is independent, so this loop
+        // will never fire and the warning is correctly suppressed. (#12073)
+        for (const auto &kv : nozzle_has_pla) {
+            if (nozzle_has_petg.count(kv.first))
+                return false; // same nozzle → warn
+        }
+        return true; // different nozzles → safe, no warning
+    }
+
+    return false; // non-toolchanger with both PLA and PETG → warn
 }
 
 bool PartPlate::check_mixture_filament_compatible(const DynamicPrintConfig &config, std::string &error_msg)
@@ -2200,7 +2330,7 @@ void PartPlate::clear(bool clear_sliced_result)
 		m_ready_for_slice = true;
 		update_slice_result_valid_state(false);
 	}
-	m_name_texture.reset();
+	invalidate_plate_name_texture();
 	return;
 }
 
@@ -2290,6 +2420,10 @@ Vec3d PartPlate::get_center_origin()
 
 void PartPlate::generate_plate_name_texture()
 {
+	auto canvas = this->m_partplate_list->m_plater->get_view3D_canvas3D();
+	if (canvas == nullptr)
+		return;
+
     m_plate_name_icon.reset();
 
 	// generate m_name_texture texture from m_name with generate_from_text_string
@@ -2302,8 +2436,10 @@ void PartPlate::generate_plate_name_texture()
     wxFont* font = &l;
 
 	wxColour foreground(0xf2, 0x75, 0x4e, 0xff);
-    if (!m_name_texture.generate_from_text_string(text.ToUTF8().data(), *font, *wxBLACK, foreground))
+	if (!m_name_texture.generate_from_text_string(text.ToUTF8().data(), *font, *wxBLACK, foreground)) {
 		BOOST_LOG_TRIVIAL(error) << "PartPlate::generate_plate_name_texture(): generate_from_text_string() failed";
+		return;
+	}
 
     ExPolygon poly;
     auto  bed_ext  = get_extents(m_shape);
@@ -2327,11 +2463,22 @@ void PartPlate::generate_plate_name_texture()
     if (!init_model_from_poly(m_plate_name_icon, poly, GROUND_Z))
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << "Unable to generate geometry buffers for icons\n";
 
-	auto canvas = this->m_partplate_list->m_plater->get_view3D_canvas3D();
     canvas->remove_raycasters_for_picking(SceneRaycaster::EType::Bed, picking_id_component(6));
     calc_vertex_for_plate_name_edit_icon(&m_name_texture, 0, m_plate_name_edit_icon);
     register_model_for_picking(*canvas, m_plate_name_edit_icon, picking_id_component(6));
 }
+
+void PartPlate::invalidate_plate_name_texture()
+{
+	m_plate_name_edit_icon.mesh_raycaster.reset();
+
+	auto canvas = (m_plater != nullptr) ? m_plater->get_view3D_canvas3D() : nullptr;
+	if (canvas != nullptr) {
+		canvas->remove_raycasters_for_picking(SceneRaycaster::EType::Bed, picking_id_component(6));
+		canvas->set_as_dirty();
+	}
+}
+
 void PartPlate::set_plate_name(const std::string& name) 
 { 
 	// compare if name equal to m_name, case sensitive
@@ -2342,7 +2489,7 @@ void PartPlate::set_plate_name(const std::string& name)
     if (m_print != nullptr)
         m_print->set_plate_name(name);
 
-	generate_plate_name_texture();
+	invalidate_plate_name_texture();
 }
 
 //get the print's object, result and index
@@ -2812,7 +2959,6 @@ void PartPlate::set_vase_mode_related_object_config(int obj_id) {
 	new_conf.set_key_value("detect_thin_wall", new ConfigOptionBool(false));
 	new_conf.set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
 	new_conf.set_key_value("overhang_reverse", new ConfigOptionBool(false));
-	new_conf.set_key_value("wall_direction", new ConfigOptionEnum<WallDirection>(WallDirection::Auto));
 	auto applying_keys = global_config->diff(new_conf);
 
 	for (ModelObject* object : obj_ptrs) {
@@ -3116,7 +3262,7 @@ bool PartPlate::set_shape(const Pointfs& shape, const Pointfs& exclude_areas, co
 
 			calc_vertex_for_number(0, false, m_plate_idx_icon);
 			// calc vertex for plate name
-			generate_plate_name_texture();
+			invalidate_plate_name_texture();
 		}
 	}
 
@@ -3356,12 +3502,13 @@ int PartPlate::load_gcode_from_file(const std::string& filename)
 	int ret = 0;
 
 	// process gcode
-	DynamicPrintConfig full_config = wxGetApp().preset_bundle->full_config();
+	std::vector<int>   filament_maps = this->get_filament_maps();
+	DynamicPrintConfig full_config   = wxGetApp().preset_bundle->full_config(false, filament_maps);
 	full_config.apply(m_config, true);
-	m_print->apply(*m_model, full_config);
+	m_print->apply(*m_model, full_config, false);
 	//BBS: need to apply two times, for after the first apply, the m_print got its object,
 	//which will affect the config when new_full_config.normalize_fdm(used_filaments);
-	m_print->apply(*m_model, full_config);
+	m_print->apply(*m_model, full_config, false);
 
 	// BBS: use backup path to save temp gcode
     // auto path = get_tmp_gcode_path();
@@ -3703,7 +3850,11 @@ void PartPlate::on_filament_deleted(int filament_count, int filament_id)
 {
     if (m_config.has("filament_map")) {
         std::vector<int>& filament_maps = m_config.option<ConfigOptionInts>("filament_map")->values;
-        filament_maps.erase(filament_maps.begin() + filament_id);
+        // Guard against an out-of-range index: the per-plate filament_map can be out of sync
+        // with the global filament count, and erasing at/past end() triggers an out-of-bounds
+        // memmove (crash on macOS, see PartPlate::on_filament_deleted in crash reports).
+        if (filament_id >= 0 && filament_id < (int) filament_maps.size())
+            filament_maps.erase(filament_maps.begin() + filament_id);
     }
     update_first_layer_print_sequence_when_delete_filament(filament_id);
 }
@@ -6044,6 +6195,9 @@ int PartPlateList::store_to_3mf_structure(PlateDataPtrs& plate_data_list, bool w
 					plate_data_item->is_label_object_enabled = m_plate_list[i]->m_gcode_result->label_object_enabled;
                     plate_data_item->limit_filament_maps = m_plate_list[i]->m_gcode_result->limit_filament_maps;
                     plate_data_item->layer_filaments  = m_plate_list[i]->m_gcode_result->layer_filaments;
+                    plate_data_item->filament_change_sequence = m_plate_list[i]->m_gcode_result->filament_change_sequence;
+                    plate_data_item->nozzle_change_sequence = m_plate_list[i]->m_gcode_result->nozzle_change_sequence;
+                    plate_data_item->optimal_assignment = m_plate_list[i]->m_gcode_result->optimal_assignment;
                     plate_data_item->first_layer_time = std::to_string(m_plate_list[i]->cali_bboxes_data.first_layer_time);
 					Print *print                      = nullptr;
 					m_plate_list[i]->get_print((PrintBase **) &print, nullptr, nullptr);
@@ -6119,6 +6273,9 @@ int PartPlateList::load_from_3mf_structure(PlateDataPtrs& plate_data_list, int f
 		gcode_result->label_object_enabled = plate_data_list[i]->is_label_object_enabled;
         gcode_result->timelapse_warning_code = plate_data_list[i]->timelapse_warning_code;
         m_plate_list[index]->set_timelapse_warning_code(plate_data_list[i]->timelapse_warning_code);
+        gcode_result->filament_change_sequence = plate_data_list[i]->filament_change_sequence;
+        gcode_result->nozzle_change_sequence = plate_data_list[i]->nozzle_change_sequence;
+        gcode_result->optimal_assignment = plate_data_list[i]->optimal_assignment;
 		m_plate_list[index]->slice_filaments_info = plate_data_list[i]->slice_filaments_info;
 		gcode_result->warnings = plate_data_list[i]->warnings;
         gcode_result->filament_maps = plate_data_list[i]->filament_maps;

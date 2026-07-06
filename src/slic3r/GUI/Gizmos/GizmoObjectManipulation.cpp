@@ -15,6 +15,7 @@
 #include "slic3r/GUI/Selection.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "GLGizmoUtils.hpp"
 
 #include <boost/algorithm/string.hpp>
 
@@ -55,24 +56,27 @@ GizmoObjectManipulation::GizmoObjectManipulation(GLCanvas3D& glcanvas)
     m_imperial_units = wxGetApp().app_config->get("use_inches") == "1";
     m_new_unit_string = m_imperial_units ? L("in") : L("mm");
 
-    const wxString shift                   = _L("Shift+");
+    const wxString shift                   = GUI::shortkey_shift_prefix();
     const wxString alt                     = GUI::shortkey_alt_prefix();
     const wxString ctrl                    = GUI::shortkey_ctrl_prefix();
 
-    m_desc_move["part_selection_caption"] = alt + _L("Left mouse button");
-    m_desc_move["part_selection"]         = _L("Part selection");
-    m_desc_move["snap_step_caption"] = shift + _L("Left mouse button");
-    m_desc_move["snap_step"]        = _L("Fixed step drag");
+    m_shortcuts_move = {
+        {alt + _L("Left mouse button"),     _L("Part selection")},
+        {shift + _L("Left mouse button"),   _L("Fixed step drag")},
+        {_L("Context Menu"),                _L("Toggle Auto-Drop")}
+    };
 
-    m_desc_rotate["part_selection_caption"] = alt + _L("Left mouse button");
-    m_desc_rotate["part_selection"]         = _L("Part selection");
+    m_shortcuts_rotate = {
+        {alt + _L("Left mouse button"),     _L("Part selection")},
+        {_L("Context Menu"),                _L("Toggle Auto-Drop")}
+    };
 
-    m_desc_scale["part_selection_caption"] = alt + _L("Left mouse button");
-    m_desc_scale["part_selection"]         = _L("Part selection");
-    m_desc_scale["snap_step_caption"]      = shift + _L("Left mouse button");
-    m_desc_scale["snap_step"]              = _L("Fixed step drag");
-    m_desc_scale["single_sided_caption"] = ctrl + _L("Left mouse button");
-    m_desc_scale["single_sided"]         = _L("Single sided scaling");
+    m_shortcuts_scale = {
+        {alt + _L("Left mouse button"),     _L("Part selection")},
+        {shift + _L("Left mouse button"),   _L("Fixed step drag")},
+        {ctrl + _L("Left mouse button"),    _L("Single sided scaling")},
+        {_L("Context Menu"),                _L("Toggle Auto-Drop")}
+    };
 }
 
 void GizmoObjectManipulation::UpdateAndShow(const bool show)
@@ -134,7 +138,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
 
         m_new_enabled  = true;
         // BBS: change "Instance Operations" to "Object Operations"
-        m_new_title_string = L("Object Operations");
+        m_new_title_string = L("Object operations");
     }
     else if (selection.is_single_full_object() && obj_list->is_selected(itObject)) {
         const BoundingBoxf3& box = selection.get_bounding_box();
@@ -143,7 +147,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
         m_new_size     = selection.get_bounding_box_in_current_reference_system().first.size();
 		m_new_scale_label_string  = L("Scale");
         m_new_enabled  = true;
-        m_new_title_string = L("Object Operations");
+        m_new_title_string = L("Object operations");
     } else if (selection.is_single_volume_or_modifier()) {
         const GLVolume *volume = selection.get_first_volume();
         auto            rotation = volume->get_volume_transformation().get_rotation_by_quaternion();
@@ -169,7 +173,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
             m_new_size                = selection.get_bounding_box_in_current_reference_system().first.size();
         }
         m_new_enabled = true;
-        m_new_title_string = L("Volume Operations");
+        m_new_title_string = L("Volume operations");
     } else if (obj_list->is_connectors_item_selected() || obj_list->multiple_selection() || obj_list->is_selected(itInstanceRoot)) {
         reset_settings_value();
 		m_new_move_label_string   = L("Translate");
@@ -177,7 +181,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
         m_unscale_size            = selection.get_bounding_box_in_current_reference_system().first.size();
         m_new_size                = selection.get_bounding_box_in_current_reference_system().first.size();
         m_new_enabled  = true;
-        m_new_title_string = L("Group Operations");
+        m_new_title_string = L("Group operations");
     } else if (selection.is_wipe_tower()) {
         const BoundingBoxf3 &box = selection.get_bounding_box();
         m_new_position           = box.center();
@@ -357,7 +361,7 @@ void GizmoObjectManipulation::change_rotation_value(int axis, double value)
 
     selection.setup_cache();
     selection.rotate((M_PI / 180.0) * (transformation_type.absolute() ? rotation : rotation - m_cache.rotation), transformation_type);
-    wxGetApp().plater()->take_snapshot(_u8L("Set Orientation"), UndoRedo::SnapshotType::GizmoAction);
+    wxGetApp().plater()->take_snapshot(_u8L("Set orientation"), UndoRedo::SnapshotType::GizmoAction);
     m_glcanvas.do_rotate("");
 
     m_cache.rotation = rotation;
@@ -465,7 +469,7 @@ void GizmoObjectManipulation::do_scale(int axis, const Vec3d &scale) const
 
     selection.setup_cache();
     selection.scale(scaling_factor, transformation_type);
-    m_glcanvas.do_scale(L("Set Scale"));
+    m_glcanvas.do_scale(L("Set scale"));
 }
 
 
@@ -545,7 +549,7 @@ void GizmoObjectManipulation::reset_position_value()
         return;
 
     // Copy position values from GLVolumes into Model (ModelInstance / ModelVolume), trigger background processing.
-    wxGetApp().plater()->take_snapshot(_u8L("Reset Position"), UndoRedo::SnapshotType::GizmoAction);
+    wxGetApp().plater()->take_snapshot(_u8L("Reset position"), UndoRedo::SnapshotType::GizmoAction);
     m_glcanvas.do_move("");
 
     UpdateAndShow(true);
@@ -586,7 +590,7 @@ void GizmoObjectManipulation::reset_rotation_value(bool reset_relative)
     selection.synchronize_unselected_instances(Selection::SyncRotationType::RESET);
     selection.synchronize_unselected_volumes();
     // Copy rotation values from GLVolumes into Model (ModelInstance / ModelVolume), trigger background processing.
-    m_glcanvas.do_rotate(L("Reset Rotation"));
+    m_glcanvas.do_rotate(L("Reset rotation"));
 
     UpdateAndShow(true);
 }
@@ -717,102 +721,6 @@ bool GizmoObjectManipulation::reset_zero_button(ImGuiWrapper *imgui_wrapper, flo
 
      if (b_value) { ImGui::PopStyleColor(3); }
      return result;
-}
-
-void GizmoObjectManipulation::show_move_tooltip_information(ImGuiWrapper *imgui_wrapper, float caption_max, float x, float y)
-{
-    ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
-
-    float  scale       = m_glcanvas.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &imgui_wrapper,& caption_max](const wxString &caption, const wxString &text) {
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : std::array<std::string, 2>{"part_selection", "snap_step"})
-            draw_text_with_caption(m_desc_move.at(t + "_caption") + ": ", m_desc_move.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
-}
-
-void GizmoObjectManipulation::show_rotate_tooltip_information(ImGuiWrapper *imgui_wrapper, float caption_max, float x, float y)
-{
-    ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
-
-    float  scale       = m_glcanvas.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &imgui_wrapper, &caption_max](const wxString &caption, const wxString &text) {
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : std::array<std::string, 1>{"part_selection"})
-            draw_text_with_caption(m_desc_rotate.at(t + "_caption") + ": ", m_desc_rotate.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
-}
-
-void GizmoObjectManipulation::show_scale_tooltip_information(ImGuiWrapper *imgui_wrapper, float caption_max, float x, float y)
-{
-    ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
-
-    float  scale       = m_glcanvas.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &imgui_wrapper, &caption_max](const wxString &caption, const wxString &text) {
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : std::array<std::string, 3>{"part_selection", "snap_step", "single_sided"})
-            draw_text_with_caption(m_desc_scale.at(t + "_caption") + ": ", m_desc_scale.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
 }
 
 void GizmoObjectManipulation::set_init_rotation(const Geometry::Transformation &value) {
@@ -957,18 +865,25 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         }
     }
     if (!focued_on_text) m_glcanvas.handle_sidebar_focus_event("", false);
-    float get_cur_y      = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    float tip_caption_max    = 0.f;
-    float total_text_max = 0.f;
-    for (const auto &t : std::array<std::string, 2>{"part_selection", "snap_step"}) {
-        tip_caption_max = std::max(tip_caption_max, imgui_wrapper->calc_text_size(m_desc_move[t + "_caption"]).x);
-        total_text_max = std::max(total_text_max, imgui_wrapper->calc_text_size(m_desc_move[t]).x);
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+    float f_scale = m_glcanvas.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+
+    GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_move, x, y);
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (imgui_wrapper->button(_L("Done"))) {
+        m_glcanvas.reset_all_gizmos();
     }
-    show_move_tooltip_information(imgui_wrapper, tip_caption_max, x, get_cur_y);
+
     m_last_active_item = current_active_id;
     last_move_input_window_width = ImGui::GetWindowWidth();
     imgui_wrapper->end();
-    ImGui::PopStyleVar(1);
+    ImGui::PopStyleVar(2);
     ImGuiWrapper::pop_toolbar_style();
 }
 
@@ -1154,20 +1069,26 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     if (!focued_on_text  && !absolute_focued_on_text)
         m_glcanvas.handle_sidebar_focus_event("", false);
 
-    float get_cur_y       = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    float tip_caption_max = 0.f;
-    float total_text_max  = 0.f;
-    for (const auto &t : std::array<std::string, 1>{"part_selection"}) {
-        tip_caption_max = std::max(tip_caption_max, imgui_wrapper->calc_text_size(m_desc_move[t + "_caption"]).x);
-        total_text_max  = std::max(total_text_max, imgui_wrapper->calc_text_size(m_desc_move[t]).x);
+    ImGui::Spacing(); // needed after Text
+    ImGui::Separator();
+    ImGui::Spacing();
+    float f_scale = m_glcanvas.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+
+    GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_rotate, x, y);
+    
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (imgui_wrapper->button(_L("Done"))) {
+        m_glcanvas.reset_all_gizmos();
     }
-    show_rotate_tooltip_information(imgui_wrapper, tip_caption_max, x, get_cur_y);
+
     m_last_active_item = current_active_id;
     last_rotate_input_window_width = ImGui::GetWindowWidth();
     imgui_wrapper->end();
 
     // BBS
-    ImGui::PopStyleVar(1);
+    ImGui::PopStyleVar(2);
     ImGuiWrapper::pop_toolbar_style();
 }
 
@@ -1322,7 +1243,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     if (display_size.x() > 0 && display_size.y() > 0 && display_size.z() > 0) {
         m_buffered_size = display_size;
     }
-    ImGui::Separator();
+
     ImGui::AlignTextToFramePadding();
     bool is_avoid_one_update{false};
     if (combox_changed) {
@@ -1394,20 +1315,26 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         }
     if (!focued_on_text)
         m_glcanvas.handle_sidebar_focus_event("", false);
-    float get_cur_y       = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    float tip_caption_max = 0.f;
-    float total_text_max  = 0.f;
-    for (const auto &t : std::array<std::string, 3>{"part_selection", "snap_step", "single_sided"}) {
-        tip_caption_max = std::max(tip_caption_max, imgui_wrapper->calc_text_size(m_desc_scale[t + "_caption"]).x);
-        total_text_max  = std::max(total_text_max, imgui_wrapper->calc_text_size(m_desc_scale[t]).x);
+    
+    ImGui::Separator();
+    float f_scale = m_glcanvas.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+
+    GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_scale, x, y);
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (imgui_wrapper->button(_L("Done"))) {
+        m_glcanvas.reset_all_gizmos();
     }
-    show_scale_tooltip_information(imgui_wrapper, tip_caption_max, x, get_cur_y);
+
     m_last_active_item = current_active_id;
 
     last_scale_input_window_width = ImGui::GetWindowWidth();
     imgui_wrapper->end();
 
     //BBS
+    ImGui::PopStyleVar(1);
     ImGuiWrapper::pop_toolbar_style();
 }
 

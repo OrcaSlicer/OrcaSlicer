@@ -363,7 +363,7 @@ void PrintOptionsDialog::update_options(MachineObject* obj_)
     if (obj_->is_support_build_plate_marker_detect) {
         if (obj_->m_plate_maker_detect_type == MachineObject::POS_CHECK && (text_plate_mark->GetLabel() != _L("Enable detection of build plate position"))) {
             text_plate_mark->SetLabel(_L("Enable detection of build plate position"));
-            text_plate_mark_caption->SetLabel(_L("The localization tag of build plate is detected, and printing is paused if the tag is not in predefined range."));
+            text_plate_mark_caption->SetLabel(_L("The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."));
             text_plate_mark_caption->Wrap(FromDIP(400));
         } else if (obj_->m_plate_maker_detect_type == MachineObject::TYPE_POS_CHECK && (text_plate_mark->GetLabel() != _L("Build Plate Detection"))) {
             text_plate_mark->SetLabel(_L("Build Plate Detection"));
@@ -813,9 +813,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     line_sizer->Add(FromDIP(5), 0, 0, 0);
 
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    wxString caption_text = _L(
-        "The localization tag of build plate is detected, and printing is paused if the tag is not in predefined range."
-    );
+    wxString caption_text = _L("The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range.");
     text_plate_mark_caption = new Label(parent, caption_text);
     text_plate_mark_caption->Wrap(FromDIP(400));
     text_plate_mark_caption->SetFont(Label::Body_12);
@@ -855,7 +853,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     // auto-recovery from step loss
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_cb_auto_recovery = new CheckBox(parent);
-    text_auto_recovery = new Label(parent, _L("Auto-recovery from step loss"));
+    text_auto_recovery = new Label(parent, _L("Auto-recover from step loss"));
     text_auto_recovery->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_auto_recovery, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -907,7 +905,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     //filament tangle detect
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_cb_filament_tangle = new CheckBox(parent);
-    text_filament_tangle = new Label(parent, _L("Filament Tangle Detect"));
+    text_filament_tangle = new Label(parent, _L("Filament Tangle Detection"));
     text_filament_tangle->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_filament_tangle, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1345,7 +1343,7 @@ bool PrinterPartsDialog::Show(bool show)
             auto type     = obj->GetExtderSystem()->GetNozzleType(MAIN_EXTRUDER_ID);
             auto diameter = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
             nozzle_type_checkbox->SetValue(GetString(type));
-            nozzle_diameter_checkbox->SetValue(GetString(diameter));
+            nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
 
             // nozzle flow type
             nozzle_flow_type_label->Show(obj->is_nozzle_flow_type_supported());
@@ -1369,7 +1367,7 @@ bool PrinterPartsDialog::Show(bool show)
             auto diameter  = obj->GetExtderSystem()->GetNozzleDiameter(DEPUTY_EXTRUDER_ID);
             auto flow_type = obj->GetExtderSystem()->GetNozzleFlowType(DEPUTY_EXTRUDER_ID);
             multiple_left_nozzle_type_checkbox->SetValue(GetString(type));
-            multiple_left_nozzle_diameter_checkbox->SetValue(GetString(diameter));
+            multiple_left_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
             multiple_left_nozzle_flow_checkbox->SetValue(GetString(flow_type));
 
             //right
@@ -1377,7 +1375,7 @@ bool PrinterPartsDialog::Show(bool show)
             diameter  = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
             flow_type = obj->GetExtderSystem()->GetNozzleFlowType(MAIN_EXTRUDER_ID);
             multiple_right_nozzle_type_checkbox->SetValue(GetString(type));
-            multiple_right_nozzle_diameter_checkbox->SetValue(GetString(diameter));
+            multiple_right_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
             multiple_right_nozzle_flow_checkbox->SetValue(GetString(flow_type));
 
             if (obj->is_support_refresh_nozzle) {
@@ -1421,7 +1419,7 @@ wxString PrinterPartsDialog::GetString(NozzleType nozzle_type) const {
         default: break;
     }
 
-    return wxEmptyString;
+    return _L("Unknown");
 }
 
 wxString PrinterPartsDialog::GetString(NozzleFlowType nozzle_flow_type) const {
@@ -1483,7 +1481,7 @@ void PrinterPartsDialog::UpdateNozzleInfo(){
         auto type     = obj->GetExtderSystem()->GetNozzleType(MAIN_EXTRUDER_ID);
         auto diameter = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
         nozzle_type_checkbox->SetValue(GetString(type));
-        nozzle_diameter_checkbox->SetValue(GetString(diameter));
+        nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
 
         // nozzle flow type
         nozzle_flow_type_label->Show(obj->is_nozzle_flow_type_supported());
@@ -1499,7 +1497,7 @@ void PrinterPartsDialog::UpdateNozzleInfo(){
         auto diameter  = obj->GetExtderSystem()->GetNozzleDiameter(DEPUTY_EXTRUDER_ID);
         auto flow_type = obj->GetExtderSystem()->GetNozzleFlowType(DEPUTY_EXTRUDER_ID);
         multiple_left_nozzle_type_checkbox->SetValue(GetString(type));
-        multiple_left_nozzle_diameter_checkbox->SetValue(GetString(diameter));
+        multiple_left_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
         multiple_left_nozzle_flow_checkbox->SetValue(GetString(flow_type));
 
         //right
@@ -1507,7 +1505,7 @@ void PrinterPartsDialog::UpdateNozzleInfo(){
         diameter  = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
         flow_type = obj->GetExtderSystem()->GetNozzleFlowType(MAIN_EXTRUDER_ID);
         multiple_right_nozzle_type_checkbox->SetValue(GetString(type));
-        multiple_right_nozzle_diameter_checkbox->SetValue(GetString(diameter));
+        multiple_right_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
         multiple_right_nozzle_flow_checkbox->SetValue(GetString(flow_type));
     }
 

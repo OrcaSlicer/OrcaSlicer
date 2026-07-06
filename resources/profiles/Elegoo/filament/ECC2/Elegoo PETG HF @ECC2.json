@@ -1,0 +1,47 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG HF @ECC2",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"setting_id": "EAt1AJX3ZupILYWV",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.052"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"filament_flow_ratio": [
+		"0.99"
+	],
+	"fan_min_speed": [
+		"30"
+	],
+	"filament_density": [
+		"1.26"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"fan_max_speed": [
+		"50"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"nozzle_temperature_range_high": [
+		"250"
+	],
+	"overhang_fan_speed": [
+		"100"
+	],
+	"compatible_printers": [
+		"Elegoo Centauri Carbon 2 0.2 nozzle",
+		"Elegoo Centauri Carbon 2 0.4 nozzle",
+		"Elegoo Centauri Carbon 2 0.6 nozzle",
+		"Elegoo Centauri Carbon 2 0.8 nozzle"
+	]
+}

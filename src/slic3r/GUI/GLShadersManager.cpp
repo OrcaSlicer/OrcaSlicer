@@ -9,7 +9,7 @@
 #include <string_view>
 using namespace std::literals;
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 namespace Slic3r {
 
@@ -48,6 +48,10 @@ std::pair<bool, std::string> GLShadersManager::init()
     valid &= append_shader("flat_clip", { prefix + "flat_clip.vs", prefix + "flat_clip.fs" });
     // basic shader for textures, used to render textures
     valid &= append_shader("flat_texture", { prefix + "flat_texture.vs", prefix + "flat_texture.fs" });
+    // used to apply post-processing antialiasing in screen space
+    valid &= append_shader("fxaa", { prefix + "fxaa.vs", prefix + "fxaa.fs" });
+    // used to apply screen-space ambient occlusion in post process
+    valid &= append_shader("ssao", { prefix + "ssao.vs", prefix + "ssao.fs" });
     // used to render 3D scene background
     valid &= append_shader("background", { prefix + "background.vs", prefix + "background.fs" });
 #if SLIC3R_OPENGL_ES
@@ -72,6 +76,12 @@ std::pair<bool, std::string> GLShadersManager::init()
 
     // used to render objects in 3d editor
     valid &= append_shader("gouraud", { prefix + "gouraud.vs", prefix + "gouraud.fs" }
+#if ENABLE_ENVIRONMENT_MAP
+        , { "ENABLE_ENVIRONMENT_MAP"sv }
+#endif // ENABLE_ENVIRONMENT_MAP
+        );
+    // used to render objects in 3d editor with phong shading
+    valid &= append_shader("phong", { prefix + "phong.vs", prefix + "phong.fs" }
 #if ENABLE_ENVIRONMENT_MAP
         , { "ENABLE_ENVIRONMENT_MAP"sv }
 #endif // ENABLE_ENVIRONMENT_MAP

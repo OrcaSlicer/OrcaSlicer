@@ -18,21 +18,21 @@
 namespace Slic3r {
 namespace GUI {
 
-static auto check_gcode_failed_str      = _u8L("Abnormal print file data. Please slice again.");
+static auto check_gcode_failed_str      = _u8L("Abnormal print file data: please slice again.");
 static auto     printjob_cancel_str         = _u8L("Task canceled.");
 static auto     timeout_to_upload_str       = _u8L("Upload task timed out. Please check the network status and try again.");
 static auto     failed_in_cloud_service_str = _u8L("Cloud service connection failed. Please try again.");
-static auto     file_is_not_exists_str      = _u8L("Print file not found. Please slice again.");
+static auto     file_is_not_exists_str      = _u8L("Print file not found; please slice again.");
 static auto file_over_size_str = _u8L("The print file exceeds the maximum allowable size (1GB). Please simplify the model and slice again.");
 static auto print_canceled_str    = _u8L("Task canceled.");
 static auto send_print_failed_str = _u8L("Failed to send the print job. Please try again.");
 static auto upload_ftp_failed_str = _u8L("Failed to upload file to ftp. Please try again.");
 
-static auto     desc_network_error          = _u8L("Check the current status of the bambu server by clicking on the link above.");
+static auto     desc_network_error          = _u8L("Check the current status of the Bambu Lab server by clicking on the link above.");
 static auto     desc_file_too_large         = _u8L("The size of the print file is too large. Please adjust the file size and try again.");
-static auto     desc_fail_not_exist         = _u8L("Print file not found, please slice it again and send it for printing.");
+static auto     desc_fail_not_exist         = _u8L("Print file not found; please slice it again and send it for printing.");
 
-static auto desc_upload_ftp_failed      = _u8L("Failed to upload print file to FTP. Please check the network status and try again.");
+static auto desc_upload_ftp_failed      = _u8L("Failed to upload print file via FTP. Please check the network status and try again.");
 
 static auto sending_over_lan_str        = _u8L("Sending print job over LAN");
 static auto sending_over_cloud_str      = _u8L("Sending print job through cloud service");
@@ -215,8 +215,13 @@ void PrintJob::process(Ctl &ctl)
             std::string devIP = m_dev_ip;
             std::string accessCode = m_access_code;
             std::string url = "bambu:///local/" + devIP + "?port=6000&user=" + "bblp" + "&passwd=" + accessCode;
-            std::unique_ptr<FileTransferTunnel> tunnel = std::make_unique<FileTransferTunnel>(module(), url);
-            emmc_ok = tunnel->sync_start_connect();
+            try {
+                std::unique_ptr<FileTransferTunnel> tunnel = std::make_unique<FileTransferTunnel>(module(), url);
+                emmc_ok = tunnel->sync_start_connect();
+            } catch (const std::exception &e) {
+                BOOST_LOG_TRIVIAL(warning) << "eMMC tunnel unavailable, falling back to FTP: " << e.what();
+                emmc_ok = false;
+            }
         }
         {
             params.dev_id = m_dev_id;
@@ -270,7 +275,17 @@ void PrintJob::process(Ctl &ctl)
     params.auto_flow_cali       = this->auto_flow_cali;
     params.auto_offset_cali     = this->auto_offset_cali;
     params.task_ext_change_assist = this->task_ext_change_assist;
-    params.try_emmc_print         = this->could_emmc_print;
+    // Allow disabling the eMMC print path via AppConfig. Plugin 02.03.00.62's
+    // eMMC tunnel code hangs indefinitely at the upload phase with some
+    // printers (e.g., Bambu H2D), so we default to disabled. Users with
+    // working eMMC support can opt-in by setting disable_emmc_print = 0.
+    bool disable_emmc = true;
+    if (wxGetApp().app_config) {
+        auto v = wxGetApp().app_config->get("disable_emmc_print");
+        if (v == "0" || v == "false")
+            disable_emmc = false;
+    }
+    params.try_emmc_print         = this->could_emmc_print && !disable_emmc;
 
     if (m_print_type == "from_sdcard_view") {
         params.dst_file = m_dst_path;
