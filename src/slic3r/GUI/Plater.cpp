@@ -15750,7 +15750,7 @@ int Plater::export_3mf(const boost::filesystem::path& output_path, SaveStrategy 
     std::vector<Preset*> project_presets = preset_bundle.get_current_project_embedded_presets();
 
     StoreParams store_params;
-    store_params.path  = path_u8.c_str();
+    store_params.path  = path_u8;
     store_params.model = &p->model;
     store_params.plate_data_list = plate_data_list;
     store_params.export_plate_idx = export_plate_idx;
