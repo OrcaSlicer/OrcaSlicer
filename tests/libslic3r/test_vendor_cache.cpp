@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include <boost/filesystem.hpp>
+#include <boost/crc.hpp>
 #include <fstream>
 #include <set>
 
@@ -31,6 +32,38 @@ std::string write_vendor_json(const fs::path& dir, const std::string& vendor_id,
     std::ofstream f(p.string());
     f << R"({"version":")" << version << R"(","name":")" << vendor_id << R"("})";
     return p.string();
+}
+
+// Write a vendor JSON without a "version" field — get_vendor_cache_key() will return
+// "mtime:<timestamp>" instead of a Semver string.
+std::string write_versionless_vendor_json(const fs::path& dir, const std::string& vendor_id)
+{
+    const fs::path p = dir / (vendor_id + ".json");
+    std::ofstream f(p.string());
+    f << R"({"name":")" << vendor_id << R"("})";
+    return p.string();
+}
+
+// Binary-patch the config_options_count field in a cache file (blob offset 4) and
+// recompute the CRC so the file passes the magic/size/CRC checks but fails is_valid().
+// File layout: [20-byte CacheFileHeader][blob]; in blob: uint32 cache_version @ 0, uint32 options_count @ 4.
+void patch_cache_options_count(const std::string& path, uint32_t wrong_count)
+{
+    std::ifstream in(path, std::ios::binary);
+    std::vector<char> data(std::istreambuf_iterator<char>(in), {});
+    in.close();
+    if (data.size() < 28) return; // 20-byte header + 4 (cache_version) + 4 (options_count)
+
+    std::memcpy(&data[24], &wrong_count, 4); // file[24..27] = blob[4..7] = options_count
+
+    // Recompute CRC over the modified blob (everything after the 20-byte file header).
+    boost::crc_32_type crc;
+    crc.process_bytes(&data[20], data.size() - 20);
+    const uint32_t new_crc = crc.checksum();
+    std::memcpy(&data[16], &new_crc, 4); // file[16..19] = crc32 field in CacheFileHeader
+
+    std::ofstream out(path, std::ios::binary | std::ios::trunc);
+    out.write(data.data(), static_cast<std::streamsize>(data.size()));
 }
 
 void add_vendor(PresetBundle& bundle, const std::string& vendor_id)
@@ -381,4 +414,96 @@ TEST_CASE("VendorCache: all Preset metadata fields are preserved", "[VendorCache
     REQUIRE(out.key_values.count("diameter") == 1);
     CHECK(out.key_values.at("diameter")   == "1.75");
     CHECK(out.ini_str == "[filament]\nnozzle_temperature = 230\n");
+}
+
+// TC09 — versionless JSON uses mtime as the cache key; same mtime → cache valid.
+// TC10 — after the JSON file is touched (mtime changes), the old key no longer matches.
+TEST_CASE("VendorCache: versionless vendor uses mtime key", "[VendorCache]")
+{
+    TempDir           tmp;
+    const std::string vid       = "Acme";
+    const std::string json_path = write_versionless_vendor_json(tmp.path, vid);
+    const fs::path    cache     = tmp.path / (vid + ".cache");
+
+    PresetBundle src;
+    add_vendor(src, vid);
+    add_system_preset(src.filaments, vid + " PLA", &src.vendors.at(vid));
+
+    const std::string key_before = get_vendor_cache_key(json_path);
+    REQUIRE_FALSE(key_before.empty());
+    // Must be mtime-based, not a Semver.
+    REQUIRE(key_before.substr(0, 6) == "mtime:");
+
+    src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
+
+    SECTION("same mtime → cache is valid") {
+        VendorProfile       p; std::vector<Preset> pr, fi, pp;
+        CHECK(PresetBundle::load_vendor_cache_for_guide(
+            cache.string(), get_vendor_cache_key(json_path), p, pr, fi, pp));
+        CHECK(fi.size() == 1);
+    }
+
+    SECTION("touched file changes mtime → cache is invalid") {
+        // Advance mtime by 2 seconds so the key definitely differs.
+        const std::time_t old_mtime = fs::last_write_time(json_path);
+        fs::last_write_time(json_path, old_mtime + 2);
+
+        const std::string key_after = get_vendor_cache_key(json_path);
+        REQUIRE(key_after != key_before);
+
+        VendorProfile       p; std::vector<Preset> pr, fi, pp;
+        CHECK_FALSE(PresetBundle::load_vendor_cache_for_guide(
+            cache.string(), key_after, p, pr, fi, pp));
+    }
+}
+
+// TC07 — config_options_count in the cache header must equal the live print_config_def
+//         option count. A patched value (1) is rejected by is_valid() even if the CRC is correct.
+TEST_CASE("VendorCache: config_options_count mismatch is rejected", "[VendorCache]")
+{
+    TempDir           tmp;
+    const std::string vid       = "Acme";
+    const std::string json_path = write_vendor_json(tmp.path, vid);
+    const fs::path    cache     = tmp.path / (vid + ".cache");
+
+    PresetBundle src;
+    add_vendor(src, vid);
+    add_system_preset(src.filaments, vid + " PLA", &src.vendors.at(vid));
+    src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
+
+    // Patch config_options_count to 1 and fix CRC — file is structurally valid but semantically stale.
+    patch_cache_options_count(cache.string(), 1u);
+
+    VendorProfile       p; std::vector<Preset> pr, fi, pp;
+    CHECK_FALSE(PresetBundle::load_vendor_cache_for_guide(
+        cache.string(), get_vendor_cache_key(json_path), p, pr, fi, pp));
+}
+
+// TC12 variant — header is intact but the blob is cut short; the blob read fails.
+TEST_CASE("VendorCache: mid-blob truncation is rejected", "[VendorCache]")
+{
+    TempDir           tmp;
+    const std::string vid       = "Acme";
+    const std::string json_path = write_vendor_json(tmp.path, vid);
+    const fs::path    cache     = tmp.path / (vid + ".cache");
+
+    PresetBundle src;
+    add_vendor(src, vid);
+    add_system_preset(src.filaments, vid + " PLA", &src.vendors.at(vid));
+    src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
+
+    // Keep the full 20-byte CacheFileHeader intact; truncate the blob to 10 bytes.
+    // data_size in the header still says the full blob length, so the read will fail.
+    {
+        std::ifstream in(cache.string(), std::ios::binary);
+        std::vector<char> buf(30); // 20-byte header + 10 bytes of blob
+        in.read(buf.data(), 30);
+        in.close();
+        std::ofstream out(cache.string(), std::ios::binary | std::ios::trunc);
+        out.write(buf.data(), 30);
+    }
+
+    VendorProfile       p; std::vector<Preset> pr, fi, pp;
+    CHECK_FALSE(PresetBundle::load_vendor_cache_for_guide(
+        cache.string(), get_vendor_cache_key(json_path), p, pr, fi, pp));
 }
