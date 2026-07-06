@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA Starlight @Snapmaker U1",
 	"inherits": "PolyLite PLA Starlight @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL67_00",
+	"setting_id": "geXEuSvWTJD0rK7F",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

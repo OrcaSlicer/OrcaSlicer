@@ -3,7 +3,7 @@
 	"name": "0.10mm Speed @MINIIS",
 	"inherits": "process_speed_miniis",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "eAFe5ATddc99VxqO",
 	"instantiation": "true",
 	"line_width": "0.45",
 	"inner_wall_line_width": "0.45",

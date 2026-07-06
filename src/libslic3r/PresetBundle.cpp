@@ -532,6 +532,12 @@ PresetsConfigSubstitutions PresetBundle::load_presets(AppConfig &config, Forward
         load_user_presets(dir_user_presets, substitution_rule);
     }
 
+    // Rewrite renamed compatible_printers / compatible_prints references before selection. Skipped
+    // in validation mode so the profile validator (has_errors -> check_preset_references) sees the
+    // raw vendor-JSON references instead of the silently-repaired ones.
+    if (!validation_mode)
+        this->normalize_compatible_presets();
+
     this->update_multi_material_filament_presets();
     this->update_compatible(PresetSelectCompatibleType::Never);
 
@@ -752,6 +758,8 @@ PresetsConfigSubstitutions PresetBundle::load_project_embedded_presets(std::vect
 
     //this->update_multi_material_filament_presets();
     //this->update_compatible(PresetSelectCompatibleType::Never);
+    // Rewrite renamed compatible references before the caller (Plater) selects the project presets.
+    this->normalize_compatible_presets();
     if (! errors_cummulative.empty())
         throw Slic3r::RuntimeError(errors_cummulative);
 
@@ -1121,6 +1129,9 @@ PresetsConfigSubstitutions PresetBundle::load_user_presets(AppConfig &          
     if (machine_added) {
         this->printers.update_after_user_presets_loaded();
     }*/
+
+    // Rewrite renamed compatible references in synced user presets before compatibility is evaluated.
+    this->normalize_compatible_presets();
 
     this->update_multi_material_filament_presets();
     this->update_compatible(PresetSelectCompatibleType::Never);
@@ -1498,6 +1509,9 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
             ConfigOptionString *option_str = dynamic_cast<ConfigOptionString *>(inherits_config);
             inherits_value                 = option_str->value;
             inherit_preset                 = collection->find_preset2(inherits_value, true);
+            Preset::normalize_inherits(config, inherit_preset);
+            if (inherit_preset)
+                inherits_value = inherit_preset->name;  // keep the base_id redo below in sync
         }
         if (inherit_preset) {
             new_config = inherit_preset->config;
@@ -1804,6 +1818,9 @@ PresetsConfigSubstitutions PresetBundle::update_subscribed_presets(
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed to save bundle metadata to: " << metadata_save_path.string();
     }
 
+    // Rewrite renamed compatible references in synced user presets before compatibility is evaluated.
+    this->normalize_compatible_presets();
+
     this->update_multi_material_filament_presets();
     this->update_compatible(PresetSelectCompatibleType::Never);
 
@@ -1869,6 +1886,8 @@ bool PresetBundle::save_preset_to_bundle_dir(Preset& preset, PresetCollection* c
             if (!parent_preset) {
                 BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " cannot find parent preset for " << preset.name << ", inherits " << inherits;
             } else {
+                // Orca: take the saved diff against the resolved parent (renamed / library-matched).
+                Preset::normalize_inherits(preset.config, parent_preset);
                 if (preset.base_id.empty())
                     preset.base_id = parent_preset->setting_id;
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " saved preset " << preset.name
@@ -3827,9 +3846,9 @@ void PresetBundle::update_filament_count()
         : filament_presets.back());
 }
 
-bool PresetBundle::support_different_extruders()
+bool PresetBundle::support_different_extruders() const
 {
-    Preset& printer_preset = this->printers.get_edited_preset();
+    const Preset& printer_preset = this->printers.get_edited_preset();
     int extruder_count;
     bool supported = printer_preset.config.support_different_extruders(extruder_count);
 
@@ -5039,6 +5058,13 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             loaded.version = current_vendor_profile->config_version;
             loaded.description = description;
             loaded.setting_id = setting_id;
+            // Derive the preset setting_id on the fly when a profile ships without one,
+            // matching scripts/assign_vendor_setting_ids.py. Only instantiated presets
+            // carry an id; non-instantiated base profiles return earlier above. This never
+            // touches the per-user cloud-sync setting_id written into user .info files.
+            if (loaded.setting_id.empty() && instantiation == "true")
+                loaded.setting_id = generate_preset_setting_id(
+                    vendor_name, Preset::get_type_string(presets_collection->type()), preset_name);
             loaded.filament_id = filament_id;
             loaded.m_from_orca_filament_lib = is_from_lib;
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << " " << __LINE__ << ", " << loaded.name << " load filament_id: " << filament_id;
@@ -5226,6 +5252,49 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
             }
         this->project_config.option<ConfigOptionFloats>("flush_volumes_matrix")->values = new_matrix;
     }
+}
+
+// Rewrite a preset-name-list field (compatible_printers / compatible_prints) so references to a
+// renamed system preset point at the current name. Sibling-collection analog of
+// Preset::normalize_inherits: target.find_preset(name, false) resolves "renamed_from" recursively
+// and returns nullptr for unknown names, so we rewrite only on a positive, changed match and leave
+// user/deleted names untouched.
+static void normalize_compatible_field(Preset &preset, const char *field_key, PresetCollection &target)
+{
+    auto *opt = preset.config.option<ConfigOptionStrings>(field_key);
+    if (opt == nullptr)
+        return;
+    for (std::string &name : opt->values) {
+        if (name.empty())
+            continue;
+        if (const Preset *resolved = target.find_preset(name, false); resolved != nullptr && resolved->name != name)
+            name = resolved->name;
+    }
+}
+
+// Resolve compatible_printers / compatible_prints references that point at a renamed system preset
+// to the current name, mirroring Preset::normalize_inherits for the "inherits" field. Because these
+// fields reference presets in sibling collections (printers / prints / sla_prints), the resolution
+// cannot happen inside a single collection's load_presets() and runs here, after update_system_maps()
+// has built every collection's rename map. Must be called before selection so the rewritten stored
+// preset is copied into the edited preset by select_preset (no spurious "modified" flag).
+void PresetBundle::normalize_compatible_presets()
+{
+    // compatible_printers references a printer preset; compatible_prints (filaments / SLA materials)
+    // references a process preset. System presets are normalized too: a vendor profile can itself
+    // reference a sibling preset by a name that was later renamed, and the rewrite is in-memory only
+    // (system presets are never persisted back to vendor JSON). (begin()/end() skip defaults.)
+    auto normalize = [this](PresetCollection &holders, PresetCollection *processes) {
+        for (Preset &p : holders) {
+            normalize_compatible_field(p, "compatible_printers", this->printers);
+            if (processes != nullptr)
+                normalize_compatible_field(p, "compatible_prints", *processes);
+        }
+    };
+    normalize(this->prints,        nullptr);
+    normalize(this->filaments,     &this->prints);
+    normalize(this->sla_prints,    nullptr);
+    normalize(this->sla_materials, &this->sla_prints);
 }
 
 void PresetBundle::update_compatible(PresetSelectCompatibleType select_other_print_if_incompatible, PresetSelectCompatibleType select_other_filament_if_incompatible)
@@ -5459,7 +5528,7 @@ void PresetBundle::set_default_suppressed(bool default_suppressed)
     printers.set_default_suppressed(default_suppressed);
 }
 
-bool PresetBundle::has_errors() const
+bool PresetBundle::has_errors(bool check_duplicate_filament_subtypes) const
 {
     if (m_errors != 0 || printers.m_errors != 0 || filaments.m_errors != 0 || prints.m_errors != 0)
         return true;
@@ -5479,7 +5548,169 @@ bool PresetBundle::has_errors() const
         }
     }
 
+    if (check_duplicate_filament_subtypes && this->check_duplicate_filament_subtypes())
+        has_errors = true;
+
+    if (this->check_preset_references())
+        has_errors = true;
+
     return has_errors;
+}
+
+// Orca: turn a preset file path into an absolute file:// URI for log messages.
+// Printed unquoted on its own line, this is the one format clickable in both the
+// VS Code integrated terminal (Cmd/Ctrl+click) and macOS Terminal.app
+// (Cmd+double-click); quotes or literal spaces break link detection in both, so
+// the characters that would terminate the URI token are percent-encoded.
+static std::string preset_file_uri(const std::string &file)
+{
+    std::string path;
+    try {
+        path = boost::filesystem::canonical(file).generic_string();
+    } catch (...) {
+        path = file;
+    }
+    std::string uri = "file://";
+    if (path.empty() || path.front() != '/')
+        uri += '/'; // Windows drive paths (e.g. C:/...) need the extra leading slash
+    for (char c : path) {
+        switch (c) {
+        case ' ': uri += "%20"; break;
+        case '#': uri += "%23"; break;
+        case '%': uri += "%25"; break;
+        default:  uri += c;
+        }
+    }
+    return uri;
+}
+
+// Orca: validator-only. Flag any system preset whose inherits / compatible_printers /
+// compatible_prints references a name that no longer resolves. Uses find_preset (exact match, then
+// the renamed_from map - no fuzzy find_preset2, no alias resolution), so:
+//   nullptr           -> the referenced preset was deleted/renamed away (name is dangling),
+//   resolved != name  -> the reference uses an old name that renamed_from maps to a current one.
+// Both should be fixed at the source rather than relying on load-time normalization - which is why
+// normalize_compatible_presets() is skipped in validation mode (see load_presets), so this sees the
+// raw vendor-JSON references. Safe under a single-vendor run (-v) too: inherits / compatible_printers
+// / compatible_prints only name same-vendor or OrcaFilamentLibrary presets (both loaded), so a
+// reference that does not resolve is genuinely dangling rather than an unloaded cross-vendor preset.
+bool PresetBundle::check_preset_references() const
+{
+    bool found = false;
+
+    // Resolve one reference (an inherits parent or a compatible_* entry) against its target
+    // collection and log if it is dangling (unknown) or uses a renamed preset's old name.
+    auto report_ref = [&](const Preset &p, const std::string &name, const PresetCollection &target,
+                          const char *verb, const char *noun) {
+        const Preset *resolved = target.find_preset(name, false);
+        if (resolved == nullptr) {
+            found = true;
+            BOOST_LOG_TRIVIAL(error) << "Preset \"" << p.name << "\" " << verb << " unknown " << noun << " \"" << name << "\":\n"
+                                     << preset_file_uri(p.file);
+        } else if (resolved->name != name) {
+            found = true;
+            BOOST_LOG_TRIVIAL(error) << "Preset \"" << p.name << "\" " << verb << " renamed " << noun << " \"" << name
+                                     << "\" (now \"" << resolved->name << "\"):\n" << preset_file_uri(p.file);
+        }
+    };
+
+    auto check_list = [&](const Preset &p, const char *key, const PresetCollection &target) {
+        const auto *opt = p.config.option<ConfigOptionStrings>(key);
+        if (opt == nullptr)
+            return;
+        for (const std::string &name : opt->values)
+            if (!name.empty())
+                report_ref(p, name, target, "references", key);
+    };
+
+    auto check_collection = [&](const PresetCollection &holders, const PresetCollection *processes) {
+        for (const Preset &p : holders) {
+            if (!p.is_system)
+                continue;
+            if (const std::string &inh = p.inherits(); !inh.empty())
+                report_ref(p, inh, holders, "inherits", "parent");
+            check_list(p, "compatible_printers", this->printers);
+            if (processes != nullptr)
+                check_list(p, "compatible_prints", *processes);
+        }
+    };
+
+    // Printers carry no compatible_printers/compatible_prints (those name a printer, so a printer
+    // holding them makes no sense); check_list is a no-op for them, so only their inherits is checked.
+    check_collection(this->printers,      nullptr);
+    check_collection(this->prints,        nullptr);
+    check_collection(this->filaments,     &this->prints);
+    check_collection(this->sla_prints,    nullptr);
+    check_collection(this->sla_materials, &this->sla_prints);
+
+    return found;
+}
+
+// Orca: a filament is matched from the AMS by (filament_id + printer compatibility).
+// For any one printer, at most one instantiated filament preset with a given
+// filament_id may be compatible - otherwise the AMS match is ambiguous and the
+// runtime silently picks whichever loads first. This validator-only check flags
+// any printer that has two or more compatible filament presets sharing a filament_id.
+bool PresetBundle::check_duplicate_filament_subtypes() const
+{
+    // Pre-collect system filament presets (each carries its effective filament_id,
+    // inherited from its @base at load time), grouped by vendor so we only test a
+    // printer against its own vendor's filaments. A vendor's compatible_printers
+    // only names that vendor's printers, so same-vendor scoping is correctness
+    // preserving and avoids an O(all printers x all filaments) sweep.
+    std::map<std::string, std::vector<const Preset *>> filaments_by_vendor;
+    for (const auto &preset : filaments) {
+        if (!preset.is_system || preset.filament_id.empty() || preset.vendor == nullptr)
+            continue;
+        filaments_by_vendor[preset.vendor->name].push_back(&preset);
+    }
+
+    bool found_duplicates = false;
+    for (const auto &printer : printers) {
+        if (!printer.is_system || printer.vendor == nullptr)
+            continue;
+        auto vendor_it = filaments_by_vendor.find(printer.vendor->name);
+        if (vendor_it == filaments_by_vendor.end())
+            continue;
+
+        const PresetWithVendorProfile active_printer = printers.get_preset_with_vendor_profile(printer);
+        // std::map keeps the reported errors in a deterministic (sorted) order.
+        std::map<std::string, std::vector<const Preset *>> by_filament_id;
+        for (const Preset *fil : vendor_it->second)
+            if (is_compatible_with_printer(filaments.get_preset_with_vendor_profile(*fil), active_printer))
+                by_filament_id[fil->filament_id].push_back(fil);
+
+        for (const auto &entry : by_filament_id) {
+            if (entry.second.size() < 2)
+                continue;
+            found_duplicates = true;
+            // List each conflicting preset with a clickable file:// URI on its own
+            // line, so the profile author can jump straight to the files to fix.
+            std::string presets;
+            for (const Preset *p : entry.second)
+                presets += "\n    - " + p->name + "\n      " + preset_file_uri(p->file);
+            BOOST_LOG_TRIVIAL(error)
+                << "Ambiguous AMS filament match: " << entry.second.size()
+                << " filament presets share filament_id \"" << entry.first
+                << "\" and are all compatible with printer \"" << printer.name
+                << "\". When matching an AMS spool the slicer cannot tell them apart and"
+                   " silently picks whichever loads first." << presets;
+        }
+    }
+
+    // Print the troubleshooting guidance once, not per error, to keep the log readable.
+    if (found_duplicates)
+        BOOST_LOG_TRIVIAL(error) << "\n========================================\n"
+            << "How to fix \"Ambiguous AMS filament match\" errors: make sure only ONE filament"
+               " preset with a given filament_id is compatible with each printer. Either"
+               "\n    (a) remove the overlapping printer from a preset's \"compatible_printers\""
+               " list (e.g. a '@printer' preset over-claiming a nozzle that already has its own"
+               " '@printer 0.x nozzle' preset), or"
+               "\n    (b) if these are genuinely different materials, give each its own"
+               " \"filament_id\" - a common cause is a wrong \"inherits\" pointing at another"
+               " material's @base preset.";
+
+    return found_duplicates;
 }
 
 // Orca: BundleMetadata method implementations

@@ -44,7 +44,7 @@ void AboutDialogLogo::onRepaint(wxEvent &event)
 CopyrightsDialog::CopyrightsDialog()
     : DPIDialog(static_cast<wxWindow*>(wxGetApp().mainframe), wxID_ANY, from_u8((boost::format("%1% - %2%")
         % (wxGetApp().is_editor() ? SLIC3R_APP_FULL_NAME : GCODEVIEWER_APP_NAME)
-        % _utf8(L("Portions copyright"))).str()),
+        % _utf8(L("License Info"))).str()),
         wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
     this->SetFont(wxGetApp().normal_font());
@@ -337,7 +337,7 @@ AboutDialog::AboutDialog()
           m_html->Bind(wxEVT_HTML_LINK_CLICKED, &AboutDialog::onLinkClicked, this);
       }
     //Add "Portions copyright" button
-    Button* button_portions = new Button(this,_L("Portions copyright"));
+    Button* button_portions = new Button(this,_L("License Info"));
     button_portions->SetStyle(ButtonStyle::Regular, ButtonType::Window);
 
     wxBoxSizer *copyright_button_ver = new wxBoxSizer(wxVERTICAL);

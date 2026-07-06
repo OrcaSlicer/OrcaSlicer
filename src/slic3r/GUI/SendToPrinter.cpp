@@ -176,17 +176,17 @@ void SendToPrinterDialog::on_rename_enter()
     }
 
     if (m_valid_type == Valid && new_file_name.empty()) {
-        info_line = _L("The name is not allowed to be empty.");
+        info_line = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_first_of(' ') == 0) {
-        info_line = _L("The name is not allowed to start with space character.");
+        info_line = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_last_of(' ') == new_file_name.length() - 1) {
-        info_line = _L("The name is not allowed to end with space character.");
+        info_line = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 
@@ -1446,7 +1446,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		Enable_Refresh_Button(true);
 	}
 	else if (status == PrintDialogStatus::PrintStatusInUpgrading) {
-		wxString msg_text = _L("Cannot send the print task when the upgrade is in progress");
+		wxString msg_text = _L("Cannot send print tasks when an update is in progress");
 		update_print_status_msg(msg_text, true, true);
 		Enable_Send_Button(false);
 		Enable_Refresh_Button(true);
@@ -1477,7 +1477,7 @@ void SendToPrinterDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 		Enable_Refresh_Button(true);
     }
     else if (status == PrintDialogStatus::PrintStatusNotOnTheSameLAN) {
-        wxString msg_text = _L("The printer is required to be in the same LAN as Orca Slicer.");
+        wxString msg_text = _L("The printer is required to be on the same LAN as Orca Slicer.");
         update_print_status_msg(msg_text, true, true);
         Enable_Send_Button(false);
         Enable_Refresh_Button(true);

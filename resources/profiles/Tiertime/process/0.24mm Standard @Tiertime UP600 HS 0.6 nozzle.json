@@ -3,7 +3,7 @@
 	"name": "0.24mm Standard @Tiertime UP600 HS 0.6 nozzle",
 	"inherits": "fdm_process_tiertime_0.24_nozzle_0.6_HS",
 	"from": "system",
-	"setting_id": "GP022",
+	"setting_id": "KqXbGOmER4LTCJyR",
 	"instantiation": "true",
 	"description": "It has a balanced layer height for good quality and reasonable printing time.",
 	"elefant_foot_compensation": "0.15",

@@ -38,8 +38,13 @@
 #include <Windows.h>
 #endif
 
-#if defined(__APPLE__)
+#if !defined(_WIN32)
 #include <unistd.h>
+#include <fcntl.h>
+#include <cerrno>
+#endif
+
+#if defined(__APPLE__)
 #include <uuid/uuid.h>
 #endif
 
@@ -75,6 +80,60 @@ constexpr const char* CONFIG_ORCA_PUB_KEY = "orca_pub_key";
 constexpr const char* SECRET_STORE_SERVICE = "OrcaSlicer/Auth";
 constexpr const char* SECRET_STORE_USER    = "orca_refresh_token";
 constexpr std::chrono::seconds TOKEN_REFRESH_SKEW{900}; // 15 minutes
+
+// Cross-process advisory lock serializing refresh-token rotation between Orca instances on
+// this machine. The Supabase refresh token rotates on every use, so read -> spend -> write-back
+// of the rotated successor must be one critical section across processes; otherwise a second
+// instance can re-spend a token a peer already rotated, triggering `refresh_token_already_used`.
+// Blocks until acquired (kernel sleep, no CPU spin). It cannot deadlock permanently because the
+// refresh POST is bounded (http_post_token uses timeout_max) and both back-ends release
+// automatically if the holder dies. Same machine only; cross-device concurrency is still
+// governed by the server's reuse-detection grace window.
+class InterProcessRefreshTokenLock
+{
+public:
+    explicit InterProcessRefreshTokenLock(const std::string& path)
+    {
+        if (path.empty()) { m_locked = true; return; } // no path -> proceed unsynchronized
+#if defined(_WIN32)
+        const std::wstring name = L"Local\\OrcaTokenRefresh_" + std::to_wstring(std::hash<std::string>{}(path));
+        m_handle = ::CreateMutexW(nullptr, FALSE, name.c_str());
+        if (!m_handle) { m_locked = true; return; }               // can't create -> don't block
+        const DWORD r = ::WaitForSingleObject(m_handle, INFINITE); // blocks, no spin
+        m_locked = (r == WAIT_OBJECT_0 || r == WAIT_ABANDONED);    // ABANDONED: prior holder crashed
+#else
+        m_fd = ::open(path.c_str(), O_RDWR | O_CREAT | O_CLOEXEC, 0600);
+        if (m_fd == -1) { m_locked = true; return; }              // can't open -> don't block
+        struct flock fl{};
+        fl.l_type = F_WRLCK; fl.l_whence = SEEK_SET; fl.l_start = 0; fl.l_len = 0;
+        int rc;
+        do { rc = ::fcntl(m_fd, F_SETLKW, &fl); } while (rc == -1 && errno == EINTR); // blocks in kernel
+        m_locked = (rc != -1);
+#endif
+    }
+
+    ~InterProcessRefreshTokenLock()
+    {
+#if defined(_WIN32)
+        if (m_handle) { if (m_locked) ::ReleaseMutex(m_handle); ::CloseHandle(m_handle); }
+#else
+        if (m_fd != -1) ::close(m_fd); // closing the fd releases the lock we hold
+#endif
+    }
+
+    bool locked() const { return m_locked; }
+
+    InterProcessRefreshTokenLock(const InterProcessRefreshTokenLock&)            = delete;
+    InterProcessRefreshTokenLock& operator=(const InterProcessRefreshTokenLock&) = delete;
+
+private:
+    bool m_locked = false;
+#if defined(_WIN32)
+    HANDLE m_handle = nullptr;
+#else
+    int    m_fd = -1;
+#endif
+};
 
 // Return a JSON field only when it is present as a string. Missing or non-string values normalize to empty.
 std::string get_json_string_field(const json& j, const std::string& key)
@@ -1649,8 +1708,7 @@ RefreshResult OrcaCloudServiceAgent::refresh_now(const std::string& refresh_toke
     }
 
     auto worker = [this, refresh_token, reason]() {
-        (void) reason;
-        RefreshResult r = refresh_session_with_token(refresh_token);
+        RefreshResult r = refresh_session_with_token(refresh_token, reason);
         refresh_running.store(false);
         return r;
     };
@@ -1670,20 +1728,39 @@ RefreshResult OrcaCloudServiceAgent::refresh_now(const std::string& refresh_toke
 
 RefreshResult OrcaCloudServiceAgent::refresh_from_storage(const std::string& reason, bool async)
 {
-    std::string refresh_token = get_refresh_token();
-    if (refresh_token.empty()) {
-        std::string user_secret;
-        if (load_user_secret(user_secret) && !user_secret.empty()) {
-            SessionInfo stored_session;
-            parse_stored_secret(user_secret, refresh_token, stored_session);
-        }
+    (void) async; // currently all callers are calling this function synchronous anyway
+
+    // Blocks until we own the lock (kernel sleep, no spin). Cannot deadlock permanently:
+    // the refresh POST is bounded (http_post_token timeout_max) and the lock auto-releases
+    // on process death, so no holder can keep it longer than that bound.
+    InterProcessRefreshTokenLock lock(token_lock_path());
+    if (!lock.locked()) {
+        // Lock syscall genuinely failed (rare). Proceed best-effort rather than give up.
+        BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: token refresh lock unavailable, "
+                                      "proceeding unsynchronized (reason=" << reason << ")";
     }
+
+    std::string refresh_token;
+    std::string user_secret;
+
+    // We read the refresh token from the OS keychain as the source of truth
+    if (load_user_secret(user_secret) && !user_secret.empty()) {
+        SessionInfo stored_session;
+        parse_stored_secret(user_secret, refresh_token, stored_session);
+    }
+
+    // We only read from memory if the read from OS keychain fails
+    if (refresh_token.empty())
+        refresh_token = get_refresh_token();
+
     if (refresh_token.empty()) {
         BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: no refresh token available for refresh (reason=" << reason << ")";
         return RefreshResult::AuthRejected;  // no persisted token: nothing to preserve
     }
 
-    return refresh_now(refresh_token, reason, async);
+    // Synchronous: hold the lock across the network round-trip AND the write-back that
+    // set_user_session performs, so the rotation is atomic w.r.t. other instances.
+    return refresh_now(refresh_token, reason, /*async=*/false);
 }
 
 bool OrcaCloudServiceAgent::refresh_if_expiring(std::chrono::seconds skew, const std::string& reason)
@@ -1696,8 +1773,14 @@ bool OrcaCloudServiceAgent::refresh_if_expiring(std::chrono::seconds skew, const
 
     if (!needs_refresh) return true;
 
-    if (refresh_from_storage(reason, false) == RefreshResult::Success) return true;
+    // First attempt. refresh_from_storage blocks on the cross-process lock and reads the
+    // freshest token from the store, so cross-instance contention is already resolved here.
+    RefreshResult r = refresh_from_storage(reason, false);
+    if (r == RefreshResult::Success)      return true;
+    if (r == RefreshResult::AuthRejected) return false;  // definitive: retrying the same token can't help
 
+    // One retry, only for a transient network failure of the refresh POST (lost response,
+    // timeout, 429/5xx -> Transient). The retry re-acquires the lock and re-reads the store.
     std::this_thread::sleep_for(std::chrono::milliseconds(750));
     return refresh_from_storage(reason + "_retry", false) == RefreshResult::Success;
 }
@@ -1716,7 +1799,23 @@ static RefreshResult classify_refresh_result(unsigned http_code, bool session_es
                               : RefreshResult::Transient;  // 2xx but unusable body
 }
 
-RefreshResult OrcaCloudServiceAgent::refresh_session_with_token(const std::string& refresh_token)
+// Best-effort extraction of GoTrue's "error_code" field (e.g. "refresh_token_already_used").
+// Returns "" if the body is not a JSON object or lacks the field.
+static std::string extract_error_code(const std::string& body)
+{
+    const json j = json::parse(body, nullptr, false);
+    if (j.is_object())
+        return get_json_string_field(j, "error_code");
+    return "";
+}
+
+static long long now_epoch_seconds()
+{
+    return std::chrono::duration_cast<std::chrono::seconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+}
+
+RefreshResult OrcaCloudServiceAgent::refresh_session_with_token(const std::string& refresh_token, const std::string& reason)
 {
     std::string body = "{\"refresh_token\":\"" + refresh_token + "\"}";
     std::string url = auth_base_url + auth_constants::TOKEN_PATH + "?grant_type=refresh_token";
@@ -1724,6 +1823,12 @@ RefreshResult OrcaCloudServiceAgent::refresh_session_with_token(const std::strin
     unsigned int http_code = 0;
     // http_post_token sets http_code to 0 when the server could not be reached.
     http_post_token(body, &response, &http_code, url);
+
+    const long long now_s   = now_epoch_seconds();
+    const long long last_ok = last_refresh_success_epoch.load(std::memory_order_relaxed);
+    const long long since_last_ok = (last_ok == 0) ? -1 : (now_s - last_ok); // -1 = no success yet this process
+    const long long since_start   = now_s - agent_start_epoch;
+    const std::string log_reason  = reason.empty() ? "-" : reason;
 
     bool established = false;
     if (http_code >= 200 && http_code < 300) {
@@ -1738,10 +1843,47 @@ RefreshResult OrcaCloudServiceAgent::refresh_session_with_token(const std::strin
                 BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: token refresh parse exception - " << e.what();
             }
         }
+        if (established) {
+            last_refresh_success_epoch.store(now_s, std::memory_order_relaxed);
+            BOOST_LOG_TRIVIAL(info) << "[auth] event=refresh_ok reason=" << log_reason
+                                    << " secs_since_last_success=" << since_last_ok;
+        }
     } else {
+        // Diagnostics to classify a future refresh_token_already_used incident from logs alone
+        //  - secs_since_last_success large (or -1 = none this process) => stale token beyond the
+        //    reuse-grace window (the ">1h gap" residual).
+        //  - stored_differs=true => another instance/device already rotated the token in the
+        //    shared secret store (the multi-session residual).
+        const std::string error_code = extract_error_code(response);
+
+        // Only meaningful when the server actually rejected us (not a bare transport failure).
+        bool stored_present = false, stored_differs = false;
+        if (http_code >= 400) {
+            std::string stored_secret, stored_token;
+            SessionInfo ignored;
+            if (load_user_secret(stored_secret) && !stored_secret.empty()
+                && parse_stored_secret(stored_secret, stored_token, ignored) && !stored_token.empty()) {
+                stored_present = true;
+                stored_differs = (stored_token != refresh_token);
+            }
+        }
+
+        std::string user_id_copy;
+        {
+            std::lock_guard<std::mutex> lock(session_mutex);
+            user_id_copy = session.user_id;
+        }
+
         std::string truncated_response = response.size() > 200 ? response.substr(0, 200) + "..." : response;
-        BOOST_LOG_TRIVIAL(warning) << "OrcaCloudServiceAgent: token refresh failed - http_code=" << http_code
-                                   << ", response_body=" << truncated_response;
+        BOOST_LOG_TRIVIAL(warning) << "[auth] event=refresh_rejected http_code=" << http_code
+                                   << " error_code=" << (error_code.empty() ? "-" : error_code)
+                                   << " reason=" << log_reason
+                                   << " stored_present=" << (stored_present ? "true" : "false")
+                                   << " stored_differs=" << (stored_differs ? "true" : "false")
+                                   << " secs_since_last_success=" << since_last_ok
+                                   << " secs_since_start=" << since_start
+                                   << " user_id=" << (user_id_copy.empty() ? "-" : user_id_copy)
+                                   << " response_body=" << truncated_response;
     }
 
     return classify_refresh_result(http_code, established);
@@ -2206,6 +2348,9 @@ bool OrcaCloudServiceAgent::http_post_token(const std::string& body, std::string
                 resp_body = body;
                 BOOST_LOG_TRIVIAL(error) << "OrcaCloudServiceAgent: HTTP error - " << error;
             })
+            // Keep this timeout finite: refresh_from_storage holds a cross-process lock across
+            // this call, so an unbounded refresh POST would let one instance wedge token refresh
+            // for every other Orca instance on the machine.
             .timeout_max(30)
             .perform_sync();
 
@@ -2841,6 +2986,15 @@ int OrcaCloudServiceAgent::get_shared_bundle(const std::string& bundle_id, std::
         BOOST_LOG_TRIVIAL(error) << "get_shared_bundle: JSON parse error: " << e.what();
         return -1;
     }
+}
+
+std::string OrcaCloudServiceAgent::token_lock_path() const
+{
+    if (config_dir.empty())
+        return {};
+    wxFileName lock(wxString::FromUTF8(config_dir.c_str()), "orca_refresh_token.lock");
+    lock.Normalize();
+    return lock.GetFullPath().ToStdString();
 }
 
 } // namespace Slic3r

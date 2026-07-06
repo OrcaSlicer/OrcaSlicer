@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSL99",
 	"name": "QIDI PLA Rapido @Qidi Q2C 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Rapido@Q2C-Series",
+	"from": "system",
+	"setting_id": "NMRzlpF5RoggSMUB",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.008"
 	],

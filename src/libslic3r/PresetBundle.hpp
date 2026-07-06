@@ -370,7 +370,7 @@ public:
 
     //BBS: add some functions for multiple extruders
     int get_printer_extruder_count() const;
-    bool support_different_extruders();
+    bool support_different_extruders() const;
 
     // Orca: Ensure filament_presets has at least one slot per nozzle on FFF printers.
     // Called from (load|update)_selections before the parallel project_config arrays
@@ -448,6 +448,11 @@ public:
     void                        update_compatible(PresetSelectCompatibleType select_other_print_if_incompatible, PresetSelectCompatibleType select_other_filament_if_incompatible);
     void                        update_compatible(PresetSelectCompatibleType select_other_if_incompatible) { this->update_compatible(select_other_if_incompatible, select_other_if_incompatible); }
 
+    // Rewrite compatible_printers / compatible_prints references that point at a renamed system
+    // preset to the current name, mirroring Preset::normalize_inherits for the "inherits" field.
+    // Call after loading presets and before selection; requires update_system_maps() to have run.
+    void                        normalize_compatible_presets();
+
     // Set the is_visible flag for printer vendors, printer models and printer variants
     // based on the user configuration.
     // If the "vendor" section is missing, enable all models and variants of the particular vendor.
@@ -480,10 +485,18 @@ public:
         return      { Preset::TYPE_PRINTER, Preset::TYPE_SLA_PRINT, Preset::TYPE_SLA_MATERIAL };
     }
 
-    // Orca: for validation only
-    bool has_errors() const;
+    // Orca: for validation only.
+    bool has_errors(bool check_duplicate_filament_subtypes = false) const;
+
+    // Orca: for validation only. Flag any system preset whose inherits / compatible_printers /
+    // compatible_prints references a deleted (unknown) or renamed (old) preset name.
+    bool check_preset_references() const;
 
 private:
+    // Orca: validation only - flag any printer with two or more compatible
+    // filament presets sharing one filament_id (ambiguous AMS subtype match).
+    bool check_duplicate_filament_subtypes() const;
+
     //std::pair<PresetsConfigSubstitutions, std::string> load_system_presets(ForwardCompatibilitySubstitutionRule compatibility_rule);
     //BBS: add json related logic
     std::pair<PresetsConfigSubstitutions, std::string> load_system_presets_from_json(ForwardCompatibilitySubstitutionRule compatibility_rule);

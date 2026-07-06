@@ -1,8 +1,10 @@
 {
+	"type": "process",
 	"from": "system",
 	"inherits": "0.20mm Standard @Elegoo N3Plus 0.4 nozzle",
 	"name": "0.24mm Draft @Elegoo N3Plus 0.4 nozzle",
 	"layer_height": "0.24",
+	"setting_id": "YVe8MEaJXZUeE3h4",
 	"instantiation": "true",
 	"renamed_from": "0.24mm Draft @Elegoo Neptune3Plus"
 }

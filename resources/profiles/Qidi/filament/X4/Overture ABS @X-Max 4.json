@@ -1,11 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "GFB99",
-	"setting_id": "GFSA04",
 	"name": "Overture ABS@X-Max 4-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_x4_common",
+	"from": "system",
+	"filament_id": "GFB99",
+	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"
 	],

@@ -3,7 +3,7 @@
 	"name": "0.40mm Standard @Elegoo N4Max 0.8 nozzle",
 	"inherits": "fdm_process_elegoo_08040",
 	"from": "system",
-	"setting_id": "PEN4Max08040",
+	"setting_id": "tgLcMBDWsMF48oRZ",
 	"instantiation": "true",
 	"filename_format": "EN4Max_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
 	"compatible_printers": [

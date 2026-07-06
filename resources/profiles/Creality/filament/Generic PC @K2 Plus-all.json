@@ -3,7 +3,7 @@
     "name": "Generic PC @K2 Plus-all",
     "inherits": "fdm_filament_pc",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "3knMGS1s49r6Z9eL",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

@@ -3,7 +3,7 @@
 	"name": "0.08mm HighDetail @Anycubic Kobra 3 0.4 nozzle",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "LtQ4DLU2kDaVk34E",
 	"instantiation": "true",
 	"print_settings_id": "0.08mm HighDetail @Anycubic Kobra 3 0.4 nozzle",
 	"layer_height": "0.08",

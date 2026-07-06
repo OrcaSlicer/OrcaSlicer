@@ -3,7 +3,7 @@
 	"name": "QIDI Support For PET/PA",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSN99",
+	"setting_id": "Am158VMH3y6FDxON",
 	"filament_id": "GFN98",
 	"instantiation": "true",
 	"filament_type": [

@@ -3,7 +3,7 @@
 	"name": "Generic PHA @System",
 	"inherits": "fdm_filament_pha",
 	"from": "system",
-	"setting_id": "OGFSR98_00",
+	"setting_id": "kks2z4JbypqY68RW",
 	"instantiation": "true",
 	"description": "This is neither a commonly used filament, nor one of Bambu filaments, and it varies a lot from brand to brand. So, it's highly recommended to ask its vendor for suitable profile before printing and adjust some parameters according to its performances.",
 	"compatible_printers": []
