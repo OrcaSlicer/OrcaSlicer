@@ -54,7 +54,7 @@ GizmoObjectManipulation::GizmoObjectManipulation(GLCanvas3D& glcanvas)
     : m_glcanvas(glcanvas)
 {
     m_imperial_units = wxGetApp().app_config->get("use_inches") == "1";
-    m_new_unit_string = m_imperial_units ? L("in") : L("mm");
+    m_new_unit_string = m_imperial_units ? L_CONTEXT("in", "inches") : L("mm");
 
     const wxString shift                   = GUI::shortkey_shift_prefix();
     const wxString alt                     = GUI::shortkey_alt_prefix();
@@ -92,7 +92,7 @@ void GizmoObjectManipulation::update_ui_from_settings()
     if (m_imperial_units != (wxGetApp().app_config->get("use_inches") == "1")) {
         m_imperial_units = wxGetApp().app_config->get("use_inches") == "1";
 
-        m_new_unit_string = m_imperial_units ? L("in") : L("mm");
+        m_new_unit_string = m_imperial_units ? L_CONTEXT("in", "inches") : L("mm");
 
         update_buffered_value();
     }
