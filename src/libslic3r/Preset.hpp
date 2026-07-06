@@ -465,15 +465,21 @@ protected:
     friend class        PresetBundle;
     friend class        cereal::access;
 
-    // Serializes the fields needed to reconstruct a system preset from a binary cache.
-    // The vendor pointer is NOT serialized — apply() reconstructs it from VendorCache::profile.id.
+    // Serializes all value fields of Preset for the binary vendor cache.
+    // Raw pointers (vendor, loading_substitutions) are excluded — vendor is reconstructed
+    // by apply_vendor_cache() from the VendorProfile stored alongside the presets.
     template<class Archive>
     void serialize(Archive& ar)
     {
         ar(type, name, alias, file, version,
            filament_id, setting_id, description,
            renamed_from, is_system, is_visible,
-           m_from_orca_filament_lib, config);
+           is_default, is_external, is_dirty, is_compatible,
+           is_project_embedded, loaded,
+           m_from_orca_filament_lib, m_excluded_from,
+           bundle_id, user_id, base_id, sync_info,
+           updated_time, key_values, ini_str,
+           config);
     }
 };
 
