@@ -1,6 +1,6 @@
 orcaslicer_add_cmake_project(NLopt
   URL "https://github.com/stevengj/nlopt/archive/v2.11.0.tar.gz"
-  URL_HASH SHA256=dba382b19849922f30073318e04d79bb5acd453b87b9e02f4b9ffc67009e979c
+  URL_HASH SHA256=53e552d83e9294d67db37f0f4a23f15933a9ef698485301a18b98b40004cf0de
   CMAKE_ARGS
     -DNLOPT_PYTHON:BOOL=OFF
     -DNLOPT_OCTAVE:BOOL=OFF
