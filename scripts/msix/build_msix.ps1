@@ -29,6 +29,18 @@ if ($versionContent -notmatch 'set\(SoftFever_VERSION "(\d+)\.(\d+)\.(\d+)') {
     throw "Could not parse SoftFever_VERSION from version.inc"
 }
 $msixVersion = "$($Matches[1]).$($Matches[2]).$($Matches[3]).0"
+
+# One-off override: the wrong 2.4.2.0 build was already published to the Store, which always
+# serves the highest version and won't accept re-uploading an existing one. Replacing it needs a
+# strictly higher version with the revision field still 0, so the patch digit is bumped to 2.4.3.0.
+# The app itself stays 2.4.2 (SoftFever_VERSION). Clear this once SoftFever_VERSION >= 2.4.3.
+$msixVersionOverride = '2.4.3.0'
+if ($msixVersionOverride) {
+    if ($msixVersionOverride -notmatch '^\d+\.\d+\.\d+\.0$') {
+        throw "MSIX version override '$msixVersionOverride' must be Major.Minor.Build.0 - the Store rejects a non-zero revision field."
+    }
+    $msixVersion = $msixVersionOverride
+}
 Write-Output "MSIX version: $msixVersion"
 
 if (-not (Test-Path (Join-Path $InstallDir 'orca-slicer.exe'))) {
