@@ -388,7 +388,7 @@ msgid "Reset rotation"
 msgstr "Réinitialiser la rotation"
 
 msgid "World"
-msgstr ""
+msgstr "Monde"
 
 msgid "Object"
 msgstr "Objet"
@@ -397,13 +397,13 @@ msgid "Part"
 msgstr "Pièce"
 
 msgid "Relative"
-msgstr ""
+msgstr "Relatif"
 
 msgid "Coordinate system used for transform actions."
-msgstr ""
+msgstr "Système de coordonnées utilisé pour les actions de transformation."
 
 msgid "Absolute"
-msgstr ""
+msgstr "Absolu"
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "Réinitialiser la rotation actuelle à la valeur lors de l'ouverture de l'outil de rotation."
@@ -1853,31 +1853,31 @@ msgid "The version of Orca Slicer is too low and needs to be updated to the late
 msgstr "La version de OrcaSlicer est trop ancienne et doit être mise à jour vers la dernière version afin qu’il puisse être utilisé normalement."
 
 msgid "Cloud sync conflict:"
-msgstr ""
+msgstr "Conflit de synchronisation cloud :"
 
 #, c-format, boost-format
 msgid "Cloud sync conflict for preset \"%s\":"
-msgstr ""
+msgstr "Conflit de synchronisation cloud pour le préréglage « %s » :"
 
 msgid ""
 "This preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
-msgstr ""
+msgstr "Ce préréglage possède une version plus récente dans OrcaCloud.\nRécupérer télécharge la copie du cloud. Forcer l’envoi l’écrase avec votre préréglage local."
 
 msgid ""
 "A preset with this name already exists in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
-msgstr ""
+msgstr "Un préréglage de ce nom existe déjà dans OrcaCloud.\nRécupérer télécharge la copie du cloud. Forcer l’envoi l’écrase avec votre préréglage local."
 
 msgid ""
 "A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
-msgstr ""
+msgstr "Un préréglage du même nom a été précédemment supprimé du cloud.\nSupprimer effacera votre préréglage local. Forcer l’envoi l’écrase avec votre préréglage local."
 
 msgid ""
 "There was an unexpected or unidentified preset conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
-msgstr ""
+msgstr "Un conflit de préréglage inattendu ou non identifié s’est produit.\nRécupérer télécharge la copie du cloud. Forcer l’envoi l’écrase avec votre préréglage local."
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
@@ -1890,7 +1890,7 @@ msgstr ""
 msgid ""
 "Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\n"
 "Do you want to continue?"
-msgstr ""
+msgstr "Forcer l’envoi écrasera la copie cloud du préréglage « %s » avec vos modifications locales.\nVoulez-vous continuer ?"
 
 msgid "Resolve cloud sync conflict"
 msgstr "Résoudre le conflit de synchronisation cloud"
@@ -1973,7 +1973,7 @@ msgstr "Synchroniser les réglages prédéfinis de l’utilisateur"
 
 #, c-format, boost-format
 msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
-msgstr ""
+msgstr "Le préréglage « %s » est trop volumineux pour être synchronisé vers le cloud (dépasse 1 Mo). Veuillez réduire sa taille en supprimant des configurations personnalisées, ou l’utiliser uniquement en local."
 
 #, c-format, boost-format
 msgid "%s updated from %s to %s"
@@ -2183,7 +2183,7 @@ msgid "OrcaSliced Combo"
 msgstr "OrcaSliced Combo"
 
 msgid "Orca Badge"
-msgstr ""
+msgstr "Orca Badge"
 
 msgid "Orca Tolerance Test"
 msgstr "Test de tolérance Orca"
@@ -5158,7 +5158,7 @@ msgid "Outline"
 msgstr "Contour"
 
 msgid "Wireframe"
-msgstr ""
+msgstr "Fil de fer"
 
 msgid "Realistic View"
 msgstr "Vue réaliste"
@@ -7892,33 +7892,33 @@ msgid "If enabled, a parameter settings dialog will appear during STEP file impo
 msgstr "Si activé, une boîte de dialogue de paramètres apparaîtra lors de l'importation d'un fichier STEP."
 
 msgid "STEP importing: linear deflection"
-msgstr ""
+msgstr "Import STEP : déviation linéaire"
 
 msgid ""
 "Linear deflection used when meshing imported STEP files.\n"
 "Smaller values produce higher-quality meshes but increase processing time.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
 "Default: 0.003 mm."
-msgstr ""
+msgstr "Déviation linéaire utilisée lors du maillage des fichiers STEP importés.\nDes valeurs plus petites produisent des maillages de meilleure qualité mais augmentent le temps de traitement.\nUtilisée par défaut dans la fenêtre d’import, ou directement lorsque la fenêtre d’import est désactivée.\nPar défaut : 0,003 mm."
 
 msgid "STEP importing: angle deflection"
-msgstr ""
+msgstr "Import STEP : déviation angulaire"
 
 msgid ""
 "Angle deflection used when meshing imported STEP files.\n"
 "Smaller values produce higher-quality meshes but increase processing time.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
 "Default: 0.5."
-msgstr ""
+msgstr "Déviation angulaire utilisée lors du maillage des fichiers STEP importés.\nDes valeurs plus petites produisent des maillages de meilleure qualité mais augmentent le temps de traitement.\nUtilisée par défaut dans la fenêtre d’import, ou directement lorsque la fenêtre d’import est désactivée.\nPar défaut : 0,5."
 
 msgid "STEP importing: Split into multiple objects"
-msgstr ""
+msgstr "Import STEP : diviser en plusieurs objets"
 
 msgid ""
 "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
 "Default: disabled."
-msgstr ""
+msgstr "Si activé, les formes compound et compsolid des fichiers STEP importés sont divisées en plusieurs objets.\nUtilisé par défaut dans la fenêtre d’import, ou directement lorsque la fenêtre d’import est désactivée.\nPar défaut : désactivé."
 
 msgid "Quality level for Draco export"
 msgstr "Niveau de qualité pour l'exportation Draco"
@@ -7936,10 +7936,10 @@ msgstr ""
 "Des valeurs plus basses produisent des fichiers plus petits mais perdent plus de détails géométriques ; des valeurs plus élevées préservent plus de détails au prix de fichiers plus volumineux."
 
 msgid "Store full source file paths in projects"
-msgstr ""
+msgstr "Stocker les chemins complets des fichiers source dans les projets"
 
 msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
-msgstr ""
+msgstr "Si activé, les projets enregistrés stockent le chemin absolu des fichiers source importés (STEP/STL/…), afin que « Recharger à partir du disque » fonctionne toujours lorsque le fichier source est conservé dans un dossier différent du projet. Si désactivé, seul le nom du fichier est stocké, ce qui garde les projets portables et évite d’intégrer des chemins absolus."
 
 msgid "Preset"
 msgstr "Préréglage"
@@ -12259,7 +12259,7 @@ msgid "Line width of outer wall. If expressed as a %, it will be computed over t
 msgstr "Largeur de la ligne de la paroi extérieure. Si elle est exprimée en %, elle sera calculée sur le diamètre de la buse."
 
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
-msgstr "Vitesse de paroi extérieure qui est la plus à l'extérieur et visible. Elle est généralement plus lente que la vitesse de la paroi interne pour obtenir une meilleure qualité."
+msgstr "Vitesse de paroi extérieure qui est la plus à l'extérieur et visible. Elle est généralement plus lente que la vitesse de la paroi intérieure pour obtenir une meilleure qualité."
 
 msgid "Small perimeters"
 msgstr "Petits périmètres"
@@ -12274,16 +12274,16 @@ msgid "This sets the threshold for small perimeter length. Default threshold is 
 msgstr "Cela définit le seuil pour une petite longueur de périmètre. Le seuil par défaut est de 0 mm"
 
 msgid "Small support perimeters"
-msgstr ""
+msgstr "Petits périmètres de support"
 
 msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
-msgstr ""
+msgstr "Comme « Petits périmètres », mais pour les supports. Ce réglage distinct affecte la vitesse des supports pour les zones <= `small_support_perimeter_threshold`. S’il est exprimé en pourcentage (par exemple : 80 %), il est calculé à partir du réglage de vitesse des supports ou de l’interface de support ci-dessus. Réglez sur zéro pour automatique."
 
 msgid "Small support perimeters threshold"
-msgstr ""
+msgstr "Seuil des petits périmètres de support"
 
 msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr ""
+msgstr "Définit le seuil de longueur des petits périmètres de support. Le seuil par défaut est 0 mm."
 
 msgid "Walls printing order"
 msgstr "Ordre d’impression des parois"
@@ -12471,7 +12471,7 @@ msgstr ""
 "3 Entrez les triplets de valeurs PA, de débit et d’accélérations dans la zone de texte ici et sauvegardez votre profil de filament."
 
 msgid "Enable adaptive pressure advance within features (beta)"
-msgstr ""
+msgstr "Activer l’avance de pression adaptative au sein des structures (bêta)"
 
 msgid ""
 "Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
@@ -12479,17 +12479,17 @@ msgid ""
 "Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
 "\n"
 "This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
-msgstr ""
+msgstr "Activer le PA adaptatif dès qu’il y a des changements de débit dans une structure, comme des variations de largeur de ligne dans un angle ou des surplombs.\n\nIncompatible avec les imprimantes Prusa, car elles marquent une pause pour traiter les changements de PA, ce qui cause des retards et des défauts.\n\nIl s’agit d’une option expérimentale : si le profil de PA n’est pas réglé avec précision, elle provoquera des problèmes d’uniformité."
 
 msgid "Static pressure advance for bridges"
-msgstr ""
+msgstr "Avance de pression statique pour les ponts"
 
 msgid ""
 "Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
 "equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
-msgstr ""
+msgstr "Valeur d’avance de pression statique pour les ponts. Réglez sur 0 pour appliquer la même avance de pression que \npour les parois équivalentes (en utilisant les réglages adaptatifs si activés).\n\nUne valeur de PA plus faible lors de l’impression des ponts aide à réduire l’apparition d’une légère sous-extrusion juste après les ponts. Elle est causée par la chute de pression dans la buse lors de l’impression dans le vide, et un PA plus faible aide à la contrer."
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Largeur de ligne par défaut si les autres largeurs de ligne sont fixées à 0. Si elle est exprimée en %, elle sera calculée sur le diamètre de la buse."
@@ -12862,20 +12862,20 @@ msgid "Angle for solid infill pattern, which controls the start or main directio
 msgstr "Angle pour le motif de remplissage, qui contrôle le début ou la direction principale de la ligne"
 
 msgid "Top layer direction"
-msgstr ""
+msgstr "Direction de la couche supérieure"
 
 msgid ""
 "Fixed angle for the top solid infill and ironing lines.\n"
 "Set to -1 to follow the default solid infill direction."
-msgstr ""
+msgstr "Angle fixe pour le remplissage plein supérieur et les lignes de lissage.\nRéglez sur -1 pour suivre la direction de remplissage plein par défaut."
 
 msgid "Bottom layer direction"
-msgstr ""
+msgstr "Direction de la couche inférieure"
 
 msgid ""
 "Fixed angle for the bottom solid infill lines.\n"
 "Set to -1 to follow the default solid infill direction."
-msgstr ""
+msgstr "Angle fixe pour les lignes de remplissage plein inférieur.\nRéglez sur -1 pour suivre la direction de remplissage plein par défaut."
 
 msgid "Sparse infill density"
 msgstr "Densité de remplissage"
@@ -14349,7 +14349,7 @@ msgid "This detects the overhang percentage relative to line width and uses a di
 msgstr "Détectez le pourcentage de surplomb par rapport à la largeur de la ligne et utilisez une vitesse différente pour imprimer. Pour un surplomb de 100%% la vitesse du pont est utilisée."
 
 msgid "Outer walls"
-msgstr "Parois externes"
+msgstr "Parois extérieures"
 
 msgid ""
 "Filament to print outer walls.\n"
@@ -14359,7 +14359,7 @@ msgstr ""
 "\"Défaut\" utilise le filament actif de l’objet ou de la pièce."
 
 msgid "Inner walls"
-msgstr "Parois internes"
+msgstr "Parois intérieures"
 
 msgid ""
 "Filament to print inner walls.\n"
@@ -14716,7 +14716,7 @@ msgid "Minimum number of segments of each scarf."
 msgstr "Nombre minimum de segments de chaque biseau."
 
 msgid "Scarf joint for inner walls"
-msgstr "Joint en biseau pour les parois internes"
+msgstr "Joint en biseau pour les parois intérieures"
 
 msgid "Use scarf joint for inner walls as well."
 msgstr "Utiliser également un joint en biseau pour les parois intérieures."
@@ -15653,12 +15653,12 @@ msgid "Rotate the polyhole every layer."
 msgstr "Faites pivoter le trou polygone à chaque couche."
 
 msgid "Maximum Polyhole edge count"
-msgstr ""
+msgstr "Nombre maximal d’arêtes de polyhole"
 
 msgid ""
 "Maximum number of polyhole edges\n"
 "This setting limits the amount of edges a polyhole can have"
-msgstr ""
+msgstr "Nombre maximal d’arêtes de polyhole\nCe réglage limite le nombre d’arêtes qu’un polyhole peut avoir"
 
 msgid "G-code thumbnails"
 msgstr "Vignette G-code"
@@ -18990,10 +18990,10 @@ msgid "Calculating, please wait..."
 msgstr "Calcul en cours, veuillez patienter…"
 
 msgid "Save these settings as default"
-msgstr ""
+msgstr "Enregistrer ces réglages par défaut"
 
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
-msgstr ""
+msgstr "Si activé, les valeurs ci-dessus sont stockées comme valeurs par défaut pour les futurs imports STEP (et affichées dans les Préférences)."
 
 msgid "PresetBundle"
 msgstr "Paquet de préréglages"
