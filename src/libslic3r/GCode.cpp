@@ -730,6 +730,42 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return temp_set_by_gcode;
     }
 
+    struct CustomGCodeMotionStateChanges
+    {
+        bool acceleration = false;
+        bool jerk         = false;
+    };
+
+    static bool custom_gcode_line_has_xy_parameter(const std::string &raw)
+    {
+        const size_t comment_pos = raw.find(';');
+        const std::string_view code(raw.data(), comment_pos == std::string::npos ? raw.size() : comment_pos);
+        return code.find_first_of("XxYy") != std::string_view::npos;
+    }
+
+    static CustomGCodeMotionStateChanges custom_gcode_motion_state_changes(const std::string &gcode)
+    {
+        CustomGCodeMotionStateChanges changes;
+        GCodeReader parser;
+        parser.parse_buffer(gcode, [&changes](GCodeReader &parser, const GCodeReader::GCodeLine &line) {
+            const std::string_view cmd = line.cmd();
+            if (boost::iequals(cmd, "M204") || boost::iequals(cmd, "M201") ||
+                boost::iequals(cmd, "M202"))
+                changes.acceleration = true;
+            else if ((boost::iequals(cmd, "M205") || boost::iequals(cmd, "M207") || boost::iequals(cmd, "M566")) &&
+                     custom_gcode_line_has_xy_parameter(line.raw()))
+                changes.jerk = true;
+            else if (boost::iequals(cmd, "SET_VELOCITY_LIMIT")) {
+                changes.acceleration |= boost::icontains(line.raw(), "ACCEL=");
+                changes.jerk         |= boost::icontains(line.raw(), "SQUARE_CORNER_VELOCITY=");
+            }
+
+            if (changes.acceleration && changes.jerk)
+                parser.quit_parsing();
+        });
+        return changes;
+    }
+
     // BBS
     // start_pos refers to the last position before the wipe_tower.
     // end_pos refers to the wipe tower's start_pos.
@@ -4335,6 +4371,11 @@ PlaceholderParserIntegration &ppi = m_placeholder_parser_integration;
         ppi.update_from_gcodewriter(m_writer);
         std::string output = ppi.parser.process(templ, current_filament_id, config_override, &ppi.output_config, &ppi.context);
         ppi.validate_output_vector_variables();
+        const CustomGCodeMotionStateChanges motion_state_changes = custom_gcode_motion_state_changes(output);
+        if (motion_state_changes.acceleration)
+            m_writer.invalidate_acceleration();
+        if (motion_state_changes.jerk)
+            m_writer.invalidate_jerk();
 
         if (const std::vector<double> &pos = ppi.opt_position->values; ppi.position != pos) {
             // Update G-code writer.

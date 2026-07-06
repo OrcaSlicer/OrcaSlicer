@@ -133,6 +133,8 @@ public:
     const bool is_bbl_printers() const {return m_is_bbl_printers;}
     void set_is_first_layer(bool bval) { m_is_first_layer = bval; }
     GCodeFlavor get_gcode_flavor() const { return config.gcode_flavor; }
+    void invalidate_acceleration() { m_last_acceleration = 0; m_last_travel_acceleration = 0; }
+    void invalidate_jerk() { m_last_jerk = 0; }
 
     // Returns whether this flavor supports separate print and travel acceleration.
     static bool supports_separate_travel_acceleration(GCodeFlavor flavor);
