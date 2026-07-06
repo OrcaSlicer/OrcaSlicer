@@ -80,6 +80,8 @@ public:
     const ExPolygons            *lower_slices;
     double                       layer_height;
     int                          layer_id;
+    // Orca: spiral vase bottom fillet — how far the fillet extends inward from the wall on this layer.
+    coord_t                      spiral_fillet_inset = 0;
     coordf_t                     slice_z;
     Flow                         perimeter_flow;
     Flow                         ext_perimeter_flow;

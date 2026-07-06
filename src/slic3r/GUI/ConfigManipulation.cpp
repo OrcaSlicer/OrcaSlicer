@@ -699,6 +699,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("symmetric_infill_y_axis", is_zig_zag || is_cross_zag || is_locked_zig);
 
     bool has_spiral_vase         = config->opt_bool("spiral_mode");
+    toggle_line("spiral_mode_bottom_fillet_radius", has_spiral_vase);
     toggle_line("spiral_mode_smooth", has_spiral_vase);
     toggle_line("spiral_mode_max_xy_smoothing", has_spiral_vase && config->opt_bool("spiral_mode_smooth"));
     toggle_line("spiral_starting_flow_ratio", has_spiral_vase);

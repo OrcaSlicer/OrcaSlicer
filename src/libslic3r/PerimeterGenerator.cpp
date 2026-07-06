@@ -1232,6 +1232,10 @@ void PerimeterGenerator::process_classic()
         if (loop_number > 0 && config->only_one_wall_top && this->upper_slices == nullptr)
             loop_number = 0;
 
+        // Orca: spiral vase bottom fillet — extra inner walls filling the fillet band of this layer.
+        if (m_spiral_vase && spiral_fillet_inset > 0)
+            loop_number = std::max(loop_number, int(std::lround(double(spiral_fillet_inset) / double(perimeter_spacing))));
+
         ExPolygons last        = union_ex(surface.expolygon.simplify_p(surface_simplify_resolution));
         ExPolygons gaps;
         ExPolygons top_fills;

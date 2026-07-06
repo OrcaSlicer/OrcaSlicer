@@ -3012,6 +3012,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("print_sequence", "others_settings_special_mode#print-sequence");
         optgroup->append_single_option_line("print_order", "others_settings_special_mode#intra-layer-order");
         optgroup->append_single_option_line("spiral_mode", "others_settings_special_mode#spiral-vase");
+        optgroup->append_single_option_line("spiral_mode_bottom_fillet_radius", "others_settings_special_mode#spiral-vase");
         optgroup->append_single_option_line("spiral_mode_smooth", "others_settings_special_mode#smooth-spiral");
         optgroup->append_single_option_line("spiral_mode_max_xy_smoothing", "others_settings_special_mode#max-xy-smoothing");
         optgroup->append_single_option_line("spiral_starting_flow_ratio", "others_settings_special_mode#spiral-starting-flow-ratio");

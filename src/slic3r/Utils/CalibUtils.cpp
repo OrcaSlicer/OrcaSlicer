@@ -1203,6 +1203,7 @@ void CalibUtils::calib_max_vol_speed(const CalibInfo &calib_info, wxString &erro
     print_config.set_key_value("sparse_infill_density", new ConfigOptionPercent(0));
     print_config.set_key_value("overhang_reverse", new ConfigOptionBool(false));
     print_config.set_key_value("spiral_mode", new ConfigOptionBool(true));
+    print_config.set_key_value("spiral_mode_bottom_fillet_radius", new ConfigOptionFloat(0));
     print_config.set_key_value("outer_wall_line_width", new ConfigOptionFloat(line_width));
     print_config.set_key_value("initial_layer_print_height", new ConfigOptionFloat(layer_height));
     print_config.set_key_value("layer_height", new ConfigOptionFloat(layer_height));
@@ -1267,6 +1268,7 @@ void CalibUtils::calib_VFA(const CalibInfo &calib_info, wxString &error_message)
     print_config.set_key_value("sparse_infill_density", new ConfigOptionPercent(0));
     print_config.set_key_value("overhang_reverse", new ConfigOptionBool(false));
     print_config.set_key_value("spiral_mode", new ConfigOptionBool(true));
+    print_config.set_key_value("spiral_mode_bottom_fillet_radius", new ConfigOptionFloat(0));
     model.objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model.objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(3.0));
     model.objects[0]->config.set_key_value("brim_object_gap", new ConfigOptionFloat(0.0));
