@@ -277,31 +277,31 @@ msgid "Color painting editing"
 msgstr "Edición de pintura de colores"
 
 msgid "Paint-on fuzzy skin"
-msgstr "Pintar piel difusa"
+msgstr "Pintar piel rugosa"
 
 msgid "Add fuzzy skin"
-msgstr "Agregar piel difusa"
+msgstr "Agregar piel rugosa"
 
 msgid "Remove fuzzy skin"
-msgstr "Quitar piel difusa"
+msgstr "Quitar piel rugosa"
 
 msgid "Reset selection"
 msgstr "Reiniciar selección"
 
 msgid "Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
-msgstr "Advertencia: ¡Piel difusa está desactivada, la piel difusa pintada no tendrá efecto!"
+msgstr "Advertencia: ¡Piel rugosa está desactivada, la piel rugosa pintada no tendrá efecto!"
 
 msgid "Enable painted fuzzy skin for this object"
-msgstr "Habilitar piel difusa pintada para este objeto"
+msgstr "Habilitar piel rugosa pintada para este objeto"
 
 msgid "Entering Paint-on fuzzy skin"
-msgstr "Entrando al mecanismo de pintar piel difusa"
+msgstr "Entrando al mecanismo de pintar piel rugosa"
 
 msgid "Leaving Paint-on fuzzy skin"
-msgstr "Saliendo del mecanismo de pintar piel difusa"
+msgstr "Saliendo del mecanismo de pintar piel rugosa"
 
 msgid "Paint-on fuzzy skin editing"
-msgstr "Pintar piel difusa"
+msgstr "Pintar piel rugosa"
 
 msgid "Move"
 msgstr "Mover"
@@ -2094,7 +2094,7 @@ msgid "Ironing"
 msgstr "Alisado"
 
 msgid "Fuzzy skin"
-msgstr "Superficie rugosa"
+msgstr "Piel rugosa"
 
 msgid "Extruders"
 msgstr "Extrusores"
@@ -2623,7 +2623,7 @@ msgid "Switch to per-object setting mode to edit process settings of selected ob
 msgstr "Cambiar al modo de ajuste a modo por objeto para editar los ajustes de proceso de los objetos."
 
 msgid "Remove paint-on fuzzy skin"
-msgstr "Eliminar la piel difusa pintada"
+msgstr "Eliminar la piel rugosa pintada"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Borrar conector del objeto el cual es parte del corte"
@@ -4136,7 +4136,7 @@ msgstr ""
 "Restablecer al 50 % de la profundidad de piel."
 
 msgid "Both [Extrusion] and [Combined] modes of Fuzzy Skin require the Arachne Wall Generator to be enabled."
-msgstr "Tanto el modo [Extrusión] como el modo [Combinado] de Piel Difusa requieren que el Generador de paredes Arachne esté habilitado."
+msgstr "Tanto el modo [Extrusión] como el modo [Combinado] de Piel rugosa requieren que el Generador de paredes Arachne esté habilitado."
 
 msgid ""
 "Change these settings automatically?\n"
@@ -4145,7 +4145,7 @@ msgid ""
 msgstr ""
 "¿Cambiar estos ajustes automáticamente?\n"
 "Sí: habilitar el generador de muros Arachne\n"
-"No: deshabilitar el generador de paredes Arachne y establecer el modo [Desplazamiento] de la piel difusa"
+"No: deshabilitar el generador de paredes Arachne y establecer el modo [Desplazamiento] de la piel rugosa"
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "El modo espiral solo funciona cuando los bucles de perímetro son 1, el soporte está desactivado, la detección de agrupamientos mediante sondeo está desactivada, las capas superiores de la carcasa son 0, la densidad de relleno es 0 y el tipo de lapso de tiempo es tradicional."
@@ -6656,8 +6656,8 @@ msgstr[1] "%1$d Los objetos se han cargado como partes del objeto de corte."
 #, c-format, boost-format
 msgid "%1$d object was loaded with fuzzy skin painting."
 msgid_plural "%1$d objects were loaded with fuzzy skin painting."
-msgstr[0] "%1$d objeto se cargó con pintura de piel difusa."
-msgstr[1] "%1$d objetos se cargaron con pintura de piel difusa."
+msgstr[0] "%1$d objeto se cargó con pintura de piel rugosa."
+msgstr[1] "%1$d objetos se cargaron con pintura de piel rugosa."
 
 msgid "ERROR"
 msgstr "ERROR"
@@ -8330,7 +8330,7 @@ msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
 "Highly experimental! Slow and may create artifact."
 msgstr ""
-"Intenta conservar las característica pintadas (color, costuras, soportes, piel difusa, etc.) tras modificar la malla del objeto (por ejemplo, al cortar, volver a cargar desde el disco, simplificar, corregir, etc.).\n"
+"Intenta conservar las característica pintadas (color, costuras, soportes, piel rugosa, etc.) tras modificar la malla del objeto (por ejemplo, al cortar, volver a cargar desde el disco, simplificar, corregir, etc.).\n"
 "¡Muy experimental! Es lento y puede generar artefactos."
 
 msgid "Allow Abnormal Storage"
@@ -10406,7 +10406,7 @@ msgid "Gizmo mesh boolean"
 msgstr "Gizmo buleana de malla"
 
 msgid "Gizmo FDM paint-on fuzzy skin"
-msgstr "Herramienta FDM para pintar piel difusa"
+msgstr "Herramienta FDM para pintar piel rugosa"
 
 msgid "Gizmo SLA support points"
 msgstr "Herramienta de puntos de soporte SLA"
@@ -13151,7 +13151,7 @@ msgid "Filament-specific override for ironing speed. This allows you to customiz
 msgstr "Sobrescritura específica por filamento para la velocidad de alisado. Esto permite personalizar la velocidad de impresión de las líneas de alisado para cada tipo de filamento."
 
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
-msgstr "Sacudir ligeramente el cabezal de forma aleatoria cuando se imprime el perímetro externo, de modo que la superficie tenga un aspecto rugoso. Este ajuste controla la posición difusa."
+msgstr "Sacudir ligeramente el cabezal de forma aleatoria cuando se imprime el perímetro externo, de modo que la superficie tenga un aspecto rugoso. Este ajuste controla la posición de la piel rugosa."
 
 msgid "Painted only"
 msgstr "Solo pintado"
@@ -13169,25 +13169,25 @@ msgid "All walls"
 msgstr "Todas los perímetros"
 
 msgid "Fuzzy skin thickness"
-msgstr "Espesor de superficie rugosa"
+msgstr "Espesor de piel rugosa"
 
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "La anchura dentro de la cual se va a sacudir el cabezal. Se aconseja que esté por debajo del ancho de línea del perímetro exterior."
 
 msgid "Fuzzy skin point distance"
-msgstr "Distancia entre puntos de superficie rugosa"
+msgstr "Distancia entre puntos de piel rugosa"
 
 msgid "The average distance between the random points introduced on each line segment."
 msgstr "La diatancia media entre los puntos aleatorios introducidos en cada segmento de línea."
 
 msgid "Apply fuzzy skin to first layer"
-msgstr "Aplicar superficie difusa en la primera capa"
+msgstr "Aplicar piel rugosa en la primera capa"
 
 msgid "Whether to apply fuzzy skin on the first layer."
-msgstr "Aplicar o no superficie difusa en la primera capa."
+msgstr "Aplicar o no piel rugosa en la primera capa."
 
 msgid "Fuzzy skin generator mode"
-msgstr "Modo generador de piel difusa"
+msgstr "Modo generador de piel rugosa"
 
 #, c-format, boost-format
 msgid ""
@@ -13198,12 +13198,12 @@ msgid ""
 "\n"
 "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
-"Modo de generación de piel difusa. ¡Funciona solo con Arachne!\n"
+"Modo de generación de piel rugosa. ¡Funciona solo con Arachne!\n"
 "Desplazamiento: Modo clásico en el que el patrón se forma desplazando la boquilla lateralmente respecto a la trayectoria original.\n"
 "Extrusión: Modo en que el patrón se forma por la cantidad de material extruido. Es un algoritmo rápido y directo sin vibraciones innecesarias de la boquilla que produce un patrón suave. Sin embargo, resulta más útil para formar paredes sueltas en toda la matriz.\n"
 "Combinado: Modo conjunto [Desplazamiento] + [Extrusión]. La apariencia de las paredes es similar al modo [Desplazamiento], pero no deja poros entre los perímetros.\n"
 "\n"
-"¡Atención! Los modos [Extrusión] y [Combinado] funcionan solo si el parámetro fuzzy_skin_thickness no supera el espesor del perímetro impreso. Al mismo tiempo, el ancho de extrusión para una capa determinada tampoco debe estar por debajo de un cierto umbral, que suele ser el 15–25%% de la altura de capa. Por lo tanto, el espesor máximo de piel difusa con un ancho de perímetro de 0,4 mm y una altura de capa de 0,2 mm será 0,4-(0,2*0,25)=±0,35 mm. Si introduce un valor mayor, se mostrará el error Flow::spacing() y el modelo no se podrá laminar. Puede ajustar este valor hasta que deje de producirse el error."
+"¡Atención! Los modos [Extrusión] y [Combinado] funcionan solo si el parámetro fuzzy_skin_thickness no supera el espesor del perímetro impreso. Al mismo tiempo, el ancho de extrusión para una capa determinada tampoco debe estar por debajo de un cierto umbral, que suele ser el 15–25%% de la altura de capa. Por lo tanto, el espesor máximo de piel rugosa con un ancho de perímetro de 0,4 mm y una altura de capa de 0,2 mm será 0,4-(0,2*0,25)=±0,35 mm. Si introduce un valor mayor, se mostrará el error Flow::spacing() y el modelo no se podrá laminar. Puede ajustar este valor hasta que deje de producirse el error."
 
 msgid "Displacement"
 msgstr "Desplazamiento"
@@ -13215,7 +13215,7 @@ msgid "Combined"
 msgstr "Combinado"
 
 msgid "Fuzzy skin noise type"
-msgstr "Tipo de ruido de la piel difusa"
+msgstr "Tipo de ruido de la piel rugosa"
 
 msgid ""
 "Noise type to use for fuzzy skin generation:\n"
@@ -13226,7 +13226,7 @@ msgid ""
 "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture.\n"
 "Ripple: Uniform ripple pattern that ripples left and right of the original path. Repeating pattern, woven appearance."
 msgstr ""
-"Tipo de ruido a usar para la generación de la piel difusa:\n"
+"Tipo de ruido a usar para la generación de la piel rugosa:\n"
 "Clásico: Ruido aleatorio uniforme clásico.\n"
 "Perlin: Ruido Perlin, que ofrece una textura más coherente.\n"
 "Ondulado: Similar al ruido Perlin, pero más agrupado.\n"
@@ -13253,19 +13253,19 @@ msgid "Ripple"
 msgstr "Ripple"
 
 msgid "Fuzzy skin feature size"
-msgstr "Tamaño de característica de la piel difusa"
+msgstr "Tamaño de característica de la piel rugosa"
 
 msgid "The base size of the coherent noise features, in mm. Higher values will result in larger features."
 msgstr "El tamaño base de las características del ruido coherente, en mm. Valores mayores producen características más grandes."
 
 msgid "Fuzzy Skin Noise Octaves"
-msgstr "Octavas de ruido de la piel difusa"
+msgstr "Octavas de ruido de la piel rugosa"
 
 msgid "The number of octaves of coherent noise to use. Higher values increase the detail of the noise, but also increase computation time."
 msgstr "El número de octavas de ruido coherente a usar. Valores más altos aumentan el detalle del ruido, pero también incrementan el tiempo de cálculo."
 
 msgid "Fuzzy skin noise persistence"
-msgstr "Persistencia del ruido de piel difusa"
+msgstr "Persistencia del ruido de piel rugosa"
 
 msgid "The decay rate for higher octaves of the coherent noise. Lower values will result in smoother noise."
 msgstr "La tasa de decaimiento para las octavas superiores del ruido coherente. Valores más bajos producirán un ruido más suave."
@@ -16394,8 +16394,8 @@ msgid ""
 "An object has enabled XY Size compensation which will not be used because it is also fuzzy skin painted.\n"
 "XY Size compensation cannot be combined with fuzzy skin painting."
 msgstr ""
-"Un objeto tiene activada la compensación de tamaño XY que no se utilizará porque también tiene piel difusa pintada.\n"
-"La compensación de tamaño XY no puede combinarse con la pintura de piel difusa."
+"Un objeto tiene activada la compensación de tamaño XY que no se utilizará porque también tiene piel rugosa pintada.\n"
+"La compensación de tamaño XY no puede combinarse con la pintura de piel rugosa."
 
 msgid "Object name"
 msgstr "Nombre del objeto"
@@ -19945,7 +19945,7 @@ msgstr ""
 #~ "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates marble-like textures.\n"
 #~ "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture."
 #~ msgstr ""
-#~ "Tipo de ruido a usar para la generación de la piel difusa:\n"
+#~ "Tipo de ruido a usar para la generación de la piel rugosa:\n"
 #~ "Clásico: Ruido aleatorio uniforme clásico.\n"
 #~ "Perlin: Ruido Perlin, que ofrece una textura más coherente.\n"
 #~ "Billow: Similar al ruido Perlin, pero más agrupado.\n"
