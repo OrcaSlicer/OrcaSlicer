@@ -1422,12 +1422,17 @@ bool GuideFrame::BuildProfileDataFromBundledCache()
             const boost::filesystem::path json_path = rsrc_vendor_dir / (vendor_id + ".json");
             const std::string ver_str = get_vendor_cache_key(json_path.string());
 
-            PresetBundle::VendorCache vc;
-            if (!vc.load(cache_path.string()) || !vc.is_valid(ver_str))
+            VendorProfile        vc_profile;
+            std::vector<Preset>  vc_printer_presets;
+            std::vector<Preset>  vc_filament_presets;
+            std::vector<Preset>  vc_print_presets;
+            if (!PresetBundle::load_vendor_cache_for_guide(cache_path.string(), ver_str,
+                                                           vc_profile, vc_printer_presets,
+                                                           vc_filament_presets, vc_print_presets))
                 continue;
 
             // Models from this vendor's cached profile
-            for (const auto& cm : vc.profile.models) {
+            for (const auto& cm : vc_profile.models) {
                 std::string nozzle_str;
                 for (const auto& v : cm.variants) {
                     if (!nozzle_str.empty()) nozzle_str += ";";
@@ -1439,7 +1444,7 @@ bool GuideFrame::BuildProfileDataFromBundledCache()
                     materials_str += m;
                 }
                 boost::filesystem::path cover_path =
-                    (boost::filesystem::path(resources_dir()) / "profiles" / vc.profile.id / (cm.id + "_cover.png"))
+                    (boost::filesystem::path(resources_dir()) / "profiles" / vc_profile.id / (cm.id + "_cover.png"))
                         .make_preferred();
                 if (!boost::filesystem::exists(cover_path))
                     cover_path =
@@ -1449,7 +1454,7 @@ bool GuideFrame::BuildProfileDataFromBundledCache()
                 json entry;
                 entry["model"]           = cm.id;
                 entry["name"]            = cm.name;
-                entry["vendor"]          = vc.profile.id;
+                entry["vendor"]          = vc_profile.id;
                 entry["nozzle_diameter"] = nozzle_str;
                 entry["materials"]       = materials_str;
                 entry["cover"]           = cover_path.string();
@@ -1459,7 +1464,7 @@ bool GuideFrame::BuildProfileDataFromBundledCache()
             }
 
             // Machines from cached printer presets
-            for (const auto& cp : vc.printer_presets) {
+            for (const auto& cp : vc_printer_presets) {
                 const auto* pm = cp.config.option<ConfigOptionString>("printer_model");
                 const auto* pv = cp.config.option<ConfigOptionString>("printer_variant");
                 if (!pm || pm->value.empty() || !pv) continue;
@@ -1471,7 +1476,7 @@ bool GuideFrame::BuildProfileDataFromBundledCache()
             }
 
             // Filaments from cached filament presets
-            for (const auto& cp : vc.filament_presets) {
+            for (const auto& cp : vc_filament_presets) {
                 const auto* fv = cp.config.option<ConfigOptionStrings>("filament_vendor");
                 const auto* ft = cp.config.option<ConfigOptionStrings>("filament_type");
                 const auto* compat = cp.config.option<ConfigOptionStrings>("compatible_printers");
@@ -1501,7 +1506,7 @@ bool GuideFrame::BuildProfileDataFromBundledCache()
             }
 
             // Process from cached print presets
-            for (const auto& cp : vc.print_presets) {
+            for (const auto& cp : vc_print_presets) {
                 if (!cp.is_visible) continue;
                 json entry;
                 entry["name"]     = cp.name;

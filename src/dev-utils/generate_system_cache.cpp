@@ -91,30 +91,23 @@ int main(int argc, char* argv[])
 
     for (const auto& vendor_name : vendor_names) {
         try {
-            const std::string json_path = (fs::path(profiles_path) / (vendor_name + ".json")).string();
-            const std::string ver_str   = get_vendor_cache_key(json_path);
-
+            const std::string json_path  = (fs::path(profiles_path) / (vendor_name + ".json")).string();
+            const std::string cache_path = (fs::path(profiles_path) / (vendor_name + ".cache")).make_preferred().string();
             const bool is_orca_lib = (vendor_name == PresetBundle::ORCA_FILAMENT_LIBRARY);
-            Slic3r::PresetBundle::VendorCache vc;
-            vc.capture(*preset_bundle, vendor_name, ver_str, is_orca_lib);
 
-            const std::string cache_path =
-                (fs::path(profiles_path) / (vendor_name + ".cache")).make_preferred().string();
-            vc.save(cache_path);
+            const auto stats = preset_bundle->save_bundled_vendor_cache(vendor_name, json_path, is_orca_lib, cache_path);
 
-            // Verify the file was written and can be reloaded.
-            Slic3r::PresetBundle::VendorCache verify;
-            if (!verify.load(cache_path) || !verify.is_valid(ver_str)) {
+            if (!stats.ok) {
                 std::cerr << "ERROR: " << vendor_name << ": verification failed\n";
                 ++failed;
             } else {
                 std::cout << "  [ok] " << vendor_name << ".cache"
-                          << "  (" << vc.print_presets.size()    << " print, "
-                          <<           vc.filament_presets.size() << " filament, "
-                          <<           vc.printer_presets.size()  << " printer)\n";
-                total_print    += vc.print_presets.size();
-                total_filament += vc.filament_presets.size();
-                total_printer  += vc.printer_presets.size();
+                          << "  (" << stats.print_presets    << " print, "
+                          <<           stats.filament_presets << " filament, "
+                          <<           stats.printer_presets  << " printer)\n";
+                total_print    += stats.print_presets;
+                total_filament += stats.filament_presets;
+                total_printer  += stats.printer_presets;
                 ++saved;
             }
         } catch (const std::exception& ex) {
