@@ -230,8 +230,8 @@ static void getNamedSolids(const TopLoc_Location& location,
 }
 
 //bool load_step(const char *path, Model *model, bool& is_cancel,
-//               double linear_defletion/*=0.003*/,
-//               double angle_defletion/*= 0.5*/,
+//               double linear_deflection/*=0.003*/,
+//               double angle_deflection/*= 0.5*/,
 //               bool isSplitCompound,
 //               ImportStepProgressFn stepFn, StepIsUtf8Fn isUtf8Fn, long& mesh_face_num)
 //{
@@ -288,7 +288,7 @@ static void getNamedSolids(const TopLoc_Location& location,
 //    stl.resize(namedSolids.size());
 //    tbb::parallel_for(tbb::blocked_range<size_t>(0, namedSolids.size()), [&](const tbb::blocked_range<size_t> &range) {
 //        for (size_t i = range.begin(); i < range.end(); i++) {
-//            BRepMesh_IncrementalMesh mesh(namedSolids[i].solid, linear_defletion, false, angle_defletion, true);
+//            BRepMesh_IncrementalMesh mesh(namedSolids[i].solid, linear_deflection, false, angle_deflection, true);
 //            // BBS: calculate total number of the nodes and triangles
 //            int aNbNodes     = 0;
 //            int aNbTriangles = 0;
@@ -511,8 +511,8 @@ Step::Step_Status Step::load()
 Step::Step_Status Step::mesh(Model* model,
                              bool& is_cancel,
                              bool isSplitCompound,
-                             double linear_defletion/*=0.003*/,
-                             double angle_defletion/*= 0.5*/)
+                             double linear_deflection/*=0.003*/,
+                             double angle_deflection/*= 0.5*/)
 
 {
     bool task_result = false;
@@ -544,7 +544,7 @@ Step::Step_Status Step::mesh(Model* model,
         stl.resize(namedSolids.size());
         tbb::parallel_for(tbb::blocked_range<size_t>(0, namedSolids.size()), [&](const tbb::blocked_range<size_t>& range) {
             for (size_t i = range.begin(); i < range.end(); i++) {
-                BRepMesh_IncrementalMesh mesh(namedSolids[i].solid, linear_defletion, false, angle_defletion, true);
+                BRepMesh_IncrementalMesh mesh(namedSolids[i].solid, linear_deflection, false, angle_deflection, true);
                 // BBS: calculate total number of the nodes and triangles
                 int aNbNodes = 0;
                 int aNbTriangles = 0;
@@ -689,15 +689,15 @@ void Step::clean_mesh_data()
     }
 }
 
-unsigned int Step::get_triangle_num(double linear_defletion, double angle_defletion)
+unsigned int Step::get_triangle_num(double linear_deflection, double angle_deflection)
 {
     unsigned int tri_num = 0;
     try {
         Handle(StepProgressIncdicator) progress = new StepProgressIncdicator(m_stop_mesh);
         clean_mesh_data();
         IMeshTools_Parameters param;
-        param.Deflection = linear_defletion;
-        param.Angle = angle_defletion;
+        param.Deflection = linear_deflection;
+        param.Angle = angle_deflection;
         param.InParallel = true;
         for (int i = 0; i < m_name_solids.size(); ++i) {
             BRepMesh_IncrementalMesh mesh(m_name_solids[i].solid, param, progress->Start());
@@ -719,7 +719,7 @@ unsigned int Step::get_triangle_num(double linear_defletion, double angle_deflet
     return tri_num;
 }
 
-unsigned int Step::get_triangle_num_tbb(double linear_defletion, double angle_defletion)
+unsigned int Step::get_triangle_num_tbb(double linear_deflection, double angle_deflection)
 {
     unsigned int tri_num = 0;
     clean_mesh_data();
@@ -727,7 +727,7 @@ unsigned int Step::get_triangle_num_tbb(double linear_defletion, double angle_de
     [&](const tbb::blocked_range<size_t>& range) {
         for (size_t i = range.begin(); i < range.end(); i++) {
             unsigned int solids_tri_num = 0;
-            BRepMesh_IncrementalMesh mesh(m_name_solids[i].solid, linear_defletion, false, angle_defletion, true);
+            BRepMesh_IncrementalMesh mesh(m_name_solids[i].solid, linear_deflection, false, angle_deflection, true);
             for (TopExp_Explorer anExpSF(m_name_solids[i].solid, TopAbs_FACE); anExpSF.More(); anExpSF.Next()) {
                 TopLoc_Location aLoc;
                 Handle(Poly_Triangulation) aTriangulation = BRep_Tool::Triangulation(TopoDS::Face(anExpSF.Current()), aLoc);

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 12:42-0300\n"
+"POT-Creation-Date: 2026-07-03 14:43+0200\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -5339,7 +5339,7 @@ msgstr "體積："
 msgid "Size:"
 msgstr "尺寸："
 
-#, c-format, boost-format
+#, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "發現 G-code 路徑在 %d 層，Z = %.2lf mm 處的衝突。請將有衝突的物件分離得更遠（%s <-> %s）。"
 
@@ -7923,6 +7923,50 @@ msgstr "選擇下載項目的目標資料夾"
 msgid "Choose Download Directory"
 msgstr "選擇下載資料夾"
 
+msgid "(Latest)"
+msgstr "（最新版）"
+
+msgid "Network plug-in switched successfully."
+msgstr "網路外掛程式切換成功。"
+
+msgid "Success"
+msgstr "成功"
+
+msgid "Failed to load network plug-in. Please restart the application."
+msgstr "無法載入網路外掛程式。請重新啟動應用程式。"
+
+#, c-format, boost-format
+msgid ""
+"You've selected network plug-in version %s.\n"
+"\n"
+"Would you like to download and install this version now?\n"
+"\n"
+"Note: The application may need to restart after installation."
+msgstr ""
+"您已選擇網路外掛程式版本 %s。\n"
+"\n"
+"您想立即下載並安裝此版本嗎？\n"
+"\n"
+"注意：安裝後應用程式可能需要重新啟動。"
+
+msgid "Download Network Plug-in"
+msgstr "下載網路外掛程式"
+
+msgid "Reload the network plug-in without restarting the application"
+msgstr "重新載入網路外掛程式而無需重新啟動應用程式"
+
+msgid "Network plug-in reloaded successfully."
+msgstr "網路外掛程式重新載入成功。"
+
+msgid "Reload"
+msgstr "重新載入"
+
+msgid "Failed to reload network plug-in. Please restart the application."
+msgstr "無法重新載入網路外掛程式。請重新啟動應用程式。"
+
+msgid "Reload Failed"
+msgstr "重新載入失敗"
+
 msgid "Associate"
 msgstr "關聯"
 
@@ -7978,12 +8022,6 @@ msgstr "顯示啟動動畫"
 msgid "Show the splash screen during startup."
 msgstr "啟動時顯示啟動動畫。"
 
-msgid "Show shared profiles notification"
-msgstr "顯示共用設定檔通知"
-
-msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
-msgstr "變更所選列印設備時，顯示一則含有瀏覽共享設定檔連結的通知。"
-
 msgid "Use window buttons on left side"
 msgstr "將視窗按鈕置於左側"
 
@@ -8014,6 +8052,13 @@ msgstr "載入方式"
 msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr "開啟 .3mf 檔案時，是否需要載入列印設備、線材和參數設定？"
 
+msgid "Auto backup"
+msgstr "自動備份"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Backup your project periodically to help with restoring from an occasional crash."
+msgstr "定期備份專案，以便從未預期的錯誤中恢復。"
+
 msgid "Maximum recent files"
 msgstr "最近開啟的檔案上限"
 
@@ -8032,12 +8077,20 @@ msgstr "顯示 STEP 網格參數設定視窗。"
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "啟用後，匯入 STEP 檔案時會顯示參數設定視窗。"
 
-msgid "Auto backup"
-msgstr "自動備份"
+msgid "Quality level for Draco export"
+msgstr "Draco 匯出品質等級"
 
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Backup your project periodically to help with restoring from an occasional crash."
-msgstr "定期備份專案，以便從未預期的錯誤中恢復。"
+msgid "bits"
+msgstr "位元"
+
+msgid ""
+"Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
+"0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
+"Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."
+msgstr ""
+"控制將網格壓縮為 Draco 格式時使用的量化位元深度。\n"
+"0 = 無損壓縮（幾何資料以完整精度保留）。有效的有損值範圍為 8 至 30。\n"
+"較低的值會產生較小的檔案但損失更多幾何細節；較高的值會保留更多細節但檔案較大。"
 
 msgid "Preset"
 msgstr "預設"
@@ -8069,6 +8122,12 @@ msgstr "線材"
 msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr "根據選擇的線材數量優化線材區域最大高度"
 
+msgid "Show shared profiles notification"
+msgstr "顯示共用設定檔通知"
+
+msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
+msgstr "變更所選列印設備時，顯示一則含有瀏覽共享設定檔連結的通知。"
+
 msgid "Features"
 msgstr "功能"
 
@@ -8080,21 +8139,6 @@ msgstr "啟用時可以同時傳送到並管理多個機臺。"
 
 msgid "Pop up to select filament grouping mode"
 msgstr "彈出視窗選擇線材分組模式"
-
-msgid "Quality level for Draco export"
-msgstr "Draco 匯出品質等級"
-
-msgid "bits"
-msgstr "位元"
-
-msgid ""
-"Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
-"0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
-"Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."
-msgstr ""
-"控制將網格壓縮為 Draco 格式時使用的量化位元深度。\n"
-"0 = 無損壓縮（幾何資料以完整精度保留）。有效的有損值範圍為 8 至 30。\n"
-"較低的值會產生較小的檔案但損失更多幾何細節；較高的值會保留更多細節但檔案較大。"
 
 msgid "Behaviour"
 msgstr "行為"
@@ -8340,19 +8384,6 @@ msgstr "僅檢查穩定版更新"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "自動同步使用者預設（列印設備/線材/列印品質參數）"
 
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Update built-in presets automatically."
-msgstr "自動更新系統預設。"
-
-msgid "Use encrypted file for token storage"
-msgstr "使用加密檔案儲存權杖"
-
-msgid "Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"
-msgstr "將身份驗證權杖儲存在加密檔案中，而不是系統鑰匙圈。（需要重啟）"
-
-msgid "Filament Sync Options"
-msgstr "線材同步選項"
-
 msgid "Filament sync mode"
 msgstr "線材同步模式"
 
@@ -8365,6 +8396,16 @@ msgstr "線材與顏色"
 msgid "Color only"
 msgstr "僅顏色"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Update built-in presets automatically."
+msgstr "自動更新系統預設。"
+
+msgid "Use encrypted file for token storage"
+msgstr "使用加密檔案儲存權杖"
+
+msgid "Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"
+msgstr "將身份驗證權杖儲存在加密檔案中，而不是系統鑰匙圈。（需要重啟）"
+
 msgid "Bambu network plug-in"
 msgstr "Bambu 網路外掛程式"
 
@@ -8376,35 +8417,6 @@ msgstr "網路外掛程式版本"
 
 msgid "Select the network plug-in version to use"
 msgstr "選擇要使用的網路外掛程式版本"
-
-msgid "(Latest)"
-msgstr "（最新版）"
-
-msgid "Network plug-in switched successfully."
-msgstr "網路外掛程式切換成功。"
-
-msgid "Success"
-msgstr "成功"
-
-msgid "Failed to load network plug-in. Please restart the application."
-msgstr "無法載入網路外掛程式。請重新啟動應用程式。"
-
-#, c-format, boost-format
-msgid ""
-"You've selected network plug-in version %s.\n"
-"\n"
-"Would you like to download and install this version now?\n"
-"\n"
-"Note: The application may need to restart after installation."
-msgstr ""
-"您已選擇網路外掛程式版本 %s。\n"
-"\n"
-"您想立即下載並安裝此版本嗎？\n"
-"\n"
-"注意：安裝後應用程式可能需要重新啟動。"
-
-msgid "Download Network Plug-in"
-msgstr "下載網路外掛程式"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "Orca Slicer 檔案關聯"
@@ -8451,8 +8463,17 @@ msgstr "開發者"
 msgid "Skip AMS blacklist check"
 msgstr "跳過 AMS 黑名單檢查"
 
-msgid "(Experimental) Keep painted feature after mesh change"
-msgstr "（實驗性）在網格變更後保留繪製的特徵"
+msgid "Show unsupported presets"
+msgstr "顯示不支援的預設"
+
+msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
+msgstr "在列印設備和線材下拉選單中顯示不相容/不支援的預設。這些預設無法選取。"
+
+msgid "Experimental Features"
+msgstr ""
+
+msgid "Keep painted feature after mesh change"
+msgstr ""
 
 msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
@@ -8460,12 +8481,6 @@ msgid ""
 msgstr ""
 "嘗試在變更物件網格（例如切割/從磁碟重新載入/簡化/修復等）後，保留已繪製的特徵（顏色/Z 縫/支撐/絨毛等）。\n"
 "高度實驗性！速度緩慢且可能產生瑕疵。"
-
-msgid "Show unsupported presets"
-msgstr "顯示不支援的預設"
-
-msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
-msgstr "在列印設備和線材下拉選單中顯示不相容/不支援的預設。這些預設無法選取。"
 
 msgid "Allow Abnormal Storage"
 msgstr "允許異常儲存空間"
@@ -8495,24 +8510,6 @@ msgstr "除錯"
 msgid "trace"
 msgstr "跟蹤"
 
-msgid "Network plug-in"
-msgstr "網路外掛程式"
-
-msgid "Reload"
-msgstr "重新載入"
-
-msgid "Reload the network plug-in without restarting the application"
-msgstr "重新載入網路外掛程式而無需重新啟動應用程式"
-
-msgid "Network plug-in reloaded successfully."
-msgstr "網路外掛程式重新載入成功。"
-
-msgid "Failed to reload network plug-in. Please restart the application."
-msgstr "無法重新載入網路外掛程式。請重新啟動應用程式。"
-
-msgid "Reload Failed"
-msgstr "重新載入失敗"
-
 msgid "Debug"
 msgstr "除錯"
 
@@ -8527,25 +8524,6 @@ msgstr "預設檔同步"
 
 msgid "Preferences sync"
 msgstr "偏好設定同步"
-
-msgid "View control settings"
-msgstr "視角控制設定"
-
-msgid "Rotate view"
-msgstr "旋轉視角"
-
-msgid "Pan view"
-msgstr "移動視角"
-
-msgid "Zoom view"
-msgstr "縮放視角"
-
-msgid "Other"
-msgstr "其他"
-
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Reverse scroll direction while zooming"
-msgstr "縮放時滑鼠滾輪反轉"
 
 msgid "Enable SSL(MQTT)"
 msgstr "啟用SSL（MQTT）"
@@ -13322,6 +13300,17 @@ msgstr "風扇速度會從第「close_fan_the_first_x_layers」層開始，從�
 msgid "layer"
 msgstr "層"
 
+msgid "First layer fan speed"
+msgstr ""
+
+msgid ""
+"Sets an exact fan speed for the first layer, overriding all other cooling settings. Useful for protecting 3D-printed toolhead parts (e.g. Voron-style ABS/ASA ducts) from a hot bed. A small amount of airflow cools the ducts down, without using full cooling that may in certain conditions hurt first-layer adhesion.\n"
+"From the second layer onwards, normal cooling resumes.\n"
+"If \"Full fan speed at layer\" is also set, the fan ramps smoothly from this value on the first layer up to your target by the chosen layer.\n"
+"Only available when \"No cooling for the first\" is 0.\n"
+"Set to -1 to disable it."
+msgstr ""
+
 msgid "Support interface fan speed"
 msgstr "支撐界面風扇速度"
 
@@ -15256,6 +15245,9 @@ msgstr "在三角網格切片過程中，寬度小於 2 倍間隙閉合半徑的
 
 msgid "Slicing Mode"
 msgstr "切片模式"
+
+msgid "Other"
+msgstr "其他"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "針對 3DLabPrint 飛機模型，請選擇『奇偶』模式。若需閉合模型中的所有孔洞，請啟用『閉合孔洞』選項。"
@@ -18325,6 +18317,132 @@ msgstr "登入/測試"
 msgid "Connection to printers connected via the print host failed."
 msgstr "經由列印主機連接的列印設備連接失敗。"
 
+msgid "Detect Creality K-series printer"
+msgstr ""
+
+msgid "Click Scan to look for K-series printers on your network."
+msgstr ""
+
+msgid "Use Selected"
+msgstr ""
+
+msgid "Scanning the LAN for K-series printers... this takes a few seconds."
+msgstr ""
+
+msgid "No K-series printers found. Make sure the printer is on the same network and not blocked by Wi-Fi client isolation, then click Scan again."
+msgstr ""
+
+#, c-format
+msgid "Found %zu Creality printer(s). Select one and click Use Selected."
+msgstr ""
+
+msgid "Active"
+msgstr ""
+
+msgid "Printers"
+msgstr ""
+
+msgid "Processes"
+msgstr ""
+
+msgid "Show/Hide system information"
+msgstr ""
+
+msgid "Copy system information to clipboard"
+msgstr ""
+
+msgid "We need information for diagnosing source of the issue. Check wiki page for detailed guide."
+msgstr ""
+
+msgid "Pack button collects project file and logs of current session onto a zip file."
+msgstr ""
+
+msgid "Any additional visual examples like images or screen recordings might be helpful while reporting the issue."
+msgstr ""
+
+msgid "Report issue"
+msgstr ""
+
+msgid "Pack"
+msgstr ""
+
+msgid "Cleans and rebuilds system profiles cache on next launch"
+msgstr ""
+
+msgid "Clean system profiles cache"
+msgstr ""
+
+msgid "Clean"
+msgstr ""
+
+msgid "Loaded profiles overview"
+msgstr ""
+
+msgid "This section shows information for loaded profiles"
+msgstr ""
+
+msgid "Exports detailed overview of loaded profiles in json format"
+msgstr ""
+
+msgid "Configurations folder"
+msgstr ""
+
+msgid "Opens configurations folder"
+msgstr ""
+
+msgid "Log level"
+msgstr ""
+
+msgid "Stored logs"
+msgstr ""
+
+msgid "Packs all stored logs onto a zip file."
+msgstr ""
+
+msgid "Profiles"
+msgstr ""
+
+msgid "Select NO to close dialog and review project"
+msgstr ""
+
+msgid "No project file on current session. Only logs will be included to package"
+msgstr ""
+
+msgid "Select NO to close dialog and review project."
+msgstr ""
+
+msgid "Please make sure any instances of OrcaSlicer are not running"
+msgstr ""
+
+msgid "System folder cannot be deleted because some files are in use by another application. Please close any applications using these files and try again."
+msgstr ""
+
+msgid "Failed to delete system folder..."
+msgstr ""
+
+msgid "Failed to determine executable path."
+msgstr ""
+
+msgid "Failed to launch a new instance."
+msgstr ""
+
+msgid "log(s)"
+msgstr ""
+
+msgid "Choose where to save the exported JSON file"
+msgstr ""
+
+msgid ""
+"Export failed\n"
+"Please check write permissions or file in use by another application"
+msgstr ""
+
+msgid "Choose where to save the exported ZIP file"
+msgstr ""
+
+msgid "File already exists. Overwrite?"
+msgstr ""
+
 msgid "3DPrinterOS Cloud upload options"
 msgstr "3DPrinterOS 雲端上傳選項"
 
@@ -18406,6 +18524,19 @@ msgstr "成功連接到 MKS。"
 
 msgid "Could not connect to MKS"
 msgstr "無法連接到 MKS"
+
+msgid "Connection to Moonraker is working correctly."
+msgstr ""
+
+msgid "Could not connect to Moonraker"
+msgstr ""
+
+msgid "The host responded but it doesn't look like Moonraker (missing result.klippy_state)."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Could not parse Moonraker server response: %s"
+msgstr ""
 
 msgid "Connection to OctoPrint is working correctly."
 msgstr "與 OctoPrint 的連接工作正常。"
@@ -19587,6 +19718,31 @@ msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度\n"
 "可以降低翹曲的機率。"
+
+#~ msgid "Filament Sync Options"
+#~ msgstr "線材同步選項"
+
+#~ msgid "(Experimental) Keep painted feature after mesh change"
+#~ msgstr "（實驗性）在網格變更後保留繪製的特徵"
+
+#~ msgid "Network plug-in"
+#~ msgstr "網路外掛程式"
+
+#~ msgid "View control settings"
+#~ msgstr "視角控制設定"
+
+#~ msgid "Rotate view"
+#~ msgstr "旋轉視角"
+
+#~ msgid "Pan view"
+#~ msgstr "移動視角"
+
+#~ msgid "Zoom view"
+#~ msgstr "縮放視角"
+
+# TODO: Review, changed by lang refactor. PR 14254
+#~ msgid "Reverse scroll direction while zooming"
+#~ msgstr "縮放時滑鼠滾輪反轉"
 
 #, c-format, boost-format
 #~ msgid "Left: %s"

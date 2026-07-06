@@ -1154,7 +1154,7 @@ private:
     PrintRegionPtrs                         m_print_regions;
     
     //SoftFever
-    bool m_isBBLPrinter;
+    bool m_isBBLPrinter = false;
 
     // Ordered collections of extrusion paths to build skirt loops and brim.
     ExtrusionEntityCollection               m_skirt;

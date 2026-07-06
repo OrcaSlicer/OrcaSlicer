@@ -5925,8 +5925,8 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
 
     const auto speed_for_path = [&speed, &small_peri_speed](const ExtrusionPath& path) {
         // don't apply small perimeter setting for overhangs/bridges/non-perimeters
-        const bool is_small_peri = is_perimeter(path.role()) && !is_bridge(path.role()) && small_peri_speed > 0;
-        return is_small_peri ? small_peri_speed : speed;
+        const bool is_small_small_perimeter = small_peri_speed > 0 && !is_bridge(path.role()) && is_perimeter(path.role());
+        return is_small_small_perimeter ? small_peri_speed : speed;
     };
 
     
@@ -5948,8 +5948,8 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
     // Orca: end of multipath average mm3_per_mm value calculation
     
     if (!enable_seam_slope) {
-        for (ExtrusionPaths::iterator path = paths.begin(); path != paths.end(); ++path) {
-            gcode += this->_extrude(*path, description, speed_for_path(*path));
+        for (const ExtrusionPath& path : paths) {
+            gcode += this->_extrude(path, description, speed_for_path(path));
             // Orca: Adaptive PA - dont adapt PA after the first multipath extrusion is completed
             // as we have already set the PA value to the average flow over the totality of the path
             // in the first extrude move
@@ -5985,8 +5985,8 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
         new_loop.clip_slope(seam_gap);
 
         // Then extrude it
-        for (const auto& p : new_loop.get_all_paths()) {
-            gcode += this->_extrude(*p, description, speed_for_path(*p));
+        for (const ExtrusionPath* path : new_loop.get_all_paths()) {
+            gcode += this->_extrude(*path, description, speed_for_path(*path));
             // Orca: Adaptive PA - dont adapt PA after the first pultipath extrusion is completed
             // as we have already set the PA value to the average flow over the totality of the path
             // in the first extrude move
@@ -6142,7 +6142,7 @@ std::string GCode::extrude_path(const ExtrusionPath& path, const std::string& de
     std::string gcode = this->_extrude(path, description, speed);
     if (m_wipe.enable && FILAMENT_CONFIG(wipe)) {
         m_wipe.path = path.polyline.to_polyline();
-        if (is_tree(this->config().support_type) && (path.role() == erSupportMaterial || path.role() == erSupportMaterialInterface || path.role() == erSupportTransition)) {
+        if (is_tree(this->config().support_type) && is_support(path.role())) {
             if ((m_wipe.path.first_point() - m_wipe.path.last_point()).cast<double>().norm() > scale_(0.2)) {
                 double min_dist = scale_(0.2);
                 int    i        = 0;
@@ -6210,13 +6210,30 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
 
 std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fills, const ExtrusionRole support_extrusion_role)
 {
-    static constexpr const char *support_label            = "support material";
-    static constexpr const char *support_interface_label  = "support material interface";
+    static constexpr const char* support_label            = "support material";
+    static constexpr const char* support_interface_label  = "support material interface";
     static constexpr const char* support_transition_label = "support transition";
     static constexpr const char* support_ironing_label    = "support ironing";
 
+    static const auto speed_for_path = [&](double length, ExtrusionRole role, double default_speed = -1.0) {
+        if (!is_support(role) || length > SMALL_PERIMETER_LENGTH(NOZZLE_CONFIG(small_support_perimeter_threshold)))
+            return default_speed;
+
+        double small_perimeter_speed = -1.0;
+
+        const auto base_speed = (role == erSupportMaterialInterface) 
+            ? NOZZLE_CONFIG(support_interface_speed) : NOZZLE_CONFIG(support_speed);
+
+        if (NOZZLE_CONFIG(small_support_perimeter_speed).value == 0)
+            small_perimeter_speed = base_speed * 0.5;
+        else
+            small_perimeter_speed = NOZZLE_CONFIG(small_support_perimeter_speed).get_abs_value(base_speed);
+
+        return small_perimeter_speed > 0 ? small_perimeter_speed : default_speed;
+    };
+
     std::string gcode;
-    if (! support_fills.entities.empty()) {
+    if (!support_fills.entities.empty()) {
 
         ExtrusionEntitiesPtr extrusions;
         extrusions.reserve(support_fills.entities.size());
@@ -6233,28 +6250,27 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
         if (!support_fills.no_sort)
             chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point());
 
-        //const double  support_speed            = m_config.support_speed.value;
-        //const double  support_interface_speed  = m_config.get_abs_value("support_interface_speed");
         for (const ExtrusionEntity *ee : extrusions) {
             ExtrusionRole role = ee->role();
-            assert(role == erSupportMaterial || role == erSupportMaterialInterface || role == erSupportTransition || role == erIroning);
+            assert(is_support(role) || role == erIroning);
+
             const char* label = (role == erSupportMaterial) ? support_label :
                 ((role == erSupportMaterialInterface) ? support_interface_label : 
                 ((role == erIroning) ? support_ironing_label : support_transition_label));
-            // BBS
-            //const double speed = (role == erSupportMaterial) ? support_speed : support_interface_speed;
-            const double speed = -1.0;
+
             const ExtrusionPath* path = dynamic_cast<const ExtrusionPath*>(ee);
             const ExtrusionMultiPath* multipath = dynamic_cast<const ExtrusionMultiPath*>(ee);
             const ExtrusionLoop* loop = dynamic_cast<const ExtrusionLoop*>(ee);
             const ExtrusionEntityCollection* collection = dynamic_cast<const ExtrusionEntityCollection*>(ee);
-            if (path)
-                gcode += this->extrude_path(*path, label, speed);
+
+            if (path) {
+                gcode += extrude_path(*path, label, speed_for_path(path->length(), role));
+            }
             else if (multipath) {
-                gcode += this->extrude_multi_path(*multipath, label, speed);
+                gcode += extrude_multi_path(*multipath, label, speed_for_path(multipath->length(), role));
             }
             else if (loop) {
-                gcode += this->extrude_loop(*loop, label, speed);
+                gcode += extrude_loop(*loop, label, speed_for_path(loop->length(), role));
             }
             else if (collection) {
                 gcode += extrude_support(*collection, support_extrusion_role);
@@ -6574,12 +6590,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             speed = NOZZLE_CONFIG(initial_layer_infill_speed);
         } else if (path.role() == erGapFill) {
             speed = NOZZLE_CONFIG(gap_infill_speed);
-        }
-        else if (path.role() == erSupportMaterial ||
-                 path.role() == erSupportMaterialInterface) {
-            const double  support_speed = NOZZLE_CONFIG(support_speed);
-            const double  support_interface_speed = NOZZLE_CONFIG(support_interface_speed);
-            speed = (path.role() == erSupportMaterial) ? support_speed : support_interface_speed;
+        } else if (path.role() == erSupportMaterial) {
+            speed = NOZZLE_CONFIG(support_speed);
+        } else if (path.role() == erSupportMaterialInterface) {
+            speed = NOZZLE_CONFIG(support_interface_speed);
         } else {
             throw Slic3r::InvalidArgument("Invalid speed");
         }
