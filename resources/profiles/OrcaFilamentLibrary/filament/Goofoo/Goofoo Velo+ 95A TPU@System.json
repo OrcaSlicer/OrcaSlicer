@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo Velo+ 95A TPU@System",
+	"from": "system",
+	"setting_id": "SYS009",
+	"instantiation": "true",
+	"inherits": "Goofoo Velo+ 95A TPU@base",
+	"compatible_printers": []
+}

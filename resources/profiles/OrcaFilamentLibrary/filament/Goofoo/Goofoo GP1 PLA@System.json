@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo GP1 PLA@System",
+	"from": "system",
+	"setting_id": "SYS006",
+	"instantiation": "true",
+	"inherits": "Goofoo GP1 PLA@base",
+	"compatible_printers": []
+}

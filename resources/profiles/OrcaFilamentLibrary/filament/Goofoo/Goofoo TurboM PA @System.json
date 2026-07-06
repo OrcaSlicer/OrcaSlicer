@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo TurboM PA @System",
+	"from": "system",
+	"setting_id": "TBSYS007",
+	"instantiation": "true",
+	"inherits": "Goofoo TurboM PA @base",
+	"compatible_printers": []
+}

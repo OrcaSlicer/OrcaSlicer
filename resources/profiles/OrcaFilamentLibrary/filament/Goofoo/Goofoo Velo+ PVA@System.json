@@ -1,0 +1,9 @@
+{
+	"type": "filament",
+	"name": "Goofoo Velo+ PVA@System",
+	"from": "system",
+	"setting_id": "SYS027",
+	"instantiation": "true",
+	"inherits": "Goofoo Velo+ PVA@base",
+	"compatible_printers": []
+}
