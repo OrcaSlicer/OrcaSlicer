@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA Titanio",
+    "inherits": "FilAr PLA @base",
+    "from": "system",
+    "setting_id": "ZRedeSWJhUayeJLw",
+    "filament_id": "FILAR0004",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#878681"
+    ]
+}

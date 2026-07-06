@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Basic",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "UlF92qvJnOYzq0mw",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_type": [

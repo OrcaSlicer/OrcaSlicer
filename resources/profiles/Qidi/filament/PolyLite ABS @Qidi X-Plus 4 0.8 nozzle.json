@@ -3,7 +3,7 @@
 	"name": "PolyLite ABS @Qidi X-Plus 4 0.8 nozzle",
 	"inherits": "PolyLite ABS @Qidi",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "GzEXQzyKqqnCVUBh",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"enable_pressure_advance": [
@@ -17,9 +17,6 @@
 	],
 	"fan_max_speed": [
 		"80"
-	],
-	"hot_plate_temp_initial_layer": [
-		"90"
 	],
 	"nozzle_temperature": [
 		"255"

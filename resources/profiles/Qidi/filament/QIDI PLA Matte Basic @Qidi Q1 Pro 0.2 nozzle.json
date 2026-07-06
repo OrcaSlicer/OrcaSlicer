@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Matte Basic @Qidi Q1 Pro 0.2 nozzle",
 	"inherits": "QIDI PLA Matte Basic",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "Txg82qpCGVco78Ih",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [
@@ -26,12 +26,6 @@
 	],
 	"full_fan_speed_layer": [
 		"3"
-	],
-	"hot_plate_temp": [
-		"60"
-	],
-	"hot_plate_temp_initial_layer": [
-		"60"
 	],
 	"nozzle_temperature": [
 		"210"

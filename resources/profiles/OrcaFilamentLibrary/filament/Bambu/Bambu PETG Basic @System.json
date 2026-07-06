@@ -3,7 +3,7 @@
 	"name": "Bambu PETG Basic @System",
 	"inherits": "Bambu PETG Basic @base",
 	"from": "system",
-	"setting_id": "OGFSG00_01",
+	"setting_id": "CCfgYCmjECjEC2ZS",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"13"

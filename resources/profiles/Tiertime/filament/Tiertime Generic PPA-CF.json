@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PPA-CF",
 	"inherits": "fdm_filament_ppa",
 	"from": "system",
+	"setting_id": "2zYiuKYR7bESaCnd",
 	"filament_id": "GFN97",
 	"instantiation": "true",
 	"filament_type": [

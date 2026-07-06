@@ -1337,7 +1337,7 @@ void AMSControl::ShowFilamentTip(bool hasams)
     //m_simplebook_right->SetSelection(0);
     if (hasams) {
         m_tip_right_top->Show();
-        m_tip_load_info->SetLabelText(_L("Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filaments."));
+        m_tip_load_info->SetLabelText(_L("Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."));
     } else {
         // m_tip_load_info->SetLabelText(_L("Before loading, please make sure the filament is pushed into toolhead."));
         m_tip_right_top->Hide();

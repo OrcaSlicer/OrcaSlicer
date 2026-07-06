@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA-mate Amarillo",
+    "inherits": "FilAr PLA-mate @base",
+    "from": "system",
+    "setting_id": "f8DPrkYuTUPJ3cru",
+    "filament_id": "FILAR0030",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#E8C547"
+    ]
+}

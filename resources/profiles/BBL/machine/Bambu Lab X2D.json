@@ -14,5 +14,5 @@
 	"machine_tech": "FFF",
 	"model_id": "N6",
 	"not_support_bed_type": "Cool Plate",
-	"default_materials": "Bambu PLA Matte @BBL X2D;Bambu PLA Basic @BBL X2D;Bambu TPU 95A @BBL X2D;Generic TPU @BBL X2D;Bambu PETG Basic @BBL X2D;Bambu PETG HF @BBL X2D;Bambu ABS @BBL X2D;Bambu PC @BBL X2D"
+	"default_materials": "Bambu PLA Matte @BBL X2D;Bambu PLA Matte @BBL X2D 0.4 nozzle;Bambu PLA Basic @BBL X2D;Bambu PLA Basic @BBL X2D 0.4 nozzle;Bambu TPU 95A @BBL X2D;Bambu TPU 95A @BBL X2D 0.4 nozzle;Generic TPU @BBL X2D;Generic TPU @BBL X2D 0.4 nozzle;Bambu PETG Basic @BBL X2D;Bambu PETG Basic @BBL X2D 0.4 nozzle;Bambu PETG HF @BBL X2D;Bambu PETG HF @BBL X2D 0.4 nozzle;Bambu ABS @BBL X2D;Bambu ABS @BBL X2D 0.4 nozzle;Bambu PC @BBL X2D;Bambu PC @BBL X2D 0.4 nozzle"
 }

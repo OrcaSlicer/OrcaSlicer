@@ -705,7 +705,7 @@ static void convert_object_to_vertices(const Slic3r::PrintObject& object, const 
                     continue;
                 const Slic3r::PrintRegionConfig& cfg = layerm->region().config();
                 if (has_perimeters) {
-                    const size_t extruder_id = static_cast<size_t>(std::max(cfg.wall_filament.value - 1, 0));
+                    const size_t extruder_id = static_cast<size_t>(std::max(cfg.outer_wall_filament_id.value - 1, 0));
                     convert_to_vertices(layerm->perimeters, layer_z, layer_id, extruder_id,
                         object_helper.color_id(layer_z, extruder_id), EGCodeExtrusionRole::ExternalPerimeter,
                         copy, data.vertices);
@@ -715,10 +715,13 @@ static void convert_object_to_vertices(const Slic3r::PrintObject& object, const 
                         // fill represents infill extrusions of a single island.
                         const auto& fill = *dynamic_cast<const Slic3r::ExtrusionEntityCollection*>(ee);
                         if (!fill.entities.empty()) {
-                            const bool is_solid_infill = Slic3r::is_solid_infill(fill.entities.front()->role());
+                            const Slic3r::ExtrusionRole role = fill.entities.front()->role();
+                            const bool is_solid_infill = Slic3r::is_solid_infill(role);
                             const size_t extruder_id = is_solid_infill ?
-                                static_cast<size_t>(std::max(cfg.solid_infill_filament.value - 1, 0)) :
-                                static_cast<size_t>(std::max(cfg.sparse_infill_filament.value - 1, 0));
+                                static_cast<size_t>(std::max((role == Slic3r::erTopSolidInfill || role == Slic3r::erIroning ? cfg.top_surface_filament_id.value :
+                                                              role == Slic3r::erBottomSurface ? cfg.bottom_surface_filament_id.value :
+                                                              cfg.internal_solid_filament_id.value) - 1, 0)) :
+                                static_cast<size_t>(std::max(cfg.sparse_infill_filament_id.value - 1, 0));
                             convert_to_vertices(fill, layer_z, layer_id, extruder_id,
                                                 object_helper.color_id(layer_z, extruder_id),
                                                 is_solid_infill ? EGCodeExtrusionRole::SolidInfill : EGCodeExtrusionRole::InternalInfill,

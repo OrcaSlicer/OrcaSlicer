@@ -3,7 +3,7 @@
 	"name": "0.16mm Optimal @Creality CR-6 0.2",
 	"inherits": "fdm_process_creality_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "NmD2dx7kslAV3A5L",
 	"instantiation": "true",
 	"bottom_shell_layers": "6",
 	"initial_layer_line_width": "0.2",

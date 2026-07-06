@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "GP024",
+	"setting_id": "FKDS8Ql5ApZdlsH8",
 	"name": "0.20mm Standard @Tiertime UP600 HS",
 	"from": "system",
 	"inherits": "fdm_process_tiertime_HS_common",

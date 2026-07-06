@@ -3,7 +3,7 @@
 	"name": "Z-Bolt S1000 Dual 0.6 nozzle",
 	"inherits": "Z-Bolt S1000 Dual 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM034",
+	"setting_id": "RUhTCO93peC0F9qB",
 	"instantiation": "true",
 	"printer_settings_id": "Z-Bolt",
 	"nozzle_diameter": [
@@ -12,6 +12,9 @@
 	],
 	"printer_model": "Z-Bolt S1000 Dual",
 	"printer_variant": "0.6",
+	"default_filament_profile": [
+		"Generic PLA @Z-Bolt 0.6 nozzle"
+	],
 	"default_print_profile": "0.30mm Standard @Z-Bolt S1000 0.6 nozzle",
 	"max_layer_height": [
 		"0.42"

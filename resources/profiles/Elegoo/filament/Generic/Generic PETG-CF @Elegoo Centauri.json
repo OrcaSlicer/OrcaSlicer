@@ -1,0 +1,88 @@
+{
+	"type": "filament",
+	"name": "Generic PETG-CF @Elegoo Centauri",
+	"inherits": "Generic PETG @base",
+	"from": "system",
+	"setting_id": "bWUrg1tIttzhMYlr",
+	"instantiation": "true",
+	"filament_type": [
+		"PETG-CF"
+	],
+	"fan_cooling_layer_time": [
+		"30"
+	],
+	"fan_max_speed": [
+		"60"
+	],
+	"fan_min_speed": [
+		"20"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"nozzle_temperature_range_high": [
+		"260"
+	],
+	"nozzle_temperature_range_low": [
+		"230"
+	],
+	"overhang_fan_speed": [
+		"100"
+	],
+	"cool_plate_temp": [
+		"0"
+	],
+	"cool_plate_temp_initial_layer": [
+		"0"
+	],
+	"eng_plate_temp": [
+		"70"
+	],
+	"eng_plate_temp_initial_layer": [
+		"70"
+	],
+	"filament_density": [
+		"1.25"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"overhang_fan_threshold": [
+		"10%"
+	],
+	"required_nozzle_HRC": [
+		"40"
+	],
+	"slow_down_layer_time": [
+		"6"
+	],
+	"temperature_vitrification": [
+		"70"
+	],
+	"textured_plate_temp": [
+		"70"
+	],
+	"textured_plate_temp_initial_layer": [
+		"70"
+	],
+	"compatible_printers": [
+		"Elegoo Centauri 0.4 nozzle",
+		"Elegoo Centauri 0.6 nozzle",
+		"Elegoo Centauri 0.8 nozzle",
+		"Elegoo Centauri Carbon 0.4 nozzle",
+		"Elegoo Centauri Carbon 0.6 nozzle",
+		"Elegoo Centauri Carbon 0.8 nozzle",
+		"Elegoo Centauri Carbon 2 0.4 nozzle",
+		"Elegoo Centauri Carbon 2 0.6 nozzle",
+		"Elegoo Centauri Carbon 2 0.8 nozzle"
+	]
+}

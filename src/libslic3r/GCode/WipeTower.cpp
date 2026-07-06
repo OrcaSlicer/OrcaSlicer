@@ -1472,7 +1472,7 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     m_bridging(10.f),
     m_no_sparse_layers(config.wipe_tower_no_sparse_layers),
     m_gcode_flavor(config.gcode_flavor),
-    m_travel_speed(config.travel_speed),
+    m_travel_speed(config.travel_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
     m_current_tool(initial_tool),
     //wipe_volumes(flush_matrix)
     m_enable_timelapse_print(config.timelapse_type.value == TimelapseType::tlSmooth),
@@ -1497,7 +1497,7 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     // it is taken over following default. Speeds from config are not
     // easily accessible here.
     const float default_speed = 60.f;
-    m_first_layer_speed = config.get_abs_value("initial_layer_speed");
+    m_first_layer_speed = config.initial_layer_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool));
     if (m_first_layer_speed == 0.f) // just to make sure autospeed doesn't break it.
         m_first_layer_speed = default_speed / 2.f;
 
@@ -3881,7 +3881,7 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
     for (auto &used : m_used_filament_length) // reset used filament stats
         used = 0.f;
 
-    int wall_filament = get_wall_filament_for_all_layer();
+    int wall_filament_id = get_wall_filament_for_all_layer();
 
     std::vector<WipeTower::ToolChangeResult> layer_result;
     int index = 0;
@@ -3909,24 +3909,24 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
         ToolChangeResult finish_layer_tcr;
         ToolChangeResult timelapse_wall;
 
-        auto get_wall_filament_for_this_layer = [this, &layer, &wall_filament]() -> int {
+        auto get_wall_filament_for_this_layer = [this, &layer, &wall_filament_id]() -> int {
             if (layer.tool_changes.size() == 0)
                 return -1;
 
             int candidate_id = -1;
             for (size_t idx = 0; idx < layer.tool_changes.size(); ++idx) {
                 if (idx == 0) {
-                    if (layer.tool_changes[idx].old_tool == wall_filament)
-                        return wall_filament;
-                    else if (m_filpar[layer.tool_changes[idx].old_tool].category == m_filpar[wall_filament].category) {
+                    if (layer.tool_changes[idx].old_tool == wall_filament_id)
+                        return wall_filament_id;
+                    else if (m_filpar[layer.tool_changes[idx].old_tool].category == m_filpar[wall_filament_id].category) {
                         candidate_id = layer.tool_changes[idx].old_tool;
                     }
                 }
-                if (layer.tool_changes[idx].new_tool == wall_filament) {
-                    return wall_filament;
+                if (layer.tool_changes[idx].new_tool == wall_filament_id) {
+                    return wall_filament_id;
                 }
 
-                if ((candidate_id == -1) && (m_filpar[layer.tool_changes[idx].new_tool].category == m_filpar[wall_filament].category))
+                if ((candidate_id == -1) && (m_filpar[layer.tool_changes[idx].new_tool].category == m_filpar[wall_filament_id].category))
                     candidate_id = layer.tool_changes[idx].new_tool;
             }
             return candidate_id == -1 ? layer.tool_changes[0].new_tool : candidate_id;

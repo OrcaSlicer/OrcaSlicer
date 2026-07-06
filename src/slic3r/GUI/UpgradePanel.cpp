@@ -109,7 +109,7 @@ MachineInfoPanel::MachineInfoPanel(wxWindow* parent, wxWindowID id, const wxPoin
     m_staticText_ver_val->Wrap(-1);
 
 
-    m_staticText_beta_version = new wxStaticText(this, wxID_ANY, "Beta", wxDefaultPosition, wxDefaultSize, 0);
+    m_staticText_beta_version = new wxStaticText(this, wxID_ANY, _L("Beta"), wxDefaultPosition, wxDefaultSize, 0);
     m_staticText_beta_version->SetForegroundColour("#778899");
     m_staticText_beta_version->Wrap(-1);
     m_staticText_beta_version->Hide();
@@ -1439,9 +1439,7 @@ void UpgradePanel::update(MachineObject *obj)
                     }
                 });
             }
-            force_dlg->update_text(_L(
-                 "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Upgrade firmware'."
-            ));
+            force_dlg->update_text(_L("An important update was detected and needs to be run before printing can continue. Do you want to update now\? You can also update later from \'Update firmware\'."));
             force_dlg->on_show();
         }
     }
@@ -1462,9 +1460,7 @@ void UpgradePanel::update(MachineObject *obj)
                     }
                 });
             }
-            consistency_dlg->update_text(_L(
-                 "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on printer or update next time starting Orca."
-            ));
+            consistency_dlg->update_text(_L("The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now\? You can also update later on the printer or update next time you start Orca Slicer."));
             consistency_dlg->on_show();
         }
     }
@@ -1571,7 +1567,7 @@ bool UpgradePanel::Show(bool show)
      m_staticText_ams_ver_val->SetForegroundColour("#262E30");
      m_staticText_ams_ver_val->Wrap(-1);
 
-     m_staticText_beta_version = new wxStaticText(this, wxID_ANY, "Beta", wxDefaultPosition, wxDefaultSize, 0);
+     m_staticText_beta_version = new wxStaticText(this, wxID_ANY, _L("Beta"), wxDefaultPosition, wxDefaultSize, 0);
      m_staticText_beta_version->SetForegroundColour("#778899");
      m_staticText_beta_version->Wrap(-1);
      m_staticText_beta_version->Hide();

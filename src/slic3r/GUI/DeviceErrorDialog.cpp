@@ -165,7 +165,7 @@ void DeviceErrorDialog::init_button_list()
     init_button(FILAMENT_EXTRUDED, _L("Filament Extruded, Continue"));
     init_button(RETRY_FILAMENT_EXTRUDED, _L("Not Extruded Yet, Retry"));
     init_button(CONTINUE, _L("Finished, Continue"));
-    init_button(LOAD_VIRTUAL_TRAY, _L("Load Filament"));
+    init_button(LOAD_VIRTUAL_TRAY, _L("Load"));
     init_button(OK_BUTTON, _L("OK"));
     init_button(FILAMENT_LOAD_RESUME, _L("Filament Loaded, Resume"));
     init_button(JUMP_TO_LIVEVIEW, _L("View Liveview"));
@@ -175,7 +175,7 @@ void DeviceErrorDialog::init_button_list()
     init_button(PROBLEM_SOLVED_RESUME, _L("Problem Solved and Resume"));
     init_button(TURN_OFF_FIRE_ALARM, _L("Got it, Turn off the Fire Alarm."));
     init_button(RETRY_PROBLEM_SOLVED, _L("Retry (problem solved)"));
-    init_button(CANCLE, _L("Cancel"));
+    init_button(CANCEL, _L("Cancel"));
     init_button(STOP_DRYING, _L("Stop Drying"));
     init_button(PROCEED, _L("Proceed"));
     init_button(DBL_CHECK_CANCEL, _L("Cancel"));
@@ -445,7 +445,7 @@ void DeviceErrorDialog::on_button_click(ActionButton btn_id)
         m_obj->command_ams_control("resume");
         break;
     }
-    case DeviceErrorDialog::CANCLE: {
+    case DeviceErrorDialog::CANCEL: {
         break;
     }
     case DeviceErrorDialog::STOP_DRYING: {

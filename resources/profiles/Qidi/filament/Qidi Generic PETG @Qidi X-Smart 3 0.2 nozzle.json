@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PETG @Qidi X-Smart 3 0.2 nozzle",
 	"inherits": "Qidi Generic PETG",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "ixR5wIrehSmn8Inz",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [

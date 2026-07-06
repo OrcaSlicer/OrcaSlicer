@@ -3,7 +3,7 @@
 	"name": "CoLiDo PETG @CoLiDo SR1",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSG99_06",
+	"setting_id": "z1ffOb3jPP1GVXnD",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"filament_vendor": [

@@ -3,7 +3,7 @@
 	"name": "Qidi Q1 Pro 0.4 nozzle",
 	"inherits": "fdm_qidi_x3_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "U5MWs9u3tWvrlVwP",
 	"instantiation": "true",
 	"printer_model": "Qidi Q1 Pro",
 	"gcode_flavor": "klipper",
