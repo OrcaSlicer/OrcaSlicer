@@ -9,7 +9,6 @@
 	"wall_loops": "6",
 	"sparse_infill_density": "25%",
 	"compatible_printers": [
-		"Orca Arena X1 Carbon 0.4 nozzle",
-		"Orca Arena X1 0.4 nozzle"
+		"Orca Arena X1 Carbon 0.4 nozzle"
 	]
 }

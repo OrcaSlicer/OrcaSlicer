@@ -5528,7 +5528,7 @@ void PresetBundle::set_default_suppressed(bool default_suppressed)
     printers.set_default_suppressed(default_suppressed);
 }
 
-bool PresetBundle::has_errors(bool check_duplicate_filament_subtypes, bool check_references) const
+bool PresetBundle::has_errors(bool check_duplicate_filament_subtypes) const
 {
     if (m_errors != 0 || printers.m_errors != 0 || filaments.m_errors != 0 || prints.m_errors != 0)
         return true;
@@ -5551,7 +5551,7 @@ bool PresetBundle::has_errors(bool check_duplicate_filament_subtypes, bool check
     if (check_duplicate_filament_subtypes && this->check_duplicate_filament_subtypes())
         has_errors = true;
 
-    if (check_references && this->check_preset_references())
+    if (this->check_preset_references())
         has_errors = true;
 
     return has_errors;
