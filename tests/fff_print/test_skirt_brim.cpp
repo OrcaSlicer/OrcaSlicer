@@ -242,7 +242,7 @@ TEST_CASE("Brim uses first layer speed", "[SkirtBrim]") {
         { "z_hop",                        0 }
     });
 
-    const std::string gcode = Slic3r::Test::slice({TestMesh::cube_20x20x20}, config);
+    const std::string gcode = Slic3r::Test::slice({cube(20)}, config);
 
     const double brim_feedrate = first_extrusion_feedrate_for_feature(gcode, "Brim");
     REQUIRE(brim_feedrate > 0.0);
