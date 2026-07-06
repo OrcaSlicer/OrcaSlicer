@@ -13,8 +13,7 @@ endif ()
 orcaslicer_add_cmake_project(OpenVDB
     #  support vs2022, update to 8.2
     URL https://github.com/AcademySoftwareFoundation/openvdb/archive/refs/tags/v13.0.0.zip
-    URL_HASH SHA256=37b31e0e67cd071b4aafbf924b4ac7dce9b15c439c0e25b4b35aa47f3939a5fc
-    PATCH_COMMAND git apply ${OPENVDB_DIRECTORY_FLAG} --verbose --ignore-space-change --whitespace=fix 
+    URL_HASH SHA256=37b31e0e67cd071b4aafbf924b4ac7dce9b15c439c0e25b4b35aa47f3939a5fc 
     DEPENDS dep_TBB dep_Blosc dep_OpenEXR dep_Boost
     CMAKE_ARGS
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON 
