@@ -4709,7 +4709,7 @@ msgid "Support interface"
 msgstr "Interfaz de soporte"
 
 msgid "Prime tower"
-msgstr "Torre de Purga"
+msgstr "Torre de purga"
 
 msgid "Bottom surface"
 msgstr "Relleno sólido inferior"
@@ -9190,7 +9190,7 @@ msgstr "Característica experimental: Retraer y cortar el filamento a mayor dist
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
 "by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
-msgstr "Cuando se graba un timelapse sin cabezal, se recomienda añadir una \"Torre de Purga de Timelapse\" haciendo clic con el botón derecho del ratón en una posición vacía de la cama de impresión y seleccionando \"Añadir Primitivo\"->Torre de Purga de Timelapse\"."
+msgstr "Cuando se graba un timelapse sin cabezal, se recomienda añadir una \"Torre de purga de Timelapse\" haciendo clic con el botón derecho del ratón en una posición vacía de la cama de impresión y seleccionando \"Añadir Primitivo\"->\"Torre de purga de Timelapse\"."
 
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "Se creará una copia de el perfil de sistema actual, que quedará separado del perfil de sistema."
@@ -10896,7 +10896,7 @@ msgid " is too close to clumping detection area, there may be collisions when pr
 msgstr " está demasiado cerca del área de detección de aglomeraciones, puede haber colisiones durante la impresión."
 
 msgid "Prime Tower"
-msgstr "Torre de Purga"
+msgstr "Torre de purga"
 
 msgid " is too close to others, and collisions may be caused.\n"
 msgstr " está demasiado cerca de otros, y se pueden producir colisiones.\n"
@@ -12750,7 +12750,7 @@ msgid "After a tool change, the exact position of the newly loaded filament insi
 msgstr "Tras un cambio de cabezal, es posible que no se conozca la posición exacta del filamento recién cargado dentro de la boquilla y que la presión del filamento aún no sea estable. Antes de purgar el cabezal de impresión en un relleno o en un objeto de sacrificio, OrcaSlicer siempre cebará esta cantidad de material en la torre de purga para producir sucesivas extrusiones de relleno u objetos de sacrificio de forma fiable."
 
 msgid "Wipe tower cooling"
-msgstr "Refrigeración de Torre de Purga"
+msgstr "Refrigeración de torre de purga"
 
 msgid "Temperature drop before entering filament tower"
 msgstr "Descenso de temperatura antes de entrar en la torre de filamentos"
