@@ -1739,11 +1739,11 @@ var LangText = {
     orca3: "Slaptas režimas",
     orca5: "Įjungti slaptą režimą.",
     orca6: "Bambu Cloud",
-    orca7: "Orca Cloud Account",
-    orca8: "Not signed in",
-    orca9: "Bambu Cloud Account",
-    orca10: "Not connected",
-    orca11: "Connected",
+    orca7: "Orca Cloud paskyra",
+    orca8: "Neprisiregistruota",
+    orca9: "Bambu Cloud paskyra",
+    orca10: "Neprisijungta",
+    orca11: "Prisijungta",
   },
 };
 
