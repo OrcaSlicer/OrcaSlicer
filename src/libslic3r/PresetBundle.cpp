@@ -6166,20 +6166,16 @@ static void apply_vendor_preset_group(VendorPresetGroup&       grp,
 {
     auto apply = [&](std::vector<Preset>& cached, PresetCollection& coll, bool is_filaments) {
         for (Preset& cp : cached) {
+            // Reserve a slot in the collection, then move the fully-deserialized
+            // preset into it so all serialized fields are transferred at once.
+            // Only vendor (a raw pointer, excluded from serialization) is patched after.
             DynamicPrintConfig config = cp.config;
             Preset& p = coll.load_preset(cp.file, cp.name, std::move(config), false, cp.version);
-            p.is_system                = true;
-            p.is_visible               = cp.is_visible;
-            p.alias                    = cp.alias;
-            p.renamed_from             = cp.renamed_from;
-            p.filament_id              = cp.filament_id;
-            p.setting_id               = cp.setting_id;
-            p.description              = cp.description;
-            p.m_from_orca_filament_lib = cp.m_from_orca_filament_lib;
-            p.m_excluded_from          = cp.m_excluded_from;
-            p.vendor                   = vp;
+            const std::string alias = cp.alias;
+            p        = std::move(cp);
+            p.vendor = vp;
             if (is_filaments)
-                coll.set_printer_hold_alias(p.alias, p);
+                coll.set_printer_hold_alias(alias, p);
         }
     };
     apply(grp.prints,        prints_coll,        false);
