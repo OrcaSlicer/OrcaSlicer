@@ -14444,6 +14444,10 @@ msgstr ""
 msgid "Back"
 msgstr "Achterzijde"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "Achterzijde"
+
 msgid "Random"
 msgstr "Willekeurig"
 

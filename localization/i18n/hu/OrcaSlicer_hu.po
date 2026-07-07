@@ -14897,6 +14897,10 @@ msgstr "Hátulra igazítva"
 msgid "Back"
 msgstr "Hátul"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "Hátul"
+
 msgid "Random"
 msgstr "Véletlenszerû"
 

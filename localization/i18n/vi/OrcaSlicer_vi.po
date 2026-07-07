@@ -14685,6 +14685,10 @@ msgstr "Căn chỉnh sau"
 msgid "Back"
 msgstr "Sau"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "Sau"
+
 msgid "Random"
 msgstr "Ngẫu nhiên"
 

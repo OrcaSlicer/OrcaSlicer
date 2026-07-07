@@ -14755,6 +14755,10 @@ msgstr ""
 msgid "Back"
 msgstr "Tył"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "Tył"
+
 msgid "Random"
 msgstr "Losowo"
 

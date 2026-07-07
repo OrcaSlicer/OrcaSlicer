@@ -14871,6 +14871,10 @@ msgstr "Allineato dietro"
 msgid "Back"
 msgstr "Posteriore"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "Posteriore"
+
 msgid "Random"
 msgstr "Casuale"
 

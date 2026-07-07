@@ -14417,6 +14417,10 @@ msgstr ""
 msgid "Back"
 msgstr "Tillbaka"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "Tillbaka"
+
 msgid "Random"
 msgstr "Slumpmässig"
 

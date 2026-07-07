@@ -14608,6 +14608,10 @@ msgstr "จัดแนวกลับ"
 msgid "Back"
 msgstr "กลับ"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "กลับ"
+
 msgid "Random"
 msgstr "สุ่ม"
 

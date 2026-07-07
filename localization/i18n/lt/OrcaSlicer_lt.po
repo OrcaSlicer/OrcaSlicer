@@ -14621,6 +14621,10 @@ msgstr "Sulygiuota gale"
 msgid "Back"
 msgstr "Atgal"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "Atgal"
+
 msgid "Random"
 msgstr "Atsitiktinė"
 

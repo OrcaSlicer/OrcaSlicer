@@ -14825,6 +14825,10 @@ msgstr "Alineat al darrere"
 msgid "Back"
 msgstr "Darrera"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "Darrera"
+
 msgid "Random"
 msgstr "Aleatori"
 

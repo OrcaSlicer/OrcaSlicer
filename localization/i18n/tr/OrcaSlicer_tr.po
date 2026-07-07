@@ -14793,6 +14793,10 @@ msgstr "Arkaya hizalı"
 msgid "Back"
 msgstr "Arka"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "Arka"
+
 msgid "Random"
 msgstr "Rastgele"
 

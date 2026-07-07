@@ -14979,6 +14979,10 @@ msgstr "Ausgerichtet hinten"
 msgid "Back"
 msgstr "Zurück"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "Zurück"
+
 msgid "Random"
 msgstr "Zufall"
 

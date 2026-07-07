@@ -14519,6 +14519,10 @@ msgstr ""
 msgid "Back"
 msgstr "背面"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "背面"
+
 msgid "Random"
 msgstr "ランダム"
 

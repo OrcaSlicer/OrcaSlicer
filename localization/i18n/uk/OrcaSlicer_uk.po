@@ -14770,6 +14770,10 @@ msgstr ""
 msgid "Back"
 msgstr "Ззаду"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "Ззаду"
+
 msgid "Random"
 msgstr "Випадкове"
 

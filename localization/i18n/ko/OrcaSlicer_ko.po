@@ -14737,6 +14737,10 @@ msgstr ""
 msgid "Back"
 msgstr "뒷면"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "뒷면"
+
 msgid "Random"
 msgstr "무작위"
 

@@ -15103,6 +15103,10 @@ msgstr "В углах сзади"
 msgid "Back"
 msgstr "Сзади"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "Сзади"
+
 msgid "Random"
 msgstr "Случайная"
 

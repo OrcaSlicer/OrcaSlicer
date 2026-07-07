@@ -14974,6 +14974,10 @@ msgstr "背部對齊"
 msgid "Back"
 msgstr "背面"
 
+msgctxt "Camera"
+msgid "Back"
+msgstr "背面"
+
 msgid "Random"
 msgstr "隨機"
 
