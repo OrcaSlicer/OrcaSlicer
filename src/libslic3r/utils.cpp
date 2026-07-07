@@ -1285,6 +1285,24 @@ unsigned get_current_pid()
 #endif
 }
 
+std::string per_user_temp_id()
+{
+#ifdef WIN32
+    return {};
+#else
+    return std::to_string(static_cast<unsigned long>(::getuid()));
+#endif
+}
+
+std::string per_user_temp_dir(const std::string &base, const std::string &user_id)
+{
+    if (user_id.empty())
+        return base;
+    // Keep the id at the top level so each user's dir sits directly in the world-writable temp
+    // root; a shared parent dir would be owned by whichever user created it first.
+    return base + "/orcaslicer_" + user_id;
+}
+
 // BBS: backup & restore
 std::string get_process_name(int pid)
 {

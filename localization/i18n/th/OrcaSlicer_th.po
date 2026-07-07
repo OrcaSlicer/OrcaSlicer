@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-03 14:43+0200\n"
+"POT-Creation-Date: 2026-07-07 10:05-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -333,8 +333,9 @@ msgstr "Gizmo-ขนาด"
 msgid "Error: Please close all toolbar menus first"
 msgstr "ข้อผิดพลาด: โปรดปิดเมนูแถบเครื่องมือทั้งหมดก่อน"
 
+msgctxt "inches"
 msgid "in"
-msgstr "นิ้ว"
+msgstr ""
 
 msgid "mm"
 msgstr "มม."
@@ -387,26 +388,29 @@ msgstr "รีเซ็ตตำแหน่ง"
 msgid "Reset rotation"
 msgstr "รีเซ็ตการหมุน"
 
-msgid "Object coordinates"
-msgstr "พิกัดวัตถุ"
+msgid "World"
+msgstr ""
 
-msgid "World coordinates"
-msgstr "พิกัดโลก"
+msgid "Object"
+msgstr "วัตถุ"
 
-msgid "Translate(Relative)"
-msgstr "เลื่อนตำแหน่ง (แบบสัมพันธ์)"
+msgid "Part"
+msgstr "ชิ้นส่วน"
+
+msgid "Relative"
+msgstr ""
+
+msgid "Coordinate system used for transform actions."
+msgstr ""
+
+msgid "Absolute"
+msgstr ""
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "รีเซ็ตการหมุนปัจจุบันเป็นค่าเมื่อเปิดเครื่องมือการหมุน"
 
-msgid "Rotate (absolute)"
-msgstr "หมุน (สัมบูรณ์)"
-
 msgid "Reset current rotation to real zeros."
 msgstr "รีเซ็ตการหมุนปัจจุบันให้เป็นศูนย์จริง"
-
-msgid "Part coordinates"
-msgstr "พิกัดส่วน"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -510,12 +514,6 @@ msgstr "ช่องว่าง"
 
 msgid "Spacing"
 msgstr "ระยะห่าง"
-
-msgid "Part"
-msgstr "ชิ้นส่วน"
-
-msgid "Object"
-msgstr "วัตถุ"
 
 msgid ""
 "Click to flip the cut plane\n"
@@ -1850,33 +1848,32 @@ msgstr "เปิดโปรเจกต์"
 msgid "The version of Orca Slicer is too low and needs to be updated to the latest version before it can be used normally."
 msgstr "Orca Slicer เวอร์ชันต่ำเกินไปและจำเป็นต้องอัปเดตเป็นเวอร์ชันล่าสุดก่อนจึงจะสามารถใช้งานได้ตามปกติ"
 
-msgid ""
-"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
-"Pull downloads the cloud copy. Force push overwrites it with your local preset."
+msgid "Cloud sync conflict:"
 msgstr ""
-"ความขัดแย้งในการซิงก์ Cloud: ค่าที่ตั้งไว้ล่วงหน้านี้มีเวอร์ชันใหม่กว่าใน Orca Cloud\n"
-"ดึงข้อมูลจะดาวน์โหลดสำเนาจากคลาวด์ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
+
+#, c-format, boost-format
+msgid "Cloud sync conflict for preset \"%s\":"
+msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"This preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
-"ความขัดแย้งในการซิงก์ Cloud: มีค่าที่ตั้งไว้ล่วงหน้าชื่อนี้อยู่ใน Orca Cloud แล้ว\n"
-"ดึงข้อมูลจะดาวน์โหลดสำเนาจากคลาวด์ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
 
 msgid ""
-"Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+"A preset with this name already exists in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local preset."
+msgstr ""
+
+msgid ""
+"A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
 msgstr ""
-"ความขัดแย้งในการซิงก์ Cloud: ค่าที่ตั้งไว้ล่วงหน้าชื่อเดียวกันเคยถูกลบจากคลาวด์แล้ว\n"
-"ลบจะลบค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
 
 msgid ""
-"Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+"There was an unexpected or unidentified preset conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
-"ความขัดแย้งในการซิงก์ Cloud: พบความขัดแย้งของค่าที่ตั้งไว้ล่วงหน้าที่ไม่คาดคิดหรือระบุไม่ได้\n"
-"ดึงข้อมูลจะดาวน์โหลดสำเนาจากคลาวด์ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
@@ -1884,6 +1881,12 @@ msgid ""
 msgstr ""
 "การบังคับส่งจะเขียนทับสำเนาบนคลาวด์ด้วยการเปลี่ยนแปลงค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ\n"
 "คุณต้องการดำเนินการต่อหรือไม่?"
+
+#, c-format, boost-format
+msgid ""
+"Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\n"
+"Do you want to continue?"
+msgstr ""
 
 msgid "Resolve cloud sync conflict"
 msgstr "แก้ไขความขัดแย้งการซิงค์คลาวด์"
@@ -1964,8 +1967,9 @@ msgstr "จำนวนค่าที่ตั้งไว้ล่วงหน
 msgid "Sync user presets"
 msgstr "ซิงค์การตั้งค่าล่วงหน้าของผู้ใช้"
 
-msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
-msgstr "เนื้อหาที่ตั้งไว้ล่วงหน้ามีขนาดใหญ่เกินกว่าจะซิงค์กับระบบคลาวด์ (เกิน 1MB) โปรดลดขนาดที่กำหนดไว้ล่วงหน้าโดยการลบการกำหนดค่าที่กำหนดเองออกหรือใช้เฉพาะในเครื่องเท่านั้น"
+#, c-format, boost-format
+msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%s updated from %s to %s"
@@ -2173,6 +2177,9 @@ msgstr "ออร์ก้าคิวบ์"
 
 msgid "OrcaSliced Combo"
 msgstr "OrcaSliced Combo"
+
+msgid "Orca Badge"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "การทดสอบค่าความเผื่อ Orca"
@@ -5142,6 +5149,9 @@ msgstr "ส่วนยื่น"
 msgid "Outline"
 msgstr "เส้นขอบ"
 
+msgid "Wireframe"
+msgstr ""
+
 msgid "Realistic View"
 msgstr "มุมมองสมจริง"
 
@@ -5184,7 +5194,7 @@ msgstr "ปริมาณ:"
 msgid "Size:"
 msgstr "ขนาด:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "พบความขัดแย้งของเส้นทางรหัส G ที่เลเยอร์ %d, Z = %.2lfmm โปรดแยกวัตถุที่ขัดแย้งกันให้ไกลออกไป (%s <-> %s)"
 
@@ -7863,6 +7873,35 @@ msgstr "แสดงตัวเลือกเมื่อนำเข้าไ
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "หากเปิดใช้งาน กล่องโต้ตอบการตั้งค่าพารามิเตอร์จะปรากฏขึ้นระหว่างการนำเข้าไฟล์ STEP"
 
+msgid "STEP importing: linear deflection"
+msgstr ""
+
+msgid ""
+"Linear deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.003 mm."
+msgstr ""
+
+msgid "STEP importing: angle deflection"
+msgstr ""
+
+msgid ""
+"Angle deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.5."
+msgstr ""
+
+msgid "STEP importing: Split into multiple objects"
+msgstr ""
+
+msgid ""
+"If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: disabled."
+msgstr ""
+
 msgid "Quality level for Draco export"
 msgstr "ระดับคุณภาพสำหรับการส่งออกของ Draco"
 
@@ -7877,6 +7916,12 @@ msgstr ""
 "ควบคุมความลึกบิตเชิงปริมาณที่ใช้ในการบีบอัด mesh เป็นรูปแบบ Draco\n"
 "0 = การบีบอัดแบบไม่สูญเสีย (รูปทรงเรขาคณิตจะถูกรักษาไว้อย่างแม่นยำเต็มที่) ค่าการสูญเสียที่ถูกต้องมีตั้งแต่ 8 ถึง 30\n"
 "ค่าที่ต่ำกว่าจะทำให้ไฟล์มีขนาดเล็กลง แต่สูญเสียรายละเอียดทางเรขาคณิตมากขึ้น ค่าที่สูงกว่าจะรักษารายละเอียดได้มากขึ้นโดยที่ไฟล์มีขนาดใหญ่กว่า"
+
+msgid "Store full source file paths in projects"
+msgstr ""
+
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr ""
 
 msgid "Preset"
 msgstr "พรีเซ็ต"
@@ -12199,6 +12244,18 @@ msgstr "เกณฑ์ขอบเขตขนาดเล็ก"
 msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
 msgstr "นี่เป็นการกำหนดเกณฑ์สำหรับความยาวเส้นรอบวงเล็กน้อย เกณฑ์เริ่มต้นคือ 0 มม."
 
+msgid "Small support perimeters"
+msgstr ""
+
+msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
+msgstr ""
+
+msgid "Small support perimeters threshold"
+msgstr ""
+
+msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
+msgstr ""
+
 msgid "Walls printing order"
 msgstr "สั่งพิมพ์ผนัง"
 
@@ -12383,27 +12440,26 @@ msgstr ""
 "2. จดบันทึกค่า PA ที่เหมาะสมที่สุดสำหรับความเร็วการไหลและความเร่งตามปริมาตรแต่ละรายการ คุณสามารถค้นหาหมายเลขโฟลว์ได้โดยเลือกโฟลว์จากรายการสีแบบเลื่อนลง และเลื่อนแถบเลื่อนแนวนอนไปเหนือเส้นรูปแบบ PA หมายเลขควรปรากฏที่ด้านล่างของหน้า ค่า PA ในอุดมคติควรลดลงตามอัตราการไหลตามปริมาตรที่สูงขึ้น หากไม่เป็นเช่นนั้น ให้ยืนยันว่าชุดดันเส้นของคุณทำงานอย่างถูกต้อง ยิ่งคุณพิมพ์ช้าลงและเร่งความเร็วน้อยลง ช่วงของค่า PA ที่ยอมรับได้ก็จะยิ่งมากขึ้นเท่านั้น หากไม่เห็นความแตกต่าง ให้ใช้ค่า PA จากการทดสอบที่เร็วกว่า\n"
 "3. ป้อนค่า PA, การไหล และความเร่งสามเท่าในกล่องข้อความที่นี่ และบันทึกโปรไฟล์เส้นพลาสติกของคุณ"
 
-msgid "Enable adaptive pressure advance for overhangs (beta)"
-msgstr "เปิดใช้งานการปรับPressure Advanceสำหรับระยะยื่น (เบต้า)"
+msgid "Enable adaptive pressure advance within features (beta)"
+msgstr ""
 
 msgid ""
-"Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+"Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
+"\n"
+"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
+"\n"
+"This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
 msgstr ""
-"เปิดใช้งาน PA แบบปรับตัวสำหรับส่วนยื่นและเมื่ออัตราการไหลเปลี่ยนภายในฟีเจอร์เดียวกัน เป็นตัวเลือกทดลอง หากโปรไฟล์ PA ไม่แม่นยำ จะทำให้ผิวด้านนอกไม่สม่ำเสมอก่อนและหลังส่วนยื่น\n"
-"ไม่รองรับเครื่องพิมพ์ Prusa เพราะจะหยุดชั่วคราวเพื่อประมวลผลการเปลี่ยน PA ทำให้เกิดความล่าช้าและข้อบกพร่อง"
 
-msgid "Pressure advance for bridges"
-msgstr "แรงดันล่วงหน้า (Pressure Advance)สำหรับสะพาน"
+msgid "Static pressure advance for bridges"
+msgstr ""
 
 msgid ""
-"Pressure advance value for bridges. Set to 0 to disable.\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+"equivalent walls (using adaptive settings if enabled).\n"
 "\n"
-"A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+"A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"ค่าPressure Advanceสำหรับสะพาน ตั้งค่าเป็น 0 เพื่อปิดใช้งาน\n"
-"\n"
-"ค่า PA ที่ต่ำลงเมื่อพิมพ์บริดจ์จะช่วยลดลักษณะที่ปรากฏเล็กน้อยจากการอัดขึ้นรูปทันทีหลังจากบริดจ์ สาเหตุนี้เกิดจากแรงดันตกในหัวฉีดเมื่อพิมพ์ในอากาศ และค่า PA ที่ต่ำกว่าจะช่วยแก้ปัญหานี้ได้"
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "ความกว้างของเส้นเริ่มต้นหากความกว้างของเส้นอื่นตั้งค่าเป็น 0 หากแสดงเป็น % ระบบจะคำนวณตามเส้นผ่านศูนย์กลางของหัวฉีด"
@@ -12774,6 +12830,22 @@ msgstr "ทิศทางไส้ในแบบทึบ"
 
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
 msgstr "มุมสำหรับรูปแบบไส้ในแบบทึบ ซึ่งควบคุมจุดเริ่มต้นหรือทิศทางหลักของเส้น"
+
+msgid "Top layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the top solid infill and ironing lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
+msgid "Bottom layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the bottom solid infill lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
 
 msgid "Sparse infill density"
 msgstr "ความหนาแน่นไส้ในแบบโปร่ง"
@@ -15534,6 +15606,14 @@ msgstr "บิดรูหลายรู"
 
 msgid "Rotate the polyhole every layer."
 msgstr "หมุนโพลีโฮลทุกชั้น"
+
+msgid "Maximum Polyhole edge count"
+msgstr ""
+
+msgid ""
+"Maximum number of polyhole edges\n"
+"This setting limits the amount of edges a polyhole can have"
+msgstr ""
 
 msgid "G-code thumbnails"
 msgstr "ภาพขนาดย่อ G-code"
@@ -18858,6 +18938,12 @@ msgstr "จำนวนด้านสามเหลี่ยม"
 msgid "Calculating, please wait..."
 msgstr "กำลังคำนวณ โปรดรอสักครู่..."
 
+msgid "Save these settings as default"
+msgstr ""
+
+msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
+msgstr ""
+
 msgid "PresetBundle"
 msgstr "ชุดค่าที่ตั้งไว้ล่วงหน้า"
 
@@ -19258,6 +19344,77 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "in"
+#~ msgstr "นิ้ว"
+
+#~ msgid "Object coordinates"
+#~ msgstr "พิกัดวัตถุ"
+
+#~ msgid "World coordinates"
+#~ msgstr "พิกัดโลก"
+
+#~ msgid "Translate(Relative)"
+#~ msgstr "เลื่อนตำแหน่ง (แบบสัมพันธ์)"
+
+#~ msgid "Rotate (absolute)"
+#~ msgstr "หมุน (สัมบูรณ์)"
+
+#~ msgid "Part coordinates"
+#~ msgstr "พิกัดส่วน"
+
+#~ msgid ""
+#~ "Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "ความขัดแย้งในการซิงก์ Cloud: ค่าที่ตั้งไว้ล่วงหน้านี้มีเวอร์ชันใหม่กว่าใน Orca Cloud\n"
+#~ "ดึงข้อมูลจะดาวน์โหลดสำเนาจากคลาวด์ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
+
+#~ msgid ""
+#~ "Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "ความขัดแย้งในการซิงก์ Cloud: มีค่าที่ตั้งไว้ล่วงหน้าชื่อนี้อยู่ใน Orca Cloud แล้ว\n"
+#~ "ดึงข้อมูลจะดาวน์โหลดสำเนาจากคลาวด์ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
+
+#~ msgid ""
+#~ "Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+#~ "Delete will delete your local preset. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "ความขัดแย้งในการซิงก์ Cloud: ค่าที่ตั้งไว้ล่วงหน้าชื่อเดียวกันเคยถูกลบจากคลาวด์แล้ว\n"
+#~ "ลบจะลบค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
+
+#~ msgid ""
+#~ "Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "ความขัดแย้งในการซิงก์ Cloud: พบความขัดแย้งของค่าที่ตั้งไว้ล่วงหน้าที่ไม่คาดคิดหรือระบุไม่ได้\n"
+#~ "ดึงข้อมูลจะดาวน์โหลดสำเนาจากคลาวด์ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
+
+#~ msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+#~ msgstr "เนื้อหาที่ตั้งไว้ล่วงหน้ามีขนาดใหญ่เกินกว่าจะซิงค์กับระบบคลาวด์ (เกิน 1MB) โปรดลดขนาดที่กำหนดไว้ล่วงหน้าโดยการลบการกำหนดค่าที่กำหนดเองออกหรือใช้เฉพาะในเครื่องเท่านั้น"
+
+#~ msgid "Enable adaptive pressure advance for overhangs (beta)"
+#~ msgstr "เปิดใช้งานการปรับPressure Advanceสำหรับระยะยื่น (เบต้า)"
+
+#~ msgid ""
+#~ "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
+#~ "Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+#~ msgstr ""
+#~ "เปิดใช้งาน PA แบบปรับตัวสำหรับส่วนยื่นและเมื่ออัตราการไหลเปลี่ยนภายในฟีเจอร์เดียวกัน เป็นตัวเลือกทดลอง หากโปรไฟล์ PA ไม่แม่นยำ จะทำให้ผิวด้านนอกไม่สม่ำเสมอก่อนและหลังส่วนยื่น\n"
+#~ "ไม่รองรับเครื่องพิมพ์ Prusa เพราะจะหยุดชั่วคราวเพื่อประมวลผลการเปลี่ยน PA ทำให้เกิดความล่าช้าและข้อบกพร่อง"
+
+#~ msgid "Pressure advance for bridges"
+#~ msgstr "แรงดันล่วงหน้า (Pressure Advance)สำหรับสะพาน"
+
+#~ msgid ""
+#~ "Pressure advance value for bridges. Set to 0 to disable.\n"
+#~ "\n"
+#~ "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+#~ msgstr ""
+#~ "ค่าPressure Advanceสำหรับสะพาน ตั้งค่าเป็น 0 เพื่อปิดใช้งาน\n"
+#~ "\n"
+#~ "ค่า PA ที่ต่ำลงเมื่อพิมพ์บริดจ์จะช่วยลดลักษณะที่ปรากฏเล็กน้อยจากการอัดขึ้นรูปทันทีหลังจากบริดจ์ สาเหตุนี้เกิดจากแรงดันตกในหัวฉีดเมื่อพิมพ์ในอากาศ และค่า PA ที่ต่ำกว่าจะช่วยแก้ปัญหานี้ได้"
 
 #~ msgid "Filament Sync Options"
 #~ msgstr "ตัวเลือกการซิงค์ฟิลาเมนต์"

@@ -300,6 +300,10 @@ std::string header_gcodeviewer_generated();
 
 // getpid platform wrapper
 extern unsigned get_current_pid();
+// Per-user id for isolating temp dirs; empty on Windows (its temp dir is already per-user).
+std::string per_user_temp_id();
+// Per-user temp root under `base`; an empty `user_id` returns `base` unchanged.
+std::string per_user_temp_dir(const std::string &base, const std::string &user_id);
 // BBS: backup & restore
 std::string get_process_name(int pid);
 
