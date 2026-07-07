@@ -5502,10 +5502,10 @@ msgid "Front View"
 msgstr "Vista frontal"
 
 msgid "Rear"
-msgstr "Trasera"
+msgstr "Posterior"
 
 msgid "Rear View"
-msgstr "Vista trasera"
+msgstr "Vista posterior"
 
 msgid "Left View"
 msgstr "Vista izquierda"
@@ -14672,7 +14672,7 @@ msgid "Aligned back"
 msgstr "Alineado atrás"
 
 msgid "Back"
-msgstr "Atrás"
+msgstr "Posterior"
 
 msgid "Random"
 msgstr "Aleatorio"
@@ -19356,8 +19356,7 @@ msgstr ""
 "Divide tus impresiones en camas\n"
 "¿Sabías que puedes dividir un modelo con muchas piezas en camas individuales listas para imprimir? Esto simplificará el proceso de seguimiento de todas las piezas."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
-#: Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19429,8 +19428,7 @@ msgstr ""
 "Mejorar la resistencia\n"
 "¿Sabías que puedes utilizar más bucles de perímetro y mayor densidad de relleno de baja densidad para mejorar la resistencia del modelo?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer
-#: door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
