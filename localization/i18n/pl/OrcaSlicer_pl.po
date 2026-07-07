@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-03 14:43+0200\n"
+"POT-Creation-Date: 2026-07-07 10:05-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -338,8 +338,9 @@ msgstr "Uchwyt-Skaluj"
 msgid "Error: Please close all toolbar menus first"
 msgstr "Błąd: Proszę najpierw zamknąć wszystkie paski narzędziowe"
 
+msgctxt "inches"
 msgid "in"
-msgstr "cal"
+msgstr ""
 
 msgid "mm"
 msgstr "mm"
@@ -399,26 +400,29 @@ msgstr "Zresetuj pozycję"
 msgid "Reset rotation"
 msgstr "Zresetuj obrót"
 
-msgid "Object coordinates"
-msgstr "Koordynaty obiektu"
+msgid "World"
+msgstr ""
 
-msgid "World coordinates"
-msgstr "Współrzędne"
+msgid "Object"
+msgstr "Obiekt"
 
-msgid "Translate(Relative)"
-msgstr "Przesunięcie równoległe (Względne)"
+msgid "Part"
+msgstr "Część"
+
+msgid "Relative"
+msgstr ""
+
+msgid "Coordinate system used for transform actions."
+msgstr ""
+
+msgid "Absolute"
+msgstr ""
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "Zresetuj bieżący obrót do wartości ustawionej przy otwarciu narzędzia obrotu."
 
-msgid "Rotate (absolute)"
-msgstr "Obrót (bezwzględny)"
-
 msgid "Reset current rotation to real zeros."
 msgstr "Zresetuj bieżący obrót do wartości zerowej."
-
-msgid "Part coordinates"
-msgstr "Koordynaty części"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -522,12 +526,6 @@ msgstr "Szczelina"
 
 msgid "Spacing"
 msgstr "Rozstaw"
-
-msgid "Part"
-msgstr "Część"
-
-msgid "Object"
-msgstr "Obiekt"
 
 msgid ""
 "Click to flip the cut plane\n"
@@ -1875,28 +1873,41 @@ msgstr "Otwórz projekt"
 msgid "The version of Orca Slicer is too low and needs to be updated to the latest version before it can be used normally."
 msgstr "Wersja Orca Slicer jest przestarzała i musi zostać uaktualniona do najnowszej wersji, aby działać normalnie"
 
+msgid "Cloud sync conflict:"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Cloud sync conflict for preset \"%s\":"
+msgstr ""
+
 msgid ""
-"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+"This preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"A preset with this name already exists in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+"A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+"There was an unexpected or unidentified preset conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
+"Do you want to continue?"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\n"
 "Do you want to continue?"
 msgstr ""
 
@@ -1967,7 +1978,8 @@ msgstr "Liczba zapisanych w chmurze ustawień użytkownika przekroczyła maksyma
 msgid "Sync user presets"
 msgstr "Synchronizuj ustawienia użytkownika"
 
-msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+#, c-format, boost-format
+msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
 msgstr ""
 
 #, c-format, boost-format
@@ -2187,6 +2199,9 @@ msgid "Orca Cube"
 msgstr "Sześcian Orca"
 
 msgid "OrcaSliced Combo"
+msgstr ""
+
+msgid "Orca Badge"
 msgstr ""
 
 msgid "Orca Tolerance Test"
@@ -5254,6 +5269,9 @@ msgstr "Nawisy"
 msgid "Outline"
 msgstr "kontur"
 
+msgid "Wireframe"
+msgstr ""
+
 msgid "Realistic View"
 msgstr ""
 
@@ -5297,7 +5315,7 @@ msgstr "Objętość:"
 msgid "Size:"
 msgstr "Rozmiar:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Wykryto konflikty ścieżek G-code na warstwie %d, Z = %.2lfmm. Proszę oddalić od siebie obiekty będące w konflikcie (%s <-> %s)."
 
@@ -8042,6 +8060,35 @@ msgstr ""
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr ""
 
+msgid "STEP importing: linear deflection"
+msgstr ""
+
+msgid ""
+"Linear deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.003 mm."
+msgstr ""
+
+msgid "STEP importing: angle deflection"
+msgstr ""
+
+msgid ""
+"Angle deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.5."
+msgstr ""
+
+msgid "STEP importing: Split into multiple objects"
+msgstr ""
+
+msgid ""
+"If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: disabled."
+msgstr ""
+
 msgid "Quality level for Draco export"
 msgstr ""
 
@@ -8052,6 +8099,12 @@ msgid ""
 "Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
 "0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
 "Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."
+msgstr ""
+
+msgid "Store full source file paths in projects"
+msgstr ""
+
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
 msgstr ""
 
 msgid "Preset"
@@ -12343,6 +12396,18 @@ msgstr "Próg małego obrysu"
 msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
 msgstr "To ustawia próg długości małych obrysów. Domyślny próg to 0 mm"
 
+msgid "Small support perimeters"
+msgstr ""
+
+msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
+msgstr ""
+
+msgid "Small support perimeters threshold"
+msgstr ""
+
+msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
+msgstr ""
+
 msgid "Walls printing order"
 msgstr "Kolejność drukowania ścian"
 
@@ -12523,25 +12588,26 @@ msgstr ""
 "2. Zwróć uwagę na optymalną wartość PA dla każdej wolumetrycznej prędkości przepływu i przyspieszenia. Możesz znaleźć numer przepływu, wybierając przepływ z rozwijanego schematu kolorów i przesuwając poziomy suwak nad liniami wzoru PA. Numer powinien być widoczny na dole strony. Idealna wartość PA powinna maleć, im większy jest przepływ objętościowy. Jeśli tak nie jest, potwierdź, że ekstruder działa poprawnie. Im wolniej i z mniejszym przyspieszeniu drukujesz, tym jest większy zakres dopuszczalnych wartości PA. Jeśli różnica nie jest widoczna, należy użyć wartości PA z szybszego testu.\n"
 "3. Wprowadź trójki wartości PA, przepływu i przyspieszenia w polu tekstowym tutaj i zapisz swój profil filamentu."
 
-msgid "Enable adaptive pressure advance for overhangs (beta)"
-msgstr "Włącz adaptacyjny wzrost ciśnienia dla nawisów (beta)"
-
-msgid ""
-"Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+msgid "Enable adaptive pressure advance within features (beta)"
 msgstr ""
 
-msgid "Pressure advance for bridges"
-msgstr "Wzrost ciśnienia (PA) dla mostów"
+msgid ""
+"Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
+"\n"
+"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
+"\n"
+"This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
+msgstr ""
+
+msgid "Static pressure advance for bridges"
+msgstr ""
 
 msgid ""
-"Pressure advance value for bridges. Set to 0 to disable.\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+"equivalent walls (using adaptive settings if enabled).\n"
 "\n"
-"A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+"A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Wartość wzrostu ciśnienia dla mostów. Ustaw na 0, aby wyłączyć.\n"
-"\n"
-"Niższa wartość PA podczas drukowania mostów pomaga zredukować widoczność lekkiego niedoboru materiału, który może wystąpić bezpośrednio po ich wydruku. Jest to spowodowane spadkiem ciśnienia w dyszy podczas drukowania w powietrzu, a niższy PA pomaga temu przeciwdziałać."
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Domyślna szerokość linii, jeśli inne szerokości linii są ustawione na 0. Jeśli wyrażona w %, zostanie obliczona na podstawie średnicy dyszy."
@@ -12916,6 +12982,22 @@ msgstr "Kierunek wzoru pełnego wypełnienia"
 
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
 msgstr "Kąt wyznaczający główny kierunek linii dla wzoru pełnego wypełnienia"
+
+msgid "Top layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the top solid infill and ironing lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
+msgid "Bottom layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the bottom solid infill lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
 
 msgid "Sparse infill density"
 msgstr "Gęstość wypełnienia"
@@ -15697,6 +15779,14 @@ msgstr "Skręt poliotworu"
 
 msgid "Rotate the polyhole every layer."
 msgstr "Obracaj poliotwor co warstwę."
+
+msgid "Maximum Polyhole edge count"
+msgstr ""
+
+msgid ""
+"Maximum number of polyhole edges\n"
+"This setting limits the amount of edges a polyhole can have"
+msgstr ""
 
 msgid "G-code thumbnails"
 msgstr "Miniatury G-code"
@@ -19038,6 +19128,12 @@ msgstr "Liczba trójkątnych faset"
 msgid "Calculating, please wait..."
 msgstr "Obliczanie, proszę czekać..."
 
+msgid "Save these settings as default"
+msgstr ""
+
+msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
+msgstr ""
+
 msgid "PresetBundle"
 msgstr ""
 
@@ -19445,6 +19541,39 @@ msgid ""
 msgstr ""
 "Unikaj odkształceń\n"
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może zmniejszyć prawdopodobieństwo odkształceń?"
+
+#~ msgid "in"
+#~ msgstr "cal"
+
+#~ msgid "Object coordinates"
+#~ msgstr "Koordynaty obiektu"
+
+#~ msgid "World coordinates"
+#~ msgstr "Współrzędne"
+
+#~ msgid "Translate(Relative)"
+#~ msgstr "Przesunięcie równoległe (Względne)"
+
+#~ msgid "Rotate (absolute)"
+#~ msgstr "Obrót (bezwzględny)"
+
+#~ msgid "Part coordinates"
+#~ msgstr "Koordynaty części"
+
+#~ msgid "Enable adaptive pressure advance for overhangs (beta)"
+#~ msgstr "Włącz adaptacyjny wzrost ciśnienia dla nawisów (beta)"
+
+#~ msgid "Pressure advance for bridges"
+#~ msgstr "Wzrost ciśnienia (PA) dla mostów"
+
+#~ msgid ""
+#~ "Pressure advance value for bridges. Set to 0 to disable.\n"
+#~ "\n"
+#~ "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+#~ msgstr ""
+#~ "Wartość wzrostu ciśnienia dla mostów. Ustaw na 0, aby wyłączyć.\n"
+#~ "\n"
+#~ "Niższa wartość PA podczas drukowania mostów pomaga zredukować widoczność lekkiego niedoboru materiału, który może wystąpić bezpośrednio po ich wydruku. Jest to spowodowane spadkiem ciśnienia w dyszy podczas drukowania w powietrzu, a niższy PA pomaga temu przeciwdziałać."
 
 #~ msgid "View control settings"
 #~ msgstr "Ustawienia kontrolowania widoku"
