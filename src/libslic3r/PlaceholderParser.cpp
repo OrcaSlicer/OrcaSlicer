@@ -712,6 +712,26 @@ namespace client
         static void regex_matches     (expr &lhs, IteratorRange &rhs) { return regex_op(lhs, rhs, '=', lhs); }
         static void regex_doesnt_match(expr &lhs, IteratorRange &rhs) { return regex_op(lhs, rhs, '!', lhs); }
 
+        // Replace every match of the regular expression 'pattern' in the string 'subject' with 'replacement'.
+        // The replacement may reference capture groups ($1, $2, ...). Store the result into subject.
+        static void regex_replace(expr &subject, IteratorRange &pattern, expr &replacement)
+        {
+            if (subject.type() == TYPE_EMPTY)
+                // Inside an if / else block to be skipped
+                return;
+            if (subject.type() != TYPE_STRING)
+                subject.throw_exception("regex_replace() first parameter must be a string.");
+            try {
+                std::string re(++ pattern.begin(), -- pattern.end());
+                std::string result = SLIC3R_REGEX_NAMESPACE::regex_replace(subject.s(), SLIC3R_REGEX_NAMESPACE::regex(re), replacement.to_string());
+                subject.set_s(std::move(result));
+            } catch (SLIC3R_REGEX_NAMESPACE::regex_error &ex) {
+                // Syntax error in the regular expression
+                boost::throw_exception(qi::expectation_failure<Iterator>(
+                    pattern.begin(), pattern.end(), spirit::info(std::string("*Regular expression compilation failed: ") + ex.what())));
+            }
+        }
+
         static void one_of_test_init(expr &out) {
             out.set_b(false);
         }
@@ -2323,6 +2343,8 @@ namespace client
                                                                     [ px::bind(&expr::digits<false>, _val, _2, _3) ]
                 |   (kw["zdigits"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > optional_parameter(_r1))
                                                                     [ px::bind(&expr::digits<true>, _val, _2, _3) ]
+                |   (kw["regex_replace"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > regular_expression > ',' > conditional_expression(_r1) > ')')
+                                                                    [ px::bind(&expr::regex_replace, _val, _2, _3) ]
                 |   (kw["int"]   > '(' > conditional_expression(_r1) > ')') [ px::bind(&FactorActions::to_int,  _1, _val) ]
                 |   (kw["round"] > '(' > conditional_expression(_r1) > ')') [ px::bind(&FactorActions::round,   _1, _val) ]
                 |   (kw["ceil"]  > '(' > conditional_expression(_r1) > ')') [ px::bind(&FactorActions::ceil,    _1, _val) ]
@@ -2404,6 +2426,7 @@ namespace client
                 ("min")
                 ("max")
                 ("random")
+                ("regex_replace")
                 ("filament_change")
                 ("repeat")
                 ("round")
