@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -3654,7 +3654,7 @@ msgstr "Kalibrierung abgeschlossen. Bitte suchen Sie die gleichmäßigste Extrus
 msgid "Save"
 msgstr "Speichern"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Zurück"
 
@@ -14961,6 +14961,10 @@ msgstr "Ausgerichtet"
 
 msgid "Aligned back"
 msgstr "Ausgerichtet hinten"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Zurück"
 
 msgid "Random"
 msgstr "Zufall"

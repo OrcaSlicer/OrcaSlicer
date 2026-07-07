@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3499,6 +3499,7 @@ msgstr ""
 msgid "Save"
 msgstr ""
 
+msgctxt "Navigation"
 msgid "Back"
 msgstr ""
 
@@ -13918,6 +13919,9 @@ msgid "Aligned"
 msgstr ""
 
 msgid "Aligned back"
+msgstr ""
+
+msgid "Back"
 msgstr ""
 
 msgid "Random"

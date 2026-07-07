@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -3630,7 +3630,7 @@ msgstr "Hiệu chỉnh hoàn tất. Vui lòng tìm đường đùn đồng đề
 msgid "Save"
 msgstr "Lưu"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Sau"
 
@@ -14667,6 +14667,10 @@ msgstr "Căn chỉnh"
 
 msgid "Aligned back"
 msgstr "Căn chỉnh sau"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Sau"
 
 msgid "Random"
 msgstr "Ngẫu nhiên"

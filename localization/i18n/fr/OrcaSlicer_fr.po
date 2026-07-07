@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -3569,6 +3569,7 @@ msgstr "Calibrage terminé. Veuillez trouver la ligne d'extrusion la plus unifor
 msgid "Save"
 msgstr "Enregistrer"
 
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Arrière"
 
@@ -14627,6 +14628,9 @@ msgstr "Alignée"
 
 msgid "Aligned back"
 msgstr "Aligné à l'arrière"
+
+msgid "Back"
+msgstr "Arrière"
 
 msgid "Random"
 msgstr "Aléatoire"

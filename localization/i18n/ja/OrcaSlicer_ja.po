@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3629,7 +3629,7 @@ msgstr "キャリブレーションが完了しました。下の写真のよう
 msgid "Save"
 msgstr "保存"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "背面"
 
@@ -14501,6 +14501,10 @@ msgstr "整列"
 
 msgid "Aligned back"
 msgstr ""
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "背面"
 
 msgid "Random"
 msgstr "ランダム"

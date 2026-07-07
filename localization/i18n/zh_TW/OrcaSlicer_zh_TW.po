@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -3650,7 +3650,7 @@ msgstr "校正完成。如下圖中的範例，請在您的熱床上找到最均
 msgid "Save"
 msgstr "儲存"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "背面"
 
@@ -14956,6 +14956,10 @@ msgstr "對齊"
 
 msgid "Aligned back"
 msgstr "背部對齊"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "背面"
 
 msgid "Random"
 msgstr "隨機"

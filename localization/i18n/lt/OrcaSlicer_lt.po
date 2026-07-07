@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -3576,6 +3576,7 @@ msgstr "Kalibravimas baigtas. Raskite tolygiausią ekstruzijos liniją ant kaiti
 msgid "Save"
 msgstr "Išsaugoti"
 
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Atgal"
 
@@ -14603,6 +14604,9 @@ msgstr "Sulygiuota"
 
 msgid "Aligned back"
 msgstr "Sulygiuota gale"
+
+msgid "Back"
+msgstr "Atgal"
 
 msgid "Random"
 msgstr "Atsitiktinė"

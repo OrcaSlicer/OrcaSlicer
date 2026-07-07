@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3652,7 +3652,7 @@ msgstr "Calibratge completat. Trobeu la línia d'extrusió més uniforme al vost
 msgid "Save"
 msgstr "Desar"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Darrera"
 
@@ -14807,6 +14807,10 @@ msgstr "Alineat"
 
 msgid "Aligned back"
 msgstr "Alineat al darrere"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Darrera"
 
 msgid "Random"
 msgstr "Aleatori"

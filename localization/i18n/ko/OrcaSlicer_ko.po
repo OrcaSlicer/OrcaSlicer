@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -3644,7 +3644,7 @@ msgstr "교정이 완료되었습니다. 당신의 고온 베드에서 아래 �
 msgid "Save"
 msgstr "저장"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "뒷면"
 
@@ -14719,6 +14719,10 @@ msgstr "정렬"
 
 msgid "Aligned back"
 msgstr ""
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "뒷면"
 
 msgid "Random"
 msgstr "무작위"

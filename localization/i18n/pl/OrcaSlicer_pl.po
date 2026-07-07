@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -3649,7 +3649,7 @@ msgstr "Kalibracja zakończona. Proszę znaleźć na płycie roboczej, linie eks
 msgid "Save"
 msgstr "Zapisz"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Tył"
 
@@ -14737,6 +14737,10 @@ msgstr "Wyrównany"
 
 msgid "Aligned back"
 msgstr ""
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Tył"
 
 msgid "Random"
 msgstr "Losowo"

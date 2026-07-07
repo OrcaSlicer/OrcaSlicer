@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -3639,7 +3639,7 @@ msgstr "校准完成。如下图中的示例，请在您的热床上找到最均
 msgid "Save"
 msgstr "保存"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "背面"
 
@@ -14895,6 +14895,10 @@ msgstr "对齐"
 
 msgid "Aligned back"
 msgstr "背部对齐"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "背面"
 
 msgid "Random"
 msgstr "随机"

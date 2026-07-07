@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -3660,7 +3660,7 @@ msgstr "Калібрування завершено. Тепер знайдіть
 msgid "Save"
 msgstr "Зберегти"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Ззаду"
 
@@ -14752,6 +14752,10 @@ msgstr "Вирівняне"
 
 msgid "Aligned back"
 msgstr ""
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Ззаду"
 
 msgid "Random"
 msgstr "Випадкове"

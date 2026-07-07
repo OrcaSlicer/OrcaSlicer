@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -3644,7 +3644,7 @@ msgstr "Kalibrasyon tamamlandı. Lütfen sıcak yatağınızdaki en düzgün eks
 msgid "Save"
 msgstr "Kaydet"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Arka"
 
@@ -14775,6 +14775,10 @@ msgstr "Hizalı"
 
 msgid "Aligned back"
 msgstr "Arkaya hizalı"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Arka"
 
 msgid "Random"
 msgstr "Rastgele"

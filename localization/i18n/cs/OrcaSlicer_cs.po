@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 12:35-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -3651,7 +3651,7 @@ msgstr "Kalibrace byla dokončena. Najděte na vyhřívané podložce nejrovnom�
 msgid "Save"
 msgstr "Uložit"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Zpět"
 
@@ -14854,6 +14854,10 @@ msgstr "Zarovnáno"
 
 msgid "Aligned back"
 msgstr "Zarovnat zpět"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Zpět"
 
 msgid "Random"
 msgstr "Náhodně"
