@@ -194,6 +194,11 @@ protected:
     struct FilamentInfos {
         std::string filament_id;
         std::string setting_id;
+        // Name of the exact preset this combo item was built from. filament_id is NOT
+        // unique across vendors (e.g. several vendor ABS/ASA profiles ship Generic PLA's
+        // "GFL99"), so resolving the selection by scanning for the first filament_id match
+        // can land on a preset of a different material type. Look up by name instead.
+        std::string preset_name;
     };
     std::map<std::string, FilamentInfos> map_filament_items;
 };
