@@ -203,6 +203,8 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
     const int                support_enforce_layers = config.enforce_support_layers.value;
     std::vector<Polygons>    enforcers_layers{ print_object.slice_support_enforcers() };
     std::vector<Polygons>    blockers_layers{ print_object.slice_support_blockers() };
+    // Orca: "Print as Support" volumes.
+    std::vector<Polygons>    support_mesh_layers{ print_object.slice_support_meshes() };
     print_object.project_and_append_custom_facets(false, EnforcerBlockerType::ENFORCER, enforcers_layers);
     print_object.project_and_append_custom_facets(false, EnforcerBlockerType::BLOCKER, blockers_layers);
     const int                support_threshold      = config.support_threshold_angle.value;
@@ -227,9 +229,11 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
             }
         });
 
-    size_t num_overhang_layers = support_auto ? num_object_layers : std::min(num_object_layers, std::max(size_t(support_enforce_layers), enforcers_layers.size()));
+    // Orca: also consider support_mesh_layers so a support-mesh volume is scanned for overhangs
+    // even outside of "auto" support mode (same treatment as enforcers).
+    size_t num_overhang_layers = support_auto ? num_object_layers : std::min(num_object_layers, std::max(size_t(support_enforce_layers), std::max(enforcers_layers.size(), support_mesh_layers.size())));
     tbb::parallel_for(tbb::blocked_range<LayerIndex>(1, num_overhang_layers),
-        [&print_object, &config, &print_config, &enforcers_layers, &blockers_layers,
+        [&print_object, &config, &print_config, &enforcers_layers, &blockers_layers, &support_mesh_layers,
          support_auto, support_enforce_layers, support_threshold_auto, tan_threshold, enforcer_overhang_offset, num_raft_layers, radius_sample_resolution, &throw_on_cancel, &out]
         (const tbb::blocked_range<LayerIndex> &range) {
         for (LayerIndex layer_id = range.begin(); layer_id < range.end(); ++ layer_id) {
@@ -288,6 +292,14 @@ static std::vector<std::pair<TreeSupportSettings, std::vector<size_t>>> group_me
                     overhangs = overhangs.empty() ? std::move(enforced_overhangs) : union_(overhangs, enforced_overhangs);
                     //check_self_intersections(overhangs, "generate_overhangs - enforcers");
                 }
+            }
+            if (! support_mesh_layers.empty() && ! support_mesh_layers[layer_id].empty()) {
+                // Orca: "Print as Support" - use the support mesh's own cross-section directly
+                // as a forced overhang, without intersecting it with the object's own silhouette
+                // growth like the enforcer branch above does, since a support mesh must work as
+                // a freestanding scaffold that may not overlap the main object at all.
+                Polygons support_mesh_overhangs = support_mesh_layers[layer_id];
+                overhangs = overhangs.empty() ? std::move(support_mesh_overhangs) : union_(overhangs, support_mesh_overhangs);
             }
             out[layer_id + num_raft_layers] = std::move(overhangs);
             throw_on_cancel();

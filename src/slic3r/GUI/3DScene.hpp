@@ -92,6 +92,7 @@ public:
     static ColorRGBA MODEL_NEGTIVE_COL;
     static ColorRGBA SUPPORT_ENFORCER_COL;
     static ColorRGBA SUPPORT_BLOCKER_COL;
+    static ColorRGBA SUPPORT_MESH_COL;
     static ColorRGBA MODEL_HIDDEN_COL;
 
     static void update_render_colors();

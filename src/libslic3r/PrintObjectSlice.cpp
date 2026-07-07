@@ -1191,8 +1191,17 @@ void PrintObject::slice_volumes()
     }
     region_slices.clear();
 
+    // Orca: a "Print as Support" (SUPPORT_MESH) volume may rise above the last MODEL_PART /
+    // modifier region slice (e.g. a freestanding scaffold taller than the main part). Such a
+    // volume never contributes to LayerRegion slices (it isn't part of the normal per-region
+    // pipeline), so the top layers it alone occupies would otherwise look "empty" here and be
+    // trimmed away, silently discarding the object height fix in ModelObject::update_min_max_z()/
+    // raw_bounding_box() and preventing support material from ever being generated up there.
+    const bool has_support_mesh_volume = std::any_of(this->model_object()->volumes.begin(), this->model_object()->volumes.end(),
+        [](const ModelVolume *mv) { return mv->is_support_mesh(); });
+
     BOOST_LOG_TRIVIAL(debug) << "Slicing volumes - removing top empty layers";
-    while (! m_layers.empty()) {
+    while (! m_layers.empty() && ! has_support_mesh_volume) {
         const Layer *layer = m_layers.back();
         if (! layer->empty())
             break;

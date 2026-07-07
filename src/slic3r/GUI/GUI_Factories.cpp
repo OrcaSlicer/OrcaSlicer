@@ -331,13 +331,14 @@ wxBitmap SettingsFactory::get_category_bitmap(const std::string& category_name, 
 //-------------------------------------
 
 // Note: id accords to type of the sub-object (adding volume), so sequence of the menu items is important
-static const constexpr std::array<std::pair<const char *, const char *>, 5> ADD_VOLUME_MENU_ITEMS = {{
+static const constexpr std::array<std::pair<const char *, const char *>, 6> ADD_VOLUME_MENU_ITEMS = {{
     //       menu_item Name              menu_item bitmap name
         {L("Add Part"),              "menu_add_part" },           // ~ModelVolumeType::MODEL_PART
         {L("Add Negative Part"),     "menu_add_negative" },       // ~ModelVolumeType::NEGATIVE_VOLUME
         {L("Add Modifier"),          "menu_add_modifier"},         // ~ModelVolumeType::PARAMETER_MODIFIER
         {L("Add Support Blocker"),   "menu_support_blocker"},     // ~ModelVolumeType::SUPPORT_BLOCKER
         {L("Add Support Enforcer"),  "menu_support_enforcer"},     // ~ModelVolumeType::SUPPORT_ENFORCER
+        {L("Add Support Mesh"),      "menu_support_mesh"},         // ~ModelVolumeType::SUPPORT_MESH
 }};
 
 // Note: id accords to type of the sub-object (adding volume), so sequence of the menu items is important
@@ -824,7 +825,8 @@ wxMenuItem* MenuFactory::append_menu_item_change_type(wxMenu* menu)
         { ModelVolumeType::NEGATIVE_VOLUME,    _L("Negative Part") },
         { ModelVolumeType::PARAMETER_MODIFIER, _L("Modifier") },
         { ModelVolumeType::SUPPORT_BLOCKER,    _L("Support Blocker") },
-        { ModelVolumeType::SUPPORT_ENFORCER,   _L("Support Enforcer") }
+        { ModelVolumeType::SUPPORT_ENFORCER,   _L("Support Enforcer") },
+        { ModelVolumeType::SUPPORT_MESH,       _L("Support Mesh") }
     };
 
     for (const auto& info : types) {
@@ -857,8 +859,9 @@ wxMenuItem* MenuFactory::append_menu_item_change_type(wxMenu* menu)
 
                     auto vol = (*objs)[obj_idx]->volumes[vol_idx];
 
-                    // disable Support Enforcer/Blocker if selection contains svg or text
-                    if (vol != nullptr && (vol->is_svg() || vol->is_text()) && (type == ModelVolumeType::SUPPORT_BLOCKER || type == ModelVolumeType::SUPPORT_ENFORCER)){
+                    // disable Support Enforcer/Blocker/Mesh if selection contains svg or text
+                    if (vol != nullptr && (vol->is_svg() || vol->is_text()) &&
+                        (type == ModelVolumeType::SUPPORT_BLOCKER || type == ModelVolumeType::SUPPORT_ENFORCER || type == ModelVolumeType::SUPPORT_MESH)){
                         evt.Enable(false);
                         break;
                     }

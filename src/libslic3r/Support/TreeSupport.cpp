@@ -996,6 +996,8 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
 
     auto enforcers = m_object->slice_support_enforcers();
     auto blockers  = m_object->slice_support_blockers();
+    // Orca: "Print as Support" volumes.
+    auto support_meshes = m_object->slice_support_meshes();
     m_vertical_enforcer_points.clear();
     m_object->project_and_append_custom_facets(false, EnforcerBlockerType::ENFORCER, enforcers, &m_vertical_enforcer_points);
     m_object->project_and_append_custom_facets(false, EnforcerBlockerType::BLOCKER, blockers);
@@ -1104,6 +1106,15 @@ void TreeSupport::detect_overhangs(bool check_support_necessity/* = false*/)
                 append(layer->loverhangs, enforced_overhangs);
             }
         }
+
+        // Orca: "Print as Support" - treat the support mesh's own cross-section the same way
+        // enforced overhangs are treated (forced support, classified as OverhangType::Enforced
+        // below), but do NOT intersect with the object's own silhouette growth like the
+        // enforcer branch above does: a support mesh must work as a freestanding scaffold that
+        // may not overlap the main object's footprint at all.
+        if (layer_nr < support_meshes.size() && !support_meshes[layer_nr].empty())
+            append(layer->loverhangs, union_ex(support_meshes[layer_nr]));
+
         int nEnforced = layer->loverhangs.size();
 
         // add sharp tail overhangs

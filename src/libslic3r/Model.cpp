@@ -1477,7 +1477,11 @@ void ModelObject::update_min_max_z()
         double global_min_z = std::numeric_limits<double>::max();
         double global_max_z = - std::numeric_limits<double>::max();
         for (const ModelVolume *v : this->volumes)
-            if (v->is_model_part()) {
+            // Orca: a support-mesh volume may rise above the model part's own geometry
+            // (e.g. a freestanding scaffold reaching a taller overhang elsewhere), so it
+            // must contribute to the object's height, or layers above the model part's own
+            // top Z would never be generated and the support mesh would be silently clipped.
+            if (v->is_model_part() || v->is_support_mesh()) {
                 const Transform3d m = mat_instance * v->get_matrix();
                 const Vec3d  row_z   = m.linear().row(2).cast<double>();
                 const double shift_z = m.translation().z();
@@ -1592,7 +1596,9 @@ const BoundingBoxf3& ModelObject::raw_bounding_box() const
 
         const Transform3d inst_matrix = this->instances.front()->get_transformation().get_matrix_no_offset();
         for (const ModelVolume *v : this->volumes)
-            if (v->is_model_part())
+            // Orca: include support-mesh volumes so a freestanding scaffold taller than the
+            // model part still contributes to the object's snug height used for slicing.
+            if (v->is_model_part() || v->is_support_mesh())
                 m_raw_bounding_box.merge(v->mesh().transformed_bounding_box(inst_matrix * v->get_matrix()));
     }
 	return m_raw_bounding_box;
@@ -2722,6 +2728,8 @@ ModelVolumeType ModelVolume::type_from_string(const std::string &s)
 		return ModelVolumeType::SUPPORT_ENFORCER;
     if (s == "support_blocker")
 		return ModelVolumeType::SUPPORT_BLOCKER;
+    if (s == "support_mesh")
+        return ModelVolumeType::SUPPORT_MESH;
     //assert(s == "0");
     // Default value if invalud type string received.
 	return ModelVolumeType::MODEL_PART;
@@ -2736,6 +2744,7 @@ std::string ModelVolume::type_to_string(const ModelVolumeType t)
 	case ModelVolumeType::PARAMETER_MODIFIER: return "modifier_part";
 	case ModelVolumeType::SUPPORT_ENFORCER:   return "support_enforcer";
 	case ModelVolumeType::SUPPORT_BLOCKER:    return "support_blocker";
+    case ModelVolumeType::SUPPORT_MESH:       return "support_mesh";
     default:
         assert(false);
         return "normal_part";

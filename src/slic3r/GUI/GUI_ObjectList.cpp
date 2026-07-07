@@ -3825,7 +3825,9 @@ wxDataViewItem ObjectList::add_settings_item(wxDataViewItem parent_item, const D
     const bool is_layer_settings = m_objects_model->GetItemType(parent_item) == itLayer;
     if (!is_object_settings) {
         ModelVolumeType volume_type = m_objects_model->GetVolumeType(parent_item);
-        if (volume_type == ModelVolumeType::NEGATIVE_VOLUME || volume_type == ModelVolumeType::SUPPORT_BLOCKER || volume_type == ModelVolumeType::SUPPORT_ENFORCER)
+        // Orca: Support Mesh has no per-volume settings yet (MVP reuses object-level support settings only).
+        if (volume_type == ModelVolumeType::NEGATIVE_VOLUME || volume_type == ModelVolumeType::SUPPORT_BLOCKER ||
+            volume_type == ModelVolumeType::SUPPORT_ENFORCER || volume_type == ModelVolumeType::SUPPORT_MESH)
             return ret;
     }
 
@@ -5751,13 +5753,13 @@ void ObjectList::set_volume_type(ModelVolumeType new_type)
     // Defense-in-depth safety net against issue #5070: SVG/text volumes carry emboss metadata
     // (text_configuration, emboss_shape) that only makes sense for Part / Negative Part / Modifier.
     // ModelVolume::set_type() does not clear that metadata, so converting such volumes to
-    // Support Blocker / Support Enforcer leaves stale emboss state attached to a support volume
-    // and historically crashed (originally fixed in the now-disabled change_part_type() by hiding
-    // Support entries in the old choice dialog; the UI-side guard for the current submenu lives
-    // in MenuFactory::append_menu_item_change_type, see #13120).
+    // Support Blocker / Support Enforcer / Support Mesh leaves stale emboss state attached to a
+    // support volume and historically crashed (originally fixed in the now-disabled
+    // change_part_type() by hiding Support entries in the old choice dialog; the UI-side guard
+    // for the current submenu lives in MenuFactory::append_menu_item_change_type, see #13120).
     // This block must never be reachable under a healthy UI; if it ever logs, the UI guard has
     // been bypassed (new entry point, refactor, plugin, etc.) and should be investigated.
-    if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER) {
+    if (new_type == ModelVolumeType::SUPPORT_BLOCKER || new_type == ModelVolumeType::SUPPORT_ENFORCER || new_type == ModelVolumeType::SUPPORT_MESH) {
         const bool has_text_or_svg = std::any_of(volumes.begin(), volumes.end(),
             [](const VolumeSelection& sel) { return sel.volume->is_svg() || sel.volume->is_text(); });
         if (has_text_or_svg) {

@@ -345,6 +345,9 @@ enum class ModelVolumeType : int {
     PARAMETER_MODIFIER,
     SUPPORT_BLOCKER,
     SUPPORT_ENFORCER,
+    // Orca: "Print as Support" - the volume's own geometry seeds support material generation
+    // directly (printed with support settings), instead of being sliced as a normal part.
+    SUPPORT_MESH,
 };
 
 // A printable object, possibly having multiple print volumes (each with its own set of parameters and materials),
@@ -907,7 +910,8 @@ public:
 	bool                is_modifier()           const { return m_type == ModelVolumeType::PARAMETER_MODIFIER; }
 	bool                is_support_enforcer()   const { return m_type == ModelVolumeType::SUPPORT_ENFORCER; }
 	bool                is_support_blocker()    const { return m_type == ModelVolumeType::SUPPORT_BLOCKER; }
-	bool                is_support_modifier()   const { return m_type == ModelVolumeType::SUPPORT_BLOCKER || m_type == ModelVolumeType::SUPPORT_ENFORCER; }
+	bool                is_support_mesh()       const { return m_type == ModelVolumeType::SUPPORT_MESH; }
+	bool                is_support_modifier()   const { return m_type == ModelVolumeType::SUPPORT_BLOCKER || m_type == ModelVolumeType::SUPPORT_ENFORCER || m_type == ModelVolumeType::SUPPORT_MESH; }
     bool                is_text()               const { return text_configuration.has_value(); }
     bool                is_svg() const { return emboss_shape.has_value()  && !text_configuration.has_value(); }
     bool                is_the_only_one_part() const; // behave like an object

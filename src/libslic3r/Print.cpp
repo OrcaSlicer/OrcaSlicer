@@ -1622,7 +1622,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
             // Notify the user in that case.
             if (! object->has_support()) {
                 for (const ModelVolume* mv : object->model_object()->volumes) {
-                    bool has_enforcers = mv->is_support_enforcer() ||
+                    bool has_enforcers = mv->is_support_enforcer() || mv->is_support_mesh() ||
                         (mv->is_model_part() && mv->supported_facets.has_facets(*mv, EnforcerBlockerType::ENFORCER));
                     if (has_enforcers) {
                         warn(L("Support enforcers are used but support is not enabled. Please enable support."), "", object);

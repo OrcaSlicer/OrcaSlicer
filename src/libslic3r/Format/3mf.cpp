@@ -368,6 +368,11 @@ ModelVolumeType type_from_string(const std::string &s)
     if (s == "ParameterModifier") return ModelVolumeType::PARAMETER_MODIFIER;
     if (s == "SupportEnforcer") return ModelVolumeType::SUPPORT_ENFORCER;
     if (s == "SupportBlocker") return ModelVolumeType::SUPPORT_BLOCKER;
+    if (s == "SupportMesh") return ModelVolumeType::SUPPORT_MESH;
+    // The writer below (store_3mf) actually serializes volume_type via the shared
+    // ModelVolume::type_to_string(), which uses this lowercase/underscore convention, not the
+    // CamelCase one above (that one exists for reading genuine legacy PrusaSlicer 3mf files).
+    if (s == "support_mesh") return ModelVolumeType::SUPPORT_MESH;
     // Default value if invalud type string received.
     return ModelVolumeType::MODEL_PART;
 }

@@ -440,10 +440,13 @@ public:
     // Called by make_perimeters()
     void slice();
 
-    // Helpers to slice support enforcer / blocker meshes by the support generator.
+    // Helpers to slice support enforcer / blocker / support-mesh volumes by the support generator.
     std::vector<Polygons>       slice_support_volumes(const ModelVolumeType model_volume_type) const;
     std::vector<Polygons>       slice_support_blockers() const { return this->slice_support_volumes(ModelVolumeType::SUPPORT_BLOCKER); }
     std::vector<Polygons>       slice_support_enforcers() const { return this->slice_support_volumes(ModelVolumeType::SUPPORT_ENFORCER); }
+    // Orca: "Print as Support" - volumes whose own per-layer cross-section directly seeds
+    // support material generation, independent of the main object's footprint.
+    std::vector<Polygons>       slice_support_meshes() const { return this->slice_support_volumes(ModelVolumeType::SUPPORT_MESH); }
 
     // Helpers to project custom facets on slices
     void project_and_append_custom_facets(bool seam, EnforcerBlockerType type, std::vector<Polygons>& expolys, std::vector<std::pair<Vec3f,Vec3f>>* vertical_points=nullptr) const;

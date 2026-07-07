@@ -133,6 +133,48 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
     }
 }
 
+SCENARIO("Support mesh volume type round-trips through 3mf", "[3mf]") {
+    GIVEN("a model with a SUPPORT_MESH volume") {
+        Model src_model;
+        std::string src_file = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
+        load_stl(src_file.c_str(), &src_model);
+        src_model.add_default_instances();
+
+        ModelObject* src_object = src_model.objects.front();
+        src_object->volumes.front()->set_type(ModelVolumeType::SUPPORT_MESH);
+
+        WHEN("model is saved+loaded to/from 3mf file") {
+            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/support_mesh.3mf";
+            store_3mf(test_file.c_str(), &src_model, nullptr, false);
+
+            Model dst_model;
+            DynamicPrintConfig dst_config;
+            {
+                ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable };
+                load_3mf(test_file.c_str(), dst_config, ctxt, &dst_model, false);
+            }
+            boost::filesystem::remove(test_file);
+
+            THEN("the SUPPORT_MESH type round-trips") {
+                REQUIRE(!dst_model.objects.empty());
+                REQUIRE(!dst_model.objects.front()->volumes.empty());
+                REQUIRE(dst_model.objects.front()->volumes.front()->type() == ModelVolumeType::SUPPORT_MESH);
+            }
+        }
+    }
+}
+
+SCENARIO("Unrecognized volume type string degrades to MODEL_PART", "[3mf]") {
+    GIVEN("a type string no known format writes") {
+        THEN("type_from_string falls back to MODEL_PART without asserting") {
+            // Guards backward compatibility: an older OrcaSlicer build opening a project
+            // saved by a newer build with a not-yet-understood volume type must degrade to
+            // a normal model part instead of crashing (same precedent as support enforcer/blocker).
+            REQUIRE(ModelVolume::type_from_string("some_future_volume_type") == ModelVolumeType::MODEL_PART);
+        }
+    }
+}
+
 SCENARIO("2D convex hull of sinking object", "[3mf][.]") {
     GIVEN("model") {
         // load a model

@@ -1328,6 +1328,7 @@ struct SupportAnnotations
     SupportAnnotations(const PrintObject &object, const std::vector<Polygons> &buildplate_covered) :
         enforcers_layers(object.slice_support_enforcers()),
         blockers_layers(object.slice_support_blockers()),
+        support_mesh_layers(object.slice_support_meshes()),
         buildplate_covered(buildplate_covered)
     {
         // Append custom supports.
@@ -1346,6 +1347,10 @@ struct SupportAnnotations
 
     std::vector<Polygons>         enforcers_layers;
     std::vector<Polygons>         blockers_layers;
+    // Orca: "Print as Support" volumes. Unlike enforcers_layers, this geometry is used
+    // as-is (not intersected with the object's own footprint) since a support mesh may be
+    // a freestanding scaffold disconnected from the main object.
+    std::vector<Polygons>         support_mesh_layers;
     const std::vector<Polygons>&  buildplate_covered;
 };
 
@@ -1583,12 +1588,15 @@ static inline std::tuple<Polygons, Polygons, double> detect_contacts(
         // Generate overhang / contact_polygons for non-raft layers.
         const Layer& lower_layer = *layer.lower_layer;
         const bool   has_enforcer = !annotations.enforcers_layers.empty() && !annotations.enforcers_layers[layer_id].empty();
+        // Orca: "Print as Support" volumes force support the same way enforcers do (they must
+        // not be restricted by "support on build plate only"), see slices_margin_update below.
+        const bool   has_support_mesh = !annotations.support_mesh_layers.empty() && !annotations.support_mesh_layers[layer_id].empty();
         const ExPolygons& lower_layer_expolys = lower_layer.lslices;
         const ExPolygons& lower_layer_sharptails = lower_layer.sharp_tails;
 
         // Cache support trimming polygons derived from lower layer polygons, possible merged with "on build plate only" trimming polygons.
         auto slices_margin_update =
-            [&slices_margin, &layer, &lower_layer, &lower_layer_polygons, buildplate_only, has_enforcer, &annotations, layer_id]
+            [&slices_margin, &layer, &lower_layer, &lower_layer_polygons, buildplate_only, has_enforcer, has_support_mesh, &annotations, layer_id]
         (float slices_margin_offset, float no_interface_offset) {
             if (slices_margin.offset != slices_margin_offset) {
                 slices_margin.offset = slices_margin_offset;
@@ -1597,7 +1605,7 @@ static inline std::tuple<Polygons, Polygons, double> detect_contacts(
                     // What is the purpose of no_interface_offset? Likely to not trim the contact layer by lower layer regions that are too thin to extrude?
                     offset2(lower_layer.lslices, -no_interface_offset * 0.5f, slices_margin_offset + no_interface_offset * 0.5f, SUPPORT_SURFACES_OFFSET_PARAMETERS);
                 if (buildplate_only && !annotations.buildplate_covered[layer_id].empty()) {
-                    if (has_enforcer)
+                    if (has_enforcer || has_support_mesh)
                         // Make a backup of trimming polygons before enforcing "on build plate only".
                         slices_margin.all_polygons = slices_margin.polygons;
                     // Trim the inflated contact surfaces by the top surfaces as well.
@@ -1667,6 +1675,31 @@ static inline std::tuple<Polygons, Polygons, double> detect_contacts(
                     polygons_append(overhang_polygons, enforcer_polygons);
                     slices_margin_update(std::min(lower_layer_offset, float(scale_(gap_xy))), no_interface_offset);
                     polygons_append(contact_polygons, diff(enforcer_polygons, slices_margin.all_polygons.empty() ? slices_margin.polygons : slices_margin.all_polygons));
+                }
+            }
+
+        if (has_support_mesh)
+            if (const Polygons& support_mesh_polygons_src = annotations.support_mesh_layers[layer_id]; !support_mesh_polygons_src.empty()) {
+                // Orca: "Print as Support" - the support mesh's own cross-section at this layer
+                // is used directly as a forced contact area. Unlike the enforcer branch above,
+                // this is NOT intersected with layer.lslices (the main object's own footprint),
+                // because a support mesh must work as a freestanding scaffold that may not
+                // overlap the main object at all. It is only kept off the object surface itself
+                // to avoid degenerate exact-boundary overlap artifacts; the ordinary support/object
+                // trimming pass (trim_support_layers_by_object) handles any real overlap later.
+                //
+                // Known limitation: because this seeds a forced top-contact at every layer the
+                // support mesh occupies (not just where its own cross-section newly appears),
+                // a tall support-mesh column will be printed with interface density/pattern
+                // through its whole height rather than sparse base-pattern fill in the middle.
+                // See AGENTS.md-tracked follow-up: diff against the mesh's own lower-layer slice
+                // to only seed top/bottom contacts where the shape actually grows/shrinks.
+                Polygons support_mesh_polygons = diff(support_mesh_polygons_src,
+                    expand(lower_layer_polygons, 0.05f * no_interface_offset, SUPPORT_SURFACES_OFFSET_PARAMETERS));
+                if (!support_mesh_polygons.empty()) {
+                    polygons_append(overhang_polygons, support_mesh_polygons);
+                    slices_margin_update(std::min(lower_layer_offset, float(scale_(gap_xy))), no_interface_offset);
+                    polygons_append(contact_polygons, diff(support_mesh_polygons, slices_margin.all_polygons.empty() ? slices_margin.polygons : slices_margin.all_polygons));
                 }
             }
     }
