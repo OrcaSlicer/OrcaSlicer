@@ -3,7 +3,7 @@
 	"name": "Generic PETG @Qidi Q2 0.4 nozzle",
 	"inherits": "Generic PETG@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "uz9sYXnJt93eY8A4",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.056"

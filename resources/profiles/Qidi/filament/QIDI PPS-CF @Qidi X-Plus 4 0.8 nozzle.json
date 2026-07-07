@@ -3,7 +3,7 @@
 	"name": "QIDI PPS-CF @Qidi X-Plus 4 0.8 nozzle",
 	"inherits": "QIDI PPS-CF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "eXV1ZPiBolFIU4Ub",
 	"filament_id": "QD_0_1_44",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [

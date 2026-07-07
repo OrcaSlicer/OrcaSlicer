@@ -3,7 +3,7 @@
 	"name": "Flashforge Generic PLA-CF10",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "qH3l3p0yvZHqHnwG",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [

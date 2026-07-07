@@ -3,7 +3,7 @@
 	"name": "FusRock Generic PET-GF",
 	"inherits": "FusRock Generic PET-CF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "IEpmsltdjoCu2txJ",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

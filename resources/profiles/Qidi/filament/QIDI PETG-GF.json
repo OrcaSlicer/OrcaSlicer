@@ -3,7 +3,7 @@
 	"name": "QIDI PETG-GF",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSN99",
+	"setting_id": "bex5zSdkQThZQi0s",
 	"filament_id": "GFN98",
 	"instantiation": "true",
 	"filament_type": [
@@ -61,14 +61,9 @@
 		"Qidi X-Smart 3 0.4 nozzle",
 		"Qidi X-Plus 3 0.4 nozzle",
 		"Qidi X-Max 3 0.4 nozzle",
-		"Qidi X-Max 0.6 nozzle",
-		"Qidi X-CF Pro 0.6 nozzle",
 		"Qidi X-Smart 3 0.6 nozzle",
 		"Qidi X-Plus 3 0.6 nozzle",
 		"Qidi X-Max 3 0.6 nozzle",
-		"Qidi X-Plus 0.8 nozzle",
-		"Qidi X-Max 0.8 nozzle",
-		"Qidi X-CF Pro 0.8 nozzle",
 		"Qidi X-Smart 3 0.8 nozzle",
 		"Qidi X-Plus 3 0.8 nozzle",
 		"Qidi X-Max 3 0.8 nozzle"

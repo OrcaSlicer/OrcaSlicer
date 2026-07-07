@@ -3,7 +3,7 @@
 	"name": "Creality Generic PLA-CF @Hi-all",
 	"inherits": "Creality Generic PLA-CF",
 	"from": "system",
-	"setting_id": "GFSL96_00",
+	"setting_id": "9nAovlPz0SEUcovr",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"18"

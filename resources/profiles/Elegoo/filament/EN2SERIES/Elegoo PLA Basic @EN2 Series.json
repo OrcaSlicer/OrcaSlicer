@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA Basic @EN2 Series",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "EPLABASICEN2",
+	"setting_id": "rKMXIa1T57ARSSew",
 	"instantiation": "true",
 	"nozzle_temperature": [
 		"220"

@@ -3,7 +3,7 @@
 	"name": "Prusa MINIIS 0.25 nozzle",
 	"inherits": "Prusa MINIIS 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM004",
+	"setting_id": "BsGxNOxIqRKF8c2X",
 	"instantiation": "true",
 	"gcode_flavor": "marlin2",
 	"printer_model": "Prusa MINI IS",

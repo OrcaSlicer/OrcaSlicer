@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Matte Basic @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "QIDI PLA Matte Basic",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "hGKQJNUIQR0srofE",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

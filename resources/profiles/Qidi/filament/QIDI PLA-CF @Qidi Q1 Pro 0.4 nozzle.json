@@ -3,7 +3,7 @@
 	"name": "QIDI PLA-CF @Qidi Q1 Pro 0.4 nozzle",
 	"inherits": "Qidi PLA-CF",
 	"from": "system",
-	"setting_id": "GFSL98",
+	"setting_id": "xGqY059EYGUevj9G",
 	"filament_id": "GFL98",
 	"instantiation": "true",
 	"filament_flow_ratio": [

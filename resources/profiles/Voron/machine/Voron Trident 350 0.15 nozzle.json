@@ -3,7 +3,7 @@
 	"name": "Voron Trident 350 0.15 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "h5BoablHRKcPWsoi",
 	"instantiation": "true",
 	"printer_model": "Voron Trident 350",
 	"default_print_profile": "0.09mm Standard 0.15 nozzle @Voron",

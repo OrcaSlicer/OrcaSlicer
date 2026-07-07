@@ -3,7 +3,7 @@
 	"name": "Bambu PPA-CF @System",
 	"inherits": "Bambu PPA-CF @base",
 	"from": "system",
-	"setting_id": "OGFSN06_00",
+	"setting_id": "NEjBweIYKppi6T0Q",
 	"instantiation": "true",
 	"compatible_printers": []
 }

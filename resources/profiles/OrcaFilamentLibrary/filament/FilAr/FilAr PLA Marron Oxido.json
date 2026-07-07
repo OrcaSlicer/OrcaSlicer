@@ -3,6 +3,7 @@
     "name": "FilAr PLA Marron Oxido",
     "inherits": "FilAr PLA @base",
     "from": "system",
+    "setting_id": "r9eviTeCeTW4rLuz",
     "filament_id": "FILAR0008",
     "instantiation": "true",
     "filament_vendor": [

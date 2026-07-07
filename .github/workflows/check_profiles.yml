@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Run extra JSON check
         id: extra_json_check
@@ -38,10 +38,10 @@ jobs:
       - name: Download
         working-directory: ${{ github.workspace }}
         run: |
-          curl -LJO https://github.com/SoftFever/Orca_tools/releases/download/1/OrcaSlicer_profile_validator
+          curl -L -o OrcaSlicer_profile_validator https://github.com/OrcaSlicer/OrcaSlicer/releases/download/nightly-builds/OrcaSlicer_profile_validator_Linux_Ubuntu2404_nightly
           chmod +x ./OrcaSlicer_profile_validator
 
-      # validate profiles
+      # Validate all system profiles.
       - name: validate system profiles
         id: validate_system
         continue-on-error: true
@@ -49,17 +49,115 @@ jobs:
           set +e
           ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_system.log
           exit ${PIPESTATUS[0]}
+      # For now run filament subtype check only for BBL profiles until we fix other vendors' profiles.
+      - name: validate filament subtype check for BBL profiles
+        id: validate_filament_subtypes
+        continue-on-error: true
+        run: |
+          set +e
+          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 -v BBL -f 2>&1 | tee ${{ runner.temp }}/validate_filament_subtypes.log
+          exit ${PIPESTATUS[0]}
 
       - name: validate custom presets
         id: validate_custom
         continue-on-error: true
         working-directory: ${{ github.workspace }}
         run: |
-          set +e
-          curl -LJO https://github.com/OrcaSlicer/OrcaSlicer/releases/download/nightly-builds/orca_custom_preset_tests.zip
-          unzip -q ./orca_custom_preset_tests.zip -d ${{ github.workspace }}/resources/profiles
-          ./OrcaSlicer_profile_validator -p ${{ github.workspace }}/resources/profiles -l 2 2>&1 | tee ${{ runner.temp }}/validate_custom.log
-          exit ${PIPESTATUS[0]}
+          fixtures_dir="${{ runner.temp }}/profile-fixtures"
+          output_dir="${{ runner.temp }}/custom-preset-validation"
+          combined_log="${{ runner.temp }}/validate_custom.log"
+          summary="${output_dir}/summary.md"
+          release_url="https://github.com/OrcaSlicer/OrcaSlicer-profile-validator/releases/download/fixture-archive"
+
+          rm -rf "${fixtures_dir}" "${output_dir}"
+          mkdir -p "${fixtures_dir}" "${output_dir}"
+
+          curl -fsSL -o "${fixtures_dir}/manifest.json" "${release_url}/manifest.json"
+
+          MANIFEST_PATH="${fixtures_dir}/manifest.json" python3 <<'PY' > "${fixtures_dir}/fixtures.tsv"
+          import json
+          import os
+
+          with open(os.environ["MANIFEST_PATH"], encoding="utf-8") as fh:
+              manifest = json.load(fh)
+
+          if isinstance(manifest, dict):
+              entries = manifest.get("fixtures", [])
+          else:
+              entries = manifest
+
+          for entry in entries:
+              version = entry.get("version", "")
+              asset = entry.get("asset", "")
+              sha256 = entry.get("asset_sha256", "")
+              if not version or not asset:
+                  continue
+              print(f"{version}\t{asset}\t{sha256}")
+          PY
+
+          if [ ! -s "${fixtures_dir}/fixtures.tsv" ]; then
+            echo "No custom preset fixtures found in ${release_url}/manifest.json" | tee "${combined_log}"
+            exit 1
+          fi
+
+          {
+            echo "## Custom Preset Fixture Validation"
+            echo ""
+            echo "| Version | Status | Log |"
+            echo "| --- | --- | --- |"
+          } > "${summary}"
+
+          status=0
+          failed_logs=()
+
+          while IFS=$'\t' read -r version asset expected_sha256; do
+            fixture_zip="${fixtures_dir}/${asset}"
+            asset_url_name="$(python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "${asset}")"
+            profile_tree="${output_dir}/profiles-${version}"
+            log_path="${output_dir}/${version}.log"
+
+            curl -fsSL -o "${fixture_zip}" "${release_url}/${asset_url_name}"
+
+            if [ -n "${expected_sha256}" ] && [ "${expected_sha256}" != "<sha256>" ]; then
+              echo "${expected_sha256}  ${fixture_zip}" | sha256sum -c -
+            fi
+
+            rm -rf "${profile_tree}"
+            mkdir -p "${profile_tree}"
+            cp -a "${{ github.workspace }}/resources/profiles/." "${profile_tree}/"
+            rm -rf "${profile_tree}/user"
+            unzip -q "${fixture_zip}" -d "${profile_tree}"
+
+            set +e
+            ./OrcaSlicer_profile_validator -p "${profile_tree}" -l 2 > "${log_path}" 2>&1
+            result=$?
+            set -e
+
+            if [ "${result}" -eq 0 ]; then
+              echo "| ${version} | PASS | ${version}.log |" >> "${summary}"
+            else
+              echo "| ${version} | FAIL | ${version}.log |" >> "${summary}"
+              failed_logs+=("${log_path}")
+              status=1
+            fi
+          done < "${fixtures_dir}/fixtures.tsv"
+
+          {
+            cat "${summary}"
+            if [ "${#failed_logs[@]}" -gt 0 ]; then
+              echo ""
+              echo "## Failed Fixture Logs"
+              for log_path in "${failed_logs[@]}"; do
+                echo ""
+                echo "### $(basename "${log_path}" .log)"
+                echo '```'
+                head -c 12000 "${log_path}" || echo "No output captured"
+                echo '```'
+              done
+            fi
+          } | tee "${combined_log}"
+
+          exit "${status}"
 
       - name: Prepare PR number for comment workflow
         if: ${{ always() && github.event_name == 'pull_request' }}
@@ -68,7 +166,7 @@ jobs:
           echo "${{ github.event.pull_request.number }}" > ${{ runner.temp }}/profile-check-results/pr_number.txt
 
       - name: Prepare comment artifact
-        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && github.event_name == 'pull_request' && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
           {
             # Marker matched by check_profiles_comment.yml to delete prior comments.
@@ -90,6 +188,15 @@ jobs:
               echo ""
               echo '```'
               head -c 30000 ${{ runner.temp }}/validate_system.log || echo "No output captured"
+              echo '```'
+              echo ""
+            fi
+
+            if [ "${{ steps.validate_filament_subtypes.outcome }}" = "failure" ]; then
+              echo "### BBL Filament Subtype Validation Failed"
+              echo ""
+              echo '```'
+              head -c 30000 ${{ runner.temp }}/validate_filament_subtypes.log || echo "No output captured"
               echo '```'
               echo ""
             fi
@@ -116,7 +223,7 @@ jobs:
           retention-days: 1
 
       - name: Fail if any check failed
-        if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
+        if: ${{ always() && (steps.extra_json_check.outcome == 'failure' || steps.validate_system.outcome == 'failure' || steps.validate_filament_subtypes.outcome == 'failure' || steps.validate_custom.outcome == 'failure') }}
         run: |
           echo "One or more profile checks failed. See above for details."
           exit 1

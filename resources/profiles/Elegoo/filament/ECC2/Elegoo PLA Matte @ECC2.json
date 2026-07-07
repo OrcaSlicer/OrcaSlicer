@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA Matte @ECC2",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "EPLAMECC2",
+	"setting_id": "C3IdNUQ5dSe1wQua",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"80"

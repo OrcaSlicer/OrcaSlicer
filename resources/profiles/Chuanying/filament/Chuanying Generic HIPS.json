@@ -3,7 +3,7 @@
 	"name": "Chuanying Generic HIPS",
 	"inherits": "Chuanying Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "bBNozld07rP6mV3d",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

@@ -1,10 +1,10 @@
 {
 	"type": "filament",
 	"name": "Elegoo Rapid PETG @Elegoo Giga",
-	"renamed_from": "Elegoo RAPID PETG @Elegoo Giga;Elegoo Rapid PETG @EOS Giga",
+	"renamed_from": "Elegoo RAPID PETG @Elegoo Giga;Elegoo Rapid PETG @EOS Giga;Elegoo RAPID PETG @EOS Giga",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "ERPETGEOSG00",
+	"setting_id": "4ut2mjKopnW6tfxj",
 	"instantiation": "true",
 	"enable_pressure_advance": [
 		"1"

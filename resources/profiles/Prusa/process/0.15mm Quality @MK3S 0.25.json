@@ -3,6 +3,7 @@
 	"name": "0.15mm Quality @MK3S 0.25",
 	"inherits": "process_common_mk3",
 	"from": "system",
+	"setting_id": "dsOu1V1ogb4RNViA",
 	"instantiation": "true",
 	"print_settings_id": "0.15mm Quality @MK3S 0.25",
 	"bottom_shell_layers": "5",

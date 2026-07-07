@@ -3,7 +3,7 @@
 	"name": "Prusa Generic TPU @CORE One",
 	"inherits": "fdm_filament_flex",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "VR2WfERGWPIWTRha",
 	"filament_id": "Prusa Generic TPU @CORE One",
 	"instantiation": "true",
 	"chamber_temperature": [

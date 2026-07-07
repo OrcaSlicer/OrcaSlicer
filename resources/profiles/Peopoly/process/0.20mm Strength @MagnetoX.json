@@ -3,7 +3,7 @@
 	"name": "0.20mm Strength @Magneto X",
 	"inherits": "fdm_process_pply_0.20",
 	"from": "system",
-	"setting_id": "GP013",
+	"setting_id": "PABVXPLFXBXP0fp5",
 	"instantiation": "true",
 	"outer_wall_speed": "120",
 	"wall_loops": "6",

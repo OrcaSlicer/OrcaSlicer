@@ -323,7 +323,9 @@ private:
     boost::thread    m_sync_update_thread;
     std::shared_ptr<int> m_user_sync_token;
     std::atomic<bool>    m_restart_sync_pending {false};
+    std::atomic<bool>    m_sync_user_preset_dlg_active {false}; // a manual "Sync Presets" progress dialog is on screen (see restart_sync_user_preset)
     std::atomic<bool>    m_sync_user_presets_now {false}; // request the sync loop to push user presets on its next tick
+    std::atomic<bool>    m_migration_retry_pending {false};
     bool             m_is_dark_mode{ false };
     bool             m_adding_script_handler { false };
     bool             m_side_popup_status{false};
@@ -466,6 +468,7 @@ public:
     void            recreate_GUI(const wxString& message);
     void            system_info();
     void            keyboard_shortcuts();
+    void            troubleshoot();
     void            load_project(wxWindow *parent, wxString& input_file) const;
     void            import_model(wxWindow *parent, wxArrayString& input_files) const;
     void            import_zip(wxWindow* parent, wxString& input_file) const;
@@ -542,7 +545,7 @@ public:
 
     // Bundle subscription sync
     void            check_bundle_updates();
-    void            sync_bundle(std::string bundle_id, std::string version);
+    int             sync_bundle(std::string bundle_id, std::string version);
     bool            unsubscribe_bundle(const std::string& id);
     void            update_single_bundle(wxCommandEvent& evt);
 
@@ -739,6 +742,7 @@ public:
     int             install_plugin(std::string name, std::string package_name, InstallProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr);
     std::string     get_http_url(std::string country_code, std::string path = {});
     std::string     get_model_http_url(std::string country_code);
+    bool            use_legacy_network_plugin() const;
     bool            is_compatibility_version();
     bool            check_networking_version();
     void            cancel_networking_install();
