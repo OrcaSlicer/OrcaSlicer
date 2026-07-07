@@ -5,36 +5,30 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
-	#include <Windows.h>
+#include <Windows.h>
 #endif
 
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/libslic3r.h"
-#include "libslic3r/Config.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/TriangleMesh.hpp"
-#include "libslic3r/Model.hpp"
-#include "libslic3r/Print.hpp"
 
-#include "test_data.hpp"
+#include "test_helpers.hpp"
 
-#include <boost/filesystem.hpp>
 #include <algorithm>
-#include <fstream>
-#include <iterator>
 #include <string>
 #include <vector>
 
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
-// Always-on test: verifies the "Relative to Part" option is registered correctly, round-trips
-// through (de)serialization, has the expected defaults, and is carried by the Print preset.
-// This exercises the whole config surface of the feature without slicing (see the [.]-hidden
-// test below for the actual seam-placement behavior).
+// Verifies the "Relative to Part" option is registered correctly, round-trips through
+// (de)serialization, has the expected defaults, and is carried by the Print preset.
+// This exercises the whole config surface of the feature without slicing (see the
+// slicing test below for the actual seam-placement behavior).
 TEST_CASE("Relative-to-Part seam option is registered and round-trips", "[Seams]")
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
@@ -68,28 +62,20 @@ TEST_CASE("Relative-to-Part seam option is registered and round-trips", "[Seams]
     // The new keys must be part of the Print preset, otherwise the Process tab cannot bind them
     // ("No <key> in ConfigOptionsGroup config." at runtime).
     const std::vector<std::string> &opts = Preset::print_options();
-    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position")     != opts.end());
-    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_x")   != opts.end());
+    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position")       != opts.end());
+    REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_x")     != opts.end());
     REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_y")     != opts.end());
     REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_ref")   != opts.end());
     REQUIRE(std::find(opts.begin(), opts.end(), "seam_position_align") != opts.end());
 }
 
-// ---------------------------------------------------------------------------------------------
-// Seam-placement behavior test. Marked [.] (hidden) like every other fff_print slicing test:
-// G-code export currently SIGSEGVs in this test harness inside append_full_config() while
-// serializing a coEnums option with a null keys_map — a pre-existing issue unrelated to this
-// feature (all existing [.] slicing tests fail the same way). Run explicitly with:
-//     ./fff_print_tests "[Seams][.]"
-// in an environment where the export harness works.
-//
 // Slices a 20 mm-tall, 20 mm-diameter cylinder with seam_position = "custom" aimed at
 // (target_x, target_y) and returns the mean XY of the outer-wall seam (start point of each
 // outer perimeter loop) across layers. A cylinder is used because it is the rotationally-
 // symmetric case this feature targets, its smooth wall gives a single unambiguous nearest
 // point (unlike a cube's corner ties), and its vertical wall is free of overhang interference.
-// init_print() is bypassed because its arrange_objects() also fails in this harness; the object
-// is placed manually. Seam placement is computed in object coordinates, so this is equivalent.
+// The seam target is in the part's local frame, so the arranger's placement is irrelevant to
+// the between-run seam *differences* the test asserts on.
 static Vec2d outer_wall_seam_mean(const std::string &target_x, const std::string &target_y, size_t &n_seams,
                                   const std::string &reference = "closest")
 {
@@ -105,26 +91,8 @@ static Vec2d outer_wall_seam_mean(const std::string &target_x, const std::string
         { "gcode_comments",     "1"        },
     });
 
-    Model        model;
-    ModelObject *object = model.add_object();
-    object->name = "cylinder";
-    object->add_volume(Slic3r::make_cylinder(10.0, 20.0)); // r=10mm, h=20mm, vertical walls
-    ModelInstance *instance = object->add_instance();
-    instance->set_offset(Vec3d(100.0, 100.0, 0.0));
-    object->ensure_on_bed();
-
-    Print print;
-    print.apply(model, config);
-    print.set_status_silent();
-    print.process();
-
-    namespace fs = boost::filesystem;
-    const fs::path out = fs::temp_directory_path() / fs::unique_path("orca_seam_%%%%%%%%.gcode");
-    print.export_gcode(out.string(), nullptr, nullptr);
-    std::ifstream in(out.string());
-    const std::string gcode((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-    in.close();
-    fs::remove(out);
+    // r=10mm, h=20mm: vertical walls, no overhang interference.
+    const std::string gcode = slice({ make_cylinder(10.0, 20.0) }, config);
 
     std::vector<Vec2d> seams;
     bool   seam_pending = false;
@@ -152,7 +120,7 @@ static Vec2d outer_wall_seam_mean(const std::string &target_x, const std::string
     return sum / double(seams.size());
 }
 
-TEST_CASE("Relative-to-Part seam follows the configured X/Y point", "[Seams][.]")
+TEST_CASE("Relative-to-Part seam follows the configured X/Y point", "[Seams]")
 {
     size_t n_xp = 0, n_xn = 0, n_yp = 0, n_yn = 0;
     const Vec2d seam_x_plus  = outer_wall_seam_mean( "40",  "0", n_xp);
