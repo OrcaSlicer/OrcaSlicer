@@ -332,7 +332,7 @@ msgstr "Error: Por favor, cierre primero todos los menús de la barra de herrami
 
 msgctxt "inches"
 msgid "in"
-msgstr ""
+msgstr "\""
 
 msgid "mm"
 msgstr "mm"
