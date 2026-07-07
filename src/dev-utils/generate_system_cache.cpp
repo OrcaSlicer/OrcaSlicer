@@ -45,12 +45,9 @@ int main(int argc, char* argv[])
     }
 
     set_logging_level(log_level);
-    // In validation_mode, load_system_presets_from_json uses data_dir() directly
-    // (no /system/ suffix), so point data_dir at the profiles directory.
     set_data_dir(profiles_path);
     set_resources_dir(fs::path(profiles_path).parent_path().make_preferred().string());
 
-    // load_presets creates user preset dirs under data_dir().
     const fs::path user_dir = fs::path(data_dir()) / PRESET_USER_DIR;
     if (!fs::exists(user_dir))
         fs::create_directories(user_dir);
@@ -71,56 +68,21 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    // Collect all vendor names from JSON files in the profiles directory.
-    std::vector<std::string> vendor_names;
-    for (const auto& e : fs::directory_iterator(profiles_path)) {
-        if (e.path().extension() == ".json")
-            vendor_names.push_back(e.path().stem().string());
+    const std::string output_path =
+        (fs::path(profiles_path) / "system_presets.cache").make_preferred().string();
+
+    std::cout << "Saving single-bundle cache to: " << output_path << "\n";
+
+    const auto stats = preset_bundle->save_system_presets_cache(profiles_path, output_path);
+
+    if (!stats.ok) {
+        std::cerr << "ERROR: verification failed\n";
+        return 1;
     }
 
-    // Sort: PresetBundle::ORCA_FILAMENT_LIBRARY first, rest alphabetical.
-    std::sort(vendor_names.begin(), vendor_names.end(),
-              [](const std::string& a, const std::string& b) {
-                  if (a == PresetBundle::ORCA_FILAMENT_LIBRARY) return true;
-                  if (b == PresetBundle::ORCA_FILAMENT_LIBRARY) return false;
-                  return a < b;
-              });
-
-    size_t total_print = 0, total_filament = 0, total_printer = 0;
-    int    saved = 0, failed = 0;
-
-    for (const auto& vendor_name : vendor_names) {
-        try {
-            const std::string json_path  = (fs::path(profiles_path) / (vendor_name + ".json")).string();
-            const std::string cache_path = (fs::path(profiles_path) / (vendor_name + ".cache")).make_preferred().string();
-            const bool is_orca_lib = (vendor_name == PresetBundle::ORCA_FILAMENT_LIBRARY);
-
-            const auto stats = preset_bundle->save_bundled_vendor_cache(vendor_name, json_path, is_orca_lib, cache_path);
-
-            if (!stats.ok) {
-                std::cerr << "ERROR: " << vendor_name << ": verification failed\n";
-                ++failed;
-            } else {
-                std::cout << "  [ok] " << vendor_name << ".cache"
-                          << "  (" << stats.print_presets    << " print, "
-                          <<           stats.filament_presets << " filament, "
-                          <<           stats.printer_presets  << " printer)\n";
-                total_print    += stats.print_presets;
-                total_filament += stats.filament_presets;
-                total_printer  += stats.printer_presets;
-                ++saved;
-            }
-        } catch (const std::exception& ex) {
-            std::cerr << "ERROR: " << vendor_name << ": " << ex.what() << "\n";
-            ++failed;
-        }
-    }
-
-    std::cout << "\nDone: " << saved << " cache(s) written";
-    if (failed) std::cout << ", " << failed << " FAILED";
-    std::cout << "\n"
-              << "  Total print presets:    " << total_print    << "\n"
-              << "  Total filament presets: " << total_filament << "\n"
-              << "  Total printer presets:  " << total_printer  << "\n";
-    return failed ? 1 : 0;
+    std::cout << "[ok] system_presets.cache\n"
+              << "  Total print presets:    " << stats.print_presets    << "\n"
+              << "  Total filament presets: " << stats.filament_presets << "\n"
+              << "  Total printer presets:  " << stats.printer_presets  << "\n";
+    return 0;
 }

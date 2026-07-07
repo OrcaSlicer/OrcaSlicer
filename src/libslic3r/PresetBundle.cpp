@@ -2266,71 +2266,26 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
     if (validation_mode)
         dir = (boost::filesystem::path(data_dir())).make_preferred();
 
-    // Per-vendor binary cache: try user cache, then bundled cache, then JSON parse.
-    // Vendors that hit a cache are applied immediately; misses go through JSON parsing below.
-    std::set<std::string> cache_miss_vendors;
-    std::map<std::string, std::string> vendor_json_versions; // vendor_id → version string on disk
-
+    // Single-bundle cache: try user cache, then bundled cache, then JSON parse.
+    bool loaded_from_cache = false;
     if (!validation_mode) {
         const auto t0 = std::chrono::steady_clock::now();
-        this->reset(false);
-        bool all_from_cache = true;
-
-        // Collect all vendor names from the system directory.
-        std::vector<std::string> all_vendor_names;
-        try {
-            for (const auto& e : boost::filesystem::directory_iterator(dir)) {
-                if (Slic3r::is_json_file(e.path().string()))
-                    all_vendor_names.push_back(e.path().stem().string());
-            }
-        } catch (const std::exception& ex) {
-            BOOST_LOG_TRIVIAL(warning) << "PresetBundle: cannot scan system dir: " << ex.what();
-        }
-
-        // Load ORCA_FILAMENT_LIBRARY first (other vendors' filaments inherit from it).
-        // Then load remaining vendors from per-vendor caches.
-        auto try_vendor_cache = [&](const std::string& vendor_name) -> bool {
-            const std::string json_path = (dir / (vendor_name + ".json")).string();
-            const std::string ver_str   = get_vendor_cache_key(json_path);
-            vendor_json_versions[vendor_name] = ver_str;
-            return try_load_and_apply_vendor_cache(vendor_name, ver_str);
-        };
-
-        // Sort: ORCA_FILAMENT_LIBRARY goes first, rest alphabetical.
-        std::sort(all_vendor_names.begin(), all_vendor_names.end(),
-                  [](const std::string& a, const std::string& b) {
-                      if (a == ORCA_FILAMENT_LIBRARY) return true;
-                      if (b == ORCA_FILAMENT_LIBRARY) return false;
-                      return a < b;
-                  });
-
-        for (const auto& name : all_vendor_names) {
-            if (!try_vendor_cache(name)) {
-                cache_miss_vendors.insert(name);
-                all_from_cache = false;
-            }
-        }
-
-        if (all_from_cache && !all_vendor_names.empty()) {
+        const std::string expected_key = compute_system_presets_cache_key(dir.string());
+        if (try_load_system_presets_from_cache(expected_key)) {
             update_system_maps();
             const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
                 std::chrono::steady_clock::now() - t0).count();
-            BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from per-vendor cache in " << ms << " ms";
+            BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from single-bundle cache in " << ms << " ms";
             return {PresetsConfigSubstitutions{}, ""};
         }
-        if (!cache_miss_vendors.empty())
-            BOOST_LOG_TRIVIAL(info) << "PresetBundle: " << cache_miss_vendors.size()
-                                    << " vendor(s) need JSON parse: "
-                                    << [&]{ std::string s; for (auto& v : cache_miss_vendors) s += v + " "; return s; }();
+        loaded_from_cache = false; // cache miss — fall through to JSON parse
     }
 
     const auto json_load_t0 = std::chrono::steady_clock::now();
     PresetsConfigSubstitutions  substitutions;
     std::string                 errors_cummulative;
     std::set<std::string>       errored_vendors; // vendors whose JSON parse failed — skip their cache save
-    // first = true means no vendor has been loaded yet (from cache or JSON).
-    // false = at least one vendor was applied from the per-vendor cache above.
-    bool first = validation_mode || cache_miss_vendors.size() == vendor_json_versions.size();
+    bool first = true;
     std::vector<std::string> vendor_names;
     // store all vendor names in vendor_names
     for (auto& dir_entry : boost::filesystem::directory_iterator(dir)) {
@@ -2352,9 +2307,6 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
     std::vector<std::string> other_vendors;
     other_vendors.reserve(vendor_names.size());
     for (auto& vn : vendor_names) {
-        // Skip vendors already loaded from the per-vendor cache.
-        if (!validation_mode && !cache_miss_vendors.count(vn))
-            continue;
         if (vn == ORCA_FILAMENT_LIBRARY)
             orca_lib_vendor = vn;
         else if (!(validation_mode && !vendor_to_validate.empty() && vn != vendor_to_validate))
@@ -2443,22 +2395,19 @@ std::pair<PresetsConfigSubstitutions, std::string> PresetBundle::load_system_pre
         BOOST_LOG_TRIVIAL(info) << "PresetBundle: system presets loaded from JSON in " << json_ms << " ms";
     }
 
-    // Save per-vendor binary caches for vendors that parsed successfully.
-    // Vendors whose JSON produced a parse error are skipped individually so one
-    // bad vendor does not block caching of all others.
-    if (!validation_mode && !cache_miss_vendors.empty()) {
+    // Save single-bundle cache after successful JSON parse.
+    if (!validation_mode && errored_vendors.empty()) {
         const auto save_t0 = std::chrono::steady_clock::now();
-        for (const auto& vendor_name : cache_miss_vendors) {
-            if (errored_vendors.count(vendor_name))
-                continue;
-            const bool is_orca_lib = (vendor_name == ORCA_FILAMENT_LIBRARY);
-            const std::string ver_str = vendor_json_versions.count(vendor_name)
-                                        ? vendor_json_versions.at(vendor_name) : "";
-            write_vendor_cache(vendor_cache_user_path(vendor_name), vendor_name, ver_str, is_orca_lib);
-        }
+        const auto stats = save_system_presets_cache(dir.string(), user_system_presets_cache_path());
         const auto save_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::steady_clock::now() - save_t0).count();
-        BOOST_LOG_TRIVIAL(info) << "PresetBundle: per-vendor caches saved in " << save_ms << " ms";
+        if (stats.ok)
+            BOOST_LOG_TRIVIAL(info) << "PresetBundle: single-bundle cache saved in " << save_ms << " ms"
+                                    << " (print=" << stats.print_presets
+                                    << " filament=" << stats.filament_presets
+                                    << " printer=" << stats.printer_presets << ")";
+        else
+            BOOST_LOG_TRIVIAL(warning) << "PresetBundle: single-bundle cache save failed";
     }
 
     //BBS: add config related logs
@@ -6068,10 +6017,7 @@ bool BundleMetadata::save_to_json(const std::string& path) const
         return false;
     }
 }
-// ---- VendorCache implementation (PresetBundle methods) ------------------
-// The VendorCacheHeader struct holds only metadata. Preset collections are
-// serialized directly from/into PresetBundle's own prints/filaments/printers/…
-// to avoid ever duplicating those vectors in memory.
+// ---- System presets single-bundle cache implementation ------------------
 
 namespace {
 
@@ -6085,23 +6031,77 @@ struct CacheFileHeader {
 #pragma pack(pop)
 static_assert(sizeof(CacheFileHeader) == 20, "CacheFileHeader must be 20 bytes");
 
+// Presets for one vendor, grouped so vendor pointers can be re-wired on load.
+struct VendorPresetGroup {
+    std::vector<Preset> prints, filaments, printers, sla_prints, sla_materials;
+    template<class Archive>
+    void serialize(Archive& ar) { ar(prints, filaments, printers, sla_prints, sla_materials); }
+};
+
+struct SystemPresetsCache {
+    static constexpr uint32_t CACHE_MAGIC   = 0x4F52435A; // "ORCZ"
+    static constexpr uint32_t CACHE_VERSION = 1;
+
+    uint32_t    cache_version        = CACHE_VERSION;
+    uint32_t    config_options_count = 0;
+    std::string bundle_key;
+
+    VendorMap                                 vendors;
+    std::map<std::string, VendorPresetGroup>  preset_groups;
+    std::map<std::string, DynamicPrintConfig> config_maps;
+    std::map<std::string, std::string>        filament_id_maps;
+
+    template<class Archive>
+    void serialize(Archive& ar)
+    {
+        ar(cache_version, config_options_count, bundle_key,
+           vendors, preset_groups, config_maps, filament_id_maps);
+    }
+
+    bool is_valid(const std::string& expected_key) const
+    {
+        return cache_version        == CACHE_VERSION
+            && config_options_count == static_cast<uint32_t>(print_config_def.options.size())
+            && bundle_key           == expected_key;
+    }
+};
+
 } // anonymous namespace
 
 // static
-std::string PresetBundle::vendor_cache_user_path(const std::string& vendor_id)
+std::string PresetBundle::bundled_system_presets_cache_path()
 {
-    return (boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR / (vendor_id + ".cache"))
+    return (boost::filesystem::path(resources_dir()) / "profiles" / "system_presets.cache")
                .make_preferred().string();
 }
 
 // static
-std::string PresetBundle::vendor_cache_bundled_path(const std::string& vendor_id)
+std::string PresetBundle::user_system_presets_cache_path()
 {
-    return (boost::filesystem::path(resources_dir()) / "profiles" / (vendor_id + ".cache"))
+    return (boost::filesystem::path(data_dir()) / PRESET_SYSTEM_DIR / "system_presets.cache")
                .make_preferred().string();
 }
 
-// static — raw file I/O + magic/version/CRC check, shared by all cache readers.
+// static
+std::string PresetBundle::compute_system_presets_cache_key(const std::string& system_dir)
+{
+    // Sorted map so key is stable regardless of directory iteration order.
+    std::map<std::string, std::string> keys;
+    try {
+        for (const auto& e : boost::filesystem::directory_iterator(system_dir)) {
+            if (Slic3r::is_json_file(e.path().string()))
+                keys[e.path().stem().string()] = get_vendor_cache_key(e.path().string());
+        }
+    } catch (const std::exception& ex) {
+        BOOST_LOG_TRIVIAL(warning) << "SystemPresetsCache: cannot scan " << system_dir << ": " << ex.what();
+    }
+    std::string combined;
+    for (const auto& [name, key] : keys)
+        combined += name + ":" + key + ";";
+    return combined;
+}
+
+// static
 bool PresetBundle::read_cache_blob(const std::string& path, std::string& out_blob)
 {
     try {
@@ -6111,7 +6111,7 @@ bool PresetBundle::read_cache_blob(const std::string& path, std::string& out_blo
         CacheFileHeader fhdr;
         if (!ifs.read(reinterpret_cast<char*>(&fhdr), sizeof(fhdr)))
             return false;
-        if (fhdr.magic != VendorCacheHeader::CACHE_MAGIC || fhdr.version != VendorCacheHeader::CACHE_VERSION)
+        if (fhdr.magic != SystemPresetsCache::CACHE_MAGIC)
             return false;
         if (fhdr.data_size == 0 || fhdr.data_size > 512u * 1024u * 1024u)
             return false;
@@ -6121,197 +6121,177 @@ bool PresetBundle::read_cache_blob(const std::string& path, std::string& out_blo
         boost::crc_32_type crc;
         crc.process_bytes(out_blob.data(), out_blob.size());
         if (crc.checksum() != fhdr.crc32) {
-            BOOST_LOG_TRIVIAL(warning) << "VendorCache: CRC mismatch: " << path;
+            BOOST_LOG_TRIVIAL(warning) << "SystemPresetsCache: CRC mismatch: " << path;
             return false;
         }
         return true;
     } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(warning) << "VendorCache: read failed (" << path << "): " << e.what();
+        BOOST_LOG_TRIVIAL(warning) << "SystemPresetsCache: read failed (" << path << "): " << e.what();
         return false;
     }
 }
 
-// Serialize PresetBundle's preset collections for vendor_id directly to file.
-// Uses cereal's size-tag protocol so the binary layout matches what a
-// std::vector<Preset> archive would produce — no intermediate vector copy.
-void PresetBundle::write_vendor_cache(const std::string& path,
-                                       const std::string& vendor_id,
-                                       const std::string& json_ver,
-                                       bool               capture_filament_maps) const
+// static
+void PresetBundle::write_cache_blob(const std::string& path, const std::string& blob)
 {
-    std::ostringstream oss;
-    {
-        cereal::BinaryOutputArchive ar(oss);
-
-        VendorCacheHeader hdr;
-        hdr.cache_version        = VendorCacheHeader::CACHE_VERSION;
-        hdr.config_options_count = static_cast<uint32_t>(print_config_def.options.size());
-        hdr.vendor_json_version  = json_ver;
-        auto vp_it = vendors.find(vendor_id);
-        if (vp_it != vendors.end())
-            hdr.profile = vp_it->second;
-        ar(hdr);
-
-        // Write each collection filtered to vendor_id without copying into a temp vector.
-        auto write_col = [&](const PresetCollection& coll) {
-            std::vector<const Preset*> ptrs;
-            for (const Preset& p : coll())
-                if (p.is_system && p.vendor && p.vendor->id == vendor_id)
-                    ptrs.push_back(&p);
-            ar(cereal::make_size_tag(static_cast<cereal::size_type>(ptrs.size())));
-            for (const Preset* p : ptrs)
-                ar(*p);
-        };
-        write_col(prints);
-        write_col(filaments);
-        write_col(printers);
-        write_col(sla_prints);
-        write_col(sla_materials);
-
-        if (capture_filament_maps) {
-            ar(m_config_maps, m_filament_id_maps);
-        } else {
-            const std::map<std::string, DynamicPrintConfig> empty_cm;
-            const std::map<std::string, std::string>        empty_fi;
-            ar(empty_cm, empty_fi);
-        }
-    }
-    const std::string blob = oss.str();
     boost::crc_32_type crc;
     crc.process_bytes(blob.data(), blob.size());
     try {
         boost::filesystem::create_directories(boost::filesystem::path(path).parent_path());
         boost::nowide::ofstream ofs(path, std::ios::binary | std::ios::trunc);
         if (!ofs.is_open()) {
-            BOOST_LOG_TRIVIAL(warning) << "VendorCache: cannot open for writing: " << path;
+            BOOST_LOG_TRIVIAL(warning) << "SystemPresetsCache: cannot open for writing: " << path;
             return;
         }
         CacheFileHeader fhdr;
-        fhdr.magic     = VendorCacheHeader::CACHE_MAGIC;
-        fhdr.version   = VendorCacheHeader::CACHE_VERSION;
+        fhdr.magic     = SystemPresetsCache::CACHE_MAGIC;
+        fhdr.version   = SystemPresetsCache::CACHE_VERSION;
         fhdr.data_size = static_cast<uint64_t>(blob.size());
         fhdr.crc32     = crc.checksum();
         ofs.write(reinterpret_cast<const char*>(&fhdr), sizeof(fhdr));
         ofs.write(blob.data(), static_cast<std::streamsize>(blob.size()));
     } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(warning) << "VendorCache: write failed (" << path << "): " << e.what();
+        BOOST_LOG_TRIVIAL(warning) << "SystemPresetsCache: write failed (" << path << "): " << e.what();
     }
 }
 
-// Read a cache file and — if valid — apply its presets directly into PresetBundle's
-// collections. Deserializes all 5 collections into temp vectors first so that
-// PresetBundle is not modified if deserialization fails partway through.
-bool PresetBundle::load_and_apply_vendor_cache(const std::string& path, const std::string& json_ver)
+// Apply one VendorPresetGroup from a loaded cache into this PresetBundle's collections.
+static void apply_vendor_preset_group(VendorPresetGroup&       grp,
+                                       const VendorProfile*     vp,
+                                       PresetCollection&        prints_coll,
+                                       PresetCollection&        filaments_coll,
+                                       PrinterPresetCollection& printers_coll,
+                                       PresetCollection&        sla_prints_coll,
+                                       PresetCollection&        sla_materials_coll)
 {
-    std::string blob;
-    if (!read_cache_blob(path, blob))
-        return false;
-    try {
-        std::istringstream iss(blob);
-        cereal::BinaryInputArchive ar(iss);
-
-        VendorCacheHeader hdr;
-        ar(hdr);
-        if (!hdr.is_valid(json_ver))
-            return false;
-
-        // Deserialize all collections before touching PresetBundle (rollback safety).
-        std::vector<Preset> col_print, col_filament, col_printer, col_sla_print, col_sla_material;
-        std::map<std::string, DynamicPrintConfig> config_maps;
-        std::map<std::string, std::string>        filament_id_maps;
-        ar(col_print, col_filament, col_printer, col_sla_print, col_sla_material);
-        ar(config_maps, filament_id_maps);
-
-        // Full deserialization succeeded — apply to PresetBundle.
-        vendors.emplace(hdr.profile.id, hdr.profile);
-        const VendorProfile* vp = &vendors.at(hdr.profile.id);
-
-        auto apply_col = [&](std::vector<Preset>& cached, PresetCollection& coll, bool is_filaments) {
-            for (Preset& cp : cached) {
-                DynamicPrintConfig config = cp.config;
-                Preset& p = coll.load_preset(cp.file, cp.name, std::move(config), /*select=*/false, cp.version);
-                p.is_system                = true;
-                p.is_visible               = cp.is_visible;
-                p.alias                    = cp.alias;
-                p.renamed_from             = cp.renamed_from;
-                p.filament_id              = cp.filament_id;
-                p.setting_id               = cp.setting_id;
-                p.description              = cp.description;
-                p.m_from_orca_filament_lib = cp.m_from_orca_filament_lib;
-                p.m_excluded_from          = cp.m_excluded_from;
-                p.vendor                   = vp;
-                if (is_filaments)
-                    coll.set_printer_hold_alias(p.alias, p);
-            }
-        };
-        apply_col(col_print,        prints,        false);
-        apply_col(col_filament,     filaments,     true);
-        apply_col(col_printer,      printers,      false);
-        apply_col(col_sla_print,    sla_prints,    false);
-        apply_col(col_sla_material, sla_materials, false);
-
-        if (!config_maps.empty()) {
-            m_config_maps      = std::move(config_maps);
-            m_filament_id_maps = std::move(filament_id_maps);
+    auto apply = [&](std::vector<Preset>& cached, PresetCollection& coll, bool is_filaments) {
+        for (Preset& cp : cached) {
+            DynamicPrintConfig config = cp.config;
+            Preset& p = coll.load_preset(cp.file, cp.name, std::move(config), false, cp.version);
+            p.is_system                = true;
+            p.is_visible               = cp.is_visible;
+            p.alias                    = cp.alias;
+            p.renamed_from             = cp.renamed_from;
+            p.filament_id              = cp.filament_id;
+            p.setting_id               = cp.setting_id;
+            p.description              = cp.description;
+            p.m_from_orca_filament_lib = cp.m_from_orca_filament_lib;
+            p.m_excluded_from          = cp.m_excluded_from;
+            p.vendor                   = vp;
+            if (is_filaments)
+                coll.set_printer_hold_alias(p.alias, p);
         }
-        return true;
-    } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(warning) << "VendorCache: load failed (" << path << "): " << e.what();
-        return false;
-    }
+    };
+    apply(grp.prints,        prints_coll,        false);
+    apply(grp.filaments,     filaments_coll,      true);
+    apply(grp.printers,      printers_coll,       false);
+    apply(grp.sla_prints,    sla_prints_coll,     false);
+    apply(grp.sla_materials, sla_materials_coll,  false);
 }
 
-bool PresetBundle::try_load_and_apply_vendor_cache(const std::string& vendor_id,
-                                                    const std::string& json_ver)
+bool PresetBundle::try_load_system_presets_from_cache(const std::string& expected_key)
 {
-    if (load_and_apply_vendor_cache(vendor_cache_user_path(vendor_id), json_ver))
+    auto try_path = [&](const std::string& path) -> bool {
+        std::string blob;
+        if (!read_cache_blob(path, blob))
+            return false;
+        try {
+            std::istringstream iss(blob);
+            cereal::BinaryInputArchive ar(iss);
+            SystemPresetsCache cache;
+            ar(cache);
+            if (!cache.is_valid(expected_key))
+                return false;
+
+            this->reset(false);
+            vendors = std::move(cache.vendors);
+
+            for (auto& [vendor_id, grp] : cache.preset_groups) {
+                auto it = vendors.find(vendor_id);
+                if (it == vendors.end()) continue;
+                apply_vendor_preset_group(grp, &it->second,
+                                          prints, filaments, printers,
+                                          sla_prints, sla_materials);
+            }
+            m_config_maps      = std::move(cache.config_maps);
+            m_filament_id_maps = std::move(cache.filament_id_maps);
+            return true;
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(warning) << "SystemPresetsCache: apply failed (" << path << "): " << e.what();
+            return false;
+        }
+    };
+
+    if (try_path(user_system_presets_cache_path()))
         return true;
-    if (load_and_apply_vendor_cache(vendor_cache_bundled_path(vendor_id), json_ver)) {
-        // Promote bundled cache to user cache so future loads skip this path.
-        write_vendor_cache(vendor_cache_user_path(vendor_id), vendor_id, json_ver,
-                           vendor_id == ORCA_FILAMENT_LIBRARY);
+    if (try_path(bundled_system_presets_cache_path())) {
+        // Promote bundled cache to user path so future loads skip JSON parse.
+        const std::string user_path = user_system_presets_cache_path();
+        const std::string bundled_path = bundled_system_presets_cache_path();
+        try {
+            boost::filesystem::create_directories(
+                boost::filesystem::path(user_path).parent_path());
+            boost::filesystem::copy_file(bundled_path, user_path,
+                boost::filesystem::copy_options::overwrite_existing);
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(warning) << "SystemPresetsCache: promote failed: " << e.what();
+        }
         return true;
     }
     return false;
 }
 
-PresetBundle::VendorCacheStats PresetBundle::save_bundled_vendor_cache(
-    const std::string& vendor_id, const std::string& json_path,
-    bool capture_filament_maps, const std::string& output_path) const
+PresetBundle::SaveCacheResult PresetBundle::save_system_presets_cache(
+    const std::string& profiles_dir, const std::string& output_path) const
 {
-    const std::string json_ver = get_vendor_cache_key(json_path);
-    write_vendor_cache(output_path, vendor_id, json_ver, capture_filament_maps);
+    SystemPresetsCache cache;
+    cache.config_options_count = static_cast<uint32_t>(print_config_def.options.size());
+    cache.bundle_key           = compute_system_presets_cache_key(profiles_dir);
+    cache.vendors              = vendors;
+    cache.config_maps          = m_config_maps;
+    cache.filament_id_maps     = m_filament_id_maps;
 
-    VendorCacheStats stats;
-    auto count_col = [&](const PresetCollection& coll) -> size_t {
-        size_t n = 0;
+    auto fill = [&](const PresetCollection& coll,
+                    std::vector<Preset> VendorPresetGroup::*field) {
         for (const Preset& p : coll())
-            if (p.is_system && p.vendor && p.vendor->id == vendor_id) ++n;
-        return n;
+            if (p.is_system && p.vendor)
+                (cache.preset_groups[p.vendor->id].*field).push_back(p);
     };
-    stats.print_presets    = count_col(prints);
-    stats.filament_presets = count_col(filaments);
-    stats.printer_presets  = count_col(printers);
+    fill(prints,        &VendorPresetGroup::prints);
+    fill(filaments,     &VendorPresetGroup::filaments);
+    fill(sla_prints,    &VendorPresetGroup::sla_prints);
+    fill(sla_materials, &VendorPresetGroup::sla_materials);
+    // PrinterPresetCollection is a PresetCollection subclass; iterate directly.
+    for (const Preset& p : printers())
+        if (p.is_system && p.vendor)
+            cache.preset_groups[p.vendor->id].printers.push_back(p);
 
-    // Verify: read back header and check validity.
-    if (std::string blob; read_cache_blob(output_path, blob)) {
+    std::ostringstream oss;
+    { cereal::BinaryOutputArchive ar(oss); ar(cache); }
+    const std::string blob = oss.str();
+    write_cache_blob(output_path, blob);
+
+    SaveCacheResult result;
+    // Verify: read back and check validity.
+    if (std::string vblob; read_cache_blob(output_path, vblob)) {
         try {
-            std::istringstream iss(blob);
+            std::istringstream iss(vblob);
             cereal::BinaryInputArchive ar(iss);
-            VendorCacheHeader hdr; ar(hdr);
-            stats.ok = hdr.is_valid(json_ver);
+            SystemPresetsCache v; ar(v);
+            result.ok = v.is_valid(cache.bundle_key);
         } catch (...) {}
     }
-    return stats;
+    for (const auto& [vid, grp] : cache.preset_groups) {
+        result.print_presets    += grp.prints.size();
+        result.filament_presets += grp.filaments.size();
+        result.printer_presets  += grp.printers.size();
+    }
+    return result;
 }
 
 // static
-bool PresetBundle::load_vendor_cache_for_guide(const std::string&   cache_path,
-                                                const std::string&   json_ver,
-                                                VendorProfile&       out_profile,
-                                                std::vector<Preset>& out_printer_presets,
-                                                std::vector<Preset>& out_filament_presets,
-                                                std::vector<Preset>& out_print_presets)
+bool PresetBundle::load_system_presets_cache_for_guide(const std::string& cache_path,
+                                                        PresetBundle&      out_bundle)
 {
     std::string blob;
     if (!read_cache_blob(cache_path, blob))
@@ -6319,19 +6299,25 @@ bool PresetBundle::load_vendor_cache_for_guide(const std::string&   cache_path,
     try {
         std::istringstream iss(blob);
         cereal::BinaryInputArchive ar(iss);
-        VendorCacheHeader hdr; ar(hdr);
-        if (!hdr.is_valid(json_ver))
+        SystemPresetsCache cache;
+        ar(cache);
+        if (cache.cache_version != SystemPresetsCache::CACHE_VERSION)
             return false;
-        out_profile = std::move(hdr.profile);
-        // Must read in serialization order: print, filament, printer, sla_print, sla_material.
-        std::vector<Preset> col_sla_print, col_sla_material;
-        std::map<std::string, DynamicPrintConfig> cm;
-        std::map<std::string, std::string>        fi;
-        ar(out_print_presets, out_filament_presets, out_printer_presets, col_sla_print, col_sla_material);
-        ar(cm, fi);
-        return true;
+
+        out_bundle.vendors = std::move(cache.vendors);
+        for (auto& [vendor_id, grp] : cache.preset_groups) {
+            auto it = out_bundle.vendors.find(vendor_id);
+            if (it == out_bundle.vendors.end()) continue;
+            apply_vendor_preset_group(grp, &it->second,
+                                      out_bundle.prints,
+                                      out_bundle.filaments,
+                                      out_bundle.printers,
+                                      out_bundle.sla_prints,
+                                      out_bundle.sla_materials);
+        }
+        return !out_bundle.vendors.empty();
     } catch (const std::exception& e) {
-        BOOST_LOG_TRIVIAL(warning) << "VendorCache: guide load failed (" << cache_path << "): " << e.what();
+        BOOST_LOG_TRIVIAL(warning) << "SystemPresetsCache: guide load failed (" << cache_path << "): " << e.what();
         return false;
     }
 }

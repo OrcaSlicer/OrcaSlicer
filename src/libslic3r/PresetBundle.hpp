@@ -171,38 +171,31 @@ struct PresetBundleMetadata
 class PresetBundle
 {
 public:
-    // ---- Per-vendor binary preset cache ------------------------------------
-    // One file per vendor:
-    //   Bundled (CI-generated): resources/profiles/<vendor_id>.cache
-    //   User (runtime):        data_dir/system/<vendor_id>.cache
+    // ---- System presets single-bundle cache --------------------------------
+    // All vendor profiles + all system presets in one file.
+    //   Bundled (CI): resources/profiles/system_presets.cache
+    //   User runtime: data_dir/system/system_presets.cache
 
-    struct VendorCacheStats {
+    struct SaveCacheResult {
         bool   ok               = false;
         size_t print_presets    = 0;
         size_t filament_presets = 0;
         size_t printer_presets  = 0;
     };
 
-    static std::string vendor_cache_user_path(const std::string& vendor_id);
-    static std::string vendor_cache_bundled_path(const std::string& vendor_id);
+    static std::string bundled_system_presets_cache_path();
+    static std::string user_system_presets_cache_path();
 
-    // Capture the given vendor from the loaded bundle, write to output_path,
-    // and verify the result. Used by generate_system_cache and tests.
-    // json_path is the vendor's .json profile file; its version/mtime is computed internally.
-    VendorCacheStats save_bundled_vendor_cache(const std::string& vendor_id,
-                                               const std::string& json_path,
-                                               bool               capture_filament_maps,
-                                               const std::string& output_path) const;
+    // Capture the currently-loaded PresetBundle and write a single-bundle cache
+    // to output_path. profiles_dir contains the vendor JSON files (for the key).
+    // Used by generate_system_cache and tests.
+    SaveCacheResult save_system_presets_cache(const std::string& profiles_dir,
+                                              const std::string& output_path) const;
 
-    // Load a vendor cache file and extract the data needed by the guide wizard.
-    // json_ver must match the cache's stored version key (use get_vendor_cache_key()).
-    // Returns false if the file is missing, stale, or corrupt.
-    static bool load_vendor_cache_for_guide(const std::string&   cache_path,
-                                            const std::string&   json_ver,
-                                            VendorProfile&       out_profile,
-                                            std::vector<Preset>& out_printer_presets,
-                                            std::vector<Preset>& out_filament_presets,
-                                            std::vector<Preset>& out_print_presets);
+    // Load a single-bundle cache into out_bundle for the guide wizard.
+    // Returns false if the cache is missing, stale, or corrupt.
+    static bool load_system_presets_cache_for_guide(const std::string& cache_path,
+                                                    PresetBundle&      out_bundle);
 
     static DynamicPrintConfig construct_full_config(Preset                         &in_printer_preset,
                                                     Preset                         &in_print_preset,
@@ -556,42 +549,14 @@ public:
     bool check_preset_references() const;
 
 private:
-    // ---- VendorCache — header-only metadata struct --------------------------
-    // Preset collections are NOT stored here; they are serialized directly from
-    // PresetBundle's own prints/filaments/printers/… on save, and applied directly
-    // into those collections on load. This avoids duplicating the preset vectors.
-    struct VendorCacheHeader {
-        static constexpr uint32_t CACHE_MAGIC   = 0x4F52435A; // "ORCZ"
-        static constexpr uint32_t CACHE_VERSION = 8;
-
-        uint32_t      cache_version        = CACHE_VERSION;
-        uint32_t      config_options_count = 0;
-        std::string   vendor_json_version;
-        VendorProfile profile;
-
-        template<class Archive>
-        void serialize(Archive& ar)
-        {
-            ar(cache_version, config_options_count, vendor_json_version, profile);
-        }
-
-        bool is_valid(const std::string& current_vendor_json_version) const
-        {
-            return cache_version        == CACHE_VERSION
-                && config_options_count == static_cast<uint32_t>(print_config_def.options.size())
-                && vendor_json_version  == current_vendor_json_version;
-        }
-    };
-
-    // Returns true and applies the cache if a valid file exists for vendor_id.
-    bool try_load_and_apply_vendor_cache(const std::string& vendor_id, const std::string& json_ver);
-    // Read a cache file, verify it, and apply its presets directly into PresetBundle's collections.
-    bool load_and_apply_vendor_cache(const std::string& path, const std::string& json_ver);
-    // Write PresetBundle's presets for vendor_id directly to a cache file — no intermediate copy.
-    void write_vendor_cache(const std::string& path, const std::string& vendor_id,
-                             const std::string& json_ver, bool capture_filament_maps) const;
-    // Read raw blob bytes (file I/O + magic/CRC check) shared by all cache readers.
+    // Compute combined invalidation key from all vendor JSON files in system_dir.
+    static std::string compute_system_presets_cache_key(const std::string& system_dir);
+    // Try user cache then bundled cache; apply all presets on hit.
+    bool try_load_system_presets_from_cache(const std::string& expected_key);
+    // Read raw cache blob: verify magic, size, CRC.
     static bool read_cache_blob(const std::string& path, std::string& out_blob);
+    // Write a cache blob with the standard 20-byte file header.
+    static void write_cache_blob(const std::string& path, const std::string& blob);
 
     // Orca: validation only - flag any printer with two or more compatible
     // filament presets sharing one filament_id (ambiguous AMS subtype match).

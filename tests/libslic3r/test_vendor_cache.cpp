@@ -23,8 +23,6 @@ struct TempDir {
     ~TempDir() { boost::system::error_code ec; fs::remove_all(path, ec); }
 };
 
-// Write a minimal vendor JSON with a version field so get_vendor_cache_key() returns
-// a deterministic Semver string rather than an mtime-based key.
 std::string write_vendor_json(const fs::path& dir, const std::string& vendor_id,
                                const std::string& version = "1.0.0")
 {
@@ -34,8 +32,6 @@ std::string write_vendor_json(const fs::path& dir, const std::string& vendor_id,
     return p.string();
 }
 
-// Write a vendor JSON without a "version" field — get_vendor_cache_key() will return
-// "mtime:<timestamp>" instead of a Semver string.
 std::string write_versionless_vendor_json(const fs::path& dir, const std::string& vendor_id)
 {
     const fs::path p = dir / (vendor_id + ".json");
@@ -44,33 +40,39 @@ std::string write_versionless_vendor_json(const fs::path& dir, const std::string
     return p.string();
 }
 
-// Binary-patch the config_options_count field in a cache file (blob offset 4) and
-// recompute the CRC so the file passes the magic/size/CRC checks but fails is_valid().
-// File layout: [20-byte CacheFileHeader][blob]; in blob: uint32 cache_version @ 0, uint32 options_count @ 4.
-void patch_cache_options_count(const std::string& path, uint32_t wrong_count)
+void corrupt_blob_byte(const std::string& path)
+{
+    std::fstream f(path, std::ios::in | std::ios::out | std::ios::binary);
+    f.seekp(30);
+    char b = 0; f.read(&b, 1);
+    f.seekp(30);
+    b ^= 0xFF;
+    f.write(&b, 1);
+}
+
+// Patch cache_version (blob[0..3]) and recompute CRC so the file passes
+// the CRC check but fails the cache_version check in load_system_presets_cache_for_guide.
+void patch_cache_version(const std::string& path, uint32_t wrong_version)
 {
     std::ifstream in(path, std::ios::binary);
     std::vector<char> data(std::istreambuf_iterator<char>(in), {});
     in.close();
-    if (data.size() < 28) return; // 20-byte header + 4 (cache_version) + 4 (options_count)
-
-    std::memcpy(&data[24], &wrong_count, 4); // file[24..27] = blob[4..7] = options_count
-
-    // Recompute CRC over the modified blob (everything after the 20-byte file header).
+    if (data.size() < 24) return;
+    std::memcpy(&data[20], &wrong_version, 4);
     boost::crc_32_type crc;
     crc.process_bytes(&data[20], data.size() - 20);
     const uint32_t new_crc = crc.checksum();
-    std::memcpy(&data[16], &new_crc, 4); // file[16..19] = crc32 field in CacheFileHeader
-
+    std::memcpy(&data[16], &new_crc, 4);
     std::ofstream out(path, std::ios::binary | std::ios::trunc);
     out.write(data.data(), static_cast<std::streamsize>(data.size()));
 }
 
-void add_vendor(PresetBundle& bundle, const std::string& vendor_id)
+void add_vendor(PresetBundle& bundle, const std::string& vendor_id,
+                const std::string& name = "", Semver ver = Semver(1, 0, 0))
 {
     VendorProfile vp(vendor_id);
-    vp.name           = vendor_id + " Corp";
-    vp.config_version = Semver(1, 0, 0);
+    vp.name           = name.empty() ? vendor_id + " Corp" : name;
+    vp.config_version = ver;
     bundle.vendors.emplace(vendor_id, vp);
 }
 
@@ -83,14 +85,31 @@ Preset& add_system_preset(PresetCollection& coll, const std::string& name,
     return p;
 }
 
+PresetBundle::SaveCacheResult save_one_vendor(PresetBundle& src,
+                                               const fs::path& profiles_dir,
+                                               const fs::path& cache_path)
+{
+    return src.save_system_presets_cache(profiles_dir.string(), cache_path.string());
+}
+
+// Helper: filter a collection by vendor_id.
+std::vector<const Preset*> presets_for(const PresetCollection& coll, const std::string& vendor_id)
+{
+    std::vector<const Preset*> out;
+    for (const Preset& p : coll())
+        if (p.is_system && p.vendor && p.vendor->id == vendor_id)
+            out.push_back(&p);
+    return out;
+}
+
 } // namespace
 
-TEST_CASE("VendorCache: save and load via guide API", "[VendorCache]")
+TEST_CASE("SystemPresetsCache: save and load via guide API", "[VendorCache]")
 {
     TempDir           tmp;
-    const std::string vid       = "Acme";
-    const std::string json_path = write_vendor_json(tmp.path, vid);
-    const fs::path    cache     = tmp.path / (vid + ".cache");
+    const std::string vid = "Acme";
+    write_vendor_json(tmp.path, vid);
+    const fs::path cache = tmp.path / "system_presets.cache";
 
     PresetBundle src;
     add_vendor(src, vid);
@@ -99,91 +118,63 @@ TEST_CASE("VendorCache: save and load via guide API", "[VendorCache]")
     Preset& fp = add_system_preset(src.filaments, vid + " PLA @0.4", vp);
     fp.alias       = "Acme PLA";
     fp.filament_id = "GFL_acme_pla";
-
     add_system_preset(src.printers, vid + " Printer 0.4", vp);
 
-    const auto stats = src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
+    const auto stats = save_one_vendor(src, tmp.path, cache);
     REQUIRE(stats.ok);
     CHECK(stats.filament_presets == 1);
     CHECK(stats.printer_presets  == 1);
     CHECK(stats.print_presets    == 0);
 
-    VendorProfile       out_profile;
-    std::vector<Preset> out_printers, out_filaments, out_prints;
-    REQUIRE(PresetBundle::load_vendor_cache_for_guide(
-        cache.string(), get_vendor_cache_key(json_path),
-        out_profile, out_printers, out_filaments, out_prints));
+    PresetBundle out;
+    REQUIRE(PresetBundle::load_system_presets_cache_for_guide(cache.string(), out));
+    REQUIRE(out.vendors.count(vid) == 1);
 
-    CHECK(out_profile.id == vid);
-    REQUIRE(out_filaments.size() == 1);
-    CHECK(out_filaments[0].name        == vid + " PLA @0.4");
-    CHECK(out_filaments[0].alias       == "Acme PLA");
-    CHECK(out_filaments[0].filament_id == "GFL_acme_pla");
-    REQUIRE(out_printers.size() == 1);
-    CHECK(out_printers[0].name == vid + " Printer 0.4");
+    auto fi = presets_for(out.filaments, vid);
+    auto pr = presets_for(out.printers,  vid);
+    REQUIRE(fi.size() == 1);
+    CHECK(fi[0]->name        == vid + " PLA @0.4");
+    CHECK(fi[0]->alias       == "Acme PLA");
+    CHECK(fi[0]->filament_id == "GFL_acme_pla");
+    REQUIRE(pr.size() == 1);
+    CHECK(pr[0]->name == vid + " Printer 0.4");
 }
 
-TEST_CASE("VendorCache: stale json_ver is rejected", "[VendorCache]")
-{
-    TempDir           tmp;
-    const std::string vid       = "Acme";
-    const std::string json_path = write_vendor_json(tmp.path, vid, "1.0.0");
-    const fs::path    cache     = tmp.path / (vid + ".cache");
-
-    PresetBundle src;
-    add_vendor(src, vid);
-    add_system_preset(src.filaments, vid + " PLA", &src.vendors.at(vid));
-    src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
-
-    VendorProfile       p; std::vector<Preset> pr, fi, pp;
-    CHECK_FALSE(PresetBundle::load_vendor_cache_for_guide(cache.string(), "2.0.0", p, pr, fi, pp));
-}
-
-TEST_CASE("VendorCache: missing file returns false", "[VendorCache]")
+TEST_CASE("SystemPresetsCache: missing file returns false", "[VendorCache]")
 {
     TempDir tmp;
-    VendorProfile       p; std::vector<Preset> pr, fi, pp;
-    CHECK_FALSE(PresetBundle::load_vendor_cache_for_guide(
-        (tmp.path / "nonexistent.cache").string(), "1.0.0", p, pr, fi, pp));
+    PresetBundle out;
+    CHECK_FALSE(PresetBundle::load_system_presets_cache_for_guide(
+        (tmp.path / "nonexistent.cache").string(), out));
 }
 
-TEST_CASE("VendorCache: corrupt data is rejected by CRC check", "[VendorCache]")
+TEST_CASE("SystemPresetsCache: corrupt data rejected by CRC check", "[VendorCache]")
 {
     TempDir           tmp;
-    const std::string vid       = "Acme";
-    const std::string json_path = write_vendor_json(tmp.path, vid);
-    const fs::path    cache     = tmp.path / (vid + ".cache");
+    const std::string vid = "Acme";
+    write_vendor_json(tmp.path, vid);
+    const fs::path cache = tmp.path / "system_presets.cache";
 
     PresetBundle src;
     add_vendor(src, vid);
     add_system_preset(src.filaments, vid + " PLA", &src.vendors.at(vid));
-    src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
+    save_one_vendor(src, tmp.path, cache);
+    corrupt_blob_byte(cache.string());
 
-    // Flip a byte in the data region (after the 20-byte CacheFileHeader).
-    {
-        std::fstream f(cache.string(), std::ios::in | std::ios::out | std::ios::binary);
-        f.seekp(30);
-        char b; f.read(&b, 1);
-        f.seekp(30);
-        b ^= 0xFF;
-        f.write(&b, 1);
-    }
-
-    VendorProfile       p; std::vector<Preset> pr, fi, pp;
-    CHECK_FALSE(PresetBundle::load_vendor_cache_for_guide(
-        cache.string(), get_vendor_cache_key(json_path), p, pr, fi, pp));
+    PresetBundle out;
+    CHECK_FALSE(PresetBundle::load_system_presets_cache_for_guide(cache.string(), out));
 }
 
-TEST_CASE("VendorCache: multiple vendors do not bleed into each other", "[VendorCache]")
+TEST_CASE("SystemPresetsCache: multiple vendors in one bundle are isolated", "[VendorCache]")
 {
     TempDir tmp;
     const std::string vid1 = "VendorA";
     const std::string vid2 = "VendorB";
+    write_vendor_json(tmp.path, vid1);
+    write_vendor_json(tmp.path, vid2);
+    const fs::path cache = tmp.path / "system_presets.cache";
 
     PresetBundle src;
-    const std::string json1 = write_vendor_json(tmp.path, vid1);
-    const std::string json2 = write_vendor_json(tmp.path, vid2);
-
     for (const auto& vid : {vid1, vid2}) {
         add_vendor(src, vid);
         const VendorProfile* vp = &src.vendors.at(vid);
@@ -191,27 +182,29 @@ TEST_CASE("VendorCache: multiple vendors do not bleed into each other", "[Vendor
         add_system_preset(src.printers,  vid + " Printer", vp);
     }
 
-    src.save_bundled_vendor_cache(vid1, json1, false, (tmp.path / (vid1 + ".cache")).string());
-    src.save_bundled_vendor_cache(vid2, json2, false, (tmp.path / (vid2 + ".cache")).string());
+    REQUIRE(save_one_vendor(src, tmp.path, cache).ok);
 
-    for (const auto& [vid, jpath] : std::vector<std::pair<std::string, std::string>>{{vid1, json1}, {vid2, json2}}) {
-        VendorProfile       p; std::vector<Preset> pr, fi, pp;
-        REQUIRE(PresetBundle::load_vendor_cache_for_guide(
-            (tmp.path / (vid + ".cache")).string(), get_vendor_cache_key(jpath),
-            p, pr, fi, pp));
+    PresetBundle out;
+    REQUIRE(PresetBundle::load_system_presets_cache_for_guide(cache.string(), out));
+    REQUIRE(out.vendors.count(vid1) == 1);
+    REQUIRE(out.vendors.count(vid2) == 1);
+
+    for (const auto& vid : {vid1, vid2}) {
+        auto fi = presets_for(out.filaments, vid);
+        auto pr = presets_for(out.printers,  vid);
         REQUIRE(fi.size() == 1);
-        CHECK(fi[0].name == vid + " PLA");
+        CHECK(fi[0]->name == vid + " PLA");
         REQUIRE(pr.size() == 1);
-        CHECK(pr[0].name == vid + " Printer");
+        CHECK(pr[0]->name == vid + " Printer");
     }
 }
 
-TEST_CASE("VendorCache: vendor profile fields are preserved", "[VendorCache]")
+TEST_CASE("SystemPresetsCache: vendor profile fields are preserved", "[VendorCache]")
 {
     TempDir           tmp;
-    const std::string vid       = "Acme";
-    const std::string json_path = write_vendor_json(tmp.path, vid, "2.5.1");
-    const fs::path    cache     = tmp.path / (vid + ".cache");
+    const std::string vid = "Acme";
+    write_vendor_json(tmp.path, vid, "2.5.1");
+    const fs::path cache = tmp.path / "system_presets.cache";
 
     PresetBundle src;
     VendorProfile vp(vid);
@@ -224,55 +217,51 @@ TEST_CASE("VendorCache: vendor profile fields are preserved", "[VendorCache]")
     model.variants.push_back(v0_4);
     vp.models.push_back(model);
     src.vendors.emplace(vid, vp);
+    save_one_vendor(src, tmp.path, cache);
 
-    src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
-
-    VendorProfile       out_p; std::vector<Preset> pr, fi, pp;
-    REQUIRE(PresetBundle::load_vendor_cache_for_guide(
-        cache.string(), get_vendor_cache_key(json_path), out_p, pr, fi, pp));
-
-    CHECK(out_p.id   == vid);
-    CHECK(out_p.name == "Acme Corporation");
-    REQUIRE(out_p.models.size() == 1);
-    CHECK(out_p.models[0].id   == "AcmePro");
-    CHECK(out_p.models[0].name == "Acme Pro");
-    REQUIRE(out_p.models[0].variants.size() == 1);
-    CHECK(out_p.models[0].variants[0].name  == "0.4");
+    PresetBundle out;
+    REQUIRE(PresetBundle::load_system_presets_cache_for_guide(cache.string(), out));
+    REQUIRE(out.vendors.count(vid) == 1);
+    const VendorProfile& gvp = out.vendors.at(vid);
+    CHECK(gvp.id   == vid);
+    CHECK(gvp.name == "Acme Corporation");
+    REQUIRE(gvp.models.size() == 1);
+    CHECK(gvp.models[0].id   == "AcmePro");
+    CHECK(gvp.models[0].name == "Acme Pro");
+    REQUIRE(gvp.models[0].variants.size() == 1);
+    CHECK(gvp.models[0].variants[0].name  == "0.4");
 }
 
-TEST_CASE("VendorCache: config option values are preserved", "[VendorCache]")
+TEST_CASE("SystemPresetsCache: config option values are preserved", "[VendorCache]")
 {
     TempDir           tmp;
-    const std::string vid       = "Acme";
-    const std::string json_path = write_vendor_json(tmp.path, vid);
-    const fs::path    cache     = tmp.path / (vid + ".cache");
+    const std::string vid = "Acme";
+    write_vendor_json(tmp.path, vid);
+    const fs::path cache = tmp.path / "system_presets.cache";
 
     PresetBundle src;
     add_vendor(src, vid);
-    const VendorProfile* vp = &src.vendors.at(vid);
-
-    Preset& fp = add_system_preset(src.filaments, vid + " PETG @0.4", vp);
+    Preset& fp = add_system_preset(src.filaments, vid + " PETG @0.4", &src.vendors.at(vid));
     fp.config.set_key_value("filament_type", new ConfigOptionStrings({"PETG"}));
+    save_one_vendor(src, tmp.path, cache);
 
-    src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
+    PresetBundle out;
+    REQUIRE(PresetBundle::load_system_presets_cache_for_guide(cache.string(), out));
 
-    VendorProfile       p; std::vector<Preset> pr, fi, pp;
-    REQUIRE(PresetBundle::load_vendor_cache_for_guide(
-        cache.string(), get_vendor_cache_key(json_path), p, pr, fi, pp));
-
+    auto fi = presets_for(out.filaments, vid);
     REQUIRE(fi.size() == 1);
-    const auto* ft = fi[0].config.option<ConfigOptionStrings>("filament_type");
+    const auto* ft = fi[0]->config.option<ConfigOptionStrings>("filament_type");
     REQUIRE(ft != nullptr);
     REQUIRE(ft->values.size() >= 1);
     CHECK(ft->values[0] == "PETG");
 }
 
-TEST_CASE("VendorCache: multiple presets per collection round-trip", "[VendorCache]")
+TEST_CASE("SystemPresetsCache: multiple presets per collection round-trip", "[VendorCache]")
 {
     TempDir           tmp;
-    const std::string vid       = "Acme";
-    const std::string json_path = write_vendor_json(tmp.path, vid);
-    const fs::path    cache     = tmp.path / (vid + ".cache");
+    const std::string vid = "Acme";
+    write_vendor_json(tmp.path, vid);
+    const fs::path cache = tmp.path / "system_presets.cache";
 
     PresetBundle src;
     add_vendor(src, vid);
@@ -280,75 +269,70 @@ TEST_CASE("VendorCache: multiple presets per collection round-trip", "[VendorCac
 
     const std::vector<std::string> fi_names = {vid + " PLA", vid + " PETG", vid + " ABS"};
     const std::vector<std::string> pr_names = {vid + " Printer 0.4", vid + " Printer 0.6"};
-
     for (const auto& n : fi_names) add_system_preset(src.filaments, n, vp);
     for (const auto& n : pr_names) add_system_preset(src.printers,  n, vp);
 
-    const auto stats = src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
+    const auto stats = save_one_vendor(src, tmp.path, cache);
     REQUIRE(stats.ok);
     CHECK(stats.filament_presets == 3);
     CHECK(stats.printer_presets  == 2);
 
-    VendorProfile       p; std::vector<Preset> pr, fi, pp;
-    REQUIRE(PresetBundle::load_vendor_cache_for_guide(
-        cache.string(), get_vendor_cache_key(json_path), p, pr, fi, pp));
+    PresetBundle out;
+    REQUIRE(PresetBundle::load_system_presets_cache_for_guide(cache.string(), out));
 
+    auto fi = presets_for(out.filaments, vid);
+    auto pr = presets_for(out.printers,  vid);
     REQUIRE(fi.size() == 3);
     REQUIRE(pr.size() == 2);
+
     std::set<std::string> fi_got, pr_got;
-    for (const auto& x : fi) fi_got.insert(x.name);
-    for (const auto& x : pr) pr_got.insert(x.name);
+    for (const auto* p : fi) fi_got.insert(p->name);
+    for (const auto* p : pr) pr_got.insert(p->name);
     for (const auto& n : fi_names) CHECK(fi_got.count(n) == 1);
     for (const auto& n : pr_names) CHECK(pr_got.count(n) == 1);
 }
 
-TEST_CASE("VendorCache: truncated file is rejected", "[VendorCache]")
+TEST_CASE("SystemPresetsCache: truncated file is rejected", "[VendorCache]")
 {
     TempDir        tmp;
     const fs::path cache = tmp.path / "truncated.cache";
-
-    // 3 bytes — shorter than the 20-byte CacheFileHeader
     {
         std::ofstream f(cache.string(), std::ios::binary);
         const char data[] = {0x4F, 0x52, 0x43};
         f.write(data, sizeof(data));
     }
-
-    VendorProfile       p; std::vector<Preset> pr, fi, pp;
-    CHECK_FALSE(PresetBundle::load_vendor_cache_for_guide(
-        cache.string(), "1.0.0", p, pr, fi, pp));
+    PresetBundle out;
+    CHECK_FALSE(PresetBundle::load_system_presets_cache_for_guide(cache.string(), out));
 }
 
-TEST_CASE("VendorCache: wrong magic is rejected", "[VendorCache]")
+TEST_CASE("SystemPresetsCache: wrong magic is rejected", "[VendorCache]")
 {
     TempDir           tmp;
-    const std::string vid       = "Acme";
-    const std::string json_path = write_vendor_json(tmp.path, vid);
-    const fs::path    cache     = tmp.path / (vid + ".cache");
+    const std::string vid = "Acme";
+    write_vendor_json(tmp.path, vid);
+    const fs::path cache = tmp.path / "system_presets.cache";
 
     PresetBundle src;
     add_vendor(src, vid);
     add_system_preset(src.filaments, vid + " PLA", &src.vendors.at(vid));
-    src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
+    save_one_vendor(src, tmp.path, cache);
 
-    // Overwrite first 4 bytes (magic field) with a wrong value; rest of file stays valid.
     {
         std::fstream f(cache.string(), std::ios::in | std::ios::out | std::ios::binary);
         const uint32_t bad = 0xDEADBEEFu;
         f.write(reinterpret_cast<const char*>(&bad), sizeof(bad));
     }
 
-    VendorProfile       p; std::vector<Preset> pr, fi, pp;
-    CHECK_FALSE(PresetBundle::load_vendor_cache_for_guide(
-        cache.string(), get_vendor_cache_key(json_path), p, pr, fi, pp));
+    PresetBundle out;
+    CHECK_FALSE(PresetBundle::load_system_presets_cache_for_guide(cache.string(), out));
 }
 
-TEST_CASE("VendorCache: vendor with no presets saves and loads cleanly", "[VendorCache]")
+TEST_CASE("SystemPresetsCache: vendor with no presets saves and loads cleanly", "[VendorCache]")
 {
     TempDir           tmp;
-    const std::string vid       = "Acme";
-    const std::string json_path = write_vendor_json(tmp.path, vid);
-    const fs::path    cache     = tmp.path / (vid + ".cache");
+    const std::string vid = "Acme";
+    write_vendor_json(tmp.path, vid);
+    const fs::path cache = tmp.path / "system_presets.cache";
 
     PresetBundle src;
     VendorProfile vp(vid);
@@ -356,144 +340,91 @@ TEST_CASE("VendorCache: vendor with no presets saves and loads cleanly", "[Vendo
     vp.config_version = Semver(1, 0, 0);
     src.vendors.emplace(vid, vp);
 
-    const auto stats = src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
+    const auto stats = save_one_vendor(src, tmp.path, cache);
     REQUIRE(stats.ok);
     CHECK(stats.print_presets    == 0);
     CHECK(stats.filament_presets == 0);
     CHECK(stats.printer_presets  == 0);
 
-    VendorProfile       p; std::vector<Preset> pr, fi, pp;
-    REQUIRE(PresetBundle::load_vendor_cache_for_guide(
-        cache.string(), get_vendor_cache_key(json_path), p, pr, fi, pp));
-    CHECK(p.id   == vid);
-    CHECK(p.name == "Acme Corporation");
-    CHECK(fi.empty());
-    CHECK(pr.empty());
-    CHECK(pp.empty());
+    PresetBundle out;
+    REQUIRE(PresetBundle::load_system_presets_cache_for_guide(cache.string(), out));
+    REQUIRE(out.vendors.count(vid) == 1);
+    CHECK(out.vendors.at(vid).id   == vid);
+    CHECK(out.vendors.at(vid).name == "Acme Corporation");
+    CHECK(presets_for(out.filaments, vid).empty());
+    CHECK(presets_for(out.printers,  vid).empty());
+    CHECK(presets_for(out.prints,    vid).empty());
 }
 
-TEST_CASE("VendorCache: all Preset metadata fields are preserved", "[VendorCache]")
+TEST_CASE("SystemPresetsCache: all Preset metadata fields are preserved", "[VendorCache]")
 {
     TempDir           tmp;
-    const std::string vid       = "Acme";
-    const std::string json_path = write_vendor_json(tmp.path, vid);
-    const fs::path    cache     = tmp.path / (vid + ".cache");
+    const std::string vid = "Acme";
+    write_vendor_json(tmp.path, vid);
+    const fs::path cache = tmp.path / "system_presets.cache";
 
     PresetBundle src;
     add_vendor(src, vid);
-    const VendorProfile* vp = &src.vendors.at(vid);
+    Preset& fp     = add_system_preset(src.filaments, vid + " PLA @0.4", &src.vendors.at(vid));
+    fp.setting_id  = "sid-test-001";
+    fp.description = "A test filament preset";
+    fp.bundle_id   = "bundle-xyz";
+    fp.user_id     = "user-abc";
+    fp.base_id     = "base-123";
+    fp.sync_info   = "update";
+    fp.updated_time = 1700000000LL;
+    fp.key_values  = {{"color", "red"}, {"diameter", "1.75"}};
+    fp.ini_str     = "[filament]\nnozzle_temperature = 230\n";
+    save_one_vendor(src, tmp.path, cache);
 
-    Preset& fp          = add_system_preset(src.filaments, vid + " PLA @0.4", vp);
-    fp.setting_id       = "sid-test-001";
-    fp.description      = "A test filament preset";
-    fp.bundle_id        = "bundle-xyz";
-    fp.user_id          = "user-abc";
-    fp.base_id          = "base-123";
-    fp.sync_info        = "update";
-    fp.updated_time     = 1700000000LL;
-    fp.key_values       = {{"color", "red"}, {"diameter", "1.75"}};
-    fp.ini_str          = "[filament]\nnozzle_temperature = 230\n";
+    PresetBundle out;
+    REQUIRE(PresetBundle::load_system_presets_cache_for_guide(cache.string(), out));
 
-    src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
-
-    VendorProfile       p; std::vector<Preset> pr, fi, pp;
-    REQUIRE(PresetBundle::load_vendor_cache_for_guide(
-        cache.string(), get_vendor_cache_key(json_path), p, pr, fi, pp));
-
+    auto fi = presets_for(out.filaments, vid);
     REQUIRE(fi.size() == 1);
-    const Preset& out = fi[0];
-    CHECK(out.setting_id   == "sid-test-001");
-    CHECK(out.description  == "A test filament preset");
-    CHECK(out.bundle_id    == "bundle-xyz");
-    CHECK(out.user_id      == "user-abc");
-    CHECK(out.base_id      == "base-123");
-    CHECK(out.sync_info    == "update");
-    CHECK(out.updated_time == 1700000000LL);
-    REQUIRE(out.key_values.count("color") == 1);
-    CHECK(out.key_values.at("color")      == "red");
-    REQUIRE(out.key_values.count("diameter") == 1);
-    CHECK(out.key_values.at("diameter")   == "1.75");
-    CHECK(out.ini_str == "[filament]\nnozzle_temperature = 230\n");
+    CHECK(fi[0]->setting_id   == "sid-test-001");
+    CHECK(fi[0]->description  == "A test filament preset");
+    CHECK(fi[0]->bundle_id    == "bundle-xyz");
+    CHECK(fi[0]->user_id      == "user-abc");
+    CHECK(fi[0]->base_id      == "base-123");
+    CHECK(fi[0]->sync_info    == "update");
+    CHECK(fi[0]->updated_time == 1700000000LL);
+    REQUIRE(fi[0]->key_values.count("color") == 1);
+    CHECK(fi[0]->key_values.at("color")      == "red");
+    REQUIRE(fi[0]->key_values.count("diameter") == 1);
+    CHECK(fi[0]->key_values.at("diameter")   == "1.75");
+    CHECK(fi[0]->ini_str == "[filament]\nnozzle_temperature = 230\n");
 }
 
-// TC09 — versionless JSON uses mtime as the cache key; same mtime → cache valid.
-// TC10 — after the JSON file is touched (mtime changes), the old key no longer matches.
-TEST_CASE("VendorCache: versionless vendor uses mtime key", "[VendorCache]")
+TEST_CASE("SystemPresetsCache: wrong cache_version is rejected", "[VendorCache]")
 {
     TempDir           tmp;
-    const std::string vid       = "Acme";
-    const std::string json_path = write_versionless_vendor_json(tmp.path, vid);
-    const fs::path    cache     = tmp.path / (vid + ".cache");
+    const std::string vid = "Acme";
+    write_vendor_json(tmp.path, vid);
+    const fs::path cache = tmp.path / "system_presets.cache";
 
     PresetBundle src;
     add_vendor(src, vid);
     add_system_preset(src.filaments, vid + " PLA", &src.vendors.at(vid));
+    save_one_vendor(src, tmp.path, cache);
+    patch_cache_version(cache.string(), 0xFFFFFFFFu);
 
-    const std::string key_before = get_vendor_cache_key(json_path);
-    REQUIRE_FALSE(key_before.empty());
-    // Must be mtime-based, not a Semver.
-    REQUIRE(key_before.substr(0, 6) == "mtime:");
-
-    src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
-
-    SECTION("same mtime → cache is valid") {
-        VendorProfile       p; std::vector<Preset> pr, fi, pp;
-        CHECK(PresetBundle::load_vendor_cache_for_guide(
-            cache.string(), get_vendor_cache_key(json_path), p, pr, fi, pp));
-        CHECK(fi.size() == 1);
-    }
-
-    SECTION("touched file changes mtime → cache is invalid") {
-        // Advance mtime by 2 seconds so the key definitely differs.
-        const std::time_t old_mtime = fs::last_write_time(json_path);
-        fs::last_write_time(json_path, old_mtime + 2);
-
-        const std::string key_after = get_vendor_cache_key(json_path);
-        REQUIRE(key_after != key_before);
-
-        VendorProfile       p; std::vector<Preset> pr, fi, pp;
-        CHECK_FALSE(PresetBundle::load_vendor_cache_for_guide(
-            cache.string(), key_after, p, pr, fi, pp));
-    }
+    PresetBundle out;
+    CHECK_FALSE(PresetBundle::load_system_presets_cache_for_guide(cache.string(), out));
 }
 
-// TC07 — config_options_count in the cache header must equal the live print_config_def
-//         option count. A patched value (1) is rejected by is_valid() even if the CRC is correct.
-TEST_CASE("VendorCache: config_options_count mismatch is rejected", "[VendorCache]")
+TEST_CASE("SystemPresetsCache: mid-blob truncation is rejected", "[VendorCache]")
 {
     TempDir           tmp;
-    const std::string vid       = "Acme";
-    const std::string json_path = write_vendor_json(tmp.path, vid);
-    const fs::path    cache     = tmp.path / (vid + ".cache");
+    const std::string vid = "Acme";
+    write_vendor_json(tmp.path, vid);
+    const fs::path cache = tmp.path / "system_presets.cache";
 
     PresetBundle src;
     add_vendor(src, vid);
     add_system_preset(src.filaments, vid + " PLA", &src.vendors.at(vid));
-    src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
+    save_one_vendor(src, tmp.path, cache);
 
-    // Patch config_options_count to 1 and fix CRC — file is structurally valid but semantically stale.
-    patch_cache_options_count(cache.string(), 1u);
-
-    VendorProfile       p; std::vector<Preset> pr, fi, pp;
-    CHECK_FALSE(PresetBundle::load_vendor_cache_for_guide(
-        cache.string(), get_vendor_cache_key(json_path), p, pr, fi, pp));
-}
-
-// TC12 variant — header is intact but the blob is cut short; the blob read fails.
-TEST_CASE("VendorCache: mid-blob truncation is rejected", "[VendorCache]")
-{
-    TempDir           tmp;
-    const std::string vid       = "Acme";
-    const std::string json_path = write_vendor_json(tmp.path, vid);
-    const fs::path    cache     = tmp.path / (vid + ".cache");
-
-    PresetBundle src;
-    add_vendor(src, vid);
-    add_system_preset(src.filaments, vid + " PLA", &src.vendors.at(vid));
-    src.save_bundled_vendor_cache(vid, json_path, false, cache.string());
-
-    // Keep the full 20-byte CacheFileHeader intact; truncate the blob to 10 bytes.
-    // data_size in the header still says the full blob length, so the read will fail.
     {
         std::ifstream in(cache.string(), std::ios::binary);
         std::vector<char> buf(30); // 20-byte header + 10 bytes of blob
@@ -503,7 +434,25 @@ TEST_CASE("VendorCache: mid-blob truncation is rejected", "[VendorCache]")
         out.write(buf.data(), 30);
     }
 
-    VendorProfile       p; std::vector<Preset> pr, fi, pp;
-    CHECK_FALSE(PresetBundle::load_vendor_cache_for_guide(
-        cache.string(), get_vendor_cache_key(json_path), p, pr, fi, pp));
+    PresetBundle out;
+    CHECK_FALSE(PresetBundle::load_system_presets_cache_for_guide(cache.string(), out));
+}
+
+TEST_CASE("SystemPresetsCache: versionless vendor uses mtime key in bundle", "[VendorCache]")
+{
+    TempDir           tmp;
+    const std::string vid = "Acme";
+    write_versionless_vendor_json(tmp.path, vid);
+    const fs::path cache = tmp.path / "system_presets.cache";
+
+    PresetBundle src;
+    add_vendor(src, vid);
+    add_system_preset(src.filaments, vid + " PLA", &src.vendors.at(vid));
+    REQUIRE(save_one_vendor(src, tmp.path, cache).ok);
+
+    PresetBundle out;
+    REQUIRE(PresetBundle::load_system_presets_cache_for_guide(cache.string(), out));
+    auto fi = presets_for(out.filaments, vid);
+    REQUIRE(fi.size() == 1);
+    CHECK(fi[0]->name == vid + " PLA");
 }
