@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -5138,11 +5138,15 @@ msgstr "Vermijd het extrusie kalibratie gebied"
 msgid "Align to Y axis"
 msgstr "Uitlijnen op Y-as"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Achterzijde"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Links"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Rechts"
 
@@ -14441,10 +14445,6 @@ msgid "Aligned back"
 msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Back"
-msgstr "Achterzijde"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "Achterzijde"
 

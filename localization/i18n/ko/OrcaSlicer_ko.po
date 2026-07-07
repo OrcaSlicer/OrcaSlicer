@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -5198,11 +5198,15 @@ msgstr "압출 교정 영역을 피하세요"
 msgid "Align to Y axis"
 msgstr "Y축에 정렬"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "뒷면"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "왼쪽"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "오른쪽"
 
@@ -14734,10 +14738,6 @@ msgid "Aligned back"
 msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Back"
-msgstr "뒷면"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "뒷면"
 

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -5200,11 +5200,15 @@ msgstr "Уникайте області калібрування екструз�
 msgid "Align to Y axis"
 msgstr "Розташувати вздовж осі Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Ззаду"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Ліво"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Право"
 
@@ -14767,10 +14771,6 @@ msgid "Aligned back"
 msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Back"
-msgstr "Ззаду"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "Ззаду"
 

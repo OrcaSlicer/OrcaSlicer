@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -5198,11 +5198,15 @@ msgstr "Extrudáláskalibráció környékének elkerülése"
 msgid "Align to Y axis"
 msgstr "Igazítás az Y-tengelyhez"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Hátul"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Bal"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Jobb"
 
@@ -14894,10 +14898,6 @@ msgid "Aligned back"
 msgstr "Hátulra igazítva"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Back"
-msgstr "Hátul"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "Hátul"
 

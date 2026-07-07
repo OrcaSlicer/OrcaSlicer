@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -5099,11 +5099,15 @@ msgstr "Evitar la zona de calibración del extrusor"
 msgid "Align to Y axis"
 msgstr "Alinear con el eje Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Posterior"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Izquierda"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Derecha"
 
@@ -14674,10 +14678,6 @@ msgstr "Alineado atrás"
 msgid "Back"
 msgstr "Atrás"
 
-msgctxt "Camera"
-msgid "Back"
-msgstr "Posterior"
-
 msgid "Random"
 msgstr "Aleatorio"
 
@@ -19360,7 +19360,8 @@ msgstr ""
 "Divide tus impresiones en camas\n"
 "¿Sabías que puedes dividir un modelo con muchas piezas en camas individuales listas para imprimir? Esto simplificará el proceso de seguimiento de todas las piezas."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -19432,7 +19433,8 @@ msgstr ""
 "Mejorar la resistencia\n"
 "¿Sabías que puedes utilizar más bucles de perímetro y mayor densidad de relleno de baja densidad para mejorar la resistencia del modelo?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."

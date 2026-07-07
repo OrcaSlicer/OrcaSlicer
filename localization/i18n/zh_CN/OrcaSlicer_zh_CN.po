@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -5187,11 +5187,15 @@ msgstr "避开挤出校准区域"
 msgid "Align to Y axis"
 msgstr "对齐到Y轴"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "背面"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "左"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "右"
 
@@ -14910,10 +14914,6 @@ msgid "Aligned back"
 msgstr "背部对齐"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Back"
-msgstr "背面"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "背面"
 

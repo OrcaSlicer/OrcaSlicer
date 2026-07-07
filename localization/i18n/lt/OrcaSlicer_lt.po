@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -5079,11 +5079,15 @@ msgstr "Vengti ekstruzijos kalibravimo srities"
 msgid "Align to Y axis"
 msgstr "Išlygiuoti pagal Y ašį"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Atgal"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Kairė"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Dešinė"
 
@@ -14618,10 +14622,6 @@ msgstr "Sulygiuota"
 msgid "Aligned back"
 msgstr "Sulygiuota gale"
 
-msgid "Back"
-msgstr "Atgal"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "Atgal"
 

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -5195,11 +5195,15 @@ msgstr "Unikaj obszaru kalibracji ekstruzji"
 msgid "Align to Y axis"
 msgstr "Wyrównaj do osi Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Tył"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Lewy"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Prawy"
 
@@ -14752,10 +14756,6 @@ msgid "Aligned back"
 msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Back"
-msgstr "Tył"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "Tył"
 

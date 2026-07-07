@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2026-07-04 11:51-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -5112,11 +5112,15 @@ msgstr "Evitar a região de calibração da extrusão"
 msgid "Align to Y axis"
 msgstr "Alinhar com o eixo Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Atrás"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Esquerda"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Direita"
 
@@ -14734,10 +14738,6 @@ msgstr "Alinhada"
 msgid "Aligned back"
 msgstr "Alinhada atrás"
 
-msgid "Back"
-msgstr "Atrás"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "Atrás"
 

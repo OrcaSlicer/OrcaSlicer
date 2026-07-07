@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -5171,11 +5171,15 @@ msgstr "Tránh vùng hiệu chỉnh đùn"
 msgid "Align to Y axis"
 msgstr "Căn theo trục Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Sau"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Trái"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Phải"
 
@@ -14682,10 +14686,6 @@ msgid "Aligned back"
 msgstr "Căn chỉnh sau"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Back"
-msgstr "Sau"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "Sau"
 

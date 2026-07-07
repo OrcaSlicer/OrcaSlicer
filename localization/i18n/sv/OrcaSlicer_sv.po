@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -5129,11 +5129,15 @@ msgstr "Undvik kalibrerings området"
 msgid "Align to Y axis"
 msgstr "Justera mot Y-axeln"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Tillbaka"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Vänster"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Höger"
 
@@ -14414,10 +14418,6 @@ msgid "Aligned back"
 msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Back"
-msgstr "Tillbaka"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "Tillbaka"
 

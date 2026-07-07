@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -5199,11 +5199,15 @@ msgstr "Ekstrüzyon kalibrasyon bölgesinden kaçın"
 msgid "Align to Y axis"
 msgstr "Y eksenine hizala"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Arka"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Sol"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Sağ"
 
@@ -14790,10 +14794,6 @@ msgid "Aligned back"
 msgstr "Arkaya hizalı"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Back"
-msgstr "Arka"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "Arka"
 

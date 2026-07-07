@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -5208,11 +5208,15 @@ msgstr "Vermeiden Sie den Bereich der Extrusionskalibrierung"
 msgid "Align to Y axis"
 msgstr "An Y-Achse ausrichten"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Zurück"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "links"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "rechts"
 
@@ -14976,10 +14980,6 @@ msgid "Aligned back"
 msgstr "Ausgerichtet hinten"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Back"
-msgstr "Zurück"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "Zurück"
 

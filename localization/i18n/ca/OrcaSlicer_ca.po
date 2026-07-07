@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -5207,11 +5207,15 @@ msgstr "Evitar la regió de calibratge d'extrusió"
 msgid "Align to Y axis"
 msgstr "Alinear a l'eix Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Darrera"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Esquerra"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Dreta"
 
@@ -14822,10 +14826,6 @@ msgid "Aligned back"
 msgstr "Alineat al darrere"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Back"
-msgstr "Darrera"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "Darrera"
 

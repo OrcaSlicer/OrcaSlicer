@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -5076,11 +5076,15 @@ msgstr "หลีกเลี่ยงบริเวณการสอบเท
 msgid "Align to Y axis"
 msgstr "จัดแนวตามแกน Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "กลับ"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "ซ้าย"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "ขวา"
 
@@ -14605,10 +14609,6 @@ msgstr "จัดตำแหน่ง"
 msgid "Aligned back"
 msgstr "จัดแนวกลับ"
 
-msgid "Back"
-msgstr "กลับ"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "กลับ"
 

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 14:35-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -5204,11 +5204,15 @@ msgstr "Vyhněte se kalibrační oblasti extruze"
 msgid "Align to Y axis"
 msgstr "Zarovnat na osu Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Zpět"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Levý"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Pravý"
 
@@ -14869,10 +14873,6 @@ msgid "Aligned back"
 msgstr "Zarovnat zpět"
 
 # TODO: Review, changed by lang refactor. PR 14254
-msgid "Back"
-msgstr "Zpět"
-
-msgctxt "Camera"
 msgid "Back"
 msgstr "Zpět"
 
