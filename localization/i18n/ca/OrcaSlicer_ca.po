@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-03 14:43+0200\n"
+"POT-Creation-Date: 2026-07-06 12:57-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -402,26 +402,29 @@ msgstr "Restableix la Posició"
 msgid "Reset rotation"
 msgstr "Reinicialitza la rotació"
 
-msgid "Object coordinates"
-msgstr "Coordenades de l'objecte"
+msgid "World"
+msgstr ""
 
-msgid "World coordinates"
-msgstr "Coordenades cartesianes"
+msgid "Object"
+msgstr "Objecte"
 
-msgid "Translate(Relative)"
-msgstr "Trasllada (relatiu)"
+msgid "Part"
+msgstr "Peça"
+
+msgid "Relative"
+msgstr ""
+
+msgid "Coordinate system used for transform actions."
+msgstr ""
+
+msgid "Absolute"
+msgstr ""
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "Restableix la rotació actual al valor d'quan s'ha obert l'eina de rotació."
 
-msgid "Rotate (absolute)"
-msgstr "Gira (absolut)"
-
 msgid "Reset current rotation to real zeros."
 msgstr "Restableix la rotació actual a zeros reals."
-
-msgid "Part coordinates"
-msgstr "Coordenades de la part"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -525,12 +528,6 @@ msgstr ""
 
 msgid "Spacing"
 msgstr "Espaiat"
-
-msgid "Part"
-msgstr "Peça"
-
-msgid "Object"
-msgstr "Objecte"
 
 msgid ""
 "Click to flip the cut plane\n"
@@ -1879,28 +1876,41 @@ msgstr "Obrir Projecte"
 msgid "The version of Orca Slicer is too low and needs to be updated to the latest version before it can be used normally."
 msgstr "La versió de l'Orca Slicer és massa antiga i s'ha d'actualitzar a la versió més recent abans que es pugui utilitzar amb normalitat"
 
+msgid "Cloud sync conflict:"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Cloud sync conflict for preset \"%s\":"
+msgstr ""
+
 msgid ""
-"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+"This preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"A preset with this name already exists in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+"A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+"There was an unexpected or unidentified preset conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
+"Do you want to continue?"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\n"
 "Do you want to continue?"
 msgstr ""
 
@@ -1978,7 +1988,8 @@ msgstr "El nombre de perfils d'usuari emmagatzemats a memòria cau al núvol ha 
 msgid "Sync user presets"
 msgstr "Sincronitzar perfils d'usuari"
 
-msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+#, c-format, boost-format
+msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
 msgstr ""
 
 #, c-format, boost-format
@@ -2198,6 +2209,9 @@ msgid "Orca Cube"
 msgstr "Cub d'Orca"
 
 msgid "OrcaSliced Combo"
+msgstr ""
+
+msgid "Orca Badge"
 msgstr ""
 
 msgid "Orca Tolerance Test"
@@ -5266,6 +5280,9 @@ msgstr "Voladissos"
 msgid "Outline"
 msgstr "Contorn"
 
+msgid "Wireframe"
+msgstr ""
+
 msgid "Realistic View"
 msgstr ""
 
@@ -5310,7 +5327,7 @@ msgid "Size:"
 msgstr "Mida:"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "S'han trobat conflictes de rutes gcode a la capa %d, Z = %.2lfmm. Si us plau, separeu els objectes conflictius més lluny ( %s <-> %s )."
 
@@ -8057,6 +8074,35 @@ msgstr "Mostra opcions en importar fitxers STEP"
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "Si s'activa, apareixerà un diàleg de configuració de paràmetres durant la importació de fitxers STEP."
 
+msgid "STEP importing: linear deflection"
+msgstr ""
+
+msgid ""
+"Linear deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.003 mm."
+msgstr ""
+
+msgid "STEP importing: angle deflection"
+msgstr ""
+
+msgid ""
+"Angle deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.5."
+msgstr ""
+
+msgid "STEP importing: Split into multiple objects"
+msgstr ""
+
+msgid ""
+"If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: disabled."
+msgstr ""
+
 msgid "Quality level for Draco export"
 msgstr "Nivell de qualitat per a l'exportació Draco"
 
@@ -8071,6 +8117,12 @@ msgstr ""
 "Controla la profunditat de bits de quantització utilitzada en comprimir la malla a format Draco.\n"
 "0 = compressió sense pèrdua (la geometria es preserva a plena precisió). Els valors amb pèrdua vàlids van de 8 a 30.\n"
 "Valors més baixos produeixen fitxers més petits però perden més detall geomètric; valors més alts preserven més detall a costa de fitxers més grans."
+
+msgid "Store full source file paths in projects"
+msgstr ""
+
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr ""
 
 msgid "Preset"
 msgstr "Perfil"
@@ -12394,6 +12446,18 @@ msgstr "Llindar de perímetres petits"
 msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
 msgstr "Això estableix el llindar per a la longitud perimetral petita. El llindar predeterminat és de 0mm"
 
+msgid "Small support perimeters"
+msgstr ""
+
+msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
+msgstr ""
+
+msgid "Small support perimeters threshold"
+msgstr ""
+
+msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
+msgstr ""
+
 msgid "Walls printing order"
 msgstr "Ordre d'impressió de perímetres"
 
@@ -12579,25 +12643,26 @@ msgstr ""
 "2. Anoteu el valor de PA òptim per a cada velocitat i acceleració del cabal volumètric. Podeu trobar el número de flux seleccionant el flux al desplegable de l'esquema de colors i moveu el control lliscant horitzontal per sobre de les línies del patró PA. El número ha de ser visible a la part inferior de la pàgina. El valor de PA ideal hauria de ser decreixent com més gran sigui el cabal volumètric. Si no és així, confirmeu que la vostra extrusora funciona correctament. Com més lent i amb menys acceleració imprimiu, més gran serà el rang de valors de PA acceptables. Si no hi ha cap diferència visible, utilitzeu el valor PA de la prova més ràpida.\n"
 "3. Introduïu els triplets dels valors de PA, flux i acceleracions al quadre de text aquí i deseu el vostre perfil de filament."
 
-msgid "Enable adaptive pressure advance for overhangs (beta)"
-msgstr "Habilita l'avanç de pressió adaptativa per als voladissos (beta)"
-
-msgid ""
-"Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+msgid "Enable adaptive pressure advance within features (beta)"
 msgstr ""
 
-msgid "Pressure advance for bridges"
-msgstr "Avanç de pressió per als ponts"
+msgid ""
+"Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
+"\n"
+"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
+"\n"
+"This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
+msgstr ""
+
+msgid "Static pressure advance for bridges"
+msgstr ""
 
 msgid ""
-"Pressure advance value for bridges. Set to 0 to disable.\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+"equivalent walls (using adaptive settings if enabled).\n"
 "\n"
-"A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+"A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Valor d'avanç de pressió per als ponts. Establiu a 0 per desactivar.\n"
-"\n"
-" Un valor de PA més baix quan s'imprimeixen ponts ajuda a reduir l'aparició d'una lleugera extrusió immediatament després dels ponts. Això és causat per la caiguda de pressió al broquet quan s'imprimeix a l'aire i un PA més baix ajuda a contrarestar-ho."
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Amplada de línia predeterminada si altres amplades de línia estan definides com a 0. Si s'expressa en %, es calcularà sobre el diàmetre del broquet."
@@ -12980,6 +13045,22 @@ msgstr "Direcció de farciment sòlid"
 
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
 msgstr "Angle per al patró de farciment sòlid, que controla l'inici o la direcció principal de la línia"
+
+msgid "Top layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the top solid infill and ironing lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
+msgid "Bottom layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the bottom solid infill lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
 
 msgid "Sparse infill density"
 msgstr "Densitat de farciment poc dens"
@@ -15777,6 +15858,14 @@ msgstr "Gir del poliforat"
 
 msgid "Rotate the polyhole every layer."
 msgstr "Rotar el poliforat a cada capa."
+
+msgid "Maximum Polyhole edge count"
+msgstr ""
+
+msgid ""
+"Maximum number of polyhole edges\n"
+"This setting limits the amount of edges a polyhole can have"
+msgstr ""
 
 msgid "G-code thumbnails"
 msgstr "Mida Miniatures al Codi-G"
@@ -19146,6 +19235,12 @@ msgstr "Nombre de cares triangulars"
 msgid "Calculating, please wait..."
 msgstr "Calculant, espereu..."
 
+msgid "Save these settings as default"
+msgstr ""
+
+msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
+msgstr ""
+
 msgid "PresetBundle"
 msgstr ""
 
@@ -19550,6 +19645,36 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+#~ msgid "Object coordinates"
+#~ msgstr "Coordenades de l'objecte"
+
+#~ msgid "World coordinates"
+#~ msgstr "Coordenades cartesianes"
+
+#~ msgid "Translate(Relative)"
+#~ msgstr "Trasllada (relatiu)"
+
+#~ msgid "Rotate (absolute)"
+#~ msgstr "Gira (absolut)"
+
+#~ msgid "Part coordinates"
+#~ msgstr "Coordenades de la part"
+
+#~ msgid "Enable adaptive pressure advance for overhangs (beta)"
+#~ msgstr "Habilita l'avanç de pressió adaptativa per als voladissos (beta)"
+
+#~ msgid "Pressure advance for bridges"
+#~ msgstr "Avanç de pressió per als ponts"
+
+#~ msgid ""
+#~ "Pressure advance value for bridges. Set to 0 to disable.\n"
+#~ "\n"
+#~ "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+#~ msgstr ""
+#~ "Valor d'avanç de pressió per als ponts. Establiu a 0 per desactivar.\n"
+#~ "\n"
+#~ " Un valor de PA més baix quan s'imprimeixen ponts ajuda a reduir l'aparició d'una lleugera extrusió immediatament després dels ponts. Això és causat per la caiguda de pressió al broquet quan s'imprimeix a l'aire i un PA més baix ajuda a contrarestar-ho."
 
 #~ msgid "Filament Sync Options"
 #~ msgstr "Opcions de sincronització de filament"
