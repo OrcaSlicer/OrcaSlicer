@@ -1,7 +1,7 @@
 #ifndef slic3r_GUI_RenamePrinterModelDialog_hpp_
 #define slic3r_GUI_RenamePrinterModelDialog_hpp_
 
-// ORCA #12105 (Phase 5): dialog to bulk-rename a user-defined printer_model across all user printer
+// ORCA #12105: dialog to bulk-rename a user-defined printer_model across all user printer
 // presets that share it. Also the supported way to clean up auto-generated "<model> - Copy" names
 // produced by the legacy-preset migration.
 

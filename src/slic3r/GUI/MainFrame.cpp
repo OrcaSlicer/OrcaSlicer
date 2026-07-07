@@ -2976,7 +2976,7 @@ void MainFrame::init_menubar_as_editor()
         append_submenu(fileMenu, export_menu, wxID_ANY, _L("Export"), "");
 
         fileMenu->AppendSeparator();
-        // ORCA #12105 (Phase 5): bulk-rename a user printer model across its nozzle variants
+        // ORCA #12105: bulk-rename a user printer model across its nozzle variants
         // (also the way to tidy auto-generated "<model> - Copy" names from preset migration).
         append_menu_item(fileMenu, wxID_ANY, _L("Rename Printer Model") + dots,
             _L("Rename a custom printer model across all of its nozzle variants"),
@@ -2994,6 +2994,15 @@ void MainFrame::init_menubar_as_editor()
                     return;
                 const std::string old_model = dlg.get_selected_model();
                 const std::string new_model = dlg.get_new_name();
+                // ORCA #12105: don't let a renamed model collide with a built-in (system) model name.
+                // Same wording as the Save dialog's system-profile guard.
+                const std::vector<std::string> sys_models = printers.system_printer_models();
+                if (std::find(sys_models.begin(), sys_models.end(), new_model) != sys_models.end()) {
+                    MessageDialog warn(this, _L("Overwriting a system profile is not allowed."),
+                        _L("Rename Printer Model"), wxOK | wxICON_WARNING);
+                    warn.ShowModal();
+                    return;
+                }
                 int n = printers.rename_user_printer_model(old_model, new_model);
                 // Resync the edited preset (names are unchanged) and rebuild the preset UI.
                 const std::string cur = printers.get_selected_preset().name;
@@ -3004,6 +3013,9 @@ void MainFrame::init_menubar_as_editor()
                     _L("Rename Printer Model"), wxOK | wxICON_INFORMATION);
                 done.ShowModal();
             }, "", nullptr, [this]() { return true; }, this);
+
+        // ORCA #12105: "Add nozzle size" is reachable from the nozzle-diameter dropdown
+        // ("--Add nozzle --" item) rather than the File menu — see Sidebar::priv in Plater.cpp.
 
         fileMenu->AppendSeparator();
 

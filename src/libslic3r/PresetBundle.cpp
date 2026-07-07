@@ -837,7 +837,7 @@ PresetsConfigSubstitutions PresetBundle::load_presets(AppConfig &config, Forward
     if (!validation_mode)
         this->normalize_compatible_presets();
 
-    // ORCA #12105 (Phase 4): one-time migration of legacy flat user printer presets to a distinct
+    // ORCA #12105: one-time migration of legacy flat user printer presets to a distinct
     // user printer_model, so they group per-model in the printer dropdown and changing the nozzle
     // stays on the user's printer instead of reverting to the system preset. Field-only, no rename.
     // Runs before load_selections so the active preset is selected from the migrated state.

@@ -246,6 +246,17 @@ void SavePresetDialog::Item::update()
         m_valid_type = NoValid;
     }
 
+    // ORCA #12105: for printers, the field holds the user MODEL name. It must not collide with a
+    // built-in (system) model, or it would hijack per-model grouping / compatibility resolution.
+    if (m_valid_type == Valid && m_type == Preset::TYPE_PRINTER) {
+        const std::vector<std::string> sys_models = wxGetApp().preset_bundle->printers.system_printer_models();
+        if (std::find(sys_models.begin(), sys_models.end(), m_preset_name) != sys_models.end()) {
+            // Match the existing system-profile message used for process/filament presets (line above).
+            info_line    = _L("Overwriting a system profile is not allowed.");
+            m_valid_type = NoValid;
+        }
+    }
+
     // BBS: add project embedded presets logic
     if (existing) { // ORCA RadioGroup
         if (existing->is_project_embedded) {

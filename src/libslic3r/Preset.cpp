@@ -131,6 +131,17 @@ PresetOrigin detect_origin_from_path(const boost::filesystem::path &path, const 
     return PresetOrigin(PresetOrigin::Kind::User);
 }
 
+// ORCA #12105: canonical nozzle-diameter -> printer_variant string formatter (see Preset.hpp).
+std::string format_printer_variant(double diameter)
+{
+    std::string s = (boost::format("%.2f") % diameter).str();
+    if (s.find('.') != std::string::npos) {   // strip trailing zeros, keep at least one decimal
+        s.erase(s.find_last_not_of('0') + 1);
+        if (!s.empty() && s.back() == '.') s += '0'; // "1." -> "1.0"
+    }
+    return s;
+}
+
 //BBS: add a function to load the version from xxx.json
 Semver get_version_from_json(std::string file_path)
 {
@@ -3579,20 +3590,10 @@ std::vector<std::string> PresetCollection::diameters_of_selected_printer()
         if (preset.config.opt_string("printer_model") == printer_model)
             diameters.insert(preset.config.opt_string("printer_variant"));
     }
-    // ORCA #12105 (Phase 3): for a USER printer, also offer the originating SYSTEM model's nozzle
-    // sizes so sizes the user hasn't saved a variant for are still selectable. Picking one then
-    // forks the matching system preset into a new user variant (see Sidebar::priv::switch_diameter).
-    const Preset &sel = get_selected_preset();
-    if (sel.is_user()) {
-        const Preset *base = get_preset_base(sel);
-        if (base != nullptr && base->is_system) {
-            const std::string sys_model = base->config.opt_string("printer_model");
-            if (!sys_model.empty() && sys_model != printer_model)
-                for (auto &preset : m_presets)
-                    if (preset.is_system && preset.config.opt_string("printer_model") == sys_model)
-                        diameters.insert(preset.config.opt_string("printer_variant"));
-        }
-    }
+    // ORCA #12105: the nozzle dropdown only lists sizes that actually exist as variants of the
+    // selected printer. For a user printer, new nozzle sizes are added explicitly via
+    // "File > Add Nozzle Size" (which forks the matching system preset into a new user variant)
+    // rather than being auto-created the moment an unsaved size is picked from the dropdown.
     return std::vector<std::string>{diameters.begin(), diameters.end()};
 }
 
@@ -4230,6 +4231,10 @@ const Preset *PrinterPresetCollection::find_custom_preset_by_model_and_variant(c
     if (model_id.empty()) { return nullptr; }
 
     const auto it = std::find_if(cbegin(), cend(), [&](const Preset &preset) {
+        // ORCA #12105: only user presets are "custom" — guard against a user model name that
+        // happens to collide with a system model string resolving to the system preset.
+        if (!preset.is_user())
+            return false;
         if (preset.config.opt_string("printer_model") != model_id)
             return false;
         if (variant.empty())
@@ -4295,6 +4300,19 @@ std::vector<std::string> PrinterPresetCollection::user_printer_models() const
     std::set<std::string> models;
     for (const Preset &p : *this)
         if (p.is_user()) {
+            const std::string m = p.config.opt_string("printer_model");
+            if (!m.empty()) models.insert(m);
+        }
+    return std::vector<std::string>{models.begin(), models.end()};
+}
+
+// ORCA #12105: the set of system printer_model names. Used to guard a user-chosen printer_model
+// against colliding with a built-in model (which would hijack grouping/compatibility resolution).
+std::vector<std::string> PrinterPresetCollection::system_printer_models() const
+{
+    std::set<std::string> models;
+    for (const Preset &p : *this)
+        if (p.is_system) {
             const std::string m = p.config.opt_string("printer_model");
             if (!m.empty()) models.insert(m);
         }

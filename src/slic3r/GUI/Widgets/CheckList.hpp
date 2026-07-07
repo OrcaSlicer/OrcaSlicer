@@ -39,7 +39,10 @@ private:
 
     wxPanel*          f_bar;
     wxBoxSizer*       f_sizer;
-    TextInput*        m_filter_box;
+    // ORCA #12105: qualify the global ::TextInput. Some TUs (e.g. MainFrame.cpp, which pulls this in
+    // via MultiChoiceDialog.hpp) also see a Slic3r::GUI::TextInput forward-decl (Preferences.hpp),
+    // making the unqualified name ambiguous under `using namespace Slic3r::GUI`.
+    ::TextInput*      m_filter_box;
     wxTextCtrl*       m_filter_ctrl;
     wxBoxSizer*       fb_sizer;
     wxStaticBitmap*   m_menu_button;
