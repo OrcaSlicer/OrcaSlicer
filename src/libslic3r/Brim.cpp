@@ -61,7 +61,7 @@ static bool use_brim_efc_outline(const PrintObject &object)
         && object.config().raft_layers.value == 0;
 }
 
-//ORCA: Helper for snapping painted ears to the EFC outline.
+//ORCA: Helper for projecting painted ears to the EFC outline.
 static bool closest_point_on_expolygons(const ExPolygons &polygons, const Point &from, Point &closest_out)
 {
     double min_dist2 = std::numeric_limits<double>::max();
@@ -69,23 +69,22 @@ static bool closest_point_on_expolygons(const ExPolygons &polygons, const Point 
 
     for (const ExPolygon &poly : polygons) {
         for (int i = 0; i < poly.num_contours(); ++i) {
-            const Point *candidate = poly.contour_or_hole(i).closest_point(from);
-            if (candidate == nullptr)
-                continue;
-            const int64_t dx = int64_t(candidate->x()) - int64_t(from.x());
-            const int64_t dy = int64_t(candidate->y()) - int64_t(from.y());
-            const double dist2 = double(dx * dx + dy * dy);
-            if (dist2 < min_dist2) {
-                min_dist2 = dist2;
-                closest_out = *candidate;
-                found = true;
+            const Lines lines = poly.contour_or_hole(i).lines();
+            for (const Line &line : lines) {
+                Point candidate;
+                const double dist2 = line.distance_to_squared(from, &candidate);
+                if (dist2 < min_dist2) {
+                    min_dist2 = dist2;
+                    closest_out = candidate;
+                    found = true;
+                }
             }
         }
     }
     return found;
 }
 
-//ORCA: Helper for matching painted ears to their original island before EFC snapping.
+//ORCA: Helper for matching painted ears to their original island before EFC projection.
 static int find_containing_expolygon_index(const ExPolygons &polygons, const Point &from)
 {
     for (size_t idx = 0; idx < polygons.size(); ++idx) {
@@ -95,7 +94,7 @@ static int find_containing_expolygon_index(const ExPolygons &polygons, const Poi
     return -1;
 }
 
-//ORCA: Keep painted ear snapping on the matching island when using EFC outline.
+//ORCA: Keep painted ear projection on the matching island when using EFC outline.
 static bool closest_point_on_matching_island(const ExPolygons &raw_outline, const ExPolygons &efc_outline, const Point &from, Point &closest_out)
 {
     const int island_idx = find_containing_expolygon_index(raw_outline, from);
@@ -106,6 +105,7 @@ static bool closest_point_on_matching_island(const ExPolygons &raw_outline, cons
     }
     return closest_point_on_expolygons(efc_outline, from, closest_out);
 }
+
 //ORCA: Use post-processed first-layer slices (including EFC) for brim outline.
 // Returns ExPolygons of the bottom layer after all first-layer modifiers
 // (including elephant foot compensation, if enabled) have been applied.
@@ -358,11 +358,12 @@ static ExPolygons make_brim_ears(const PrintObject* object, const double& flowWi
     if (brim_ear_points.size() <= 0) {
         return mouse_ears_ex;
     }
-    //ORCA: Painted ears can snap to the EFC-adjusted outline when enabled.
+    //ORCA: Painted ears follow the EFC-adjusted outline when enabled, while
+    // preserving their position along the selected outline segment.
     const bool use_efc_outline = use_brim_efc_outline(*object);
     const ExPolygons &raw_outline = object->layers().front()->lslices;
     //ORCA: Lazily computed EFC-adjusted bottom outline.
-    //Stored separately so we can avoid recomputation unless EFC snapping is used.
+    //Stored separately so we can avoid recomputation unless EFC projection is used.
     ExPolygons efc_outline_storage;
     const ExPolygons* efc_outline = nullptr;
 
@@ -390,17 +391,17 @@ static ExPolygons make_brim_ears(const PrintObject* object, const double& flowWi
         int32_t pt_x = scale_(pos.x());
         int32_t pt_y = scale_(pos.y());
 
-        //ORCA: Snap painted ears to the EFC-adjusted outline when enabled.
+        //ORCA: Project painted ears to the EFC-adjusted outline when enabled.
         if (use_efc_outline) {
             if (efc_outline == nullptr) {
-                //ORCA: Compute EFC-adjusted outline lazily for painted ear snapping.
+                //ORCA: Compute the EFC-adjusted outline lazily for painted ear projection.
                 efc_outline_storage = get_print_object_bottom_layer_expolygons(*object);
                 efc_outline = &efc_outline_storage;
             }
 
             if (!efc_outline->empty()) {
                 Point closest_point;
-                //ORCA: Snap within the matching island to avoid drifting to another island.
+                //ORCA: Project within the matching island to avoid drifting to another island.
                 if (closest_point_on_matching_island(
                         raw_outline,
                         *efc_outline,
