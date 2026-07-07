@@ -2013,10 +2013,10 @@ wxBoxSizer* MainFrame::create_side_tools()
                     });
 
                 // upload and print
-                SideButton* send_gcode_btn = new SideButton(p, _L("Print"), "");
+                SideButton* send_gcode_btn = new SideButton(p, _CTX("Print", "Verb"), "");
                 send_gcode_btn->SetCornerRadius(0);
                 send_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Print"));
+                    m_print_btn->SetLabel(_CTX("Print", "Verb"));
                     m_print_select = eSendGcode;
                     m_print_enable = get_enable_print_status();
                     m_print_btn->Enable(m_print_enable);
@@ -4040,7 +4040,7 @@ void MainFrame::set_print_button_to_default(PrintSelectType select_type)
         m_print_btn->Enable(m_print_enable);
         this->Layout();
     } else if (select_type == PrintSelectType::eSendGcode) {
-        m_print_btn->SetLabel(_L("Print"));
+        m_print_btn->SetLabel(_CTX("Print", "Verb"));
         m_print_select = eSendGcode;
         if (m_print_enable)
             m_print_enable = get_enable_print_status() && can_send_gcode();

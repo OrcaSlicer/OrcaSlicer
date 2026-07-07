@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 12:35-0300\n"
+"POT-Creation-Date: 2026-07-07 14:35-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -321,6 +321,7 @@ msgstr "Herramienta de rotación"
 msgid "Optimize orientation"
 msgstr "Optimizar orientación"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Escalar"
 
@@ -363,6 +364,9 @@ msgstr "Factor de escalado"
 
 msgid "Object operations"
 msgstr "Operaciones con objetos"
+
+msgid "Scale"
+msgstr "Escalar"
 
 msgid "Volume operations"
 msgstr "Operaciones de volumen"
@@ -408,6 +412,10 @@ msgstr "Restablecer la rotación actual al valor que tenía al abrir la herramie
 
 msgid "Reset current rotation to real zeros."
 msgstr "Restablecer la rotación actual a ceros reales."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Escala"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -4931,8 +4939,9 @@ msgstr "Cambios de herramienta"
 msgid "Color change"
 msgstr "Cambio de color"
 
+msgctxt "Noun"
 msgid "Print"
-msgstr "Imprimir"
+msgstr "Impresión"
 
 msgid "Printer"
 msgstr "Impresora"
@@ -5416,6 +5425,10 @@ msgstr "Imprimir cama"
 
 msgid "Export G-code file"
 msgstr "Exportar archivo G-Code"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Imprimir"
 
 msgid "Export plate sliced file"
 msgstr "Exportar los objetos laminados de la cama a un archivo"
@@ -19433,6 +19446,9 @@ msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
 
+#~ msgid "Print"
+#~ msgstr "Imprimir"
+
 #~ msgid "in"
 #~ msgstr "pulg"
 
@@ -21015,10 +21031,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "Deseleccionar"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "Escala"
 
 #~ msgid "Lift Z Enforcement"
 #~ msgstr "Forzar elevación Z"

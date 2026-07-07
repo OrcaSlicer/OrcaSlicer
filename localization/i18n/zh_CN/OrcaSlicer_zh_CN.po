@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 12:35-0300\n"
+"POT-Creation-Date: 2026-07-07 14:35-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -330,6 +330,7 @@ msgstr "Gizmo-旋转"
 msgid "Optimize orientation"
 msgstr "优化朝向"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "缩放"
 
@@ -373,6 +374,9 @@ msgstr "缩放比例"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "对象操作"
+
+msgid "Scale"
+msgstr "缩放"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -424,6 +428,10 @@ msgstr "重置当前旋转为打开旋转工具时的值"
 
 msgid "Reset current rotation to real zeros."
 msgstr "重置当前旋转为真实零位"
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "缩放"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -5014,6 +5022,7 @@ msgstr "工具更换"
 msgid "Color change"
 msgstr "颜色更换"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "打印"
 
@@ -5509,6 +5518,10 @@ msgstr "打印单盘"
 
 msgid "Export G-code file"
 msgstr "导出G-code文件"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "打印"
 
 msgid "Export plate sliced file"
 msgstr "导出单盘切片文件"
@@ -19740,6 +19753,9 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#~ msgid "Print"
+#~ msgstr "打印"
 
 #~ msgid "in"
 #~ msgstr "在"

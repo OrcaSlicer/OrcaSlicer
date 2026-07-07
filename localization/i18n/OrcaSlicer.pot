@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 12:35-0300\n"
+"POT-Creation-Date: 2026-07-07 14:35-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -325,6 +325,7 @@ msgstr ""
 msgid "Optimize orientation"
 msgstr ""
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr ""
 
@@ -366,6 +367,9 @@ msgid "Scale ratios"
 msgstr ""
 
 msgid "Object operations"
+msgstr ""
+
+msgid "Scale"
 msgstr ""
 
 msgid "Volume operations"
@@ -411,6 +415,10 @@ msgid "Reset current rotation to the value when open the rotation tool."
 msgstr ""
 
 msgid "Reset current rotation to real zeros."
+msgstr ""
+
+msgctxt "Noun"
+msgid "Scale"
 msgstr ""
 
 #. TRN - Input label. Be short as possible
@@ -4782,6 +4790,7 @@ msgstr ""
 msgid "Color change"
 msgstr ""
 
+msgctxt "Noun"
 msgid "Print"
 msgstr ""
 
@@ -5256,6 +5265,10 @@ msgid "Print plate"
 msgstr ""
 
 msgid "Export G-code file"
+msgstr ""
+
+msgctxt "Verb"
+msgid "Print"
 msgstr ""
 
 msgid "Export plate sliced file"
