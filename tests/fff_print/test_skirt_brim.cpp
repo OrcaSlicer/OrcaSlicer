@@ -191,6 +191,24 @@ SCENARIO("Brim has the configured number of loops", "[SkirtBrim]") {
     }
 }
 
+static double first_extrusion_feedrate_for_feature(const std::string &gcode, const std::string_view feature)
+{
+    double feedrate = 0.0;
+    bool feature_active = false;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&feedrate, &feature_active, feature] (GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string_view comment = line.comment();
+        if (comment.find("FEATURE:") != std::string_view::npos || comment.find("TYPE:") != std::string_view::npos)
+            feature_active = comment.find(feature) != std::string_view::npos;
+
+        if (feature_active && line.extruding(self) && line.dist_XY(self) > 0) {
+            feedrate = line.new_F(self);
+            self.quit_parsing();
+        }
+    });
+    return feedrate;
+}
+
 TEST_CASE("Skirt height is honored", "[SkirtBrim]") {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_deserialize_strict({
@@ -208,6 +226,31 @@ TEST_CASE("Skirt height is honored", "[SkirtBrim]") {
     }
 
     REQUIRE(layers_with_role(gcode, "skirt").size() == (size_t) config.opt_int("skirt_height"));
+}
+
+TEST_CASE("Brim uses first layer speed", "[SkirtBrim]") {
+    DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        { "brim_type",                    "outer_only" },
+        { "brim_width",                   5 },
+        { "gcode_comments",               true },
+        { "initial_layer_speed",          10 },
+        { "initial_layer_infill_speed",   20 },
+        { "machine_start_gcode",          "" },
+        { "skirt_loops",                  0 },
+        { "slow_down_for_layer_cooling",  false },
+        { "z_hop",                        0 }
+    });
+
+    const std::string gcode = Slic3r::Test::slice({cube(20)}, config);
+
+    const double brim_feedrate = first_extrusion_feedrate_for_feature(gcode, "Brim");
+    REQUIRE(brim_feedrate > 0.0);
+    REQUIRE_THAT(brim_feedrate, Catch::Matchers::WithinAbs(600.0, 1e-3));
+
+    const double bottom_surface_feedrate = first_extrusion_feedrate_for_feature(gcode, "Bottom surface");
+    REQUIRE(bottom_surface_feedrate > 0.0);
+    REQUIRE_THAT(bottom_surface_feedrate, Catch::Matchers::WithinAbs(1200.0, 1e-3));
 }
 
 SCENARIO("Skirt and brim generation", "[SkirtBrim]") {
