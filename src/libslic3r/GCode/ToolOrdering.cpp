@@ -1053,7 +1053,13 @@ void ToolOrdering::cal_most_used_extruder(const PrintConfig& config)
         std::set<int> layer_extruder_count;
         // count once only
         for (unsigned int& filament : filaments) {
-            layer_extruder_count.insert(config.filament_map.values[filament] - 1);
+            // filament_map may be shorter than the filament count; guard the lookup
+            // like cal_non_support_filaments below rather than reading past the end.
+            const int extruder_id = (filament < (int) config.filament_map.values.size())
+                                        ? config.filament_map.values[filament] - 1
+                                        : -1;
+            if (extruder_id >= 0 && extruder_id < (int) extruder_count.size())
+                layer_extruder_count.insert(extruder_id);
         }
 
         // record

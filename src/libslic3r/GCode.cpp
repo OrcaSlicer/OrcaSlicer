@@ -6793,7 +6793,9 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
     static constexpr const char* support_transition_label = "support transition";
     static constexpr const char* support_ironing_label    = "support ironing";
 
-    static const auto speed_for_path = [&](double length, ExtrusionRole role, double default_speed = -1.0) {
+    // Not static: captures `this` by reference (NOZZLE_CONFIG derefs m_writer.filament()).
+    // A static lambda would bind to the first GCode instance and crash on later exports.
+    const auto speed_for_path = [&](double length, ExtrusionRole role, double default_speed = -1.0) {
         if (!is_support(role) || length > SMALL_PERIMETER_LENGTH(NOZZLE_CONFIG(small_support_perimeter_threshold)))
             return default_speed;
 

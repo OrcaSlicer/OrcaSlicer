@@ -2111,11 +2111,10 @@ bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                 
 
 void GCodeProcessor::apply_config(const PrintConfig& config)
 {
-    // H2C Vortek: Store printer model name for model-specific G-code processing
-    m_printer_model = config.printer_model.value;
     m_parser.apply_config(config);
 
     m_flavor = config.gcode_flavor;
+    // H2C Vortek: printer model drives model-specific timing
     m_printer_model = config.printer_model.value;
 
     m_single_extruder_multi_material = config.single_extruder_multi_material;
@@ -2266,11 +2265,6 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
 
 void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
 {
-    // H2C Vortek: Store printer model name from dynamic configuration
-    const ConfigOptionString* printer_model = config.option<ConfigOptionString>("printer_model");
-    if (printer_model != nullptr) {
-        m_printer_model = printer_model->value;
-    }
     m_parser.apply_config(config);
 
     //BBS
@@ -5819,6 +5813,20 @@ void GCodeProcessor::process_filament_change(int id, int nozzle_id)
             tool_change_time_delta += tool_change_time;
         }
     }
+
+    // Accumulate the per-change deltas into the print statistics, otherwise the
+    // reported total_filament_*_time stays 0 and disagrees with the estimated time.
+    if (filament_changes_delta > 0 || extruder_changes_delta > 0 || filament_load_time_delta > 0.0f ||
+        filament_unload_time_delta > 0.0f || tool_change_time_delta > 0.0f) {
+        m_result.lock();
+        m_result.print_statistics.total_filament_changes += filament_changes_delta;
+        m_result.print_statistics.total_extruder_changes += extruder_changes_delta;
+        m_result.print_statistics.total_filament_load_time += filament_load_time_delta;
+        m_result.print_statistics.total_filament_unload_time += filament_unload_time_delta;
+        m_result.print_statistics.total_tool_change_time += tool_change_time_delta;
+        m_result.unlock();
+    }
+
     m_cp_color.current = m_extruder_colors[next_filament_id];
 
     // Store the tool-change move first, then attribute the filament-change delay to

@@ -1126,8 +1126,6 @@ class Print;
         std::vector<double> m_nozzle_diameter;
         bool m_has_filament_switcher{ false };
         float m_inject_time_threshold{ 30.f };
-        // H2C Vortek: Printer model name for H2C-specific timing logic
-        std::string m_printer_model;
 
         float get_hotend_change_time();
 
