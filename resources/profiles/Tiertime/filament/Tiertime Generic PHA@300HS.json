@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PHA@300HS",
 	"inherits": "fdm_filament_pha",
 	"from": "system",
+	"setting_id": "de5eveMr3bI3OCtF",
 	"filament_id": "GFR98_01",
 	"instantiation": "true",
 	"compatible_printers": [

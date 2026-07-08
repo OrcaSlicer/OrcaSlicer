@@ -3,8 +3,8 @@
 	"name": "BLOCKS Pro S100 1.0 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
+	"setting_id": "elLdUyy9RhUoa37o",
 	"instantiation": "true",
-	"settings_id": "GM004",
 	"printer_model": "BLOCKS Pro S100",
 	"default_print_profile": "0.50mm Standard 1.0 nozzle @Blocks",
 	"max_layer_height": [

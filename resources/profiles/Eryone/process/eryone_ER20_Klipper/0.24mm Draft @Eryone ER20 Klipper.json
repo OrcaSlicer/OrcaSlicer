@@ -5,6 +5,7 @@
 	"elefant_foot_compensation": "0",
 	"from": "system",
 	"inherits": "fdm_process_ER20_Klipper_0.24",
+	"setting_id": "SJzxe1s82yL2Lgrj",
 	"instantiation": "true",
 	"name": "0.24mm Draft @Eryone ER20 Klipper",
 	"type": "process"

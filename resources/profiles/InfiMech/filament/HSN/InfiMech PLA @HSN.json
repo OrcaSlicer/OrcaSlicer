@@ -3,7 +3,7 @@
 	"name": "InfiMech PLA @HSN",
 	"inherits": "fdm_filament_pla @HSN",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "NWKMG5q4ITfHcYOD",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

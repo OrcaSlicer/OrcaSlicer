@@ -12,6 +12,7 @@
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include <wx/button.h>
+#include <wx/choicdlg.h>
 #include <wx/statbox.h>
 #include <wx/wupdlock.h>
 
@@ -31,13 +32,16 @@
 #include "PrintHostDialogs.hpp"
 #include "../Utils/ASCIIFolding.hpp"
 #include "../Utils/PrintHost.hpp"
+#include "../Utils/Flashforge.hpp"
 #include "../Utils/UndoRedo.hpp"
 #include "RemovableDriveManager.hpp"
 #include "BitmapCache.hpp"
 #include "BonjourDialog.hpp"
+#include "CrealityDiscoveryDialog.hpp"
 #include "MsgDialog.hpp"
 #include "OAuthDialog.hpp"
 #include "SimplyPrint.hpp"
+#include "3DPrinterOS.hpp"
 
 namespace Slic3r {
 namespace GUI {
@@ -200,10 +204,55 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
         return sizer;
     };
 
-    auto printhost_browse = [=](wxWindow* parent) 
+    auto printhost_browse = [=](wxWindow* parent)
     {
         auto sizer = create_sizer_with_btn(parent, &m_printhost_browse_btn, "printer_host_browser", _L("Browse") + " " + dots);
         m_printhost_browse_btn->Bind(wxEVT_BUTTON, [=](wxCommandEvent& e) {
+            const auto host_type = m_config->opt_enum<PrintHostType>("host_type");
+
+            // Creality K-series printers announce themselves via DNS-SD under a
+            // per-device-unique service type _Creality-<MAC-hex>._udp, so the
+            // standard fixed-service-name Bonjour browser does not find them.
+            // Dispatch to the Creality-specific scanner instead.
+            if (host_type == htCrealityPrint) {
+                CrealityDiscoveryDialog dialog(this);
+                if (dialog.ShowModal() == wxID_OK && !dialog.selected_ip().empty()) {
+                    // set_value expects the value wrapped as wxString -- TextCtrl::set_value
+                    // any_casts to wxString, so a raw std::string throws bad_any_cast.
+                    wxString new_url = wxString::FromUTF8("http://" + dialog.selected_ip());
+                    m_optgroup->set_value("print_host", new_url, true);
+                    m_optgroup->get_field("print_host")->field_changed();
+                }
+                return;
+            }
+
+            if (host_type == htFlashforge) {
+                wxBusyCursor                            wait;
+                std::vector<FlashforgeDiscoveredPrinter> printers;
+                wxString                               error_msg;
+                if (!Flashforge::discover_printers(printers, error_msg)) {
+                    show_error(this, error_msg);
+                    return;
+                }
+
+                wxArrayString choices;
+                for (const auto& printer : printers)
+                    choices.Add(from_u8((boost::format("%1% (%2%) [%3%]") % printer.name % printer.ip_address % printer.serial_number).str()));
+
+                wxSingleChoiceDialog dialog(this, _L("Select a Flashforge printer"), _L("Discovered Printers"), choices);
+                if (dialog.ShowModal() == wxID_OK) {
+                    const int idx = dialog.GetSelection();
+                    if (idx >= 0 && idx < static_cast<int>(printers.size())) {
+                        m_optgroup->set_value("print_host", from_u8(printers[idx].ip_address), true);
+                        m_optgroup->set_value("flashforge_serial_number", from_u8(printers[idx].serial_number), true);
+                        m_config->opt_string("print_host")                = printers[idx].ip_address;
+                        m_config->opt_string("flashforge_serial_number") = printers[idx].serial_number;
+                        update_printhost_buttons();
+                    }
+                }
+                return;
+            }
+
             BonjourDialog dialog(this, Preset::printer_technology(*m_config));
             if (dialog.show_and_lookup()) {
                 m_optgroup->set_value("print_host", dialog.get_selected(), true);
@@ -243,6 +292,12 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
                             h->save_oauth_credential(r);
                         } else {
                             msg = r.error_message;
+                        }
+                    } else if (const auto h = dynamic_cast<C3DPrinterOS*>(host.get()); h) {
+                        GUI::MessageDialog dlg(this, _L("Valid session not detected. Proceed with login to 3DPrinterOS?"), _L("Proceed"),
+                                               wxICON_INFORMATION | wxYES | wxNO);
+                        if (dlg.ShowModal() == wxID_YES) {
+                            result = h->login(msg);
                         }
                     } else {
                         PrinterCloudAuthDialog dlg(this->GetParent(), host.get());
@@ -326,6 +381,10 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
     m_optgroup->append_single_option_line("printhost_authorization_type");
 
     option = m_optgroup->get_option("printhost_apikey");
+    option.opt.width = Field::def_width_wider();
+    m_optgroup->append_single_option_line(option);
+
+    option = m_optgroup->get_option("flashforge_serial_number");
     option.opt.width = Field::def_width_wider();
     m_optgroup->append_single_option_line(option);
 
@@ -547,22 +606,22 @@ void PhysicalPrinterDialog::update_preset_input() {
             info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists.")) % m_preset_name).str());
         else
             info_line = from_u8((boost::format(_u8L("Preset \"%1%\" already exists and is incompatible with the current printer.")) % m_preset_name).str());
-        info_line += "\n" + _L("Please note that saving will overwrite this preset.");
+        info_line += "\n" + _L("Please note that saving will overwrite the current preset.");
         m_valid_type = Warning;
     }
 
     if (m_valid_type == Valid && m_preset_name.empty()) {
-        info_line    = _L("The name is not allowed to be empty.");
+        info_line    = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && m_preset_name.find_first_of(' ') == 0) {
-        info_line    = _L("The name is not allowed to start with space character.");
+        info_line    = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && m_preset_name.find_last_of(' ') == m_preset_name.length() - 1) {
-        info_line    = _L("The name is not allowed to end with space character.");
+        info_line    = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 
@@ -611,7 +670,8 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 const auto current_host = temp->GetValue();
                 if (current_host == L"https://connect.prusa3d.com" ||
                     current_host == L"https://app.obico.io" ||
-                    current_host == "https://simplyprint.io" || current_host == "https://simplyprint.io/panel") {
+                    current_host == "https://simplyprint.io" || current_host == "https://simplyprint.io/panel" || 
+                    current_host == C3DPrinterOS::default_host()) {
                     temp->SetValue(wxString());
                     m_config->opt_string("print_host") = "";
                 }
@@ -644,7 +704,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
                         m_config->opt_string("print_host") = "https://app.obico.io";
                     }
                 }
-            } else if (opt->value == htSimplyPrint) {
+            } else if (opt->value == htSimplyPrint)  {
                 // Set the host url
                 if (Field* printhost_field = m_optgroup->get_field("print_host"); printhost_field) {
                     printhost_field->disable();
@@ -681,17 +741,30 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 m_optgroup->disable_field("printhost_ssl_ignore_revoke");
                 if (m_printhost_cafile_browse_btn)
                     m_printhost_cafile_browse_btn->Disable();
-            }
+            } else if (opt->value == ht3DPrinterOS) {
+                if (Field* printhost_field = m_optgroup->get_field("print_host"); printhost_field) {
+                    if (wxTextCtrl* temp = dynamic_cast<TextCtrl*>(printhost_field)->text_ctrl(); temp && temp->GetValue().IsEmpty()) {
+                        temp->SetValue(C3DPrinterOS::default_host());
+                        m_config->opt_string("print_host") = C3DPrinterOS::default_host();
+                    }
+                }
+                m_optgroup->hide_field("print_host_webui");
+                m_optgroup->hide_field("printhost_apikey");
+            } 
         }
         
         if (opt->value == htFlashforge) {
-                m_optgroup->hide_field("printhost_apikey");
-                m_optgroup->hide_field("printhost_authorization_type");
-            }
+            m_optgroup->show_field("printhost_apikey");
+            m_optgroup->show_field("flashforge_serial_number");
+            m_optgroup->hide_field("printhost_authorization_type");
+        } else {
+            m_optgroup->hide_field("flashforge_serial_number");
+        }
     }
     else {
         m_optgroup->set_value("host_type", int(PrintHostType::htOctoPrint), false);
         m_optgroup->hide_field("host_type");
+        m_optgroup->hide_field("flashforge_serial_number");
 
         m_optgroup->show_field("printhost_authorization_type");
 
@@ -809,7 +882,7 @@ void PhysicalPrinterDialog::on_dpi_changed(const wxRect& suggested_rect)
 
 void PhysicalPrinterDialog::check_host_key_valid()
 {
-    std::vector<std::string> keys = {"print_host", "print_host_webui", "printhost_apikey", "printhost_cafile", "printhost_user", "printhost_password", "printhost_port"};
+    std::vector<std::string> keys = {"print_host", "print_host_webui", "printhost_apikey", "flashforge_serial_number", "printhost_cafile", "printhost_user", "printhost_password", "printhost_port"};
     for (auto &key : keys) {
         auto it = m_config->option<ConfigOptionString>(key);
         if (!it) m_config->set_key_value(key, new ConfigOptionString(""));

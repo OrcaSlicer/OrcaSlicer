@@ -3,7 +3,7 @@
 	"name": "D12 300 PRO SMARTPAD DIRECT 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "8zR3DwyC6BsiJwzO",
 	"instantiation": "true",
 	"printer_model": "D12 300 PRO SMARTPAD DIRECT",
 	"gcode_flavor": "klipper",

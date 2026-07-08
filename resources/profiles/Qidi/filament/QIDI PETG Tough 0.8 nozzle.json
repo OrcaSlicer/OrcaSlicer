@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Tough 0.8 nozzle",
 	"inherits": "QIDI PETG Tough",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "vtQb2QBD5ongR7vC",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [
@@ -46,9 +46,6 @@
 		"10"
 	],
 	"compatible_printers": [
-		"Qidi X-Plus 0.8 nozzle",
-		"Qidi X-Max 0.8 nozzle",
-		"Qidi X-CF Pro 0.8 nozzle",
 		"Qidi X-Smart 3 0.8 nozzle",
 		"Qidi X-Plus 3 0.8 nozzle",
 		"Qidi X-Max 3 0.8 nozzle"

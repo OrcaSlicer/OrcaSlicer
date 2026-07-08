@@ -3,6 +3,7 @@
 	"name": "0.25mm SPEED @MK4S 0.5",
 	"inherits": "0.20mm SPEED @MK4S 0.5",
 	"from": "system",
+	"setting_id": "6zIKQgtZvu0u4I1J",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"layer_height": "0.25",

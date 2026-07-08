@@ -3,7 +3,7 @@
 	"name": "Flashforge PETG-CF @FF AD5X",
 	"inherits": "Flashforge Generic PETG-CF10",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "eKWJW36I5fVHwjWD",
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"0"

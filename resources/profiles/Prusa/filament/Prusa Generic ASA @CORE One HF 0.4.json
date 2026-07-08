@@ -3,7 +3,7 @@
 	"name": "Prusa Generic ASA @CORE One HF 0.4",
 	"inherits": "Prusa Generic ASA @CORE One",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "3SHxmODIq9SCK4Kd",
 	"filament_id": "Prusa Generic ASA @CORE One HF 0.4",
 	"instantiation": "true",
 	"compatible_printers": [

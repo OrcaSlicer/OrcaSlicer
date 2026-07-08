@@ -3,7 +3,7 @@
 	"name": "Prusament PETG @CORE One",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "LSvba9ds3XTwDMCG",
 	"filament_id": "Prusament PETG @CORE One",
 	"instantiation": "true",
 	"chamber_temperature": [

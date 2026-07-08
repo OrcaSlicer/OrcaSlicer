@@ -3,7 +3,7 @@
 	"name": "Creality Generic PLA @K1-all",
 	"inherits": "Creality Generic PLA",
 	"from": "system",
-	"setting_id": "GFSL99_00",
+	"setting_id": "c5ArCv3qjuKjBwEQ",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"18"

@@ -3,6 +3,7 @@
 	"name": "0.10mm FAST DETAIL @MK4S 0.4",
 	"inherits": "0.15mm SPEED @MK4S 0.4",
 	"from": "system",
+	"setting_id": "vpFV7gpKO9nE1pkc",
 	"instantiation": "true",
 	"bottom_shell_layers": "7",
 	"bridge_speed": "40",

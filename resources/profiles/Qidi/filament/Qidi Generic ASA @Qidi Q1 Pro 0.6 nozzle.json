@@ -3,7 +3,7 @@
 	"name": "Qidi Generic ASA @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "Qidi Generic ASA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "QRlzPtO4mqLKcdws",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [

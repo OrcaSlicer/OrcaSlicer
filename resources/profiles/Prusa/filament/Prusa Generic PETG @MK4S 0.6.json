@@ -3,7 +3,7 @@
 	"name": "Prusa Generic PETG @MK4S 0.6",
 	"inherits": "Prusa Generic PETG @MK4S",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "Pci5FyYkl7E87APR",
 	"filament_id": "Generic PETG @MK4S 0.6",
 	"instantiation": "true",
 	"compatible_printers": [

@@ -234,7 +234,19 @@ int PresetComboBox::update_ams_color()
     std::string ctype;
     std::vector<std::string> colors;
     if (idx < 0) {
-        auto  name   = Preset::remove_suffix_modified(GetValue().ToUTF8().data());
+        // ORCA: The combo displays the preset alias while
+        // the stored preset name usually carries a printer suffix. Resolving with the raw display
+        // value via find_preset() fails for such presets, so this returned early and the
+        // filament color swatch (clr_picker) kept showing the previous color. Prefer the
+        // internal preset name stored per item, then fall back to alias resolution.
+        std::string name;
+        if (m_last_selected >= 0) {
+            wxString stored = GetItemAlias(m_last_selected);
+            if (!stored.empty())
+                name = Preset::remove_suffix_modified(stored.ToUTF8().data());
+        }
+        if (name.empty())
+            name = m_collection->get_preset_name_by_alias(Preset::remove_suffix_modified(GetValue().ToUTF8().data()));
         auto *preset = m_collection->find_preset(name);
         if (preset)
             color = preset->config.opt_string("default_filament_colour", 0u);
@@ -499,7 +511,7 @@ bool PresetComboBox::add_ams_filaments(std::string selected, bool alias_name)
     bool is_bbl_vendor_preset = m_preset_bundle->is_bbl_vendor();
     if (is_bbl_vendor_preset && !m_preset_bundle->filament_ams_list.empty()) {
         bool dual_extruder   = (m_preset_bundle->filament_ams_list.begin()->first & 0x10000) == 0;
-        set_label_marker(Append(dual_extruder ? _L("Left filaments") : _L("AMS filaments"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
+        set_label_marker(Append(dual_extruder ? _L("Left filaments") : _L("AMS filament"), wxNullBitmap, DD_ITEM_STYLE_SPLIT_ITEM));
         m_first_ams_filament = GetCount();
         auto &filaments      = m_collection->get_presets();
 
@@ -1402,13 +1414,20 @@ void PlaterPresetComboBox::update()
                                    : group_filament_presets  == "2" ? "by_type"            // Create sub menus with filament type
                                    : group_filament_presets  == "3" ? "by_vendor"          // Create sub menus with filament vendor
                                    : "";                                                   // Use without sub menu
-    add_presets(nonsys_presets, selected_user_preset, L("User presets"), group_filament_presets_by);
+    // ORCA: the by_type/by_vendor grouping is derived from filament-only attributes
+    // (filament_type/filament_vendor), which are empty for printer and material presets.
+    // Applying it to non-filament combos buckets every user preset under "Unspecified",
+    // so only group user presets by those attributes for the filament combobox.
+    add_presets(nonsys_presets, selected_user_preset, L("User presets"),
+                m_type == Preset::TYPE_FILAMENT ? group_filament_presets_by : wxString(""));
     // ORCA: add bundle presets with sub-dropdown grouping for filament and printer
     auto bundle_group_name = (m_type == Preset::TYPE_FILAMENT || m_type == Preset::TYPE_PRINTER) ? "by_bundle" : "";
     add_presets(bundle_presets, selected_bundle_preset, L("Bundle presets"), bundle_group_name);
     // BBS: move system to the end
     add_presets(system_presets, selected_system_preset, L("System presets"), _L("System"));
-    add_presets(uncompatible_presets, {}, L("Unsupported presets"), _L("Unsupported") + " ");
+    // Orca: optionally show unsupported presets (controlled by developer preference, default off)
+    if (wxGetApp().app_config->get_bool("show_unsupported_presets"))
+        add_presets(uncompatible_presets, {}, L("Unsupported presets"), _L("Unsupported") + " ");
 
     //BBS: remove unused pysical printer logic
     /*if (m_type == Preset::TYPE_PRINTER)
@@ -1439,7 +1458,7 @@ void PlaterPresetComboBox::update()
         assert(bmp);
 
         if (m_type == Preset::TYPE_FILAMENT)
-            set_label_marker(Append(separator(L("Add/Remove filaments")), *bmp), LABEL_ITEM_WIZARD_FILAMENTS);
+            set_label_marker(Append(separator(L("Add/Remove filament")), *bmp), LABEL_ITEM_WIZARD_FILAMENTS);
         else if (m_type == Preset::TYPE_SLA_MATERIAL)
             set_label_marker(Append(separator(L("Add/Remove materials")), *bmp), LABEL_ITEM_WIZARD_MATERIALS);
         else {

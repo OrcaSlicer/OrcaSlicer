@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSA04",
 	"name": "QIDI ABS Rapido Metal @Qidi Q2C 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ABS Rapido Metal@Q2C-Series",
+	"from": "system",
+	"setting_id": "AtfdZuYrdD1DIwFP",
+	"instantiation": "true",
 	"nozzle_temperature": [
 		"250"
 	],
