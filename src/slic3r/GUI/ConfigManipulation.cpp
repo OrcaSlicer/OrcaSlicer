@@ -734,10 +734,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("anisotropic_surfaces", has_centered_surface);
 
     // Orca: separate infills
-    bool is_internal_infill_centered = is_centered_pattern(config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value) ||
-                                       config->opt_string("sparse_infill_rotate_template") != "" ||
-                                       config->opt_string("solid_infill_rotate_template") != "";
-    toggle_line("separated_infills", is_internal_infill_centered);
+    bool is_internal_infill_separable = is_separable_infill_pattern(config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value) ||
+                                        config->opt_string("sparse_infill_rotate_template") != "" ||
+                                        config->opt_string("solid_infill_rotate_template") != "";
+    toggle_line("separated_infills", is_internal_infill_separable);
 
     // Orca: no need gaps
     for (auto el : {"gap_fill_target", "filter_out_gap_fill"})

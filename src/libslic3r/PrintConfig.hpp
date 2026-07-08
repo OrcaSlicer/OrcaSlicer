@@ -110,6 +110,34 @@ enum InfillPattern : int {
     ipCount,
 };
 
+// Orca: Infill patterns whose alignment origin follows the fill bounding box, so the
+// "separated_infills" option can re-center them per connected body. Patterns evaluated in
+// absolute/global coordinates (Gyroid, TPMS, Honeycomb, CrossHatch, ...) or that are shape-relative
+// (Concentric) ignore that bounding box and are therefore excluded.
+inline bool is_separable_infill_pattern(InfillPattern pattern)
+{
+    switch (pattern) {
+    case ipRectilinear:
+    case ipAlignedRectilinear:
+    case ipZigZag:
+    case ipCrossZag:
+    case ipLockedZag:
+    case ipGrid:
+    case ipTriangles:
+    case ipStars:          // tri-hexagon
+    case ipCubic:
+    case ipQuarterCubic:
+    case ipLateralHoneycomb:
+    case ipLateralLattice:
+    case ipHilbertCurve:
+    case ipArchimedeanChords:
+    case ipOctagramSpiral:
+        return true;
+    default:
+        return false;
+    }
+}
+
 enum class IroningType {
     NoIroning,
     TopSurfaces,

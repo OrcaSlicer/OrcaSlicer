@@ -1335,7 +1335,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         bool is_per_model_center = is_top_or_bottom && params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model && is_centered_infill;
         bool is_separate_infill = !is_top_or_bottom && surface_fill.params.separated_infills &&
                                   (
-                                  is_centered_infill ||
+                                  is_separable_infill_pattern(surface_fill.params.pattern) ||
                                   params.config->solid_infill_rotate_template != "" ||
                                   params.config->sparse_infill_rotate_template != "" );
 
