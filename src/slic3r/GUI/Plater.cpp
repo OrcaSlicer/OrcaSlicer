@@ -2280,20 +2280,15 @@ void Sidebar::priv::add_nozzle_size_to_user_printer()
     std::sort(addable.begin(), addable.end(),
               [](const std::string& a, const std::string& b) { return atof(a.c_str()) < atof(b.c_str()); });
 
-    AddNozzleSizeDialog dlg(plater, user_model, addable);
+    AddNozzleSizeDialog dlg(plater, user_model, addable,
+                            std::vector<std::string>(existing.begin(), existing.end()));
     if (dlg.ShowModal() != wxID_OK)
         return;
 
     std::vector<std::string> to_add = dlg.get_checked_sizes();
-
-    // Parse the optional custom size into a normalized variant string (e.g. "0.7").
-    std::string custom_variant;
-    const std::string custom_text = dlg.get_custom_text();
-    if (!custom_text.empty()) {
-        double d = atof(custom_text.c_str());
-        if (d > 0.0 && d < 10.0)
-            custom_variant = get_diameter_string((float) d);
-    }
+    // The dialog validates + normalizes the optional custom size (locale-safe parse, positive, within
+    // the nozzle_diameter max, not a duplicate); empty if the field was left blank.
+    const std::string custom_variant = dlg.get_custom_variant();
 
     auto* tab = wxGetApp().get_tab(Preset::TYPE_PRINTER);
     const std::string original = sel.name; // fallback selection if nothing was added

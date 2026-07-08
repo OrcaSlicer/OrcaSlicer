@@ -2994,15 +2994,9 @@ void MainFrame::init_menubar_as_editor()
                     return;
                 const std::string old_model = dlg.get_selected_model();
                 const std::string new_model = dlg.get_new_name();
-                // ORCA #12105: don't let a renamed model collide with a built-in (system) model name.
-                // Same wording as the Save dialog's system-profile guard.
-                const std::vector<std::string> sys_models = printers.system_printer_models();
-                if (std::find(sys_models.begin(), sys_models.end(), new_model) != sys_models.end()) {
-                    MessageDialog warn(this, _L("Overwriting a system profile is not allowed."),
-                        _L("Rename Printer Model"), wxOK | wxICON_WARNING);
-                    warn.ShowModal();
-                    return;
-                }
+                // Validity (empty / spaces / illegal chars / system-model collision / duplicate user
+                // model) is enforced inline by RenamePrinterModelDialog, which only enables OK for a
+                // valid name — so new_model is already safe here.
                 int n = printers.rename_user_printer_model(old_model, new_model);
                 // Resync the edited preset (names are unchanged) and rebuild the preset UI.
                 const std::string cur = printers.get_selected_preset().name;

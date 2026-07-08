@@ -1,5 +1,10 @@
 #include "RenamePrinterModelDialog.hpp"
 
+#include <algorithm>
+#include <cstring>
+
+#include "libslic3r/PresetBundle.hpp"
+
 #include "GUI.hpp"
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
@@ -11,6 +16,7 @@ namespace Slic3r { namespace GUI {
 RenamePrinterModelDialog::RenamePrinterModelDialog(wxWindow* parent, const std::vector<std::string>& models)
     : DPIDialog(parent ? parent : static_cast<wxWindow *>(wxGetApp().mainframe), wxID_ANY,
                 _L("Rename printer model"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxCLOSE_BOX)
+    , m_models(models)
 {
     SetBackgroundColour(*wxWHITE);
 
@@ -37,9 +43,14 @@ RenamePrinterModelDialog::RenamePrinterModelDialog(wxWindow* parent, const std::
     name_label->SetFont(Label::Body_13);
     w_sizer->Add(name_label, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
 
-    m_name_input = new TextInput(this, wxString(), wxEmptyString, wxEmptyString, wxDefaultPosition,
+    m_name_input = new ::TextInput(this, wxString(), wxEmptyString, wxEmptyString, wxDefaultPosition,
         wxSize(FromDIP(360), -1), wxTE_PROCESS_ENTER);
     w_sizer->Add(m_name_input, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
+
+    // Inline validation message, orange like SavePresetDialog.
+    m_valid_label = new wxStaticText(this, wxID_ANY, "");
+    m_valid_label->SetForegroundColour(wxColour(255, 111, 0));
+    w_sizer->Add(m_valid_label, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
 
     auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
     m_ok_btn = dlg_btns->GetOK();
@@ -47,27 +58,78 @@ RenamePrinterModelDialog::RenamePrinterModelDialog(wxWindow* parent, const std::
     dlg_btns->GetCANCEL()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { EndModal(wxID_CANCEL); });
     w_sizer->Add(dlg_btns, 0, wxEXPAND | wxTOP, FromDIP(8));
 
-    // Prefill the new-name field with the selected model and keep OK state in sync.
+    // Prefill the new-name field with the selected model and validate on every change.
     if (!choices.IsEmpty()) m_name_input->GetTextCtrl()->SetValue(choices.front());
     m_model_combo->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) {
         m_name_input->GetTextCtrl()->SetValue(m_model_combo->GetValue());
-        update_ok_state();
+        update_valid();
     });
-    m_name_input->GetTextCtrl()->Bind(wxEVT_TEXT, [this](wxCommandEvent& e) { update_ok_state(); e.Skip(); });
+    m_name_input->GetTextCtrl()->Bind(wxEVT_TEXT, [this](wxCommandEvent& e) { update_valid(); e.Skip(); });
 
     SetSizer(w_sizer);
     Layout();
     w_sizer->Fit(this);
-    update_ok_state();
+    update_valid();
     wxGetApp().UpdateDlgDarkUI(this);
 }
 
-void RenamePrinterModelDialog::update_ok_state()
+void RenamePrinterModelDialog::update_valid()
 {
-    const std::string newn = get_new_name();
-    const std::string oldn = get_selected_model();
-    const bool valid = !newn.empty() && newn != oldn && !oldn.empty();
-    if (m_ok_btn) m_ok_btn->Enable(valid);
+    // Validate the RAW field text (so leading/trailing space is rejected, not silently trimmed),
+    // mirroring SavePresetDialog::Item::update and reusing the same localized messages.
+    const std::string name = into_u8(m_name_input->GetTextCtrl()->GetValue());
+    const std::string old  = get_selected_model();
+    wxString info;
+    bool     ok = true; // false => invalid (OK disabled)
+
+    const char *unusable_symbols = "<>[]:/\\|?*\"";
+    // (SavePresetDialog also guards the "(modified)" suffix, but that check is dead at runtime: the
+    // dirty marker is set to "* " in GUI_App.cpp and "*" is already an unusable symbol above, so it
+    // can never be reached. Omitted here.)
+
+    if (name.empty()) {
+        info = _L("The name is not allowed to be empty.");
+        ok = false;
+    } else if (name.find_first_of(' ') == 0) {
+        info = _L("The name is not allowed to start with space character.");
+        ok = false;
+    } else if (name.find_last_of(' ') == name.length() - 1) {
+        info = _L("The name is not allowed to end with space character.");
+        ok = false;
+    }
+    if (ok)
+        for (size_t i = 0; i < std::strlen(unusable_symbols); ++i)
+            if (name.find_first_of(unusable_symbols[i]) != std::string::npos) {
+                info = _L("Name is invalid;") + "\n" + _L("illegal characters:") + " " + unusable_symbols;
+                ok = false;
+                break;
+            }
+    if (ok && name == "Default Printer") {
+        info = _L("Name is unavailable.");
+        ok = false;
+    }
+    if (ok) {
+        const std::vector<std::string> sys = wxGetApp().preset_bundle->printers.system_printer_models();
+        if (std::find(sys.begin(), sys.end(), name) != sys.end()) {
+            info = _L("Overwriting a system profile is not allowed.");
+            ok = false;
+        }
+    }
+    // Renaming onto ANOTHER existing user model would merge their variants (and risk (model,variant)
+    // collisions), so reject it.
+    if (ok && name != old && std::find(m_models.begin(), m_models.end(), name) != m_models.end()) {
+        info = _L("A printer model with this name already exists.");
+        ok = false;
+    }
+    // Same as the current name: nothing to do; disable OK without flagging an error.
+    if (ok && name == old)
+        ok = false;
+
+    m_valid_label->SetLabel(info);
+    m_valid_label->Show(!info.IsEmpty());
+    if (m_ok_btn) m_ok_btn->Enable(ok);
+    Layout();
+    Fit();
 }
 
 std::string RenamePrinterModelDialog::get_selected_model() const
@@ -77,11 +139,8 @@ std::string RenamePrinterModelDialog::get_selected_model() const
 
 std::string RenamePrinterModelDialog::get_new_name() const
 {
-    std::string s = into_u8(m_name_input->GetTextCtrl()->GetValue());
-    // trim surrounding whitespace
-    const auto b = s.find_first_not_of(" \t");
-    const auto e = s.find_last_not_of(" \t");
-    return (b == std::string::npos) ? std::string() : s.substr(b, e - b + 1);
+    // OK is only enabled for a validated name (no leading/trailing space), so the raw value is clean.
+    return into_u8(m_name_input->GetTextCtrl()->GetValue());
 }
 
 RenamePrinterModelDialog::~RenamePrinterModelDialog() {}

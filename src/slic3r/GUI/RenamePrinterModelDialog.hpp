@@ -29,11 +29,15 @@ protected:
     void on_dpi_changed(const wxRect& suggested_rect) override {}
 
 private:
-    void update_ok_state();
+    // Validate the new name (mirrors SavePresetDialog::Item::update): shows an inline orange warning
+    // and enables the OK button only when the name is valid. Reuses the existing save-dialog msgids.
+    void update_valid();
 
-    wxComboBox* m_model_combo  {nullptr};
-    TextInput*  m_name_input   {nullptr};
-    wxWindow*   m_ok_btn       {nullptr};
+    std::vector<std::string> m_models;      // existing user printer_model names (for dup detection)
+    wxComboBox*   m_model_combo  {nullptr};
+    ::TextInput*  m_name_input   {nullptr};
+    wxStaticText* m_valid_label  {nullptr};
+    wxWindow*     m_ok_btn       {nullptr};
 };
 
 }} // namespace Slic3r::GUI
