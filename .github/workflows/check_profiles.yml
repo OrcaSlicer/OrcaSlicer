@@ -44,7 +44,7 @@ jobs:
       - name: Download
         working-directory: ${{ github.workspace }}
         run: |
-          curl -L -o OrcaSlicer_profile_validator https://github.com/OrcaSlicer/OrcaSlicer/releases/download/nightly-builds/OrcaSlicer_profile_validator_Linux_Ubuntu2404_nightly
+          curl -L -o OrcaSlicer_profile_validator https://github.com/OrcaSlicer/OrcaSlicer/releases/download/nightly-builds/OrcaSlicer_Linux_Validator_nightly
           chmod +x ./OrcaSlicer_profile_validator
 
       # Validate all system profiles.

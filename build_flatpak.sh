@@ -265,7 +265,10 @@ echo -e "${YELLOW}Building Flatpak package...${NC}"
 echo -e "This may take a while (30+ minutes depending on your system)..."
 echo ""
 
-BUNDLE_NAME="OrcaSlicer-Linux-flatpak_${VER}_${ARCH}.flatpak"
+# Standardized asset naming: OrcaSlicer_Linux_Flatpak_<arch>_<version>.flatpak
+# (x86_64 -> x86-64 to match the CI asset names).
+ARCH_STD="${ARCH/x86_64/x86-64}"
+BUNDLE_NAME="OrcaSlicer_Linux_Flatpak_${ARCH_STD}_${VER}.flatpak"
 
 # Remove any existing bundle
 rm -f "$BUNDLE_NAME"
