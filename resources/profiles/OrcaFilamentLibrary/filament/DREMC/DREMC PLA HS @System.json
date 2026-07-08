@@ -3,7 +3,7 @@
 	"name": "DREMC PLA+ HS @System",
 	"inherits": "DREMC PLA+ @base",
 	"from": "system",
-	"instantiation": "false",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"22"
 	],
