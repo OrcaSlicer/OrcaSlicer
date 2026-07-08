@@ -728,11 +728,15 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             bool has_top_solid_surface  = false;
             bool has_bottom_surface     = false;
             bool has_gap_fill           = false;
+            // Any fill extrusion regardless of role. Drives has_object and override scheduling, which care about existence, not about which filament the role maps to.
+            bool has_fills              = false;
             bool something_nonoverriddable = false;
             for (const ExtrusionEntity *ee : layerm->fills.entities) {
                 // fill represents infill extrusions of a single island.
                 const auto *fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
                 ExtrusionRole role = fill->entities.empty() ? erNone : fill->entities.front()->role();
+                if (role != erNone)
+                    has_fills = true;
                 if (role == erTopSolidInfill || role == erIroning)
                     has_top_solid_surface = true;
                 else if (role == erBottomSurface)
@@ -763,10 +767,10 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
 	                    layer_tools.extruders.emplace_back(region.config().sparse_infill_filament_id);
                     if (has_gap_fill)
                         layer_tools.extruders.emplace_back(region.config().outer_wall_filament_id);
-                } else if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill || has_gap_fill)
+                } else if (has_fills)
             		layer_tools.extruders.emplace_back(extruder_override);
             }
-            if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill || has_gap_fill)
+            if (has_fills)
                 layer_tools.has_object = true;
         }
         layerCount++;
