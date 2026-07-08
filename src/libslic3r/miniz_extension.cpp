@@ -20,6 +20,7 @@ namespace {
 std::string decode_zip_unicode_path_extra_field(const std::string& extra, const std::string& path)
 {
     size_t offset = 0;
+    const mz_uint32 path_crc = mz_crc32(0, reinterpret_cast<const unsigned char*>(path.data()), path.size());
 
     while (offset + 4 <= extra.size()) {
         const unsigned char* field = reinterpret_cast<const unsigned char*>(extra.data() + offset);
@@ -33,7 +34,6 @@ std::string decode_zip_unicode_path_extra_field(const std::string& extra, const 
                 (static_cast<mz_uint32>(field[6]) << 8) |
                 (static_cast<mz_uint32>(field[7]) << 16) |
                 (static_cast<mz_uint32>(field[8]) << 24);
-            const mz_uint32 path_crc = mz_crc32(0, reinterpret_cast<const unsigned char*>(path.data()), path.size());
             if (stored_crc == path_crc)
                 return std::string(extra.data() + offset + 9, extra.data() + offset + 4 + len);
         }
