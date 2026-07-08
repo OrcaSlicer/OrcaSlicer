@@ -3,6 +3,7 @@
 	"name": "Prusa MK4S HF0.5 nozzle",
 	"inherits": "Prusa MK4S HF0.4 nozzle",
 	"from": "system",
+	"setting_id": "snE68Xlomhkl6Q99",
 	"instantiation": "true",
 	"default_print_profile": "0.20mm SPEED @MK4S HF0.5",
 	"max_layer_height": "0.32",

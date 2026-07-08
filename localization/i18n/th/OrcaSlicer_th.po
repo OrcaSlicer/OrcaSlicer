@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-22 20:13-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -324,6 +324,7 @@ msgstr "Gizmo-หมุน"
 msgid "Optimize orientation"
 msgstr "ปรับการวางแนวให้เหมาะสม"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "ปรับขนาด"
 
@@ -333,8 +334,9 @@ msgstr "Gizmo-ขนาด"
 msgid "Error: Please close all toolbar menus first"
 msgstr "ข้อผิดพลาด: โปรดปิดเมนูแถบเครื่องมือทั้งหมดก่อน"
 
+msgctxt "inches"
 msgid "in"
-msgstr "นิ้ว"
+msgstr ""
 
 msgid "mm"
 msgstr "มม."
@@ -366,6 +368,9 @@ msgstr "อัตราส่วนการปรับขนาด"
 msgid "Object operations"
 msgstr "การทำงานกับวัตถุ"
 
+msgid "Scale"
+msgstr "ปรับขนาด"
+
 msgid "Volume operations"
 msgstr "การทำงานกับวอลลุ่ม"
 
@@ -387,26 +392,33 @@ msgstr "รีเซ็ตตำแหน่ง"
 msgid "Reset rotation"
 msgstr "รีเซ็ตการหมุน"
 
-msgid "Object coordinates"
-msgstr "พิกัดวัตถุ"
+msgid "World"
+msgstr ""
 
-msgid "World coordinates"
-msgstr "พิกัดโลก"
+msgid "Object"
+msgstr "วัตถุ"
 
-msgid "Translate(Relative)"
-msgstr "เลื่อนตำแหน่ง (แบบสัมพันธ์)"
+msgid "Part"
+msgstr "ชิ้นส่วน"
+
+msgid "Relative"
+msgstr ""
+
+msgid "Coordinate system used for transform actions."
+msgstr ""
+
+msgid "Absolute"
+msgstr ""
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "รีเซ็ตการหมุนปัจจุบันเป็นค่าเมื่อเปิดเครื่องมือการหมุน"
 
-msgid "Rotate (absolute)"
-msgstr "หมุน (สัมบูรณ์)"
-
 msgid "Reset current rotation to real zeros."
 msgstr "รีเซ็ตการหมุนปัจจุบันให้เป็นศูนย์จริง"
 
-msgid "Part coordinates"
-msgstr "พิกัดส่วน"
+msgctxt "Noun"
+msgid "Scale"
+msgstr "ปรับขนาด"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -510,12 +522,6 @@ msgstr "ช่องว่าง"
 
 msgid "Spacing"
 msgstr "ระยะห่าง"
-
-msgid "Part"
-msgstr "ชิ้นส่วน"
-
-msgid "Object"
-msgstr "วัตถุ"
 
 msgid ""
 "Click to flip the cut plane\n"
@@ -1693,6 +1699,25 @@ msgstr "OrcaSlicer พบข้อยกเว้นที่ไม่ได้�
 msgid "Untitled"
 msgstr "ไม่มีชื่อ"
 
+msgid ""
+"Since version 2.4.0, OrcaSlicer syncs user profiles through Orca Cloud instead of Bambu Cloud.\n"
+"\n"
+"To migrate your existing profiles, log in to Orca Cloud and they will be transferred automatically. To learn more about how OrcaSlicer stores and syncs your profiles, or to migrate your presets manually, check out our wiki.\n"
+"\n"
+"If you did not use Bambu Cloud to sync profiles, this change does not affect you and you can safely ignore this message."
+msgstr ""
+"ตั้งแต่เวอร์ชัน 2.4.0 เป็นต้นไป OrcaSlicer จะซิงค์โปรไฟล์ผู้ใช้ผ่าน Orca Cloud แทน Bambu Cloud\n"
+"\n"
+"หากต้องการย้ายโปรไฟล์ที่มีอยู่ของคุณ ให้เข้าสู่ระบบ Orca Cloud แล้วระบบจะถ่ายโอนให้โดยอัตโนมัติ หากต้องการเรียนรู้เพิ่มเติมเกี่ยวกับวิธีที่ OrcaSlicer จัดเก็บและซิงค์โปรไฟล์ของคุณ หรือต้องการย้ายพรีเซ็ตด้วยตนเอง โปรดดูที่วิกิของเรา\n"
+"\n"
+"หากคุณไม่ได้ใช้ Bambu Cloud ในการซิงค์โปรไฟล์ การเปลี่ยนแปลงนี้จะไม่ส่งผลต่อคุณ และคุณสามารถเพิกเฉยต่อข้อความนี้ได้"
+
+msgid "Profile syncing change"
+msgstr ""
+
+msgid "Learn more"
+msgstr ""
+
 msgid "Reloading network plug-in..."
 msgstr "กำลังโหลดปลั๊กอินเครือข่ายใหม่..."
 
@@ -1721,6 +1746,12 @@ msgstr ""
 
 msgid "WebView2 Runtime"
 msgstr "รันไทม์ WebView2"
+
+msgid ""
+"The Microsoft WebView2 Runtime could not be installed.\n"
+"Some features, including the setup wizard, may appear blank until it is installed.\n"
+"Please install it manually from https://developer.microsoft.com/microsoft-edge/webview2/ and restart Orca Slicer."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Resources path does not exist or is not a directory: %s"
@@ -1825,33 +1856,32 @@ msgstr "เปิดโปรเจกต์"
 msgid "The version of Orca Slicer is too low and needs to be updated to the latest version before it can be used normally."
 msgstr "Orca Slicer เวอร์ชันต่ำเกินไปและจำเป็นต้องอัปเดตเป็นเวอร์ชันล่าสุดก่อนจึงจะสามารถใช้งานได้ตามปกติ"
 
-msgid ""
-"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
-"Pull downloads the cloud copy. Force push overwrites it with your local preset."
+msgid "Cloud sync conflict:"
 msgstr ""
-"ความขัดแย้งในการซิงก์ Cloud: ค่าที่ตั้งไว้ล่วงหน้านี้มีเวอร์ชันใหม่กว่าใน Orca Cloud\n"
-"ดึงข้อมูลจะดาวน์โหลดสำเนาจากคลาวด์ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
+
+#, c-format, boost-format
+msgid "Cloud sync conflict for preset \"%s\":"
+msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"This preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
-"ความขัดแย้งในการซิงก์ Cloud: มีค่าที่ตั้งไว้ล่วงหน้าชื่อนี้อยู่ใน Orca Cloud แล้ว\n"
-"ดึงข้อมูลจะดาวน์โหลดสำเนาจากคลาวด์ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
 
 msgid ""
-"Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+"A preset with this name already exists in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local preset."
+msgstr ""
+
+msgid ""
+"A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
 msgstr ""
-"ความขัดแย้งในการซิงก์ Cloud: ค่าที่ตั้งไว้ล่วงหน้าชื่อเดียวกันเคยถูกลบจากคลาวด์แล้ว\n"
-"ลบจะลบค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
 
 msgid ""
-"Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+"There was an unexpected or unidentified preset conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
-"ความขัดแย้งในการซิงก์ Cloud: พบความขัดแย้งของค่าที่ตั้งไว้ล่วงหน้าที่ไม่คาดคิดหรือระบุไม่ได้\n"
-"ดึงข้อมูลจะดาวน์โหลดสำเนาจากคลาวด์ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
@@ -1859,6 +1889,12 @@ msgid ""
 msgstr ""
 "การบังคับส่งจะเขียนทับสำเนาบนคลาวด์ด้วยการเปลี่ยนแปลงค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ\n"
 "คุณต้องการดำเนินการต่อหรือไม่?"
+
+#, c-format, boost-format
+msgid ""
+"Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\n"
+"Do you want to continue?"
+msgstr ""
 
 msgid "Resolve cloud sync conflict"
 msgstr "แก้ไขความขัดแย้งการซิงค์คลาวด์"
@@ -1939,8 +1975,9 @@ msgstr "จำนวนค่าที่ตั้งไว้ล่วงหน
 msgid "Sync user presets"
 msgstr "ซิงค์การตั้งค่าล่วงหน้าของผู้ใช้"
 
-msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
-msgstr "เนื้อหาที่ตั้งไว้ล่วงหน้ามีขนาดใหญ่เกินกว่าจะซิงค์กับระบบคลาวด์ (เกิน 1MB) โปรดลดขนาดที่กำหนดไว้ล่วงหน้าโดยการลบการกำหนดค่าที่กำหนดเองออกหรือใช้เฉพาะในเครื่องเท่านั้น"
+#, c-format, boost-format
+msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%s updated from %s to %s"
@@ -2148,6 +2185,9 @@ msgstr "ออร์ก้าคิวบ์"
 
 msgid "OrcaSliced Combo"
 msgstr "OrcaSliced Combo"
+
+msgid "Orca Badge"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "การทดสอบค่าความเผื่อ Orca"
@@ -3527,6 +3567,7 @@ msgstr "การสอบเทียบเสร็จสิ้น โปร�
 msgid "Save"
 msgstr "บันทึก"
 
+msgctxt "Navigation"
 msgid "Back"
 msgstr "กลับ"
 
@@ -3978,6 +4019,10 @@ msgstr ""
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "อุณหภูมิห้องพิมพ์ปัจจุบันสูงกว่าอุณหภูมิปลอดภัยของวัสดุ ซึ่งอาจทำให้วัสดุนิ่มและหัวฉีดอุดตัน อุณหภูมิปลอดภัยสูงสุดของวัสดุนี้คือ %d"
+
+#, c-format, boost-format
+msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
+msgstr ""
 
 msgid ""
 "Layer height too small\n"
@@ -4871,6 +4916,7 @@ msgstr "การเปลี่ยนแปลงเครื่องมือ
 msgid "Color change"
 msgstr "เปลี่ยนสี"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "พิมพ์"
 
@@ -5030,11 +5076,15 @@ msgstr "หลีกเลี่ยงบริเวณการสอบเท
 msgid "Align to Y axis"
 msgstr "จัดแนวตามแกน Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "กลับ"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "ซ้าย"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "ขวา"
 
@@ -5083,6 +5133,12 @@ msgstr "ทุกแผ่น"
 msgid "Stats"
 msgstr "สถิติ"
 
+msgid "Slice"
+msgstr "สไลซ์"
+
+msgid "Review"
+msgstr ""
+
 msgid "Assembly Return"
 msgstr "การส่งคืนการประกอบ"
 
@@ -5106,6 +5162,9 @@ msgstr "ส่วนยื่น"
 
 msgid "Outline"
 msgstr "เส้นขอบ"
+
+msgid "Wireframe"
+msgstr ""
 
 msgid "Realistic View"
 msgstr "มุมมองสมจริง"
@@ -5347,6 +5406,10 @@ msgstr "พิมพ์ฐานพิมพ์"
 
 msgid "Export G-code file"
 msgstr "ส่งออกไฟล์ G-code"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "พิมพ์"
 
 msgid "Export plate sliced file"
 msgstr "ส่งออกไฟล์แผ่นสไลซ์บาง ๆ"
@@ -7676,6 +7739,50 @@ msgstr "เลือกโฟลเดอร์สำหรับรายกา
 msgid "Choose Download Directory"
 msgstr "เลือกดาวน์โหลดไดเรกทอรี"
 
+msgid "(Latest)"
+msgstr "(ล่าสุด)"
+
+msgid "Network plug-in switched successfully."
+msgstr "สลับปลั๊กอินเครือข่ายสำเร็จแล้ว"
+
+msgid "Success"
+msgstr "สำเร็จ"
+
+msgid "Failed to load network plug-in. Please restart the application."
+msgstr "โหลดปลั๊กอินเครือข่ายไม่สำเร็จ กรุณารีสตาร์ทแอปพลิเคชัน"
+
+#, c-format, boost-format
+msgid ""
+"You've selected network plug-in version %s.\n"
+"\n"
+"Would you like to download and install this version now?\n"
+"\n"
+"Note: The application may need to restart after installation."
+msgstr ""
+"คุณได้เลือกปลั๊กอินเครือข่ายเวอร์ชัน %s\n"
+"\n"
+"คุณต้องการดาวน์โหลดและติดตั้งเวอร์ชันนี้ทันทีหรือไม่\n"
+"\n"
+"หมายเหตุ: แอปพลิเคชันอาจต้องรีสตาร์ทหลังการติดตั้ง"
+
+msgid "Download Network Plug-in"
+msgstr "ดาวน์โหลดปลั๊กอินเครือข่าย"
+
+msgid "Reload the network plug-in without restarting the application"
+msgstr "โหลดปลั๊กอินเครือข่ายซ้ำโดยไม่ต้องรีสตาร์ทแอปพลิเคชัน"
+
+msgid "Network plug-in reloaded successfully."
+msgstr "โหลดปลั๊กอินเครือข่ายซ้ำสำเร็จแล้ว"
+
+msgid "Reload"
+msgstr "โหลดใหม่"
+
+msgid "Failed to reload network plug-in. Please restart the application."
+msgstr "โหลดปลั๊กอินเครือข่ายซ้ำไม่สำเร็จ กรุณารีสตาร์ทแอปพลิเคชัน"
+
+msgid "Reload Failed"
+msgstr "โหลดใหม่ล้มเหลว"
+
 msgid "Associate"
 msgstr "เชื่อมโยง"
 
@@ -7730,12 +7837,6 @@ msgstr "แสดงหน้าจอเริ่มต้น"
 msgid "Show the splash screen during startup."
 msgstr "แสดงหน้าจอเริ่มต้นระหว่างการเริ่มต้น"
 
-msgid "Show shared profiles notification"
-msgstr "แสดงการแจ้งเตือนโปรไฟล์ที่แชร์"
-
-msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
-msgstr "แสดงการแจ้งเตือนพร้อมลิงก์เพื่อเรียกดูโปรไฟล์ที่แชร์เมื่อเครื่องพิมพ์ที่เลือกมีการเปลี่ยนแปลง"
-
 msgid "Use window buttons on left side"
 msgstr "ใช้ปุ่มหน้าต่างทางด้านซ้าย"
 
@@ -7766,6 +7867,12 @@ msgstr "พฤติกรรมการโหลด"
 msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr "ควรโหลดการตั้งค่าเครื่องพิมพ์/เส้นพลาสติก/กระบวนการเมื่อเปิดไฟล์ 3MF หรือไม่"
 
+msgid "Auto backup"
+msgstr "การสำรองข้อมูลอัตโนมัติ"
+
+msgid "Backup your project periodically to help with restoring from an occasional crash."
+msgstr "สำรองข้อมูลโปรเจ็กต์ของคุณเป็นระยะเพื่อกู้คืนจากข้อขัดข้องเป็นครั้งคราว"
+
 msgid "Maximum recent files"
 msgstr "ไฟล์ล่าสุดสูงสุด"
 
@@ -7784,11 +7891,55 @@ msgstr "แสดงตัวเลือกเมื่อนำเข้าไ
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "หากเปิดใช้งาน กล่องโต้ตอบการตั้งค่าพารามิเตอร์จะปรากฏขึ้นระหว่างการนำเข้าไฟล์ STEP"
 
-msgid "Auto backup"
-msgstr "การสำรองข้อมูลอัตโนมัติ"
+msgid "STEP importing: linear deflection"
+msgstr ""
 
-msgid "Backup your project periodically to help with restoring from an occasional crash."
-msgstr "สำรองข้อมูลโปรเจ็กต์ของคุณเป็นระยะเพื่อกู้คืนจากข้อขัดข้องเป็นครั้งคราว"
+msgid ""
+"Linear deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.003 mm."
+msgstr ""
+
+msgid "STEP importing: angle deflection"
+msgstr ""
+
+msgid ""
+"Angle deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.5."
+msgstr ""
+
+msgid "STEP importing: Split into multiple objects"
+msgstr ""
+
+msgid ""
+"If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: disabled."
+msgstr ""
+
+msgid "Quality level for Draco export"
+msgstr "ระดับคุณภาพสำหรับการส่งออกของ Draco"
+
+msgid "bits"
+msgstr "บิต"
+
+msgid ""
+"Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
+"0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
+"Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."
+msgstr ""
+"ควบคุมความลึกบิตเชิงปริมาณที่ใช้ในการบีบอัด mesh เป็นรูปแบบ Draco\n"
+"0 = การบีบอัดแบบไม่สูญเสีย (รูปทรงเรขาคณิตจะถูกรักษาไว้อย่างแม่นยำเต็มที่) ค่าการสูญเสียที่ถูกต้องมีตั้งแต่ 8 ถึง 30\n"
+"ค่าที่ต่ำกว่าจะทำให้ไฟล์มีขนาดเล็กลง แต่สูญเสียรายละเอียดทางเรขาคณิตมากขึ้น ค่าที่สูงกว่าจะรักษารายละเอียดได้มากขึ้นโดยที่ไฟล์มีขนาดใหญ่กว่า"
+
+msgid "Store full source file paths in projects"
+msgstr ""
+
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr ""
 
 msgid "Preset"
 msgstr "พรีเซ็ต"
@@ -7820,6 +7971,12 @@ msgstr "เส้นพลาสติก"
 msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr "ปรับความสูงสูงสุดของพื้นที่เส้นพลาสติกให้เหมาะสมตามจำนวนเส้นพลาสติกที่เลือก"
 
+msgid "Show shared profiles notification"
+msgstr "แสดงการแจ้งเตือนโปรไฟล์ที่แชร์"
+
+msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
+msgstr "แสดงการแจ้งเตือนพร้อมลิงก์เพื่อเรียกดูโปรไฟล์ที่แชร์เมื่อเครื่องพิมพ์ที่เลือกมีการเปลี่ยนแปลง"
+
 msgid "Features"
 msgstr "คุณสมบัติ"
 
@@ -7831,21 +7988,6 @@ msgstr "เมื่อเปิดใช้งานตัวเลือกน
 
 msgid "Pop up to select filament grouping mode"
 msgstr "ปรากฏขึ้นเพื่อเลือกโหมดการจัดกลุ่มเส้นพลาสติก"
-
-msgid "Quality level for Draco export"
-msgstr "ระดับคุณภาพสำหรับการส่งออกของ Draco"
-
-msgid "bits"
-msgstr "บิต"
-
-msgid ""
-"Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
-"0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
-"Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."
-msgstr ""
-"ควบคุมความลึกบิตเชิงปริมาณที่ใช้ในการบีบอัด mesh เป็นรูปแบบ Draco\n"
-"0 = การบีบอัดแบบไม่สูญเสีย (รูปทรงเรขาคณิตจะถูกรักษาไว้อย่างแม่นยำเต็มที่) ค่าการสูญเสียที่ถูกต้องมีตั้งแต่ 8 ถึง 30\n"
-"ค่าที่ต่ำกว่าจะทำให้ไฟล์มีขนาดเล็กลง แต่สูญเสียรายละเอียดทางเรขาคณิตมากขึ้น ค่าที่สูงกว่าจะรักษารายละเอียดได้มากขึ้นโดยที่ไฟล์มีขนาดใหญ่กว่า"
 
 msgid "Behaviour"
 msgstr "พฤติกรรม"
@@ -8091,18 +8233,6 @@ msgstr "ตรวจสอบการอัปเดตที่เสถีย
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "การตั้งค่าล่วงหน้าของผู้ใช้ซิงค์อัตโนมัติ (เครื่องพิมพ์/เส้นพลาสติก/กระบวนการ)"
 
-msgid "Update built-in presets automatically."
-msgstr "อัปเดตค่าที่ตั้งล่วงหน้าในตัวโดยอัตโนมัติ"
-
-msgid "Use encrypted file for token storage"
-msgstr "ใช้ไฟล์ที่เข้ารหัสสำหรับการจัดเก็บโทเค็น"
-
-msgid "Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"
-msgstr "จัดเก็บโทเค็นการรับรองความถูกต้องในไฟล์ที่เข้ารหัสแทนพวงกุญแจระบบ (ต้องรีสตาร์ท)"
-
-msgid "Filament Sync Options"
-msgstr "ตัวเลือกการซิงค์ฟิลาเมนต์"
-
 msgid "Filament sync mode"
 msgstr "โหมดการซิงค์ฟิลาเมนต์"
 
@@ -8115,6 +8245,15 @@ msgstr "เส้นพลาสติกและสี"
 msgid "Color only"
 msgstr "สีเท่านั้น"
 
+msgid "Update built-in presets automatically."
+msgstr "อัปเดตค่าที่ตั้งล่วงหน้าในตัวโดยอัตโนมัติ"
+
+msgid "Use encrypted file for token storage"
+msgstr "ใช้ไฟล์ที่เข้ารหัสสำหรับการจัดเก็บโทเค็น"
+
+msgid "Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"
+msgstr "จัดเก็บโทเค็นการรับรองความถูกต้องในไฟล์ที่เข้ารหัสแทนพวงกุญแจระบบ (ต้องรีสตาร์ท)"
+
 msgid "Bambu network plug-in"
 msgstr "ปลั๊กอินเครือข่าย Bambu"
 
@@ -8126,35 +8265,6 @@ msgstr "เวอร์ชันปลั๊กอินเครือข่า
 
 msgid "Select the network plug-in version to use"
 msgstr "เลือกเวอร์ชันปลั๊กอินเครือข่ายที่จะใช้"
-
-msgid "(Latest)"
-msgstr "(ล่าสุด)"
-
-msgid "Network plug-in switched successfully."
-msgstr "สลับปลั๊กอินเครือข่ายสำเร็จแล้ว"
-
-msgid "Success"
-msgstr "สำเร็จ"
-
-msgid "Failed to load network plug-in. Please restart the application."
-msgstr "โหลดปลั๊กอินเครือข่ายไม่สำเร็จ กรุณารีสตาร์ทแอปพลิเคชัน"
-
-#, c-format, boost-format
-msgid ""
-"You've selected network plug-in version %s.\n"
-"\n"
-"Would you like to download and install this version now?\n"
-"\n"
-"Note: The application may need to restart after installation."
-msgstr ""
-"คุณได้เลือกปลั๊กอินเครือข่ายเวอร์ชัน %s\n"
-"\n"
-"คุณต้องการดาวน์โหลดและติดตั้งเวอร์ชันนี้ทันทีหรือไม่\n"
-"\n"
-"หมายเหตุ: แอปพลิเคชันอาจต้องรีสตาร์ทหลังการติดตั้ง"
-
-msgid "Download Network Plug-in"
-msgstr "ดาวน์โหลดปลั๊กอินเครือข่าย"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "เชื่อมโยงไฟล์กับ OrcaSlicer"
@@ -8198,8 +8308,17 @@ msgstr "นักพัฒนา"
 msgid "Skip AMS blacklist check"
 msgstr "ข้ามการตรวจสอบบัญชีดำของ AMS"
 
-msgid "(Experimental) Keep painted feature after mesh change"
-msgstr "(ทดลอง) เก็บคุณสมบัติการทาสีไว้หลังจากเปลี่ยนตาข่าย"
+msgid "Show unsupported presets"
+msgstr "แสดงค่าที่ตั้งไว้ล่วงหน้าที่ไม่รองรับ"
+
+msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
+msgstr "แสดงค่าที่ตั้งไว้ล่วงหน้าที่ไม่เข้ากันหรือไม่รองรับในรายการเลือกเครื่องพิมพ์และเส้นพลาสติก ไม่สามารถเลือกค่าที่ตั้งไว้ล่วงหน้าเหล่านี้ได้"
+
+msgid "Experimental Features"
+msgstr ""
+
+msgid "Keep painted feature after mesh change"
+msgstr ""
 
 msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
@@ -8207,12 +8326,6 @@ msgid ""
 msgstr ""
 "พยายามคงคุณสมบัติการทาสีไว้ (สี/รอยตะเข็บ/ส่วนรองรับ/คลุมเครือ ฯลฯ) หลังจากเปลี่ยนตาข่ายวัตถุ (เช่น ตัด/โหลดซ้ำจากดิสก์/ลดความซับซ้อน/แก้ไข ฯลฯ)\n"
 "น่าทดลองมาก! ช้าและอาจสร้างสิ่งประดิษฐ์"
-
-msgid "Show unsupported presets"
-msgstr "แสดงค่าที่ตั้งไว้ล่วงหน้าที่ไม่รองรับ"
-
-msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
-msgstr "แสดงค่าที่ตั้งไว้ล่วงหน้าที่ไม่เข้ากันหรือไม่รองรับในรายการเลือกเครื่องพิมพ์และเส้นพลาสติก ไม่สามารถเลือกค่าที่ตั้งไว้ล่วงหน้าเหล่านี้ได้"
 
 msgid "Allow Abnormal Storage"
 msgstr "อนุญาตให้จัดเก็บผิดปกติ"
@@ -8242,24 +8355,6 @@ msgstr "แก้ปัญหา"
 msgid "trace"
 msgstr "ติดตาม"
 
-msgid "Network plug-in"
-msgstr "ปลั๊กอินเครือข่าย"
-
-msgid "Reload"
-msgstr "โหลดใหม่"
-
-msgid "Reload the network plug-in without restarting the application"
-msgstr "โหลดปลั๊กอินเครือข่ายซ้ำโดยไม่ต้องรีสตาร์ทแอปพลิเคชัน"
-
-msgid "Network plug-in reloaded successfully."
-msgstr "โหลดปลั๊กอินเครือข่ายซ้ำสำเร็จแล้ว"
-
-msgid "Failed to reload network plug-in. Please restart the application."
-msgstr "โหลดปลั๊กอินเครือข่ายซ้ำไม่สำเร็จ กรุณารีสตาร์ทแอปพลิเคชัน"
-
-msgid "Reload Failed"
-msgstr "โหลดใหม่ล้มเหลว"
-
 msgid "Debug"
 msgstr "ดีบัก"
 
@@ -8274,24 +8369,6 @@ msgstr "การซิงค์ที่ตั้งไว้ล่วงหน
 
 msgid "Preferences sync"
 msgstr "ซิงค์การตั้งค่า"
-
-msgid "View control settings"
-msgstr "ดูการตั้งค่าการควบคุม"
-
-msgid "Rotate view"
-msgstr "หมุนมุมมอง"
-
-msgid "Pan view"
-msgstr "แพนวิว"
-
-msgid "Zoom view"
-msgstr "ซูมดู"
-
-msgid "Other"
-msgstr "อื่นๆ"
-
-msgid "Reverse scroll direction while zooming"
-msgstr "ล้อเมาส์จะกลับด้านเมื่อซูม"
 
 msgid "Enable SSL(MQTT)"
 msgstr "เปิดใช้งาน SSL(MQTT)"
@@ -8986,6 +9063,12 @@ msgstr "ลบค่าที่ตั้งล่วงหน้านี้"
 msgid "Search in preset"
 msgstr "ค้นหาในที่ตั้งไว้ล่วงหน้า"
 
+msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
+msgstr ""
+
+msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
+msgstr ""
+
 msgid "Click to reset all settings to the last saved preset."
 msgstr "คลิกเพื่อรีเซ็ตการตั้งค่าทั้งหมดเป็นค่าที่ตั้งไว้ล่วงหน้าที่บันทึกไว้ล่าสุด"
 
@@ -9268,6 +9351,18 @@ msgstr "อัตราการไหลและแรงดันล่วง
 
 msgid "Print chamber temperature"
 msgstr "อุณหภูมิห้องพิมพ์"
+
+msgid "Chamber temperature"
+msgstr "อุณหภูมิห้องพิมพ์"
+
+msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
+msgstr ""
+
+msgid "Target"
+msgstr ""
+
+msgid "Minimal"
+msgstr ""
 
 msgid "Print temperature"
 msgstr "อุณหภูมิพิมพ์"
@@ -9593,12 +9688,22 @@ msgid "Don't warn again for this preset"
 msgstr "ไม่ต้องเตือนอีกสำหรับค่าที่กำหนดล่วงหน้านี้"
 
 #, c-format, boost-format
-msgid "Left: %s"
-msgstr "ซ้าย: %s"
+msgid "%s: %s"
+msgstr ""
+
+msgid "No modifications need to be copied."
+msgstr ""
+
+msgid "Copy paramters"
+msgstr ""
 
 #, c-format, boost-format
-msgid "Right: %s"
-msgstr "ขวา: %s"
+msgid "Modify paramters of %s"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Do you want to modify the following parameters of the %s to that of the %s?"
+msgstr ""
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "คลิกเพื่อรีเซ็ตค่าปัจจุบันและแนบไปกับค่าส่วนกลาง"
@@ -9615,7 +9720,7 @@ msgstr "การเปลี่ยนแปลงที่ไม่ได้บ
 msgid "Transfer or discard changes"
 msgstr "โอนหรือละทิ้งการเปลี่ยนแปลง"
 
-msgid "Old value"
+msgid "Old Value"
 msgstr "ค่าเก่า"
 
 msgid "New Value"
@@ -9746,6 +9851,12 @@ msgstr "จำนวนชุดดันเส้น"
 
 msgid "Capabilities"
 msgstr "ความสามารถ"
+
+msgid "Left: "
+msgstr ""
+
+msgid "Right: "
+msgstr ""
 
 msgid "Show all presets (including incompatible)"
 msgstr "แสดงค่าที่ตั้งล่วงหน้าทั้งหมด (รวมทั้งเข้ากันไม่ได้)"
@@ -10961,6 +11072,12 @@ msgstr "การหดตัวของเส้นพลาสติกจะ
 msgid "Generating skirt & brim"
 msgstr "กำลังสร้าง เส้นล้อมชิ้นงาน และ ขอบยึดชิ้นงาน"
 
+msgid ""
+"Per-object skirts cannot fit between the objects in By object print sequence.\n"
+"\n"
+"Move the objects farther apart, reduce brim/skirt size, switch Skirt type to Combined, or switch Print sequence to By layer."
+msgstr ""
+
 msgid "Exporting G-code"
 msgstr "กำลังส่งออก G-code"
 
@@ -11873,6 +11990,25 @@ msgstr "การพิมพ์ปกติ"
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "การเร่งความเร็วเริ่มต้นของทั้งการพิมพ์และการเคลื่อนที่ตามปกติ ยกเว้นเลเยอร์เริ่มต้น"
 
+msgid "Acceleration of travel moves."
+msgstr "การเร่งความเร็วของการเดินทาง"
+
+msgid "First layer travel"
+msgstr "การเดินทางชั้นแรก"
+
+msgid ""
+"Travel acceleration of first layer.\n"
+"The percentage value is relative to Travel Acceleration."
+msgstr ""
+"ความเร่งการเคลื่อนที่ของชั้นแรก\n"
+"ค่าเปอร์เซ็นต์สัมพันธ์กับการเร่งความเร็วในการเดินทาง"
+
+msgid "mm/s² or %"
+msgstr "มม./วินาที² หรือ %"
+
+msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
+msgstr "การเร่งความเร็วของสะพาน หากค่าแสดงเป็นเปอร์เซ็นต์ (เช่น 50%) ค่าดังกล่าวจะคำนวณตามความเร่งของผนังด้านนอก"
+
 msgid "Default filament profile"
 msgstr "โปรไฟล์เส้นพลาสติกเริ่มต้น"
 
@@ -12080,11 +12216,27 @@ msgstr "คอร์ดอาร์คิมีดีน"
 msgid "Octagram Spiral"
 msgstr "เกลียวแปดเหลี่ยม"
 
+msgid "Top surface density"
+msgstr "ความหนาแน่นผิวด้านบน"
+
+msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
+msgstr "ความหนาแน่นของชั้นผิวด้านบน ค่า 100% จะสร้างชั้นบนสุดที่เรียบและแข็งเต็มที่ การลดค่านี้ส่งผลให้พื้นผิวด้านบนมีพื้นผิวตามรูปแบบพื้นผิวด้านบนที่เลือก ค่า 0% จะส่งผลให้มีการสร้างเฉพาะผนังชั้นบนสุดเท่านั้น มีวัตถุประสงค์เพื่อความสวยงามหรือการใช้งาน ไม่ใช่เพื่อแก้ไขปัญหา เช่น การอัดขึ้นรูปมากเกินไป"
+
 msgid "Bottom surface pattern"
 msgstr "รูปแบบผิวด้านล่าง"
 
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "รูปแบบเส้นของไส้ในพื้นผิวด้านล่าง ไม่ใช่ไส้ในแบบบริดจ์"
+
+msgid "Bottom surface density"
+msgstr "ความหนาแน่นผิวด้านล่าง"
+
+msgid ""
+"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
+"WARNING: Lowering this value may negatively affect bed adhesion."
+msgstr ""
+"ความหนาแน่นของชั้นผิวด้านล่าง มีวัตถุประสงค์เพื่อความสวยงามหรือการใช้งาน ไม่ใช่เพื่อแก้ไขปัญหา เช่น การอัดขึ้นรูปมากเกินไป\n"
+"คำเตือน: การลดค่านี้อาจส่งผลเสียต่อการยึดเกาะของฐานพิมพ์"
 
 msgid "Internal solid infill pattern"
 msgstr "รูปแบบไส้ในของแข็งภายใน"
@@ -12109,6 +12261,18 @@ msgstr "เกณฑ์ขอบเขตขนาดเล็ก"
 
 msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
 msgstr "นี่เป็นการกำหนดเกณฑ์สำหรับความยาวเส้นรอบวงเล็กน้อย เกณฑ์เริ่มต้นคือ 0 มม."
+
+msgid "Small support perimeters"
+msgstr ""
+
+msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
+msgstr ""
+
+msgid "Small support perimeters threshold"
+msgstr ""
+
+msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
+msgstr ""
 
 msgid "Walls printing order"
 msgstr "สั่งพิมพ์ผนัง"
@@ -12294,27 +12458,26 @@ msgstr ""
 "2. จดบันทึกค่า PA ที่เหมาะสมที่สุดสำหรับความเร็วการไหลและความเร่งตามปริมาตรแต่ละรายการ คุณสามารถค้นหาหมายเลขโฟลว์ได้โดยเลือกโฟลว์จากรายการสีแบบเลื่อนลง และเลื่อนแถบเลื่อนแนวนอนไปเหนือเส้นรูปแบบ PA หมายเลขควรปรากฏที่ด้านล่างของหน้า ค่า PA ในอุดมคติควรลดลงตามอัตราการไหลตามปริมาตรที่สูงขึ้น หากไม่เป็นเช่นนั้น ให้ยืนยันว่าชุดดันเส้นของคุณทำงานอย่างถูกต้อง ยิ่งคุณพิมพ์ช้าลงและเร่งความเร็วน้อยลง ช่วงของค่า PA ที่ยอมรับได้ก็จะยิ่งมากขึ้นเท่านั้น หากไม่เห็นความแตกต่าง ให้ใช้ค่า PA จากการทดสอบที่เร็วกว่า\n"
 "3. ป้อนค่า PA, การไหล และความเร่งสามเท่าในกล่องข้อความที่นี่ และบันทึกโปรไฟล์เส้นพลาสติกของคุณ"
 
-msgid "Enable adaptive pressure advance for overhangs (beta)"
-msgstr "เปิดใช้งานการปรับPressure Advanceสำหรับระยะยื่น (เบต้า)"
+msgid "Enable adaptive pressure advance within features (beta)"
+msgstr ""
 
 msgid ""
-"Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+"Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
+"\n"
+"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
+"\n"
+"This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
 msgstr ""
-"เปิดใช้งาน PA แบบปรับตัวสำหรับส่วนยื่นและเมื่ออัตราการไหลเปลี่ยนภายในฟีเจอร์เดียวกัน เป็นตัวเลือกทดลอง หากโปรไฟล์ PA ไม่แม่นยำ จะทำให้ผิวด้านนอกไม่สม่ำเสมอก่อนและหลังส่วนยื่น\n"
-"ไม่รองรับเครื่องพิมพ์ Prusa เพราะจะหยุดชั่วคราวเพื่อประมวลผลการเปลี่ยน PA ทำให้เกิดความล่าช้าและข้อบกพร่อง"
 
-msgid "Pressure advance for bridges"
-msgstr "แรงดันล่วงหน้า (Pressure Advance)สำหรับสะพาน"
+msgid "Static pressure advance for bridges"
+msgstr ""
 
 msgid ""
-"Pressure advance value for bridges. Set to 0 to disable.\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+"equivalent walls (using adaptive settings if enabled).\n"
 "\n"
-"A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+"A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"ค่าPressure Advanceสำหรับสะพาน ตั้งค่าเป็น 0 เพื่อปิดใช้งาน\n"
-"\n"
-"ค่า PA ที่ต่ำลงเมื่อพิมพ์บริดจ์จะช่วยลดลักษณะที่ปรากฏเล็กน้อยจากการอัดขึ้นรูปทันทีหลังจากบริดจ์ สาเหตุนี้เกิดจากแรงดันตกในหัวฉีดเมื่อพิมพ์ในอากาศ และค่า PA ที่ต่ำกว่าจะช่วยแก้ปัญหานี้ได้"
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "ความกว้างของเส้นเริ่มต้นหากความกว้างของเส้นอื่นตั้งค่าเป็น 0 หากแสดงเป็น % ระบบจะคำนวณตามเส้นผ่านศูนย์กลางของหัวฉีด"
@@ -12381,18 +12544,6 @@ msgstr "อัตโนมัติสำหรับไล่เส้น"
 
 msgid "Auto For Match"
 msgstr "อัตโนมัติสำหรับการแข่งขัน"
-
-msgid "Enable filament dynamic map"
-msgstr "เปิดใช้งานแผนที่ไดนามิกของเส้นพลาสติก"
-
-msgid "Enable dynamic filament mapping during print."
-msgstr "เปิดใช้งานการแมปเส้นพลาสติกแบบไดนามิกระหว่างการพิมพ์"
-
-msgid "Has filament switcher"
-msgstr "มีตัวสลับเส้นพลาสติก"
-
-msgid "Printer has a filament switcher hardware (e.g., AMS)."
-msgstr "เครื่องพิมพ์มีฮาร์ดแวร์ตัวสลับเส้นพลาสติก (เช่น AMS)"
 
 msgid "Flush temperature"
 msgstr "อุณหภูมิไล่เส้น"
@@ -12698,6 +12849,22 @@ msgstr "ทิศทางไส้ในแบบทึบ"
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
 msgstr "มุมสำหรับรูปแบบไส้ในแบบทึบ ซึ่งควบคุมจุดเริ่มต้นหรือทิศทางหลักของเส้น"
 
+msgid "Top layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the top solid infill and ironing lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
+msgid "Bottom layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the bottom solid infill lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
 msgid "Sparse infill density"
 msgstr "ความหนาแน่นไส้ในแบบโปร่ง"
 
@@ -12730,7 +12897,7 @@ msgstr "การใช้หลายบรรทัดสำหรับรู
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "การปรับชดเชยการโก่งตัวตามแกน Z ให้เหมาะสม (ทดลอง)"
 
-#, fuzzy, c-format, boost-format
+#, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "ปรับคลื่นไจรอยด์ให้ถี่ขึ้นตามแกน Z (แนวตั้ง) เมื่อความหนาแน่นไส้ในต่ำ เพื่อลดความยาวช่วงเสาแนวตั้งที่มีผลจริง และเพิ่มความต้านทานการโก่งตัวจากแรงอัดตามแกน Z โดยยังใช้เส้นพลาสติกเท่าเดิม ไม่มีผลเมื่อความหนาแน่นไส้ในแบบโปร่งประมาณ ~30% ขึ้นไป ใช้เฉพาะเมื่อรูปแบบไส้ในแบบโปร่งตั้งเป็นไจรอยด์เท่านั้น"
 
@@ -12797,92 +12964,14 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "ไจรอยด์"
 
-msgid "Lateral lattice angle 1"
-msgstr "มุมขัดแตะด้านข้าง 1"
-
-msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "มุมขององค์ประกอบขัดแตะด้านข้างชุดแรกในทิศทาง Z ศูนย์คือแนวตั้ง"
-
-msgid "Lateral lattice angle 2"
-msgstr "มุมขัดแตะด้านข้าง 2"
-
-msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
-msgstr "มุมขององค์ประกอบขัดแตะด้านข้างชุดที่สองในทิศทาง Z ศูนย์คือแนวตั้ง"
-
-msgid "Infill overhang angle"
-msgstr "ไส้ในมุมยื่น"
-
-msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
-msgstr "มุมของเส้นมุมที่ไส้ในเข้าไป 60° ก็จะได้รังผึ้งที่บริสุทธิ์"
-
-msgid "Lightning overhang angle"
-msgstr "มุมส่วนยื่น Lightning"
-
-msgid "Maximum overhang angle for Lightning infill support propagation."
-msgstr "มุมส่วนยื่นสูงสุดสำหรับการแพร่กระจายส่วนรองรับไส้ใน Lightning"
-
-msgid "Prune angle"
-msgstr "มุมตัดแต่ง"
-
-msgid ""
-"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
-"This angle is converted internally to a per-layer distance."
-msgstr ""
-"กำหนดระดับการตัดกิ่ง Lightning ที่สั้นหรือไม่มีส่วนรองรับออก\n"
-"มุมนี้จะถูกแปลงภายในเป็นระยะทางต่อชั้น"
-
-msgid "Straightening angle"
-msgstr "มุมจัดให้ตรง"
-
-msgid "Maximum straightening angle used to simplify Lightning branches."
-msgstr "มุมจัดให้ตรงสูงสุดที่ใช้ลดความซับซ้อนของกิ่ง Lightning"
-
-msgid "Sparse infill anchor length"
-msgstr "ความยาวสมอ ไส้ใน เบาบาง"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
-"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
-msgstr ""
-"เชื่อมต่อเส้นไส้ในเข้ากับเส้นรอบวงภายในด้วยส่วนสั้นของเส้นรอบวงเพิ่มเติม หากระบุเป็นเปอร์เซ็นต์ (ตัวอย่าง: 15%) ระบบจะคำนวณจากความกว้างการอัดรีดของไส้ใน Orca Slicer จะพยายามเชื่อมต่อเส้นไส้ในสองเส้นที่อยู่ใกล้กันเข้ากับส่วนเส้นรอบวงสั้น ๆ หากไม่พบส่วนเส้นรอบวงที่สั้นกว่า infill_anchor_max เส้นไส้ในจะถูกเชื่อมต่อกับส่วนเส้นรอบวงเพียงด้านเดียว และความยาวของส่วนเส้นรอบวงที่ใช้จะถูกจำกัดด้วยพารามิเตอร์นี้ แต่ต้องไม่เกิน anchor_length_max\n"
-"ตั้งค่าพารามิเตอร์นี้เป็นศูนย์เพื่อปิดใช้งานเส้นรอบวงยึดที่เชื่อมต่อกับเส้นไส้ในเพียงเส้นเดียว"
-
-msgid "0 (no open anchors)"
-msgstr "0 (ไม่มีพุกเปิด)"
-
-msgid "1000 (unlimited)"
-msgstr "1,000 (ไม่จำกัด)"
-
-msgid "Maximum length of the infill anchor"
-msgstr "ความยาวสูงสุดของพุก ไส้ใน"
-
-msgid ""
-"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
-"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
-msgstr ""
-"เชื่อมต่อเส้นไส้ในเข้ากับเส้นรอบวงภายในด้วยส่วนสั้นของเส้นรอบวงเพิ่มเติม หากระบุเป็นเปอร์เซ็นต์ (ตัวอย่าง: 15%) ระบบจะคำนวณจากความกว้างการอัดรีดของไส้ใน Orca Slicer จะพยายามเชื่อมต่อเส้นไส้ในสองเส้นที่อยู่ใกล้กันเข้ากับส่วนเส้นรอบวงสั้น ๆ หากไม่พบส่วนเส้นรอบวงที่สั้นกว่าพารามิเตอร์นี้ เส้นไส้ในจะถูกเชื่อมต่อกับส่วนเส้นรอบวงเพียงด้านเดียว และความยาวของส่วนเส้นรอบวงที่ใช้จะถูกจำกัดไว้ที่ infill_anchor แต่ต้องไม่ยาวเกินพารามิเตอร์นี้\n"
-"หากตั้งค่าเป็น 0 จะใช้อัลกอริทึมเดิมสำหรับการเชื่อมต่อไส้ใน ซึ่งควรให้ผลลัพธ์เดียวกับ 1000 & 0"
-
-msgid "0 (Simple connect)"
-msgstr "0 (เชื่อมต่อแบบง่าย)"
-
-msgid "Acceleration of inner walls."
-msgstr "การเร่งความเร็วของผนังด้านใน"
-
-msgid "Acceleration of travel moves."
-msgstr "การเร่งความเร็วของการเดินทาง"
-
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "ความเร่งของไส้ในพื้นผิวด้านบน การใช้ค่าที่ต่ำกว่าอาจปรับปรุงคุณภาพพื้นผิวด้านบนได้"
 
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "ความเร่งของผนังด้านนอก การใช้ค่าที่ต่ำกว่าสามารถปรับปรุงคุณภาพได้"
 
-msgid "Acceleration of bridges. If the value is expressed as a percentage (e.g. 50%), it will be calculated based on the outer wall acceleration."
-msgstr "การเร่งความเร็วของสะพาน หากค่าแสดงเป็นเปอร์เซ็นต์ (เช่น 50%) ค่าดังกล่าวจะคำนวณตามความเร่งของผนังด้านนอก"
-
-msgid "mm/s² or %"
-msgstr "มม./วินาที² หรือ %"
+msgid "Acceleration of inner walls."
+msgstr "การเร่งความเร็วของผนังด้านใน"
 
 msgid "Acceleration of sparse infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "ความเร่งของไส้ในแบบโปร่ง หากค่าแสดงเป็นเปอร์เซ็นต์ (เช่น 100%) ค่านั้นจะถูกคำนวณตามความเร่งเริ่มต้น"
@@ -12892,16 +12981,6 @@ msgstr "ความเร่งของไส้ในของแข็งภ
 
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "ความเร่งของชั้นแรก การใช้ค่าที่ต่ำกว่าสามารถปรับปรุงการยึดเกาะของเพลตได้"
-
-msgid "First layer travel"
-msgstr "การเดินทางชั้นแรก"
-
-msgid ""
-"Travel acceleration of first layer.\n"
-"The percentage value is relative to Travel Acceleration."
-msgstr ""
-"ความเร่งการเคลื่อนที่ของชั้นแรก\n"
-"ค่าเปอร์เซ็นต์สัมพันธ์กับการเร่งความเร็วในการเดินทาง"
 
 msgid "Enable accel_to_decel"
 msgstr "เปิดใช้งาน accel_to_decel"
@@ -12991,6 +13070,17 @@ msgstr "ความเร็วพัดลมจะเพิ่มขึ้น
 
 msgid "layer"
 msgstr "ชั้น"
+
+msgid "First layer fan speed"
+msgstr ""
+
+msgid ""
+"Sets an exact fan speed for the first layer, overriding all other cooling settings. Useful for protecting 3D-printed toolhead parts (e.g. Voron-style ABS/ASA ducts) from a hot bed. A small amount of airflow cools the ducts down, without using full cooling that may in certain conditions hurt first-layer adhesion.\n"
+"From the second layer onwards, normal cooling resumes.\n"
+"If \"Full fan speed at layer\" is also set, the fan ramps smoothly from this value on the first layer up to your target by the chosen layer.\n"
+"Only available when \"No cooling for the first\" is 0.\n"
+"Set to -1 to disable it."
+msgstr ""
 
 msgid "Support interface fan speed"
 msgstr "ความเร็วพัดลมผิวสัมผัสส่วนรองรับ"
@@ -13522,6 +13612,75 @@ msgstr "การตรวจวัดไม่รวมพื้นที่จ
 
 msgid "Probing exclude area of clumping."
 msgstr "การตรวจวัดไม่รวมพื้นที่จับตัวเป็นก้อน"
+
+msgid "Lateral lattice angle 1"
+msgstr "มุมขัดแตะด้านข้าง 1"
+
+msgid "The angle of the first set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "มุมขององค์ประกอบขัดแตะด้านข้างชุดแรกในทิศทาง Z ศูนย์คือแนวตั้ง"
+
+msgid "Lateral lattice angle 2"
+msgstr "มุมขัดแตะด้านข้าง 2"
+
+msgid "The angle of the second set of Lateral lattice elements in the Z direction. Zero is vertical."
+msgstr "มุมขององค์ประกอบขัดแตะด้านข้างชุดที่สองในทิศทาง Z ศูนย์คือแนวตั้ง"
+
+msgid "Infill overhang angle"
+msgstr "ไส้ในมุมยื่น"
+
+msgid "The angle of the infill angled lines. 60° will result in a pure honeycomb."
+msgstr "มุมของเส้นมุมที่ไส้ในเข้าไป 60° ก็จะได้รังผึ้งที่บริสุทธิ์"
+
+msgid "Lightning overhang angle"
+msgstr "มุมส่วนยื่น Lightning"
+
+msgid "Maximum overhang angle for Lightning infill support propagation."
+msgstr "มุมส่วนยื่นสูงสุดสำหรับการแพร่กระจายส่วนรองรับไส้ใน Lightning"
+
+msgid "Prune angle"
+msgstr "มุมตัดแต่ง"
+
+msgid ""
+"Controls how aggressively short or unsupported Lightning branches are pruned.\n"
+"This angle is converted internally to a per-layer distance."
+msgstr ""
+"กำหนดระดับการตัดกิ่ง Lightning ที่สั้นหรือไม่มีส่วนรองรับออก\n"
+"มุมนี้จะถูกแปลงภายในเป็นระยะทางต่อชั้น"
+
+msgid "Straightening angle"
+msgstr "มุมจัดให้ตรง"
+
+msgid "Maximum straightening angle used to simplify Lightning branches."
+msgstr "มุมจัดให้ตรงสูงสุดที่ใช้ลดความซับซ้อนของกิ่ง Lightning"
+
+msgid "Sparse infill anchor length"
+msgstr "ความยาวสมอ ไส้ใน เบาบาง"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max.\n"
+"Set this parameter to zero to disable anchoring perimeters connected to a single infill line."
+msgstr ""
+"เชื่อมต่อเส้นไส้ในเข้ากับเส้นรอบวงภายในด้วยส่วนสั้นของเส้นรอบวงเพิ่มเติม หากระบุเป็นเปอร์เซ็นต์ (ตัวอย่าง: 15%) ระบบจะคำนวณจากความกว้างการอัดรีดของไส้ใน Orca Slicer จะพยายามเชื่อมต่อเส้นไส้ในสองเส้นที่อยู่ใกล้กันเข้ากับส่วนเส้นรอบวงสั้น ๆ หากไม่พบส่วนเส้นรอบวงที่สั้นกว่า infill_anchor_max เส้นไส้ในจะถูกเชื่อมต่อกับส่วนเส้นรอบวงเพียงด้านเดียว และความยาวของส่วนเส้นรอบวงที่ใช้จะถูกจำกัดด้วยพารามิเตอร์นี้ แต่ต้องไม่เกิน anchor_length_max\n"
+"ตั้งค่าพารามิเตอร์นี้เป็นศูนย์เพื่อปิดใช้งานเส้นรอบวงยึดที่เชื่อมต่อกับเส้นไส้ในเพียงเส้นเดียว"
+
+msgid "0 (no open anchors)"
+msgstr "0 (ไม่มีพุกเปิด)"
+
+msgid "1000 (unlimited)"
+msgstr "1,000 (ไม่จำกัด)"
+
+msgid "Maximum length of the infill anchor"
+msgstr "ความยาวสูงสุดของพุก ไส้ใน"
+
+msgid ""
+"Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. Orca Slicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter.\n"
+"If set to 0, the old algorithm for infill connection will be used, it should create the same result as with 1000 & 0."
+msgstr ""
+"เชื่อมต่อเส้นไส้ในเข้ากับเส้นรอบวงภายในด้วยส่วนสั้นของเส้นรอบวงเพิ่มเติม หากระบุเป็นเปอร์เซ็นต์ (ตัวอย่าง: 15%) ระบบจะคำนวณจากความกว้างการอัดรีดของไส้ใน Orca Slicer จะพยายามเชื่อมต่อเส้นไส้ในสองเส้นที่อยู่ใกล้กันเข้ากับส่วนเส้นรอบวงสั้น ๆ หากไม่พบส่วนเส้นรอบวงที่สั้นกว่าพารามิเตอร์นี้ เส้นไส้ในจะถูกเชื่อมต่อกับส่วนเส้นรอบวงเพียงด้านเดียว และความยาวของส่วนเส้นรอบวงที่ใช้จะถูกจำกัดไว้ที่ infill_anchor แต่ต้องไม่ยาวเกินพารามิเตอร์นี้\n"
+"หากตั้งค่าเป็น 0 จะใช้อัลกอริทึมเดิมสำหรับการเชื่อมต่อไส้ใน ซึ่งควรให้ผลลัพธ์เดียวกับ 1000 & 0"
+
+msgid "0 (Simple connect)"
+msgstr "0 (เชื่อมต่อแบบง่าย)"
 
 msgid ""
 "Filament to print internal sparse infill.\n"
@@ -14387,6 +14546,18 @@ msgstr "ขับตรง"
 msgid "Bowden"
 msgstr "โบว์เดน"
 
+msgid "Enable filament dynamic map"
+msgstr "เปิดใช้งานแผนที่ไดนามิกของเส้นพลาสติก"
+
+msgid "Enable dynamic filament mapping during print."
+msgstr "เปิดใช้งานการแมปเส้นพลาสติกแบบไดนามิกระหว่างการพิมพ์"
+
+msgid "Has filament switcher"
+msgstr "มีตัวสลับเส้นพลาสติก"
+
+msgid "Printer has a filament switcher hardware (e.g., AMS)."
+msgstr "เครื่องพิมพ์มีฮาร์ดแวร์ตัวสลับเส้นพลาสติก (เช่น AMS)"
+
 msgid "Extra length on restart"
 msgstr "ความยาวพิเศษเมื่อรีสตาร์ท"
 
@@ -14437,6 +14608,9 @@ msgstr "จัดตำแหน่ง"
 
 msgid "Aligned back"
 msgstr "จัดแนวกลับ"
+
+msgid "Back"
+msgstr "กลับ"
 
 msgid "Random"
 msgstr "สุ่ม"
@@ -14804,6 +14978,9 @@ msgstr "รอยแตกร้าวที่มีขนาดเล็กก
 msgid "Slicing Mode"
 msgstr "โหมดการแบ่งส่วน"
 
+msgid "Other"
+msgstr "อื่นๆ"
+
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "ใช้ \"เลขคู่\" สำหรับโมเดลเครื่องบิน 3DLabPrint ใช้ \"ปิดรู\" เพื่อปิดรูทั้งหมดในโมเดล"
 
@@ -15152,9 +15329,6 @@ msgstr ""
 "\n"
 "ตัวเลือกนี้ขึ้นอยู่กับเฟิร์มแวร์ที่รองรับคำสั่ง M191 และ M141 ไม่ว่าจะผ่านทางมาโครหรือแบบเนทิฟ และโดยปกติจะใช้เมื่อมีการติดตั้งเครื่องทำความร้อนในห้องแบบแอคทีฟ"
 
-msgid "Chamber temperature"
-msgstr "อุณหภูมิห้องพิมพ์"
-
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
 "\n"
@@ -15167,6 +15341,17 @@ msgstr ""
 "สำหรับ PLA, PETG, TPU, PVA และวัสดุที่มีอุณหภูมิต่ำอื่นๆ ควรปิดใช้งานตัวเลือกนี้ (ตั้งค่าเป็น 0) เนื่องจากอุณหภูมิห้องควรต่ำเพื่อหลีกเลี่ยงการอุดตันของชุดดันเส้นที่เกิดจากวัสดุอ่อนตัวเมื่อความร้อนแตก\n"
 "\n"
 "หากเปิดใช้งาน พารามิเตอร์นี้จะตั้งค่าตัวแปร G-code ชื่อ Chamber_temperature ซึ่งสามารถใช้เพื่อส่งอุณหภูมิห้องเพาะเลี้ยงที่ต้องการไปยังมาโครเริ่มการพิมพ์ของคุณ หรือมาโครความร้อนแช่เช่นนี้: PRINT_START (ตัวแปรอื่นๆ) CHAMBER_TEMP=[chamber_temperature] วิธีนี้อาจเป็นประโยชน์หากเครื่องพิมพ์ของคุณไม่รองรับคำสั่ง M141/M191 หรือหากคุณต้องการจัดการกับความร้อนที่แช่อยู่ในมาโครเริ่มการพิมพ์ หากไม่มีการติดตั้งเครื่องทำความร้อนในห้องที่ใช้งานอยู่"
+
+msgid ""
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"\n"
+"It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
+"\n"
+"Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
+msgstr ""
+
+msgid "Chamber minimal temperature"
+msgstr ""
 
 msgid "Nozzle temperature after the first layer"
 msgstr "อุณหภูมิหัวฉีดสำหรับชั้นหลังจากอันแรก"
@@ -15206,22 +15391,6 @@ msgstr "ความหนาผนังด้านบน"
 
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "จำนวนชั้นทึบด้านบนจะเพิ่มขึ้นเมื่อสไลซ์หากความหนาที่คำนวณโดยชั้นเปลือกด้านบนบางกว่าค่านี้ วิธีนี้สามารถหลีกเลี่ยงไม่ให้เปลือกบางเกินไปเมื่อชั้นมีความสูงน้อย 0 หมายความว่าการตั้งค่านี้ถูกปิดใช้งาน และความหนาของเปลือกด้านบนถูกกำหนดโดยชั้นเปลือกด้านบนอย่างแน่นอน"
-
-msgid "Top surface density"
-msgstr "ความหนาแน่นผิวด้านบน"
-
-msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
-msgstr "ความหนาแน่นของชั้นผิวด้านบน ค่า 100% จะสร้างชั้นบนสุดที่เรียบและแข็งเต็มที่ การลดค่านี้ส่งผลให้พื้นผิวด้านบนมีพื้นผิวตามรูปแบบพื้นผิวด้านบนที่เลือก ค่า 0% จะส่งผลให้มีการสร้างเฉพาะผนังชั้นบนสุดเท่านั้น มีวัตถุประสงค์เพื่อความสวยงามหรือการใช้งาน ไม่ใช่เพื่อแก้ไขปัญหา เช่น การอัดขึ้นรูปมากเกินไป"
-
-msgid "Bottom surface density"
-msgstr "ความหนาแน่นผิวด้านล่าง"
-
-msgid ""
-"Density of the bottom surface layer. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion.\n"
-"WARNING: Lowering this value may negatively affect bed adhesion."
-msgstr ""
-"ความหนาแน่นของชั้นผิวด้านล่าง มีวัตถุประสงค์เพื่อความสวยงามหรือการใช้งาน ไม่ใช่เพื่อแก้ไขปัญหา เช่น การอัดขึ้นรูปมากเกินไป\n"
-"คำเตือน: การลดค่านี้อาจส่งผลเสียต่อการยึดเกาะของฐานพิมพ์"
 
 msgid "This is the speed at which traveling is done."
 msgstr "ความเร็วที่ใช้ในการเคลื่อนที่แบบไม่อัดเส้น"
@@ -15459,6 +15628,14 @@ msgstr "บิดรูหลายรู"
 msgid "Rotate the polyhole every layer."
 msgstr "หมุนโพลีโฮลทุกชั้น"
 
+msgid "Maximum Polyhole edge count"
+msgstr ""
+
+msgid ""
+"Maximum number of polyhole edges\n"
+"This setting limits the amount of edges a polyhole can have"
+msgstr ""
+
 msgid "G-code thumbnails"
 msgstr "ภาพขนาดย่อ G-code"
 
@@ -15599,9 +15776,6 @@ msgstr "ส่งออก STL หลายรายการ"
 
 msgid "Export the objects as multiple STLs to directory."
 msgstr "ส่งออกวัตถุเป็น STL หลายรายการไปยังไดเร็กทอรี"
-
-msgid "Slice"
-msgstr "สไลซ์"
 
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "แบ่งเพลต: 0-เพลตทั้งหมด, i-เพลท i, อื่นๆ-ไม่ถูกต้อง"
@@ -17815,6 +17989,132 @@ msgstr "เข้าสู่ระบบ/ทดสอบ"
 msgid "Connection to printers connected via the print host failed."
 msgstr "การเชื่อมต่อกับเครื่องพิมพ์ที่เชื่อมต่อผ่านโฮสต์การพิมพ์ล้มเหลว"
 
+msgid "Detect Creality K-series printer"
+msgstr ""
+
+msgid "Click Scan to look for K-series printers on your network."
+msgstr ""
+
+msgid "Use Selected"
+msgstr ""
+
+msgid "Scanning the LAN for K-series printers... this takes a few seconds."
+msgstr ""
+
+msgid "No K-series printers found. Make sure the printer is on the same network and not blocked by Wi-Fi client isolation, then click Scan again."
+msgstr ""
+
+#, c-format
+msgid "Found %zu Creality printer(s). Select one and click Use Selected."
+msgstr ""
+
+msgid "Active"
+msgstr ""
+
+msgid "Printers"
+msgstr ""
+
+msgid "Processes"
+msgstr ""
+
+msgid "Show/Hide system information"
+msgstr ""
+
+msgid "Copy system information to clipboard"
+msgstr ""
+
+msgid "We need information for diagnosing source of the issue. Check wiki page for detailed guide."
+msgstr ""
+
+msgid "Pack button collects project file and logs of current session onto a zip file."
+msgstr ""
+
+msgid "Any additional visual examples like images or screen recordings might be helpful while reporting the issue."
+msgstr ""
+
+msgid "Report issue"
+msgstr ""
+
+msgid "Pack"
+msgstr ""
+
+msgid "Cleans and rebuilds system profiles cache on next launch"
+msgstr ""
+
+msgid "Clean system profiles cache"
+msgstr ""
+
+msgid "Clean"
+msgstr ""
+
+msgid "Loaded profiles overview"
+msgstr ""
+
+msgid "This section shows information for loaded profiles"
+msgstr ""
+
+msgid "Exports detailed overview of loaded profiles in json format"
+msgstr ""
+
+msgid "Configurations folder"
+msgstr ""
+
+msgid "Opens configurations folder"
+msgstr ""
+
+msgid "Log level"
+msgstr ""
+
+msgid "Stored logs"
+msgstr ""
+
+msgid "Packs all stored logs onto a zip file."
+msgstr ""
+
+msgid "Profiles"
+msgstr ""
+
+msgid "Select NO to close dialog and review project"
+msgstr ""
+
+msgid "No project file on current session. Only logs will be included to package"
+msgstr ""
+
+msgid "Select NO to close dialog and review project."
+msgstr ""
+
+msgid "Please make sure any instances of OrcaSlicer are not running"
+msgstr ""
+
+msgid "System folder cannot be deleted because some files are in use by another application. Please close any applications using these files and try again."
+msgstr ""
+
+msgid "Failed to delete system folder..."
+msgstr ""
+
+msgid "Failed to determine executable path."
+msgstr ""
+
+msgid "Failed to launch a new instance."
+msgstr ""
+
+msgid "log(s)"
+msgstr ""
+
+msgid "Choose where to save the exported JSON file"
+msgstr ""
+
+msgid ""
+"Export failed\n"
+"Please check write permissions or file in use by another application"
+msgstr ""
+
+msgid "Choose where to save the exported ZIP file"
+msgstr ""
+
+msgid "File already exists. Overwrite?"
+msgstr ""
+
 msgid "3DPrinterOS Cloud upload options"
 msgstr "ตัวเลือกอัปโหลดคลาวด์ 3DPrinterOS"
 
@@ -17896,6 +18196,19 @@ msgstr "การเชื่อมต่อกับ MKS ทำงานอย�
 
 msgid "Could not connect to MKS"
 msgstr "ไม่สามารถเชื่อมต่อกับ MKS"
+
+msgid "Connection to Moonraker is working correctly."
+msgstr ""
+
+msgid "Could not connect to Moonraker"
+msgstr ""
+
+msgid "The host responded but it doesn't look like Moonraker (missing result.klippy_state)."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Could not parse Moonraker server response: %s"
+msgstr ""
 
 msgid "Connection to OctoPrint is working correctly."
 msgstr "การเชื่อมต่อกับ OctoPrint ทำงานอย่างถูกต้อง"
@@ -18646,6 +18959,12 @@ msgstr "จำนวนด้านสามเหลี่ยม"
 msgid "Calculating, please wait..."
 msgstr "กำลังคำนวณ โปรดรอสักครู่..."
 
+msgid "Save these settings as default"
+msgstr ""
+
+msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
+msgstr ""
+
 msgid "PresetBundle"
 msgstr "ชุดค่าที่ตั้งไว้ล่วงหน้า"
 
@@ -19046,6 +19365,112 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "Print"
+#~ msgstr "พิมพ์"
+
+#~ msgid "in"
+#~ msgstr "นิ้ว"
+
+#~ msgid "Object coordinates"
+#~ msgstr "พิกัดวัตถุ"
+
+#~ msgid "World coordinates"
+#~ msgstr "พิกัดโลก"
+
+#~ msgid "Translate(Relative)"
+#~ msgstr "เลื่อนตำแหน่ง (แบบสัมพันธ์)"
+
+#~ msgid "Rotate (absolute)"
+#~ msgstr "หมุน (สัมบูรณ์)"
+
+#~ msgid "Part coordinates"
+#~ msgstr "พิกัดส่วน"
+
+#~ msgid ""
+#~ "Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "ความขัดแย้งในการซิงก์ Cloud: ค่าที่ตั้งไว้ล่วงหน้านี้มีเวอร์ชันใหม่กว่าใน Orca Cloud\n"
+#~ "ดึงข้อมูลจะดาวน์โหลดสำเนาจากคลาวด์ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
+
+#~ msgid ""
+#~ "Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "ความขัดแย้งในการซิงก์ Cloud: มีค่าที่ตั้งไว้ล่วงหน้าชื่อนี้อยู่ใน Orca Cloud แล้ว\n"
+#~ "ดึงข้อมูลจะดาวน์โหลดสำเนาจากคลาวด์ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
+
+#~ msgid ""
+#~ "Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+#~ "Delete will delete your local preset. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "ความขัดแย้งในการซิงก์ Cloud: ค่าที่ตั้งไว้ล่วงหน้าชื่อเดียวกันเคยถูกลบจากคลาวด์แล้ว\n"
+#~ "ลบจะลบค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
+
+#~ msgid ""
+#~ "Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "ความขัดแย้งในการซิงก์ Cloud: พบความขัดแย้งของค่าที่ตั้งไว้ล่วงหน้าที่ไม่คาดคิดหรือระบุไม่ได้\n"
+#~ "ดึงข้อมูลจะดาวน์โหลดสำเนาจากคลาวด์ บังคับส่งจะเขียนทับด้วยค่าที่ตั้งไว้ล่วงหน้าในเครื่องของคุณ"
+
+#~ msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+#~ msgstr "เนื้อหาที่ตั้งไว้ล่วงหน้ามีขนาดใหญ่เกินกว่าจะซิงค์กับระบบคลาวด์ (เกิน 1MB) โปรดลดขนาดที่กำหนดไว้ล่วงหน้าโดยการลบการกำหนดค่าที่กำหนดเองออกหรือใช้เฉพาะในเครื่องเท่านั้น"
+
+#~ msgid "Enable adaptive pressure advance for overhangs (beta)"
+#~ msgstr "เปิดใช้งานการปรับPressure Advanceสำหรับระยะยื่น (เบต้า)"
+
+#~ msgid ""
+#~ "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
+#~ "Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+#~ msgstr ""
+#~ "เปิดใช้งาน PA แบบปรับตัวสำหรับส่วนยื่นและเมื่ออัตราการไหลเปลี่ยนภายในฟีเจอร์เดียวกัน เป็นตัวเลือกทดลอง หากโปรไฟล์ PA ไม่แม่นยำ จะทำให้ผิวด้านนอกไม่สม่ำเสมอก่อนและหลังส่วนยื่น\n"
+#~ "ไม่รองรับเครื่องพิมพ์ Prusa เพราะจะหยุดชั่วคราวเพื่อประมวลผลการเปลี่ยน PA ทำให้เกิดความล่าช้าและข้อบกพร่อง"
+
+#~ msgid "Pressure advance for bridges"
+#~ msgstr "แรงดันล่วงหน้า (Pressure Advance)สำหรับสะพาน"
+
+#~ msgid ""
+#~ "Pressure advance value for bridges. Set to 0 to disable.\n"
+#~ "\n"
+#~ "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+#~ msgstr ""
+#~ "ค่าPressure Advanceสำหรับสะพาน ตั้งค่าเป็น 0 เพื่อปิดใช้งาน\n"
+#~ "\n"
+#~ "ค่า PA ที่ต่ำลงเมื่อพิมพ์บริดจ์จะช่วยลดลักษณะที่ปรากฏเล็กน้อยจากการอัดขึ้นรูปทันทีหลังจากบริดจ์ สาเหตุนี้เกิดจากแรงดันตกในหัวฉีดเมื่อพิมพ์ในอากาศ และค่า PA ที่ต่ำกว่าจะช่วยแก้ปัญหานี้ได้"
+
+#~ msgid "Filament Sync Options"
+#~ msgstr "ตัวเลือกการซิงค์ฟิลาเมนต์"
+
+#~ msgid "(Experimental) Keep painted feature after mesh change"
+#~ msgstr "(ทดลอง) เก็บคุณสมบัติการทาสีไว้หลังจากเปลี่ยนตาข่าย"
+
+#~ msgid "Network plug-in"
+#~ msgstr "ปลั๊กอินเครือข่าย"
+
+#~ msgid "View control settings"
+#~ msgstr "ดูการตั้งค่าการควบคุม"
+
+#~ msgid "Rotate view"
+#~ msgstr "หมุนมุมมอง"
+
+#~ msgid "Pan view"
+#~ msgstr "แพนวิว"
+
+#~ msgid "Zoom view"
+#~ msgstr "ซูมดู"
+
+#~ msgid "Reverse scroll direction while zooming"
+#~ msgstr "ล้อเมาส์จะกลับด้านเมื่อซูม"
+
+#, c-format, boost-format
+#~ msgid "Left: %s"
+#~ msgstr "ซ้าย: %s"
+
+#, c-format, boost-format
+#~ msgid "Right: %s"
+#~ msgstr "ขวา: %s"
 
 #~ msgid "This is the height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 #~ msgstr "ความสูงของชั้นแรก การทำให้ชั้นแรกหนาขึ้นสามารถปรับปรุงการยึดเกาะของแผ่นรองพื้นได้"

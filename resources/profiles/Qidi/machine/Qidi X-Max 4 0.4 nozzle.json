@@ -1,11 +1,11 @@
 {
-	"box_id": "3",
 	"type": "machine",
-	"setting_id": "GM001",
 	"name": "Qidi X-Max 4 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_machine_x_common",
+	"from": "system",
+	"setting_id": "uzcPSO0U1ZQCXXNN",
+	"instantiation": "true",
+	"box_id": "3",
 	"printer_model": "Qidi X-Max 4",
 	"gcode_flavor": "klipper",
 	"default_print_profile": "0.20mm Standard @X-Max 4",
@@ -79,5 +79,6 @@
 		"150x150"
 	],
 	"fan_direction": "left",
+	"printer_agent": "qidi",
 	"use_3mf": "1"
 }

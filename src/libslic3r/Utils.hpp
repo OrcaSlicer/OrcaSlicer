@@ -194,6 +194,7 @@ std::string debug_out_path(const char *name, ...);
 // smaller level means less log. level=5 means saving all logs.
 void set_log_path_and_level(const std::string& file, unsigned int level);
 void flush_logs();
+void shutdown_console_logging();
 boost::filesystem::path get_log_file_name();
 
 // A special type for strings encoded in the local Windows 8-bit code page.
@@ -299,6 +300,10 @@ std::string header_gcodeviewer_generated();
 
 // getpid platform wrapper
 extern unsigned get_current_pid();
+// Per-user id for isolating temp dirs; empty on Windows (its temp dir is already per-user).
+std::string per_user_temp_id();
+// Per-user temp root under `base`; an empty `user_id` returns `base` unchanged.
+std::string per_user_temp_dir(const std::string &base, const std::string &user_id);
 // BBS: backup & restore
 std::string get_process_name(int pid);
 

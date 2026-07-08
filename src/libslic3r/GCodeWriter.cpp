@@ -28,6 +28,39 @@ bool GCodeWriter::supports_separate_travel_acceleration(GCodeFlavor flavor)
 void GCodeWriter::apply_print_config(const PrintConfig &print_config)
 {
     this->config.apply(print_config, true);
+
+    // Some machine limits are stride-2 (normal, silent) pairs, here we extract the value that will be used,
+    // which is always normal mode at the moment
+    // TODO: support silent? Any printer actually have that?
+    auto get_machine_limits = [](const std::string key, const ConfigOptionFloats& opt) -> std::vector<double> {
+        unsigned int stride = 1;
+        unsigned int offset = 0;
+        if (printer_options_with_variant_2.count(key) > 0) {
+            stride = 2;
+            // offset = <TODO: current print mode>;
+        }
+
+        std::vector<double> results;
+        results.reserve(opt.values.size() / stride);
+
+        for (unsigned int i = offset; i < opt.values.size(); i += stride) {
+            results.emplace_back(opt.values[i]);
+        }
+
+        return results;
+    };
+    auto rounded = [](std::vector<double>&& vec) -> std::vector<double>&&{
+        std::transform(vec.cbegin(), vec.cend(), vec.begin(), [](const double v) { return std::round(v); });
+        return std::move(vec);
+    };
+    auto to_uint = [](const std::vector<double>& vec) {
+        std::vector<unsigned int> r;
+        std::transform(vec.begin(), vec.end(), std::back_inserter(r), [](const double v) { return static_cast<unsigned int>(v); });
+        return r;
+    };
+#define LIMITS(OPT) get_machine_limits(#OPT, print_config.OPT)
+#define LIMITS_UINT(OPT) to_uint(rounded(LIMITS(OPT)))
+
     m_single_extruder_multi_material = print_config.single_extruder_multi_material.value;
     bool use_mach_limits = print_config.gcode_flavor.value == gcfMarlinLegacy || print_config.gcode_flavor.value == gcfMarlinFirmware ||
                            print_config.gcode_flavor.value == gcfKlipper || print_config.gcode_flavor.value == gcfRepRapFirmware;
@@ -35,29 +68,40 @@ void GCodeWriter::apply_print_config(const PrintConfig &print_config)
         // For Klipper, SET_VELOCITY_LIMIT ACCEL= applies to all moves, so the effective cap
         // is the minimum of the extruding limit and the per-axis X/Y limits.
         // This ensures user-configured Motion Ability limits are honoured (#12244).
-        unsigned int extruding_limit = std::lrint(print_config.machine_max_acceleration_extruding.values.front());
+        auto extruding_limit = LIMITS_UINT(machine_max_acceleration_extruding);
         if (print_config.gcode_flavor.value == gcfKlipper) {
-            unsigned int x_limit = std::lrint(print_config.machine_max_acceleration_x.values.front());
-            unsigned int y_limit = std::lrint(print_config.machine_max_acceleration_y.values.front());
-            if (x_limit > 0) extruding_limit = std::min(extruding_limit, x_limit);
-            if (y_limit > 0) extruding_limit = std::min(extruding_limit, y_limit);
+            auto x_limit = LIMITS_UINT(machine_max_acceleration_x);
+            auto y_limit = LIMITS_UINT(machine_max_acceleration_y);
+
+            for (size_t i = 0; i < extruding_limit.size(); i++) {
+                if (x_limit[i] > 0) extruding_limit[i] = std::min(extruding_limit[i], x_limit[i]);
+                if (y_limit[i] > 0) extruding_limit[i] = std::min(extruding_limit[i], y_limit[i]);
+            }
         }
-        m_max_acceleration = extruding_limit;
+        m_max_acceleration = std::move(extruding_limit);
     } else {
-        m_max_acceleration = 0;
+        m_max_acceleration.clear();
     }
-    m_max_travel_acceleration = static_cast<unsigned int>(
-        std::round((use_mach_limits && supports_separate_travel_acceleration(print_config.gcode_flavor.value)) ?
-                       print_config.machine_max_acceleration_travel.values.front() :
-                       0));
+    if (use_mach_limits && supports_separate_travel_acceleration(print_config.gcode_flavor.value)) {
+        m_max_travel_acceleration = LIMITS_UINT(machine_max_acceleration_travel);
+    } else {
+        m_max_travel_acceleration.clear();
+    }
     if (use_mach_limits) {
-        m_max_jerk_x  = std::lrint(print_config.machine_max_jerk_x.values.front());
-        m_max_jerk_y  = std::lrint(print_config.machine_max_jerk_y.values.front());
-        m_max_junction_deviation  = (print_config.machine_max_junction_deviation.values.front());
-    };
-    m_max_jerk_z = print_config.machine_max_jerk_z.values.front();
-    m_max_jerk_e = print_config.machine_max_jerk_e.values.front();
+        m_max_jerk_x             = rounded(LIMITS(machine_max_jerk_x));
+        m_max_jerk_y             = rounded(LIMITS(machine_max_jerk_y));
+        m_max_junction_deviation = LIMITS(machine_max_junction_deviation);
+    } else {
+        m_max_jerk_x.clear();
+        m_max_jerk_y.clear();
+        m_max_junction_deviation.clear();
+    }
+    m_max_jerk_z = LIMITS(machine_max_jerk_z);
+    m_max_jerk_e = LIMITS(machine_max_jerk_e);
     m_resolution = print_config.resolution.value;
+
+#undef LIMITS
+#undef LIMITS_UINT
 }
 
 void GCodeWriter::set_extruders(std::vector<unsigned int> extruder_ids)
@@ -212,14 +256,18 @@ std::string GCodeWriter::set_chamber_temperature(int temperature, bool wait)
     return gcode.str();
 }
 
+#define EXTRUDER_LIMIT(OPT) \
+    (filament() ? ((OPT).size() <= filament()->extruder_id() ? 0 : (OPT)[filament()->extruder_id()]) : \
+                  ((OPT).empty() ? 0 : *std::max_element((OPT).cbegin(), (OPT).cend())))
+
 // copied from PrusaSlicer
 std::string GCodeWriter::set_acceleration_internal(Acceleration type, unsigned int acceleration)
 {
     // Clamp the acceleration to the allowed maximum.
-    if (type == Acceleration::Print && m_max_acceleration > 0 && acceleration > m_max_acceleration)
-        acceleration = m_max_acceleration;
-    if (type == Acceleration::Travel && m_max_travel_acceleration > 0 && acceleration > m_max_travel_acceleration)
-        acceleration = m_max_travel_acceleration;
+    if (type == Acceleration::Print && EXTRUDER_LIMIT(m_max_acceleration) > 0 && acceleration > EXTRUDER_LIMIT(m_max_acceleration))
+        acceleration = EXTRUDER_LIMIT(m_max_acceleration);
+    if (type == Acceleration::Travel && EXTRUDER_LIMIT(m_max_travel_acceleration) > 0 && acceleration > EXTRUDER_LIMIT(m_max_travel_acceleration))
+        acceleration = EXTRUDER_LIMIT(m_max_travel_acceleration);
 
     // Are we setting travel acceleration for a flavour that supports separate travel and print acc?
     bool separate_travel = (type == Acceleration::Travel && supports_separate_travel_acceleration(this->config.gcode_flavor));
@@ -262,10 +310,10 @@ std::string GCodeWriter::set_jerk_xy(double jerk)
     std::ostringstream gcode;
     if (FLAVOR_IS(gcfKlipper)) {
         // Clamp the jerk to the allowed maximum.
-        if (m_max_jerk_x > 0 && jerk > m_max_jerk_x)
-            jerk = m_max_jerk_x;
-        if (m_max_jerk_y > 0 && jerk > m_max_jerk_y)
-            jerk = m_max_jerk_y;
+        if (EXTRUDER_LIMIT(m_max_jerk_x) > 0 && jerk > EXTRUDER_LIMIT(m_max_jerk_x))
+            jerk = EXTRUDER_LIMIT(m_max_jerk_x);
+        if (EXTRUDER_LIMIT(m_max_jerk_y) > 0 && jerk > EXTRUDER_LIMIT(m_max_jerk_y))
+            jerk = EXTRUDER_LIMIT(m_max_jerk_y);
         
         gcode << "SET_VELOCITY_LIMIT SQUARE_CORNER_VELOCITY=" << jerk;
         
@@ -274,12 +322,12 @@ std::string GCodeWriter::set_jerk_xy(double jerk)
         double jerk_xy = jerk;
         
         // Clamp against the X machine limit
-        if (m_max_jerk_x > 0 && jerk_xy > m_max_jerk_x)
-            jerk_xy = m_max_jerk_x;
+        if (EXTRUDER_LIMIT(m_max_jerk_x) > 0 && jerk_xy > EXTRUDER_LIMIT(m_max_jerk_x))
+            jerk_xy = EXTRUDER_LIMIT(m_max_jerk_x);
             
         // Clamp against the Y machine limit as well to be safe
-        if (m_max_jerk_y > 0 && jerk_xy > m_max_jerk_y)
-            jerk_xy = m_max_jerk_y;
+        if (EXTRUDER_LIMIT(m_max_jerk_y) > 0 && jerk_xy > EXTRUDER_LIMIT(m_max_jerk_y))
+            jerk_xy = EXTRUDER_LIMIT(m_max_jerk_y);
             
         // Output the lowest safe limit using ONLY the X parameter
         gcode << "M207 X" << jerk_xy;
@@ -287,16 +335,16 @@ std::string GCodeWriter::set_jerk_xy(double jerk)
         double jerk_x = jerk;
         double jerk_y = jerk;
         // Clamp the axis jerk to the allowed maximum.
-        if (m_max_jerk_x > 0 && jerk > m_max_jerk_x)
-            jerk_x = m_max_jerk_x;
-        if (m_max_jerk_y > 0 && jerk > m_max_jerk_y)
-            jerk_y = m_max_jerk_y;
+        if (EXTRUDER_LIMIT(m_max_jerk_x) > 0 && jerk > EXTRUDER_LIMIT(m_max_jerk_x))
+            jerk_x = EXTRUDER_LIMIT(m_max_jerk_x);
+        if (EXTRUDER_LIMIT(m_max_jerk_y) > 0 && jerk > EXTRUDER_LIMIT(m_max_jerk_y))
+            jerk_y = EXTRUDER_LIMIT(m_max_jerk_y);
         
         gcode << "M205 X" << jerk_x << " Y" << jerk_y;
     }
     //the is_bbl check should be in the else statement above so that it doesn't inadverently added Z & E to klipper  
     if (m_is_bbl_printers)
-        gcode << std::setprecision(2) << " Z" << m_max_jerk_z << " E" << m_max_jerk_e;
+        gcode << std::setprecision(2) << " Z" << EXTRUDER_LIMIT(m_max_jerk_z) << " E" << EXTRUDER_LIMIT(m_max_jerk_e);
 
     if (GCodeWriter::full_gcode_comment) gcode << " ; adjust jerk";
     gcode << "\n";
@@ -312,8 +360,8 @@ std::string GCodeWriter::set_accel_and_jerk(unsigned int acceleration, double je
         throw std::runtime_error(_u8L("set_accel_and_jerk() is only supported by Klipper"));
 
     // Clamp the acceleration to the allowed maximum.
-    if (m_max_acceleration > 0 && acceleration > m_max_acceleration)
-        acceleration = m_max_acceleration;
+    if (EXTRUDER_LIMIT(m_max_acceleration) > 0 && acceleration > EXTRUDER_LIMIT(m_max_acceleration))
+        acceleration = EXTRUDER_LIMIT(m_max_acceleration);
     
     bool is_empty = true;
     std::ostringstream gcode;
@@ -327,10 +375,10 @@ std::string GCodeWriter::set_accel_and_jerk(unsigned int acceleration, double je
         is_empty = false;
     }
     // Clamp the jerk to the allowed maximum.
-    if (m_max_jerk_x > 0 && jerk > m_max_jerk_x)
-        jerk = m_max_jerk_x;
-    if (m_max_jerk_y > 0 && jerk > m_max_jerk_y)
-        jerk = m_max_jerk_y;
+    if (EXTRUDER_LIMIT(m_max_jerk_x) > 0 && jerk > EXTRUDER_LIMIT(m_max_jerk_x))
+        jerk = EXTRUDER_LIMIT(m_max_jerk_x);
+    if (EXTRUDER_LIMIT(m_max_jerk_y) > 0 && jerk > EXTRUDER_LIMIT(m_max_jerk_y))
+        jerk = EXTRUDER_LIMIT(m_max_jerk_y);
 
     if (jerk > 0.01 && !is_approx(jerk, m_last_jerk)) {
         gcode << " SQUARE_CORNER_VELOCITY=" << jerk;
@@ -351,13 +399,13 @@ std::string GCodeWriter::set_accel_and_jerk(unsigned int acceleration, double je
 
 std::string GCodeWriter::set_junction_deviation(double junction_deviation){
     std::ostringstream gcode;
-    if (FLAVOR_IS(gcfMarlinFirmware) && m_max_junction_deviation > 0 && junction_deviation > 0) {
+    if (FLAVOR_IS(gcfMarlinFirmware) && EXTRUDER_LIMIT(m_max_junction_deviation) > 0 && junction_deviation > 0) {
         // Clamp the junction deviation to the allowed maximum.
         gcode << "M205 J";
-        if (junction_deviation <= m_max_junction_deviation) {
+        if (junction_deviation <= EXTRUDER_LIMIT(m_max_junction_deviation)) {
             gcode << std::fixed << std::setprecision(3) << junction_deviation;
         } else {
-            gcode << std::fixed << std::setprecision(3) << m_max_junction_deviation;
+            gcode << std::fixed << std::setprecision(3) << EXTRUDER_LIMIT(m_max_junction_deviation);
         }
         if (GCodeWriter::full_gcode_comment) {
             gcode << " ; Junction Deviation";
@@ -610,7 +658,7 @@ std::string GCodeWriter::travel_to_xy(const Vec2d &point, const std::string &com
     GCodeG1Formatter w;
     w.emit_xy(point_on_plate);
     auto speed = m_is_first_layer
-        ? this->config.get_abs_value("initial_layer_travel_speed") : this->config.travel_speed.value;
+        ? this->config.get_abs_value_at("initial_layer_travel_speed", get_extruder_index(this->config, filament()->id())) : this->config.travel_speed.get_at(get_extruder_index(this->config, filament()->id()));
     w.emit_f(speed * 60.0);
     //BBS
     w.emit_comment(GCodeWriter::full_gcode_comment, comment);
@@ -696,7 +744,7 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
         // BBS
     Vec3d dest_point = point;
     auto travel_speed =
-        m_is_first_layer ? this->config.get_abs_value("initial_layer_travel_speed") : this->config.travel_speed.value;
+        m_is_first_layer ? this->config.get_abs_value_at("initial_layer_travel_speed", get_extruder_index(this->config, filament()->id())) : this->config.travel_speed.get_at(get_extruder_index(this->config, filament()->id()));
     //BBS: a z_hop need to be handle when travel
     if (std::abs(m_to_lift) > EPSILON) {
         assert(std::abs(m_lifted) < EPSILON);
@@ -793,13 +841,13 @@ std::string GCodeWriter::travel_to_xyz(const Vec3d &point, const std::string &co
     {
         //force to move xy first then z after filament change
         w.emit_xy(Vec2d(point_on_plate.x(), point_on_plate.y()));
-        w.emit_f(this->config.travel_speed.value * 60.0);
+        w.emit_f(this->config.travel_speed.get_at(get_extruder_index(this->config, filament()->id())) * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
         out_string = w.string() + _travel_to_z(point_on_plate.z(), comment);
     } else {
         GCodeG1Formatter w;
         w.emit_xyz(point_on_plate);
-        w.emit_f(this->config.travel_speed.value * 60.0);
+        w.emit_f(this->config.travel_speed.get_at(get_extruder_index(this->config, filament()->id())) * 60.0);
         w.emit_comment(GCodeWriter::full_gcode_comment, comment);
         out_string = w.string();
     }
@@ -832,10 +880,10 @@ std::string GCodeWriter::_travel_to_z(double z, const std::string &comment)
 {
     m_pos(2) = z;
 
-    double speed = this->config.travel_speed_z.value;
+    double speed = this->config.travel_speed_z.get_at(get_extruder_index(this->config, filament()->id()));
     if (speed == 0.) {
-        speed = m_is_first_layer ? this->config.get_abs_value("initial_layer_travel_speed")
-                                 : this->config.travel_speed.value;
+        speed = m_is_first_layer ? this->config.get_abs_value_at("initial_layer_travel_speed", get_extruder_index(this->config, filament()->id()))
+                                 : this->config.travel_speed.get_at(get_extruder_index(this->config, filament()->id()));
     }
 
     GCodeG1Formatter w;
@@ -849,11 +897,11 @@ std::string GCodeWriter::_travel_to_z(double z, const std::string &comment)
 std::string GCodeWriter::_spiral_travel_to_z(double z, const Vec2d &ij_offset, const std::string &comment)
 {
     std::string output;
-    double speed = this->config.travel_speed_z.value;
+    double speed = this->config.travel_speed_z.get_at(get_extruder_index(this->config, filament()->id()));
 
     if (speed == 0.) {
-        speed = m_is_first_layer ? this->config.get_abs_value("initial_layer_travel_speed")
-                                 : this->config.travel_speed.value;
+        speed = m_is_first_layer ? this->config.get_abs_value_at("initial_layer_travel_speed", get_extruder_index(this->config, filament()->id()))
+                                 : this->config.travel_speed.get_at(get_extruder_index(this->config, filament()->id()));
     }
 
     if (!this->config.enable_arc_fitting) { // Orca: if arc fitting is disabled, approximate the arc with small linear segments

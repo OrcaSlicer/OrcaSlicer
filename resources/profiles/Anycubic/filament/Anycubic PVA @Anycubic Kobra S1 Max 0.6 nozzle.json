@@ -3,7 +3,7 @@
 	"name": "Anycubic PVA @Anycubic Kobra S1 Max 0.6 nozzle",
 	"inherits": "fdm_filament_pva",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "1QcMzxPPVVj8k9Zy",
 	"filament_id": "GFPVA",
 	"instantiation": "true",
 	"filament_settings_id": [

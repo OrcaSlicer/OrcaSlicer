@@ -24,6 +24,9 @@ void make_brim(const Print& print, PrintTryCancel try_cancel,
     std::map<ObjectID, ExPolygons>* objectBrimAreasOut = nullptr,
     std::map<ObjectID, ExPolygons>* supportBrimAreasOut = nullptr);
 
+ExtrusionEntityCollection makeBrimInfill(const ExPolygons& singleBrimArea, const Print& print, const Polygons& islands_area);
+ExtrusionEntityCollection makeBrimInfillFromPlateCoordinates(const ExPolygons& singleBrimArea, const Print& print, const Polygons& islands_area);
+
 // BBS: automatically make brim
 ExtrusionEntityCollection make_brim_auto(const Print &print, PrintTryCancel try_cancel, Polygons &islands_area);
 

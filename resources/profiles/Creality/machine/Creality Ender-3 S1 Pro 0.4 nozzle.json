@@ -3,7 +3,7 @@
 	"name": "Creality Ender-3 S1 Pro 0.4 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "QW6vWxP2VA6kipYu",
 	"instantiation": "true",
 	"printer_model": "Creality Ender-3 S1 Pro",
 	"printer_structure": "i3",

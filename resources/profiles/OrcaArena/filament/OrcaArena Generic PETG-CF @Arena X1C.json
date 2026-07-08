@@ -3,7 +3,7 @@
 	"name": "OrcaArena Generic PETG-CF @Arena X1C",
 	"inherits": "OrcaArena Generic PETG-CF @base",
 	"from": "system",
-	"setting_id": "GFSG50",
+	"setting_id": "2OI2L2q50nSxam2z",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Orca Arena X1 Carbon 0.4 nozzle",

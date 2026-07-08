@@ -3,7 +3,7 @@
 	"name": "0.25 Benchy @Snapmaker J1 (0.4 nozzle)",
 	"inherits": "fdm_process_idex",
 	"from": "system",
-	"setting_id": "4247211099",
+	"setting_id": "dQn9kx2krDE0pl9N",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)"

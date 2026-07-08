@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Odorless @Qidi Q1 Pro 0.2 nozzle",
 	"inherits": "QIDI ABS Odorless",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "Tq1aLmF5jT1fx5mZ",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

@@ -3,7 +3,7 @@
     "name": "CR-PETG @SPARKX i7-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "RFW04K7trMKi3cYq",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

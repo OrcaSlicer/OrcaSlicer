@@ -3,7 +3,7 @@
 	"name": "0.28mm SuperDraft @Creality Ender5Pro (2019) 0.6",
 	"inherits": "fdm_process_creality_common_0_6",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "X8qxYqqSFZnxd19W",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"top_shell_layers": "4",

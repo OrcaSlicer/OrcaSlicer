@@ -3,7 +3,7 @@
 	"name": "Elegoo Rapid TPU 95A @System",
 	"inherits": "Elegoo TPU @base",
 	"from": "system",
-	"setting_id": "OERTPU95AS00",
+	"setting_id": "WXLuO112bsdM37MI",
 	"instantiation": "true",
 	"renamed_from": "Elegoo Rapid TPU 95A",
 	"pressure_advance": [

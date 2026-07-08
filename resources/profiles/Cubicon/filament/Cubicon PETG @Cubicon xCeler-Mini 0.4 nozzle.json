@@ -3,6 +3,7 @@
 	"name": "Cubicon PETG @Cubicon xCeler-Mini 0.4 nozzle",
 	"inherits": "Cubicon PETG @base",
 	"from": "system",
+	"setting_id": "2hYoCR5qUXCWIAxZ",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-Mini 0.4 nozzle"

@@ -3,7 +3,7 @@
 	"name": "0.36mm Chunky @Creality Ender5Pro (2019) 0.8",
 	"inherits": "fdm_process_creality_common_0_8",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "CoomSxI6M1Rova9H",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"top_shell_layers": "4",

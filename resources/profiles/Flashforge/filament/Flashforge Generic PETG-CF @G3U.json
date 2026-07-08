@@ -3,7 +3,7 @@
 	"name": "Flashforge Generic PETG-CF @G3U",
 	"inherits": "Flashforge Generic PETG",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "gLrecba33jDI9PeI",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

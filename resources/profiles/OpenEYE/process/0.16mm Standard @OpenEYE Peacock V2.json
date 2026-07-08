@@ -3,7 +3,7 @@
 	"name": "0.16mm Standard @OpenEYE Peacock V2",
 	"inherits": "fdm_process_openeye_0.16_nozzle_0.4",
 	"from": "system",
-	"setting_id": "GP143",
+	"setting_id": "gArD4KZxMZuJnIUM",
 	"instantiation": "true",
 	"description": "Standard profile for 0.16mm layer height, prioritizing speed.",
 	"default_acceleration": "8000",

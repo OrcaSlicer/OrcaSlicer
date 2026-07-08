@@ -3,6 +3,7 @@
 	"name": "Generic TPU-90A @FF C5P",
 	"inherits": "Generic TPU @System",
 	"from": "system",
+	"setting_id": "3SRFjKR5ezAukLYW",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

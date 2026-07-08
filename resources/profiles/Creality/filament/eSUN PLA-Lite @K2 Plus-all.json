@@ -3,7 +3,7 @@
     "name": "eSUN PLA-Lite @K2 Plus-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "om2444MoWYK7ZCqS",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

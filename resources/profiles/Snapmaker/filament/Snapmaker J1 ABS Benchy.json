@@ -3,7 +3,7 @@
 	"name": "Snapmaker J1 ABS Benchy",
 	"inherits": "Snapmaker J1 ABS @base",
 	"from": "system",
-	"setting_id": "356879727",
+	"setting_id": "b1Z94AhG8viXuDsq",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker J1 (0.4 nozzle)"

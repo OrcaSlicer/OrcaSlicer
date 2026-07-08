@@ -3,7 +3,7 @@
 	"name": "QIDI ABS-GF25 @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "QIDI ABS-GF25",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "hTEx7UgX2wWanON5",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [

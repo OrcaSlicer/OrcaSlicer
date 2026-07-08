@@ -3,6 +3,7 @@
 	"name": "0.20mm Standard @FF G4 PLA600",
 	"inherits": "0.20mm Standard @Flashforge G3U 0.4 Nozzle",
 	"from": "system",
+	"setting_id": "vJMNZ7ccBUuLYsPG",
 	"instantiation": "true",
 	"bridge_speed": "15",
 	"elefant_foot_compensation": "0.1",

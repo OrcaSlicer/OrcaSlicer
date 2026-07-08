@@ -3,14 +3,13 @@
 	"name": "0.16mm Optimal 0.4 nozzle @Blocks_RF50",
 	"inherits": "fdm_process_blocks_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "7vr8tF75IxNYOfy9",
 	"instantiation": "true",
 	"layer_height": "0.16",
 	"initial_layer_print_height": "0.2",
 	"bottom_shell_layers": "5",
 	"top_shell_layers": "5",
 	"compatible_printers": [
-		"BLOCKS RF50",
 		"BLOCKS RF50 0.4 nozzle"
 	],
 	"sparse_infill_speed": "300",

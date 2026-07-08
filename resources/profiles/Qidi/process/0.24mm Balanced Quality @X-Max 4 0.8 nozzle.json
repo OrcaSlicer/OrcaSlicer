@@ -1,10 +1,10 @@
 {
 	"type": "process",
-	"setting_id": "GP032",
 	"name": "0.24mm Balanced Quality @X-Max 4 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "kye0mwcHVzDEfide",
+	"instantiation": "true",
 	"bridge_flow": "1",
 	"bridge_speed": [
 		"30"

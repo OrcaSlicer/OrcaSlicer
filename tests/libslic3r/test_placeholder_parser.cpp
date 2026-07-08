@@ -11,8 +11,8 @@ SCENARIO("Placeholder parser scripting", "[PlaceholderParser]") {
 
     config.set_deserialize_strict( {
 	    { "printer_notes", "  PRINTER_VENDOR_PRUSA3D  PRINTER_MODEL_MK2  " },
-	    { "nozzle_diameter", "0.6;0.6;0.6;0.6" },
-	    { "nozzle_temperature", "357;359;363;378" }
+	    { "nozzle_diameter", "0.6,0.6,0.6,0.6" },
+	    { "nozzle_temperature", "357,359,363,378" }
 	});
     // To test the "min_width_top_surface" over "inner_wall_line_width".
     config.option<ConfigOptionFloatOrPercent>("inner_wall_line_width")->value = 150.;
@@ -66,14 +66,28 @@ SCENARIO("Placeholder parser scripting", "[PlaceholderParser]") {
     SECTION("math: interpolate_table(13, (0, 0), (20, 20), (30, 20))") { REQUIRE(std::stod(parser.process("{interpolate_table(13, (0, 0), (20, 20), (30, 20))}")) == Catch::Approx(13.)); }
     SECTION("math: interpolate_table(25, (0, 0), (20, 20), (30, 20))") { REQUIRE(std::stod(parser.process("{interpolate_table(25, (0, 0), (20, 20), (30, 20))}")) == Catch::Approx(20.)); }
 
+    // regex_replace(subject, /pattern/, replacement): the string-transform primitive.
+    SECTION("regex_replace: strips a file extension") { REQUIRE(parser.process("{regex_replace(\"part.stl\", /\\.[^.]*$/, \"\")}") == "part"); }
+    SECTION("regex_replace: leaves a non-matching dot untouched") { REQUIRE(parser.process("{regex_replace(\"Bracket v2.1\", /\\.stl$/, \"\")}") == "Bracket v2.1"); }
+    SECTION("regex_replace: replaces every match") { REQUIRE(parser.process("{regex_replace(\"a-b-c\", /-/, \"_\")}") == "a_b_c"); }
+    SECTION("regex_replace: replacement may reference a capture group") { REQUIRE(parser.process("{regex_replace(\"v12\", /v(\\d+)/, \"$1\")}") == "12"); }
+    // The result is an ordinary string, usable in further expressions (the real filename-template shape).
+    SECTION("regex_replace: result composes with concatenation") { REQUIRE(parser.process("{regex_replace(\"part.stl\", /\\.[^.]*$/, \"\") + \".gcode\"}") == "part.gcode"); }
+    // A malformed pattern and a non-string subject are both hard errors.
+    SECTION("regex_replace: an invalid pattern throws") { REQUIRE_THROWS(parser.process("{regex_replace(\"x\", /[/, \"\")}")); }
+    SECTION("regex_replace: a non-string subject throws") { REQUIRE_THROWS(parser.process("{regex_replace(123, /2/, \"\")}")); }
+    // Inside a skipped branch the subject is TYPE_EMPTY and the call must no-op (exercises the guard).
+    SECTION("regex_replace: is skipped inside a false if-branch") { REQUIRE(parser.process("{if false}{regex_replace(\"x\", /x/, \"y\")}{endif}done") == "done"); }
+
     // Test the "coFloatOrPercent" and "xxx_line_width" substitutions.
     // min_width_top_surface ratio_over inner_wall_line_width.
     SECTION("line_width") { REQUIRE(std::stod(parser.process("{line_width}")) == Catch::Approx(0.67500001192092896)); }
     SECTION("min_width_top_surface") { REQUIRE(std::stod(parser.process("{min_width_top_surface}")) == Catch::Approx(2.7)); }
     // Orca: this one is not coFloatOrPercent
     //SECTION("support_object_xy_distance") { REQUIRE(std::stod(parser.process("{support_object_xy_distance}")) == Catch::Approx(0.3375)); }
+    // Orca: this one is not coFloatOrPercent
     // small_perimeter_speed over outer_wall_speed
-    SECTION("small_perimeter_speed") { REQUIRE(std::stod(parser.process("{small_perimeter_speed}")) == Catch::Approx(30.)); }
+    //SECTION("small_perimeter_speed") { REQUIRE(std::stod(parser.process("{small_perimeter_speed}")) == Catch::Approx(30.)); }
     // infill_anchor over sparse_infill_line_width
     SECTION("infill_anchor") { REQUIRE(std::stod(parser.process("{infill_anchor}")) == Catch::Approx(2.7)); }
     // If scarf_joint_speed is set to percent, then it is applied over respective extrusion types by overriding their respective speeds.
@@ -120,8 +134,8 @@ SCENARIO("Placeholder parser variables", "[PlaceholderParser]") {
     config.set_deserialize_strict({
         { "filament_notes", "testnotes" },
         { "enable_pressure_advance", "1" },
-        { "nozzle_diameter", "0.6;0.6;0.6;0.6" },
-        { "nozzle_temperature", "357;359;363;378" }
+        { "nozzle_diameter", "0.6,0.6,0.6,0.6" },
+        { "nozzle_temperature", "357,359,363,378" }
         });
 
     PlaceholderParser::ContextData context_with_global_dict;
@@ -129,6 +143,7 @@ SCENARIO("Placeholder parser variables", "[PlaceholderParser]") {
 
     SECTION("create an int local variable") { REQUIRE(parser.process("{local myint = 33+2}{myint}", 0, nullptr, nullptr, nullptr) == "35"); }
     SECTION("create a string local variable") { REQUIRE(parser.process("{local mystr = \"mine\" + \"only\" + \"mine\"}{mystr}", 0, nullptr, nullptr, nullptr) == "mineonlymine"); }
+    SECTION("regex_replace transforms a string variable") { REQUIRE(parser.process("{local n = \"part.stl\"}{regex_replace(n, /\\.[^.]*$/, \"\")}", 0, nullptr, nullptr, nullptr) == "part"); }
     SECTION("create a bool local variable") { REQUIRE(parser.process("{local mybool = 1 + 1 == 2}{mybool}", 0, nullptr, nullptr, nullptr) == "true"); }
     SECTION("create an int global variable") { REQUIRE(parser.process("{global myint = 33+2}{myint}", 0, nullptr, nullptr, &context_with_global_dict) == "35"); }
     SECTION("create a string global variable") { REQUIRE(parser.process("{global mystr = \"mine\" + \"only\" + \"mine\"}{mystr}", 0, nullptr, nullptr, &context_with_global_dict) == "mineonlymine"); }
@@ -239,4 +254,98 @@ SCENARIO("Placeholder parser variables", "[PlaceholderParser]") {
         REQUIRE(parser.process(script, 0, nullptr, nullptr, nullptr) == "6");
     }
     SECTION("if else completely empty") { REQUIRE(parser.process("{if false then elsif false then else endif}", 0, nullptr, nullptr, nullptr) == ""); }
+}
+
+SCENARIO("Placeholder parser coFloatsOrPercents vector access", "[PlaceholderParser]") {
+    PlaceholderParser parser;
+    auto config = DynamicPrintConfig::full_print_config();
+
+    // outer_wall_speed is the ratio_over target for small_perimeter_speed.
+    // Different values per extruder to verify parent resolves at the same element index.
+    config.set_deserialize_strict({
+        { "outer_wall_speed", "60,70,80,90" },
+        { "nozzle_diameter", "0.4,0.4,0.4,0.4" },
+        { "pressure_advance", "1.5,2.0,3.0,4.0" }  // coFloats non-nullable
+    });
+    // small_perimeter_speed:
+    //   [0] = 50% of outer_wall_speed[0] (= 60) → 30
+    //   [1] = 80% of outer_wall_speed[1] (= 70) → 56
+    //   [2] = 0 absolute
+    //   [3] = 50% of outer_wall_speed[3] (= 90) → 45
+    config.option<ConfigOptionFloatsOrPercentsNullable>("small_perimeter_speed")->values = {
+        FloatOrPercent{50.0, true},    // 50% of outer_wall_speed[0] (60) = 30
+        FloatOrPercent{80.0, true},    // 80% of outer_wall_speed[1] (70) = 56
+        FloatOrPercent{0.0, false},    // absolute: 0
+        FloatOrPercent{50.0, true},    // 50% of outer_wall_speed[3] (90) = 45
+    };
+
+    parser.apply_config(config);
+    parser.set("foo", 0);
+    parser.set("bar", 1);
+    parser.set("baz", 3);
+    parser.set("num_extruders", 4);
+
+    SECTION("Indexed access - percent resolved against parent at same index [0]") {
+        // 50% of outer_wall_speed[0] (60) = 30
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[0]}")) == Catch::Approx(30.0));
+    }
+
+    SECTION("Indexed access - percent resolved against parent at same index [1]") {
+        // 80% of outer_wall_speed[1] (70) = 56
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[1]}")) == Catch::Approx(56.0));
+    }
+
+    SECTION("Indexed access - percent resolved against parent at same index [3]") {
+        // 50% of outer_wall_speed[3] (90) = 45
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[3]}")) == Catch::Approx(45.0));
+    }
+
+    SECTION("Variable-indexed access via foo (=0) - percent value") {
+        // 50% of outer_wall_speed[0] (60) = 30
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[foo]}")) == Catch::Approx(30.0));
+    }
+
+    SECTION("Variable-indexed access via bar (=1) - percent value") {
+        // 80% of outer_wall_speed[1] (70) = 56
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[bar]}")) == Catch::Approx(56.0));
+    }
+
+    SECTION("Variable-indexed access via baz (=3) - percent value") {
+        // 50% of outer_wall_speed[3] (90) = 45
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[baz]}")) == Catch::Approx(45.0));
+    }
+
+    SECTION("Literal-indexed access - absolute value") {
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[2]}")) == Catch::Approx(0.0));
+    }
+
+    SECTION("No-index (extruder-based) access - percent resolved via current extruder") {
+        // Extruder 0 = 50% of outer_wall_speed[0] (60) = 30
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed}")) == Catch::Approx(30.0));
+    }
+
+    SECTION("Out-of-range index clamps to index 0") {
+        // Index 99 is out of range, clamps to 0: 50% of outer_wall_speed[0] (60) = 30
+        REQUIRE(std::stod(parser.process("{small_perimeter_speed[99]}")) == Catch::Approx(30.0));
+    }
+
+    SECTION("coFloats no-index access - nullable (outer_wall_speed)") {
+        // outer_wall_speed is ConfigOptionFloatsNullable, exercises the 'if' branch
+        REQUIRE(std::stod(parser.process("{outer_wall_speed}")) == Catch::Approx(60.0));
+    }
+
+    SECTION("coFloats indexed access - nullable") {
+        // outer_wall_speed[2] = 80
+        REQUIRE(std::stod(parser.process("{outer_wall_speed[2]}")) == Catch::Approx(80.0));
+    }
+
+    SECTION("coFloats no-index access - non-nullable (pressure_advance)") {
+        // pressure_advance is ConfigOptionFloats (non-nullable), exercises the 'else' branch
+        REQUIRE(std::stod(parser.process("{pressure_advance}")) == Catch::Approx(1.5));
+    }
+
+    SECTION("coFloats indexed access - non-nullable") {
+        // pressure_advance[2] = 3.0
+        REQUIRE(std::stod(parser.process("{pressure_advance[2]}")) == Catch::Approx(3.0));
+    }
 }

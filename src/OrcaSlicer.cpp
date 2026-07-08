@@ -1317,7 +1317,13 @@ int CLI::run(int argc, char **argv)
         return CLI_INVALID_PARAMS;
     }
     BOOST_LOG_TRIVIAL(info) << "finished setup params, argc="<< argc << std::endl;
-    std::string temp_path = wxFileName::GetTempDir().utf8_str().data();
+    std::string temp_path = per_user_temp_dir(wxFileName::GetTempDir().utf8_str().data(), per_user_temp_id());
+    // Some consumers write into the temp root directly, so create it up front.
+    try {
+        boost::filesystem::create_directories(temp_path);
+    } catch (const std::exception &ex) {
+        BOOST_LOG_TRIVIAL(warning) << "failed to create per-user temp dir " << temp_path << ": " << ex.what();
+    }
     set_temporary_dir(temp_path);
 
     m_extra_config.apply(m_config, true);
@@ -3865,13 +3871,13 @@ int CLI::run(int argc, char **argv)
         }
 
         //travel_acceleration
-        ConfigOptionFloat *travel_acceleration_option = m_print_config.option<ConfigOptionFloat>("travel_acceleration", true);
-        ConfigOptionFloat *default_acceleration_option = m_print_config.option<ConfigOptionFloat>("default_acceleration");
-        travel_acceleration_option->value = default_acceleration_option->value;
+        ConfigOptionFloatsNullable *travel_acceleration_option = m_print_config.option<ConfigOptionFloatsNullable>("travel_acceleration", true);
+        ConfigOptionFloatsNullable *default_acceleration_option = m_print_config.option<ConfigOptionFloatsNullable>("default_acceleration");
+        travel_acceleration_option->values = default_acceleration_option->values;
 
-        ConfigOptionFloat *initial_layer_travel_acceleration_option = m_print_config.option<ConfigOptionFloat>("initial_layer_travel_acceleration", true);
-        ConfigOptionFloat *initial_layer_acceleration_option = m_print_config.option<ConfigOptionFloat>("initial_layer_acceleration");
-        initial_layer_travel_acceleration_option->value = initial_layer_acceleration_option->value;
+        ConfigOptionFloatsNullable *initial_layer_travel_acceleration_option = m_print_config.option<ConfigOptionFloatsNullable>("initial_layer_travel_acceleration", true);
+        ConfigOptionFloatsNullable *initial_layer_acceleration_option = m_print_config.option<ConfigOptionFloatsNullable>("initial_layer_acceleration");
+        initial_layer_travel_acceleration_option->values = initial_layer_acceleration_option->values;
     }
 
     auto get_print_sequence = [](Slic3r::GUI::PartPlate* plate, DynamicPrintConfig& print_config, bool &is_seq_print) {
@@ -7353,7 +7359,7 @@ bool CLI::export_project(Model *model, std::string& path, PlateDataPtrs &partpla
     bool success = false;
 
     StoreParams store_params;
-    store_params.path = path.c_str();
+    store_params.path = path;
     store_params.model = model;
     store_params.plate_data_list = partplate_data;
     store_params.project_presets = project_presets;

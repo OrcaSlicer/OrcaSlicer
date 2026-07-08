@@ -3,7 +3,6 @@
 	"name": "QIDI TPU-Aero@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"setting_id": "GFSR98",
 	"filament_id": "QD_1_1_49",
 	"instantiation": "false",
 	"fan_cooling_layer_time": [

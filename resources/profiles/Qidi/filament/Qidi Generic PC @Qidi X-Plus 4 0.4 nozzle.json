@@ -3,7 +3,7 @@
 	"name": "Qidi Generic PC @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "Qidi Generic PC",
 	"from": "system",
-	"setting_id": "GFSC99",
+	"setting_id": "TPbG7zlsPowdKEVw",
 	"filament_id": "GFC99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

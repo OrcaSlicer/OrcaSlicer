@@ -3,7 +3,7 @@
 	"name": "Prusament PETG @CORE One HF 0.6",
 	"inherits": "Prusament PETG @CORE One",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "6aTGEZj2EmpTR1mu",
 	"filament_id": "Prusament PETG @CORE One HF 0.6",
 	"instantiation": "true",
 	"compatible_printers": [

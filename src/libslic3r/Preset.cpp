@@ -39,6 +39,8 @@
 #include <boost/nowide/fstream.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
 #include <boost/locale.hpp>
 #include <boost/log/trivial.hpp>
 
@@ -518,6 +520,39 @@ std::string  Preset::get_type_string(Preset::Type type)
         default:
             return "invalid";
     }
+}
+
+std::string generate_preset_setting_id(const std::string& vendor, const std::string& type, const std::string& name)
+{
+    if (vendor.empty() || name.empty())
+        return "";
+
+    // Dedicated namespace for preset setting_ids, distinct from the cloud per-user
+    // namespace (OrcaCloudServiceAgent). Keep in sync with scripts/assign_vendor_setting_ids.py;
+    // never change this constant.
+    static const boost::uuids::uuid vendor_namespace =
+        boost::uuids::string_generator()("c1f4d9e2-7a3b-5c8d-9e0f-1a2b3c4d5e6f");
+
+    boost::uuids::name_generator_sha1 gen(vendor_namespace);
+    boost::uuids::uuid id = gen(vendor + "/" + type + "/" + name);
+
+    // Render the low 16 base62 digits of the 128-bit id, most-significant first.
+    // Implemented as long-division over the 16 raw (big-endian) bytes so it stays
+    // portable (no __int128, which MSVC lacks) and matches the Python reference.
+    static const char ALPHABET[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    unsigned char bytes[16];
+    std::copy(id.begin(), id.end(), bytes);
+    char out[16];
+    for (int pos = 15; pos >= 0; --pos) {
+        unsigned int rem = 0;
+        for (int i = 0; i < 16; ++i) {
+            unsigned int cur = (rem << 8) | bytes[i];
+            bytes[i] = static_cast<unsigned char>(cur / 62);
+            rem      = cur % 62;
+        }
+        out[pos] = ALPHABET[rem];
+    }
+    return std::string(out, 16);
 }
 
 std::string  Preset::get_iot_type_string(Preset::Type type)
@@ -1012,6 +1047,8 @@ static std::vector<std::string> s_Preset_print_options{
     "bottom_surface_pattern",
     "infill_direction",
     "solid_infill_direction",
+    "top_layer_direction",
+    "bottom_layer_direction",
     "counterbore_hole_bridging",
     "infill_shift_step",
     "sparse_infill_rotate_template",
@@ -1163,6 +1200,8 @@ static std::vector<std::string> s_Preset_print_options{
     "wall_maximum_deviation",
     "small_perimeter_speed",
     "small_perimeter_threshold",
+    "small_support_perimeter_speed",
+    "small_support_perimeter_threshold",
     "bridge_angle",
     "internal_bridge_angle",
     "relative_bridge_angle",
@@ -1240,6 +1279,7 @@ static std::vector<std::string> s_Preset_print_options{
     "hole_to_polyhole",
     "hole_to_polyhole_threshold",
     "hole_to_polyhole_twisted",
+    "hole_to_polyhole_max_edges",
     "mmu_segmented_region_max_width",
     "mmu_segmented_region_interlocking_depth",
     "small_area_infill_flow_compensation",
@@ -1283,7 +1323,7 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     // "bed_type",
     //BBS:temperature_vitrification
     "temperature_vitrification", "reduce_fan_stop_start_freq","dont_slow_down_outer_wall", "slow_down_for_layer_cooling", "fan_min_speed",
-    "fan_max_speed", "enable_overhang_bridge_fan", "overhang_fan_speed", "overhang_fan_threshold", "close_fan_the_first_x_layers", "close_additional_fan_first_x_layers", "first_x_layer_fan_speed", "full_fan_speed_layer", "additional_fan_full_speed_layer", "fan_cooling_layer_time", "slow_down_layer_time", "slow_down_min_speed",
+    "fan_max_speed", "enable_overhang_bridge_fan", "overhang_fan_speed", "overhang_fan_threshold", "close_fan_the_first_x_layers", "close_additional_fan_first_x_layers", "first_x_layer_fan_speed", "full_fan_speed_layer", "initial_layer_fan_speed", "additional_fan_full_speed_layer", "fan_cooling_layer_time", "slow_down_layer_time", "slow_down_min_speed",
     "filament_start_gcode", "filament_end_gcode", "filament_change_extrusion_role_gcode",
     //exhaust fan control
     "activate_air_filtration","activate_air_filtration_during_print","activate_air_filtration_on_completion","during_print_exhaust_fan_speed","complete_print_exhaust_fan_speed",
@@ -1304,7 +1344,7 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "filament_loading_speed", "filament_loading_speed_start",
     "filament_unloading_speed", "filament_unloading_speed_start", "filament_toolchange_delay", "filament_cooling_moves", "filament_stamping_loading_speed", "filament_stamping_distance",
     "filament_cooling_initial_speed", "filament_cooling_final_speed", "filament_ramming_parameters",
-    "filament_multitool_ramming", "filament_multitool_ramming_volume", "filament_multitool_ramming_flow", "activate_chamber_temp_control",
+    "filament_multitool_ramming", "filament_multitool_ramming_volume", "filament_multitool_ramming_flow", "activate_chamber_temp_control", "chamber_minimal_temperature",
     "filament_long_retractions_when_cut","filament_retraction_distances_when_cut", "idle_temperature",
     //BBS filament change length while the extruder color
     "filament_change_length","filament_flush_volumetric_speed","filament_flush_temp", "filament_cooling_before_tower",
@@ -1637,6 +1677,7 @@ void PresetCollection::load_presets(
                         std::string inherits_value = option_str->value;
                         // Orca: try to find if the parent preset has been renamed
                         inherit_preset = this->find_preset2(inherits_value);
+                        Preset::normalize_inherits(config, inherit_preset);
                     } else {
                         ;
                     }
@@ -1821,6 +1862,26 @@ int PresetCollection::get_differed_values_to_update(Preset& preset, std::map<std
             if (opt_src)
                 key_values[option] = opt_src->serialize();
         }
+
+        // Orca: force-emit nullable filament override keys whenever they hold a nil ("off")
+        // value, even when the diff dropped them because the parent is nil too. Otherwise the
+        // key is absent from the synced profile and the cloud re-materializes it against the
+        // option's non-nil default (e.g. filament_retract_before_wipe -> 100%), silently
+        // resurrecting an override the user turned off. See GitHub issue on Retract Before Wipe.
+        if (m_type == Preset::TYPE_FILAMENT) {
+            for (const std::string& opt_key : filament_extruder_override_keys) {
+                if (key_values.count(opt_key))
+                    continue; // already carried by the diff
+                const auto* opt_vec = dynamic_cast<const ConfigOptionVectorBase*>(preset.config.option(opt_key));
+                if (opt_vec == nullptr)
+                    continue;
+                bool has_nil = false;
+                for (size_t i = 0; i < opt_vec->size(); ++i)
+                    if (opt_vec->is_nil(i)) { has_nil = true; break; }
+                if (has_nil)
+                    key_values[opt_key] = opt_vec->serialize();
+            }
+        }
     }
     else {
         for (auto iter = preset.config.cbegin(); iter != preset.config.cend(); ++iter)
@@ -1889,6 +1950,7 @@ void PresetCollection::load_project_embedded_presets(std::vector<Preset*>& proje
                     option_str->value = inherits_value;
                 }*/
                 inherit_preset = this->find_preset2(inherits_value, true);
+                Preset::normalize_inherits(config, inherit_preset);
             }
             const Preset& default_preset = this->default_preset_for(config);
             if (inherit_preset) {
@@ -2196,11 +2258,12 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
         const auto inherits_iter               = preset_values.find(BBL_JSON_KEY_INHERITS);
         const bool preset_inherits_from_parent = inherits_iter != preset_values.end() && !inherits_iter->second.empty();
         if (preset_inherits_from_parent) {
-            // This indicates that there is inherits exists but there is no base_id
-            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__
-                                       << boost::format("can not find base_id, not loading for user preset %1%") % canonical_name;
-            unlock();
-            return false;
+            // No base_id stored although the preset inherits from a parent. Rather than
+            // dropping the preset, derive base_id on the fly from the resolved parent's
+            // setting_id below (the parent is found by its "inherits" name). Only the
+            // genuinely unresolvable-parent case is skipped, further down.
+            BOOST_LOG_TRIVIAL(info) << __FUNCTION__
+                                    << boost::format("no base_id for user preset %1%, will derive it from the parent") % canonical_name;
         }
     }
 
@@ -2224,10 +2287,16 @@ bool PresetCollection::load_user_preset(std::string name, std::map<std::string, 
             ConfigOptionString * option_str = dynamic_cast<ConfigOptionString *> (inherits_config);
             std::string inherits_value = option_str->value;
             inherit_preset = this->find_preset2(inherits_value, true);
+            Preset::normalize_inherits(cloud_config, inherit_preset);
         }
         const Preset& default_preset = this->default_preset_for(cloud_config);
         if (inherit_preset) {
             new_config = inherit_preset->config;
+            // Derive base_id from the resolved parent when it was not supplied. The
+            // parent's setting_id is itself computed deterministically at load time, so
+            // this stays stable. Does not affect the preset's own (cloud) setting_id.
+            if (based_id.empty())
+                based_id = inherit_preset->setting_id;
             if (cloud_filament_id == "null") {
                 cloud_filament_id = inherit_preset->filament_id;
             }
@@ -2633,7 +2702,10 @@ std::pair<Preset*, bool> PresetCollection::load_external_preset(
         preset.filament_id = filament_id;
     else {
         if (!inherits.empty()) {
-            Preset *parent = this->find_preset(inherits, false, true);
+            // Orca: resolve via find_preset2 so a renamed/removed-and-matched parent still
+            // yields its filament_id (external presets store a full config, so the dangling
+            // "inherits" itself is normalized on the next load_presets pass).
+            Preset *parent = this->find_preset2(inherits, true);
             if (parent)
                 preset.filament_id = parent->filament_id;
         }
@@ -2897,10 +2969,14 @@ void PresetCollection::save_current_preset(const std::string &new_name, bool det
     //BBS: only save difference for user preset
     Preset* parent_preset = nullptr;
     if (!final_inherits.empty()) {
-        parent_preset = this->find_preset(final_inherits, false, true);
-        if (parent_preset && this->get_selected_preset().base_id.empty()) {
-            this->get_selected_preset().base_id = parent_preset->setting_id;
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " base_id: " << parent_preset->setting_id;
+        parent_preset = this->find_preset2(final_inherits, true);
+        if (parent_preset) {
+            // Orca: take the saved diff against the resolved parent (renamed / library-matched).
+            Preset::normalize_inherits(this->get_selected_preset().config, parent_preset);
+            if (this->get_selected_preset().base_id.empty()) {
+                this->get_selected_preset().base_id = parent_preset->setting_id;
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " base_id: " << parent_preset->setting_id;
+            }
         }
     }
     if (parent_preset)
@@ -2991,6 +3067,25 @@ void PresetCollection::check_and_fix_syncinfo(Preset& preset, const std::string&
         preset.updated_time = 0;
         preset.sync_info    = "create";
         preset.save_info();
+        return;
+    }
+
+    const auto inherits = Preset::inherits(preset.config);
+    Preset* parent      = find_preset2(inherits, true);
+    if (!inherits.empty() && parent) {
+        const std::string expected = parent->setting_id;
+        if (expected.empty()) {
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Direct parent of " << preset.name << " does not have a setting_id";
+            return;
+        }
+        // Reconcile a missing or stale base_id against the direct parent's setting_id.
+        if (preset.base_id != expected) {
+            preset.base_id = expected;
+            // Already-synced preset whose base changed -> re-push it.
+            if (!preset.setting_id.empty() && preset.sync_info.empty())
+                preset.sync_info = "update";
+            preset.save_info();
+        }
     }
 }
 
@@ -3012,14 +3107,8 @@ const Preset* PresetCollection::get_selected_preset_parent() const
             return nullptr;
         preset = &this->default_preset(m_type == Preset::Type::TYPE_PRINTER && edited_preset.printer_technology() == ptSLA ? 1 : 0);
     } else
+        // find_preset() already resolves "renamed_from" internally.
         preset = this->find_preset(inherits, false);
-    if (preset == nullptr) {
-	    // Resolve the "renamed_from" field.
-    	assert(! inherits.empty());
-    	auto it = this->find_preset_renamed(inherits);
-		if (it != m_presets.end())
-			preset = &(*it);
-    }
     //BBS: add project embedded preset logic and refine is_external
     return (preset == nullptr/* || preset->is_default || preset->is_external*/) ? nullptr : preset;
     //return (preset == nullptr/* || preset->is_default*/ || preset->is_external) ? nullptr : preset;
@@ -3031,12 +3120,8 @@ const Preset* PresetCollection::get_preset_parent(const Preset& child) const
     if (inherits.empty())
 // 		return this->get_selected_preset().is_system ? &this->get_selected_preset() : nullptr;
         return nullptr;
+    // find_preset() already resolves "renamed_from" internally.
     const Preset* preset = this->find_preset(inherits, false);
-    if (preset == nullptr) {
-    	auto it = this->find_preset_renamed(inherits);
-		if (it != m_presets.end())
-			preset = &(*it);
-    }
     return
          // not found
         (preset == nullptr/* || preset->is_default */||
@@ -3135,6 +3220,14 @@ Preset* PresetCollection::find_preset(const std::string &name, bool first_visibl
     auto it = this->find_preset_internal(canonical, only_from_library);
     if (it != m_presets.end() && it->name == canonical)
         return &this->preset(it - m_presets.begin(), real);
+    // Resolve the "renamed_from" field: a system preset may have been renamed (e.g. by a
+    // vendor profile sync), which records its old name in "renamed_from". Try the rename
+    // map before the first-visible fallback so every caller - including those passing
+    // real/only_from_library or first_visible_if_not_found - resolves to the renamed preset
+    // rather than a mismatched one. Recursion follows multi-step renames (A->B->C) and
+    // terminates as soon as a name resolves or has no further rename entry.
+    if (const std::string* renamed = get_preset_name_renamed(name))
+        return find_preset(*renamed, first_visible_if_not_found, real, only_from_library);
     return first_visible_if_not_found ? &this->first_visible() : nullptr;
 }
 
@@ -3142,14 +3235,11 @@ Preset* PresetCollection::find_preset2(const std::string& name, bool auto_match/
 {
     auto preset = find_preset(name, false, true);
     if (preset == nullptr) {
-        auto _name = get_preset_name_renamed(name);
-        if (_name != nullptr)
-            preset = find_preset(*_name, false, true);
-        if (auto_match && preset == nullptr) {
+        if (auto_match) {
             //Orca: one more try, find the most likely preset in OrcaFilamentLibrary
             if (name.find("Generic") != std::string::npos) {
                 // The regex pattern matches an optional prefix ending in '_' then "Generic" followed by the material name.
-                std::regex re(R"(^(?:.*?\b(?:\w+_)?)(Generic)\b\s+([^@]+?)\s*(?:@.*)?$)");
+                static const std::regex re(R"(^(?:.*?\b(?:\w+_)?)(Generic)\b\s+([^@]+?)\s*(?:@.*)?$)");
                 auto       alter_name = std::regex_replace(name, re, "Generic $2 @System");
                 preset                = find_preset2(alter_name, false);
                 // print preset file name
