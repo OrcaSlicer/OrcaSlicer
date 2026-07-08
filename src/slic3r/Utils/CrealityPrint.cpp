@@ -426,7 +426,7 @@ bool CrealityPrint::start_print(wxString &msg, const std::string &filename, cons
             json cmd = {
                 {"method", "set"},
                 {"params", {
-                    {"opGcodeFile", "printprt:/usr/data/printer_data/gcodes/" + filename}
+                    {"opGcodeFile", "printprt:" + gcode_path}
                 }}
             };
             ws.write(net::buffer(to_string(cmd)));
