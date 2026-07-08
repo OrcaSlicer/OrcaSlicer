@@ -3,11 +3,19 @@
 #include "libslic3r/libslic3r.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <string_view>
 
 namespace Slic3r {
 namespace {
+
+bool equals_case_insensitive(std::string_view lhs, std::string_view rhs)
+{
+    return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin(), [](unsigned char l, unsigned char r) {
+        return std::tolower(l) == std::tolower(r);
+    });
+}
 
 float get_clamped_param(const GCodeReader::GCodeLine& line, char axis, float default_value, float min_value, float max_value)
 {
@@ -16,14 +24,9 @@ float get_clamped_param(const GCodeReader::GCodeLine& line, char axis, float def
     return std::clamp(value, min_value, max_value);
 }
 
-float feedrate_time(float length_mm, float feedrate_mm_min)
-{
-    return feedrate_mm_min > 0.0f && length_mm > 0.0f ? length_mm / feedrate_mm_min * 60.0f : 0.0f;
-}
-
 float extrusion_time(float e_length, float feedrate)
 {
-    return feedrate_time(e_length, feedrate);
+    return feedrate > 0.0f && e_length > 0.0f ? e_length / feedrate * 60.0f : 0.0f;
 }
 
 float retract_time(float e_length)
@@ -42,63 +45,24 @@ float s819_time(float e_length, float feedrate)
     return extrusion_time(main_length, feedrate) + extrusion_time(tail_length, s819_tail_feedrate);
 }
 
-// Centauri Carbon flush segment time based on actual extrusion pattern:
-//   M106 S10, M83
-//   G1 E30 F500   (phase 1: fast extrude)
-//   M106 S0
-//   G1 E35 F500   (phase 2: fast extrude)
-//   M106 S60
-//   G1 E10 F400   (phase 3: slow tail)
-//   G1 E-2 F400   (retract)
-float cc_flush_segment_time(float e_length)
-{
-    static constexpr float phase1_length  = 30.0f;
-    static constexpr float phase2_length  = 35.0f;
-    static constexpr float tail_length    = 10.0f;
-    static constexpr float retract_length = 2.0f;
-    static constexpr float main_feedrate  = 500.0f;
-    static constexpr float tail_feedrate  = 400.0f;
-
-    float remaining = std::max(e_length, 0.0f);
-    float time      = 0.0f;
-
-    float p1 = std::min(remaining, phase1_length);
-    time += extrusion_time(p1, main_feedrate);
-    remaining -= p1;
-
-    float p2 = std::min(remaining, phase2_length);
-    time += extrusion_time(p2, main_feedrate);
-    remaining -= p2;
-
-    float p3 = std::min(remaining, tail_length);
-    time += extrusion_time(p3, tail_feedrate);
-
-    time += extrusion_time(retract_length, tail_feedrate);
-    return time;
-}
-
-float cc_toolchange_travel_time(double current_x, double current_y)
-{
-    static constexpr double parking_x    = 256.0;
-    static constexpr double parking_y    = 0.0;
-    static constexpr float  feedrate     = 5000.0f;
-
-    const double dx = current_x - parking_x;
-    const double dy = current_y - parking_y;
-    return feedrate_time(static_cast<float>(std::abs(dy) + std::abs(dx)), feedrate);
-}
-
 float estimate_M6211_time_for_centauri_carbon(const GCodeReader::GCodeLine& line, float length, double current_x,
                                               double current_y)
 {
     static constexpr float max_segment_length    = 73.0f;
     static constexpr float wipe_after_flush_time = 2.8f;
+    static constexpr float main_feedrate         = 500.0f;
+    static constexpr float tail_feedrate         = 400.0f;
+    static constexpr float travel_feedrate       = 5000.0f;
+    static constexpr double parking_x            = 256.0;
+    static constexpr double parking_y            = 0.0;
 
     const float flush_length = std::clamp(length, 10.0f, 1000.0f);
     const float cool_time    = get_clamped_param(line, 'P', 5000.0f, 0.0f, 20000.0f) * 0.001f;
+    const float travel_time  = static_cast<float>(std::abs(current_y - parking_y) + std::abs(current_x - parking_x)) /
+                              travel_feedrate * 60.0f;
 
     // Initial time, including: material change, heating, etc.
-    float m6211_time = 18.2f + cc_toolchange_travel_time(current_x, current_y);
+    float m6211_time = 18.2f + travel_time;
 
     float remaining_flush_length = std::max(flush_length, 0.0f);
     while (remaining_flush_length > 0.0f) {
@@ -106,10 +70,13 @@ float estimate_M6211_time_for_centauri_carbon(const GCodeReader::GCodeLine& line
         remaining_flush_length -= segment_length;
         if (segment_length >= max_segment_length) {
             // Full segment: 3-phase extrusion (30+35+10=75mm) + retract
-            m6211_time += cc_flush_segment_time(75) + cool_time + wipe_after_flush_time;
+            m6211_time += extrusion_time(30.0f, main_feedrate) + extrusion_time(35.0f, main_feedrate) +
+                          extrusion_time(10.0f, tail_feedrate) + extrusion_time(2.0f, tail_feedrate) + cool_time +
+                          wipe_after_flush_time;
         } else {
             // Partial last segment: simple extrude at F500 + retract at F400
-            m6211_time += extrusion_time(segment_length, 500.0f) + extrusion_time(2.0f, 400.0f) + cool_time + wipe_after_flush_time;
+            m6211_time += extrusion_time(segment_length, main_feedrate) + extrusion_time(2.0f, tail_feedrate) + cool_time +
+                          wipe_after_flush_time;
         }
     }
 
@@ -153,18 +120,20 @@ float estimate_M6211_time_for_centauri_carbon_2(const GCodeReader::GCodeLine& li
     return m6211_time;
 }
 
-float estimate_M6211_time(const GCodeReader::GCodeLine& line, std::string_view printer_model, float length,
-                          float new_extruder_temp, double current_x, double current_y)
+float estimate_M6211_time(const GCodeReader::GCodeLine& line, std::string_view printer_model, float length, float new_extruder_temp, double current_x, double current_y)
 {
-    if (printer_model == "Elegoo Centauri Carbon" || printer_model == "Elegoo Centauri")
+    if (equals_case_insensitive(printer_model, "Elegoo Centauri Carbon") || equals_case_insensitive(printer_model, "Elegoo Centauri")) {
         return estimate_M6211_time_for_centauri_carbon(line, length, current_x, current_y);
-
-    return estimate_M6211_time_for_centauri_carbon_2(line, length, new_extruder_temp);
+    } else if (equals_case_insensitive(printer_model, "Elegoo Centauri Carbon 2") ||
+               equals_case_insensitive(printer_model, "Elegoo Centauri 2")) {
+        return estimate_M6211_time_for_centauri_carbon_2(line, length, new_extruder_temp);
+    }
+    return 0.0f;
 }
 
 } // namespace
 
-void GCodeProcessor::process_M6211(const GCodeReader::GCodeLine& line)
+void GCodeProcessor::process_elegoo_M6211(const GCodeReader::GCodeLine& line)
 {
     float length = 0.0f;
     if (!line.has_value('L', length) || length <= 0.0f)

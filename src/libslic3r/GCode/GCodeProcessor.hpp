@@ -1087,6 +1087,7 @@ class Print;
 
         //Used for Elegoo printer to change tool head
         void process_M6211(const GCodeReader::GCodeLine& line);
+        void process_elegoo_M6211(const GCodeReader::GCodeLine& line);
 
         void process_SYNC(const GCodeReader::GCodeLine& line);
 

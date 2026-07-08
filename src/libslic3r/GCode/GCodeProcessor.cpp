@@ -1864,6 +1864,12 @@ void GCodeProcessor::register_commands()
     }
 }
 
+void GCodeProcessor::process_M6211(const GCodeReader::GCodeLine& line)
+{
+    if (boost::algorithm::istarts_with(m_printer_model, "elegoo"))
+        process_elegoo_M6211(line);
+}
+
 bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                         extruder_size,
                                                       const Pointfs                     plate_printable_area,
                                                       const double                      plate_printable_height,
