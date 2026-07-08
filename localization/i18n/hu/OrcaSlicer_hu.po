@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-03 14:43+0200\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -324,6 +324,7 @@ msgstr "Gizmo-Forgatás"
 msgid "Optimize orientation"
 msgstr "Orientáció optimalizálása"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Átméretezés"
 
@@ -333,8 +334,9 @@ msgstr "Gizmo-Átméretezés"
 msgid "Error: Please close all toolbar menus first"
 msgstr "Hiba: Kérlek, először zárd be az összes eszköztár menüt"
 
+msgctxt "inches"
 msgid "in"
-msgstr "in"
+msgstr ""
 
 msgid "mm"
 msgstr "mm"
@@ -367,6 +369,9 @@ msgstr "Méretarányok"
 msgid "Object operations"
 msgstr "Objektum műveletek"
 
+msgid "Scale"
+msgstr "Átméretezés"
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
 msgstr "Térfogat műveletek"
@@ -394,26 +399,33 @@ msgstr "Pozíció visszaállítása"
 msgid "Reset rotation"
 msgstr "Forgatás visszaállítása"
 
-msgid "Object coordinates"
-msgstr "Objektum koordináták"
+msgid "World"
+msgstr ""
 
-msgid "World coordinates"
-msgstr "Világkoordináták"
+msgid "Object"
+msgstr "Objektum"
 
-msgid "Translate(Relative)"
-msgstr "Eltolás (relatív)"
+msgid "Part"
+msgstr "Tárgy"
+
+msgid "Relative"
+msgstr ""
+
+msgid "Coordinate system used for transform actions."
+msgstr ""
+
+msgid "Absolute"
+msgstr ""
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "Az aktuális forgatás visszaállítása a forgatás eszköz megnyitásakor érvényes értékre."
 
-msgid "Rotate (absolute)"
-msgstr "Forgatás (abszolút)"
-
 msgid "Reset current rotation to real zeros."
 msgstr "Az aktuális forgatás visszaállítása valódi nullára."
 
-msgid "Part coordinates"
-msgstr "Alkatrész koordináták"
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Átméretezés"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -517,12 +529,6 @@ msgstr "Rés"
 
 msgid "Spacing"
 msgstr "Térköz"
-
-msgid "Part"
-msgstr "Tárgy"
-
-msgid "Object"
-msgstr "Objektum"
 
 msgid ""
 "Click to flip the cut plane\n"
@@ -1867,28 +1873,41 @@ msgstr "Projekt megnyitása"
 msgid "The version of Orca Slicer is too low and needs to be updated to the latest version before it can be used normally."
 msgstr "A Orca Slicer ezen verziója túl régi és a legfrissebb verzióra kell frissíteni, mielőtt rendesen használható lenne"
 
+msgid "Cloud sync conflict:"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Cloud sync conflict for preset \"%s\":"
+msgstr ""
+
 msgid ""
-"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+"This preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"A preset with this name already exists in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+"A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+"There was an unexpected or unidentified preset conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
+"Do you want to continue?"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\n"
 "Do you want to continue?"
 msgstr ""
 
@@ -1971,8 +1990,9 @@ msgstr "A felhőben tárolt felhasználói beállítások száma elérte a limit
 msgid "Sync user presets"
 msgstr "Felhasználói beállítások szinkronizálása"
 
-msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
-msgstr "Az beállítás tartalom túl nagy a cloud-al való szinkronizáláshoz (több mint 1 MB). Csökkentsd a beállítás méretet az egyéni konfigurációk eltávolításával, vagy használd csak helyileg."
+#, c-format, boost-format
+msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%s updated from %s to %s"
@@ -2191,6 +2211,9 @@ msgid "Orca Cube"
 msgstr "Orca kocka"
 
 msgid "OrcaSliced Combo"
+msgstr ""
+
+msgid "Orca Badge"
 msgstr ""
 
 msgid "Orca Tolerance Test"
@@ -3630,7 +3653,7 @@ msgstr "A kalibrálás befejeződött. Kérlek, válaszd ki az alábbi képen l�
 msgid "Save"
 msgstr "Mentés"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Hátul"
 
@@ -5011,6 +5034,7 @@ msgstr "Szerszámváltások"
 msgid "Color change"
 msgstr "Színváltás"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Nyomtatás"
 
@@ -5174,11 +5198,15 @@ msgstr "Extrudáláskalibráció környékének elkerülése"
 msgid "Align to Y axis"
 msgstr "Igazítás az Y-tengelyhez"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Hátul"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Bal"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Jobb"
 
@@ -5257,6 +5285,9 @@ msgstr "Túlnyúlások"
 msgid "Outline"
 msgstr "Körvonal"
 
+msgid "Wireframe"
+msgstr ""
+
 msgid "Realistic View"
 msgstr ""
 
@@ -5300,7 +5331,7 @@ msgstr "Térfogat:"
 msgid "Size:"
 msgstr "Méret:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "G-kód útvonalütközés található a(z) %d. rétegen, Z = %.2lfmm. Helyezd távolabb egymástól az ütköző objektumokat (%s <-> %s)."
 
@@ -5502,6 +5533,10 @@ msgstr "Nyomtatótálca"
 
 msgid "Export G-code file"
 msgstr "G-kód fájl exportálása"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Nyomtatás"
 
 msgid "Export plate sliced file"
 msgstr "Szeletelt tálca exportálása"
@@ -8040,6 +8075,35 @@ msgstr "Beállítások megjelenítése STEP fájl importálásakor"
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "Ha engedélyezve van, STEP fájl importálásakor paraméterbeállítási párbeszédablak jelenik meg."
 
+msgid "STEP importing: linear deflection"
+msgstr ""
+
+msgid ""
+"Linear deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.003 mm."
+msgstr ""
+
+msgid "STEP importing: angle deflection"
+msgstr ""
+
+msgid ""
+"Angle deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.5."
+msgstr ""
+
+msgid "STEP importing: Split into multiple objects"
+msgstr ""
+
+msgid ""
+"If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: disabled."
+msgstr ""
+
 msgid "Quality level for Draco export"
 msgstr "Minőségi szint Draco exporthoz"
 
@@ -8054,6 +8118,12 @@ msgstr ""
 "A Draco formátumú hálótömörítéskor használt kvantálási bitmélységet szabályozza.\n"
 "0 = veszteségmentes tömörítés (a geometria teljes pontossággal megmarad). Az érvényes veszteséges értékek 8 és 30 között vannak.\n"
 "Az alacsonyabb értékek kisebb fájlokat eredményeznek, de több geometriai részlet vész el; a magasabb értékek több részletet őriznek meg nagyobb fájlméret árán."
+
+msgid "Store full source file paths in projects"
+msgstr ""
+
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr ""
 
 msgid "Preset"
 msgstr "Beállítás"
@@ -12415,6 +12485,18 @@ msgstr "Kis kerületek küszöbértéke"
 msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
 msgstr "A kis peremek hosszának küszöbértékét határozza meg. Az alapértelmezett érték 0 mm"
 
+msgid "Small support perimeters"
+msgstr ""
+
+msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
+msgstr ""
+
+msgid "Small support perimeters threshold"
+msgstr ""
+
+msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
+msgstr ""
+
 msgid "Walls printing order"
 msgstr "Falak nyomtatási sorrendje"
 
@@ -12603,25 +12685,26 @@ msgstr ""
 "2. Jegyezd fel az optimális PA értéket minden volumetrikus áramlási sebességhez és gyorsuláshoz. Az áramlási számot úgy találhatod meg, hogy a színséma legördülő menüben az áramlást választod, majd a vízszintes csúszkát a PA mintavonalak fölé mozgatod. A számnak az oldal alján kell megjelenjen. Az ideális PA értéknek csökkennie kell a volumetrikus áramlás növekedésével. Ha nem így van, ellenőrizd, hogy az extrudered megfelelően működik-e. Minél lassabban és kisebb gyorsulással nyomtatsz, annál nagyobb az elfogadható PA értékek tartománya. Ha nincs látható különbség, használd a gyorsabb tesztből származó PA értéket\n"
 "3. Add meg a PA értékek, az áramlás és a gyorsulás hármasait az itt található szövegmezőben, majd mentsd el a filamentprofilt."
 
-msgid "Enable adaptive pressure advance for overhangs (beta)"
-msgstr "Adaptív nyomáselőtolás engedélyezése túlnyúlásokhoz (béta)"
-
-msgid ""
-"Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+msgid "Enable adaptive pressure advance within features (beta)"
 msgstr ""
 
-msgid "Pressure advance for bridges"
-msgstr "Nyomáselőtolás hidakhoz"
+msgid ""
+"Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
+"\n"
+"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
+"\n"
+"This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
+msgstr ""
+
+msgid "Static pressure advance for bridges"
+msgstr ""
 
 msgid ""
-"Pressure advance value for bridges. Set to 0 to disable.\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+"equivalent walls (using adaptive settings if enabled).\n"
 "\n"
-"A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+"A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Nyomáselőtolási érték hidakhoz. A kikapcsoláshoz állítsd 0-ra.\n"
-"\n"
-"Hidak nyomtatásakor az alacsonyabb PA érték segít csökkenteni a hidak után közvetlenül jelentkező enyhe alulextrudálás megjelenését. Ezt az okozza, hogy a levegőbe nyomtatás során nyomásesés lép fel a fúvókában, amit az alacsonyabb PA részben ellensúlyoz."
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Alapértelmezett vonalszélesség, ha a többi vonalszélesség 0-ra van állítva. Ha százalékban van megadva, a fúvókaátmérő alapján lesz kiszámítva."
@@ -13003,6 +13086,22 @@ msgstr "Tömör kitöltés iránya"
 
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
 msgstr "A tömör kitöltési minta szöge, amely a vonalak kezdő- vagy fő irányát szabályozza."
+
+msgid "Top layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the top solid infill and ironing lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
+msgid "Bottom layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the bottom solid infill lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
 
 msgid "Sparse infill density"
 msgstr "Kitöltés sűrűsége"
@@ -14798,6 +14897,10 @@ msgstr "Igazított"
 msgid "Aligned back"
 msgstr "Hátulra igazítva"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Hátul"
+
 msgid "Random"
 msgstr "Véletlenszerû"
 
@@ -15856,6 +15959,14 @@ msgstr "Sokszögelt lyuk elforgatása"
 
 msgid "Rotate the polyhole every layer."
 msgstr "A sokszögelt lyuk forgatása rétegenként."
+
+msgid "Maximum Polyhole edge count"
+msgstr ""
+
+msgid ""
+"Maximum number of polyhole edges\n"
+"This setting limits the amount of edges a polyhole can have"
+msgstr ""
 
 msgid "G-code thumbnails"
 msgstr "G-kód miniatűrök"
@@ -19208,6 +19319,12 @@ msgstr "Háromszögfelületek száma"
 msgid "Calculating, please wait..."
 msgstr "Számítás folyamatban, kérlek várj..."
 
+msgid "Save these settings as default"
+msgstr ""
+
+msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
+msgstr ""
+
 msgid "PresetBundle"
 msgstr ""
 
@@ -19615,6 +19732,45 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor a tárgyasztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#~ msgid "Print"
+#~ msgstr "Nyomtatás"
+
+#~ msgid "in"
+#~ msgstr "in"
+
+#~ msgid "Object coordinates"
+#~ msgstr "Objektum koordináták"
+
+#~ msgid "World coordinates"
+#~ msgstr "Világkoordináták"
+
+#~ msgid "Translate(Relative)"
+#~ msgstr "Eltolás (relatív)"
+
+#~ msgid "Rotate (absolute)"
+#~ msgstr "Forgatás (abszolút)"
+
+#~ msgid "Part coordinates"
+#~ msgstr "Alkatrész koordináták"
+
+#~ msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+#~ msgstr "Az beállítás tartalom túl nagy a cloud-al való szinkronizáláshoz (több mint 1 MB). Csökkentsd a beállítás méretet az egyéni konfigurációk eltávolításával, vagy használd csak helyileg."
+
+#~ msgid "Enable adaptive pressure advance for overhangs (beta)"
+#~ msgstr "Adaptív nyomáselőtolás engedélyezése túlnyúlásokhoz (béta)"
+
+#~ msgid "Pressure advance for bridges"
+#~ msgstr "Nyomáselőtolás hidakhoz"
+
+#~ msgid ""
+#~ "Pressure advance value for bridges. Set to 0 to disable.\n"
+#~ "\n"
+#~ "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+#~ msgstr ""
+#~ "Nyomáselőtolási érték hidakhoz. A kikapcsoláshoz állítsd 0-ra.\n"
+#~ "\n"
+#~ "Hidak nyomtatásakor az alacsonyabb PA érték segít csökkenteni a hidak után közvetlenül jelentkező enyhe alulextrudálás megjelenését. Ezt az okozza, hogy a levegőbe nyomtatás során nyomásesés lép fel a fúvókában, amit az alacsonyabb PA részben ellensúlyoz."
 
 #~ msgid "Filament Sync Options"
 #~ msgstr "Filament szinkronizálási opciók"
