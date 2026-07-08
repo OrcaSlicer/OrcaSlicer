@@ -203,7 +203,7 @@ static t_config_enum_values s_keys_map_NoiseType {
     { "perlin",         int(NoiseType::Perlin) },
     { "billow",         int(NoiseType::Billow) },
     { "ridgedmulti",    int(NoiseType::RidgedMulti) },
-    { "voronoi",        int(NoiseType::Voronoi) }, 
+    { "voronoi",        int(NoiseType::Voronoi) },
     { "ripple",         int(NoiseType::Ripple) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(NoiseType)
@@ -3009,7 +3009,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("top_layer_direction", coFloat);
     def->label = L("Top layer direction");
     def->category = L("Strength");
-    def->tooltip = L("Optional absolute angle for top-layer infill and ironing base direction. Set to -1 to use the current solid infill direction behavior.");
+    def->tooltip = L("Fixed angle for the top solid infill and ironing lines.\nSet to -1 to follow the default solid infill direction.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = -1;
     def->max = 360;
@@ -3019,7 +3019,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bottom_layer_direction", coFloat);
     def->label = L("Bottom layer direction");
     def->category = L("Strength");
-    def->tooltip = L("Optional absolute angle for bottom-layer infill. Set to -1 to use the current solid infill direction behavior.");
+    def->tooltip = L("Fixed angle for the bottom solid infill lines.\nSet to -1 to follow the default solid infill direction.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = -1;
     def->max = 360;
@@ -7136,6 +7136,15 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Rotate the polyhole every layer.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("hole_to_polyhole_max_edges", coInt);
+    def->label = L("Maximum Polyhole edge count");
+    def->category = L("Quality");
+    def->tooltip = L("Maximum number of polyhole edges"
+            "\nThis setting limits the amount of edges a polyhole can have");
+    def->mode = comExpert;
+    def->min = 3;
+    def->set_default_value(new ConfigOptionInt(50));
 
     def = this->add("thumbnails", coString);
     def->label = L("G-code thumbnails");
