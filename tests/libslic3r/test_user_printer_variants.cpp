@@ -155,3 +155,26 @@ TEST_CASE("find_custom_preset_by_model_and_variant matches user variants and exc
     // preset with that model+variant exists.
     CHECK(bundle.printers.find_custom_preset_by_model_and_variant("Fixture Printer", "0.4") == nullptr);
 }
+
+TEST_CASE("rename_user_printer_model trims the new model name", "[Preset][Variants][12105]")
+{
+    TempPresetDir temp;
+    PresetBundle  bundle;
+    const auto   &def = bundle.printers.default_preset().config;
+    const fs::path sys = temp.path / "sys", usr = temp.path / "usr";
+
+    write_printer_preset(def, sys, "Fixture Printer 0.4 nozzle", "Fixture Printer", "0.4", 0.4);
+    write_printer_preset(def, usr, "Fixture Printer 0.4 nozzle - Copy", "Fixture Printer", "0.4", 0.4, "Fixture Printer 0.4 nozzle");
+    load_printers(bundle, sys, usr, {"Fixture Printer 0.4 nozzle"});
+    bundle.printers.migrate_user_models_for_variants("Copy"); // -> "Fixture Printer - Copy"
+
+    // A padded new name is trimmed before it is stamped (guards against padded printer_model / a
+    // doubled-space "<model>  X.X nozzle" variant name).
+    CHECK(bundle.printers.rename_user_printer_model("Fixture Printer - Copy", "  My Printer  ") == 1);
+    const Preset *u = bundle.printers.find_preset("Fixture Printer 0.4 nozzle - Copy", false);
+    REQUIRE(u != nullptr);
+    CHECK(u->config.opt_string("printer_model") == "My Printer");
+
+    // A whitespace-only new name is a no-op.
+    CHECK(bundle.printers.rename_user_printer_model("My Printer", "   ") == 0);
+}

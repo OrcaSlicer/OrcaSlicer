@@ -4319,8 +4319,14 @@ std::vector<std::string> PrinterPresetCollection::system_printer_models() const
     return std::vector<std::string>{models.begin(), models.end()};
 }
 
-int PrinterPresetCollection::rename_user_printer_model(const std::string &old_model, const std::string &new_model)
+int PrinterPresetCollection::rename_user_printer_model(const std::string &old_model, const std::string &new_model_raw)
 {
+    // ORCA #12105: trim the new model name so a padded name (from any caller) can't stamp a padded
+    // printer_model or derive a doubled-space "<model>  X.X nozzle" variant name. Mirrors the trim in
+    // Tab::save_preset; the Rename dialog also trims for its OK-enabled state.
+    const auto first = new_model_raw.find_first_not_of(" \t");
+    const auto last  = new_model_raw.find_last_not_of(" \t");
+    const std::string new_model = (first == std::string::npos) ? std::string() : new_model_raw.substr(first, last - first + 1);
     if (old_model.empty() || new_model.empty() || old_model == new_model)
         return 0;
     int renamed = 0;
