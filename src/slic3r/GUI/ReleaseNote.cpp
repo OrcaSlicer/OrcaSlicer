@@ -261,7 +261,6 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
     });
 
     m_simplebook_release_note = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSIMPLE_BORDER);
-    //m_simplebook_release_note->SetSize(wxSize(FromDIP(560), FromDIP(430)));
     m_simplebook_release_note->SetMinSize(FromDIP(wxSize(640,420)));
     m_simplebook_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
 
@@ -272,9 +271,6 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
     //webview
     m_vebview_release_note = CreateTipView(m_simplebook_release_note);
     m_vebview_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
-    //m_vebview_release_note->SetSize(wxSize(FromDIP(560), FromDIP(430)));
-    //m_vebview_release_note->SetMinSize(wxSize(FromDIP(560), FromDIP(430)));
-    //m_vebview_release_note->SetMaxSize(wxSize(FromDIP(560), FromDIP(430)));
     if (wxGetApp().app_config->get_bool("developer_mode"))
         m_vebview_release_note->EnableAccessToDevTools();
 
@@ -479,8 +475,6 @@ void UpdateVersionDialog::update_version_info(wxString release_note, wxString ve
     //     m_simplebook_release_note->SetSelection(1);
     //     m_vebview_release_note->LoadURL(from_u8(url_line));
     // }
-    // else {
-    //m_simplebook_release_note->SetMaxSize(wxSize(FromDIP(560), FromDIP(430)));
     m_simplebook_release_note->SetSelection(1);
     if (is_running_in_msix())
         m_text_up_info->SetLabel(wxString::Format(_L("New version available: %s. Please update OrcaSlicer from the Microsoft Store."), version));

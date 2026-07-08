@@ -446,7 +446,7 @@ struct PresetOrigin {
 // Prepend the bundle folder to `preset_bare_name` based on `origin`. No-op for non-bundle origins.
 std::string get_preset_canonical_name(const std::string &preset_bare_name, const PresetOrigin &origin);
 
-// Tail segment of a canonical name — what's written to the bundle's .json filename and JSON "name" field.
+// Tail segment of a canonical name - written to the bundle's .json filename and JSON "name" field.
 std::string get_preset_bare_name(const std::string &canonical_name);
 
 // Resolve an origin from a directory path when the caller passes Kind::Auto.
@@ -862,7 +862,7 @@ private:
     // The "-- default -- " preset is always the first, so it needs
     // to be handled differently.
     // If a preset does not exist, an iterator is returned indicating where to insert a preset with the same name.
-    // `name` must already be canonical — callers canonicalize via find_preset / canonical_preset_name.
+    // `name` must already be canonical  -  callers canonicalize via find_preset / canonical_preset_name.
     std::deque<Preset>::iterator find_preset_internal(const std::string &name, bool from_orca_lib_only = false)
     {
         auto it = Slic3r::lower_bound_by_predicate(m_presets.begin() + m_num_default_presets, m_presets.end(),

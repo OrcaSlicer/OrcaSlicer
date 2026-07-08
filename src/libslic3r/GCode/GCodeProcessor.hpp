@@ -320,7 +320,6 @@ class Print;
             nozzle_change_sequence = other.nozzle_change_sequence;
             optimal_assignment = other.optimal_assignment;
             filament_change_count_map = other.filament_change_count_map;
-            filament_change_sequence = other.filament_change_sequence;
             initial_layer_time = other.initial_layer_time;
             conflict_result = other.conflict_result;
             nozzle_group_result = other.nozzle_group_result;
@@ -446,7 +445,7 @@ class Print;
             PA_Change,
             Print_Time_Sec_Placeholder,
             Used_Filament_Length_Placeholder,
-            // H2C FIX: NozzleChangeStart / NozzleChangeEnd tags — required for dual-nozzle
+            // H2C FIX: NozzleChangeStart / NozzleChangeEnd tags  -  required for dual-nozzle
             // (Vortek / H2C) printers. Without these tags the GCodeProcessor cannot distinguish
             // a nozzle switch from a regular filament change, causing the firmware to perform
             // a full flush instead of a quick nozzle swap.
@@ -743,7 +742,7 @@ class Print;
                 PreHeating,
             };
 
-            // Map from gcode line id → list of (content, type) pairs to inject at that line.
+            // Map from gcode line id  list of (content, type) pairs to inject at that line.
             using InsertedLinesMap = std::map<unsigned int, std::vector<std::pair<std::string, InsertLineType>>>;
 
             struct Planner
@@ -991,7 +990,6 @@ class Print;
         unsigned int m_layer_id;
         CpColor m_cp_color;
         SeamsDetector m_seams_detector;
-        //  H2C TODO - moved
         GCodeProcessorResult m_result;
         OptionsZCorrector m_options_z_corrector;
         size_t m_last_default_color_id;
@@ -1017,12 +1015,6 @@ class Print;
             ideaMaker,
             KissSlicer
         };
-        // const std::vector<int>& filament_nozzle_temps_initial_layer_;
-        // const std::vector<int>& extruder_max_nozzle_count_;
-        // const std::vector<double>& filament_cooling_before_tower_;
-        //                filament_nozzle_temps_initial_layer(filament_nozzle_temps_initial_layer_),
-        // extruder_max_nozzle_count(extruder_max_nozzle_count_),
-        //         filament_cooling_before_tower(filament_cooling_before_tower_),
         static const std::vector<std::pair<GCodeProcessor::EProducer, std::string>> Producers;
         EProducer m_producer;
 
@@ -1114,7 +1106,7 @@ class Print;
         std::vector<int> m_extruder_max_nozzle_count;
         std::vector<double> m_filament_cooling_before_tower;
 
-        // H2C PreCooling config members — read from PrintConfig in apply_config()
+        // H2C PreCooling config members  -  read from PrintConfig in apply_config()
         bool m_enable_pre_heating{ false };
         std::vector<double> m_cooling_rate;
         std::vector<double> m_heating_rate;
@@ -1126,8 +1118,6 @@ class Print;
         std::vector<double> m_nozzle_diameter;
         bool m_has_filament_switcher{ false };
         float m_inject_time_threshold{ 30.f };
-
-        float get_hotend_change_time();
 
         // Move
         void process_G0(const GCodeReader::GCodeLine& line);
@@ -1295,7 +1285,7 @@ class Print;
         float minimum_feedrate(PrintEstimatedStatistics::ETimeMode mode, float feedrate) const;
         float minimum_travel_feedrate(PrintEstimatedStatistics::ETimeMode mode, float feedrate) const;
         // Machine limit arrays are indexed by time mode only: [0]=Normal, [1]=Stealth.
-        // Do NOT add an extruder_id parameter — OrcaSlicer does not use BambuStudio's
+        // Do NOT add an extruder_id parameter  -  OrcaSlicer does not use BambuStudio's
         // per-nozzle machine limits (filament_map_2 / get_config_idx_for_filament).
         float get_axis_max_feedrate(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         float get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;

@@ -1012,7 +1012,7 @@ bool SelectMachineDialog::use_dynamic_nozzle_map() const
 {
     // Stub: BBL gates this on enable_filament_dynamic_map config +
     // is_support_dynamic_nozzle_map() on the slicing result. Neither is
-    // ported in Orca yet — return false so the rack picker still shows
+    // ported in Orca yet - return false so the rack picker still shows
     // for H2C (gated separately on GetNozzleRack()->IsSupported()) but
     // the dynamic-map fast path stays off.
     return false;

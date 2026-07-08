@@ -753,16 +753,8 @@ std::string CoolingBuffer::apply_layer_cooldown(
         const bool has_initial_layer_override = initial_layer_fan_speed >= 0 && close_fan_the_first_x_layers <= 0;
         supp_interface_fan_speed = EXTRUDER_CONFIG(support_material_interface_fan_speed);
 
-        // ORCA: previously a silent override forced `close_fan_the_first_x_layers` from 0 up to 1 whenever a ramp
-        // was configured (`full_fan_speed_layer > 0`), so the first printed layer always had the fan disabled.
-        // That hid the user's literal "no cooling for the first 0 layers" setting and produced a non-zero starting
-        // factor on the ramp denominator. The override has been removed: with N=0 and M>0 the ramp now genuinely
-        // starts on layer 0 at a factor of 1/M and reaches 100% at layer M-1, matching the intent of the option.
-        //
-        // ORCA: First-layer hard override (`initial_layer_fan_speed`). When the user has set this option to a
-        // value >= 0, layer 0 emits exactly that percentage so the entire first layer
-        // is at one stable fan speed. The override wins over the `close_fan_the_first_x_layers` gate when
-        // layer_id == 0. From layer 1 onwards the regular logic resumes. 
+        // ORCA: first-layer hard override: emit initial_layer_fan_speed on layer 0 when set;
+        // from layer 1 onwards regular logic resumes.
         if (has_initial_layer_override && layer_id == 0) {
             fan_speed_new             = initial_layer_fan_speed;
             overhang_fan_speed        = initial_layer_fan_speed;

@@ -342,7 +342,6 @@ std::string GCodeWriter::set_jerk_xy(double jerk)
         
         gcode << "M205 X" << jerk_x << " Y" << jerk_y;
     }
-    //the is_bbl check should be in the else statement above so that it doesn't inadverently added Z & E to klipper  
     if (m_is_bbl_printers)
         gcode << std::setprecision(2) << " Z" << EXTRUDER_LIMIT(m_max_jerk_z) << " E" << EXTRUDER_LIMIT(m_max_jerk_e);
 
@@ -1034,7 +1033,7 @@ std::string GCodeWriter::extrude_to_xyz(const Vec3d &point, double dE, const std
 {
     // Check if Z actually changes (at export precision) before emitting it.
     // ZAA sloped extrusions call this for every segment, but many consecutive
-    // segments share the same quantized Z — emitting it every time is redundant.
+    // segments share the same quantized Z - emitting it every time is redundant.
     bool z_changed = (GCodeG1Formatter::quantize_xyzf(point(2)) != GCodeG1Formatter::quantize_xyzf(m_pos(2)));
 
     m_pos = point;

@@ -3,9 +3,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <iostream>
-
-#include <boost/log/trivial.hpp>
 
 namespace Vortek {
 
@@ -17,7 +14,7 @@ std::string NozzleState::normalize_color(const std::string& hex)
     if (!s.empty() && s[0] == '#')
         s = s.substr(1);
 
-    // Strip alpha channel: if 8 hex chars → take first 6 (RRGGBB from RRGGBBAA)
+    // Strip alpha channel: if 8 hex chars  take first 6 (RRGGBB from RRGGBBAA)
     if (s.size() == 8)
         s = s.substr(0, 6);
 

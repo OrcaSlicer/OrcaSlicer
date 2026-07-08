@@ -399,8 +399,6 @@ bool C3DPrinterOS::upload(
         return false;
     }
     
-    // Show "Confirm cloud printer type and project for 3DPrinterOS upload
-    
     UploadOptionsDialog dlg(GUI::wxGetApp().GetTopWindow(), cloud_projects_list, cloud_printer_types_list, m_preset_name);
 
     if (dlg.ShowModal() != wxID_OK) {

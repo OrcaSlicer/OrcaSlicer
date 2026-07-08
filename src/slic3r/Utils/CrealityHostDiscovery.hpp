@@ -19,21 +19,10 @@ struct CrealityHost
 };
 
 // Synchronous LAN discovery for Creality K-series printers via DNS-SD mDNS.
-//
-// Sends a meta-discovery query (_services._dns-sd._udp.local.) and listens
-// for ~5 seconds for service announcements whose type-name contains the
-// "Creality" / "creality" substring. K-series firmware announces each
-// printer under a per-device-unique type _Creality-<MAC-derived-hex>._udp.local,
-// so a fixed-name query does not work -- the meta-discovery is the only
-// reliable way to find them.
-//
-// When probe_info is true, each discovered host is followed up with an HTTP
-// GET http://<ip>/info call to fetch the printer's model code (F008/F012/F021)
-// and MAC. The probe step adds ~2-4 seconds per host but yields enriched
-// results that let the UI display "K2" / "K2 Plus" / "K2 Pro" instead of
-// just an IP.
-//
-// Call from a background thread -- the function blocks for at least 5 seconds.
+// Uses meta-discovery (_services._dns-sd._udp.local.) since firmware uses per-device
+// type names (_Creality-<MAC>._udp.local). When probe_info is true, fetches /info
+// per host for model code (F008/F012/F021) and MAC (+2-4s per host).
+// Call from a background thread - blocks at least 5 seconds.
 class CrealityHostDiscovery
 {
 public:

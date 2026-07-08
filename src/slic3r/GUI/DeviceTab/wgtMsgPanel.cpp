@@ -32,12 +32,6 @@ void wgtMsgPanelItem::CreateGui()
 
     wxBoxSizer* main_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    // Color bar on the left
-    //wxPanel* color_bar = new wxPanel(this, wxID_ANY);
-    //color_bar->SetMinSize(wxSize(FromDIP(4), -1));
-    //color_bar->SetBackgroundColour(m_colour);
-    //main_sizer->Add(color_bar, 0, wxEXPAND | wxRIGHT, FromDIP(4));
-
     // Text and optional wiki link
     wxBoxSizer* text_sizer = new wxBoxSizer(wxHORIZONTAL);
 

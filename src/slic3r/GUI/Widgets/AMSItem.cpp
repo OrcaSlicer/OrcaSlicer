@@ -610,9 +610,6 @@ AMSextruderImage::AMSextruderImage(wxWindow *parent, wxWindowID id, string file_
 AMSextruderImage::~AMSextruderImage() {}
 
 
-/*************************************************
-Description:SwitcherImage (FTS icon)
-**************************************************/
 void SwitcherImage::paintEvent(wxPaintEvent &evt)
 {
     wxPaintDC dc(this);

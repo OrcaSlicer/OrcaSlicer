@@ -15,7 +15,6 @@
 #include <slic3r/GUI/Widgets/WebView.hpp>
 #include <miniz.h>
 #include <OrcaCloudServiceAgent.hpp>
-#include <wx/event.h>
 #include <wx/utils.h>
 namespace Slic3r { namespace GUI {
 
@@ -58,7 +57,6 @@ void PresetBundleDialog::OnFSWatch(wxFileSystemWatcherEvent& e)
     GUI::wxGetApp().preset_bundle->load_presets(*app_config, ForwardCompatibilitySubstitutionRule::EnableSilentDisableSystem);
     wxGetApp().mainframe->update_side_preset_ui();
 
-    // ListBundles();
     m_update_bundles.store(true);
     e.Skip();
 }
@@ -258,10 +256,6 @@ bool PresetBundleDialog::DeleteBundleById(const wxString& id)
 
     const BundleType bundle_type = it->second.bundle_type;
     wxGetApp().preset_bundle->bundles.ReadUnlock();
-
-    if (bundle_type == BundleType::Subscribed) {
-        // do unsubscribe before deleting locally
-    }
 
     wxGetApp().preset_bundle->bundles.WriteLock();
     b->bundles.m_bundles.erase(it);

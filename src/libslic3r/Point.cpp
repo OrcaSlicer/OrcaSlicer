@@ -259,7 +259,6 @@ int cross(const Vec2crd &v1, const Vec2crd &v2)
 
 }
 
-// Point3 utility functions for ZAA (Z Anti-Aliasing)
 Polyline to_polyline(const Points &points) { return Polyline(points); }
 Polyline3 to_polyline(const Points3 &points) { return Polyline3(points); }
 
@@ -323,7 +322,6 @@ Point3 Point3::projection_onto(const MultiPoint3 &poly) const {
     // TODO: Implement proper 3D projection when MultiPoint3 conversion methods are ready
     // For now, stub implementation
     throw RuntimeError("Point3::projection_onto(MultiPoint3) not implemented yet");
-    return *this;
 }
 
 Point3 Point3::projection_onto(const Line3 &line) const {

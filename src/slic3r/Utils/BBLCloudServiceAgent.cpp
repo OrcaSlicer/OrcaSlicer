@@ -835,9 +835,6 @@ int BBLCloudServiceAgent::get_model_mall_rating_result(int job_id, std::string& 
 
 int BBLCloudServiceAgent::set_extra_http_header()
 {
-    // Orca: not sure if this required to login into bbl cloud
-    // Slic3r::Http::set_extra_headers(extra_headers);
-
     auto& plugin = BBLNetworkPlugin::instance();
     auto  agent  = plugin.get_agent();
 

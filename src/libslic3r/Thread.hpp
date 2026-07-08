@@ -46,22 +46,8 @@ void name_tbb_thread_pool_threads_set_locale();
 template<class Fn>
 inline boost::thread create_thread(boost::thread::attributes &attrs, Fn &&fn)
 {
-    // Stack size for our worker threads. Originally duplicated TBB's pool
-    // default (4 MB), but the Emboss text-cut path calls into CGAL's
-    // Polygon_mesh_processing::corefine, which falls back from filtered
-    // interval arithmetic to exact rational arithmetic (mpq_class) on
-    // near-degenerate input, and the constrained 2D triangulation walker
-    // (Triangulation_2::march_locate_2D) can recurse deeply enough to
-    // exceed 4 MB on real models -- producing a SIGBUS at the next thread's
-    // stack guard page on macOS / Linux.
-    //
-    // 16 MB chosen as 4x defensive headroom over the observed crash
-    // threshold (n=1 reproducer at exactly 4 MB on macOS arm64). All three
-    // platforms defer-commit reserved stack pages: macOS / Linux mmap the
-    // stack and only fault in pages on touch; Boost.Thread on Win32 passes
-    // STACK_SIZE_PARAM_IS_A_RESERVATION to _beginthreadex, so the value is
-    // a reserve, not the initial commit. Resident memory therefore stays
-    // proportional to actual stack depth on every target.
+    // 16 MB stack: the CGAL Emboss text-cut path recurses deeply enough to
+    // overflow the TBB default (4 MB) on real models, producing a SIGBUS on macOS/Linux.
     attrs.set_stack_size(16 * 1024 * 1024);
     return boost::thread{attrs, std::forward<Fn>(fn)};
 }

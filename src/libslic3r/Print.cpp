@@ -1981,7 +1981,7 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 //    }
                 // }
             };
-            check_extruder(0); // TODO: check used extruder variants
+            check_extruder(0);
 
             // check wall sequence and precise outer wall
             if (m_default_region_config.precise_outer_wall && m_default_region_config.wall_sequence != WallSequence::InnerOuter)
@@ -3642,7 +3642,7 @@ void Print::_make_wipe_tower()
         }
 
         // H2C BBL: Use NozzleStatusRecorder to track virtual nozzle states
-        // instead of flat filament_maps[] — matches BBL Print.cpp:3329-3390
+        // instead of flat filament_maps[] - matches BBL Print.cpp:3329-3390
         auto group_result = this->get_layered_nozzle_group_result();
         MultiNozzleUtils::NozzleStatusRecorder nozzle_recorder;
 
@@ -3680,7 +3680,7 @@ void Print::_make_wipe_tower()
                 }
 
                 // H2C: detect if the target nozzle already holds the correct filament.
-                // When true, no ramming or nozzle-change is needed — only a minimal
+                // When true, no ramming or nozzle-change is needed - only a minimal
                 // toolchange entry (zero depth) should be generated. We pass this flag
                 // to plan_toolchange instead of skipping it entirely, because
                 // WipeTowerIntegration expects a 1:1 mapping between plan entries
@@ -3726,7 +3726,7 @@ void Print::_make_wipe_tower()
 
                 // H2C: nozzle_already_loaded is passed directly to plan_toolchange which
                 // already skips ramming/nozzle_change when true (line 1773 in WipeTower.cpp).
-                // wipe_volume_ec/nc must NOT be zeroed — the tower still needs the infill
+                // wipe_volume_ec/nc must NOT be zeroed - the tower still needs the infill
                 // depth for structural validity. volume_to_purge is zero when same filament.
 
                 wipe_tower.plan_toolchange((float)layer_tools.print_z, (float)layer_tools.wipe_tower_layer_height, old_filament_id, filament_id,

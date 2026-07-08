@@ -205,8 +205,6 @@ namespace Slic3r
         std::vector<int> fil_nozzle_match;  // filament_id -> nozzle_id mapping
     };
 
-    std::vector<FilamentPlanRes> plan_filament_nozzle_mapping_and_order(const FilamentGroupContext& ctx);
-
     class KMediods2
     {
         using MemoryedGroupHeap = FilamentGroupUtils::MemoryedGroupHeap;
@@ -301,7 +299,7 @@ namespace Slic3r
     protected:
         MemoryedGroupHeap memoryed_groups;
         std::shared_ptr<FlushDistanceEvaluator>m_evaluator;
-        std::unordered_map<int, std::vector<int>> m_unplaceable_limits; // 材料不允许分配到特定喷嘴
+        std::unordered_map<int, std::vector<int>> m_unplaceable_limits; // filament-to-nozzle placement restrictions
         std::unordered_map<int, std::vector<int>> m_placeable_limits; // 材料必须分配到特定喷嘴
         std::vector<int>m_max_cluster_size; // 每个喷嘴能够分配的最大耗材数量
         std::vector<int>m_cluster_labels;  // 分配结果，细化到喷嘴id

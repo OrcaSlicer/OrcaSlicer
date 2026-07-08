@@ -95,7 +95,6 @@ FilamentPickerDialog::FilamentPickerDialog(wxWindow *parent, const wxString& fil
     // "More colours" button (always present)
     CreateMoreInfoButton();
     main_sizer->Add(m_more_btn, 0, wxEXPAND | wxTOP, FromDIP(8));
-    //main_sizer->AddSpacer(FromDIP(8));
 
     // OK / Cancel buttons
     auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});

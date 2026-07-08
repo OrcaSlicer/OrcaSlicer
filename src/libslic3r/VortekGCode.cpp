@@ -119,7 +119,6 @@ void GCode::init(
     gcode.placeholder_parser().set("nozzle_diameter_at_nozzle_id",
         new Slic3r::ConfigOptionFloats(get_nozzle_diameters_by_nozzle_id(group_result.get())));
 
-    // Register hardware-specific retraction distance configurations
     gcode.placeholder_parser().set("retraction_distance_when_cut", gcode.m_config.retraction_distances_when_cut.get_at(initial_extruder_id));
     gcode.placeholder_parser().set("long_retraction_when_cut", gcode.m_config.long_retractions_when_cut.get_at(initial_extruder_id));
     gcode.placeholder_parser().set("retraction_distance_when_ec", gcode.m_config.retraction_distances_when_ec.get_at(initial_extruder_id));
@@ -195,7 +194,7 @@ int GCode::get_original_filament_index(const Slic3r::GCode& gcode, int filament_
     );
 
     if (idx >= 0 && has_self_index) {
-        // filament_self_index present → idx is the real absolute index in ori_full_print_config.
+        // filament_self_index present  idx is the real absolute index in ori_full_print_config.
         return idx;
     }
 
@@ -367,7 +366,6 @@ std::vector<int> GCode::remap_nozzle_ints_by_filament_vortek(const Slic3r::GCode
                 dst[i] = opt->get_at(extruder_id);
             }
         }
-    } else {
     }
     return dst;
 }
@@ -401,7 +399,7 @@ void GCode::update_placeholder_parser_with_variant_params(Slic3r::GCode& gcode)
     // physical extruder + nozzle variant), NOT a per-filament-slot option.
     // ori_full_print_config has 4 entries (2 nozzles × 2 variants) for H2C, but
     // get_original_filament_index() returns filament-variant indices (up to 2*N_slots-1)
-    // which are out-of-bounds → silently zero. Fix: map via physical extruder id.
+    // which are out-of-bounds  silently zero. Fix: map via physical extruder id.
     {
         auto group_result_r = gcode.m_print ? gcode.m_print->get_layered_nozzle_group_result() : nullptr;
         std::vector<double> retract_when_cut(num_filaments, 0.0);
@@ -500,7 +498,7 @@ void GCode::patch_toolchange_dyn_config(
     // so the full array already set by update_placeholder_parser_with_variant_params
     // is correct.  No patching needed here.
 
-    // --- Filament feedrate (volumetric speed → mm/min) ----------------------
+    // --- Filament feedrate (volumetric speed  mm/min) ----------------------
     // m_config.filament_max_volumetric_speed is compressed; re-read full array.
     if (filament_area > 0.f) {
         auto max_v = remap_floats_by_filament_vortek(gcode, "filament_max_volumetric_speed", nf);
@@ -550,10 +548,10 @@ void GCode::patch_toolchange_dyn_config(
     // flush_temperatures array into dyn_config from m_config.filament_flush_temp.
     // The template indexes it as flush_temperatures[current_extruder] where
     // current_extruder is the logical filament slot (0-6), so get_at() clamps
-    // to the last element → always returns the slot-1 value (e.g. 270 for ASA).
+    // to the last element  always returns the slot-1 value (e.g. 270 for ASA).
     //
     // BBL computes flush_temperatures as max(filament_flush_temp, nozzle_temperature_range_high):
-    //   ASA: flush_temp=270, range_high=280 → 280.
+    //   ASA: flush_temp=270, range_high=280  280.
     //
     // Fix: overwrite dyn_config["flush_temperatures"] with the correctly remapped
     // nf-element array using the same max() logic.

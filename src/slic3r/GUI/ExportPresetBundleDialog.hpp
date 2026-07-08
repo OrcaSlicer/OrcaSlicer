@@ -77,7 +77,7 @@ protected:
     std::unordered_map<std::string, std::vector<const Preset*>>
         m_filament_presets; // first: printer name, second: filament presets have same printer name
     std::unordered_map<std::string, std::vector<const Preset*>>
-        m_process_presets; // first: printer name, second: filament presets have same printer name
+        m_process_presets; // first: printer name, second: process presets have same printer name
     std::unordered_map<std::string, std::vector<std::pair<std::string, Preset*>>>
         m_filament_name_to_presets; // first: filament name, second presets have same filament name and printer name in vector
 };

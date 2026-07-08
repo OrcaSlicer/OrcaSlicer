@@ -2161,14 +2161,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
                     //BBS: add module name
                     else if (metadata.key == "module")
                         model_object->module_name = metadata.value;
-                    // H2C: skip variant-aware CSV values — handled in second pass.
+                    // H2C: skip variant-aware CSV values - handled in second pass.
                     else if (VariantOverrides::is_variant_csv(metadata.key, metadata.value))
                         continue;
                     else
                         model_object->config.set_deserialize(metadata.key, metadata.value, config_substitutions);
                 }
 
-                // H2C: Second pass — parse variant CSV and store in VO.
+                // H2C: Second pass - parse variant CSV and store in VO.
                 {
                     auto& dpc = const_cast<DynamicPrintConfig&>(model_object->config.get());
                     for (const Metadata& md : obj_metadata->second.metadata)
@@ -4737,10 +4737,8 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result, const DynamicP
         return true;
     }
 
-    // H2C Vortek: End processing <nozzle> tag. No action required.
     bool _BBS_3MF_Importer::_handle_end_config_nozzle()
     {
-        // do nothing
         return true;
     }
 

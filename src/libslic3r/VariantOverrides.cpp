@@ -9,9 +9,7 @@
 
 namespace Slic3r {
 
-// ────────────────────────────────────────────────────────────────
 // Canonical key sets
-// ────────────────────────────────────────────────────────────────
 std::set<std::string> print_options_with_variant = {
     // --- Speeds ---
     "initial_layer_speed",
@@ -68,9 +66,7 @@ std::set<std::string> print_options_with_variant = {
     "print_extruder_variant"
 };
 
-// ────────────────────────────────────────────────────────────────
-// VariantOverrides — accessors
-// ────────────────────────────────────────────────────────────────
+// VariantOverrides - accessors
 bool VariantOverrides::has(const std::string& key) const { return floats.count(key) > 0; }
 bool VariantOverrides::empty() const { return floats.empty(); }
 void VariantOverrides::clear() { floats.clear(); strings.clear(); }
@@ -107,12 +103,10 @@ void VariantOverrides::set_string(const std::string& key, int index, const std::
 }
 
 void VariantOverrides::copy_key_from(const std::string& key, const VariantOverrides& source) {
-    // Copy float array for this key (or erase if source doesn't have it)
     if (const auto it = source.floats.find(key); it != source.floats.end())
         floats[key] = it->second;
     else
         floats.erase(key);
-    // Copy string array for this key
     if (const auto it = source.strings.find(key); it != source.strings.end())
         strings[key] = it->second;
     else
@@ -139,7 +133,6 @@ void VariantOverrides::erase_variant(const std::string& key, int variant_idx) {
         if (all_nan) {
             erase_key(key);
         }
-    } else {
     }
 }
 
@@ -151,13 +144,11 @@ bool VariantOverrides::has_variant(const std::string& key, int variant_idx) cons
     return !std::isnan(fit->second[variant_idx]);
 }
 
-// ────────────────────────────────────────────────────────────────
-// Left/Right → physical extruder ID  (data-driven from preset)
-// ────────────────────────────────────────────────────────────────
+// Left/Right - physical extruder ID (data-driven from preset)
 // Reads physical_extruder_map from printer preset config.
 // H2C preset: physical_extruder_map = [1, 0]
-//   → left  = map[0] = 1 (DEPUTY)
-//   → right = map[1] = 0 (MAIN)
+//    left  = map[0] = 1 (DEPUTY)
+//    right = map[1] = 0 (MAIN)
 int VariantOverrides::left_extruder_idx(const ConfigBase& config)
 {
     auto* map = config.option<ConfigOptionInts>("physical_extruder_map");
@@ -187,16 +178,14 @@ bool VariantOverrides::is_multi_variant(const DynamicPrintConfig& config) {
     return false;
 }
 
-// ────────────────────────────────────────────────────────────────
 // Internal helper: determine how many variant slots exist.
-// ────────────────────────────────────────────────────────────────
 // First tries to infer from existing VO arrays (most common case).
 // Fallback: reads variant count from *_extruder_variant config options.
 // This handles the edge case where a preset has only scalar values
 // (no arrays), so VO starts empty but we still need to know the count.
 int VariantOverrides::determine_variant_count(const DynamicPrintConfig& config, const VariantOverrides& vo)
 {
-    // 1) Check existing VO arrays — the largest array size is the variant count
+    // 1) Check existing VO arrays  -  the largest array size is the variant count
     int vc = 0;
     for (const auto& [k, v] : vo.floats)
         vc = std::max(vc, (int)v.size());
@@ -211,20 +200,8 @@ int VariantOverrides::determine_variant_count(const DynamicPrintConfig& config, 
     return vc;
 }
 
-// ────────────────────────────────────────────────────────────────
 // VariantOverrides::compute_variant_index
-// ────────────────────────────────────────────────────────────────
 // Maps a physical extruder to its position in the flattened VO array.
-//
-// extruder_variant_list stores comma-separated variant names per extruder:
-//   extruder_variant_list[0] = "DirectDrive_Standard,DirectDrive_HighFlow"
-//   extruder_variant_list[1] = "DirectDrive_Standard,DirectDrive_HighFlow"
-//
-// The VO array is flattened in order:
-//   [0]=ext0/var0, [1]=ext0/var1, [2]=ext1/var0, [3]=ext1/var1
-//
-// We walk through extruders, accumulating the offset (vo_offset), then
-// find the matching variant name within the target extruder's list.
 // Returns -1 if the extruder or variant is not found.
 int VariantOverrides::compute_variant_index(
     unsigned int extruder_id,
@@ -268,19 +245,9 @@ int VariantOverrides::compute_variant_index(unsigned int extruder_id, const Conf
     return compute_variant_index(extruder_id, et, nvt, evl->values);
 }
 
-// ────────────────────────────────────────────────────────────────
 // VariantOverrides::build_overlay
-// ────────────────────────────────────────────────────────────────
-// Creates a lightweight DynamicPrintConfig containing ONLY the overridden
-// scalar values for a specific variant_index. This overlay is applied
-// on top of the base FullPrintConfig at each toolchange during G-code
-// generation (see VariantAwareConfig::reapply_variant_overrides).
-//
-// For per-object overlays, base_overlay is the global extruder overlay,
-// so per-object values override global values (merge semantics).
-//
-// Only processes keys in print_options_with_variant.
-// Handles coFloat, coFloatOrPercent (preserves %), coBool, coInt.
+// Creates a lightweight DynamicPrintConfig with overridden scalar values for a specific variant_index.
+// Per-object overlays merge on top of the global extruder overlay (per-object takes priority).
 DynamicPrintConfig VariantOverrides::build_overlay(
     int variant_index,
     const DynamicPrintConfig* base_overlay) const
@@ -330,16 +297,9 @@ DynamicPrintConfig VariantOverrides::build_overlay(
     return overlay;
 }
 
-// ────────────────────────────────────────────────────────────────
 // VariantOverrides::apply_to_config
-// ────────────────────────────────────────────────────────────────
 // Reads VO[variant_index] for each key and writes to the scalar ConfigOption.
-//
-// AUTO-INIT: If a key has no VO entry yet (happens when preset JSON had
-// a scalar value, not an array), we replicate the current scalar value
-// across ALL variant slots. This ensures each variant can be edited
-// independently from the first tab switch onward.
-//
+// Auto-inits missing VO entries with NaN so each variant can be edited independently.
 // Called by DynamicPrintConfig::apply_variant_overrides() on tab switch.
 void VariantOverrides::apply_to_config(DynamicPrintConfig& config, int variant_index,
                                         const std::set<std::string>& keys)
@@ -380,7 +340,7 @@ void VariantOverrides::apply_to_config(DynamicPrintConfig& config, int variant_i
             }
         }
 
-        // Apply VO[variant_index] → config scalar.
+        // Apply VO[variant_index]  config scalar.
         if (!has_variant(key, variant_index)) {
             continue;
         }
@@ -414,17 +374,9 @@ void VariantOverrides::apply_to_config(DynamicPrintConfig& config, int variant_i
     }
 }
 
-// ────────────────────────────────────────────────────────────────
 // VariantOverrides::save_from_config
-// ────────────────────────────────────────────────────────────────
-// Reads the current scalar config values and writes them to VO[variant_index].
-// This preserves user edits when switching between Left/Right nozzle tabs:
-//   1. User edits inner_wall_speed on Left tab
-//   2. save_from_config() stores the edit in VO[left_variant_index]
-//   3. apply_to_config() loads Right variant values
-//   4. User can switch back to Left and find their edit preserved
-//
-// Same auto-init logic as apply_to_config for keys with no VO entry.
+// Reads current scalar config values and writes them to VO[variant_index].
+// Preserves user edits across Left/Right nozzle tab switches.
 // Called by DynamicPrintConfig::save_variant_overrides() on tab switch.
 void VariantOverrides::save_from_config(const DynamicPrintConfig& config, int variant_index,
                                          const std::set<std::string>& keys, bool force)
@@ -469,13 +421,13 @@ void VariantOverrides::save_from_config(const DynamicPrintConfig& config, int va
 
         if (!has(key)) continue;
 
-        // Skip saving to reset (NaN) slots — preserves the "reset" state.
+        // Skip saving to reset (NaN) slots  -  preserves the "reset" state.
         // But when force=true (explicit user edit), overwrite the NaN slot.
         if (!force && !has_variant(key, variant_index)) {
             continue;
         }
 
-        // Config scalar → VO[variant_index].
+        // Config scalar  VO[variant_index].
         // For coFloatOrPercent, also saves the serialized string to preserve % notation.
         switch (optdef->type) {
         case coFloat:
@@ -498,20 +450,9 @@ void VariantOverrides::save_from_config(const DynamicPrintConfig& config, int va
     }
 }
 
-// ────────────────────────────────────────────────────────────────
 // VariantOverrides::expand_to_vectors
-// ────────────────────────────────────────────────────────────────
-// Converts scalar config + VO arrays into vector ConfigOptions so that
-// save_to_json() produces BBS-compatible arrays:
-//   "inner_wall_speed": [300, 600, 300, 600]
-//
-// For each key in VO that also exists in print_options_with_variant:
-//   1. Read the VO array (all variant values)
-//   2. Replace the scalar ConfigOption with a vector ConfigOption
-// After expansion, clears VO (now redundant — values in config vectors).
-//
-// Called by DynamicPrintConfig::expand_variant_overrides_to_vectors()
-// before JSON serialization.
+// Converts scalar config + VO arrays into BBS-compatible vector ConfigOptions for JSON serialization.
+// Clears VO after expansion (values are now in config vectors).
 void VariantOverrides::expand_to_vectors(DynamicPrintConfig& config)
 {
     if (empty()) return;
@@ -590,23 +531,9 @@ void VariantOverrides::expand_to_vectors(DynamicPrintConfig& config)
     clear();
 }
 
-// ────────────────────────────────────────────────────────────────
 // VariantOverrides::compress_from_vectors
-// ────────────────────────────────────────────────────────────────
-// Inverse of expand_to_vectors(). After loading a BBS-style JSON preset
-// that contains array values like:
-//   "inner_wall_speed": [300, 600, 300, 600]
-//
-// This method:
-//   1. Reads the vector ConfigOption (ConfigOptionFloats, etc.)
-//   2. Stores all values in this VO
-//   3. Replaces the vector with a scalar = values[active_variant_index]
-//
-// OrcaSlicer UI works with scalars, so after compression the config
-// holds the active variant's value while VO preserves all variants.
-//
-// Called by DynamicPrintConfig::compress_vectors_to_variant_overrides()
-// after JSON load.
+// Inverse of expand_to_vectors(). Reads BBS-style vector config options, stores all values in VO,
+// and replaces each vector with a scalar for the active variant index.
 void VariantOverrides::compress_from_vectors(DynamicPrintConfig& config, int active_variant_index)
 {
     for (const auto& key : print_options_with_variant) {
@@ -712,15 +639,9 @@ void VariantOverrides::compress_from_vectors(DynamicPrintConfig& config, int act
     }
 }
 
-// ────────────────────────────────────────────────────────────────
 // VariantOverrides::parse_variant_csv
-// ────────────────────────────────────────────────────────────────
-// BBS 3MF files store per-variant values as comma-separated strings:
-//   <config key="inner_wall_speed" value="300,600,300,600" />
-//
-// This method parses such CSV strings into a vector of doubles.
-// Returns nullopt if the key is not variant-aware or value is not CSV.
-// Only returns a result for multi-value CSV (2+ values).
+// Parses BBS 3MF per-variant CSV strings (e.g. "300,600,300,600") into a vector of doubles.
+// Returns nullopt if key is not variant-aware or value has fewer than 2 entries.
 std::optional<std::vector<double>> VariantOverrides::parse_variant_csv(
     const std::string& key, const std::string& value)
 {
@@ -746,34 +667,8 @@ std::optional<std::vector<double>> VariantOverrides::parse_variant_csv(
     return vals.size() > 1 ? std::optional(vals) : std::nullopt;
 }
 
-// ────────────────────────────────────────────────────────────────
-// ────────────────────────────────────────────────────────────────
-// VariantOverrides::swap_extruder_order  [DEPRECATED — no longer called]
-// ────────────────────────────────────────────────────────────────
-// Rotates all VO arrays by n/2 to swap extruder halves.
-// Previously needed when internal order differed from BBS file order.
-// After Tab.cpp L/R fix, internal order == BBS order, so no swap needed.
-// Kept for reference; can be removed in a future cleanup.
-void VariantOverrides::swap_extruder_order()
-{
-    for (auto& [key, vals] : floats) {
-        if (vals.size() > 1 && print_options_with_variant.count(key))
-            std::rotate(vals.begin(), vals.begin() + (vals.size() / 2), vals.end());
-    }
-    for (auto& [key, vals] : strings) {
-        if (vals.size() > 1 && print_options_with_variant.count(key))
-            std::rotate(vals.begin(), vals.begin() + (vals.size() / 2), vals.end());
-    }
-}
-
-// ────────────────────────────────────────────────────────────────
 // VariantOverrides::prepare_for_3mf_save
-// ────────────────────────────────────────────────────────────────
-// Prepare a DynamicPrintConfig for 3MF serialization:
-//   Expand VO into vector ConfigOptions for serialization.
-//   Internal order now matches BBS file order (Left first)
-//   so no extruder swap is needed.
-// Caller should pass a COPY of the config (this modifies in-place).
+// Expands VO into vector ConfigOptions for 3MF serialization (caller passes a copy).
 void VariantOverrides::prepare_for_3mf_save(DynamicPrintConfig& config)
 {
     if (config.variant_overrides().empty())
@@ -782,37 +677,25 @@ void VariantOverrides::prepare_for_3mf_save(DynamicPrintConfig& config)
     config.expand_variant_overrides_to_vectors();
 }
 
-// ────────────────────────────────────────────────────────────────
 // VariantOverrides::load_from_3mf_compress
-// ────────────────────────────────────────────────────────────────
-// After loading a BBS-style JSON from 3MF:
-//   Compress vector ConfigOptions into VO.
-//   No swap needed: BBS file order == internal order (Left first).
+// Compresses vector ConfigOptions into VO after loading a BBS-style JSON from 3MF.
 void VariantOverrides::load_from_3mf_compress(DynamicPrintConfig& config, int active_variant_index)
 {
     config.compress_vectors_to_variant_overrides(active_variant_index);
     // No swap needed: internal order matches BBS file order.
 }
 
-// ────────────────────────────────────────────────────────────────
 // VariantOverrides::is_variant_csv
-// ────────────────────────────────────────────────────────────────
 // Returns true if a 3MF metadata key/value pair is a variant-aware CSV
-// that should be SKIPPED in the first-pass set_deserialize().
+// that should be skipped in the first-pass set_deserialize().
 bool VariantOverrides::is_variant_csv(const std::string& key, const std::string& value)
 {
     return print_options_with_variant.count(key) > 0 &&
            value.find(',') != std::string::npos;
 }
 
-// ────────────────────────────────────────────────────────────────
 // VariantOverrides::try_load_per_object_3mf_metadata
-// ────────────────────────────────────────────────────────────────
-// Parse a per-object variant-aware CSV from 3MF metadata and store
-// in config's VO. Handles:
-//   1. CSV parsing (with "nil" → NaN)
-//   2. BBS→internal extruder order swap
-//   3. Store in VO floats + set scalar config value
+// Parses a per-object variant-aware CSV from 3MF metadata and stores it in config's VO.
 void VariantOverrides::try_load_per_object_3mf_metadata(
     const std::string& key, const std::string& value,
     DynamicPrintConfig& config)
@@ -822,7 +705,6 @@ void VariantOverrides::try_load_per_object_3mf_metadata(
         return;
 
     auto& vals = *parsed;
-    // No swap needed: BBS file order matches internal order (Left first).
 
     config.variant_overrides().floats[key] = vals;
 
@@ -834,21 +716,8 @@ void VariantOverrides::try_load_per_object_3mf_metadata(
     config.set_key_value(key, new ConfigOptionFloat(scalar));
 }
 
-// ────────────────────────────────────────────────────────────────
 // VariantOverrides::precompute_overlays
-// ────────────────────────────────────────────────────────────────
-// Called once at print start by GCode::precompute_extruder_speed_overrides().
-// Builds ALL per-extruder overlay configs in a single pass:
-//
-//   1. For each physical extruder, compute its variant_index
-//   2. Build a global overlay from the global VO
-//   3. For each object with its own VO, build per-object overlays
-//      merged on top of the global overlay (per-object takes priority)
-//
-// Result is stored in GCode::VariantAwareConfig and applied at
-// each toolchange during G-code generation.
-//
-// This decouples VO resolution from the hot path of G-code writing.
+// Builds all per-extruder and per-object overlay configs in one pass at print start.
 PrecomputedOverlays VariantOverrides::precompute_overlays(
     const VariantOverrides& global_vo,
     const ConfigBase&       full_config,
@@ -886,13 +755,7 @@ PrecomputedOverlays VariantOverrides::precompute_overlays(
     return result;
 }
 
-// ────────────────────────────────────────────────────────────────
-// VariantOverrides::dump
-// ────────────────────────────────────────────────────────────────
-// Debug utility: logs all VO contents via BOOST_LOG_TRIVIAL(info).
-// Each key outputs as: "prefix key: [val0, val1, ...]"
-// For coFloatOrPercent keys with string overrides, uses the raw
-// string ("50%") instead of the numeric value.
+// VariantOverrides::dump - logs all VO contents via BOOST_LOG_TRIVIAL(info).
 void VariantOverrides::dump(const std::string& prefix) const
 {
     for (const auto& [key, vals] : floats) {

@@ -16,10 +16,6 @@
 #include <vector>
 #include <regex>
 #include <sstream>
-#include <iostream>
-
-#include <boost/log/trivial.hpp>
-#include <boost/format.hpp>
 
 namespace Vortek {
 
@@ -331,7 +327,6 @@ void PreCooling::inject_cooling_heating_command(
         }
         return;
     }
-    // perform cooling first and then perform heating
     float mid_temp = std::max(reuse_cool_floor, (curr_temp * ext_heating_rate + target_temp * ext_cooling_rate - complete_free_time_gap * ext_cooling_rate * ext_heating_rate) / (ext_cooling_rate + ext_heating_rate));
     float heating_temp = target_temp - mid_temp;
     float heating_start_time = move_iter_upper->time[valid_machine_id] - heating_temp / ext_heating_rate;

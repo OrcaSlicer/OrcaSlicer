@@ -394,7 +394,7 @@ bool CrealityPrint::start_print(wxString &msg, const std::string &filename, cons
         }
 
         // Same reason: the printer may have already closed the connection. A close
-        // error here is not a failure — the start command was sent above.
+        // error here is not a failure - the start command was sent above.
         beast::error_code close_ec;
         ws.close(websocket::close_code::normal, close_ec);
         return true;

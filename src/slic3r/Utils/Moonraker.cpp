@@ -50,7 +50,7 @@ void Moonraker::set_auth(Http &http) const
 {
     //ORCA: Moonraker accepts unauthenticated requests by default; X-Api-Key is the only auth header
     //      defined by the Moonraker spec. HTTP Basic / Digest do NOT belong here even if the user
-    //      filled the user/password fields — those are PrusaLink/OctoPrint conventions.
+    //      filled the user/password fields - those are PrusaLink/OctoPrint conventions.
     if (!m_apikey.empty())
         http.header("X-Api-Key", m_apikey);
     if (!m_cafile.empty())
@@ -62,7 +62,7 @@ bool Moonraker::test(wxString &msg) const
     //ORCA: Moonraker's /server/info returns
     //          { "result": { "klippy_state": "ready|startup|shutdown|error|disconnected", ... } }
     //      We treat the connection as healthy as long as the envelope is valid and `klippy_state`
-    //      is present — matching the OctoPrint/PrusaLink convention of "can I reach this host?".
+    //      is present - matching the OctoPrint/PrusaLink convention of "can I reach this host?".
     //      Klipper state (idle, error, etc.) is surfaced to the log but does not gate the test:
     //      buddy-fork firmwares legitimately report non-`ready` states at idle, and any real upload
     //      problem will surface a contextual error at upload() time anyway.
@@ -89,7 +89,7 @@ bool Moonraker::test(wxString &msg) const
 
             const auto klippy_state = ptree.get_optional<std::string>("result.klippy_state");
             if (!klippy_state) {
-                //ORCA: response wasn't shaped like a Moonraker /server/info reply — likely an OctoPrint
+                //ORCA: response wasn't shaped like a Moonraker /server/info reply - likely an OctoPrint
                 //      or PrusaLink host the user mis-selected as Moonraker, or a totally different
                 //      service. Treat as a connection failure with a clear hint.
                 res = false;
@@ -117,7 +117,7 @@ bool Moonraker::get_storage(wxArrayString &storage_path, wxArrayString &storage_
     //      including "rw" or "rwd" can receive uploads; we filter to those so the UI dropdown only
     //      offers usable destinations. The base class returns false (no per-host storage); returning
     //      true here populates the storage picker in PrintHostDialogs's send-to-print dialog.
-    //      Failures (404 — older Moonraker, or a buddy-fork that doesn't implement the endpoint)
+    //      Failures (404 - older Moonraker, or a buddy-fork that doesn't implement the endpoint)
     //      gracefully degrade to false so upload() falls back to the hardcoded "gcodes" default.
     const char *name = get_name();
     bool got_any = false;
@@ -130,8 +130,8 @@ bool Moonraker::get_storage(wxArrayString &storage_path, wxArrayString &storage_
     http.on_error([&](std::string body, std::string error, unsigned status) {
         //ORCA: /server/files/roots is optional in the Moonraker spec and absent on older versions
         //      and slimmer shims (e.g. Prusa-Firmware-Buddy 0.8.x prusalink-shim returns 501). A
-        //      missing endpoint here is benign — upload() silently falls back to the hardcoded
-        //      "gcodes" root — so don't pollute the log at warning level for it. Other HTTP
+        //      missing endpoint here is benign - upload() silently falls back to the hardcoded
+        //      "gcodes" root - so don't pollute the log at warning level for it. Other HTTP
         //      errors still warn.
         if (status == 404 || status == 501) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: /server/files/roots not implemented (HTTP %2%); upload() will fall back to the \"gcodes\" root.")

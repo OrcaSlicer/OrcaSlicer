@@ -45,8 +45,6 @@ public:
     bool DeleteBundleById(const wxString& id);
     bool UnsubscribeBundleById(const std::string& id);
 
-    bool seq_top_layer_only_changed() const { return m_seq_top_layer_only_changed; }
-    bool recreate_GUI() const { return m_recreate_GUI; }
     void on_dpi_changed(const wxRect& suggested_rect) override;
 
     // webview utilities
@@ -56,8 +54,6 @@ public:
     void DeleteBundle(const std::string& id);
     void UnsubscribeBundle(const std::string& id);
     void OpenBundleOnCloud(const std::string& id);
-
-    void OnPresetBundlePage();
 
     // sends command to webview
     void RunScript(const wxString& s);
@@ -81,9 +77,6 @@ protected:
     wxFileSystemWatcher* m_watcher = nullptr;
 
     void OnFSWatch(wxFileSystemWatcherEvent& e);
-
-    bool m_seq_top_layer_only_changed{false};
-    bool m_recreate_GUI{false};
 
     // Webview
     wxWebView* m_browser{nullptr};

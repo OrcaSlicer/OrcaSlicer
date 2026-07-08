@@ -217,8 +217,8 @@ void PhysicalPrinterDialog::build_printhost_settings(ConfigOptionsGroup* m_optgr
             if (host_type == htCrealityPrint) {
                 CrealityDiscoveryDialog dialog(this);
                 if (dialog.ShowModal() == wxID_OK && !dialog.selected_ip().empty()) {
-                    // set_value expects the value wrapped as wxString -- TextCtrl::set_value
-                    // any_casts to wxString, so a raw std::string throws bad_any_cast.
+                    // set_value expects wxString - TextCtrl::set_value any_casts to wxString,
+                    // so a raw std::string throws bad_any_cast.
                     wxString new_url = wxString::FromUTF8("http://" + dialog.selected_ip());
                     m_optgroup->set_value("print_host", new_url, true);
                     m_optgroup->get_field("print_host")->field_changed();

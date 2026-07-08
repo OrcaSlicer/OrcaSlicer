@@ -285,14 +285,8 @@ void AMSControl::on_retry()
 
 AMSControl::~AMSControl() {}
 
-// Temporary: simulate FTS presence for UI testing when no real FTS hardware
-#define FTS_SIMULATE 0
-
 std::tuple<bool, bool> AMSControl::isFilaSwitchReady()
 {
-#if FTS_SIMULATE
-    if (m_total_ext_count >= 2) return {true, true};
-#endif
     DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (!dev) return {false, false};
     MachineObject* obj = dev->get_selected_machine();
@@ -307,9 +301,6 @@ std::tuple<bool, bool> AMSControl::isFilaSwitchReady()
 
 bool AMSControl::isFilaSwitchInstalled() const
 {
-#if FTS_SIMULATE
-    if (m_total_ext_count >= 2) return true;
-#endif
     DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (!dev) return false;
     MachineObject* obj = dev->get_selected_machine();
@@ -1054,14 +1045,8 @@ void AMSControl::UpdateAms(const std::string   &series_name,
     const auto[install, ready] = isFilaSwitchReady();
     show_switcher_status(install && (!ready));
     bool isShow = install && m_total_ext_count >= 2;
-    BOOST_LOG_TRIVIAL(warning) << "FTS: install=" << install << " ready=" << ready 
-                            << " ext_count=" << m_total_ext_count
-                            << " isShow=" << isShow 
-                            << " wasShown=" << m_switcher->IsShown()
-                            << " switcher_size=" << m_switcher->GetSize().x << "x" << m_switcher->GetSize().y;
     if (m_switcher->IsShown() != isShow)
     {
-        BOOST_LOG_TRIVIAL(warning) << "FTS: toggling switcher to " << isShow;
         m_switcher->Show(isShow);
         m_amswin->Layout();
         m_amswin->Fit();

@@ -12,10 +12,6 @@
 #include <string>
 #include <nlohmann/json.hpp>
 
-// Reserved for future usage
-#define DEV_RESERVED_FOR_FUTURE(...) /* stripped */
-
-// Previous definitions
 namespace Slic3r
 {
     class MachineObject;
@@ -23,8 +19,8 @@ namespace Slic3r
 
 enum PrinterArch
 {
-    ARCH_CORE_XY,// move hotbed
-    ARCH_I3,//move z
+    ARCH_CORE_XY,
+    ARCH_I3,
 };
 
 enum PrinterSeries

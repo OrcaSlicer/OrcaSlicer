@@ -39,8 +39,6 @@
 #include "BitmapComboBox.hpp"
 #include "wxExtensions.hpp"
 
-#include <nlohmann/json.hpp>
-
 namespace fs = boost::filesystem;
 using json = nlohmann::json;
 
@@ -2095,7 +2093,7 @@ std::map<std::string, std::string> CrealityPrintHostSendDialog::extendedInfo() c
         if (sel >= 0 && sel < (int)m_printer_slots.size()) {
             auto& slot = m_printer_slots[sel];
             // id = gcode tool index (T1A for first filament, T1B for second, ...),
-            // not the destination CFS slot — firmware matches by gcode tool.
+            // not the destination CFS slot - firmware matches by gcode tool.
             std::string gcode_tool = "T1" + std::string(1, 'A' + i);
             info["colorMatch_" + std::to_string(i)] =
                 gcode_tool + "\t" + slot.type + "\t" + slot.color + "\t" +

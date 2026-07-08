@@ -4,7 +4,6 @@
 #include "bambu_networking.hpp"
 #include "../../libslic3r/ProjectTask.hpp"
 #include <string>
-#include <string_view>
 #include <map>
 #include <vector>
 #include <functional>

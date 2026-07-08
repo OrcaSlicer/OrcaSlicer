@@ -85,12 +85,11 @@ MediaPlayCtrl::MediaPlayCtrl(wxWindow *parent, wxMediaCtrl2 *media_ctrl, const w
             m_stat.push_back(value);
         }
         // Freeze watchdog: if FPS ≈ 0 for 3+ consecutive stat ticks while PLAYING,
-        // the stream is silently frozen — gentle retry once, then stop.
+        // the stream is silently frozen - gentle retry once, then stop.
         if (m_last_state == wxMEDIASTATE_PLAYING || m_last_state == wxMEDIASTATE_PAUSED) {
             double fps = m_stat.empty() ? -1.0 : m_stat[0];
             if (fps >= 0 && fps < 0.5) {
                 ++m_zero_fps_count;
-                BOOST_LOG_TRIVIAL(warning) << "MediaPlayCtrl: zero FPS detected (" << m_zero_fps_count << "/3)";
                 if (m_zero_fps_count >= 3) {
                     m_zero_fps_count = 0;
                     if (m_failed_retry < 2) {
@@ -107,7 +106,7 @@ MediaPlayCtrl::MediaPlayCtrl(wxWindow *parent, wxMediaCtrl2 *media_ctrl, const w
                 }
             } else {
                 m_zero_fps_count = 0;
-                // Stream is alive — reset retry counter
+                // Stream is alive - reset retry counter
                 if (m_failed_retry > 0) m_failed_retry = 0;
             }
         } else {

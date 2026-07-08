@@ -13,13 +13,8 @@ namespace Slic3r {
 namespace GUI {
 
 // Modal dialog that finds Creality K-series printers on the LAN via DNS-SD
-// mDNS (vendored mjansson/mdns + cxmdns wrapper) and lets the user pick one.
-//
-// Discovery is synchronous (~5 second mDNS listen + ~2-4 sec /info probe per
-// host) and runs during ShowModal() with a busy cursor. The user-facing busy
-// time is bounded by the mDNS listener's 5-second deadline plus any in-flight
-// probes; in practice 5-10 seconds total for a typical LAN with one K2.
-//
+// mDNS and lets the user pick one. Discovery is synchronous (~5 s mDNS listen
+// + ~2-4 s /info probe per host) and runs during ShowModal() with a busy cursor.
 // After ShowModal() returns wxID_OK, selected_ip() yields the chosen
 // printer's IPv4 address. Returns the empty string on Cancel or if no match
 // was found.

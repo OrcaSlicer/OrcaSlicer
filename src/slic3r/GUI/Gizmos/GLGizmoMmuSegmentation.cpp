@@ -485,9 +485,6 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::TriangleButtonIcon, ImGui::HeightRangeIcon, ImGui::FillButtonIcon, ImGui::GapFillIcon };
     std::array<wxString, 6> tool_tips = { _L("Circle"), _L("Sphere"), _L("Triangle"), _L("Height Range"), _L("Fill"), _L("Gap Fill") };
     for (int i = 0; i < tool_ids.size(); i++) {
-        //std::string  str_label = std::string("");
-        //std::wstring btn_name  = icons[i] + boost::nowide::widen(str_label);
-
         if (i != 0) ImGui::SameLine((empty_button_width + m_imgui->scaled(1.75f)) * i + m_imgui->scaled(1.5f));
 
         bool is_active = m_current_tool == tool_ids[i];
@@ -1056,7 +1053,7 @@ void GLGizmoMmuSegmentation::render_filament_remap_ui(float window_width, float 
                     dst + 1,                      // idx
                     "###remap_dst_",              // button_id
                     m_extruders_colors[dst],      // color
-                    m_extruders_colors[dst],      // mapped_color (non fuctional in here)
+                    m_extruders_colors[dst],      // mapped_color (not used here)
                     m_extruder_remap[src] == dst, // is_active
                     scale
                 );

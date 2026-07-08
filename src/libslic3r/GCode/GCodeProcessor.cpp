@@ -1,15 +1,4 @@
 
-            // context.filament_nozzle_temp,
-            // context.extruder_max_nozzle_count,
-            // context.filament_cooling_before_tower,
-
-            //    float complete_free_time_gap = 0; // time of complete free
-    // if (move_iter_lower == moves.begin())
-    //     complete_free_time_gap = move_iter_upper->time[valid_machine_id];
-    // else
-    //     complete_free_time_gap = move_iter_upper->time[valid_machine_id] - std::prev(move_iter_lower)->time[valid_machine_id];
-
-
 #include "ExtrusionEntity.hpp"
 #include "GCodeWriter.hpp"
 #include "PrintConfig.hpp"
@@ -1344,7 +1333,7 @@ void GCodeProcessor::run_post_process()
     // Orca: track the current layer during the post-processing pass so that preheat M104s emitted
     // for tool changes on the first layer use the correct first-layer temperature. The member
     // m_layer_id is populated during the analysis pass and ends at the total layer count, so it
-    // cannot be used here — it would always select the "other layers" temperature for multi-layer
+    // cannot be used here  -  it would always select the "other layers" temperature for multi-layer
     // prints.
     unsigned int current_layer_id = 0;
 
@@ -2239,9 +2228,6 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
         m_filament_maps = filament_maps->values;
         std::transform(m_filament_maps.begin(), m_filament_maps.end(), m_filament_maps.begin(), [](int value) {return std::max(0, value - 1); });
     }
-    // H2C TODO
-    // = config.filament_map_2.values;
-
     const ConfigOptionBool* spiral_vase = config.option<ConfigOptionBool>("spiral_mode");
     if (spiral_vase != nullptr) {
         m_detect_layer_based_on_tag = spiral_vase->value;
@@ -5047,11 +5033,6 @@ void GCodeProcessor::process_G29(const GCodeReader::GCodeLine& line)
     // Use machine_prepare_compensation_time from config instead of hardcoded 260s.
     // JSON profiles already carry per-machine values (fdm_machine_common=260, P2S=370).
     // H2C can override with a lower value (~30-60s) for its faster bed leveling.
-    /* ORIGINAL:
-    //BBS: hardcode 260 seconds for G29
-    //Todo: use a machine related setting when we have second kind of BBL printer
-    const float value_s = 260.0;
-    */
     const float value_s = m_time_processor.machine_prepare_compensation_time;
     if (s_IsBBLPrinter){
         if(m_measure_g29_time)
@@ -5354,7 +5335,7 @@ void GCodeProcessor::process_M201(const GCodeReader::GCodeLine& line)
     // see http://reprap.org/wiki/G-code#M201:_Set_max_printing_acceleration
     float factor = ((m_flavor != gcfRepRapSprinter && m_flavor != gcfRepRapFirmware) && m_units == EUnits::Inches) ? INCHES_TO_MM : 1.0f;
 
-    // Write to index i (0=Normal, 1=Stealth) — matches get_axis_max_acceleration's read pattern.
+    // Write to index i (0=Normal, 1=Stealth)  -  matches get_axis_max_acceleration's read pattern.
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal || m_time_processor.machine_envelope_processing_enabled) {
             if (line.has_x()) set_option_value(m_time_processor.machine_limits.machine_max_acceleration_x, i, line.x() * factor);
@@ -5378,7 +5359,7 @@ void GCodeProcessor::process_M203(const GCodeReader::GCodeLine& line)
     // http://smoothieware.org/supported-g-codes
     float factor = (m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware || m_flavor == gcfSmoothie || m_flavor == gcfKlipper) ? 1.0f : MMMIN_TO_MMSEC;
 
-    // Write to index i (0=Normal, 1=Stealth) — matches get_axis_max_feedrate's read pattern.
+    // Write to index i (0=Normal, 1=Stealth)  -  matches get_axis_max_feedrate's read pattern.
     for (size_t i = 0; i < static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count); ++i) {
         if (static_cast<PrintEstimatedStatistics::ETimeMode>(i) == PrintEstimatedStatistics::ETimeMode::Normal || m_time_processor.machine_envelope_processing_enabled) {
             if (line.has_x())
@@ -5627,7 +5608,7 @@ void GCodeProcessor::process_SYNC(const GCodeReader::GCodeLine& line)
     if (line.has_value('R', time_role)) {
         time_role_int = static_cast<int>(std::round(time_role));
     } else {
-        time_role_int = 1; // Compatible with older G-code: no 'R' → flush
+        time_role_int = 1; // Compatible with older G-code: no 'R'  flush
     }
     if (line.has_value('T', time)) {
         // BBL parity: role 1 = flush time, role 0 = prepare time (none)
@@ -5902,7 +5883,7 @@ void GCodeProcessor::process_filament_change(int id, int nozzle_id)
         if (nozzle_in_extruder_change && !extruder_change) {
             m_result.print_statistics.total_nozzle_changes++;
         }
-        // BBL parity: combined condition — ONE unload + ONE load
+        // BBL parity: combined condition - ONE unload + ONE load
         // (not separate if-blocks, which would double-count when both are true)
         bool perform_static_time_calc = nozzle_in_extruder_change || filament_in_nozzle_change;
         auto h2c_res = Vortek::WipeTower::calculate_filament_change_time(
@@ -5935,7 +5916,7 @@ void GCodeProcessor::process_filament_change(int id, int nozzle_id)
                     m_result.print_statistics.total_flush_filament_changes++;
             }
         }
-        // Note: hotend_change_time is NOT added here — it's already accounted
+        // Note: hotend_change_time is NOT added here  -  it's already accounted
         // for in SYNC gcode commands emitted by the firmware template.
 
         if (prev_filament_id != -1)
@@ -6256,11 +6237,6 @@ float GCodeProcessor::get_extruder_change_time(size_t extruder_id)
     return m_time_processor.machine_switch_extruder_time > 0.0f ? m_time_processor.machine_switch_extruder_time : m_time_processor.machine_tool_change_time;
 }
 
-float GCodeProcessor::get_hotend_change_time()
-{
-    return m_time_processor.hotend_change_times;
-}
-
 //BBS
 int GCodeProcessor::get_filament_vitrification_temperature(size_t extrude_id)
 {
@@ -6553,10 +6529,4 @@ int GCodeProcessor::get_extruder_id(bool force_initialize)const
         return force_initialize ? 0 : -1;
     return static_cast<int>(m_extruder_id);
 }
-// ============================================================================
-// PreCoolingInjector implementation — EXTRACTED to VortekPreCooling.cpp
-// Class declaration stays in GCodeProcessor.hpp.
-// BBL parity: BambuStudio GCodeProcessor.cpp:6412-6786 (commit 3f2570c)
-// ============================================================================
-
 } /* namespace Slic3r */

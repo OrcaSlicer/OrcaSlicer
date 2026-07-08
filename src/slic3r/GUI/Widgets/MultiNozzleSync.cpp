@@ -615,13 +615,7 @@ void NozzleListTable::SetOptions(const std::vector<NozzleOption>& options,int de
     wxString script1 = wxString::Format("updateTable(%s)", table_obj_str);
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "update table " << script1;
 
-#if 1
     m_web_view->RunScript(script1);
-#else
-    CallAfter([script1, this]() {
-        m_web_view->RunScript(script1);
-        });
-#endif
 }
 
 MultiNozzleStatusTable::MultiNozzleStatusTable(wxWindow* parent): wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
@@ -790,16 +784,8 @@ void MultiNozzleSyncDialog::OnRackStatusReadingFinished(wxEvent& evt) {
     m_refreshing = false;
     if (m_refresh_timer)
         m_refresh_timer->Stop();
-#if 1
     if (!UpdateUi(m_nozzle_rack))
         EndModal(wxID_OK);
-#else
-    if(!UpdateUoi(m_nozzle_rack)){
-        CallAfter([this]() {
-            EndModal(wxID_OK);
-            });
-    }
-#endif
 }
 
 void MultiNozzleSyncDialog::OnRefreshTimer(wxTimerEvent& evt){

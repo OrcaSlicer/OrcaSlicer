@@ -444,29 +444,18 @@ std::vector<MultiNozzleUtils::NozzleGroupInfo> DevNozzleSystem::GetNozzleGroups(
     return nozzle_groups;
 }
 
-// ---------------------------------------------------------------------------
-// Auto-sync hook: called after each successful parse of fresh nozzle-inventory
-// data from MQTT. Populates PresetBundle::extruder_nozzle_stat from the live
-// DevNozzleSystem so that the slicer's get_recommended_filament_maps() can
-// resolve per-extruder nozzle counts without requiring the user to open
-// MultiNozzleSyncDialog.
-//
-// Guards:
-//   - obj / nozzle_system null check
-//   - rack must be supported by the printer (H2C capability bit 60)
-//   - is_force_kept() — user has manually overridden via the dialog
-//   - preset printer_type must match the streaming device
-//   - extruder_max_nozzle_count must be present in the selected preset
-//   - groups empty (e.g. nozzle inventory not yet populated)
-// ---------------------------------------------------------------------------
+// Auto-sync hook: called after each MQTT nozzle-inventory parse.
+// Populates PresetBundle::extruder_nozzle_stat so get_recommended_filament_maps()
+// can resolve per-extruder nozzle counts without the user opening MultiNozzleSyncDialog.
+// Guards: null obj/system, rack capability bit 60, is_force_kept(), printer_type match,
+// extruder_max_nozzle_count present, non-empty groups.
 bool sync_machine_nozzle_inventory_to_preset(const MachineObject* obj, PresetBundle& bundle)
 {
     if (!obj) return false;
     DevNozzleSystem* nozzle_system = obj->GetNozzleSystem();
     if (!nozzle_system) return false;
 
-    // Gate on rack capability — single-extruder printers that don't have a
-    // nozzle rack never set this bit, so they are always skipped here.
+    // Gate on rack capability - single-extruder printers without a nozzle rack never set this bit.
     const auto& rack = nozzle_system->GetNozzleRack();
     if (!rack || !rack->IsSupported()) return false;
 
@@ -496,14 +485,9 @@ bool sync_machine_nozzle_inventory_to_preset(const MachineObject* obj, PresetBun
     const auto groups = nozzle_system->GetNozzleGroups();
     if (groups.empty()) return false;
 
-    // Per-extruder configured nozzle diameter — slots of other diameters are
-    // counted by GetNozzleGroups but cannot physically be used for the current
-    // print, so they must be excluded here. Without this filter, multiple
-    // groups with the same volume_type but different diameter collapse into
-    // candidate[ext][flow] (the map only keys by flow type) and the last write
-    // wins — which on H2C with mixed-diameter rack inventory turns
-    // "Standard#1 + #3 + #1 + #1" into a final "Standard#1", forcing the
-    // grouper to assign every right-side filament to slot 0.
+    // Filter to per-extruder configured diameter only. Without this, mixed-diameter rack
+    // inventory collapses multiple groups (different diameter, same volume_type) to the last
+    // write, causing the grouper to assign every right-side filament to slot 0.
     auto* nd_opt = selected.config.option<ConfigOptionFloats>("nozzle_diameter");
     if (!nd_opt || static_cast<int>(nd_opt->size()) != n_ext) return false;
 
@@ -855,13 +839,6 @@ void DevNozzleSystemParser::ParseV2_0(const json& device_json, DevNozzleSystem* 
             if (njon.contains("p_t"))/*maybe not contains*/
             {
                 nozzle_obj.m_nozzle_print_time = njon["p_t"].get<int>();
-                BOOST_LOG_TRIVIAL(trace) << "DevNozzleSystem: nozzle id=" << nozzle_obj.m_nozzle_id
-                                         << " p_t=" << nozzle_obj.m_nozzle_print_time;
-            }
-            else
-            {
-                BOOST_LOG_TRIVIAL(trace) << "DevNozzleSystem: nozzle id=" << nozzle_obj.m_nozzle_id
-                                         << " p_t field MISSING";
             }
             if (njon.contains("color_m"))/*maybe not contains*/
             {

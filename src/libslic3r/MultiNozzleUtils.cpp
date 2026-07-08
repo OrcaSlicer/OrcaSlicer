@@ -26,28 +26,6 @@ std::vector<NozzleInfo> build_nozzle_list(std::vector<NozzleGroupInfo> nozzle_gr
     return ret;
 }
 
-std::vector<NozzleInfo> build_nozzle_list(double diameter, const std::vector<int>& filament_nozzle_map, const std::vector<int>& filament_volume_map, const std::vector<int>& filament_map)
-{
-    std::string diameter_str = format_diameter_to_str(diameter);
-    std::map<int, std::vector<int>> nozzle_to_filaments;
-    for(size_t idx = 0; idx < filament_nozzle_map.size(); ++idx){
-        int nozzle_id = filament_nozzle_map[idx];
-        nozzle_to_filaments[nozzle_id].emplace_back(static_cast<int>(idx));
-    }
-    std::vector<NozzleInfo> ret;
-    for(auto& elem : nozzle_to_filaments){
-        int nozzle_id = elem.first;
-        auto& filaments = elem.second;
-        NozzleInfo info;
-        info.diameter = diameter_str;
-        info.group_id = nozzle_id;
-        info.extruder_id = filament_map[filaments.front()];
-        info.volume_type = NozzleVolumeType(filament_volume_map[filaments.front()]);
-        ret.emplace_back(std::move(info));
-    }
-    return ret;
-}
-
 
 MultiNozzleGroupResult::MultiNozzleGroupResult(const std::vector<int> &filament_nozzle_map, const std::vector<NozzleInfo> &nozzle_list, const std::vector<unsigned int>& used_filaments_)
 {
@@ -498,7 +476,6 @@ int MultiNozzleGroupResult::estimate_seq_flush_weight(const std::vector<std::vec
 
 
 
-// ==================== load_nozzle_infos_with_compatibility ====================
 std::vector<NozzleInfo> load_nozzle_infos_with_compatibility(
     const std::vector<NozzleInfo>& nozzle_infos,
     const std::vector<FilamentInfo>& filament_infos,
@@ -508,7 +485,7 @@ std::vector<NozzleInfo> load_nozzle_infos_with_compatibility(
 )
 {
     bool has_nozzle_info = !nozzle_infos.empty();
-    // FilamentInfo::group_id is std::vector<int> — treat as valid if non-empty and first element >= 0.
+    // FilamentInfo::group_id is std::vector<int> - treat as valid if non-empty and first element >= 0.
     bool has_valid_filament_info = !filament_infos.empty() && std::all_of(filament_infos.begin(), filament_infos.end(), [](const FilamentInfo& info){
         return !info.group_id.empty() && info.group_id.front() >= 0;
     });
@@ -970,7 +947,7 @@ std::optional<StaticNozzleGroupResult> StaticNozzleGroupResult::create(
 
     for (auto filament_info : filaments_info) {
         auto fil_id = filament_info.id;
-        // FilamentInfo::group_id is std::vector<int> — insert all valid (>= 0) nozzle ids.
+        // FilamentInfo::group_id is std::vector<int> - insert all valid (>= 0) nozzle ids.
         std::set<int> nozzles_set;
         for (int gid : filament_info.group_id) {
             if (gid >= 0)

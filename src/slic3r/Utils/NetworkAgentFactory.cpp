@@ -100,7 +100,7 @@ std::shared_ptr<IPrinterAgent> NetworkAgentFactory::create_printer_agent_by_id(c
         return cache_it->second;
     }
 
-    // Not cached — create via factory
+    // Not cached  -  create via factory
     auto& agents = get_printer_agents();
     auto  it     = agents.find(id);
 
@@ -134,7 +134,7 @@ void NetworkAgentFactory::register_all_agents()
     register_agent<OrcaPrinterAgent>();
     register_agent<QidiPrinterAgent>();
     register_agent<SnapmakerPrinterAgent>();
-    register_agent<CrealityPrintAgent>();  // Must come BEFORE MoonrakerPrinterAgent —
+    register_agent<CrealityPrintAgent>();  // Must come BEFORE MoonrakerPrinterAgent -
                                             // CrealityPrintAgent extends Moonraker behaviour
                                             // for K-series boards with CFS support.
     register_agent<MoonrakerPrinterAgent>();
@@ -167,7 +167,6 @@ std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_di
     auto agent = std::make_unique<NetworkAgent>(std::move(cloud_agent), nullptr);
 
     if (agent) {
-        // create orca cloud agent first
         auto* orca_cloud = dynamic_cast<OrcaCloudServiceAgent*>(agent->get_cloud_agent().get());
         if (orca_cloud) {
             orca_cloud->configure_urls(app_config);

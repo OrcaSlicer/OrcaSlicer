@@ -336,7 +336,6 @@ public:
 
     size_t hash() const throw() override { return std::hash<T>{}(this->value); }
 
-    // Warning mitigation: Indicate that virtual serialize() is not forgotten
     using ConfigOption::serialize;
 private:
 	friend class cereal::access;
@@ -522,7 +521,7 @@ public:
     // Pick per-extruder values from a variant-space source vector (e.g. a modifier override loaded
     // from a 3mf, stored with one entry per extruder variant). For each destination extruder i,
     // copy rhs[dest_index[i]] only when that slot is present and not nil; nil slots keep the value
-    // *this* (the base per-extruder config) already holds — i.e. the override only touches the
+    // *this* (the base per-extruder config) already holds - i.e. the override only touches the
     // variants the user actually set, leaving the others at their base value. This is why resize()
     // (which preserves existing elements) is used rather than assign(): clobbering with rhs.front()
     // would leak that slot's value (often nil -> NaN) into extruders the override never specified,
@@ -824,7 +823,6 @@ public:
         return modified;
     }
 
-    // Warning mitigation: Indicate that virtual serialize() is not forgotten
     using ConfigOptionVectorBase::serialize;
 private:
 	friend class cereal::access;

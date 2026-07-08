@@ -242,7 +242,7 @@ static string get_diameter_string(float diameter)
     std::string s = stream.str();
     if (s.find('.') != std::string::npos) {   // Remove trailing zeros, but keep at least one decimal if needed
         s.erase(s.find_last_not_of('0') + 1);
-        if (s.back() == '.') s += '0';        // Ensure "1." → "1.0"
+        if (s.back() == '.') s += '0';        // Ensure "1."  "1.0"
     }
     return s;
 }
@@ -439,7 +439,7 @@ enum class ActionButtonType : int {
 
 // HoverLabel: title row with nozzle-count badge and edit button (ported from BBL Plater.cpp:437-555).
 // Orca's StaticGroup draws its label internally via LabeledStaticBox; HoverLabel provides the
-// interactive overlay — count "(N)" display and edit-icon button — that BBL drives via SetCount.
+// interactive overlay - count "(N)" display and edit-icon button - that BBL drives via SetCount.
 class HoverLabel : public wxPanel
 {
 public:
@@ -701,8 +701,7 @@ struct Sidebar::priv
     void jump_to_object(ObjectDataViewModelNode* item);
     void can_search();
 
-    bool sync_extruder_list(bool &only_external_material, bool is_manual = false, bool skip_nozzle_type = false); // EXPERIMENTAL: skip-nozzle-type-sync
-    /* ORIGINAL: bool sync_extruder_list(bool &only_external_material, bool is_manual = false); */
+    bool sync_extruder_list(bool &only_external_material, bool is_manual = false, bool skip_nozzle_type = false);
     std::optional<NozzleOption> get_nozzle_options(MachineObject *obj, int extruder_count, bool support_multi_nozzle, bool is_manual);
     bool switch_diameter(bool single);
     void update_sync_status(const MachineObject* obj);
@@ -1364,7 +1363,7 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     hsizer_nozzle->Add(label_flow, 0, wxALIGN_CENTER);
     hsizer_nozzle->Add(combo_flow, 1, wxEXPAND);
     // Flow selector shown only for dual-extruder BBL printers (index >= 0)
-    // For single extruders, remains hidden — no flow type selection needed
+    // For single extruders, remains hidden  -  no flow type selection needed
     if (index < 0) {
         label_flow->Hide();
         combo_flow->Hide();
@@ -1566,7 +1565,7 @@ bool Sidebar::priv::switch_diameter(bool single)
     return wxGetApp().get_tab(Preset::TYPE_PRINTER)->select_preset(preset->name);
 }
 
-// Printers where high-flow detection is unreliable — fall back to standard type only.
+// Printers where high-flow detection is unreliable  -  fall back to standard type only.
 static bool is_skip_high_flow_printer(const std::string &printer)
 {
     static const std::set<std::string> invalidate_list = { "Bambu Lab X1E" };
@@ -1704,8 +1703,6 @@ static std::optional<NozzleOption> deserialize_nozzle_option(const std::string& 
     return option;
 }
 
-// EXPERIMENTAL: skip-nozzle-type-sync - added skip_nozzle_type parameter
-/* ORIGINAL: bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_manual) */
 bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_manual, bool skip_nozzle_type)
 {
     MachineObject *obj = wxGetApp().getDeviceManager()->get_selected_machine();
@@ -1786,23 +1783,6 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
             else
                 select_type = nozzle_option->extruder_nozzle_stats.at(index).begin()->first;
         }
-        // EXPERIMENTAL: skip-nozzle-type-sync - bypass NONE_FLOWTYPE error when user chose to keep nozzle type
-        /* ORIGINAL:
-        if (obj->is_nozzle_flow_type_supported()) {
-            if (obj->GetExtderSystem()->GetNozzleFlowType(index) == NozzleFlowType::NONE_FLOWTYPE) {
-                MessageDialog dlg(this->plater, _L("There are unset nozzle types. Please set the nozzle types of all extruders before synchronizing."),
-                                  _L("Sync extruder infomation"), wxICON_WARNING | wxOK);
-                dlg.ShowModal();
-                continue;
-            }
-            // hack code, only use standard flow for 0.2
-            if (std::fabs(nozzle_diameters[extruder_id] - 0.2) > EPSILON && !is_skip_high_flow_printer(printer_model))
-                target_type = DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(extruder_id));
-        }
-        if (select_type) {
-            target_type = *select_type;
-        }
-        */
         if (!skip_nozzle_type && obj->is_nozzle_flow_type_supported()) {
             if (obj->GetExtderSystem()->GetNozzleFlowType(index) == NozzleFlowType::NONE_FLOWTYPE) {
                 MessageDialog dlg(this->plater, _L("There are unset nozzle types. Please set the nozzle types of all extruders before synchronizing."),
@@ -1814,7 +1794,6 @@ bool Sidebar::priv::sync_extruder_list(bool &only_external_material, bool is_man
             if (std::fabs(nozzle_diameters[extruder_id] - 0.2) > EPSILON && !is_skip_high_flow_printer(printer_model))
                 target_type = DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(extruder_id));
         }
-        // EXPERIMENTAL: skip-nozzle-type-sync - preserve user's nozzle volume type
         if (skip_nozzle_type) {
             auto* nvt_opt = preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
             if (nvt_opt && index < nvt_opt->values.size()) {
@@ -3302,8 +3281,7 @@ void Sidebar::update_presets(Preset::Type preset_type)
             auto type = extruders_def->enum_labels[extruders->values[index]];
             int select = -1;
             for (size_t i = 0; i < nozzle_volumes_def->enum_labels.size(); ++i) {
-                if (boost::algorithm::contains(extruder_variants->values[index], type + " " + nozzle_volumes_def->enum_labels[i]) /*||
-                    extruder_max_nozzle_count->values[index] > 1 && nozzle_volumes_def->enum_keys_map->at(nozzle_volumes_def->enum_values[i]) == nvtHybrid*/) { // TODO: Orca: Support hybrid
+                if (boost::algorithm::contains(extruder_variants->values[index], type + " " + nozzle_volumes_def->enum_labels[i])) {
                     if (nozzle_volumes_def->enum_keys_map->at(nozzle_volumes_def->enum_values[i]) == NozzleVolumeType::nvtHighFlow &&(diameter == "0.2" ||
                         is_skip_high_flow_printer(printer_model)))
                         continue;
@@ -4027,13 +4005,13 @@ void Sidebar::on_bed_type_change(BedType bed_type)
  * NetworkAgent APIs. The data pipeline is:
  *
  *   Printer Device (MQTT/LAN messages)
- *       ↓
+ *       
  *   NetworkAgent (receives JSON, triggers OnMessageFn callbacks)
- *       ↓
+ *       
  *   MachineObject::parse_json() (updates device state)
- *       ├── vt_slot (std::vector<DevAmsTray>) - virtual tray data for external filament
- *       └── DevFilaSystem → DevAms → DevAmsTray - AMS unit hierarchy
- *       ↓
+ *        vt_slot (std::vector<DevAmsTray>) - virtual tray data for external filament
+ *        DevFilaSystem  DevAms  DevAmsTray - AMS unit hierarchy
+ *       
  *   build_filament_ams_list() [THIS FUNCTION] - aggregates into DynamicPrintConfig maps
  *
  * Data Sources:
@@ -4122,14 +4100,6 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
     return filament_ams_list;
 }
 
-// EXPERIMENTAL: skip-nozzle-type-sync - public API with skip_nozzle_type
-/* ORIGINAL:
-bool Sidebar::sync_extruder_list()
-{
-    bool only_external_material;
-    return p->sync_extruder_list(only_external_material);
-}
-*/
 bool Sidebar::sync_extruder_list(bool skip_nozzle_type)
 {
     bool only_external_material;
@@ -4617,7 +4587,7 @@ bool Sidebar::is_multifilament()
 void Sidebar::deal_btn_sync() {
     m_begin_sync_printer_status = true;
     bool only_external_material;
-    // is_manual=true: user explicitly pressed Sync — always pop the dialog, skip cache
+    // is_manual=true: user explicitly pressed Sync  -  always pop the dialog, skip cache
     auto ok = p->sync_extruder_list(only_external_material, /*is_manual=*/true);
     if (ok) {
         pop_sync_nozzle_and_ams_dialog();
@@ -8785,7 +8755,7 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         std::vector<int> f_maps = cur_plate->get_real_filament_maps(preset_bundle->project_config);
         invalidated = background_process.apply(this->model, preset_bundle->full_config(false, f_maps));
         background_process.fff_print()->set_extruder_filament_info(get_extruder_filament_info());
-        // H2C: Sync physical nozzle colors → preset filament mapping via Vortek::NozzleState
+        // H2C: Sync physical nozzle colors  preset filament mapping via Vortek::NozzleState
         {
             std::unordered_map<int, std::string> device_nozzle_colors;
             DeviceManager *dev = Slic3r::GUI::wxGetApp().getDeviceManager();
@@ -10627,7 +10597,7 @@ void Plater::priv::on_slicing_completed(wxCommandEvent & evt)
             // run shortly after and call preview->reload_print(). But when
             // Print::apply() invalidates mid-slice (CANCELED_INTERNAL), the
             // EVT_PROCESS_COMPLETED is intentionally suppressed in
-            // BackgroundSlicingProcess::thread_proc — leaving the Preview
+            // BackgroundSlicingProcess::thread_proc  -  leaving the Preview
             // tab on stale gcode until the user re-clicks Slice. Reloading
             // here as well is a redundant no-op when the full pipeline runs
             // and a correct refresh when it doesn't.
@@ -11881,10 +11851,8 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
             NozzleVolumeType left_nozzle_type = NozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(1) - 1);
             NozzleVolumeType preset_left_type  = NozzleVolumeType(nozzle_volumes_values[0]);
             NozzleVolumeType preset_right_type  = NozzleVolumeType(nozzle_volumes_values[1]);
-            // EXPERIMENTAL: skip-nozzle-type-sync - do not block on nozzle volume type mismatch at slicing time
-            // Slicing generates valid G-code regardless of flow type. We decouple nozzle flow type comparison from
-            // is_same_as_printer (slicing pre-check blocker), and instead treat it as a non-blocking warning 
-            // inside the Print/Send dialogs (SelectMachine.cpp and SyncAmsInfoDialog.cpp) so users can proceed if desired.
+            // Nozzle flow type mismatch is treated as a non-blocking warning in Print/Send dialogs
+            // rather than blocking slicing - slicing produces valid G-code regardless of flow type.
             is_same_as_printer = true;
         }
 
@@ -11922,7 +11890,6 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
         if (!is_same_as_printer) {
             struct SyncInfoDialog : MessageDialog
             {
-                // EXPERIMENTAL: skip-nozzle-type-sync - checkbox UI in sync dialog
                 wxCheckBox* m_cb_skip_nozzle{nullptr};
 
                 SyncInfoDialog(wxWindow *parent)
@@ -11932,7 +11899,6 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
                                        "Would you like to sync now?"),
                                     _L("Warning"), 0)
                 {
-                    // EXPERIMENTAL: skip-nozzle-type-sync
                     m_cb_skip_nozzle = new wxCheckBox(this, wxID_ANY, _L("Keep current nozzle type (don't sync from printer)"));
                     m_cb_skip_nozzle->SetValue(false);
                     content_sizer->Add(m_cb_skip_nozzle, 0, wxTOP, FromDIP(10));
@@ -11941,28 +11907,11 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
                     finalize();
                 }
 
-                bool skip_nozzle_type() const { return m_cb_skip_nozzle && m_cb_skip_nozzle->GetValue(); } // EXPERIMENTAL: skip-nozzle-type-sync
+                bool skip_nozzle_type() const { return m_cb_skip_nozzle && m_cb_skip_nozzle->GetValue(); }
             } dlg(q);
-            /* ORIGINAL:
-            struct SyncInfoDialog : MessageDialog
-            {
-                SyncInfoDialog(wxWindow *parent)
-                    : MessageDialog(parent,
-                                    _L("The nozzle type and AMS quantity information has not been synced from the connected printer.\n"
-                                       "After syncing, software can optimize printing time and filament usage when slicing.\n"
-                                       "Would you like to sync now?"),
-                                    _L("Warning"), 0)
-                {
-                    add_button(wxID_YES, true, _L("Sync now"));
-                    add_button(wxID_NO, true, _L("Later"));
-                    finalize();
-                }
-            } dlg(q);
-            */
             dlg.Fit();
             if (dlg.ShowModal() == wxID_YES) {
-                bool skip_nozzle = dlg.skip_nozzle_type(); // EXPERIMENTAL: skip-nozzle-type-sync
-                /* ORIGINAL: if (GUI::wxGetApp().sidebar().sync_extruder_list()) { */
+                bool skip_nozzle = dlg.skip_nozzle_type();
                 if (GUI::wxGetApp().sidebar().sync_extruder_list(skip_nozzle)) {
                     if (is_slice_all)
                         wxPostEvent(q, SimpleEvent(EVT_GLTOOLBAR_SLICE_ALL));
@@ -17157,7 +17106,7 @@ void Plater::send_gcode_legacy(int plate_idx, Export3mfProgressFn proFn)
         // carry several of them, so the upload must name which plate to print via a 1-based plateindex.
         // Even a single-plate bundle needs it, since its gcode entry is still indexed. The host upload
         // forwards the field and servers that don't use it ignore it. "All plates" points at the
-        // current plate — the bundle still carries every plate's gcode.
+        // current plate  -  the bundle still carries every plate's gcode.
         if (use_3mf) {
             const int plateindex = (plate_idx == PLATE_ALL_IDX ? get_partplate_list().get_curr_plate_index() : resolved_plate_idx) + 1;
             upload_job.upload_data.extended_info["plateindex"] = std::to_string(plateindex);
@@ -18764,28 +18713,22 @@ void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
 
     if (filament_dlg.ShowModal() == wxID_OK) {
         std::vector<int> new_filament_maps = filament_dlg.get_filament_maps();
-        BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: OK pressed, new_filament_maps size=" << new_filament_maps.size();
         std::vector<int> old_filament_maps = curr_plate->get_real_filament_maps(project_config);
-        BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: old_filament_maps size=" << old_filament_maps.size();
 
         FilamentMapMode  old_map_mode = curr_plate->get_filament_map_mode();
         FilamentMapMode  new_map_mode = filament_dlg.get_mode();
-        BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: old_mode=" << (int)old_map_mode << " new_mode=" << (int)new_map_mode;
 
         if (new_map_mode != old_map_mode) {
-            BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: setting filament_map_mode";
             curr_plate->set_filament_map_mode(new_map_mode);
         }
 
         if (new_map_mode == fmmManual){
-            BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: setting filament_maps for manual mode";
             curr_plate->set_filament_maps(new_filament_maps);
         }
 
         bool need_invalidate = (old_map_mode != new_map_mode ||
                                 old_filament_maps != new_filament_maps);
 
-        BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: need_invalidate=" << need_invalidate << " need_slice=" << need_slice;
         if (need_invalidate) {
             // BBL 6836da105: precheck filament printability before reslicing.
             // If a filament can't be printed (e.g., wrong nozzle), skip the
@@ -18799,14 +18742,7 @@ void Plater::open_filament_map_setting_dialog(wxCommandEvent &evt)
             else {
                 curr_plate->update_slice_result_valid_state(false);
                 set_plater_dirty(true);
-                BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: calling update()";
-                try {
-                    update();
-                    BOOST_LOG_TRIVIAL(info) << "filament_map_dialog: update() completed OK";
-                } catch (const std::exception& ex) {
-                    BOOST_LOG_TRIVIAL(error) << "filament_map_dialog: update() threw: " << ex.what();
-                    throw;
-                }
+                update();
             }
         }
     }

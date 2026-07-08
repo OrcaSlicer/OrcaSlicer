@@ -327,17 +327,14 @@ std::string AdaptivePAProcessor::validate_adaptive_pa_model(const std::string& m
             std::istringstream line_stream(line);
             std::string value;
             
-            // Parse PA
             if (!std::getline(line_stream, value, ','))
                 return "Line " + std::to_string(line_number) + ": missing PA value";
             double pa = std::stod(value);
-            
-            // Parse flow
+
             if (!std::getline(line_stream, value, ','))
                 return "Line " + std::to_string(line_number) + ": missing flow value";
             double flow = std::stod(value);
-            
-            // Parse acceleration
+
             if (!std::getline(line_stream, value, ','))
                 return "Line " + std::to_string(line_number) + ": missing acceleration value";
             double accel = std::stod(value);

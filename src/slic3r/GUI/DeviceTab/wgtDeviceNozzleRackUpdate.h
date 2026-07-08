@@ -136,7 +136,6 @@ private:
     ScalableBitmap* m_scaled_nozzle_image = nullptr;
     ScalableBitmap* m_scaled_nozzle_empty_image = nullptr;
     ScalableBitmap* m_refresh_icon = nullptr;
-    // ScalableBitmap* m_in_refreh_icon = nullptr;
     AnimaIcon* m_refreshing_icon = nullptr;
     ScalableBitmap* m_error_icon = nullptr;
 

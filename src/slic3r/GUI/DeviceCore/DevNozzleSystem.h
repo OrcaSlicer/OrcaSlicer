@@ -11,7 +11,6 @@
 
 namespace Slic3r
 {
-    // Previous definitions
    class MachineObject;
    class DevNozzleRack;
 

@@ -381,29 +381,6 @@ wxString TroubleshootDialog::GetSysInfoAll()
     return info;
 };
 
-/*
-wxString TroubleshootDialog::GetConfigStr()
-{
-    wxString config_path = wxGetApp().app_config->config_path();
-    std::ifstream file(config_path.ToUTF8().data());
-    if (!file.is_open())
-        return "{}";
-    nlohmann::json root;
-    try {
-        file >> root;
-    } catch (const nlohmann::json::exception&) {
-        return "{}";
-    }
-    for (const auto& key : std::vector<std::string>{"recent_projects", "recent", "custom_color_list", "orca_presets"})
-        root.erase(key);
-    if (root.contains("app")) {
-        for (const auto& key : std::vector<std::string>{"last_backup_path", "last_export_path", "download_path", "slicer_uuid", "preset_folder"})
-            root["app"].erase(key);
-    }
-    return wxString::FromUTF8(root.dump(4));
-};
-*/
-
 wxString TroubleshootDialog::GetProfilesOverview()
 {
     using ojson = nlohmann::ordered_json;
@@ -1042,7 +1019,7 @@ bool TroubleshootDialog::RestartApplication()
     CloseHandle(pi.hProcess);
     CloseHandle(pi.hThread);
 #else
-    // macOS / Linux — wxExecute with ASYNC so it doesn't block
+    // macOS / Linux - wxExecute with ASYNC so it doesn't block
     wxString cmd = wxString::Format(R"("%s")", execPath);
     long pid = wxExecute(cmd, wxEXEC_ASYNC);
     if (pid == 0) {
@@ -1390,10 +1367,6 @@ void TroubleshootDialog::on_dpi_changed(const wxRect& suggested_rect)
     Fit();
     Refresh();
 }
-
-//TroubleshootDialog::~TroubleshootDialog()
-//{
-//}
 
 } // namespace GUI
 } // namespace Slic3r

@@ -46,13 +46,11 @@ private:
     std::string m_apikey;
     std::string m_cafile;
     std::string m_username;
-    std::string m_host_type;
     std::string m_preset_name;
     std::string m_api_session_file_path;
 
     void load_api_session();
     bool save_api_session(const std::string &session, const std::string &email) const;
-    std::string parse_printer_model(const std::string& input) const;
     std::string make_url(const std::string &path) const;
     std::string get_api_auth_token(wxString &err) const;
     void login_with_token(boost::property_tree::ptree &resp, const std::string &token) const;

@@ -1051,15 +1051,10 @@ void PresetUpdater::priv::sync_printer_config(std::string http_url)
 
 bool PresetUpdater::priv::install_bundles_rsrc(const std::vector<std::string>& bundles, bool snapshot) const
 {
-	// Use the Core library function to install bundles
-	// This function is now in libslic3r so both Core and GUI can use it
 	if (!Slic3r::install_vendor_bundles_from_resources(bundles)) {
 		BOOST_LOG_TRIVIAL(error) << "Failed to install bundles from resources";
 		return false;
 	}
-
-	// Snapshot logic is currently commented out in perform_updates, so we don't need to handle it here
-	// If snapshot logic is needed in the future, it can be added here
 
 	return true;
 }

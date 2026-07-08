@@ -1074,8 +1074,6 @@ private:
         if (mesh.facets_count() > 1)
             calculate_convex_hull();
     }
-    // H2C TODO
-    // void  check_boldness_skew_min_max(float min_boldness, float max_boldness, float min_skew, float max_skew);
     ModelVolume(ModelObject *object, const std::shared_ptr<const TriangleMesh> &mesh, ModelVolumeType type = ModelVolumeType::MODEL_PART) : m_mesh(mesh), m_type(type), object(object)
     {
 		assert(this->id().valid());

@@ -67,7 +67,7 @@ static std::unique_ptr<noise::module::Module> get_noise_module(const FuzzySkinCo
 }
 
 // ---------------------------------------------------------------------------
-// Ripple noise — deterministic sine-wave displacement along the path arc length.
+// Ripple noise - deterministic sine-wave displacement along the path arc length.
 //
 // Unlike the other noise types, the ripple pattern is driven by cumulative arc
 // length along the print path rather than world-space (x, y, z) coordinates.
@@ -521,7 +521,7 @@ static std::vector<MergedFuzzyRegion> collect_merged_fuzzy_regions(const std::ve
     // Merge regions that produce identical fuzzy effects (differ only in type).
     // When the style (e.g. External) and a painted region (All) both fuzzify this loop
     // with the same noise parameters, merging their ExPolygons avoids splitting the
-    // perimeter at the painted boundary — eliminating discontinuity artifacts.
+    // perimeter at the painted boundary - eliminating discontinuity artifacts.
     std::vector<MergedFuzzyRegion> merged_regions;
     merged_regions.reserve(regions.size());
     for (const auto& region : regions) {
@@ -579,13 +579,13 @@ Polygon apply_fuzzy_skin(const Polygon& polygon, const PerimeterGenerator& perim
     // Merge regions that produce identical fuzzy effects (differ only in type).
     // When the style (e.g. External) and a painted region (All) both fuzzify this loop
     // with the same noise parameters, merging their ExPolygons avoids splitting the
-    // perimeter at the painted boundary — eliminating discontinuity artifacts.
+    // perimeter at the painted boundary - eliminating discontinuity artifacts.
     auto merged_regions = collect_merged_fuzzy_regions(regions, perimeter_generator.layer_id, loop_idx, is_contour);
     if (merged_regions.empty()) {
         return polygon;
     }
 
-    // Fast path: single merged region — apply directly without splitting
+    // Fast path: single merged region - apply directly without splitting
     if (merged_regions.size() == 1) {
         const auto& mr = merged_regions.front();
         if (mr.expolygons.empty()) {
@@ -695,11 +695,11 @@ void apply_fuzzy_skin(Arachne::ExtrusionLine* extrusion, const PerimeterGenerato
         // Merge regions that produce identical fuzzy effects (differ only in type).
         // When the style (e.g. External) and a painted region (All) both fuzzify this loop
         // with the same noise parameters, merging avoids splitting the perimeter at the
-        // painted boundary — eliminating discontinuity artifacts.
+        // painted boundary - eliminating discontinuity artifacts.
         auto merged_regions = collect_merged_fuzzy_regions(regions, perimeter_generator.layer_id, extrusion->inset_idx, is_contour);
         if (!merged_regions.empty()) {
 
-            // Fast path: single merged region — apply directly without splitting
+            // Fast path: single merged region - apply directly without splitting
             if (merged_regions.size() == 1 && merged_regions.front().expolygons.empty()) {
                 fuzzy_extrusion_line(extrusion->junctions, slice_z, *merged_regions.front().config);
                 return;

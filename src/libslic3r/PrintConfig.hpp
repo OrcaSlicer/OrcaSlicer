@@ -624,14 +624,8 @@ class StaticPrintConfig;
 // Minimum object distance for arrangement, based on printer technology.
 double min_object_distance(const ConfigBase &cfg);
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// H2C VariantOverrides — Per-Variant Parameter Storage
-// ═══════════════════════════════════════════════════════════════════════════════
-//
 // H2C: Variant-aware scalar overrides for multi-extruder printers.
-// VariantOverrides.hpp is included at the top of this file (before namespace Slic3r)
-// to avoid double-namespace issues. See VariantOverrides.hpp for full documentation.
-
+// See VariantOverrides.hpp for full documentation.
 
 // Slic3r dynamic configuration, used to override the configuration
 // per object, per modification volume or per printing material.
@@ -717,7 +711,7 @@ public:
     std::string get_filament_vendor() const;
     std::string get_filament_type() const;
 
-    // H2C: Variant overrides — read-only lookup table for nozzle variant arrays
+    // H2C: Variant overrides  -  read-only lookup table for nozzle variant arrays
     const VariantOverrides& variant_overrides() const { return m_variant_overrides; }
     VariantOverrides& variant_overrides() { return m_variant_overrides; }
 
@@ -739,19 +733,19 @@ public:
     void apply_variant_overrides(int variant_index, const std::set<std::string>& keys);
 
     // Save current scalar config values back into the variant overrides table.
-    // This is the inverse of apply_variant_overrides() — reads scalars from the
+    // This is the inverse of apply_variant_overrides()  -  reads scalars from the
     // live config and writes them to variant_overrides[variant_index], preserving
     // user edits before switching to a different nozzle variant.
     // force=true overwrites NaN/reset slots (for explicit user edits).
     void save_variant_overrides(int variant_index, const std::set<std::string>& keys, bool force = false);
 
     // H2C: Expand scalar config values + variant_overrides into vector options
-    // (e.g. ConfigOptionFloat → ConfigOptionFloats with one element per variant).
+    // (e.g. ConfigOptionFloat  ConfigOptionFloats with one element per variant).
     // This produces BBS-compatible arrays for JSON serialization.
     // Call this on a COPY of the config before save_to_json().
     void expand_variant_overrides_to_vectors();
 
-    // H2C: The inverse of expand — reads vector options from a loaded config
+    // H2C: The inverse of expand  -  reads vector options from a loaded config
     // and compresses them into scalar + variant_overrides.
     // active_variant_index: which element becomes the active scalar value.
     void compress_vectors_to_variant_overrides(int active_variant_index);

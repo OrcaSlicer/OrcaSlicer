@@ -27,10 +27,6 @@ void wgtMsgBox::CreateGUI()
     padding_sizer->Add(m_txt_label, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
     mainSizer->Add(padding_sizer, 0, wxALIGN_CENTER_VERTICAL | wxALL, 1);
 
-    //Button* btnClose = CreateCloseButton();
-    //wxButton* btnClose = CreateCloseButton();
-    //mainSizer->Add(btnClose, 0, wxALIGN_CENTER_VERTICAL);
-
     SetSizer(mainSizer);
     mainSizer->Fit(this);
 }

@@ -460,7 +460,6 @@ private:
     void set_extruders(const std::vector<unsigned int>& extruder_ids);
     std::string preamble();
     // BBS
-    size_t cur_config_index() const;
     std::string change_layer(coordf_t print_z);
     // Orca: pass the complete collection of region perimeters to the extrude loop to check whether the wipe before external loop
     // should be executed
@@ -594,9 +593,7 @@ private:
        methods. */
     Vec2d m_origin;
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // H2C VariantAwareConfig — Per-Extruder Speed Override Layer
-    // ═══════════════════════════════════════════════════════════════════════
+    // H2C VariantAwareConfig - Per-Extruder Speed Override Layer
     //
     // PROBLEM
     // -------
@@ -604,20 +601,20 @@ private:
     // only handles *array-typed* config options (ConfigOptionFloats, etc.) by
     // distributing values across extruder variant indices. Scalar speed options
     // (inner_wall_speed, outer_wall_speed, sparse_infill_speed, etc.) are
-    // ConfigOptionFloat — single values shared by all extruders. When the H2C
+    // ConfigOptionFloat - single values shared by all extruders. When the H2C
     // printer has two different nozzle variants (e.g. HighFlow on left,
     // Standard on right), each variant defines its own speed profile, but only
     // ONE scalar value can live in FullPrintConfig at a time. Additionally,
     // GCode::process_layer() calls m_config.apply(region_config) and
     // m_config.apply(object_config) for every object/instance, which resets
-    // scalar speeds back to the print-profile defaults — destroying any
+    // scalar speeds back to the print-profile defaults - destroying any
     // per-extruder speed that was set during toolchange.
     //
     // SOLUTION
     // --------
     // VariantAwareConfig wraps FullPrintConfig and shadows apply() so that
     // per-extruder variant speed overrides are automatically re-applied after
-    // EVERY config update. This makes the overlay "sticky" — no matter how
+    // EVERY config update. This makes the overlay "sticky" - no matter how
     // many times apply() is called with region/object configs, the correct
     // extruder-specific speeds are always restored on top.
     //
@@ -643,16 +640,14 @@ private:
     //    inner_wall_speed, outer_wall_speed, sparse_infill_speed,
     //    internal_solid_infill_speed, gap_infill_speed, initial_layer_speed,
     //    default_acceleration, travel_speed
-    //    (extensible — any scalar option that differs between variants)
-    //
-    // ═══════════════════════════════════════════════════════════════════════
+    //    (extensible - any scalar option that differs between variants)
     struct VariantAwareConfig : public FullPrintConfig
     {
-        // Per-physical-extruder overlay: maps extruder_id → DynamicPrintConfig
+        // Per-physical-extruder overlay: maps extruder_id to DynamicPrintConfig
         // containing the scalar speed overrides for that extruder's variant.
         std::map<unsigned int, DynamicPrintConfig> extruder_overrides;
 
-        // Per-object per-extruder overlay: object_id → extruder_id → overlay.
+        // Per-object per-extruder overlay: object_id  extruder_id  overlay.
         // Built in precompute, overrides global extruder_overrides when object is active.
         std::map<size_t, std::map<unsigned int, DynamicPrintConfig>> object_extruder_overrides;
 
@@ -662,13 +657,13 @@ private:
         // Currently active object (0 = no per-object override).
         size_t active_object_id = 0;
 
-        // Shadow ConfigBase::apply() — apply incoming config first, then
+        // Shadow ConfigBase::apply() - apply incoming config first, then
         // re-apply the active extruder's speed overlay on top. This ensures
         // that per-object/region config resets never wipe out variant speeds.
         void apply(const ConfigBase& other, bool ignore_nonexistent = false);
 
         // Switch the active extruder and immediately apply its overlay.
-        // Called during toolchanges: filament_id → physical extruder_id.
+        // Called during toolchanges: filament_id  physical extruder_id.
         void set_active_extruder(unsigned int eid);
 
         // Set active object for per-object VO overlay.

@@ -180,8 +180,6 @@ void PrinterWebView::load_url(wxString& url, wxString apikey)
     m_handler = create_printer_webview_handler(*this);
 
     if (this->IsShown()) {
-        //ORCA: m_url_deferred will be cleared on load success
-        //m_url_deferred.clear();
         m_browser->LoadURL(url);
     } else {
         m_url_deferred = url;

@@ -948,8 +948,6 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
         imgui_wrapper->calc_text_size(_L("Relative")).x,
         imgui_wrapper->calc_text_size(_L("Absolute")).x,
         imgui_wrapper->calc_text_size(_L("World")).x
-        //imgui_wrapper->calc_text_size(_L("Object")).x,
-        //imgui_wrapper->calc_text_size(_L("Part")).x
     }) + 3.f * space_size;
     float end_text_size = ImGui::CalcTextSize("°").x; // ORCA rotate gizmo not uses mm or inch
 

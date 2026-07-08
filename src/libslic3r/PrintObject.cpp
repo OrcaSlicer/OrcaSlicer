@@ -764,8 +764,6 @@ void PrintObject::contour_z()
     }
 
     m_print->set_status(40, L("Z contouring"));
-    BOOST_LOG_TRIVIAL(debug) << "Contouring in parallel - start";
-
     TriangleMesh mesh = this->m_model_object->raw_mesh();
     if (m_model_object->instances.size() != 1) {
         throw RuntimeError("ContourZ: unexpected number of instances");
@@ -800,7 +798,6 @@ void PrintObject::contour_z()
         }
     );
     m_print->throw_if_canceled();
-    BOOST_LOG_TRIVIAL(debug) << "Contouring in parallel - end";
 
     this->set_done(posContouring);
 }
@@ -1758,7 +1755,7 @@ void PrintObject::detect_surfaces_type()
             // Surfaces vector as its bot_surfs. Splitting into a read-only collect pass
             // followed by a write-only apply pass removes the cross-iteration aliasing.
             //
-            // Phase 1: read-only pass — collect each layer's stBottomBridge polygons into a
+            // Phase 1: read-only pass - collect each layer's stBottomBridge polygons into a
             // per-layer cache. No surfaces are mutated, so concurrent reads are safe.
             std::vector<Polygons> bridge_polys_per_layer(last);
             tbb::parallel_for(tbb::blocked_range<size_t>(0, last), [this, region_id, &bridge_polys_per_layer](const tbb::blocked_range<size_t> &range) {
@@ -1773,7 +1770,7 @@ void PrintObject::detect_surfaces_type()
                 }
             });
 
-            // Phase 2: write pass — each iteration mutates only m_layers[i+1]->slices.surfaces
+            // Phase 2: write pass  -  each iteration mutates only m_layers[i+1]->slices.surfaces
             // and reads its bridge polygons from the precomputed cache. Different iterations
             // never share a write target, so there is no aliasing between worker threads.
             tbb::parallel_for( tbb::blocked_range<size_t>(0, last), [this, region_id, &bridge_polys_per_layer](const tbb::blocked_range<size_t> &range) {
@@ -1804,38 +1801,8 @@ void PrintObject::detect_surfaces_type()
                     // We could reduce this slightly to account for innacurcies in the clipping operation.
                     // TODO: Monitor GitHub issues to check whether second bridge layers are ommited where they should be generated. If yes, reduce the filtering distance
 
-                    // ORCA: Same-layer-top guard.
-                    //
-                    // Collect every stTop polygon present at layer i+1 (this region) and
-                    // expand it by the same `offset_distance` used by the bridge filter
-                    // above. Note that `offset_distance` here is the full wall-band
-                    // distance for the region (external wall width + all configured
-                    // internal wall widths, i.e. external + (wall_loops - 1) × internal),
-                    // not a single perimeter width. Any candidate second-bridge area that
-                    // falls under this expanded mask will be subtracted out below.
-                    //
-                    // Why this exists: detect_surfaces_type() classifies a layer's "top"
-                    // surfaces as the geometry that is not covered by the layer above. Those
-                    // stTop regions often have small stInternal islands embedded in them.
-                    // The pre-existing wall-band filter (shrink_ex/offset_ex by
-                    // offset_distance) is supposed to throw those tiny islands away, but
-                    // its result is sensitive to Clipper's floating-point order of
-                    // operations: on macOS ARM the filter eats them, on Windows/Intel it
-                    // doesn't. Visible bridges then show up scattered across the printed
-                    // top surface.
-                    //
-                    // Expanding stTop by offset_distance and subtracting it from the
-                    // overlap makes the decision platform-independent: an island fully
-                    // surrounded by stTop disappears regardless of which Clipper happens
-                    // to be doing the math, while large stInternal regions away from the
-                    // top survive intact (the expansion only nibbles the wall-band depth
-                    // inward).
-                    //
-                    // Keep ExPolygons throughout so that any holes inside an stTop surface
-                    // are offset with the correct sign (positive offset shrinks holes /
-                    // grows the solid region). Using Polygons + expand() would treat the
-                    // contour and each hole as independent polygons and could distort the
-                    // mask.
+                    // ORCA: Same-layer-top guard - subtract stTop area (expanded by wall-band width)
+                    // from candidate bridges to make the result platform-independent across Clipper versions.
                     ExPolygons same_layer_top_expanded;
                     {
                         ExPolygons same_layer_top;
@@ -2612,41 +2579,9 @@ void PrintObject::bridge_over_infill()
             backup_surfaces[lidx] = {};
         }
 
-        // ORCA: Two-phase split (collect-then-apply) to eliminate a data race in
-        // the original single-phase parallel_for, where iteration `lidx` read
-        // m_layers[lidx-1]->regions()->fill_surfaces (its lower_layer) to compute
-        // `lightning_fill`, while iteration `lidx-1`, on an adjacent TBB block,
-        // was concurrently std::move-ing / emplace_back-ing into that same
-        // SurfaceCollection.
-        //
-        // Semantic choice — read ORIGINAL surfaces in Phase 1:
-        // The lower_layer that iteration `lidx` looks at is the *current* layer
-        // for iteration `lidx-1`, which Phase 2 will modify. We therefore have to
-        // pick whether Phase 1 sees that layer's pre-modification or
-        // post-modification state. We deliberately use the original (pre-modification)
-        // state, for two reasons:
-        //   1. The gate is asking "does the layer below use lightning sparse
-        //      infill?" — that's a property of the layer's configuration plus its
-        //      original sparse-infill classification. Phase 2's edits only carve
-        //      a small overhang-aligned slice of sparse into solid; they do not
-        //      change whether the layer is using lightning. The realistic gate
-        //      answer is the same either way.
-        //   2. Each layer's solid expansion is meant to give its OWN lower_layer
-        //      something to anchor lightning lines onto. Cascading the gate
-        //      across layers ("skip mine because the layer below already did
-        //      some") would invert that intent and force a serial Phase 2.
-        // The original racy code didn't actually implement either choice
-        // consistently — it returned whichever bytes happened to be in the
-        // vector when the thread arrived. This split makes the behaviour
-        // defined, deterministic across runs and platforms, and equivalent to
-        // a clean sequential implementation that gathered all gates first and
-        // then applied modifications.
-        //
-        // Phase 1: read-only — for each layer, determine whether its lower_layer
-        // has any stInternal area inside a lightning-infill region. That's the
-        // sole purpose of `lightning_fill` in the original code: a gate. Capture
-        // it once into a per-layer bool, derived from the original (unmodified)
-        // surfaces, so the gate is platform-independent and order-independent.
+        // ORCA: Two-phase split to eliminate a data race where iteration `lidx` read
+        // lower_layer fill_surfaces while iteration `lidx-1` was std::move-ing into them.
+        // Phase 1: read-only - determine per-layer whether lower_layer has lightning stInternal.
         std::vector<char> needs_lightning_expansion(this->layers().size(), 0);
         tbb::parallel_for(tbb::blocked_range<size_t>(0, this->layers().size()), [po = this, &surfaces_by_layer,
                                                                                  &needs_lightning_expansion](tbb::blocked_range<size_t> r) {
@@ -2668,7 +2603,7 @@ void PrintObject::bridge_over_infill()
             }
         });
 
-        // Phase 2: write-only — each iteration mutates only m_layers[lidx]'s
+        // Phase 2: write-only  -  each iteration mutates only m_layers[lidx]'s
         // fill_surfaces and never reads any other layer's surfaces. Different
         // iterations write to disjoint LayerRegion::fill_surfaces vectors, so
         // there is no aliasing between worker threads.
@@ -3405,7 +3340,7 @@ void PrintObject::bridge_over_infill()
         // ORCA: Two-phase to eliminate the same data race as the external-bridge
         // pass in detect_surfaces_type().
         //
-        // Phase 1: read-only — for each layer, collect its stInternalBridge polygons and
+        // Phase 1: read-only  -  for each layer, collect its stInternalBridge polygons and
         // the matching bridge angle into a per-layer cache.
         struct LayerBridgeCache {
             ExPolygons polys;
@@ -3413,7 +3348,7 @@ void PrintObject::bridge_over_infill()
             float      offset_distance = 0.0f;
             bool       has_bridge = false;
         };
-        // Guard against size_t underflow when the object has 0 or 1 layers — there is
+        // Guard against size_t underflow when the object has 0 or 1 layers  -  there is
         // no "layer above" to receive an extra bridge, so the whole pass is a no-op.
         const size_t last = (this->layers().size() < 2) ? 0 : this->layers().size() - 1;
         std::vector<LayerBridgeCache> caches(this->layers().size());
@@ -3448,7 +3383,7 @@ void PrintObject::bridge_over_infill()
             }
         });
 
-        // Phase 2: write — each iteration mutates only m_layers[lidx+1]->fill_surfaces and
+        // Phase 2: write  -  each iteration mutates only m_layers[lidx+1]->fill_surfaces and
         // pulls its bridge polygons from the precomputed cache. Different iterations never
         // touch the same fill_surfaces vector, so there is no aliasing between workers.
         tbb::parallel_for( tbb::blocked_range<size_t>(0, last), [this, &caches](const tbb::blocked_range<size_t>& r) {

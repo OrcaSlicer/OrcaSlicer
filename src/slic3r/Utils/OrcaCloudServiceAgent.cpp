@@ -259,12 +259,9 @@ std::string os_machine_id()
         }
     }
 #elif defined(__APPLE__)
-    // gethostuuid() returns the hardware-tied host UUID (same value as
-    // "Hardware UUID" in System Information). It persists across OS
-    // reinstalls and kernel updates. Do NOT use sysctl kern.uuid — that
-    // is the running kernel image's build UUID (from kernel_uuid_string
-    // in XNU), which rotates on every macOS/kernel update and would
-    // sign users out on every OS update.
+    // gethostuuid() returns the hardware-tied host UUID (same as "Hardware UUID" in System
+    // Information). Persists across reinstalls. Do NOT use sysctl kern.uuid - that is the
+    // kernel image's build UUID and rotates on every macOS update.
     uuid_t host_id;
     struct timespec wait = {0, 0};
     if (gethostuuid(host_id, &wait) == 0) {
@@ -2932,8 +2929,6 @@ int OrcaCloudServiceAgent::get_shared_bundle(const std::string& bundle_id, std::
     try {
         auto json = nlohmann::json::parse(response_body);
 
-        BOOST_LOG_TRIVIAL(info) << "get_shared_bundle: response: " << response_body;
-        BOOST_LOG_TRIVIAL(info) << "get_shared_bundle: shared_profile: " << json["shared_profiles"];
 
         // Parse the bundle metadata
         if (json.contains("id")) bundle_metadata->id = json["id"].get<std::string>();
@@ -2949,8 +2944,6 @@ int OrcaCloudServiceAgent::get_shared_bundle(const std::string& bundle_id, std::
         }
 
         for (auto& preset_object : json["shared_profiles"]) {
-            BOOST_LOG_TRIVIAL(info) << "shared profile object: " << preset_object;
-
             // Extract preset name and content
             std::string preset_name = preset_object.value("name", "");
             if (preset_name.empty()) {

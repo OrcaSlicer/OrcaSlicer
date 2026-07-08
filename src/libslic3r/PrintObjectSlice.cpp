@@ -1215,9 +1215,6 @@ void PrintObject::slice_volumes()
     // Is any ModelVolume multi-material painted?
     if (const auto& volumes = this->model_object()->volumes;
         m_print->config().filament_diameter.size() > 1 && // BBS
-    // H2C TODO
-    // InterlockingGenerator::generate_embedding_wall(this);
-    // m_print->throw_if_canceled();
         std::find_if(volumes.begin(), volumes.end(), [](const ModelVolume* v) { return v->is_model_part() && !v->mmu_segmentation_facets.empty(); }) != volumes.end()) {
 
         // If XY Size compensation is also enabled, notify the user that XY Size compensation

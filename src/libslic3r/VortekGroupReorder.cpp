@@ -16,10 +16,8 @@
 #include <cassert>
 #include <numeric>
 #include <unordered_map>
-#include <iostream>
 
 #include <libslic3r.h>
-#include <boost/log/trivial.hpp>
 
 namespace Slic3r {
 
@@ -298,7 +296,7 @@ Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult GroupReorder::refine_groups_b
                 } else {
                     int v_fil = v_fil_opt.value();
                     if (std::find(u_fils.begin(), u_fils.end(), v_fil) != u_fils.end())
-                        cost = -1; // No transition cost if already matching
+                        cost = -1;
                     else {
                         for (auto u_fil : u_fils)
                             cost += ctx.model_info.flush_matrix[ext_id][u_fil][v_fil];
@@ -540,7 +538,6 @@ void GroupReorder::reorder_extruders(
                     tool_ordering.m_print->set_nozzle_group_result(
                         std::make_shared<Slic3r::MultiNozzleUtils::LayeredNozzleGroupResult>(*new_layered_result_opt)
                     );
-                } else {
                 }
             } else {
                 Slic3r::reorder_filaments_for_multi_nozzle_extruder(

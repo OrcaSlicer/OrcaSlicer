@@ -34,9 +34,9 @@ enum class ToolHeadComponent {
 
 /// Name case style for toolhead display names
 enum class ToolHeadNameCase {
-    TitleCase    = 0,  // [0] "Main Extruder"  — panel titles, section headers
-    SentenceCase = 1,  // [1] "Main extruder"  — static box labels
-    LowerCase    = 2   // [2] "main extruder"  — inline text, sentence concatenation
+    TitleCase    = 0,  // [0] "Main Extruder"  - panel titles, section headers
+    SentenceCase = 1,  // [1] "Main extruder"  - static box labels
+    LowerCase    = 2   // [2] "main extruder"  - inline text, sentence concatenation
 };
 
 class dePrinterConfigFactory

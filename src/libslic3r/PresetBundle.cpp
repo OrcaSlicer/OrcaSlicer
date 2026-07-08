@@ -3012,7 +3012,7 @@ void PresetBundle::load_selections(AppConfig &config, const PresetPreferences& p
 
     std::string first_visible_filament_name;
     for (auto & fp : filament_presets) {
-        // Orca: also match the ORCA_DEFAULT_FILAMENT_PLACEHOLDER placeholder — see update_selections.
+        // Orca: also match the ORCA_DEFAULT_FILAMENT_PLACEHOLDER placeholder  -  see update_selections.
         if (auto it = filaments.find_preset_internal(fp); fp == ORCA_DEFAULT_FILAMENT_PLACEHOLDER || it == filaments.end() || !it->is_visible || !it->is_compatible) {
             if (first_visible_filament_name.empty())
                 first_visible_filament_name = filaments.first_compatible().name;
@@ -3064,7 +3064,7 @@ void PresetBundle::export_selections(AppConfig &config)
     auto printer_name = printers.get_selected_preset_name();
     config.set("presets", PRESET_PRINTER_NAME, printer_name);
 
-    // Don't persist settings for the built-in "Default Printer" placeholder —
+    // Don't persist settings for the built-in "Default Printer" placeholder  - 
     // it's only the initial state before a real printer is loaded/selected.
     // Also clean up any stale entry that other code paths (e.g. bed type change)
     // may have created for "Default Printer".
@@ -3649,7 +3649,7 @@ unsigned int PresetBundle::sync_ams_list(std::vector<std::pair<DynamicPrintConfi
         bool has_placeholders = std::any_of(ams_infos.begin(), ams_infos.end(),
                                              [](const AmsInfo& a) { return a.is_placeholder; });
         if (has_placeholders) {
-            // Orca: merge — keep existing filaments for empty slots
+            // Orca: merge  -  keep existing filaments for empty slots
             auto exist_colors       = filament_color->values;
             auto exist_color_types  = filament_color_type->values;
             auto exist_presets      = this->filament_presets;
@@ -4607,7 +4607,7 @@ void PresetBundle::load_config_file_config(const std::string &name_or_path, bool
                         [](const std::string &s) { return s.empty(); });
     if (stats_useful) {
         auto parsed = get_extruder_nozzle_stats(nozzle_stats_ptr->values);
-        // H2C self-heal — two cases that need re-derivation, not the saved values:
+        // H2C self-heal - two cases that need re-derivation, not the saved values:
         //   (a) all-zero counts (older Orca builds without nozzle-inventory tracking
         //       persisted `Standard#0` for every extruder)
         //   (b) any extruder's total saved count is strictly below the profile's
@@ -5202,7 +5202,7 @@ std::pair<PresetsConfigSubstitutions, size_t> PresetBundle::load_vendor_configs_
             }
             config = *default_config;
             config.apply(config_src);
-            // H2C: merge variant overrides — parent survives from default_config copy,
+            // H2C: merge variant overrides  -  parent survives from default_config copy,
             // child's overrides win on conflict.  The `config = *default_config` above
             // already copied parent's variant_overrides.  We overlay child's on top.
             {
@@ -5484,7 +5484,7 @@ void PresetBundle::update_multi_material_filament_presets(size_t to_delete_filam
 
     auto* nozzle_diameter = static_cast<const ConfigOptionFloats*>(printers.get_edited_preset().config.option("nozzle_diameter"));
     size_t num_extruders  = nozzle_diameter->values.size();
-    // Orca: For SEMM printers (e.g. H2C), the user controls the filament count freely —
+    // Orca: For SEMM printers (e.g. H2C), the user controls the filament count freely  - 
     // don't force it to match nozzle count. Only enforce for true multi-tool (non-SEMM) printers.
     bool is_semm = printers.get_edited_preset().config.opt_bool("single_extruder_multi_material");
     if (!is_semm && num_extruders > num_filaments) { // Verify validity of the current filament presets.
@@ -5994,15 +5994,8 @@ bool PresetBundle::check_duplicate_filament_subtypes() const
 
     // Print the troubleshooting guidance once, not per error, to keep the log readable.
     if (found_duplicates)
-        BOOST_LOG_TRIVIAL(error) << "\n========================================\n"
-            << "How to fix \"Ambiguous AMS filament match\" errors: make sure only ONE filament"
-               " preset with a given filament_id is compatible with each printer. Either"
-               "\n    (a) remove the overlapping printer from a preset's \"compatible_printers\""
-               " list (e.g. a '@printer' preset over-claiming a nozzle that already has its own"
-               " '@printer 0.x nozzle' preset), or"
-               "\n    (b) if these are genuinely different materials, give each its own"
-               " \"filament_id\" - a common cause is a wrong \"inherits\" pointing at another"
-               " material's @base preset.";
+        BOOST_LOG_TRIVIAL(error) << "Ambiguous AMS filament match: multiple presets share a filament_id for the same printer."
+            " Fix: remove overlapping compatible_printers entries or assign unique filament_id values.";
 
     return found_duplicates;
 }

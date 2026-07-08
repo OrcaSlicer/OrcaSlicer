@@ -19,11 +19,6 @@ TriangleMesh TriangleMeshDeal::smooth_triangle_mesh(const TriangleMesh& mesh, bo
         Eigen::MatrixX3i                     F;
 
         ok = true;
-        // TODO: add validation checks for the input mesh? Is this really necessary?
-        // if ( <not OK> ) {
-        //    ok = false;
-        //    return TriangleMesh();
-        // }
         loop(OV, OF, V, F);
 
         indexed_triangle_set its;

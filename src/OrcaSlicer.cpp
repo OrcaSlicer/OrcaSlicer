@@ -1193,7 +1193,7 @@ int CLI::run(int argc, char **argv)
 
 #ifdef __WXGTK__
     // ------------------------------------------------------------------
-    // Linux backend selection — runtime, based on GDK_BACKEND env var.
+    // Linux backend selection - runtime, based on GDK_BACKEND env var.
     //
     //   GDK_BACKEND unset (DEFAULT)    Wayland path.
     //                                  GTK auto-picks Wayland on Wayland
@@ -1270,7 +1270,7 @@ int CLI::run(int argc, char **argv)
             // wxGLCanvas::IsDisplaySupported() because the GLX backend
             // cannot access an X11 display. Force X11 mode in that case.
             // NOTE: Do NOT remove this block even after enabling
-            // wxHAS_EGL in the build — it protects against builds where
+            // wxHAS_EGL in the build  -  it protects against builds where
             // deps were not rebuilt.
             #if !defined(wxHAS_EGL) || !wxHAS_EGL
             {

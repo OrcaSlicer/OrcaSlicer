@@ -43,14 +43,6 @@ static std::string s_get_diameter_str(const std::string& diameter)
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed to boost::lexical_cast: " << diameter;
         return diameter;
     }
-
-    try {
-        float dia = std::stof(diameter);
-        return s_get_diameter_str(dia);
-    } catch (...) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " std::stof: " << diameter;
-        return diameter;
-    }
 }
 
 
@@ -283,7 +275,7 @@ void DevNozzleMappingCtrl::ParseAutoNozzleMapping(const json& print_jj)
             }
 
             m_flush_weight_base = GetFlushWeight(m_obj);
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": get_auto_nozzle_mapping: " << m_result;
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": get_auto_nozzle_mapping: " << m_result;
         }
     }
 }
@@ -415,7 +407,7 @@ wxString DevNozzleMappingCtrl::GetMappedNozzlePosStrByFilaId(int fila_id, const 
     return !display_str.empty() ? display_str : default_str;
 }
 
-// 小炒肉，支持多喷头打印机的换料清洗体积计算
+// Flush weight calculation for multi-nozzle printers.
 float DevNozzleMappingCtrl::GetFlushWeight(Slic3r::MachineObject* obj) const
 {
     auto plater = Slic3r::GUI::wxGetApp().plater();

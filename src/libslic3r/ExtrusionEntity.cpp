@@ -652,7 +652,6 @@ ExtrusionRole ExtrusionEntity::string_to_role(const std::string_view role)
         return erNone;
 }
 
-// ExtrusionPathContoured implementation
 ExtrusionEntity *ExtrusionPathContoured::clone() const {
     return new ExtrusionPathContoured(*this);
 }

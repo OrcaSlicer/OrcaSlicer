@@ -15,7 +15,7 @@ class PresetCollection;
 // Inherits MoonrakerPrinterAgent for all communication / certificates / discovery /
 // binding / print-job operations. Overrides fetch_filament_info() to query the
 // K-series CFS over its port-9999 WebSocket, convert each loaded slot to an
-// AmsTrayData entry, and publish via the base-class build_ams_payload() — the
+// AmsTrayData entry, and publish via the base-class build_ams_payload() - the
 // same shape used by QidiPrinterAgent and SnapmakerPrinterAgent.
 //
 // Model detection delegated to CrealityPrint::supports_multi_color_print() (PR #13291).

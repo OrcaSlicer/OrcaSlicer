@@ -2766,7 +2766,7 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat { 0. });
 
-    // machine_prepare_compensation_time — time for G29 bed leveling.
+    // machine_prepare_compensation_time - time for G29 bed leveling.
     // Already present in JSON profiles (fdm_machine_common=260, P2S=370) but was never
     // registered in C++ config, so GCodeProcessor hardcoded 260s for all machines.
     def = this->add("machine_prepare_compensation_time", coFloat);
@@ -2806,7 +2806,7 @@ void PrintConfigDef::init_fff_params()
     // Orca H2C port: machine_hotend_change_time and group_algo_with_time were inserted
     // mid-block above by neo-jayfeather, accidentally rebinding `def` so that
     // filament_diameter's tooltip/sidetext/min/default landed on group_algo_with_time
-    // (a Bool option getting a Floats default → ConfigurationError on startup).
+    // (a Bool option getting a Floats default  ConfigurationError on startup).
     def           = this->add("machine_hotend_change_time", coFloat);
     def->label    = L("Hotend change time");
     def->tooltip  = L("Time to change hotend.");
@@ -3521,7 +3521,7 @@ void PrintConfigDef::init_fff_params()
     //def->label = L("Adaptive layer height");
     //def->category = L("Quality");
     //def->tooltip = L("Enabling this option means the height of every layer except the first will be automatically calculated "
-    //    "during slicing according to the slope of the model’s surface.\n"
+    //    "during slicing according to the slope of the model's surface.\n"
     //    "Note that this option only takes effect if no prime tower is generated in current plate.");
     //def->set_default_value(new ConfigOptionBool(0));
 
@@ -9508,7 +9508,7 @@ int DynamicPrintConfig::update_values_from_single_to_multi(DynamicPrintConfig& m
                 break;
             }
             default:
-                // Scalar (non per-variant) option — nothing to expand per extruder. Expected for the
+                // Scalar (non per-variant) option  -  nothing to expand per extruder. Expected for the
                 // scalar print options in print_options_with_variant; keep at debug to avoid log spam.
                 BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", Line %1%: non per-variant (scalar) option, skipping remap for %2%")%__LINE__%key;
                 break;
@@ -9753,7 +9753,7 @@ int DynamicPrintConfig::update_values_from_multi_to_multi(DynamicPrintConfig& ne
             break;
         }
         default:
-            // Scalar (non per-variant) option — nothing to expand per extruder. Expected for the
+            // Scalar (non per-variant) option  -  nothing to expand per extruder. Expected for the
             // scalar print options in print_options_with_variant; keep at debug to avoid log spam.
             BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", Line %1%: non per-variant (scalar) option, skipping remap for %2%") % __LINE__ % key;
             break;
@@ -9872,7 +9872,7 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
                 break;
             }
             default:
-                // Scalar (non per-variant) option — nothing to expand per extruder. Expected for the
+                // Scalar (non per-variant) option  -  nothing to expand per extruder. Expected for the
                 // scalar print options in print_options_with_variant; keep at debug to avoid log spam.
                 BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << boost::format(", Line %1%: non per-variant (scalar) option, skipping remap for %2%")%__LINE__%key;
                 break;
@@ -10043,21 +10043,6 @@ int DynamicPrintConfig::get_extruder_nozzle_volume_count(int extruder_count, std
                 nozzle_volume_types[i].push_back(iter.first);
         }
     }
-    /*auto opt_extruder_nozzle_volume_types = dynamic_cast<const ConfigOptionInts*>(this->option("extruder_nozzle_volume_type"));
-    if (opt_extruder_nozzle_count && opt_extruder_nozzle_volume_types
-        && (opt_extruder_nozzle_count->values.size() == extruder_count)) {
-        count = 0;
-        for (int i = 0; i < extruder_count;  i++)
-        {
-            if (opt_extruder_nozzle_count->values[i] == 1)
-                count += 1;
-            else {
-                std::unordered_set<int> unique(opt_extruder_nozzle_volume_types->values.begin() + count,
-                    opt_extruder_nozzle_volume_types->values.begin() + count + opt_extruder_nozzle_count->values[i]);
-                count += unique.size();
-            }
-        }
-    }*/
     return count;
 }
 
@@ -10301,24 +10286,6 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
             variant_index.resize(1);
             ExtruderType extruder_type = (ExtruderType)(opt_extruder_type->get_at(extruder_id - 1));
             NozzleVolumeType nozzle_volume_type = (NozzleVolumeType)(opt_nozzle_volume_type->get_at(extruder_id - 1));
-            // H2C TODO
-            // if (nozzle_volume_type == nvtHybrid) {
-            //     if (extruder_nozzle_volume_count > extruder_count) {
-            //         //use the one passed
-            //         nozzle_volume_type = filament_nvt;
-            //     }
-            //     else {
-            //         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", Line %1%: nozzle_volume_type is default in unsupported machine.")%__LINE__;
-            //         assert(false);
-            //     }
-            // }
-            // else if (nozzle_volume_type != filament_nvt) {
-            //     if (extruder_nozzle_volume_count > extruder_count) {
-            //         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: nozzle_volume_type is %2%,  not equal to filament_nvt %3%")%__LINE__ %nozzle_volume_type %filament_nvt;
-            //         //assert(false);
-            //     }
-            // }
-
             //variant index
             variant_index[0] = get_index_for_extruder(extruder_id, id_name, extruder_type, nozzle_volume_type, variant_name);
 

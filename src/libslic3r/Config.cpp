@@ -793,7 +793,7 @@ double ConfigBase::get_abs_value(const t_config_option_key &opt_key, double rati
         return static_cast<const ConfigOptionFloatOrPercent*>(raw_opt)->get_abs_value(ratio_over);
     // Multi-variant (per-extruder/nozzle) forms: resolve the first variant. Since #13712
     // ("nozzle flow variant") several options are stored as per-variant vectors; legacy scalar
-    // callers would otherwise throw — crashing the slice, or, where the throw is caught upstream,
+    // callers would otherwise throw - crashing the slice, or, where the throw is caught upstream,
     // leaving the result uninitialized (garbage line widths/speeds in the preview). Resolving
     // element 0 matches the single-variant value (compress_from_vectors also defaults to index 0).
     if (raw_opt->type() == coFloatsOrPercents) {

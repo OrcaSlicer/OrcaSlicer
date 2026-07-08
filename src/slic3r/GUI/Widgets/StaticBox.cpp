@@ -200,7 +200,7 @@ void StaticBox::doRender(wxDC& dc)
                     return (int)(ceil(logical * scale) / scale);
                 };
 
-                int deflate = snap(border_width / 2.0);  // at 175%: snap(0.5) = snap→1/1.75 ≈ 1
+                int deflate = snap(border_width / 2.0);
                 rc.x      += deflate;
                 rc.y      += deflate;
                 rc.width  -= deflate * 2;

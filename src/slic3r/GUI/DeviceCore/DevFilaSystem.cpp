@@ -373,7 +373,7 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                         extuder_id = DevUtil::get_flag_bits(info, 8, 4);
 
                         if (extuder_id == 0xE && obj->GetFilaSwitch()->IsInstalled()) {
-                            /* AMS is routed through FTS — can feed both extruders */
+                            /* AMS is routed through FTS - can feed both extruders */
                             int bind_switch_in = DevUtil::get_flag_bits(info, 24, 4);
                             if (bind_switch_in == 0 || bind_switch_in == 1) {
                                 binded_extruder_set = { MAIN_EXTRUDER_ID, DEPUTY_EXTRUDER_ID };
@@ -384,7 +384,7 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                 binded_switcher_pos = DevFilaSwitch::SwitchPos::POS_IN_A;
                             }
                         } else if (extuder_id == 0xE) {
-                            /* FTS not installed — keep AMS with empty binding */
+                            /* FTS not installed - keep AMS with empty binding */
                             binded_extruder_set = {};
                         } else {
                             binded_extruder_set = { extuder_id };

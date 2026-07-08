@@ -704,10 +704,6 @@ namespace Slic3r
             r_nodes_capacity = std::vector<int>(m_k, m_elem_count);
         }
         std::vector<int> l_nodes_capacity(l_nodes.size(),1);
-        //for (size_t idx = 0; idx < center.size(); ++idx)
-        //    if (center[idx] != -1)
-        //        l_nodes_capacity[center[idx]] = 0;
-
 
         // Each group can receive up to m_elem_count materials at most, so the flow from r_nodes to sink is adjusted to m_elem_count.
         MinFlushFlowSolver M(distance_matrix, l_nodes, r_nodes, placeable_limits, unplaceable_limits, l_nodes_capacity, r_nodes_capacity, r_nodes_group_capacity);
@@ -722,12 +718,6 @@ namespace Slic3r
         for (size_t idx = 0; idx < center.size(); ++idx)
             if (center[idx] != -1)
                 assert(labels[center[idx]] == idx);
-
-        //for (size_t idx = 0; idx < center.size(); ++idx) {
-        //    if (center[idx] != -1) {
-        //        labels[center[idx]] = idx;
-        //    }
-        //}
 
         // If there are materials that have not been grouped in the last step, assign them to the default group.
         for (size_t idx = 0; idx < labels.size(); ++idx) {
@@ -1204,17 +1194,8 @@ namespace Slic3r
             cached_groups.emplace_back(std::move(curr_group));
         }
 
-        // 如果归一化，没法处理边界情况
         {
-            // double min_flush = std::min_element(cached_groups.begin(),cached_groups.end(),[](const CachedGroup& a, const CachedGroup& b) {return a.flush < b.flush;})->flush;
-            // double max_flush = std::max_element(cached_groups.begin(),cached_groups.end(),[](const CachedGroup& a, const CachedGroup& b) {return a.flush < b.flush;})->flush;
-            // double min_time = std::min_element(cached_groups.begin(),cached_groups.end(),[](const CachedGroup& a, const CachedGroup& b) {return a.time < b.time;})->time;
-            // double max_time = std::max_element(cached_groups.begin(),cached_groups.end(),[](const CachedGroup& a, const CachedGroup& b) {return a.time < b.time;})->time;
-
-            int count = 0;
             for (CachedGroup& cached_group : cached_groups) {
-                //double norm_flush = (max_flush - min_flush == 0) ? 0 : (cached_group.flush - min_flush) / (max_flush - min_flush);
-                //double norm_time = (max_time - min_time == 0) ? 0 : (cached_group.time - min_time) / (max_time - min_time);
                 cached_group.score = evaluate_score(cached_group.flush, cached_group.time, ctx.speed_info.group_with_time);
 
                 if(cached_group.prefer_level > best_group.prefer_level || (cached_group.prefer_level == best_group.prefer_level && cached_group.score < best_group.score)){
@@ -1225,7 +1206,6 @@ namespace Slic3r
                     MemoryedGroup mg(cached_group.filament_map, cached_group.score, cached_group.prefer_level);
                 update_memoryed_groups(mg, ctx.group_info.max_gap_threshold, memoryed_groups);
             }
-                BOOST_LOG_TRIVIAL(info) << "Filament group" << count++ << ", score : " << cached_group.score << " , flush : " << cached_group.flush << " , time : " << cached_group.time << " , prefer : " << cached_group.prefer_level;
         }
         }
 

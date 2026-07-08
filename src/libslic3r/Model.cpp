@@ -701,9 +701,6 @@ unsigned int Model::update_print_volume_state(const BuildVolume &build_volume)
     unsigned int num_printable = 0;
     for (ModelObject* model_object : this->objects)
         num_printable += model_object->update_instances_print_volume_state(build_volume);
-    //BBS: add logs for build_volume
-    const BoundingBoxf3& print_volume = build_volume.bounding_volume();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", print_volume {%1%, %2%, %3%} to {%4%, %5%, %6%}, got %7% printable istances")        %print_volume.min.x() %print_volume.min.y() %print_volume.min.z()%print_volume.max.x() %print_volume.max.y() %print_volume.max.z() %num_printable;
     return num_printable;
 }
 
@@ -2373,9 +2370,6 @@ double ModelObject::get_instance_max_z(size_t instance_idx) const
 unsigned int ModelObject::update_instances_print_volume_state(const BuildVolume &build_volume)
 {
     unsigned int num_printable = 0;
-    //BBS: add logs for build_volume
-    //const BoundingBoxf3& print_volume = build_volume.bounding_volume();
-    //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", print_volume {%1%, %2%, %3%} to {%4%, %5%, %6%}")    //    %print_volume.min.x() %print_volume.min.y() %print_volume.min.z()%print_volume.max.x() %print_volume.max.y() %print_volume.max.z();
     for (ModelInstance* model_instance : this->instances) {
         if (model_instance->update_print_volume_state(build_volume) == ModelInstancePVS_Inside) {
             //BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", object %1%'s instance inside print volum")%this->name;
@@ -2993,25 +2987,6 @@ void ModelInstance::transform_polygon(Polygon* polygon) const
     // CHECK_ME -> Is the following correct ?
     polygon->scale(get_scaling_factor(X), get_scaling_factor(Y)); // scale around polygon origin
 }
-// H2C TODO
-// void ModelVolume::check_boldness_skew_min_max(float min_boldness, float max_boldness, float min_skew, float max_skew)
-// {
-//     float temp_custom_boldness = m_text_info.text_configuration.style.prop.boldness.value_or(0.f);
-//     if (temp_custom_boldness > max_boldness) {
-//         m_text_info.text_configuration.style.prop.boldness = 0.f;
-//     } else if (temp_custom_boldness < min_boldness) {
-//         m_text_info.text_configuration.style.prop.boldness = 0.f;
-//     }
-
-//     float temp_custom_skew  = m_text_info.text_configuration.style.prop.skew.value_or(0.f);
-//     if (temp_custom_skew > max_skew) {
-//         m_text_info.text_configuration.style.prop.skew = 0.f;
-//     }
-//     else if(temp_custom_skew < min_skew) {
-//         m_text_info.text_configuration.style.prop.skew = 0.f;
-//     }
-// }
-
 
 //BBS
 // BBS set print speed table and find maximum speed

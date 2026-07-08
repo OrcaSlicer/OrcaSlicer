@@ -272,10 +272,7 @@ std::vector<WaveSeed> wave_seeds(
         if (front != back && front.z() >= 0 && back.z() >= 0) {
             // Very rare case when both endpoints intersect boundary ExPolygons in existing points.
             // So the ZFillFunction callback hasn't been called.
-            // Both endpoints coincide with existing polygon vertices, so the
-            // ZFillFunction callback was never called.  With complex geometry
-            // this is common because source and boundary contours share many
-            // vertices.  Determine src_id / boundary_id from Z coordinates
+            // Determine src_id / boundary_id from Z coordinates
             // (and fall back to an AABB-tree point-in-polygon test when a
             // boundary ID is not directly available).
             coord_t src_z = -1, boundary_z = -1;
@@ -293,7 +290,7 @@ std::vector<WaveSeed> wave_seeds(
                 if (boundary_z >= 0) {
                     out.push_back({ src_id, uint32_t(boundary_z - 1), ClipperZUtils::from_zpath(path) });
                 } else {
-                    // Source ID known but boundary unknown – use AABB tree.
+                    // Source ID known but boundary unknown - use AABB tree.
                     if (aabb_tree.empty())
                         aabb_tree = build_aabb_tree_over_expolygons(boundary);
                     int boundary_id = sample_in_expolygons(aabb_tree, boundary, Point(front.x(), front.y()));
@@ -303,7 +300,7 @@ std::vector<WaveSeed> wave_seeds(
                 ++ iseed;
                 continue;
             }
-            // Unable to determine source ID – drop the segment.
+            // Unable to determine source ID - drop the segment.
             continue;
         } else
         if (front == back && (front.z() < idx_boundary_end)) {

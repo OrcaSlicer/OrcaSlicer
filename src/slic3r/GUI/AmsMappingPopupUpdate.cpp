@@ -163,17 +163,6 @@ void AmsMapingPopup::update(MachineObject* obj,
                     m_left_tips->SetLabel(m_single_tip_text);
                     m_right_tips->SetLabel("");
                 }
-            } else if (m_show_type == ShowType::LEFT_AND_RIGHT_DYNAMIC) {
-                m_left_marea_panel->Show(false);
-                m_left_extra_slot->Show(false);
-                m_right_extra_slot->Show(false);
-                m_left_split_ams_sizer->Show(false);
-                m_right_split_ams_sizer->Show(false);
-                m_right_split_ext_sizer->Show(false);
-                m_split_line_panel->Hide();
-
-                m_right_marea_panel->Show();
-                m_right_marea_panel->Enable(true);
             }
         }
     }

@@ -185,10 +185,8 @@ private:
     PrinterCallbacks m_printer_callbacks;
     bool enable_track = false;
 
-    // Sub-agent composition
-    // We support dynamic switching of printer agents (e.g. for different printer types), but the cloud agent is fixed at construction since
-    // it's tied to the user's cloud account OrcaCloudServiceAgent is designed to be the primary cloud agent, but we support the possibility
-    // of adding third-party cloud agents (e.g. BBLCloudServiceAgent) and delegating calls to them as needed
+    // Sub-agent composition: printer agent can switch dynamically; cloud agent is fixed at construction.
+    // OrcaCloudServiceAgent is the primary cloud agent; third-party cloud agents (e.g. BBLCloudServiceAgent) may be delegated.
     std::map<std::string, std::shared_ptr<ICloudServiceAgent>> m_cloud_agents;
     std::shared_ptr<IPrinterAgent> m_printer_agent;
     std::string m_printer_agent_id;

@@ -314,28 +314,13 @@ public:
     // Simplify by arc fitting (for ZAA arc fitting support)
     void simplify_by_fitting_arc(double tolerance);
 
-    // Reverse the polyline
     void reverse();
-
-    // Split polyline at given index
     bool split_at_index(const size_t index, Polyline3 *p1, Polyline3 *p2) const;
-
-    // Split polyline at a given point (2D)
     void split_at(Point &point, Polyline3* p1, Polyline3* p2) const;
-
-    // Split polyline at a given point (3D)
     void split_at(Point3 &point, Polyline3* p1, Polyline3* p2) const;
-
-    // Split polyline at a given length
     bool split_at_length(const double length, Polyline3 *p1, Polyline3 *p2) const;
-
-    // Append a single point
     void append(const Point3& point);
-
-    // Append another Polyline3
     void append(const Polyline3& src);
-
-    // Append before (prepend)
     void append_before(const Point3& point);
 
     // Arc fitting support - fitting_result stores arc path data

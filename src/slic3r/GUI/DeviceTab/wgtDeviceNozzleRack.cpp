@@ -1,12 +1,5 @@
-//**********************************************************/
-/* File: wgtDeviceNozzleRack.cpp
-*  Description: The panel with rack info
-*
-*  \n class wgtDeviceNozzleRackArea;
-*  \n class wgtDeviceNozzleRackNozzleItem;
-*  \n class wgtDeviceNozzleRackToolHead;
-*  \n class wgtDeviceNozzleRackPos;
-//**********************************************************/
+// File: wgtDeviceNozzleRack.cpp
+// Description: The panel with rack info (wgtDeviceNozzleRackArea, NozzleItem, ToolHead, Pos)
 
 #include "wgtDeviceNozzleRack.h"
 #include "wgtDeviceNozzleRackUpdate.h"
@@ -414,35 +407,6 @@ StaticBox* wgtDeviceNozzleRackArea::CreateNozzleBox(const std::vector<int> nozzl
     return nozzle_box;
 }
 
-static void s_update_title(const std::shared_ptr<DevNozzleRack> rack, wgtDeviceNozzleRackTitle* title_label)
-{
-    wxString title = _L("Induction Hotend Rack");
-    if (rack && (rack->GetReadingCount() > 0)) {
-        wxString pending = ": " + _L("Reading") + wxString::Format(" %d/%d", rack->GetReadingIdx(), rack->GetReadingCount());
-        title += pending;
-    }
-
-    title_label->SetLabel(title);
-}
-
-#if 0
-static void s_update_readall_btn(const std::shared_ptr<DevNozzleRack> rack, Button* btn)
-{
-    wxString label = _L("Read All");
-    if (rack && rack->HasUnreliableNozzles())
-    {
-        label += "*";
-    }
-
-    if (btn->GetLabel() != label)
-    {
-        btn->SetLabel(label);
-    }
-
-    btn->Enable(rack->CtrlCanReadAll());
-};
-#endif
-
 void wgtDeviceNozzleRackArea::UpdateNozzleItems(const std::unordered_map<int, wgtDeviceNozzleRackNozzleItem*>& nozzle_items,
                                                 std::shared_ptr<DevNozzleRack> nozzle_rack)
 {
@@ -489,7 +453,6 @@ void wgtDeviceNozzleRackArea::UpdateRackInfo(std::weak_ptr<DevNozzleRack> rack)
     m_nozzle_rack           = rack;
     const auto& nozzle_rack = rack.lock();
     if (nozzle_rack) {
-        // s_update_title(nozzle_rack, m_title_nozzle_rack);
         UpdateNozzleItems(m_nozzle_items, nozzle_rack);
         m_rack_pos_panel->UpdateRackPos(nozzle_rack);
         m_btn_read_all->Enable(nozzle_rack->CtrlCanReadAll());
@@ -781,7 +744,7 @@ void wgtDeviceNozzleRackNozzleItem::CreateGui()
     m_nozzle_selected_bitmap = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, WX_DIP_SIZE(20, 20));
     m_nozzle_selected_bitmap->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
 
-    // Color swatch — solid color indicator for loaded filament
+    // Color swatch - solid color indicator for loaded filament
     m_color_swatch = new wxPanel(this, wxID_ANY, wxDefaultPosition, WX_DIP_SIZE(14, 14));
     m_color_swatch->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_color_swatch->Show(false);

@@ -198,9 +198,6 @@ void GLGizmoFuzzySkin::on_render_input_window(float x, float y, float bottom_lim
         icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon, ImGui::TriangleButtonIcon, ImGui::FillButtonIcon };
     std::array<wxString, 4> tool_tips = { _L("Circle"), _L("Sphere"), _L("Triangle"), _L("Fill") };
     for (int i = 0; i < tool_ids.size(); i++) {
-        //std::string  str_label = std::string("");
-        //std::wstring btn_name  = icons[i] + boost::nowide::widen(str_label);
-
         if (i != 0) ImGui::SameLine((empty_button_width + m_imgui->scaled(1.75f)) * i + m_imgui->scaled(1.5f));
 
         bool is_active = m_current_tool == tool_ids[i];

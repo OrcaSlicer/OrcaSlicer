@@ -96,7 +96,7 @@ bool check_file(const char* target, const char* filename)
     file.seekg(0, std::ios::beg);
     std::vector<char> buffer(size);
 
-    // Fix: cast size to streamsize explicitly — streampos and streamsize are
+    // Fix: cast size to streamsize explicitly - streampos and streamsize are
     // distinct types and passing streampos where streamsize is expected is
     // implementation-defined behaviour on some platforms.
     if (!file.read(buffer.data(), static_cast<std::streamsize>(size))) {
@@ -134,11 +134,11 @@ int main(int argc, char const *argv[])
 
     const char* target = argv[1];
     
-    // Collect all files — support @responsefile syntax
+    // Collect all files - support @responsefile syntax
     std::vector<std::string> files;
     for (int i = 2; i < argc; i++) {
         if (argv[i][0] == '@') {
-            // Response file — read paths from it, one per line
+            // Response file - read paths from it, one per line
             std::ifstream rsp(argv[i] + 1);
             if (!rsp.is_open()) {
                 std::cerr << "Could not open response file: " << (argv[i]+1) << std::endl;

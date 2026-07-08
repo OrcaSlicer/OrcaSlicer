@@ -8,7 +8,6 @@
 #include "wgtDeviceNozzleRackUpdate.h"
 
 #include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
-// #include "slic3r/GUI/DeviceCore/DevUpgrade.h" // BBL-only header; not ported into Orca yet.
 
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/GUI_App.hpp"

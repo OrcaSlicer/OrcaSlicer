@@ -297,7 +297,7 @@ std::shared_ptr<HttpServer::Response> HttpServer::auth_handle_request(const std:
     // third-party (Google) OAuth so that the access token never travels through
     // the URL. We exchange the ticket via the network plugin's get_my_token,
     // then run the same get_my_profile + change_user flow as access_token.
-    // Skip entirely on legacy plugins missing bambu_network_get_my_token —
+    // Skip entirely on legacy plugins missing bambu_network_get_my_token -
     // those clients pin X-BBL-Client-Version so the server stays on the legacy
     // ?access_token= redirect path and never sends ?ticket= here.
     const std::string ticket = url_get_param(url, "ticket");

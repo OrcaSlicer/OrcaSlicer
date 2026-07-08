@@ -1192,16 +1192,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         m_ori_full_print_config = new_full_config;
         new_full_config.update_values_to_printer_extruders_for_multiple_filaments(new_full_config, filament_options_with_variant,  "filament_self_index", "filament_extruder_variant");
     }
-    // else {
-    //     int extruder_count;
-    //     bool different_extruder = new_full_config.support_different_extruders(extruder_count);
-    //     print_variant_index.resize(extruder_count);
-    //     for (int e_index = 0; e_index < extruder_count; e_index++)
-    //     {
-    //         print_variant_index[e_index] = e_index;
-    //     }
-    // }
-
     auto opt_filament_map = new_full_config.option<ConfigOptionInts>("filament_map");
     std::vector<int> filament_maps = opt_filament_map ? opt_filament_map->values : std::vector<int>();
 
@@ -1242,9 +1232,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 //full_config_diff.erase("filament_nozzle_map");
                 ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_nozzle_map", true);
                 ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_nozzle_map", true);
-                {
-                    auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
-                }
                 old_opt->set(new_opt);
                 m_config.filament_nozzle_map = *new_opt;
             }
@@ -1281,21 +1268,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         if (print_diff_set.size() != print_diff.size())
             print_diff.assign(print_diff_set.begin(), print_diff_set.end());
     }
-    // H2C TODO
-    // //filament_map_2
-    // m_config.filament_map_2.values = filament_maps;
-    // auto opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(new_full_config.option("extruder_type"));
-    // auto opt_filament_volume_maps = dynamic_cast<const ConfigOptionInts*>(new_full_config.option("filament_volume_map"));
-    // auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(new_full_config.option("nozzle_volume_type"));
-    // for (int index = 0; index < filament_maps.size(); index++)
-    // {
-    //     ExtruderType extruder_type = (ExtruderType)(opt_extruder_type->get_at(filament_maps[index] - 1));
-    //     NozzleVolumeType nozzle_volume_type = (NozzleVolumeType)(opt_nozzle_volume_type->get_at(filament_maps[index] - 1));
-    //     if ((extruder_volume_type_count > extruder_count) && opt_filament_volume_maps && (opt_filament_volume_maps->values.size() > index))
-    //             nozzle_volume_type = (NozzleVolumeType)(opt_filament_volume_maps->values[index]);
-    //     m_config.filament_map_2.values[index] = new_full_config.get_index_for_extruder(filament_maps[index], "print_extruder_id", extruder_type, nozzle_volume_type, "print_extruder_variant");
-    // }
-
     // H2C fix: capture and clear the auto-filament-map flag BEFORE any diff logic.
     // If set, process() just finished and updated m_config/m_full_print_config with
     // auto-computed filament maps + variant-resolved values.  The GUI-side config
@@ -1305,7 +1277,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     const bool suppress_restart_for_auto_filament_map = m_has_auto_filament_map_result;
     if (suppress_restart_for_auto_filament_map) {
         m_has_auto_filament_map_result = false;
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": auto_filament_map flag captured — will suppress restart";
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": auto_filament_map flag captured - will suppress restart";
     }
 
     // Do not use the ApplyStatus as we will use the max function when updating apply_status.
@@ -1330,8 +1302,6 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     size_t num_extruders  = m_config.filament_diameter.size();
     bool   num_extruders_changed  = false;
     if (! full_config_diff.empty()) {
-        //BBS: add more logs
-        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: found full_config_diff changed")%__LINE__;
         update_apply_status(this->invalidate_step(psGCodeExport));
         m_placeholder_parser.clear_config();
         // clear_config() wiped the constructor-set "version"; restore it for custom G-code.

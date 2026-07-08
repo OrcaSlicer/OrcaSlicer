@@ -117,16 +117,6 @@ static const float g_purge_volume_one_time = 135.f;
 static const int g_max_flush_count = 4;
 static const size_t g_max_label_object = 64;
 
-static bool is_bambu_x2d_printer(const FullPrintConfig &config)
-{
-    return config.printer_model.value == "Bambu Lab X2D";
-}
-
-static int hotend_id_for_gcode_placeholder(const FullPrintConfig &config, int hotend_id)
-{
-    return is_bambu_x2d_printer(config) ? -1 : hotend_id;
-}
-
 static std::string patch_h2c_change_filament_gcode(const std::string &gcode_str) {
     std::string result;
     std::istringstream stream(gcode_str);
@@ -1167,8 +1157,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (need_travel_after_change_filament_gcode) {
             // After a filament change, the travel path leading to the wipe tower:
             // start_point inside the previous printed object,
-            // end_point at the tower’s start_pos or at the starting point of the tower’s detour path.
-            // In this case, disable “avoid crossing perimeters” to prevent inserting additional path points inside the previous printed object.
+            // end_point at the tower's start_pos or at the starting point of the tower's detour path.
+            // In this case, disable "avoid crossing perimeters" to prevent inserting additional path points inside the previous printed object.
             gcodegen.m_avoid_crossing_perimeters.disable_once();
 
             // move to start_pos for wiping after toolchange
@@ -1404,7 +1394,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             }
 
             if (tcr.nozzle_already_loaded) {
-                // H2C: nozzle already holds the correct filament — skip the full
+                // H2C: nozzle already holds the correct filament  -  skip the full
                 // set_extruder() which would invoke change_filament_gcode (M620/M632/M633).
                 // Only emit a T-code to update firmware and writer state.
                 int nozzle_id_for_tc = -1;
@@ -3094,11 +3084,11 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     // Let the start-up script prime the 1st printing tool.
 
-    // ─── H2C: use BBL placeholder parser setup (via group_result) ───
+    // H2C: use BBL placeholder parser setup (via group_result)
     if (is_h2c_multi_nozzle) {
         Vortek::GCode::init(*this, initial_extruder_id, initial_non_support_extruder_id, first_filaments, first_non_support_filaments);
     } else {
-    // ─── Standard Orca placeholder parser setup ───
+    // Standard Orca placeholder parser setup
     auto match_physical_extruder_for_each_filament = [](std::vector<int> &filaments, const FullPrintConfig &config) {
         std::vector<int> physicial_first_filaments;
         physicial_first_filaments.resize(filaments.size());
@@ -3468,7 +3458,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
     if (is_bbl_printers) {
         if (is_h2c_multi_nozzle) {
-            // ─── H2C: BBL filament_start_gcode + VT comment ───
+            //  H2C: BBL filament_start_gcode + VT comment 
             Vortek::GCode::write_filament_start(*this, initial_extruder_id, initial_non_support_extruder_id, file, print);
         } else {
             m_writer.init_extruder(initial_non_support_extruder_id);
@@ -3669,7 +3659,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
                         file.write(this->set_extruder(initial_extruder_id, initial_layer_print_height, true));
                         // H2C: Switch active extruder overlay for sequential mode tool change.
-                        // Translate sidebar position → physical via physical_extruder_map.
+                        // Translate sidebar position  physical via physical_extruder_map.
                         {
                             unsigned int sidebar_eid = (unsigned int)get_extruder_id(initial_extruder_id);
                             unsigned int phys_eid = m_config.physical_extruder_map.get_at(sidebar_eid);
@@ -3747,7 +3737,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
                 // 2. Travel to first_layer_height + z_hop rather than just first_layer_height.
                 //    Without z_hop the writer's Z is already at first_layer_height when change_layer()
                 //    is later called, so will_move_z() returns false and change_layer() skips the
-                //    retract — shifting G1 E-.4 to appear after M73/M991 instead of before.
+                //    retract  -  shifting G1 E-.4 to appear after M73/M991 instead of before.
                 if (is_bbl_printers) {
                     // default_acceleration/travel_acceleration are per-extruder-variant; index by the initial extruder.
                     const size_t init_extruder_idx   = get_extruder_id(initial_extruder_id);
@@ -4090,12 +4080,6 @@ void GCode::check_placeholder_parser_failed()
         throw Slic3r::PlaceholderParserError(msg);
     }
 }
-
-size_t GCode::cur_config_index() const
-{
-    return m_config.filament_map_2.get_at(m_writer.filament()->id());
-}
-
 
 size_t GCode::cur_extruder_index() const
 {
@@ -4897,7 +4881,7 @@ std::string GCode::generate_skirt(const Print &print,
         Flow layer_skirt_flow = print.skirt_flow().with_height(float(skirt_done.back() - (skirt_done.size() == 1 ? 0. : skirt_done[skirt_done.size() - 2])));
         double mm3_per_mm = layer_skirt_flow.mm3_per_mm();
         // Decide where to start looping:
-        // - If it’s the first layer or if we do NOT want a single-wall skirt/draft shield,
+        // - If it's the first layer or if we do NOT want a single-wall skirt/draft shield,
         //   start from loops.first (all loops).
         // - Otherwise, if single_loop_draft_shield == true (and not the first layer),
         //   start from loops.second - 1 (just one loop).
@@ -5168,8 +5152,6 @@ LayerResult GCode::process_layer(
         config.set_key_value("max_layer_z", new ConfigOptionFloat(m_max_layer_z));
     }
     //BBS: set layer time fan speed after layer change gcode
-    // Note: This marker is never processed by CoolingBuffer or any downstream stage.
-    // For BBL printers it creates noise in the G-code, so skip it.
     if (!is_BBL_Printer())
         gcode += ";_SET_FAN_SPEED_CHANGING_LAYER\n";
 
@@ -7265,7 +7247,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     if (path.role() == erExternalPerimeter
         && m_config.resonance_avoidance.value) {
 
-        // if our original speed was above “max”, disable RA for this loop
+        // if our original speed was above "max", disable RA for this loop
         if (ref_speed > m_config.max_resonance_avoidance_speed.value) {
             m_resonance_avoidance = false;
         }
@@ -8585,7 +8567,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     dyn_config.set_key_value("outer_wall_volumetric_speed", new ConfigOptionFloat(outer_wall_volumetric_speed));
     dyn_config.set_key_value("previous_extruder", new ConfigOptionInt(old_filament_id));
     dyn_config.set_key_value("next_extruder", new ConfigOptionInt((int)new_filament_id));
-    // H2C: firmware auto-remap — always pass -1, not the resolved group_id.
+    // H2C: firmware auto-remap - always pass -1, not the resolved group_id.
     dyn_config.set_key_value("next_hotend", new ConfigOptionInt(-1));
     dyn_config.set_key_value("old_extruder_variant", new ConfigOptionString(old_extruder_variant_str));
     dyn_config.set_key_value("new_extruder_variant", new ConfigOptionString(new_extruder_variant_str));
@@ -8732,7 +8714,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
 
         // H2C Vortek: correct filament temperatures, feedrates, and retract lengths
         // that were computed above from the compressed m_config (2-slot) but need
-        // to reflect the correct logical slot (0–6 for a 7-slot project).
+        // to reflect the correct logical slot (0-6 for a 7-slot project).
         if (is_h2c_multi_nozzle) {
             Vortek::GCode::patch_toolchange_dyn_config(
                 dyn_config, *this, old_filament_id, (int)new_filament_id, filament_area);
@@ -8767,7 +8749,7 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     //BBS: don't add T[next extruder] if there is no T cmd on filament change
      //We inform the writer about what is happening, but we may not use the resulting gcode.
     std::string toolchange_command = m_writer.toolchange(new_filament_id, new_nozzle_id);
-    // H2C: also check for "T" prefix — change_filament_gcode uses "T<id> H<hotend>"
+    // H2C: also check for "T" prefix  -  change_filament_gcode uses "T<id> H<hotend>"
     // but BBL toolchange_prefix() returns "M1020 S".
     if (!custom_gcode_changes_tool(toolchange_gcode_parsed, m_writer.toolchange_prefix(), new_filament_id)
         && !custom_gcode_changes_tool(toolchange_gcode_parsed, "T", new_filament_id))

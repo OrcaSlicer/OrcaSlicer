@@ -1513,7 +1513,7 @@ FilamentChangeStats ToolOrdering::get_filament_change_stats(FilamentChangeMode m
 }
 
 // ============================================================================
-// GroupReorder + refine + plan — EXTRACTED to VortekGroupReorder.cpp
+// GroupReorder + refine + plan  -  EXTRACTED to VortekGroupReorder.cpp
 // Declarations stay in ToolOrdering.hpp. Forward decls for formerly-static
 // functions (refine_groups_by_Nozzle_State, plan_filament_mapping_and_order_by_combo_ranges)
 // are in H2CGroupReorder.hpp.
@@ -1537,7 +1537,7 @@ ToolOrdering::LayerData ToolOrdering::collect_layer_and_unprintable_data()
 }
 
 // refine_groups_by_Nozzle_State, VectorHash, plan_filament_mapping_and_order_by_combo_ranges
-// — EXTRACTED to VortekGroupReorder.cpp (included via .hpp above)
+//  -  EXTRACTED to VortekGroupReorder.cpp (included via .hpp above)
 
 void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first_layer)
 {
@@ -1907,7 +1907,7 @@ void WipingExtrusions::set_extruder_override(
     copies_vector.resize(num_of_copies, -1);
 
     if (copies_vector[copy_id] != -1)
-        std::cout << "ERROR: Entity extruder overriden multiple times!!!\n"; // A debugging message - this must never happen.
+        assert(false && "Entity extruder overridden multiple times");
 
     copies_vector[copy_id] = extruder;
 }

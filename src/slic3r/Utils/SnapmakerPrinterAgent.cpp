@@ -198,7 +198,7 @@ bool SnapmakerPrinterAgent::fetch_filament_info(std::string dev_id)
 
                 if (!filament_id.empty()) {
                     tray.tray_info_idx = filament_id;
-                    BOOST_LOG_TRIVIAL(warning) << "Filament sync: Found manufacturer-specific profile for slot " << i << ": "
+                    BOOST_LOG_TRIVIAL(debug) << "Filament sync: Found manufacturer-specific profile for slot " << i << ": "
                                                << filament_id;
                 } else {
                     tray.tray_info_idx = bundle->filaments.filament_id_by_type(tray.tray_type);

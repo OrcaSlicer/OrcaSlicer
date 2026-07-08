@@ -3,7 +3,6 @@
 #include "GUI_App.hpp"
 #include "ConfigWizard.hpp"
 #include "I18N.hpp"
-#include "GUI_App.hpp"
 #include <libslic3r/Config.hpp>
 #include <wx/app.h>
 #include <wx/event.h>
@@ -12,7 +11,6 @@
 #include <wx/sizer.h>
 #include <libslic3r/PresetBundle.hpp>
 #include <wx/string.h>
-#include <slic3r/GUI/Widgets/WebView.hpp>
 #include <miniz.h>
 #include <slic3r/GUI/MsgDialog.hpp>
 namespace Slic3r { namespace GUI {
@@ -42,11 +40,8 @@ void ExportPresetBundleDialog::LoadUrl(wxString& url)
 {
     if (!m_browser)
         return;
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << " enter, url=" << url.ToStdString();
     WebView::LoadUrl(m_browser, url);
     m_browser->SetFocus();
-
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " exit";
 }
 
 void ExportPresetBundleDialog::on_dpi_changed(const wxRect& suggested_rect) { this->Refresh(); }
@@ -352,7 +347,7 @@ void ExportPresetBundleDialog::OnExportData(const wxString& path, const wxString
     // JS BuildResultPayload uses: machines / filaments / presets
     const auto machine_names  = get_names("machines");
     const auto filament_names = get_names("filaments");
-    const auto process_names  = get_names("presets"); // or "process" if your JS sends that
+    const auto process_names  = get_names("presets");
 
     std::vector<Preset*> selected_printers;
     for (const auto& name : machine_names) {
@@ -509,7 +504,6 @@ void ExportPresetBundleDialog::OnExportData(const wxString& path, const wxString
 
     // Release ZIP file to write structure and related resources
     mz_zip_writer_end(&zip_archive);
-    // if (ExportCase::CASE_COUNT != save_result) return save_result;
     BOOST_LOG_TRIVIAL(info) << "ZIP archive created successfully";
 }
 

@@ -489,7 +489,7 @@ void ObjectList::create_objects_ctrl()
         // The preceding single click has already synced the canvas selection via
         // wxEVT_DATAVIEW_SELECTION_CHANGED, so we just trigger the zoom here.
         // No-op in slice-preview mode: the camera is shared with the editor
-        // canvas, so zooming there would move the preview view too — and the
+        // canvas, so zooming there would move the preview view too - and the
         // preview canvas's own toolbar button intentionally resets to the bed.
         const wxDataViewItem item = event.GetItem();
         if (!item.IsOk())

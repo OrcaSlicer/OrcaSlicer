@@ -7894,7 +7894,6 @@ void GLCanvas3D::_render_cast_shadows_on_plate(const Transform3d& view_matrix, c
     if (shader == nullptr)
         return;
 
-    // Fixed light direction (pointing downward at an angle)
     // Drive shadow direction from current view angle: define light in eye-space,
     // then transform it to world-space with inverse view rotation.
     const Vec3d light_dir_eye = Vec3d(-0.4574957, 0.4574957, 0.7624929).normalized();
@@ -7924,9 +7923,7 @@ void GLCanvas3D::_render_cast_shadows_on_plate(const Transform3d& view_matrix, c
     GLboolean prev_stencil_test = GL_FALSE;
     glsafe(::glGetBooleanv(GL_STENCIL_TEST, &prev_stencil_test));
 
-    // ============================================================
     // PASS 0: Create stencil mask for the build plate (value = 1)
-    // ============================================================
     glsafe(::glEnable(GL_STENCIL_TEST));
     glsafe(::glStencilMask(0xFF));
     glsafe(::glClearStencil(0));
@@ -8002,10 +7999,7 @@ void GLCanvas3D::_render_cast_shadows_on_plate(const Transform3d& view_matrix, c
         }
     }
     
-    // ============================================================
-    // PASS 1: Project object shadows onto plate (increment stencil to 2)
-    // ============================================================
-    // Only render where plate exists (stencil == 1), then increment to 2
+    // PASS 1: Project object shadows onto plate (only where stencil == 1, increment to 2)
     glsafe(::glStencilFunc(GL_EQUAL, 1, 0xFF));
     glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_INCR));
     
@@ -8021,8 +8015,7 @@ void GLCanvas3D::_render_cast_shadows_on_plate(const Transform3d& view_matrix, c
         if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
             continue;
         
-        // CRITICAL FIX: Apply shadow projection in object's local space, then to world, then to view
-        // This ensures shadows are cast from the object's actual position
+        // Apply shadow projection in object's local space, then to world, then to view
         Matrix4d world_matrix = volume->world_matrix().matrix();
         
         // Project the shadow - this flattens the geometry onto Z=0 in WORLD space
@@ -8037,9 +8030,7 @@ void GLCanvas3D::_render_cast_shadows_on_plate(const Transform3d& view_matrix, c
         volume->model.render(shader);
     }
     
-    // ============================================================
     // PASS 2: Draw shadow color where stencil == 2
-    // ============================================================
     glsafe(::glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE));
     glsafe(::glStencilFunc(GL_EQUAL, 2, 0xFF));
     glsafe(::glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP));
@@ -8063,9 +8054,7 @@ void GLCanvas3D::_render_cast_shadows_on_plate(const Transform3d& view_matrix, c
     
     shader->stop_using();
     
-    // ============================================================
-    // RESTORE STATE
-    // ============================================================
+    // Restore OpenGL state
     glsafe(::glEnable(GL_DEPTH_TEST));
     glsafe(::glDepthMask(prev_depth_mask));
     glsafe(::glDepthFunc(prev_depth_func));

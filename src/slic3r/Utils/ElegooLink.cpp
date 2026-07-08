@@ -170,12 +170,6 @@ namespace Slic3r {
             }
         }
 
-        // NOTE (merge): host parsing was moved into Http::get_host_from_url /
-        // Http::get_host_header_value by the K2 discovery refactor on this branch, so the
-        // former ElegooLink-local get_host_from_url/get_host_from_url_no_port helpers are gone.
-        // main only added the CC2 serial-number lookup below; it is kept here and routed through
-        // Http::get_host_header_value, which has the same host:port semantics the SN cache key
-        // relies on.
         std::string lookup_cc2_serial_impl(const std::string& printer_model,
                                            const std::string& print_host,
                                            const std::string& apikey)
@@ -405,7 +399,7 @@ namespace Slic3r {
     std::string ElegooLink::get_sn() const
     {
         // Panel IPC calls this on every load with a 10s timeout. Never block on HTTP
-        // here — URL sn= and dev_sn must be enough; HTTP is only for get_print_host_webui.
+        // here - URL sn= and dev_sn must be enough; HTTP is only for get_print_host_webui.
         return lookup_cc2_serial_impl(m_printerModel, m_host, m_apikey);
     }
 

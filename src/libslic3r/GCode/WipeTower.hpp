@@ -353,14 +353,14 @@ public:
         float               wipe_dist;
         float               tower_interface_pre_extrusion_dist = 0.f;
         float               tower_interface_pre_extrusion_length = 0.f;
-        // ── BBL port: PETG-specific pre-extrusion offset (FTS path) ────────────────────────
+        // BBL port: PETG-specific pre-extrusion offset (FTS path).
         // Ported from BambuStudio WipeTower::FilamentParameters (line 345).
-        // Distinct from `tower_interface_pre_extrusion_dist` — this field is ALWAYS populated
+        // Distinct from `tower_interface_pre_extrusion_dist` - this field is ALWAYS populated
         // from filament_tower_interface_pre_extrusion_dist config, even when
         // enable_tower_interface_features=false. It is used by the PETG+FTS code path
         // in get_next_pos() to offset the wipe-tower start position outside the tower,
         // reducing the risk of ooze blobs on the first PETG layer after a tool change.
-        // Value: 0 disables the shift; typically set to 2–4 mm in filament profiles.
+        // Value: 0 disables the shift; typically set to 2-4 mm in filament profiles.
         float               filament_petg_pre_extrusion_offset_dist = 0.f;
         float               tower_ironing_area = 4.f;
         float               tower_interface_purge_length = 0.f;
@@ -426,7 +426,7 @@ public:
     void set_first_layer_flow_ratio(const float flow_ratio);
 
     ToolChangeResult   tool_change_new(size_t new_tool, bool solid_change = false, bool solid_nozzlechange=false);
-    // Orca H2C port: nozzle_change_new removed — call sites adapted to nozzle_change()
+    // Orca H2C port: nozzle_change_new removed - call sites adapted to nozzle_change()
     NozzleChangeResult ramming(int old_filament_id, int new_filament_id, bool solid_change = false, bool extruder_change = true); // extruder_chang means nozzle_change
     ToolChangeResult   finish_layer_new(bool extrude_perimeter = true, bool extrude_fill = true, bool extrude_fill_wall = true);
     ToolChangeResult   finish_block(const WipeTowerBlock &block, int filament_id, bool extrude_fill = true);
@@ -482,7 +482,7 @@ private:
     float  m_travel_speed       = 0.f;
     float  m_first_layer_speed  = 0.f;
     float  m_max_speed          = 5400.f;  // Maximum wipe tower print speed (mm/min), configurable via wipe_tower_max_purge_speed
-    float  m_first_layer_max_speed = 5400.f;  // H2C: first layer cap — BBL always uses 5400 (90 mm/s) on the first layer
+    float  m_first_layer_max_speed = 5400.f;  // H2C: first layer cap - BBL always uses 5400 (90 mm/s) on the first layer
     size_t m_first_layer_idx    = size_t(-1);
 
     std::pair<std::vector<double>,std::vector<double>> m_filaments_change_length;//[0]extruder change [1]nozzle change
@@ -511,7 +511,7 @@ private:
     bool            m_adhesion                  = true;
     GCodeFlavor     m_gcode_flavor;
     bool                      m_is_multiple_nozzle = false;
-    // ── BBL port: Filament Track Switcher flag ───────────────────────────────────────────
+    //  BBL port: Filament Track Switcher flag 
     // Ported from BambuStudio PrintConfig (GCodeConfig section):
     //   ((ConfigOptionBool, has_filament_switcher))
     // In BambuStudio, PrintConfig is a StaticConfig with a direct .has_filament_switcher member;
@@ -619,7 +619,7 @@ private:
             float nozzle_change_length{0};
 			// BBS
 			float purge_volume;
-            // H2C: nozzle already holds the correct filament — no ramming/M632 needed
+            // H2C: nozzle already holds the correct filament - no ramming/M632 needed
             bool  nozzle_already_loaded{false};
             ToolChange(size_t old, size_t newtool, float depth=0.f, float ramming_depth=0.f, float fwl=0.f, float wv=0.f, float wl = 0, float pv = 0)
 				: old_tool{ old }, new_tool{ newtool }, required_depth{ depth }, ramming_depth{ ramming_depth }, first_wipe_line{ fwl }, wipe_volume{ wv }, wipe_length{ wl }, purge_volume{ pv } {}

@@ -2082,7 +2082,7 @@ wxBoxSizer *StatusBasePanel::create_nozzle_rack_group(wxWindow *parent)
     m_nozzle_rack_box->Layout();
     m_nozzle_rack_box->Fit();
 
-    // Hidden by default — shown only for printers with rack support (H2C)
+    // Hidden by default - shown only for printers with rack support (H2C)
     m_nozzle_rack_panel->Hide();
     m_nozzle_rack_box->Hide();
 

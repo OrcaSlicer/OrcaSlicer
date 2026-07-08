@@ -285,7 +285,7 @@ class SplashScreen : public wxSplashScreen
 {
 public:
     SplashScreen(wxPoint pos = wxDefaultPosition)
-        // No wxSPLASH_TIMEOUT — the splash is closed explicitly once MainFrame
+        // No wxSPLASH_TIMEOUT - the splash is closed explicitly once MainFrame
         // is shown. The previous 1500 ms auto-timeout closed the splash long
         // before init finished, leaving the user staring at a frozen blank
         // screen during the slow load_presets / new MainFrame phases.
@@ -2869,23 +2869,6 @@ bool GUI_App::on_init_inner()
 #endif
 
     // Orca: we allow user to pin the version of plugin, so we don't need to remove old networking plugins when the app version is updated
-    //
-    // if (m_last_config_version) {
-    //     int last_major = m_last_config_version->maj();
-    //     int last_minor = m_last_config_version->min();
-    //     int last_patch = m_last_config_version->patch()/100;
-    //     std::string studio_ver = SLIC3R_VERSION;
-    //     int cur_major = atoi(studio_ver.substr(0,2).c_str());
-    //     int cur_minor = atoi(studio_ver.substr(3,2).c_str());
-    //     int cur_patch = atoi(studio_ver.substr(6,2).c_str());
-    //     BOOST_LOG_TRIVIAL(info) << boost::format("last app version {%1%.%2%.%3%}, current version {%4%.%5%.%6%}")
-    //         %last_major%last_minor%last_patch%cur_major%cur_minor%cur_patch;
-    //     if ((last_major != cur_major)
-    //         ||(last_minor != cur_minor)
-    //         ||(last_patch != cur_patch)) {
-    //         remove_old_networking_plugins();
-    //     }
-    // }
 
     //Orca: write OrcaSlicer version
     if(app_config->get("version") != SoftFever_VERSION) {
@@ -6147,10 +6130,6 @@ void GUI_App::reload_settings()
             // Re-apply any edited config that was wiped during vendor loading or sync.
             auto restore_snapshot = [](PresetCollection& col, const PresetSnapshot& snap, const char* label) {
                 auto& ed = col.get_edited_preset();
-                bool changed = !ed.config.equals(snap.config);
-                BOOST_LOG_TRIVIAL(info) << "reload_settings restore " << label
-                    << ": snap_name=" << snap.name << " snap_dirty=" << snap.dirty
-                    << " current_name=" << ed.name << " changed=" << changed;
                 if (!snap.dirty) return; // nothing to protect, let cloud updates stand
                 Preset* p = col.find_preset(snap.name, false, true);
                 if (p && p->name == snap.name) {
@@ -6643,8 +6622,6 @@ void GUI_App::update_single_bundle(wxCommandEvent& evt)
             std::string initial_version = preset_bundle->bundles.m_bundles[bundle_id].version;
             preset_bundle->bundles.ReadUnlock();
 
-            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << __LINE__ << "ORCA : CallAfter from update_single_bundle function actually updating subscribed presets";
-
             preset_bundle->bundles.WriteLock();
 
             preset_bundle->update_subscribed_presets(*app_config, bundle_presets, remote_metadata, ForwardCompatibilitySubstitutionRule::Enable);
@@ -6963,7 +6940,7 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
     m_sync_update_thread = Slic3r::create_thread(
         [this, progressFn, cancelFn, finishFn, t = std::weak_ptr<int>(m_user_sync_token)] {
             // finishFn tears down the progress dialog (and clears the re-entrancy guard), so it
-            // must run on every exit path — otherwise an early bail-out would leak the modal
+            // must run on every exit path - otherwise an early bail-out would leak the modal
             // dialog and leave the guard stuck, blocking all later manual syncs.
             if (!m_agent) { finishFn(false); return; }
 
@@ -7225,7 +7202,7 @@ void GUI_App::stop_sync_user_preset()
 
 void GUI_App::restart_sync_user_preset()
 {
-    // A manual sync's progress dialog is already on screen — ignore repeat triggers so a
+    // A manual sync's progress dialog is already on screen - ignore repeat triggers so a
     // second modal dialog can never stack. This matters most offline: each attempt blocks
     // on a long HTTP timeout and can't be cancelled mid-request, and on macOS the global
     // menu bar stays clickable even while the dialog disables the main window, so without
@@ -7235,7 +7212,7 @@ void GUI_App::restart_sync_user_preset()
 
     if (!m_user_sync_token) {
         // No sync running. If a restart helper is already in flight it will
-        // start the new sync once the old thread is joined — don't race it.
+        // start the new sync once the old thread is joined - don't race it.
         if (!m_restart_sync_pending)
             start_sync_user_preset(true);
         return;
@@ -7243,7 +7220,7 @@ void GUI_App::restart_sync_user_preset()
 
     // Resetting the token signals the old thread to stop (cancelFn checks
     // t.expired(), so it exits after its current HTTP request completes).
-    // A helper thread joins the old thread off the UI thread — no freeze —
+    // A helper thread joins the old thread off the UI thread - no freeze -
     // then starts the new sync via CallAfter once the old one is fully done.
     m_user_sync_token.reset();
     m_restart_sync_pending = true;
@@ -7277,11 +7254,11 @@ void GUI_App::force_push_conflicting_preset(const std::string& setting_id)
 
     // The 409 left this preset on "hold", which get_user_presets() skips. Restore it to
     // "update" so the next push-sync re-includes it and consumes the queued force flag.
-    // (We must NOT pull from the cloud here as the Pull path does — that would overwrite
+    // (We must NOT pull from the cloud here as the Pull path does - that would overwrite
     // the local changes the user is trying to force-push.)
     // For a -3 tombstone on a newly created preset the on-disk setting_id is EMPTY (it only
     // gets assigned after a successful first push), so derive it on the fly from the preset
-    // name and stamp it onto the preset — otherwise sync_with_lock's `id == preset.setting_id`
+    // name and stamp it onto the preset - otherwise sync_with_lock's `id == preset.setting_id`
     // check never fires and the force-push silently no-ops.
     PresetCollection* collections[] = {&preset_bundle->prints, &preset_bundle->filaments, &preset_bundle->printers};
     for (PresetCollection* coll : collections) {

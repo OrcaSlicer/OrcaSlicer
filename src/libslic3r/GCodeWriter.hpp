@@ -83,14 +83,7 @@ public:
     std::string extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
     std::string retract(bool before_wipe = false, double retract_length = 0);
     std::string retract_for_toolchange(bool before_wipe = false, double retract_length = 0);
-    // ── BBL port: extra_retract parameter ─────────────────────────────────────────────────────
-    // Original OrcaSlicer unretract() had no arguments and always used filament()->E() as the
-    // absolute E target (i.e. exactly reverse the retraction, nothing more).
-    // BBL added `extra_retract` (default 0) to allow an additional forward E push on top of the
-    // normal unretraction. Called with extra_retract > 0 from GCode.cpp when:
-    //   - enable_tower_interface_features=true (contact layer): extra = pre_extrusion_length mm
-    //   - PETG + has_filament_switcher=true (FTS path):         extra = 2.0 mm (BBL constant)
-    // See GCodeWriter::unretract() implementation in GCodeWriter.cpp for details.
+    // BBL port: extra_retract allows an additional forward E push beyond normal unretraction.
     std::string unretract(double extra_retract = 0.);
     double get_extruder_retracted_length(const int filament_id);
     // do lift instantly
@@ -161,10 +154,6 @@ public:
     std::vector<double>       m_max_jerk_z;
     std::vector<double>       m_max_jerk_e;
     std::vector<double>       m_max_junction_deviation;
-
-    // unsigned int  m_travel_acceleration;
-    // unsigned int  m_travel_jerk;
-
 
     //BBS
     unsigned int    m_last_additional_fan_speed;

@@ -30,19 +30,9 @@ bool has_visible_base_preset(const PresetCollection& filaments, const std::strin
 } // namespace
 
 // Score visible compatible filament presets against the CFS spool metadata and
-// return the best-matching filament_id. Scoring:
-//   +20  preset name contains brand_name as a substring
-//        (e.g. "Hyper PLA" in "Hyper PLA @Creality K2 0.4 nozzle")
-//   +10  preset name contains the vendor substring (e.g. "Creality")
-//   Tiebreak: prefer the SYSTEM (shipped) preset over user copies. Brand-
-//   specific system presets carry their own filament_id; user copies of
-//   generic presets inherit a generic filament_id from their parent, so
-//   preferring the user copy can collapse a brand-specific match back to
-//   "Generic PLA" via the inherited id. Plus: this code targets upstream
-//   OrcaSlicer where shipping the user's local tuning would be wrong.
-// Requires the preset's declared filament_type to equal the spool's base type
-// (PLA/PETG/ABS/...) so we never auto-pick a PETG preset for a PLA spool.
-// Falls back to filaments.filament_id_by_type(base_type) when nothing scores.
+// return the best-matching filament_id. Scoring: +20 brand match, +10 vendor
+// match; tiebreak prefers system presets over user copies. Falls back to
+// filaments.filament_id_by_type(base_type) when nothing scores.
 std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& filaments,
                                                       const std::string&      vendor,
                                                       const std::string&      brand_name,
@@ -70,7 +60,7 @@ std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& fi
         // Note: we deliberately do NOT filter on get_preset_base(p) == &p.
         // K2 owners frequently keep tweaked copies of system presets
         // (e.g. "Creality Hyper PLA @K2 (Harky)" with their per-spool PA),
-        // which are derived presets — filtering to bases-only would skip
+        // which are derived presets - filtering to bases-only would skip
         // exactly the presets users care about most.
         ++considered;
 
@@ -97,7 +87,7 @@ std::string CrealityPrintAgent::match_filament_preset(const PresetCollection& fi
             << "CrealityPrintAgent: no preset scored for spool {" << vendor << " "
             << brand_name << " (" << base_type << ")} after considering " << considered
             << " presets; falling back to generic preset id \"" << fallback << "\""
-            << (fallback_ok ? "" : " (NOT visible — returning empty)");
+            << (fallback_ok ? "" : " (NOT visible - returning empty)");
         return fallback_ok ? fallback : std::string();
     }
 
@@ -182,7 +172,7 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
     }
 
     // Sequential AMS-style index for accepted CFS boxes. The K2's raw box.id has
-    // gaps (id 0 is the external spool holder, type=1, skipped) — using the raw id
+    // gaps (id 0 is the external spool holder, type=1, skipped) - using the raw id
     // would publish phantom slots for the gap. Renumber accepted boxes 0,1,2,...
     int cfs_count = 0;
     for (const auto& box : resp["boxsInfo"]["materialBoxs"]) {
@@ -210,7 +200,7 @@ bool CrealityPrintAgent::parse_cfs_response(const std::string&    response,
             const std::string s_vendor = mat.value("vendor", std::string());
             const std::string s_type   = mat.value("type",   std::string());
             if (s_state == 0)                       continue; // explicitly empty
-            if (s_vendor.empty() && s_type.empty()) continue; // blank entry — likely empty under a different state encoding
+            if (s_vendor.empty() && s_type.empty()) continue; // blank entry - likely empty under a different state encoding
 
             CFSSlot s;
             s.box_id        = cfs_index;
@@ -277,7 +267,7 @@ bool CrealityPrintAgent::fetch_filament_info(std::string dev_id)
     }
 
     if (box_count == 0) {
-        // No active CFS boxes attached — printer is in direct-spool mode. Let the
+        // No active CFS boxes attached - printer is in direct-spool mode. Let the
         // base agent take over so the user still gets whatever filament info
         // Moonraker exposes.
         BOOST_LOG_TRIVIAL(info)

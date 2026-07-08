@@ -6,11 +6,10 @@
 #include "GCode/GCodeProcessor.hpp"
 #include "VortekWipeTower.hpp"
 #include <boost/algorithm/string.hpp>
-#include <iostream>
+
 
 namespace Vortek {
 
-// Check if printer is H2C dual-nozzle system
 bool PlateMapping::is_h2c_multi_nozzle(const Slic3r::Print* print)
 {
     return WipeTower::is_h2c_printer(print);
@@ -220,13 +219,13 @@ void PlateMapping::patch_export_config(Slic3r::DynamicPrintConfig& cfg)
     }
 }
 
-// ─── H2C export-time patching ───────────────────────────────────────────────
+// H2C export-time patching
 //
 // The upstream nozzle_group_result pipeline is fragile:
-//   Print::export_gcode → get_layered_nozzle_group_result →
-//   GCodeProcessorResult::nozzle_group_result →
-//   PlateData::parse_filament_info → dynamic_pointer_cast →
-//   PlateData::nozzle_group_result → bbs_3mf serialization
+//   Print::export_gcode  get_layered_nozzle_group_result 
+//   GCodeProcessorResult::nozzle_group_result 
+//   PlateData::parse_filament_info  dynamic_pointer_cast 
+//   PlateData::nozzle_group_result  bbs_3mf serialization
 //
 // When any link in this chain fails (e.g. wipe tower not generated,
 // backend creates wrong subtype, shared_ptr is nullptr), the serializer
@@ -249,7 +248,7 @@ void PlateMapping::patch_plate_data_for_export(
 {
     if (!plate_data) return;
 
-    // ── Guard: only for H2C multi-nozzle printers ──
+    // Guard: only for H2C multi-nozzle printers
     if (!WipeTower::is_h2c_printer(config))
         return;
 
@@ -285,7 +284,7 @@ void PlateMapping::patch_plate_data_for_export(
         return static_cast<Slic3r::NozzleVolumeType>(nozzle_volume_type_opt->values.back());
     };
 
-    // ── Build nozzle assignments for carousel filaments ──
+    // Build nozzle assignments for carousel filaments
     std::map<int, Slic3r::MultiNozzleUtils::NozzleInfo> nozzle_map;
     std::map<int, int> reassigned_nozzle_ids;
 
@@ -366,7 +365,7 @@ void PlateMapping::patch_plate_data_for_export(
         }
     }
 
-    // ── Write nozzles_info to PlateData ──
+    // Write nozzles_info to PlateData
     // This populates Tier 2 in bbs_3mf serialization.
     plate_data->nozzles_info.clear();
     plate_data->nozzles_info.reserve(nozzle_map.size());
@@ -374,7 +373,7 @@ void PlateMapping::patch_plate_data_for_export(
         plate_data->nozzles_info.push_back(ni);
     }
 
-    // ── CRITICAL: Reset nozzle_group_result so Tier 1 is skipped ──
+    // Reset nozzle_group_result so Tier 1 is skipped
     plate_data->nozzle_group_result.reset();
 
 }
@@ -441,9 +440,6 @@ void PlateMapping::handle_h2c_mapping_apply(
         if (!presets_changed && !is_all_zeros(opt_old_nozzle_map->values) &&
             opt_new_nozzle_map->values.size() == opt_old_nozzle_map->values.size()) {
             
-            auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
-
-
             opt_new_nozzle_map->values = opt_old_nozzle_map->values;
 
             auto map_mode_opt = new_full_config.option<Slic3r::ConfigOptionEnum<Slic3r::FilamentMapMode>>("filament_map_mode");
@@ -461,8 +457,6 @@ void PlateMapping::handle_h2c_mapping_apply(
                     opt_new_volume_map->values.size() == opt_old_volume_map->values.size()) {
                     opt_new_volume_map->values = opt_old_volume_map->values;
                 }
-            } else {
-
             }
         } else {
             // Otherwise (clean start), initialize cyclic nozzle assignment on the Vortek carousel.
@@ -490,10 +484,6 @@ void PlateMapping::handle_h2c_mapping_apply(
             if (opt_new_volume_map) {
                 opt_new_volume_map->values.resize(opt_new_nozzle_map->values.size());
                 std::fill(opt_new_volume_map->values.begin(), opt_new_volume_map->values.end(), 0);
-            }
-            {
-                auto fmt = [](const std::vector<int>& v){ std::string s="["; for(size_t i=0;i<v.size();++i){ if(i)s+=","; s+=std::to_string(v[i]); } return s+"]"; };
-
             }
         }
     }
