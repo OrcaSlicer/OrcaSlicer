@@ -85,3 +85,21 @@ TEST_CASE("Per-object wall filament override is honored", "[MultiFilament]")
     CHECK(tools_for_role(gcode, "perimeter") == std::set<int>{ 0, 1 });
     CHECK(tools_for_role(gcode, "infill")    == std::set<int>{ 0 }); // infill not overridden: stays on F1
 }
+
+// max_layer_height is left one entry short of the extruder count (a mismatch a profile can
+// ship): calc_max_layer_height() in ToolOrdering indexed it by the extruder count and read
+// past the end. The other per-extruder keys are sized so slicing reaches that code.
+TEST_CASE("Multi-extruder slice stays in bounds with a short max_layer_height", "[MultiFilament]")
+{
+    DynamicPrintConfig config = multifilament_config(2);
+    config.set_deserialize_strict({
+        { "nozzle_diameter",           "0.4,0.4" },
+        { "printer_extruder_id",       "1,2" },
+        { "printer_extruder_variant",  "Direct Drive Standard,Direct Drive Standard" },
+        { "extruder_printable_height", "0,0" },
+        { "max_layer_height",          "0.3" }, // deliberately one entry short
+    });
+    Print print;
+    init_and_process_print({ cube(20) }, print, config);
+    REQUIRE_FALSE(print.objects().front()->layers().empty());
+}
