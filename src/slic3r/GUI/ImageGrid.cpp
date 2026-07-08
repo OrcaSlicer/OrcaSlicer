@@ -644,7 +644,7 @@ void Slic3r::GUI::ImageGrid::renderContent1(wxDC &dc, wxPoint const &pt, int ind
         if (m_file_sys->GetFileType() == PrinterFileSystem::F_MODEL) {
             if (secondAction != _L("Play"))
                 thirdAction = secondAction;
-            secondAction = _L("Print");
+            secondAction = _CTX("Print", "Verb");
         }
         // Draw buttons on hovered item
         wxRect rect{pt.x, pt.y + m_content_rect.GetBottom() - m_buttons_background.GetHeight(), m_content_rect.GetWidth(), m_buttons_background.GetHeight()};

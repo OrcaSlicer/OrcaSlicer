@@ -1704,7 +1704,7 @@ void GLGizmoSVG::draw_size()
 
     if (m_keep_ratio) {
         std::stringstream ss;
-        ss << std::setprecision(2) << std::fixed << width << " x " << height << " " << (use_inch ? "in" : "mm");
+        ss << std::setprecision(2) << std::fixed << width << " x " << height << " " << (use_inch ? _CTX("in", "inches") : _L("mm"));
 
         ImGui::SameLine(m_gui_cfg->input_offset);
         ImGui::SetNextItemWidth(m_gui_cfg->input_width);

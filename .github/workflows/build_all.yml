@@ -122,54 +122,73 @@ jobs:
       arch: universal
       macos-combine-only: true
     secrets: inherit
-  unit_tests:
-    name: Unit Tests
-    # Tests are built on the aarch64 leg by default (faster GitHub arm runner),
-    # so run them there; self-hosted builds them on the amd64 server instead.
-    runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04-arm' }}
+  # One test job per built arch, on the runner that built it.
+  unit_tests_linux_x86_64:
+    name: Linux x86_64
     needs: build_linux
     if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
+      artifact: ${{ github.sha }}-tests-linux-x86_64
+  unit_tests_linux_aarch64:
+    name: Linux aarch64
+    needs: build_linux
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ubuntu-24.04-arm
+      artifact: ${{ github.sha }}-tests-linux-aarch64
+  unit_tests_windows_x64:
+    name: Windows x64
+    needs: build_windows
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
+      artifact: ${{ github.sha }}-tests-windows-x64
+  unit_tests_windows_arm64:
+    name: Windows arm64
+    needs: build_windows
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: windows-11-arm
+      artifact: ${{ github.sha }}-tests-windows-arm64
+      test-dir: build-arm64/tests
+  unit_tests_macos_arm64:
+    name: macOS arm64
+    needs: build_macos_arch
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
+      artifact: ${{ github.sha }}-tests-macos-arm64
+      test-dir: build/arm64/tests
+  publish_test_results:
+    name: Publish Test Results
+    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          sparse-checkout: |
-            .github
-            scripts
-            tests
-      - name: Apt-Install Dependencies
-        if: ${{ !vars.SELF_HOSTED }}
-        uses: ./.github/actions/apt-install-deps
-      - name: Restore Test Artifact
+      - name: Download Test Results
         uses: actions/download-artifact@v8
         with:
-          name: ${{ github.sha }}-tests
-      - uses: lukka/get-cmake@latest
-        with:
-          cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
-          useLocalCache: true         # <--= Use the local cache (default is 'false').
-          useCloudCache: true
-      - name: Unpackage and Run Unit Tests
-        timeout-minutes: 20
-        run: |
-          tar -xvf build_tests.tar
-          scripts/run_unit_tests.sh
-      - name: Upload Test Logs
-        uses: actions/upload-artifact@v7
-        if: ${{ failure() }}
-        with:
-          name: unit-test-logs
-          path: build/tests/**/*.log
+          pattern: test-results-*
+          path: test-results
+      # Best-effort: a read-only token (e.g. fork PRs) can't write the check, so
+      # don't let a publish failure fail the run. The test jobs gate correctness.
       - name: Publish Test Results
-        if: always()
+        continue-on-error: true
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          files: "ctest_results.xml"
-      - name: Delete Test Artifact
+          files: "test-results/**/*.xml"
+      - name: Delete Test Results
         if: success()
         uses: geekyeggo/delete-artifact@v6
         with:
-          name: ${{ github.sha }}-tests
+          name: test-results-*
+          failOnError: false
   flatpak:
     name: "Flatpak"
     container:

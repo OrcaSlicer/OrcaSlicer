@@ -7207,7 +7207,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         //BBS: for solid infill of first layer, speed can be higher as long as
         //wall lines have be attached
         if (path.role() != erBottomSurface) {
-            speed = (is_perimeter(path.role()) || path.role() == erGapFill)
+            speed = (is_perimeter(path.role()) || path.role() == erGapFill || path.role() == erBrim)
                         ? NOZZLE_CONFIG(initial_layer_speed)
                         : NOZZLE_CONFIG(initial_layer_infill_speed);
         }

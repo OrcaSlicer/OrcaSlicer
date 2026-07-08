@@ -231,7 +231,7 @@ typedef std::map<int, PlateData*> PlateDataMaps;
 
 struct StoreParams
 {
-    const char* path;
+    std::string path;
     Model* model = nullptr;
     PlateDataPtrs plate_data_list;
     int export_plate_idx = -1;

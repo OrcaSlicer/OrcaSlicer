@@ -2299,9 +2299,17 @@ void NotificationManager::push_import_finished_notification(const std::string& p
 void NotificationManager::SharedProfilesNotification::init()
 {
 	PopNotification::init();
-	// Add two extra lines for the hyperlink row ("Browse shared profiles" + "Don't show again")
-	// and 1 more additional line for adding spacing between them to make it easier to click
-	m_lines_count = m_lines_count + 2; // ORCA
+
+    // PopNotification::count_lines() may append a duplicate "hypertext doesn't fit inline" placeholder endline (same value as the previous entry)
+    // for the generic renderer's benefit. This class always renders its hyperlink on its own dedicated line regardless, 
+    // so that placeholder is meaningless here and would otherwise be drawn as a spurious blank text row.
+    if (!m_hypertext.empty() && m_endlines.size() >= 2 && m_endlines.back() == m_endlines[m_endlines.size() - 2]) {
+        m_endlines.pop_back();
+        m_lines_count--;
+    }
+
+    // Reserve rows for: "Browse shared profiles" hyperlink, spacing, "Don't show again"
+    m_lines_count += 3; 
 }
 
 void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& imgui,
@@ -2327,15 +2335,18 @@ void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& 
 		}
 	}
 
-	// Render "Browse shared profiles" hyperlink on the next line
-	float hyper_y = starting_y + m_endlines.size() * shift_y - m_line_height / 2.f;
-	render_hypertext(imgui, x_offset, hyper_y, m_hypertext);
-
-	// Render "Don't show again" hyperlink after the browse link
 	{
-		float dont_show_y = hyper_y + ImGui::CalcTextSize((m_hypertext + "  ").c_str()).y + m_line_height / 2.f;
-		std::string dont_show_text = _u8L("Don't show again");
+        float hyper_y     = starting_y + m_endlines.size() * shift_y + m_line_height * .5f;
+		float dont_show_y = hyper_y    + ImGui::CalcTextSize((m_hypertext + "  ").c_str()).y + m_line_height * .5f;
+		std::string dont_show_text = _u8L("Don't show again") + std::to_string(m_endlines.size());
 		ImVec2 part_size = ImGui::CalcTextSize(dont_show_text.c_str());
+
+        if (!m_multiline && m_lines_count > 2) {
+		    render_hypertext(imgui, x_offset + (m_endlines.size() == 1 ? 0 : ImGui::CalcTextSize((line + " ").c_str()).x) , starting_y + shift_y, _u8L("More"), true);
+	    } 
+        else {
+	    // Render "Browse shared profiles" hyperlink on the next line	
+	    render_hypertext(imgui, x_offset, hyper_y, m_hypertext);
 
 		// Invisible button
 		ImGui::SetCursorPosX(x_offset); // ORCA render on new line to prevent long translations from being cut off
@@ -2343,6 +2354,7 @@ void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& 
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(.0f, .0f, .0f, .0f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(.0f, .0f, .0f, .0f));
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(.0f, .0f, .0f, .0f));
+        // Render "Don't show again" hyperlink after the browse link
 		if (imgui.button("##dont_show_btn", part_size.x + 6, part_size.y + 10)) {
 			wxGetApp().app_config->set_bool("show_shared_profiles_notification", false);
 			wxGetApp().app_config->save();
@@ -2370,6 +2382,7 @@ void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& 
 		ImGui::GetWindowDrawList()->AddLine(lineStart, lineEnd,
 			IM_COL32((int)(color.x * 255), (int)(color.y * 255), (int)(color.z * 255),
 				(int)(color.w * 255.f * (m_state == EState::FadingOut ? m_current_fade_opacity : 1.f))));
+        }
 	}
 }
 
@@ -2382,8 +2395,10 @@ bool NotificationManager::SharedProfilesNotification::on_text_click()
 void NotificationManager::SharedProfilesNotification::render_hypertext(ImGuiWrapper& imgui,
 	const float text_x, const float text_y, const std::string text, bool more)
 {
-	render_hyperlink_action(imgui, text_x, text_y, text, "##browse_btn",
-		[this] { if (on_text_click()) close(); });
+    if (more)
+        PopNotification::render_hypertext(imgui, text_x, text_y, text, true);
+    else
+	    render_hyperlink_action(imgui, text_x, text_y, text, "##browse_btn", [this] { if (on_text_click()) close(); });
 }
 
 void NotificationManager::OrcaSyncConflictNotification::init()

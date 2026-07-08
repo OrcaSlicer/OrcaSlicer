@@ -11,14 +11,14 @@
 #include "libslic3r/SVG.hpp"
 #include "libslic3r/libslic3r.h"
 
-#include "test_data.hpp"
+#include "test_helpers.hpp"
 
 using namespace Slic3r;
 
 bool test_if_solid_surface_filled(const ExPolygon& expolygon, double flow_spacing, double angle = 0, double density = 1.0);
 
 #if 0
-TEST_CASE("Fill: adjusted solid distance") {
+TEST_CASE("Adjusted solid distance", "[Fill]") {
     int surface_width = 250;
     int distance = Slic3r::Flow::solid_spacing(surface_width, 47);
     REQUIRE(distance == Catch::Approx(50));
@@ -26,7 +26,7 @@ TEST_CASE("Fill: adjusted solid distance") {
 }
 #endif
 
-TEST_CASE("Fill: Pattern Path Length", "[Fill]") {
+TEST_CASE("Pattern path length", "[Fill]") {
     std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("rectilinear"));
     filler->angle = float(-(PI)/2.0);
 	FillParams fill_params;

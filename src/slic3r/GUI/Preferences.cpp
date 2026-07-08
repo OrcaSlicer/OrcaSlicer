@@ -1664,6 +1664,13 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_draco_bits);
 
+    auto item_full_source_paths = create_item_checkbox(_L("Store full source file paths in projects"),
+        _L("If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so "
+           "\"Reload from disk\" still works when the source file is kept in a different folder than the project. "
+           "If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."),
+        "export_sources_full_pathnames");
+    g_sizer->Add(item_full_source_paths);
+
     //// GENERAL > Preset
     g_sizer->Add(create_item_title(_L("Preset")), 1, wxEXPAND);
 
