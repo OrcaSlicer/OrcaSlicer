@@ -237,7 +237,7 @@ void ToolOrdering::handle_dontcare_extruder(const std::vector<unsigned int>& too
                 lt.extruders.erase(lt.extruders.begin());
 
             if (print_config == nullptr
-                || print_config->toolchange_ordering == ToolChangeOrderingType::Optimized)
+                || print_config->toolchange_ordering == ToolChangeOrderingType::Default)
             {
                 // Reorder the extruders to start with the last one.
                 for (size_t i = 1; i < lt.extruders.size(); ++i) {
@@ -306,7 +306,7 @@ void ToolOrdering::handle_dontcare_extruder(unsigned int last_extruder_id)
                 lt.extruders.erase(lt.extruders.begin());
 
             if (print_config == nullptr
-                || print_config->toolchange_ordering == ToolChangeOrderingType::Optimized)
+                || print_config->toolchange_ordering == ToolChangeOrderingType::Default)
             {
                 // Reorder the extruders to start with the last one.
                 for (size_t i = 1; i < lt.extruders.size(); ++i) {

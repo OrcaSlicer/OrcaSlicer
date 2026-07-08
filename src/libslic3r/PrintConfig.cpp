@@ -523,8 +523,8 @@ static t_config_enum_values s_keys_map_PerimeterGeneratorType{
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PerimeterGeneratorType)
 
 static t_config_enum_values s_keys_map_ToolChangeOrderingType {
-    { "optimized", int(ToolChangeOrderingType::Optimized) },
-    { "cyclic",    int(ToolChangeOrderingType::Cyclic) }
+    { "default", int(ToolChangeOrderingType::Default) },
+    { "cyclic",  int(ToolChangeOrderingType::Cyclic) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(ToolChangeOrderingType)
 
@@ -6087,16 +6087,16 @@ void PrintConfigDef::init_fff_params()
     def->category = L("Advanced");
     def->tooltip = L(
         "Determines the order of tool changes on each layer.\n"
-        "- Optimized: Starts with the last used extruder to minimize tool changes.\n"
+        "- Default: Starts with the last used extruder to minimize tool changes.\n"
         "- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
     );
     def->mode = comAdvanced;
     def->enum_keys_map = &ConfigOptionEnum<ToolChangeOrderingType>::get_enum_values();
-    def->enum_values.emplace_back("optimized");
+    def->enum_values.emplace_back("default");
     def->enum_values.emplace_back("cyclic");
-    def->enum_labels.emplace_back(L("Optimized"));
+    def->enum_labels.emplace_back(L("Default"));
     def->enum_labels.emplace_back(L("Cyclic"));
-    def->set_default_value(new ConfigOptionEnum<ToolChangeOrderingType>(ToolChangeOrderingType::Optimized));
+    def->set_default_value(new ConfigOptionEnum<ToolChangeOrderingType>(ToolChangeOrderingType::Default));
 
     def = this->add("slice_closing_radius", coFloat);
     def->label = L("Slice gap closing radius");

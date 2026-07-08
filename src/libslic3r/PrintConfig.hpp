@@ -302,7 +302,7 @@ enum class PerimeterGeneratorType
 
 enum class ToolChangeOrderingType
 {
-    Optimized,
+    Default,
     Cyclic,
 };
 
