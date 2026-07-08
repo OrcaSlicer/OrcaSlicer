@@ -241,7 +241,7 @@ std::string GLGizmoCut3D::get_tooltip() const
     std::string tooltip;
     if (m_hover_id == Z || (m_dragging && m_hover_id == CutPlane)) {
         double koef = m_imperial_units ? GizmoObjectManipulation::mm_to_in : 1.0;
-        std::string unit_str = " " + (m_imperial_units ? _u8L("in") : _u8L("mm"));
+        std::string unit_str = " " + (m_imperial_units ? _CTX_utf8("in", "inches") : _u8L("mm"));
         const BoundingBoxf3& tbb = m_transformed_bounding_box;
 
         const std::string name = m_keep_as_parts ? _u8L("Part") : _u8L("Object");
@@ -541,7 +541,7 @@ bool GLGizmoCut3D::render_double_input(const std::string& label, double& value_i
     ImGui::InputDouble(("##" + label).c_str(), &value, 0.0f, 0.0f, "%.2f", ImGuiInputTextFlags_CharsDecimal);
 
     ImGui::SameLine();
-    m_imgui->text(m_imperial_units ? _L("in") : _L("mm"));
+    m_imgui->text(m_imperial_units ? _CTX("in", "inches") : _L("mm"));
 
     value_in = value * (m_imperial_units ? GizmoObjectManipulation::in_to_mm : 1.0);
     return !is_approx(old_val, value);
@@ -582,7 +582,7 @@ bool GLGizmoCut3D::render_slider_two_input(const std::string& label, float& valu
     if (m_imperial_units) {
         min_size *= f_mm_to_in;
     }
-    std::string format = value_in < 0.f ? " " : m_imperial_units ? "%.4f  " + _u8L("in") : "%.2f  " + _u8L("mm");
+    std::string format = value_in < 0.f ? " " : m_imperial_units ? "%.4f " + _CTX_utf8("in", "inches") : "%.2f " + _u8L("mm");
 
     m_imgui->bbl_slider_float_style(("##" + label).c_str(), &value, min_size, mean_size, format.c_str());
 
@@ -653,7 +653,7 @@ bool GLGizmoCut3D::render_slider_input(const std::string& label, float& value_in
     if (m_imperial_units) {
         min_size *= f_mm_to_in;
     }
-    std::string format = value_in < 0.f ? " " : m_imperial_units ? "%.4f  " + _u8L("in") : "%.2f  " + _u8L("mm");
+    std::string format = value_in < 0.f ? " " : m_imperial_units ? "%.4f  " + _CTX_utf8("in", "inches") : "%.2f  " + _u8L("mm");
 
     m_imgui->bbl_slider_float_style(("##" + label).c_str(), &value, min_size, max_value, format.c_str());
 
@@ -2472,7 +2472,7 @@ void GLGizmoCut3D::render_connectors_input_window(CutConnectors &connectors, flo
 void GLGizmoCut3D::render_build_size()
 {
     double   koef     = m_imperial_units ? GizmoObjectManipulation::mm_to_in : 1.0;
-    wxString unit_str = m_imperial_units ? _L("in") : _L("mm");
+    wxString unit_str = m_imperial_units ? _CTX("in", "inches") : _L("mm");
     Vec3d    tbb_sz   = m_transformed_bounding_box.size() * koef; // ORCA 
 
     ImGui::AlignTextToFramePadding();

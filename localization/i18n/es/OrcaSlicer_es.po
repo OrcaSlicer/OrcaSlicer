@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-03 14:43+0200\n"
+"POT-Creation-Date: 2026-07-07 10:05-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -277,31 +277,31 @@ msgid "Color painting editing"
 msgstr "Edición de pintura de colores"
 
 msgid "Paint-on fuzzy skin"
-msgstr "Pintar piel difusa"
+msgstr "Pintar piel rugosa"
 
 msgid "Add fuzzy skin"
-msgstr "Agregar piel difusa"
+msgstr "Agregar piel rugosa"
 
 msgid "Remove fuzzy skin"
-msgstr "Quitar piel difusa"
+msgstr "Quitar piel rugosa"
 
 msgid "Reset selection"
 msgstr "Reiniciar selección"
 
 msgid "Warning: Fuzzy skin is disabled, painted fuzzy skin will not take effect!"
-msgstr "Advertencia: ¡Piel difusa está desactivada, la piel difusa pintada no tendrá efecto!"
+msgstr "Advertencia: ¡Piel rugosa está desactivada, la piel rugosa pintada no tendrá efecto!"
 
 msgid "Enable painted fuzzy skin for this object"
-msgstr "Habilitar piel difusa pintada para este objeto"
+msgstr "Habilitar piel rugosa pintada para este objeto"
 
 msgid "Entering Paint-on fuzzy skin"
-msgstr "Entrando al mecanismo de pintar piel difusa"
+msgstr "Entrando al mecanismo de pintar piel rugosa"
 
 msgid "Leaving Paint-on fuzzy skin"
-msgstr "Saliendo del mecanismo de pintar piel difusa"
+msgstr "Saliendo del mecanismo de pintar piel rugosa"
 
 msgid "Paint-on fuzzy skin editing"
-msgstr "Pintar piel difusa"
+msgstr "Pintar piel rugosa"
 
 msgid "Move"
 msgstr "Mover"
@@ -330,8 +330,9 @@ msgstr "Ejes de escalado"
 msgid "Error: Please close all toolbar menus first"
 msgstr "Error: Por favor, cierre primero todos los menús de la barra de herramientas"
 
+msgctxt "inches"
 msgid "in"
-msgstr "pulg"
+msgstr ""
 
 msgid "mm"
 msgstr "mm"
@@ -384,26 +385,29 @@ msgstr "Reiniciar posición"
 msgid "Reset rotation"
 msgstr "Reiniciar rotación"
 
-msgid "Object coordinates"
-msgstr "Coordenadas de objeto"
+msgid "World"
+msgstr "Global"
 
-msgid "World coordinates"
-msgstr "Coordenadas globales"
+msgid "Object"
+msgstr "Objeto"
 
-msgid "Translate(Relative)"
-msgstr "Traslación (relativo)"
+msgid "Part"
+msgstr "Pieza"
+
+msgid "Relative"
+msgstr "Relativo"
+
+msgid "Coordinate system used for transform actions."
+msgstr "Sistema de coordenadas utilizado para las acciones de transformación."
+
+msgid "Absolute"
+msgstr "Absoluto"
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "Restablecer la rotación actual al valor que tenía al abrir la herramienta de rotación."
 
-msgid "Rotate (absolute)"
-msgstr "Rotar (absoluto)"
-
 msgid "Reset current rotation to real zeros."
 msgstr "Restablecer la rotación actual a ceros reales."
-
-msgid "Part coordinates"
-msgstr "Coordenadas de la pieza"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -507,12 +511,6 @@ msgstr "Brecha"
 
 msgid "Spacing"
 msgstr "Separación"
-
-msgid "Part"
-msgstr "Pieza"
-
-msgid "Object"
-msgstr "Objeto"
 
 msgid ""
 "Click to flip the cut plane\n"
@@ -1856,33 +1854,40 @@ msgstr "Abrir proyecto"
 msgid "The version of Orca Slicer is too low and needs to be updated to the latest version before it can be used normally."
 msgstr "La versión de Orca Slicer es una versión demasiado antigua y necesita ser actualizada a la última versión antes de poder utilizarla con normalidad."
 
-msgid ""
-"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
-"Pull downloads the cloud copy. Force push overwrites it with your local preset."
-msgstr ""
-"Conflicto de sincronización en la nube: este perfil tiene una versión más reciente en OrcaCloud.\n"
-"«Descargar» descarga la copia de la nube. «Forzar envío» la sobrescribe con tu perfil local."
+msgid "Cloud sync conflict:"
+msgstr "Conflicto de sincronización con la nube:"
+
+#, c-format, boost-format
+msgid "Cloud sync conflict for preset \"%s\":"
+msgstr "Conflicto de sincronización con la nube para el perfil \"%s\":"
 
 msgid ""
-"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"This preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
-"Conflicto de sincronización en la nube: ya existe un perfil con este nombre en OrcaCloud.\n"
-"«Descargar» descarga la copia de la nube. «Forzar envío» la sobrescribe con tu perfil local."
+"Este perfil tiene una versión más reciente en OrcaCloud.\n"
+"Descargar obtiene la copia de la nube. Forzar envío la sobrescribe con tu perfil local."
 
 msgid ""
-"Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+"A preset with this name already exists in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local preset."
+msgstr ""
+"Ya existe un perfil con este nombre en OrcaCloud.\n"
+"Descargar obtiene la copia de la nube. Forzar envío la sobrescribe con tu perfil local."
+
+msgid ""
+"A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
 msgstr ""
-"Conflicto de sincronización en la nube: ya se ha eliminado de la nube un perfil con el mismo nombre.\n"
-"Al hacer clic en «Eliminar», se borrará tu perfil local. Al hacer clic en «Forzar envío», se sobrescribirá con tu perfil local."
+"Un perfil con el mismo nombre se eliminó anteriormente de la nube.\n"
+"Eliminar borrará tu perfil local. Forzar envío la sobrescribe con tu perfil local."
 
 msgid ""
-"Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+"There was an unexpected or unidentified preset conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
-"Conflicto de sincronización en la nube: se ha producido un conflicto inesperado o no identificado con los perfiles.\n"
-"«Descargar» descarga la copia de la nube. «Forzar envío» la sobrescribe con tu perfil local."
+"Se produjo un conflicto de perfil inesperado o no identificado.\n"
+"Descargar obtiene la copia de la nube. Forzar envío la sobrescribe con tu perfil local."
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
@@ -1890,6 +1895,14 @@ msgid ""
 msgstr ""
 "Forzar el envío sobrescribirá la copia en la nube con los cambios que hayas realizado en los ajustes preestablecidos locales.\n"
 "¿Deseas continuar?"
+
+#, c-format, boost-format
+msgid ""
+"Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\n"
+"Do you want to continue?"
+msgstr ""
+"Forzar envío sobrescribirá la copia en la nube del perfil \"%s\" con tus cambios locales.\n"
+"¿Quieres continuar?"
 
 msgid "Resolve cloud sync conflict"
 msgstr "Resolver conflictos de sincronización con la nube"
@@ -1970,8 +1983,9 @@ msgstr "El número de perfiles de usuario almacenados en la nube ha superado el 
 msgid "Sync user presets"
 msgstr "Sincronizar perfiles de usuario"
 
-msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
-msgstr "El contenido del perfil es demasiado grande para sincronizarlo con la nube (supera 1 MB). Reduce el tamaño del perfil eliminando las configuraciones personalizadas o utilízalo solo de forma local."
+#, c-format, boost-format
+msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+msgstr "El perfil \"%s\" es demasiado grande para sincronizarlo con la nube (supera 1 MB). Reduce el tamaño del perfil eliminando las configuraciones personalizadas o utilízalo solo de forma local."
 
 #, c-format, boost-format
 msgid "%s updated from %s to %s"
@@ -2091,7 +2105,7 @@ msgid "Ironing"
 msgstr "Alisado"
 
 msgid "Fuzzy skin"
-msgstr "Superficie rugosa"
+msgstr "Piel rugosa"
 
 msgid "Extruders"
 msgstr "Extrusores"
@@ -2179,6 +2193,9 @@ msgstr "Cubo Orca"
 
 msgid "OrcaSliced Combo"
 msgstr "Combo OrcaSliced"
+
+msgid "Orca Badge"
+msgstr "Insignia de Orca"
 
 msgid "Orca Tolerance Test"
 msgstr "Test de tolerancia Orca"
@@ -2617,7 +2634,7 @@ msgid "Switch to per-object setting mode to edit process settings of selected ob
 msgstr "Cambiar al modo de ajuste a modo por objeto para editar los ajustes de proceso de los objetos."
 
 msgid "Remove paint-on fuzzy skin"
-msgstr "Eliminar la piel difusa pintada"
+msgstr "Eliminar la piel rugosa pintada"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Borrar conector del objeto el cual es parte del corte"
@@ -4130,7 +4147,7 @@ msgstr ""
 "Restablecer al 50 % de la profundidad de piel."
 
 msgid "Both [Extrusion] and [Combined] modes of Fuzzy Skin require the Arachne Wall Generator to be enabled."
-msgstr "Tanto el modo [Extrusión] como el modo [Combinado] de Piel Difusa requieren que el Generador de paredes Arachne esté habilitado."
+msgstr "Tanto el modo [Extrusión] como el modo [Combinado] de Piel rugosa requieren que el Generador de paredes Arachne esté habilitado."
 
 msgid ""
 "Change these settings automatically?\n"
@@ -4139,7 +4156,7 @@ msgid ""
 msgstr ""
 "¿Cambiar estos ajustes automáticamente?\n"
 "Sí: habilitar el generador de muros Arachne\n"
-"No: deshabilitar el generador de paredes Arachne y establecer el modo [Desplazamiento] de la piel difusa"
+"No: deshabilitar el generador de paredes Arachne y establecer el modo [Desplazamiento] de la piel rugosa"
 
 msgid "Spiral mode only works when wall loops is 1, support is disabled, clumping detection by probing is disabled, top shell layers is 0, sparse infill density is 0 and timelapse type is traditional."
 msgstr "El modo espiral solo funciona cuando los bucles de perímetro son 1, el soporte está desactivado, la detección de agrupamientos mediante sondeo está desactivada, las capas superiores de la carcasa son 0, la densidad de relleno es 0 y el tipo de lapso de tiempo es tradicional."
@@ -5155,6 +5172,9 @@ msgstr "Voladizos"
 msgid "Outline"
 msgstr "Contorno"
 
+msgid "Wireframe"
+msgstr "Malla alámbrica"
+
 msgid "Realistic View"
 msgstr "Vista realista"
 
@@ -5197,7 +5217,7 @@ msgstr "Volumen:"
 msgid "Size:"
 msgstr "Tamaño:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "Se han encontrado conflictos de rutas G-Code en la capa %d, Z = %.2lfmm. Por favor, separe más los objetos en conflicto (%s <-> %s)."
 
@@ -6647,8 +6667,8 @@ msgstr[1] "%1$d Los objetos se han cargado como partes del objeto de corte."
 #, c-format, boost-format
 msgid "%1$d object was loaded with fuzzy skin painting."
 msgid_plural "%1$d objects were loaded with fuzzy skin painting."
-msgstr[0] "%1$d objeto se cargó con pintura de piel difusa."
-msgstr[1] "%1$d objetos se cargaron con pintura de piel difusa."
+msgstr[0] "%1$d objeto se cargó con pintura de piel rugosa."
+msgstr[1] "%1$d objetos se cargaron con pintura de piel rugosa."
 
 msgid "ERROR"
 msgstr "ERROR"
@@ -7888,6 +7908,46 @@ msgstr "Mostrar opciones al importar archivos STEP"
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "Si está activado, aparecerá un diálogo de configuración de parámetros durante la importación de archivos STEP."
 
+msgid "STEP importing: linear deflection"
+msgstr "Importación STEP: deflexión lineal"
+
+msgid ""
+"Linear deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.003 mm."
+msgstr ""
+"Deflexión lineal utilizada al mallar los archivos STEP importados.\n"
+"Los valores más pequeños producen mallas de mayor calidad pero aumentan el tiempo de procesamiento.\n"
+"Se usa como valor predeterminado en el diálogo de importación, o directamente cuando el diálogo de importación está desactivado.\n"
+"Predeterminado: 0.003 mm."
+
+msgid "STEP importing: angle deflection"
+msgstr "Importación STEP: deflexión angular"
+
+msgid ""
+"Angle deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.5."
+msgstr ""
+"Deflexión angular utilizada al mallar los archivos STEP importados.\n"
+"Los valores más pequeños producen mallas de mayor calidad pero aumentan el tiempo de procesamiento.\n"
+"Se usa como valor predeterminado en el diálogo de importación, o directamente cuando el diálogo de importación está desactivado.\n"
+"Predeterminado: 0.5."
+
+msgid "STEP importing: Split into multiple objects"
+msgstr "Importación STEP: Separar en múltiples objetos"
+
+msgid ""
+"If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: disabled."
+msgstr ""
+"Si está activado, las formas compound y compsolid de los archivos STEP importados se separan en múltiples objetos.\n"
+"Se usa como valor predeterminado en el diálogo de importación, o directamente cuando el diálogo de importación está desactivado.\n"
+"Predeterminado: desactivado."
+
 msgid "Quality level for Draco export"
 msgstr "Nivel de calidad para exportación Draco"
 
@@ -7902,6 +7962,12 @@ msgstr ""
 "Controla la profundidad de bits de cuantificación utilizada al comprimir la malla al formato Draco.\n"
 "0 = compresión sin pérdidas (la geometría se conserva con total precisión). Los valores válidos con pérdidas oscilan entre 8 y 30.\n"
 "Los valores más bajos producen archivos más pequeños, pero pierden más detalles geométricos; los valores más altos conservan más detalles a costa de archivos más grandes."
+
+msgid "Store full source file paths in projects"
+msgstr "Guardar las rutas completas de los archivos de origen en los proyectos"
+
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr "Si está activado, los proyectos guardados almacenan la ruta absoluta de los archivos de origen importados (STEP/STL/...), de modo que \"Recargar desde el disco\" sigue funcionando cuando el archivo de origen se mantiene en una carpeta distinta a la del proyecto. Si está desactivado, solo se guarda el nombre del archivo, lo que mantiene los proyectos portables y evita incrustar rutas absolutas."
 
 msgid "Preset"
 msgstr "Perfil"
@@ -8277,16 +8343,16 @@ msgid "Show incompatible/unsupported presets in the printer and filament dropdow
 msgstr "Mostrar los ajustes preestablecidos incompatibles o no compatibles en los menús desplegables de impresoras y filamentos. Estos ajustes preestablecidos no se pueden seleccionar."
 
 msgid "Experimental Features"
-msgstr ""
+msgstr "Funciones experimentales"
 
 msgid "Keep painted feature after mesh change"
-msgstr ""
+msgstr "Mantener las zonas pintadas tras cambiar la malla"
 
 msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
 "Highly experimental! Slow and may create artifact."
 msgstr ""
-"Intenta conservar las característica pintadas (color, costuras, soportes, piel difusa, etc.) tras modificar la malla del objeto (por ejemplo, al cortar, volver a cargar desde el disco, simplificar, corregir, etc.).\n"
+"Intenta conservar las característica pintadas (color, costuras, soportes, piel rugosa, etc.) tras modificar la malla del objeto (por ejemplo, al cortar, volver a cargar desde el disco, simplificar, corregir, etc.).\n"
 "¡Muy experimental! Es lento y puede generar artefactos."
 
 msgid "Allow Abnormal Storage"
@@ -10362,7 +10428,7 @@ msgid "Gizmo mesh boolean"
 msgstr "Gizmo buleana de malla"
 
 msgid "Gizmo FDM paint-on fuzzy skin"
-msgstr "Herramienta FDM para pintar piel difusa"
+msgstr "Herramienta FDM para pintar piel rugosa"
 
 msgid "Gizmo SLA support points"
 msgstr "Herramienta de puntos de soporte SLA"
@@ -12227,6 +12293,18 @@ msgstr "Umbral de Perímetros pequeños"
 msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
 msgstr "Esto configura el umbral de longitud de perímetros pequeños. El umbral por defecto es 0mm."
 
+msgid "Small support perimeters"
+msgstr "Perímetros pequeños de soporte"
+
+msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
+msgstr "Igual que \"Perímetros pequeños\", pero para los soportes. Este ajuste independiente afectará a la velocidad del soporte en áreas <= `small_support_perimeter_threshold`. Si se expresa como porcentaje (por ejemplo: 80%), se calculará sobre el ajuste de velocidad de soporte o de interfaz de soporte anterior. Establécelo a cero para automático."
+
+msgid "Small support perimeters threshold"
+msgstr "Umbral de perímetros pequeños de soporte"
+
+msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
+msgstr "Esto establece el umbral para la longitud de los perímetros pequeños de soporte. El umbral predeterminado es 0mm."
+
 msgid "Walls printing order"
 msgstr "Orden de impresión de perímetros"
 
@@ -12412,27 +12490,35 @@ msgstr ""
 "2. Tome nota del valor óptimo de PA para cada velocidad de flujo volumétrico y aceleración. Puede encontrar el valor de flujo seleccionando flujo en el desplegable del esquema de colores y moviendo el deslizador horizontal sobre las líneas del patrón PA. El valor númerico debería ser visible en la parte inferior de la página. El valor ideal de PA debería disminuir cuanto mayor sea el flujo volumétrico. Si no es así, confirme que su extrusor funciona correctamente. Cuanto más lento y con menos aceleración imprimas, mayor será el rango de valores PA aceptables. Si no se aprecia ninguna diferencia, utilice el valor PA de la prueba más rápida.\n"
 "3. Introduzca los trios de valores PA, Flujo y Aceleraciones en el cuadro de texto que aparece aquí y guarde su perfil de filamento."
 
-msgid "Enable adaptive pressure advance for overhangs (beta)"
-msgstr "Activación del Avance de Presión Adaptativo para Voladizos (beta)"
+msgid "Enable adaptive pressure advance within features (beta)"
+msgstr "Activar Pressure Advance adaptativo dentro de las características (beta)"
 
 msgid ""
-"Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+"Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
+"\n"
+"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
+"\n"
+"This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
 msgstr ""
-"Activa el PA adaptativo para los voladizos, así como cuando el flujo cambia dentro de la misma pieza. Esta es una opción experimental, ya que si el perfil de PA no se configura con precisión, causará problemas de uniformidad en las superficies externas antes y después de los voladizos.\n"
-"No es compatible con las impresoras Prusa, ya que estas se detienen para procesar los cambios de PA, lo que provoca retrasos y defectos."
+"Activa el PA adaptativo siempre que haya cambios de flujo en una característica, como cambios de ancho de línea en una esquina o en voladizos.\n"
+"\n"
+"No es compatible con las impresoras Prusa, ya que se pausan para procesar los cambios de PA, lo que provoca retrasos y defectos.\n"
+"\n"
+"Esta es una opción experimental, ya que si el perfil de PA no se configura con precisión, causará problemas de uniformidad."
 
-msgid "Pressure advance for bridges"
-msgstr "Pressure advance para puentes"
+msgid "Static pressure advance for bridges"
+msgstr "Pressure Advance estático para puentes"
 
 msgid ""
-"Pressure advance value for bridges. Set to 0 to disable.\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+"equivalent walls (using adaptive settings if enabled).\n"
 "\n"
-"A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+"A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Valor de Avance de Presión (PA) para puentes. Establecer a 0 para desactivar.\n"
+"Valor de Pressure Advance estático para los puentes. Establécelo a 0 para aplicar el mismo Pressure Advance que en los \n"
+"perímetros equivalentes (usando los ajustes adaptativos si están activados).\n"
 "\n"
-"Un valor de PA más bajo al imprimir puentes ayuda a reducir la aparición de una ligera sub-extrusión inmediatamente después de los puentes. Esto es causado por la caída de presión en la boquilla cuando se imprime en el aire, y un PA más bajo ayuda a contrarrestar este efecto."
+"Un valor de PA más bajo al imprimir puentes ayuda a reducir la aparición de una ligera subextrusión justo después de los puentes. Esto se debe a la caída de presión en la boquilla al imprimir en el aire, y un PA más bajo ayuda a contrarrestarlo."
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ancho de línea por defecto si otros anchos de línea están a 0. Si se expresa cómo %, se calculará en base al diámetro de la boquilla."
@@ -12804,6 +12890,26 @@ msgstr "Dirección del relleno sólido"
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
 msgstr "Ángulo para el patrón de relleno sólido, que controla el inicio o la dirección principal de la línea."
 
+msgid "Top layer direction"
+msgstr "Dirección de la capa superior"
+
+msgid ""
+"Fixed angle for the top solid infill and ironing lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+"Ángulo fijo para el relleno sólido superior y las líneas de alisado.\n"
+"Establécelo a -1 para seguir la dirección predeterminada del relleno sólido."
+
+msgid "Bottom layer direction"
+msgstr "Dirección de la capa inferior"
+
+msgid ""
+"Fixed angle for the bottom solid infill lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+"Ángulo fijo para las líneas del relleno sólido inferior.\n"
+"Establécelo a -1 para seguir la dirección predeterminada del relleno sólido."
+
 msgid "Sparse infill density"
 msgstr "Densidad de relleno de baja densidad"
 
@@ -13011,7 +13117,7 @@ msgid "layer"
 msgstr "capa"
 
 msgid "First layer fan speed"
-msgstr ""
+msgstr "Velocidad del ventilador en la primera capa"
 
 msgid ""
 "Sets an exact fan speed for the first layer, overriding all other cooling settings. Useful for protecting 3D-printed toolhead parts (e.g. Voron-style ABS/ASA ducts) from a hot bed. A small amount of airflow cools the ducts down, without using full cooling that may in certain conditions hurt first-layer adhesion.\n"
@@ -13020,6 +13126,11 @@ msgid ""
 "Only available when \"No cooling for the first\" is 0.\n"
 "Set to -1 to disable it."
 msgstr ""
+"Establece una velocidad exacta del ventilador para la primera capa, anulando el resto de ajustes de refrigeración. Útil para proteger las piezas del cabezal impresas en 3D (por ejemplo, los conductos de ABS/ASA tipo Voron) de una cama caliente. Una pequeña cantidad de flujo de aire enfría los conductos, sin usar la refrigeración completa que en ciertas condiciones puede perjudicar la adhesión de la primera capa.\n"
+"A partir de la segunda capa, se reanuda la refrigeración normal.\n"
+"Si también se ha establecido \"Velocidad máxima del ventilador en la capa\", el ventilador sube suavemente desde este valor en la primera capa hasta tu objetivo en la capa elegida.\n"
+"Solo disponible cuando \"No refrigerar las primeras\" es 0.\n"
+"Establécelo a -1 para desactivarlo."
 
 msgid "Support interface fan speed"
 msgstr "Velocidad de ventilador en la interfaz de los soportes"
@@ -13080,7 +13191,7 @@ msgid "Filament-specific override for ironing speed. This allows you to customiz
 msgstr "Sobrescritura específica por filamento para la velocidad de alisado. Esto permite personalizar la velocidad de impresión de las líneas de alisado para cada tipo de filamento."
 
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
-msgstr "Sacudir ligeramente el cabezal de forma aleatoria cuando se imprime el perímetro externo, de modo que la superficie tenga un aspecto rugoso. Este ajuste controla la posición difusa."
+msgstr "Sacudir ligeramente el cabezal de forma aleatoria cuando se imprime el perímetro externo, de modo que la superficie tenga un aspecto rugoso. Este ajuste controla la posición de la piel rugosa."
 
 msgid "Painted only"
 msgstr "Solo pintado"
@@ -13098,25 +13209,25 @@ msgid "All walls"
 msgstr "Todas los perímetros"
 
 msgid "Fuzzy skin thickness"
-msgstr "Espesor de superficie rugosa"
+msgstr "Espesor de piel rugosa"
 
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "La anchura dentro de la cual se va a sacudir el cabezal. Se aconseja que esté por debajo del ancho de línea del perímetro exterior."
 
 msgid "Fuzzy skin point distance"
-msgstr "Distancia entre puntos de superficie rugosa"
+msgstr "Distancia entre puntos de piel rugosa"
 
 msgid "The average distance between the random points introduced on each line segment."
 msgstr "La diatancia media entre los puntos aleatorios introducidos en cada segmento de línea."
 
 msgid "Apply fuzzy skin to first layer"
-msgstr "Aplicar superficie difusa en la primera capa"
+msgstr "Aplicar piel rugosa en la primera capa"
 
 msgid "Whether to apply fuzzy skin on the first layer."
-msgstr "Aplicar o no superficie difusa en la primera capa."
+msgstr "Aplicar o no piel rugosa en la primera capa."
 
 msgid "Fuzzy skin generator mode"
-msgstr "Modo generador de piel difusa"
+msgstr "Modo generador de piel rugosa"
 
 #, c-format, boost-format
 msgid ""
@@ -13127,12 +13238,12 @@ msgid ""
 "\n"
 "Attention! The [Extrusion] and [Combined] modes works only the fuzzy_skin_thickness parameter not more than the thickness of printed loop. At the same time, the width of the extrusion for a particular layer should also not be below a certain level. It is usually equal 15-25%% of a layer height. Therefore, the maximum fuzzy skin thickness with a perimeter width of 0.4 mm and a layer height of 0.2 mm will be 0.4-(0.2*0.25)=±0.35mm! If you enter a higher parameter than this, the error Flow::spacing() will displayed, and the model will not be sliced. You can choose this number until this error is repeated."
 msgstr ""
-"Modo de generación de piel difusa. ¡Funciona solo con Arachne!\n"
+"Modo de generación de piel rugosa. ¡Funciona solo con Arachne!\n"
 "Desplazamiento: Modo clásico en el que el patrón se forma desplazando la boquilla lateralmente respecto a la trayectoria original.\n"
 "Extrusión: Modo en que el patrón se forma por la cantidad de material extruido. Es un algoritmo rápido y directo sin vibraciones innecesarias de la boquilla que produce un patrón suave. Sin embargo, resulta más útil para formar paredes sueltas en toda la matriz.\n"
 "Combinado: Modo conjunto [Desplazamiento] + [Extrusión]. La apariencia de las paredes es similar al modo [Desplazamiento], pero no deja poros entre los perímetros.\n"
 "\n"
-"¡Atención! Los modos [Extrusión] y [Combinado] funcionan solo si el parámetro fuzzy_skin_thickness no supera el espesor del perímetro impreso. Al mismo tiempo, el ancho de extrusión para una capa determinada tampoco debe estar por debajo de un cierto umbral, que suele ser el 15–25%% de la altura de capa. Por lo tanto, el espesor máximo de piel difusa con un ancho de perímetro de 0,4 mm y una altura de capa de 0,2 mm será 0,4-(0,2*0,25)=±0,35 mm. Si introduce un valor mayor, se mostrará el error Flow::spacing() y el modelo no se podrá laminar. Puede ajustar este valor hasta que deje de producirse el error."
+"¡Atención! Los modos [Extrusión] y [Combinado] funcionan solo si el parámetro fuzzy_skin_thickness no supera el espesor del perímetro impreso. Al mismo tiempo, el ancho de extrusión para una capa determinada tampoco debe estar por debajo de un cierto umbral, que suele ser el 15–25%% de la altura de capa. Por lo tanto, el espesor máximo de piel rugosa con un ancho de perímetro de 0,4 mm y una altura de capa de 0,2 mm será 0,4-(0,2*0,25)=±0,35 mm. Si introduce un valor mayor, se mostrará el error Flow::spacing() y el modelo no se podrá laminar. Puede ajustar este valor hasta que deje de producirse el error."
 
 msgid "Displacement"
 msgstr "Desplazamiento"
@@ -13144,7 +13255,7 @@ msgid "Combined"
 msgstr "Combinado"
 
 msgid "Fuzzy skin noise type"
-msgstr "Tipo de ruido de la piel difusa"
+msgstr "Tipo de ruido de la piel rugosa"
 
 msgid ""
 "Noise type to use for fuzzy skin generation:\n"
@@ -13155,7 +13266,7 @@ msgid ""
 "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture.\n"
 "Ripple: Uniform ripple pattern that ripples left and right of the original path. Repeating pattern, woven appearance."
 msgstr ""
-"Tipo de ruido a usar para la generación de la piel difusa:\n"
+"Tipo de ruido a usar para la generación de la piel rugosa:\n"
 "Clásico: Ruido aleatorio uniforme clásico.\n"
 "Perlin: Ruido Perlin, que ofrece una textura más coherente.\n"
 "Ondulado: Similar al ruido Perlin, pero más agrupado.\n"
@@ -13182,19 +13293,19 @@ msgid "Ripple"
 msgstr "Ripple"
 
 msgid "Fuzzy skin feature size"
-msgstr "Tamaño de característica de la piel difusa"
+msgstr "Tamaño de característica de la piel rugosa"
 
 msgid "The base size of the coherent noise features, in mm. Higher values will result in larger features."
 msgstr "El tamaño base de las características del ruido coherente, en mm. Valores mayores producen características más grandes."
 
 msgid "Fuzzy Skin Noise Octaves"
-msgstr "Octavas de ruido de la piel difusa"
+msgstr "Octavas de ruido de la piel rugosa"
 
 msgid "The number of octaves of coherent noise to use. Higher values increase the detail of the noise, but also increase computation time."
 msgstr "El número de octavas de ruido coherente a usar. Valores más altos aumentan el detalle del ruido, pero también incrementan el tiempo de cálculo."
 
 msgid "Fuzzy skin noise persistence"
-msgstr "Persistencia del ruido de piel difusa"
+msgstr "Persistencia del ruido de piel rugosa"
 
 msgid "The decay rate for higher octaves of the coherent noise. Lower values will result in smoother noise."
 msgstr "La tasa de decaimiento para las octavas superiores del ruido coherente. Valores más bajos producirán un ruido más suave."
@@ -15573,6 +15684,16 @@ msgstr "Giro de poliorificio"
 msgid "Rotate the polyhole every layer."
 msgstr "Rotar el poliorificio en cada capa."
 
+msgid "Maximum Polyhole edge count"
+msgstr "Número máximo de aristas de poliorificio"
+
+msgid ""
+"Maximum number of polyhole edges\n"
+"This setting limits the amount of edges a polyhole can have"
+msgstr ""
+"Número máximo de aristas de un poliorificio\n"
+"Este ajuste limita la cantidad de aristas que puede tener un poliorificio"
+
 msgid "G-code thumbnails"
 msgstr "Miniaturas de G-Code"
 
@@ -16315,8 +16436,8 @@ msgid ""
 "An object has enabled XY Size compensation which will not be used because it is also fuzzy skin painted.\n"
 "XY Size compensation cannot be combined with fuzzy skin painting."
 msgstr ""
-"Un objeto tiene activada la compensación de tamaño XY que no se utilizará porque también tiene piel difusa pintada.\n"
-"La compensación de tamaño XY no puede combinarse con la pintura de piel difusa."
+"Un objeto tiene activada la compensación de tamaño XY que no se utilizará porque también tiene piel rugosa pintada.\n"
+"La compensación de tamaño XY no puede combinarse con la pintura de piel rugosa."
 
 msgid "Object name"
 msgstr "Nombre del objeto"
@@ -17930,130 +18051,132 @@ msgid "Connection to printers connected via the print host failed."
 msgstr "Ha fallado la conexión a impresoras conectadas a través del host de impresión."
 
 msgid "Detect Creality K-series printer"
-msgstr ""
+msgstr "Detectar impresora Creality serie K"
 
 msgid "Click Scan to look for K-series printers on your network."
-msgstr ""
+msgstr "Haz clic en Escanear para buscar impresoras de la serie K en tu red."
 
 msgid "Use Selected"
-msgstr ""
+msgstr "Usar seleccionada"
 
 msgid "Scanning the LAN for K-series printers... this takes a few seconds."
-msgstr ""
+msgstr "Escaneando la LAN en busca de impresoras de la serie K... esto tarda unos segundos."
 
 msgid "No K-series printers found. Make sure the printer is on the same network and not blocked by Wi-Fi client isolation, then click Scan again."
-msgstr ""
+msgstr "No se encontraron impresoras de la serie K. Asegúrate de que la impresora esté en la misma red y no esté bloqueada por el aislamiento de clientes Wi-Fi, luego haz clic en Escanear de nuevo."
 
 #, c-format
 msgid "Found %zu Creality printer(s). Select one and click Use Selected."
-msgstr ""
+msgstr "Se encontraron %zu impresora(s) Creality. Selecciona una y haz clic en Usar seleccionada."
 
 msgid "Active"
-msgstr ""
+msgstr "Activo"
 
 msgid "Printers"
-msgstr ""
+msgstr "Impresoras"
 
 msgid "Processes"
-msgstr ""
+msgstr "Procesos"
 
 msgid "Show/Hide system information"
-msgstr ""
+msgstr "Mostrar/Ocultar información del sistema"
 
 msgid "Copy system information to clipboard"
-msgstr ""
+msgstr "Copiar información del sistema al portapapeles"
 
 msgid "We need information for diagnosing source of the issue. Check wiki page for detailed guide."
-msgstr ""
+msgstr "Necesitamos información para diagnosticar el origen del problema. Consulta la página wiki para una guía detallada."
 
 msgid "Pack button collects project file and logs of current session onto a zip file."
-msgstr ""
+msgstr "El botón Empaquetar recopila el archivo del proyecto y los registros de la sesión actual en un archivo zip."
 
 msgid "Any additional visual examples like images or screen recordings might be helpful while reporting the issue."
-msgstr ""
+msgstr "Cualquier ejemplo visual adicional, como imágenes o grabaciones de pantalla, puede ser útil al informar del problema."
 
 msgid "Report issue"
-msgstr ""
+msgstr "Informar de un problema"
 
 msgid "Pack"
-msgstr ""
+msgstr "Empaquetar"
 
 msgid "Cleans and rebuilds system profiles cache on next launch"
-msgstr ""
+msgstr "Limpia y reconstruye la caché de perfiles del sistema en el próximo inicio"
 
 msgid "Clean system profiles cache"
-msgstr ""
+msgstr "Limpiar la caché de perfiles del sistema"
 
 msgid "Clean"
 msgstr "Limpiar"
 
 msgid "Loaded profiles overview"
-msgstr ""
+msgstr "Resumen de los perfiles cargados"
 
 msgid "This section shows information for loaded profiles"
-msgstr ""
+msgstr "Esta sección muestra información de los perfiles cargados"
 
 msgid "Exports detailed overview of loaded profiles in json format"
-msgstr ""
+msgstr "Exporta un resumen detallado de los perfiles cargados en formato json"
 
 msgid "Configurations folder"
-msgstr ""
+msgstr "Carpeta de configuraciones"
 
 msgid "Opens configurations folder"
-msgstr ""
+msgstr "Abre la carpeta de configuraciones"
 
 msgid "Log level"
-msgstr ""
+msgstr "Nivel de registro"
 
 msgid "Stored logs"
-msgstr ""
+msgstr "Registros almacenados"
 
 msgid "Packs all stored logs onto a zip file."
-msgstr ""
+msgstr "Empaqueta todos los registros almacenados en un archivo zip."
 
 msgid "Profiles"
-msgstr ""
+msgstr "Perfiles"
 
 msgid "Select NO to close dialog and review project"
-msgstr ""
+msgstr "Selecciona NO para cerrar el diálogo y revisar el proyecto"
 
 msgid "No project file on current session. Only logs will be included to package"
-msgstr ""
+msgstr "No hay archivo de proyecto en la sesión actual. Solo se incluirán los registros en el paquete"
 
 msgid "Select NO to close dialog and review project."
-msgstr ""
+msgstr "Selecciona NO para cerrar el diálogo y revisar el proyecto."
 
 msgid "Please make sure any instances of OrcaSlicer are not running"
-msgstr ""
+msgstr "Asegúrate de que no haya ninguna instancia de OrcaSlicer en ejecución"
 
 msgid "System folder cannot be deleted because some files are in use by another application. Please close any applications using these files and try again."
-msgstr ""
+msgstr "No se puede eliminar la carpeta del sistema porque algunos archivos están siendo usados por otra aplicación. Cierra cualquier aplicación que esté usando estos archivos e inténtalo de nuevo."
 
 msgid "Failed to delete system folder..."
-msgstr ""
+msgstr "No se pudo eliminar la carpeta del sistema..."
 
 msgid "Failed to determine executable path."
-msgstr ""
+msgstr "No se pudo determinar la ruta del ejecutable."
 
 msgid "Failed to launch a new instance."
-msgstr ""
+msgstr "No se pudo iniciar una nueva instancia."
 
 msgid "log(s)"
-msgstr ""
+msgstr "registro(s)"
 
 msgid "Choose where to save the exported JSON file"
-msgstr ""
+msgstr "Elige dónde guardar el archivo JSON exportado"
 
 msgid ""
 "Export failed\n"
 "Please check write permissions or file in use by another application"
 msgstr ""
+"La exportación ha fallado\n"
+"Comprueba los permisos de escritura o si el archivo está siendo usado por otra aplicación"
 
 msgid "Choose where to save the exported ZIP file"
-msgstr ""
+msgstr "Elige dónde guardar el archivo ZIP exportado"
 
 msgid "File already exists. Overwrite?"
-msgstr ""
+msgstr "El archivo ya existe. ¿Sobrescribir?"
 
 msgid "3DPrinterOS Cloud upload options"
 msgstr "Opciones de carga en la nube de 3DPrinterOS"
@@ -18138,17 +18261,17 @@ msgid "Could not connect to MKS"
 msgstr "No se ha podido conectar con MKS"
 
 msgid "Connection to Moonraker is working correctly."
-msgstr ""
+msgstr "La conexión con Moonraker funciona correctamente."
 
 msgid "Could not connect to Moonraker"
-msgstr ""
+msgstr "No se pudo conectar con Moonraker"
 
 msgid "The host responded but it doesn't look like Moonraker (missing result.klippy_state)."
-msgstr ""
+msgstr "El host respondió, pero no parece ser Moonraker (falta result.klippy_state)."
 
 #, c-format, boost-format
 msgid "Could not parse Moonraker server response: %s"
-msgstr ""
+msgstr "No se pudo analizar la respuesta del servidor Moonraker: %s"
 
 msgid "Connection to OctoPrint is working correctly."
 msgstr "La conexión con OctoPrint funciona correctamente."
@@ -18899,6 +19022,12 @@ msgstr "Número de caras triangulares"
 msgid "Calculating, please wait..."
 msgstr "Calculando, por favor espere..."
 
+msgid "Save these settings as default"
+msgstr "Guardar estos ajustes como predeterminados"
+
+msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
+msgstr "Si está activado, los valores anteriores se guardan como los predeterminados usados para futuras importaciones STEP (y se muestran en Preferencias)."
+
 msgid "PresetBundle"
 msgstr "PaqueteDePerfiles"
 
@@ -19299,6 +19428,77 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+#~ msgid "in"
+#~ msgstr "pulg"
+
+#~ msgid "Object coordinates"
+#~ msgstr "Coordenadas de objeto"
+
+#~ msgid "World coordinates"
+#~ msgstr "Coordenadas globales"
+
+#~ msgid "Translate(Relative)"
+#~ msgstr "Traslación (relativo)"
+
+#~ msgid "Rotate (absolute)"
+#~ msgstr "Rotar (absoluto)"
+
+#~ msgid "Part coordinates"
+#~ msgstr "Coordenadas de la pieza"
+
+#~ msgid ""
+#~ "Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "Conflicto de sincronización en la nube: este perfil tiene una versión más reciente en OrcaCloud.\n"
+#~ "«Descargar» descarga la copia de la nube. «Forzar envío» la sobrescribe con tu perfil local."
+
+#~ msgid ""
+#~ "Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "Conflicto de sincronización en la nube: ya existe un perfil con este nombre en OrcaCloud.\n"
+#~ "«Descargar» descarga la copia de la nube. «Forzar envío» la sobrescribe con tu perfil local."
+
+#~ msgid ""
+#~ "Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+#~ "Delete will delete your local preset. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "Conflicto de sincronización en la nube: ya se ha eliminado de la nube un perfil con el mismo nombre.\n"
+#~ "Al hacer clic en «Eliminar», se borrará tu perfil local. Al hacer clic en «Forzar envío», se sobrescribirá con tu perfil local."
+
+#~ msgid ""
+#~ "Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "Conflicto de sincronización en la nube: se ha producido un conflicto inesperado o no identificado con los perfiles.\n"
+#~ "«Descargar» descarga la copia de la nube. «Forzar envío» la sobrescribe con tu perfil local."
+
+#~ msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+#~ msgstr "El contenido del perfil es demasiado grande para sincronizarlo con la nube (supera 1 MB). Reduce el tamaño del perfil eliminando las configuraciones personalizadas o utilízalo solo de forma local."
+
+#~ msgid "Enable adaptive pressure advance for overhangs (beta)"
+#~ msgstr "Activación del Avance de Presión Adaptativo para Voladizos (beta)"
+
+#~ msgid ""
+#~ "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
+#~ "Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+#~ msgstr ""
+#~ "Activa el PA adaptativo para los voladizos, así como cuando el flujo cambia dentro de la misma pieza. Esta es una opción experimental, ya que si el perfil de PA no se configura con precisión, causará problemas de uniformidad en las superficies externas antes y después de los voladizos.\n"
+#~ "No es compatible con las impresoras Prusa, ya que estas se detienen para procesar los cambios de PA, lo que provoca retrasos y defectos."
+
+#~ msgid "Pressure advance for bridges"
+#~ msgstr "Pressure advance para puentes"
+
+#~ msgid ""
+#~ "Pressure advance value for bridges. Set to 0 to disable.\n"
+#~ "\n"
+#~ "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+#~ msgstr ""
+#~ "Valor de Avance de Presión (PA) para puentes. Establecer a 0 para desactivar.\n"
+#~ "\n"
+#~ "Un valor de PA más bajo al imprimir puentes ayuda a reducir la aparición de una ligera sub-extrusión inmediatamente después de los puentes. Esto es causado por la caída de presión en la boquilla cuando se imprime en el aire, y un PA más bajo ayuda a contrarrestar este efecto."
 
 #~ msgid "Filament Sync Options"
 #~ msgstr "Opciones de sincronización de filamento"
@@ -19792,7 +19992,7 @@ msgstr ""
 #~ "Ridged Multifractal: Ridged noise with sharp, jagged features. Creates marble-like textures.\n"
 #~ "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture."
 #~ msgstr ""
-#~ "Tipo de ruido a usar para la generación de la piel difusa:\n"
+#~ "Tipo de ruido a usar para la generación de la piel rugosa:\n"
 #~ "Clásico: Ruido aleatorio uniforme clásico.\n"
 #~ "Perlin: Ruido Perlin, que ofrece una textura más coherente.\n"
 #~ "Billow: Similar al ruido Perlin, pero más agrupado.\n"

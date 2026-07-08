@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-03 14:43+0200\n"
+"POT-Creation-Date: 2026-07-07 10:05-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -339,8 +339,9 @@ msgstr "缩放工具"
 msgid "Error: Please close all toolbar menus first"
 msgstr "错误：请先关闭所有工具栏菜单"
 
+msgctxt "inches"
 msgid "in"
-msgstr "在"
+msgstr ""
 
 msgid "mm"
 msgstr "mm"
@@ -400,26 +401,29 @@ msgstr "重置位置"
 msgid "Reset rotation"
 msgstr "重置旋转"
 
-msgid "Object coordinates"
-msgstr "物体坐标"
+msgid "World"
+msgstr ""
 
-msgid "World coordinates"
-msgstr "世界坐标"
+msgid "Object"
+msgstr "对象"
 
-msgid "Translate(Relative)"
-msgstr "转换（相对）"
+msgid "Part"
+msgstr "零件"
+
+msgid "Relative"
+msgstr ""
+
+msgid "Coordinate system used for transform actions."
+msgstr ""
+
+msgid "Absolute"
+msgstr ""
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "重置当前旋转为打开旋转工具时的值"
 
-msgid "Rotate (absolute)"
-msgstr "旋转（绝对）"
-
 msgid "Reset current rotation to real zeros."
 msgstr "重置当前旋转为真实零位"
-
-msgid "Part coordinates"
-msgstr "零件坐标"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -523,12 +527,6 @@ msgstr "间隙"
 
 msgid "Spacing"
 msgstr "间距"
-
-msgid "Part"
-msgstr "零件"
-
-msgid "Object"
-msgstr "对象"
 
 msgid ""
 "Click to flip the cut plane\n"
@@ -1869,33 +1867,32 @@ msgstr "打开项目"
 msgid "The version of Orca Slicer is too low and needs to be updated to the latest version before it can be used normally."
 msgstr "此逆戟鲸切片器的版本过低，需更新至最新版本方可正常使用"
 
-msgid ""
-"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
-"Pull downloads the cloud copy. Force push overwrites it with your local preset."
+msgid "Cloud sync conflict:"
 msgstr ""
-"云同步冲突：此预设在 OrcaCloud 中存在更新的版本。\n"
-"拉取将下载云端副本。强制推送将用您的本地预设覆盖它。"
+
+#, c-format, boost-format
+msgid "Cloud sync conflict for preset \"%s\":"
+msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"This preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
-"云同步冲突：OrcaCloud 中已存在同名预设。\n"
-"拉取将下载云端副本。强制推送将用您的本地预设覆盖它。"
 
 msgid ""
-"Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+"A preset with this name already exists in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local preset."
+msgstr ""
+
+msgid ""
+"A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
 msgstr ""
-"云同步冲突：之前已从云端删除了同名预设。\n"
-"“删除”将删除您的本地预设。“强制推送”将用您的本地预设覆盖它。"
 
 msgid ""
-"Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+"There was an unexpected or unidentified preset conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
-"云同步冲突：发生了意外或无法识别的预设冲突。\n"
-"“拉取”将下载云端副本。“强制推送”将用您的本地预设覆盖它。"
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
@@ -1903,6 +1900,12 @@ msgid ""
 msgstr ""
 "强制推送将用您本地的预设更改覆盖云端副本。\n"
 "是否继续？"
+
+#, c-format, boost-format
+msgid ""
+"Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\n"
+"Do you want to continue?"
+msgstr ""
 
 msgid "Resolve cloud sync conflict"
 msgstr "解决云同步冲突"
@@ -1983,8 +1986,9 @@ msgstr "云端缓存的用户预设数量已超过上限，新创建的用户预
 msgid "Sync user presets"
 msgstr "同步用户预设"
 
-msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
-msgstr "预设内容过大，无法同步到云端（超过 1MB）。请通过移除自定义配置来缩减预设大小，或仅在本地使用。"
+#, c-format, boost-format
+msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%s updated from %s to %s"
@@ -2204,6 +2208,9 @@ msgstr "Orca方块"
 
 msgid "OrcaSliced Combo"
 msgstr "OrcaSliced 复合模型"
+
+msgid "Orca Badge"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Orca误差测试"
@@ -5254,6 +5261,9 @@ msgstr "悬垂"
 msgid "Outline"
 msgstr "轮廓线"
 
+msgid "Wireframe"
+msgstr ""
+
 msgid "Realistic View"
 msgstr "写实渲染"
 
@@ -5297,7 +5307,7 @@ msgstr "体积："
 msgid "Size:"
 msgstr "尺寸："
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "发现G-code路径在层%d，高度为%.2lf mm处有冲突。请将有冲突的对象分离得更远(%s <-> %s)。"
 
@@ -8015,6 +8025,35 @@ msgstr "显示STEP网格参数设置对话框"
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "如果启用，在导入STEP文件时将出现参数设置对话框"
 
+msgid "STEP importing: linear deflection"
+msgstr ""
+
+msgid ""
+"Linear deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.003 mm."
+msgstr ""
+
+msgid "STEP importing: angle deflection"
+msgstr ""
+
+msgid ""
+"Angle deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.5."
+msgstr ""
+
+msgid "STEP importing: Split into multiple objects"
+msgstr ""
+
+msgid ""
+"If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: disabled."
+msgstr ""
+
 msgid "Quality level for Draco export"
 msgstr "Draco 导出的模型质量"
 
@@ -8029,6 +8068,12 @@ msgstr ""
 "控制将网格压缩为 Draco 格式时使用的量化位深度。\n"
 "0 = 无损压缩（以全精度保留几何形状）。有效有损值范围为 8 到 30。\n"
 "较低的值会生成较小的文件，但会丢失更多的几何细节；较高的值可保留更多细节，但代价是文件较大。"
+
+msgid "Store full source file paths in projects"
+msgstr ""
+
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr ""
 
 msgid "Preset"
 msgstr "预设"
@@ -12435,6 +12480,18 @@ msgstr "微小部位周长阈值"
 msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
 msgstr "这将设置微小部位周长的阈值。默认阈值为0mm"
 
+msgid "Small support perimeters"
+msgstr ""
+
+msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
+msgstr ""
+
+msgid "Small support perimeters threshold"
+msgstr ""
+
+msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
+msgstr ""
+
 msgid "Walls printing order"
 msgstr "墙顺序"
 
@@ -12615,24 +12672,26 @@ msgstr ""
 "2. 记下每个体积流速和加速度的最佳 PA 值。您可以通过从配色方案下拉列表中选择流量并将水平滑块移动到 PA 图案线上来找到流量编号。该数字应该在页面底部可见。理想的 PA 值应该随着体积流量的增加而减小。如果不是，请确认您的挤出机运行正常。打印速度越慢且加速度越小，可接受的 PA 值范围就越大。如果没有明显差异，请使用更快测试中的 PA 值\n"
 "3. 在此处的文本框中输入 PA 值、流量和加速度的三元组并保存耗材丝配置文件"
 
-msgid "Enable adaptive pressure advance for overhangs (beta)"
-msgstr "为悬垂启用自适应压力提前（试验）"
-
-msgid ""
-"Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+msgid "Enable adaptive pressure advance within features (beta)"
 msgstr ""
-"针对悬垂以及同一特征内的流量变化启用自适应 PA。这是一个实验性选项，因为如果未准确设置 PA 配置文件，将导致悬垂前后外表面出现均匀性问题。\n"
-"与 Prusa 打印机不兼容，因为它们会暂停以处理 PA 变化，从而导致延迟和瑕疵。"
-
-msgid "Pressure advance for bridges"
-msgstr "为搭桥启用压力提前"
 
 msgid ""
-"Pressure advance value for bridges. Set to 0 to disable.\n"
+"Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
 "\n"
-"A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
-msgstr "桥梁的压力提前值。设置为 0 以禁用。 打印桥接时较低的 PA 值有助于减少桥接后立即出现的轻微挤压不足现象。这是由在空气中打印时喷嘴中的压力下降引起的，较低的 PA 有助于抵消这种情况。"
+"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
+"\n"
+"This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
+msgstr ""
+
+msgid "Static pressure advance for bridges"
+msgstr ""
+
+msgid ""
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+"equivalent walls (using adaptive settings if enabled).\n"
+"\n"
+"A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+msgstr ""
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "当线宽设置为0时走线的默认线宽。如果以%表示，它将基于喷嘴直径来计算。"
@@ -13027,6 +13086,22 @@ msgstr "实心填充方向"
 
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
 msgstr "实心填充图案的角度，决定走线的开始或整体方向。"
+
+msgid "Top layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the top solid infill and ironing lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
+msgid "Bottom layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the bottom solid infill lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
 
 msgid "Sparse infill density"
 msgstr "稀疏填充密度"
@@ -15876,6 +15951,14 @@ msgstr "扭曲多边型孔"
 
 msgid "Rotate the polyhole every layer."
 msgstr "按层旋转多边形孔。"
+
+msgid "Maximum Polyhole edge count"
+msgstr ""
+
+msgid ""
+"Maximum number of polyhole edges\n"
+"This setting limits the amount of edges a polyhole can have"
+msgstr ""
 
 msgid "G-code thumbnails"
 msgstr "G-code缩略图尺寸"
@@ -19238,6 +19321,12 @@ msgstr "三角面片数量"
 msgid "Calculating, please wait..."
 msgstr "正在计算，请稍候..."
 
+msgid "Save these settings as default"
+msgstr ""
+
+msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
+msgstr ""
+
 msgid "PresetBundle"
 msgstr "预设包"
 
@@ -19647,6 +19736,74 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#~ msgid "in"
+#~ msgstr "在"
+
+#~ msgid "Object coordinates"
+#~ msgstr "物体坐标"
+
+#~ msgid "World coordinates"
+#~ msgstr "世界坐标"
+
+#~ msgid "Translate(Relative)"
+#~ msgstr "转换（相对）"
+
+#~ msgid "Rotate (absolute)"
+#~ msgstr "旋转（绝对）"
+
+#~ msgid "Part coordinates"
+#~ msgstr "零件坐标"
+
+#~ msgid ""
+#~ "Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "云同步冲突：此预设在 OrcaCloud 中存在更新的版本。\n"
+#~ "拉取将下载云端副本。强制推送将用您的本地预设覆盖它。"
+
+#~ msgid ""
+#~ "Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "云同步冲突：OrcaCloud 中已存在同名预设。\n"
+#~ "拉取将下载云端副本。强制推送将用您的本地预设覆盖它。"
+
+#~ msgid ""
+#~ "Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+#~ "Delete will delete your local preset. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "云同步冲突：之前已从云端删除了同名预设。\n"
+#~ "“删除”将删除您的本地预设。“强制推送”将用您的本地预设覆盖它。"
+
+#~ msgid ""
+#~ "Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "云同步冲突：发生了意外或无法识别的预设冲突。\n"
+#~ "“拉取”将下载云端副本。“强制推送”将用您的本地预设覆盖它。"
+
+#~ msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+#~ msgstr "预设内容过大，无法同步到云端（超过 1MB）。请通过移除自定义配置来缩减预设大小，或仅在本地使用。"
+
+#~ msgid "Enable adaptive pressure advance for overhangs (beta)"
+#~ msgstr "为悬垂启用自适应压力提前（试验）"
+
+#~ msgid ""
+#~ "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
+#~ "Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+#~ msgstr ""
+#~ "针对悬垂以及同一特征内的流量变化启用自适应 PA。这是一个实验性选项，因为如果未准确设置 PA 配置文件，将导致悬垂前后外表面出现均匀性问题。\n"
+#~ "与 Prusa 打印机不兼容，因为它们会暂停以处理 PA 变化，从而导致延迟和瑕疵。"
+
+#~ msgid "Pressure advance for bridges"
+#~ msgstr "为搭桥启用压力提前"
+
+#~ msgid ""
+#~ "Pressure advance value for bridges. Set to 0 to disable.\n"
+#~ "\n"
+#~ "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+#~ msgstr "桥梁的压力提前值。设置为 0 以禁用。 打印桥接时较低的 PA 值有助于减少桥接后立即出现的轻微挤压不足现象。这是由在空气中打印时喷嘴中的压力下降引起的，较低的 PA 有助于抵消这种情况。"
 
 #~ msgid "Filament Sync Options"
 #~ msgstr "耗材丝同步选项"
