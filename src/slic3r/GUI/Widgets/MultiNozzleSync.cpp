@@ -728,8 +728,8 @@ Slic3r::GUI::MultiNozzleSyncDialog::MultiNozzleSyncDialog(wxWindow* parent,std::
 
     wxBoxSizer* button_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_cancel_btn = new Button(this, _L("Cancel"), "", 0, 0, wxID_OK);
-    m_confirm_btn = new Button(this, _L("Confirm"), "", 0, 0, wxID_CANCEL);
+    m_cancel_btn = new Button(this, _L("Cancel"), "", 0, 0, wxID_CANCEL);
+    m_confirm_btn = new Button(this, _L("Confirm"), "", 0, 0, wxID_OK);
 
     m_caution = new Label(this, _L("Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."));
     m_caution->SetForegroundColour("#909090");

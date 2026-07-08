@@ -146,7 +146,7 @@ void CheckList::SelectVisible(bool value)
 
 bool CheckList::IsChecked(int i)
 {
-    if (i > -1 && i < m_list_size)
+    if (i < 0 || i >= (int) m_list_size)
         return false;
     return m_checks[i]->GetValue();
 }

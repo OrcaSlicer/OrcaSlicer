@@ -567,8 +567,6 @@ bool GLGizmoCut3D::render_slider_two_input(const std::string& label, float& valu
 
     double left_width = m_label_width + slider_with + item_in_gap;
 
-    bool m_imperial_units = false;
-
     float value = value_in;
     if (m_imperial_units)
         value *= f_mm_to_in;
@@ -634,8 +632,6 @@ bool GLGizmoCut3D::render_slider_input(const std::string& label, float& value_in
     ImGui::PushItemWidth(slider_with);
 
     double left_width = m_label_width + slider_with + item_in_gap;
-
-    bool m_imperial_units = false;
 
     float value = value_in;
     float max_value = max_val;

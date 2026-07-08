@@ -238,9 +238,9 @@ void wgtDeviceNozzleRackSelect::SetSelectedNozzle(const DevNozzle &nozzle)
     }
 }
 
-volatile int sGetNozzlePosId(wgtDeviceNozzleRackNozzleItem* item,
-                             wgtDeviceNozzleRackNozzleItem* l_item,
-                             wgtDeviceNozzleRackNozzleItem* r_item)
+static int sGetNozzlePosId(wgtDeviceNozzleRackNozzleItem* item,
+                           wgtDeviceNozzleRackNozzleItem* l_item,
+                           wgtDeviceNozzleRackNozzleItem* r_item)
 {
     int to_select_pos_id = -1;
     if (item == l_item) {

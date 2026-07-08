@@ -1,9 +1,6 @@
 #include "TriangleMeshDeal.hpp"
 
 #include <igl/loop.h>
-#undef NDEBUG
-#include <assert.h>
-#include <boost/log/trivial.hpp>
 
 namespace Slic3r {
 TriangleMesh TriangleMeshDeal::smooth_triangle_mesh(const TriangleMesh& mesh, bool& ok)

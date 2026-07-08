@@ -42,7 +42,7 @@ bool DevFilaSwitch::IsReady() const
 std::optional<DevAmsTray> DevFilaSwitch::GetInA_Slot() const
 {
     auto ams_id_opt = GetInA_SlotId();
-    if (m_owner && ams_id_opt.has_value()) { return m_owner->get_tray(std::to_string(ams_id_opt->first), std::to_string(ams_id_opt->first)); }
+    if (m_owner && ams_id_opt.has_value()) { return m_owner->get_tray(std::to_string(ams_id_opt->first), std::to_string(ams_id_opt->second)); }
 
     return std::nullopt;
 }
@@ -50,7 +50,7 @@ std::optional<DevAmsTray> DevFilaSwitch::GetInA_Slot() const
 std::optional<DevAmsTray> DevFilaSwitch::GetInB_Slot() const
 {
     auto ams_id_opt = GetInB_SlotId();
-    if (m_owner && ams_id_opt.has_value()) { return m_owner->get_tray(std::to_string(ams_id_opt->first), std::to_string(ams_id_opt->first)); }
+    if (m_owner && ams_id_opt.has_value()) { return m_owner->get_tray(std::to_string(ams_id_opt->first), std::to_string(ams_id_opt->second)); }
 
     return std::nullopt;
 }
@@ -128,7 +128,7 @@ void DevFilaSwitch::ParseFilaSwitchInfo(const nlohmann::json &print_jj)
         if (fila_switch_jj.contains("info")) {
             const auto &info_bits = DevJsonValParser::GetVal<int>(fila_switch_jj, "info");
             m_in_b_has_filament   = DevUtil::get_flag_bits(info_bits, 0, 1);
-            m_in_a_has_filament   = DevUtil::get_flag_bits(info_bits, 0, 1);
+            m_in_a_has_filament   = DevUtil::get_flag_bits(info_bits, 1, 1);
         }
     }
 }

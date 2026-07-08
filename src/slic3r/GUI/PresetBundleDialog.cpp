@@ -403,7 +403,7 @@ void PresetBundleDialog::ListBundles()
 void PresetBundleDialog::OpenFolder(const std::string& id)
 {
     wxGetApp().preset_bundle->bundles.ReadLock();
-    wxString target = _L(wxGetApp().preset_bundle->bundles.m_bundles.find(id)->second.path);
+    wxString target = from_u8(wxGetApp().preset_bundle->bundles.m_bundles.find(id)->second.path);
     wxGetApp().preset_bundle->bundles.ReadUnlock();
     wxFileName fn(target);
     if (fn.FileExists())
