@@ -52,6 +52,11 @@ SCENARIO("Placeholder parser scripting", "[PlaceholderParser]") {
     SECTION("math: round(-13.4)") { REQUIRE(parser.process("{round(-13.4)}") == "-13"); }
     SECTION("math: round(13.6)") { REQUIRE(parser.process("{round(13.6)}") == "14"); }
     SECTION("math: round(-13.6)") { REQUIRE(parser.process("{round(-13.6)}") == "-14"); }
+    SECTION("math: round(13.5)") { REQUIRE(parser.process("{round(13.5)}") == "14"); }
+    SECTION("math: floor(13.9)") { REQUIRE(parser.process("{floor(13.9)}") == "13"); }
+    SECTION("math: floor(-13.1)") { REQUIRE(parser.process("{floor(-13.1)}") == "-14"); }
+    SECTION("math: ceil(13.1)") { REQUIRE(parser.process("{ceil(13.1)}") == "14"); }
+    SECTION("math: ceil(-13.9)") { REQUIRE(parser.process("{ceil(-13.9)}") == "-13"); }
     SECTION("math: digits(5, 15)") { REQUIRE(parser.process("{digits(5, 15)}") == "              5"); }
     SECTION("math: digits(5., 15)") { REQUIRE(parser.process("{digits(5., 15)}") == "              5"); }
     SECTION("math: zdigits(5, 15)") { REQUIRE(parser.process("{zdigits(5, 15)}") == "000000000000005"); }
@@ -65,6 +70,8 @@ SCENARIO("Placeholder parser scripting", "[PlaceholderParser]") {
     SECTION("math: interpolate_table(13.84375892476, (0, 0), (20, 20))") { REQUIRE(std::stod(parser.process("{interpolate_table(13.84375892476, (0, 0), (20, 20))}")) == Catch::Approx(13.84375892476)); }
     SECTION("math: interpolate_table(13, (0, 0), (20, 20), (30, 20))") { REQUIRE(std::stod(parser.process("{interpolate_table(13, (0, 0), (20, 20), (30, 20))}")) == Catch::Approx(13.)); }
     SECTION("math: interpolate_table(25, (0, 0), (20, 20), (30, 20))") { REQUIRE(std::stod(parser.process("{interpolate_table(25, (0, 0), (20, 20), (30, 20))}")) == Catch::Approx(20.)); }
+    // Only the grammar's built-in functions are callable; any other name is an undefined variable and throws.
+    SECTION("math: a non-built-in function name throws") { REQUIRE_THROWS(parser.process("{sqrt(16)}")); }
 
     // regex_replace(subject, /pattern/, replacement): the string-transform primitive.
     SECTION("regex_replace: strips a file extension") { REQUIRE(parser.process("{regex_replace(\"part.stl\", /\\.[^.]*$/, \"\")}") == "part"); }

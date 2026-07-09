@@ -132,6 +132,9 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"infill_anchor", "", 1},
        {"infill_anchor_max", "", 1},
        {"top_surface_pattern", "", 1},
+       {"top_surface_expansion", "", 1},
+       {"top_surface_expansion_margin", "", 1},
+       {"top_surface_expansion_direction", "", 1},
        {"bottom_surface_pattern", "", 1},
        {"internal_solid_infill_pattern", "", 1},
        {"align_infill_direction_to_model", "", 1},
@@ -187,7 +190,7 @@ std::vector<SimpleSettingData> SettingsFactory::get_visible_options(const std::s
         //Quality
         "wall_infill_order", "ironing_type", "inner_wall_line_width", "outer_wall_line_width", "top_surface_line_width",
         //Shell
-        "wall_loops", "top_shell_layers", "bottom_shell_layers", "top_shell_thickness", "bottom_shell_thickness",
+        "wall_loops", "top_shell_layers", "bottom_shell_layers", "top_shell_thickness", "bottom_shell_thickness", "top_surface_expansion", "top_surface_expansion_margin", "top_surface_expansion_direction",
         //Infill
         "sparse_infill_density", "sparse_infill_pattern", "top_surface_pattern", "bottom_surface_pattern", "infill_combination", "infill_direction", "infill_wall_overlap",
         //speed

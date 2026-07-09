@@ -4,6 +4,7 @@
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
+#include "Clipper2Utils.hpp"
 #include "ElephantFootCompensation.hpp"
 #include "Geometry.hpp"
 #include "I18N.hpp"
@@ -562,6 +563,11 @@ void PrintObject::prepare_infill()
 {
     if (! this->set_started(posPrepareInfill))
         return;
+
+    // Orca: clear all volume bbox caches
+    for (auto volume : this->model_object()->volumes)
+        volume->reset_volume_bbox();
+
     m_print->set_status(25, L("Generating infill regions"));
     if (m_typed_slices) {
         // To improve robustness of detect_surfaces_type() when reslicing (working with typed slices), see GH issue #7442.
@@ -1297,6 +1303,9 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_combination_max_layer_height"
             || opt_key == "bottom_shell_thickness"
             || opt_key == "top_shell_thickness"
+            || opt_key == "top_surface_expansion"
+            || opt_key == "top_surface_expansion_margin"
+            || opt_key == "top_surface_expansion_direction"
             || opt_key == "minimum_sparse_infill_area"
             || opt_key == "sparse_infill_filament_id"
             || opt_key == "internal_solid_filament_id"
@@ -1330,6 +1339,9 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "top_surface_line_width"
             || opt_key == "top_surface_density"
             || opt_key == "bottom_surface_density"
+            || opt_key == "anisotropic_surfaces" 
+            || opt_key == "center_of_surface_pattern"
+            || opt_key == "separated_infills" 
             || opt_key == "initial_layer_line_width"
             || opt_key == "small_area_infill_flow_compensation"
             || opt_key == "lateral_lattice_angle_1"
@@ -1684,6 +1696,69 @@ void PrintObject::detect_surfaces_type()
                             top.clear();
                             surfaces_append(top, diff_ex(top_polygons, bottom), stTop);
                         }
+                    }
+
+                    // ORCA: Expand the top surfaces outward by top_surface_expansion in every direction. This
+                    // enlarges the top solid infill and, in particular, grows it over the covered material left
+                    // by features rising from the middle of a top surface (filling holes and joining tops so the
+                    // features rest on it). The expansion stays inside the section it belongs to: each connected
+                    // solid island has its own outer wall, so the top is grown within each island separately and
+                    // clipped to it - growing one island's top across the gap into another island (which may have
+                    // no top surface, leaving a partially filled layer) is never allowed. The top infill sits
+                    // inside the perimeters, so the margin is measured from the walls: the island is inset by the
+                    // band the walls consume (outer wall + inner walls) plus the configured margin, making that
+                    // value the real clearance between the expanded top and the walls (avoiding a hull line). The
+                    // original top is unioned back in, so where it already sits within that band it is kept as-is.
+                    // Never claims a bottom surface.
+                    const double top_expansion = layerm->region().config().top_surface_expansion.value;
+                    if (top_expansion > 0. && ! top.empty()) {
+                        const double     d        = scale_(top_expansion);
+                        const auto       jt       = Clipper2Lib::JoinType::Miter;
+                        const ExPolygons T        = union_ex(to_expolygons(top));
+                        const int    wall_loops = layerm->region().config().wall_loops.value;
+                        const double wall_band  = wall_loops <= 0 ? 0. :
+                            double(layerm->flow(frExternalPerimeter).scaled_width()) +
+                            double(layerm->flow(frPerimeter).scaled_width()) * double(wall_loops - 1);
+                        const double margin     = scale_(layerm->region().config().top_surface_expansion_margin.value);
+                        // minimum real top to act on: ignore anything thinner than ~2 top-infill lines
+                        const float  min_top    = float(layerm->flow(frTopSolidInfill).scaled_width());
+                        const auto   direction  = layerm->region().config().top_surface_expansion_direction.value;
+
+                        ExPolygons grown;
+                        for (const ExPolygon &island : union_ex(layerm_slices_surfaces)) {
+                            // The top infill only exists inside the perimeters, so seed and measure from the infill
+                            // region (the island minus the wall band), not the raw slice. A section whose only
+                            // exposed top lies in the wall band - i.e. a layer where the top is just the walls
+                            // themselves - has no infill here and is skipped, instead of being flooded inward by
+                            // the expansion. Thin slivers inside the infill region are dropped by the opening too.
+                            const ExPolygons infill_region = wall_band > 0. ? offset_ex(island, -float(wall_band)) : ExPolygons{ island };
+                            const ExPolygons island_top    = intersection_ex(T, infill_region);
+                            if (opening_ex(island_top, min_top).empty())
+                                continue; // no real top infill in this section - never expand into it
+
+                            // grow by d, then keep only the part allowed by the configured direction: inward fills
+                            // the holes/gaps left by features (clip the growth back to the top's own filled outline,
+                            // which leaves the outer edge fixed), outward grows the outer edge toward the walls (drop
+                            // the growth that fell into the original holes), and inward+outward keeps both.
+                            ExPolygons expanded = offset_ex_2(island_top, d, jt);
+                            if (direction != TopSurfaceExpansionDirection::InwardAndOutward) {
+                                ExPolygons outline; // the top with its holes filled (same outer edge)
+                                outline.reserve(island_top.size());
+                                for (const ExPolygon &ex : island_top)
+                                    outline.emplace_back(ex.contour);
+                                outline = union_ex(outline);
+                                expanded = direction == TopSurfaceExpansionDirection::Inward ?
+                                    intersection_ex(expanded, outline) :              // only growth into the holes
+                                    diff_ex(expanded, diff_ex(outline, island_top));  // only growth past the outer edge
+                            }
+                            // hold the expansion clear of the walls by the configured margin
+                            const ExPolygons allowed = margin > 0. ? offset_ex(infill_region, -float(margin)) : infill_region;
+                            append(grown, intersection_ex(expanded, allowed));
+                        }
+
+                        ExPolygons new_top = diff_ex(union_ex(T, grown), to_expolygons(bottom));
+                        top.clear();
+                        surfaces_append(top, std::move(new_top), stTop);
                     }
 
         #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
