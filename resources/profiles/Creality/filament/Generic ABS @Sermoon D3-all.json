@@ -3,7 +3,7 @@
     "name": "Generic ABS @Sermoon D3-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "rX4Bj2tjmMnLdXC1",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

@@ -3,7 +3,7 @@
     "name": "Hyper PETG @Sermoon M300-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "0fM5QG57SdQuGQM2",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

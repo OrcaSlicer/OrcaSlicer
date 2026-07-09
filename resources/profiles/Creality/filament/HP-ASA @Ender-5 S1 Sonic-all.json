@@ -3,7 +3,7 @@
     "name": "HP-ASA @Ender-5 S1 Sonic-all",
     "inherits": "fdm_filament_asa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "hD7rLz57dF2bvLHX",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

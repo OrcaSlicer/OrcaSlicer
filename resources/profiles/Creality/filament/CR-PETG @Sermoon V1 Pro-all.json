@@ -3,7 +3,7 @@
     "name": "CR-PETG @Sermoon V1 Pro-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "yPw0Q8cZoH0z5Q5W",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

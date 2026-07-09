@@ -3,7 +3,7 @@
     "name": "Ender-PLA @Ender-3 V3-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "F9v1dXKIkcKfbp4f",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

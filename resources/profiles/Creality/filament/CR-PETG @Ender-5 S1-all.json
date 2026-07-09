@@ -3,7 +3,7 @@
     "name": "CR-PETG @Ender-5 S1-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "SXeN7LY4p9TpzIfK",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

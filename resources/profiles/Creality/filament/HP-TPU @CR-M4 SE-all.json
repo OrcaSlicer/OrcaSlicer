@@ -3,7 +3,7 @@
     "name": "HP-TPU @CR-M4 SE-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "q7NL7g8NqH3KF0Mc",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

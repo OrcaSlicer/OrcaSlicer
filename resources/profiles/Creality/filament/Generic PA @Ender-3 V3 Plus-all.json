@@ -3,7 +3,7 @@
     "name": "Generic PA @Ender-3 V3 Plus-all",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "Y3Z9Q68NlMOpad6E",
     "instantiation": "true",
     "additional_cooling_fan_speed": [
         "0"

@@ -3,7 +3,7 @@
     "name": "CR-TPU @Sermoon D3-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "SoAsld30mkDNavBm",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

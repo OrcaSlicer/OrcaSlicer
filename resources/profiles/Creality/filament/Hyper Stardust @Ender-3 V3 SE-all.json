@@ -3,7 +3,7 @@
     "name": "Hyper Stardust @Ender-3 V3 SE-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "P2HxpxRxL0G4E1nR",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

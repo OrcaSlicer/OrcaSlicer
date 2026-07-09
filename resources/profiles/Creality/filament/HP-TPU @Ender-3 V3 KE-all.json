@@ -3,7 +3,7 @@
     "name": "HP-TPU @Ender-3 V3 KE-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "CvqhoCm59l1UBZ1W",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

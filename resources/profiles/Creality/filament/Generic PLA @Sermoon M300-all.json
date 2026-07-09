@@ -3,7 +3,7 @@
     "name": "Generic PLA @Sermoon M300-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "RULhpYPSJj3TYuwI",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

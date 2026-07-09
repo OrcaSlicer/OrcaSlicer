@@ -3,7 +3,7 @@
     "name": "Generic ABS @CR-M4-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "v0uZLdNL4HQohnml",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

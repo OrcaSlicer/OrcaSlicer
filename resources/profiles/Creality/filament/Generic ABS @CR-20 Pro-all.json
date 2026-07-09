@@ -3,7 +3,7 @@
     "name": "Generic ABS @CR-20 Pro-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "k2JmcThf6XE6S1MT",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

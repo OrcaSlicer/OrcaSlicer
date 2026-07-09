@@ -3,7 +3,7 @@
     "name": "Hyper Marble @Sermoon M300-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "W2KijERiDCLzi6j7",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

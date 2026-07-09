@@ -3,7 +3,7 @@
     "name": "Generic PETG @CR-10S Pro V2-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "qUF9PNCTfAqc0tN7",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

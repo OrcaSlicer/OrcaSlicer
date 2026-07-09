@@ -3,7 +3,7 @@
     "name": "CR-Wood @Ender-3 V3-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "Uhd78nmEHWhm9byr",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

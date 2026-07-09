@@ -3,7 +3,7 @@
     "name": "Generic PETG @Ender-3 Max Neo-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "4jdpaGFkPz4pnTnp",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

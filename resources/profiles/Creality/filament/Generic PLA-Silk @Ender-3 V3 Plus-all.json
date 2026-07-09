@@ -3,7 +3,7 @@
     "name": "Generic PLA-Silk @Ender-3 V3 Plus-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "K7C0rlTax8rnt9Lk",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

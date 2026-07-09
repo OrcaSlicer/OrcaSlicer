@@ -3,7 +3,7 @@
     "name": "Hyper PLA @Sermoon D3 Pro-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "Rh1eymlYH1u6IvzP",
     "instantiation": "true",
     "activate_air_filtration": [
         "1"

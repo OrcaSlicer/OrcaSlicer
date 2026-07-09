@@ -3,7 +3,7 @@
     "name": "CR-PLA @Sermoon V1 Pro-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "k8A978HSNhLgfqzv",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

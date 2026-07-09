@@ -3,7 +3,7 @@
     "name": "Hyper ABS @CR-M4 SE-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "hBZ6ud06hTANqh4L",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

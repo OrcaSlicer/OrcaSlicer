@@ -3,7 +3,7 @@
     "name": "HP-TPU @Sermoon M300-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "Gsl2ZOm6ShvzkqSv",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

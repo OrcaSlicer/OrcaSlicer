@@ -3,7 +3,7 @@
     "name": "Generic PPS-CF @Ender-3 V3 Plus-all",
     "inherits": "fdm_filament_pps",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "nQU4zvH8XtE55hqE",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

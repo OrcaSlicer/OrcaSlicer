@@ -3,7 +3,7 @@
     "name": "HP-ASA @Sermoon M300-all",
     "inherits": "fdm_filament_asa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "Tcoza1m0aSFuXYRU",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

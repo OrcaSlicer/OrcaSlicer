@@ -3,7 +3,7 @@
     "name": "Hyper PLA @Ender-3-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "pkEk3I3u5ULuHMR9",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

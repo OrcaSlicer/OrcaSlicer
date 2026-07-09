@@ -3,7 +3,7 @@
     "name": "CR-ABS @Sermoon D3 Pro-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "iYMDiv64la5GboAA",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

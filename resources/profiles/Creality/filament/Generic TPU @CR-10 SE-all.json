@@ -3,7 +3,7 @@
     "name": "Generic TPU @CR-10 SE-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "cAnzTan0oQSt5eTD",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

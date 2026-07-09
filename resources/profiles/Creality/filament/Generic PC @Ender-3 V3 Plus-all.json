@@ -3,7 +3,7 @@
     "name": "Generic PC @Ender-3 V3 Plus-all",
     "inherits": "fdm_filament_pc",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "cIIy4Tb4NffN6Hvs",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

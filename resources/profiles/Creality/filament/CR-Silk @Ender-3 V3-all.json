@@ -3,7 +3,7 @@
     "name": "CR-Silk @Ender-3 V3-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "27Rpfmi4f1MJahL0",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

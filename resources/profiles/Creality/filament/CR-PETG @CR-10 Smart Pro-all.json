@@ -3,7 +3,7 @@
     "name": "CR-PETG @CR-10 Smart Pro-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "iB29j2vvnyfpO4tk",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

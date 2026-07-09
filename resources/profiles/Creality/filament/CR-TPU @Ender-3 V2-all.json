@@ -3,7 +3,7 @@
     "name": "CR-TPU @Ender-3 V2-all",
     "inherits": "fdm_filament_tpu",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "vbCa5VO9C083vHVd",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

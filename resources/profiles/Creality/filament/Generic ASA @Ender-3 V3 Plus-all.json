@@ -3,7 +3,7 @@
     "name": "Generic ASA @Ender-3 V3 Plus-all",
     "inherits": "fdm_filament_asa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "OfYB1taVdE79ijdP",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

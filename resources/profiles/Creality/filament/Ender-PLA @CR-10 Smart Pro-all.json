@@ -3,7 +3,7 @@
     "name": "Ender-PLA @CR-10 Smart Pro-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "wdwQn6YvEYg7K8C1",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

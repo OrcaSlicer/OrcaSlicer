@@ -3,7 +3,7 @@
     "name": "Generic PETG @Sermoon M300-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "TT4mu2ksdRU4itY8",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"
