@@ -3104,8 +3104,9 @@ bool FillRectilinear::fill_surface_trapezoidal(
         
         const coord_t d2 = coord_t(0.5 * period - d1);
 
-        //  Align bounding box to the grid
-        bb.merge(align_to_grid(bb.min, Point(period, period)));
+        //  Align bounding box to the grid, phased through the box center so separated infills align
+        //  each part on itself (bb.center() is the origin for a standalone object / feature off).
+        bb.merge(align_to_grid(bb.min, Point(period, period), bb.center()));
         const coord_t xmin = bb.min.x();
         const coord_t xmax = bb.max.x();
         const coord_t ymin = bb.min.y();
@@ -3346,6 +3347,14 @@ bool FillRectilinear::fill_surface_trapezoidal(
         // Handle unknown pattern type
         break;
     }
+
+    // Orca: cases 1 & 2 build the pattern symmetrically around the origin, so on their own they
+    // phase to the global origin and every part shares one grid. Shift the pattern onto the box
+    // center this->bounding_box carries, so separated infills align each part on itself. The center
+    // is the origin for a standalone object (or when the feature is off), making this a no-op there.
+    if (Pattern_type != 0)
+        for (Polyline &pl : polylines)
+            pl.translate(rotate_vector.second);
 
     // Apply multiline fill
     multiline_fill(polylines, params, spacing);
