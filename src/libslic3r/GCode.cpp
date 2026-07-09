@@ -8006,6 +8006,8 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             }
         } else if(path.role() == erInternalBridgeInfill) {
             speed = m_config.get_abs_value_at("internal_bridge_speed", get_nozzle_config_index(m_writer.filament()->id()));
+        } else if (path.role() == erWaveBridgeInfill) {
+            speed = NOZZLE_CONFIG(wo_bridge_speed);
         } else if (path.role() == erOverhangPerimeter || path.role() == erSupportTransition || path.role() == erBridgeInfill) {
             speed = NOZZLE_CONFIG(bridge_speed);
         } else if (path.role() == erInternalInfill) {

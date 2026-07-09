@@ -8,6 +8,7 @@
 #include "Settings.hpp"
 #include "SegmentTemplate.hpp"
 #include "OptionTemplate.hpp"
+#include <libvgcode/include/Types.hpp>
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
 #include "CogMarker.hpp"
 #include "ToolMarker.hpp"
@@ -121,8 +122,8 @@ public:
         EGCodeExtrusionRole::Skirt, EGCodeExtrusionRole::SupportMaterial, EGCodeExtrusionRole::SupportMaterialInterface,
         EGCodeExtrusionRole::WipeTower, EGCodeExtrusionRole::Custom,
         // ORCA
-        EGCodeExtrusionRole::BottomSurface, EGCodeExtrusionRole::InternalBridgeInfill, EGCodeExtrusionRole::Brim,
-        EGCodeExtrusionRole::SupportTransition, EGCodeExtrusionRole::Mixed
+        EGCodeExtrusionRole::BottomSurface, EGCodeExtrusionRole::InternalBridgeInfill, EGCodeExtrusionRole::WaveBridgeInfill,
+        EGCodeExtrusionRole::Brim, EGCodeExtrusionRole::SupportTransition, EGCodeExtrusionRole::Mixed
     }) const;
 
     bool is_option_visible(EOptionType type) const;
