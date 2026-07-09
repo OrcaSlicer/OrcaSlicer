@@ -5557,17 +5557,16 @@ void PrintConfigDef::init_fff_params()
     def->mode = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 
-    def = this->add("wo_spacing", coFloatOrPercent);
-    def->label = L("Wave spacing");
+    def = this->add("wo_density", coPercent);
+    def->label = L("Wave density");
     def->category = L("Quality");
-    def->tooltip = L("A higher value will increase the distance between waves. 0 will use the nozzle diameter. Can be a percentage of the nozzle diameter.");
-    def->sidetext = L("mm or %");
-    def->ratio_over = "nozzle_diameter";
-    def->min = 0;
-    def->max = 1000;
+    def->tooltip = L("A higher value will decrease the distance between waves. Calculated as a function of nozzle diameter");
+    def->sidetext = L("%");
+    def->min = 100;
+    def->max = 200;
     def->max_literal = 10;
     def->mode = comExpert;
-    def->set_default_value(new ConfigOptionFloatOrPercent(80, true));
+    def->set_default_value(new ConfigOptionPercent(120));
 
     def = this->add("wo_pattern", coEnum);
     def->label = L("Wave pattern");

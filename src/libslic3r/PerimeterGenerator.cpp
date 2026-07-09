@@ -1271,7 +1271,7 @@ void PerimeterGenerator::apply_extra_perimeters(ExPolygons &infill_area, const E
         if (this->config->wo_enabled) {
             const float inset = float(this->perimeter_flow.scaled_spacing()) * float(this->config->wall_loops);
             ExPolygons wo_infill = offset_ex(ExPolygons{island_region}, -inset);
-            double wo_spacing = this->config->wo_spacing.percent ? this->config->wo_spacing.get_abs_value(overhang_flow.nozzle_diameter()) : this->config->wo_spacing.value;            
+            double wo_spacing = overhang_flow.nozzle_diameter() * 100 / this->config->wo_density;
             std::tie(extra_perimeters, filled_area) = WaveOverhangs::generate(wo_infill, this->lower_slices_polygons(), this->config->wall_loops,
                                                                            0, wo_spacing/2, 0.7, this->config->wo_pattern, wo_spacing,
                                                                            overhang_flow.nozzle_diameter(), overhang_flow, overhang_flow.mm3_per_mm()*this->config->bridge_flow,

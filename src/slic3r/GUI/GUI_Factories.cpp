@@ -113,7 +113,7 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"zaa_dont_alternate_fill_direction", "", 3},
        {"zaa_min_z", "", 4},
        {"wo_enabled", "", 1},
-       {"wo_spacing", "", 2},
+       {"wo_density", "", 2},
        {"wo_pattern", "", 3}}},
      {L("Strength"),
       {{"wall_loops", "", 1},

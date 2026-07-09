@@ -2768,7 +2768,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("overhang_reverse_internal_only", "quality_settings_overhangs#reverse-internal-only");
         optgroup->append_single_option_line("overhang_reverse_threshold", "quality_settings_overhangs#reverse-threshold");
         optgroup->append_single_option_line("wo_enabled", "quality_settings_overhangs#wo_enabled");
-        optgroup->append_single_option_line("wo_spacing", "quality_settings_overhangs#wo_spacing");
+        optgroup->append_single_option_line("wo_density", "quality_settings_overhangs#wo_density");
         optgroup->append_single_option_line("wo_pattern", "quality_settings_overhangs#wo_pattern");
 
     page = add_options_page(L("Strength"), "custom-gcode_strength"); // ORCA: icon only visible on placeholders

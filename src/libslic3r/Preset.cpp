@@ -1339,7 +1339,7 @@ static std::vector<std::string> s_Preset_print_options{
     "ironing_expansion",
     // Wave overhangs
     "wo_enabled",
-    "wo_spacing",
+    "wo_density",
     "wo_pattern",
     "wo_bridge_speed",
 };

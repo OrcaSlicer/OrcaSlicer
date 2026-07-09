@@ -1006,7 +1006,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         toggle_line(el, has_zaa);
 
     bool wo_enabled = config->opt_bool("wo_enabled");
-    for (auto el : {"wo_spacing", "wo_pattern"})
+    for (auto el : {"wo_density", "wo_pattern"})
         toggle_line(el, wo_enabled);
     toggle_line("wo_bridge_speed", wo_enabled, variant_index);
 
