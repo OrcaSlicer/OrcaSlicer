@@ -571,6 +571,19 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
     return extrusion_coll;
 }
 
+// ORCA: only_one_wall_top detects the top as "slice − upper", so a feature rising from the middle of a
+// top surface becomes an enclosed hole that gets ringed with extra inner walls. Fill those holes back
+// into the top. Only holes that are both covered by the upper layer (excludes bridges) and backed by
+// solid material (excludes voids) are filled.
+static ExPolygons fill_enclosed_top_feature_holes(const ExPolygons &top, const Polygons &covered_by_upper, const ExPolygons &solid)
+{
+    ExPolygons filled = top;
+    for (ExPolygon &ex : filled)
+        ex.holes.clear();
+    const ExPolygons feature_holes = intersection_ex(intersection_ex(diff_ex(filled, top), covered_by_upper), solid);
+    return feature_holes.empty() ? top : union_ex(top, feature_holes);
+}
+
 void PerimeterGenerator::split_top_surfaces(const ExPolygons &orig_polygons, ExPolygons &top_fills,
                                             ExPolygons &non_top_polygons, ExPolygons &fill_clip) const {
     // other perimeters
@@ -636,6 +649,8 @@ void PerimeterGenerator::split_top_surfaces(const ExPolygons &orig_polygons, ExP
     ExPolygons delete_bridge = diff_ex(orig_polygons, bridge_checker, ApplySafetyOffset::Yes);
 
     ExPolygons top_polygons = diff_ex(delete_bridge, upper_polygons_series_clipped, ApplySafetyOffset::Yes);
+    top_polygons = fill_enclosed_top_feature_holes(top_polygons, upper_polygons_series_clipped, orig_polygons);
+
     // get the not-top surface, from the "real top" but enlarged by external_infill_margin (and the
     // min_width_top_surface we removed a bit before)
     ExPolygons temp_gap = diff_ex(top_polygons, fill_clip);
@@ -2194,6 +2209,7 @@ void PerimeterGenerator::process_arachne()
                 upper_slices_clipped = ClipperUtils::clip_clipper_polygons_with_subject_bbox(*upper_slices, infill_contour_bbox);
 
             top_expolygons = diff_ex(infill_contour, upper_slices_clipped);
+            top_expolygons = fill_enclosed_top_feature_holes(top_expolygons, upper_slices_clipped, infill_contour);
 
             if (!top_expolygons.empty()) {
                 if (lower_slices != nullptr) {

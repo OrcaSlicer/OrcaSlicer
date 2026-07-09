@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -329,6 +329,7 @@ msgstr "Uchwyt-Obróć"
 msgid "Optimize orientation"
 msgstr "Optymalizuj orientację"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Skaluj"
 
@@ -372,6 +373,9 @@ msgstr "Współczynniki skali"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Operacje na obiekcie"
+
+msgid "Scale"
+msgstr "Skaluj"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -423,6 +427,10 @@ msgstr "Zresetuj bieżący obrót do wartości ustawionej przy otwarciu narzędz
 
 msgid "Reset current rotation to real zeros."
 msgstr "Zresetuj bieżący obrót do wartości zerowej."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Skaluj"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3649,7 +3657,7 @@ msgstr "Kalibracja zakończona. Proszę znaleźć na płycie roboczej, linie eks
 msgid "Save"
 msgstr "Zapisz"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Tył"
 
@@ -5023,6 +5031,7 @@ msgstr "Zmiany narzędzi"
 msgid "Color change"
 msgstr "Zmiana koloru"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Drukuj"
 
@@ -5186,11 +5195,15 @@ msgstr "Unikaj obszaru kalibracji ekstruzji"
 msgid "Align to Y axis"
 msgstr "Wyrównaj do osi Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Tył"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Lewy"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Prawy"
 
@@ -5517,6 +5530,10 @@ msgstr "Drukuj aktualną płytę"
 
 msgid "Export G-code file"
 msgstr "Eksportuj plik G-code"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Drukuj"
 
 msgid "Export plate sliced file"
 msgstr "Eksportuj plik pociętej płyty"
@@ -14738,6 +14755,10 @@ msgstr "Wyrównany"
 msgid "Aligned back"
 msgstr ""
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Tył"
+
 msgid "Random"
 msgstr "Losowo"
 
@@ -19542,6 +19563,9 @@ msgstr ""
 "Unikaj odkształceń\n"
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może zmniejszyć prawdopodobieństwo odkształceń?"
 
+#~ msgid "Print"
+#~ msgstr "Drukuj"
+
 #~ msgid "in"
 #~ msgstr "cal"
 
@@ -20999,10 +21023,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "Odznacz"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "Skala"
 
 #~ msgid "Lift Z Enforcement"
 #~ msgstr "Wymuszenie podniesienia osi Z"

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -332,6 +332,7 @@ msgstr "Gizmo-Rotació"
 msgid "Optimize orientation"
 msgstr "Optimitzar l'orientació"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Escalar"
 
@@ -375,6 +376,9 @@ msgstr "Ràtios d'escala"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Operacions amb objectes"
+
+msgid "Scale"
+msgstr "Escalar"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -426,6 +430,10 @@ msgstr "Restableix la rotació actual al valor d'quan s'ha obert l'eina de rotac
 
 msgid "Reset current rotation to real zeros."
 msgstr "Restableix la rotació actual a zeros reals."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Escalar"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3652,7 +3660,7 @@ msgstr "Calibratge completat. Trobeu la línia d'extrusió més uniforme al vost
 msgid "Save"
 msgstr "Desar"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Darrera"
 
@@ -5035,6 +5043,7 @@ msgstr "Canvis d'eina"
 msgid "Color change"
 msgstr "Canvi de color"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Imprimir"
 
@@ -5198,11 +5207,15 @@ msgstr "Evitar la regió de calibratge d'extrusió"
 msgid "Align to Y axis"
 msgstr "Alinear a l'eix Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Darrera"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Esquerra"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Dreta"
 
@@ -5530,6 +5543,10 @@ msgstr "Imprimir placa d'impressió"
 
 msgid "Export G-code file"
 msgstr "Exportar el fitxer del Codi-G"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Imprimir"
 
 msgid "Export plate sliced file"
 msgstr "Exportar fitxer de la placa laminada"
@@ -14808,6 +14825,10 @@ msgstr "Alineat"
 msgid "Aligned back"
 msgstr "Alineat al darrere"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Darrera"
+
 msgid "Random"
 msgstr "Aleatori"
 
@@ -19647,6 +19668,9 @@ msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
 
+#~ msgid "Print"
+#~ msgstr "Imprimir"
+
 #~ msgid "in"
 #~ msgstr "polç"
 
@@ -21102,10 +21126,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "Desmarcar"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "Escalar"
 
 #~ msgid "Lift Z Enforcement"
 #~ msgstr "Forçar elevació Z"

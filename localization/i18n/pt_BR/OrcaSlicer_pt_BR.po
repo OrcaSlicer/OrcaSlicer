@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2026-07-04 11:51-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -326,6 +326,7 @@ msgstr "Gizmo-Rotacionar"
 msgid "Optimize orientation"
 msgstr "Otimizar orientação"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Escala"
 
@@ -368,6 +369,9 @@ msgstr "Proporções de escala"
 
 msgid "Object operations"
 msgstr "Operações de objeto"
+
+msgid "Scale"
+msgstr "Escala"
 
 msgid "Volume operations"
 msgstr "Operações de volume"
@@ -413,6 +417,10 @@ msgstr "Redefinir rotação para o valor de abertura da ferramenta de rotação.
 
 msgid "Reset current rotation to real zeros."
 msgstr "Redefinir rotação atual para zeros reais."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Escala"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3580,6 +3588,7 @@ msgstr "Calibração concluída. Por favor, encontre a linha de extrusão mais u
 msgid "Save"
 msgstr "Salvar"
 
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Atrás"
 
@@ -4940,6 +4949,7 @@ msgstr "Trocas de ferramenta"
 msgid "Color change"
 msgstr "Mudança de cor"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Imprimir"
 
@@ -5102,11 +5112,15 @@ msgstr "Evitar a região de calibração da extrusão"
 msgid "Align to Y axis"
 msgstr "Alinhar com o eixo Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Atrás"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Esquerda"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Direita"
 
@@ -5432,6 +5446,10 @@ msgstr "Imprimir placa"
 
 msgid "Export G-code file"
 msgstr "Exportar arquivo G-code"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Imprimir"
 
 msgid "Export plate sliced file"
 msgstr "Exportar arquivo de placa fatiada"
@@ -14720,6 +14738,9 @@ msgstr "Alinhada"
 msgid "Aligned back"
 msgstr "Alinhada atrás"
 
+msgid "Back"
+msgstr "Atrás"
+
 msgid "Random"
 msgstr "Aleatória"
 
@@ -19488,6 +19509,9 @@ msgid ""
 msgstr ""
 "Evitar empenamento\n"
 "Você sabia que ao imprimir materiais propensos ao empenamento como ABS, aumentar adequadamente a temperatura da mesa aquecida pode reduzir a probabilidade de empenamento?"
+
+#~ msgid "Print"
+#~ msgstr "Imprimir"
 
 #~ msgid "in"
 #~ msgstr "pol"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -327,6 +327,7 @@ msgstr "Gizmo-Drehen"
 msgid "Optimize orientation"
 msgstr "Optimiere Ausrichtung"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Skalieren"
 
@@ -370,6 +371,9 @@ msgstr "Skalierungsverhältnisse"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Objekt-Operationen"
+
+msgid "Scale"
+msgstr "Skalieren"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -421,6 +425,10 @@ msgstr "Setze die aktuelle Rotation auf den Wert zurück, als das Rotationswerkz
 
 msgid "Reset current rotation to real zeros."
 msgstr "Setze die aktuelle Rotation auf die realen Nullen zurück."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Skalieren"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3654,7 +3662,7 @@ msgstr "Kalibrierung abgeschlossen. Bitte suchen Sie die gleichmäßigste Extrus
 msgid "Save"
 msgstr "Speichern"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Zurück"
 
@@ -5036,6 +5044,7 @@ msgstr "Werkzeugwechsel"
 msgid "Color change"
 msgstr "Farbwechsel"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "aktuelle Platte drucken"
 
@@ -5199,11 +5208,15 @@ msgstr "Vermeiden Sie den Bereich der Extrusionskalibrierung"
 msgid "Align to Y axis"
 msgstr "An Y-Achse ausrichten"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Zurück"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "links"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "rechts"
 
@@ -5528,6 +5541,10 @@ msgstr "Aktuelle Platte drucken"
 
 msgid "Export G-code file"
 msgstr "G-Code als Datei exportieren"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "aktuelle Platte drucken"
 
 msgid "Export plate sliced file"
 msgstr "Exportiere aktuelle Platte als STL Datei"
@@ -14962,6 +14979,10 @@ msgstr "Ausgerichtet"
 msgid "Aligned back"
 msgstr "Ausgerichtet hinten"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Zurück"
+
 msgid "Random"
 msgstr "Zufall"
 
@@ -19822,6 +19843,9 @@ msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
 
+#~ msgid "Print"
+#~ msgstr "aktuelle Platte drucken"
+
 #~ msgid "in"
 #~ msgstr "in"
 
@@ -21729,10 +21753,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "Abwählen"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "Skalieren"
 
 #~ msgid "Lift Z Enforcement"
 #~ msgstr "Z-Höhe einhalten"

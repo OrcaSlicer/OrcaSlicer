@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -324,6 +324,7 @@ msgstr "Gizmo-Forgatás"
 msgid "Optimize orientation"
 msgstr "Orientáció optimalizálása"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Átméretezés"
 
@@ -367,6 +368,9 @@ msgstr "Méretarányok"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Objektum műveletek"
+
+msgid "Scale"
+msgstr "Átméretezés"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -418,6 +422,10 @@ msgstr "Az aktuális forgatás visszaállítása a forgatás eszköz megnyitása
 
 msgid "Reset current rotation to real zeros."
 msgstr "Az aktuális forgatás visszaállítása valódi nullára."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Átméretezés"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3645,7 +3653,7 @@ msgstr "A kalibrálás befejeződött. Kérlek, válaszd ki az alábbi képen l�
 msgid "Save"
 msgstr "Mentés"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Hátul"
 
@@ -5026,6 +5034,7 @@ msgstr "Szerszámváltások"
 msgid "Color change"
 msgstr "Színváltás"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Nyomtatás"
 
@@ -5189,11 +5198,15 @@ msgstr "Extrudáláskalibráció környékének elkerülése"
 msgid "Align to Y axis"
 msgstr "Igazítás az Y-tengelyhez"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Hátul"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Bal"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Jobb"
 
@@ -5520,6 +5533,10 @@ msgstr "Nyomtatótálca"
 
 msgid "Export G-code file"
 msgstr "G-kód fájl exportálása"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Nyomtatás"
 
 msgid "Export plate sliced file"
 msgstr "Szeletelt tálca exportálása"
@@ -14880,6 +14897,10 @@ msgstr "Igazított"
 msgid "Aligned back"
 msgstr "Hátulra igazítva"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Hátul"
+
 msgid "Random"
 msgstr "Véletlenszerû"
 
@@ -19711,6 +19732,9 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor a tárgyasztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#~ msgid "Print"
+#~ msgstr "Nyomtatás"
 
 #~ msgid "in"
 #~ msgstr "in"

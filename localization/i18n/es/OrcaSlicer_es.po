@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -321,6 +321,7 @@ msgstr "Herramienta de rotación"
 msgid "Optimize orientation"
 msgstr "Optimizar orientación"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Escalar"
 
@@ -332,7 +333,7 @@ msgstr "Error: Por favor, cierre primero todos los menús de la barra de herrami
 
 msgctxt "inches"
 msgid "in"
-msgstr ""
+msgstr "\""
 
 msgid "mm"
 msgstr "mm"
@@ -363,6 +364,9 @@ msgstr "Factor de escalado"
 
 msgid "Object operations"
 msgstr "Operaciones con objetos"
+
+msgid "Scale"
+msgstr "Escalar"
 
 msgid "Volume operations"
 msgstr "Operaciones de volumen"
@@ -408,6 +412,10 @@ msgstr "Restablecer la rotación actual al valor que tenía al abrir la herramie
 
 msgid "Reset current rotation to real zeros."
 msgstr "Restablecer la rotación actual a ceros reales."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Escala"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3580,6 +3588,7 @@ msgstr "Calibración completada. Por favor, observe cual es línea de extrusión
 msgid "Save"
 msgstr "Guardar"
 
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Atrás"
 
@@ -4709,7 +4718,7 @@ msgid "Support interface"
 msgstr "Interfaz de soporte"
 
 msgid "Prime tower"
-msgstr "Torre de Purga"
+msgstr "Torre de purga"
 
 msgid "Bottom surface"
 msgstr "Relleno sólido inferior"
@@ -4930,8 +4939,9 @@ msgstr "Cambios de herramienta"
 msgid "Color change"
 msgstr "Cambio de color"
 
+msgctxt "Noun"
 msgid "Print"
-msgstr "Imprimir"
+msgstr "Impresión"
 
 msgid "Printer"
 msgstr "Impresora"
@@ -5089,11 +5099,15 @@ msgstr "Evitar la zona de calibración del extrusor"
 msgid "Align to Y axis"
 msgstr "Alinear con el eje Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Posterior"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Izquierda"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Derecha"
 
@@ -5416,6 +5430,10 @@ msgstr "Imprimir cama"
 msgid "Export G-code file"
 msgstr "Exportar archivo G-Code"
 
+msgctxt "Verb"
+msgid "Print"
+msgstr "Imprimir"
+
 msgid "Export plate sliced file"
 msgstr "Exportar los objetos laminados de la cama a un archivo"
 
@@ -5488,10 +5506,10 @@ msgid "Front View"
 msgstr "Vista frontal"
 
 msgid "Rear"
-msgstr "Trasera"
+msgstr "Posterior"
 
 msgid "Rear View"
-msgstr "Vista trasera"
+msgstr "Vista posterior"
 
 msgid "Left View"
 msgstr "Vista izquierda"
@@ -9190,7 +9208,7 @@ msgstr "Característica experimental: Retraer y cortar el filamento a mayor dist
 msgid ""
 "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
 "by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
-msgstr "Cuando se graba un timelapse sin cabezal, se recomienda añadir una \"Torre de Purga de Timelapse\" haciendo clic con el botón derecho del ratón en una posición vacía de la cama de impresión y seleccionando \"Añadir Primitivo\"->Torre de Purga de Timelapse\"."
+msgstr "Cuando se graba un timelapse sin cabezal, se recomienda añadir una \"Torre de purga de Timelapse\" haciendo clic con el botón derecho del ratón en una posición vacía de la cama de impresión y seleccionando \"Añadir Primitivo\"->\"Torre de purga de Timelapse\"."
 
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "Se creará una copia de el perfil de sistema actual, que quedará separado del perfil de sistema."
@@ -10896,7 +10914,7 @@ msgid " is too close to clumping detection area, there may be collisions when pr
 msgstr " está demasiado cerca del área de detección de aglomeraciones, puede haber colisiones durante la impresión."
 
 msgid "Prime Tower"
-msgstr "Torre de Purga"
+msgstr "Torre de purga"
 
 msgid " is too close to others, and collisions may be caused.\n"
 msgstr " está demasiado cerca de otros, y se pueden producir colisiones.\n"
@@ -12750,7 +12768,7 @@ msgid "After a tool change, the exact position of the newly loaded filament insi
 msgstr "Tras un cambio de cabezal, es posible que no se conozca la posición exacta del filamento recién cargado dentro de la boquilla y que la presión del filamento aún no sea estable. Antes de purgar el cabezal de impresión en un relleno o en un objeto de sacrificio, OrcaSlicer siempre cebará esta cantidad de material en la torre de purga para producir sucesivas extrusiones de relleno u objetos de sacrificio de forma fiable."
 
 msgid "Wipe tower cooling"
-msgstr "Refrigeración de Torre de Purga"
+msgstr "Refrigeración de torre de purga"
 
 msgid "Temperature drop before entering filament tower"
 msgstr "Descenso de temperatura antes de entrar en la torre de filamentos"
@@ -14656,6 +14674,9 @@ msgstr "Alineado"
 
 msgid "Aligned back"
 msgstr "Alineado atrás"
+
+msgid "Back"
+msgstr "Atrás"
 
 msgid "Random"
 msgstr "Aleatorio"
@@ -19429,6 +19450,9 @@ msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
 
+#~ msgid "Print"
+#~ msgstr "Imprimir"
+
 #~ msgid "in"
 #~ msgstr "pulg"
 
@@ -21011,10 +21035,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "Deseleccionar"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "Escala"
 
 #~ msgid "Lift Z Enforcement"
 #~ msgstr "Forzar elevación Z"

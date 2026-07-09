@@ -1161,7 +1161,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         imgui_wrapper->calc_text_size(_L("Part")).x
     }) + imgui_wrapper->calc_text_size("xxx"sv).x + imgui_wrapper->scaled(3.5f);
     float label_max = std::max({
-        imgui_wrapper->calc_text_size(_L("Scale")).x,
+        imgui_wrapper->calc_text_size(_CTX("Scale", "Noun")).x,
         imgui_wrapper->calc_text_size(_L("Size")).x
     });
     float caption_max = std::max(label_max, coord_combo_width - 3 * space_size);
@@ -1218,7 +1218,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
 
     //ImGui::PushItemWidth(unit_size * 2);
     ImGui::AlignTextToFramePadding();
-    imgui_wrapper->text(_L("Scale"));
+    imgui_wrapper->text(_CTX("Scale", "Noun"));
     ImGui::SameLine(caption_max + space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_scale_values[0][0], &scale[0], 0.0f, 0.0f, "%.2f");

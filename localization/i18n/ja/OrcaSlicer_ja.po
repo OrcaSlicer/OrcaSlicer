@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -327,6 +327,7 @@ msgstr "ギズモ-回転"
 msgid "Optimize orientation"
 msgstr "向きを最適化"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "スケール"
 
@@ -370,6 +371,9 @@ msgstr "倍率"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "オブジェクト操作"
+
+msgid "Scale"
+msgstr "スケール"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -421,6 +425,10 @@ msgstr "回転ツールを開いた時の値にリセットします。"
 
 msgid "Reset current rotation to real zeros."
 msgstr "現在の回転を0にリセットします。"
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "スケール"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3629,7 +3637,7 @@ msgstr "キャリブレーションが完了しました。下の写真のよう
 msgid "Save"
 msgstr "保存"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "背面"
 
@@ -5000,6 +5008,7 @@ msgstr "ツールチェンジ"
 msgid "Color change"
 msgstr "色変更"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "造形する"
 
@@ -5163,11 +5172,15 @@ msgstr "押出しキャリブレーション領域を避ける"
 msgid "Align to Y axis"
 msgstr "Y軸に整列"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "背面"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "左"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "右"
 
@@ -5488,6 +5501,10 @@ msgstr "造形開始"
 
 msgid "Export G-code file"
 msgstr "G-codeをエクスポート"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "造形する"
 
 msgid "Export plate sliced file"
 msgstr "エクスポート"
@@ -14502,6 +14519,10 @@ msgstr "整列"
 msgid "Aligned back"
 msgstr ""
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "背面"
+
 msgid "Random"
 msgstr "ランダム"
 
@@ -19160,6 +19181,9 @@ msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
 
+#~ msgid "Print"
+#~ msgstr "造形する"
+
 #~ msgid "in"
 #~ msgstr "に"
 
@@ -20105,10 +20129,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "選択解除"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "スケール"
 
 #~ msgid "Z-hop when retract"
 #~ msgstr "リトラクト時にZ方向調整"

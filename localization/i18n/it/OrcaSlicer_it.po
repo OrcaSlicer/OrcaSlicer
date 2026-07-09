@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -327,6 +327,7 @@ msgstr "Strumento di rotazione"
 msgid "Optimize orientation"
 msgstr "Ottimizza orientamento"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Ridimensiona"
 
@@ -370,6 +371,9 @@ msgstr "Rapporti di scala"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Operazioni sugli oggetti"
+
+msgid "Scale"
+msgstr "Ridimensiona"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -421,6 +425,10 @@ msgstr "Reimposta la rotazione corrente al valore di apertura dello strumento."
 
 msgid "Reset current rotation to real zeros."
 msgstr "Reimposta la rotazione corrente a zero reale."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Ridimensiona"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3646,7 +3654,7 @@ msgstr "Calibrazione completata. Trova la linea di estrusione più uniforme sul 
 msgid "Save"
 msgstr "Salva"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Posteriore"
 
@@ -5027,6 +5035,7 @@ msgstr "Cambi testina"
 msgid "Color change"
 msgstr "Cambio colore"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Stampa"
 
@@ -5190,11 +5199,15 @@ msgstr "Evitare la regione di calibrazione dell'estrusione"
 msgid "Align to Y axis"
 msgstr "Allinea all'asse Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Posteriore"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Sinistra"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Destra"
 
@@ -5521,6 +5534,10 @@ msgstr "Piatto di stampa"
 
 msgid "Export G-code file"
 msgstr "Esporta file G-code"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Stampa"
 
 msgid "Export plate sliced file"
 msgstr "Esporta il file del piatto elaborato"
@@ -14854,6 +14871,10 @@ msgstr "Allineato"
 msgid "Aligned back"
 msgstr "Allineato dietro"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Posteriore"
+
 msgid "Random"
 msgstr "Casuale"
 
@@ -19692,6 +19713,9 @@ msgstr ""
 "Evita le deformazioni\n"
 "Sapevi che quando si stampano materiali soggetti a deformazioni come l'ABS, aumentare in modo appropriato la temperatura del piano riscaldato può ridurre la probabilità di deformazione?"
 
+#~ msgid "Print"
+#~ msgstr "Stampa"
+
 #~ msgid "in"
 #~ msgstr "in"
 
@@ -21207,10 +21231,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "Deseleziona"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "Ridimensiona"
 
 #~ msgid "Lift Z Enforcement"
 #~ msgstr "Applicazione dell'ascensore Z"

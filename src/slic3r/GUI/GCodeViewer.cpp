@@ -4258,7 +4258,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         };
 
         auto append_print = [&imgui, imperial_units](const ColorRGBA& color, const std::array<float, 4>& offsets, const Times& times, std::pair<double, double> used_filament) {
-            imgui.text(_u8L("Print"));
+            imgui.text(_CTX_utf8("Print", "Noun"));
             ImGui::SameLine();
 
             float icon_size = ImGui::GetTextLineHeight();
@@ -4292,7 +4292,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             for (const PartialTime& item : partial_times) {
                 switch (item.type)
                 {
-                case PartialTime::EType::Print:       { labels.push_back(_u8L("Print")); break; }
+                case PartialTime::EType::Print:       { labels.push_back(_CTX_utf8("Print", "Noun")); break; }
                 case PartialTime::EType::Pause:       { labels.push_back(_u8L("Pause")); break; }
                 case PartialTime::EType::ColorChange: { labels.push_back(_u8L("Color change")); break; }
                 }

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -327,6 +327,7 @@ msgstr "Roteren"
 msgid "Optimize orientation"
 msgstr "Oriëntatie optimaliseren"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Schalen"
 
@@ -370,6 +371,9 @@ msgstr "Schaalverhoudingen"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Objectbewerkingen"
+
+msgid "Scale"
+msgstr "Schalen"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -421,6 +425,10 @@ msgstr ""
 
 msgid "Reset current rotation to real zeros."
 msgstr ""
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Schalen"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3611,7 +3619,7 @@ msgstr "Kalibratie voltooid. Zoek de meest uniforme extrusielijn op uw hotbed, z
 msgid "Save"
 msgstr "Bewaar"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Achterzijde"
 
@@ -4971,6 +4979,7 @@ msgstr "Toolwisselingen"
 msgid "Color change"
 msgstr "Kleur veranderen"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr ""
 
@@ -5129,11 +5138,15 @@ msgstr "Vermijd het extrusie kalibratie gebied"
 msgid "Align to Y axis"
 msgstr "Uitlijnen op Y-as"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Achterzijde"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Links"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Rechts"
 
@@ -5456,6 +5469,10 @@ msgstr "Printplaat"
 
 msgid "Export G-code file"
 msgstr "G-codebestand exporteren"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr ""
 
 msgid "Export plate sliced file"
 msgstr "Exporteer plate sliced bestand"
@@ -14427,6 +14444,10 @@ msgstr "Uitgelijnd"
 msgid "Aligned back"
 msgstr ""
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Achterzijde"
+
 msgid "Random"
 msgstr "Willekeurig"
 
@@ -20320,10 +20341,6 @@ msgstr ""
 
 #~ msgid "Thick bridges"
 #~ msgstr "Dikke bruggen"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "Schalen"
 
 #~ msgid "Z-hop when retract"
 #~ msgstr "Z-hop tijdens terugtrekken (retraction)"

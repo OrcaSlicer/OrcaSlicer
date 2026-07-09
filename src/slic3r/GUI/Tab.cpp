@@ -2743,11 +2743,16 @@ void TabPrint::build()
         optgroup->append_single_option_line("top_surface_density", "strength_settings_top_bottom_shells#surface-density");
         optgroup->append_single_option_line("top_surface_pattern", "strength_settings_top_bottom_shells#surface-pattern");
         optgroup->append_single_option_line("top_layer_direction", "strength_settings_infill#top-direction");
+        optgroup->append_single_option_line("top_surface_expansion", "strength_settings_top_bottom_shells#surface-expansion");
+        optgroup->append_single_option_line("top_surface_expansion_margin", "strength_settings_top_bottom_shells#surface-expansion-margin");
+        optgroup->append_single_option_line("top_surface_expansion_direction", "strength_settings_top_bottom_shells#surface-expansion-direction");
         optgroup->append_single_option_line("bottom_shell_layers", "strength_settings_top_bottom_shells#shell-layers");
         optgroup->append_single_option_line("bottom_shell_thickness", "strength_settings_top_bottom_shells#shell-thickness");
         optgroup->append_single_option_line("bottom_surface_density", "strength_settings_top_bottom_shells#surface-density");
         optgroup->append_single_option_line("bottom_surface_pattern", "strength_settings_top_bottom_shells#surface-pattern");
         optgroup->append_single_option_line("bottom_layer_direction", "strength_settings_infill#direction");
+        optgroup->append_single_option_line("center_of_surface_pattern", "strength_settings_top_bottom_shells#center-surface-pattern-on");
+        optgroup->append_single_option_line("anisotropic_surfaces", "strength_settings_top_bottom_shells#anisotropic-surfaces");
         optgroup->append_single_option_line("top_bottom_infill_wall_overlap", "strength_settings_top_bottom_shells#infillwall-overlap");
 
         optgroup = page->new_optgroup(L("Infill"), L"param_infill");
@@ -2778,6 +2783,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("solid_infill_rotate_template", "strength_settings_infill_rotation_template_metalanguage");
         optgroup->append_single_option_line("gap_fill_target", "strength_settings_infill#apply-gap-fill");
         optgroup->append_single_option_line("filter_out_gap_fill", "strength_settings_infill#filter-out-tiny-gaps");
+        optgroup->append_single_option_line("separated_infills", "strength_settings_infill#separated-infills");
         optgroup->append_single_option_line("infill_wall_overlap", "strength_settings_infill#infill-wall-overlap");
 
         optgroup = page->new_optgroup(L("Advanced"), L"param_advanced");
@@ -2976,6 +2982,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("flush_into_support", "multimaterial_settings_flush_options#flush-into-objects-support");
         optgroup = page->new_optgroup(L("Advanced"), L"advanced");
         optgroup->append_single_option_line("interlocking_beam", "multimaterial_settings_advanced#interlocking-beam");
+        optgroup->append_single_option_line("toolchange_ordering", "multimaterial_settings_advanced#toolchange-ordering");
         optgroup->append_single_option_line("interface_shells", "multimaterial_settings_advanced#interface-shells");
         optgroup->append_single_option_line("mmu_segmented_region_max_width", "multimaterial_settings_advanced#maximum-width-of-segmented-region");
         optgroup->append_single_option_line("mmu_segmented_region_interlocking_depth", "multimaterial_settings_advanced#interlocking-depth-of-segmented-region");
@@ -7677,7 +7684,7 @@ bool Tab::validate_filament_temperature_pairs()
 
     RichMessageDialog dialog(parent(), msg_text, _L("Temperature Safety Check"), wxYES | wxNO | wxICON_WARNING);
     dialog.SetButtonLabel(wxID_YES, _L("Continue"), true);
-    dialog.SetButtonLabel(wxID_NO, _L("Back"));
+    dialog.SetButtonLabel(wxID_NO, _CTX("Back", "Navigation"));
     dialog.ShowCheckBox(_L("Don't warn again for this preset"));
     const int answer = dialog.ShowModal();
     // Session-only suppression (does not modify/save filament preset data).

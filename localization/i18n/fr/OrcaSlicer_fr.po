@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -324,6 +324,7 @@ msgstr "Gizmo-Pivoter"
 msgid "Optimize orientation"
 msgstr "Optimiser l'orientation"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Redimensionner"
 
@@ -366,6 +367,9 @@ msgstr "Rapports d'échelle"
 
 msgid "Object operations"
 msgstr "Opérations sur les objets"
+
+msgid "Scale"
+msgstr "Redimensionner"
 
 msgid "Volume operations"
 msgstr "Opérations sur les volumes"
@@ -411,6 +415,10 @@ msgstr "Réinitialiser la rotation actuelle à la valeur lors de l'ouverture de 
 
 msgid "Reset current rotation to real zeros."
 msgstr "Réinitialiser la rotation actuelle à zéro."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Redimensionner"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3569,6 +3577,7 @@ msgstr "Calibrage terminé. Veuillez trouver la ligne d'extrusion la plus unifor
 msgid "Save"
 msgstr "Enregistrer"
 
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Arrière"
 
@@ -4916,6 +4925,7 @@ msgstr "Changements d’outil"
 msgid "Color change"
 msgstr "Changement de couleur"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Imprimer"
 
@@ -5075,11 +5085,15 @@ msgstr "Éviter la région de calibration de l'extrusion"
 msgid "Align to Y axis"
 msgstr "Aligner sur l’axe Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Arrière"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Gauche"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Droite"
 
@@ -5401,6 +5415,10 @@ msgstr "Imprimer le plateau"
 
 msgid "Export G-code file"
 msgstr "Exporter le fichier G-code"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Imprimer"
 
 msgid "Export plate sliced file"
 msgstr "Exporter le fichier découpé du plateau"
@@ -14628,6 +14646,9 @@ msgstr "Alignée"
 msgid "Aligned back"
 msgstr "Aligné à l'arrière"
 
+msgid "Back"
+msgstr "Arrière"
+
 msgid "Random"
 msgstr "Aléatoire"
 
@@ -19397,6 +19418,9 @@ msgstr ""
 "Éviter la déformation\n"
 "Saviez-vous que lors de l’impression de matériaux susceptibles de se déformer, tels que l’ABS, une augmentation appropriée de la température du plateau chauffant peut réduire la probabilité de déformation?"
 
+#~ msgid "Print"
+#~ msgstr "Imprimer"
+
 #~ msgid "in"
 #~ msgstr "dans"
 
@@ -21106,10 +21130,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "Désélectionner"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "Redimensionner"
 
 #~ msgid "Lift Z Enforcement"
 #~ msgstr "Exécution du décalage en Z"

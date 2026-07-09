@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -324,6 +324,7 @@ msgstr ""
 msgid "Optimize orientation"
 msgstr "Optimisera placering"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Skala"
 
@@ -367,6 +368,9 @@ msgstr "Skalnings förhållande"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Objekt Åtgärder"
+
+msgid "Scale"
+msgstr "Skala"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -417,6 +421,10 @@ msgstr ""
 
 msgid "Reset current rotation to real zeros."
 msgstr ""
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Skala"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3603,7 +3611,7 @@ msgstr "Kalibreringen klar. Vänligen hitta den mest enhetliga extruderingslinje
 msgid "Save"
 msgstr "Spara"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Tillbaka"
 
@@ -4961,6 +4969,7 @@ msgstr ""
 msgid "Color change"
 msgstr "Färg byte"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Skriv ut"
 
@@ -5120,11 +5129,15 @@ msgstr "Undvik kalibrerings området"
 msgid "Align to Y axis"
 msgstr "Justera mot Y-axeln"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Tillbaka"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Vänster"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Höger"
 
@@ -5447,6 +5460,10 @@ msgstr "Skriv ut byggplattan"
 
 msgid "Export G-code file"
 msgstr "Exportera G-kod filen"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Skriv ut"
 
 msgid "Export plate sliced file"
 msgstr "Exportera byggplattans beredda fil"
@@ -14400,6 +14417,10 @@ msgstr "Linjerad"
 msgid "Aligned back"
 msgstr ""
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Tillbaka"
+
 msgid "Random"
 msgstr "Slumpmässig"
 
@@ -19055,6 +19076,9 @@ msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
 
+#~ msgid "Print"
+#~ msgstr "Skriv ut"
+
 #~ msgid "in"
 #~ msgstr "i"
 
@@ -20227,10 +20251,6 @@ msgstr ""
 
 #~ msgid "Thick bridges"
 #~ msgstr "Tjocka bridges"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "Skala"
 
 #~ msgid "Z-hop when retract"
 #~ msgstr "Z-hopp vid retraktion"

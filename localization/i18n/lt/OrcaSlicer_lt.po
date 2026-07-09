@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -326,6 +326,7 @@ msgstr "Manipuliatorius – Pasukimas"
 msgid "Optimize orientation"
 msgstr "Optimizuoti orientaciją"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Mastelis"
 
@@ -368,6 +369,9 @@ msgstr "Mastelio koeficientai"
 
 msgid "Object operations"
 msgstr ""
+
+msgid "Scale"
+msgstr "Mastelis"
 
 msgid "Volume operations"
 msgstr ""
@@ -413,6 +417,10 @@ msgstr "Atkurti dabartinį pasukimą iki vertės, buvusios atidarius pasukimo į
 
 msgid "Reset current rotation to real zeros."
 msgstr "Atstatyti dabartinį sukimąsi į tikrąsias nulines vertes."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Mastelis"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3576,6 +3584,7 @@ msgstr "Kalibravimas baigtas. Raskite tolygiausią ekstruzijos liniją ant kaiti
 msgid "Save"
 msgstr "Išsaugoti"
 
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Atgal"
 
@@ -4906,6 +4915,7 @@ msgstr "Įrankio keitimai"
 msgid "Color change"
 msgstr "Spalvos keitimas"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Spausdinti"
 
@@ -5069,11 +5079,15 @@ msgstr "Vengti ekstruzijos kalibravimo srities"
 msgid "Align to Y axis"
 msgstr "Išlygiuoti pagal Y ašį"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Atgal"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Kairė"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Dešinė"
 
@@ -5395,6 +5409,10 @@ msgstr "Spausdinti plokštę"
 
 msgid "Export G-code file"
 msgstr "Eksportuoti G-kodo failą"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Spausdinti"
 
 msgid "Export plate sliced file"
 msgstr "Eksportuoti supjaustytos plokštės failą"
@@ -14604,6 +14622,9 @@ msgstr "Sulygiuota"
 msgid "Aligned back"
 msgstr "Sulygiuota gale"
 
+msgid "Back"
+msgstr "Atgal"
+
 msgid "Random"
 msgstr "Atsitiktinė"
 
@@ -19345,6 +19366,9 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+#~ msgid "Print"
+#~ msgstr "Spausdinti"
 
 #~ msgid "in"
 #~ msgstr "col."

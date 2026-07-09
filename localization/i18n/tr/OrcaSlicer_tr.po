@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -327,6 +327,7 @@ msgstr "Gizmo-Döndür"
 msgid "Optimize orientation"
 msgstr "Yönü optimize edin"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Ölçeklendir"
 
@@ -370,6 +371,9 @@ msgstr "Ölçek oranları"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Nesne İşlemleri"
+
+msgid "Scale"
+msgstr "Ölçeklendir"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -421,6 +425,10 @@ msgstr "Döndürme aracını açtığınızda mevcut döndürme değerini sıfı
 
 msgid "Reset current rotation to real zeros."
 msgstr "Mevcut dönüşü gerçek sıfırlara sıfırla."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Ölçeklendir"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3644,7 +3652,7 @@ msgstr "Kalibrasyon tamamlandı. Lütfen sıcak yatağınızdaki en düzgün eks
 msgid "Save"
 msgstr "Kaydet"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Arka"
 
@@ -5027,6 +5035,7 @@ msgstr "Takım değişiklikleri"
 msgid "Color change"
 msgstr "Renk değişimi"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Yazdır"
 
@@ -5190,11 +5199,15 @@ msgstr "Ekstrüzyon kalibrasyon bölgesinden kaçın"
 msgid "Align to Y axis"
 msgstr "Y eksenine hizala"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Arka"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Sol"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Sağ"
 
@@ -5521,6 +5534,10 @@ msgstr "Plakayı Yazdır"
 
 msgid "Export G-code file"
 msgstr "G-kod dosyasını dışa aktar"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Yazdır"
 
 msgid "Export plate sliced file"
 msgstr "Dilimlenmiş plaka dosyasını dışa aktar"
@@ -14776,6 +14793,10 @@ msgstr "Hizalı"
 msgid "Aligned back"
 msgstr "Arkaya hizalı"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Arka"
+
 msgid "Random"
 msgstr "Rastgele"
 
@@ -19609,6 +19630,9 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+#~ msgid "Print"
+#~ msgstr "Yazdır"
 
 #~ msgid "in"
 #~ msgstr "in"

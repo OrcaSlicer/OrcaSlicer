@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -328,6 +328,7 @@ msgstr "Gizmo - Xoay"
 msgid "Optimize orientation"
 msgstr "Tối ưu định hướng"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Tỷ lệ"
 
@@ -371,6 +372,9 @@ msgstr "Tỷ lệ co giãn"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Thao tác vật thể"
+
+msgid "Scale"
+msgstr "Tỷ lệ"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -422,6 +426,10 @@ msgstr "Đặt lại xoay hiện tại về giá trị khi mở công cụ xoay.
 
 msgid "Reset current rotation to real zeros."
 msgstr "Đặt lại xoay hiện tại về số không thực."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Tỷ lệ"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3630,7 +3638,7 @@ msgstr "Hiệu chỉnh hoàn tất. Vui lòng tìm đường đùn đồng đề
 msgid "Save"
 msgstr "Lưu"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Sau"
 
@@ -5001,6 +5009,7 @@ msgstr ""
 msgid "Color change"
 msgstr "Đổi màu"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "In"
 
@@ -5162,11 +5171,15 @@ msgstr "Tránh vùng hiệu chỉnh đùn"
 msgid "Align to Y axis"
 msgstr "Căn theo trục Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Sau"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Trái"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Phải"
 
@@ -5489,6 +5502,10 @@ msgstr "In plate"
 
 msgid "Export G-code file"
 msgstr "Xuất file G-code"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "In"
 
 msgid "Export plate sliced file"
 msgstr "Xuất file plate đã slice"
@@ -14668,6 +14685,10 @@ msgstr "Căn chỉnh"
 msgid "Aligned back"
 msgstr "Căn chỉnh sau"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Sau"
+
 msgid "Random"
 msgstr "Ngẫu nhiên"
 
@@ -19474,6 +19495,9 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+#~ msgid "Print"
+#~ msgstr "In"
 
 #~ msgid "in"
 #~ msgstr "in"

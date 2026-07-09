@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 10:05-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -333,6 +333,7 @@ msgstr "Gizmo-旋轉"
 msgid "Optimize orientation"
 msgstr "最佳化方向"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "縮放"
 
@@ -376,6 +377,9 @@ msgstr "縮放比例"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "物件操作"
+
+msgid "Scale"
+msgstr "縮放"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -427,6 +431,10 @@ msgstr "重設旋轉角度為開啟旋轉工具時的狀態。"
 
 msgid "Reset current rotation to real zeros."
 msgstr "將旋轉角度歸零"
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "縮放"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3650,7 +3658,7 @@ msgstr "校正完成。如下圖中的範例，請在您的熱床上找到最均
 msgid "Save"
 msgstr "儲存"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "背面"
 
@@ -5056,6 +5064,7 @@ msgstr "取代工具"
 msgid "Color change"
 msgstr "顏色更換"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "列印"
 
@@ -5220,11 +5229,15 @@ msgstr "避開擠出校正區域"
 msgid "Align to Y axis"
 msgstr "與 Y 軸對齊"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "背面"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "左"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "右"
 
@@ -5552,6 +5565,10 @@ msgstr "列印單一列印板"
 
 msgid "Export G-code file"
 msgstr "匯出 G-code 檔案"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "列印"
 
 msgid "Export plate sliced file"
 msgstr "匯出單一列印板切片檔案"
@@ -14957,6 +14974,10 @@ msgstr "對齊"
 msgid "Aligned back"
 msgstr "背部對齊"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "背面"
+
 msgid "Random"
 msgstr "隨機"
 
@@ -19807,6 +19828,9 @@ msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度\n"
 "可以降低翹曲的機率。"
+
+#~ msgid "Print"
+#~ msgstr "列印"
 
 #~ msgid "in"
 #~ msgstr "在"
