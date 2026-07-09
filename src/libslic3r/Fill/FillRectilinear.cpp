@@ -3105,8 +3105,10 @@ bool FillRectilinear::fill_surface_trapezoidal(
         const coord_t d2 = coord_t(0.5 * period - d1);
 
         //  Align bounding box to the grid, phased through the box center so separated infills align
-        //  each part on itself (bb.center() is the origin for a standalone object / feature off).
-        bb.merge(align_to_grid(bb.min, Point(period, period), bb.center()));
+        //  each part on itself (grid_center is the origin for a standalone object / feature off).
+        //  Captured before the merge, which grows bb and would otherwise shift its center.
+        const Point grid_center = bb.center();
+        bb.merge(align_to_grid(bb.min, Point(period, period), grid_center));
         const coord_t xmin = bb.min.x();
         const coord_t xmax = bb.max.x();
         const coord_t ymin = bb.min.y();
@@ -3153,11 +3155,17 @@ bool FillRectilinear::fill_surface_trapezoidal(
             flip_vertical = !flip_vertical;
         }
 
-        // transpose points for odd infill layers (taking infill combination into account)
+        // transpose points for odd infill layers (taking infill combination into account).
+        // Orca: mirror across the diagonal through grid_center (not the origin), so the swapped
+        // layers stay aligned with the center-phased grid. For a standalone object / feature off,
+        // grid_center is the origin and this is a plain x/y swap.
         if (infill_layer_id % 2 == 1) {
             for (Polyline& pl : polylines) {
                 for (Point& p : pl.points) {
-                    std::swap(p.x(), p.y());
+                    const coord_t dx = p.x() - grid_center.x();
+                    const coord_t dy = p.y() - grid_center.y();
+                    p.x() = grid_center.x() + dy;
+                    p.y() = grid_center.y() + dx;
                 }
             }
         }
