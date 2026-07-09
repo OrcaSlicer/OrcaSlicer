@@ -563,11 +563,6 @@ void PrintObject::prepare_infill()
 {
     if (! this->set_started(posPrepareInfill))
         return;
-
-    // Orca: clear all volume bbox caches
-    for (auto volume : this->model_object()->volumes)
-        volume->reset_volume_bbox();
-
     m_print->set_status(25, L("Generating infill regions"));
     if (m_typed_slices) {
         // To improve robustness of detect_surfaces_type() when reslicing (working with typed slices), see GH issue #7442.
@@ -710,6 +705,28 @@ void PrintObject::infill()
 
     if (this->set_started(posInfill)) {
         m_print->set_status(35, L("Generating infill toolpath"));
+
+        // Orca: precompute the object's connected components (the connected regions of its whole XY
+        // projection, i.e. the union of every layer's slices). separated infills / per-model
+        // centering anchor each fill on the component it belongs to, so every 3D object is centered
+        // on its full bounding box, exactly as if it were sliced alone. Done once here, before the
+        // parallel fill (so the components can be read lock-free), and only when a region needs it.
+        m_separated_infill_components.clear();
+        bool needs_separated_components = false;
+        for (size_t i = 0; i < this->num_printing_regions(); ++ i) {
+            const PrintRegionConfig &rc = this->printing_region(i).config();
+            if (rc.separated_infills || rc.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model) {
+                needs_separated_components = true;
+                break;
+            }
+        }
+        if (needs_separated_components) {
+            ExPolygons acc;
+            for (const Layer *layer : m_layers)
+                append(acc, layer->lslices);
+            m_separated_infill_components = union_ex(acc);
+        }
+
         const auto& adaptive_fill_octree = this->m_adaptive_fill_octrees.first;
         const auto& support_fill_octree = this->m_adaptive_fill_octrees.second;
 

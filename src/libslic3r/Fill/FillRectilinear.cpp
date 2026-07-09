@@ -2739,13 +2739,19 @@ static void polylines_from_paths(const std::vector<MonotonicRegionLink> &path, c
 
 // The extended bounding box of the whole object that covers any rotation of every layer.
 BoundingBox FillRectilinear::extended_object_bounding_box() const {
+    // Build the extension around the box center. The transpose merge and the sqrt(2.) scaling
+    // (which covers any possible rotation) are both defined about the origin, so a box that is not
+    // origin-centered — e.g. a separated-infill box re-centered on a single assembly part — would be
+    // distorted. Shift to the origin first and back afterwards; for the default origin-centered box
+    // the two translations cancel and this is identical to the original behavior.
+    const Point c   = this->bounding_box.center();
     BoundingBox out = this->bounding_box;
+    out.translate(-c.x(), -c.y());
     out.merge(Point(out.min.y(), out.min.x()));
     out.merge(Point(out.max.y(), out.max.x()));
-
-    // The bounding box is scaled by sqrt(2.) to ensure that the bounding box
-    // covers any possible rotations.
-    return out.scaled(sqrt(2.));
+    out = out.scaled(sqrt(2.));
+    out.translate(c.x(), c.y());
+    return out;
 }
 
 bool FillRectilinear::fill_surface_by_lines(const Surface *surface, const FillParams &params, float angleBase, float pattern_shift, Polylines &polylines_out)
