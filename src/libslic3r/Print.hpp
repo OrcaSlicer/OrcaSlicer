@@ -799,6 +799,8 @@ struct PrintStatistics
     double                          total_wipe_tower_cost;
     double                          total_wipe_tower_filament;
     unsigned int                    initial_tool;
+    // Orca: comma-separated list of the filament types really extruded on the plate, for the filename template.
+    std::string                     printing_filament_types;
     std::map<size_t, double>        filament_stats;
 
     // Config with the filled in print statistics.
@@ -817,6 +819,7 @@ struct PrintStatistics
         total_wipe_tower_cost  = 0.;
         total_wipe_tower_filament = 0.;
         initial_tool           = 0;
+        printing_filament_types.clear();
         filament_stats.clear();
     }
     static const std::string FilamentUsedG;
