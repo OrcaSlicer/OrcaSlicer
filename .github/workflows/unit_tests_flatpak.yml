@@ -1,0 +1,69 @@
+name: Flatpak Unit Tests
+
+# Download the flatpak build's test asset and run the suite inside the sandbox
+# via `flatpak build`. Called once per arch from build_all.yml. The GNOME SDK
+# compiles with _GLIBCXX_ASSERTIONS, so the suite runs against a bounds-checked
+# STL that catches out-of-bounds reads the other legs miss.
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      artifact:
+        description: Test asset uploaded by the flatpak build leg
+        required: true
+        type: string
+
+jobs:
+  unit_tests_flatpak:
+    name: Flatpak Unit Tests
+    runs-on: ${{ inputs.os }}
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      options: --privileged
+    steps:
+      - name: Restore test asset
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.artifact }}
+      - name: Run unit tests (bounds-checked sandbox)
+        shell: bash
+        run: |
+          tar -xf flatpak-test-asset.tar
+          # Recreate the stable module symlink so /run/build/OrcaSlicer resolves.
+          d=$(ls -d .flatpak-builder/build/OrcaSlicer-* | tail -1)
+          ln -sfn "$(basename "$d")" .flatpak-builder/build/OrcaSlicer
+          # The runtime + SDK (+ the llvm extension recorded in the app metadata)
+          # the sandbox mounts and the test exes link against; best-effort, the
+          # gnome-50 image may already carry them.
+          flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive flathub \
+            org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.llvm21//25.08 || true
+          # `flatpak build` enters the sandbox via bwrap, avoiding the rofiles-fuse
+          # spawn that `flatpak-builder --run` needs and this container rejects.
+          # Bind-mount the build tree at /run/build so TEST_DATA_DIR resolves.
+          flatpak build --die-with-parent --share=network \
+            --bind-mount=/run/build="$PWD/.flatpak-builder/build" \
+            flatpak_app \
+            bash -c 'cd /run/build/OrcaSlicer && scripts/run_unit_tests.sh build_flatpak/tests'
+      - name: Collect test results
+        if: always()
+        shell: bash
+        run: |
+          d=$(ls -d .flatpak-builder/build/OrcaSlicer-* 2>/dev/null | tail -1 || true)
+          [ -n "$d" ] && [ -f "$d/ctest_results.xml" ] && cp "$d/ctest_results.xml" ctest_results.xml || true
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ inputs.artifact }}
+          path: ctest_results.xml
+          retention-days: 5
+          if-no-files-found: warn
+      - name: Delete Test Asset
+        if: success()
+        uses: geekyeggo/delete-artifact@v6
+        with:
+          name: ${{ inputs.artifact }}
+          failOnError: false

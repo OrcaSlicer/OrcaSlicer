@@ -185,7 +185,7 @@ jobs:
           ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
   publish_test_results:
     name: Publish Test Results
-    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64, unit_tests_flatpak]
+    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64, unit_tests_flatpak_x86_64, unit_tests_flatpak_aarch64]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -343,66 +343,21 @@ jobs:
       if: always()
       shell: bash
       run: rm -rf .flatpak-builder/build
-  # Mirror of the other arches' split build->test: a separate job downloads the
-  # flatpak build's test asset and runs the suite in the sandbox. The GNOME SDK
-  # compiles with _GLIBCXX_ASSERTIONS, so this leg runs against a bounds-checked
-  # STL that catches out-of-bounds reads the other legs miss.
-  unit_tests_flatpak:
-    name: Flatpak Unit Tests
+  # Mirror of the other arches: one test job per arch, each running the flatpak
+  # build's test asset through the reusable Flatpak Unit Tests workflow.
+  unit_tests_flatpak_x86_64:
+    name: Flatpak x86_64
     needs: flatpak
     if: ${{ !cancelled() && success() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
-    container:
-      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
-      options: --privileged
-    strategy:
-      fail-fast: false
-      matrix:
-        variant:
-          - arch: x86_64
-            runner: ubuntu-24.04
-          - arch: aarch64
-            runner: ubuntu-24.04-arm
-    runs-on: ${{ matrix.variant.runner }}
-    steps:
-    - uses: actions/checkout@v7
-      with:
-        sparse-checkout: scripts/flatpak
-    - name: Restore flatpak test asset
-      uses: actions/download-artifact@v8
-      with:
-        name: ${{ github.sha }}-flatpak-tests-${{ matrix.variant.arch }}
-    - name: Run unit tests (bounds-checked sandbox)
-      shell: bash
-      run: |
-        tar -xf flatpak-test-asset.tar
-        # Recreate the stable module symlink so /run/build/OrcaSlicer resolves.
-        d=$(ls -d .flatpak-builder/build/OrcaSlicer-* | tail -1)
-        ln -sfn "$(basename "$d")" .flatpak-builder/build/OrcaSlicer
-        # The runtime + SDK (+ the llvm extension recorded in the app metadata)
-        # the sandbox mounts and the test exes link against. Best-effort: the
-        # gnome-50 image may already carry them.
-        flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
-        flatpak install --user -y --noninteractive flathub \
-          org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.llvm21//25.08 || true
-        # `flatpak build` uses bwrap directly, avoiding the rofiles-fuse spawn that
-        # `flatpak-builder --run` needs and that this container rejects. Bind-mount
-        # the build tree at /run/build so the compiled-in TEST_DATA_DIR resolves.
-        flatpak build --die-with-parent --share=network \
-          --bind-mount=/run/build="$PWD/.flatpak-builder/build" \
-          flatpak_app \
-          bash -c 'cd /run/build/OrcaSlicer && scripts/run_unit_tests.sh build_flatpak/tests'
-    - name: Collect Flatpak test results
-      if: always()
-      shell: bash
-      run: |
-        d=$(ls -d .flatpak-builder/build/OrcaSlicer-* 2>/dev/null | tail -1 || true)
-        [ -n "$d" ] && [ -f "$d/ctest_results.xml" ] && cp "$d/ctest_results.xml" ctest_results.xml || true
-    - name: Upload Flatpak test results
-      if: always()
-      uses: actions/upload-artifact@v7
-      with:
-        # test-results-* is aggregated by publish_test_results.
-        name: test-results-${{ github.sha }}-flatpak-${{ matrix.variant.arch }}
-        path: ctest_results.xml
-        retention-days: 5
-        if-no-files-found: warn
+    uses: ./.github/workflows/unit_tests_flatpak.yml
+    with:
+      os: ubuntu-24.04
+      artifact: ${{ github.sha }}-flatpak-tests-x86_64
+  unit_tests_flatpak_aarch64:
+    name: Flatpak aarch64
+    needs: flatpak
+    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    uses: ./.github/workflows/unit_tests_flatpak.yml
+    with:
+      os: ubuntu-24.04-arm
+      artifact: ${{ github.sha }}-flatpak-tests-aarch64
