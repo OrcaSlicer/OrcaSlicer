@@ -1046,6 +1046,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("scarf_angle_threshold", has_seam_slope && config->opt_bool("seam_slope_conditional"));
     toggle_line("scarf_overhang_threshold", has_seam_slope && config->opt_bool("seam_slope_conditional"));
 
+    // ORCA: Nip & Tuck seams (ported from preFlight)
+    toggle_field("seam_type", !has_spiral_vase);
+    bool has_seam_notch = !has_spiral_vase && config->opt_enum<SeamNotchType>("seam_type") != SeamNotchType::Regular;
+    toggle_line("seam_notch_width", has_seam_notch);
+    toggle_line("seam_notch_angle", has_seam_notch);
+
     bool use_beam_interlocking = config->opt_bool("interlocking_beam");
     toggle_line("mmu_segmented_region_interlocking_depth", !use_beam_interlocking);
     toggle_line("interlocking_beam_width", use_beam_interlocking);

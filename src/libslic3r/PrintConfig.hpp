@@ -260,6 +260,16 @@ enum class SeamScarfType {
     All,
 };
 
+// ORCA: Nip & Tuck seams (ported from preFlight). Shapes the seam point on external
+// perimeters into a V-notch that hides start/stop blobs.
+enum class SeamNotchType {
+    Regular,
+    NipTuck,
+    Nip,
+    Tuck,
+    Alternating,
+};
+
 // Orca
 enum EnsureVerticalShellThickness {
     evstNone,
@@ -594,6 +604,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportMaterialInterfacePattern)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SupportType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SeamPosition)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SeamScarfType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SeamNotchType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SLADisplayOrientation)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SLAPillarConnectionMode)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(BrimType)
@@ -1310,6 +1321,10 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                seam_slope_min_length))
     ((ConfigOptionInt,                  seam_slope_steps))
     ((ConfigOptionBool,                 seam_slope_inner_walls))
+    // ORCA: Nip & Tuck seams (ported from preFlight)
+    ((ConfigOptionEnum<SeamNotchType>,  seam_type))
+    ((ConfigOptionFloat,                seam_notch_width))
+    ((ConfigOptionFloat,                seam_notch_angle))
     ((ConfigOptionFloatOrPercent,       scarf_joint_speed))
     ((ConfigOptionFloat,                scarf_joint_flow_ratio))
     ((ConfigOptionPercent,              scarf_overhang_threshold))

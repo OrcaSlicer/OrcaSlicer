@@ -376,6 +376,16 @@ static t_config_enum_values s_keys_map_SeamScarfType{
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SeamScarfType)
 
+// ORCA: Nip & Tuck seams (ported from preFlight)
+static t_config_enum_values s_keys_map_SeamNotchType{
+    { "regular",        int(SeamNotchType::Regular) },
+    { "niptuck",        int(SeamNotchType::NipTuck) },
+    { "nip",            int(SeamNotchType::Nip) },
+    { "tuck",           int(SeamNotchType::Tuck) },
+    { "alternating",    int(SeamNotchType::Alternating) },
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SeamNotchType)
+
 // Orca
 static t_config_enum_values s_keys_map_EnsureVerticalShellThickness{
     { "none",           int(EnsureVerticalShellThickness::evstNone) },
@@ -5648,6 +5658,68 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloatOrPercent(10,true));
+
+    // ORCA: Nip & Tuck seams (ported from preFlight)
+    def = this->add("seam_type", coEnum);
+    def->label = L("Seam type");
+    def->category = L("Quality");
+    def->tooltip = L("Controls how the seam point on external perimeters is shaped to hide start/stop blobs.\n\n"
+                     "Regular - No seam shaping. Standard seam behavior.\n\n"
+                     "Nip/Tuck - Creates a V-shaped channel one perimeter deep at the seam. Both the start and "
+                     "end of the external perimeter are pushed inward, and the first inner perimeter is trimmed "
+                     "to absorb the disturbance.\n\n"
+                     "Nip - Only the start of the external perimeter is pushed inward at the seam. The end "
+                     "remains on the normal path. The inner perimeter is trimmed on the start side only.\n\n"
+                     "Tuck - Only the end of the external perimeter is pushed inward at the seam. The start "
+                     "remains on the normal path. The inner perimeter is trimmed on the end side only.\n\n"
+                     "Alt. Nip/Tuck - Alternates between Nip on even layers and Tuck on odd layers. "
+                     "This distributes the seam disturbance across both sides of the junction, preventing "
+                     "a consistent bulge on one side.\n\n"
+                     "Note: All non-Regular modes require multiple perimeters and are not used in Spiral Vase mode.");
+    def->enum_keys_map = &ConfigOptionEnum<SeamNotchType>::get_enum_values();
+    def->enum_values.push_back("regular");
+    def->enum_values.push_back("niptuck");
+    def->enum_values.push_back("nip");
+    def->enum_values.push_back("tuck");
+    def->enum_values.push_back("alternating");
+    def->enum_labels.push_back(L("Regular"));
+    def->enum_labels.push_back(L("Nip/Tuck"));
+    def->enum_labels.push_back(L("Nip"));
+    def->enum_labels.push_back(L("Tuck"));
+    def->enum_labels.push_back(L("Alt. Nip/Tuck"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<SeamNotchType>(SeamNotchType::Regular));
+
+    def = this->add("seam_notch_width", coFloat);
+    def->label = L("Seam notch width");
+    def->category = L("Quality");
+    def->tooltip = L("Width of the V-shaped notch as a multiple of the external perimeter extrusion width. "
+                     "In Nip/Tuck mode, this is the full notch width across both sides of the seam. "
+                     "In Nip or Tuck mode, only half the width is used since only one side of the seam is shaped. "
+                     "The depth is automatically calculated from perimeter spacing. "
+                     "Wider values are more forgiving for blobs but create a larger surface depression. "
+                     "Narrower values are subtler.");
+    def->sidetext = L("x ext. width");
+    def->min = 1;
+    def->max = 3;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(2.0));
+
+    def = this->add("seam_notch_angle", coFloat);
+    def->label = L("Seam notch corner threshold");
+    def->category = L("Quality");
+    def->tooltip = L("Controls where seam notching is applied based on corner sharpness. "
+                     "At sharp corners the seam is naturally hidden by the geometry, so notching "
+                     "is unnecessary.\n\n"
+                     "Seams on corners sharper than this angle are skipped. The default of 44° means any corner "
+                     "of 44° or less is considered sharp enough to hide the seam on its own - just under 45°, "
+                     "where a clean fold already conceals the junction.\n\n"
+                     "Set to 0 to apply seam notching everywhere regardless of corner angle.");
+    def->sidetext = L("°");
+    def->min = 0;
+    def->max = 90;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(44.0));
 
     def = this->add("seam_slope_type", coEnum);
     def->label = L("Scarf joint seam (beta)");

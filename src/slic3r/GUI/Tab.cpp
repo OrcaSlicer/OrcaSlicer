@@ -2616,6 +2616,10 @@ void TabPrint::build()
         optgroup->append_single_option_line("seam_position", "quality_settings_seam#seam-position");
         optgroup->append_single_option_line("staggered_inner_seams", "quality_settings_seam#staggered-inner-seams");
         optgroup->append_single_option_line("seam_gap","quality_settings_seam#seam-gap");
+        // ORCA: Nip & Tuck seams (ported from preFlight)
+        optgroup->append_single_option_line("seam_type", "quality_settings_seam#seam-type");
+        optgroup->append_single_option_line("seam_notch_width", "quality_settings_seam#seam-type");
+        optgroup->append_single_option_line("seam_notch_angle", "quality_settings_seam#seam-type");
         optgroup->append_single_option_line("seam_slope_type", "quality_settings_seam#scarf-joint-seam");
         optgroup->append_single_option_line("seam_slope_conditional", "quality_settings_seam#scarf-joint-seam");
         optgroup->append_single_option_line("scarf_angle_threshold", "quality_settings_seam#scarf-joint-seam");

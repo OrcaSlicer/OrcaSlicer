@@ -5774,6 +5774,151 @@ static std::unique_ptr<EdgeGrid::Grid> calculate_layer_edge_grid(const Layer& la
     return out;
 }
 
+// ORCA: Nip & Tuck seams (ported from preFlight).
+// Shapes the seam point of an external perimeter into a V-shaped channel that hides the
+// start/stop blobs. `loop` must already be split so that it starts and ends at the seam.
+//
+// NOTE: preFlight additionally trims the first inner perimeter to make room for the notch.
+// OrcaSlicer extrudes each perimeter loop independently (the seam is placed per-loop inside
+// extrude_loop), so there is no stage where the external and its inner perimeter are available
+// together with resolved seams. The inner-perimeter trim is therefore NOT implemented here -
+// only the external perimeter is shaped, so the pushed-in external bead overlaps the inner wall
+// at the seam (hidden inside the wall). This is a staged, contained subset of the feature.
+static void apply_seam_notch_to_external_loop(ExtrusionLoop& loop, SeamNotchType seam_type,
+                                              double seam_notch_width_mult, double seam_notch_angle_deg,
+                                              int layer_index)
+{
+    if (seam_type == SeamNotchType::Regular || loop.paths.empty())
+        return;
+
+    Points3& front_pts = loop.paths.front().polyline.points;
+    Points3& back_pts  = loop.paths.back().polyline.points;
+    if (front_pts.size() < 2 || back_pts.size() < 2)
+        return;
+
+    const double ext_width = loop.paths.front().width; // mm
+    if (ext_width <= 0.0)
+        return;
+
+    const double notch_width_mm = seam_notch_width_mult * ext_width;
+    const double half_width     = scale_(notch_width_mm);   // scaled taper length on each side of the seam
+    const double depth          = scale_(ext_width * 0.9);  // max inward offset (scaled), ~one perimeter deep
+    if (half_width <= 0.0 || depth <= 0.0)
+        return;
+
+    // Don't notch tiny loops - there isn't enough length for a clean taper.
+    if (loop.length() < scale_(notch_width_mm * 3.0))
+        return;
+
+    auto pt2d = [](const Point3& p) { return Vec2d(double(p.x()), double(p.y())); };
+
+    // Path directions leaving and arriving at the seam.
+    Vec2d dir_start = pt2d(front_pts[1]) - pt2d(front_pts[0]);
+    Vec2d dir_end   = pt2d(back_pts[back_pts.size() - 1]) - pt2d(back_pts[back_pts.size() - 2]);
+    if (dir_start.squaredNorm() < 1e-6 || dir_end.squaredNorm() < 1e-6)
+        return;
+    dir_start.normalize();
+    dir_end.normalize();
+
+    // Skip seams on corners sharper than the threshold - the geometry already hides them there.
+    if (seam_notch_angle_deg > 0.0) {
+        const double cos_dev = dir_start.dot(dir_end);
+        if (cos_dev < std::cos(seam_notch_angle_deg * M_PI / 180.0))
+            return;
+    }
+
+    // Inward direction: bisector of the two seam directions, oriented toward the loop interior.
+    // (preFlight derives the interior side from winding/reversed flags; we cross-check against the
+    // loop centroid instead, which avoids hole/orientation edge cases and can't point outward.)
+    Vec2d inward = dir_start - dir_end;
+    if (inward.squaredNorm() < 1e-6)
+        inward = Vec2d(-dir_start.y(), dir_start.x());
+    inward.normalize();
+    const Point centroid = loop.polygon().centroid();
+    if (inward.dot(Vec2d(double(centroid.x()), double(centroid.y())) - pt2d(front_pts[0])) < 0.0)
+        inward = -inward;
+
+    // Resolve the alternating mode by layer parity.
+    if (seam_type == SeamNotchType::Alternating)
+        seam_type = (layer_index % 2 == 0) ? SeamNotchType::Nip : SeamNotchType::Tuck;
+
+    // When the loop is made of several paths (e.g. an overhang perimeter), the seam-adjacent path may
+    // be shorter than the taper. In that case we must not move its far endpoint, which is a junction
+    // shared with the neighbouring path - doing so would open a gap mid-perimeter. `protect_far`
+    // leaves that shared point in place (the taper is simply truncated at the path boundary).
+    const bool protect_far = loop.paths.size() > 1;
+
+    // Taper one end of the (open) path toward the seam: the seam vertex is offset inward by the full
+    // depth, fading linearly to zero at `half_width` along the path. A split vertex is inserted at the
+    // taper boundary so the V closes cleanly back onto the wall.
+    auto taper = [&](Points3& pts, bool from_start) {
+        if (pts.size() < 2)
+            return;
+        if (from_start) {
+            double acc = 0.0;
+            for (size_t i = 1; i < pts.size(); ++i) {
+                const double seg = (pt2d(pts[i]) - pt2d(pts[i - 1])).norm();
+                if (acc + seg >= half_width) {
+                    const double frac = seg > 1e-6 ? (half_width - acc) / seg : 1.0;
+                    if (frac > 1e-3 && frac < 1.0 - 1e-3) {
+                        Point3 s = pts[i];
+                        s.x() = coord_t(double(pts[i - 1].x()) + double(pts[i].x() - pts[i - 1].x()) * frac);
+                        s.y() = coord_t(double(pts[i - 1].y()) + double(pts[i].y() - pts[i - 1].y()) * frac);
+                        pts.insert(pts.begin() + i, s);
+                    }
+                    break;
+                }
+                acc += seg;
+            }
+            double d = 0.0;
+            for (size_t i = 0; i < pts.size(); ++i) {
+                if (protect_far && i + 1 == pts.size())
+                    break; // don't move the junction shared with the next path
+                if (i > 0)
+                    d += (pt2d(pts[i]) - pt2d(pts[i - 1])).norm();
+                if (d > half_width)
+                    break;
+                const double off = depth * (1.0 - std::min(d / half_width, 1.0));
+                pts[i].x() += coord_t(inward.x() * off);
+                pts[i].y() += coord_t(inward.y() * off);
+            }
+        } else {
+            double acc = 0.0;
+            for (size_t i = pts.size() - 1; i > 0; --i) {
+                const double seg = (pt2d(pts[i]) - pt2d(pts[i - 1])).norm();
+                if (acc + seg >= half_width) {
+                    const double frac = seg > 1e-6 ? 1.0 - (half_width - acc) / seg : 0.0;
+                    if (frac > 1e-3 && frac < 1.0 - 1e-3) {
+                        Point3 s = pts[i];
+                        s.x() = coord_t(double(pts[i - 1].x()) + double(pts[i].x() - pts[i - 1].x()) * frac);
+                        s.y() = coord_t(double(pts[i - 1].y()) + double(pts[i].y() - pts[i - 1].y()) * frac);
+                        pts.insert(pts.begin() + i, s);
+                    }
+                    break;
+                }
+                acc += seg;
+            }
+            double d = 0.0;
+            for (size_t i = pts.size(); i-- > 0; ) {
+                if (protect_far && i == 0)
+                    break; // don't move the junction shared with the previous path
+                if (i + 1 < pts.size())
+                    d += (pt2d(pts[i + 1]) - pt2d(pts[i])).norm();
+                if (d > half_width)
+                    break;
+                const double off = depth * (1.0 - std::min(d / half_width, 1.0));
+                pts[i].x() += coord_t(inward.x() * off);
+                pts[i].y() += coord_t(inward.y() * off);
+            }
+        }
+    };
+
+    if (seam_type != SeamNotchType::Tuck)
+        taper(front_pts, true);   // Nip / Nip-Tuck: push the START of the external inward
+    if (seam_type != SeamNotchType::Nip)
+        taper(back_pts, false);   // Tuck / Nip-Tuck: push the END of the external inward
+}
+
 std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
                                 const std::string&          description,
                                 double                      speed,
@@ -5821,6 +5966,16 @@ std::string GCode::extrude_loop(const ExtrusionLoop&        loop_ref,
         const auto _line_width = loop.role() == erExternalPerimeter ? m_config.outer_wall_line_width.get_abs_value(nozzle_diameter) :
                                                                       m_config.inner_wall_line_width.get_abs_value(nozzle_diameter);
         enable_seam_slope      = seam_overhang < m_config.scarf_overhang_threshold.value * 0.01f * _line_width;
+    }
+
+    // ORCA: Nip & Tuck seams (ported from preFlight). Shape the external perimeter's seam into a
+    // V-notch. Gated so it never changes default behaviour: only external perimeters, above the
+    // first layer, when a non-Regular mode is chosen, not in spiral vase, mutually exclusive with
+    // the scarf/slope seam, and only when there is at least one inner perimeter to hide behind.
+    if (m_config.seam_type.value != SeamNotchType::Regular && !m_config.spiral_mode && !enable_seam_slope &&
+        loop.role() == erExternalPerimeter && layer_id() > 0 && region_perimeters.size() > 1) {
+        apply_seam_notch_to_external_loop(loop, m_config.seam_type.value, m_config.seam_notch_width.value,
+                                          m_config.seam_notch_angle.value, layer_id());
     }
 
     // clip the path to avoid the extruder to get exactly on the first point of the loop;
