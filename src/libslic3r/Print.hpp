@@ -799,7 +799,7 @@ struct PrintStatistics
     double                          total_wipe_tower_cost;
     double                          total_wipe_tower_filament;
     unsigned int                    initial_tool;
-    // Orca: comma-separated list of the filament types really extruded on the plate, for the filename template.
+    // Orca: hyphen-separated list of the filament types really extruded on the plate, for the filename template.
     std::string                     printing_filament_types;
     std::map<size_t, double>        filament_stats;
 

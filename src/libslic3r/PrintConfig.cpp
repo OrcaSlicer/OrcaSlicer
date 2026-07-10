@@ -11355,7 +11355,7 @@ PrintStatisticsConfigDef::PrintStatisticsConfigDef()
 
     def = this->add("printing_filament_types", coString);
     def->label = L("Used filament types");
-    def->tooltip = L("Comma-separated list of all filament types used during the print.");
+    def->tooltip = L("Hyphen-separated list of all filament types used during the print.");
 
     def = this->add("silent_print_time", coString);
     def->label = L("Print time (silent mode)");

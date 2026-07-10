@@ -3540,7 +3540,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             if (std::find(printing_filament_types.begin(), printing_filament_types.end(), type) == printing_filament_types.end())
                 printing_filament_types.emplace_back(std::move(type));
         }
-        print.m_print_statistics.printing_filament_types = boost::algorithm::join(printing_filament_types, ",");
+        // joined with '-' rather than ',' to stay safe in URLs and on print hosts
+        print.m_print_statistics.printing_filament_types = boost::algorithm::join(printing_filament_types, "-");
     }
     if (!is_bbl_printers) {
         file.write_format("; total filament used [g] = %.2lf\n",
