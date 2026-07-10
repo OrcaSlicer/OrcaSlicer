@@ -596,18 +596,21 @@ public:
             // Assign the first value of the rhs vector.
             auto other = static_cast<const ConfigOptionVector<T>*>(rhs);
             T v = other->values.front();
-            this->values.resize(dest_index.size(), v);
+            this->values.resize(dest_index.size() * stride, v);
 
             for (size_t i = 0; i < dest_index.size(); i++) {
-                for (size_t j = 0; j < stride; j++)
+                if (dest_index[i] < 0)
+                    continue;
+                for (size_t j = 0; j < size_t(stride); j++)
                 {
-                    if (dest_index[i] < other->values.size() && !other->is_nil(dest_index[i]))
-                        this->values[i * stride +j] = other->values[dest_index[i] * stride +j];
+                    const size_t src_idx = size_t(dest_index[i]) * size_t(stride) + j;
+                    if (src_idx < other->values.size() && !other->is_nil(size_t(dest_index[i]) * size_t(stride)))
+                        this->values[i * size_t(stride) + j] = other->values[src_idx];
                 }
             }
         }
         else
-            throw ConfigurationError("ConfigOptionVector::set_with_index(): Assigning an incompatible type");
+            throw ConfigurationError("ConfigOptionVector::set_to_index(): Assigning an incompatible type");
     }
 
     //set a item related with extruder variants when saving user config, set the non-diff value of some extruder to nill
