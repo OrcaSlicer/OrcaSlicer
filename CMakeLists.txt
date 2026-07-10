@@ -817,14 +817,27 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
     # TKOffset/TKBool/TKFeat. Glob everything instead; the built occt/ dir is the one
     # source of truth. (OCCT is Shared only on Windows — deps/OCCT/OCCT.cmake.)
     file(GLOB _occt_dlls "${CMAKE_PREFIX_PATH}/bin/occt/*.dll")
-    # A glob that matches nothing yields an empty list and copies nothing, so the package
-    # would ship with no OpenCASCADE at all and die at launch with error 126. The explicit
-    # per-file list this replaced failed the configure instead. Keep that loudness.
-    if (NOT _occt_dlls)
+    # The glob degrades silently: it ships whatever the deps prefix holds. That is not the
+    # same as shipping what we link. A deps tree built with BUILD_MODULE_ModelingAlgorithms=OFF
+    # (upstream OrcaSlicer's setting) simply has no TKFillet.dll / TKOffset.dll, so the glob
+    # copies 40 of 42 DLLs, the build succeeds, and the slicer dies at launch with
+    # "error 126 (dependency not found)". The explicit per-file list this replaced failed
+    # the configure instead. Assert the real invariant: every linked toolkit has a DLL.
+    if (NOT OCCT_LIBS)
+        message(FATAL_ERROR "OCCT_LIBS is not set; libslic3r must be configured first.")
+    endif ()
+    set(_missing_occt "")
+    foreach (_tk IN LISTS OCCT_LIBS)
+        if (NOT EXISTS "${CMAKE_PREFIX_PATH}/bin/occt/${_tk}.dll")
+            list(APPEND _missing_occt "${_tk}.dll")
+        endif ()
+    endforeach ()
+    if (_missing_occt)
         message(FATAL_ERROR
-            "No OCCT DLLs found in ${CMAKE_PREFIX_PATH}/bin/occt/. Build the dependencies "
-            "first (build_release_vs2022.bat deps); refusing to package a slicer without "
-            "OpenCASCADE, which would fail at startup with error 126.")
+            "OCCT DLLs missing from ${CMAKE_PREFIX_PATH}/bin/occt/: ${_missing_occt}\n"
+            "Rebuild the dependencies (build_release_vs2022.bat deps). This fork sets "
+            "BUILD_MODULE_ModelingAlgorithms=ON, so a deps tree built from upstream "
+            "OrcaSlicer lacks TKFillet/TKOffset and the slicer would fail at startup.")
     endif ()
     file(COPY ${_occt_dlls}
             ${CMAKE_PREFIX_PATH}/bin/freetype.dll

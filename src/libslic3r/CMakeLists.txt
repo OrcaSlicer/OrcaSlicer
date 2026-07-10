@@ -595,6 +595,9 @@ set(OCCT_LIBS
     TKMath
     TKernel
 )
+# Publish the link list so the Windows packaging step can assert it ships a DLL for
+# every toolkit we link, instead of shipping whatever the deps prefix happens to hold.
+set(OCCT_LIBS "${OCCT_LIBS}" CACHE INTERNAL "OCCT toolkits linked by libslic3r")
 
 target_link_libraries(libslic3r
     PUBLIC
