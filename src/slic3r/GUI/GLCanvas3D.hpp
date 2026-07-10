@@ -1257,9 +1257,8 @@ private:
     void _render_ssao_pass(unsigned int width, unsigned int height);
     void _render_background();
     void _render_bed(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool show_axes);
-    void _render_cast_shadows_on_plate(const Transform3d& view_matrix, const Transform3d& projection_matrix);
+    void _render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     // Render scene depth from the light's point of view into m_shadow_map_texture_id (fills m_shadow_light_vp).
-    void _render_shadow_map_pass(const Transform3d& view_matrix);
     //BBS: add part plate related logic
     void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
     //BBS: add outline drawing logic
