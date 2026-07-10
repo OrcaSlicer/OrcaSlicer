@@ -900,10 +900,30 @@ WXLRESULT MainFrame::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam
         }
         break;
 
+    case WM_MOUSEMOVE: {
+        // Windows hides the cursor when touch input occurs and expects real mouse
+        // hardware movement to restore it. Sometimes restoration fails when the app
+        // handles WM_NCHITTEST or gestures. Detect non-touch mouse movement and
+        // force the cursor visible if Windows has suppressed it.
+        const LONG_PTR MI_WP_SIGNATURE = 0xFF515700;
+        const LONG_PTR SIGNATURE_MASK  = 0xFFFFFF00;
+        if ((::GetMessageExtraInfo() & SIGNATURE_MASK) != MI_WP_SIGNATURE) {
+            CURSORINFO ci = { sizeof(ci) };
+            if (::GetCursorInfo(&ci) && !(ci.flags & CURSOR_SHOWING)) {
+                ::SetCursor(::LoadCursor(nullptr, IDC_ARROW));
+            }
+        }
+        break;
+    }
+
     case WM_NCHITTEST: {
         if (IsMaximized()) {
-            // When maximized, no resize border
-            return HTCAPTION;
+            // When maximized, only treat topbar as caption so WM_SETCURSOR still
+            // reaches the client area (needed for cursor restoration after touch).
+            wxPoint mouse_pos = ::wxGetMousePosition();
+            if (m_topbar && m_topbar->GetScreenRect().Contains(mouse_pos))
+                return HTCAPTION;
+            break;
         }
 
         // Allow resizing from top of the title bar

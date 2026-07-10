@@ -450,7 +450,7 @@ void SkipPartCanvas::AutoSetCursor()
     if(is_draging_ || fixed_draging_)
         SetCursor(wxCursor(wxCURSOR_HAND));
     else
-        SetCursor(wxCursor(wxCURSOR_NONE));
+        SetCursor(wxCursor(wxCURSOR_ARROW));
 }
 
 void SkipPartCanvas::StartDrag(const wxPoint& mouse_pt)
