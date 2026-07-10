@@ -3,6 +3,7 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
+#include "GLCanvas3D.hpp" // ORCA: for live preview refresh when toggling "Dim lower layers"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -1049,6 +1050,16 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 wxGetApp().mainframe->m_webview->SendCloudProvidersInfo();
             }
         }
+        // ORCA: apply the preview dimming change immediately to the currently loaded preview (ported from preFlight)
+        else if (param == "preview_dim_previous_layers") {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_dim_previous_layers(app_config->get_bool(param));
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
 
 #ifdef __WXMSW__
         if (param == "associate_3mf") {
@@ -1893,11 +1904,21 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_fps_overlay);
 
+    //// GRAPHICS > G-code Preview
+    g_sizer->Add(create_item_title(_L("G-code Preview")), 1, wxEXPAND);
+
+    auto item_dim_previous_layers = create_item_checkbox(
+        _L("Dim lower layers"),
+        _L("When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."),
+        "preview_dim_previous_layers"
+    );
+    g_sizer->Add(item_dim_previous_layers);
+
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
     //////////////////////////
-    //// ONLINE TAB 
+    //// ONLINE TAB
     /////////////////////////////////////
     m_pref_tabs->AppendItem(_L("Online"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));
