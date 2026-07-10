@@ -1,0 +1,59 @@
+{
+	"type": "filament",
+	"name": "QIDI TPU-GF",
+	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"setting_id": "r8sdMolKGn3b52NX",
+	"filament_id": "QD_0_1_15",
+	"instantiation": "true",
+	"filament_adhesiveness_category": [
+		"600"
+	],
+	"filament_density": [
+		"1.15"
+	],
+	"filament_flow_ratio": [
+		"1"
+	],
+	"filament_max_volumetric_speed": [
+		"6"
+	],
+	"filament_type": [
+		"TPU-GF"
+	],
+	"filament_vendor": [
+		"QIDI"
+	],
+	"impact_strength_z": [
+		"88.7"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"nozzle_temperature_range_high": [
+		"270"
+	],
+	"nozzle_temperature_range_low": [
+		"240"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"pressure_advance": [
+		"0.1"
+	],
+	"temperature_vitrification": [
+		"30"
+	],
+	"compatible_printers": [
+		"Qidi X-Smart 3 0.4 nozzle",
+		"Qidi X-Plus 3 0.4 nozzle",
+		"Qidi X-Max 3 0.4 nozzle",
+		"Qidi X-Smart 3 0.6 nozzle",
+		"Qidi X-Plus 3 0.6 nozzle",
+		"Qidi X-Max 3 0.6 nozzle",
+		"Qidi X-Smart 3 0.8 nozzle",
+		"Qidi X-Plus 3 0.8 nozzle",
+		"Qidi X-Max 3 0.8 nozzle"
+	]
+}

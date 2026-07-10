@@ -717,7 +717,7 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
 
      m_sizer_ams_right_horizonal->AddStretchSpacer();
      m_sizer_ams_right_horizonal->AddSpacer(FromDIP(5));
-     m_sizer_ams_right_horizonal->Add(m_reset_btn, 0, wxALIGN_TOP | wxEXPAND );
+     m_sizer_ams_right_horizonal->Add(m_reset_btn, 0, wxEXPAND );
      m_reset_btn->Hide();
      m_right_first_text_panel->SetSizer(m_sizer_ams_right_horizonal);
      const int same_height = 15;
@@ -813,7 +813,7 @@ void AmsMapingPopup::msw_rescale()
     m_split_left_line->SetMaxSize(wxSize(-1, 1));
     sizer_split_ams->Add(0, 0, 0, wxEXPAND, 0);
     sizer_split_ams->Add(ams_title_text, 0, wxALIGN_CENTER, 0);
-    sizer_split_ams->Add(m_split_left_line, 1, wxALIGN_CENTER_VERTICAL | wxEXPAND, 0);
+    sizer_split_ams->Add(m_split_left_line, 1, wxEXPAND, 0);
     return sizer_split_ams;
  }
 
@@ -1686,7 +1686,7 @@ AmsMapingTipPopup::AmsMapingTipPopup(wxWindow *parent)
     m_title_enable_ams->Wrap(-1);
     sizer_enable_ams->Add(m_title_enable_ams, 0, 0, 0);
 
-    m_tip_enable_ams = new wxStaticText(m_panel_enable_ams, wxID_ANY, _L("Print with filaments in the AMS"), wxDefaultPosition, wxDefaultSize, 0);
+    m_tip_enable_ams = new wxStaticText(m_panel_enable_ams, wxID_ANY, _L("Print with filament in the AMS"), wxDefaultPosition, wxDefaultSize, 0);
     m_tip_enable_ams->SetMinSize(wxSize(FromDIP(200), FromDIP(50)));
     m_tip_enable_ams->Wrap(FromDIP(200));
     m_tip_enable_ams->SetForegroundColour(*wxBLACK);
@@ -1722,7 +1722,7 @@ AmsMapingTipPopup::AmsMapingTipPopup(wxWindow *parent)
     m_title_disable_ams->Wrap(-1);
     sizer_disable_ams->Add(m_title_disable_ams, 0, 0, 0);
 
-    m_tip_disable_ams = new wxStaticText(m_panel_disable_ams, wxID_ANY, _L("Print with the filament mounted on the back of chassis"), wxDefaultPosition, wxDefaultSize, 0);
+    m_tip_disable_ams = new wxStaticText(m_panel_disable_ams, wxID_ANY, _L("Print with filament on external spool"), wxDefaultPosition, wxDefaultSize, 0);
     m_tip_disable_ams->SetMinSize(wxSize(FromDIP(200), FromDIP(50)));
     m_tip_disable_ams->Wrap(FromDIP(200));
     m_tip_disable_ams->SetForegroundColour(*wxBLACK);
@@ -1783,9 +1783,7 @@ AmsHumidityTipPopup::AmsHumidityTipPopup(wxWindow* parent)
     humidity_level_list = new AmsHumidityLevelList(this);
     curr_humidity_img = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("hum_level1_light", this, 132), wxDefaultPosition, wxSize(FromDIP(132), FromDIP(132)), 0);
 
-    m_staticText_note = new Label(this, _L("Please change the desiccant when it is too wet. "
-                                           "The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. "
-                                           "It take hours to absorb the moisture, and low temperatures also slow down the process."));
+    m_staticText_note = new Label(this, _L("Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."));
     m_staticText_note->SetMinSize(wxSize(FromDIP(680), -1));
     m_staticText_note->SetMaxSize(wxSize(FromDIP(680), -1));
     m_staticText_note->Wrap(FromDIP(680));
@@ -2021,7 +2019,7 @@ AmsIntroducePopup::AmsIntroducePopup(wxWindow* parent)
     m_staticText_top->Wrap(-1);
     bSizer4->Add(m_staticText_top, 0, wxALL, 5);
 
-    m_staticText_bottom =  new Label(this, _L("Print using materials mounted on the back of the case"));
+    m_staticText_bottom =  new Label(this, _L("Print using filament on external spool."));
     m_staticText_bottom->Wrap(-1);
     m_staticText_bottom->SetFont(::Label::Body_13);
     m_staticText_bottom->SetForegroundColour(wxColour("#6B6B6B"));
@@ -2057,13 +2055,13 @@ void AmsIntroducePopup::set_mode(bool enable_ams)
 {
     if (enable_ams) {
         m_staticText_top->SetLabelText(_L("Enable AMS"));
-        m_staticText_bottom->SetLabelText(_L("Print with filaments in AMS"));
+        m_staticText_bottom->SetLabelText(_L("Print with filament in AMS"));
         m_img_enable_ams->Show();
         m_img_disable_ams->Hide();
     }
     else {
         m_staticText_top->SetLabelText(_L("Do not Enable AMS"));
-        m_staticText_bottom->SetLabelText(_L("Print with filaments mounted on the back of the chassis"));
+        m_staticText_bottom->SetLabelText(_L("Print with filament on external spool"));
         m_staticText_bottom->SetMinSize(wxSize(FromDIP(180), -1));
         m_staticText_bottom->Wrap(FromDIP(180));
         m_img_enable_ams->Hide();
@@ -2202,7 +2200,7 @@ void AmsReplaceMaterialDialog::create()
     label_txt->SetMaxSize(wxSize(FromDIP(380), -1));
     label_txt->Wrap(FromDIP(380));
 
-    identical_filament = new Label(this, _L("Identical filament: same brand, type and color"));
+    identical_filament = new Label(this, _L("Identical filament: same brand, type and color."));
     identical_filament->SetFont(Label::Body_13);
     identical_filament->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#009688")));
 
@@ -2437,7 +2435,7 @@ void  AmsReplaceMaterialDialog::update_to_nozzle(int nozzle_id)
         }
         else if (!m_obj->GetFilaSystem()->IsAutoRefillEnabled())
         {
-            label_txt->SetLabelText(_L("AMS filament backup is not enabled, please enable it in the AMS settings."));
+            label_txt->SetLabelText(_L("AMS filament backup is not enabled; please enable it in the AMS settings."));
         }
         else
         {

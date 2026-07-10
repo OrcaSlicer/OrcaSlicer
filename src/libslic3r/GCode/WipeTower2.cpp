@@ -1262,9 +1262,9 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     m_bridging(float(config.wipe_tower_bridging)),
     m_no_sparse_layers(config.wipe_tower_no_sparse_layers),
     m_gcode_flavor(config.gcode_flavor),
-    m_travel_speed(config.travel_speed),
-    m_infill_speed(default_region_config.sparse_infill_speed),
-    m_perimeter_speed(default_region_config.inner_wall_speed),
+    m_travel_speed(config.travel_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
+    m_infill_speed(default_region_config.sparse_infill_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
+    m_perimeter_speed(default_region_config.inner_wall_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool))),
     m_current_tool(initial_tool),
     wipe_volumes(wiping_matrix), m_wipe_tower_max_purge_speed(float(config.wipe_tower_max_purge_speed)),
     m_enable_arc_fitting(config.enable_arc_fitting), 
@@ -1280,7 +1280,7 @@ WipeTower2::WipeTower2(const PrintConfig& config, const PrintRegionConfig& defau
     // it is taken over following default. Speeds from config are not
     // easily accessible here.
     const float default_speed = 60.f;
-    m_first_layer_speed = config.initial_layer_speed;
+    m_first_layer_speed = config.initial_layer_speed.get_at(get_extruder_index(config, (unsigned int)initial_tool));
     if (m_first_layer_speed == 0.f) // just to make sure autospeed doesn't break it.
         m_first_layer_speed = default_speed / 2.f;
 
@@ -2233,7 +2233,18 @@ void WipeTower2::plan_toolchange(float z_par, float layer_height_par, unsigned i
     float first_wipe_line = - (width*((length_to_extrude / width)-int(length_to_extrude / width)) - width);
 
     float first_wipe_volume = length_to_volume(first_wipe_line, m_perimeter_width * m_extra_flow, layer_height_par);
-    float wiping_depth = get_wipe_depth(wipe_volume - first_wipe_volume, layer_height_par, m_perimeter_width, m_extra_flow, m_extra_spacing_wipe, width);
+
+    // ORCA: Keep wipe-depth planning consistent with toolchange_Wipe().
+    // ORCA: On the first layer, toolchange_Wipe() advances purge rows using
+    // ORCA: m_extra_flow * m_perimeter_width, while later layers use
+    // ORCA: m_extra_spacing_wipe * m_perimeter_width.
+    // ORCA: float dy = (is_first_layer() ? m_extra_flow : m_extra_spacing_wipe) * m_perimeter_width;
+    // ORCA: Use the same spacing here so reserved depth matches consumed depth
+    // ORCA: and first-layer purge segments do not leave visible gaps.
+    const bool first_layer_plan = (m_plan.size() - 1) == m_first_layer_idx;
+    const float planning_spacing = first_layer_plan ? m_extra_flow : m_extra_spacing_wipe;
+
+    float wiping_depth = get_wipe_depth(wipe_volume - first_wipe_volume, layer_height_par, m_perimeter_width, m_extra_flow, planning_spacing, width);
     
 	m_plan.back().tool_changes.push_back(WipeTowerInfo::ToolChange(old_tool, new_tool, ramming_depth + wiping_depth, ramming_depth, first_wipe_line, wipe_volume));
 }
@@ -2290,7 +2301,18 @@ void WipeTower2::save_on_last_wipe()
                 float volume_to_save = length_to_volume(finish_layer().total_extrusion_length_in_plane(), m_perimeter_width, m_layer_info->height);
                 float volume_left_to_wipe = std::max(m_filpar[toolchange.new_tool].filament_minimal_purge_on_wipe_tower, toolchange.wipe_volume_total - volume_to_save);
                 float volume_we_need_depth_for = std::max(0.f, volume_left_to_wipe - length_to_volume(toolchange.first_wipe_line, m_perimeter_width*m_extra_flow, m_layer_info->height));
-                float depth_to_wipe = get_wipe_depth(volume_we_need_depth_for, m_layer_info->height, m_perimeter_width, m_extra_flow, m_extra_spacing_wipe, width);
+                
+                // ORCA: Keep wipe-depth planning consistent with toolchange_Wipe().
+                // ORCA: On the first layer, toolchange_Wipe() advances purge rows using
+                // ORCA: m_extra_flow * m_perimeter_width, while later layers use
+                // ORCA: m_extra_spacing_wipe * m_perimeter_width.
+                // ORCA: float dy = (is_first_layer() ? m_extra_flow : m_extra_spacing_wipe) * m_perimeter_width;
+                // ORCA: Use the same spacing here so reserved depth matches consumed depth
+                // ORCA: and first-layer purge segments do not leave visible gaps.
+                const bool first_layer_plan = size_t(m_layer_info - m_plan.begin()) == m_first_layer_idx;
+                const float planning_spacing = first_layer_plan ? m_extra_flow : m_extra_spacing_wipe;
+                
+                float depth_to_wipe = get_wipe_depth(volume_we_need_depth_for, m_layer_info->height, m_perimeter_width, m_extra_flow, planning_spacing, width);
 
                 toolchange.required_depth = toolchange.ramming_depth + depth_to_wipe;
                 toolchange.wipe_volume = volume_left_to_wipe;

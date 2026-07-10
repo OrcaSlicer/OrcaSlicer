@@ -77,13 +77,16 @@ DWORD DownloadAndInstallWV2RT() {
   if (downloaded) {
     // Either Package the WebView2 Bootstrapper with your app or download it using fwlink
     // Then invoke install at Runtime.
+    // Keep the path string alive for the duration of the ShellExecuteExW call;
+    // assigning .c_str() of a temporary directly would leave lpFile dangling.
+    const std::wstring installer_path = target_file_path.generic_wstring();
     SHELLEXECUTEINFOW shExInfo = {0};
     shExInfo.cbSize = sizeof(shExInfo);
     shExInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
     shExInfo.hwnd = 0;
     shExInfo.lpVerb = L"runas";
-    shExInfo.lpFile = target_file_path.generic_wstring().c_str();
-    shExInfo.lpParameters = L" /install";
+    shExInfo.lpFile = installer_path.c_str();
+    shExInfo.lpParameters = L" /silent /install";
     shExInfo.lpDirectory = 0;
     shExInfo.nShow = 0;
     shExInfo.hInstApp = 0;
@@ -173,6 +176,12 @@ private:
 
 class WebViewWebKit : public wxWebViewWebKit
 {
+public:
+    WebViewWebKit()
+        : wxWebViewWebKit(wxWebView::NewConfiguration(wxWebViewBackendWebKit))
+    {
+    }
+
     ~WebViewWebKit() override
     {
         RemoveScriptMessageHandler("wx");
@@ -258,7 +267,7 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
 #ifdef __WIN32__
     wxWebView* webView = new WebViewEdge;
 #elif defined(__WXOSX__)
-    wxWebView *webView = new WebViewWebKit;
+    wxWebView* webView = new WebViewWebKit;
 #else
     auto webView = wxWebView::New();
 #endif
@@ -270,20 +279,25 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
 #ifdef __WIN32__
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                                                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.52 BBL-Slicer/v%s (%s) BBL-Language/%s",
-                                               SLIC3R_VERSION, Slic3r::GUI::wxGetApp().dark_mode() ? "dark" : "light", language_code.mb_str()));
+                                               Slic3r::GUI::wxGetApp().get_bbl_client_version(), Slic3r::GUI::wxGetApp().dark_mode() ? "dark" : "light", language_code.mb_str()));
         webView->Create(parent, wxID_ANY, url2, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
         // We register the wxfs:// protocol for testing purposes
         webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewArchiveHandler("bbl")));
         // And the memory: file system
         webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
 #else
-        // With WKWebView handlers need to be registered before creation
-        webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewArchiveHandler("wxfs")));
-        // And the memory: file system
-        webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
+        // With WKWebView handlers need to be registered before creation.
+        // On Linux (WebKit2GTK), URI schemes are registered globally and can only
+        // be registered once, so guard against multiple registrations.
+        static bool s_schemes_registered = false;
+        if (!s_schemes_registered) {
+            webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewArchiveHandler("wxfs")));
+            webView->RegisterHandler(wxSharedPtr<wxWebViewHandler>(new wxWebViewFSHandler("memory")));
+            s_schemes_registered = true;
+        }
         webView->Create(parent, wxID_ANY, url2, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
-                                               SLIC3R_VERSION, Slic3r::GUI::wxGetApp().dark_mode() ? "dark" : "light", language_code.mb_str()));
+                                               Slic3r::GUI::wxGetApp().get_bbl_client_version(), Slic3r::GUI::wxGetApp().dark_mode() ? "dark" : "light", language_code.mb_str()));
 #endif
 #ifdef __WXMAC__
         WKWebView * wkWebView = (WKWebView *) webView->GetNativeBackend();
@@ -326,8 +340,12 @@ wxWebView* WebView::CreateWebView(wxWindow * parent, wxString const & url)
 bool WebView::CheckWebViewRuntime()
 {
     wxWebViewFactoryEdge factory;
-    auto wxVersion = factory.GetVersionInfo();
-    return wxVersion.GetMajor() != 0;
+    auto wxVersion = factory.GetVersionInfo(wxVersionContext::RunTime);
+    bool present = wxVersion.GetMajor() != 0;
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": WebView2 runtime "
+                            << (present ? "found, version " : "not found (")
+                            << wxVersion.ToString().ToUTF8().data() << (present ? "" : ")");
+    return present;
 }
 
 bool WebView::DownloadAndInstallWebViewRuntime()
@@ -388,7 +406,7 @@ void WebView::RecreateAll()
     language_code          = language_code.ToStdString();
     for (auto webView : g_webviews) {
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
-                                               SLIC3R_VERSION, dark ? "dark" : "light", language_code.mb_str()));
+                                               Slic3r::GUI::wxGetApp().get_bbl_client_version(), dark ? "dark" : "light", language_code.mb_str()));
         webView->Reload();
     }
 }

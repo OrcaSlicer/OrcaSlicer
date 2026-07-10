@@ -5,6 +5,7 @@
 #include "libslic3r/Thread.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "GUI_Utils.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
@@ -136,7 +137,7 @@ UpdatePluginDialog::UpdatePluginDialog(wxWindow* parent /*= nullptr*/)
     m_text_up_info->SetForegroundColour(wxColour(0x26, 0x2E, 0x30));
 
 
-    operation_tips = new ::Label(this, Label::Body_12, _L("Click OK to update the Network plug-in when Orca Slicer launches next time."), LB_AUTO_WRAP);
+    operation_tips = new ::Label(this, Label::Body_12, _L("Click OK to update the Network plug-in the next time Orca Slicer launches."), LB_AUTO_WRAP);
     operation_tips->SetMinSize(wxSize(FromDIP(260), -1));
     operation_tips->SetMaxSize(wxSize(FromDIP(260), -1));
 
@@ -243,24 +244,25 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
     auto        m_line_top   = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1));
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
 
+    wxBoxSizer *m_sizer_top  = new wxBoxSizer(wxHORIZONTAL);
+    wxBoxSizer *m_sizer_desc = new wxBoxSizer(wxVERTICAL);
 
-    wxBoxSizer *m_sizer_body = new wxBoxSizer(wxHORIZONTAL);
-
-
-
-    auto sm    = create_scaled_bitmap("OrcaSlicer", nullptr, 70);
-    m_brand = new wxStaticBitmap(this, wxID_ANY, sm, wxDefaultPosition, wxSize(FromDIP(70), FromDIP(70)));
-
-
-
-    wxBoxSizer *m_sizer_right = new wxBoxSizer(wxVERTICAL);
+    auto sm    = create_scaled_bitmap("OrcaSlicer", nullptr, 64);
+    m_brand = new wxStaticBitmap(this, wxID_ANY, sm, wxDefaultPosition, FromDIP(wxSize(64, 64)));
 
     m_text_up_info = new Label(this, Label::Head_14, wxEmptyString, LB_AUTO_WRAP);
     m_text_up_info->SetForegroundColour(wxColour(0x26, 0x2E, 0x30));
 
-    m_simplebook_release_note = new wxSimplebook(this);
-    m_simplebook_release_note->SetSize(wxSize(FromDIP(560), FromDIP(430)));
-    m_simplebook_release_note->SetMinSize(wxSize(FromDIP(560), FromDIP(430)));
+    // Store builds get updates from the Microsoft Store: wxID_YES opens the Store
+    // product page there (see the EVT_SLIC3R_VERSION_ONLINE handler) instead of GitHub.
+    auto github_link = new HyperLink(this, is_running_in_msix() ? _L("Check on Microsoft Store") : _L("Check on GitHub"), "", LB_AUTO_WRAP);
+    github_link->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
+        EndModal(wxID_YES);
+    });
+
+    m_simplebook_release_note = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSIMPLE_BORDER);
+    //m_simplebook_release_note->SetSize(wxSize(FromDIP(560), FromDIP(430)));
+    m_simplebook_release_note->SetMinSize(FromDIP(wxSize(640,420)));
     m_simplebook_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
 
     m_scrollwindows_release_note = new wxScrolledWindow(m_simplebook_release_note, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(560), FromDIP(430)), wxVSCROLL);
@@ -269,8 +271,9 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
 
     //webview
     m_vebview_release_note = CreateTipView(m_simplebook_release_note);
-    m_vebview_release_note->SetSize(wxSize(FromDIP(560), FromDIP(430)));
-    m_vebview_release_note->SetMinSize(wxSize(FromDIP(560), FromDIP(430)));
+    m_vebview_release_note->SetBackgroundColour(wxColour(0xF8, 0xF8, 0xF8));
+    //m_vebview_release_note->SetSize(wxSize(FromDIP(560), FromDIP(430)));
+    //m_vebview_release_note->SetMinSize(wxSize(FromDIP(560), FromDIP(430)));
     //m_vebview_release_note->SetMaxSize(wxSize(FromDIP(560), FromDIP(430)));
     if (wxGetApp().app_config->get_bool("developer_mode"))
         m_vebview_release_note->EnableAccessToDevTools();
@@ -300,11 +303,9 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
     m_simplebook_release_note->AddPage(m_scrollwindows_release_note, wxEmptyString, false);
     m_simplebook_release_note->AddPage(m_vebview_release_note, wxEmptyString, false);
 
-
-
     auto sizer_button = new wxBoxSizer(wxHORIZONTAL);
 
-    m_button_download = new Button(this, _L("Download"));
+    m_button_download = new Button(this, is_running_in_msix() ? _L("Open Microsoft Store") : _L("Download"));
     m_button_download->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
 
     m_button_download->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
@@ -327,8 +328,6 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
     });
 
     auto stable_only_label = new Label(this, _L("Check for stable updates only"));
-    stable_only_label->SetFont(Label::Body_13);
-    stable_only_label->SetForegroundColour(wxColour(38, 46, 48));
     stable_only_label->SetFont(Label::Body_12);
 
     m_button_cancel = new Button(this, _L("Cancel"));
@@ -338,25 +337,27 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
         EndModal(wxID_NO);
     });
 
-    m_sizer_main->Add(m_line_top, 0, wxEXPAND | wxBOTTOM, 0);
-
     //sizer_button->Add(m_remind_choice, 0, wxALL | wxEXPAND, FromDIP(5));
+
+    sizer_button->Add(m_cb_stable_only     , 0, wxALIGN_CENTER);
+    sizer_button->Add(stable_only_label    , 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));
     sizer_button->AddStretchSpacer();
-    sizer_button->Add(stable_only_label, 0, wxALIGN_CENTER | wxLEFT, FromDIP(7));
-    sizer_button->Add(m_cb_stable_only, 0, wxALIGN_CENTER | wxLEFT, FromDIP(5));
-    sizer_button->Add(m_button_download, 0, wxALL, FromDIP(5));
-    sizer_button->Add(m_button_skip_version, 0, wxALL, FromDIP(5));
-    sizer_button->Add(m_button_cancel, 0, wxALL, FromDIP(5));
+    sizer_button->Add(m_button_download    , 0, wxLEFT, FromDIP(10));
+    sizer_button->Add(m_button_skip_version, 0, wxLEFT, FromDIP(10));
+    sizer_button->Add(m_button_cancel      , 0, wxLEFT, FromDIP(10));
 
-    m_sizer_right->Add(m_text_up_info, 0, wxEXPAND | wxBOTTOM | wxTOP, FromDIP(15));
-    m_sizer_right->Add(m_simplebook_release_note, 1, wxEXPAND | wxRIGHT, 0);
-    m_sizer_right->Add(sizer_button, 0, wxEXPAND | wxRIGHT, FromDIP(20));
+    m_sizer_desc->AddStretchSpacer();
+    m_sizer_desc->Add(m_text_up_info, 0, wxEXPAND | wxBOTTOM, FromDIP(5));
+    m_sizer_desc->Add(github_link);
+    m_sizer_desc->AddStretchSpacer();
 
-    m_sizer_body->Add(m_brand, 0, wxTOP|wxRIGHT|wxLEFT, FromDIP(15));
-    m_sizer_body->Add(0, 0, 0, wxRIGHT, 0);
-    m_sizer_body->Add(m_sizer_right, 1, wxBOTTOM | wxEXPAND, FromDIP(8));
-    m_sizer_main->Add(m_sizer_body, 1, wxEXPAND, 0);
-    m_sizer_main->Add(0, 0, 0, wxBOTTOM, 10);
+    m_sizer_top->Add(m_brand     , 0, wxRIGHT  | wxALIGN_CENTER_VERTICAL, FromDIP(15));
+    m_sizer_top->Add(m_sizer_desc, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL);
+
+    m_sizer_main->Add(m_line_top               , 0, wxEXPAND);
+    m_sizer_main->Add(m_sizer_top              , 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(15));
+    m_sizer_main->Add(m_simplebook_release_note, 1, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(15));
+    m_sizer_main->Add(sizer_button             , 0, wxEXPAND | wxALL                   , FromDIP(15));
 
     SetSizer(m_sizer_main);
     Layout();
@@ -479,14 +480,20 @@ void UpdateVersionDialog::update_version_info(wxString release_note, wxString ve
     //     m_vebview_release_note->LoadURL(from_u8(url_line));
     // }
     // else {
-    m_simplebook_release_note->SetMaxSize(wxSize(FromDIP(560), FromDIP(430)));
+    //m_simplebook_release_note->SetMaxSize(wxSize(FromDIP(560), FromDIP(430)));
     m_simplebook_release_note->SetSelection(1);
-    m_text_up_info->SetLabel(wxString::Format(_L("Click to download new version in default browser: %s"), version));
+    if (is_running_in_msix())
+        m_text_up_info->SetLabel(wxString::Format(_L("New version available: %s. Please update OrcaSlicer from the Microsoft Store."), version));
+    else
+        m_text_up_info->SetLabel(wxString::Format(_L("Click to download new version in default browser: %s"), version));
     auto data_buf_in = release_note.utf8_str();
-    auto bg_color = StateColor::darkModeColorFor(*wxWHITE).GetAsString();
-    auto fg_color = StateColor::darkModeColorFor(*wxBLACK).GetAsString();
-    html_source = (boost::format("<html><head><style>body { color: %1%; background-color: %2%; font-family: sans-serif; } a { color: #1E90FF }</style></head><body>")
-        % fg_color % bg_color).str();
+    auto bg_color = StateColor::darkModeColorFor(wxColour("#FFFFFF")).GetAsString();
+    auto fg_color = StateColor::darkModeColorFor(wxColour("#262E30")).GetAsString();
+    auto style    = "body {color:" + fg_color + "; background-color:" + bg_color + "; font-family:sans-serif}"
+                  + "a    {color: #009688}"               // matches hyperlink colors
+                  + "img  {max-width:100%; height:auto}"  // fixes overflowing images
+                  + "ul   {padding-inline-start: 20px}";  // reduce left padding on list items
+    html_source = (boost::format("<html><head><style>%1%</style></head><body>") % style).str();
     md_html(data_buf_in.data(), data_buf_in.length(), [](const MD_CHAR* text, MD_SIZE size, void* userdata) {
         std::string* out_buf = (std::string*)userdata;
         out_buf->append(text, size);
@@ -1052,7 +1059,7 @@ void PrintErrorDialog::init_button_list()
     init_button(FILAMENT_EXTRUDED, _L("Filament Extruded, Continue"));
     init_button(RETRY_FILAMENT_EXTRUDED, _L("Not Extruded Yet, Retry"));
     init_button(CONTINUE, _L("Finished, Continue"));
-    init_button(LOAD_VIRTUAL_TRAY, _L("Load Filament"));
+    init_button(LOAD_VIRTUAL_TRAY, _L("Load"));
     init_button(OK_BUTTON, _L("OK"));
     init_button(FILAMENT_LOAD_RESUME, _L("Filament Loaded, Resume"));
     init_button(JUMP_TO_LIVEVIEW, _L("View Liveview"));

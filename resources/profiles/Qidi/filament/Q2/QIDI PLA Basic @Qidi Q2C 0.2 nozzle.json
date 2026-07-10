@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "QIDI PLA Basic @Qidi Q2C 0.2 nozzle",
+	"inherits": "QIDI PLA Basic@Q2C-Series",
+	"from": "system",
+	"setting_id": "wpQKjPe8jRwQ3WBI",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"pressure_advance": [
+		"0.034"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.2 nozzle"
+	]
+}

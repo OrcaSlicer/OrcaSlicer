@@ -14,18 +14,20 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
-#if ENABLE_SMOOTH_NORMALS
+#if defined(L)
+#undef L
+#endif
+
 #include <igl/per_face_normals.h>
 #include <igl/per_corner_normals.h>
 #include <igl/per_vertex_normals.h>
-#endif // ENABLE_SMOOTH_NORMALS
 
-#include <GL/glew.h>
+
+#include <glad/gl.h>
 
 namespace Slic3r {
 namespace GUI {
 
-#if ENABLE_SMOOTH_NORMALS
 static void smooth_normals_corner(const TriangleMesh& mesh, std::vector<stl_normal>& normals)
 {
     using MapMatrixXfUnaligned = Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor | Eigen::DontAlign>>;
@@ -41,7 +43,7 @@ static void smooth_normals_corner(const TriangleMesh& mesh, std::vector<stl_norm
         Eigen::Index(face_normals.size()), 3).cast<double>();
     Eigen::MatrixXd out_normals;
 
-    igl::per_corner_normals(vertices, indices, in_normals, 1.0, out_normals);
+    igl::per_corner_normals(vertices, indices, 1.0, out_normals);
 
     normals = std::vector<stl_normal>(mesh.its.vertices.size());
     for (size_t i = 0; i < mesh.its.indices.size(); ++i) {
@@ -50,7 +52,6 @@ static void smooth_normals_corner(const TriangleMesh& mesh, std::vector<stl_norm
         }
     }
 }
-#endif // ENABLE_SMOOTH_NORMALS
 
 void GLModel::Geometry::add_vertex(const Vec2f& position)
 {
@@ -455,17 +456,41 @@ void GLModel::init_from(const indexed_triangle_set& its)
     data.reserve_vertices(3 * its.indices.size());
     data.reserve_indices(3 * its.indices.size());
 
-    // vertices + indices
-    unsigned int vertices_counter = 0;
-    for (uint32_t i = 0; i < its.indices.size(); ++i) {
-        const stl_triangle_vertex_indices face = its.indices[i];
-        const stl_vertex                  vertex[3] = { its.vertices[face[0]], its.vertices[face[1]], its.vertices[face[2]] };
-        const stl_vertex                  n = face_normal_normalized(vertex);
-        for (size_t j = 0; j < 3; ++j) {
-            data.add_vertex(vertex[j], n);
+    // Read user preference: smooth normals enabled
+    const bool realistic_mode = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE);
+    const bool smooth_normals_enabled = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SMOOTH_NORMALS);
+
+    if (realistic_mode && smooth_normals_enabled) {
+        // Use per-corner smooth normals (via IGL)
+        using MapMatrixXfUnaligned = Eigen::Map<const Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor | Eigen::DontAlign>>;
+        using MapMatrixXiUnaligned = Eigen::Map<const Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor | Eigen::DontAlign>>;
+        Eigen::MatrixXd vertices = MapMatrixXfUnaligned(its.vertices.front().data(), Eigen::Index(its.vertices.size()), 3).cast<double>();
+        Eigen::MatrixXi indices = MapMatrixXiUnaligned(its.indices.front().data(), Eigen::Index(its.indices.size()), 3);
+        Eigen::MatrixXd corner_normals;
+        igl::per_corner_normals(vertices, indices, 5.0, corner_normals);
+
+        unsigned int vertices_counter = 0;
+        for (uint32_t i = 0; i < its.indices.size(); ++i) {
+            const stl_triangle_vertex_indices face = its.indices[i];
+            for (size_t j = 0; j < 3; ++j) {
+                const Vec3f normal = corner_normals.row(Eigen::Index(i * 3 + j)).cast<float>();
+                data.add_vertex(its.vertices[face[j]], normal);
+            }
+            data.add_triangle(vertices_counter, vertices_counter + 1, vertices_counter + 2);
+            vertices_counter += 3;
         }
-        vertices_counter += 3;
-        data.add_triangle(vertices_counter - 3, vertices_counter - 2, vertices_counter - 1);
+    } else {
+        //Original flat (per-face) normals
+        unsigned int vertices_counter = 0;
+        for (uint32_t i = 0; i < its.indices.size(); ++i) {
+            const stl_triangle_vertex_indices face = its.indices[i];
+            const stl_vertex vertex[3] = {its.vertices[face[0]], its.vertices[face[1]], its.vertices[face[2]]};
+            const stl_vertex n = face_normal_normalized(vertex);
+            for (size_t j = 0; j < 3; ++j)
+                data.add_vertex(vertex[j], n);
+            data.add_triangle(vertices_counter, vertices_counter + 1, vertices_counter + 2);
+            vertices_counter += 3;
+        }
     }
 
     // update bounding box

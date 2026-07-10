@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA Tabaco",
+    "inherits": "FilAr PLA @base",
+    "from": "system",
+    "setting_id": "6ax7ka7LBHqhBigT",
+    "filament_id": "FILAR0005",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#7D5429"
+    ]
+}

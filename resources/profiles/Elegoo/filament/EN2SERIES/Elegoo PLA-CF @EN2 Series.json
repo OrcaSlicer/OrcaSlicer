@@ -1,0 +1,76 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA-CF @EN2 Series",
+	"inherits": "Elegoo PLA @base",
+	"from": "system",
+	"setting_id": "vmxHMRDkf1EpLGx1",
+	"instantiation": "true",
+	"fan_cooling_layer_time": [
+		"80"
+	],
+	"fan_max_speed": [
+		"100"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"slow_down_layer_time": [
+		"6"
+	],
+	"fan_min_speed": [
+		"80"
+	],
+	"nozzle_temperature": [
+		"220"
+	],
+	"nozzle_temperature_initial_layer": [
+		"220"
+	],
+	"overhang_fan_threshold": [
+		"75%"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"cool_plate_temp": [
+		"45"
+	],
+	"cool_plate_temp_initial_layer": [
+		"45"
+	],
+	"filament_density": [
+		"1.21"
+	],
+	"required_nozzle_HRC": [
+		"40"
+	],
+	"compatible_printers": [
+		"Elegoo Neptune 0.4 nozzle",
+		"Elegoo Neptune 0.6 nozzle",
+		"Elegoo Neptune 0.8 nozzle",
+		"Elegoo Neptune 2 0.4 nozzle",
+		"Elegoo Neptune 2 0.6 nozzle",
+		"Elegoo Neptune 2 0.8 nozzle",
+		"Elegoo Neptune 2S 0.4 nozzle",
+		"Elegoo Neptune 2S 0.6 nozzle",
+		"Elegoo Neptune 2S 0.8 nozzle",
+		"Elegoo Neptune 2D 0.4 nozzle",
+		"Elegoo Neptune 2D 0.6 nozzle",
+		"Elegoo Neptune 2D 0.8 nozzle",
+		"Elegoo Neptune X 0.4 nozzle",
+		"Elegoo Neptune X 0.6 nozzle",
+		"Elegoo Neptune X 0.8 nozzle",
+		"Elegoo Neptune 3 0.4 nozzle",
+		"Elegoo Neptune 3 0.6 nozzle",
+		"Elegoo Neptune 3 0.8 nozzle"
+	]
+}

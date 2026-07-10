@@ -58,7 +58,7 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
     main_sizer->Add(topsizer, 1, wxEXPAND);
 
     m_dsa_sizer = new wxBoxSizer(wxHORIZONTAL);
-    btn_sizer->Add(0, 0, 0, wxLEFT, FromDIP(120));
+    btn_sizer->Add(0, 0, 0, wxLEFT, FromDIP(LOGO_SPACING + 64 + LOGO_GAP));
     btn_sizer->Add(m_dsa_sizer, 0, wxEXPAND);
     btn_sizer->AddStretchSpacer();
     main_sizer->Add(btn_sizer, 0, wxBOTTOM | wxRIGHT | wxEXPAND | wxTOP, FromDIP(10));
@@ -76,7 +76,7 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
 void MsgDialog::show_dsa_button(wxString const &title)
 {
     m_checkbox_dsa = new CheckBox(this);
-    m_dsa_sizer->Add(m_checkbox_dsa, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+    m_dsa_sizer->Add(m_checkbox_dsa, 0, wxALIGN_CENTER);
     m_checkbox_dsa->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
         auto event = wxCommandEvent(EVT_CHECKBOX_CHANGE);
         event.SetInt(m_checkbox_dsa->GetValue()?1:0);
@@ -86,7 +86,17 @@ void MsgDialog::show_dsa_button(wxString const &title)
     });
 
     auto  m_text_dsa = new wxStaticText(this, wxID_ANY, title.IsEmpty() ? _L("Don't show again") : title, wxDefaultPosition, wxDefaultSize, 0);
+    auto on_toggle = [this]() {
+        m_checkbox_dsa->SetValue(!m_checkbox_dsa->GetValue());
+        wxCommandEvent ev(wxEVT_TOGGLEBUTTON, m_checkbox_dsa->GetId());
+        ev.SetEventObject(m_checkbox_dsa);
+        m_checkbox_dsa->GetEventHandler()->ProcessEvent(ev);
+    };
+    m_text_dsa->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle();});
+    m_text_dsa->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle();});
+
     m_dsa_sizer->Add(m_text_dsa, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+    m_dsa_sizer->AddSpacer(FromDIP(10)); // spacing after checkbox
     m_text_dsa->SetFont(::Label::Body_13);
     m_text_dsa->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
     btn_sizer->Layout();
@@ -169,7 +179,7 @@ Button* MsgDialog::add_button(wxWindowID btn_id, bool set_focus /*= false*/, con
 
     if (set_focus)
         btn->SetFocus();
-    btn_sizer->Add(btn, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(ButtonProps::ChoiceButtonGap()));
+    btn_sizer->Add(btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(ButtonProps::ChoiceButtonGap()));
     btn->Bind(wxEVT_BUTTON, [this, btn_id](wxCommandEvent&) { EndModal(btn_id); });
 
     MsgButton *mb = new MsgButton;
@@ -289,7 +299,8 @@ static void add_msg_content(wxWindow   *parent,
     }
     else {
         wxClientDC dc(parent);
-        wxSize     msg_sz = dc.GetMultiLineTextExtent(msg);
+        dc.SetFont(font); // ORCA without this it calculates bigger size
+        wxSize msg_sz = dc.GetMultiLineTextExtent(msg) + parent->FromDIP(wxSize(10,5)); // added extra spacing to prevent wrapping
 
         page_size = wxSize(std::min(msg_sz.GetX(), info_width), std::min(msg_sz.GetY(), info_width));
         // Extra line breaks in message dialog
@@ -355,7 +366,7 @@ ErrorDialog::ErrorDialog(wxWindow *parent, const wxString &temp_msg, bool monosp
     add_msg_content(this, content_sizer, msg, monospaced_font);
 
 	// Use a small bitmap with monospaced font, as the error text will not be wrapped.
-	logo->SetBitmap(create_scaled_bitmap("OrcaSlicer_192px_grayscale.png", this, monospaced_font ? 48 : /*1*/84));
+	logo->SetBitmap(create_scaled_bitmap("OrcaSlicer_192px_grayscale.png", this, monospaced_font ? 48 : /*1*/64));
 
     SetMaxSize(MSG_DLG_MAX_SIZE);
 
@@ -563,7 +574,7 @@ Newer3mfVersionDialog::Newer3mfVersionDialog(wxWindow *parent, const Semver *fil
     main_sizer->Add(0, 0, 0, wxTOP, FromDIP(5));
 
     wxBoxSizer *    content_sizer = new wxBoxSizer(wxHORIZONTAL);
-    wxStaticBitmap *info_bitmap   = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("info", nullptr, 60), wxDefaultPosition, wxSize(FromDIP(70), FromDIP(70)), 0);
+    wxStaticBitmap *info_bitmap   = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("info", nullptr, 64), wxDefaultPosition, wxSize(FromDIP(70), FromDIP(70)), 0);
     wxBoxSizer *    msg_sizer     = get_msg_sizer();
     content_sizer->Add(info_bitmap, 0, wxEXPAND | wxALL, FromDIP(5));
     content_sizer->Add(msg_sizer, 0, wxEXPAND | wxALL, FromDIP(5));

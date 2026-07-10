@@ -6,6 +6,7 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/ObjectID.hpp"
 #include "slic3r/GUI/3DScene.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 #include <boost/thread.hpp>
 
@@ -33,12 +34,12 @@ protected:
     std::string on_get_name() const override;
 
     void on_set_state() override;
-    void show_tooltip_information(float caption_max, float x, float y);
+    void render_tooltip_button(float x, float y);
     wxString handle_snapshot_action_name(bool shift_down, Button button_down) const override;
 
-    std::string get_gizmo_entering_text() const override { return "Entering Paint-on supports"; }
-    std::string get_gizmo_leaving_text() const override { return "Leaving Paint-on supports"; }
-    std::string get_action_snapshot_name() const override { return "Paint-on supports editing"; }
+    std::string get_gizmo_entering_text() const override { return _u8L("Entering Paint-on supports"); }
+    std::string get_gizmo_leaving_text() const override { return _u8L("Leaving Paint-on supports"); }
+    std::string get_action_snapshot_name() const override { return _u8L("Paint-on supports editing"); }
 
     // BBS
     wchar_t                           m_current_tool = 0;
@@ -90,6 +91,13 @@ private:
     // This map holds all translated description texts, so they can be easily referenced during layout calculations
     // etc. When language changes, GUI is recreated and this class constructed again, so the change takes effect.
     std::map<std::string, wxString> m_desc;
+
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_brush;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_bucket_fill;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_gap_fill;
 };
 
 

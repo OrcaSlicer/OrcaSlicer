@@ -1,7 +1,3 @@
-# GUI/DeviceTab
-# usage -- GUI about device tab for BambuStudio
-# date -- 2025.01.01
-# status -- Building
 
 list(APPEND SLIC3R_GUI_SOURCES
     GUI/DeviceTab/uiAmsHumidityPopup.h

@@ -195,6 +195,7 @@ wxDECLARE_EVENT(EVT_CUSTOMEVT_TICKSCHANGED, wxCommandEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_RESET_LAYER_HEIGHT_PROFILE, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_ADAPTIVE_LAYER_HEIGHT_PROFILE, Event<float>);
 wxDECLARE_EVENT(EVT_GLCANVAS_SMOOTH_LAYER_HEIGHT_PROFILE, HeightProfileSmoothEvent);
+wxDECLARE_EVENT(EVT_GLCANVAS_PRINTABLE, SimpleEvent);
 
 class GLCanvas3D
 {
@@ -289,9 +290,8 @@ class GLCanvas3D
         bool is_enabled() const { return m_enabled; }
         void set_enabled(bool enabled) { m_enabled = is_allowed() && enabled; }
 
-        void show_tooltip_information(const GLCanvas3D& canvas, std::map<wxString, wxString> captions_texts, float x, float y);
-        void render_variable_layer_height_dialog(const GLCanvas3D& canvas);
-        void render_overlay(const GLCanvas3D& canvas);
+        void render_variable_layer_height_dialog(GLCanvas3D& canvas);
+        void render_overlay(GLCanvas3D& canvas);
         void render_volumes(const GLCanvas3D& canvas, const GLVolumeCollection& volumes);
 
         void adjust_layer_height_profile();
@@ -381,14 +381,13 @@ class GLCanvas3D
         ToolHeightOutside,
         TPUPrintableError,
         FilamentPrintableError,
-        LeftExtruderPrintableError,         // before slice
-        RightExtruderPrintableError,        // before slice
-        MultiExtruderPrintableError,        // after slice
-        MultiExtruderHeightOutside,         // after slice
+        LeftExtruderPrintableError, // before slice
+        RightExtruderPrintableError, // before slice
+        MultiExtruderPrintableError,      // after slice
+        MultiExtruderHeightOutside,       // after slice
         FilamentUnPrintableOnFirstLayer,
         MixUsePLAAndPETG,
-        PrimeTowerOutside,                  // after slice
-        PreviewPrimeTowerOutside,           // before slice 
+        PrimeTowerOutside,
         NozzleFilamentIncompatible,
         MixtureFilamentIncompatible,
         FlushingVolumeZero
@@ -522,7 +521,8 @@ private:
     wxGLContext* m_context;
     SceneRaycaster m_scene_raycaster;
     Bed3D &m_bed;
-    std::map<std::string, wxString> m_assembly_view_desc;
+    // Contains all shortcuts in the format of {shortcut, description}, e.g. {alt + _L("Left mouse button"), _L("Part_selection")}
+    std::vector<std::pair<wxString, wxString>> m_shortcuts_assembly_view;
 #if ENABLE_RETINA_GL
     std::unique_ptr<RetinaHelper> m_retina_helper;
 #endif
@@ -607,6 +607,7 @@ private:
     bool m_reload_delayed;
 
     RenderStats m_render_stats;
+    std::chrono::time_point<std::chrono::steady_clock> m_last_frame_start_time{ std::chrono::steady_clock::now() };
 
     int m_imgui_undo_redo_hovered_pos{ -1 };
     int m_mouse_wheel{ 0 };
@@ -724,6 +725,13 @@ public:
     CameraTarget m_camera_target;
 #endif // ENABLE_SHOW_CAMERA_TARGET
     GLModel m_background;
+    unsigned int m_fxaa_texture_id{ 0 };
+    std::array<unsigned int, 2> m_fxaa_texture_size{ 0, 0 };
+    unsigned int m_ssao_color_texture_id{ 0 };
+    unsigned int m_ssao_depth_texture_id{ 0 };
+    std::array<unsigned int, 2> m_ssao_texture_size{ { 0, 0 } };
+    GLModel m_plate_shadow_mask;
+    std::string m_plate_shadow_mask_key;
 public:
     explicit GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed);
     ~GLCanvas3D();
@@ -955,7 +963,7 @@ public:
                                              Camera::ViewAngleType              camera_view_angle_type = Camera::ViewAngleType::Iso,
                                              bool                               for_picking  = false,
                                              bool                               ban_light    = false);
-    // render thumbnail using an off-screen framebuffer when GLEW_EXT_framebuffer_object is supported
+    // render thumbnail using an off-screen framebuffer when GL_EXT_framebuffer_object is supported
     static void render_thumbnail_framebuffer_ext(ThumbnailData& thumbnail_data, unsigned int w, unsigned int h, const ThumbnailsParams& thumbnail_params,
         PartPlateList& partplate_list, ModelObjectPtrs& model_objects, const GLVolumeCollection& volumes, std::vector<ColorRGBA>& extruder_colors,
                                                  GLShaderProgram *                  shader,
@@ -1035,8 +1043,11 @@ public:
     void on_set_focus(wxFocusEvent& evt);
     void force_set_focus();
 
-    bool is_camera_rotate(const wxMouseEvent& evt, const bool buttonsSwapped) const;
-    bool is_camera_pan(const wxMouseEvent& evt, const bool buttonsSwapped) const;
+    enum class MouseButton { None, Left, Middle, Right };
+    enum class MouseAction { None, Pan, Rotation };
+    bool clicked_button_matches_action(const wxMouseEvent& evt, MouseAction action, const std::map<MouseButton, MouseAction>& mappings) const;
+    bool is_camera_rotate(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
+    bool is_camera_pan(const wxMouseEvent& evt, const std::map<MouseButton, MouseAction>& mappings) const;
 
     Size get_canvas_size() const;
     Vec2d get_local_mouse_position() const;
@@ -1115,7 +1126,7 @@ public:
 
     void request_extra_frame() { m_extra_frame_requested = true; }
 
-    void schedule_extra_frame(int miliseconds);
+    void schedule_extra_frame(int milliseconds);
 
     int get_main_toolbar_item_id(const std::string& name) const { return m_main_toolbar.get_item_id(name); }
     void force_main_toolbar_left_action(int item_id) { m_main_toolbar.force_left_action(item_id, *this); }
@@ -1231,12 +1242,21 @@ private:
 
     void _picking_pass();
     void _rectangular_selection_picking_pass();
+    bool _is_fxaa_enabled() const;
+    bool _is_ssao_enabled() const;
+    int _get_effective_fps_cap() const;
+    bool _is_fps_overlay_enabled() const;
+    void _render_fps_overlay(int fps) const;
+    void _render_fxaa_pass(unsigned int width, unsigned int height);
+    void _render_ssao_pass(unsigned int width, unsigned int height);
     void _render_background();
     void _render_bed(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool show_axes);
+    void _render_cast_shadows_on_plate(const Transform3d& view_matrix, const Transform3d& projection_matrix);
     //BBS: add part plate related logic
     void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
     //BBS: add outline drawing logic
     void _render_objects(GLVolumeCollection::ERenderType type, bool with_outline = true);
+    void _render_wireframe_overlay();
     //BBS: GUI refactor: add canvas size as parameters
     void _render_gcode(int canvas_width, int canvas_height);
     //BBS: render a plane for assemble
@@ -1263,7 +1283,7 @@ private:
     // BBS
     //void _render_view_toolbar() const;
     void _render_paint_toolbar() const;
-    float _show_assembly_tooltip_information(float caption_max, float x, float y) const;
+    float _render_assembly_tooltip_button(ImGuiWrapper* imgui_wrapper) const;
     void _render_assemble_control();
     void _render_assemble_info() const;
 #if ENABLE_SHOW_CAMERA_TARGET

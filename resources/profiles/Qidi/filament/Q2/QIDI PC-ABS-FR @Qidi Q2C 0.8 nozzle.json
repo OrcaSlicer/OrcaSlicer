@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PC-ABS-FR @Qidi Q2C 0.8 nozzle",
+	"inherits": "QIDI PC-ABS-FR@Q2C-Series",
+	"from": "system",
+	"setting_id": "ZqkkkXPjbuCIpnMv",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.024"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.8 nozzle"
+	]
+}

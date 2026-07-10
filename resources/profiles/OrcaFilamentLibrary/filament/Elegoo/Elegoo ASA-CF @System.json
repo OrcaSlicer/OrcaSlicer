@@ -1,0 +1,34 @@
+{
+	"type": "filament",
+	"name": "Elegoo ASA-CF @System",
+	"inherits": "Elegoo ASA @base",
+	"from": "system",
+	"setting_id": "XT1aUl4pe9t0Ijwg",
+	"instantiation": "true",
+	"renamed_from": "Elegoo ASA-CF",
+	"pressure_advance": [
+		"0.04"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"nozzle_temperature": [
+		"270"
+	],
+	"nozzle_temperature_initial_layer": [
+		"270"
+	],
+	"fan_max_speed": [
+		"30"
+	],
+	"filament_max_volumetric_speed": [
+		"18"
+	],
+	"textured_plate_temp": [
+		"100"
+	],
+	"textured_plate_temp_initial_layer": [
+		"100"
+	],
+	"compatible_printers": []
+}

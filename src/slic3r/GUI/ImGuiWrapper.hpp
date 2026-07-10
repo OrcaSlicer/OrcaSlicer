@@ -133,6 +133,7 @@ public:
     bool bbl_button(const wxString &label, const wxString& tooltip = {});
     bool button(const wxString& label, float width, float height);
     bool button(const wxString& label, const ImVec2 &size, bool enable); // default size = ImVec2(0.f, 0.f)
+    bool glyph_button(wchar_t icon_char, ImVec2 icon_size); // ORCA
     bool radio_button(const wxString &label, bool active);
     static ImVec4          to_ImVec4(const ColorRGB &color);
     bool input_double(const std::string &label, const double &value, const std::string &format = "%.3f");
@@ -347,7 +348,11 @@ public:
     static const ImVec4 COL_SEPARATOR;
     static const ImVec4 COL_SEPARATOR_DARK;
     static const ImVec4 COL_ORCA;
+    static const ImVec4 COL_ORCA_DARK;
+    static const ImVec4 COL_ORCA_HOVER;
+    static const ImVec4 COL_ORCA_HOVER_DARK;
     static const ImVec4 COL_MODIFIED;
+    static const ImVec4 COL_WARNING;
 
     //BBS
     static void on_change_color_mode(bool is_dark);
@@ -371,12 +376,13 @@ public:
     //BBS
     static int TOOLBAR_WINDOW_FLAGS;
 
+    bool display_initialized() const;
+
 private:
     void init_font(bool compress);
     void init_input();
     void init_style();
     void render_draw_data(ImDrawData *draw_data);
-    bool display_initialized() const;
     void destroy_font();
     std::vector<unsigned char> load_svg(const std::string& bitmap_name, unsigned target_width, unsigned target_height, unsigned *outwidth, unsigned *outheight);
 

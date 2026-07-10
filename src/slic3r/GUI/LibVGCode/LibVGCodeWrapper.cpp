@@ -225,13 +225,17 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
                     curr.mm3_per_mm, curr.fan_speed, curr.temperature, 0.0f, convert(curr.extrusion_role), curr_type,
                     static_cast<uint32_t>(curr.gcode_id), static_cast<uint32_t>(curr.layer_id),
                     static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), { 0.0f, 0.0f },
-                    /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance };
+                    /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
+                    /* ORCA: Add Acceleration visualization support */ curr.acceleration,
+                    /* ORCA: Add Jerk visualization support */ curr.jerk };
 #else
               const libvgcode::PathVertex vertex = { convert(prev.position), curr.height, curr.width, curr.feedrate, prev.actual_feedrate,
                     curr.mm3_per_mm, curr.fan_speed, curr.temperature, convert(curr.extrusion_role), curr_type,
                     static_cast<uint32_t>(curr.gcode_id), static_cast<uint32_t>(curr.layer_id),
                     static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), { 0.0f, 0.0f },
-                    /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance };
+                    /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
+                    /* ORCA: Add Acceleration visualization support */ curr.acceleration,
+                    /* ORCA: Add Jerk visualization support */ curr.jerk };
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
                 ret.vertices.emplace_back(vertex);
             }
@@ -243,13 +247,17 @@ GCodeInputData convert(const Slic3r::GCodeProcessorResult& result, const std::ve
             result.filament_densities[curr.extruder_id] * curr.mm3_per_mm * (curr.position - prev.position).norm(),
             convert(curr.extrusion_role), curr_type, static_cast<uint32_t>(curr.gcode_id), static_cast<uint32_t>(curr.layer_id),
             static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), curr.time,
-            /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance };
+            /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
+            /* ORCA: Add Acceleration visualization support */ curr.acceleration,
+            /* ORCA: Add Jerk visualization support */ curr.jerk };
 #else
         const libvgcode::PathVertex vertex = { convert(curr.position), curr.height, curr.width, curr.feedrate, curr.actual_feedrate,
             curr.mm3_per_mm, curr.fan_speed, curr.temperature, convert(curr.extrusion_role), curr_type,
             static_cast<uint32_t>(curr.gcode_id), static_cast<uint32_t>(curr.layer_id),
             static_cast<uint8_t>(curr.extruder_id), static_cast<uint8_t>(curr.cp_color_id), curr.time,
-            /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance };
+            /* ORCA: Add Pressure Advance visualization support */ 0.0f, curr.pressure_advance,
+            /* ORCA: Add Acceleration visualization support */ curr.acceleration,
+            /* ORCA: Add Jerk visualization support */ curr.jerk };
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
         ret.vertices.emplace_back(vertex);
     }
@@ -307,7 +315,7 @@ static void convert_lines_to_vertices(const Slic3r::Lines& lines, const std::vec
 static void convert_to_vertices(const Slic3r::ExtrusionPath& extrusion_path, float print_z, size_t layer_id, size_t extruder_id, size_t color_id,
     EGCodeExtrusionRole extrusion_role, const Slic3r::Point& shift, std::vector<PathVertex>& vertices)
 {
-    Slic3r::Polyline polyline = extrusion_path.polyline;
+    Slic3r::Polyline polyline = extrusion_path.polyline.to_polyline();
     polyline.remove_duplicate_points();
     polyline.translate(shift);
     const Slic3r::Lines lines = polyline.lines();
@@ -323,7 +331,7 @@ static void convert_to_vertices(const Slic3r::ExtrusionMultiPath& extrusion_mult
     std::vector<float> widths;
     std::vector<float> heights;
     for (const Slic3r::ExtrusionPath& extrusion_path : extrusion_multi_path.paths) {
-        Slic3r::Polyline polyline = extrusion_path.polyline;
+        Slic3r::Polyline polyline = extrusion_path.polyline.to_polyline();
         polyline.remove_duplicate_points();
         polyline.translate(shift);
         const Slic3r::Lines lines_this = polyline.lines();
@@ -341,7 +349,7 @@ static void convert_to_vertices(const Slic3r::ExtrusionLoop& extrusion_loop, flo
     std::vector<float> widths;
     std::vector<float> heights;
     for (const Slic3r::ExtrusionPath& extrusion_path : extrusion_loop.paths) {
-        Slic3r::Polyline polyline = extrusion_path.polyline;
+        Slic3r::Polyline polyline = extrusion_path.polyline.to_polyline();
         polyline.remove_duplicate_points();
         polyline.translate(shift);
         const Slic3r::Lines lines_this = polyline.lines();
@@ -697,7 +705,7 @@ static void convert_object_to_vertices(const Slic3r::PrintObject& object, const 
                     continue;
                 const Slic3r::PrintRegionConfig& cfg = layerm->region().config();
                 if (has_perimeters) {
-                    const size_t extruder_id = static_cast<size_t>(std::max(cfg.wall_filament.value - 1, 0));
+                    const size_t extruder_id = static_cast<size_t>(std::max(cfg.outer_wall_filament_id.value - 1, 0));
                     convert_to_vertices(layerm->perimeters, layer_z, layer_id, extruder_id,
                         object_helper.color_id(layer_z, extruder_id), EGCodeExtrusionRole::ExternalPerimeter,
                         copy, data.vertices);
@@ -707,10 +715,13 @@ static void convert_object_to_vertices(const Slic3r::PrintObject& object, const 
                         // fill represents infill extrusions of a single island.
                         const auto& fill = *dynamic_cast<const Slic3r::ExtrusionEntityCollection*>(ee);
                         if (!fill.entities.empty()) {
-                            const bool is_solid_infill = Slic3r::is_solid_infill(fill.entities.front()->role());
+                            const Slic3r::ExtrusionRole role = fill.entities.front()->role();
+                            const bool is_solid_infill = Slic3r::is_solid_infill(role);
                             const size_t extruder_id = is_solid_infill ?
-                                static_cast<size_t>(std::max(cfg.solid_infill_filament.value - 1, 0)) :
-                                static_cast<size_t>(std::max(cfg.sparse_infill_filament.value - 1, 0));
+                                static_cast<size_t>(std::max((role == Slic3r::erTopSolidInfill || role == Slic3r::erIroning ? cfg.top_surface_filament_id.value :
+                                                              role == Slic3r::erBottomSurface ? cfg.bottom_surface_filament_id.value :
+                                                              cfg.internal_solid_filament_id.value) - 1, 0)) :
+                                static_cast<size_t>(std::max(cfg.sparse_infill_filament_id.value - 1, 0));
                             convert_to_vertices(fill, layer_z, layer_id, extruder_id,
                                                 object_helper.color_id(layer_z, extruder_id),
                                                 is_solid_infill ? EGCodeExtrusionRole::SolidInfill : EGCodeExtrusionRole::InternalInfill,

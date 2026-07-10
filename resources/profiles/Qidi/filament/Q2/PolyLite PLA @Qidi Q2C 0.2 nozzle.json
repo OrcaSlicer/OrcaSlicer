@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "PolyLite PLA @Qidi Q2C 0.2 nozzle",
+	"inherits": "PolyLite PLA@Q2C-Series",
+	"from": "system",
+	"setting_id": "70CH88wjjjp10p1v",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"pressure_advance": [
+		"0.062"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.2 nozzle"
+	]
+}

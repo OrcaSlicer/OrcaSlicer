@@ -100,7 +100,11 @@ enum class ConfigNozzleIdx : int
 };
 
 
-WX_DECLARE_HASH_MAP(int, Material *, wxIntegerHash, wxIntegerEqual, MaterialHash);
+// Orca: MaterialHash is keyed by material/extruder index and is iterated in key order in
+// several places (e.g. the AMS override preview), so it must be an ordered container.
+// std::unordered_map (what WX_DECLARE_HASH_MAP expands to under wxUSE_STD_CONTAINERS=1)
+// iterates in an unspecified, implementation-dependent order, which scrambled that preview.
+using MaterialHash = std::map<int, Material *>;
 
 #define SELECT_MACHINE_DIALOG_BUTTON_SIZE wxSize(FromDIP(57), FromDIP(32))
 #define SELECT_MACHINE_DIALOG_BUTTON_SIZE2 wxSize(FromDIP(80), FromDIP(32))
@@ -500,12 +504,12 @@ public:
     bool Show(bool show);
     void show_init();
     bool do_ams_mapping(MachineObject *obj_,bool use_ams);
-    bool get_ams_mapping_result(std::string& mapping_array_str, std::string& mapping_array_str2, std::string& ams_mapping_info);
+    bool get_ams_mapping_result(std::string& mapping_array_str, std::string& mapping_array_str2, std::string& ams_mapping_info) const;
     bool build_nozzles_info(std::string& nozzles_info);
     bool can_hybrid_mapping(DevExtderSystem data);
     void auto_supply_with_ext(std::vector<DevAmsTray> slots);
     bool is_nozzle_type_match(DevExtderSystem data, wxString& error_message) const;
-    int  convert_filament_map_nozzle_id_to_task_nozzle_id(int nozzle_id);
+    int  convert_filament_map_nozzle_id_to_task_nozzle_id(int nozzle_id) const;
 
     PrintFromType get_print_type() {return m_print_type;};
     wxString    format_steel_name(NozzleType type);

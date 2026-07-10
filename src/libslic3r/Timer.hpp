@@ -71,8 +71,8 @@ namespace Timing {
         static TimeLimitAlarm new_nanos(uint64_t time_limit_nanoseconds, std::string_view limit_exceeded_message) {
             return TimeLimitAlarm(time_limit_nanoseconds, limit_exceeded_message);
         }
-        static TimeLimitAlarm new_milis(uint64_t time_limit_milis, std::string_view limit_exceeded_message) {
-            return TimeLimitAlarm(uint64_t(time_limit_milis) * 1000000l, limit_exceeded_message);
+        static TimeLimitAlarm new_millis(uint64_t time_limit_millis, std::string_view limit_exceeded_message) {
+            return TimeLimitAlarm(uint64_t(time_limit_millis) * 1000000l, limit_exceeded_message);
         }
         static TimeLimitAlarm new_seconds(uint64_t time_limit_seconds, std::string_view limit_exceeded_message) {
             return TimeLimitAlarm(uint64_t(time_limit_seconds) * 1000000000l, limit_exceeded_message);

@@ -23,10 +23,11 @@ template<> struct hash<Slic3r::GridPoint3>
 
 namespace Slic3r {
 
-void InterlockingGenerator::generate_interlocking_structure(PrintObject* print_object)
+void InterlockingGenerator::generate_interlocking_structure(PrintObject* print_object, const std::function<void()>& throw_on_cancel)
 {
     const auto& config = print_object->config();
-    if (!config.interlocking_beam) {
+    // Check if interlocking is enabled, and avoid errors like division by zero due to invalid configuration.
+    if (!config.interlocking_beam || config.interlocking_beam_layer_count < 1 || config.interlocking_depth < 1 || config.interlocking_beam_width < EPSILON ) {
         return;
     }
 
@@ -55,8 +56,10 @@ void InterlockingGenerator::generate_interlocking_structure(PrintObject* print_o
                 continue;
             }
 
+            throw_on_cancel();
+
             InterlockingGenerator gen(*print_object, region_a_index, region_b_index, beam_width, boundary_avoidance, rotation, cell_size, beam_layer_count,
-                                      interface_dilation, air_dilation, air_filtering);
+                                      interface_dilation, air_dilation, air_filtering, throw_on_cancel);
             gen.generateInterlockingStructure();
         }
     }
@@ -108,12 +111,14 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
         }
     }
     for (auto& near_interlock : near_interlock_per_layer) {
+        throw_on_cancel();
         near_interlock = offset(union_(closing(near_interlock, rounding_errors)), detect);
         polygons_rotate(near_interlock, rotation);
     }
 
     // Only alter layers when they are present in both meshes, zip should take care if that.
     for (size_t layer_nr = 0; layer_nr < print_object.layer_count(); layer_nr++){
+        throw_on_cancel();
         auto       layer   = print_object.get_layer(layer_nr);
         ExPolygons polys_a = to_expolygons(layer->get_region(region_a_index)->slices.surfaces);
         ExPolygons polys_b = to_expolygons(layer->get_region(region_b_index)->slices.surfaces);
@@ -199,7 +204,8 @@ void InterlockingGenerator::addBoundaryCells(const std::vector<ExPolygons>&  lay
                                              const DilationKernel&           kernel,
                                              std::unordered_set<GridPoint3>& cells) const
 {
-    auto voxel_emplacer = [&cells](GridPoint3 p) {
+    auto voxel_emplacer = [this, &cells](GridPoint3 p) {
+        this->throw_on_cancel();
         if (p.z() < 0) {
             return true;
         }
@@ -313,6 +319,7 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
     for (size_t region_idx = 0; region_idx < 2; region_idx++) {
         const size_t region = (region_idx == 0) ? region_a_index : region_b_index;
         for (size_t layer_nr = 0; layer_nr < max_layer_count; layer_nr++) {
+            throw_on_cancel();
             ExPolygons layer_outlines = layer_regions[layer_nr];
             expolygons_rotate(layer_outlines, unapply_rotation);
 

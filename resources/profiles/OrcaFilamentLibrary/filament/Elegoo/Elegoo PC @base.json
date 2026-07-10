@@ -1,0 +1,29 @@
+{
+	"type": "filament",
+	"name": "Elegoo PC @base",
+	"inherits": "fdm_filament_pc",
+	"from": "system",
+	"filament_id": "OEPCB00",
+	"instantiation": "false",
+	"filament_density": [
+		"1.25"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_max_volumetric_speed": [
+		"16"
+	],
+	"filament_vendor": [
+		"Elegoo"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	]
+}

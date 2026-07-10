@@ -115,7 +115,8 @@ namespace {
 			ConfigOptionMode config_mode = wxGetApp().get_mode();
 			if (config_mode == ConfigOptionMode::comSimple)        return (tag == "simple" ? TagCheckAffirmative : TagCheckNegative);
 			else if (config_mode == ConfigOptionMode::comAdvanced) return (tag == "advanced" ? TagCheckAffirmative : TagCheckNegative);
-			//else if (config_mode == ConfigOptionMode::comDevelop)   return (tag == "develop" ? TagCheckAffirmative : TagCheckNegative);
+			else if (config_mode == ConfigOptionMode::comExpert || config_mode == ConfigOptionMode::comDevelop)
+				return (tag == "expert" ? TagCheckAffirmative : TagCheckNegative);
 		}
 		return TagCheckNotCompatible;
 	}
@@ -1013,7 +1014,7 @@ void NotificationManager::HintNotification::render_preferences_button(ImGuiWrapp
 		ImGui::PushStyleColor(ImGuiCol_Border, { 0,0,0,0 });
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 8 * scale, 1 * scale });
 		ImGui::BeginTooltip();
-		imgui.text(_u8L("Open Preferences."));
+		imgui.text(_u8L("Open Preferences"));
 		ImGui::EndTooltip();
 		ImGui::PopStyleColor(2);
 		ImGui::PopStyleVar();
@@ -1059,7 +1060,7 @@ void NotificationManager::HintNotification::render_right_arrow_button(ImGuiWrapp
 		ImGui::PushStyleColor(ImGuiCol_Border, { 0,0,0,0 });
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 8 * scale, 1 * scale });
 		ImGui::BeginTooltip();
-		imgui.text(_u8L("Open next tip."));
+		imgui.text(_u8L("Open next tip"));
 		ImGui::EndTooltip();
 		ImGui::PopStyleColor(2);
 		ImGui::PopStyleVar();
@@ -1112,7 +1113,7 @@ void NotificationManager::HintNotification::render_documentation_button(ImGuiWra
 		ImGui::PushStyleColor(ImGuiCol_Border, { 0,0,0,0 });
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 8 * scale, 1 * scale });
 		ImGui::BeginTooltip();
-		imgui.text(_u8L("Open Documentation in web browser."));
+		imgui.text(_u8L("Open documentation in web browser"));
 		ImGui::EndTooltip();
 		ImGui::PopStyleColor(2);
 		ImGui::PopStyleVar();
