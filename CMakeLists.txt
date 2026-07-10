@@ -817,6 +817,15 @@ function(orcaslicer_copy_dlls target config postfix output_dlls)
     # TKOffset/TKBool/TKFeat. Glob everything instead; the built occt/ dir is the one
     # source of truth. (OCCT is Shared only on Windows — deps/OCCT/OCCT.cmake.)
     file(GLOB _occt_dlls "${CMAKE_PREFIX_PATH}/bin/occt/*.dll")
+    # A glob that matches nothing yields an empty list and copies nothing, so the package
+    # would ship with no OpenCASCADE at all and die at launch with error 126. The explicit
+    # per-file list this replaced failed the configure instead. Keep that loudness.
+    if (NOT _occt_dlls)
+        message(FATAL_ERROR
+            "No OCCT DLLs found in ${CMAKE_PREFIX_PATH}/bin/occt/. Build the dependencies "
+            "first (build_release_vs2022.bat deps); refusing to package a slicer without "
+            "OpenCASCADE, which would fail at startup with error 126.")
+    endif ()
     file(COPY ${_occt_dlls}
             ${CMAKE_PREFIX_PATH}/bin/freetype.dll
          DESTINATION ${_out_dir})
