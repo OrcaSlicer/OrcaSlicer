@@ -3,7 +3,6 @@ get_filename_component(_TEST_NAME ${CMAKE_CURRENT_LIST_DIR} NAME)
 add_executable(${_TEST_NAME}_tests
     ${_TEST_NAME}_tests.cpp
     test_3mf.cpp
-    test_caddocument.cpp
     test_aabbindirect.cpp
     test_appconfig.cpp
     test_arachne_walls.cpp
@@ -30,6 +29,10 @@ add_executable(${_TEST_NAME}_tests
     test_indexed_triangle_set.cpp
     ../libnest2d/printer_parts.cpp
     )
+
+if (SLIC3R_CAD)
+    target_sources(${_TEST_NAME}_tests PRIVATE test_caddocument.cpp)
+endif ()
 
 if (TARGET OpenVDB::openvdb)
     target_sources(${_TEST_NAME}_tests PRIVATE test_hollowing.cpp)

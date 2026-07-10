@@ -119,6 +119,7 @@ endif()
 
 option(SLIC3R_STATIC            "Compile OrcaSlicer with static libraries (Boost, TBB)" ${SLIC3R_STATIC_INITIAL})
 option(SLIC3R_GUI               "Compile OrcaSlicer with GUI components (OpenGL, wxWidgets)" 1)
+option(SLIC3R_CAD               "Compile OrcaSlicer with the parametric Design/CAD tab (needs OCCT ModelingAlgorithms)" 1)
 option(SLIC3R_FHS               "Assume OrcaSlicer is to be installed in a FHS directory structure" 0)
 option(SLIC3R_PROFILE           "Compile OrcaSlicer with an invasive Shiny profiler" 0)
 option(SLIC3R_PCH               "Use precompiled headers" 1)
@@ -188,6 +189,10 @@ endforeach()
 
 if (SLIC3R_GUI)
     add_definitions(-DSLIC3R_GUI)
+endif ()
+
+if (SLIC3R_CAD)
+    add_definitions(-DSLIC3R_CAD)
 endif ()
 
 if(SLIC3R_DESKTOP_INTEGRATION)

@@ -50,7 +50,9 @@ namespace GUI
 class Tab;
 class PrintHostQueueDialog;
 class Plater;
+#ifdef SLIC3R_CAD
 class DesignPanel;
+#endif
 class MainFrame;
 class ParamsDialog;
 #ifdef __WXGTK__
@@ -216,18 +218,22 @@ public:
     bool get_mac_full_screen() { return m_mac_fullscreen; }
 #endif
     //BBS GUI refactor
+    // Implicitly numbered: with SLIC3R_CAD off, tpDesign vanishes and every later tab
+    // falls back to the index it has upstream. Do not reintroduce explicit values.
     enum TabPosition
     {
         tpHome          = 0,
-        tpDesign        = 1,
-        tp3DEditor      = 2,
-        tpPreview       = 3,
-        tpMonitor       = 4,
-        tpMultiDevice   = 5,
-        tpProject       = 6,
-        tpCalibration   = 7,
-        tpAuxiliary     = 8,
-        toDebugTool     = 9,
+#ifdef SLIC3R_CAD
+        tpDesign,
+#endif
+        tp3DEditor,
+        tpPreview,
+        tpMonitor,
+        tpMultiDevice,
+        tpProject,
+        tpCalibration,
+        tpAuxiliary,
+        toDebugTool,
     };
 
     //BBS: add slice&&print status update logic
@@ -377,7 +383,9 @@ public:
     BBLTopbar*            m_topbar{ nullptr };
     PrintHostQueueDialog* printhost_queue_dlg() { return m_printhost_queue_dlg; }
     Plater*               m_plater { nullptr };
+#ifdef SLIC3R_CAD
     DesignPanel*          m_design_panel { nullptr };
+#endif
     //BBS: GUI refactor
     MonitorPanel*         m_monitor{ nullptr };
 

@@ -21,7 +21,9 @@ endif()
 option(BUILD_SHARED_LIBS "Build shared libs" OFF)
 
 # Vendored SolveSpace constraint solver (2D sketch solver backbone).
-add_subdirectory(slvs)
+if (SLIC3R_CAD)
+    add_subdirectory(slvs)
+endif ()
 
 set(lisbslic3r_sources
     AABBMesh.cpp
@@ -278,8 +280,6 @@ set(lisbslic3r_sources
     Geometry/VoronoiUtils.cpp
     Geometry/VoronoiUtils.hpp
     Geometry/VoronoiVisualUtils.hpp
-    GeometryEngine.cpp
-    GeometryEngine.hpp
     Int128.hpp
     KDTreeIndirect.hpp
     Layer.cpp
@@ -390,20 +390,6 @@ set(lisbslic3r_sources
     SLA/JobController.hpp
     SLA/Pad.cpp
     SLA/Pad.hpp
-    SketchEngine.cpp
-    SketchEngine.hpp
-    SketchConstraints.cpp
-    SketchConstraints.hpp
-    SketchSolver.cpp
-    SketchSolver.hpp
-    SketchInference.cpp
-    SketchInference.hpp
-    SketchImport.cpp
-    SketchImport.hpp
-    CadDocument.cpp
-    CadDocument.hpp
-    ThreadStandards.cpp
-    ThreadStandards.hpp
     SLAPrint.cpp
     SLAPrint.hpp
     SLAPrintSteps.cpp
@@ -495,6 +481,29 @@ set(lisbslic3r_sources
     FlushVolPredictor.cpp
 )
 
+# Parametric Design/CAD kernel. Needs OCCT's ModelingAlgorithms module and the
+# vendored SolveSpace solver; both are pulled in only when SLIC3R_CAD is ON.
+if (SLIC3R_CAD)
+    list(APPEND lisbslic3r_sources
+            GeometryEngine.cpp
+            GeometryEngine.hpp
+            SketchEngine.cpp
+            SketchEngine.hpp
+            SketchConstraints.cpp
+            SketchConstraints.hpp
+            SketchSolver.cpp
+            SketchSolver.hpp
+            SketchInference.cpp
+            SketchInference.hpp
+            SketchImport.cpp
+            SketchImport.hpp
+            CadDocument.cpp
+            CadDocument.hpp
+            ThreadStandards.cpp
+            ThreadStandards.hpp
+        )
+endif ()
+
 if (APPLE)
     list(APPEND lisbslic3r_sources
             MacUtils.mm
@@ -565,8 +574,6 @@ find_package(JPEG REQUIRED)
 find_package(draco REQUIRED)
 
 set(OCCT_LIBS
-    TKFillet
-    TKOffset
     TKBool
     TKXDESTEP
     TKSTEP
@@ -595,6 +602,11 @@ set(OCCT_LIBS
     TKMath
     TKernel
 )
+# The CAD kernel is the only consumer of OCCT's ModelingAlgorithms module. Upstream's
+# DataExchange already pulls TKBool in transitively, so the true delta is these two.
+if (SLIC3R_CAD)
+    list(APPEND OCCT_LIBS TKFillet TKOffset)
+endif ()
 # Publish the link list so the Windows packaging step can assert it ships a DLL for
 # every toolkit we link, instead of shipping whatever the deps prefix happens to hold.
 set(OCCT_LIBS "${OCCT_LIBS}" CACHE INTERNAL "OCCT toolkits linked by libslic3r")
@@ -616,7 +628,6 @@ target_link_libraries(libslic3r
         clipper
         Clipper2
         draco::draco
-        libslvs
         glu-libtess
         JPEG::JPEG
         libslic3r_cgal
@@ -649,6 +660,10 @@ endif ()
 if (TARGET OpenVDB::openvdb)
     target_link_libraries(libslic3r PRIVATE OpenVDB::openvdb)
 endif()
+
+if (SLIC3R_CAD)
+    target_link_libraries(libslic3r PUBLIC libslvs)
+endif ()
 
 if(WIN32)
     target_link_libraries(libslic3r PRIVATE Psapi.lib bcrypt.lib)

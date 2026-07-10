@@ -107,15 +107,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/Downloader.hpp
     GUI/DownloadProgressDialog.cpp
     GUI/DownloadProgressDialog.hpp
-    GUI/DesignPanel.cpp
-    GUI/DesignPanel.hpp
-    GUI/McpControl.cpp
-    GUI/McpControl.hpp
-    GUI/DesignCanvas.cpp
-    GUI/DesignCanvas.hpp
-    GUI/DesignSketchTool.cpp
-    GUI/SketchInlineEditor.cpp
-    GUI/SketchInlineEditor.hpp
     GUI/DragCanvas.cpp
     GUI/DragCanvas.hpp
     GUI/EditGCodeDialog.cpp
@@ -165,8 +156,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoMove.hpp
     GUI/Gizmos/GLGizmoPainterBase.cpp
     GUI/Gizmos/GLGizmoPainterBase.hpp
-    GUI/Gizmos/GLGizmoPrimitive.cpp
-    GUI/Gizmos/GLGizmoPrimitive.hpp
     GUI/Gizmos/GLGizmoRotate.cpp
     GUI/Gizmos/GLGizmoRotate.hpp
     GUI/Gizmos/GLGizmoScale.cpp
@@ -177,8 +166,6 @@ set(SLIC3R_GUI_SOURCES
     GUI/Gizmos/GLGizmoSeam.hpp
     GUI/Gizmos/GLGizmoSimplify.cpp
     GUI/Gizmos/GLGizmoSimplify.hpp
-    GUI/Gizmos/GLGizmoSketch.cpp
-    GUI/Gizmos/GLGizmoSketch.hpp
     #GUI/Gizmos/GLGizmoSlaSupports.cpp
     #GUI/Gizmos/GLGizmoSlaSupports.hpp
     GUI/Gizmos/GLGizmosManager.cpp
@@ -689,6 +676,27 @@ set(SLIC3R_GUI_SOURCES
     Utils/FileTransferUtils.cpp
     Utils/FileTransferUtils.hpp
 )
+
+# Design/CAD tab: parametric sketch UI, its gizmo, and the MCP control socket.
+# All of it sits behind SLIC3R_CAD and links the CAD kernel in libslic3r.
+if (SLIC3R_CAD)
+    list(APPEND SLIC3R_GUI_SOURCES
+        GUI/DesignPanel.cpp
+        GUI/DesignPanel.hpp
+        GUI/DesignCanvas.cpp
+        GUI/DesignCanvas.hpp
+        GUI/DesignSketchTool.cpp
+        GUI/SketchInlineEditor.cpp
+        GUI/SketchInlineEditor.hpp
+        GUI/McpControl.cpp
+        GUI/McpControl.hpp
+        GUI/Gizmos/GLGizmoSketch.cpp
+        GUI/Gizmos/GLGizmoSketch.hpp
+        # Needs GeometryEngine (make_primitive / apply_fillet / tessellate).
+        GUI/Gizmos/GLGizmoPrimitive.cpp
+        GUI/Gizmos/GLGizmoPrimitive.hpp
+    )
+endif ()
 
 add_subdirectory(GUI/DeviceCore)
 add_subdirectory(GUI/DeviceTab)

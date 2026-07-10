@@ -57,7 +57,9 @@ namespace GUI {
 
 class Bed3D;
 class PartPlateList;
+#ifdef SLIC3R_CAD
 class DesignSketchTool;   // SnapOrca Design: interactive 2D sketch tool
+#endif
 
 #if ENABLE_RETINA_GL
 class RetinaHelper;
@@ -548,7 +550,9 @@ private:
     // SnapOrca Design: render the world-axis triad at the bed centre (= modeling origin) instead of
     // the bed corner. Default false preserves the main editor's corner triad.
     bool m_axes_at_bed_center{false};
+#ifdef SLIC3R_CAD
     DesignSketchTool* m_design_sketch_tool{nullptr};
+#endif
 
     //BBS: add canvas type for assemble view usage
     ECanvasType m_canvas_type;
@@ -889,8 +893,10 @@ public:
     void enable_collapse_toolbar(bool enable);
     void enable_plate_chrome(bool enable);
     void set_axes_at_bed_center(bool b) { m_axes_at_bed_center = b; }
+#ifdef SLIC3R_CAD
     void set_design_sketch_tool(DesignSketchTool* tool) { m_design_sketch_tool = tool; }
     DesignSketchTool* get_design_sketch_tool() const { return m_design_sketch_tool; }
+#endif
     void enable_dynamic_background(bool enable) { m_dynamic_background_enabled = enable; }
     void enable_labels(bool enable) { m_labels.enable(enable); }
     void enable_slope(bool enable) { m_slope.enable(enable); }
