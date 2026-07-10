@@ -334,7 +334,6 @@ jobs:
         name: ${{ github.sha }}-flatpak-tests-${{ matrix.variant.arch }}
         path: flatpak-test-asset.tar
         retention-days: 1
-    # keep-build-dirs bloats the cached .flatpak-builder; drop the build trees.
     - name: Trim kept build dirs before caching
       if: always()
       shell: bash
