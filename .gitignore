@@ -49,3 +49,4 @@ internal_docs/
 # Python bytecode
 __pycache__/
 *.pyc
+*.cache
