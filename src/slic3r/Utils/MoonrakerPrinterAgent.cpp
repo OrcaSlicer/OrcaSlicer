@@ -7,6 +7,7 @@
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 #include "../GUI/DeviceCore/DevStorage.h"
 #include "../GUI/DeviceCore/DevFirmware.h"
+#include "../GUI/DeviceCore/DevNozzleSystem.h"
 #include "nlohmann/json.hpp"
 #include <boost/algorithm/string.hpp>
 #include <boost/asio/connect.hpp>
@@ -542,6 +543,18 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     // Set printer_type so update_sync_status() can match it against the preset's printer type.
     // Without this, the comparison fails and all sync badges are cleared.
     obj->printer_type = device_info.model_id;
+
+    // Set nozzle diameter from preset config so get_printer_preset() can match.
+    // Moonraker printers don't report nozzle size via API.
+    auto* preset_bundle = GUI::wxGetApp().preset_bundle;
+    if (preset_bundle) {
+        auto* nozzle_opt = preset_bundle->printers.get_edited_preset()
+            .config.option<ConfigOptionFloats>("nozzle_diameter");
+        if (nozzle_opt && nozzle_opt->size() > 0) {
+            obj->GetNozzleSystem()->SetNozzleFromPreset(0,
+                static_cast<float>(nozzle_opt->get_at(0)));
+        }
+    }
 
     // Set push counters so is_info_ready() returns true for pull-mode agents.
     if (obj->m_push_count == 0) {
