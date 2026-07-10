@@ -277,9 +277,15 @@ jobs:
         sed -i '/^build-options:/a\  no-debuginfo: true\n  strip: true' \
           scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
       shell: bash
+    # git_commit_hash embeds the commit; ci_cache_buster (unique per run+attempt)
+    # keeps the OrcaSlicer module out of flatpak-builder's cache so it always
+    # rebuilds and always produces the test asset -- the way the other arches
+    # only cache deps and always rebuild the app. Deps modules stay cached.
     - name: Inject git commit hash into Flatpak manifest
+      env:
+        ci_cache_buster: ${{ github.run_id }}-${{ github.run_attempt }}
       run: |
-        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"|}" \
+        sed -i "/name: OrcaSlicer/{n;s|buildsystem: simple|buildsystem: simple\n    build-options:\n      env:\n        git_commit_hash: \"$git_commit_hash\"\n        ci_cache_buster: \"$ci_cache_buster\"|}" \
           scripts/flatpak/com.orcaslicer.OrcaSlicer.yml
       shell: bash
     - uses: flatpak/flatpak-github-actions/flatpak-builder@master
