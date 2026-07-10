@@ -289,8 +289,8 @@ jobs:
         cache: false
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
-        # Build the test binaries in-sandbox (run-tests fires the module's
-        # test-commands) and keep the build tree so the step below can ship it.
+        # run-tests fires the module's build-only test-commands; keep-build-dirs
+        # retains the binaries for the packaging step below.
         run-tests: true
         keep-build-dirs: true
     - name: Upload artifacts Flatpak
@@ -308,21 +308,17 @@ jobs:
         asset_name: OrcaSlicer-Linux-flatpak_nightly${{ env.nightly_suffix }}_${{ matrix.variant.arch }}.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
-    # Package the pieces the separate test job needs to run the suite in a
-    # sandbox: the installed /app (flatpak_app) plus the module build dir slimmed
-    # to just what running ctest needs. The exes are self-contained (static
-    # libslic3r) and link /app at runtime, so drop everything else.
+    # The asset is /app (the exes link it at runtime) plus the build tree
+    # slimmed to what ctest needs.
     - name: Package flatpak test asset
       shell: bash
       run: |
         d=$(ls -d .flatpak-builder/build/OrcaSlicer-* | tail -1)
-        # Keep only the built test binaries in the build tree, then strip their
-        # debug info (the SDK compiles with -g; the app is stripped, the test
-        # exes are not) -- the bounds checks are compiled in, so this is safe.
         find "$d/build_flatpak" -mindepth 1 -maxdepth 1 ! -name tests -exec rm -rf {} +
+        # Strip debug info (the SDK builds with -g, only the app gets stripped);
+        # the bounds checks are compiled in, so a stripped exe still catches them.
         find "$d/build_flatpak/tests" -type f -perm -u+x -exec strip --strip-unneeded {} + 2>/dev/null || true
-        # Drop the copied source tree the tests never read at runtime; keep tests/
-        # (TEST_DATA_DIR) and scripts/ (run_unit_tests.sh).
+        # At runtime the tests read only tests/ (TEST_DATA_DIR) and scripts/.
         find "$d" -mindepth 1 -maxdepth 1 -type d \
           ! -name tests ! -name build_flatpak ! -name scripts -exec rm -rf {} +
         tar -cf flatpak-test-asset.tar flatpak_app "$d"
@@ -343,8 +339,7 @@ jobs:
       if: always()
       shell: bash
       run: rm -rf .flatpak-builder/build
-  # Mirror of the other arches: one test job per arch, each running the flatpak
-  # build's test asset through the reusable Flatpak Unit Tests workflow.
+  # One test job per arch, mirroring the other arches' unit_tests callers.
   unit_tests_flatpak_x86_64:
     name: Flatpak x86_64
     needs: flatpak

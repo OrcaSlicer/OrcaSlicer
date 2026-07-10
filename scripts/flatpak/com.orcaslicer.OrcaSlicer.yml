@@ -351,9 +351,8 @@ modules:
       - ./scripts/run_gettext.sh
       - cmake --build build_flatpak --target install -j$FLATPAK_BUILDER_N_JOBS
 
-    # Built (not run) here under the action's run-tests so build_all.yml can ship
-    # the binaries to a separate flatpak test job. libslic3r is already built, so
-    # only the test sources compile; nothing installs to /app.
+    # Built (not run) here via the action's run-tests, then shipped to a separate
+    # test job. Only the test sources compile; nothing installs to /app.
     test-commands:
       - cmake . -B build_flatpak -DBUILD_TESTS=ON
       - cmake --build build_flatpak -j"${FLATPAK_BUILDER_N_JOBS:-$(nproc)}" --target
