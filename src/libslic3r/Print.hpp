@@ -358,11 +358,6 @@ public:
     std::vector<VolumeSlices>& firstLayerObjSliceMod() { return firstLayerObjSliceByVolume; }
     const std::vector<groupedVolumeSlices>& firstLayerObjGroups() const { return firstLayerObjSliceByGroups; }
     std::vector<groupedVolumeSlices>& firstLayerObjGroupsMod() { return firstLayerObjSliceByGroups; }
-    // Orca: connected components of the object's whole XY projection (union of every layer). Each
-    // component is one 3D object (overlapping parts merged, disconnected islands kept apart); used
-    // to center separated infills / per-model patterns on each object's full bounding box, exactly
-    // as if it were sliced on its own. Populated lazily by infill() only when the feature is used.
-    const ExPolygons& separatedInfillComponents() const { return m_separated_infill_components; }
 
     bool                         has_brim() const       {
         return ((this->config().brim_type != btNoBrim && this->config().brim_width.value > 0.) || this->config().brim_type == btAutoBrim
@@ -574,7 +569,6 @@ private:
 
     std::vector < VolumeSlices >            firstLayerObjSliceByVolume;
     std::vector<groupedVolumeSlices>        firstLayerObjSliceByGroups;
-    ExPolygons                              m_separated_infill_components; // Orca: see separatedInfillComponents()
 
     // BBS: per object skirt
     ExtrusionEntityCollection               m_skirt;

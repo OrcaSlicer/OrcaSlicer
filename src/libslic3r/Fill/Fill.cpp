@@ -1364,30 +1364,29 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
 
             // Orca: separate infill / per-model pattern centering.
             //
-            // Center the pattern on each connected component of the object independently, so every
-            // piece is filled exactly as it would be as a standalone object: touching/overlapping
-            // parts merge into one component and share a center, while separate parts and detached
-            // islands (e.g. several 3D objects merged into one object) each get their own. The
-            // components are the disjoint ExPolygons of the object's whole XY projection (see
-            // separatedInfillComponents(), precomputed for the whole model — not just the first
-            // layer — so each component's bounding box is its full extent). We match this region to
-            // the component it overlaps most, then re-use the whole-object bounding box
-            // (origin-centered — identical extent to the default, so coverage and cost are
-            // unchanged) re-centered on that component.
+            // Center the pattern on each connected body of the object independently, so every piece
+            // is filled exactly as if it were sliced on its own: touching/overlapping parts merge
+            // into one body sharing a center, while separate parts and disconnected islands (even
+            // interleaved-but-not-touching ones, e.g. chain links) each get their own. The body each
+            // island belongs to, and its full bounding box, were resolved in 3D by PrintObject::
+            // infill() (lslices_separated_component_bboxes, aligned with this layer's lslices). We
+            // match this fill region to the island it overlaps most, then re-use the whole-object
+            // bounding box (origin-centered — identical extent to the default, so coverage and cost
+            // are unchanged) re-centered on that body.
             if (is_per_model_center || is_separate_infill) {
                 double      best_overlap = 0.;
                 BoundingBox best_component;
-                for (const ExPolygon& component : this->object()->separatedInfillComponents()) {
-                    const double overlap = area(intersection_ex(ExPolygons{component}, ExPolygons{expoly}));
+                for (size_t r = 0; r < this->lslices.size() && r < this->lslices_separated_component_bboxes.size(); ++ r) {
+                    const double overlap = area(intersection_ex(this->lslices[r], expoly));
                     if (overlap > best_overlap) {
                         best_overlap   = overlap;
-                        best_component = get_extents(component);
+                        best_component = this->lslices_separated_component_bboxes[r];
                     }
                 }
                 if (best_component.defined) {
                     const Point c         = best_component.center();
                     BoundingBox part_bbox = bbox; // origin-centered, whole-object extent (from above)
-                    part_bbox.translate(c.x(), c.y()); // re-center on this component
+                    part_bbox.translate(c.x(), c.y()); // re-center on this body
                     f->set_bounding_box(part_bbox);
                 }
             } // - End: separate infill / per-model pattern centering
