@@ -299,10 +299,10 @@ modules:
       # These are only used if find_package() fails to locate them.
       # ---------------------------------------------------------------
 
-      # ZLIB 1.2.13
+      # ZLIB 1.3.2
       - type: file
-        url: https://github.com/madler/zlib/archive/refs/tags/v1.2.13.zip
-        sha256: c2856951bbf30e30861ace3765595d86ba13f2cf01279d901f6c62258c57f4ff
+        url: https://github.com/madler/zlib/archive/refs/tags/v1.3.2.zip
+        sha256: 31fd9fee98812abcf147d0e103bc4d2f983c35a8d7a807a328a299f3a74e0050
         dest: external-packages/ZLIB
 
       # libpng 1.6.35
