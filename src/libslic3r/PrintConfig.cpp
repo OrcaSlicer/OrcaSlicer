@@ -6889,13 +6889,12 @@ void PrintConfigDef::init_fff_params()
     def           = this->add("separated_infills", coBool);
     def->label    = L("Separated infills");
     def->category = L("Strength");
-    def->tooltip  = L("Aligns the internal infill pattern of each part independently instead of across the whole object or assembly.\n"
-                       "By default, aligned infill patterns share a single origin for the entire object, so the pattern of every "
-                       "part is referenced to the same point. When enabled, each connected body is aligned on its own: parts that "
-                       "touch or overlap are treated as one body and share an origin, while parts detached from the rest each get "
-                       "their own.\n Useful when an assembly groups several distinct objects that should each keep a self-centered infill.\n"
-                       "Only affects centered infill patterns (Archimedean Chords, Octagram Spiral) and patterns driven by an "
-                       "infill rotation template.");
+    def->tooltip  = L("Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the "
+                       "whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts "
+                       "(or distinct 3D objects) each get their own.\n"
+                       "Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+                       "Affects line and grid patterns and rotation-template infills.\n"
+                       "Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected.");
     def->mode     = comExpert;
     def->set_default_value(new ConfigOptionBool(false));
 
