@@ -1257,8 +1257,9 @@ private:
     void _render_ssao_pass(unsigned int width, unsigned int height);
     void _render_background();
     void _render_bed(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool show_axes);
+    // Build the light-space depth shadow map (consumed by gouraud/phong for object & self shadows)
+    // and cast it onto the build plate. Realistic view only.
     void _render_shadows(const Transform3d& view_matrix, const Transform3d& projection_matrix);
-    // Render scene depth from the light's point of view into m_shadow_map_texture_id (fills m_shadow_light_vp).
     //BBS: add part plate related logic
     void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
     //BBS: add outline drawing logic
