@@ -339,7 +339,6 @@ jobs:
       if: always()
       shell: bash
       run: rm -rf .flatpak-builder/build
-  # One test job per arch, mirroring the other arches' unit_tests callers.
   unit_tests_flatpak_x86_64:
     name: Flatpak x86_64
     needs: flatpak
