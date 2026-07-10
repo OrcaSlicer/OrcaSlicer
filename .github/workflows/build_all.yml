@@ -309,15 +309,22 @@ jobs:
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
     # Package the pieces the separate test job needs to run the suite in a
-    # sandbox: the installed /app (flatpak_app) plus the module build dir pruned
-    # to just the built test binaries + CTest metadata + test data. Everything
-    # else in build_flatpak (app objects, libslic3r.a) is dropped to keep the
-    # asset small; the test exes are self-contained and link /app at runtime.
+    # sandbox: the installed /app (flatpak_app) plus the module build dir slimmed
+    # to just what running ctest needs. The exes are self-contained (static
+    # libslic3r) and link /app at runtime, so drop everything else.
     - name: Package flatpak test asset
       shell: bash
       run: |
         d=$(ls -d .flatpak-builder/build/OrcaSlicer-* | tail -1)
+        # Keep only the built test binaries in the build tree, then strip their
+        # debug info (the SDK compiles with -g; the app is stripped, the test
+        # exes are not) -- the bounds checks are compiled in, so this is safe.
         find "$d/build_flatpak" -mindepth 1 -maxdepth 1 ! -name tests -exec rm -rf {} +
+        find "$d/build_flatpak/tests" -type f -perm -u+x -exec strip --strip-unneeded {} + 2>/dev/null || true
+        # Drop the copied source tree the tests never read at runtime; keep tests/
+        # (TEST_DATA_DIR) and scripts/ (run_unit_tests.sh).
+        find "$d" -mindepth 1 -maxdepth 1 -type d \
+          ! -name tests ! -name build_flatpak ! -name scripts -exec rm -rf {} +
         tar -cf flatpak-test-asset.tar flatpak_app "$d"
         {
           echo "### Flatpak test asset (${{ matrix.variant.arch }})"
