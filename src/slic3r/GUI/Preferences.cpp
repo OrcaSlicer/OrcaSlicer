@@ -153,7 +153,8 @@ wxBoxSizer *PreferencesDialog::create_item_language_combobox(wxString title, wxS
         wxLANGUAGE_PORTUGUESE_BRAZILIAN,
         wxLANGUAGE_LITHUANIAN,
         wxLANGUAGE_VIETNAMESE,
-        wxLANGUAGE_THAI
+        wxLANGUAGE_THAI,
+        wxLANGUAGE_ROMANIAN
     };
 
     auto translations = wxTranslations::Get()->GetAvailableTranslations(SLIC3R_APP_KEY);
