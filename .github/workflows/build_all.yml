@@ -322,12 +322,6 @@ jobs:
         find "$d" -mindepth 1 -maxdepth 1 -type d \
           ! -name tests ! -name build_flatpak ! -name scripts -exec rm -rf {} +
         tar -cf flatpak-test-asset.tar flatpak_app "$d"
-        {
-          echo "### Flatpak test asset (${{ matrix.variant.arch }})"
-          echo '```'
-          du -sh flatpak_app "$d" "$d/build_flatpak/tests" "$d/tests" flatpak-test-asset.tar
-          echo '```'
-        } >> "$GITHUB_STEP_SUMMARY"
     - name: Upload flatpak test asset
       uses: actions/upload-artifact@v7
       with:
@@ -341,7 +335,7 @@ jobs:
   unit_tests_flatpak_x86_64:
     name: Flatpak x86_64
     needs: flatpak
-    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests_flatpak.yml
     with:
       os: ubuntu-24.04
@@ -349,7 +343,7 @@ jobs:
   unit_tests_flatpak_aarch64:
     name: Flatpak aarch64
     needs: flatpak
-    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    if: ${{ !cancelled() && success() }}
     uses: ./.github/workflows/unit_tests_flatpak.yml
     with:
       os: ubuntu-24.04-arm
