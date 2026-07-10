@@ -185,7 +185,7 @@ jobs:
           ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
   publish_test_results:
     name: Publish Test Results
-    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64]
+    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64, unit_tests_flatpak]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -289,6 +289,10 @@ jobs:
         cache: false
         arch: ${{ matrix.variant.arch }}
         upload-artifact: false
+        # Build the test binaries in-sandbox (run-tests fires the module's
+        # test-commands) and keep the build tree so the step below can ship it.
+        run-tests: true
+        keep-build-dirs: true
     - name: Upload artifacts Flatpak
       uses: actions/upload-artifact@v7
       with:
@@ -304,3 +308,92 @@ jobs:
         asset_name: OrcaSlicer-Linux-flatpak_nightly${{ env.nightly_suffix }}_${{ matrix.variant.arch }}.flatpak
         asset_content_type: application/octet-stream
         max_releases: 1 # optional, if there are more releases than this matching the asset_name, the oldest ones are going to be deleted
+    # Package the pieces the separate test job needs to run the suite in a
+    # sandbox: the installed /app (flatpak_app) plus the module build dir pruned
+    # to just the built test binaries + CTest metadata + test data. Everything
+    # else in build_flatpak (app objects, libslic3r.a) is dropped to keep the
+    # asset small; the test exes are self-contained and link /app at runtime.
+    - name: Package flatpak test asset
+      shell: bash
+      run: |
+        d=$(ls -d .flatpak-builder/build/OrcaSlicer-* | tail -1)
+        find "$d/build_flatpak" -mindepth 1 -maxdepth 1 ! -name tests -exec rm -rf {} +
+        tar -cf flatpak-test-asset.tar flatpak_app "$d"
+        {
+          echo "### Flatpak test asset (${{ matrix.variant.arch }})"
+          echo '```'
+          du -sh flatpak_app "$d" "$d/build_flatpak/tests" "$d/tests" flatpak-test-asset.tar
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
+    - name: Upload flatpak test asset
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ github.sha }}-flatpak-tests-${{ matrix.variant.arch }}
+        path: flatpak-test-asset.tar
+        retention-days: 1
+    # keep-build-dirs bloats the cached .flatpak-builder; drop the build trees.
+    - name: Trim kept build dirs before caching
+      if: always()
+      shell: bash
+      run: rm -rf .flatpak-builder/build
+  # Mirror of the other arches' split build->test: a separate job downloads the
+  # flatpak build's test asset and runs the suite in the sandbox. The GNOME SDK
+  # compiles with _GLIBCXX_ASSERTIONS, so this leg runs against a bounds-checked
+  # STL that catches out-of-bounds reads the other legs miss.
+  unit_tests_flatpak:
+    name: Flatpak Unit Tests
+    needs: flatpak
+    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      options: --privileged
+    strategy:
+      fail-fast: false
+      matrix:
+        variant:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.variant.runner }}
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        sparse-checkout: scripts/flatpak
+    - name: Restore flatpak test asset
+      uses: actions/download-artifact@v8
+      with:
+        name: ${{ github.sha }}-flatpak-tests-${{ matrix.variant.arch }}
+    - name: Run unit tests (bounds-checked sandbox)
+      shell: bash
+      run: |
+        tar -xf flatpak-test-asset.tar
+        # Recreate the stable module symlink `--run` resolves /run/build/OrcaSlicer through.
+        d=$(ls -d .flatpak-builder/build/OrcaSlicer-* | tail -1)
+        ln -sfn "$(basename "$d")" .flatpak-builder/build/OrcaSlicer
+        # A machine-id is needed for the sandbox's dbus setup.
+        dbus-uuidgen --ensure=/etc/machine-id || true
+        # The runtime + SDK (+ llvm extension recorded in the app metadata) that
+        # `--run` mounts and the test exes link against. Best-effort: the gnome-50
+        # image may already carry them.
+        flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
+        flatpak install --user -y --noninteractive flathub \
+          org.gnome.Platform//50 org.gnome.Sdk//50 org.freedesktop.Sdk.Extension.llvm21//25.08 || true
+        flatpak-builder --run flatpak_app \
+          scripts/flatpak/com.orcaslicer.OrcaSlicer.yml \
+          bash -c 'cd /run/build/OrcaSlicer && scripts/run_unit_tests.sh build_flatpak/tests'
+    - name: Collect Flatpak test results
+      if: always()
+      shell: bash
+      run: |
+        d=$(ls -d .flatpak-builder/build/OrcaSlicer-* 2>/dev/null | tail -1 || true)
+        [ -n "$d" ] && [ -f "$d/ctest_results.xml" ] && cp "$d/ctest_results.xml" ctest_results.xml || true
+    - name: Upload Flatpak test results
+      if: always()
+      uses: actions/upload-artifact@v7
+      with:
+        # test-results-* is aggregated by publish_test_results.
+        name: test-results-${{ github.sha }}-flatpak-${{ matrix.variant.arch }}
+        path: ctest_results.xml
+        retention-days: 5
+        if-no-files-found: warn

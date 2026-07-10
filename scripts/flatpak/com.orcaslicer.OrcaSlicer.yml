@@ -351,6 +351,14 @@ modules:
       - ./scripts/run_gettext.sh
       - cmake --build build_flatpak --target install -j$FLATPAK_BUILDER_N_JOBS
 
+    # Built (not run) here under the action's run-tests so build_all.yml can ship
+    # the binaries to a separate flatpak test job. libslic3r is already built, so
+    # only the test sources compile; nothing installs to /app.
+    test-commands:
+      - cmake . -B build_flatpak -DBUILD_TESTS=ON
+      - cmake --build build_flatpak -j"${FLATPAK_BUILDER_N_JOBS:-$(nproc)}" --target
+          libslic3r_tests fff_print_tests sla_print_tests libnest2d_tests slic3rutils_tests
+
     cleanup:
       - /include
 
@@ -387,6 +395,10 @@ modules:
       - type: dir
         path: ../../localization
         dest: localization
+      # For the post-build unit-test step (BUILD_TESTS=ON); not built by the app.
+      - type: dir
+        path: ../../tests
+        dest: tests
 
       - type: file
         path: ../../CMakeLists.txt
@@ -396,6 +408,9 @@ modules:
         path: ../../version.inc
       - type: file
         path: ../run_gettext.sh
+        dest: scripts
+      - type: file
+        path: ../run_unit_tests.sh
         dest: scripts
 
       # AppData metainfo for GNOME Software & Co.
