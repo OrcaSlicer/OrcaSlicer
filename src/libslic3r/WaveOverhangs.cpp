@@ -455,7 +455,7 @@ void append_wave_fronts(ExtrusionPaths &overhang_region,
 
     if (wave_pattern == WaveOverhangPattern::Monotonic) {
         Polylines monotonic_fronts = fronts;
-        extrusion_paths_append(overhang_region, monotonic_fronts, erOverhangPerimeter,
+        extrusion_paths_append(overhang_region, monotonic_fronts, erWaveBridgeInfill,
                                mm3_per_mm, wave_flow.width(), wave_flow.height());
         return;
     }
