@@ -52,8 +52,8 @@ modules:
       - -Dtests=disabled
     sources:
       - type: archive
-        url: https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.22.8.tar.xz
-        sha256: e305b9f07f52743ca481da0a4e0c76c35efd60adaf1b0694eb3bb021e2137e39
+        url: https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.22.12.tar.xz
+        sha256: 9c1913f981900bd8867182639b20907b28ed78ef7a222cfbf2d8ba9dab992fa7
 
   - name: glu
     build-options:
