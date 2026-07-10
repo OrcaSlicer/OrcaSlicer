@@ -63,7 +63,7 @@ modules:
     sources:
       - type: archive
         url: https://ftp.osuosl.org/pub/blfs/conglomeration/glu/glu-9.0.2.tar.xz
-        sha256: 6e7280ff585c6a1d9dfcdf2fca489251634b3377bfc33c29e4002466a38d02d4
+        sha256: 6e7280ff585c6a1d9dfcdf2fca48925l1634b3377bfc33c29e4002466a38d02d4
     cleanup:
       - /include
       - /lib/*.a
@@ -311,10 +311,10 @@ modules:
         sha256: 3d22d46c566b1761a0e15ea397589b3a5f36ac09b7c785382e6470156c04247f
         dest: external-packages/PNG
 
-      # libjpeg-turbo 3.0.1
+      # libjpeg-turbo 3.2.0
       - type: file
-        url: https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/3.0.1.zip
-        sha256: d6d99e693366bc03897677650e8b2dfa76b5d6c54e2c9e70c03f0af821b0a52f
+        url: https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/3.2.0.zip
+        sha256: 1b4c2cb6cba1ca5e53b9e85eeeab02154cab4b70894c96e97a9c747a26d19d63
         dest: external-packages/JPEG
 
       # Freetype 2.12.1
