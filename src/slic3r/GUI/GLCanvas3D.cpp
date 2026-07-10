@@ -1231,6 +1231,14 @@ GLCanvas3D::~GLCanvas3D()
             glsafe(::glDeleteTextures(1, &m_ssao_depth_texture_id));
             m_ssao_depth_texture_id = 0;
         }
+        if (m_shadow_map_texture_id != 0) {
+            glsafe(::glDeleteTextures(1, &m_shadow_map_texture_id));
+            m_shadow_map_texture_id = 0;
+        }
+        if (m_shadow_map_fbo != 0) {
+            glsafe(::glDeleteFramebuffers(1, &m_shadow_map_fbo));
+            m_shadow_map_fbo = 0;
+        }
         m_plate_shadow_mask.reset();
     }
     m_plate_shadow_mask_key.clear();
@@ -2033,6 +2041,9 @@ void GLCanvas3D::render(bool only_init)
 
     // draw scene
     glsafe(::glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+    // Invalidate the shadow map each frame; only the View3D path below rebuilds it. This keeps
+    // the Preview / Assemble canvases from sampling a stale map with an outdated light matrix.
+    m_shadow_map_valid = false;
     _render_background();
 
     //BBS add partplater rendering logic
@@ -2058,6 +2069,8 @@ void GLCanvas3D::render(bool only_init)
         
         //BBS: add outline logic
         _render_cast_shadows_on_plate(camera.get_view_matrix(), camera.get_projection_matrix());
+        // Depth pass for object-on-object and self shadows; consumed by the gouraud shader below.
+        _render_shadow_map_pass(camera.get_view_matrix());
         _render_objects(GLVolumeCollection::ERenderType::Opaque, !m_gizmos.is_running());
         _render_sla_slices();
         _render_selection();
@@ -8058,6 +8071,163 @@ void GLCanvas3D::_render_cast_shadows_on_plate(const Transform3d& view_matrix, c
     glsafe(::glStencilMask(prev_stencil_mask));
 }
 
+void GLCanvas3D::_render_shadow_map_pass(const Transform3d& view_matrix)
+{
+    m_shadow_map_valid = false;
+
+    // Same gate as the planar plate shadow: only in realistic mode with shadows enabled.
+    if (wxGetApp().app_config == nullptr)
+        return;
+    if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE))
+        return;
+    if (!wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS))
+        return;
+    if (m_volumes.empty())
+        return;
+
+    // Offscreen depth rendering needs core (ARB) framebuffer objects. Degrade gracefully:
+    // when unavailable, object/self shadows are skipped and the planar plate shadow still draws.
+    if (OpenGLManager::get_framebuffers_type() != OpenGLManager::EFramebufferType::Arb)
+        return;
+
+    GLShaderProgram* shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr)
+        return;
+
+    // Light direction, matching the shading in gouraud (LIGHT_TOP_DIR is defined in eye space).
+    // Transform it to world space so object shadows track the on-screen light as the view orbits.
+    const Vec3d light_dir_eye = Vec3d(-0.4574957, 0.4574957, 0.7624929).normalized();
+    const Matrix3d view_rot = view_matrix.matrix().block<3, 3>(0, 0);
+    const Vec3d dir_to_light = (view_rot.transpose() * light_dir_eye).normalized();
+
+    // World-space bounding box of the shadow casters (printable objects).
+    BoundingBoxf3 scene_bb;
+    for (const GLVolume* volume : m_volumes.volumes) {
+        if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
+            continue;
+        scene_bb.merge(volume->transformed_bounding_box());
+    }
+    if (!scene_bb.defined)
+        return;
+    // Include the plate top (z = 0) so ground-contact shadows are captured in the map.
+    scene_bb.merge(Vec3d(scene_bb.min.x(), scene_bb.min.y(), 0.0));
+    scene_bb.merge(Vec3d(scene_bb.max.x(), scene_bb.max.y(), 0.0));
+
+    const Vec3d  center = scene_bb.center();
+    const double radius = std::max(scene_bb.size().norm() * 0.5, 1.0);
+
+    // Orthographic light camera looking toward the scene center from the light side.
+    const Vec3d eye    = center + dir_to_light * (radius * 2.0);
+    const Vec3d up     = (std::abs(dir_to_light.z()) > 0.99) ? Vec3d::UnitY() : Vec3d::UnitZ();
+    const Vec3d z_axis = (eye - center).normalized();  // toward light
+    const Vec3d x_axis = up.cross(z_axis).normalized();
+    const Vec3d y_axis = z_axis.cross(x_axis).normalized();
+
+    Matrix4d light_view = Matrix4d::Identity();
+    light_view.block<1, 3>(0, 0) = x_axis.transpose();
+    light_view.block<1, 3>(1, 0) = y_axis.transpose();
+    light_view.block<1, 3>(2, 0) = z_axis.transpose();
+    light_view(0, 3) = -x_axis.dot(eye);
+    light_view(1, 3) = -y_axis.dot(eye);
+    light_view(2, 3) = -z_axis.dot(eye);
+
+    // Symmetric orthographic projection fit to the bounding sphere (with a small margin).
+    const double ext    = radius * 1.1;
+    const double near_z = radius * 2.0 - ext;
+    const double far_z  = radius * 2.0 + ext;
+    Matrix4d light_proj = Matrix4d::Identity();
+    light_proj(0, 0) = 1.0 / ext;
+    light_proj(1, 1) = 1.0 / ext;
+    light_proj(2, 2) = -2.0 / (far_z - near_z);
+    light_proj(2, 3) = -(far_z + near_z) / (far_z - near_z);
+
+    m_shadow_light_vp = Transform3d(light_proj * light_view);
+
+    // Lazily create / (re)size the depth texture and its framebuffer.
+    const unsigned int size = 2048;
+    if (m_shadow_map_texture_id == 0) {
+        glsafe(::glGenTextures(1, &m_shadow_map_texture_id));
+        glsafe(::glBindTexture(GL_TEXTURE_2D, m_shadow_map_texture_id));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER));
+        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER));
+        // Border depth = 1.0 => fragments projected outside the map are treated as fully lit.
+        const float border[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        glsafe(::glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border));
+        m_shadow_map_size = 0;
+    }
+    if (m_shadow_map_size != size) {
+        glsafe(::glBindTexture(GL_TEXTURE_2D, m_shadow_map_texture_id));
+        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, size, size, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
+        m_shadow_map_size = size;
+    }
+    if (m_shadow_map_fbo == 0)
+        glsafe(::glGenFramebuffers(1, &m_shadow_map_fbo));
+
+    // Save state that the depth pass changes.
+    GLint prev_viewport[4] = { 0, 0, 0, 0 };
+    glsafe(::glGetIntegerv(GL_VIEWPORT, prev_viewport));
+    GLint prev_fbo = 0;
+    glsafe(::glGetIntegerv(GL_FRAMEBUFFER_BINDING, &prev_fbo));
+    GLboolean prev_color_mask[4] = { GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE };
+    glsafe(::glGetBooleanv(GL_COLOR_WRITEMASK, prev_color_mask));
+    const GLboolean prev_cull = ::glIsEnabled(GL_CULL_FACE);
+    GLint prev_depth_func = GL_LESS;
+    glsafe(::glGetIntegerv(GL_DEPTH_FUNC, &prev_depth_func));
+    GLboolean prev_depth_mask = GL_TRUE;
+    glsafe(::glGetBooleanv(GL_DEPTH_WRITEMASK, &prev_depth_mask));
+
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, m_shadow_map_fbo));
+    glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_shadow_map_texture_id, 0));
+    glsafe(::glDrawBuffer(GL_NONE));
+    glsafe(::glReadBuffer(GL_NONE));
+
+    if (::glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(prev_fbo)));
+        return;
+    }
+
+    glsafe(::glViewport(0, 0, size, size));
+    glsafe(::glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE));
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    glsafe(::glDepthMask(GL_TRUE));
+    glsafe(::glDepthFunc(GL_LESS));
+    glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
+    // Depth-bias to fight shadow acne on lit surfaces. The slope factor is the important term for
+    // low-poly / faceted meshes: it pushes each triangle back proportionally to its depth slope,
+    // which is what removes the per-triangle "triangular shadow" facet acne.
+    glsafe(::glEnable(GL_POLYGON_OFFSET_FILL));
+    glsafe(::glPolygonOffset(4.0f, 4.0f));
+    // Render both faces so thin / open meshes still occlude.
+    glsafe(::glDisable(GL_CULL_FACE));
+
+    shader->start_using();
+    shader->set_uniform("projection_matrix", Transform3d(light_proj));
+    for (GLVolume* volume : m_volumes.volumes) {
+        if (volume == nullptr || !volume->is_active || !volume->printable || volume->is_modifier || volume->is_wipe_tower)
+            continue;
+        const Transform3d view_model = Transform3d(light_view) * volume->world_matrix();
+        shader->set_uniform("view_model_matrix", view_model);
+        volume->model.render(shader);
+    }
+    shader->stop_using();
+
+    // Restore state.
+    glsafe(::glDisable(GL_POLYGON_OFFSET_FILL));
+    glsafe(::glColorMask(prev_color_mask[0], prev_color_mask[1], prev_color_mask[2], prev_color_mask[3]));
+    if (prev_cull)
+        glsafe(::glEnable(GL_CULL_FACE));
+    else
+        glsafe(::glDisable(GL_CULL_FACE));
+    glsafe(::glDepthFunc(prev_depth_func));
+    glsafe(::glDepthMask(prev_depth_mask));
+    glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, static_cast<GLuint>(prev_fbo)));
+    glsafe(::glViewport(prev_viewport[0], prev_viewport[1], prev_viewport[2], prev_viewport[3]));
+
+    m_shadow_map_valid = true;
+}
+
 void GLCanvas3D::_render_plane() const
 {
     ;//TODO render assemble plane
@@ -8141,6 +8311,20 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
 
         const bool phong_ssao = wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_PHONG_SSAO);
         shader->set_uniform("enable_ssao", phong_ssao);
+
+        // Object-on-object and self shadows: sample the depth map built in _render_shadow_map_pass().
+        // shadow_intensity == 0 disables the effect entirely (unchanged behavior when off / unsupported).
+        if (m_shadow_map_valid && m_shadow_map_texture_id != 0) {
+            glsafe(::glActiveTexture(GL_TEXTURE4));
+            glsafe(::glBindTexture(GL_TEXTURE_2D, m_shadow_map_texture_id));
+            glsafe(::glActiveTexture(GL_TEXTURE0));
+            shader->set_uniform("shadow_map", 4);
+            shader->set_uniform("shadow_light_vp", m_shadow_light_vp);
+            shader->set_uniform("shadow_map_texel", 1.0f / static_cast<float>(m_shadow_map_size));
+            shader->set_uniform("shadow_intensity", 0.35f);
+        }
+        else
+            shader->set_uniform("shadow_intensity", 0.0f);
 
         const Size&   cvn_size = get_canvas_size();
         {
@@ -8232,6 +8416,12 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
         /*if (wxGetApp().plater()->is_wireframe_enabled()) {
             shader->set_uniform("show_wireframe", false);
         }*/
+
+        if (m_shadow_map_valid && m_shadow_map_texture_id != 0) {
+            glsafe(::glActiveTexture(GL_TEXTURE4));
+            glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+            glsafe(::glActiveTexture(GL_TEXTURE0));
+        }
 
         shader->stop_using();
     }

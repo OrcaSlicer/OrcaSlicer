@@ -732,6 +732,12 @@ public:
     std::array<unsigned int, 2> m_ssao_texture_size{ { 0, 0 } };
     GLModel m_plate_shadow_mask;
     std::string m_plate_shadow_mask_key;
+    // Depth-based shadow map used to cast object shadows onto other objects and themselves.
+    unsigned int m_shadow_map_fbo{ 0 };
+    unsigned int m_shadow_map_texture_id{ 0 };
+    unsigned int m_shadow_map_size{ 0 };
+    Transform3d  m_shadow_light_vp{ Transform3d::Identity() };
+    bool         m_shadow_map_valid{ false };
 public:
     explicit GLCanvas3D(wxGLCanvas* canvas, Bed3D &bed);
     ~GLCanvas3D();
@@ -1252,6 +1258,8 @@ private:
     void _render_background();
     void _render_bed(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool show_axes);
     void _render_cast_shadows_on_plate(const Transform3d& view_matrix, const Transform3d& projection_matrix);
+    // Render scene depth from the light's point of view into m_shadow_map_texture_id (fills m_shadow_light_vp).
+    void _render_shadow_map_pass(const Transform3d& view_matrix);
     //BBS: add part plate related logic
     void _render_platelist(const Transform3d& view_matrix, const Transform3d& projection_matrix, bool bottom, bool only_current, bool only_body = false, int hover_id = -1, bool render_cali = false, bool show_grid = true);
     //BBS: add outline drawing logic
