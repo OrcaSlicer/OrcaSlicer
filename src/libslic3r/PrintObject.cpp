@@ -720,6 +720,18 @@ void PrintObject::infill()
                 break;
             }
         }
+        // Fast path: the feature only changes anything when the object is made of more than one
+        // connected body. Detect that cheaply the same way as "Split to objects" — more than one
+        // model part, or a single part whose mesh is splittable (is_splittable() is cached). A single
+        // body already shares the object center, i.e. the default, so skip the connectivity pass.
+        if (needs_separated_components) {
+            int                parts      = 0;
+            const ModelVolume *first_part = nullptr;
+            for (const ModelVolume *v : this->model_object()->volumes)
+                if (v->is_model_part()) { ++ parts; first_part = v; }
+            if (parts <= 1 && ! (first_part != nullptr && first_part->is_splittable()))
+                needs_separated_components = false;
+        }
         for (Layer *layer : m_layers)
             layer->lslices_separated_component_bboxes.clear();
         if (needs_separated_components) {
