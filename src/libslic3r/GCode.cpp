@@ -8502,6 +8502,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
                     // ORCA: Add support for separate internal bridge fan speed control
                     append_role_based_fan_marker(erInternalBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erInternalBridgeInfill);
+                    append_role_based_fan_marker(erWaveBridgeInfill, "_INTERNAL_BRIDGE"sv, path.role() == erWaveBridgeInfill);
                 }
 
                 apply_role_based_fan_speed();
