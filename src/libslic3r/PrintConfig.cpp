@@ -3896,12 +3896,113 @@ void PrintConfigDef::init_fff_params()
 
 
     def = this->add("time_cost", coFloat);
-    def->label = L("Time cost");
+    def->label = L("Total cost");
     def->tooltip = L("The printer cost per hour.");
     def->sidetext = L("money/h");
     def->min     = 0;
     def->mode    = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("printer_power_watts", coFloat);
+    def->label = L("Power consumption");
+    def->tooltip = L("Average power consumption of the printer in watts (W). Used to calculate electricity cost automatically.");
+    def->sidetext = L("W");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("electricity_rate", coFloat);
+    def->label = L("Electricity rate");
+    def->tooltip = L("Cost per kilowatt-hour (kWh) of electricity.");
+    def->sidetext = L("money/kWh");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("printer_purchase_price", coFloat);
+    def->label = L("Purchase price");
+    def->tooltip = L("Original purchase price of the printer. Used to calculate depreciation per print.");
+    def->sidetext = L("money");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("printer_lifetime_hours", coFloat);
+    def->label = L("Expected lifespan");
+    def->tooltip = L("Expected total printing hours before the printer needs replacement.");
+    def->sidetext = L("h");
+    def->min = 1;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(2000));
+
+    def = this->add("maintenance_cost_per_hour", coFloat);
+    def->label = L("Maintenance cost (money/h)");
+    def->tooltip = L("Estimated cost of consumables (nozzles, build plate, lubricant, etc.) averaged per hour of printing.");
+    def->sidetext = L("money/h");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("fixed_cost_per_print", coFloat);
+    def->label = L("Fixed cost per print");
+    def->tooltip = L("Fixed overhead per print job: preparation, post-processing, packaging, etc.");
+    def->sidetext = L("money");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("profit_margin_percent", coFloat);
+    def->label = L("Profit margin");
+    def->tooltip = L("Percentage added on top of total costs as profit margin.");
+    def->sidetext = L("%");
+    def->min = 0;
+    def->max = 1000;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("tax_percent", coFloat);
+    def->label = L("Tax / VAT");
+    def->tooltip = L("Percentage of tax or VAT applied to the final price.");
+    def->sidetext = L("%");
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("failure_rate_percent", coFloat);
+    def->label = L("Print failure rate");
+    def->tooltip = L("Percentage of prints that fail on average. Increases material and electricity costs proportionally.");
+    def->sidetext = L("%");
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("electricity_rate_night", coFloat);
+    def->label = L("Electricity rate (Night)");
+    def->tooltip = L("Cost per kWh during night hours.");
+    def->sidetext = L("money/kWh");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("night_start_hour", coFloat);
+    def->label = L("Night rate start");
+    def->tooltip = L("Hour when night electricity rate begins (0-23). Example: 22 means 10:00 PM.");
+    def->sidetext = L("h");
+    def->min = 0;
+    def->max = 23;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(22));
+
+    def = this->add("night_end_hour", coFloat);
+    def->label = L("Night rate end");
+    def->tooltip = L("Hour when night electricity rate ends (0-23). Example: 6 means 6:00 AM.");
+    def->sidetext = L("h");
+    def->min = 0;
+    def->max = 23;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(6));
 
     // Orca: may remove this option later
     def =this->add("support_chamber_temp_control",coBool);

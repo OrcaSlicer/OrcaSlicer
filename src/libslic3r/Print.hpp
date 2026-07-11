@@ -798,6 +798,15 @@ struct PrintStatistics
     double                          total_weight;
     double                          total_wipe_tower_cost;
     double                          total_wipe_tower_filament;
+    double                          cost_filament;
+    double                          cost_electricity;
+    double                          cost_machine_wear;
+    double                          cost_maintenance;
+    double                          cost_fixed;
+    double                          cost_waste;
+    double                          subtotal_before_margin;
+    double                          cost_margin;
+    double                          cost_tax;
     unsigned int                    initial_tool;
     std::map<size_t, double>        filament_stats;
 
@@ -816,6 +825,15 @@ struct PrintStatistics
         total_weight           = 0.;
         total_wipe_tower_cost  = 0.;
         total_wipe_tower_filament = 0.;
+        cost_filament           = 0.;
+        cost_electricity        = 0.;
+        cost_machine_wear       = 0.;
+        cost_maintenance        = 0.;
+        cost_fixed              = 0.;
+        cost_waste              = 0.;
+        subtotal_before_margin  = 0.;
+        cost_margin             = 0.;
+        cost_tax                = 0.;
         initial_tool           = 0;
         filament_stats.clear();
     }

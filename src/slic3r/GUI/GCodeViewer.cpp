@@ -4003,8 +4003,13 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
     case libvgcode::EViewType::Summary:
     {
         char buf[64];
+        float sum_max_len = window_padding + 2 * ImGui::GetStyle().ItemSpacing.x;
+        sum_max_len += std::max(ImGui::CalcTextSize(_u8L("Total").c_str()).x,
+            std::max(ImGui::CalcTextSize(_u8L("Cost").c_str()).x,
+                     ImGui::CalcTextSize(_u8L("Total time").c_str()).x));
+
         imgui.text(_u8L("Total") + ":");
-        ImGui::SameLine();
+        ImGui::SameLine(sum_max_len);
         const std::string total_weight_text = format_compact_weight(ps.total_weight, imperial_units);
         ::sprintf(buf, imperial_units ? "%.2f in / %s" : "%.2f m / %s", ps.total_used_filament / koef, total_weight_text.c_str());
         imgui.text(buf);
@@ -4012,14 +4017,53 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::Dummy({window_padding, window_padding});
         ImGui::SameLine();
         imgui.text(_u8L("Cost") + ":");
-        ImGui::SameLine();
+        ImGui::SameLine(sum_max_len);
         ::sprintf(buf, "%.2f", ps.total_cost);
         imgui.text(buf);
+
+        if (ps.total_cost > 0. && ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
+
+            float cost_lbl_w = 0.0f;
+            const char* cost_labels[] = {"Filament", "Electricity", "Machine wear", "Maintenance", "Fixed costs", "Failure buffer", "Subtotal", "Margin", "Tax / VAT", "Total"};
+            for (const char* l : cost_labels)
+                cost_lbl_w = std::max(cost_lbl_w, ImGui::CalcTextSize(l).x);
+            float cost_val_x = cost_lbl_w + ImGui::GetStyle().ItemSpacing.x * 2;
+
+            auto cost_row = [&](const char* label, double value, bool total) {
+                ImGui::Text("%s:", label);
+                ImGui::SameLine(cost_val_x);
+                if (total)
+                    ImGui::TextColored(ImVec4(1, 1, 1, 1), "%.2f", value);
+                else
+                    ImGui::Text("%.2f", value);
+            };
+
+            cost_row("Filament",       ps.cost_filament, false);
+            cost_row("Electricity",    ps.cost_electricity, false);
+            cost_row("Machine wear",   ps.cost_machine_wear, false);
+            cost_row("Maintenance",    ps.cost_maintenance, false);
+            cost_row("Fixed costs",    ps.cost_fixed, false);
+            if (ps.cost_waste > 0.)
+                cost_row("Failure buffer", ps.cost_waste, false);
+            ImGui::Separator();
+            cost_row("Subtotal",       ps.subtotal_before_margin, false);
+            if (ps.cost_margin > 0.)
+                cost_row("Margin",         ps.cost_margin, false);
+            if (ps.cost_tax > 0.)
+                cost_row("Tax / VAT",      ps.cost_tax, false);
+            ImGui::Separator();
+            cost_row("Total",          ps.total_cost, true);
+
+            ImGui::PopTextWrapPos();
+            ImGui::EndTooltip();
+        }
 
         ImGui::Dummy({window_padding, window_padding});
         ImGui::SameLine();
         imgui.text(_u8L("Total time") + ":");
-        ImGui::SameLine();
+        ImGui::SameLine(sum_max_len);
         imgui.text(short_time(get_time_dhms(time_mode.time)));
         break;
     }
@@ -4155,13 +4199,48 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         ImGui::SameLine();
         imgui.text(format_compact_count(m_print_statistics.total_extruder_changes));
 
-        //BBS display cost
-        ImGui::Dummy({ window_padding, window_padding });
-        ImGui::SameLine();
-        imgui.text(_u8L("Cost")+":");
-        ImGui::SameLine();
-        ::sprintf(buf, "%.2f", ps.total_cost);
-        imgui.text(buf);
+        //BBS display cost breakdown
+        {
+            ImGui::Dummy({ window_padding, window_padding });
+            ImGui::SameLine();
+            imgui.text(_u8L("Cost") + ":");
+            ImGui::SameLine();
+            ::sprintf(buf, "%.2f", ps.total_cost);
+            imgui.text(buf);
+
+            if (ps.total_cost > 0. && ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
+
+                float cw = 0.0f;
+                const char* cls[] = {"Filament", "Electricity", "Machine wear", "Maintenance", "Fixed costs", "Failure buffer", "Subtotal", "Margin", "Tax / VAT", "Total"};
+                for (const char* l : cls) cw = std::max(cw, ImGui::CalcTextSize(l).x);
+                float cvx = cw + ImGui::GetStyle().ItemSpacing.x * 2;
+
+                auto crow = [&](const char* label, double value, bool total) {
+                    ImGui::Text("%s:", label);
+                    ImGui::SameLine(cvx);
+                    if (total) ImGui::TextColored(ImVec4(1, 1, 1, 1), "%.2f", value);
+                    else ImGui::Text("%.2f", value);
+                };
+
+                crow("Filament",       ps.cost_filament, false);
+                crow("Electricity",    ps.cost_electricity, false);
+                crow("Machine wear",   ps.cost_machine_wear, false);
+                crow("Maintenance",    ps.cost_maintenance, false);
+                crow("Fixed costs",    ps.cost_fixed, false);
+                if (ps.cost_waste > 0.) crow("Failure buffer", ps.cost_waste, false);
+                ImGui::Separator();
+                crow("Subtotal",       ps.subtotal_before_margin, false);
+                if (ps.cost_margin > 0.) crow("Margin", ps.cost_margin, false);
+                if (ps.cost_tax > 0.) crow("Tax / VAT", ps.cost_tax, false);
+                ImGui::Separator();
+                crow("Total",          ps.total_cost, true);
+
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
+            }
+        }
 
         break;
     }
@@ -4616,13 +4695,48 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         imgui.text(buf);
         ImGui::SameLine();
         imgui.text("  " + format_compact_weight(ps.total_weight - exlude_g, imperial_units));
-        //BBS: display cost of filaments
-        ImGui::Dummy({ window_padding, window_padding });
-        ImGui::SameLine();
-        imgui.text(cost_str + ":");
-        ImGui::SameLine(max_len);
-        ::sprintf(buf, "%.2f", ps.total_cost);
-        imgui.text(buf);
+        //BBS: display cost breakdown
+        {
+            ImGui::Dummy({ window_padding, window_padding });
+            ImGui::SameLine();
+            imgui.text(cost_str + ":");
+            ImGui::SameLine(max_len);
+            ::sprintf(buf, "%.2f", ps.total_cost);
+            imgui.text(buf);
+
+            if (ps.total_cost > 0. && ImGui::IsItemHovered()) {
+                ImGui::BeginTooltip();
+                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 20.0f);
+
+                float cw = 0.0f;
+                const char* cls[] = {"Filament", "Electricity", "Machine wear", "Maintenance", "Fixed costs", "Failure buffer", "Subtotal", "Margin", "Tax / VAT", "Total"};
+                for (const char* l : cls) cw = std::max(cw, ImGui::CalcTextSize(l).x);
+                float cvx = cw + ImGui::GetStyle().ItemSpacing.x * 2;
+
+                auto crow = [&](const char* label, double value, bool total) {
+                    ImGui::Text("%s:", label);
+                    ImGui::SameLine(cvx);
+                    if (total) ImGui::TextColored(ImVec4(1, 1, 1, 1), "%.2f", value);
+                    else ImGui::Text("%.2f", value);
+                };
+
+                crow("Filament",       ps.cost_filament, false);
+                crow("Electricity",    ps.cost_electricity, false);
+                crow("Machine wear",   ps.cost_machine_wear, false);
+                crow("Maintenance",    ps.cost_maintenance, false);
+                crow("Fixed costs",    ps.cost_fixed, false);
+                if (ps.cost_waste > 0.) crow("Failure buffer", ps.cost_waste, false);
+                ImGui::Separator();
+                crow("Subtotal",       ps.subtotal_before_margin, false);
+                if (ps.cost_margin > 0.) crow("Margin", ps.cost_margin, false);
+                if (ps.cost_tax > 0.) crow("Tax / VAT", ps.cost_tax, false);
+                ImGui::Separator();
+                crow("Total",          ps.total_cost, true);
+
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
+            }
+        }
     }
     //BBS: start gcode is mostly same with prepeare time
     if (time_mode.prepare_time != 0.0f) {

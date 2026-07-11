@@ -4818,6 +4818,7 @@ void TabPrinter::build()
 
 void TabPrinter::build_fff()
 {
+    BOOST_LOG_TRIVIAL(debug) << "build_fff() enter, m_config=" << (m_config ? "valid" : "null");
     if (!m_pages.empty())
         m_pages.resize(0);
     // to avoid redundant memory allocation / deallocation during extruders count changing
@@ -4909,6 +4910,21 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("use_firmware_retraction", "printer_basic_information_advanced#use-firmware-retraction");
         // optgroup->append_single_option_line("spaghetti_detector");
         optgroup->append_single_option_line("time_cost", "printer_basic_information_advanced#time-cost");
+
+        BOOST_LOG_TRIVIAL(debug) << "build_fff() creating Cost calculation optgroup";
+        optgroup = page->new_optgroup(L("Cost calculation"), "param_cost_calculation");
+        optgroup->append_single_option_line("printer_power_watts", "printer_basic_information_advanced#printer-power-watts");
+        optgroup->append_single_option_line("electricity_rate", "printer_basic_information_advanced#electricity-rate");
+        optgroup->append_single_option_line("electricity_rate_night", "printer_basic_information_advanced#electricity-rate-night");
+        optgroup->append_single_option_line("night_start_hour", "printer_basic_information_advanced#night-start-hour");
+        optgroup->append_single_option_line("night_end_hour", "printer_basic_information_advanced#night-end-hour");
+        optgroup->append_single_option_line("printer_purchase_price", "printer_basic_information_advanced#printer-purchase-price");
+        optgroup->append_single_option_line("printer_lifetime_hours", "printer_basic_information_advanced#printer-lifetime-hours");
+        optgroup->append_single_option_line("maintenance_cost_per_hour", "printer_basic_information_advanced#maintenance-cost-per-hour");
+        optgroup->append_single_option_line("fixed_cost_per_print", "printer_basic_information_advanced#fixed-cost-per-print");
+        optgroup->append_single_option_line("failure_rate_percent", "printer_basic_information_advanced#failure-rate-percent");
+        optgroup->append_single_option_line("profit_margin_percent", "printer_basic_information_advanced#profit-margin-percent");
+        optgroup->append_single_option_line("tax_percent", "printer_basic_information_advanced#tax-percent");
 
         optgroup  = page->new_optgroup(L("Cooling Fan"), "param_cooling_fan");
         Line line = Line{ L("Fan speed-up time"), optgroup->get_option("fan_speedup_time").opt.tooltip };

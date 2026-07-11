@@ -4930,6 +4930,10 @@ msgstr "Extrusor"
 msgid "Cost"
 msgstr "Coste"
 
+msgid "Cost calculation"
+msgstr "Cálculo de costos"
+
+
 msgid "Filament change times"
 msgstr "Tiempos de cambio de filamento"
 
@@ -13512,14 +13516,97 @@ msgstr ""
 msgid "%"
 msgstr "%"
 
-msgid "Time cost"
-msgstr "Coste monetario por hora"
-
 msgid "The printer cost per hour."
 msgstr "Costo por hora de la impresora."
 
 msgid "money/h"
 msgstr "dinero/hora"
+# Printer cost module
+msgid "Power consumption"
+msgstr "Consumo de energía"
+
+msgid "Average power consumption of the printer in watts (W). Used to calculate electricity cost automatically."
+msgstr "Consumo promedio de energía de la impresora en vatios (W). Se utiliza para calcular automáticamente el costo de electricidad."
+
+msgid "W"
+msgstr "W"
+
+msgid "Electricity rate"
+msgstr "Tarifa eléctrica"
+
+msgid "Cost per kilowatt-hour (kWh) of electricity."
+msgstr "Costo por kilovatio-hora (kWh) de electricidad."
+
+msgid "money/kWh"
+msgstr "moneda/kWh"
+
+msgid "Purchase price"
+msgstr "Precio de compra"
+
+msgid "Original purchase price of the printer. Used to calculate depreciation per print."
+msgstr "Precio de compra original de la impresora. Se utiliza para calcular la depreciación por impresión."
+
+msgid "money"
+msgstr "moneda"
+
+msgid "Expected lifespan"
+msgstr "Vida útil esperada"
+
+msgid "Expected total printing hours before the printer needs replacement."
+msgstr "Horas totales de impresión esperadas antes de que la impresora necesite reemplazo."
+
+msgid "h"
+msgstr "h"
+
+msgid "Maintenance cost (money/h)"
+msgstr "Costo de mantenimiento (moneda/h)"
+
+msgid "Estimated cost of consumables (nozzles, build plate, lubricant, etc.) averaged per hour of printing."
+msgstr "Costo estimado de consumibles (boquillas, plataforma de construcción, lubricante, etc.) promediado por hora de impresión."
+
+msgid "Fixed cost per print"
+msgstr "Costo fijo por impresión"
+
+msgid "Fixed overhead per print job: preparation, post-processing, packaging, etc."
+msgstr "Gastos generales fijos por trabajo de impresión: preparación, post-procesamiento, embalaje, etc."
+
+msgid "Profit margin"
+msgstr "Margen de beneficio"
+
+msgid "Percentage added on top of total costs as profit margin."
+msgstr "Porcentaje añadido sobre los costos totales como margen de beneficio."
+
+msgid "Tax / VAT"
+msgstr "Impuesto / IVA"
+
+msgid "Percentage of tax or VAT applied to the final price."
+msgstr "Porcentaje de impuesto o IVA aplicado al precio final."
+
+msgid "Print failure rate"
+msgstr "Tasa de fallo de impresión"
+
+msgid "Percentage of prints that fail on average. Increases material and electricity costs proportionally."
+msgstr "Porcentaje de impresiones que fallan en promedio. Aumenta los costos de material y electricidad proporcionalmente."
+
+msgid "Electricity rate (Night)"
+msgstr "Tarifa eléctrica (Nocturna)"
+
+msgid "Cost per kWh during night hours."
+msgstr "Costo por kWh durante horas nocturnas."
+
+msgid "Night rate start"
+msgstr "Inicio tarifa nocturna"
+
+msgid "Hour when night electricity rate begins (0-23). Example: 22 means 10:00 PM."
+msgstr "Hora en que comienza la tarifa nocturna (0-23). Ejemplo: 22 significa 10:00 PM."
+
+msgid "Night rate end"
+msgstr "Fin tarifa nocturna"
+
+msgid "Hour when night electricity rate ends (0-23). Example: 6 means 6:00 AM."
+msgstr "Hora en que termina la tarifa nocturna (0-23). Ejemplo: 6 significa 6:00 AM."
+
+
 
 msgid "Support controlling chamber temperature"
 msgstr "Función de control de temperatura de cámara"

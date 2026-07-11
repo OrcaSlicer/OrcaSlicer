@@ -114,7 +114,10 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 {
 	try{
 
-        if (config.def()->get(opt_key)->type == coBools && config.def()->get(opt_key)->nullable) {
+        const ConfigOptionDef *opt_def_check = config.def()->get(opt_key);
+        if (opt_def_check == nullptr)
+            return;
+        if (opt_def_check->type == coBools && opt_def_check->nullable) {
             const auto v = boost::any_cast<unsigned char>(value);
             auto vec_new = std::make_unique<ConfigOptionBoolsNullable>(1, v);
             if (v == ConfigOptionBoolsNullable::nil_value()) {
@@ -125,8 +128,7 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
             return;
         }
 
-        const ConfigOptionDef *opt_def = config.def()->get(opt_key);
-		switch (opt_def->type) {
+		switch (opt_def_check->type) {
 		case coFloatOrPercent:{
 			std::string str = boost::any_cast<std::string>(value);
 			bool percent = false;
@@ -146,23 +148,28 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 			}
             double val = std::stod(str); // locale-dependent (on purpose - the input is the actual content of the field)
             auto   vec_new = std::make_unique<ConfigOptionFloatOrPercent>(val, percent);
+            if (!config.has(opt_key))
+                config.set_key_value(opt_key, new ConfigOptionFloatsOrPercents());
             config.option<ConfigOptionFloatsOrPercents>(opt_key)->set_at(vec_new.get(), opt_index, opt_index);
 			break;}
 		case coPercent:
 			config.set_key_value(opt_key, new ConfigOptionPercent(boost::any_cast<double>(value)));
 			break;
 		case coFloat:{
-			double& val = config.opt_float(opt_key);
-			val = boost::any_cast<double>(value);
+			config.set_key_value(opt_key, new ConfigOptionFloat(boost::any_cast<double>(value)));
 			break;
 		}
 		case coPercents:{
             auto vec_new = std::make_unique <ConfigOptionPercent>(boost::any_cast<double>(value));
+            if (!config.has(opt_key))
+                config.set_key_value(opt_key, new ConfigOptionPercents());
 			config.option<ConfigOptionPercents>(opt_key)->set_at(vec_new.get(), opt_index, opt_index);
 			break;
 		}
 		case coFloats:{
             auto vec_new = std::make_unique<ConfigOptionFloat>(boost::any_cast<double>(value));
+            if (!config.has(opt_key))
+                config.set_key_value(opt_key, new ConfigOptionFloats());
 			config.option<ConfigOptionFloats>(opt_key)->set_at(vec_new.get(), opt_index, opt_index);
  			break;
 		}
@@ -170,6 +177,8 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 			config.set_key_value(opt_key, new ConfigOptionString(boost::any_cast<std::string>(value)));
 			break;
 		case coStrings:{
+			if (!config.has(opt_key))
+				config.set_key_value(opt_key, new ConfigOptionStrings());
 			if (opt_key == "compatible_prints" || opt_key == "compatible_printers") {
 				config.option<ConfigOptionStrings>(opt_key)->values =
 					boost::any_cast<std::vector<std::string>>(value);
@@ -198,6 +207,8 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 			break;
 		case coBools:{
             auto vec_new = std::make_unique<ConfigOptionBool>(boost::any_cast<unsigned char>(value) != 0);
+            if (!config.has(opt_key))
+                config.set_key_value(opt_key, new ConfigOptionBools());
 			config.option<ConfigOptionBools>(opt_key)->set_at(vec_new.get(), opt_index, 0);
 			break;}
 		case coInt:
@@ -205,11 +216,13 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 			break;
 		case coInts:{
             auto vec_new = std::make_unique<ConfigOptionInt>(boost::any_cast<int>(value));
+            if (!config.has(opt_key))
+                config.set_key_value(opt_key, new ConfigOptionInts());
 			config.option<ConfigOptionInts>(opt_key)->set_at(vec_new.get(), opt_index, 0);
 			}
 			break;
 		case coEnum:{
-			auto *opt = opt_def->default_value.get()->clone();
+			auto *opt = opt_def_check->default_value.get()->clone();
 			opt->setInt(boost::any_cast<int>(value));
 			config.set_key_value(opt_key, opt);
 			}
@@ -226,6 +239,8 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 			}
 			break;
 		case coPoints:{
+			if (!config.has(opt_key))
+				config.set_key_value(opt_key, new ConfigOptionPoints());
 			if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "thumbnails" || opt_key == "wrapping_exclude_area" ) {
 				config.option<ConfigOptionPoints>(opt_key)->values = boost::any_cast<std::vector<Vec2d>>(value);
 				break;

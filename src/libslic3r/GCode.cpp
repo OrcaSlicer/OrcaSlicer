@@ -1931,7 +1931,104 @@ namespace DoExport {
             total_cost          += weight * extruder->filament_cost() * 0.001;
         }
 
-        total_cost += config.time_cost.getFloat() * (normal_print_time/3600.0);
+        double hours           = normal_print_time / 3600.0;
+        double filament_only   = total_cost;
+
+        total_cost += config.time_cost.getFloat() * hours;
+
+        double kw             = config.printer_power_watts.getFloat() / 1000.0;
+        {
+            auto *night_rate_opt = config.option<ConfigOptionFloat>("electricity_rate_night");
+            double night_rate = (night_rate_opt != nullptr) ? night_rate_opt->getFloat() : 0.0;
+            if (night_rate == 0.0) {
+                // Fallback: single rate (backward compatible with old .3mf projects)
+                print_statistics.cost_electricity =
+                    kw * hours * config.electricity_rate.getFloat();
+            } else {
+                double day_rate       = config.electricity_rate.getFloat();
+
+                time_t now = Slic3r::Utils::get_current_time_utc();
+                struct tm local_tm;
+#ifdef _WIN32
+                localtime_s(&local_tm, &now);
+#else
+                localtime_r(&now, &local_tm);
+#endif
+                double print_start = local_tm.tm_hour + (local_tm.tm_min / 60.0);
+
+                auto *night_start_opt = config.option<ConfigOptionFloat>("night_start_hour");
+                auto *night_end_opt   = config.option<ConfigOptionFloat>("night_end_hour");
+                double night_start = (night_start_opt != nullptr) ? night_start_opt->getFloat() : 22.0;
+                double night_end   = (night_end_opt   != nullptr) ? night_end_opt->getFloat()   : 6.0;
+
+                // Normalize night window: handle wrap-around (e.g., 22:00 to 06:00)
+                double n_start = night_start;
+                double n_end   = (night_end > night_start) ? night_end : night_end + 24.0;
+                double n_len   = n_end - n_start;
+
+                // Linear timeline from print start
+                double p_start = print_start;
+                double p_end   = print_start + hours;
+
+                // Position first night window before or at print start
+                double win = n_start;
+                while (win + n_len < p_start)
+                    win += 24.0;
+                while (win > p_start + n_len && win > 24.0)
+                    win -= 24.0;
+
+                // Sum night hours across all overlapping night windows
+                double night_hours = 0.0;
+                while (win < p_end) {
+                    double o_start = std::max(win, p_start);
+                    double o_end   = std::min(win + n_len, p_end);
+                    if (o_end > o_start)
+                        night_hours += o_end - o_start;
+                    win += 24.0;
+                }
+
+                double day_hours = hours - night_hours;
+                if (day_hours < 0.0) day_hours = 0.0;
+                print_statistics.cost_electricity =
+                    kw * (day_hours * day_rate + night_hours * night_rate);
+            }
+        }
+
+        double lifetime       = config.printer_lifetime_hours.getFloat();
+        double wear_per_hour  = (lifetime > 0)
+            ? config.printer_purchase_price.getFloat() / lifetime
+            : 0.0;
+        print_statistics.cost_machine_wear = wear_per_hour * hours;
+
+        print_statistics.cost_maintenance =
+            config.maintenance_cost_per_hour.getFloat() * hours;
+
+        print_statistics.cost_fixed =
+            config.fixed_cost_per_print.getFloat();
+
+        print_statistics.cost_filament = filament_only;
+
+        double base_cost = filament_only
+            + config.time_cost.getFloat() * hours
+            + print_statistics.cost_electricity
+            + print_statistics.cost_machine_wear
+            + print_statistics.cost_maintenance
+            + print_statistics.cost_fixed;
+
+        double failure_factor = 1.0 + (config.failure_rate_percent.getFloat() / 100.0);
+        print_statistics.cost_waste = base_cost * (failure_factor - 1.0);
+        base_cost *= failure_factor;
+
+        print_statistics.subtotal_before_margin = base_cost;
+
+        print_statistics.cost_margin =
+            base_cost * (config.profit_margin_percent.getFloat() / 100.0);
+
+        double with_margin = base_cost + print_statistics.cost_margin;
+        print_statistics.cost_tax =
+            with_margin * (config.tax_percent.getFloat() / 100.0);
+
+        total_cost = with_margin + print_statistics.cost_tax;
 
         print_statistics.total_extruded_volume = total_extruded_volume;
         print_statistics.total_used_filament   = total_used_filament;
