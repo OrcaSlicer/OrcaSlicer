@@ -13,6 +13,36 @@
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
+TEST_CASE("Prime-tower tool changes honor idle temperature", "[GCodeWriter][Regression]")
+{
+    const std::string gcode = slice({ cube(20) },
+        multifilament_config(2, {
+            { "nozzle_diameter",                    "0.4,0.4" },
+            { "printer_extruder_id",                "1,2" },
+            { "filament_map",                       "1,1" },
+            { "single_extruder_multi_material",     "0" },
+            { "enable_prime_tower",                 "1" },
+            { "wipe_tower_x",                       "165" },
+            { "wipe_tower_y",                       "250" },
+            { "prime_tower_width",                  "20" },
+            { "ooze_prevention",                    "1" },
+            { "idle_temperature",                   "150,160" },
+            { "preheat_time",                       "0" },
+            { "nozzle_temperature",                 "220,230" },
+            { "nozzle_temperature_initial_layer",   "220,230" },
+            { "sparse_infill_filament_id",          "2" },
+            { "internal_solid_infill_filament_id",  "2" },
+            { "top_surface_filament_id",            "2" },
+            { "bottom_surface_filament_id",         "2" },
+            { "outer_wall_filament_id",             "1" },
+            { "inner_wall_filament_id",             "1" },
+            { "skirt_loops",                        "0" },
+            { "brim_type",                          "no_brim" },
+        }));
+
+    REQUIRE_THAT(gcode, Catch::Matchers::ContainsSubstring("M104 S150 T0 ; set nozzle temperature ;cooldown"));
+}
+
 SCENARIO("set_speed emits values with fixed-point output.", "[GCodeWriter]") {
 
     GIVEN("GCodeWriter instance") {
