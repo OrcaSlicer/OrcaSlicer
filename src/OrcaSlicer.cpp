@@ -24,6 +24,8 @@
 #include <iostream>
 #include <math.h>
 #include <csignal>
+#include <set>
+#include <algorithm>
 
 #if defined(__linux__) || defined(__LINUX__)
 #include <condition_variable>
@@ -1956,7 +1958,49 @@ int CLI::run(int argc, char **argv)
         }
     }
 
-    auto load_config_file = [config_substitution_rule](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
+    // Orca CLI issue: `--load-settings`/`--load-filaments` load a single JSON file verbatim and
+    // never resolve its "inherits" chain, unlike the GUI's PresetBundle-backed preset selection.
+    // Any option absent from the leaf file therefore silently falls back to the option's hardcoded
+    // ConfigOptionDef default instead of the value defined by its ancestor profile(s) - producing
+    // wrong speeds/acceleration/etc. for any profile that relies on inheritance (which is the norm
+    // for BBL profiles: e.g. "0.20mm Standard @BBL A1M" -> "fdm_process_single_0.20" ->
+    // "fdm_process_single_common" -> "fdm_process_common"). Walk the chain ourselves, scoped to the
+    // same directory as the leaf file (this also avoids ambiguity between same-named base profiles
+    // that exist per-vendor, e.g. every vendor ships its own "fdm_process_common.json").
+    auto resolve_inherits_chain = [](const std::string& file) -> std::vector<std::string> {
+        std::vector<std::string> chain;
+        std::set<std::string> visited;
+        boost::filesystem::path dir = boost::filesystem::path(file).parent_path();
+        std::string current = file;
+        while (true) {
+            json j;
+            try {
+                boost::nowide::ifstream ifs(current);
+                if (! ifs.good())
+                    break;
+                ifs >> j;
+            } catch (...) {
+                break;
+            }
+            auto it = j.find(BBL_JSON_KEY_INHERITS);
+            if (it == j.end() || ! it->is_string())
+                break;
+            std::string parent_name = it->get<std::string>();
+            if (parent_name.empty())
+                break;
+            boost::filesystem::path parent_path = dir / (parent_name + ".json");
+            std::string parent_str = parent_path.string();
+            if (! boost::filesystem::exists(parent_path) || visited.count(parent_str))
+                break; // missing file or inherits cycle: stop rather than fail the whole load
+            visited.insert(parent_str);
+            chain.push_back(parent_str);
+            current = parent_str;
+        }
+        std::reverse(chain.begin(), chain.end()); // root-first, so callers can apply parents before the leaf
+        return chain;
+    };
+
+    auto load_config_file = [config_substitution_rule, resolve_inherits_chain](const std::string& file, DynamicPrintConfig& config, std::string& config_type,
                                 std::string& config_name, std::string& filament_id, std::string& config_from) {
         if (! boost::filesystem::exists(file)) {
             boost::nowide::cerr << __FUNCTION__<< ": can not find setting file: " << file << std::endl;
@@ -1964,6 +2008,15 @@ int CLI::run(int argc, char **argv)
         }
         ConfigSubstitutions config_substitutions;
         try {
+            for (const std::string& ancestor_file : resolve_inherits_chain(file)) {
+                std::map<std::string, std::string> ancestor_key_values;
+                std::string ancestor_reason;
+                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":load ancestor setting file " << ancestor_file << " (inherited by " << file << ")" << std::endl;
+                config.load_from_json(ancestor_file, config_substitution_rule, ancestor_key_values, ancestor_reason);
+                if (! ancestor_reason.empty())
+                    BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ":Can not load ancestor config from file " << ancestor_file << "\n";
+            }
+
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__<< ":load setting file "<< file << ", with rule "<< config_substitution_rule << std::endl;
             std::map<std::string, std::string> key_values;
             std::string reason;
