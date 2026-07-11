@@ -1600,6 +1600,7 @@ TabPresetComboBox::TabPresetComboBox(wxWindow* parent, Preset::Type preset_type)
     // BBS: new layout
     PresetComboBox(parent, preset_type, wxSize(20 * wxGetApp().em_unit(), 30 * wxGetApp().em_unit() / 10))
 {
+    GetDropDown().SetUseContentWidth(true,true);
 }
 
 void TabPresetComboBox::OnSelect(wxCommandEvent &evt)

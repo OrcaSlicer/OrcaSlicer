@@ -19,6 +19,7 @@
 #include "Widgets/Label.hpp"
 #include "Widgets/Button.hpp"
 #include "Widgets/CheckBox.hpp"
+#include "Widgets/DialogButtons.hpp"
 #include "CapsuleButton.hpp"
 #include "PrePrintChecker.hpp"
 
@@ -37,7 +38,7 @@ using namespace Slic3r::GUI;
 #define SyncAmsInfoDialogWidth  FromDIP(675)
 #define SyncAmsInfoDialogHeightMIN FromDIP(620)
 #define SyncAmsInfoDialogHeightMIDDLE FromDIP(630)
-#define SyncAmsInfoDialogHeightMAX FromDIP(660)
+#define SyncAmsInfoDialogHeightMAX FromDIP(700)
 #define SyncLabelWidth FromDIP(640)
 #define SyncAttentionTipWidth FromDIP(550)
 namespace Slic3r { namespace GUI {
@@ -282,14 +283,14 @@ wxBoxSizer *SyncAmsInfoDialog::create_sizer_thumbnail(wxButton *image_button, bo
     if (left) {
         wxBoxSizer *text_sizer = new wxBoxSizer(wxHORIZONTAL);
         auto        sync_text  = new Label(image_button->GetParent(), _CTX(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS"));
-        sync_text->SetForegroundColour(wxColour(107, 107, 107, 100));
+        sync_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
         text_sizer->Add(sync_text, 0, wxALIGN_CENTER | wxALL, 0);
         sizer_thumbnail->Add(sync_text, FromDIP(0), wxALIGN_CENTER | wxALL, FromDIP(4));
     }
     else {
         wxBoxSizer *text_sizer = new wxBoxSizer(wxHORIZONTAL);
         m_after_map_text       = new Label(image_button->GetParent(), _L("After mapping"));
-        m_after_map_text->SetForegroundColour(wxColour(107, 107, 107, 100));
+        m_after_map_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
         text_sizer->Add(m_after_map_text, 0, wxALIGN_CENTER | wxALL, 0);
         sizer_thumbnail->Add(m_after_map_text, FromDIP(0), wxALIGN_CENTER | wxALL, FromDIP(4));
     }
@@ -655,10 +656,6 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
     // font
     SetFont(wxGetApp().normal_font());
 
-    // icon
-    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % resources_dir()).str();
-    SetIcon(wxIcon(encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
-
     Freeze();
     SetBackgroundColour(m_colour_def_color);
 
@@ -733,7 +730,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         m_colormap_btn->Bind(wxEVT_BUTTON, &SyncAmsInfoDialog::update_when_change_map_mode,this); // update_when_change_map_mode(e.GetSelection());
         m_override_btn->Bind(wxEVT_BUTTON, &SyncAmsInfoDialog::update_when_change_map_mode,this);
 
-        bSizer->Add(m_mode_combox_sizer, FromDIP(0), wxEXPAND | wxTOP, FromDIP(10));
+        bSizer->Add(m_mode_combox_sizer, FromDIP(0), wxEXPAND | wxTOP | wxBOTTOM, FromDIP(10));
     }
 
     m_basic_panel = new wxPanel(m_scrolledWindow, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
@@ -847,8 +844,8 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
 
     sizer_advanced_options_title = new wxBoxSizer(wxHORIZONTAL);
     auto advanced_options_title  = new Label(m_scrolledWindow, _L("Advanced Options"));
-    advanced_options_title->SetFont(::Label::Body_13);
-    advanced_options_title->SetForegroundColour(wxColour(38, 46, 48));
+    advanced_options_title->SetFont(::Label::Head_14); // ORCA
+    advanced_options_title->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
 
     sizer_advanced_options_title->Add(0, 0, 1, wxEXPAND, 0);
     sizer_advanced_options_title->Add(advanced_options_title, 0, wxALIGN_CENTER, 0);
@@ -914,13 +911,15 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
     {//new content//tip confirm ok button
         wxBoxSizer *tip_sizer = new wxBoxSizer(wxHORIZONTAL);
         m_attention_text      = new wxStaticText(m_scrolledWindow, wxID_ANY, _L("Tip") + ": ");
+        m_attention_text->SetFont(::Label::Head_14);
+        m_attention_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#009688"))); // ORCA match label colors
         tip_sizer->Add(m_attention_text, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
         m_tip_attention_color_map = _L("Only synchronize filament type and color, not including AMS slot information.");
         m_tip_attention_override  = _L("Replace the project filaments list sequentially based on printer filaments. And unused printer filaments will be automatically added to the end of the list.");
         m_tip_text = new Label(m_scrolledWindow, m_tip_attention_color_map, LB_AUTO_WRAP);
         m_tip_text->SetMinSize(wxSize(SyncAttentionTipWidth, -1));
         m_tip_text->SetMaxSize(wxSize(SyncAttentionTipWidth, -1));
-        m_tip_text->SetForegroundColour(wxColour(107, 107, 107, 100));
+        m_tip_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
         tip_sizer->Add(m_tip_text, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
         tip_sizer->AddSpacer(FromDIP(20));
         bSizer->Add(tip_sizer, 0, wxEXPAND | wxLEFT, FromDIP(25));
@@ -931,7 +930,8 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
 
         m_advace_setting_sizer         = new wxBoxSizer(wxHORIZONTAL);
         m_more_setting_tips    = new wxStaticText(m_scrolledWindow, wxID_ANY, _L("Advanced settings"));
-        m_more_setting_tips->SetForegroundColour(wxColour(0, 137, 123));
+        m_more_setting_tips->SetFont(::Label::Head_14); // ORCA
+        m_more_setting_tips->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
         m_more_setting_tips->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
             m_expand_more_settings = !m_expand_more_settings;
             update_more_setting(true,true);
@@ -959,6 +959,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         m_append_color_sizer->Add(m_append_color_checkbox, 0, wxALIGN_LEFT | wxTOP, FromDIP(4));
         const int gap_between_checebox_and_text = 2;
         m_append_color_text                     = new Label(m_scrolledWindow, _L("Add unused AMS filaments to filaments list."));
+        m_append_color_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
         m_append_color_text->Hide();
         m_append_color_sizer->AddSpacer(FromDIP(gap_between_checebox_and_text));
         m_append_color_sizer->Add(m_append_color_text, 0, wxALIGN_LEFT | wxTOP, FromDIP(4));
@@ -981,6 +982,7 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
 
 
         m_merge_color_text = new Label(m_scrolledWindow, _L("Automatically merge the same colors in the model after mapping."));
+        m_merge_color_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
         m_merge_color_text->Hide();
         m_merge_color_sizer->AddSpacer(FromDIP(gap_between_checebox_and_text));
         m_merge_color_sizer->Add(m_merge_color_text, 0, wxALIGN_LEFT | wxTOP, FromDIP(2));
@@ -994,17 +996,19 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         m_override_undone_str = _L("After being synced, this action cannot be undone.");
         m_undone_str = _L("After being synced, the project's filament presets and colors will be replaced with the mapped filament types and colors. This action cannot be undone.");
         m_confirm_title = new Label(m_scrolledWindow, m_undone_str, LB_AUTO_WRAP);
+        m_confirm_title->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
         m_confirm_title->SetMinSize(wxSize(SyncLabelWidth, -1));
         m_confirm_title->SetMaxSize(wxSize(SyncLabelWidth, -1));
-        confirm_boxsizer->Add(m_confirm_title, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL | wxTOP | wxRIGHT, FromDIP(10));
+        confirm_boxsizer->Add(m_confirm_title, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL | wxTOP | wxRIGHT | wxBOTTOM, FromDIP(10));
         m_are_you_sure_title = new wxStaticText(m_scrolledWindow, wxID_ANY, _L("Are you sure to synchronize the filaments?"));
+        m_are_you_sure_title->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
         //m_are_you_sure_title->SetFont(Label::Head_14);
         confirm_boxsizer->Add(m_are_you_sure_title, 0, wxALIGN_LEFT  | wxTOP, FromDIP(0));
         bSizer->Add(confirm_boxsizer, 0, wxALIGN_LEFT | wxLEFT , FromDIP(25));
 
         wxBoxSizer *warning_sizer = new wxBoxSizer(wxHORIZONTAL);
         m_warning_text            = new wxStaticText(m_scrolledWindow, wxID_ANY, _L("Error") + ":");
-        m_warning_text->SetForegroundColour(wxColour(107, 107, 107, 100));
+        m_warning_text->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
         m_warning_text->Hide();
         warning_sizer->Add(m_warning_text, 0, wxALIGN_CENTER | wxTOP, FromDIP(2));
         bSizer->Add(warning_sizer, 0, wxEXPAND | wxLEFT, FromDIP(25));
@@ -1012,46 +1016,22 @@ SyncAmsInfoDialog::SyncAmsInfoDialog(wxWindow *parent, SyncInfo &info) :
         m_scrolledWindow->SetSizerAndFit(m_sizer_main);
         m_sizer_show_page->Add(m_scrolledWindow, 1, wxEXPAND, 0);
 
-        wxBoxSizer *bSizer_button = new wxBoxSizer(wxHORIZONTAL);
-        bSizer_button->SetMinSize(wxSize(FromDIP(100), -1));
-        /* m_checkbox = new wxCheckBox(this, wxID_ANY, _L("Don't show again"), wxDefaultPosition, wxDefaultSize, 0);
-         bSizer_button->Add(m_checkbox, 0, wxALIGN_LEFT);*/
-        bSizer_button->AddStretchSpacer(1);
-        StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                                std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Normal));
-        m_button_ok = new Button(m_show_page,  _L("Synchronize now"));
-        m_button_ok->SetBackgroundColor(btn_bg_green);
-        m_button_ok->SetBorderColor(*wxWHITE);
-        m_button_ok->SetTextColor(wxColour("#FFFFFE"));
-        m_button_ok->SetFont(Label::Body_12);
-        m_button_ok->SetSize(OK_BUTTON_SIZE);
-        m_button_ok->SetMinSize(OK_BUTTON_SIZE);
-        m_button_ok->SetCornerRadius(FromDIP(12));
-        bSizer_button->Add(m_button_ok, 0, wxALIGN_RIGHT | wxLEFT | wxTOP, FromDIP(10));
-
+        auto* dlg_btns = new DialogButtons(m_show_page, {"OK", "Cancel"});
+        m_button_ok = dlg_btns->GetOK();
+        m_button_ok->SetLabel(_L("Synchronize now"));
         m_button_ok->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](wxCommandEvent &e) {
             deal_ok();
             EndModal(wxID_YES);
             SetFocusIgnoringChildren();
         });
 
-        StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed), std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-                                std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-
-        m_button_cancel = new Button(m_show_page, m_input_info.cancel_text_to_later ? _L("Later") : _L("Cancel"));
-        m_button_cancel->SetBackgroundColor(btn_bg_white);
-        m_button_cancel->SetBorderColor(wxColour(38, 46, 48));
-        m_button_cancel->SetFont(Label::Body_12);
-        m_button_cancel->SetSize(CANCEL_BUTTON_SIZE);
-        m_button_cancel->SetMinSize(CANCEL_BUTTON_SIZE);
-        m_button_cancel->SetCornerRadius(FromDIP(12));
-        bSizer_button->Add(m_button_cancel, 0, wxALIGN_RIGHT | wxLEFT | wxTOP, FromDIP(10));
-
+        m_button_cancel = dlg_btns->GetCANCEL();
+        m_button_cancel->SetLabel(m_input_info.cancel_text_to_later ? _L("Later") : _L("Cancel"));
         m_button_cancel->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](wxCommandEvent &e) {
             EndModal(wxID_CANCEL);
         });
 
-        m_sizer_show_page->Add(bSizer_button, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(20));
+        m_sizer_show_page->Add(dlg_btns, 0, wxEXPAND);
         m_show_page->SetSizer(m_sizer_show_page);
     }
     show_print_failed_info(false);
@@ -2480,10 +2460,10 @@ void SyncAmsInfoDialog::on_dpi_changed(const wxRect &suggested_rect)
     }
     m_swipe_left_button->msw_rescale();
     m_swipe_right_button->msw_rescale();
-    m_button_ok->SetMinSize(OK_BUTTON_SIZE);
-    m_button_ok->SetCornerRadius(FromDIP(12));
-    m_button_cancel->SetMinSize(CANCEL_BUTTON_SIZE);
-    m_button_cancel->SetCornerRadius(FromDIP(12));
+    //m_button_ok->SetMinSize(OK_BUTTON_SIZE); // ORCA DialogButtons automatically manages style and size
+    //m_button_ok->SetCornerRadius(FromDIP(12));
+    //m_button_cancel->SetMinSize(CANCEL_BUTTON_SIZE);
+    //m_button_cancel->SetCornerRadius(FromDIP(12));
     m_merge_color_checkbox->Rescale();
     m_append_color_checkbox->Rescale();
     m_combobox_plate->Rescale();
@@ -2628,14 +2608,14 @@ void SyncAmsInfoDialog::reset_and_sync_ams_list()
                 is_first_row              = false;
                 if (!m_original_in_colormap) {
                     m_original_in_colormap = new wxStaticText(m_filament_panel, wxID_ANY, _CTX(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
-                    m_original_in_colormap->SetForegroundColour(wxColour(107, 107, 107, 100));
+                    m_original_in_colormap->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
                     m_original_in_colormap->SetFont(::Label::Head_12);
                 }
                 ams_tip_sizer->Add(m_original_in_colormap, 0, wxALIGN_LEFT | wxTOP, FromDIP(6));
 
                 if (!m_ams_or_ext_text_in_colormap) {
                     m_ams_or_ext_text_in_colormap = new wxStaticText(m_filament_panel, wxID_ANY, _L("AMS") + ":");
-                    m_ams_or_ext_text_in_colormap->SetForegroundColour(wxColour(107, 107, 107, 100));
+                    m_ams_or_ext_text_in_colormap->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
                     m_ams_or_ext_text_in_colormap->SetFont(::Label::Head_12);
                 }
                 ams_tip_sizer->Add(m_ams_or_ext_text_in_colormap, 0, wxALIGN_LEFT | wxTOP, FromDIP(9));
@@ -2840,7 +2820,7 @@ void SyncAmsInfoDialog::generate_override_fix_ams_list()
                 is_first_row   = false;
                 if (!m_original_in_override) {
                     m_original_in_override = new wxStaticText(m_fix_filament_panel, wxID_ANY, _CTX(L_CONTEXT("Original", "Sync_AMS"), "Sync_AMS") + ":");
-                    m_original_in_override->SetForegroundColour(wxColour(107, 107, 107, 100));
+                    m_original_in_override->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
                     m_original_in_override->SetFont(::Label::Head_12);
                 }
                 ams_tip_sizer->Add(m_original_in_override, 0, wxALIGN_LEFT | wxTOP, FromDIP(6));
@@ -2848,7 +2828,7 @@ void SyncAmsInfoDialog::generate_override_fix_ams_list()
                 if (!m_ams_or_ext_text_in_override) {
                     auto text = (m_only_exist_ext_spool_flag ? _L("Ext spool") : _L("AMS")) + ":";
                     m_ams_or_ext_text_in_override = new wxStaticText(m_fix_filament_panel, wxID_ANY, text);
-                    m_ams_or_ext_text_in_override->SetForegroundColour(wxColour(107, 107, 107, 100));
+                    m_ams_or_ext_text_in_override->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#363636"))); // ORCA match label colors
                     m_ams_or_ext_text_in_override->SetFont(::Label::Head_12);
                 }
                 ams_tip_sizer->Add(m_ams_or_ext_text_in_override, 0, wxALIGN_LEFT | wxTOP, FromDIP(9));
@@ -3236,10 +3216,12 @@ SyncNozzleAndAmsDialog::SyncNozzleAndAmsDialog(InputInfo &input_info)
                               wxGetApp().preset_bundle->get_printer_extruder_count() == 1 ? 370 :320,
                               input_info.dialog_pos,
                               90,
+                              (
                               wxGetApp().preset_bundle->get_printer_extruder_count() == 1 ? _L("Successfully synchronized nozzle information.") :
-                                                                                            _L("Successfully synchronized nozzle and AMS number information."),
-                              _L("Continue to sync filaments"),
-                              _CTX(L_CONTEXT("Cancel", "Sync_Nozzle_AMS"), "Sync_Nozzle_AMS"),
+                                                                                            _L("Successfully synchronized nozzle and AMS number information.")
+                              ) + "\n\n" + _L("Do you want to continue to sync filaments?"),
+                              _L("Yes"), // ORCA use shorter text for buttons
+                              _CTX(L_CONTEXT(_L("No"), "Sync_Nozzle_AMS"), "Sync_Nozzle_AMS"),
                               DisappearanceMode::TimedDisappearance)
     , m_input_info(input_info)
 {

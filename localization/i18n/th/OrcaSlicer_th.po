@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-06 12:57-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -324,6 +324,7 @@ msgstr "Gizmo-หมุน"
 msgid "Optimize orientation"
 msgstr "ปรับการวางแนวให้เหมาะสม"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "ปรับขนาด"
 
@@ -333,8 +334,9 @@ msgstr "Gizmo-ขนาด"
 msgid "Error: Please close all toolbar menus first"
 msgstr "ข้อผิดพลาด: โปรดปิดเมนูแถบเครื่องมือทั้งหมดก่อน"
 
+msgctxt "inches"
 msgid "in"
-msgstr "นิ้ว"
+msgstr ""
 
 msgid "mm"
 msgstr "มม."
@@ -365,6 +367,9 @@ msgstr "อัตราส่วนการปรับขนาด"
 
 msgid "Object operations"
 msgstr "การทำงานกับวัตถุ"
+
+msgid "Scale"
+msgstr "ปรับขนาด"
 
 msgid "Volume operations"
 msgstr "การทำงานกับวอลลุ่ม"
@@ -410,6 +415,10 @@ msgstr "รีเซ็ตการหมุนปัจจุบันเป็
 
 msgid "Reset current rotation to real zeros."
 msgstr "รีเซ็ตการหมุนปัจจุบันให้เป็นศูนย์จริง"
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "ปรับขนาด"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3558,6 +3567,7 @@ msgstr "การสอบเทียบเสร็จสิ้น โปร�
 msgid "Save"
 msgstr "บันทึก"
 
+msgctxt "Navigation"
 msgid "Back"
 msgstr "กลับ"
 
@@ -4906,6 +4916,7 @@ msgstr "การเปลี่ยนแปลงเครื่องมือ
 msgid "Color change"
 msgstr "เปลี่ยนสี"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "พิมพ์"
 
@@ -5065,11 +5076,15 @@ msgstr "หลีกเลี่ยงบริเวณการสอบเท
 msgid "Align to Y axis"
 msgstr "จัดแนวตามแกน Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "กลับ"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "ซ้าย"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "ขวา"
 
@@ -5391,6 +5406,10 @@ msgstr "พิมพ์ฐานพิมพ์"
 
 msgid "Export G-code file"
 msgstr "ส่งออกไฟล์ G-code"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "พิมพ์"
 
 msgid "Export plate sliced file"
 msgstr "ส่งออกไฟล์แผ่นสไลซ์บาง ๆ"
@@ -14590,6 +14609,9 @@ msgstr "จัดตำแหน่ง"
 msgid "Aligned back"
 msgstr "จัดแนวกลับ"
 
+msgid "Back"
+msgstr "กลับ"
+
 msgid "Random"
 msgstr "สุ่ม"
 
@@ -19343,6 +19365,12 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "Print"
+#~ msgstr "พิมพ์"
+
+#~ msgid "in"
+#~ msgstr "นิ้ว"
 
 #~ msgid "Object coordinates"
 #~ msgstr "พิกัดวัตถุ"

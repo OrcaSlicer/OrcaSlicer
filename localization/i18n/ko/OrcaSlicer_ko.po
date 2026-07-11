@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-06 12:57-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -331,6 +331,7 @@ msgstr "변형도구 - 회전"
 msgid "Optimize orientation"
 msgstr "방향 최적화"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "배율"
 
@@ -340,8 +341,9 @@ msgstr "변형도구 - 배율"
 msgid "Error: Please close all toolbar menus first"
 msgstr "오류: 먼저 모든 도구 모음 메뉴를 닫으십시오."
 
+msgctxt "inches"
 msgid "in"
-msgstr "인치"
+msgstr ""
 
 msgid "mm"
 msgstr "mm"
@@ -373,6 +375,9 @@ msgstr "배율비"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "객체 작업"
+
+msgid "Scale"
+msgstr "배율"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -424,6 +429,10 @@ msgstr "회전 도구를 열었을 때의 값으로 현재 회전을 초기화�
 
 msgid "Reset current rotation to real zeros."
 msgstr "현재 회전을 0으로 초기화합니다."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "배율"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3643,7 +3652,7 @@ msgstr "교정이 완료되었습니다. 당신의 고온 베드에서 아래 �
 msgid "Save"
 msgstr "저장"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "뒷면"
 
@@ -5025,6 +5034,7 @@ msgstr ""
 msgid "Color change"
 msgstr "색 변경"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "출력"
 
@@ -5188,11 +5198,15 @@ msgstr "압출 교정 영역을 피하세요"
 msgid "Align to Y axis"
 msgstr "Y축에 정렬"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "뒷면"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "왼쪽"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "오른쪽"
 
@@ -5515,6 +5529,10 @@ msgstr "플레이트 출력"
 
 msgid "Export G-code file"
 msgstr "Gcode 파일 내보내기"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "출력"
 
 msgid "Export plate sliced file"
 msgstr "플레이트 슬라이스 파일 내보내기"
@@ -14719,6 +14737,10 @@ msgstr "정렬"
 msgid "Aligned back"
 msgstr ""
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "뒷면"
+
 msgid "Random"
 msgstr "무작위"
 
@@ -19527,6 +19549,12 @@ msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
 
+#~ msgid "Print"
+#~ msgstr "출력"
+
+#~ msgid "in"
+#~ msgstr "인치"
+
 #~ msgid "Object coordinates"
 #~ msgstr "객체 좌표"
 
@@ -21014,10 +21042,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "선택 취소"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "규모"
 
 #~ msgid "Lift Z Enforcement"
 #~ msgstr "강제 Z 올리기"
