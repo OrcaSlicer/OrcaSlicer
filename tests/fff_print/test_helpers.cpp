@@ -208,10 +208,10 @@ DynamicPrintConfig multifilament_config(unsigned int filaments, std::initializer
 
 	DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
 	config.set_deserialize_strict({ { "nozzle_diameter", "0.4" }, { "filament_diameter", diameters } });
-	config.set_num_filaments(filaments);
 
-	// These are read by filament id during export but absent from filament_option_keys(),
-	// so set_num_filaments leaves them size 1; size them too, else out-of-range access.
+	// These per-filament options are read by filament id during export; full_print_config leaves them
+	// size 1, so size them to the filament count here (Print::apply -> enforce_cardinality also covers this,
+	// but the config should be self-consistent before slicing).
 	const auto &defaults = FullPrintConfig::defaults();
 	for (const char *key : { "filament_type", "filament_vendor", "filament_start_gcode" })
 		static_cast<ConfigOptionVectorBase *>(config.option(key, true))->resize(filaments, defaults.option(key));

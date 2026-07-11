@@ -3196,6 +3196,10 @@ void Print::update_filament_maps_to_config(std::vector<int> f_maps)
         m_full_print_config = m_ori_full_print_config;
         m_full_print_config.update_values_to_printer_extruders_for_multiple_filaments(m_full_print_config, filament_options_with_variant,  "filament_self_index", "filament_extruder_variant");
 
+        // m_full_print_config was just rebuilt from m_ori_full_print_config, the pre-enforcement snapshot,
+        // so enforce its per-N arrays here.
+        m_full_print_config.enforce_cardinality();
+
         const std::vector<std::string> &extruder_retract_keys = print_config_def.extruder_retract_keys();
         const std::string               filament_prefix       = "filament_";
         t_config_option_keys            print_diff;
