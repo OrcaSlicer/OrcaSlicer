@@ -1252,7 +1252,7 @@ void GLGizmoMeasure::render_dimensioning()
         const bool use_inches = wxGetApp().app_config->get_bool("use_inches");
         const double curr_value = use_inches ? GizmoObjectManipulation::mm_to_in * distance : distance;
         const std::string curr_value_str = format_double(curr_value);
-        const std::string units = use_inches ? _u8L("in") : _u8L("mm");
+        const std::string units = use_inches ? _CTX_utf8("in", "inches") : _u8L("mm");
         const float value_str_width = 20.0f + ImGui::CalcTextSize(curr_value_str.c_str()).x;
         static double edit_value = 0.0;
 
@@ -1303,7 +1303,7 @@ void GLGizmoMeasure::render_dimensioning()
                     return;
 
                 const double ratio = new_value / old_value;
-                wxGetApp().plater()->take_snapshot(_u8L("Scale"), UndoRedo::SnapshotType::GizmoAction);
+                wxGetApp().plater()->take_snapshot(_CTX_utf8("Scale", "Verb"), UndoRedo::SnapshotType::GizmoAction);
                 // apply scale
                 TransformationType type;
                 type.set_world();
@@ -2130,7 +2130,7 @@ void GLGizmoMeasure::show_face_face_assembly_senior()
 void GLGizmoMeasure::init_render_input_window()
 {
     m_use_inches        = wxGetApp().app_config->get_bool("use_inches");
-    m_units             = m_use_inches ? " " + _u8L("in") : " " + _u8L("mm");
+    m_units             = " " + (m_use_inches ? _CTX_utf8("in", "inches") : _u8L("mm"));
     m_space_size        = ImGui::CalcTextSize("  ").x * 2;
     m_input_size_max    = ImGui::CalcTextSize("-100.00").x * 1.2;
     m_same_model_object = is_two_volume_in_same_model_object();

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-06 12:57-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -332,6 +332,7 @@ msgstr "Gizmo обертання"
 msgid "Optimize orientation"
 msgstr "Оптимізувати орієнтацію"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Масштаб"
 
@@ -341,8 +342,9 @@ msgstr "Gizmo масштабування"
 msgid "Error: Please close all toolbar menus first"
 msgstr "Помилка: будь ласка, спочатку закрийте все меню панелі інструментів"
 
+msgctxt "inches"
 msgid "in"
-msgstr "в"
+msgstr ""
 
 msgid "mm"
 msgstr "мм"
@@ -374,6 +376,9 @@ msgstr "Коефіцієнти масштабування"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Операції з об'єктами"
+
+msgid "Scale"
+msgstr "Масштаб"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -425,6 +430,10 @@ msgstr "Скинути поточне обертання до значення �
 
 msgid "Reset current rotation to real zeros."
 msgstr "Скинути поточне обертання до нульових значень."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Масштаб"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3659,7 +3668,7 @@ msgstr "Калібрування завершено. Тепер знайдіть
 msgid "Save"
 msgstr "Зберегти"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Ззаду"
 
@@ -5029,6 +5038,7 @@ msgstr "Зміна інструменту"
 msgid "Color change"
 msgstr "Зміна кольору"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Друк"
 
@@ -5190,11 +5200,15 @@ msgstr "Уникайте області калібрування екструз�
 msgid "Align to Y axis"
 msgstr "Розташувати вздовж осі Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Ззаду"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Ліво"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Право"
 
@@ -5521,6 +5535,10 @@ msgstr "Друкувати пластину"
 
 msgid "Export G-code file"
 msgstr "Експорт файлу G-коду"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Друк"
 
 msgid "Export plate sliced file"
 msgstr "Експортувати файл нарізки пластини"
@@ -14752,6 +14770,10 @@ msgstr "Вирівняне"
 msgid "Aligned back"
 msgstr ""
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Ззаду"
+
 msgid "Random"
 msgstr "Випадкове"
 
@@ -19552,6 +19574,12 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури гарячого ліжка може зменшити ймовірність деформації?"
+
+#~ msgid "Print"
+#~ msgstr "Друк"
+
+#~ msgid "in"
+#~ msgstr "в"
 
 #~ msgid "Object coordinates"
 #~ msgstr "Координати об'єкта"

@@ -138,7 +138,8 @@ static double calc_max_layer_height(const PrintConfig &config, double max_object
 {
     double max_layer_height = std::numeric_limits<double>::max();
     for (size_t i = 0; i < config.nozzle_diameter.values.size(); ++ i) {
-        double mlh = config.max_layer_height.values[i];
+        // max_layer_height may be shorter than the extruder count; get_at() clamps.
+        double mlh = config.max_layer_height.get_at(i);
         if (mlh == 0.)
             mlh = 0.75 * config.nozzle_diameter.values[i];
         max_layer_height = std::min(max_layer_height, mlh);
@@ -187,6 +188,10 @@ static void apply_first_layer_order(const DynamicPrintConfig* config, std::vecto
 
 void ToolOrdering::handle_dontcare_extruder(const std::vector<unsigned int>& tool_order_layer0)
 {
+    const PrintConfig* print_config = m_print_config_ptr;
+    if (!print_config && m_print_object_ptr)
+        print_config = &m_print_object_ptr->print()->config();
+
     if(m_layer_tools.empty() || tool_order_layer0.empty())
         return;
 
@@ -221,6 +226,8 @@ void ToolOrdering::handle_dontcare_extruder(const std::vector<unsigned int>& too
     for (int i = 1; i < m_layer_tools.size(); i++) {
         LayerTools& lt = m_layer_tools[i];
 
+        // Extruders in lt.extruders are already sorted.
+
         if (lt.extruders.empty())
             continue;
         if (lt.extruders.size() == 1 && lt.extruders.front() == 0)
@@ -229,14 +236,23 @@ void ToolOrdering::handle_dontcare_extruder(const std::vector<unsigned int>& too
             if (lt.extruders.front() == 0)
                 // Pop the "don't care" extruder, the "don't care" region will be merged with the next one.
                 lt.extruders.erase(lt.extruders.begin());
-            // Reorder the extruders to start with the last one.
-            for (size_t i = 1; i < lt.extruders.size(); ++i)
-                if (lt.extruders[i] == last_extruder_id) {
-                    // Move the last extruder to the front.
-                    memmove(lt.extruders.data() + 1, lt.extruders.data(), i * sizeof(unsigned int));
-                    lt.extruders.front() = last_extruder_id;
-                    break;
+
+            if (print_config == nullptr
+                || print_config->toolchange_ordering == ToolChangeOrderingType::Default)
+            {
+                // Reorder the extruders to start with the last one.
+                for (size_t i = 1; i < lt.extruders.size(); ++i) {
+                    if (lt.extruders[i] == last_extruder_id) {
+                        // Move the last extruder to the front.
+                        std::rotate(
+                            lt.extruders.begin(),
+                            lt.extruders.begin() + i,
+                            lt.extruders.begin() + i + 1
+                        );
+                        break;
+                    }
                 }
+            }
         }
         last_extruder_id = lt.extruders.back();
     }
@@ -252,6 +268,10 @@ void ToolOrdering::handle_dontcare_extruder(const std::vector<unsigned int>& too
 
 void ToolOrdering::handle_dontcare_extruder(unsigned int last_extruder_id)
 {
+    const PrintConfig* print_config = m_print_config_ptr;
+    if (!print_config && m_print_object_ptr)
+        print_config = &m_print_object_ptr->print()->config();
+
     if(m_layer_tools.empty())
         return;
     if(last_extruder_id == (unsigned int)-1){
@@ -275,6 +295,8 @@ void ToolOrdering::handle_dontcare_extruder(unsigned int last_extruder_id)
     }
 
     for (LayerTools &lt : m_layer_tools) {
+        // Extruders in lt.extruders are already sorted.
+
         if (lt.extruders.empty())
             continue;
         if (lt.extruders.size() == 1 && lt.extruders.front() == 0)
@@ -283,21 +305,30 @@ void ToolOrdering::handle_dontcare_extruder(unsigned int last_extruder_id)
             if (lt.extruders.front() == 0)
                 // Pop the "don't care" extruder, the "don't care" region will be merged with the next one.
                 lt.extruders.erase(lt.extruders.begin());
-            // Reorder the extruders to start with the last one.
-            for (size_t i = 1; i < lt.extruders.size(); ++ i)
-                if (lt.extruders[i] == last_extruder_id) {
-                    // Move the last extruder to the front.
-                    memmove(lt.extruders.data() + 1, lt.extruders.data(), i * sizeof(unsigned int));
-                    lt.extruders.front() = last_extruder_id;
-                    break;
+
+            if (print_config == nullptr
+                || print_config->toolchange_ordering == ToolChangeOrderingType::Default)
+            {
+                // Reorder the extruders to start with the last one.
+                for (size_t i = 1; i < lt.extruders.size(); ++i) {
+                    if (lt.extruders[i] == last_extruder_id) {
+                        // Move the last extruder to the front.
+                        std::rotate(
+                            lt.extruders.begin(),
+                            lt.extruders.begin() + i,
+                            lt.extruders.begin() + i + 1
+                        );
+                        break;
+                    }
                 }
+            }
 
             if (lt == m_layer_tools[0]) {
                 // On first layer with wipe tower, prefer a soluble extruder
                 // at the beginning, so it is not wiped on the first layer.
-                if (m_print_config_ptr && m_print_config_ptr->enable_prime_tower) {
+                if (print_config && print_config->enable_prime_tower) {
                     for (size_t i = 0; i<lt.extruders.size(); ++i)
-                        if (m_print_config_ptr->filament_soluble.get_at(lt.extruders[i]-1)) { // 1-based...
+                        if (print_config->filament_soluble.get_at(lt.extruders[i]-1)) { // 1-based...
                             std::swap(lt.extruders[i], lt.extruders.front());
                             break;
                         }
@@ -396,6 +427,7 @@ void ToolOrdering::sort_and_build_data(const PrintObject& object , unsigned int 
 ToolOrdering::ToolOrdering(const PrintObject &object, unsigned int first_extruder, bool prime_multi_material)
 {
     m_print_full_config = &object.print()->full_print_config();
+    m_print_config_ptr = &object.print()->config();
     m_print_object_ptr = &object;
     m_print = const_cast<Print*>(object.print());
     if (object.layers().empty())
@@ -1329,8 +1361,11 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
     if (!m_layer_tools.empty())
         first_layer_filaments = m_layer_tools[0].extruders;
 
+    const bool use_cyclic_ordering =
+        (print_config->toolchange_ordering == ToolChangeOrderingType::Cyclic);
+
     // other_layers_seq: the layer_idx and extruder_idx are base on 1
-    auto get_custom_seq = [&other_layers_seqs, &reorder_first_layer, &first_layer_filaments](int layer_idx, std::vector<int>& out_seq) -> bool {
+    auto get_custom_seq = [&other_layers_seqs, &reorder_first_layer, &first_layer_filaments, &layer_filaments, use_cyclic_ordering](int layer_idx, std::vector<int>& out_seq) -> bool {
         if (!reorder_first_layer && layer_idx == 0) {
             out_seq.resize(first_layer_filaments.size());
             std::transform(first_layer_filaments.begin(), first_layer_filaments.end(), out_seq.begin(), [](auto item) {return item + 1; });
@@ -1343,6 +1378,15 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
                 return true;
             }
         }
+
+        if (use_cyclic_ordering && layer_idx >= 0 && size_t(layer_idx) < layer_filaments.size()) {
+            std::vector<unsigned int> ordered = layer_filaments[size_t(layer_idx)];
+            std::sort(ordered.begin(), ordered.end());
+            out_seq.resize(ordered.size());
+            std::transform(ordered.begin(), ordered.end(), out_seq.begin(), [](auto item) { return int(item) + 1; });
+            return true;
+        }
+
         return false;
         };
 

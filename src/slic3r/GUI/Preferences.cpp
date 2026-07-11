@@ -797,7 +797,7 @@ wxBoxSizer *PreferencesDialog::create_item_decimal_input(wxString title, wxStrin
     input->SetToolTip(tooltip);
     input->GetTextCtrl()->SetValidator(validator);
 
-    m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+    m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
 
     auto apply_value = [this, param, input, min, max, decimals]() {
         auto value = input->GetTextCtrl()->GetValue();
