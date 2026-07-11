@@ -22,6 +22,7 @@ TEST_CASE("Prime-tower tool changes honor idle temperature", "[GCodeWriter][Regr
             { "filament_map",                       "1,1" },
             { "single_extruder_multi_material",     "0" },
             { "enable_prime_tower",                 "1" },
+            { "wipe_tower_type",                    "type1" },
             { "wipe_tower_x",                       "165" },
             { "wipe_tower_y",                       "250" },
             { "prime_tower_width",                  "20" },
