@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-06 12:57-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -337,6 +337,7 @@ msgstr "Инструмент вращения"
 msgid "Optimize orientation"
 msgstr "Оптимизация положения модели"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Масштаб"
 
@@ -346,8 +347,9 @@ msgstr "Инструмент изменения размера"
 msgid "Error: Please close all toolbar menus first"
 msgstr "Ошибка: сначала закройте текущий инструмент."
 
+msgctxt "inches"
 msgid "in"
-msgstr "дюйм"
+msgstr ""
 
 msgid "mm"
 msgstr "мм"
@@ -378,6 +380,9 @@ msgstr "Коэф. масштаба"
 
 msgid "Object operations"
 msgstr "Операции с моделями"
+
+msgid "Scale"
+msgstr "Масштаб"
 
 msgid "Volume operations"
 msgstr "Булевы операции с телами"
@@ -423,6 +428,10 @@ msgstr "Сбросить последние изменения ориентац�
 
 msgid "Reset current rotation to real zeros."
 msgstr "Сбросить ориентацию до изначальной"
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Масштаб"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3656,9 +3665,9 @@ msgstr "Калибровка завершена. Теперь найдите н�
 msgid "Save"
 msgstr "Сохранить"
 
-# Используется в нескольких местах: в 2 местах в значении расположения (шва и камеры), в одном – на кнопке "назад" (калибровка бамбу)
+msgctxt "Navigation"
 msgid "Back"
-msgstr "Сзади"
+msgstr "Назад"
 
 msgid "Example"
 msgstr "Пример"
@@ -5064,6 +5073,7 @@ msgstr "Смена инструмента"
 msgid "Color change"
 msgstr "Смена цвета"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Печать"
 
@@ -5226,11 +5236,15 @@ msgstr "Избегать зону калибровки экструзии"
 msgid "Align to Y axis"
 msgstr "Выравнивать по оси Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Сзади"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Слева"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Справа"
 
@@ -5587,6 +5601,10 @@ msgstr "Распечатать стол"
 
 msgid "Export G-code file"
 msgstr "Экспорт в G-код"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Печать"
 
 msgid "Export plate sliced file"
 msgstr "Экспорт стола в файл проекта"
@@ -15085,6 +15103,10 @@ msgstr "В углах"
 msgid "Aligned back"
 msgstr "В углах сзади"
 
+# Используется в нескольких местах: в 2 местах в значении расположения (шва и камеры), в одном – на кнопке "назад" (калибровка бамбу)
+msgid "Back"
+msgstr "Сзади"
+
 msgid "Random"
 msgstr "Случайная"
 
@@ -20094,6 +20116,12 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+#~ msgid "Print"
+#~ msgstr "Печать"
+
+#~ msgid "in"
+#~ msgstr "дюйм"
 
 #~ msgid "Object coordinates"
 #~ msgstr "Относительно модели"

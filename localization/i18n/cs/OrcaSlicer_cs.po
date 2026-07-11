@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-06 12:57-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -327,6 +327,7 @@ msgstr "Gizmo-Otočit"
 msgid "Optimize orientation"
 msgstr "Optimalizovat orientaci"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Měřítko"
 
@@ -336,8 +337,9 @@ msgstr "Gizmo-Měřítko"
 msgid "Error: Please close all toolbar menus first"
 msgstr "Nejprve prosím zavřete všechna menu nástrojové lišty"
 
+msgctxt "inches"
 msgid "in"
-msgstr "v"
+msgstr ""
 
 msgid "mm"
 msgstr "mm"
@@ -369,6 +371,9 @@ msgstr "Poměry měřítka"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Operace s objektem"
+
+msgid "Scale"
+msgstr "Měřítko"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -420,6 +425,10 @@ msgstr "Obnovit aktuální rotaci na hodnotu při otevření nástroje pro rotac
 
 msgid "Reset current rotation to real zeros."
 msgstr "Obnovit aktuální rotaci na skutečné nuly."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Měřítko"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3650,7 +3659,7 @@ msgstr "Kalibrace byla dokončena. Najděte na vyhřívané podložce nejrovnom�
 msgid "Save"
 msgstr "Uložit"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Zpět"
 
@@ -5031,6 +5040,7 @@ msgstr "Výměny nástrojů"
 msgid "Color change"
 msgstr "Změna barvy"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Tisk"
 
@@ -5194,11 +5204,15 @@ msgstr "Vyhněte se kalibrační oblasti extruze"
 msgid "Align to Y axis"
 msgstr "Zarovnat na osu Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Zpět"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Levý"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Pravý"
 
@@ -5525,6 +5539,10 @@ msgstr "Tisková deska"
 
 msgid "Export G-code file"
 msgstr "Exportovat G-code soubor"
+
+msgctxt "Verb"
+msgid "Print"
+msgstr "Tisk"
 
 msgid "Export plate sliced file"
 msgstr "Exportovat nařezaný soubor desky"
@@ -14854,6 +14872,10 @@ msgstr "Zarovnáno"
 msgid "Aligned back"
 msgstr "Zarovnat zpět"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Zpět"
+
 msgid "Random"
 msgstr "Náhodně"
 
@@ -19679,6 +19701,12 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+#~ msgid "Print"
+#~ msgstr "Tisk"
+
+#~ msgid "in"
+#~ msgstr "v"
 
 #~ msgid "Object coordinates"
 #~ msgstr "Souřadnice objektu"

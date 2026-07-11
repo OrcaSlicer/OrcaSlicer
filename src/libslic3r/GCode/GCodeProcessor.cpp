@@ -1839,7 +1839,8 @@ void GCodeProcessor::register_commands()
         {"VM104", [this](const GCodeReader::GCodeLine& line) { process_VM104(line); }},
         {"VM109", [this](const GCodeReader::GCodeLine& line) { process_VM109(line); }},
         {"M622", [this](const GCodeReader::GCodeLine& line) { process_M622(line);}},
-        {"M623", [this](const GCodeReader::GCodeLine& line) { process_M623(line);}}
+        {"M623", [this](const GCodeReader::GCodeLine& line) { process_M623(line);}},
+        {"M6211", [this](const GCodeReader::GCodeLine& line) { process_M6211(line); }}
     };
 
     std::unordered_set<std::string>early_quit_commands = {
@@ -1861,6 +1862,12 @@ void GCodeProcessor::register_commands()
         if (auto lowercase_cmd = to_lowercase(uppercase_cmd); lowercase_cmd != uppercase_cmd)
             m_command_processor.register_command(lowercase_cmd, handler,early_quit);
     }
+}
+
+void GCodeProcessor::process_M6211(const GCodeReader::GCodeLine& line)
+{
+    if (boost::algorithm::istarts_with(m_printer_model, "elegoo"))
+        process_elegoo_M6211(line);
 }
 
 bool GCodeProcessor::check_multi_extruder_gcode_valid(const int                         extruder_size,
@@ -2027,6 +2034,7 @@ void GCodeProcessor::apply_config(const PrintConfig& config)
     m_parser.apply_config(config);
 
     m_flavor = config.gcode_flavor;
+    m_printer_model = config.printer_model.value;
 
     m_single_extruder_multi_material = config.single_extruder_multi_material;
 
@@ -2212,6 +2220,10 @@ void GCodeProcessor::apply_config(const DynamicPrintConfig& config)
     const ConfigOptionString* printer_settings_id = config.option<ConfigOptionString>("printer_settings_id");
     if (printer_settings_id != nullptr)
         m_result.settings_ids.printer = printer_settings_id->value;
+
+    const ConfigOptionString* printer_model = config.option<ConfigOptionString>("printer_model");
+    if (printer_model != nullptr)
+        m_printer_model = printer_model->value;
 
     // BBS
     m_result.filaments_count = config.option<ConfigOptionFloats>("filament_diameter")->values.size();

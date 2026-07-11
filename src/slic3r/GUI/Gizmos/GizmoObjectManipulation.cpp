@@ -54,7 +54,7 @@ GizmoObjectManipulation::GizmoObjectManipulation(GLCanvas3D& glcanvas)
     : m_glcanvas(glcanvas)
 {
     m_imperial_units = wxGetApp().app_config->get("use_inches") == "1";
-    m_new_unit_string = m_imperial_units ? L("in") : L("mm");
+    m_new_unit_string = m_imperial_units ? L_CONTEXT("in", "inches") : L("mm");
 
     const wxString shift                   = GUI::shortkey_shift_prefix();
     const wxString alt                     = GUI::shortkey_alt_prefix();
@@ -92,7 +92,7 @@ void GizmoObjectManipulation::update_ui_from_settings()
     if (m_imperial_units != (wxGetApp().app_config->get("use_inches") == "1")) {
         m_imperial_units = wxGetApp().app_config->get("use_inches") == "1";
 
-        m_new_unit_string = m_imperial_units ? L("in") : L("mm");
+        m_new_unit_string = m_imperial_units ? L_CONTEXT("in", "inches") : L("mm");
 
         update_buffered_value();
     }
@@ -1161,7 +1161,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         imgui_wrapper->calc_text_size(_L("Part")).x
     }) + imgui_wrapper->calc_text_size("xxx"sv).x + imgui_wrapper->scaled(3.5f);
     float label_max = std::max({
-        imgui_wrapper->calc_text_size(_L("Scale")).x,
+        imgui_wrapper->calc_text_size(_CTX("Scale", "Noun")).x,
         imgui_wrapper->calc_text_size(_L("Size")).x
     });
     float caption_max = std::max(label_max, coord_combo_width - 3 * space_size);
@@ -1218,7 +1218,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
 
     //ImGui::PushItemWidth(unit_size * 2);
     ImGui::AlignTextToFramePadding();
-    imgui_wrapper->text(_L("Scale"));
+    imgui_wrapper->text(_CTX("Scale", "Noun"));
     ImGui::SameLine(caption_max + space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_scale_values[0][0], &scale[0], 0.0f, 0.0f, "%.2f");
