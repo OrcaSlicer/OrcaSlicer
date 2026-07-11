@@ -25,6 +25,7 @@
 #include <math.h>
 #include <csignal>
 #include <set>
+#include <map>
 #include <algorithm>
 
 #if defined(__linux__) || defined(__LINUX__)
@@ -1964,34 +1965,96 @@ int CLI::run(int argc, char **argv)
     // ConfigOptionDef default instead of the value defined by its ancestor profile(s) - producing
     // wrong speeds/acceleration/etc. for any profile that relies on inheritance (which is the norm
     // for BBL profiles: e.g. "0.20mm Standard @BBL A1M" -> "fdm_process_single_0.20" ->
-    // "fdm_process_single_common" -> "fdm_process_common"). Walk the chain ourselves, scoped to the
-    // same directory as the leaf file (this also avoids ambiguity between same-named base profiles
-    // that exist per-vendor, e.g. every vendor ships its own "fdm_process_common.json").
-    auto resolve_inherits_chain = [](const std::string& file) -> std::vector<std::string> {
+    // "fdm_process_single_common" -> "fdm_process_common").
+    // Resolve the chain the way the shipped profile data is organized: preset names map to files
+    // through the vendor's manifest (<profiles>/<Vendor>.json machine/process/filament lists), with
+    // the shared OrcaFilamentLibrary consulted for filament bases that live outside the vendor tree
+    // (e.g. "COEX PCTG PRIME @BBL X1C" -> "COEX PCTG PRIME @base" in OrcaFilamentLibrary). A
+    // same-directory sibling is used as fallback for profile folders without a manifest.
+    auto load_json_file = [](const std::string& path, json& j) -> bool {
+        try {
+            boost::nowide::ifstream ifs(path);
+            if (! ifs.good())
+                return false;
+            ifs >> j;
+            return true;
+        } catch (...) {
+            return false;
+        }
+    };
+
+    auto manifest_name_map = [&load_json_file](const std::string& manifest_path, std::map<std::string, std::string>& out) {
+        json m;
+        if (! load_json_file(manifest_path, m))
+            return;
+        for (const char* key : {"machine_list", "process_list", "filament_list"}) {
+            auto it = m.find(key);
+            if (it == m.end() || ! it->is_array())
+                continue;
+            for (auto& e : *it) {
+                if (e.contains("name") && e.contains("sub_path"))
+                    out.emplace(e["name"].get<std::string>(), e["sub_path"].get<std::string>());
+            }
+        }
+    };
+
+    auto resolve_inherits_chain = [&load_json_file, &manifest_name_map](const std::string& file) -> std::vector<std::string> {
+        namespace fs = boost::filesystem;
+        // locate the vendor root: the ancestor directory that has a sibling "<dirname>.json" manifest
+        fs::path vendor_dir;
+        std::string vendor_manifest;
+        for (fs::path p = fs::path(file).parent_path(); ! p.empty() && p.has_parent_path(); p = p.parent_path()) {
+            fs::path manifest = p.parent_path() / (p.filename().string() + ".json");
+            if (fs::exists(manifest)) {
+                vendor_dir = p;
+                vendor_manifest = manifest.string();
+                break;
+            }
+        }
+        std::map<std::string, std::string> vendor_map, library_map;
+        fs::path library_dir;
+        if (! vendor_manifest.empty()) {
+            manifest_name_map(vendor_manifest, vendor_map);
+            fs::path lib_manifest = vendor_dir.parent_path() / "OrcaFilamentLibrary.json";
+            if (fs::exists(lib_manifest)) {
+                library_dir = vendor_dir.parent_path() / "OrcaFilamentLibrary";
+                manifest_name_map(lib_manifest.string(), library_map);
+            }
+        }
+
         std::vector<std::string> chain;
         std::set<std::string> visited;
-        boost::filesystem::path dir = boost::filesystem::path(file).parent_path();
         std::string current = file;
         while (true) {
             json j;
-            try {
-                boost::nowide::ifstream ifs(current);
-                if (! ifs.good())
-                    break;
-                ifs >> j;
-            } catch (...) {
+            if (! load_json_file(current, j))
                 break;
-            }
             auto it = j.find(BBL_JSON_KEY_INHERITS);
             if (it == j.end() || ! it->is_string())
                 break;
             std::string parent_name = it->get<std::string>();
             if (parent_name.empty())
                 break;
-            boost::filesystem::path parent_path = dir / (parent_name + ".json");
+
+            fs::path parent_path;
+            auto vi = vendor_map.find(parent_name);
+            if (vi != vendor_map.end() && fs::exists(vendor_dir / vi->second)) {
+                parent_path = vendor_dir / vi->second;
+            } else if (fs::exists(fs::path(current).parent_path() / (parent_name + ".json"))) {
+                parent_path = fs::path(current).parent_path() / (parent_name + ".json");
+            } else {
+                auto li = library_map.find(parent_name);
+                if (li != library_map.end() && fs::exists(library_dir / li->second))
+                    parent_path = library_dir / li->second;
+            }
+            if (parent_path.empty()) {
+                // missing parent: stop rather than fail the whole load
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": can not resolve inherits parent \"" << parent_name << "\" of " << current;
+                break;
+            }
             std::string parent_str = parent_path.string();
-            if (! boost::filesystem::exists(parent_path) || visited.count(parent_str))
-                break; // missing file or inherits cycle: stop rather than fail the whole load
+            if (visited.count(parent_str))
+                break; // inherits cycle
             visited.insert(parent_str);
             chain.push_back(parent_str);
             current = parent_str;
