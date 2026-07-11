@@ -1,6 +1,8 @@
 #include <exception>
+#include <cstdint>
 
 #include "miniz_extension.hpp"
+#include "Utils.hpp"
 
 #if defined(_MSC_VER) || defined(__MINGW64__)
 #include "boost/nowide/cstdio.hpp"
@@ -15,6 +17,33 @@
 namespace Slic3r {
 
 namespace {
+std::string decode_zip_unicode_path_extra_field(const std::string& extra, const std::string& path)
+{
+    size_t offset = 0;
+    const mz_uint32 path_crc = mz_crc32(0, reinterpret_cast<const unsigned char*>(path.data()), path.size());
+
+    while (offset + 4 <= extra.size()) {
+        const unsigned char* field = reinterpret_cast<const unsigned char*>(extra.data() + offset);
+        const std::uint16_t len = field[2] | (static_cast<std::uint16_t>(field[3]) << 8);
+        if (offset + 4 + len > extra.size())
+            break;
+
+        if (field[0] == 0x75 && field[1] == 0x70 && len >= 5 && field[4] == 0x01) {
+            const mz_uint32 stored_crc =
+                static_cast<mz_uint32>(field[5]) |
+                (static_cast<mz_uint32>(field[6]) << 8) |
+                (static_cast<mz_uint32>(field[7]) << 16) |
+                (static_cast<mz_uint32>(field[8]) << 24);
+            if (stored_crc == path_crc)
+                return std::string(extra.data() + offset + 9, extra.data() + offset + 4 + len);
+        }
+
+        offset += 4 + len;
+    }
+
+    return Slic3r::decode_path(path.c_str());
+}
+
 bool open_zip(mz_zip_archive *zip, const char *fname, bool isread)
 {
     if (!zip) return false;
@@ -75,6 +104,16 @@ bool open_zip_writer(mz_zip_archive *zip, const std::string &fname)
 
 bool close_zip_reader(mz_zip_archive *zip) { return close_zip(zip, true); }
 bool close_zip_writer(mz_zip_archive *zip) { return close_zip(zip, false); }
+
+std::string decode_archive_entry_path(mz_zip_archive *zip, const mz_zip_archive_file_stat &stat)
+{
+    if (stat.m_is_utf8)
+        return stat.m_filename;
+
+    std::string extra(1024, 0);
+    const size_t extra_size = mz_zip_reader_get_extra(zip, stat.m_file_index, extra.data(), extra.size());
+    return decode_zip_unicode_path_extra_field(extra.substr(0, extra_size > 0 ? extra_size - 1 : 0), stat.m_filename);
+}
 
 MZ_Archive::MZ_Archive()
 {

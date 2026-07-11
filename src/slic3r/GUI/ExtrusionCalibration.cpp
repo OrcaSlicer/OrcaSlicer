@@ -239,7 +239,7 @@ void ExtrusionCalibration::create()
     m_button_save_result->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_save_result->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_save, this);
 
-    m_button_last_step = new Button(m_step_2_panel, _L("Back")); // Back for english
+    m_button_last_step = new Button(m_step_2_panel, _CTX("Back", "Navigation")); // Back for english
     m_button_last_step->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_last_step->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_last, this);
 
