@@ -1797,6 +1797,17 @@ void PreferencesDialog::create_items()
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
 
+    //// GRAPHICS > General
+    g_sizer->Add(create_item_title(_L("General")), 1, wxEXPAND);
+
+    auto smooth_normals = create_item_checkbox(
+        _L("Smooth normals"),
+        _L("Applies smooth normals to the model.\n\nRequires manual scene reload to take effect "
+                                "(right-click on 3D view → \"Reload All\")."),
+        SETTING_OPENGL_PHONG_SMOOTH_NORMALS
+    );
+    g_sizer->Add(smooth_normals);
+
     //// GRAPHICS > Realistic view
     g_sizer->Add(create_item_title(_L("Realistic View")), 1, wxEXPAND);
 
@@ -1820,15 +1831,6 @@ void PreferencesDialog::create_items()
         SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS
     );
     g_sizer->Add(item_realistic_shadows);
-
-   
-    auto item_realistic_smooth_normals = create_item_checkbox(
-        _L("Smooth normals"),
-        _L("Applies smooth normals to the realistic view.\n\nRequires manual scene reload to take effect "
-                                "(right-click on 3D view → \"Reload All\")."),
-        SETTING_OPENGL_PHONG_SMOOTH_NORMALS
-    );
-    g_sizer->Add(item_realistic_smooth_normals);
 
     //// GRAPHICS > Anti-aliasing
     g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);
