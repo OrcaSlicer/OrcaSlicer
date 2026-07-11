@@ -591,3 +591,68 @@ SCENARIO("Skirt and brim generation", "[SkirtBrim]") {
         }
     }
 }
+
+TEST_CASE("Brim is emitted on the configured number of layers", "[SkirtBrim]") {
+    auto brim_layers_val = GENERATE(1, 2, 4);
+    DYNAMIC_SECTION("brim_layers=" << brim_layers_val) {
+        const std::string gcode = slice({ cube(20) }, {
+            { "brim_type",   "outer_only" },
+            { "brim_width",  5 },
+            { "brim_layers", brim_layers_val },
+            { "skirt_loops", 0 },
+            { "layer_height", 0.2 },
+        });
+
+        // brim should appear on exactly brim_layers distinct Z heights
+        REQUIRE(layers_with_role(gcode, "brim").size() == (size_t) brim_layers_val);
+
+        // brim should be emitted once per layer (one contiguous pass)
+        REQUIRE(role_passes(gcode, "brim") == brim_layers_val);
+    }
+}
+
+TEST_CASE("Per-object brim layers are honored independently", "[SkirtBrim]") {
+    const double layer_height = 0.2;
+
+    // Two cubes far apart so their brims don't merge.
+    // Object 0 gets 1 brim layer, object 1 gets 3.
+    const std::string gcode = slice({ cube(20), cube(20) }, {
+        { "brim_type",   "outer_only" },
+        { "brim_width",  5 },
+        { "brim_layers", 1 },      // default for all objects
+        { "skirt_loops", 0 },
+        { "layer_height", layer_height },
+        { "print_sequence", "by layer" },
+    });
+
+    // With default brim_layers=1, brim appears on exactly 1 Z height
+    REQUIRE(layers_with_role(gcode, "brim").size() == 1u);
+}
+
+TEST_CASE("Per-object brim layers via object overrides", "[SkirtBrim]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_num_extruders(4);
+    config.set_deserialize_strict({
+        { "brim_type",   "outer_only" },
+        { "brim_width",  5 },
+        { "brim_layers", 1 },
+        { "skirt_loops", 0 },
+        { "layer_height", 0.2 },
+        { "print_sequence", "by layer" },
+    });
+
+    // Override: object 0 gets 1 layer, object 1 gets 3 layers
+    const std::vector<std::vector<ConfigBase::SetDeserializeItem>> per_object_overrides{
+        { { "brim_layers", 1 } },
+        { { "brim_layers", 3 } },
+    };
+
+    const std::string gcode = slice_with_object_overrides(
+        { cube(20), cube(20) }, config, per_object_overrides);
+
+    // brim appears on max(1,3) = 3 distinct Z heights
+    REQUIRE(layers_with_role(gcode, "brim").size() == 3u);
+
+    // Layer 0: both objects emit brim (2 passes), layers 1-2: object 1 only (1 pass each) → 4 total
+    REQUIRE(role_passes(gcode, "brim") == 4);
+}

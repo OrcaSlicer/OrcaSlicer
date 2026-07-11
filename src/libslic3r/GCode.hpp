@@ -538,7 +538,8 @@ private:
     // BBS
     LiftType to_lift_type(ZHopType z_hop_types);
 
-    std::set<ObjectInstanceID>      m_objsWithBrim; // indicates the object instances with brim
+    std::map<ObjectInstanceID, unsigned int> m_objsWithBrim; // maps instance IDs to remaining brim layers
+    std::set<ObjectID>              m_objSupportsWithBrim; // indicates the objs' supports with brim
     // Cache for custom seam enforcers/blockers for each layer.
     SeamPlacer                          m_seam_placer;
 

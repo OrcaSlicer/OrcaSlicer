@@ -3763,14 +3763,16 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     this->m_objsWithBrim.clear();
     m_brim_done = false;
 
-    // Orca: Track brims by instance. When a combined brim is printed, all of
-    // its instances are marked done together.
+    // Track brims by instance with remaining layer counts from brim_layers config.
+    // When a combined brim is printed, all its instances share the same brim geometry.
     for (const Print::SkirtBrimGroup& group : print.skirt_brim_groups()) {
         for (const Print::SkirtBrimGroup::Brim& brim : group.brims) {
             if (brim.brim.empty())
                 continue;
-            for (const ObjectInstanceID& instance : brim.instances)
-                this->m_objsWithBrim.insert(instance);
+            for (const ObjectInstanceID& instance : brim.instances) {
+                const PrintObject* obj = print.get_object(instance.object_id);
+                this->m_objsWithBrim[instance] = obj ? obj->config().brim_layers.value : 1;
+            }
         }
     }
     if (this->m_objsWithBrim.empty()) m_brim_done = true;
@@ -5114,15 +5116,14 @@ std::string GCode::generate_object_skirt_group(const Print &print,
 
 std::string GCode::generate_object_brim(const Print &print, const PrintObject &object, size_t instance_id, bool first_layer)
 {
-    if (!first_layer)
-        return {};
-
+    // No first_layer guard — brim can span multiple layers per brim_layers config.
     auto emit_brim = [this](const ExtrusionEntityCollection& brim, const std::vector<ObjectInstanceID>& instances) {
         std::string gcode;
-        const bool already_emitted = std::none_of(instances.begin(), instances.end(), [this](const ObjectInstanceID& instance) {
-            return m_objsWithBrim.find(instance) != m_objsWithBrim.end();
+        const bool should_emit = std::any_of(instances.begin(), instances.end(), [this](const ObjectInstanceID& instance) {
+            auto it = m_objsWithBrim.find(instance);
+            return it != m_objsWithBrim.end() && it->second > 0;
         });
-        if (already_emitted || brim.empty())
+        if (!should_emit || brim.empty())
             return gcode;
 
         this->set_origin(0., 0.);
@@ -5132,8 +5133,14 @@ std::string GCode::generate_object_brim(const Print &print, const PrintObject &o
                 gcode += this->extrude_entity(*ee, "brim", NOZZLE_CONFIG(support_speed));
         m_avoid_crossing_perimeters.use_external_mp(false);
         m_avoid_crossing_perimeters.disable_once();
-        for (const ObjectInstanceID& instance : instances)
-            m_objsWithBrim.erase(instance);
+        for (const ObjectInstanceID& instance : instances) {
+            auto it = m_objsWithBrim.find(instance);
+            if (it != m_objsWithBrim.end()) {
+                it->second--;
+                if (it->second == 0)
+                    m_objsWithBrim.erase(it);
+            }
+        }
         return gcode;
     };
 

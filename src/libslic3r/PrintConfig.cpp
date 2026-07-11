@@ -1851,6 +1851,16 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionFloat(0.));
 
+    def = this->add("brim_layers", coInt);
+    def->label   = L("Brim layers");
+    def->category = L("Support");
+    def->tooltip = L("Number of layers for the brim.");
+    def->sidetext = L("layers");
+    def->min     = 1;
+    def->max     = 20;
+    def->mode    = comSimple;
+    def->set_default_value(new ConfigOptionInt(1));
+
     def = this->add("brim_type", coEnum);
     def->label = L("Brim type");
     def->category = L("Support");
