@@ -3,7 +3,7 @@
 	"name": "Blocks Generic PA",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "BSSI006",
+	"setting_id": "3L5IYVTlkt8V0EiW",
 	"filament_id": "BSFI006",
 	"instantiation": "true",
 	"filament_flow_ratio": [
@@ -16,10 +16,8 @@
 		"BLOCKS RD50 V2 0.4 nozzle",
 		"BLOCKS RD50 V2 0.6 nozzle",
 		"BLOCKS RD50 V2 0.8 nozzle",
-		"BLOCKS RD50 V2",
 		"BLOCKS RF50 0.4 nozzle",
 		"BLOCKS RF50 0.6 nozzle",
-		"BLOCKS RF50 0.8 nozzle",
-		"BLOCKS RF50"
+		"BLOCKS RF50 0.8 nozzle"
 	]
 }

@@ -3,6 +3,7 @@
 	"name": "iQ TiQ8 0.6 Nozzle",
 	"inherits": "fdm_tiq_common",
 	"from": "system",
+	"setting_id": "lESAAlMZnASrLHFw",
 	"instantiation": "true",
 	"printer_settings_id": "iQ TiQ8 0.6 Nozzle",
 	"printer_model": "TiQ8",

@@ -1,0 +1,9 @@
+{
+	"type": "process",
+	"setting_id": "9TcC7ocHTTV5fO6u",
+	"from": "system",
+	"name": "0.24mm Optimal @Elegoo Neptune 0.6 nozzle",
+	"inherits": "0.30mm Standard @Elegoo Neptune 0.6 nozzle",
+	"layer_height": "0.24",
+	"instantiation": "true"
+}

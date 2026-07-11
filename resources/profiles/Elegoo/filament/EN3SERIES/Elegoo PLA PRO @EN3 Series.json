@@ -1,0 +1,40 @@
+{
+	"type": "filament",
+	"name": "Elegoo PLA PRO @EN3 Series",
+	"inherits": "Elegoo PLA @base",
+	"from": "system",
+	"setting_id": "V7HUl0gBvGKwKD1A",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"fan_min_speed": [
+		"80"
+	],
+	"nozzle_temperature": [
+		"210"
+	],
+	"nozzle_temperature_initial_layer": [
+		"210"
+	],
+	"overhang_fan_threshold": [
+		"75%"
+	],
+	"slow_down_min_speed": [
+		"10"
+	],
+	"compatible_printers": [
+		"Elegoo Neptune 3 Pro 0.4 nozzle",
+		"Elegoo Neptune 3 Pro 0.6 nozzle",
+		"Elegoo Neptune 3 Pro 0.8 nozzle",
+		"Elegoo Neptune 3 Pro 1.0 nozzle",
+		"Elegoo Neptune 3 Plus 0.4 nozzle",
+		"Elegoo Neptune 3 Plus 0.6 nozzle",
+		"Elegoo Neptune 3 Plus 0.8 nozzle",
+		"Elegoo Neptune 3 Plus 1.0 nozzle",
+		"Elegoo Neptune 3 Max 0.4 nozzle",
+		"Elegoo Neptune 3 Max 0.6 nozzle",
+		"Elegoo Neptune 3 Max 0.8 nozzle",
+		"Elegoo Neptune 3 Max 1.0 nozzle"
+	]
+}

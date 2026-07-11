@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Silk @FF G4P HF",
 	"inherits": "Flashforge Generic ABS @G3U",
 	"from": "system",
+	"setting_id": "IPyXBSnMCAikjI9V",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

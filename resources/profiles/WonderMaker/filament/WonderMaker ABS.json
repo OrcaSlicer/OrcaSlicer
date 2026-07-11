@@ -3,6 +3,7 @@
 	"name": "WonderMaker ABS",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
+	"setting_id": "cyLAXg9zBIDNkYNx",
 	"filament_id": "GFB00",
 	"instantiation": "true",
 	"description": "When printing this filament, there's a risk of warping and low layer adhesion strength. To get better results, please refer to this wiki: Printing Tips for High Temp / Engineering materials.",

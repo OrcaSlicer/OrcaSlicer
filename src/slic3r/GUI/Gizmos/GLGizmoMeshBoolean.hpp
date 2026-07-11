@@ -34,6 +34,8 @@ struct VolumeInfo {
     void serialize(Archive& ar) {
         ar(volume_idx, trafo);
     }
+
+    std::optional<TriangleSelector::SavedPainting> save_painting() const;
 };
 class GLGizmoMeshBoolean : public GLGizmoBase
 {
@@ -87,7 +89,7 @@ private:
     VolumeInfo m_src;
     VolumeInfo m_tool;
 
-    void generate_new_volume(bool delete_input, const TriangleMesh& mesh_result);
+    void generate_new_volume(bool delete_input, TriangleMesh& mesh_result, const std::vector<std::optional<TriangleSelector::SavedPainting>>& saved_paintings);
 };
 
 } // namespace GUI

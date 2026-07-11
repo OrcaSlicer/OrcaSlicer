@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Cubicon PA-CF @base",
 	"inherits": "fdm_filament_pa",
+	"setting_id": "55cJDyCoEudfOePY",
 	"filament_id": "P510cfd0",
 	"instantiation": "true",
 	"compatible_printers": [
@@ -37,7 +38,7 @@
 		"0.99"
 	],
 	"filament_max_volumetric_speed": [
-		"10"
+		"7"
 	],
 	"nozzle_temperature_initial_layer": [
 		"265"

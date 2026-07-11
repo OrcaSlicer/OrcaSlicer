@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Tough",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "SrZXxBXWXda9boGv",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"filament_type": [
@@ -47,12 +47,6 @@
 	],
 	"pressure_advance": [
 		"0.04"
-	],
-	"hot_plate_temp_initial_layer": [
-		"80"
-	],
-	"hot_plate_temp": [
-		"80"
 	],
 	"filament_density": [
 		"1.24"

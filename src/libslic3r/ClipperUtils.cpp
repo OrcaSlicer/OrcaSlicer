@@ -411,6 +411,19 @@ Slic3r::ExPolygons offset_ex(const Slic3r::Polygons &polygons, const float delta
 
 Slic3r::Polygons offset(const Slic3r::Polyline &polyline, const float delta, ClipperLib::JoinType joinType, double miterLimit, ClipperLib::EndType end_type)
     { assert(delta > 0); return to_polygons(clipper_union<ClipperLib::Paths>(raw_offset_polyline(ClipperUtils::SinglePathProvider(polyline.points), delta, joinType, miterLimit, end_type))); }
+
+Slic3r::Polygons offset(const Slic3r::Polyline3 &polyline, const float delta, ClipperLib::JoinType joinType, double miterLimit, ClipperLib::EndType end_type)
+{
+    assert(delta > 0);
+    return to_polygons(
+        clipper_union<ClipperLib::Paths>(
+            raw_offset_polyline(
+                ClipperUtils::SinglePathProvider(polyline.to_polyline().points),
+                delta,
+                joinType,
+                miterLimit,
+                end_type)));
+}
 Slic3r::Polygons offset(const Slic3r::Polylines &polylines, const float delta, ClipperLib::JoinType joinType, double miterLimit, ClipperLib::EndType end_type)
     { assert(delta > 0); return to_polygons(clipper_union<ClipperLib::Paths>(raw_offset_polyline(ClipperUtils::PolylinesProvider(polylines), delta, joinType, miterLimit, end_type))); }
 
@@ -507,7 +520,7 @@ ClipperLib::Paths expolygon_offset(const Slic3r::ExPolygon &expolygon, const flo
 
 // This is a safe variant of the polygons offset, tailored for multiple ExPolygons.
 // It is required, that the input expolygons do not overlap and that the holes of each ExPolygon don't intersect with their respective outer contours.
-// Each ExPolygon is offsetted separately. For outer offset, the the offsetted ExPolygons shall be united outside of this function.
+// Each ExPolygon is offsetted separately. For outer offset, the offsetted ExPolygons shall be united outside of this function.
 template<typename ExPolygonVector>
 static std::pair<ClipperLib::Paths, size_t> expolygons_offset_raw(const ExPolygonVector &expolygons, const float delta, ClipperLib::JoinType joinType, double miterLimit)
 {

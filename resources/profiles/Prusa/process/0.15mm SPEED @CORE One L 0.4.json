@@ -3,6 +3,7 @@
 	"name": "0.15mm SPEED @CORE One L 0.4",
 	"inherits": "0.15mm SPEED @MK4S 0.4",
 	"from": "system",
+	"setting_id": "L7eFBRpk43QZ2mIg",
 	"instantiation": "true",
 	"overhang_2_4_speed": "50",
 	"travel_speed": "500",

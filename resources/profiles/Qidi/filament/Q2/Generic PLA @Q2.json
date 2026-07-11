@@ -3,7 +3,6 @@
 	"name": "Generic PLA@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"setting_id": "GFSL99",
 	"filament_id": "QD_1_0_1",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
@@ -54,5 +53,29 @@
 	"temperature_vitrification": [
 		"45"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"eng_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"textured_cool_plate_temp": [
+		"45"
+	],
+	"eng_plate_temp_initial_layer": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"45"
+	]
 }

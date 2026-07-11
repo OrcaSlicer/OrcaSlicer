@@ -36,4 +36,7 @@ template int igl::max_size<std::vector<int, std::allocator<int> > >(std::vector<
 template int igl::max_size<std::vector<double, std::allocator<double> > >(std::vector<std::vector<double, std::allocator<double> >, std::allocator<std::vector<double, std::allocator<double> > > > const&);
 template int igl::max_size<std::vector<bool, std::allocator<bool> > >(std::vector<std::vector<bool, std::allocator<bool> >, std::allocator<std::vector<bool, std::allocator<bool> > > > const&);
 template int igl::max_size<std::vector<float, std::allocator<float> > >(std::vector<std::vector<float, std::allocator<float> >, std::allocator<std::vector<float, std::allocator<float> > > > const&);
+#ifdef WIN32
+template int igl::max_size<class std::vector<__int64,class std::allocator<__int64> > >(class std::vector<class std::vector<__int64,class std::allocator<__int64> >,class std::allocator<class std::vector<__int64,class std::allocator<__int64> > > > const &);
+#endif
 #endif

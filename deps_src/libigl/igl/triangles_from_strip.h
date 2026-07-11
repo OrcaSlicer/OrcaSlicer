@@ -11,14 +11,11 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // TRIANGLES_FROM_STRIP Create a list of triangles from a stream of indices
-  // along a strip.
-  //
-  // Inputs:
-  //   S  #S list of indices
-  // Outputs:
-  //   F  #S-2 by 3 list of triangle indices
-  //
+  /// Create a list of triangles from a stream of indices along a strip.
+  ///
+  /// @param[in] S  #S list of indices
+  /// @param[out] F  #S-2 by 3 list of triangle indices
+  ///
   template <typename DerivedS, typename DerivedF>
   IGL_INLINE void triangles_from_strip(
     const Eigen::MatrixBase<DerivedS>& S,

@@ -3,7 +3,7 @@
 	"name": "Bambu ABS @Qidi X-Plus 4 0.6 nozzle",
 	"inherits": "Bambu ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "94qvrRFOKOACTK2g",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [
@@ -23,9 +23,6 @@
 	],
 	"filament_max_volumetric_speed": [
 		"24.5"
-	],
-	"hot_plate_temp_initial_layer": [
-		"90"
 	],
 	"nozzle_temperature": [
 		"250"

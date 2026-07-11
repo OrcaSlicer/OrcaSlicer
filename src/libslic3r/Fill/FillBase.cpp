@@ -165,7 +165,7 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
         // ORCA: special flag for flow rate calibration
         auto is_flow_calib = params.extrusion_role == erTopSolidInfill && this->print_object_config->has("calib_flowrate_topinfill_special_order") &&
                              this->print_object_config->option("calib_flowrate_topinfill_special_order")->getBool();
-        if (is_flow_calib) {
+        if (is_flow_calib || params.is_anisotropic) { // Orca: disable sorting while anisotropic surfaces
             eec->no_sort = true;
         }
         size_t idx   = eec->entities.size();
@@ -186,7 +186,8 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
         }
 
         // Orca: run gap fill
-        this->_create_gap_fill(surface, params, eec);
+        if (!(params.is_anisotropic)) // Orca: Disable gap filling while anisotropic
+            this->_create_gap_fill(surface, params, eec);
     }
 }
 
@@ -308,7 +309,9 @@ std::pair<float, Point> Fill::_infill_direction(const Surface *surface) const
     } else if (this->layer_id != size_t(-1) && !fixed_angle) {
         // alternate fill direction
         //Orca: Do not alternate direction if Fill.fixed_angle is true
-        out_angle += this->_layer_angle(this->layer_id / surface->thickness_layers);
+        if (!this->dont_alternate_fill_direction) {
+            out_angle += this->_layer_angle(this->layer_id / surface->thickness_layers);
+        }
     } else {
 //    	printf("Layer_ID undefined!\n");
     }
@@ -1023,7 +1026,7 @@ void mark_boundary_segments_touching_infill(
 #endif // INFILL_DEBUG_OUTPUT
 
 	EdgeGrid::Grid grid;
-    // Make sure that the the grid is big enough for queries against the thick segment.
+    // Make sure that the grid is big enough for queries against the thick segment.
 	grid.set_bbox(boundary_bbox.inflated(distance_colliding * 1.43));
 	// Inflate the bounding box by a thick line width.
 	grid.create(boundary, coord_t(std::max(clip_distance, distance_colliding) + scale_(10.)));

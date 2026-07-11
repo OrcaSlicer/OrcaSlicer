@@ -3,12 +3,12 @@
 	"name": "RatRig V-Core 4 HYBRID 500 0.8 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "mAkZY3zGttPx2rJC",
 	"instantiation": "true",
 	"printer_model": "RatRig V-Core 4 HYBRID 500",
 	"printer_variant": "0.8",
 	"nozzle_diameter": [
-		"0.6"
+		"0.8"
 	],
 	"printable_area": [
 		"0x0",

@@ -79,6 +79,9 @@ struct FillParams
     // Layer height for Concentric infill with Arachne.
     coordf_t    layer_height    { 0.f };
 
+    // For Gyroid: when true, use the parameterized "optimized" variant.
+    bool        gyroid_optimized { false };
+
     // For Lateral lattice
     coordf_t    lateral_lattice_angle_1    { 0.f };
     coordf_t    lateral_lattice_angle_2    { 0.f };
@@ -103,6 +106,8 @@ struct FillParams
     bool            locked_zag{false};
     float           infill_lock_depth{0.0};
     float           skin_infill_depth{0.0};
+    bool            is_anisotropic{false};
+    CenterOfSurfacePattern center_of_surface_pattern{CenterOfSurfacePattern::Each_Surface};
 };
 static_assert(IsTriviallyCopyable<FillParams>::value, "FillParams class is not POD (and it should be - see constructor).");
 
@@ -141,6 +146,7 @@ public:
 
     // BBS: all no overlap expolygons in same layer
     ExPolygons  no_overlap_expolygons;
+    bool dont_alternate_fill_direction = false;
 
     static float infill_anchor;
     static float infill_anchor_max;

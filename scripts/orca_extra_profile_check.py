@@ -3,6 +3,8 @@ import json
 import argparse
 from pathlib import Path
 
+from assign_vendor_setting_ids import generate_preset_setting_id
+
 OBSOLETE_KEYS = {
     "acceleration", "scale", "rotate", "duplicate", "duplicate_grid",
     "bed_size", "print_center", "g0", "wipe_tower_per_color_wipe",
@@ -360,6 +362,50 @@ CONFLICT_KEYS = [
     ['extruder_clearance_radius', 'extruder_clearance_max_radius'],
 ]
 
+VECTOR_KEYS = {
+    "filament_type",
+}
+
+def check_vector_type_keys(profiles_dir, vendor_name):
+    """
+    Check that properties expected to be vectors (JSON arrays) are not stored as scalars.
+    For example, `filament_type` must be a list like ["PA-CF"], not a string "PA-CF".
+
+    Parameters:
+        profiles_dir (Path): Base profiles directory
+        vendor_name (str): Vendor name
+
+    Returns:
+        int: Number of errors found
+    """
+    error_count = 0
+    vendor_path = profiles_dir / vendor_name
+
+    if not vendor_path.exists():
+        return 0
+
+    for file_path in vendor_path.rglob("*.json"):
+        try:
+            with open(file_path, "r", encoding="UTF-8") as fp:
+                data = json.load(fp)
+        except Exception as e:
+            print_error(f"Error processing {file_path.relative_to(profiles_dir)}: {e}")
+            error_count += 1
+            continue
+
+        if not isinstance(data, dict):
+            continue
+
+        for key in VECTOR_KEYS:
+            if key in data and not isinstance(data[key], list):
+                print_error(
+                    f"'{key}' must be an array in {file_path.relative_to(profiles_dir)}, "
+                    f"got {type(data[key]).__name__}: {data[key]!r}"
+                )
+                error_count += 1
+
+    return error_count
+
 def check_conflict_keys(profiles_dir, vendor_name):
     """
     Check for keys that could not be specified at the same time,
@@ -406,6 +452,101 @@ def check_conflict_keys(profiles_dir, vendor_name):
     return error_count, warn_count
 
 
+# Bambu (BBL) keeps its authoritative "G*" cloud ids, which are NOT produced by the
+# deterministic formula, so BBL is exempt from the formula match (Rule 2) only. It is
+# still checked for presence, uniqueness, base-no-id and the typo key like every other
+# vendor. Every other vendor (incl. OrcaFilamentLibrary and Custom) must also match the
+# formula.
+SETTING_ID_FORMULA_EXEMPT_VENDORS = {"BBL"}
+PROFILE_SUBDIRS = ("filament", "process", "machine")
+
+
+def check_setting_id_uniqueness(profiles_dir):
+    """
+    Validate setting_id across every vendor (see scripts/assign_vendor_setting_ids.py):
+      1. Every instantiated preset must HAVE a setting_id.            (all vendors)
+      2. A stored setting_id must equal generate_preset_setting_id(vendor, type, name); a stale
+         value means the JSON was edited without rerunning assign_vendor_setting_ids.py.
+         (all vendors EXCEPT the formula-exempt ones, e.g. BBL)
+      3. Base profiles (instantiation != "true") must not carry a setting_id.  (all vendors)
+      4. setting_id must be globally unique - no two files may share one.       (all vendors)
+      5. No profile may use the misspelled key "settings_id".                    (all vendors)
+    Formula-exempt vendors (BBL) keep their authoritative ids, so only Rule 2 is skipped
+    for them; they are still held to presence, uniqueness, base-no-id and the typo check.
+    """
+    errors = 0
+    owners = {}  # setting_id -> list of relative_path (every vendor)
+    for vendor_dir in sorted(profiles_dir.iterdir()):
+        if not vendor_dir.is_dir():
+            continue
+        vendor = vendor_dir.name
+        formula_exempt = vendor in SETTING_ID_FORMULA_EXEMPT_VENDORS
+        for sub in PROFILE_SUBDIRS:
+            base = vendor_dir / sub
+            if not base.is_dir():
+                continue
+            for file_path in base.rglob("*.json"):
+                try:
+                    data = json.loads(file_path.read_bytes())
+                except (ValueError, OSError):
+                    continue
+                if not isinstance(data, dict):
+                    continue
+                rel = file_path.relative_to(profiles_dir)
+                # Rule 5: catch the misspelled "settings_id" key.
+                if "settings_id" in data:
+                    errors += 1
+                    print_error(
+                        f'profile {rel} uses the misspelled key "settings_id" '
+                        f'(should be "setting_id"); run assign_vendor_setting_ids.py'
+                    )
+                sid = data.get("setting_id")
+                instantiated = data.get("instantiation") == "true"
+                if not instantiated:
+                    # Rule 3: base/template profiles must not carry a setting_id.
+                    if sid:
+                        errors += 1
+                        print_error(
+                            f'base profile {rel} (instantiation != "true") must not have a '
+                            f'setting_id ("{sid}"); run assign_vendor_setting_ids.py'
+                        )
+                    continue
+                # Rule 1: every instantiated preset must have a setting_id.
+                if not sid:
+                    errors += 1
+                    print_error(
+                        f"instantiated preset {rel} is missing a setting_id; "
+                        f"run assign_vendor_setting_ids.py"
+                    )
+                    continue
+                # Rule 2: the stored id must match the deterministic rule. BBL keeps its
+                # authoritative G* ids and is exempt from this check only.
+                if not formula_exempt:
+                    expected = generate_preset_setting_id(vendor, sub, data.get("name", ""))
+                    if sid != expected:
+                        errors += 1
+                        print_error(
+                            f'setting_id "{sid}" in {rel} does not match the expected '
+                            f'"{expected}" for {vendor}/{sub}/{data.get("name", "")}; '
+                            f"run assign_vendor_setting_ids.py"
+                        )
+                        continue
+                # Rule 4: collect for the global-uniqueness check below.
+                owners.setdefault(sid, []).append(rel)
+
+    # Rule 4: a setting_id shared by two files is an error. For managed vendors this means
+    # a duplicate vendor/type/name; for formula-exempt vendors (BBL) a copy-pasted id.
+    for sid, locs in sorted(owners.items()):
+        if len(locs) < 2:
+            continue
+        errors += 1
+        print_error(
+            f'setting_id "{sid}" is shared by {len(locs)} files ({sorted(map(str, locs))}); '
+            f"setting_id must be globally unique"
+        )
+    return errors
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Check 3D printer profiles for common issues",
@@ -448,6 +589,8 @@ def main():
         errors_found += new_errors
         warnings_found += new_warnings
 
+        errors_found += check_vector_type_keys(profiles_dir, vendor_name)
+
         errors_found += check_filament_id(vendor_name, vendor_path / "filament")
         checked_vendor_count += 1
 
@@ -458,6 +601,10 @@ def main():
             if not vendor_dir.is_dir() or vendor_dir.name == "OrcaFilamentLibrary":
                 continue
             run_checks(vendor_dir.name)
+
+    # Global (cross-vendor) check: setting_id must be unique and stay in-namespace.
+    # Runs once over the whole tree regardless of the --vendor filter.
+    errors_found += check_setting_id_uniqueness(profiles_dir)
 
     # ✨ Output finale in stile "compilatore"
     print("\n==================== SUMMARY ====================")

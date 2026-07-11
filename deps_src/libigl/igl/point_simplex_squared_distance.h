@@ -11,17 +11,15 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Determine squared distance from a point to linear simplex. 
-  //
-  // Inputs:
-  //   p  d-long query point
-  //   V  #V by d list of vertices
-  //   Ele  #Ele by ss<=d+1 list of simplex indices into V
-  //   i  index into Ele of simplex
-  // Outputs:
-  //   sqr_d  squared distance of Ele(i) to p
-  //   c  closest point on Ele(i) 
-  //
+  /// Determine squared distance from a point to linear simplex. 
+  ///
+  /// @param[in] p  d-long query point
+  /// @param[in] V  #V by d list of vertices
+  /// @param[in] Ele  #Ele by ss<=d+1 list of simplex indices into V
+  /// @param[in] i  index into Ele of simplex
+  /// @param[out] sqr_d  squared distance of Ele(i) to p
+  /// @param[out] c  closest point on Ele(i) 
+  ///
   template <
     int DIM,
     typename Derivedp,
@@ -35,20 +33,18 @@ namespace igl
     const Eigen::MatrixBase<DerivedEle> & Ele,
     const typename DerivedEle::Index i,
     Derivedsqr_d & sqr_d,
-    Eigen::MatrixBase<Derivedc> & c);
-  // Determine squared distance from a point to linear simplex.
-  // Also return barycentric coordinate of closest point. 
-  //
-  // Inputs:
-  //   p  d-long query point
-  //   V  #V by d list of vertices
-  //   Ele  #Ele by ss<=d+1 list of simplex indices into V
-  //   i  index into Ele of simplex
-  // Outputs:
-  //   sqr_d  squared distance of Ele(i) to p
-  //   c  closest point on Ele(i) 
-  //   b  barycentric coordinates of closest point on Ele(i) 
-  //
+    Eigen::PlainObjectBase<Derivedc> & c);
+  /// Determine squared distance from a point to linear simplex.
+  /// Also return barycentric coordinate of closest point. 
+  ///
+  /// @param[in] p  d-long query point
+  /// @param[in] V  #V by d list of vertices
+  /// @param[in] Ele  #Ele by ss<=d+1 list of simplex indices into V
+  /// @param[in] i  index into Ele of simplex
+  /// @param[out] sqr_d  squared distance of Ele(i) to p
+  /// @param[out] c  closest point on Ele(i) 
+  /// @param[out] b  barycentric coordinates of closest point on Ele(i) 
+  ///
   template <
     int DIM,
     typename Derivedp,
@@ -63,7 +59,7 @@ namespace igl
     const Eigen::MatrixBase<DerivedEle> & Ele,
     const typename DerivedEle::Index i,
     Derivedsqr_d & sqr_d,
-    Eigen::MatrixBase<Derivedc> & c,
+    Eigen::PlainObjectBase<Derivedc> & c,
     Eigen::PlainObjectBase<Derivedb> & b);
 }
 #ifndef IGL_STATIC_LIBRARY

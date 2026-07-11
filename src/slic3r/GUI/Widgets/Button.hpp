@@ -23,6 +23,7 @@ enum class ButtonType{
     Window   , // Font12  FullyRounded  For regular buttons in windows and not related with parameter boxes
     Choice   , // Font14  Semi-Rounded  For dialog/window choice buttons
     Parameter, // Font14  Semi-Rounded  For buttons that near parameter boxes
+    Icon     , // ------  Semi-Rounded  For buttons that only has icons. icons should be 16x16 and iconSize has to be defined as 16 while creation of button
     Expanded , // Font14  Semi-Rounded  For full length buttons. ex. buttons in static box
 };
 

@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="max-age=0" />
+<title>Export Presets</title>
+<link rel="stylesheet" href="./styles.css" />
+  <link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
+    <link rel="stylesheet" type="text/css" href="../css/common.css" />	
+    <link rel="stylesheet" type="text/css" href="../css/dark.css" />	
+    <script type="text/javascript" src="../js/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript" src="../js/json2.js"></script>	
+    <script type="text/javascript" src="../../data/text.js"></script>	
+    <script type="text/javascript" src="../js/globalapi.js"></script>	
+    <script type="text/javascript" src="../js/common.js"></script>
+     <script src="./index.js"></script>
+</head>
+<body onLoad="OnInit()">
+    
+    <!-- ORCA column browser -->
+<div class="cbr-browser-container">
+	<div class="cbr-column">
+		<div class="cbr-column-title-container">
+			<div class="search-icon"></div>
+			<input type="text" class="cbr-search-bar" placeholder=" " tabindex="1"/>
+			<span class="cbr-search-placeholder trans" tid="t15">printer</span>
+			<div class="clear-icon"></div>
+		</div>
+		<div class="cbr-content thin-scroll" id="MachineList">
+			<div class="CValues">
+				<label><input type="checkbox" mode="all" onClick="ChooseAllMachine()"  /><span class="trans" tid="t11">all</span></label>
+			</div>
+			<div class="cbr-no-items">No items</div>
+		</div>
+	</div>
+
+	<div class="cbr-column">
+		<div class="cbr-column-title-container">
+			<div class="search-icon"></div>
+			<input type="text" class="cbr-search-bar" placeholder=" " tabindex="2"/>
+			<span class="cbr-search-placeholder trans" tid="t16">filament</span>
+			<div class="clear-icon"></div>
+		</div>
+		<div class="cbr-content thin-scroll" id="FilatypeList">
+			<div class="CValues">
+				<label><input type="checkbox" class="trans" tid="t11" onClick="ChooseAllFilament()" /><span class="trans" tid="t11">all</span></label>	
+			</div>
+			<div class="cbr-no-items">No items</div>
+		</div>
+	</div>
+
+	<div class="cbr-column">
+		<div class="cbr-column-title-container">
+			<div class="search-icon"></div>
+			<input type="text" class="cbr-search-bar" placeholder=" " tabindex="3"/>
+			<span class="cbr-search-placeholder trans" tid="t17">presets</span>
+			<div class="clear-icon"></div>
+		</div>
+		<div class="cbr-content thin-scroll" id="PresetList">
+			<div class="CValues">
+				<label><input type="checkbox" class="trans" tid="t11" onClick="ChooseAllPreset()" /><span class="trans" tid="t11">all</span></label>
+			</div>
+			<div class="cbr-no-items">No items</div>
+		</div>
+	</div>
+</div>
+
+<div id="AcceptArea">
+    <div id="export_cloud_btn" class="ButtonStyleConfirm ButtonTypeChoice">Export to OrcaCloud</div>
+    <div id="export_local_btn" class="ButtonStyleRegular ButtonTypeChoice">Export to folder</div>
+    <div id="close_btn" class="ButtonStyleRegular ButtonTypeChoice">Close</div>
+</div>
+
+</body>
+</html>

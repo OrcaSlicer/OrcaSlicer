@@ -1,0 +1,352 @@
+{
+	"type": "machine",
+	"name": "SeeMeCNC BOSSdelta 300 0.7 nozzle",
+	"from": "System",
+	"setting_id": "I8EEuRh2zT6CFuqG",
+	"instantiation": "true",
+	"adaptive_bed_mesh_margin": "0",
+	"auxiliary_fan": "0",
+	"bed_custom_model": "SeeMeCNC_Buildplate_Model.STL",
+	"bed_custom_texture": "SeeMeCNC_Buildplate_texture.png",
+	"bed_exclude_area": [
+		"0x0"
+	],
+	"bed_mesh_max": "99999,99999",
+	"bed_mesh_min": "-99999,-99999",
+	"bed_mesh_probe_distance": "50,50",
+	"bed_temperature_formula": "by_first_filament",
+	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\n{if layer_num == 1}M104 S[nozzle_temperature] ; Step down from first layer temp to print temp{endif}\nG92 E0\n",
+	"best_object_pos": "0.5,0.5",
+	"change_extrusion_role_gcode": "",
+	"change_filament_gcode": "{if layer_num >= 0}\nG92 E0\nG1 E-5 F3000\nG1 E-155 F5000\nT[next_extruder]\n{if layer_num == 0}\nM109 S[first_layer_temperature]\n{else}\nM109 S[nozzle_temperature]\n{endif}\nG1 E160 F5000\nG92 E0\n{endif}",
+	"cooling_tube_length": "5",
+	"cooling_tube_retraction": "160",
+	"default_filament_profile": [
+		"SeeMeCNC PLA"
+	],
+	"default_nozzle_volume_type": [
+		"Standard"
+	],
+	"default_print_profile": "0.35mm Standard @SeeMeCNC BOSSdelta 300 0.7",
+	"deretraction_speed": [
+		"60"
+	],
+	"disable_m73": "0",
+	"emit_machine_limits_to_gcode": "1",
+	"enable_filament_ramming": "0",
+	"enable_long_retraction_when_cut": "0",
+	"enable_power_loss_recovery": "printer_configuration",
+	"extra_loading_move": "0",
+	"extruder_clearance_height_to_lid": "70",
+	"extruder_clearance_height_to_rod": "70",
+	"extruder_clearance_radius": "75",
+	"extruder_colour": [
+		"#FCE94F"
+	],
+	"extruder_offset": [
+		"0x0"
+	],
+	"extruder_printable_area": [],
+	"extruder_printable_height": [
+		"495"
+	],
+	"extruder_type": [
+		"Bowden"
+	],
+	"extruder_variant_list": [
+		"Bowden Standard"
+	],
+	"fan_kickstart": "0",
+	"fan_speedup_overhangs": "1",
+	"fan_speedup_time": "0",
+	"file_start_gcode": "",
+	"gcode_flavor": "reprapfirmware",
+	"grab_length": [
+		"0"
+	],
+	"head_wrap_detect_zone": [],
+	"high_current_on_filament_swap": "0",
+	"host_type": "duet",
+	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+	"long_retractions_when_cut": [
+		"0"
+	],
+	"machine_end_gcode": [
+		";======= SEEMECNC BOSSDELTA 300 END G-CODE =======\nM104 S0          ; Turn off hotend\nM140 S0          ; Turn off heated bed\nM107 T0          ; Turn off part cooling fan\nG91              ; Relative positioning\nG1 Z2 E-160 F6000  ; Lift 2mm and retract 160mm\nG92 E0\nG90              ; Absolute positioning\nM203 Z18000      ; Allow fast Z for homing\nG28              ; Home all axes - clears part immediately on a delta\n;======= END G-CODE ======="
+	],
+	"machine_load_filament_time": "4",
+	"machine_max_acceleration_e": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_extruding": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_retracting": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_travel": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_x": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_y": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_z": [
+		"5000",
+		"5000"
+	],
+	"machine_max_jerk_e": [
+		"15",
+		"15"
+	],
+	"machine_max_jerk_x": [
+		"15",
+		"15"
+	],
+	"machine_max_jerk_y": [
+		"15",
+		"15"
+	],
+	"machine_max_jerk_z": [
+		"15",
+		"15"
+	],
+	"machine_max_junction_deviation": [
+		"0.01"
+	],
+	"machine_max_speed_e": [
+		"150",
+		"25"
+	],
+	"machine_max_speed_x": [
+		"300",
+		"300"
+	],
+	"machine_max_speed_y": [
+		"300",
+		"300"
+	],
+	"machine_max_speed_z": [
+		"200",
+		"200"
+	],
+	"machine_min_extruding_rate": [
+		"0",
+		"0"
+	],
+	"machine_min_travel_rate": [
+		"0",
+		"0"
+	],
+	"machine_pause_gcode": "M601",
+	"machine_start_gcode": [
+		";======= SEEMECNC BOSSDELTA 300 START G-CODE =======\nG21              ; Set units to mm\nG90              ; Absolute positioning\nM82              ; Extruder to absolute mode\nG28              ; Home all axes\nG1 Z50 F9000     ; Lift nozzle for safe heating\n; --- SELECT STARTING TOOL ---\nT[initial_tool]  ; Activate the first assigned filament in OrcaSlicer\n; --- PREHEAT ---\nM140 S[first_layer_bed_temperature]  ; Start bed heating\nM104 S[first_layer_temperature]      ; Start nozzle heating\nM190 S[first_layer_bed_temperature]  ; Wait for bed to reach temp\nM109 S[first_layer_temperature]      ; Wait for nozzle to reach temp\n; --- RE-PRIME BOWDEN TUBE ---\nG92 E0\nG1 E160.5 F3000  ; Retract 160mm\nG92 E0\n; --- PURGE LINE (curved arc near front edge, 300mm bed) ---\nG92 E0\nG1 X-50 Y-135.0 Z0.4 F5000   ; Move to arc start (inside 150mm radius)\nG1 Z0.3 F1000                    ; Drop to prime height\nG3 X50 Y-135.0 R144.0 E40 F600  ; Arc purge, 100mm sweep, heavy extrusion\nG1 E38 F4500                     ; Retract 2mm before wipe (Bowden)\nG1 X65 Y-125.0 Z0.2 F6000     ; Wipe move at Z0.2\nG92 E0                           ; Zero extruder before print\n;======= END START G-CODE ======="
+	],
+	"machine_tool_change_time": "0",
+	"machine_unload_filament_time": "4",
+	"manual_filament_change": "0",
+	"master_extruder_id": "1",
+	"max_layer_height": [
+		"0.56"
+	],
+	"max_resonance_avoidance_speed": "100",
+	"min_layer_height": [
+		"0.15"
+	],
+	"min_resonance_avoidance_speed": "50",
+	"nozzle_diameter": [
+		"0.7"
+	],
+	"nozzle_flush_dataset": [
+		"0"
+	],
+	"nozzle_height": "3.0",
+	"nozzle_hrc": "0",
+	"nozzle_type": [
+		"brass"
+	],
+	"nozzle_volume": [
+		"0"
+	],
+	"parking_pos_retraction": "160",
+	"pellet_modded_printer": "0",
+	"physical_extruder_map": [
+		"0"
+	],
+	"preferred_orientation": "0",
+	"printable_area": [
+		"150.0000x0.0000",
+		"149.4292x13.0734",
+		"147.7212x26.0472",
+		"144.8889x38.8229",
+		"140.9539x51.3030",
+		"135.9462x63.3927",
+		"129.9038x75.0000",
+		"122.8728x86.0365",
+		"114.9067x96.4181",
+		"106.0660x106.0660",
+		"96.4181x114.9067",
+		"86.0365x122.8728",
+		"75.0000x129.9038",
+		"63.3927x135.9462",
+		"51.3030x140.9539",
+		"38.8229x144.8889",
+		"26.0472x147.7212",
+		"13.0734x149.4292",
+		"0.0000x150.0000",
+		"-13.0734x149.4292",
+		"-26.0472x147.7212",
+		"-38.8229x144.8889",
+		"-51.3030x140.9539",
+		"-63.3927x135.9462",
+		"-75.0000x129.9038",
+		"-86.0365x122.8728",
+		"-96.4181x114.9067",
+		"-106.0660x106.0660",
+		"-114.9067x96.4181",
+		"-122.8728x86.0365",
+		"-129.9038x75.0000",
+		"-135.9462x63.3927",
+		"-140.9539x51.3030",
+		"-144.8889x38.8229",
+		"-147.7212x26.0472",
+		"-149.4292x13.0734",
+		"-150.0000x0.0000",
+		"-149.4292x-13.0734",
+		"-147.7212x-26.0472",
+		"-144.8889x-38.8229",
+		"-140.9539x-51.3030",
+		"-135.9462x-63.3927",
+		"-129.9038x-75.0000",
+		"-122.8728x-86.0365",
+		"-114.9067x-96.4181",
+		"-106.0660x-106.0660",
+		"-96.4181x-114.9067",
+		"-86.0365x-122.8728",
+		"-75.0000x-129.9038",
+		"-63.3927x-135.9462",
+		"-51.3030x-140.9539",
+		"-38.8229x-144.8889",
+		"-26.0472x-147.7212",
+		"-13.0734x-149.4292",
+		"-0.0000x-150.0000",
+		"13.0734x-149.4292",
+		"26.0472x-147.7212",
+		"38.8229x-144.8889",
+		"51.3030x-140.9539",
+		"63.3927x-135.9462",
+		"75.0000x-129.9038",
+		"86.0365x-122.8728",
+		"96.4181x-114.9067",
+		"106.0660x-106.0660",
+		"114.9067x-96.4181",
+		"122.8728x-86.0365",
+		"129.9038x-75.0000",
+		"135.9462x-63.3927",
+		"140.9539x-51.3030",
+		"144.8889x-38.8229",
+		"147.7212x-26.0472",
+		"149.4292x-13.0734"
+	],
+	"printable_height": "495",
+	"printer_agent": "",
+	"printer_extruder_id": [
+		"1"
+	],
+	"printer_extruder_variant": [
+		"Bowden Standard"
+	],
+	"printer_model": "SeeMeCNC BOSSdelta 300",
+	"printer_notes": "",
+	"printer_settings_id": "SeeMeCNC BOSSdelta 300 0.7 nozzle",
+	"printer_structure": "delta",
+	"printer_technology": "FFF",
+	"printer_variant": "0.7",
+	"printhost_authorization_type": "key",
+	"printhost_ssl_ignore_revoke": "0",
+	"printing_by_object_gcode": "",
+	"purge_in_prime_tower": "0",
+	"resonance_avoidance": "0",
+	"retract_before_wipe": [
+		"70%"
+	],
+	"retract_length_toolchange": [
+		"3"
+	],
+	"retract_lift_above": [
+		"0"
+	],
+	"retract_lift_below": [
+		"0"
+	],
+	"retract_lift_enforce": [
+		"All Surfaces"
+	],
+	"retract_restart_extra": [
+		"0"
+	],
+	"retract_restart_extra_toolchange": [
+		"2"
+	],
+	"retract_when_changing_layer": [
+		"1"
+	],
+	"retraction_distances_when_cut": [
+		"18"
+	],
+	"retraction_length": [
+		"6"
+	],
+	"retraction_minimum_travel": [
+		"1"
+	],
+	"retraction_speed": [
+		"60"
+	],
+	"scan_first_layer": "0",
+	"silent_mode": "0",
+	"single_extruder_multi_material": "1",
+	"support_air_filtration": "1",
+	"support_chamber_temp_control": "1",
+	"support_multi_bed_types": "0",
+	"support_object_skip_flush": "0",
+	"template_custom_gcode": "",
+	"thumbnails": "48x48/PNG, 300x300/PNG",
+	"thumbnails_format": "PNG",
+	"time_cost": "0",
+	"time_lapse_gcode": "",
+	"travel_slope": [
+		"3"
+	],
+	"upward_compatible_machine": [],
+	"use_firmware_retraction": "0",
+	"use_relative_e_distances": "1",
+	"wipe": [
+		"1"
+	],
+	"wipe_distance": [
+		"1"
+	],
+	"wipe_tower_type": "type2",
+	"wrapping_detection_gcode": "",
+	"wrapping_detection_layers": "20",
+	"wrapping_exclude_area": [],
+	"z_hop": [
+		"0.4"
+	],
+	"z_hop_types": [
+		"Auto Lift"
+	],
+	"z_offset": "0",
+	"model": "SeeMeCNC BOSSdelta 300",
+	"thumbnail": "SeeMeCNC BOSSdelta 300_cover.png",
+	"description": "SeeMeCNC configurations"
+}

@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA-mate Marron",
+    "inherits": "FilAr PLA-mate @base",
+    "from": "system",
+    "setting_id": "lKOXMY37q8WpMdBA",
+    "filament_id": "FILAR0038",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#6B4226"
+    ]
+}

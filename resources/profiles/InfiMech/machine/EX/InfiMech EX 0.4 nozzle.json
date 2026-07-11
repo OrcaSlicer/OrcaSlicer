@@ -3,7 +3,7 @@
 	"name": "InfiMech EX 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "TBhac3KY549FaS4b",
 	"instantiation": "true",
 	"printer_model": "InfiMech EX",
 	"auxiliary_fan": "1",

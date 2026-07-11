@@ -3,7 +3,7 @@
 	"name": "0.40mm Standard @OpenEYE Peacock V2 0.8 nozzle",
 	"inherits": "fdm_process_openeye_0.40_nozzle_0.8",
 	"from": "system",
-	"setting_id": "GP126",
+	"setting_id": "SDp0weOnDWdnApMb",
 	"instantiation": "true",
 	"description": "Standard profile for 0.8mm nozzle, prioritizing speed.",
 	"bridge_speed": "50",

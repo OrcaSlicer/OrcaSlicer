@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Galaxy @FF G4 0.6 HF nozzle",
 	"inherits": "Flashforge Generic PLA @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "koEC7DteUoXHUd2z",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

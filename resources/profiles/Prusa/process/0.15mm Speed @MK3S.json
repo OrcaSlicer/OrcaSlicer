@@ -3,6 +3,7 @@
 	"name": "0.15mm Speed @MK3S",
 	"inherits": "process_common_mk3",
 	"from": "system",
+	"setting_id": "hMrUzAn55mGAdWZd",
 	"instantiation": "true",
 	"print_settings_id": "0.15mm Speed @MK3S",
 	"bottom_shell_layers": "5",

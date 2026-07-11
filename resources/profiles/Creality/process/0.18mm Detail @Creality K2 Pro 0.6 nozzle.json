@@ -3,7 +3,7 @@
 	"name": "0.18mm Detail @Creality K2 Pro 0.6 nozzle",
 	"inherits": "fdm_process_common_klipper",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "qkIa0kvnO1kKCXaH",
 	"instantiation": "true",
 	"max_travel_detour_distance": "0",
 	"bottom_surface_pattern": "monotonic",

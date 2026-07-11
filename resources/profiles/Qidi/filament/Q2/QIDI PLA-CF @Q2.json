@@ -3,7 +3,6 @@
 	"name": "QIDI PLA-CF@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"setting_id": "GFSL98",
 	"filament_id": "QD_1_1_5",
 	"instantiation": "false",
 	"additional_cooling_fan_speed": [
@@ -49,13 +48,43 @@
 		"0.042"
 	],
 	"supertack_plate_temp_initial_layer": [
-		"50"
+		"45"
 	],
 	"supertack_plate_temp": [
-		"50"
+		"45"
 	],
 	"temperature_vitrification": [
 		"45"
 	],
-	"compatible_printers": []
+	"compatible_printers": [],
+	"cool_plate_temp": [
+		"45"
+	],
+	"eng_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"textured_cool_plate_temp": [
+		"45"
+	],
+	"cool_plate_temp_initial_layer": [
+		"45"
+	],
+	"eng_plate_temp_initial_layer": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
+	"textured_cool_plate_temp_initial_layer": [
+		"45"
+	]
 }

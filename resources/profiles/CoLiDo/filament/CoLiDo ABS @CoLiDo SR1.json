@@ -3,7 +3,7 @@
 	"name": "CoLiDo ABS @CoLiDo SR1",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSB99_06",
+	"setting_id": "ZztaHKdQ4dmOgAXr",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_vendor": [
