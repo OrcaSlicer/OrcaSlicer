@@ -1625,3 +1625,86 @@ TEST_CASE("surface_deviation: identical solids ~0, shifted solid ~shift", "[Devi
     REQUIRE_THAT(d1.max_mm, Catch::Matchers::WithinAbs(2.0, 0.05));
     REQUIRE(d1.mean_mm > 0.0);
 }
+
+TEST_CASE("mesh_to_brep: watertight cube -> solid, coplanar merge gives 6 faces", "[design][mesh2brep]")
+{
+    const indexed_triangle_set cube = its_make_cube(10.0, 20.0, 30.0);
+    REQUIRE(cube.indices.size() == 12);
+
+    SECTION("faceted: one B-rep face per triangle, exact volume") {
+        GeometryEngine::MeshBrepStats st;
+        const TopoDS_Shape shape = GeometryEngine::mesh_to_brep(cube, 0.01, /*no merge*/0.0, st);
+        REQUIRE_FALSE(shape.IsNull());
+        CHECK(st.kept_tris == 12);
+        CHECK(st.faces_built == 12);
+        CHECK(st.faces_final == 12);
+        // Shared topology by construction: a cube has 8 vertices and 18 edges once the two
+        // triangles of each face share their diagonal. Every edge used exactly twice.
+        CHECK(st.unique_edges == 18);
+        CHECK(st.boundary_edges == 0);
+        CHECK(st.nonmanifold_edges == 0);
+        CHECK(st.watertight);
+        REQUIRE(st.is_solid);
+        REQUIRE_THAT(st.volume, Catch::Matchers::WithinRel(10.0 * 20.0 * 30.0, 1e-9));
+    }
+
+    SECTION("merge coplanar: 12 triangles collapse to the cube's 6 real faces") {
+        GeometryEngine::MeshBrepStats st;
+        const TopoDS_Shape shape = GeometryEngine::mesh_to_brep(cube, 0.01, 5.0, st);
+        REQUIRE_FALSE(shape.IsNull());
+        REQUIRE(st.is_solid);
+        // This is the whole point of merging: the imported body must expose pickable CAD faces,
+        // not one face per triangle, or the fillet/extrude tools have nothing meaningful to grab.
+        REQUIRE(st.faces_final == 6);
+        REQUIRE_THAT(st.volume, Catch::Matchers::WithinRel(10.0 * 20.0 * 30.0, 1e-9));
+    }
+}
+
+TEST_CASE("mesh_to_brep: an open mesh is reported as a shell, never a fake solid", "[design][mesh2brep]")
+{
+    indexed_triangle_set open_cube = its_make_cube(10.0, 10.0, 10.0);
+    open_cube.indices.pop_back();          // punch a hole: drop one triangle
+    open_cube.indices.pop_back();          // (and its coplanar partner -> a whole face missing)
+
+    GeometryEngine::MeshBrepStats st;
+    const TopoDS_Shape shape = GeometryEngine::mesh_to_brep(open_cube, 0.01, 5.0, st);
+    REQUIRE_FALSE(shape.IsNull());
+    CHECK(st.kept_tris == 10);
+    CHECK(st.boundary_edges > 0);          // the hole's rim
+    CHECK_FALSE(st.watertight);
+    REQUIRE_FALSE(st.is_solid);            // must NOT be dressed up as a solid
+    CHECK(st.volume == 0.0);
+}
+
+TEST_CASE("mesh_to_brep: degenerate triangles are rejected on a scale-independent test", "[design][mesh2brep]")
+{
+    // A thin but perfectly legitimate CAD sliver. Every edge (1.0, ~0.5, ~0.5) is far above the
+    // 0.01 dedup tolerance, so no vertex collapses — but its area (5e-5) is BELOW tolerance^2
+    // (1e-4). A rule of "reject when area < tolerance^2" would therefore throw it away, which is
+    // precisely the bug that turned a watertight 62k-triangle input into a falsely-open shell.
+    // The scale-independent test (area < 1e-9 * longest_edge^2 = 1e-9) keeps it, as it must.
+    indexed_triangle_set sliver;
+    sliver.vertices = { {0.f, 0.f, 0.f}, {1.f, 0.f, 0.f}, {0.5f, 0.0001f, 0.f} };
+    sliver.indices  = { {0, 1, 2} };
+    GeometryEngine::MeshBrepStats st;
+    GeometryEngine::mesh_to_brep(sliver, 0.01, 0.0, st);
+    CHECK(st.degenerate_sliver == 0);
+    CHECK(st.degenerate_collapsed == 0);
+    CHECK(st.kept_tris == 1);
+
+    // A truly collinear triangle has no area at any scale -> rejected as a sliver.
+    indexed_triangle_set collinear;
+    collinear.vertices = { {0.f, 0.f, 0.f}, {10.f, 0.f, 0.f}, {20.f, 0.f, 0.f} };
+    collinear.indices  = { {0, 1, 2} };
+    GeometryEngine::MeshBrepStats st2;
+    CHECK_THROWS(GeometryEngine::mesh_to_brep(collinear, 0.01, 0.0, st2));  // nothing left to build
+    CHECK(st2.degenerate_sliver == 1);
+
+    // A triangle entirely inside one tolerance cell is sub-resolution noise -> collapsed.
+    indexed_triangle_set tiny;
+    tiny.vertices = { {0.f, 0.f, 0.f}, {0.001f, 0.f, 0.f}, {0.f, 0.001f, 0.f} };
+    tiny.indices  = { {0, 1, 2} };
+    GeometryEngine::MeshBrepStats st3;
+    CHECK_THROWS(GeometryEngine::mesh_to_brep(tiny, 0.1, 0.0, st3));
+    CHECK(st3.degenerate_collapsed == 1);
+}

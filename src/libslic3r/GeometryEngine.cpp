@@ -30,6 +30,16 @@
 #include <Standard_Failure.hxx>
 #include <BRepExtrema_DistShapeShape.hxx>
 #include <BRepBuilderAPI_MakeVertex.hxx>
+#include <BRepBuilderAPI_MakeEdge.hxx>
+#include <BRepBuilderAPI_MakeWire.hxx>
+#include <BRepBuilderAPI_MakeFace.hxx>
+#include <BRepBuilderAPI_MakeSolid.hxx>
+#include <BRep_Builder.hxx>
+#include <TopoDS_Shell.hxx>
+#include <TopoDS_Vertex.hxx>
+#include <ShapeUpgrade_UnifySameDomain.hxx>
+#include <array>
+#include <map>
 #include <cmath>
 
 namespace Slic3r {
@@ -58,6 +68,158 @@ std::vector<TopoDS_Shape> GeometryEngine::read_step_solids(const std::string& pa
         out.clear();
     }
     return out;
+}
+
+// ---- Mesh -> B-rep (faceted, shared topology by construction) ----
+//
+// Port of mesh2step's brep_build.py. Two properties are load-bearing and easy to lose:
+//
+//  1. The edge cache is keyed on the UNORDERED vertex-index pair, and a triangle that walks
+//     the edge backwards (i > j) gets edge.Reversed(). Consistently-wound meshes (STL/OBJ/3MF
+//     all are) walk every shared edge in opposite directions from its two adjacent triangles,
+//     so this reversal is exactly what leaves the faces coherently outward-oriented.
+//  2. Degeneracy is split in two, deliberately. A triangle is dropped as sub-resolution noise
+//     only if its longest edge is below `tolerance` (an absolute floor), while sliver rejection
+//     is scale-INDEPENDENT (area < 1e-9 * longest_edge^2). Folding the two together under one
+//     `area < tolerance^2` test rejects legitimate thin CAD slivers whenever tolerance is coarse
+//     relative to them, turning a watertight input into a falsely-open shell — a real regression
+//     mesh2step hit on a 62k-triangle mechanical part.
+TopoDS_Shape GeometryEngine::mesh_to_brep(const indexed_triangle_set& its,
+                                          double tolerance,
+                                          double merge_angle_deg,
+                                          MeshBrepStats& stats)
+{
+    stats = MeshBrepStats{};
+    stats.input_tris = int(its.indices.size());
+    if (tolerance <= 0.0)
+        throw std::runtime_error("mesh_to_brep: tolerance must be > 0");
+    if (its.indices.empty())
+        throw std::runtime_error("mesh_to_brep: mesh has no triangles");
+
+    // 1. Tolerance-quantized vertex dedup. A merged vertex keeps the exact coordinates of the
+    //    first input occurrence — vertices are grouped by a cell, never snapped onto its grid.
+    std::map<std::array<long long, 3>, int> cell_to_new;
+    std::vector<int>   old_to_new(its.vertices.size(), -1);
+    std::vector<Vec3d> verts;
+    verts.reserve(its.vertices.size());
+    for (size_t i = 0; i < its.vertices.size(); ++i) {
+        const Vec3d p = its.vertices[i].cast<double>();
+        const std::array<long long, 3> cell{ (long long) std::llround(p.x() / tolerance),
+                                             (long long) std::llround(p.y() / tolerance),
+                                             (long long) std::llround(p.z() / tolerance) };
+        auto ins = cell_to_new.emplace(cell, int(verts.size()));
+        if (ins.second)
+            verts.push_back(p);
+        old_to_new[i] = ins.first->second;
+    }
+
+    // 2. Reject degenerate triangles (see the two-part rule in the comment above).
+    std::vector<Vec3i32> tris;
+    tris.reserve(its.indices.size());
+    for (const Vec3i32& t : its.indices) {
+        const int a = old_to_new[t(0)], b = old_to_new[t(1)], c = old_to_new[t(2)];
+        if (a == b || b == c || a == c) { ++stats.degenerate_collapsed; continue; }
+        const Vec3d& pa = verts[a]; const Vec3d& pb = verts[b]; const Vec3d& pc = verts[c];
+        const double e0 = (pb - pa).norm(), e1 = (pc - pb).norm(), e2 = (pa - pc).norm();
+        const double longest = std::max(e0, std::max(e1, e2));
+        if (longest < tolerance) { ++stats.degenerate_collapsed; continue; }
+        const double area = 0.5 * (pb - pa).cross(pc - pa).norm();
+        if (area < 1e-9 * longest * longest) { ++stats.degenerate_sliver; continue; }
+        tris.emplace_back(a, b, c);
+    }
+    stats.kept_tris = int(tris.size());
+    if (tris.empty())
+        throw std::runtime_error("mesh_to_brep: every triangle was rejected as degenerate "
+                                 "(try a smaller tolerance)");
+
+    // 3. One face per triangle, sharing vertices and edges through the caches.
+    std::vector<TopoDS_Vertex> vertex_cache(verts.size());
+    std::vector<bool>          vertex_made(verts.size(), false);
+    auto get_vertex = [&](int i) -> const TopoDS_Vertex& {
+        if (!vertex_made[i]) {
+            const Vec3d& p = verts[i];
+            vertex_cache[i] = BRepBuilderAPI_MakeVertex(gp_Pnt(p.x(), p.y(), p.z())).Vertex();
+            vertex_made[i]  = true;
+        }
+        return vertex_cache[i];
+    };
+
+    std::map<std::pair<int, int>, TopoDS_Edge> edge_cache;
+    std::map<std::pair<int, int>, int>         edge_usage;
+    auto get_edge = [&](int i, int j) -> TopoDS_Edge {
+        const std::pair<int, int> key = (i < j) ? std::make_pair(i, j) : std::make_pair(j, i);
+        ++edge_usage[key];
+        auto it = edge_cache.find(key);
+        if (it == edge_cache.end())
+            it = edge_cache.emplace(key,
+                     BRepBuilderAPI_MakeEdge(get_vertex(key.first), get_vertex(key.second)).Edge()).first;
+        return (i > j) ? TopoDS::Edge(it->second.Reversed()) : it->second;
+    };
+
+    BRep_Builder  builder;
+    TopoDS_Shell  shell;
+    builder.MakeShell(shell);
+
+    for (const Vec3i32& t : tris) {
+        try {
+            BRepBuilderAPI_MakeWire mk_wire(get_edge(t(0), t(1)), get_edge(t(1), t(2)), get_edge(t(2), t(0)));
+            if (!mk_wire.IsDone()) { ++stats.faces_failed; continue; }
+            BRepBuilderAPI_MakeFace mk_face(mk_wire.Wire());
+            if (!mk_face.IsDone()) { ++stats.faces_failed; continue; }
+            builder.Add(shell, mk_face.Face());
+            ++stats.faces_built;
+        } catch (const Standard_Failure&) {
+            ++stats.faces_failed;
+        }
+    }
+
+    // 4. Watertightness falls straight out of the usage counts the cache already gathered.
+    for (const auto& kv : edge_usage) {
+        if (kv.second == 1)      ++stats.boundary_edges;
+        else if (kv.second >= 3) ++stats.nonmanifold_edges;
+    }
+    stats.unique_edges = int(edge_usage.size());
+    stats.watertight   = stats.boundary_edges == 0 && stats.nonmanifold_edges == 0 && stats.unique_edges > 0;
+
+    TopoDS_Shape shape = shell;
+    if (stats.watertight && stats.faces_built > 0) {
+        BRepBuilderAPI_MakeSolid mk_solid(shell);
+        if (mk_solid.IsDone()) {
+            TopoDS_Solid solid = mk_solid.Solid();
+            GProp_GProps props;
+            BRepGProp::VolumeProperties(solid, props);
+            double vol = props.Mass();
+            if (vol < 0.0) {                                  // inward-wound input
+                solid = TopoDS::Solid(solid.Reversed());
+                vol   = -vol;
+            }
+            if (vol > 0.0) {
+                shape         = solid;
+                stats.is_solid = true;
+                stats.volume   = vol;
+            }
+        }
+    }
+
+    // 5. Optional coplanar merge. Faceted output is one planar face per triangle — exact, but
+    //    you cannot meaningfully fillet or extrude a face that IS a single triangle. Merging
+    //    coplanar neighbours is what turns the import into something the face/edge tools can
+    //    actually operate on (a 12-triangle cube collapses to its 6 real faces).
+    if (merge_angle_deg > 0.0) {
+        try {
+            ShapeUpgrade_UnifySameDomain unifier(shape, true, true, true);
+            unifier.SetAngularTolerance(merge_angle_deg * M_PI / 180.0);
+            unifier.SetLinearTolerance(tolerance);
+            unifier.Build();
+            const TopoDS_Shape merged = unifier.Shape();
+            if (!merged.IsNull())
+                shape = merged;
+        } catch (const Standard_Failure&) {
+            // Merging is an optimisation, not a correctness step: keep the exact faceted shape.
+        }
+    }
+    stats.faces_final = face_count(shape);
+    return shape;
 }
 
 // ---- Primitive creation ----

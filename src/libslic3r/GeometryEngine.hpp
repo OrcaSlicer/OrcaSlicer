@@ -59,6 +59,41 @@ public:
     // already linked via Format/STEP.cpp — no new dependency. err is set on failure (empty result).
     static std::vector<TopoDS_Shape> read_step_solids(const std::string& path, std::string& err);
 
+    // Triangle mesh -> B-rep solid. Native port of mesh2step
+    // (github.com/tommasobbianchi/mesh2step): vertices and edges are SHARED across triangles
+    // at construction time (vertex cache by deduped index, edge cache by unordered index pair),
+    // so there is no BRepBuilderAPI_Sewing pass to reconstruct topology afterwards — which is
+    // both faster and what makes watertightness fall out of the edge-usage counts for free.
+    // Runs in-process on the OCCT kernel libslic3r already links: no STEP file is written or
+    // re-read (a faceted STEP of a 62k-triangle mesh is ~149 MB and takes OCCT's reader >300 s
+    // to parse back, so routing the Design tab through a file would hang the GUI).
+    struct MeshBrepStats {
+        int    input_tris{0};
+        int    kept_tris{0};
+        int    degenerate_collapsed{0};  // <3 distinct vertices after tolerance quantization
+        int    degenerate_sliver{0};     // 3 distinct vertices but near-collinear
+        int    faces_built{0};
+        int    faces_failed{0};
+        int    unique_edges{0};
+        int    boundary_edges{0};        // used by exactly 1 triangle -> open shell
+        int    nonmanifold_edges{0};     // used by >=3 triangles
+        bool   watertight{false};        // every edge used exactly twice
+        bool   is_solid{false};          // watertight AND MakeSolid gave a positive volume
+        double volume{0.0};
+        int    faces_final{0};           // after the optional coplanar merge
+    };
+    // tolerance: spatial quantization cell used ONLY for vertex dedup and as the
+    //   sub-resolution floor below which a triangle is noise. Never a sew tolerance.
+    // merge_angle_deg > 0: run ShapeUpgrade_UnifySameDomain to merge coplanar neighbours into
+    //   single faces (a 12-triangle cube -> 6 pickable faces). This is what makes the imported
+    //   body editable with the face/edge tools; <= 0 keeps the exact one-face-per-triangle form.
+    // Never wraps a non-watertight shell as a fake solid: an open mesh comes back as a shell,
+    // with the reason (boundary / non-manifold edge counts) reported in stats.
+    static TopoDS_Shape mesh_to_brep(const indexed_triangle_set& its,
+                                     double tolerance,
+                                     double merge_angle_deg,
+                                     MeshBrepStats& stats);
+
     struct Deviation { double max_mm{0}; double mean_mm{0}; double rms_mm{0}; int sample_count{0}; };
     static Deviation surface_deviation(const TopoDS_Shape& candidate,
                                        const TopoDS_Shape& reference,

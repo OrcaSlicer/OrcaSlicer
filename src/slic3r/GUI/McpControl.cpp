@@ -29,6 +29,9 @@
 #include "libslic3r/SketchEngine.hpp"
 #include "libslic3r/GeometryEngine.hpp"
 #include "libslic3r/TriangleMesh.hpp"
+#include "libslic3r/Format/OBJ.hpp"
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/filesystem/path.hpp>
 #include "libslic3r/BoundingBox.hpp"
 
 #include <gp_Pln.hxx>
@@ -193,6 +196,12 @@ json describe_tools()
             json{{"name", "import_step"}, {"summary", "Import a STEP file as native B-rep bodies (the reference part to measure)."},
                  {"params", json::array({
                      json{{"name", "path"}, {"type", "string"}},
+                 })}},
+            json{{"name", "import_mesh"}, {"summary", "Convert a triangle mesh (STL/OBJ) into an editable B-rep body. Reports whether the result is a real solid or an open shell, and why."},
+                 {"params", json::array({
+                     json{{"name", "path"}, {"type", "string"}},
+                     json{{"name", "tolerance"}, {"type", "number"}, {"default", 0.01}},
+                     json{{"name", "merge_angle_deg"}, {"type", "number"}, {"default", 5.0}},
                  })}},
             json{{"name", "validate_against"}, {"summary", "Volume + bbox/centroid + surface deviation (max/mean/rms mm) of a body vs a reference {step:path|body:id} (the RE acceptance metric)."},
                  {"params", json::array({
@@ -447,6 +456,59 @@ json import_step(DesignPanel* panel, const json& params)
     panel->mcp_after_change();
     return json{{"ok", ok}, {"imported", int(solids.size())}, {"first_feature", first},
                 {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+// --- Import a triangle mesh as a B-rep body (GeometryEngine::mesh_to_brep) ---
+// Same destination as import_step: a CadFeatureType::Import body every feature tool can edit.
+// The full conversion stats come back so a caller can tell an honest solid from an open shell
+// instead of discovering it later when a boolean silently fails.
+json import_mesh(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("path")) throw std::runtime_error("import_mesh needs 'path'");
+    const std::string path       = params["path"].get<std::string>();
+    const double tolerance       = params.value("tolerance", 0.01);
+    const double merge_angle_deg = params.value("merge_angle_deg", 5.0);
+
+    TriangleMesh mesh;
+    const std::string ext = boost::algorithm::to_lower_copy(
+        boost::filesystem::path(path).extension().string());
+    if (ext == ".stl") {
+        if (!mesh.ReadSTLFile(path.c_str())) throw std::runtime_error("could not read STL: " + path);
+    } else if (ext == ".obj") {
+        ObjInfo obj_info; std::string obj_err;
+        if (!load_obj(path.c_str(), &mesh, obj_info, obj_err))
+            throw std::runtime_error("could not read OBJ: " + obj_err);
+    } else {
+        throw std::runtime_error("unsupported mesh format (want .stl or .obj): " + ext);
+    }
+
+    GeometryEngine::MeshBrepStats st;
+    const TopoDS_Shape shape = GeometryEngine::mesh_to_brep(mesh.its, tolerance, merge_angle_deg, st);
+    if (shape.IsNull()) throw std::runtime_error("mesh conversion produced no geometry");
+
+    CadDocument& doc = panel->mcp_doc();
+    doc.checkpoint();
+    const int first = int(doc.features.size());
+    CadFeature f;
+    f.type           = CadFeatureType::Import;
+    f.name           = "Mesh" + std::to_string(first + 1);
+    f.imported_solid = shape;
+    f.mode           = BooleanMode::New;
+    doc.features.push_back(f);
+
+    const bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"first_feature", first}, {"bodies", int(doc.bodies.size())},
+                {"input_triangles", st.input_tris}, {"kept_triangles", st.kept_tris},
+                {"degenerate_collapsed", st.degenerate_collapsed},
+                {"degenerate_sliver", st.degenerate_sliver},
+                {"faces_built", st.faces_built}, {"faces_failed", st.faces_failed},
+                {"faces_final", st.faces_final}, {"unique_edges", st.unique_edges},
+                {"boundary_edges", st.boundary_edges},
+                {"nonmanifold_edges", st.nonmanifold_edges},
+                {"watertight", st.watertight}, {"is_solid", st.is_solid},
+                {"volume", st.volume}, {"error", doc.error}};
 }
 
 // --- Validate: volume + bbox deviation of a body vs a reference (the "scarto %") --
@@ -719,6 +781,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "measure")        return rpc_result(id, measure(panel, params));
         if (method == "slice_body")     return rpc_result(id, slice_body(panel, params));
         if (method == "import_step")    return rpc_result(id, import_step(panel, params));
+        if (method == "import_mesh")    return rpc_result(id, import_mesh(panel, params));
         if (method == "validate_against") return rpc_result(id, validate_against(panel, params));
         if (method == "extrude")        return rpc_result(id, action_extrude(panel, params));
         if (method == "revolve")        return rpc_result(id, action_revolve(panel, params));

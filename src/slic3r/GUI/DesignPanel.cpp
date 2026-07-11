@@ -2,6 +2,12 @@
 #include "DesignCanvas.hpp"
 #include "DesignSketchTool.hpp"
 #include "libslic3r/GeometryEngine.hpp"   // face_by_index for face-extrude gizmo anchor
+#include "libslic3r/TriangleMesh.hpp"     // mesh import: STL/OBJ -> indexed_triangle_set
+#include "libslic3r/Format/OBJ.hpp"
+
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/filesystem/path.hpp>
+#include <Standard_Failure.hxx>
 
 #include <wx/sizer.h>
 #include <wx/button.h>
@@ -51,6 +57,17 @@
 #define _L(s) wxString::FromUTF8(s)
 
 namespace Slic3r { namespace GUI {
+
+// Mesh -> B-rep import defaults (see GeometryEngine::mesh_to_brep).
+// Tolerance is a vertex-dedup cell, not a sew tolerance: 10 um is well under any printable
+// feature yet coarse enough to weld the float noise a mesh exporter leaves on shared vertices.
+static constexpr double MESH_IMPORT_TOLERANCE        = 0.01;   // mm
+// Merge coplanar neighbours so the body has real, pickable faces instead of one face per
+// triangle. 5 deg tolerates the small normal jitter of an exported/scanned flat face while
+// still keeping genuinely curved regions faceted.
+static constexpr double MESH_IMPORT_MERGE_ANGLE_DEG  = 5.0;
+// Above this, warn before converting: the build is one OCCT face per triangle.
+static constexpr size_t MESH_IMPORT_TRIANGLE_WARN    = 50000;
 
 // Format a value with the international ('.') decimal separator regardless of the
 // app's LC_NUMERIC locale (wx sets it to the user locale at startup). snprintf may
@@ -628,6 +645,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_step->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_import_step(); });
         m_keys_feature[SHIFT('I')] = [this] { on_import_step(); };
         fadd(b_step);
+        // Import mesh — same destination as STEP (an editable B-rep body), but the geometry has
+        // to be reconstructed from triangles first (GeometryEngine::mesh_to_brep).
+        auto* b_mesh = icon_btn("design_step", _L("Import mesh (STL/OBJ) as an editable B-rep solid"));
+        b_mesh->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_import_mesh(); });
+        m_keys_feature[SHIFT('M')] = [this] { on_import_mesh(); };
+        fadd(b_mesh);
         add_sep(m_tb_feature);
         auto* b_constrain = icon_btn("design_constrain", _L("Constrain selected sketch"));
         b_constrain->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
@@ -2389,6 +2412,111 @@ void DesignPanel::on_import_step()
     m_status->SetLabel(wxString::Format(
         _L("Imported %d solid(s) — pick a face or edge, then Fillet / Cut / Shell to modify"),
         int(solids.size())));
+    m_status->Refresh();
+}
+
+// Import a triangle mesh as a real B-rep body: the triangles are rebuilt into OCCT faces with
+// shared topology, then coplanar neighbours are merged so the result has pickable CAD faces
+// rather than one face per triangle. Lands in the same CadFeatureType::Import as a STEP, so
+// every downstream feature tool (fillet / cut / shell / face-extrude) works on it unchanged.
+void DesignPanel::on_import_mesh()
+{
+    wxFileDialog dlg(this, _L("Import mesh"), wxEmptyString, wxEmptyString,
+                     "Mesh files (*.stl;*.obj)|*.stl;*.obj|All files|*.*",
+                     wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (dlg.ShowModal() != wxID_OK)
+        return;
+    const std::string path(dlg.GetPath().ToUTF8().data());
+
+    auto fail = [this](const wxString& msg) {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        m_status->SetLabel(msg);
+        m_status->Refresh();
+    };
+
+    // Load the triangles with the slicer's own readers — no new mesh dependency.
+    TriangleMesh mesh;
+    const std::string ext = boost::algorithm::to_lower_copy(
+        boost::filesystem::path(path).extension().string());
+    if (ext == ".stl") {
+        if (!mesh.ReadSTLFile(path.c_str())) { fail(_L("Could not read the STL file")); return; }
+    } else if (ext == ".obj") {
+        ObjInfo     obj_info;
+        std::string obj_err;
+        if (!load_obj(path.c_str(), &mesh, obj_info, obj_err)) {
+            fail(_L("Could not read the OBJ file: ") + wxString::FromUTF8(obj_err));
+            return;
+        }
+    } else {
+        fail(_L("Unsupported mesh format (STL and OBJ are supported)"));
+        return;
+    }
+    if (mesh.its.indices.empty()) { fail(_L("The mesh contains no triangles")); return; }
+
+    // One planar face per triangle before merging, so the cost is driven by the triangle count.
+    // A dense organic scan has few coplanar neighbours to merge away and stays heavy afterwards;
+    // warn rather than silently freezing the CAD kernel on every subsequent recompute.
+    if (mesh.its.indices.size() > MESH_IMPORT_TRIANGLE_WARN) {
+        const wxString q = wxString::Format(
+            _L("This mesh has %d triangles. Every triangle becomes a B-rep face before coplanar "
+               "merging, so importing it may take a long time and leave a body that is slow to "
+               "edit. Decimating the mesh first is usually better.\n\nImport anyway?"),
+            int(mesh.its.indices.size()));
+        if (wxMessageBox(q, _L("Large mesh"), wxYES_NO | wxICON_WARNING, this) != wxYES)
+            return;
+    }
+
+    wxBusyCursor busy;
+    GeometryEngine::MeshBrepStats stats;
+    TopoDS_Shape shape;
+    try {
+        shape = GeometryEngine::mesh_to_brep(mesh.its, MESH_IMPORT_TOLERANCE,
+                                             MESH_IMPORT_MERGE_ANGLE_DEG, stats);
+    } catch (const std::exception& e) {
+        fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(e.what()));
+        return;
+    } catch (const Standard_Failure& e) {   // OCCT throws outside std::exception
+        fail(_L("Mesh conversion failed: ") + wxString::FromUTF8(
+                 e.GetMessageString() ? e.GetMessageString() : "OCCT error"));
+        return;
+    }
+    if (shape.IsNull()) { fail(_L("Mesh conversion produced no geometry")); return; }
+
+    m_doc.checkpoint();   // undo boundary: importing a mesh as a B-rep body
+    m_feature_counter++;
+    CadFeature f;
+    f.type           = CadFeatureType::Import;
+    f.name           = std::string("Mesh") + std::to_string(m_feature_counter);
+    f.imported_solid = shape;
+    f.mode           = BooleanMode::New;   // its own coexisting body, like a STEP solid
+    m_doc.features.push_back(f);
+
+    if (!m_doc.recompute()) {
+        fail(_L("Mesh import failed: ") + wxString::FromUTF8(m_doc.error));
+        return;
+    }
+    set_ui_mode(UiMode::Feature);
+    refresh_tree();
+    set_tree_selection(int(m_doc.features.size()) - 1);
+    set_status_ok();
+
+    // Report what the mesh actually was, never dress an open shell up as a solid: if it is not
+    // watertight, say so and say why (boundary vs non-manifold edges) — that is a defect in the
+    // source mesh the user needs to know about before they start cutting features into it.
+    if (stats.is_solid) {
+        m_status->SetForegroundColour(wxNullColour);
+        m_status->SetLabel(wxString::Format(
+            _L("Imported solid — %d triangles → %d faces, volume %.2f mm³. Pick a face or edge, "
+               "then Fillet / Cut / Shell to modify"),
+            stats.kept_tris, stats.faces_final, stats.volume));
+    } else {
+        m_status->SetForegroundColour(wxColour(220, 160, 60));   // warning, not an error
+        m_status->SetLabel(wxString::Format(
+            _L("Imported as an open shell (not watertight): %d boundary edge(s), %d non-manifold "
+               "edge(s) — %d triangles → %d faces. The source mesh has holes or duplicated "
+               "geometry; boolean features may fail on it"),
+            stats.boundary_edges, stats.nonmanifold_edges, stats.kept_tris, stats.faces_final));
+    }
     m_status->Refresh();
 }
 
