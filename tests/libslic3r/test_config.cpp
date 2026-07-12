@@ -401,3 +401,212 @@ SCENARIO("update_diff_values_to_child_config tolerates legacy machine-limit vect
 //         }
 //     }
 // }
+
+SCENARIO("ConfigOptionVector::set_to_index with stride=1 copies values correctly", "[Config][set_to_index]") {
+    GIVEN("A destination vector and a source vector with 3 values") {
+        Slic3r::ConfigOptionFloats dest({0.0});
+        Slic3r::ConfigOptionFloats src({10.0, 20.0, 30.0});
+        std::vector<int> variant_index = {0, 1, 2};
+        int stride = 1;
+
+        WHEN("set_to_index is called with stride=1") {
+            dest.set_to_index(&src, variant_index, stride);
+
+            THEN("The destination contains the source values") {
+                REQUIRE(dest.values.size() == 3);
+                REQUIRE(dest.values[0] == 10.0);
+                REQUIRE(dest.values[1] == 20.0);
+                REQUIRE(dest.values[2] == 30.0);
+            }
+        }
+    }
+
+    GIVEN("A destination vector and a source vector with subset mapping") {
+        Slic3r::ConfigOptionFloats dest({0.0});
+        Slic3r::ConfigOptionFloats src({100.0, 200.0, 300.0});
+        std::vector<int> variant_index = {1, 2};
+        int stride = 1;
+
+        WHEN("set_to_index maps only indices 1 and 2") {
+            dest.set_to_index(&src, variant_index, stride);
+
+            THEN("Only the mapped values are copied, default fills the others") {
+                REQUIRE(dest.values.size() == 2);
+                REQUIRE(dest.values[0] == 200.0);
+                REQUIRE(dest.values[1] == 300.0);
+            }
+        }
+    }
+}
+
+SCENARIO("ConfigOptionVector::set_to_index with stride=2 copies grouped values correctly", "[Config][set_to_index]") {
+    GIVEN("A destination vector and a source vector with stride=2 (e.g., nozzle groups)") {
+        // Source has 4 groups of 2 values each: (10,11), (20,21), (30,31), (40,41)
+        Slic3r::ConfigOptionFloats dest({0.0});
+        Slic3r::ConfigOptionFloats src({10.0, 11.0, 20.0, 21.0, 30.0, 31.0, 40.0, 41.0});
+        int stride = 2;
+
+        WHEN("set_to_index maps groups 0, 1, 3") {
+            std::vector<int> variant_index = {0, 1, 3};
+            dest.set_to_index(&src, variant_index, stride);
+
+            THEN("The destination has 3 groups (6 values) mapped correctly") {
+                REQUIRE(dest.values.size() == 6);
+                // Group 0: (10, 11)
+                REQUIRE(dest.values[0] == 10.0);
+                REQUIRE(dest.values[1] == 11.0);
+                // Group 1: (20, 21)
+                REQUIRE(dest.values[2] == 20.0);
+                REQUIRE(dest.values[3] == 21.0);
+                // Group 3: (40, 41)
+                REQUIRE(dest.values[4] == 40.0);
+                REQUIRE(dest.values[5] == 41.0);
+            }
+        }
+    }
+
+    GIVEN("A destination and a single-group source") {
+        Slic3r::ConfigOptionFloats dest({0.0});
+        // Source has 1 group of 2 values
+        Slic3r::ConfigOptionFloats src({50.0, 60.0});
+        int stride = 2;
+
+        WHEN("set_to_index maps group 0 from a single-group source") {
+            std::vector<int> variant_index = {0};
+            dest.set_to_index(&src, variant_index, stride);
+
+            THEN("The destination contains the single group correctly") {
+                REQUIRE(dest.values.size() == 2);
+                REQUIRE(dest.values[0] == 50.0);
+                REQUIRE(dest.values[1] == 60.0);
+            }
+        }
+    }
+}
+
+SCENARIO("ConfigOptionVector::set_to_index handles empty dest_index", "[Config][set_to_index]") {
+    GIVEN("A destination and source with stride=2") {
+        Slic3r::ConfigOptionFloats dest({0.0});
+        Slic3r::ConfigOptionFloats src({10.0, 11.0, 20.0, 21.0});
+        std::vector<int> variant_index = {};
+        int stride = 2;
+
+        WHEN("set_to_index is called with an empty index vector") {
+            dest.set_to_index(&src, variant_index, stride);
+
+            THEN("The destination is resized to 0") {
+                REQUIRE(dest.values.size() == 0);
+            }
+        }
+    }
+}
+
+SCENARIO("ConfigOptionVector::set_to_index handles nil values in source", "[Config][set_to_index]") {
+    GIVEN("A source with a nil group (stride=2)") {
+        Slic3r::ConfigOptionFloatsNullable dest({0.0});
+        Slic3r::ConfigOptionFloatsNullable src({10.0, 11.0,
+            Slic3r::ConfigOptionFloatsNullable::nil_value(), Slic3r::ConfigOptionFloatsNullable::nil_value(),
+            30.0, 31.0});
+        int stride = 2;
+
+        WHEN("set_to_index maps all groups including the nil one") {
+            std::vector<int> variant_index = {0, 1, 2};
+            dest.set_to_index(&src, variant_index, stride);
+
+            THEN("Non-nil groups are copied and the nil group keeps the default") {
+                REQUIRE(dest.values.size() == 6);
+                // Group 0: (10, 11) — copied
+                REQUIRE(dest.values[0] == 10.0);
+                REQUIRE(dest.values[1] == 11.0);
+                // Group 1: nil — keeps default (the front value = 10.0)
+                REQUIRE(dest.values[2] == 10.0);
+                REQUIRE(dest.values[3] == 10.0);
+                // Group 2: (30, 31) — copied
+                REQUIRE(dest.values[4] == 30.0);
+                REQUIRE(dest.values[5] == 31.0);
+            }
+        }
+    }
+}
+
+SCENARIO("ConfigOptionVector::set_to_index handles out-of-bounds dest_index", "[Config][set_to_index]") {
+    GIVEN("A source with only 2 groups (4 values) but dest_index references group 3") {
+        Slic3r::ConfigOptionFloats dest({0.0});
+        Slic3r::ConfigOptionFloats src({10.0, 11.0, 20.0, 21.0}); // 2 groups of stride 2
+        int stride = 2;
+
+        WHEN("set_to_index maps group 3 which is out of bounds") {
+            std::vector<int> variant_index = {0, 3}; // group 3 is out of range
+            dest.set_to_index(&src, variant_index, stride);
+
+            THEN("Group 0 is copied, group 3 falls back to default without crashing") {
+                REQUIRE(dest.values.size() == 4);
+                // Group 0: (10, 11) — copied
+                REQUIRE(dest.values[0] == 10.0);
+                REQUIRE(dest.values[1] == 11.0);
+                // Group 3: out of bounds — keeps default (10.0 = src.values.front())
+                REQUIRE(dest.values[2] == 10.0);
+                REQUIRE(dest.values[3] == 10.0);
+            }
+        }
+    }
+}
+
+SCENARIO("ConfigOptionVector::set_to_index handles negative dest_index values", "[Config][set_to_index]") {
+    GIVEN("A destination and source with a negative entry in dest_index") {
+        // The dest is initially empty, so resize fills all slots with src.values.front().
+        Slic3r::ConfigOptionFloats dest;
+        Slic3r::ConfigOptionFloats src({100.0, 101.0, 200.0, 201.0});
+        int stride = 2;
+
+        WHEN("set_to_index maps group 0 and a negative index") {
+            std::vector<int> variant_index = {-1, 0};
+            dest.set_to_index(&src, variant_index, stride);
+
+            THEN("The negative index is skipped, the valid group is copied") {
+                REQUIRE(dest.values.size() == 4);
+                // Position 0 (variant_index[0] = -1): skipped, keeps default fill
+                // from resize (src.values.front() = 100.0, applied to all new elements)
+                REQUIRE(dest.values[0] == 100.0);
+                REQUIRE(dest.values[1] == 100.0);
+                // Position 1 (variant_index[1] = 0): copied from group 0 of src
+                REQUIRE(dest.values[2] == 100.0);
+                REQUIRE(dest.values[3] == 101.0);
+            }
+        }
+    }
+}
+
+SCENARIO("ConfigOptionVector::set_to_index handles single-element groups with stride=1", "[Config][set_to_index]") {
+    GIVEN("A destination re-mapping one variant index with a stride=1 source") {
+        // Simulates the PrintObject.cpp code path: stride=1, variant_index={1}
+        Slic3r::ConfigOptionFloats dest({99.0, 99.0, 99.0, 99.0}); // pre-sized for 4 extruders
+        Slic3r::ConfigOptionFloats src({0.5, 0.6, 0.7, 0.8});      // 4 extruder values
+        std::vector<int> variant_index = {1}; // only extruder 1 is active
+        int stride = 1;
+
+        WHEN("set_to_index is called") {
+            dest.set_to_index(&src, variant_index, stride);
+
+            THEN("Only the mapped value is copied, rest are defaulted") {
+                REQUIRE(dest.values.size() == 1);
+                REQUIRE(dest.values[0] == 0.6);
+            }
+        }
+    }
+}
+
+SCENARIO("ConfigOptionVector::set_to_index throws on incompatible type", "[Config][set_to_index]") {
+    GIVEN("A Floats destination and an Ints source") {
+        Slic3r::ConfigOptionFloats dest({0.0});
+        Slic3r::ConfigOptionInts src({1, 2, 3});
+        std::vector<int> variant_index = {0};
+        int stride = 1;
+
+        WHEN("set_to_index is called with mismatched types") {
+            THEN("A ConfigurationError is thrown") {
+                REQUIRE_THROWS_AS(dest.set_to_index(&src, variant_index, stride), Slic3r::ConfigurationError);
+            }
+        }
+    }
+}

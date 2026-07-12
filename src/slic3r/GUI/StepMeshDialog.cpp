@@ -30,7 +30,7 @@ static int _ITEM_WIDTH() { return _scale(30); }
 #define SLIDER_SCALE_10(val)    ((val) / 0.01)
 #define SLIDER_UNSCALE_10(val)  ((val) * 0.01)
 #define LEFT_RIGHT_PADING       FromDIP(20)
-#define FONT_COLOR              wxColour("#262E30")
+#define FONT_COLOR              wxColour("#363636") // label color
 
 wxDEFINE_EVENT(wxEVT_THREAD_DONE, wxCommandEvent);
 

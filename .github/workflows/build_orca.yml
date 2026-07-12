@@ -141,8 +141,26 @@ jobs:
       - name: Build slicer mac
         if: runner.os == 'macOS' && !inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
+        # arm64 only: build the tests here; the unit_tests_macos job runs them.
+        env:
+          ORCA_TESTS_BUILD_ONLY: ${{ inputs.arch == 'arm64' && '1' || '' }}
         run: |
-          ./build_release_macos.sh -s -n -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
+          ./build_release_macos.sh -s -n -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15 ${{ inputs.arch == 'arm64' && '-T' || '' }}
+
+      - name: Pack unit tests mac
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && inputs.arch == 'arm64'
+        working-directory: ${{ github.workspace }}
+        run: tar -cvf build_tests.tar build/arm64/tests
+
+      - name: Upload Test Artifact mac
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && inputs.arch == 'arm64'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.sha }}-tests-macos-arm64
+          overwrite: true
+          path: build_tests.tar
+          retention-days: 5
+          if-no-files-found: error
 
       - name: Pack macOS app bundle ${{ inputs.arch }}
         if: runner.os == 'macOS' && !inputs.macos-combine-only
@@ -335,10 +353,27 @@ jobs:
         # env:
         #   WindowsSdkDir: 'C:\Program Files (x86)\Windows Kits\10\'
         #   WindowsSDKVersion: '10.0.26100.0\'
+        # "tests" builds the unit tests too; the unit_tests_windows_* jobs run them.
         run: |
           $arch = "${{ inputs.arch }}"
-          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 } else { .\build_release_vs.bat slicer }
+          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 tests } else { .\build_release_vs.bat slicer tests }
         shell: pwsh
+
+      - name: Pack unit tests Win
+        if: runner.os == 'Windows'
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: tar -cvf build_tests.tar ${{ env.BUILD_DIR }}/tests
+
+      - name: Upload Test Artifact Win
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.sha }}-tests-windows-${{ inputs.arch }}
+          overwrite: true
+          path: build_tests.tar
+          retention-days: 5
+          if-no-files-found: error
 
       # NSIS is x86-only; it runs (and the installer it emits runs) under ARM64's
       # x86 emulation, packaging the native arm64 payload from build-arm64.
@@ -452,26 +487,22 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          # Build + tar the unit tests (-t) only on the leg that runs them: the
-          # aarch64 leg by default (faster GitHub arm runner), or amd64 when using
-          # self-hosted runners (no arm self-hosted server). unit_tests downloads
-          # this tarball. The profile validator is built with -s, so amd64 keeps it.
-          tests=${{ (!vars.SELF_HOSTED && inputs.arch == 'aarch64') || (vars.SELF_HOSTED && inputs.arch != 'aarch64') }}
-          if $tests; then flags=-istrlL; else flags=-isrlL; fi
-          ./build_linux.sh "$flags"
+          # Build + tar the unit tests (-t) on both Linux legs so each arch
+          # (x86_64 + aarch64) gets tested by its own unit_tests_linux_* job.
+          ./build_linux.sh -istrlL
           ./scripts/check_appimage_libs.sh ./build/package ./build/package/bin/orca-slicer
           appimage=./build/OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}${{ env.arch_suffix }}_${{ env.ver }}.AppImage
           mv -n ./build/OrcaSlicer_Linux_V${{ env.ver_pure }}.AppImage "$appimage"
           chmod +x "$appimage"
-          if $tests; then tar -cvpf build_tests.tar build/tests; fi
+          tar -cvf build_tests.tar build/tests
 
         # Use tar because upload-artifacts won't always preserve directory structure
         # and doesn't preserve file permissions
       - name: Upload Test Artifact
-        if: runner.os == 'Linux' && ((!vars.SELF_HOSTED && inputs.arch == 'aarch64') || (vars.SELF_HOSTED && inputs.arch != 'aarch64'))
+        if: runner.os == 'Linux'
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ github.sha }}-tests
+          name: ${{ github.sha }}-tests-linux-${{ inputs.arch == 'aarch64' && 'aarch64' || 'x86_64' }}
           overwrite: true
           path: build_tests.tar
           retention-days: 5
