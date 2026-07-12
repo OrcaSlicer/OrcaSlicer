@@ -1,0 +1,149 @@
+#include <catch2/catch_all.hpp>
+
+#include "libslic3r/TriangleMesh.hpp"
+
+#include "test_helpers.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <sstream>
+#include <string>
+#include <vector>
+
+using namespace Slic3r;
+using namespace Slic3r::Test;
+
+namespace {
+
+TriangleMesh caged_overhang_mesh()
+{
+    return TriangleMesh(
+        {
+            {5.0859987f, 10.167065f, 5.711731f}, {34.914257f, 10.167065f, 5.711731f},
+            {34.914257f, 0.f, 15.878796f},       {5.0859995f, 0.f, 15.878796f},
+            {0.f, 0.f, 0.f},                      {0.f, 0.f, 20.f},
+            {0.f, 20.f, 20.f},                    {0.f, 20.f, 0.f},
+            {40.f, 20.f, 20.f},                   {40.f, 20.f, 0.f},
+            {40.f, 0.f, 20.f},                    {40.f, 0.f, 0.f},
+            {34.914257f, 0.f, 0.f},               {5.0859995f, 0.f, 0.f},
+            {34.914257f, 10.167065f, 0.f},        {5.0859995f, 10.167065f, 0.f},
+        },
+        {
+            {0, 1, 2},   {0, 2, 3},   {4, 5, 6},   {4, 6, 7},   {7, 6, 8},   {7, 8, 9},
+            {9, 8, 10},  {9, 10, 11}, {12, 11, 10}, {5, 4, 13}, {5, 13, 3},  {2, 12, 10},
+            {5, 3, 2},   {10, 5, 2},  {9, 11, 12}, {9, 12, 14}, {13, 4, 7},  {9, 14, 15},
+            {15, 13, 7}, {7, 9, 15},  {8, 6, 5},   {8, 5, 10},  {14, 1, 0},  {14, 0, 15},
+            {2, 1, 14},  {2, 14, 12}, {15, 0, 3},  {15, 3, 13},
+        });
+}
+
+std::vector<double> caged_overhang_feed_rates(const std::string& gcode)
+{
+    std::vector<double> feed_rates;
+    bool outer_wall = false;
+    double x = 0.0, y = 0.0, z = 0.0, feed_rate = 0.0;
+
+    std::istringstream gcode_stream(gcode);
+    for (std::string line; std::getline(gcode_stream, line);) {
+        if (line.compare(0, 10, "; FEATURE:") == 0 || line.compare(0, 6, ";TYPE:") == 0)
+            outer_wall = line.find("Outer wall") != std::string::npos || line.find("External perimeter") != std::string::npos;
+
+        if (line.compare(0, 3, "G1 ") != 0)
+            continue;
+
+        double next_x = x, next_y = y, next_z = z;
+        bool has_extrusion = false;
+        std::istringstream line_stream(line);
+        for (std::string word; line_stream >> word;) {
+            if (word.size() < 2)
+                continue;
+            if (word.front() == ';')
+                break;
+            if (word.front() != 'X' && word.front() != 'Y' && word.front() != 'Z' &&
+                word.front() != 'E' && word.front() != 'F')
+                continue;
+            const double value = std::stod(word.substr(1));
+            switch (word.front()) {
+            case 'X': next_x = value; break;
+            case 'Y': next_y = value; break;
+            case 'Z': next_z = value; break;
+            case 'E': has_extrusion = true; break;
+            case 'F': feed_rate = value; break;
+            default: break;
+            }
+        }
+
+        if (outer_wall && has_extrusion && std::abs(next_x - x) > 1.0 && std::abs(next_y - y) < 0.001 &&
+            std::abs(next_y + next_z - 16.189) < 0.01)
+            feed_rates.push_back(feed_rate);
+
+        x = next_x;
+        y = next_y;
+        z = next_z;
+    }
+
+    return feed_rates;
+}
+
+DynamicPrintConfig caged_overhang_config(const char* wall_generator)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_deserialize_strict({
+        {"nozzle_diameter", "0.4"},
+        {"initial_layer_print_height", "0.2"},
+        {"layer_height", "0.2"},
+        {"line_width", "0.42"},
+        {"outer_wall_line_width", "0.42"},
+        {"inner_wall_line_width", "0.45"},
+        {"wall_loops", "2"},
+        {"wall_generator", wall_generator},
+        {"wall_sequence", "inner wall/outer wall"},
+        {"sparse_infill_density", "15%"},
+        {"detect_overhang_wall", "1"},
+        {"enable_overhang_speed", "1"},
+        {"slowdown_for_curled_perimeters", "0"},
+        {"zaa_enabled", "0"},
+        {"outer_wall_speed", "200"},
+        {"inner_wall_speed", "300"},
+        {"overhang_1_4_speed", "0"},
+        {"overhang_2_4_speed", "50"},
+        {"overhang_3_4_speed", "30"},
+        {"overhang_4_4_speed", "10"},
+        {"bridge_speed", "50"},
+        {"filament_max_volumetric_speed", "22"},
+        {"slow_down_for_layer_cooling", "0"},
+    });
+    return config;
+}
+
+} // namespace
+
+TEST_CASE("Caged external overhangs are slowed along their span", "[ExtrusionProcessor][Regression]")
+{
+    DynamicPrintConfig config = caged_overhang_config("classic");
+
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{caged_overhang_mesh()}, print, model, config, nullptr, false);
+    const std::vector<double> feed_rates = caged_overhang_feed_rates(gcode(print));
+
+    REQUIRE_FALSE(feed_rates.empty());
+    REQUIRE(std::any_of(feed_rates.begin(), feed_rates.end(), [](double feed_rate) {
+        return feed_rate < 100.0 * MM_PER_MIN;
+    }));
+}
+
+TEST_CASE("Arachne caged external overhangs are slowed along their span", "[ExtrusionProcessor][Regression]")
+{
+    DynamicPrintConfig config = caged_overhang_config("arachne");
+
+    Print print;
+    Model model;
+    init_print(std::vector<TriangleMesh>{caged_overhang_mesh()}, print, model, config, nullptr, false);
+    const std::vector<double> feed_rates = caged_overhang_feed_rates(gcode(print));
+
+    REQUIRE_FALSE(feed_rates.empty());
+    REQUIRE(std::any_of(feed_rates.begin(), feed_rates.end(), [](double feed_rate) {
+        return feed_rate < 100.0 * MM_PER_MIN;
+    }));
+}

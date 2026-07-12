@@ -120,6 +120,31 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
         points.push_back(next_point);
     }
 
+    if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && min_distance > 0) {
+        std::vector<ExtendedPoint<L::Dim>> sampled_points;
+        sampled_points.reserve(points.size() * 2);
+        sampled_points.push_back(points.front());
+        for (size_t point_idx = 0; point_idx + 1 < points.size(); ++point_idx) {
+            const ExtendedPoint<L::Dim>& curr = points[point_idx];
+            const ExtendedPoint<L::Dim>& next = points[point_idx + 1];
+            const double line_len = (next.position - curr.position).norm();
+
+            // A lower boundary near an endpoint can hide a less-supported span in the middle,
+            // for example where vertical walls cage an overhang.
+            if (line_len >= 2.0) {
+                const Vec midpoint = 0.5 * (curr.position + next.position);
+                auto [midpoint_dist, midpoint_near_l, midpoint_x] =
+                    unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(midpoint.template cast<AABBScalar>());
+                if (midpoint_dist + boundary_offset > min_distance &&
+                    (midpoint - curr.position).norm() > min_spacing &&
+                    (next.position - midpoint).norm() > min_spacing)
+                    sampled_points.push_back({midpoint, float(midpoint_dist + boundary_offset)});
+            }
+            sampled_points.push_back(next);
+        }
+        points = std::move(sampled_points);
+    }
+
     // Segmentation handling
     if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS) {
         std::vector<ExtendedPoint<L::Dim>> new_points;
