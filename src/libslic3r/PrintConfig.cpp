@@ -1255,7 +1255,7 @@ void PrintConfigDef::init_fff_params()
         "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
         "Otherwise the provided angle will be used according to:\n"
         " - The absolute coordinates\n"
-        " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+        " - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
         " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n\n"
         "Use 180° for zero absolute angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
@@ -1272,7 +1272,7 @@ void PrintConfigDef::init_fff_params()
         "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
         "Otherwise the provided angle will be used according to:\n"
         " - The absolute coordinates\n"
-        " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+        " - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
         " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n\n"
         "Use 180° for zero absolute angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
@@ -3095,12 +3095,13 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->max = 100;
     def->set_default_value(new ConfigOptionPercent(20));
-        
+
     def           = this->add("align_infill_direction_to_model", coBool);
-    def->label    = L("Align infill direction to model");
+    def->label    = L("Align directions to model");
     def->category = L("Strength");
-    def->tooltip  = L("Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-                      "When enabled, directions rotate with the model to maintain optimal strength characteristics.");
+    def->tooltip  = L("Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+                      "When enabled, these directions rotate together with the model so the printed features keep their intended orientation "
+                      "relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 

@@ -2787,7 +2787,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("infill_wall_overlap", "strength_settings_infill#infill-wall-overlap");
 
         optgroup = page->new_optgroup(L("Advanced"), L"param_advanced");
-        optgroup->append_single_option_line("align_infill_direction_to_model", "strength_settings_advanced#align-infill-direction-to-model");
+        optgroup->append_single_option_line("align_infill_direction_to_model", "strength_settings_advanced#align-directions-to-model");
         optgroup->append_single_option_line("extra_solid_infills", "strength_settings_infill#extra-solid-infill");
         optgroup->append_single_option_line("bridge_angle", "strength_settings_advanced#bridge-infill-direction");
         optgroup->append_single_option_line("internal_bridge_angle", "strength_settings_advanced#bridge-infill-direction"); // ORCA: Internal bridge angle override
