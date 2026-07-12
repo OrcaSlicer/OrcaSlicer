@@ -1080,7 +1080,7 @@ void PlaterPresetComboBox::show_edit_menu()
 #ifdef __linux__
     // To edit extruder color from the sidebar
     if (m_type == Preset::TYPE_FILAMENT) {
-        append_menu_item(menu, wxID_ANY, _devL("Change extruder color"), "",
+        append_menu_item(menu, wxID_ANY, _L("Change extruder color"), "",
             [this](wxCommandEvent&) { this->change_extruder_color(); }, "blank_14", menu, []() { return true; }, wxGetApp().plater());
         wxGetApp().plater()->PopupMenu(menu);
         return;

@@ -22080,3 +22080,131 @@ msgstr ""
 #~ "Veuillez saisir des valeurs valides :\n"
 #~ "Début > 10 intervalle >= 0\n"
 #~ "Fin > Début + Intervalle"
+
+# Orca: hardcoded GUI strings extracted (i18n FR pass)
+msgid "Rename Object"
+msgstr "Renommer l’objet"
+
+msgid "Rename Part"
+msgstr "Renommer la pièce"
+
+msgid "Paste settings"
+msgstr "Coller les réglages"
+
+msgid "Shift objects to bed"
+msgstr "Déplacer les objets sur le plateau"
+
+msgid "Object order changed"
+msgstr "Ordre des objets modifié"
+
+msgid "Layer setting added"
+msgstr "Réglage de couche ajouté"
+
+msgid "Part setting added"
+msgstr "Réglage de pièce ajouté"
+
+msgid "Object setting added"
+msgstr "Réglage d’objet ajouté"
+
+msgid "Height range settings added"
+msgstr "Réglages de plage de hauteur ajoutés"
+
+msgid "Part settings added"
+msgstr "Réglages de pièce ajoutés"
+
+msgid "Object settings added"
+msgstr "Réglages d’objet ajoutés"
+
+msgid "Load Part"
+msgstr "Charger une pièce"
+
+msgid "Load Modifier"
+msgstr "Charger un modificateur"
+
+msgid "Add primitive"
+msgstr "Ajouter une primitive"
+
+msgid "Delete Settings"
+msgstr "Supprimer les réglages"
+
+msgid "Delete part"
+msgstr "Supprimer la pièce"
+
+msgid "Merge parts to an object"
+msgstr "Fusionner les pièces en un objet"
+
+msgid "Add layers"
+msgstr "Ajouter des couches"
+
+msgid "Delete selected"
+msgstr "Supprimer la sélection"
+
+msgid "Instances to Separated Objects"
+msgstr "Séparer les instances en objets"
+
+msgid "Change Filaments"
+msgstr "Changer les filaments"
+
+msgid "Delete Object"
+msgstr "Supprimer l’objet"
+
+msgid "Delete All Objects"
+msgstr "Supprimer tous les objets"
+
+msgid "Reset Project"
+msgstr "Réinitialiser le projet"
+
+msgid "Split to Objects"
+msgstr "Scinder en objets"
+
+msgid "Replace with 3D file"
+msgstr "Remplacer par un fichier 3D"
+
+msgid "Reload all"
+msgstr "Tout recharger"
+
+msgid "Reset Cut"
+msgstr "Réinitialiser la découpe"
+
+msgid "How to trouble shooting"
+msgstr "Comment résoudre les problèmes ?"
+
+msgid "parse json failed"
+msgstr "Échec de l’analyse du JSON"
+
+msgid "Select Images"
+msgstr "Sélectionner des images"
+
+msgid "One of the presets does not exist"
+msgstr "L’un des préréglages n’existe pas."
+
+msgid "Compared presets has different printer technology"
+msgstr "Les préréglages comparés utilisent une technologie d’imprimante différente."
+
+msgid "Done."
+msgstr "Terminé."
+
+msgid "Change extruder color"
+msgstr "Changer la couleur de l’extrudeur"
+
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr "Une mise à jour est disponible. Ouvrez la boîte de dialogue du paquet de préréglages pour l’installer."
+
+msgid "Orca Slicer - Switching language failed"
+msgstr "Orca Slicer — Échec du changement de langue"
+
+msgid "Switching Orca Slicer to language %s failed."
+msgstr "Le passage d’Orca Slicer à la langue %s a échoué."
+
+msgid "\nYou may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr "\nVous devrez peut-être reconfigurer les paramètres régionaux manquants, probablement en exécutant les commandes « locale-gen » et « dpkg-reconfigure locales ».\n"
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr "Fichiers image (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr "Fichiers de configuration (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+
+msgid "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\nPlease report to PrusaSlicer team in which scenario this issue happened.\nThank you."
+msgstr "Les objets (%1%) ont des connecteurs dupliqués. Certains connecteurs risquent d’être absents du résultat du découpage.\nVeuillez signaler à l’équipe PrusaSlicer dans quel scénario ce problème est survenu.\nMerci."
+

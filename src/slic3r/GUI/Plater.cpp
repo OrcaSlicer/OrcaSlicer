@@ -6841,7 +6841,7 @@ std::vector<size_t> Plater::priv::load_files(const std::vector<fs::path>& input_
 
             // BBS
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ":" << __LINE__ << " " << boost::format("import 3mf IMPORT_LOAD_MODEL_OBJECTS \n");
-            wxString msg = wxString::Format("Loading file: %s", from_path(real_filename));
+            wxString msg = wxString::Format(_L("Loading file: %s"), from_path(real_filename));
             model_idx++;
             dlg_cont = dlg.Update(progress_percent, msg);
             if (!dlg_cont) {
@@ -7541,7 +7541,7 @@ bool Plater::priv::delete_object_from_model(size_t obj_idx, bool refresh_immedia
             return false;
     }
 
-    std::string snapshot_label = "Delete Object";
+    std::string snapshot_label = _u8L("Delete Object");
     if (!obj->name.empty())
         snapshot_label += ": " + obj->name;
     Plater::TakeSnapshot snapshot(q, snapshot_label);
@@ -7565,7 +7565,7 @@ bool Plater::priv::delete_object_from_model(size_t obj_idx, bool refresh_immedia
 
 void Plater::priv::delete_all_objects_from_model()
 {
-    Plater::TakeSnapshot snapshot(q, "Delete All Objects");
+    Plater::TakeSnapshot snapshot(q, _u8L("Delete All Objects"));
 
     if (view3D->is_layers_editing_enabled())
         view3D->enable_layers_editing(false);
@@ -7596,7 +7596,7 @@ void Plater::priv::delete_all_objects_from_model()
 
 void Plater::priv::reset(bool apply_presets_change)
 {
-    Plater::TakeSnapshot snapshot(q, "Reset Project", UndoRedo::SnapshotType::ProjectSeparator);
+    Plater::TakeSnapshot snapshot(q, _u8L("Reset Project"), UndoRedo::SnapshotType::ProjectSeparator);
 
     clear_warnings();
 
@@ -7745,7 +7745,7 @@ void Plater::priv::split_object(int obj_idx, bool auto_drop /* = true */)
         //        NotificationManager::NotificationLevel::PrintInfoNotificationLevel,
         //        _u8L("All non-solid parts (modifiers) were deleted"));
 
-        Plater::TakeSnapshot snapshot(q, "Split to Objects");
+        Plater::TakeSnapshot snapshot(q, _u8L("Split to Objects"));
 
         auto is_atleast_one_floating = [new_objects]() {
             for (ModelObject* new_object : new_objects) {
@@ -8555,7 +8555,7 @@ void Plater::priv::replace_with_stl()
         return;
     }
 
-    if (!replace_volume_with_stl(object_idx, volume_idx, out_path, "Replace with 3D file"))
+    if (!replace_volume_with_stl(object_idx, volume_idx, out_path, _u8L("Replace with 3D file")))
         return;
 
     // update 3D scene
@@ -8672,7 +8672,7 @@ void Plater::priv::replace_all_with_stl()
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " replacing volume : " << input_path << " with " << new_path;
 
-        if (!replace_volume_with_stl(object_idx, volume_idx, new_path, "Replace with 3D file")) {
+        if (!replace_volume_with_stl(object_idx, volume_idx, new_path, _u8L("Replace with 3D file"))) {
             status += boost::str(boost::format(_L("✖ Skipped %1%: failed to replace.\n").ToStdString()) % volume_name);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " cannot replace volume : failed to replace with " << new_path;
             continue;
@@ -8732,7 +8732,7 @@ void Plater::priv::reload_from_disk()
         return (v1.first == v2.first) && (v1.second == v2.second);
         }), selected_volumes.end());
 #else
-    Plater::TakeSnapshot snapshot(q, "Reload from disk");
+    Plater::TakeSnapshot snapshot(q, _u8L("Reload from disk"));
 
     const Selection& selection = get_selection();
 
@@ -8881,7 +8881,7 @@ void Plater::priv::reload_from_disk()
     replace_paths.erase(std::unique(replace_paths.begin(), replace_paths.end()), replace_paths.end());
 
 #if ENABLE_RELOAD_FROM_DISK_REWORK
-    Plater::TakeSnapshot snapshot(q, "Reload from disk");
+    Plater::TakeSnapshot snapshot(q, _u8L("Reload from disk"));
 #endif // ENABLE_RELOAD_FROM_DISK_REWORK
 
     std::vector<wxString> fail_list;
@@ -9174,7 +9174,7 @@ void Plater::priv::reload_all_from_disk()
     if (model.objects.empty())
         return;
 
-    Plater::TakeSnapshot snapshot(q, "Reload all");
+    Plater::TakeSnapshot snapshot(q, _u8L("Reload all"));
     Plater::SuppressSnapshots suppress(q);
 
     Selection& selection = get_selection();

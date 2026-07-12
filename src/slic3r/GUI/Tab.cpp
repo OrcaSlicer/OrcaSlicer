@@ -7440,11 +7440,11 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
         }
 
         if(deps.type == Preset::TYPE_PRINTER){
-            deps.dialog_title = "Compatible printers";
-            deps.dialog_label = "Select printers";
+            deps.dialog_title = _L("Compatible printers");
+            deps.dialog_label = _L("Select printers");
         }else{
-            deps.dialog_title = "Compatible process profiles";
-            deps.dialog_label = "Select profiles";
+            deps.dialog_title = _L("Compatible process profiles");
+            deps.dialog_label = _L("Select profiles");
         }
 
         MultiChoiceDialog dlg(parent, deps.dialog_label, deps.dialog_title, presets);
