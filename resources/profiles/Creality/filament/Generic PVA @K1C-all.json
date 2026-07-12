@@ -123,7 +123,8 @@
     "pressure_advance": "0.02",
     "support_material_interface_fan_speed": "-1",
     "compatible_printers": [
-        "Creality K1C 0.4 nozzle"
+        "Creality K1C 0.4 nozzle",
+        "Creality K1C CFS 0.4 nozzle"
     ],
     "filament_id": "00011"
 }

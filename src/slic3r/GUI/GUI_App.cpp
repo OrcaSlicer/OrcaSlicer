@@ -3632,10 +3632,13 @@ void GUI_App::switch_printer_agent()
         sidebar().update_all_preset_comboboxes();
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": printer agent switched to " << effective_agent_id;
-
-        // Auto-switch MachineObject
-        select_machine(effective_agent_id);
     }
+
+    // (Re)connect the selected machine with the current print_host. This runs even
+    // when the agent did not change — e.g. the user just set/changed the printer IP
+    // in the physical-printer dialog — so the device gets registered and the filament
+    // sync works immediately, without needing to restart the app.
+    select_machine(effective_agent_id);
 }
 
 void GUI_App::select_machine(const std::string& agent_id)

@@ -7,6 +7,7 @@
 	"instantiation": "true",
 	"printer_model": "Creality K1C",
 	"gcode_flavor": "klipper",
+	"printer_agent": "crealityprint",
 	"default_print_profile": "0.20mm Standard @Creality K1C (0.4 nozzle)",
 	"nozzle_diameter": [
 		"0.4"

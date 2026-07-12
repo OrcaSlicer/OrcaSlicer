@@ -24,6 +24,7 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/button.h>
+#include <wx/choice.h>
 #include <wx/bmpcbox.h>
 #include <wx/display.h>
 #include <wx/statbox.h>
@@ -554,6 +555,15 @@ struct Sidebar::priv
     TextInput* m_search_item = nullptr;
     StaticBox* m_search_bar = nullptr;
     Search::SearchObjectDialog* dia = nullptr;
+
+    // Creality CFS manual control (sidebar) — Feed/Retract per slot via WS:9999.
+    StaticBox* m_panel_cfs        = nullptr;
+    wxChoice*  m_cfs_slot_choice  = nullptr;
+    Button*    m_cfs_feed_btn     = nullptr;
+    Button*    m_cfs_retract_btn  = nullptr;
+    Label*     m_cfs_hint         = nullptr;
+    std::vector<std::pair<int, int>> m_cfs_slots; // choice index -> (box_id, slot_id)
+    void cfs_feed_selected(bool feed);
 
     // BBS printer config
     StaticBox* m_panel_printer_title = nullptr;
@@ -2232,6 +2242,39 @@ Sidebar::Sidebar(Plater *parent)
     update_filaments_area_height(); // ORCA
 
     scrolled_sizer->Add(p->m_panel_filament_content, 0, wxEXPAND | wxTOP | wxBOTTOM, FromDIP(SidebarProps::ContentMarginV())); // ORCA use vertical margin on parent otherwise it shows scrollbar even on 1 filament
+
+    // Creality CFS manual control panel (Feed/Retract per slot). Hidden until a
+    // Creality CFS printer is selected and slots have been synced — see the
+    // refresh block at the end of Sidebar::load_ams_list().
+    {
+        p->m_panel_cfs = new StaticBox(p->scrolled, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxBORDER_NONE);
+        p->m_panel_cfs->SetBackgroundColor(wxColour(255, 255, 255));
+        auto* cfs_sizer = new wxBoxSizer(wxVERTICAL);
+
+        auto* cfs_title = new Label(p->m_panel_cfs, _L("CFS filament control"));
+        cfs_sizer->Add(cfs_title, 0, wxLEFT | wxTOP, FromDIP(8));
+
+        auto* cfs_row = new wxBoxSizer(wxHORIZONTAL);
+        p->m_cfs_slot_choice = new wxChoice(p->m_panel_cfs, wxID_ANY);
+        p->m_cfs_feed_btn    = new Button(p->m_panel_cfs, _L("Feed"));
+        p->m_cfs_retract_btn = new Button(p->m_panel_cfs, _L("Retract"));
+        cfs_row->Add(p->m_cfs_slot_choice, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+        cfs_row->Add(p->m_cfs_feed_btn,    0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+        cfs_row->Add(p->m_cfs_retract_btn, 0, wxALIGN_CENTER_VERTICAL, 0);
+        cfs_sizer->Add(cfs_row, 0, wxEXPAND | wxALL, FromDIP(8));
+
+        p->m_cfs_hint = new Label(p->m_panel_cfs, _L("Select a slot, then Feed or Retract."));
+        p->m_cfs_hint->SetForegroundColour(wxColour(0x6B, 0x6B, 0x6B));
+        cfs_sizer->Add(p->m_cfs_hint, 0, wxLEFT | wxBOTTOM, FromDIP(8));
+
+        p->m_cfs_feed_btn->Bind(wxEVT_BUTTON,    [this](wxCommandEvent&) { p->cfs_feed_selected(true); });
+        p->m_cfs_retract_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { p->cfs_feed_selected(false); });
+
+        p->m_panel_cfs->SetSizer(cfs_sizer);
+        p->m_panel_cfs->Layout();
+        scrolled_sizer->Add(p->m_panel_cfs, 0, wxEXPAND | wxALL, 0);
+        p->m_panel_cfs->Hide();
+    }
     }
 
     {
@@ -3432,6 +3475,7 @@ std::map<int, DynamicPrintConfig> Sidebar::build_filament_ams_list(MachineObject
         tray_config.set_key_value("filament_multi_colour", new ConfigOptionStrings{});
         tray_config.set_key_value("filament_colour_type", new ConfigOptionStrings{std::to_string(tray.ctype)});
         tray_config.set_key_value("filament_exist", new ConfigOptionBools{tray.is_exists});
+        tray_config.set_key_value("filament_remain", new ConfigOptionInts{tray.remain});
         tray_config.set_key_value("filament_slot_placeholder", new ConfigOptionBools{tray.is_slot_placeholder});
         std::optional<FilamentBaseInfo> info;
         if (wxGetApp().preset_bundle) {
@@ -3536,6 +3580,42 @@ void Sidebar::get_small_btn_sync_pos_size(wxPoint &pt, wxSize &size) {
     pt   = ams_btn->GetScreenPosition();
 }
 
+void Sidebar::priv::cfs_feed_selected(bool feed)
+{
+    const int idx = m_cfs_slot_choice ? m_cfs_slot_choice->GetSelection() : wxNOT_FOUND;
+    if (idx < 0 || idx >= (int) m_cfs_slots.size()) {
+        if (m_cfs_hint) m_cfs_hint->SetLabel(_L("Select a slot first."));
+        return;
+    }
+    const int box_id      = m_cfs_slots[idx].first;
+    const int material_id = m_cfs_slots[idx].second;
+
+    // Use the connected machine's IP/access code (the print_host lives in the
+    // physical-printer config, not the machine preset). Build a CrealityPrint host
+    // and send feedInOrOut over the port-9999 control WebSocket.
+    auto*          dm  = wxGetApp().getDeviceManager();
+    MachineObject* obj = dm ? dm->get_selected_machine() : nullptr;
+    const std::string ip = obj ? obj->get_dev_ip() : std::string();
+    if (ip.empty()) {
+        if (m_cfs_hint) m_cfs_hint->SetLabel(_L("Printer not connected."));
+        return;
+    }
+
+    DynamicPrintConfig cfg;
+    cfg.set_key_value("print_host",                  new ConfigOptionString("http://" + ip));
+    cfg.set_key_value("print_host_webui",            new ConfigOptionString(""));
+    cfg.set_key_value("printhost_cafile",            new ConfigOptionString(""));
+    cfg.set_key_value("printhost_port",              new ConfigOptionString(""));
+    cfg.set_key_value("printhost_apikey",            new ConfigOptionString(obj->get_access_code()));
+    cfg.set_key_value("printhost_ssl_ignore_revoke", new ConfigOptionBool(false));
+
+    CrealityPrint host(&cfg);
+    const bool    ok = host.feed_filament(box_id, material_id, feed);
+    if (m_cfs_hint)
+        m_cfs_hint->SetLabel(ok ? (feed ? _L("Feed command sent.") : _L("Retract command sent."))
+                                : _L("Failed to send command to the printer."));
+}
+
 void Sidebar::load_ams_list(MachineObject* obj)
 {
     std::map<int, DynamicPrintConfig> filament_ams_list;
@@ -3559,6 +3639,45 @@ void Sidebar::load_ams_list(MachineObject* obj)
         return;
     }
     wxGetApp().preset_bundle->filament_ams_list = filament_ams_list;
+
+    // Creality CFS: refresh the manual Feed/Retract panel from the synced slots.
+    // The slot list comes from the Moonraker-derived filament_ams_list (ams_id is
+    // 0-based, the CFS is ams 0). The printer's feedInOrOut command, however,
+    // numbers the CFS as box 1 (box 0 is the external spool holder), so we store
+    // box+1 as the command's boxId. Verified against the port-9999 boxsInfo.
+    if (p->m_panel_cfs) {
+        bool        show = false;
+        const auto& cfg  = wxGetApp().preset_bundle->printers.get_edited_preset().config;
+        const auto* ht   = cfg.option<ConfigOptionEnum<PrintHostType>>("host_type");
+        if (ht && ht->value == htCrealityPrint) {
+            p->m_cfs_slots.clear();
+            p->m_cfs_slot_choice->Clear();
+            for (const auto& kv : wxGetApp().preset_bundle->filament_ams_list) {
+                const auto& tc = kv.second;
+                if (!tc.opt_bool("filament_exist", 0u)) continue;
+                int box = 0, slot = 0;
+                try { box  = std::stoi(tc.opt_string("ams_id",  0u)); } catch (...) {}
+                try { slot = std::stoi(tc.opt_string("slot_id", 0u)); } catch (...) {}
+                wxString          label = wxString::Format("%d%c", box + 1, char('A' + slot));
+                const std::string type  = tc.opt_string("filament_type", 0u);
+                if (!type.empty()) label += " - " + from_u8(type);
+                const auto* ro     = tc.option<ConfigOptionInts>("filament_remain");
+                const int   remain = (ro && !ro->values.empty()) ? ro->values.front() : -1;
+                if (remain >= 0) label += wxString::Format(" - %d%%", remain);
+                p->m_cfs_slot_choice->Append(label);
+                p->m_cfs_slots.emplace_back(box + 1, slot); // feedInOrOut box numbering (CFS = 1)
+            }
+            if (!p->m_cfs_slots.empty()) {
+                if (p->m_cfs_slot_choice->GetSelection() == wxNOT_FOUND)
+                    p->m_cfs_slot_choice->SetSelection(0);
+                show = true;
+            }
+        }
+        if (p->m_panel_cfs->IsShown() != show) {
+            p->m_panel_cfs->Show(show);
+            if (m_scrolled_sizer) m_scrolled_sizer->Layout();
+        }
+    }
 
     for (auto c : p->combos_filament){
         c->update();

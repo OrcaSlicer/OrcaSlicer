@@ -508,6 +508,10 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
                 if (tray->nozzle_temp > 0) {
                     tray_json["nozzle_temp_max"] = std::to_string(tray->nozzle_temp);
                 }
+                // Remaining filament percentage (parsed into DevAmsTray::remain).
+                if (tray->remain >= 0) {
+                    tray_json["remain"] = tray->remain;
+                }
             } else {
                 tray_json["tray_info_idx"] = "";
                 tray_json["tray_type"] = "";
@@ -530,6 +534,13 @@ void MoonrakerPrinterAgent::build_ams_payload(int ams_count, int max_lane_index,
     ams_json["ams"] = ams_array;
     ams_json["ams_exist_bits"] = ams_exist_ss.str();
     ams_json["tray_exist_bits"] = tray_exist_ss.str();
+
+    // Advertise remaining-filament detection when any tray reports a real remain
+    // value, so the AMS mapping UI draws the fill bar from DevAmsTray::remain
+    // instead of a fixed full bar.
+    const bool any_remain = std::any_of(trays.begin(), trays.end(),
+                                        [](const AmsTrayData& t) { return t.remain >= 0; });
+    ams_json["calibrate_remain_flag"] = any_remain;
 
     // Wrap in the expected structure for ParseV1_0
     nlohmann::json print_json = nlohmann::json::object();

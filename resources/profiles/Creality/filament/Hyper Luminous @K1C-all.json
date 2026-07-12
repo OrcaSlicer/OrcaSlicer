@@ -160,6 +160,7 @@
     "support_material_interface_fan_speed": "-1",
     "compatible_printers": [
         "Creality K1C 0.4 nozzle",
+        "Creality K1C CFS 0.4 nozzle",
         "Creality K1C 0.6 nozzle",
         "Creality K1C 0.8 nozzle"
     ],

@@ -298,6 +298,77 @@ std::string CrealityPrint::query_boxes_info() const
     }
 }
 
+std::vector<CrealityPrint::CfsSlotInfo> CrealityPrint::query_cfs_slots() const
+{
+    std::vector<CfsSlotInfo> slots;
+    const std::string resp = query_boxes_info();
+    if (resp.empty())
+        return slots;
+    try {
+        auto j = json::parse(resp);
+        if (!j.contains("boxsInfo") || !j["boxsInfo"].contains("materialBoxs"))
+            return slots;
+        for (const auto& box : j["boxsInfo"]["materialBoxs"]) {
+            const int box_type = box.value("type", 0);
+            if (box_type != 0 && box_type != 2) continue; // CFS / CFS-mini only (skip external spool, type 1)
+            if (box.value("state", 0) != 1)       continue; // active boxes only
+            const int box_id = box.value("id", 0);
+            if (!box.contains("materials") || !box["materials"].is_array())
+                continue;
+            for (const auto& mat : box["materials"]) {
+                const int         st     = mat.value("state",  0);
+                const std::string vendor = mat.value("vendor", std::string());
+                const std::string type   = mat.value("type",   std::string());
+                if (st == 0)                       continue; // empty slot
+                if (vendor.empty() && type.empty()) continue; // blank entry
+                CfsSlotInfo s;
+                s.box_id      = box_id;
+                s.material_id = mat.value("id", 0);
+                s.type        = type;
+                s.name        = mat.value("name", std::string());
+                std::string color = mat.value("color", std::string());
+                if (color.size() == 8 && color[0] == '#') // "#0RRGGBB" -> "#RRGGBB"
+                    color = "#" + color.substr(2);
+                s.color = color;
+                slots.push_back(std::move(s));
+            }
+        }
+    } catch (const std::exception& e) {
+        BOOST_LOG_TRIVIAL(warning) << "CrealityPrint: query_cfs_slots parse error: " << e.what();
+    }
+    return slots;
+}
+
+bool CrealityPrint::feed_filament(int box_id, int material_id, bool is_feed) const
+{
+    try {
+        net::io_context ioc;
+        websocket::stream<beast::tcp_stream> ws{ioc};
+        ws_connect(ioc, ws, m_host, "9999");
+
+        // Same shape the Creality device web UI (resources/web/deviceMgr) sends:
+        //   {"method":"set","params":{"feedInOrOut":{"boxId":B,"materialId":S,"isFeed":1|0}}}
+        json cmd = {
+            {"method", "set"},
+            {"params", {
+                {"feedInOrOut", {
+                    {"boxId", box_id},
+                    {"materialId", material_id},
+                    {"isFeed", is_feed ? 1 : 0}
+                }}
+            }}
+        };
+        ws.write(net::buffer(to_string(cmd)));
+        // The command is delivered on write(); some firmwares don't complete the
+        // WS close handshake, so don't treat a close error as a command failure.
+        try { ws.close(websocket::close_code::normal); } catch (...) {}
+        return true;
+    } catch (std::exception const& e) {
+        BOOST_LOG_TRIVIAL(error) << "CrealityPrint: feed_filament failed: " << e.what();
+        return false;
+    }
+}
+
 bool CrealityPrint::start_print(wxString &msg, const std::string &filename, const std::map<std::string, std::string>& extended_info) const
 {
     try {

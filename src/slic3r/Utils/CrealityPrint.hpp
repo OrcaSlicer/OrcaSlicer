@@ -3,6 +3,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 #include <wx/string.h>
 #include <boost/optional.hpp>
 #include <boost/asio/ip/address.hpp>
@@ -33,6 +34,24 @@ public:
     bool supports_multi_color_print() const;
     std::string query_boxes_info() const;
     std::string model_name() const;
+
+    // One loaded CFS slot, parsed from the port-9999 boxsInfo. box_id/material_id
+    // are exactly the values the feedInOrOut command expects (the external spool
+    // holder is a separate box and is excluded here).
+    struct CfsSlotInfo {
+        int         box_id      = 0;
+        int         material_id = 0;
+        std::string type;          // "PLA", "ABS", ...
+        std::string name;          // "Hyper PLA", ...
+        std::string color;         // "#RRGGBB"
+    };
+    std::vector<CfsSlotInfo> query_cfs_slots() const;
+
+    // Manually load (is_feed=true) or unload/retract (is_feed=false) one CFS slot
+    // via the printer's port-9999 control WebSocket. box_id/material_id are the CFS
+    // box and slot indices as reported by the printer. Mirrors the feedInOrOut
+    // command the Creality device web UI sends. Returns false on transport error.
+    bool feed_filament(int box_id, int material_id, bool is_feed) const;
 
 protected:
     virtual void set_auth(Http& http) const;

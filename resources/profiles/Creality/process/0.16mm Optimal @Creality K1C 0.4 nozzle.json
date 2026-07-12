@@ -27,7 +27,8 @@
 	"brim_type": "auto_brim",
 	"brim_width": "5",
 	"compatible_printers": [
-		"Creality K1C 0.4 nozzle"
+		"Creality K1C 0.4 nozzle",
+		"Creality K1C CFS 0.4 nozzle"
 	],
 	"counterbore_hole_bridging": "none",
 	"default_acceleration": "10000",

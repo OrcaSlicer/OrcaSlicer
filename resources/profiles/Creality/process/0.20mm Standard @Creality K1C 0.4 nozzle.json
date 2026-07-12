@@ -16,7 +16,8 @@
 	"brim_width": "5",
 	"brim_object_gap": "0.1",
 	"compatible_printers": [
-		"Creality K1C 0.4 nozzle"
+		"Creality K1C 0.4 nozzle",
+		"Creality K1C CFS 0.4 nozzle"
 	],
 	"print_sequence": "by layer",
 	"default_acceleration": "10000",

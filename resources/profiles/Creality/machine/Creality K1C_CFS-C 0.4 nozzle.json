@@ -30,6 +30,7 @@
 	"gcode_flavor": "klipper",
 	"high_current_on_filament_swap": "0",
 	"host_type": "octoprint",
+	"printer_agent": "crealityprint",
 	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
 	"machine_LED_light_exist": "1",
 	"machine_end_gcode": "END_PRINT",

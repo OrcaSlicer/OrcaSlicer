@@ -144,6 +144,10 @@
 			"name": "Creality K1C_CFS-C",
 			"sub_path": "machine/Creality K1C_CFS-C.json"
 		},
+        {
+            "name": "Creality K1C CFS",
+            "sub_path": "machine/Creality K1C CFS.json"
+        },
 		{
 			"name": "Creality K2",
 			"sub_path": "machine/Creality K2.json"
@@ -4158,6 +4162,10 @@
 			"name": "Creality K1C 0.4 nozzle",
 			"sub_path": "machine/Creality K1C 0.4 nozzle.json"
 		},
+        {
+            "name": "Creality K1C CFS 0.4 nozzle",
+            "sub_path": "machine/Creality K1C CFS 0.4 nozzle.json"
+        },
 		{
 			"name": "Creality K1C 0.6 nozzle",
 			"sub_path": "machine/Creality K1C 0.6 nozzle.json"
