@@ -2742,7 +2742,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("top_shell_thickness", "strength_settings_top_bottom_shells#shell-thickness");
         optgroup->append_single_option_line("top_surface_density", "strength_settings_top_bottom_shells#surface-density");
         optgroup->append_single_option_line("top_surface_pattern", "strength_settings_top_bottom_shells#surface-pattern");
-        optgroup->append_single_option_line("top_layer_direction", "strength_settings_infill#top-direction");
+        optgroup->append_single_option_line("top_layer_direction", "strength_settings_infill#top-bottom-direction");
         optgroup->append_single_option_line("top_surface_expansion", "strength_settings_top_bottom_shells#surface-expansion");
         optgroup->append_single_option_line("top_surface_expansion_margin", "strength_settings_top_bottom_shells#surface-expansion-margin");
         optgroup->append_single_option_line("top_surface_expansion_direction", "strength_settings_top_bottom_shells#surface-expansion-direction");
@@ -2750,7 +2750,7 @@ void TabPrint::build()
         optgroup->append_single_option_line("bottom_shell_thickness", "strength_settings_top_bottom_shells#shell-thickness");
         optgroup->append_single_option_line("bottom_surface_density", "strength_settings_top_bottom_shells#surface-density");
         optgroup->append_single_option_line("bottom_surface_pattern", "strength_settings_top_bottom_shells#surface-pattern");
-        optgroup->append_single_option_line("bottom_layer_direction", "strength_settings_infill#direction");
+        optgroup->append_single_option_line("bottom_layer_direction", "strength_settings_infill#top-bottom-direction");
         optgroup->append_single_option_line("center_of_surface_pattern", "strength_settings_top_bottom_shells#center-surface-pattern-on");
         optgroup->append_single_option_line("anisotropic_surfaces", "strength_settings_top_bottom_shells#anisotropic-surfaces");
         optgroup->append_single_option_line("top_bottom_infill_wall_overlap", "strength_settings_top_bottom_shells#infillwall-overlap");
