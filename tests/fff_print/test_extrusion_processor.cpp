@@ -1,12 +1,12 @@
 #include <catch2/catch_all.hpp>
 
+#include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
 #include "test_helpers.hpp"
 
 #include <algorithm>
 #include <cmath>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -41,46 +41,20 @@ std::vector<double> caged_overhang_feed_rates(const std::string& gcode)
 {
     std::vector<double> feed_rates;
     bool outer_wall = false;
-    double x = 0.0, y = 0.0, z = 0.0, feed_rate = 0.0;
+    // The caged slope lies on this Y + Z plane after perimeter offsets.
+    constexpr double caged_slope_y_plus_z = 16.189;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&feed_rates, &outer_wall, caged_slope_y_plus_z](GCodeReader& self, const GCodeReader::GCodeLine& line) {
+        const std::string_view comment = line.comment();
+        if (comment.find("FEATURE:") != std::string_view::npos || comment.find("TYPE:") != std::string_view::npos)
+            outer_wall = comment.find("Outer wall") != std::string_view::npos ||
+                         comment.find("External perimeter") != std::string_view::npos;
 
-    std::istringstream gcode_stream(gcode);
-    for (std::string line; std::getline(gcode_stream, line);) {
-        if (line.compare(0, 10, "; FEATURE:") == 0 || line.compare(0, 6, ";TYPE:") == 0)
-            outer_wall = line.find("Outer wall") != std::string::npos || line.find("External perimeter") != std::string::npos;
-
-        if (line.compare(0, 3, "G1 ") != 0)
-            continue;
-
-        double next_x = x, next_y = y, next_z = z;
-        bool has_extrusion = false;
-        std::istringstream line_stream(line);
-        for (std::string word; line_stream >> word;) {
-            if (word.size() < 2)
-                continue;
-            if (word.front() == ';')
-                break;
-            if (word.front() != 'X' && word.front() != 'Y' && word.front() != 'Z' &&
-                word.front() != 'E' && word.front() != 'F')
-                continue;
-            const double value = std::stod(word.substr(1));
-            switch (word.front()) {
-            case 'X': next_x = value; break;
-            case 'Y': next_y = value; break;
-            case 'Z': next_z = value; break;
-            case 'E': has_extrusion = true; break;
-            case 'F': feed_rate = value; break;
-            default: break;
-            }
-        }
-
-        if (outer_wall && has_extrusion && std::abs(next_x - x) > 1.0 && std::abs(next_y - y) < 0.001 &&
-            std::abs(next_y + next_z - 16.189) < 0.01)
-            feed_rates.push_back(feed_rate);
-
-        x = next_x;
-        y = next_y;
-        z = next_z;
-    }
+        if (outer_wall && line.extruding(self) && line.dist_XY(self) > 1.0 &&
+            std::abs(line.new_Y(self) - self.y()) < 0.001 &&
+            std::abs(line.new_Y(self) + self.z() - caged_slope_y_plus_z) < 0.01)
+            feed_rates.push_back(line.new_F(self));
+    });
 
     return feed_rates;
 }

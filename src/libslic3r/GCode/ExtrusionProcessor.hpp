@@ -131,7 +131,7 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
 
             // A lower boundary near an endpoint can hide a less-supported span in the middle,
             // for example where vertical walls cage an overhang.
-            if (line_len >= 2.0) {
+            if (line_len >= 2.f) {
                 const Vec midpoint = 0.5 * (curr.position + next.position);
                 auto [midpoint_dist, midpoint_near_l, midpoint_x] =
                     unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(midpoint.template cast<AABBScalar>());
