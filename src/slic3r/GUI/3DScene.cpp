@@ -477,7 +477,7 @@ void GLVolume::render()
 }
 
 //BBS: add outline related logic
-void GLVolume::render_with_outline(const GUI::Size& cnv_size)
+void GLVolume::render_with_outline(const GUI::Size& cnv_size, const Transform3d& view_matrix)
 {
     if (!is_active)
         return;
@@ -495,6 +495,28 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
         simple_render(shader, model_objects, colors);
         return;
     }
+    // 0th. render pass, render the external outline using stencil buffer
+    glsafe(::glEnable(GL_STENCIL_TEST));
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE));
+    glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
+    glsafe(::glStencilFunc(GL_ALWAYS, 0xFF, 0xFF));
+    if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
+        model.render(shader);
+    else
+        model.render(this->tverts_range, shader);
+    glsafe(::glStencilFunc(GL_NOTEQUAL, 0xFF, 0xFF));
+    glsafe(::glStencilMask(0x00));
+    shader->set_uniform("is_outline", true);
+    shader->set_uniform("screen_size", Vec2f{cnv_size.get_width(), cnv_size.get_height()});
+    if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
+        model.render(shader);
+    else
+        model.render(this->tverts_range, shader);
+    shader->set_uniform("is_outline", false);
+    shader->set_uniform("view_model_matrix", view_matrix * world_matrix());
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glDisable(GL_STENCIL_TEST));
 
     // 1st. render pass, render the model into a separate render target that has only depth buffer
     GLuint depth_fbo   = 0;
@@ -1132,7 +1154,7 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
 		//BBS: add outline related logic
         if (volume.first->selected && GUI::wxGetApp().show_outline())
-            volume.first->render_with_outline(cnv_size);
+            volume.first->render_with_outline(cnv_size, view_matrix);
         else
             volume.first->render();
 

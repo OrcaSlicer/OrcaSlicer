@@ -345,7 +345,7 @@ public:
     virtual void        render();
 
     //BBS: add outline related logic and add virtual specifier
-    virtual void render_with_outline(const GUI::Size& cnv_size);
+    virtual void render_with_outline(const GUI::Size& cnv_size, const Transform3d& view_matrix);
 
     //BBS: add simple render function for thumbnail
     void simple_render(GLShaderProgram* shader, ModelObjectPtrs& model_objects, std::vector<ColorRGBA>& extruder_colors, bool ban_light =false);
@@ -378,7 +378,7 @@ class GLWipeTowerVolume : public GLVolume {
 public:
     GLWipeTowerVolume(const std::vector<ColorRGBA>& colors);
     void render() override;
-    void render_with_outline(const GUI::Size& cnv_size) override { render(); }
+    void render_with_outline(const GUI::Size& cnv_size, const Transform3d& view_matrix) override { render(); }
 
     std::vector<GUI::GLModel> model_per_colors;
     bool                              IsTransparent();
