@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 16:46-0300\n"
+"POT-Creation-Date: 2026-07-12 12:27-0300\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -167,6 +167,12 @@ msgstr "Заповнення"
 msgid "Gap Fill"
 msgstr "Заповнення прогалин"
 
+msgid "Vertical"
+msgstr "Вертикальний"
+
+msgid "Horizontal"
+msgstr "Горизонтальний"
+
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
 msgstr "Малювання лише на вибраних гранях: \"%1%\""
@@ -261,12 +267,6 @@ msgstr "Трикутник"
 
 msgid "Height Range"
 msgstr "Діапазон висот"
-
-msgid "Vertical"
-msgstr "Вертикальний"
-
-msgid "Horizontal"
-msgstr "Горизонтальний"
 
 msgid "Remove painted color"
 msgstr "Видалити зафарбований колір"
@@ -5713,15 +5713,6 @@ msgstr "Експорт поточної конфігурації до файлі
 msgid "Export"
 msgstr "Експорт"
 
-msgid "Sync Presets"
-msgstr ""
-
-msgid "Pull and apply the latest presets from OrcaCloud"
-msgstr ""
-
-msgid "You must be logged in to sync presets from cloud."
-msgstr ""
-
 msgid "Quit"
 msgstr "Вихід"
 
@@ -5836,6 +5827,15 @@ msgid "View"
 msgstr "Вид"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
 msgstr ""
 
 msgid "Syncing presets from cloud…"
@@ -10331,12 +10331,8 @@ msgstr ""
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr ""
 
-msgid "Continue to sync filaments"
+msgid "Do you want to continue to sync filaments?"
 msgstr ""
-
-msgctxt "Sync_Nozzle_AMS"
-msgid "Cancel"
-msgstr "Скасувати"
 
 msgid "Successfully synchronized filament color from printer."
 msgstr ""
@@ -11665,7 +11661,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -11679,7 +11675,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -12380,6 +12376,42 @@ msgstr ""
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
 msgstr ""
 
+msgid "Top surface expansion"
+msgstr ""
+
+msgid ""
+"Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+msgstr ""
+
+msgid "Top expansion wall margin"
+msgstr ""
+
+msgid ""
+"Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+"This can cause contraction marks (such as the hull line) on the outer walls.\n"
+"By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
+msgstr ""
+
+msgid "Top expansion direction"
+msgstr ""
+
+msgid ""
+"Direction in which the top surface expansion grows.\n"
+" - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+" - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+" - Inward and Outward does both."
+msgstr ""
+
+msgid "Inward and Outward"
+msgstr ""
+
+msgid "Inward"
+msgstr ""
+
+msgid "Outward"
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "Шаблон нижньої поверхні"
 
@@ -13039,12 +13071,12 @@ msgstr "Щільність часткового заповнення"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr "Щільність внутрішнього часткового заповнення, 100% перетворює все часткове заповнення на суцільне заповнення, і буде застосовано шаблон внутрішнього суцільного заповнення"
 
-msgid "Align infill direction to model"
+msgid "Align directions to model"
 msgstr ""
 
 msgid ""
-"Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-"When enabled, directions rotate with the model to maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+"When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
 
 msgid "Insert solid layers"
@@ -15138,6 +15170,18 @@ msgstr "Підготовка всіх друкуючих екструдерів"
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "Якщо увімкнено, усі друкуючі екструдери будуть отестовані на передньому краї друкарського столу перед початком друку."
 
+msgid "Toolchange ordering"
+msgstr ""
+
+msgid ""
+"Determines the order of tool changes on each layer.\n"
+"- Default: Starts with the last used extruder to minimize tool changes.\n"
+"- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+msgstr ""
+
+msgid "Cyclic"
+msgstr ""
+
 msgid "Slice gap closing radius"
 msgstr "Радіус закриття пробілів під час нарізування"
 
@@ -15578,6 +15622,45 @@ msgstr "Товщина верхньої оболонки"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Кількість верхніх суцільних шарів збільшується при розрізанні, якщо товщина, обчислена шарами верхньої оболонки, тонша за це значення. Це дозволяє уникнути занадто тонкої оболонки при невеликій висоті шару. 0 означає, що це налаштування вимкнено і товщина верхньої оболонки повністюобмежена верхніми шарами оболонки"
+
+msgid "Anisotropic surfaces"
+msgstr ""
+
+msgid ""
+"Anisotropic patterns on the top and bottom surfaces.\n"
+"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
+"This option disable the gap fill.\n"
+"This option can increase a printing time."
+msgstr ""
+
+msgid "Separated infills"
+msgstr ""
+
+msgid ""
+"Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
+"Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+"Affects line and grid patterns and rotation-template infills.\n"
+"Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
+msgstr ""
+
+msgid "Center surface pattern on"
+msgstr ""
+
+msgid ""
+"Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
+" - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+" - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
+" - Each Assembly: uses a single shared center for the whole object or assembly."
+msgstr ""
+
+msgid "Each Surface"
+msgstr ""
+
+msgid "Each Model"
+msgstr ""
+
+msgid "Each Assembly"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19574,6 +19657,10 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури гарячого ліжка може зменшити ймовірність деформації?"
+
+#~ msgctxt "Sync_Nozzle_AMS"
+#~ msgid "Cancel"
+#~ msgstr "Скасувати"
 
 #~ msgid "Print"
 #~ msgstr "Друк"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 16:46-0300\n"
+"POT-Creation-Date: 2026-07-12 12:27-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -173,6 +173,12 @@ msgstr "Заливка"
 msgid "Gap Fill"
 msgstr "Заливка вкраплений"
 
+msgid "Vertical"
+msgstr "Вертикальная линия"
+
+msgid "Horizontal"
+msgstr "Горизонтальная линия"
+
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
 msgstr "Ограничить область работы инструмента настройкой «%1%»"
@@ -266,12 +272,6 @@ msgstr "Треугольник"
 
 msgid "Height Range"
 msgstr "Диапазон высот"
-
-msgid "Vertical"
-msgstr "Вертикальная линия"
-
-msgid "Horizontal"
-msgstr "Горизонтальная линия"
 
 msgid "Remove painted color"
 msgstr "Удаление окрашенного участка"
@@ -5781,15 +5781,6 @@ msgstr "Экспортировать текущую конфигурацию в 
 msgid "Export"
 msgstr "Экспорт"
 
-msgid "Sync Presets"
-msgstr ""
-
-msgid "Pull and apply the latest presets from OrcaCloud"
-msgstr ""
-
-msgid "You must be logged in to sync presets from cloud."
-msgstr ""
-
 msgid "Quit"
 msgstr "Выход"
 
@@ -5902,6 +5893,15 @@ msgid "View"
 msgstr "Вид"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
 msgstr ""
 
 msgid "Syncing presets from cloud…"
@@ -10442,12 +10442,8 @@ msgstr "Информация о сопле успешно синхронизир
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr "Информация о сопле и количестве AMS успешно синхронизирована."
 
-msgid "Continue to sync filaments"
-msgstr "Продолжить синхронизацию филаментов"
-
-msgctxt "Sync_Nozzle_AMS"
-msgid "Cancel"
-msgstr "Отмена"
+msgid "Do you want to continue to sync filaments?"
+msgstr ""
 
 msgid "Successfully synchronized filament color from printer."
 msgstr "Цвет материала успешно синхронизирован с принтером."
@@ -11736,7 +11732,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -11750,7 +11746,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -12507,6 +12503,42 @@ msgstr "Плотность верхней поверхности"
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
 msgstr "Плотность верхней поверхности. Если установить 100%, поверхность будет сплошной и гладкой. Уменьшение этого параметра создаст текстурированную поверхность в соответствии с выбранным шаблоном заполнения верхней поверхности. При значении 0% останутся только стенки верхнего слоя. Эта функция предназначена для улучшения внешнего вида или функциональности объекта, но не для решения проблем, таких как чрезмерная экструзия."
 
+msgid "Top surface expansion"
+msgstr ""
+
+msgid ""
+"Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+msgstr ""
+
+msgid "Top expansion wall margin"
+msgstr ""
+
+msgid ""
+"Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+"This can cause contraction marks (such as the hull line) on the outer walls.\n"
+"By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
+msgstr ""
+
+msgid "Top expansion direction"
+msgstr ""
+
+msgid ""
+"Direction in which the top surface expansion grows.\n"
+" - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+" - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+" - Inward and Outward does both."
+msgstr ""
+
+msgid "Inward and Outward"
+msgstr ""
+
+msgid "Inward"
+msgstr ""
+
+msgid "Outward"
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "Шаблон заполнения нижней поверхности"
 
@@ -13229,12 +13261,12 @@ msgstr "Плотность заполнения"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr "Плотность внутреннего заполнения, выраженная в процентах. 100% означает сплошное заполнение."
 
-msgid "Align infill direction to model"
-msgstr "Вращать заполнение с моделью"
+msgid "Align directions to model"
+msgstr ""
 
 msgid ""
-"Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-"When enabled, directions rotate with the model to maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+"When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
 
 msgid "Insert solid layers"
@@ -15508,6 +15540,18 @@ msgstr "Подготовка всех печатающих экструдеро�
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "Если этот параметр включён, все печатающие экструдеры в начале печати будут подготавливаться на переднем крае стола."
 
+msgid "Toolchange ordering"
+msgstr ""
+
+msgid ""
+"Determines the order of tool changes on each layer.\n"
+"- Default: Starts with the last used extruder to minimize tool changes.\n"
+"- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+msgstr ""
+
+msgid "Cyclic"
+msgstr ""
+
 msgid "Slice gap closing radius"
 msgstr "Радиус закрытия зазоров полигональной сетки"
 
@@ -15990,6 +16034,45 @@ msgstr "Толщина оболочки сверху"
 
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Минимальная толщина оболочки сверху в мм. Если толщина оболочки, рассчитанная по количеству сплошных слоёв сверху, меньше этого значения, количество сплошных слоёв сверху будет автоматически увеличено при нарезке, для удовлетворения минимальной толщины оболочки. Это позволяет избежать слишком тонкой оболочки при небольшой высоте слоя. 0 означает, что этот параметр отключён, а толщина оболочки сверху задаётся количеством сплошных слоёв сверху."
+
+msgid "Anisotropic surfaces"
+msgstr ""
+
+msgid ""
+"Anisotropic patterns on the top and bottom surfaces.\n"
+"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
+"This option disable the gap fill.\n"
+"This option can increase a printing time."
+msgstr ""
+
+msgid "Separated infills"
+msgstr ""
+
+msgid ""
+"Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
+"Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+"Affects line and grid patterns and rotation-template infills.\n"
+"Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
+msgstr ""
+
+msgid "Center surface pattern on"
+msgstr ""
+
+msgid ""
+"Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
+" - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+" - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
+" - Each Assembly: uses a single shared center for the whole object or assembly."
+msgstr ""
+
+msgid "Each Surface"
+msgstr ""
+
+msgid "Each Model"
+msgstr ""
+
+msgid "Each Assembly"
+msgstr ""
 
 msgid "This is the speed at which traveling is done."
 msgstr "Ограничение скорости холостых перемещений печатающей головы."
@@ -20116,6 +20199,16 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+#~ msgid "Continue to sync filaments"
+#~ msgstr "Продолжить синхронизацию филаментов"
+
+#~ msgctxt "Sync_Nozzle_AMS"
+#~ msgid "Cancel"
+#~ msgstr "Отмена"
+
+#~ msgid "Align infill direction to model"
+#~ msgstr "Вращать заполнение с моделью"
 
 #~ msgid "Print"
 #~ msgstr "Печать"
