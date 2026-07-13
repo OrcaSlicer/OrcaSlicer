@@ -2925,20 +2925,20 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             pts->values.emplace_back(bbox.min.x(), bbox.max.y());
 
         } else if (print.calib_mode() == CalibMode::Calib_PA_Line) {
-			// Derive X bounds from the actual calibration geometry.
-			CalibPressureAdvanceLine temp_pa_line_forsize(this);
-			BoundingBoxf pattern_extents = temp_pa_line_forsize.print_extents(bbox_bed);
-		
-			bbox = bbox_bed;
-			bbox.offset(-25.0);
+            // Derive X bounds from the actual calibration geometry.
+            CalibPressureAdvanceLine temp_pa_line_forsize(this);
+            BoundingBoxf pattern_extents = temp_pa_line_forsize.print_extents(bbox_bed);
+
+            bbox = bbox_bed;
+            bbox.offset(-25.0);
             bbox.min.x() = std::max(pattern_extents.min.x(), bbox.min.x());
-			bbox.max.x() = std::min(pattern_extents.max.x(), bbox.max.x());
-		
-			pts->values.reserve(4);
-			pts->values.emplace_back(bbox.min.x(), bbox.min.y());
-			pts->values.emplace_back(bbox.max.x(), bbox.min.y());
-			pts->values.emplace_back(bbox.max.x(), bbox.max.y());
-			pts->values.emplace_back(bbox.min.x(), bbox.max.y());
+            bbox.max.x() = std::min(pattern_extents.max.x(), bbox.max.x());
+            
+            pts->values.reserve(4);
+            pts->values.emplace_back(bbox.min.x(), bbox.min.y());
+            pts->values.emplace_back(bbox.max.x(), bbox.min.y());
+            pts->values.emplace_back(bbox.max.x(), bbox.max.y());
+            pts->values.emplace_back(bbox.min.x(), bbox.max.y());
 
         } else {
             // Convex hull of the 1st layer extrusions, for bed leveling and placing the initial purge line.
