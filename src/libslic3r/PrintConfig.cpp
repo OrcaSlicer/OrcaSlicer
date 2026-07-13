@@ -6913,17 +6913,6 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.6));
 
-    def           = this->add("anisotropic_surfaces", coBool);
-    def->label    = L("Anisotropic surfaces");
-    def->category = L("Strength");
-    def->tooltip  = L("Anisotropic patterns on the top and bottom surfaces.\n"
-                       "Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color "
-                       "dispersion when using multi-colored or silk plastics.\n"
-                       "This option disable the gap fill.\n"
-                       "This option can increase a printing time.");
-    def->mode     = comExpert;
-    def->set_default_value(new ConfigOptionBool(false));
-
     def           = this->add("separated_infills", coBool);
     def->label    = L("Separated infills");
     def->category = L("Strength");
@@ -8450,6 +8439,8 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         "smooth_coefficient", "overhang_totally_speed", "silent_mode",
         "overhang_speed_classic", "filament_prime_volume",
         "calib_flowrate_topinfill_special_order",
+        // Orca: superseded by top_surface_fill_order / bottom_surface_fill_order
+        "anisotropic_surfaces",
     };
 
     if (ignore.find(opt_key) != ignore.end()) {

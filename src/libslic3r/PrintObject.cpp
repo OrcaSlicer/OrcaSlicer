@@ -1402,7 +1402,6 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "top_surface_line_width"
             || opt_key == "top_surface_density"
             || opt_key == "bottom_surface_density"
-            || opt_key == "anisotropic_surfaces" 
             || opt_key == "center_of_surface_pattern"
             || opt_key == "separated_infills" 
             || opt_key == "initial_layer_line_width"

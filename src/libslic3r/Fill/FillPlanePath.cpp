@@ -133,40 +133,26 @@ void FillPlanePath::_fill_surface_single(
         polylines = intersection_pl(std::move(polylines), expolygon);
         if (!polylines.empty()) {
             Polylines chained;
-            if (!params.is_anisotropic) { // Orca: not anisotropic surface
-                if ((params.dont_connect() || params.density > 0.5)) {
-                    if (params.fill_order != SurfaceFillOrder::Default) {
-                        // Orca: print the fragments in the order they appear along the generated
-                        // path, which runs from the center outwards. The Euclidean distance from
-                        // the center cannot be used for this: along the Octagram Spiral the radius
-                        // oscillates by far more than the ring spacing, so fragments of different
-                        // rings would interleave.
-                        restore_source_path_order(polyline, polylines);
-                        chained = std::move(polylines);
-                        if (params.fill_order == SurfaceFillOrder::Inward) {
-                            // The source path runs from the center outwards; flip everything for inward.
-                            std::reverse(chained.begin(), chained.end());
-                            for (Polyline &pl : chained)
-                                pl.reverse();
-                        }
-                    } else {
-                        chained = chain_polylines(std::move(polylines), nullptr);
+            if (params.dont_connect() || params.density > 0.5) {
+                if (params.fill_order != SurfaceFillOrder::Default) {
+                    // Orca: print the fragments in the order they appear along the generated
+                    // path, which runs from the center outwards. The Euclidean distance from
+                    // the center cannot be used for this: along the Octagram Spiral the radius
+                    // oscillates by far more than the ring spacing, so fragments of different
+                    // rings would interleave.
+                    restore_source_path_order(polyline, polylines);
+                    chained = std::move(polylines);
+                    if (params.fill_order == SurfaceFillOrder::Inward) {
+                        // The source path runs from the center outwards; flip everything for inward.
+                        std::reverse(chained.begin(), chained.end());
+                        for (Polyline &pl : chained)
+                            pl.reverse();
                     }
-                } else
-                    connect_infill(std::move(polylines), expolygon, chained, this->spacing, params);
-            } else { // Orca: anisotropic surface
-                const Point _center(0., 0.);
-                for (Polyline& segment : polylines) { // sort paths by its direction
-                    if (segment.size() > 1) { // need at least two points to evaluate direction
-                        if (segment.first_point().ccw(segment.points[1], _center) < 0)
-                            segment.reverse();
-                    }
-                    chained.emplace_back(std::move(segment));
+                } else {
+                    chained = chain_polylines(std::move(polylines), nullptr);
                 }
-                std::sort(chained.begin(), chained.end(), [&_center](const Polyline& a, const Polyline& b) { // just sort polylines from center to outside
-                    return a.distance_to(_center) < b.distance_to(_center);
-                });
-            }
+            } else
+                connect_infill(std::move(polylines), expolygon, chained, this->spacing, params);
             // paths must be repositioned and rotated back
             for (Polyline& pl : chained) {
                 pl.translate(shift.x(), shift.y());
