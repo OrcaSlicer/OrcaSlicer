@@ -80,7 +80,10 @@ const std::vector<std::string> filament_extruder_override_keys = {
     // percents
     "filament_retract_before_wipe",
     "filament_long_retractions_when_cut",
-    "filament_retraction_distances_when_cut"
+    "filament_retraction_distances_when_cut",
+    // toolchange retraction overrides
+    "filament_retract_length_toolchange",
+    "filament_retract_restart_extra_toolchange"
 };
 
 // Some filament override parameters are generated from filament_extruder_override_keys,
@@ -5597,11 +5600,10 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("retract_length_toolchange", coFloats);
     def->label = L("Length");
-    //def->full_label = L("Retraction Length (Toolchange)");
-    def->full_label = "Retraction Length (Toolchange)";
-    //def->tooltip = L("When retraction is triggered before changing tool, filament is pulled back "
-    //               "by the specified amount (the length is measured on raw filament, before it enters "
-    //               "the extruder).");
+    def->full_label = L("Retraction Length (Toolchange)");
+    def->tooltip = L("When retraction is triggered before changing tool, filament is pulled back "
+                  "by the specified amount (the length is measured on raw filament, before it enters "
+                  "the extruder).");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloats { 10. });
@@ -5856,6 +5858,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("retract_restart_extra_toolchange", coFloats);
     def->label = L("Extra length on restart");
+    def->full_label = L("Extra Length on Restart (Toolchange)");
     def->tooltip = L("When the retraction is compensated after changing tool, the extruder will push "
                   "this additional amount of filament.");
     def->sidetext = L("mm");	// millimeters, CIS languages need translation
@@ -7975,10 +7978,12 @@ void PrintConfigDef::init_extruder_option_keys()
         "deretraction_speed",
         "long_retractions_when_cut",
         "retract_before_wipe",
+        "retract_length_toolchange",
         "retract_lift_above",
         "retract_lift_below",
         "retract_lift_enforce",
         "retract_restart_extra",
+        "retract_restart_extra_toolchange",
         "retract_when_changing_layer",
         "retraction_distances_when_cut",
         "retraction_length",
@@ -9043,6 +9048,8 @@ std::set<std::string> filament_options_with_variant = {
     "filament_retract_lift_enforce",
     "filament_retract_restart_extra",
     "filament_retraction_speed",
+    "filament_retract_length_toolchange",
+    "filament_retract_restart_extra_toolchange",
     "filament_deretraction_speed",
     "filament_retraction_minimum_travel",
     "filament_retract_when_changing_layer",

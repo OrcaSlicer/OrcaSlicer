@@ -3944,6 +3944,10 @@ void TabFilament::add_filament_overrides_page()
         Line line {"",""};
         line = retraction_optgroup->create_single_option_line(retraction_optgroup->get_option(opt_key, opt_index));
 
+        const ConfigOptionDef* opt_def = m_config->def()->get(opt_key);
+        if (opt_def && !opt_def->full_label.empty())
+            line.label = _(opt_def->full_label);
+
         line.near_label_widget = [this, optgroup_wk = ConfigOptionsGroupWkp(retraction_optgroup), opt_key, opt_index](wxWindow* parent) {
             auto check_box = new ::CheckBox(parent); // ORCA modernize checkboxes
             check_box->Bind(wxEVT_TOGGLEBUTTON, [this, optgroup_wk, opt_key, opt_index](wxCommandEvent& evt) {
@@ -3990,9 +3994,11 @@ void TabFilament::add_filament_overrides_page()
                                         "filament_wipe_distance",
                                         "filament_retract_before_wipe",
                                         "filament_long_retractions_when_cut",
-                                        "filament_retraction_distances_when_cut"
+                                        "filament_retraction_distances_when_cut",
                                         //SoftFever
                                         // "filament_seam_gap"
+                                        "filament_retract_length_toolchange",
+                                        "filament_retract_restart_extra_toolchange"
                                      })
         append_retraction_option(opt_key, extruder_idx);
 
@@ -4116,9 +4122,11 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
                                             "filament_wipe_distance",
                                             "filament_retract_before_wipe",
                                             "filament_long_retractions_when_cut",
-                                            "filament_retraction_distances_when_cut"
+                                            "filament_retraction_distances_when_cut",
                                             //SoftFever
                                             // "filament_seam_gap"
+                                            "filament_retract_length_toolchange",
+                                            "filament_retract_restart_extra_toolchange"
                                         };
 
     const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
@@ -4128,9 +4136,19 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
     const bool have_retract_length = dynamic_cast<ConfigOptionVectorBase *>(m_config->option("filament_retraction_length"))->is_nil(extruder_idx) ||
                                      m_config->opt_float("filament_retraction_length", extruder_idx) > 0;
 
+    const bool have_toolchange_retract_length =
+        dynamic_cast<ConfigOptionVectorBase *>(m_config->option("filament_retract_length_toolchange"))->is_nil(extruder_idx) ||
+        m_config->opt_float("filament_retract_length_toolchange", extruder_idx) > 0;
+
     for (const std::string& opt_key : opt_keys)
     {
-        bool is_checked = opt_key=="filament_retraction_length" ? true : have_retract_length;
+        bool is_checked;
+        if (opt_key == "filament_retraction_length" || opt_key == "filament_retract_length_toolchange")
+            is_checked = true;
+        else if (opt_key == "filament_retract_restart_extra_toolchange")
+            is_checked = have_toolchange_retract_length;
+        else
+            is_checked = have_retract_length;
         m_overrides_options[opt_key]->Enable(is_checked);
 
         is_checked &= !dynamic_cast<ConfigOptionVectorBase*>(m_config->option(opt_key))->is_nil(extruder_idx);
