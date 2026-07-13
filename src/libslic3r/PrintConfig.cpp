@@ -5552,7 +5552,7 @@ void PrintConfigDef::init_fff_params()
     // Orca:
     def = this->add("retract_after_wipe", coPercents);
     def->label = L("Retract amount after wipe");
-    def->tooltip = L("The length of fast retraction after wipe, relative to retraction length. "
+    def->tooltip = L("The length of fast retraction after wipe, relative to retraction length.\n"
                      "The value will be clamped by 100% minus the retract amount before the wipe value.");
     def->sidetext = "%";
     def->mode = comExpert;
