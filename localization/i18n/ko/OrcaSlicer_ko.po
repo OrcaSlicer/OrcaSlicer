@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-03 14:43+0200\n"
+"POT-Creation-Date: 2026-07-12 12:27-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -166,6 +166,12 @@ msgstr "채우기"
 msgid "Gap Fill"
 msgstr "간격 채우기"
 
+msgid "Vertical"
+msgstr "수직"
+
+msgid "Horizontal"
+msgstr "수평"
+
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
 msgstr "\"%1%\"에서 선택한 영역에만 칠하기 허용"
@@ -261,12 +267,6 @@ msgstr "삼각형"
 msgid "Height Range"
 msgstr "높이 범위"
 
-msgid "Vertical"
-msgstr "수직"
-
-msgid "Horizontal"
-msgstr "수평"
-
 msgid "Remove painted color"
 msgstr "칠한 색 제거"
 
@@ -331,6 +331,7 @@ msgstr "변형도구 - 회전"
 msgid "Optimize orientation"
 msgstr "방향 최적화"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "배율"
 
@@ -340,8 +341,9 @@ msgstr "변형도구 - 배율"
 msgid "Error: Please close all toolbar menus first"
 msgstr "오류: 먼저 모든 도구 모음 메뉴를 닫으십시오."
 
+msgctxt "inches"
 msgid "in"
-msgstr "인치"
+msgstr ""
 
 msgid "mm"
 msgstr "mm"
@@ -374,6 +376,9 @@ msgstr "배율비"
 msgid "Object operations"
 msgstr "객체 작업"
 
+msgid "Scale"
+msgstr "배율"
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
 msgstr "용량 작업"
@@ -401,26 +406,33 @@ msgstr "위치 초기화"
 msgid "Reset rotation"
 msgstr "회전 재설정"
 
-msgid "Object coordinates"
-msgstr "객체 좌표"
+msgid "World"
+msgstr ""
 
-msgid "World coordinates"
-msgstr "영역 좌표"
+msgid "Object"
+msgstr "객체"
 
-msgid "Translate(Relative)"
-msgstr "이동(상대)"
+msgid "Part"
+msgstr "부품"
+
+msgid "Relative"
+msgstr ""
+
+msgid "Coordinate system used for transform actions."
+msgstr ""
+
+msgid "Absolute"
+msgstr ""
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "회전 도구를 열었을 때의 값으로 현재 회전을 초기화합니다."
 
-msgid "Rotate (absolute)"
-msgstr "회전 (절대)"
-
 msgid "Reset current rotation to real zeros."
 msgstr "현재 회전을 0으로 초기화합니다."
 
-msgid "Part coordinates"
-msgstr "파트 좌표"
+msgctxt "Noun"
+msgid "Scale"
+msgstr "배율"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -524,12 +536,6 @@ msgstr "간격"
 
 msgid "Spacing"
 msgstr "간격"
-
-msgid "Part"
-msgstr "부품"
-
-msgid "Object"
-msgstr "객체"
 
 msgid ""
 "Click to flip the cut plane\n"
@@ -1874,28 +1880,41 @@ msgstr "프로젝트 열기"
 msgid "The version of Orca Slicer is too low and needs to be updated to the latest version before it can be used normally."
 msgstr "Orca Slicer의 버전이 너무 낮아 최신 버전으로 업데이트해야 정상적으로 사용 가능합니다"
 
+msgid "Cloud sync conflict:"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Cloud sync conflict for preset \"%s\":"
+msgstr ""
+
 msgid ""
-"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+"This preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"A preset with this name already exists in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+"A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+"There was an unexpected or unidentified preset conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
+"Do you want to continue?"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\n"
 "Do you want to continue?"
 msgstr ""
 
@@ -1973,7 +1992,8 @@ msgstr "클라우드에 캐시된 사용자 사전 설정 수가 상한을 초�
 msgid "Sync user presets"
 msgstr "사용자 사전 설정 동기화"
 
-msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+#, c-format, boost-format
+msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
 msgstr ""
 
 #, c-format, boost-format
@@ -2194,6 +2214,9 @@ msgid "Orca Cube"
 msgstr "Orca 큐브"
 
 msgid "OrcaSliced Combo"
+msgstr ""
+
+msgid "Orca Badge"
 msgstr ""
 
 msgid "Orca Tolerance Test"
@@ -3629,7 +3652,7 @@ msgstr "교정이 완료되었습니다. 당신의 고온 베드에서 아래 �
 msgid "Save"
 msgstr "저장"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "뒷면"
 
@@ -5011,6 +5034,7 @@ msgstr ""
 msgid "Color change"
 msgstr "색 변경"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "출력"
 
@@ -5174,11 +5198,15 @@ msgstr "압출 교정 영역을 피하세요"
 msgid "Align to Y axis"
 msgstr "Y축에 정렬"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "뒷면"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "왼쪽"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "오른쪽"
 
@@ -5257,6 +5285,9 @@ msgstr "오버행"
 msgid "Outline"
 msgstr "외곽선"
 
+msgid "Wireframe"
+msgstr ""
+
 msgid "Realistic View"
 msgstr ""
 
@@ -5300,7 +5331,7 @@ msgstr "용량:"
 msgid "Size:"
 msgstr "크기:"
 
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "레이어 %d, Z = %.2lf mm에서 Gcode 경로 충돌이 발견되었습니다. 충돌하는 객체를 더 멀리 분리하세요 (%s <-> %s)."
 
@@ -5499,6 +5530,10 @@ msgstr "플레이트 출력"
 msgid "Export G-code file"
 msgstr "Gcode 파일 내보내기"
 
+msgctxt "Verb"
+msgid "Print"
+msgstr "출력"
+
 msgid "Export plate sliced file"
 msgstr "플레이트 슬라이스 파일 내보내기"
 
@@ -5672,15 +5707,6 @@ msgstr "현재 설정을 파일로 내보내기"
 msgid "Export"
 msgstr "내보내기"
 
-msgid "Sync Presets"
-msgstr ""
-
-msgid "Pull and apply the latest presets from OrcaCloud"
-msgstr ""
-
-msgid "You must be logged in to sync presets from cloud."
-msgstr ""
-
 msgid "Quit"
 msgstr "종료"
 
@@ -5795,6 +5821,15 @@ msgid "View"
 msgstr "시점"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
 msgstr ""
 
 msgid "Syncing presets from cloud…"
@@ -8032,6 +8067,35 @@ msgstr ""
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr ""
 
+msgid "STEP importing: linear deflection"
+msgstr ""
+
+msgid ""
+"Linear deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.003 mm."
+msgstr ""
+
+msgid "STEP importing: angle deflection"
+msgstr ""
+
+msgid ""
+"Angle deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.5."
+msgstr ""
+
+msgid "STEP importing: Split into multiple objects"
+msgstr ""
+
+msgid ""
+"If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: disabled."
+msgstr ""
+
 msgid "Quality level for Draco export"
 msgstr ""
 
@@ -8042,6 +8106,12 @@ msgid ""
 "Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
 "0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
 "Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."
+msgstr ""
+
+msgid "Store full source file paths in projects"
+msgstr ""
+
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
 msgstr ""
 
 msgid "Preset"
@@ -10238,12 +10308,8 @@ msgstr "노즐 정보를 성공적으로 동기화했습니다."
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr "노즐 및 AMS 번호 정보를 성공적으로 동기화했습니다."
 
-msgid "Continue to sync filaments"
-msgstr "필라멘트 동기화 계속하기"
-
-msgctxt "Sync_Nozzle_AMS"
-msgid "Cancel"
-msgstr "취소"
+msgid "Do you want to continue to sync filaments?"
+msgstr ""
 
 msgid "Successfully synchronized filament color from printer."
 msgstr ""
@@ -11565,7 +11631,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -11579,7 +11645,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -12284,6 +12350,42 @@ msgstr "상단 표면 밀도"
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
 msgstr ""
 
+msgid "Top surface expansion"
+msgstr ""
+
+msgid ""
+"Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+msgstr ""
+
+msgid "Top expansion wall margin"
+msgstr ""
+
+msgid ""
+"Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+"This can cause contraction marks (such as the hull line) on the outer walls.\n"
+"By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
+msgstr ""
+
+msgid "Top expansion direction"
+msgstr ""
+
+msgid ""
+"Direction in which the top surface expansion grows.\n"
+" - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+" - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+" - Inward and Outward does both."
+msgstr ""
+
+msgid "Inward and Outward"
+msgstr ""
+
+msgid "Inward"
+msgstr ""
+
+msgid "Outward"
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "하단 표면 패턴"
 
@@ -12323,6 +12425,18 @@ msgstr "작은 둘레 임계값"
 
 msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
 msgstr "작은 둘레 길이에 대한 임계값을 설정합니다. 기본 임계값은 0mm입니다"
+
+msgid "Small support perimeters"
+msgstr ""
+
+msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
+msgstr ""
+
+msgid "Small support perimeters threshold"
+msgstr ""
+
+msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
+msgstr ""
 
 msgid "Walls printing order"
 msgstr "벽 출력 순서"
@@ -12508,25 +12622,26 @@ msgstr ""
 "2. 각 압출 유속 및 가속도에 대한 최적의 PA 값을 기록해 두십시오. 색상 구성표 드롭다운에서 흐름을 선택하고 PA 패턴 라인 위로 수평 슬라이더를 이동하여 흐름 번호를 찾을 수 있습니다. 페이지 하단에 번호가 표시되어야 합니다. 이상적인 PA 값은 압출 압출량이 높을수록 감소해야 합니다. 그렇지 않은 경우 압출기가 올바르게 작동하는지 확인하십시오. 출력 속도가 느리고 가속도가 낮을수록 허용되는 PA 값의 범위는 더 커집니다. 차이가 보이지 않으면 더 빠른 테스트의 PA 값을 사용하십시오.\n"
 "3. 여기 텍스트 상자에 PA 값, 흐름 및 가속도의 세 가지 값을 입력하고 필라멘트 프로필을 저장하세요."
 
-msgid "Enable adaptive pressure advance for overhangs (beta)"
-msgstr "오버행에 대한 적응형 PA 활성화(베타)"
-
-msgid ""
-"Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+msgid "Enable adaptive pressure advance within features (beta)"
 msgstr ""
 
-msgid "Pressure advance for bridges"
-msgstr "브릿지를 위한 PA"
+msgid ""
+"Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
+"\n"
+"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
+"\n"
+"This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
+msgstr ""
+
+msgid "Static pressure advance for bridges"
+msgstr ""
 
 msgid ""
-"Pressure advance value for bridges. Set to 0 to disable.\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+"equivalent walls (using adaptive settings if enabled).\n"
 "\n"
-"A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+"A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"브릿지의 PA 값입니다. 비활성화하려면 0으로 설정합니다.\n"
-"\n"
-" 브릿지를 프린팅할 때 PA 값이 낮으면 브릿지 직후에 약간의 언더 압출이 나타나는 것을 줄이는 데 도움이 됩니다. 이는 공중에서 출력할 때 노즐의 압력 강하로 인해 발생하며 PA가 낮을수록 이를 방지하는 데 도움이 됩니다."
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "다른 선 너비가 0으로 설정된 경우 기본 선 너비입니다. %로 입력 시 노즐 직경에 대한 비율로 계산됩니다."
@@ -12902,6 +13017,22 @@ msgstr "꽉찬 채우기 방향"
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
 msgstr "선의 시작 또는 기본 방향을 제어하는 솔리드 채우기 패턴의 각도"
 
+msgid "Top layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the top solid infill and ironing lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
+msgid "Bottom layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the bottom solid infill lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
 msgid "Sparse infill density"
 msgstr "드문 채우기 밀도"
 
@@ -12909,12 +13040,12 @@ msgstr "드문 채우기 밀도"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr "내부 드문 채우기의 밀도, 100%는 모든 드문 채우기를 꽉찬 내부 채우기로 변경하고 채우기에는 패턴이 사용됩니다"
 
-msgid "Align infill direction to model"
+msgid "Align directions to model"
 msgstr ""
 
 msgid ""
-"Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-"When enabled, directions rotate with the model to maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+"When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
 
 msgid "Insert solid layers"
@@ -14638,6 +14769,10 @@ msgstr "정렬"
 msgid "Aligned back"
 msgstr ""
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "뒷면"
+
 msgid "Random"
 msgstr "무작위"
 
@@ -14999,6 +15134,18 @@ msgstr "모든 활성화된 압출기 프라이밍"
 
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "활성화되면 모든 활성화된 압출기는 출력 시작 시 출력 베드의 앞쪽 가장자리에서 프라이밍합니다."
+
+msgid "Toolchange ordering"
+msgstr ""
+
+msgid ""
+"Determines the order of tool changes on each layer.\n"
+"- Default: Starts with the last used extruder to minimize tool changes.\n"
+"- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+msgstr ""
+
+msgid "Cyclic"
+msgstr ""
 
 msgid "Slice gap closing radius"
 msgstr "슬라이스 간격 폐쇄 반경"
@@ -15439,6 +15586,45 @@ msgstr "상단 쉘 두께"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "상단 쉘 레이어로 계산된 두께가 이 값보다 얇은 경우 슬라이싱할 때 상단 꽉찬 레이어의 수가 증가합니다. 이렇게 하면 레이어 높이가 작을 때 쉘이 너무 얇아지는 것을 방지할 수 있습니다. 0은 이 설정이 비활성화되고 상단 쉘의 두께가 절대적으로 상단 쉘 레이어에 의해 결정됨을 의미합니다"
 
+msgid "Anisotropic surfaces"
+msgstr ""
+
+msgid ""
+"Anisotropic patterns on the top and bottom surfaces.\n"
+"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
+"This option disable the gap fill.\n"
+"This option can increase a printing time."
+msgstr ""
+
+msgid "Separated infills"
+msgstr ""
+
+msgid ""
+"Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
+"Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+"Affects line and grid patterns and rotation-template infills.\n"
+"Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
+msgstr ""
+
+msgid "Center surface pattern on"
+msgstr ""
+
+msgid ""
+"Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
+" - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+" - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
+" - Each Assembly: uses a single shared center for the whole object or assembly."
+msgstr ""
+
+msgid "Each Surface"
+msgstr ""
+
+msgid "Each Model"
+msgstr ""
+
+msgid "Each Assembly"
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
 msgstr "압출이 없을 때의 이동 속도"
@@ -15681,6 +15867,14 @@ msgstr "폴리홀 회전"
 
 msgid "Rotate the polyhole every layer."
 msgstr "레이어마다 폴리홀을 회전시킵니다."
+
+msgid "Maximum Polyhole edge count"
+msgstr ""
+
+msgid ""
+"Maximum number of polyhole edges\n"
+"This setting limits the amount of edges a polyhole can have"
+msgstr ""
 
 msgid "G-code thumbnails"
 msgstr "Gcode 미리보기"
@@ -19027,6 +19221,12 @@ msgstr "삼각형 패싯 수"
 msgid "Calculating, please wait..."
 msgstr "계산 중, 잠시만 기다려주세요..."
 
+msgid "Save these settings as default"
+msgstr ""
+
+msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
+msgstr ""
+
 msgid "PresetBundle"
 msgstr ""
 
@@ -19431,6 +19631,49 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+#~ msgid "Continue to sync filaments"
+#~ msgstr "필라멘트 동기화 계속하기"
+
+#~ msgctxt "Sync_Nozzle_AMS"
+#~ msgid "Cancel"
+#~ msgstr "취소"
+
+#~ msgid "Print"
+#~ msgstr "출력"
+
+#~ msgid "in"
+#~ msgstr "인치"
+
+#~ msgid "Object coordinates"
+#~ msgstr "객체 좌표"
+
+#~ msgid "World coordinates"
+#~ msgstr "영역 좌표"
+
+#~ msgid "Translate(Relative)"
+#~ msgstr "이동(상대)"
+
+#~ msgid "Rotate (absolute)"
+#~ msgstr "회전 (절대)"
+
+#~ msgid "Part coordinates"
+#~ msgstr "파트 좌표"
+
+#~ msgid "Enable adaptive pressure advance for overhangs (beta)"
+#~ msgstr "오버행에 대한 적응형 PA 활성화(베타)"
+
+#~ msgid "Pressure advance for bridges"
+#~ msgstr "브릿지를 위한 PA"
+
+#~ msgid ""
+#~ "Pressure advance value for bridges. Set to 0 to disable.\n"
+#~ "\n"
+#~ "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+#~ msgstr ""
+#~ "브릿지의 PA 값입니다. 비활성화하려면 0으로 설정합니다.\n"
+#~ "\n"
+#~ " 브릿지를 프린팅할 때 PA 값이 낮으면 브릿지 직후에 약간의 언더 압출이 나타나는 것을 줄이는 데 도움이 됩니다. 이는 공중에서 출력할 때 노즐의 압력 강하로 인해 발생하며 PA가 낮을수록 이를 방지하는 데 도움이 됩니다."
 
 #~ msgid "View control settings"
 #~ msgstr "시점 컨트롤 설정"
@@ -20889,10 +21132,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "선택 취소"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "규모"
 
 #~ msgid "Lift Z Enforcement"
 #~ msgstr "강제 Z 올리기"

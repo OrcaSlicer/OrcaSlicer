@@ -890,12 +890,11 @@ std::string Preset::get_printer_type(PresetBundle *preset_bundle)
 {
     if (preset_bundle) {
         auto config = &preset_bundle->printers.get_edited_preset().config;
-        std::string vendor_name;
-        for (auto vendor_profile : preset_bundle->vendors) {
-            for (auto vendor_model : vendor_profile.second.models)
-                if (vendor_model.name == config->opt_string("printer_model"))
+        const auto& printer_model = config->opt_string("printer_model");
+        for (const auto& vendor_profile : preset_bundle->vendors) {
+            for (const auto& vendor_model : vendor_profile.second.models)
+                if (vendor_model.name == printer_model)
                 {
-                    vendor_name = vendor_profile.first;
                     return vendor_model.model_id;
                 }
         }
@@ -907,11 +906,10 @@ std::string Preset::get_current_printer_type(PresetBundle *preset_bundle)
 {
     if (preset_bundle) {
         auto config = &(this->config);
-        std::string vendor_name;
-        for (auto vendor_profile : preset_bundle->vendors) {
-            for (auto vendor_model : vendor_profile.second.models)
-                if (vendor_model.name == config->opt_string("printer_model")) {
-                    vendor_name = vendor_profile.first;
+        const auto& printer_model = config->opt_string("printer_model");
+        for (const auto& vendor_profile : preset_bundle->vendors) {
+            for (const auto& vendor_model : vendor_profile.second.models)
+                if (vendor_model.name == printer_model) {
                     return vendor_model.model_id;
                 }
         }
@@ -1044,6 +1042,9 @@ static std::vector<std::string> s_Preset_print_options{
     "lightning_prune_angle",
     "lightning_straightening_angle",
     "top_surface_pattern",
+    "top_surface_expansion",
+    "top_surface_expansion_margin",
+    "top_surface_expansion_direction",
     "bottom_surface_pattern",
     "infill_direction",
     "solid_infill_direction",
@@ -1060,6 +1061,9 @@ static std::vector<std::string> s_Preset_print_options{
     "skin_infill_density",
     "align_infill_direction_to_model",
     "extra_solid_infills",
+    "anisotropic_surfaces",
+    "center_of_surface_pattern",
+    "separated_infills",
     "minimum_sparse_infill_area",
     "reduce_infill_retraction",
     "internal_solid_infill_pattern",
@@ -1272,6 +1276,7 @@ static std::vector<std::string> s_Preset_print_options{
     "wipe_tower_bridging",
     "wipe_tower_extra_flow",
     "single_extruder_multi_material_priming",
+    "toolchange_ordering",
     "wipe_tower_rotation_angle",
     "tree_support_branch_distance_organic",
     "tree_support_branch_diameter_organic",
@@ -1279,6 +1284,7 @@ static std::vector<std::string> s_Preset_print_options{
     "hole_to_polyhole",
     "hole_to_polyhole_threshold",
     "hole_to_polyhole_twisted",
+    "hole_to_polyhole_max_edges",
     "mmu_segmented_region_max_width",
     "mmu_segmented_region_interlocking_depth",
     "small_area_infill_flow_compensation",

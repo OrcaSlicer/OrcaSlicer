@@ -188,6 +188,12 @@ static t_config_enum_values s_keys_map_PowerLossRecoveryMode {
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PowerLossRecoveryMode)
 
+static t_config_enum_values s_keys_map_CenterOfSurfacePattern{
+    {"each_surface", int(CenterOfSurfacePattern::Each_Surface)},
+    {"each_model", int(CenterOfSurfacePattern::Each_Model)},
+    {"each_assembly", int(CenterOfSurfacePattern::Each_Assembly)}};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(CenterOfSurfacePattern)
+
 static t_config_enum_values s_keys_map_FuzzySkinType {
     { "none",           int(FuzzySkinType::None) },
     { "external",       int(FuzzySkinType::External) },
@@ -203,7 +209,7 @@ static t_config_enum_values s_keys_map_NoiseType {
     { "perlin",         int(NoiseType::Perlin) },
     { "billow",         int(NoiseType::Billow) },
     { "ridgedmulti",    int(NoiseType::RidgedMulti) },
-    { "voronoi",        int(NoiseType::Voronoi) }, 
+    { "voronoi",        int(NoiseType::Voronoi) },
     { "ripple",         int(NoiseType::Ripple) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(NoiseType)
@@ -220,6 +226,13 @@ static t_config_enum_values s_keys_map_FuzzySkinMode {
     { "combined",       int(FuzzySkinMode::Combined)}
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(FuzzySkinMode)
+
+static t_config_enum_values s_keys_map_TopSurfaceExpansionDirection {
+    { "inward_and_outward", int(TopSurfaceExpansionDirection::InwardAndOutward) },
+    { "inward",             int(TopSurfaceExpansionDirection::Inward) },
+    { "outward",            int(TopSurfaceExpansionDirection::Outward) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(TopSurfaceExpansionDirection)
 
 static t_config_enum_values s_keys_map_InfillPattern {
     { "monotonic", ipMonotonic },
@@ -521,6 +534,12 @@ static t_config_enum_values s_keys_map_PerimeterGeneratorType{
     { "arachne", int(PerimeterGeneratorType::Arachne) }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(PerimeterGeneratorType)
+
+static t_config_enum_values s_keys_map_ToolChangeOrderingType {
+    { "default", int(ToolChangeOrderingType::Default) },
+    { "cyclic",  int(ToolChangeOrderingType::Cyclic) }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(ToolChangeOrderingType)
 
 static const t_config_enum_values s_keys_map_ZHopType = {
     { "Auto Lift",          zhtAuto },
@@ -1236,7 +1255,7 @@ void PrintConfigDef::init_fff_params()
         "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
         "Otherwise the provided angle will be used according to:\n"
         " - The absolute coordinates\n"
-        " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+        " - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
         " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n\n"
         "Use 180° for zero absolute angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
@@ -1253,7 +1272,7 @@ void PrintConfigDef::init_fff_params()
         "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
         "Otherwise the provided angle will be used according to:\n"
         " - The absolute coordinates\n"
-        " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+        " - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
         " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n\n"
         "Use 180° for zero absolute angle.");
     def->sidetext = u8"°";	// degrees, don't need translation
@@ -2116,6 +2135,47 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->max = 100;
     def->set_default_value(new ConfigOptionPercent(100));
+
+    def = this->add("top_surface_expansion", coFloat);
+    def->label = L("Top surface expansion");
+    def->category = L("Strength");
+    def->tooltip = L("Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+                     "Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane."
+                     "Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top."
+                     "The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("top_surface_expansion_margin", coFloat);
+    def->label = L("Top expansion wall margin");
+    def->category = L("Strength");
+    def->tooltip = L("Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+                     "This can cause contraction marks (such as the hull line) on the outer walls.\n"
+                     "By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->max = 10;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("top_surface_expansion_direction", coEnum);
+    def->label = L("Top expansion direction");
+    def->category = L("Strength");
+    def->tooltip = L("Direction in which the top surface expansion grows.\n"
+                     " - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+                     " - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+                     " - Inward and Outward does both.");
+    def->enum_keys_map = &ConfigOptionEnum<TopSurfaceExpansionDirection>::get_enum_values();
+    def->enum_values.push_back("inward_and_outward");
+    def->enum_values.push_back("inward");
+    def->enum_values.push_back("outward");
+    def->enum_labels.push_back(L("Inward and Outward"));
+    def->enum_labels.push_back(L("Inward"));
+    def->enum_labels.push_back(L("Outward"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<TopSurfaceExpansionDirection>(TopSurfaceExpansionDirection::InwardAndOutward));
 
     def = this->add("bottom_surface_pattern", coEnum);
     def->label = L("Bottom surface pattern");
@@ -3009,7 +3069,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("top_layer_direction", coFloat);
     def->label = L("Top layer direction");
     def->category = L("Strength");
-    def->tooltip = L("Optional absolute angle for top-layer infill and ironing base direction. Set to -1 to use the current solid infill direction behavior.");
+    def->tooltip = L("Fixed angle for the top solid infill and ironing lines.\nSet to -1 to follow the default solid infill direction.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = -1;
     def->max = 360;
@@ -3019,7 +3079,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("bottom_layer_direction", coFloat);
     def->label = L("Bottom layer direction");
     def->category = L("Strength");
-    def->tooltip = L("Optional absolute angle for bottom-layer infill. Set to -1 to use the current solid infill direction behavior.");
+    def->tooltip = L("Fixed angle for the bottom solid infill lines.\nSet to -1 to follow the default solid infill direction.");
     def->sidetext = u8"°";	// degrees, don't need translation
     def->min = -1;
     def->max = 360;
@@ -3035,12 +3095,13 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->max = 100;
     def->set_default_value(new ConfigOptionPercent(20));
-        
+
     def           = this->add("align_infill_direction_to_model", coBool);
-    def->label    = L("Align infill direction to model");
+    def->label    = L("Align directions to model");
     def->category = L("Strength");
-    def->tooltip  = L("Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-                      "When enabled, directions rotate with the model to maintain optimal strength characteristics.");
+    def->tooltip  = L("Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+                      "When enabled, these directions rotate together with the model so the printed features keep their intended orientation "
+                      "relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed.");
     def->mode     = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -6076,6 +6137,22 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("toolchange_ordering", coEnum);
+    def->label = L("Toolchange ordering");
+    def->category = L("Advanced");
+    def->tooltip = L(
+        "Determines the order of tool changes on each layer.\n"
+        "- Default: Starts with the last used extruder to minimize tool changes.\n"
+        "- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+    );
+    def->mode = comAdvanced;
+    def->enum_keys_map = &ConfigOptionEnum<ToolChangeOrderingType>::get_enum_values();
+    def->enum_values.emplace_back("default");
+    def->enum_values.emplace_back("cyclic");
+    def->enum_labels.emplace_back(L("Default"));
+    def->enum_labels.emplace_back(L("Cyclic"));
+    def->set_default_value(new ConfigOptionEnum<ToolChangeOrderingType>(ToolChangeOrderingType::Default));
+
     def = this->add("slice_closing_radius", coFloat);
     def->label = L("Slice gap closing radius");
     def->category = L("Quality");
@@ -6799,6 +6876,47 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->set_default_value(new ConfigOptionFloat(0.6));
 
+    def           = this->add("anisotropic_surfaces", coBool);
+    def->label    = L("Anisotropic surfaces");
+    def->category = L("Strength");
+    def->tooltip  = L("Anisotropic patterns on the top and bottom surfaces.\n"
+                       "Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color "
+                       "dispersion when using multi-colored or silk plastics.\n"
+                       "This option disable the gap fill.\n"
+                       "This option can increase a printing time.");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def           = this->add("separated_infills", coBool);
+    def->label    = L("Separated infills");
+    def->category = L("Strength");
+    def->tooltip  = L("Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the "
+                       "whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts "
+                       "(or distinct 3D objects) each get their own.\n"
+                       "Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+                       "Affects line and grid patterns and rotation-template infills.\n"
+                       "Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected.");
+    def->mode     = comExpert;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def                = this->add("center_of_surface_pattern", coEnum);
+    def->label         = L("Center surface pattern on");
+    def->category      = L("Strength");
+    def->tooltip       = L("Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, "
+                                 "Octagram Spiral) is placed.\n"
+                                 " - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+                                 " - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; "
+                                 "parts detached from the rest each get their own.\n"
+                                 " - Each Assembly: uses a single shared center for the whole object or assembly.");
+    def->enum_keys_map = &ConfigOptionEnum<CenterOfSurfacePattern>::get_enum_values();
+    def->enum_values.push_back("each_surface");
+    def->enum_values.push_back("each_model");
+    def->enum_values.push_back("each_assembly");
+    def->enum_labels.push_back(L("Each Surface"));
+    def->enum_labels.push_back(L("Each Model"));
+    def->enum_labels.push_back(L("Each Assembly"));
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionEnum<CenterOfSurfacePattern>(CenterOfSurfacePattern::Each_Surface));
 
     def = this->add("travel_speed", coFloats);
     def->label = L("Travel");
@@ -7136,6 +7254,15 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Rotate the polyhole every layer.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("hole_to_polyhole_max_edges", coInt);
+    def->label = L("Maximum Polyhole edge count");
+    def->category = L("Quality");
+    def->tooltip = L("Maximum number of polyhole edges"
+            "\nThis setting limits the amount of edges a polyhole can have");
+    def->mode = comExpert;
+    def->min = 3;
+    def->set_default_value(new ConfigOptionInt(50));
 
     def = this->add("thumbnails", coString);
     def->label = L("G-code thumbnails");
@@ -9475,7 +9602,7 @@ int DynamicPrintConfig::update_values_from_multi_to_multi_2(const std::vector<st
                     bool has_value = false;
                     double target_value = std::numeric_limits<double>::max();
                     for(auto idx : indices){
-                        if(opt && !opt->is_nil(idx)){
+                        if(opt && idx < opt->values.size() && !opt->is_nil(idx)){
                             has_value = true;
                             target_value = std::min(target_value, src_values[idx]);
                         }
@@ -9662,10 +9789,12 @@ DynamicPrintConfig::get_filament_type() const
     return std::string();
 }
 
-void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& printer_config, std::set<std::string>& key_set, std::string id_name, std::string variant_name, unsigned int stride, unsigned int extruder_id)
+std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& printer_config, std::set<std::string>& key_set, std::string id_name, std::string variant_name, unsigned int stride, unsigned int extruder_id)
 {
     int extruder_count;
     bool different_extruder = printer_config.support_different_extruders(extruder_count);
+    std::vector<int> variant_index;
+
     if ((extruder_count > 1) || different_extruder)
     {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", Line %1%: different extruders processing")%__LINE__;
@@ -9676,9 +9805,9 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
         auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(printer_config.option("nozzle_volume_type"));
         if (!opt_extruder_type || !opt_nozzle_volume_type) {
             BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", Line %1%: extruder_type or nozzle_volume_type option not found, skipping")%__LINE__;
-            return;
+            return variant_index;
         }
-        std::vector<int> variant_index;
+
 
         if (extruder_id > 0 && extruder_id <= static_cast<unsigned> (extruder_count)) {
             variant_index.resize(1);
@@ -9717,7 +9846,7 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
         const ConfigDef       *config_def     = this->def();
         if (!config_def) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << boost::format(", Line %1%: can not find config define")%__LINE__;
-            return;
+            return variant_index;
         }
         for (auto& key: key_set)
         {
@@ -9831,6 +9960,8 @@ void DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& 
             }
         }
     }
+
+    return variant_index;
 }
 
 void DynamicPrintConfig::update_values_to_printer_extruders_for_multiple_filaments(DynamicPrintConfig& printer_config, std::set<std::string>& key_set, std::string id_name, std::string variant_name)
@@ -10362,6 +10493,28 @@ void compute_filament_override_value(const std::string& opt_key, const ConfigOpt
         delete opt_copy;
 }
 
+
+void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPrintConfig& dest_config, std::vector<int> variant_index, std::set<std::string>& key_set1, int stride)
+{
+    if (variant_index.size() > 0) {
+        const t_config_option_keys &keys = dest_config.keys();
+        for (auto& opt : keys) {
+            ConfigOption *opt_src = config.option(opt);
+            const ConfigOption *opt_dest = dest_config.option(opt);
+            if (opt_src && opt_dest && (*opt_src != *opt_dest)) {
+                if (opt_dest->is_scalar() || (key_set1.find(opt) == key_set1.end()))
+                    opt_src->set(opt_dest);
+                else {
+                    ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(opt_src);
+                    const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(opt_dest);
+                    opt_vec_src->set_to_index(opt_vec_dest, variant_index, stride);
+                }
+            }
+        }
+    }
+    else
+        config.apply(dest_config, true);
+}
 
 //BBS: pass map to recording all invalid valies
 //FIXME localize this function.

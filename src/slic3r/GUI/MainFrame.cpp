@@ -2013,10 +2013,10 @@ wxBoxSizer* MainFrame::create_side_tools()
                     });
 
                 // upload and print
-                SideButton* send_gcode_btn = new SideButton(p, _L("Print"), "");
+                SideButton* send_gcode_btn = new SideButton(p, _CTX("Print", "Verb"), "");
                 send_gcode_btn->SetCornerRadius(0);
                 send_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
-                    m_print_btn->SetLabel(_L("Print"));
+                    m_print_btn->SetLabel(_CTX("Print", "Verb"));
                     m_print_select = eSendGcode;
                     m_print_enable = get_enable_print_status();
                     m_print_btn->Enable(m_print_enable);
@@ -2662,9 +2662,9 @@ static void add_common_view_menu_items(wxMenu* view_menu, MainFrame* mainFrame, 
         "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
     append_menu_item(view_menu, wxID_ANY, _L("Rear") + "\t" + ctrl + "4", _L("Rear View"), [mainFrame](wxCommandEvent&) { mainFrame->select_view("rear"); },
         "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _CTX(L_CONTEXT("Left", "Camera"), "Camera") + "\t" + ctrl + "5", _L("Left View"),[mainFrame](wxCommandEvent &) {mainFrame->select_view("left"); },
+    append_menu_item(view_menu, wxID_ANY, _CTX("Left", "Camera View") + "\t" + ctrl + "5", _L("Left View"),[mainFrame](wxCommandEvent &) {mainFrame->select_view("left"); },
         "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
-    append_menu_item(view_menu, wxID_ANY, _CTX(L_CONTEXT("Right", "Camera"), "Camera") + "\t" + ctrl + "6", _L("Right View"),[mainFrame](wxCommandEvent &) { mainFrame->select_view("right"); },
+    append_menu_item(view_menu, wxID_ANY, _CTX("Right", "Camera View") + "\t" + ctrl + "6", _L("Right View"),[mainFrame](wxCommandEvent &) { mainFrame->select_view("right"); },
         "", nullptr, [can_change_view]() { return can_change_view(); }, mainFrame);
 }
 
@@ -2807,21 +2807,6 @@ void MainFrame::init_menubar_as_editor()
             []() { return true; }, this);
 
         append_submenu(fileMenu, export_menu, wxID_ANY, _L("Export"), "");
-
-        fileMenu->AppendSeparator();
-        append_menu_item(fileMenu, wxID_ANY, _L("Sync Presets"), _L("Pull and apply the latest presets from OrcaCloud"),
-            [this](wxCommandEvent&) {
-                if (!wxGetApp().is_user_login()) {
-                    MessageDialog info_dlg(this, _L("You must be logged in to sync presets from cloud."),
-                        _L("Sync Presets"), wxOK | wxICON_INFORMATION);
-                    info_dlg.ShowModal();
-                    return;
-                }
-                wxGetApp().restart_sync_user_preset();
-            }, "", nullptr,
-            [this]() {
-                return wxGetApp().is_user_login() && !wxGetApp().app_config->get_stealth_mode();
-            }, this);
 
         fileMenu->AppendSeparator();
 
@@ -3289,6 +3274,8 @@ void MainFrame::init_menubar_as_editor()
         },
         "", nullptr, []() { return true; }, this);
 
+    m_topbar->GetTopMenu()->AppendSeparator();
+
         append_menu_item(
         m_topbar->GetTopMenu(), wxID_ANY, _L("Preset Bundle") + "\t", "",
         [this](wxCommandEvent &) {
@@ -3315,6 +3302,8 @@ void MainFrame::init_menubar_as_editor()
         [this]() {
             return wxGetApp().is_user_login() && !wxGetApp().app_config->get_stealth_mode();
         }, this);
+
+    m_topbar->GetTopMenu()->AppendSeparator();
 
     //m_topbar->AddDropDownMenuItem(preference_item);
     //m_topbar->AddDropDownMenuItem(printer_item);
@@ -3425,6 +3414,25 @@ void MainFrame::init_menubar_as_editor()
             plater()->get_current_canvas3D()->force_set_focus();
         },
         "", nullptr, []() { return true; }, this);
+
+    append_menu_item(
+        fileMenu, wxID_ANY, _L("Sync Presets"), _L("Pull and apply the latest presets from OrcaCloud"),
+        [this](wxCommandEvent&) {
+            if (!wxGetApp().is_user_login()) {
+                MessageDialog info_dlg(this, _L("You must be logged in to sync presets from cloud."),
+                    _L("Sync Presets"), wxOK | wxICON_INFORMATION);
+                info_dlg.ShowModal();
+                return;
+            }
+            if (m_plater)
+                m_plater->get_notification_manager()->push_notification(
+                    into_u8(_L("Syncing presets from cloud\u2026")));
+            wxGetApp().restart_sync_user_preset();
+        }, "", nullptr,
+        [this]() {
+            return wxGetApp().is_user_login() && !wxGetApp().app_config->get_stealth_mode();
+        }, this);
+
     m_menubar->Append(fileMenu, wxString::Format("&%s", _L("File")));
     if (editMenu)
         m_menubar->Append(editMenu, wxString::Format("&%s", _L("Edit")));
@@ -4040,7 +4048,7 @@ void MainFrame::set_print_button_to_default(PrintSelectType select_type)
         m_print_btn->Enable(m_print_enable);
         this->Layout();
     } else if (select_type == PrintSelectType::eSendGcode) {
-        m_print_btn->SetLabel(_L("Print"));
+        m_print_btn->SetLabel(_CTX("Print", "Verb"));
         m_print_select = eSendGcode;
         if (m_print_enable)
             m_print_enable = get_enable_print_status() && can_send_gcode();

@@ -520,7 +520,7 @@ void MediaFilePanel::fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs)
                     fs->SetUrl(res);
                 }
             });
-        });
+        }, wxGetApp().get_printer_cloud_provider());
     }
 }
 
@@ -556,7 +556,7 @@ void MediaFilePanel::doAction(size_t index, int action)
     } else if (action == 1) {
         if (fs->GetFileType() == PrinterFileSystem::F_MODEL) {
             if (index != -1) {
-                auto dlg = new MediaProgressDialog(_L("Print"), this, [fs] { fs->FetchModelCancel(); });
+                auto dlg = new MediaProgressDialog(_CTX("Print", "Verb"), this, [fs] { fs->FetchModelCancel(); });
                 dlg->Update(0, _L("Fetching model information..."));
                 fs->FetchModel(index, [this, fs, dlg, index](int result, std::string const &data) {
                     dlg->Destroy();
@@ -566,7 +566,7 @@ void MediaFilePanel::doAction(size_t index, int action)
                         wxString msg = data.empty() ? _L("Failed to fetch model information from printer.") :
                                                       from_u8(data);
                         CallAfter([this, msg] {
-                            MessageDialog(this, msg, _L("Print"), wxOK).ShowModal();
+                            MessageDialog(this, msg, _CTX("Print", "Verb"), wxOK).ShowModal();
                         });
                         return;
                     }
@@ -579,7 +579,7 @@ void MediaFilePanel::doAction(size_t index, int action)
                             || plate_data_list.empty()) {
                         MessageDialog(this,
                             _L("Failed to parse model information."),
-                            _L("Print"), wxOK).ShowModal();
+                            _CTX("Print", "Verb"), wxOK).ShowModal();
                         return;
                     }
 

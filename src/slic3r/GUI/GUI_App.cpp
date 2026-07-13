@@ -2861,10 +2861,11 @@ bool GUI_App::on_init_inner()
         //update_label_colours_from_appconfig();
     }
     if (bool new_sys_menu_enabled = app_config->get("sys_menu_enabled") == "1";
-        init_sys_menu_enabled != new_sys_menu_enabled)
+        init_sys_menu_enabled != new_sys_menu_enabled) {
 #ifdef __WINDOWS__
         NppDarkMode::SetSystemMenuForApp(new_sys_menu_enabled);
 #endif
+    }
 #endif
 
     // Orca: we allow user to pin the version of plugin, so we don't need to remove old networking plugins when the app version is updated
@@ -5115,21 +5116,28 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
         if (plater != nullptr && wxGetApp().imgui()->display_initialized()) {
             std::string text;
 
+            // Name the specific preset in the header so the user knows which one conflicts.
+            // The agent injects the local preset name into every 409 conflict body, so this is
+            // normally populated; fall back to a generic header if it is somehow missing.
+            const std::string header = conflict_preset_name.empty()
+                ? _u8L("Cloud sync conflict:")
+                : format(_u8L("Cloud sync conflict for preset \"%s\":"), conflict_preset_name);
+
             switch (conflict_code) {
             case -1:
-                text = _u8L("Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+                text = header + " " + _u8L("This preset has a newer version in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
                 break;
             case -2:
-                text = _u8L("Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+                text = header + " " + _u8L("A preset with this name already exists in OrcaCloud.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
                 break;
             case -3:
-                text = _u8L("Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+                text = header + " " + _u8L("A preset with the same name was previously deleted from the cloud.\n"
                             "Delete will delete your local preset. Force push overwrites it with your local preset.");
                 break;
             default:
-                text = _u8L("Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+                text = header + " " + _u8L("There was an unexpected or unidentified preset conflict.\n"
                             "Pull downloads the cloud copy. Force push overwrites it with your local preset.");
                 break;
             };
@@ -5148,10 +5156,12 @@ void GUI_App::on_http_error(wxCommandEvent &evt)
                 [this, conflict_setting_id, conflict_preset_name, conflict_user_id](wxEvtHandler*) {
                     if (mainframe == nullptr)
                         return false;
-                    MessageDialog
-                        dlg(mainframe,
-                            _L("Force push will overwrite the cloud copy with your local preset changes.\nDo you want to continue?"),
-                            _L("Resolve cloud sync conflict"), wxCENTER | wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
+                    const wxString confirm_msg = conflict_preset_name.empty()
+                        ? _L("Force push will overwrite the cloud copy with your local preset changes.\nDo you want to continue?")
+                        : format_wxstr(_L("Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\nDo you want to continue?"),
+                                       conflict_preset_name);
+                    MessageDialog dlg(mainframe, confirm_msg, _L("Resolve cloud sync conflict"),
+                                      wxCENTER | wxYES_NO | wxNO_DEFAULT | wxICON_WARNING);
                     if (dlg.ShowModal() != wxID_YES)
                         return false;
 
@@ -6587,14 +6597,14 @@ void GUI_App::sync_preset(Preset* preset, bool force)
         result = 0; // Set to 0 so the sync_info gets saved below
 
         // Show user notification
-        CallAfter([this] {
+        CallAfter([this, name = preset->name] {
             static bool size_limit_dialog_notified = false;
             if (size_limit_dialog_notified)
                 return;
             size_limit_dialog_notified = true;
             if (mainframe == nullptr)
                 return;
-            auto msg = _L("The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only.");
+            auto msg = format_wxstr(_L("The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."), name);
             MessageDialog(mainframe, msg, _L("Sync user presets"), wxICON_WARNING | wxOK).ShowModal();
         });
         // NOTE: Don't return here - let execution continue to save the sync_info
@@ -6971,6 +6981,10 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
             // finishFn tears down the progress dialog (and clears the re-entrancy guard), so it
             // must run on every exit path — otherwise an early bail-out would leak the modal
             // dialog and leave the guard stuck, blocking all later manual syncs.
+            // Guard the whole thread body: an uncaught exception here (e.g. a transient
+            // boost::filesystem error while scanning the preset folder) would otherwise
+            // propagate out of the thread and terminate the entire application.
+            try {
             if (!m_agent) { finishFn(false); return; }
 
             // One-time scan for orphaned .info files left over from offline deletions; queues HTTP DELETEs.
@@ -7211,6 +7225,11 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                 } else {
                     boost::this_thread::sleep_for(boost::chrono::milliseconds(500));
                 }
+            }
+            } catch (const std::exception& e) {
+                BOOST_LOG_TRIVIAL(error) << "user preset sync thread terminated by exception: " << e.what();
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "user preset sync thread terminated by unknown exception";
             }
         });
 }
@@ -8532,8 +8551,13 @@ void GUI_App::scan_orphaned_info_files()
         if (!fs::exists(type_dir))
             continue;
 
-        // Iterate through all .info files
-        for (auto& entry : boost::filesystem::directory_iterator(type_dir)) {
+        // Iterate through all .info files. Use the error_code-based iterator so a transient
+        // directory-read failure (e.g. macOS readdir returning ENOTSUP) is logged and skipped
+        // instead of throwing an uncaught exception that would terminate the app from the
+        // background sync thread this runs on.
+        boost::system::error_code ec;
+        for (boost::filesystem::directory_iterator it(type_dir, ec), end; !ec && it != end; it.increment(ec)) {
+            const auto& entry = *it;
             if (entry.path().extension() != ".info")
                 continue;
 
@@ -8552,6 +8576,8 @@ void GUI_App::scan_orphaned_info_files()
                 }
             }
         }
+        if (ec)
+            BOOST_LOG_TRIVIAL(warning) << "scan_orphaned_info_files: failed to scan " << type_dir.string() << ": " << ec.message();
     }
 }
 

@@ -10,7 +10,6 @@
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "4",
 	"compatible_printers": [
-		"BLOCKS RF50",
 		"BLOCKS RF50 0.6 nozzle"
 	],
 	"sparse_infill_speed": "300",

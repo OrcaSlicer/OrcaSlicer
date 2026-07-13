@@ -167,7 +167,7 @@ private:
     wxCoord m_name_texture_height;
 
     void init();
-    bool valid_instance(int obj_id, int instance_id);
+    bool valid_instance(int obj_id, int instance_id) const;
     void generate_print_polygon(ExPolygon &print_polygon);
     void generate_exclude_polygon(ExPolygon &exclude_polygon);
     void generate_logo_polygon(ExPolygon &logo_polygon);

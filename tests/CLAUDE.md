@@ -2,6 +2,11 @@
 
 This guide provides comprehensive instructions for Claude Code when writing, maintaining, and understanding tests in the OrcaSlicer codebase.
 
+> **Adding or organizing `fff_print` tests?** See
+> [fff_print/README.md](fff_print/README.md) for where a test belongs and how to
+> name it. This guide covers Catch2 mechanics; that README is the suite's
+> organizing contract.
+
 ## ⚠️ CRITICAL RULES - MUST FOLLOW
 
 ### 1. **SECTIONS IN LOOPS - NEVER REUSE NAMES**

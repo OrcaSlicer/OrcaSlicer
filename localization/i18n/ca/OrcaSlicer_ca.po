@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-03 14:43+0200\n"
+"POT-Creation-Date: 2026-07-12 12:27-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -167,6 +167,12 @@ msgstr "Farcir"
 msgid "Gap Fill"
 msgstr "Farcir el buit"
 
+msgid "Vertical"
+msgstr ""
+
+msgid "Horizontal"
+msgstr "Horitzontal"
+
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
 msgstr "Permet pintar només les facetes seleccionades per: \"%1%\""
@@ -262,12 +268,6 @@ msgstr ""
 msgid "Height Range"
 msgstr "Rang d'alçada"
 
-msgid "Vertical"
-msgstr ""
-
-msgid "Horizontal"
-msgstr "Horitzontal"
-
 msgid "Remove painted color"
 msgstr "Elimina el color pintat"
 
@@ -332,6 +332,7 @@ msgstr "Gizmo-Rotació"
 msgid "Optimize orientation"
 msgstr "Optimitzar l'orientació"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Escalar"
 
@@ -341,8 +342,9 @@ msgstr "Gizmo-Escalar"
 msgid "Error: Please close all toolbar menus first"
 msgstr "Error: Tanqueu primer tots els menús de la barra d'eines"
 
+msgctxt "inches"
 msgid "in"
-msgstr "polç"
+msgstr ""
 
 msgid "mm"
 msgstr "mm"
@@ -375,6 +377,9 @@ msgstr "Ràtios d'escala"
 msgid "Object operations"
 msgstr "Operacions amb objectes"
 
+msgid "Scale"
+msgstr "Escalar"
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
 msgstr "Operacions de volum"
@@ -402,26 +407,33 @@ msgstr "Restableix la Posició"
 msgid "Reset rotation"
 msgstr "Reinicialitza la rotació"
 
-msgid "Object coordinates"
-msgstr "Coordenades de l'objecte"
+msgid "World"
+msgstr ""
 
-msgid "World coordinates"
-msgstr "Coordenades cartesianes"
+msgid "Object"
+msgstr "Objecte"
 
-msgid "Translate(Relative)"
-msgstr "Trasllada (relatiu)"
+msgid "Part"
+msgstr "Peça"
+
+msgid "Relative"
+msgstr ""
+
+msgid "Coordinate system used for transform actions."
+msgstr ""
+
+msgid "Absolute"
+msgstr ""
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "Restableix la rotació actual al valor d'quan s'ha obert l'eina de rotació."
 
-msgid "Rotate (absolute)"
-msgstr "Gira (absolut)"
-
 msgid "Reset current rotation to real zeros."
 msgstr "Restableix la rotació actual a zeros reals."
 
-msgid "Part coordinates"
-msgstr "Coordenades de la part"
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Escalar"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -525,12 +537,6 @@ msgstr ""
 
 msgid "Spacing"
 msgstr "Espaiat"
-
-msgid "Part"
-msgstr "Peça"
-
-msgid "Object"
-msgstr "Objecte"
 
 msgid ""
 "Click to flip the cut plane\n"
@@ -1879,28 +1885,41 @@ msgstr "Obrir Projecte"
 msgid "The version of Orca Slicer is too low and needs to be updated to the latest version before it can be used normally."
 msgstr "La versió de l'Orca Slicer és massa antiga i s'ha d'actualitzar a la versió més recent abans que es pugui utilitzar amb normalitat"
 
+msgid "Cloud sync conflict:"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Cloud sync conflict for preset \"%s\":"
+msgstr ""
+
 msgid ""
-"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+"This preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"A preset with this name already exists in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+"A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+"There was an unexpected or unidentified preset conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
+"Do you want to continue?"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\n"
 "Do you want to continue?"
 msgstr ""
 
@@ -1978,7 +1997,8 @@ msgstr "El nombre de perfils d'usuari emmagatzemats a memòria cau al núvol ha 
 msgid "Sync user presets"
 msgstr "Sincronitzar perfils d'usuari"
 
-msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+#, c-format, boost-format
+msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
 msgstr ""
 
 #, c-format, boost-format
@@ -2198,6 +2218,9 @@ msgid "Orca Cube"
 msgstr "Cub d'Orca"
 
 msgid "OrcaSliced Combo"
+msgstr ""
+
+msgid "Orca Badge"
 msgstr ""
 
 msgid "Orca Tolerance Test"
@@ -3637,7 +3660,7 @@ msgstr "Calibratge completat. Trobeu la línia d'extrusió més uniforme al vost
 msgid "Save"
 msgstr "Desar"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Darrera"
 
@@ -5020,6 +5043,7 @@ msgstr "Canvis d'eina"
 msgid "Color change"
 msgstr "Canvi de color"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Imprimir"
 
@@ -5183,11 +5207,15 @@ msgstr "Evitar la regió de calibratge d'extrusió"
 msgid "Align to Y axis"
 msgstr "Alinear a l'eix Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Darrera"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Esquerra"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Dreta"
 
@@ -5266,6 +5294,9 @@ msgstr "Voladissos"
 msgid "Outline"
 msgstr "Contorn"
 
+msgid "Wireframe"
+msgstr ""
+
 msgid "Realistic View"
 msgstr ""
 
@@ -5310,7 +5341,7 @@ msgid "Size:"
 msgstr "Mida:"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#, boost-format
+#, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
 msgstr "S'han trobat conflictes de rutes gcode a la capa %d, Z = %.2lfmm. Si us plau, separeu els objectes conflictius més lluny ( %s <-> %s )."
 
@@ -5513,6 +5544,10 @@ msgstr "Imprimir placa d'impressió"
 msgid "Export G-code file"
 msgstr "Exportar el fitxer del Codi-G"
 
+msgctxt "Verb"
+msgid "Print"
+msgstr "Imprimir"
+
 msgid "Export plate sliced file"
 msgstr "Exportar fitxer de la placa laminada"
 
@@ -5686,15 +5721,6 @@ msgstr "Exportar la configuració actual a fitxers"
 msgid "Export"
 msgstr "Exportar"
 
-msgid "Sync Presets"
-msgstr ""
-
-msgid "Pull and apply the latest presets from OrcaCloud"
-msgstr ""
-
-msgid "You must be logged in to sync presets from cloud."
-msgstr ""
-
 msgid "Quit"
 msgstr "Surt"
 
@@ -5809,6 +5835,15 @@ msgid "View"
 msgstr "Vista"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
 msgstr ""
 
 msgid "Syncing presets from cloud…"
@@ -8057,6 +8092,35 @@ msgstr "Mostra opcions en importar fitxers STEP"
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "Si s'activa, apareixerà un diàleg de configuració de paràmetres durant la importació de fitxers STEP."
 
+msgid "STEP importing: linear deflection"
+msgstr ""
+
+msgid ""
+"Linear deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.003 mm."
+msgstr ""
+
+msgid "STEP importing: angle deflection"
+msgstr ""
+
+msgid ""
+"Angle deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.5."
+msgstr ""
+
+msgid "STEP importing: Split into multiple objects"
+msgstr ""
+
+msgid ""
+"If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: disabled."
+msgstr ""
+
 msgid "Quality level for Draco export"
 msgstr "Nivell de qualitat per a l'exportació Draco"
 
@@ -8071,6 +8135,12 @@ msgstr ""
 "Controla la profunditat de bits de quantització utilitzada en comprimir la malla a format Draco.\n"
 "0 = compressió sense pèrdua (la geometria es preserva a plena precisió). Els valors amb pèrdua vàlids van de 8 a 30.\n"
 "Valors més baixos produeixen fitxers més petits però perden més detall geomètric; valors més alts preserven més detall a costa de fitxers més grans."
+
+msgid "Store full source file paths in projects"
+msgstr ""
+
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr ""
 
 msgid "Preset"
 msgstr "Perfil"
@@ -10276,12 +10346,8 @@ msgstr "Informació del broquet sincronitzada correctament."
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr "Informació del broquet i nombre d'AMS sincronitzats correctament."
 
-msgid "Continue to sync filaments"
-msgstr "Continua sincronitzant filaments"
-
-msgctxt "Sync_Nozzle_AMS"
-msgid "Cancel"
-msgstr "Cancel·la"
+msgid "Do you want to continue to sync filaments?"
+msgstr ""
 
 msgid "Successfully synchronized filament color from printer."
 msgstr "Color del filament sincronitzat correctament de la impressora."
@@ -11606,7 +11672,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -11620,7 +11686,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -12352,6 +12418,42 @@ msgstr "Densitat de la superfície superior"
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
 msgstr "Densitat de la capa de superfície superior. Un valor del 100% crea una capa superior completament sòlida i llisa. Reduir aquest valor resulta en una superfície superior texturada, segons el patró de superfície superior triat. Un valor del 0% resultarà en la creació de només les parets a la capa superior. Destinat a fins estètics o funcionals, no per solucionar problemes com la sobreextrusió."
 
+msgid "Top surface expansion"
+msgstr ""
+
+msgid ""
+"Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+msgstr ""
+
+msgid "Top expansion wall margin"
+msgstr ""
+
+msgid ""
+"Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+"This can cause contraction marks (such as the hull line) on the outer walls.\n"
+"By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
+msgstr ""
+
+msgid "Top expansion direction"
+msgstr ""
+
+msgid ""
+"Direction in which the top surface expansion grows.\n"
+" - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+" - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+" - Inward and Outward does both."
+msgstr ""
+
+msgid "Inward and Outward"
+msgstr ""
+
+msgid "Inward"
+msgstr ""
+
+msgid "Outward"
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "Patró de superfície inferior"
 
@@ -12393,6 +12495,18 @@ msgstr "Llindar de perímetres petits"
 
 msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
 msgstr "Això estableix el llindar per a la longitud perimetral petita. El llindar predeterminat és de 0mm"
+
+msgid "Small support perimeters"
+msgstr ""
+
+msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
+msgstr ""
+
+msgid "Small support perimeters threshold"
+msgstr ""
+
+msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
+msgstr ""
 
 msgid "Walls printing order"
 msgstr "Ordre d'impressió de perímetres"
@@ -12579,25 +12693,26 @@ msgstr ""
 "2. Anoteu el valor de PA òptim per a cada velocitat i acceleració del cabal volumètric. Podeu trobar el número de flux seleccionant el flux al desplegable de l'esquema de colors i moveu el control lliscant horitzontal per sobre de les línies del patró PA. El número ha de ser visible a la part inferior de la pàgina. El valor de PA ideal hauria de ser decreixent com més gran sigui el cabal volumètric. Si no és així, confirmeu que la vostra extrusora funciona correctament. Com més lent i amb menys acceleració imprimiu, més gran serà el rang de valors de PA acceptables. Si no hi ha cap diferència visible, utilitzeu el valor PA de la prova més ràpida.\n"
 "3. Introduïu els triplets dels valors de PA, flux i acceleracions al quadre de text aquí i deseu el vostre perfil de filament."
 
-msgid "Enable adaptive pressure advance for overhangs (beta)"
-msgstr "Habilita l'avanç de pressió adaptativa per als voladissos (beta)"
-
-msgid ""
-"Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+msgid "Enable adaptive pressure advance within features (beta)"
 msgstr ""
 
-msgid "Pressure advance for bridges"
-msgstr "Avanç de pressió per als ponts"
+msgid ""
+"Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
+"\n"
+"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
+"\n"
+"This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
+msgstr ""
+
+msgid "Static pressure advance for bridges"
+msgstr ""
 
 msgid ""
-"Pressure advance value for bridges. Set to 0 to disable.\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+"equivalent walls (using adaptive settings if enabled).\n"
 "\n"
-"A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+"A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Valor d'avanç de pressió per als ponts. Establiu a 0 per desactivar.\n"
-"\n"
-" Un valor de PA més baix quan s'imprimeixen ponts ajuda a reduir l'aparició d'una lleugera extrusió immediatament després dels ponts. Això és causat per la caiguda de pressió al broquet quan s'imprimeix a l'aire i un PA més baix ajuda a contrarestar-ho."
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Amplada de línia predeterminada si altres amplades de línia estan definides com a 0. Si s'expressa en %, es calcularà sobre el diàmetre del broquet."
@@ -12981,6 +13096,22 @@ msgstr "Direcció de farciment sòlid"
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
 msgstr "Angle per al patró de farciment sòlid, que controla l'inici o la direcció principal de la línia"
 
+msgid "Top layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the top solid infill and ironing lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
+msgid "Bottom layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the bottom solid infill lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
 msgid "Sparse infill density"
 msgstr "Densitat de farciment poc dens"
 
@@ -12988,12 +13119,12 @@ msgstr "Densitat de farciment poc dens"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr "Densitat de farciment poc dens, converteix el 100% tu el teu farciment poc dens en farciment sòlid i s'utilitzarà el patró de farciment sòlid intern"
 
-msgid "Align infill direction to model"
-msgstr "Alinea la direcció del farciment al model"
+msgid "Align directions to model"
+msgstr ""
 
 msgid ""
-"Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-"When enabled, directions rotate with the model to maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+"When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
 
 msgid "Insert solid layers"
@@ -14726,6 +14857,10 @@ msgstr "Alineat"
 msgid "Aligned back"
 msgstr "Alineat al darrere"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Darrera"
+
 msgid "Random"
 msgstr "Aleatori"
 
@@ -15083,6 +15218,18 @@ msgstr "Purgar tots els extrusors d'impressió"
 
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "Si està habilitat, tots els extrusors d'impressió seran purgats a la vora frontal del llit d'impressió al començament de la impressió."
+
+msgid "Toolchange ordering"
+msgstr ""
+
+msgid ""
+"Determines the order of tool changes on each layer.\n"
+"- Default: Starts with the last used extruder to minimize tool changes.\n"
+"- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+msgstr ""
+
+msgid "Cyclic"
+msgstr ""
 
 msgid "Slice gap closing radius"
 msgstr "Radi de tancament dels buits en laminar"
@@ -15530,6 +15677,45 @@ msgstr "Gruix mínim de la carcassa superior"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "El nombre de capes sòlides superiors augmenta quan es tallen si el gruix calculat per les capes de closca superior és més prim que aquest valor. Això pot evitar tenir una closca massa fina quan l'alçada de la capa és petita. 0 significa que aquesta configuració està desactivada i que el gruix de la carcassa superior està absolutament determinat per les capes de la carcassa superior"
 
+msgid "Anisotropic surfaces"
+msgstr ""
+
+msgid ""
+"Anisotropic patterns on the top and bottom surfaces.\n"
+"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
+"This option disable the gap fill.\n"
+"This option can increase a printing time."
+msgstr ""
+
+msgid "Separated infills"
+msgstr ""
+
+msgid ""
+"Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
+"Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+"Affects line and grid patterns and rotation-template infills.\n"
+"Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
+msgstr ""
+
+msgid "Center surface pattern on"
+msgstr ""
+
+msgid ""
+"Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
+" - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+" - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
+" - Each Assembly: uses a single shared center for the whole object or assembly."
+msgstr ""
+
+msgid "Each Surface"
+msgstr ""
+
+msgid "Each Model"
+msgstr ""
+
+msgid "Each Assembly"
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
 msgstr "Velocitat de desplaçament més ràpida i sense extrusió"
@@ -15777,6 +15963,14 @@ msgstr "Gir del poliforat"
 
 msgid "Rotate the polyhole every layer."
 msgstr "Rotar el poliforat a cada capa."
+
+msgid "Maximum Polyhole edge count"
+msgstr ""
+
+msgid ""
+"Maximum number of polyhole edges\n"
+"This setting limits the amount of edges a polyhole can have"
+msgstr ""
 
 msgid "G-code thumbnails"
 msgstr "Mida Miniatures al Codi-G"
@@ -19146,6 +19340,12 @@ msgstr "Nombre de cares triangulars"
 msgid "Calculating, please wait..."
 msgstr "Calculant, espereu..."
 
+msgid "Save these settings as default"
+msgstr ""
+
+msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
+msgstr ""
+
 msgid "PresetBundle"
 msgstr ""
 
@@ -19550,6 +19750,52 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+#~ msgid "Continue to sync filaments"
+#~ msgstr "Continua sincronitzant filaments"
+
+#~ msgctxt "Sync_Nozzle_AMS"
+#~ msgid "Cancel"
+#~ msgstr "Cancel·la"
+
+#~ msgid "Align infill direction to model"
+#~ msgstr "Alinea la direcció del farciment al model"
+
+#~ msgid "Print"
+#~ msgstr "Imprimir"
+
+#~ msgid "in"
+#~ msgstr "polç"
+
+#~ msgid "Object coordinates"
+#~ msgstr "Coordenades de l'objecte"
+
+#~ msgid "World coordinates"
+#~ msgstr "Coordenades cartesianes"
+
+#~ msgid "Translate(Relative)"
+#~ msgstr "Trasllada (relatiu)"
+
+#~ msgid "Rotate (absolute)"
+#~ msgstr "Gira (absolut)"
+
+#~ msgid "Part coordinates"
+#~ msgstr "Coordenades de la part"
+
+#~ msgid "Enable adaptive pressure advance for overhangs (beta)"
+#~ msgstr "Habilita l'avanç de pressió adaptativa per als voladissos (beta)"
+
+#~ msgid "Pressure advance for bridges"
+#~ msgstr "Avanç de pressió per als ponts"
+
+#~ msgid ""
+#~ "Pressure advance value for bridges. Set to 0 to disable.\n"
+#~ "\n"
+#~ "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+#~ msgstr ""
+#~ "Valor d'avanç de pressió per als ponts. Establiu a 0 per desactivar.\n"
+#~ "\n"
+#~ " Un valor de PA més baix quan s'imprimeixen ponts ajuda a reduir l'aparició d'una lleugera extrusió immediatament després dels ponts. Això és causat per la caiguda de pressió al broquet quan s'imprimeix a l'aire i un PA més baix ajuda a contrarestar-ho."
 
 #~ msgid "Filament Sync Options"
 #~ msgstr "Opcions de sincronització de filament"
@@ -20973,10 +21219,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "Desmarcar"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "Escalar"
 
 #~ msgid "Lift Z Enforcement"
 #~ msgstr "Forçar elevació Z"

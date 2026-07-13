@@ -6215,7 +6215,8 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
     static constexpr const char* support_transition_label = "support transition";
     static constexpr const char* support_ironing_label    = "support ironing";
 
-    static const auto speed_for_path = [&](double length, ExtrusionRole role, double default_speed = -1.0) {
+    // Not static: it captures `this` by reference.
+    const auto speed_for_path = [&](double length, ExtrusionRole role, double default_speed = -1.0) {
         if (!is_support(role) || length > SMALL_PERIMETER_LENGTH(NOZZLE_CONFIG(small_support_perimeter_threshold)))
             return default_speed;
 
@@ -6613,8 +6614,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
         //BBS: for solid infill of first layer, speed can be higher as long as
         //wall lines have be attached
         if (path.role() != erBottomSurface) {
-            speed = is_perimeter(path.role()) ? NOZZLE_CONFIG(initial_layer_speed) :
-                                                NOZZLE_CONFIG(initial_layer_infill_speed);
+            const bool use_first_layer_speed = is_perimeter(path.role()) || path.role() == erBrim;
+            speed = use_first_layer_speed ? NOZZLE_CONFIG(initial_layer_speed) :
+                                            NOZZLE_CONFIG(initial_layer_infill_speed);
         }
     } else if (m_config.slow_down_layers > 1 && m_config.raft_layers == 0) {
         

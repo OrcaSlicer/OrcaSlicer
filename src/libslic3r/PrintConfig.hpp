@@ -62,6 +62,19 @@ enum class FuzzySkinMode {
     Combined,
 };
 
+// ORCA: direction in which top_surface_expansion grows the top surfaces.
+enum class TopSurfaceExpansionDirection {
+    InwardAndOutward,
+    Inward,
+    Outward,
+};
+
+enum class CenterOfSurfacePattern {
+    Each_Surface,
+    Each_Model,
+    Each_Assembly,
+};
+
 enum class NoiseType {
     Classic,
     Perlin,
@@ -96,6 +109,34 @@ enum InfillPattern : int {
     ipSupportBase, ipConcentricInternal,
     ipCount,
 };
+
+// Orca: Infill patterns whose alignment origin follows the fill bounding box, so the
+// "separated_infills" option can re-center them per connected body. Patterns evaluated in
+// absolute/global coordinates (Gyroid, TPMS, Honeycomb, CrossHatch, ...) or that are shape-relative
+// (Concentric) ignore that bounding box and are therefore excluded.
+inline bool is_separable_infill_pattern(InfillPattern pattern)
+{
+    switch (pattern) {
+    case ipRectilinear:
+    case ipAlignedRectilinear:
+    case ipZigZag:
+    case ipCrossZag:
+    case ipLockedZag:
+    case ipGrid:
+    case ipTriangles:
+    case ipStars:          // tri-hexagon
+    case ipCubic:
+    case ipQuarterCubic:
+    case ipLateralHoneycomb:
+    case ipLateralLattice:
+    case ipHilbertCurve:
+    case ipArchimedeanChords:
+    case ipOctagramSpiral:
+        return true;
+    default:
+        return false;
+    }
+}
 
 enum class IroningType {
     NoIroning,
@@ -298,6 +339,12 @@ enum class PerimeterGeneratorType
     // Perimeter generator with variable extrusion width based on the paper
     // "A framework for adaptive width control of dense contour-parallel toolpaths in fused deposition modeling" ported from Cura.
     Arachne
+};
+
+enum class ToolChangeOrderingType
+{
+    Default,
+    Cyclic,
 };
 
 // BBS
@@ -534,6 +581,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PrinterTechnology)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(GCodeFlavor)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(FuzzySkinMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(TopSurfaceExpansionDirection)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(NoiseType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(InfillPattern)
@@ -561,6 +609,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PrintHostType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(AuthorizationType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerWallType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
@@ -671,7 +720,7 @@ public:
     bool is_using_different_extruders();
     bool support_different_extruders(int& extruder_count) const;
     int get_index_for_extruder(int extruder_or_filament_id, std::string id_name, ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type, std::string variant_name, unsigned int stride = 1) const;
-    void update_values_to_printer_extruders(DynamicPrintConfig& printer_config, std::set<std::string>& key_set, std::string id_name, std::string variant_name, unsigned int stride = 1, unsigned int extruder_id = 0);
+    std::vector<int> update_values_to_printer_extruders(DynamicPrintConfig& printer_config, std::set<std::string>& key_set, std::string id_name, std::string variant_name, unsigned int stride = 1, unsigned int extruder_id = 0);
     void update_values_to_printer_extruders_for_multiple_filaments(DynamicPrintConfig& printer_config, std::set<std::string>& key_set, std::string id_name, std::string variant_name);
 
     void update_non_diff_values_to_base_config(DynamicPrintConfig& new_config, const t_config_option_keys& keys, const std::set<std::string>& different_keys, std::string extruder_id_name, std::string extruder_variant_name,
@@ -698,6 +747,7 @@ extern std::set<std::string> printer_options_with_variant_1;
 extern std::set<std::string> printer_options_with_variant_2;
 extern std::set<std::string> empty_options;
 
+extern void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPrintConfig& dest_config, std::vector<int> variant_index, std::set<std::string>& key_set1, int stride = 1);
 extern void compute_filament_override_value(const std::string& opt_key, const ConfigOption *opt_old_machine, const ConfigOption *opt_new_machine, const ConfigOption *opt_new_filament, const DynamicPrintConfig& new_full_config,
     t_config_option_keys& diff_keys, DynamicPrintConfig& filament_overrides, std::vector<int>& f_maps);
 
@@ -1122,6 +1172,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                lightning_prune_angle))
     ((ConfigOptionFloat,                lightning_straightening_angle))
     ((ConfigOptionBool,                 align_infill_direction_to_model))
+    ((ConfigOptionBool,                 anisotropic_surfaces))
+    ((ConfigOptionEnum<CenterOfSurfacePattern>, center_of_surface_pattern))
+    ((ConfigOptionBool,                 separated_infills))
     ((ConfigOptionString,               extra_solid_infills))
     ((ConfigOptionEnum<FuzzySkinType>,  fuzzy_skin))
     ((ConfigOptionFloat,                fuzzy_skin_thickness))
@@ -1187,6 +1240,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatOrPercent, top_surface_line_width))
     ((ConfigOptionInt, top_shell_layers))
     ((ConfigOptionFloat, top_shell_thickness))
+    ((ConfigOptionFloat, top_surface_expansion))
+    ((ConfigOptionFloat, top_surface_expansion_margin))
+    ((ConfigOptionEnum<TopSurfaceExpansionDirection>, top_surface_expansion_direction))
     ((ConfigOptionFloatsNullable, top_surface_speed))
     //BBS
     ((ConfigOptionBoolsNullable,            enable_overhang_speed))
@@ -1225,6 +1281,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                 hole_to_polyhole))
     ((ConfigOptionFloatOrPercent,       hole_to_polyhole_threshold))
     ((ConfigOptionBool,                 hole_to_polyhole_twisted))
+    ((ConfigOptionInt,                  hole_to_polyhole_max_edges))
+
     ((ConfigOptionBool,                 overhang_reverse))
     ((ConfigOptionBool,                 overhang_reverse_internal_only))
     ((ConfigOptionFloatOrPercent,       overhang_reverse_threshold))
@@ -1411,6 +1469,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                single_extruder_multi_material))
     ((ConfigOptionBool,                manual_filament_change))
     ((ConfigOptionBool,                single_extruder_multi_material_priming))
+    ((ConfigOptionEnum<ToolChangeOrderingType>, toolchange_ordering))
     ((ConfigOptionBool,                wipe_tower_no_sparse_layers))
     ((ConfigOptionString,              change_filament_gcode))
     ((ConfigOptionString,              change_extrusion_role_gcode))

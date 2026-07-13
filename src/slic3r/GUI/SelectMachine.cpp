@@ -138,7 +138,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     /*mode switch*/
      /*auto m_sizer_mode_switch = new wxBoxSizer(wxHORIZONTAL);
-     m_mode_print = new SendModeSwitchButton(scroll_area, _L("Print"), true);
+     m_mode_print = new SendModeSwitchButton(scroll_area, _CTX("Print", "Verb"), true);
      m_mode_send = new SendModeSwitchButton(scroll_area,_L("Save to printer"), false);
      m_sizer_mode_switch->Add(m_mode_print, 0, wxALIGN_CENTER, 0);
      m_sizer_mode_switch->Add(0, 0, 0, wxLEFT, FromDIP(8));
