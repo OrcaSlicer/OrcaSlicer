@@ -209,6 +209,8 @@ set(lisbslic3r_sources
     GCode/AdaptivePAProcessor.hpp
     GCode/AvoidCrossingPerimeters.cpp
     GCode/AvoidCrossingPerimeters.hpp
+    GCode/VolTempCompensation.cpp
+    GCode/VolTempCompensation.hpp
     GCode/ConflictChecker.cpp
     GCode/ConflictChecker.hpp
     GCode/CoolingBuffer.cpp

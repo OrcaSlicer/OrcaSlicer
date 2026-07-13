@@ -22,6 +22,7 @@
 #include "libslic3r/format.hpp"
 #include "Time.hpp"
 #include "GCode/ExtrusionProcessor.hpp"
+#include "GCode/VolTempCompensation.hpp"
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
@@ -2179,6 +2180,19 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
         *result = std::move(m_processor.extract_result());
         // set the filename to the correct value
         result->filename = path;
+    }
+
+    // Orca / CN3D: Volumetric Temperature Compensation. Whole-buffer pass over the
+    // finalized G-code: inject predictive, non-blocking M104 commands ahead of
+    // volumetric-flow transitions. Runs after the cooling buffer (so it sees the
+    // final, slowed-down feedrates) and after time estimation (M104 are non-blocking
+    // and do not change the estimate). No-op when the feature is disabled.
+    {
+        std::vector<unsigned int> vtc_extruders;
+        vtc_extruders.reserve(m_writer.extruders().size());
+        for (const Extruder &ex : m_writer.extruders())
+            vtc_extruders.push_back(ex.id());
+        VolTempCompensation::process_file(path_tmp, m_config, vtc_extruders);
     }
 
     //BBS: add some log for error output

@@ -6,5 +6,38 @@
 	"from": "system",
 	"setting_id": "RcBNzytWgwRrwXXz",
 	"instantiation": "true",
+	"vtc_enabled": [
+		"0"
+	],
+	"vtc_flow_mode": [
+		"simple"
+	],
+	"vtc_slope_k": [
+		"0.4"
+	],
+	"vtc_ref_flow": [
+		"12"
+	],
+	"vtc_flow_curve": [
+		""
+	],
+	"vtc_max_delta": [
+		"8"
+	],
+	"vtc_min_delta": [
+		"2"
+	],
+	"vtc_lookahead_s": [
+		"45"
+	],
+	"vtc_smoothing_s": [
+		"12"
+	],
+	"vtc_min_cmd_interval_s": [
+		"12"
+	],
+	"vtc_micro_adjust_interval_s": [
+		"8"
+	],
 	"compatible_printers": []
 }

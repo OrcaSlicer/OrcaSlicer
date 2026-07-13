@@ -4255,6 +4255,26 @@ void TabFilament::build()
         };
         //
 
+        // Orca / CN3D: Volumetric Temperature Compensation (flow -> temperature, per filament)
+        optgroup = page->new_optgroup(L("Volumetric temperature compensation"), L"param_temperature");
+        optgroup->append_single_option_line("vtc_enabled");
+        optgroup->append_single_option_line("vtc_flow_mode");
+        optgroup->append_single_option_line("vtc_slope_k");
+        optgroup->append_single_option_line("vtc_ref_flow");
+        optgroup->append_single_option_line("vtc_max_delta");
+        optgroup->append_single_option_line("vtc_min_delta");
+        optgroup->append_single_option_line("vtc_lookahead_s");
+        optgroup->append_single_option_line("vtc_smoothing_s");
+        optgroup->append_single_option_line("vtc_min_cmd_interval_s");
+        optgroup->append_single_option_line("vtc_micro_adjust_interval_s");
+        {
+            Option vtc_curve = optgroup->get_option("vtc_flow_curve");
+            vtc_curve.opt.full_width = true;
+            vtc_curve.opt.is_code = true;
+            vtc_curve.opt.height = 12;
+            optgroup->append_single_option_line(vtc_curve);
+        }
+
         optgroup = page->new_optgroup(L("Print chamber temperature"), L"param_chamber_temp");
         optgroup->append_single_option_line("activate_chamber_temp_control", "material_temperatures#print-chamber-temperature");
         line = { L("Chamber temperature"), L("Target chamber temperature, and the minimal chamber temperature at which printing should start") };
@@ -4677,6 +4697,20 @@ void TabFilament::toggle_options()
         toggle_line("adaptive_pressure_advance_overhangs", has_adaptive_pa && pa);
         toggle_line("adaptive_pressure_advance_model", has_adaptive_pa && pa);
         toggle_line("adaptive_pressure_advance_bridges", has_adaptive_pa && pa);
+
+        // Orca / CN3D: Volumetric Temperature Compensation — hide the mapping fields
+        // unless the feature is enabled for this filament.
+        bool has_vtc = m_config->opt_bool("vtc_enabled", 0);
+        const ConfigOptionStrings *vtc_mode_opt = m_config->option<ConfigOptionStrings>("vtc_flow_mode");
+        const bool vtc_curve_mode = vtc_mode_opt && !vtc_mode_opt->empty() && vtc_mode_opt->get_at(0) == "curve";
+        for (const char *k : {"vtc_flow_mode", "vtc_max_delta", "vtc_min_delta",
+                              "vtc_lookahead_s", "vtc_smoothing_s",
+                              "vtc_min_cmd_interval_s", "vtc_micro_adjust_interval_s"})
+            toggle_line(k, has_vtc);
+        // Simple-mode fields only when not using a custom curve; curve field only in curve mode.
+        toggle_line("vtc_slope_k",   has_vtc && !vtc_curve_mode);
+        toggle_line("vtc_ref_flow",  has_vtc && !vtc_curve_mode);
+        toggle_line("vtc_flow_curve", has_vtc && vtc_curve_mode);
 
         bool is_pellet_printer = printer_cfg.opt_bool("pellet_modded_printer");
         toggle_line("pellet_flow_coefficient", is_pellet_printer);
@@ -5496,6 +5530,15 @@ if (is_marlin_flavor)
 
             optgroup = page->new_optgroup(L("Position"), L"param_position");
             optgroup->append_single_option_line("extruder_offset", "printer_extruder_basic_information#extruder-offset-position", extruder_idx);
+
+            // Orca / CN3D: Volumetric Temperature Compensation — per-hotend thermal rates,
+            // calibrated per printer (see vtc_calibrate.py / the VTC calibration procedure).
+            optgroup = page->new_optgroup(L("Volumetric temperature compensation"), L"param_temperature");
+            optgroup->append_single_option_line("vtc_heating_rate", "", extruder_idx);
+            optgroup->append_single_option_line("vtc_cooling_no_flow_rate", "", extruder_idx);
+            optgroup->append_single_option_line("vtc_cooling_flow_rate", "", extruder_idx);
+            optgroup->append_single_option_line("vtc_pid_overshoot", "", extruder_idx);
+            optgroup->append_single_option_line("vtc_settling_margin_s", "", extruder_idx);
 
             //BBS: don't show retract related config menu in machine page
             optgroup = page->new_optgroup(L("Retraction"), L"param_retraction");

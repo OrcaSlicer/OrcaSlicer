@@ -12,6 +12,7 @@ add_executable(${_TEST_NAME}_tests
     test_clipper_offset.cpp
     test_clipper_utils.cpp
     test_config.cpp
+    test_vol_temp_compensation.cpp
     test_preset_bundle_loading.cpp
     test_preset_setting_id.cpp
     test_elephant_foot_compensation.cpp
