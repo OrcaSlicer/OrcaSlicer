@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "QD_0_1_46",
-	"setting_id": "uoOOXPpTEGa9bqhx",
 	"name": "QIDI PPS-GF",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_pa",
+	"from": "system",
+	"setting_id": "uoOOXPpTEGa9bqhx",
+	"filament_id": "QD_0_1_46",
+	"instantiation": "true",
 	"box_temperature_range_high": [
 		"65"
 	],

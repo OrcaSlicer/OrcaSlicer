@@ -1,6 +1,7 @@
 {
 	"type": "filament",
 	"name": "Ginger Generic PLA",
+	"renamed_from": "Ginger Generic rPLA",
 	"inherits": "fdm_filament_common",
 	"from": "system",
 	"setting_id": "Z1scjKDBFoDaTa2C",

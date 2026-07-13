@@ -47,7 +47,7 @@ WebViewPanel::WebViewPanel(wxWindow *parent)
     // Create the button
     bSizer_toolbar = new wxBoxSizer(wxHORIZONTAL);
 
-    m_button_back = new wxButton(this, wxID_ANY, _L("Back"), wxDefaultPosition, wxDefaultSize, 0);
+    m_button_back = new wxButton(this, wxID_ANY, _CTX("Back", "Navigation"), wxDefaultPosition, wxDefaultSize, 0);
     m_button_back->Enable(false);
     bSizer_toolbar->Add(m_button_back, 0, wxALL, 5);
 

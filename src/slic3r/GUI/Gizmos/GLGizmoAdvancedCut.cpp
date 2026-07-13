@@ -1905,7 +1905,7 @@ bool GLGizmoAdvancedCut::render_slider_double_input(const std::string &label, fl
         mean_size *= float(units_mm_to_in);
         min_size *= float(units_mm_to_in);
     }
-    std::string format = value_in < 0.f ? " " : m_imperial_units ? "%.4f  " + _u8L("in") : "%.2f  " + _u8L("mm");
+    std::string format = value_in < 0.f ? " " : m_imperial_units ? "%.4f  " + _CTX_utf8("in", "inches") : "%.2f  " + _u8L("mm");
 
     m_imgui->bbl_slider_float_style(("##" + label).c_str(), &value, min_size, mean_size, format.c_str());
 

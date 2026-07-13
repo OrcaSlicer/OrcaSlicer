@@ -135,6 +135,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "dont_slow_down_outer_wall",
         "fan_cooling_layer_time",
         "full_fan_speed_layer",
+        "initial_layer_fan_speed",
         "fan_kickstart",
         "part_cooling_fan_min_pwm",
         "fan_speedup_overhangs",
@@ -209,6 +210,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "chamber_minimal_temperature",
         "thumbnails",
         "thumbnails_format",
+        "anisotropic_surfaces",
+        "center_of_surface_pattern",
+        "separated_infills",
         "seam_gap",
         "role_based_wipe_speed",
         "wipe_speed",
@@ -330,6 +334,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "first_layer_print_sequence"
             || opt_key == "other_layers_print_sequence"
             || opt_key == "other_layers_print_sequence_nums" 
+            || opt_key == "toolchange_ordering"
             || opt_key == "extruder_ams_count"
             || opt_key == "filament_map_mode"
             || opt_key == "filament_map"

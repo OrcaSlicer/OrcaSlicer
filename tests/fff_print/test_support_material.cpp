@@ -3,22 +3,22 @@
 #include "libslic3r/GCodeReader.hpp"
 #include "libslic3r/Layer.hpp"
 
-#include "test_data.hpp" // get access to init_print, etc
+#include "test_helpers.hpp" // get access to init_print, etc
 
 using namespace Slic3r::Test;
 using namespace Slic3r;
 
-TEST_CASE("SupportMaterial: Three raft layers created", "[SupportMaterial]")
+TEST_CASE("Three raft layers are created", "[SupportMaterial]")
 {
 	Slic3r::Print print;
-	Slic3r::Test::init_and_process_print({ TestMesh::cube_20x20x20 }, print, {
+	Slic3r::Test::init_and_process_print({ cube(20) }, print, {
         { "enable_support", 1 },
         { "raft_layers",    3 }
 		});
     REQUIRE(print.objects().front()->support_layers().size() == 3);
 }
 
-TEST_CASE("SupportMaterial: enforced support layers are generated", "[SupportMaterial]")
+TEST_CASE("Enforced support layers are generated", "[SupportMaterial]")
 {
     // enforce_support_layers forces support on the first N layers even with support off.
     Slic3r::Print baseline;
@@ -36,7 +36,7 @@ TEST_CASE("SupportMaterial: enforced support layers are generated", "[SupportMat
     REQUIRE(enforced.objects().front()->support_layers().size() > 0);
 }
 
-SCENARIO("SupportMaterial: support_layers_z and contact_distance", "[SupportMaterial]")
+SCENARIO("Support layer Z honors contact distance", "[SupportMaterial]")
 {
     // Box h = 20mm, hole bottom at 5mm, hole height 10mm (top edge at 15mm).
     TriangleMesh mesh = Slic3r::Test::mesh(Slic3r::Test::TestMesh::cube_with_hole);
@@ -92,4 +92,15 @@ SCENARIO("SupportMaterial: support_layers_z and contact_distance", "[SupportMate
             THEN("No layers thicker than nozzle diameter")	{ REQUIRE(layer_max_ok == true); }
         }
     }
+}
+
+// extrude_support once held a `static` lambda capturing `this`, so a second export in the
+// same process dereferenced a returned stack frame (ASan: stack-use-after-return).
+TEST_CASE("Support G-code emission survives a second slice in the same process", "[SupportMaterial][Regression]")
+{
+    const std::string first = slice({ TestMesh::overhang }, { { "enable_support", 1 } });
+    REQUIRE(! layers_with_role(first, "support").empty());
+
+    const std::string second = slice({ TestMesh::overhang }, { { "enable_support", 1 } });
+    REQUIRE(! layers_with_role(second, "support").empty());
 }

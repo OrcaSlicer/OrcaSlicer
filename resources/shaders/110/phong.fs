@@ -65,6 +65,12 @@ uniform float z_far;
 uniform float z_near;
 uniform bool enable_ssao;
 
+// Depth-based shadow map (object-on-object and self shadows). shadow_intensity == 0 disables it.
+uniform sampler2D shadow_map;
+uniform mat4 shadow_light_vp;
+uniform float shadow_intensity;
+uniform float shadow_map_texel;
+
 varying vec3 clipping_planes_dots;
 varying float color_clip_plane_dot;
 
@@ -167,8 +173,37 @@ vec3 compute_window_reflection(vec3 normal, vec3 view_dir)
     
     float intensity = window_light * bars * (0.15 + 0.15 * fresnel) * facing;
     intensity = clamp(intensity, 0.0, 0.25);
-    
+
     return vec3(intensity);
+}
+
+// Returns a lighting multiplier in [1 - shadow_intensity, 1]: < 1 where the fragment is
+// occluded from the light in the shadow map. 3x3 PCF softens the edges.
+float shadow_shade()
+{
+    if (shadow_intensity <= 0.0)
+        return 1.0;
+
+    vec4 lp = shadow_light_vp * world_pos;
+    vec3 proj = lp.xyz / lp.w;
+    proj = proj * 0.5 + 0.5;
+    if (proj.z > 1.0)
+        return 1.0;
+
+    // Slope-scaled depth bias: larger where the surface grazes / faces away from the light. This
+    // suppresses self-shadow acne without discarding real shadows cast by other objects onto
+    // back-facing surfaces (e.g. the shaded back/tip of a cone sitting inside a larger shadow).
+    float NdotL = dot(normalize(eye_normal), LIGHT_TOP_DIR);
+    float bias = mix(0.0004, 0.004, clamp(1.0 - NdotL, 0.0, 1.0));
+    // 5x5 PCF: softens shadow edges into a smooth penumbra and blurs residual facet acne.
+    float sum = 0.0;
+    for (int x = -2; x <= 2; ++x) {
+        for (int y = -2; y <= 2; ++y) {
+            float closest = texture2D(shadow_map, proj.xy + vec2(float(x), float(y)) * shadow_map_texel).r;
+            sum += (proj.z - bias > closest) ? 1.0 : 0.0;
+        }
+    }
+    return 1.0 - shadow_intensity * (sum / 25.0);
 }
 
 void main()
@@ -226,8 +261,10 @@ void main()
 
     // SSAO is applied in post-process pass. Keep base lighting unchanged here.
 
+    float shade = shadow_shade();
+
     if (is_outline) {
-        vec3 shaded_rgb = (vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS;
+        vec3 shaded_rgb = (vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS * shade;
         vec4 shaded_color = vec4(clamp(shaded_rgb, vec3(0.0), vec3(1.0)), color.a);
         vec2 fragCoord = gl_FragCoord.xy;
         float s = DetectSilho(fragCoord);
@@ -240,8 +277,8 @@ void main()
     }
 #ifdef ENABLE_ENVIRONMENT_MAP
     else if (use_environment_tex)
-        gl_FragColor = vec4(clamp((0.45 * texture2D(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + window_reflection + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS, vec3(0.0), vec3(1.0)), color.a);
+        gl_FragColor = vec4(clamp((0.45 * texture2D(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + window_reflection + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS * shade, vec3(0.0), vec3(1.0)), color.a);
 #endif
     else
-        gl_FragColor = vec4(clamp((vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS, vec3(0.0), vec3(1.0)), color.a);
+        gl_FragColor = vec4(clamp((vec3(specular) + window_reflection + color.rgb * diffuse) * PHONG_BRIGHTNESS * shade, vec3(0.0), vec3(1.0)), color.a);
 }

@@ -138,7 +138,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
 
     /*mode switch*/
      /*auto m_sizer_mode_switch = new wxBoxSizer(wxHORIZONTAL);
-     m_mode_print = new SendModeSwitchButton(scroll_area, _L("Print"), true);
+     m_mode_print = new SendModeSwitchButton(scroll_area, _CTX("Print", "Verb"), true);
      m_mode_send = new SendModeSwitchButton(scroll_area,_L("Save to printer"), false);
      m_sizer_mode_switch->Add(m_mode_print, 0, wxALIGN_CENTER, 0);
      m_sizer_mode_switch->Add(0, 0, 0, wxLEFT, FromDIP(8));
@@ -654,7 +654,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     sizer_error_code->Add(m_st_txt_error_code, 0, wxALL, 0);
 
 
-    auto st_title_error_desc = new wxStaticText(m_sw_print_failed_info, wxID_ANY, wxT("Error desc"));
+    auto st_title_error_desc = new wxStaticText(m_sw_print_failed_info, wxID_ANY, _L("Error desc"));
     auto st_title_error_desc_doc = new wxStaticText(m_sw_print_failed_info, wxID_ANY,": ");
     m_st_txt_error_desc = new Label(m_sw_print_failed_info, wxEmptyString);
     st_title_error_desc->SetForegroundColour(0x909090);
@@ -671,7 +671,7 @@ SelectMachineDialog::SelectMachineDialog(Plater *plater)
     sizer_error_desc->Add(st_title_error_desc_doc, 0, wxALL, 0);
     sizer_error_desc->Add(m_st_txt_error_desc, 0, wxALL, 0);
 
-    auto st_title_extra_info = new wxStaticText(m_sw_print_failed_info, wxID_ANY, wxT("Extra info"));
+    auto st_title_extra_info = new wxStaticText(m_sw_print_failed_info, wxID_ANY, _L("Extra info"));
     auto st_title_extra_info_doc = new wxStaticText(m_sw_print_failed_info, wxID_ANY, ": ");
     m_st_txt_extra_info = new Label(m_sw_print_failed_info, wxEmptyString);
     st_title_extra_info->SetForegroundColour(0x909090);

@@ -1,0 +1,73 @@
+name: Unit Tests
+
+# Download a platform's test artifact, run ctest, and upload the JUnit
+# results for aggregation. Called once per arch from build_all.yml.
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      artifact:
+        description: Test artifact uploaded by the build leg
+        required: true
+        type: string
+      test-dir:
+        description: Built tests dir; defaults to build/tests, override for arch-separated builds
+        required: false
+        type: string
+        default: build/tests
+
+jobs:
+  unit_tests:
+    # Static "Unit Tests"; the per-arch label is the caller's job name, so the
+    # graph shows e.g. "Windows x64 / Unit Tests".
+    name: Unit Tests
+    runs-on: ${{ inputs.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # tests/data is referenced by absolute path (TEST_DATA_DIR).
+          sparse-checkout: |
+            .github
+            scripts
+            tests
+      - name: Apt-Install Dependencies
+        if: runner.os == 'Linux' && !vars.SELF_HOSTED
+        uses: ./.github/actions/apt-install-deps
+      - name: Restore Test Artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.artifact }}
+      - uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
+          useLocalCache: true
+          useCloudCache: true
+      - name: Unpackage and Run Unit Tests
+        timeout-minutes: 20
+        shell: bash
+        run: |
+          tar -xvf build_tests.tar
+          # Multi-config generators (Windows/macOS) need a config; Linux is single-config.
+          scripts/run_unit_tests.sh "${{ inputs.test-dir }}" "${{ runner.os != 'Linux' && 'Release' || '' }}"
+      - name: Upload Test Logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: unit-test-logs-${{ inputs.artifact }}
+          path: ${{ inputs.test-dir }}/**/*.log
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ inputs.artifact }}
+          path: ctest_results.xml
+          retention-days: 5
+          if-no-files-found: warn
+      - name: Delete Test Artifact
+        if: success()
+        uses: geekyeggo/delete-artifact@v6
+        with:
+          name: ${{ inputs.artifact }}
