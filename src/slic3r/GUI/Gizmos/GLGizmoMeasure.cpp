@@ -1303,7 +1303,7 @@ void GLGizmoMeasure::render_dimensioning()
                     return;
 
                 const double ratio = new_value / old_value;
-                wxGetApp().plater()->take_snapshot(_u8L("Scale"), UndoRedo::SnapshotType::GizmoAction);
+                wxGetApp().plater()->take_snapshot(_CTX_utf8("Scale", "Verb"), UndoRedo::SnapshotType::GizmoAction);
                 // apply scale
                 TransformationType type;
                 type.set_world();

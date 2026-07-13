@@ -209,6 +209,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "chamber_minimal_temperature",
         "thumbnails",
         "thumbnails_format",
+        "anisotropic_surfaces",
+        "center_of_surface_pattern",
+        "separated_infills",
         "seam_gap",
         "role_based_wipe_speed",
         "wipe_speed",
@@ -330,6 +333,7 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "first_layer_print_sequence"
             || opt_key == "other_layers_print_sequence"
             || opt_key == "other_layers_print_sequence_nums" 
+            || opt_key == "toolchange_ordering"
             || opt_key == "extruder_ams_count"
             || opt_key == "filament_map_mode"
             || opt_key == "filament_map"
