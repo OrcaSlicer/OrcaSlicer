@@ -25,11 +25,11 @@
 using namespace Slic3r;
 using namespace Slic3r::Test;
 
-// Verifies the "Relative to Part" option is registered correctly, round-trips through
+// Verifies the "Center/custom point" option is registered correctly, round-trips through
 // (de)serialization, has the expected defaults, and is carried by the Print preset.
 // This exercises the whole config surface of the feature without slicing (see the
 // slicing test below for the actual seam-placement behavior).
-TEST_CASE("Relative-to-Part seam option is registered and round-trips", "[Seams]")
+TEST_CASE("Center/custom-point seam option is registered and round-trips", "[Seams]")
 {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
 
@@ -120,7 +120,7 @@ static Vec2d outer_wall_seam_mean(const std::string &target_x, const std::string
     return sum / double(seams.size());
 }
 
-TEST_CASE("Relative-to-Part seam follows the configured X/Y point", "[Seams]")
+TEST_CASE("Center/custom-point seam follows the configured X/Y point", "[Seams]")
 {
     size_t n_xp = 0, n_xn = 0, n_yp = 0, n_yn = 0;
     const Vec2d seam_x_plus  = outer_wall_seam_mean( "40",  "0", n_xp);

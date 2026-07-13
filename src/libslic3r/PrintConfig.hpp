@@ -212,7 +212,7 @@ enum SeamPosition {
     spNearest, spAligned, spAlignedBack, spRear, spRandom, spCustom
 };
 
-// For the spCustom ("Relative to Part") seam position: place the seam at the perimeter point
+// For the spCustom ("Center/custom point") seam position: place the seam at the perimeter point
 // closest to, or farthest from, the configured reference point.
 enum SeamRelativeReference {
     srrClosest, srrFarthest

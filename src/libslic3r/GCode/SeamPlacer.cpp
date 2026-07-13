@@ -766,7 +766,7 @@ struct SeamComparator {
       return a.type > b.type;
     }
 
-    // "Relative to Part" is an explicit positional choice by the user, so the distance to the
+    // "Center/custom point" is an explicit positional choice by the user, so the distance to the
     // configured reference point takes precedence over the automatic overhang/visibility
     // heuristics below. Those heuristics pull every seam towards hidden points, which is fine
     // for "Closest to point" but defeats "Farthest from point" (the outer-side option).
@@ -1458,7 +1458,7 @@ void SeamPlacer::init(const Print &print, std::function<void(void)> throw_if_can
   for (const PrintObject *po : print.objects()) {
     throw_if_canceled_func();
     SeamPosition configured_seam_preference = po->config().seam_position.value;
-    // For "Relative to Part", the reference point is given in the object's local frame
+    // For "Center/custom point", the reference point is given in the object's local frame
     // (origin = part center), which matches the frame of the gathered seam candidate positions.
     Vec2f custom_point { float(po->config().seam_position_x.value), float(po->config().seam_position_y.value) };
     bool  custom_farthest = po->config().seam_position_ref.value == srrFarthest;

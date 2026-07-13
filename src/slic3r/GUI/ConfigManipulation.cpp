@@ -648,7 +648,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : { "inner_wall_speed", "outer_wall_speed", "small_perimeter_speed", "small_perimeter_threshold" })
         toggle_field(el, have_perimeters, variant_index);
 
-    // The relative seam reference point is only relevant when seam position is "Relative to Part".
+    // The relative seam reference point is only relevant when seam position is "Center/custom point".
     bool is_custom_seam = have_perimeters && config->opt_enum<SeamPosition>("seam_position") == spCustom;
     toggle_line("seam_position_x", is_custom_seam);
     toggle_line("seam_position_y", is_custom_seam);
