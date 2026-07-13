@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-06 12:57-0300\n"
+"POT-Creation-Date: 2026-07-12 12:27-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -163,6 +163,13 @@ msgstr "Wypełnienie"
 msgid "Gap Fill"
 msgstr "Wypełnienie szczelin"
 
+# +++++++++++++++++++++
+msgid "Vertical"
+msgstr "Pionowa linia"
+
+msgid "Horizontal"
+msgstr "Pozioma linia"
+
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
 msgstr "Pozwala malować tylko na wybranych powierzchniach za pomocą: „%1%”"
@@ -258,13 +265,6 @@ msgstr "Trójkąt"
 msgid "Height Range"
 msgstr "Przedział"
 
-# +++++++++++++++++++++
-msgid "Vertical"
-msgstr "Pionowa linia"
-
-msgid "Horizontal"
-msgstr "Pozioma linia"
-
 msgid "Remove painted color"
 msgstr "Usuń pomalowany kolor"
 
@@ -329,6 +329,7 @@ msgstr "Uchwyt-Obróć"
 msgid "Optimize orientation"
 msgstr "Optymalizuj orientację"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Skaluj"
 
@@ -338,8 +339,9 @@ msgstr "Uchwyt-Skaluj"
 msgid "Error: Please close all toolbar menus first"
 msgstr "Błąd: Proszę najpierw zamknąć wszystkie paski narzędziowe"
 
+msgctxt "inches"
 msgid "in"
-msgstr "cal"
+msgstr ""
 
 msgid "mm"
 msgstr "mm"
@@ -371,6 +373,9 @@ msgstr "Współczynniki skali"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Operacje na obiekcie"
+
+msgid "Scale"
+msgstr "Skaluj"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -422,6 +427,10 @@ msgstr "Zresetuj bieżący obrót do wartości ustawionej przy otwarciu narzędz
 
 msgid "Reset current rotation to real zeros."
 msgstr "Zresetuj bieżący obrót do wartości zerowej."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Skaluj"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3648,7 +3657,7 @@ msgstr "Kalibracja zakończona. Proszę znaleźć na płycie roboczej, linie eks
 msgid "Save"
 msgstr "Zapisz"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Tył"
 
@@ -5022,6 +5031,7 @@ msgstr "Zmiany narzędzi"
 msgid "Color change"
 msgstr "Zmiana koloru"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Drukuj"
 
@@ -5185,11 +5195,15 @@ msgstr "Unikaj obszaru kalibracji ekstruzji"
 msgid "Align to Y axis"
 msgstr "Wyrównaj do osi Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Tył"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Lewy"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Prawy"
 
@@ -5517,6 +5531,10 @@ msgstr "Drukuj aktualną płytę"
 msgid "Export G-code file"
 msgstr "Eksportuj plik G-code"
 
+msgctxt "Verb"
+msgid "Print"
+msgstr "Drukuj"
+
 msgid "Export plate sliced file"
 msgstr "Eksportuj plik pociętej płyty"
 
@@ -5690,15 +5708,6 @@ msgstr "Eksportuj bieżącą konfigurację do plików"
 msgid "Export"
 msgstr "Eksportuj"
 
-msgid "Sync Presets"
-msgstr ""
-
-msgid "Pull and apply the latest presets from OrcaCloud"
-msgstr ""
-
-msgid "You must be logged in to sync presets from cloud."
-msgstr ""
-
 msgid "Quit"
 msgstr "Zakończ"
 
@@ -5813,6 +5822,15 @@ msgid "View"
 msgstr "Widok"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
 msgstr ""
 
 msgid "Syncing presets from cloud…"
@@ -10307,12 +10325,8 @@ msgstr "Pomyślnie zsynchronizowano informacje o dyszy."
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr "Pomyślnie zsynchronizowano dyszę z informacjami numeru AMS."
 
-msgid "Continue to sync filaments"
-msgstr "Kontynuuj aby zsynchronizować filamenty"
-
-msgctxt "Sync_Nozzle_AMS"
-msgid "Cancel"
-msgstr "Anuluj"
+msgid "Do you want to continue to sync filaments?"
+msgstr ""
 
 msgid "Successfully synchronized filament color from printer."
 msgstr ""
@@ -11632,7 +11646,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -11646,7 +11660,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -12355,6 +12369,42 @@ msgstr "Gęstość górnej powierzchni"
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
 msgstr ""
 
+msgid "Top surface expansion"
+msgstr ""
+
+msgid ""
+"Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+msgstr ""
+
+msgid "Top expansion wall margin"
+msgstr ""
+
+msgid ""
+"Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+"This can cause contraction marks (such as the hull line) on the outer walls.\n"
+"By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
+msgstr ""
+
+msgid "Top expansion direction"
+msgstr ""
+
+msgid ""
+"Direction in which the top surface expansion grows.\n"
+" - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+" - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+" - Inward and Outward does both."
+msgstr ""
+
+msgid "Inward and Outward"
+msgstr ""
+
+msgid "Inward"
+msgstr ""
+
+msgid "Outward"
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "Wzór dolnej powierzchni"
 
@@ -13005,12 +13055,12 @@ msgstr "Gęstość wypełnienia"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr "Gęstość wewnętrznego rzadkiego wypełnienia, 100% przekształca całe rzadkie wypełnienie w wypełnienie pełne, a użyty zostanie wzór wewnętrznego pełnego wypełnienia"
 
-msgid "Align infill direction to model"
+msgid "Align directions to model"
 msgstr ""
 
 msgid ""
-"Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-"When enabled, directions rotate with the model to maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+"When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
 
 msgid "Insert solid layers"
@@ -14737,6 +14787,10 @@ msgstr "Wyrównany"
 msgid "Aligned back"
 msgstr ""
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Tył"
+
 msgid "Random"
 msgstr "Losowo"
 
@@ -15098,6 +15152,18 @@ msgstr "Wyczyść wszystkie używane ekstrudery"
 
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "Jeśli włączone, wszystkie extrudery do drukowania będą przygotowane na przedniej krawędzi stołu drukującego na początku druku."
+
+msgid "Toolchange ordering"
+msgstr ""
+
+msgid ""
+"Determines the order of tool changes on each layer.\n"
+"- Default: Starts with the last used extruder to minimize tool changes.\n"
+"- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+msgstr ""
+
+msgid "Cyclic"
+msgstr ""
 
 msgid "Slice gap closing radius"
 msgstr "Promień zamykania szpar"
@@ -15536,6 +15602,45 @@ msgstr "Grubość górnej powłoki"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Liczba górnych zwartych warstw jest zwiększana podczas cięcia, jeśli grubość obliczona przez górną warstwe powłoki jest cieńsza niż ta wartość. Można w ten sposób uniknąć zbyt cienkiej powłoki, gdy wysokość warstwy jest mała. 0 oznacza, że to ustawienie jest wyłączone, a grubość górnej powłoki jest absolutnie określona przez górne warstwy powłoki"
+
+msgid "Anisotropic surfaces"
+msgstr ""
+
+msgid ""
+"Anisotropic patterns on the top and bottom surfaces.\n"
+"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
+"This option disable the gap fill.\n"
+"This option can increase a printing time."
+msgstr ""
+
+msgid "Separated infills"
+msgstr ""
+
+msgid ""
+"Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
+"Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+"Affects line and grid patterns and rotation-template infills.\n"
+"Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
+msgstr ""
+
+msgid "Center surface pattern on"
+msgstr ""
+
+msgid ""
+"Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
+" - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+" - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
+" - Each Assembly: uses a single shared center for the whole object or assembly."
+msgstr ""
+
+msgid "Each Surface"
+msgstr ""
+
+msgid "Each Model"
+msgstr ""
+
+msgid "Each Assembly"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19541,6 +19646,19 @@ msgstr ""
 "Unikaj odkształceń\n"
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może zmniejszyć prawdopodobieństwo odkształceń?"
 
+#~ msgid "Continue to sync filaments"
+#~ msgstr "Kontynuuj aby zsynchronizować filamenty"
+
+#~ msgctxt "Sync_Nozzle_AMS"
+#~ msgid "Cancel"
+#~ msgstr "Anuluj"
+
+#~ msgid "Print"
+#~ msgstr "Drukuj"
+
+#~ msgid "in"
+#~ msgstr "cal"
+
 #~ msgid "Object coordinates"
 #~ msgstr "Koordynaty obiektu"
 
@@ -20995,10 +21113,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "Odznacz"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "Skala"
 
 #~ msgid "Lift Z Enforcement"
 #~ msgstr "Wymuszenie podniesienia osi Z"

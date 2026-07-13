@@ -97,6 +97,7 @@ src/slic3r/GUI/Widgets/FilamentLoad.cpp
 src/slic3r/GUI/Widgets/TempInput.cpp
 src/slic3r/GUI/Widgets/CheckList.cpp
 src/slic3r/GUI/Widgets/SwitchButton.cpp
+src/slic3r/GUI/Widgets/ProgressDialog.cpp
 src/slic3r/GUI/ImGuiWrapper.cpp
 src/slic3r/GUI/Jobs/ArrangeJob.cpp
 src/slic3r/GUI/Jobs/OrientJob.cpp

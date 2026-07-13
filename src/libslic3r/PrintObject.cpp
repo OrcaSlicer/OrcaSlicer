@@ -4,6 +4,7 @@
 #include "Print.hpp"
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
+#include "Clipper2Utils.hpp"
 #include "ElephantFootCompensation.hpp"
 #include "Geometry.hpp"
 #include "I18N.hpp"
@@ -97,7 +98,7 @@ PrintObject::PrintObject(Print* print, ModelObject* model_object, const Transfor
 	// snug height and an approximate bounding box in XY.
     BoundingBoxf3  bbox        = model_object->raw_bounding_box();
     Vec3d 		   bbox_center = bbox.center();
-    
+
 	// We may need to rotate the bbox / bbox_center from the original instance to the current instance.
 	double z_diff = Geometry::rotation_diff_z(model_object->instances.front()->get_rotation(), instances.front().model_instance->get_rotation());
 	if (std::abs(z_diff) > EPSILON) {
@@ -704,6 +705,72 @@ void PrintObject::infill()
 
     if (this->set_started(posInfill)) {
         m_print->set_status(35, L("Generating infill toolpath"));
+
+        // Orca: precompute the object's 3D connected bodies for separated infills / per-model
+        // centering. Two islands belong to the same body when their slices overlap on adjacent
+        // layers; islands that only overlap in top-down projection but never touch (e.g. interleaved
+        // chain links) stay separate, matching "split to objects". Each layer island then records
+        // the full bounding box of its body, so its infill is centered on that body as if it were
+        // sliced alone. Done once here, before the parallel fill, and only when a region needs it.
+        bool needs_separated_components = false;
+        for (size_t i = 0; i < this->num_printing_regions(); ++ i) {
+            const PrintRegionConfig &rc = this->printing_region(i).config();
+            if (rc.separated_infills || rc.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model) {
+                needs_separated_components = true;
+                break;
+            }
+        }
+        // Fast path: the feature only changes anything when the object is made of more than one
+        // connected body. Detect that cheaply the same way as "Split to objects" — more than one
+        // model part, or a single part whose mesh is splittable (is_splittable() is cached). A single
+        // body already shares the object center, i.e. the default, so skip the connectivity pass.
+        if (needs_separated_components) {
+            int                parts      = 0;
+            const ModelVolume *first_part = nullptr;
+            for (const ModelVolume *v : this->model_object()->volumes)
+                if (v->is_model_part()) { ++ parts; first_part = v; }
+            if (parts <= 1 && ! (first_part != nullptr && first_part->is_splittable()))
+                needs_separated_components = false;
+        }
+        for (Layer *layer : m_layers)
+            layer->lslices_separated_component_bboxes.clear();
+        if (needs_separated_components) {
+            const size_t        nl = m_layers.size();
+            std::vector<size_t> offset(nl + 1, 0); // flat index of the first island of each layer
+            for (size_t i = 0; i < nl; ++ i)
+                offset[i + 1] = offset[i] + m_layers[i]->lslices.size();
+            const size_t nreg = offset[nl];
+            // Union-find over every (layer, island).
+            std::vector<size_t> parent(nreg);
+            for (size_t i = 0; i < nreg; ++ i) parent[i] = i;
+            auto find = [&parent](size_t x) {
+                while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+                return x;
+            };
+            auto unite = [&](size_t a, size_t b) { a = find(a); b = find(b); if (a != b) parent[a] = b; };
+            // Join islands that overlap between two consecutive layers.
+            for (size_t i = 0; i + 1 < nl; ++ i) {
+                const Layer *la = m_layers[i], *lb = m_layers[i + 1];
+                for (size_t a = 0; a < la->lslices.size(); ++ a)
+                    for (size_t b = 0; b < lb->lslices.size(); ++ b)
+                        if (la->lslices_bboxes[a].overlap(lb->lslices_bboxes[b]) &&
+                            ! intersection_ex(la->lslices[a], lb->lslices[b]).empty())
+                            unite(offset[i] + a, offset[i + 1] + b);
+            }
+            // Full bounding box of each body, indexed by its union-find root.
+            std::vector<BoundingBox> body_bbox(nreg);
+            for (size_t i = 0; i < nl; ++ i)
+                for (size_t a = 0; a < m_layers[i]->lslices.size(); ++ a)
+                    body_bbox[find(offset[i] + a)].merge(m_layers[i]->lslices_bboxes[a]);
+            // Store the body bbox for every island.
+            for (size_t i = 0; i < nl; ++ i) {
+                Layer *layer = m_layers[i];
+                layer->lslices_separated_component_bboxes.resize(layer->lslices.size());
+                for (size_t a = 0; a < layer->lslices.size(); ++ a)
+                    layer->lslices_separated_component_bboxes[a] = body_bbox[find(offset[i] + a)];
+            }
+        }
+
         const auto& adaptive_fill_octree = this->m_adaptive_fill_octrees.first;
         const auto& support_fill_octree = this->m_adaptive_fill_octrees.second;
 
@@ -1297,6 +1364,9 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_combination_max_layer_height"
             || opt_key == "bottom_shell_thickness"
             || opt_key == "top_shell_thickness"
+            || opt_key == "top_surface_expansion"
+            || opt_key == "top_surface_expansion_margin"
+            || opt_key == "top_surface_expansion_direction"
             || opt_key == "minimum_sparse_infill_area"
             || opt_key == "sparse_infill_filament_id"
             || opt_key == "internal_solid_filament_id"
@@ -1330,6 +1400,9 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "top_surface_line_width"
             || opt_key == "top_surface_density"
             || opt_key == "bottom_surface_density"
+            || opt_key == "anisotropic_surfaces" 
+            || opt_key == "center_of_surface_pattern"
+            || opt_key == "separated_infills" 
             || opt_key == "initial_layer_line_width"
             || opt_key == "small_area_infill_flow_compensation"
             || opt_key == "lateral_lattice_angle_1"
@@ -1684,6 +1757,69 @@ void PrintObject::detect_surfaces_type()
                             top.clear();
                             surfaces_append(top, diff_ex(top_polygons, bottom), stTop);
                         }
+                    }
+
+                    // ORCA: Expand the top surfaces outward by top_surface_expansion in every direction. This
+                    // enlarges the top solid infill and, in particular, grows it over the covered material left
+                    // by features rising from the middle of a top surface (filling holes and joining tops so the
+                    // features rest on it). The expansion stays inside the section it belongs to: each connected
+                    // solid island has its own outer wall, so the top is grown within each island separately and
+                    // clipped to it - growing one island's top across the gap into another island (which may have
+                    // no top surface, leaving a partially filled layer) is never allowed. The top infill sits
+                    // inside the perimeters, so the margin is measured from the walls: the island is inset by the
+                    // band the walls consume (outer wall + inner walls) plus the configured margin, making that
+                    // value the real clearance between the expanded top and the walls (avoiding a hull line). The
+                    // original top is unioned back in, so where it already sits within that band it is kept as-is.
+                    // Never claims a bottom surface.
+                    const double top_expansion = layerm->region().config().top_surface_expansion.value;
+                    if (top_expansion > 0. && ! top.empty()) {
+                        const double     d        = scale_(top_expansion);
+                        const auto       jt       = Clipper2Lib::JoinType::Miter;
+                        const ExPolygons T        = union_ex(to_expolygons(top));
+                        const int    wall_loops = layerm->region().config().wall_loops.value;
+                        const double wall_band  = wall_loops <= 0 ? 0. :
+                            double(layerm->flow(frExternalPerimeter).scaled_width()) +
+                            double(layerm->flow(frPerimeter).scaled_width()) * double(wall_loops - 1);
+                        const double margin     = scale_(layerm->region().config().top_surface_expansion_margin.value);
+                        // minimum real top to act on: ignore anything thinner than ~2 top-infill lines
+                        const float  min_top    = float(layerm->flow(frTopSolidInfill).scaled_width());
+                        const auto   direction  = layerm->region().config().top_surface_expansion_direction.value;
+
+                        ExPolygons grown;
+                        for (const ExPolygon &island : union_ex(layerm_slices_surfaces)) {
+                            // The top infill only exists inside the perimeters, so seed and measure from the infill
+                            // region (the island minus the wall band), not the raw slice. A section whose only
+                            // exposed top lies in the wall band - i.e. a layer where the top is just the walls
+                            // themselves - has no infill here and is skipped, instead of being flooded inward by
+                            // the expansion. Thin slivers inside the infill region are dropped by the opening too.
+                            const ExPolygons infill_region = wall_band > 0. ? offset_ex(island, -float(wall_band)) : ExPolygons{ island };
+                            const ExPolygons island_top    = intersection_ex(T, infill_region);
+                            if (opening_ex(island_top, min_top).empty())
+                                continue; // no real top infill in this section - never expand into it
+
+                            // grow by d, then keep only the part allowed by the configured direction: inward fills
+                            // the holes/gaps left by features (clip the growth back to the top's own filled outline,
+                            // which leaves the outer edge fixed), outward grows the outer edge toward the walls (drop
+                            // the growth that fell into the original holes), and inward+outward keeps both.
+                            ExPolygons expanded = offset_ex_2(island_top, d, jt);
+                            if (direction != TopSurfaceExpansionDirection::InwardAndOutward) {
+                                ExPolygons outline; // the top with its holes filled (same outer edge)
+                                outline.reserve(island_top.size());
+                                for (const ExPolygon &ex : island_top)
+                                    outline.emplace_back(ex.contour);
+                                outline = union_ex(outline);
+                                expanded = direction == TopSurfaceExpansionDirection::Inward ?
+                                    intersection_ex(expanded, outline) :              // only growth into the holes
+                                    diff_ex(expanded, diff_ex(outline, island_top));  // only growth past the outer edge
+                            }
+                            // hold the expansion clear of the walls by the configured margin
+                            const ExPolygons allowed = margin > 0. ? offset_ex(infill_region, -float(margin)) : infill_region;
+                            append(grown, intersection_ex(expanded, allowed));
+                        }
+
+                        ExPolygons new_top = diff_ex(union_ex(T, grown), to_expolygons(bottom));
+                        top.clear();
+                        surfaces_append(top, std::move(new_top), stTop);
                     }
 
         #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
@@ -2182,7 +2318,7 @@ void PrintObject::discover_vertical_shells()
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 
                     Flow         solid_infill_flow   = layerm->flow(frSolidInfill);
-                    coord_t      infill_line_spacing = solid_infill_flow.scaled_spacing(); 
+                    coord_t      infill_line_spacing = solid_infill_flow.scaled_spacing();
                     // Find a union of perimeters below / above this surface to guarantee a minimum shell thickness.
                     Polygons shell;
                     Polygons holes;
@@ -2224,7 +2360,7 @@ void PrintObject::discover_vertical_shells()
                             shell = std::move(shells2);
                         else if (! shells2.empty()) {
                             polygons_append(shell, shells2);
-                            // Running the union_ using the Clipper library piece by piece is cheaper 
+                            // Running the union_ using the Clipper library piece by piece is cheaper
                             // than running the union_ all at once.
                             shell = union_(shell);
                         }
@@ -2291,12 +2427,12 @@ void PrintObject::discover_vertical_shells()
         				Slic3r::SVG svg(debug_out_path("discover_vertical_shells-perimeters-before-union-%d.svg", debug_idx), get_extents(shell));
                         svg.draw(shell);
                         svg.draw_outline(shell, "black", scale_(0.05));
-                        svg.Close(); 
+                        svg.Close();
                     }
 #endif /* SLIC3R_DEBUG_SLICE_PROCESSING */
 #if 0
 //                    shell = union_(shell, true);
-                    shell = union_(shell, false); 
+                    shell = union_(shell, false);
 #endif
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
                     shell_ex = union_safety_offset_ex(shell);
@@ -2600,7 +2736,7 @@ void PrintObject::bridge_over_infill()
         }
     }
 
-    // LIGHTNING INFILL SECTION - If lightning infill is used somewhere, we check the areas that are going to be bridges, and those that rely on the 
+    // LIGHTNING INFILL SECTION - If lightning infill is used somewhere, we check the areas that are going to be bridges, and those that rely on the
     // lightning infill under them get expanded. This somewhat helps to ensure that most of the extrusions are anchored to the lightning infill at the ends.
     // It requires modifying this instance of print object in a specific way, so that we do not invalidate the pointers in our surfaces_by_layer structure.
     if (has_lightning_infill) {
@@ -3575,13 +3711,13 @@ static void clamp_feature_filament_to_valid(ConfigOptionInt &opt, size_t num_ext
         opt.value = 1;
 }
 
-PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders)
+PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObjectConfig &default_object_config, const ModelObject &object, size_t num_extruders, std::vector<int>& variant_index)
 {
     PrintObjectConfig config = default_object_config;
     {
         DynamicPrintConfig src_normalized(object.config.get());
         src_normalized.normalize_fdm();
-        config.apply(src_normalized, true);
+        update_static_print_config_from_dynamic(config, src_normalized, variant_index, print_options_with_variant, 1);
     }
     // Clamp invalid extruders to the default extruder (with index 1).
     clamp_exturder_to_default(config.support_filament,           num_extruders);
@@ -3609,7 +3745,7 @@ struct FeatureFilamentOverrideMask
     bool inner_wall_filament_id    = false;
 };
 
-static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPrintConfig &in, FeatureFilamentOverrideMask &feature_overrides)
+static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPrintConfig &in, FeatureFilamentOverrideMask &feature_overrides, std::vector<int>& variant_index)
 {
     // 1) Explicit feature filament values take precedence over base extruder fallback.
     auto *opt_extruder = in.opt<ConfigOptionInt>(key_extruder);
@@ -3650,8 +3786,18 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
                         else if (it->first == "inner_wall_filament_id")
                             feature_overrides.inner_wall_filament_id = false;
                     }
-                } else
-                    my_opt->set(it->second.get());
+                } else {
+                    if (*my_opt != *(it->second)) {
+                        if (my_opt->is_scalar() || variant_index.empty() || (print_options_with_variant.find(it->first) == print_options_with_variant.end()))
+                            my_opt->set(it->second.get());
+                            //my_opt->set(it->second.get());
+                        else {
+                            ConfigOptionVectorBase* opt_vec_src = static_cast<ConfigOptionVectorBase*>(my_opt);
+                            const ConfigOptionVectorBase* opt_vec_dest = static_cast<const ConfigOptionVectorBase*>(it->second.get());
+                            opt_vec_src->set_to_index(opt_vec_dest, variant_index, 1);
+                        }
+                    }
+                }
             }
 
     // 3) Apply base extruder only to features that were not explicitly overridden.
@@ -3671,7 +3817,7 @@ static void apply_to_print_region_config(PrintRegionConfig &out, const DynamicPr
     }
 }
 
-PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders)
+PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &default_or_parent_region_config, const DynamicPrintConfig *layer_range_config, const ModelVolume &volume, size_t num_extruders, std::vector<int>& variant_index)
 {
     PrintRegionConfig config = default_or_parent_region_config;
     FeatureFilamentOverrideMask feature_overrides;
@@ -3689,17 +3835,17 @@ PrintRegionConfig region_config_from_model_volume(const PrintRegionConfig &defau
     if (volume.is_model_part()) {
         // default_or_parent_region_config contains the Print's PrintRegionConfig.
         // Override with ModelObject's PrintRegionConfig values.
-        apply_to_print_region_config(config, volume.get_object()->config.get(), feature_overrides);
+        apply_to_print_region_config(config, volume.get_object()->config.get(), feature_overrides, variant_index);
     } else {
         // default_or_parent_region_config contains parent PrintRegion config, which already contains ModelVolume's config.
     }
-    apply_to_print_region_config(config, volume.config.get(), feature_overrides);
+    apply_to_print_region_config(config, volume.config.get(), feature_overrides, variant_index);
     if (! volume.material_id().empty())
-        apply_to_print_region_config(config, volume.material()->config.get(), feature_overrides);
+        apply_to_print_region_config(config, volume.material()->config.get(), feature_overrides, variant_index);
     if (layer_range_config != nullptr) {
         // Not applicable to modifiers.
         assert(volume.is_model_part());
-    	apply_to_print_region_config(config, *layer_range_config, feature_overrides);
+    	apply_to_print_region_config(config, *layer_range_config, feature_overrides, variant_index);
     }
     // Resolve feature defaults and clamp invalid extruders to index 1.
     clamp_feature_filament_to_valid(config.sparse_infill_filament_id, num_extruders);
@@ -3749,7 +3895,7 @@ void PrintObject::update_slicing_parameters()
 }
 
 // Orca: XYZ shrinkage compensation has introduced the const Vec3d &object_shrinkage_compensation parameter to the function below
-SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full_config, const ModelObject &model_object, float object_max_z, const Vec3d &object_shrinkage_compensation)
+SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full_config, const ModelObject &model_object, float object_max_z, const Vec3d &object_shrinkage_compensation, std::vector<int> variant_index)
 {
 	PrintConfig         print_config;
 	PrintObjectConfig   object_config;
@@ -3759,14 +3905,14 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 	default_region_config.apply(full_config, true);
     // BBS
 	size_t              filament_extruders = print_config.filament_diameter.size();
-	object_config = object_config_from_model_object(object_config, model_object, filament_extruders);
+	object_config = object_config_from_model_object(object_config, model_object, filament_extruders, variant_index);
 
 	std::vector<unsigned int> object_extruders;
 	for (const ModelVolume* model_volume : model_object.volumes)
 		if (model_volume->is_model_part()) {
 			PrintRegion::collect_object_printing_extruders(
 				print_config,
-				region_config_from_model_volume(default_region_config, nullptr, *model_volume, filament_extruders),
+				region_config_from_model_volume(default_region_config, nullptr, *model_volume, filament_extruders, variant_index),
                 object_config.brim_type != btNoBrim && object_config.brim_width > 0.,
 				object_extruders);
 			for (const std::pair<const t_layer_height_range, ModelConfig> &range_and_config : model_object.layer_config_ranges)
@@ -3778,7 +3924,7 @@ SlicingParameters PrintObject::slicing_parameters(const DynamicPrintConfig &full
 					range_and_config.second.has("bottom_surface_filament_id"))
 					PrintRegion::collect_object_printing_extruders(
 						print_config,
-						region_config_from_model_volume(default_region_config, &range_and_config.second.get(), *model_volume, filament_extruders),
+						region_config_from_model_volume(default_region_config, &range_and_config.second.get(), *model_volume, filament_extruders, variant_index),
                         object_config.brim_type != btNoBrim && object_config.brim_width > 0.,
 						object_extruders);
 		}

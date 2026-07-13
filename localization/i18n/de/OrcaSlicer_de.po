@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-06 12:57-0300\n"
+"POT-Creation-Date: 2026-07-12 12:27-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -162,6 +162,12 @@ msgstr "Ausfüllen"
 msgid "Gap Fill"
 msgstr "Lücken füllen"
 
+msgid "Vertical"
+msgstr "Vertikal"
+
+msgid "Horizontal"
+msgstr "Horizontal"
+
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
 msgstr "Erlaubt das malen nur auf Seiten, welche ausgewählt wurden durch: \"%1%\""
@@ -257,12 +263,6 @@ msgstr "Dreieck"
 msgid "Height Range"
 msgstr "Höhenbereich"
 
-msgid "Vertical"
-msgstr "Vertikal"
-
-msgid "Horizontal"
-msgstr "Horizontal"
-
 msgid "Remove painted color"
 msgstr "Gemalte Farbe entfernen"
 
@@ -327,6 +327,7 @@ msgstr "Gizmo-Drehen"
 msgid "Optimize orientation"
 msgstr "Optimiere Ausrichtung"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Skalieren"
 
@@ -336,8 +337,9 @@ msgstr "Gizmo-Skalieren"
 msgid "Error: Please close all toolbar menus first"
 msgstr "Fehler: Bitte schließen sie zuerst alle Werkzeugleistenmenüs"
 
+msgctxt "inches"
 msgid "in"
-msgstr "in"
+msgstr ""
 
 msgid "mm"
 msgstr "mm"
@@ -369,6 +371,9 @@ msgstr "Skalierungsverhältnisse"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Objekt-Operationen"
+
+msgid "Scale"
+msgstr "Skalieren"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -420,6 +425,10 @@ msgstr "Setze die aktuelle Rotation auf den Wert zurück, als das Rotationswerkz
 
 msgid "Reset current rotation to real zeros."
 msgstr "Setze die aktuelle Rotation auf die realen Nullen zurück."
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Skalieren"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3653,7 +3662,7 @@ msgstr "Kalibrierung abgeschlossen. Bitte suchen Sie die gleichmäßigste Extrus
 msgid "Save"
 msgstr "Speichern"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Zurück"
 
@@ -5035,6 +5044,7 @@ msgstr "Werkzeugwechsel"
 msgid "Color change"
 msgstr "Farbwechsel"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "aktuelle Platte drucken"
 
@@ -5198,11 +5208,15 @@ msgstr "Vermeiden Sie den Bereich der Extrusionskalibrierung"
 msgid "Align to Y axis"
 msgstr "An Y-Achse ausrichten"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Zurück"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "links"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "rechts"
 
@@ -5528,6 +5542,10 @@ msgstr "Aktuelle Platte drucken"
 msgid "Export G-code file"
 msgstr "G-Code als Datei exportieren"
 
+msgctxt "Verb"
+msgid "Print"
+msgstr "aktuelle Platte drucken"
+
 msgid "Export plate sliced file"
 msgstr "Exportiere aktuelle Platte als STL Datei"
 
@@ -5701,15 +5719,6 @@ msgstr "Aktuelle Konfiguration in Dateien exportieren"
 msgid "Export"
 msgstr "Exportieren"
 
-msgid "Sync Presets"
-msgstr "Presets synchronisieren"
-
-msgid "Pull and apply the latest presets from OrcaCloud"
-msgstr "Die neuesten Presets von OrcaCloud abrufen und anwenden"
-
-msgid "You must be logged in to sync presets from cloud."
-msgstr "Sie müssen angemeldet sein, um Presets aus der Cloud zu synchronisieren."
-
 msgid "Quit"
 msgstr "Beenden"
 
@@ -5825,6 +5834,15 @@ msgstr "Ansicht"
 
 msgid "Preset Bundle"
 msgstr "Vorlagen-Bundle"
+
+msgid "Sync Presets"
+msgstr "Presets synchronisieren"
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr "Die neuesten Presets von OrcaCloud abrufen und anwenden"
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr "Sie müssen angemeldet sein, um Presets aus der Cloud zu synchronisieren."
 
 msgid "Syncing presets from cloud…"
 msgstr "Synchronisiere Presets aus der Cloud…"
@@ -10362,12 +10380,8 @@ msgstr "Düseninformationen erfolgreich synchronisiert."
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr "Düsen und AMS Nummer erfolgreich synchronisiert."
 
-msgid "Continue to sync filaments"
-msgstr "Weiter mit dem Synchronisieren der Filamente"
-
-msgctxt "Sync_Nozzle_AMS"
-msgid "Cancel"
-msgstr "Abbrechen"
+msgid "Do you want to continue to sync filaments?"
+msgstr ""
 
 msgid "Successfully synchronized filament color from printer."
 msgstr "Farbe des Filaments erfolgreich vom Drucker synchronisiert."
@@ -11697,19 +11711,11 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
 msgstr ""
-"Externe Brückenwinkelüberschreibung.\n"
-"Wenn auf Null gelassen, wird der Brückenwinkel automatisch für jede spezifische Brücke berechnet.\n"
-"Ansonsten wird der angegebene Winkel wie folgt verwendet:\n"
-" - Die absoluten Koordinaten\n"
-" - Die absoluten Koordinaten + Modellrotation: Wenn 'Füllrichtung an Modell ausrichten' aktiviert ist\n"
-" - Der optimale automatische Winkel + dieser Wert: Wenn 'Relativer Brückenwinkel' aktiviert ist\n"
-"\n"
-"Verwenden Sie 180° für einen absoluten Winkel von Null."
 
 msgid "Internal bridge infill direction"
 msgstr "Interne Brücken Füllrichtung"
@@ -11719,19 +11725,11 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
 msgstr ""
-"Interne Brückenwinkelüberschreibung.\n"
-"Wenn auf Null gelassen, wird der Brückenwinkel automatisch für jede spezifische Brücke berechnet.\n"
-"Ansonsten wird der angegebene Winkel wie folgt verwendet:\n"
-" - Die absoluten Koordinaten\n"
-" - Die absoluten Koordinaten + Modellrotation: Wenn 'Füllrichtung an Modell ausrichten' aktiviert ist\n"
-" - Der optimale automatische Winkel + dieser Wert: Wenn 'Relativer Brückenwinkel' aktiviert ist\n"
-"\n"
-"Verwenden Sie 180° für einen absoluten Winkel von Null."
 
 msgid "Relative bridge angle"
 msgstr "Relativer Brückenwinkel"
@@ -12514,6 +12512,42 @@ msgstr "Dichte der oberen Oberfläche"
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
 msgstr "Dichte der oberen Oberflächenschicht. Ein Wert von 100 % erzeugt eine vollständig massive, glatte obere Schicht. Eine Reduzierung dieses Wertes führt zu einer strukturierten oberen Oberfläche, abhängig vom gewählten Oberflächenmuster. Ein Wert von 0 % führt dazu, dass nur die Wände der oberen Schicht erstellt werden. Diese Einstellung dient ästhetischen oder funktionalen Zwecken und nicht zur Behebung von Problemen wie Überextrusion."
 
+msgid "Top surface expansion"
+msgstr ""
+
+msgid ""
+"Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+msgstr ""
+
+msgid "Top expansion wall margin"
+msgstr ""
+
+msgid ""
+"Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+"This can cause contraction marks (such as the hull line) on the outer walls.\n"
+"By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
+msgstr ""
+
+msgid "Top expansion direction"
+msgstr ""
+
+msgid ""
+"Direction in which the top surface expansion grows.\n"
+" - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+" - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+" - Inward and Outward does both."
+msgstr ""
+
+msgid "Inward and Outward"
+msgstr ""
+
+msgid "Inward"
+msgstr ""
+
+msgid "Outward"
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "Muster der unteren Fläche"
 
@@ -13179,15 +13213,13 @@ msgstr "Fülldichte"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr "Dichte der internen Füllung, 100% verwandelt alle interne Füllung in massive Füllung und das interne massive Füllmuster wird verwendet."
 
-msgid "Align infill direction to model"
-msgstr "Füllrichtung am Modell ausrichten"
+msgid "Align directions to model"
+msgstr ""
 
 msgid ""
-"Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-"When enabled, directions rotate with the model to maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+"When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
-"Richtet die Richtungen von Füllung, Brücke, Glättung und Oberflächenfüllung so aus, dass sie der Orientierung des Modells auf der Bauplatte folgen.\n"
-"Wenn aktiviert, drehen sich die Richtungen mit dem Modell, um optimale Festigkeitseigenschaften zu erhalten."
 
 msgid "Insert solid layers"
 msgstr "Massive Schichten einfügen"
@@ -14961,6 +14993,10 @@ msgstr "Ausgerichtet"
 msgid "Aligned back"
 msgstr "Ausgerichtet hinten"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Zurück"
+
 msgid "Random"
 msgstr "Zufall"
 
@@ -15332,6 +15368,18 @@ msgstr "Reinige alle Druckextruder"
 
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "Wenn aktiviert, werden alle Druckextruder am vorderen Rand des Druckbetts am Anfang des Drucks gereinigt."
+
+msgid "Toolchange ordering"
+msgstr ""
+
+msgid ""
+"Determines the order of tool changes on each layer.\n"
+"- Default: Starts with the last used extruder to minimize tool changes.\n"
+"- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+msgstr ""
+
+msgid "Cyclic"
+msgstr ""
 
 msgid "Slice gap closing radius"
 msgstr "Slice-Lückenschlussradius"
@@ -15779,6 +15827,45 @@ msgstr "Dicke der oberen Schale"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Die Anzahl der oberen festen Schichten wird beim Slicen erhöht, wenn die obere Schalenstärke dünner als dieser Wert ist. Dies kann verhindern, dass die Schale zu dünn wird, wenn eine geringe Schichthöhe verwendet wird. 0 bedeutet, dass diese Einstellung deaktiviert ist und die Dicke der oberen Schale absolut durch die oberen Schalenschichten bestimmt wird."
+
+msgid "Anisotropic surfaces"
+msgstr ""
+
+msgid ""
+"Anisotropic patterns on the top and bottom surfaces.\n"
+"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
+"This option disable the gap fill.\n"
+"This option can increase a printing time."
+msgstr ""
+
+msgid "Separated infills"
+msgstr ""
+
+msgid ""
+"Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
+"Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+"Affects line and grid patterns and rotation-template infills.\n"
+"Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
+msgstr ""
+
+msgid "Center surface pattern on"
+msgstr ""
+
+msgid ""
+"Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
+" - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+" - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
+" - Each Assembly: uses a single shared center for the whole object or assembly."
+msgstr ""
+
+msgid "Each Surface"
+msgstr ""
+
+msgid "Each Model"
+msgstr ""
+
+msgid "Each Assembly"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19821,6 +19908,68 @@ msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
 
+#~ msgid "Continue to sync filaments"
+#~ msgstr "Weiter mit dem Synchronisieren der Filamente"
+
+#~ msgctxt "Sync_Nozzle_AMS"
+#~ msgid "Cancel"
+#~ msgstr "Abbrechen"
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "External Bridging angle override.\n"
+#~ "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
+#~ "Otherwise the provided angle will be used according to:\n"
+#~ " - The absolute coordinates\n"
+#~ " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+#~ " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
+#~ "\n"
+#~ "Use 180° for zero absolute angle."
+#~ msgstr ""
+#~ "Externe Brückenwinkelüberschreibung.\n"
+#~ "Wenn auf Null gelassen, wird der Brückenwinkel automatisch für jede spezifische Brücke berechnet.\n"
+#~ "Ansonsten wird der angegebene Winkel wie folgt verwendet:\n"
+#~ " - Die absoluten Koordinaten\n"
+#~ " - Die absoluten Koordinaten + Modellrotation: Wenn 'Füllrichtung an Modell ausrichten' aktiviert ist\n"
+#~ " - Der optimale automatische Winkel + dieser Wert: Wenn 'Relativer Brückenwinkel' aktiviert ist\n"
+#~ "\n"
+#~ "Verwenden Sie 180° für einen absoluten Winkel von Null."
+
+#~ msgid ""
+#~ "Internal Bridging angle override.\n"
+#~ "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
+#~ "Otherwise the provided angle will be used according to:\n"
+#~ " - The absolute coordinates\n"
+#~ " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+#~ " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
+#~ "\n"
+#~ "Use 180° for zero absolute angle."
+#~ msgstr ""
+#~ "Interne Brückenwinkelüberschreibung.\n"
+#~ "Wenn auf Null gelassen, wird der Brückenwinkel automatisch für jede spezifische Brücke berechnet.\n"
+#~ "Ansonsten wird der angegebene Winkel wie folgt verwendet:\n"
+#~ " - Die absoluten Koordinaten\n"
+#~ " - Die absoluten Koordinaten + Modellrotation: Wenn 'Füllrichtung an Modell ausrichten' aktiviert ist\n"
+#~ " - Der optimale automatische Winkel + dieser Wert: Wenn 'Relativer Brückenwinkel' aktiviert ist\n"
+#~ "\n"
+#~ "Verwenden Sie 180° für einen absoluten Winkel von Null."
+
+#~ msgid "Align infill direction to model"
+#~ msgstr "Füllrichtung am Modell ausrichten"
+
+#~ msgid ""
+#~ "Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
+#~ "When enabled, directions rotate with the model to maintain optimal strength characteristics."
+#~ msgstr ""
+#~ "Richtet die Richtungen von Füllung, Brücke, Glättung und Oberflächenfüllung so aus, dass sie der Orientierung des Modells auf der Bauplatte folgen.\n"
+#~ "Wenn aktiviert, drehen sich die Richtungen mit dem Modell, um optimale Festigkeitseigenschaften zu erhalten."
+
+#~ msgid "Print"
+#~ msgstr "aktuelle Platte drucken"
+
+#~ msgid "in"
+#~ msgstr "in"
+
 #~ msgid "Object coordinates"
 #~ msgstr "Objektkoordinaten"
 
@@ -21725,10 +21874,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "Abwählen"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "Skalieren"
 
 #~ msgid "Lift Z Enforcement"
 #~ msgstr "Z-Höhe einhalten"

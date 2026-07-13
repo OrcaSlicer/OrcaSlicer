@@ -272,6 +272,10 @@ struct SurfaceFillParams
     // For Gyroid: when true, use the parameterized "optimized" wave.
     bool gyroid_optimized = false;
 
+    bool                   anisotropic_surfaces{false};
+    CenterOfSurfacePattern center_of_surface_pattern{CenterOfSurfacePattern::Each_Surface};
+    bool                   separated_infills{false};
+
 	bool operator<(const SurfaceFillParams &rhs) const {
 #define RETURN_COMPARE_NON_EQUAL(KEY) if (this->KEY < rhs.KEY) return true; if (this->KEY > rhs.KEY) return false;
 #define RETURN_COMPARE_NON_EQUAL_TYPED(TYPE, KEY) if (TYPE(this->KEY) < TYPE(rhs.KEY)) return true; if (TYPE(this->KEY) > TYPE(rhs.KEY)) return false;
@@ -301,8 +305,12 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(lateral_lattice_angle_2);
 		RETURN_COMPARE_NON_EQUAL(symmetric_infill_y_axis);
 		RETURN_COMPARE_NON_EQUAL(infill_lock_depth);
-		RETURN_COMPARE_NON_EQUAL(skin_infill_depth);		RETURN_COMPARE_NON_EQUAL(infill_overhang_angle);
+		RETURN_COMPARE_NON_EQUAL(skin_infill_depth);
+        RETURN_COMPARE_NON_EQUAL(infill_overhang_angle);
 		RETURN_COMPARE_NON_EQUAL(gyroid_optimized);
+        RETURN_COMPARE_NON_EQUAL(anisotropic_surfaces);
+        RETURN_COMPARE_NON_EQUAL(center_of_surface_pattern);
+        RETURN_COMPARE_NON_EQUAL(separated_infills);
 
 		return false;
 	}
@@ -329,6 +337,9 @@ struct SurfaceFillParams
 				this->infill_lock_depth       == rhs.infill_lock_depth       &&
 				this->skin_infill_depth       == rhs.skin_infill_depth       &&
                 this->infill_overhang_angle   == rhs.infill_overhang_angle   &&
+                this->anisotropic_surfaces    == rhs.anisotropic_surfaces &&
+                this->center_of_surface_pattern == rhs.center_of_surface_pattern &&
+                this->separated_infills       == rhs.separated_infills &&
                 this->gyroid_optimized        == rhs.gyroid_optimized;
 	}
 };
@@ -868,6 +879,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 params.lateral_lattice_angle_1 = region_config.lateral_lattice_angle_1;
                 params.lateral_lattice_angle_2 = region_config.lateral_lattice_angle_2;
                 params.infill_overhang_angle = region_config.infill_overhang_angle;
+                params.anisotropic_surfaces = region_config.anisotropic_surfaces;
+                params.center_of_surface_pattern = region_config.center_of_surface_pattern;
+                params.separated_infills = region_config.separated_infills;
                 if (params.pattern == ipLockedZag) {
                     params.infill_lock_depth = scale_(region_config.infill_lock_depth);
                     params.skin_infill_depth = scale_(region_config.skin_infill_depth);
@@ -1309,6 +1323,22 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         params.config               = &region_config;
         params.pattern              = surface_fill.params.pattern;
 
+        // Orca: Checking the filling of a centered surface by drawing for each model parts
+        bool is_top_or_bottom = params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface;
+        bool is_centered_infill = surface_fill.params.pattern == ipArchimedeanChords || surface_fill.params.pattern == ipOctagramSpiral;
+        if (is_top_or_bottom) {
+            params.is_anisotropic            = surface_fill.params.anisotropic_surfaces;      // Orca: anisotropic surfaces
+            params.center_of_surface_pattern = surface_fill.params.center_of_surface_pattern; // Orca: center of surface pattern
+        }
+        // Orca: Each_Model centers the pattern on each model part's bbox; Each_Surface / Each_Assembly
+        // fall through to the default (whole-object) bounding box below.
+        bool is_per_model_center = is_top_or_bottom && params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model && is_centered_infill;
+        bool is_separate_infill = !is_top_or_bottom && surface_fill.params.separated_infills &&
+                                  (
+                                  is_separable_infill_pattern(surface_fill.params.pattern) ||
+                                  params.config->solid_infill_rotate_template != "" ||
+                                  params.config->sparse_infill_rotate_template != "" );
+
         if( surface_fill.params.pattern == ipLockedZag ) {
 			params.locked_zag = true;
             params.infill_lock_depth = surface_fill.params.infill_lock_depth;
@@ -1332,7 +1362,36 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
 			params.can_reverse = false;
 		for (ExPolygon& expoly : surface_fill.expolygons) {
 
-      f->no_overlap_expolygons = intersection_ex(surface_fill.no_overlap_expolygons, ExPolygons() = {expoly}, ApplySafetyOffset::Yes);
+            // Orca: separate infill / per-model pattern centering.
+            //
+            // Center the pattern on each connected body of the object independently, so every piece
+            // is filled exactly as if it were sliced on its own: touching/overlapping parts merge
+            // into one body sharing a center, while separate parts and disconnected islands (even
+            // interleaved-but-not-touching ones, e.g. chain links) each get their own. The body each
+            // island belongs to, and its full bounding box, were resolved in 3D by PrintObject::
+            // infill() (lslices_separated_component_bboxes, aligned with this layer's lslices). We
+            // match this fill region to the island it overlaps most, then re-use the whole-object
+            // bounding box (origin-centered — identical extent to the default, so coverage and cost
+            // are unchanged) re-centered on that body.
+            if (is_per_model_center || is_separate_infill) {
+                double      best_overlap = 0.;
+                BoundingBox best_component;
+                for (size_t r = 0; r < this->lslices.size() && r < this->lslices_separated_component_bboxes.size(); ++ r) {
+                    const double overlap = area(intersection_ex(this->lslices[r], expoly));
+                    if (overlap > best_overlap) {
+                        best_overlap   = overlap;
+                        best_component = this->lslices_separated_component_bboxes[r];
+                    }
+                }
+                if (best_component.defined) {
+                    const Point c         = best_component.center();
+                    BoundingBox part_bbox = bbox; // origin-centered, whole-object extent (from above)
+                    part_bbox.translate(c.x(), c.y()); // re-center on this body
+                    f->set_bounding_box(part_bbox);
+                }
+            } // - End: separate infill / per-model pattern centering
+
+            f->no_overlap_expolygons = intersection_ex(surface_fill.no_overlap_expolygons, ExPolygons() = {expoly}, ApplySafetyOffset::Yes);
             if (params.symmetric_infill_y_axis) {
                 params.symmetric_y_axis = f->extended_object_bounding_box().center().x();
                 expoly.symmetric_y(params.symmetric_y_axis);

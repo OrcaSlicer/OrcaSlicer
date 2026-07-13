@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-06 12:57-0300\n"
+"POT-Creation-Date: 2026-07-12 12:27-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -162,6 +162,12 @@ msgstr "塗りつぶし"
 msgid "Gap Fill"
 msgstr "隙間充填"
 
+msgid "Vertical"
+msgstr "垂直"
+
+msgid "Horizontal"
+msgstr "水平"
+
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
 msgstr "%1%で選択した面だけをペイントする"
@@ -257,12 +263,6 @@ msgstr "三角形"
 msgid "Height Range"
 msgstr "高さ範囲"
 
-msgid "Vertical"
-msgstr "垂直"
-
-msgid "Horizontal"
-msgstr "水平"
-
 msgid "Remove painted color"
 msgstr "塗った色を消去"
 
@@ -327,6 +327,7 @@ msgstr "ギズモ-回転"
 msgid "Optimize orientation"
 msgstr "向きを最適化"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "スケール"
 
@@ -336,8 +337,9 @@ msgstr "ギズモ-縮尺"
 msgid "Error: Please close all toolbar menus first"
 msgstr "エラー: ツールバーを閉じてください"
 
+msgctxt "inches"
 msgid "in"
-msgstr "に"
+msgstr ""
 
 msgid "mm"
 msgstr "mm"
@@ -369,6 +371,9 @@ msgstr "倍率"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "オブジェクト操作"
+
+msgid "Scale"
+msgstr "スケール"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
@@ -420,6 +425,10 @@ msgstr "回転ツールを開いた時の値にリセットします。"
 
 msgid "Reset current rotation to real zeros."
 msgstr "現在の回転を0にリセットします。"
+
+msgctxt "Noun"
+msgid "Scale"
+msgstr "スケール"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -3628,7 +3637,7 @@ msgstr "キャリブレーションが完了しました。下の写真のよう
 msgid "Save"
 msgstr "保存"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "背面"
 
@@ -4999,6 +5008,7 @@ msgstr "ツールチェンジ"
 msgid "Color change"
 msgstr "色変更"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "造形する"
 
@@ -5162,11 +5172,15 @@ msgstr "押出しキャリブレーション領域を避ける"
 msgid "Align to Y axis"
 msgstr "Y軸に整列"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "背面"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "左"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "右"
 
@@ -5488,6 +5502,10 @@ msgstr "造形開始"
 msgid "Export G-code file"
 msgstr "G-codeをエクスポート"
 
+msgctxt "Verb"
+msgid "Print"
+msgstr "造形する"
+
 msgid "Export plate sliced file"
 msgstr "エクスポート"
 
@@ -5661,15 +5679,6 @@ msgstr "現在の構成をエクスポート"
 msgid "Export"
 msgstr "エクスポート"
 
-msgid "Sync Presets"
-msgstr ""
-
-msgid "Pull and apply the latest presets from OrcaCloud"
-msgstr ""
-
-msgid "You must be logged in to sync presets from cloud."
-msgstr ""
-
 msgid "Quit"
 msgstr "終了"
 
@@ -5784,6 +5793,15 @@ msgid "View"
 msgstr "表示"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
 msgstr ""
 
 msgid "Syncing presets from cloud…"
@@ -10257,12 +10275,8 @@ msgstr "ノズル情報の同期に成功しました。"
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr "ノズルとAMS数の情報の同期に成功しました。"
 
-msgid "Continue to sync filaments"
-msgstr "フィラメントの同期を続行"
-
-msgctxt "Sync_Nozzle_AMS"
-msgid "Cancel"
-msgstr "キャンセル"
+msgid "Do you want to continue to sync filaments?"
+msgstr ""
 
 msgid "Successfully synchronized filament color from printer."
 msgstr "プリンターからフィラメントの色を正常に同期しました。"
@@ -11555,7 +11569,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -11569,7 +11583,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -12213,6 +12227,42 @@ msgstr "上面密度"
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
 msgstr ""
 
+msgid "Top surface expansion"
+msgstr ""
+
+msgid ""
+"Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+msgstr ""
+
+msgid "Top expansion wall margin"
+msgstr ""
+
+msgid ""
+"Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+"This can cause contraction marks (such as the hull line) on the outer walls.\n"
+"By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
+msgstr ""
+
+msgid "Top expansion direction"
+msgstr ""
+
+msgid ""
+"Direction in which the top surface expansion grows.\n"
+" - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+" - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+" - Inward and Outward does both."
+msgstr ""
+
+msgid "Inward and Outward"
+msgstr ""
+
+msgid "Inward"
+msgstr ""
+
+msgid "Outward"
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "底面パターン"
 
@@ -12836,12 +12886,12 @@ msgstr "充填密度"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr ""
 
-msgid "Align infill direction to model"
-msgstr "インフィル方向をモデルに合わせる"
+msgid "Align directions to model"
+msgstr ""
 
 msgid ""
-"Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-"When enabled, directions rotate with the model to maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+"When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
 
 msgid "Insert solid layers"
@@ -14501,6 +14551,10 @@ msgstr "整列"
 msgid "Aligned back"
 msgstr ""
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "背面"
+
 msgid "Random"
 msgstr "ランダム"
 
@@ -14842,6 +14896,18 @@ msgstr "全てのエクストルーダーでプライムを実施"
 
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "有効にすると、すべてのプリントエクストルーダーは、プリント開始時にプリントベッドの前端で準備されます。"
+
+msgid "Toolchange ordering"
+msgstr ""
+
+msgid ""
+"Determines the order of tool changes on each layer.\n"
+"- Default: Starts with the last used extruder to minimize tool changes.\n"
+"- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+msgstr ""
+
+msgid "Cyclic"
+msgstr ""
 
 msgid "Slice gap closing radius"
 msgstr "隙間充填半径"
@@ -15270,6 +15336,45 @@ msgstr "トップ面厚さ"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "トップ面の厚さです、トップ面層数で決まった厚みがこの値より小さい場合、層数を増やします。この値が0にする場合、この設定が無効となり、設定した層数で造形します。"
+
+msgid "Anisotropic surfaces"
+msgstr ""
+
+msgid ""
+"Anisotropic patterns on the top and bottom surfaces.\n"
+"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
+"This option disable the gap fill.\n"
+"This option can increase a printing time."
+msgstr ""
+
+msgid "Separated infills"
+msgstr ""
+
+msgid ""
+"Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
+"Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+"Affects line and grid patterns and rotation-template infills.\n"
+"Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
+msgstr ""
+
+msgid "Center surface pattern on"
+msgstr ""
+
+msgid ""
+"Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
+" - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+" - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
+" - Each Assembly: uses a single shared center for the whole object or assembly."
+msgstr ""
+
+msgid "Each Surface"
+msgstr ""
+
+msgid "Each Model"
+msgstr ""
+
+msgid "Each Assembly"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19159,6 +19264,22 @@ msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
 
+#~ msgid "Continue to sync filaments"
+#~ msgstr "フィラメントの同期を続行"
+
+#~ msgctxt "Sync_Nozzle_AMS"
+#~ msgid "Cancel"
+#~ msgstr "キャンセル"
+
+#~ msgid "Align infill direction to model"
+#~ msgstr "インフィル方向をモデルに合わせる"
+
+#~ msgid "Print"
+#~ msgstr "造形する"
+
+#~ msgid "in"
+#~ msgstr "に"
+
 #~ msgid "Object coordinates"
 #~ msgstr "オブジェクト座標"
 
@@ -20101,10 +20222,6 @@ msgstr ""
 
 #~ msgid "Unselect"
 #~ msgstr "選択解除"
-
-#~ msgctxt "Verb"
-#~ msgid "Scale"
-#~ msgstr "スケール"
 
 #~ msgid "Z-hop when retract"
 #~ msgstr "リトラクト時にZ方向調整"
