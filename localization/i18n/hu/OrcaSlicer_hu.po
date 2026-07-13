@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -652,6 +652,9 @@ msgstr "Részekre darabolás"
 msgid "Reset cutting plane and remove connectors"
 msgstr "Vágósík visszaállítása és connectorok eltávolítása"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "Vágás"
 
@@ -687,6 +690,13 @@ msgstr "A horonnyal rendelkező vágósík érvénytelen"
 
 msgid "Connector"
 msgstr "Csatlakozó"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr "Vágás Síkkal"
@@ -2013,6 +2023,9 @@ msgstr "A %s csomaghoz való hozzáférés jogosulatlan."
 msgid "Loading user preset"
 msgstr "Felhasználói beállítás betöltése"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr "%s eltávolítva."
@@ -2025,6 +2038,18 @@ msgstr "Válaszd ki a nyelvet"
 
 msgid "Language"
 msgstr "Nyelv"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2659,6 +2684,45 @@ msgstr "Kattints az ikonra az objektum színfestésének szerkesztéséhez"
 msgid "Click the icon to shift this object to the bed"
 msgstr "Kattints az ikonra az objektum tárgyasztalra helyezéséhez"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "Fájl betöltése"
 
@@ -2667,6 +2731,9 @@ msgstr "Hiba!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Nem sikerült beolvasni a modelladatokat az aktuális fájlba."
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "Általános"
@@ -2679,6 +2746,12 @@ msgstr "Válts át objektumonkénti beállítás módba a kiválasztott objektum
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "Festett bolyhos felület eltávolítása"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "Magasságtartomány eltávolítása"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Connector törlése a vágás részét képező objektumból"
@@ -2710,11 +2783,23 @@ msgstr "Összes csatlakozó törlése"
 msgid "Deleting the last solid part is not allowed."
 msgstr "Az utolsó szilárd rész törlése nem megengedett."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "A célobjektum csak egy részt tartalmaz, ezért nem osztható fel."
 
+msgid "Split to parts"
+msgstr "Felosztás tárgyakra"
+
 msgid "Assembly"
 msgstr "Összeállítás"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "Vágási csatlakozó információk"
@@ -2749,6 +2834,9 @@ msgstr "Magasságtartományok"
 msgid "Settings for height range"
 msgstr "Magasságtartomány beállításai"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "Réteg"
 
@@ -2770,6 +2858,9 @@ msgstr "Típus:"
 
 msgid "Choose part type"
 msgstr "Alkatrésztípus kiválasztása"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "Adj meg egy új nevet"
@@ -2798,6 +2889,9 @@ msgstr "A(z) \"%s\" a felosztás után meghaladja az 1 millió felületet, ami n
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "A(z) \"%s\" rész hálója hibákat tartalmaz. Előbb javítsd ki."
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "További folyamatbeállítások"
 
@@ -2806,9 +2900,6 @@ msgstr "Paraméter eltávolítása"
 
 msgid "to"
 msgstr "eddig"
-
-msgid "Remove height range"
-msgstr "Magasságtartomány eltávolítása"
 
 msgid "Add height range"
 msgstr "Magasságtartomány hozzáadása"
@@ -3196,6 +3287,9 @@ msgstr "Fejlesztői mód"
 msgid "Launch troubleshoot center"
 msgstr ""
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3563,6 +3657,9 @@ msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Anyagáramlás kalibrálásának faktorai"
+
+msgid "Wiki Guide"
+msgstr "Wiki útmutató"
 
 msgid "PA Profile"
 msgstr "PA-profil"
@@ -4961,9 +5058,6 @@ msgstr "Beállítás optimálisra"
 msgid "Regroup filament"
 msgstr "Filamentek újracsoportosítása"
 
-msgid "Wiki Guide"
-msgstr "Wiki útmutató"
-
 msgid "up to"
 msgstr "legfeljebb"
 
@@ -5230,9 +5324,6 @@ msgstr "Objektumok elrendezése a kiválasztott tálcákon"
 
 msgid "Split to objects"
 msgstr "Felosztás objektumokra"
-
-msgid "Split to parts"
-msgstr "Felosztás tárgyakra"
 
 msgid "Assembly View"
 msgstr "Összeszerelési nézet"
@@ -5956,6 +6047,9 @@ msgstr "Exportálás eredménye"
 msgid "Select profile to load:"
 msgstr "Válaszd ki a betölteni kívánt profilt:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6557,6 +6651,12 @@ msgstr "Fénykép hozzáadása"
 
 msgid "Delete Photo"
 msgstr "Fénykép törlése"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "Elküldés"
@@ -7437,8 +7537,20 @@ msgstr ""
 "Ez a művelet megszakítja a vágási kapcsolatot.\n"
 "Ezután a modell konzisztenciája nem garantálható."
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "A kijelölt objektumot nem lehet feldarabolni."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "Letiltja az Auto-Drop funkciót a Z pozicionálás megőrzéséhez?\n"
@@ -7465,6 +7577,9 @@ msgstr "Válassz egy új fájlt"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "A cserefájl nem lett kiválasztva"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr "Cseréhez mappa kiválasztása"
@@ -7511,6 +7626,9 @@ msgstr "Nem sikerült újratölteni:"
 
 msgid "Error during reload"
 msgstr "Hiba az újratöltés során"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "A modellek szeletelése a következő figyelmeztetéseket generálta:"
@@ -8284,6 +8402,15 @@ msgstr "Választásom törlése a nyomtatóbeállítás szinkronizálásához f�
 msgid "Graphics"
 msgstr "Grafika"
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr ""
 
@@ -8299,16 +8426,7 @@ msgstr ""
 msgid "Shadows"
 msgstr ""
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr ""
-
-msgid "Smooth normals"
-msgstr ""
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
@@ -8625,6 +8743,9 @@ msgstr "Beállítások hozzáadása/eltávolítása"
 msgid "Edit preset"
 msgstr "Beállítás módosítása"
 
+msgid "Change extruder color"
+msgstr ""
+
 msgid "Unspecified"
 msgstr "Meghatározatlan"
 
@@ -8889,6 +9010,12 @@ msgstr "küldés befejezve"
 
 msgid "Error code"
 msgstr "Hibakód"
+
+msgid "Error desc"
+msgstr "Hibaleírás"
+
+msgid "Extra info"
+msgstr "Extra infó"
 
 msgid "High Flow"
 msgstr "Nagy áramlás"
@@ -9857,6 +9984,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Biztos, hogy %1% a kiválasztott beállítást?"
 
+msgid "Select printers"
+msgstr "Nyomtatók kiválasztása"
+
+msgid "Select profiles"
+msgstr "Profilok kiválasztása"
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -10104,6 +10237,12 @@ msgstr "Értékek átvitele balról jobbra"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "Ha engedélyezve van, ez a párbeszédablak használható a kijelölt értékek bal oldali előbeállításból a jobb oldaliba való átvitelére."
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "Fájl hozzáadása"
@@ -10469,6 +10608,9 @@ msgstr "Bejelentkezés"
 msgid "Login failed. Please try again."
 msgstr "Sikertelen bejelentkezés. Próbáld újra."
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[Művelet szükséges] "
 
@@ -10782,6 +10924,9 @@ msgstr "Nyomtató neve"
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "Hol találom a nyomtató IP címét és a hozzáférési kódot?"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "Csatlakozás"
@@ -12153,9 +12298,6 @@ msgstr ""
 "Az éles szögek észlelése előtt a geometria egyszerűsítve lesz. Ez a paraméter a leegyszerűsítésnél figyelembe vett eltérés minimális hosszát adja meg.\n"
 "0 értékkel kikapcsolható."
 
-msgid "Select printers"
-msgstr "Nyomtatók kiválasztása"
-
 msgid "upward compatible machine"
 msgstr "felfelé kompatibilis gép"
 
@@ -12165,9 +12307,6 @@ msgstr "Feltétel"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Logikai kifejezés, amely egy aktív nyomtatóprofil konfigurációs értékeit használja. Ha ez a kifejezés igaz, akkor ez a profil kompatibilis az aktív nyomtatóprofillal."
-
-msgid "Select profiles"
-msgstr "Profilok kiválasztása"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
@@ -16896,12 +17035,6 @@ msgstr ""
 
 msgid "Calibration not supported"
 msgstr "Kalibrálás nem támogatott"
-
-msgid "Error desc"
-msgstr "Hibaleírás"
-
-msgid "Extra info"
-msgstr "Extra infó"
 
 msgid "Flow Dynamics"
 msgstr "Áramlásdinamika"

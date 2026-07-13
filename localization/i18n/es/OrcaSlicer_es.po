@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -642,6 +642,9 @@ msgstr "Cortar en piezas"
 msgid "Reset cutting plane and remove connectors"
 msgstr "Reajustar el plano de corte y retirar los conectores"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "Realizar corte"
 
@@ -677,6 +680,13 @@ msgstr "El plano de corte con ranura no es válido"
 
 msgid "Connector"
 msgstr "Conector"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr "Corte por plano"
@@ -2014,6 +2024,9 @@ msgstr "El acceso al paquete %s no está autorizado."
 msgid "Loading user preset"
 msgstr "Cargando perfil de usuario"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr "Se ha eliminado %s."
@@ -2026,6 +2039,18 @@ msgstr "Seleccionar el idioma"
 
 msgid "Language"
 msgstr "Idioma"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2623,6 +2648,45 @@ msgstr "Haga clic en el icono para editar el pintado de colores del objeto"
 msgid "Click the icon to shift this object to the bed"
 msgstr "Presionar el icono para desplazar este objeto a la cama"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "Cargando archivo"
 
@@ -2631,6 +2695,9 @@ msgstr "¡Error!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Fallo recuperando los datos del modelo del archivo actual."
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "Genérico"
@@ -2643,6 +2710,12 @@ msgstr "Cambiar al modo de ajuste a modo por objeto para editar los ajustes de p
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "Eliminar la piel rugosa pintada"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "Borrar rango de altura"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Borrar conector del objeto el cual es parte del corte"
@@ -2673,11 +2746,23 @@ msgstr "Borrar todos los conectores"
 msgid "Deleting the last solid part is not allowed."
 msgstr "No se permite borrar la última parte sólida."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "El objeto de destino contiene solo una parte y no se puede dividir."
 
+msgid "Split to parts"
+msgstr "Separar en piezas"
+
 msgid "Assembly"
 msgstr "Ensamblaje"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "Información de Conectores de Corte"
@@ -2709,6 +2794,9 @@ msgstr "Rangos de altura"
 msgid "Settings for height range"
 msgstr "Ajustes de rango de altura"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "Capa"
 
@@ -2729,6 +2817,9 @@ msgstr "Tipo:"
 
 msgid "Choose part type"
 msgstr "Elija el tipo de pieza"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "Introduce un nuevo nombre"
@@ -2757,6 +2848,9 @@ msgstr "\"%s\" tendrá más de 1 millón de caras tras esta subdivisión, lo que
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "La malla de la pieza \"%s\" contiene errores. Por favor, repárela primero."
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "Perfil de proceso adicional"
 
@@ -2765,9 +2859,6 @@ msgstr "Eliminar parámetro"
 
 msgid "to"
 msgstr "a"
-
-msgid "Remove height range"
-msgstr "Borrar rango de altura"
 
 msgid "Add height range"
 msgstr "Añadir rango de altura"
@@ -3143,6 +3234,9 @@ msgstr "Modo de desarrollador"
 msgid "Launch troubleshoot center"
 msgstr "Abrir el centro de resolución de problemas"
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3500,6 +3594,9 @@ msgstr "SN"
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Factores de calibración de dinámicas de flujo"
+
+msgid "Wiki Guide"
+msgstr "Guía en Wiki"
 
 msgid "PA Profile"
 msgstr "Perfil de «Pressure advance»"
@@ -4870,9 +4967,6 @@ msgstr "Ajustar a óptimo"
 msgid "Regroup filament"
 msgstr "Reagrupar filamentos"
 
-msgid "Wiki Guide"
-msgstr "Guía en Wiki"
-
 msgid "up to"
 msgstr "hasta"
 
@@ -5131,9 +5225,6 @@ msgstr "Organizar los objetos en las camas seleccionadas"
 
 msgid "Split to objects"
 msgstr "Separar en objetos"
-
-msgid "Split to parts"
-msgstr "Separar en piezas"
 
 msgid "Assembly View"
 msgstr "Vista de Emsamblado"
@@ -5847,6 +5938,9 @@ msgstr "Exportar resultado"
 msgid "Select profile to load:"
 msgstr "Seleccionar perfil a cargar:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6438,6 +6532,12 @@ msgstr "Añadir Foto"
 
 msgid "Delete Photo"
 msgstr "Borrar Foto"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "Aceptar"
@@ -7305,8 +7405,20 @@ msgstr ""
 "Esta acción romperá una correspondencia de corte.\n"
 "Después de eso la consistencia del modelo no puede ser garantizada."
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "El objeto seleccionado no ha podido ser dividido."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "¿Desactivar la caída automática para mantener la posición en el eje Z?\n"
@@ -7331,6 +7443,9 @@ msgstr "Seleccione un nuevo archivo"
 
 msgid "File for the replacement wasn't selected"
 msgstr "El archivo de reemplazo no ha sido seleccionado"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr "Seleccionar carpeta desde la que reemplazar"
@@ -7377,6 +7492,9 @@ msgstr "No es posible recargar:"
 
 msgid "Error during reload"
 msgstr "Error durante la recarga"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "Hay alertas después de laminar los modelos:"
@@ -8146,6 +8264,15 @@ msgstr "Limpiar mi elección para sincronizar el preajuste de la impresora despu
 msgid "Graphics"
 msgstr "Gráficos"
 
+msgid "Smooth normals"
+msgstr "Suavizar normales"
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr "Sombreado Phong"
 
@@ -8161,20 +8288,8 @@ msgstr "Aplica SSAO en vista realista."
 msgid "Shadows"
 msgstr "Sombras"
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr "Los objetos renderizados proyectan sombras sobre la cama en la vista realista."
-
-msgid "Smooth normals"
-msgstr "Suavizar normales"
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
-"Aplica normales suavizadas a la vista realista.\n"
-"\n"
-"Requiere recargar la escena manualmente para que surta efecto (clic derecho en la vista 3D → \"Recargar todo\")."
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -8482,6 +8597,9 @@ msgstr "Añadir/Quitar ajustes"
 msgid "Edit preset"
 msgstr "Editar ajuste"
 
+msgid "Change extruder color"
+msgstr ""
+
 msgid "Unspecified"
 msgstr "No especificado"
 
@@ -8742,6 +8860,12 @@ msgstr "Envío completo"
 
 msgid "Error code"
 msgstr "Código de error"
+
+msgid "Error desc"
+msgstr "Error en la descripción"
+
+msgid "Extra info"
+msgstr "Información extra"
 
 msgid "High Flow"
 msgstr "Flujo alto"
@@ -9692,6 +9816,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "¿Está seguro de %1% el perfil seleccionado?"
 
+msgid "Select printers"
+msgstr "Seleccionar impresoras"
+
+msgid "Select profiles"
+msgstr "Seleccionar perfiles"
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -9935,6 +10065,12 @@ msgstr "Transferir valores de izquierda a derecha"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "Si se activa, este cuadro de diálogo se puede utilizar para transferir los valores seleccionados de los perfiles de la izquierda a la los de la derecha."
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "Añadir archivo"
@@ -10297,6 +10433,9 @@ msgstr "Inicio de sesión"
 msgid "Login failed. Please try again."
 msgstr "El inicio de sesión ha fallado. Inténtalo de nuevo."
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[Acción requerida] "
 
@@ -10602,6 +10741,9 @@ msgstr "Nombre de la impresora"
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "¿Dónde encontrar la IP de su impresora y el Código de Acceso?"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "Conectar"
@@ -11972,9 +12114,6 @@ msgstr ""
 "La geometría se verá diezmada antes de detectar angulos agudos. Este parámetro indica la longitud mínima de desviación para el diezmado\n"
 "0 para desactivar."
 
-msgid "Select printers"
-msgstr "Seleccionar impresoras"
-
 msgid "upward compatible machine"
 msgstr "máquina compatible ascendente"
 
@@ -11983,9 +12122,6 @@ msgstr "Condición"
 
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Una expresión booleana que utiliza los valores de configuración de un perfil de impresora activo. Si esta expresión es verdadera, el perfil será considerado compatible con el perfil de impresora activo."
-
-msgid "Select profiles"
-msgstr "Seleccionar perfiles"
 
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "Una expresión booleana que utiliza los valores de configuración de un perfil de impresión activo. Si el resultado de esta expresión es verdadero, se considera que este perfil es compatible con el perfil de impresión activo."
@@ -16610,12 +16746,6 @@ msgstr ""
 msgid "Calibration not supported"
 msgstr "Calibración no soportada"
 
-msgid "Error desc"
-msgstr "Error en la descripción"
-
-msgid "Extra info"
-msgstr "Información extra"
-
 msgid "Flow Dynamics"
 msgstr "Dinámicas de Flujo"
 
@@ -19514,6 +19644,18 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+#~ msgid "Renders cast shadows on the plate in realistic view."
+#~ msgstr "Los objetos renderizados proyectan sombras sobre la cama en la vista realista."
+
+#~ msgid ""
+#~ "Applies smooth normals to the realistic view.\n"
+#~ "\n"
+#~ "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+#~ msgstr ""
+#~ "Aplica normales suavizadas a la vista realista.\n"
+#~ "\n"
+#~ "Requiere recargar la escena manualmente para que surta efecto (clic derecho en la vista 3D → \"Recargar todo\")."
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "Continuar sincronizando filamentos"

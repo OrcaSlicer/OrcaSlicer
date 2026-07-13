@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -655,6 +655,9 @@ msgstr "Parçalara ayır"
 msgid "Reset cutting plane and remove connectors"
 msgstr "Kesme düzlemini sıfırlayın ve bağlayıcıları çıkarın"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "Kesimi gerçekleştir"
 
@@ -690,6 +693,13 @@ msgstr "Oluklu kesme düzlemi geçersiz"
 
 msgid "Connector"
 msgstr "Bağlayıcı"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr "Düzlemsel Kes"
@@ -2012,6 +2022,9 @@ msgstr ""
 msgid "Loading user preset"
 msgstr "Kullanıcı ön ayarı yükleniyor"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr ""
@@ -2024,6 +2037,18 @@ msgstr "Dili seçin"
 
 msgid "Language"
 msgstr "Dil"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2658,6 +2683,45 @@ msgstr "Nesnenin renk resmini düzenlemek için simgeye tıklayın"
 msgid "Click the icon to shift this object to the bed"
 msgstr "Bu nesneyi yatağa taşımak için simgeye tıklayın"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "Dosya yükleniyor"
 
@@ -2666,6 +2730,9 @@ msgstr "Hata!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Geçerli dosyadaki model verileri alınamadı."
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "Genel"
@@ -2678,6 +2745,12 @@ msgstr "Seçilen nesnelerin işlem ayarlarını düzenlemek için nesne başına
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "Boyalı pütürlü yüzeyi çıkarın"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "Yükseklik aralığını kaldır"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Kesilen parçanın parçası olan nesneden bağlayıcıyı sil"
@@ -2709,11 +2782,23 @@ msgstr "Tüm bağlayıcıları sil"
 msgid "Deleting the last solid part is not allowed."
 msgstr "Son katı kısmın silinmesine izin verilmez."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "Hedef nesne yalnızca bir parçadan oluşur ve bölünemez."
 
+msgid "Split to parts"
+msgstr "Parçalara bölme"
+
 msgid "Assembly"
 msgstr "Birleştir"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "Kesim Konnektörleri bilgileri"
@@ -2748,6 +2833,9 @@ msgstr "Yükseklik aralıkları"
 msgid "Settings for height range"
 msgstr "Yükseklik aralığı ayarları"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "Katman"
 
@@ -2769,6 +2857,9 @@ msgstr "Tip:"
 
 msgid "Choose part type"
 msgstr "Parça tipini seçin"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "Yeni adı girin"
@@ -2797,6 +2888,9 @@ msgstr "Bu alt bölümden sonra \"%s\" 1 milyon yüzü aşacak ve bu da dilimlem
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "\"%s\" bölümünün ağı hatalar içeriyor. Lütfen önce onu onarın."
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "Ek işlem ön ayarı"
 
@@ -2805,9 +2899,6 @@ msgstr "Parametreyi kaldır"
 
 msgid "to"
 msgstr "ile"
-
-msgid "Remove height range"
-msgstr "Yükseklik aralığını kaldır"
 
 msgid "Add height range"
 msgstr "Yükseklik aralığı ekle"
@@ -3194,6 +3285,9 @@ msgstr "Geliştirici Modu"
 msgid "Launch troubleshoot center"
 msgstr ""
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3561,6 +3655,9 @@ msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Akış Dinamiği Kalibrasyonunun Faktörleri"
+
+msgid "Wiki Guide"
+msgstr "Viki Kılavuzu"
 
 msgid "PA Profile"
 msgstr "PA Profili"
@@ -4962,9 +5059,6 @@ msgstr "Optimum'a Ayarla"
 msgid "Regroup filament"
 msgstr "Filamenti yeniden gruplandır"
 
-msgid "Wiki Guide"
-msgstr "Viki Kılavuzu"
-
 msgid "up to"
 msgstr "kadar"
 
@@ -5231,9 +5325,6 @@ msgstr "Seçilen plakalardaki nesneleri hizala"
 
 msgid "Split to objects"
 msgstr "Nesnelere böl"
-
-msgid "Split to parts"
-msgstr "Parçalara bölme"
 
 msgid "Assembly View"
 msgstr "Montaj görünümü"
@@ -5957,6 +6048,9 @@ msgstr "Sonucu dışa aktar"
 msgid "Select profile to load:"
 msgstr "Yüklenecek profili seç:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6553,6 +6647,12 @@ msgstr "Resim Ekle"
 
 msgid "Delete Photo"
 msgstr "Resmi Sil"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "Gönder"
@@ -7438,8 +7538,20 @@ msgstr ""
 "Bu eylem kesilmiş bir yazışmayı bozacaktır.\n"
 "Bundan sonra model tutarlılığı garanti edilemez."
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "Seçilen nesne bölünemedi."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
@@ -7466,6 +7578,9 @@ msgstr "Yeni dosya seç"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "Değiştirme dosyası seçilmedi"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr "Değiştirilecek klasörü seçin"
@@ -7512,6 +7627,9 @@ msgstr "Yeniden yüklenemiyor:"
 
 msgid "Error during reload"
 msgstr "Yeniden yükleme sırasında hata oluştu"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "Modellerin dilimlenmesinden sonra uyarılar vardır:"
@@ -8284,6 +8402,15 @@ msgstr "Dosyayı yükledikten sonra yazıcı ön ayarını senkronize etmek içi
 msgid "Graphics"
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr ""
 
@@ -8299,16 +8426,7 @@ msgstr ""
 msgid "Shadows"
 msgstr ""
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr ""
-
-msgid "Smooth normals"
-msgstr ""
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
@@ -8608,6 +8726,9 @@ msgstr "Ön ayarları ekle/kaldır"
 msgid "Edit preset"
 msgstr "Ön ayarı düzenle"
 
+msgid "Change extruder color"
+msgstr ""
+
 msgid "Unspecified"
 msgstr "belirtilmemiş"
 
@@ -8872,6 +8993,12 @@ msgstr "gönderme tamamlandı"
 
 msgid "Error code"
 msgstr "Hata kodu"
+
+msgid "Error desc"
+msgstr "Hata açıklaması"
+
+msgid "Extra info"
+msgstr "Fazladan bilgi"
 
 msgid "High Flow"
 msgstr "Yüksek Akış"
@@ -9843,6 +9970,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Seçilen ön ayarı %1% yaptığınızdan emin misiniz?"
 
+msgid "Select printers"
+msgstr "Yazıcıları seçin"
+
+msgid "Select profiles"
+msgstr "Profilleri seçin"
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -10069,6 +10202,12 @@ msgstr "Değerleri soldan sağa aktarın"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "Etkinleştirilirse, bu iletişim kutusu seçilen değerleri soldan sağa ön ayara aktarmak için kullanılabilir."
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "Dosya Ekle"
@@ -10434,6 +10573,9 @@ msgstr "Giriş yap"
 msgid "Login failed. Please try again."
 msgstr ""
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[İşlem Gerekli]"
 
@@ -10747,6 +10889,9 @@ msgstr "Yazıcı adı"
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "Yazıcınızın IP'sini ve Erişim Kodunu nerede bulabilirsiniz?"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "Bağlan"
@@ -12109,9 +12254,6 @@ msgstr ""
 "Keskin açılar algılanmadan önce geometri azaltılacaktır. Bu parametre, azaltma için minimum sapma uzunluğunu belirtir.\n"
 "Devre dışı bırakmak için 0."
 
-msgid "Select printers"
-msgstr "Yazıcıları seçin"
-
 msgid "upward compatible machine"
 msgstr "yukarı doğru uyumlu makine"
 
@@ -12121,9 +12263,6 @@ msgstr "Durum"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Etkin bir yazıcı profilinin yapılandırma değerlerini kullanan bir boole ifadesi. Bu ifade doğru olarak değerlendirilirse bu profilin etkin yazıcı profiliyle uyumlu olduğu kabul edilir."
-
-msgid "Select profiles"
-msgstr "Profilleri seçin"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
@@ -16782,12 +16921,6 @@ msgstr ""
 
 msgid "Calibration not supported"
 msgstr "Kalibrasyon desteklenmiyor"
-
-msgid "Error desc"
-msgstr "Hata açıklaması"
-
-msgid "Extra info"
-msgstr "Fazladan bilgi"
 
 msgid "Flow Dynamics"
 msgstr "Akış Dinamiği"

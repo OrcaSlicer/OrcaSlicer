@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -660,6 +660,9 @@ msgstr "Separa en parts"
 msgid "Reset cutting plane and remove connectors"
 msgstr "Restableix el pla de tall i elimina els connectors"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "Realitzar tall"
 
@@ -694,6 +697,13 @@ msgid "Cut plane with groove is invalid"
 msgstr "El pla de tall amb solc no és vàlid"
 
 msgid "Connector"
+msgstr ""
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
 msgstr ""
 
 msgid "Cut by Plane"
@@ -2020,6 +2030,9 @@ msgstr ""
 msgid "Loading user preset"
 msgstr "Carregant perfil d'usuari"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr ""
@@ -2032,6 +2045,18 @@ msgstr "Seleccioneu l'idioma"
 
 msgid "Language"
 msgstr "Idioma"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2666,6 +2691,45 @@ msgstr "Feu clic a la icona per editar la pintura en color de l'objecte"
 msgid "Click the icon to shift this object to the bed"
 msgstr "Feu clic a la icona per situar aquest objecte al llit"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "S'està carregant el fitxer"
 
@@ -2674,6 +2738,9 @@ msgstr ""
 
 msgid "Failed to get the model data in the current file."
 msgstr "No s'han pogut obtenir les dades del model al fitxer actual."
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "Genèric"
@@ -2686,6 +2753,12 @@ msgstr "Canvar al mode de configuració per objecte per editar la configuració 
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "Elimina la pell difusa pintada"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "Suprimir interval d'alçada"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Suprimir el connector de l'objecte que forma part del tall"
@@ -2717,11 +2790,23 @@ msgstr "Suprimir tots els connectors"
 msgid "Deleting the last solid part is not allowed."
 msgstr "No es permet suprimir l'última part sòlida."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "L'objecte de destinació conté només una part i no es pot dividir."
 
+msgid "Split to parts"
+msgstr "Separar en peces"
+
 msgid "Assembly"
 msgstr "Muntatge"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "Informació dels connectors de tall"
@@ -2756,6 +2841,9 @@ msgstr "Intervals d'alçada"
 msgid "Settings for height range"
 msgstr "Configuració de l'interval d'alçada"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "Capa"
 
@@ -2777,6 +2865,9 @@ msgstr "Tipus:"
 
 msgid "Choose part type"
 msgstr "Tria el tipus de peça"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "Introduïu un nom nou"
@@ -2805,6 +2896,9 @@ msgstr "\"%s\" superarà 1 milió de cares després d'aquesta subdivisió, cosa 
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "La malla de la part \"%s\" conté errors. Repareu-la primer."
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "Perfil de processament addicional"
 
@@ -2813,9 +2907,6 @@ msgstr "Suprimeix el paràmetre"
 
 msgid "to"
 msgstr "a"
-
-msgid "Remove height range"
-msgstr "Suprimir interval d'alçada"
 
 msgid "Add height range"
 msgstr "Afegir un interval d'alçada"
@@ -3203,6 +3294,9 @@ msgstr "Mode de desenvolupament"
 msgid "Launch troubleshoot center"
 msgstr ""
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3569,6 +3663,9 @@ msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Factors de Calibratge de les Dinàmiques de Flux"
+
+msgid "Wiki Guide"
+msgstr "Guia Wiki"
 
 msgid "PA Profile"
 msgstr "Perfil PA( Pressure Advance )"
@@ -4970,9 +5067,6 @@ msgstr "Estableix a l'òptim"
 msgid "Regroup filament"
 msgstr "Reagrupa filaments"
 
-msgid "Wiki Guide"
-msgstr "Guia Wiki"
-
 msgid "up to"
 msgstr "fins a"
 
@@ -5239,9 +5333,6 @@ msgstr "Ordenar els objectes en plaques seleccionades"
 
 msgid "Split to objects"
 msgstr "Separar en objectes"
-
-msgid "Split to parts"
-msgstr "Separar en peces"
 
 msgid "Assembly View"
 msgstr "Vista de muntatge"
@@ -5966,6 +6057,9 @@ msgstr "Resultat de l'exportació"
 msgid "Select profile to load:"
 msgstr "Seleccioneu el perfil que voleu carregar:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6563,6 +6657,12 @@ msgstr "Afegir una foto"
 
 msgid "Delete Photo"
 msgstr "Eliminar Foto"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "Enviar"
@@ -7454,8 +7554,20 @@ msgstr ""
 "Aquesta acció trencarà una correspondència de tall.\n"
 "Després d'això, no es podrà garantir la coherència del model."
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "L'objecte seleccionat no s'ha pogut partir."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
@@ -7482,6 +7594,9 @@ msgstr "Seleccioneu un fitxer nou"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "No s'ha seleccionat el fitxer per a la substitució"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr "Seleccioneu la carpeta des d'on substituir"
@@ -7528,6 +7643,9 @@ msgstr "No es pot tornar a carregar:"
 
 msgid "Error during reload"
 msgstr "S'ha produït un error durant la recàrrega"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "Hi ha advertències després de laminar els models:"
@@ -8301,6 +8419,15 @@ msgstr "Esborra la meva elecció per sincronitzar el perfil de la impressora des
 msgid "Graphics"
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr ""
 
@@ -8316,16 +8443,7 @@ msgstr ""
 msgid "Shadows"
 msgstr ""
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr ""
-
-msgid "Smooth normals"
-msgstr ""
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
@@ -8628,6 +8746,9 @@ msgstr "Afegir o Suprimir perfils"
 msgid "Edit preset"
 msgstr "Editar el perfil"
 
+msgid "Change extruder color"
+msgstr ""
+
 msgid "Unspecified"
 msgstr "No especificat"
 
@@ -8892,6 +9013,12 @@ msgstr "enviament completat"
 
 msgid "Error code"
 msgstr "Codi d'error"
+
+msgid "Error desc"
+msgstr "Descripció de l'error"
+
+msgid "Extra info"
+msgstr "Informació addicional"
 
 msgid "High Flow"
 msgstr "Alt flux"
@@ -9864,6 +9991,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Segur que voleu %1% el perfil seleccionat?"
 
+msgid "Select printers"
+msgstr "Seleccioneu impressores"
+
+msgid "Select profiles"
+msgstr "Seleccioneu perfils"
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -10090,6 +10223,12 @@ msgstr "Transfereix valors d'esquerra a dreta"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "Si està habilitat, aquest diàleg es pot utilitzar per transferir els valors seleccionats del perfil esquerra cap a la dreta."
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "Afegir arxiu"
@@ -10455,6 +10594,9 @@ msgstr "Iniciar sessió"
 msgid "Login failed. Please try again."
 msgstr ""
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[Acció necessària] "
 
@@ -10768,6 +10910,9 @@ msgstr "Nom de la impressora"
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "On podeu trobar la IP i el Codi d'Accés de la impressora?"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "Connecta"
@@ -12130,9 +12275,6 @@ msgstr ""
 "La geometria es simplificarà abans de detectar angles pronunciats. Aquest paràmetre indica la longitud mínima de la desviació per a la simplificació.\n"
 "0 per desactivar"
 
-msgid "Select printers"
-msgstr "Seleccioneu impressores"
-
 msgid "upward compatible machine"
 msgstr "màquina compatible ascendent"
 
@@ -12142,9 +12284,6 @@ msgstr "Condició"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Una expressió booleana fent servir valors de configuració d'un perfil existent. Si aquesta expressió és certa, el perfil es considera compatible amb el perfil d'impressió actiu."
-
-msgid "Select profiles"
-msgstr "Seleccioneu perfils"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
@@ -16817,12 +16956,6 @@ msgstr ""
 
 msgid "Calibration not supported"
 msgstr "No s'admet calibratge"
-
-msgid "Error desc"
-msgstr "Descripció de l'error"
-
-msgid "Extra info"
-msgstr "Informació addicional"
 
 msgid "Flow Dynamics"
 msgstr "Dinàmiques de Flux"

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -647,6 +647,9 @@ msgstr "Supjaustyti į detales"
 msgid "Reset cutting plane and remove connectors"
 msgstr "Atstatyti pjovimo plokštumą ir pašalinti jungtis"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "Atlikti pjūvį"
 
@@ -684,6 +687,13 @@ msgstr "Neteisinga pjovimo plokštuma su grioveliu"
 
 msgid "Connector"
 msgstr "Jungtis"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr "Pjovimas plokštuma"
@@ -2008,6 +2018,9 @@ msgstr "Prieiga prie rinkinio %s nesuteikta."
 msgid "Loading user preset"
 msgstr "Įkeliamas naudotojo profilis"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr "%s buvo pašalintas."
@@ -2020,6 +2033,18 @@ msgstr "Pasirinkite kalbą"
 
 msgid "Language"
 msgstr "Kalba"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2621,6 +2646,45 @@ msgstr ""
 msgid "Click the icon to shift this object to the bed"
 msgstr "Spustelėkite piktogramą, kad perkeltumėte šį objektą ant pagrindo"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "Įkeliamas failas"
 
@@ -2629,6 +2693,9 @@ msgstr "Klaida!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Nepavyko gauti modelio duomenų iš dabartinio failo."
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "Bendras"
@@ -2641,6 +2708,12 @@ msgstr "Norėdami redaguoti pasirinktų objektų spausdinimo parametrus, persiju
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "Pašalinti pieštą grublėtą paviršių"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "Pašalinti aukščio ribas"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Pašalinkite jungtį nuo objekto, kuris yra pjūvio dalis"
@@ -2667,11 +2740,23 @@ msgstr "Ištrinti visas jungtis"
 msgid "Deleting the last solid part is not allowed."
 msgstr "Neleidžiama ištrinti paskutinės geometrinės detalės."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "Tikslinis objektas turi tik vieną detalę ir negali būti išskaidytas."
 
+msgid "Split to parts"
+msgstr "Padalinti į dalis"
+
 msgid "Assembly"
 msgstr "Surinkimas"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "Pjovimo jungčių informacija"
@@ -2703,6 +2788,9 @@ msgstr "Aukščio diapazonai"
 msgid "Settings for height range"
 msgstr "Aukščio diapazono nustatymai"
 
+msgid "Delete selected"
+msgstr "Ištrinti pasirinkimą"
+
 msgid "Layer"
 msgstr "Sluoksnis"
 
@@ -2723,6 +2811,9 @@ msgstr "Tipas:"
 
 msgid "Choose part type"
 msgstr "Pasirinkite detalės tipą"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "Įvesti naują pavadinimą"
@@ -2753,6 +2844,9 @@ msgstr "„%s“ po šio padalijimo (subdivision) viršys 1 milijoną poligonų 
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "Detalės „%s“ poligoninis tinklas (mesh) turi klaidų. Pirmiausia jas sutaisykite."
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "Papildomas proceso profilis"
 
@@ -2761,9 +2855,6 @@ msgstr "Pašalinti parametrą"
 
 msgid "to"
 msgstr "į"
-
-msgid "Remove height range"
-msgstr "Pašalinti aukščio ribas"
 
 msgid "Add height range"
 msgstr "Pridėti aukščio ribas"
@@ -3139,6 +3230,9 @@ msgstr "Kūrėjo režimas"
 msgid "Launch troubleshoot center"
 msgstr "Atidaryti trikčių šalinimo centrą"
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3496,6 +3590,9 @@ msgstr "SN"
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Srauto dinamikos kalibravimo koeficientai"
+
+msgid "Wiki Guide"
+msgstr "Wiki vadovas"
 
 msgid "PA Profile"
 msgstr "PA profilis"
@@ -4846,9 +4943,6 @@ msgstr "Nustatyti į optimalų"
 msgid "Regroup filament"
 msgstr "Pergrupuoti gijas"
 
-msgid "Wiki Guide"
-msgstr "Wiki vadovas"
-
 msgid "up to"
 msgstr "iki"
 
@@ -5111,9 +5205,6 @@ msgstr "Išdėstyti objektus pasirinktose plokštėse"
 
 msgid "Split to objects"
 msgstr "Padalinti į objektus"
-
-msgid "Split to parts"
-msgstr "Padalinti į dalis"
 
 msgid "Assembly View"
 msgstr "Surinkimo vaizdas"
@@ -5828,6 +5919,9 @@ msgstr ""
 msgid "Select profile to load:"
 msgstr "Pasirinkite įkeliamą profilį:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6419,6 +6513,12 @@ msgstr "Įtraukti nuotrauką"
 
 msgid "Delete Photo"
 msgstr "Ištrinti nuotrauką"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "Pateikti"
@@ -7292,8 +7392,20 @@ msgid ""
 "After that, model consistency can't be guaranteed."
 msgstr ""
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "Pasirinkto objekto negalima suskaidyti."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "Išjungti automatinį nuleidimą, kad būtų išsaugota Z pozicija?\n"
@@ -7317,6 +7429,9 @@ msgid "Select a new file"
 msgstr "Pasirinkite naują failą"
 
 msgid "File for the replacement wasn't selected"
+msgstr ""
+
+msgid "Replace with 3D file"
 msgstr ""
 
 msgid "Select folder to replace from"
@@ -7366,6 +7481,9 @@ msgstr "Nepavyko įkelti iš naujo:"
 
 msgid "Error during reload"
 msgstr "Klaida įkeliant iš naujo"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "Po sluoksniavimo yra įspėjimų:"
@@ -8118,6 +8236,15 @@ msgstr "Išvalyti mano pasirinkimą dėl spausdintuvo profilio sinchronizavimo �
 msgid "Graphics"
 msgstr "Grafika"
 
+msgid "Smooth normals"
+msgstr "Glotnios normalės"
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr "Phong šešėliavimas"
 
@@ -8133,20 +8260,8 @@ msgstr "Realistiniame vaizde taiko SSAO."
 msgid "Shadows"
 msgstr "Šešėliai"
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr "Realistiniame vaizde atvaizduoja krentančius šešėlius ant spausdinimo pagrindo."
-
-msgid "Smooth normals"
-msgstr "Glotnios normalės"
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
-"Realistiškam vaizdui pritaiko glotnias normales.\n"
-"\n"
-"Kad pakeitimai įsigaliotų, reikia rankiniu būdu perkrauti sceną (dešiniuoju pelės mygtuku spustelėkite 3D vaizdą → „Perkrauti viską“)."
 
 msgid "Anti-aliasing"
 msgstr "Išlyginimas"
@@ -8452,6 +8567,9 @@ msgstr "Pridėti / pašalinti profilius"
 msgid "Edit preset"
 msgstr "Redaguoti profilį"
 
+msgid "Change extruder color"
+msgstr ""
+
 msgid "Unspecified"
 msgstr "Nenurodyta"
 
@@ -8712,6 +8830,12 @@ msgstr "Siuntimas baigtas"
 
 msgid "Error code"
 msgstr "Klaidos kodas"
+
+msgid "Error desc"
+msgstr "Klaidos aprašymas"
+
+msgid "Extra info"
+msgstr "Papildoma informacija"
 
 msgid "High Flow"
 msgstr "Didelis srautas (High Flow)"
@@ -9662,6 +9786,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr ""
 
+msgid "Select printers"
+msgstr "Pasirinkite spausdintuvus"
+
+msgid "Select profiles"
+msgstr "Pasirinkti profilius"
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -9905,6 +10035,12 @@ msgstr "Reikšmių perkėlimas iš kairės į dešinę"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "Jei įjungta, šis dialogo langas gali būti naudojamas pasirinktoms reikšmėms perkelti iš kairiojo profilio į dešinįjį."
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "Pridėti failą"
@@ -10270,6 +10406,9 @@ msgstr "Prisijungti"
 msgid "Login failed. Please try again."
 msgstr "Prisijungti nepavyko. Bandykite dar kartą."
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[Reikalingas veiksmas] "
 
@@ -10575,6 +10714,9 @@ msgstr "Spausdintuvo pavadinimas"
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "Kur rasti spausdintuvo IP ir prieigos kodą?"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "Jungtis"
@@ -11946,9 +12088,6 @@ msgstr ""
 "Prieš aptinkant aštrius kampus, geometrija yra supaprastinama (decimuojama). Šis parametras nurodo minimalų nuokrypio ilgį supaprastinimui atlikti.\n"
 "Įrašykite 0, kad išjungtumėte."
 
-msgid "Select printers"
-msgstr "Pasirinkite spausdintuvus"
-
 msgid "upward compatible machine"
 msgstr "atgaliniu būdu suderinamas įrenginys"
 
@@ -11957,9 +12096,6 @@ msgstr "Sąlyga"
 
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr ""
-
-msgid "Select profiles"
-msgstr "Pasirinkti profilius"
 
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr ""
@@ -16550,12 +16686,6 @@ msgstr ""
 msgid "Calibration not supported"
 msgstr "Kalibravimas nepalaikomas"
 
-msgid "Error desc"
-msgstr "Klaidos aprašymas"
-
-msgid "Extra info"
-msgstr "Papildoma informacija"
-
 msgid "Flow Dynamics"
 msgstr "Srauto dinamika"
 
@@ -19432,6 +19562,18 @@ msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
 
+#~ msgid "Renders cast shadows on the plate in realistic view."
+#~ msgstr "Realistiniame vaizde atvaizduoja krentančius šešėlius ant spausdinimo pagrindo."
+
+#~ msgid ""
+#~ "Applies smooth normals to the realistic view.\n"
+#~ "\n"
+#~ "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+#~ msgstr ""
+#~ "Realistiškam vaizdui pritaiko glotnias normales.\n"
+#~ "\n"
+#~ "Kad pakeitimai įsigaliotų, reikia rankiniu būdu perkrauti sceną (dešiniuoju pelės mygtuku spustelėkite 3D vaizdą → „Perkrauti viską“)."
+
 #~ msgid "Continue to sync filaments"
 #~ msgstr "Tęsti gijų sinchronizavimą"
 
@@ -19975,9 +20117,6 @@ msgstr ""
 
 #~ msgid "Application is closing"
 #~ msgstr "Programa uždaroma"
-
-#~ msgid "Delete selected"
-#~ msgstr "Ištrinti pasirinkimą"
 
 #~ msgid "Delete all"
 #~ msgstr "Ištrinti viską"

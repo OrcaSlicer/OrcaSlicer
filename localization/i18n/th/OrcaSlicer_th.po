@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -645,6 +645,9 @@ msgstr "ตัดเป็นชิ้นส่วน"
 msgid "Reset cutting plane and remove connectors"
 msgstr "รีเซ็ตระนาบการตัดและถอดตัวเชื่อมต่อออก"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "ดำเนินการตัด"
 
@@ -678,6 +681,13 @@ msgstr "ระนาบการตัดที่มีร่องไม่ถ
 
 msgid "Connector"
 msgstr "ตัวเชื่อม"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr "ตัดด้วยระนาบ"
@@ -1998,6 +2008,9 @@ msgstr "การเข้าถึง Bundle %s ไม่ได้รับอ�
 msgid "Loading user preset"
 msgstr "กำลังโหลดค่าที่ตั้งล่วงหน้าของผู้ใช้"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr "ลบ %s แล้ว"
@@ -2010,6 +2023,18 @@ msgstr "เลือกภาษา"
 
 msgid "Language"
 msgstr "ภาษา"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2604,6 +2629,45 @@ msgstr "คลิกไอคอนเพื่อแก้ไขการระ
 msgid "Click the icon to shift this object to the bed"
 msgstr "คลิกที่ไอคอนเพื่อเลื่อนวัตถุนี้ไปที่ฐานพิมพ์"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "กำลังโหลดไฟล์"
 
@@ -2612,6 +2676,9 @@ msgstr "ข้อผิดพลาด!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "ไม่สามารถรับข้อมูลโมเดลในไฟล์ปัจจุบัน"
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "ทั่วไป"
@@ -2624,6 +2691,12 @@ msgstr "สลับไปที่โหมดการตั้งค่าต
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "ลบสีบนผิวที่คลุมเครือ"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "ลบช่วงความสูง"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "ลบตัวเชื่อมต่อออกจากวัตถุที่เป็นส่วนหนึ่งของการตัด"
@@ -2654,11 +2727,23 @@ msgstr "ลบตัวเชื่อมต่อทั้งหมด"
 msgid "Deleting the last solid part is not allowed."
 msgstr "ไม่อนุญาตให้ลบส่วนที่เป็นของแข็งสุดท้าย"
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "วัตถุเป้าหมายมีเพียงส่วนเดียวและไม่สามารถแยกออกได้"
 
+msgid "Split to parts"
+msgstr "แยกเป็นส่วนๆ"
+
 msgid "Assembly"
 msgstr "การประกอบ"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "ตัดข้อมูลตัวเชื่อมต่อ"
@@ -2690,6 +2775,9 @@ msgstr "ช่วงความสูง"
 msgid "Settings for height range"
 msgstr "การตั้งค่าช่วงความสูง"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "เลเยอร์"
 
@@ -2710,6 +2798,9 @@ msgstr "ชนิด:"
 
 msgid "Choose part type"
 msgstr "เลือกประเภทชิ้นส่วน"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "ป้อนชื่อใหม่"
@@ -2736,6 +2827,9 @@ msgstr "\"%s\" จะมีเกิน 1 ล้านผิวหน้าห�
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "mesh ของส่วน \"%s\" มีข้อผิดพลาด กรุณาซ่อมแซมก่อน."
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "พรีเซ็ตกระบวนการเพิ่มเติม"
 
@@ -2744,9 +2838,6 @@ msgstr "ลบพารามิเตอร์"
 
 msgid "to"
 msgstr "ถึง"
-
-msgid "Remove height range"
-msgstr "ลบช่วงความสูง"
 
 msgid "Add height range"
 msgstr "เพิ่มช่วงความสูง"
@@ -3122,6 +3213,9 @@ msgstr "โหมดนักพัฒนา"
 msgid "Launch troubleshoot center"
 msgstr "เปิดศูนย์แก้ปัญหา"
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3479,6 +3573,9 @@ msgstr "ส.น"
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "ปัจจัยของการสอบเทียบโฟลว์ไดนามิกส์"
+
+msgid "Wiki Guide"
+msgstr "คู่มือวิกิ"
 
 msgid "PA Profile"
 msgstr "โปรไฟล์ PA"
@@ -4847,9 +4944,6 @@ msgstr "ตั้งค่าให้เหมาะสมที่สุด"
 msgid "Regroup filament"
 msgstr "จัดกลุ่มเส้นพลาสติกใหม่"
 
-msgid "Wiki Guide"
-msgstr "คู่มือวิกิ"
-
 msgid "up to"
 msgstr "ขึ้นไป"
 
@@ -5108,9 +5202,6 @@ msgstr "จัดเรียงวัตถุบนจานที่เลื
 
 msgid "Split to objects"
 msgstr "แยกเป็นวัตถุ"
-
-msgid "Split to parts"
-msgstr "แยกเป็นส่วนๆ"
 
 msgid "Assembly View"
 msgstr "มุมมองการประกอบ"
@@ -5823,6 +5914,9 @@ msgstr "ผลลัพธ์การส่งออก"
 msgid "Select profile to load:"
 msgstr "เลือกโปรไฟล์ที่จะโหลด:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6412,6 +6506,12 @@ msgstr "เพิ่มรูปภาพ"
 
 msgid "Delete Photo"
 msgstr "ลบรูปภาพ"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "ส่ง"
@@ -7272,8 +7372,20 @@ msgstr ""
 "การกระทำนี้จะตัดการติดต่อทางจดหมาย\n"
 "หลังจากนั้นจึงไม่สามารถรับประกันความสอดคล้องของโมเดลได้"
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "ไม่สามารถแยกวัตถุที่เลือกได้"
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "ปิดการใช้งานการวางอัตโนมัติเพื่อรักษาตำแหน่ง z หรือไม่\n"
@@ -7298,6 +7410,9 @@ msgstr "เลือกไฟล์ใหม่"
 
 msgid "File for the replacement wasn't selected"
 msgstr "ไม่ได้เลือกไฟล์สำหรับการแทนที่"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr "เลือกโฟลเดอร์ที่จะแทนที่"
@@ -7344,6 +7459,9 @@ msgstr "ไม่สามารถโหลดซ้ำได้:"
 
 msgid "Error during reload"
 msgstr "เกิดข้อผิดพลาดระหว่างการโหลดซ้ำ"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "มีคำเตือนหลังจากการแบ่งโมเดล:"
@@ -8100,6 +8218,15 @@ msgstr "ล้างตัวเลือกของฉันในการซ
 msgid "Graphics"
 msgstr "กราฟิก"
 
+msgid "Smooth normals"
+msgstr "นอร์มัลแบบเรียบ"
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr "การแรเงาแบบ Phong"
 
@@ -8115,20 +8242,8 @@ msgstr "ใช้ SSAO ในมุมมองแบบสมจริง"
 msgid "Shadows"
 msgstr "เงา"
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr "แสดงเงาแบบทอดบนเพลตในมุมมองแบบสมจริง"
-
-msgid "Smooth normals"
-msgstr "นอร์มัลแบบเรียบ"
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
-"ใช้นอร์มัลแบบเรียบในมุมมองแบบสมจริง\n"
-"\n"
-"ต้องโหลดฉากใหม่ด้วยตนเองจึงจะมีผล (คลิกขวาที่มุมมอง 3D → \"Reload All\")."
 
 msgid "Anti-aliasing"
 msgstr "ต่อต้านนามแฝง"
@@ -8436,6 +8551,9 @@ msgstr "เพิ่ม/ลบค่าที่ตั้งล่วงหน�
 msgid "Edit preset"
 msgstr "พรีเซ็ตแก้ไข"
 
+msgid "Change extruder color"
+msgstr ""
+
 msgid "Unspecified"
 msgstr "ไม่ระบุ"
 
@@ -8696,6 +8814,12 @@ msgstr "ส่งเสร็จแล้ว"
 
 msgid "Error code"
 msgstr "รหัสข้อผิดพลาด"
+
+msgid "Error desc"
+msgstr "คำอธิบายข้อผิดพลาด"
+
+msgid "Extra info"
+msgstr "ข้อมูลเพิ่มเติม"
 
 msgid "High Flow"
 msgstr "อัตราไหลสูง"
@@ -9643,6 +9767,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "คุณแน่ใจหรือไม่ว่าต้องการ %1% ค่าที่ตั้งไว้ล่วงหน้าที่เลือก?"
 
+msgid "Select printers"
+msgstr "เลือกเครื่องพิมพ์"
+
+msgid "Select profiles"
+msgstr "โปรไฟล์เลือก"
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -9885,6 +10015,12 @@ msgstr "โอนค่าจากซ้ายไปขวา"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "หากเปิดใช้งาน กล่องโต้ตอบนี้สามารถใช้เพื่อโอนค่าที่เลือกจากค่าที่ตั้งไว้ล่วงหน้าจากซ้ายไปขวาได้"
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "เพิ่มไฟล์"
@@ -10250,6 +10386,9 @@ msgstr "เข้าสู่ระบบ"
 msgid "Login failed. Please try again."
 msgstr "การเข้าสู่ระบบล้มเหลว โปรดลองอีกครั้ง"
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[ต้องดำเนินการ]"
 
@@ -10555,6 +10694,9 @@ msgstr "ชื่อเครื่องพิมพ์"
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "จะค้นหา IP และรหัสการเข้าถึงเครื่องพิมพ์ของคุณได้ที่ไหน"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "เชื่อมต่อ"
@@ -11922,9 +12064,6 @@ msgstr ""
 "รูปทรงจะถูกทำลายก่อนที่จะตรวจจับมุมแหลม พารามิเตอร์นี้ระบุความยาวขั้นต่ำของการเบี่ยงเบนสำหรับการทำลาย\n"
 "0 เพื่อปิดการใช้งาน"
 
-msgid "Select printers"
-msgstr "เลือกเครื่องพิมพ์"
-
 msgid "upward compatible machine"
 msgstr "เครื่องที่รองรับขึ้นไป"
 
@@ -11933,9 +12072,6 @@ msgstr "เงื่อนไข"
 
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "นิพจน์บูลีนที่ใช้ค่าการกำหนดค่าของโปรไฟล์เครื่องพิมพ์ที่ใช้งานอยู่ หากนิพจน์นี้ประเมินว่าเป็นจริง โปรไฟล์นี้จะถือว่าเข้ากันได้กับโปรไฟล์เครื่องพิมพ์ที่ใช้งานอยู่"
-
-msgid "Select profiles"
-msgstr "โปรไฟล์เลือก"
 
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "นิพจน์บูลีนที่ใช้ค่าการกำหนดค่าของโปรไฟล์การพิมพ์ที่ใช้งานอยู่ หากนิพจน์นี้ประเมินว่าเป็นจริง โปรไฟล์นี้จะถือว่าเข้ากันได้กับโปรไฟล์การพิมพ์ที่ใช้งานอยู่"
@@ -16531,12 +16667,6 @@ msgstr ""
 msgid "Calibration not supported"
 msgstr "ไม่รองรับการปรับเทียบ"
 
-msgid "Error desc"
-msgstr "คำอธิบายข้อผิดพลาด"
-
-msgid "Extra info"
-msgstr "ข้อมูลเพิ่มเติม"
-
 msgid "Flow Dynamics"
 msgstr "ไดนามิกการไหล"
 
@@ -19430,6 +19560,18 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "Renders cast shadows on the plate in realistic view."
+#~ msgstr "แสดงเงาแบบทอดบนเพลตในมุมมองแบบสมจริง"
+
+#~ msgid ""
+#~ "Applies smooth normals to the realistic view.\n"
+#~ "\n"
+#~ "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+#~ msgstr ""
+#~ "ใช้นอร์มัลแบบเรียบในมุมมองแบบสมจริง\n"
+#~ "\n"
+#~ "ต้องโหลดฉากใหม่ด้วยตนเองจึงจะมีผล (คลิกขวาที่มุมมอง 3D → \"Reload All\")."
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "ทำการซิงค์ฟิลาเมนต์ต่อไป"

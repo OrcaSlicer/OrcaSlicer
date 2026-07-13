@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -661,6 +661,9 @@ msgstr "切割為零件"
 msgid "Reset cutting plane and remove connectors"
 msgstr "重設切割面且移除連接件"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "執行切割"
 
@@ -694,6 +697,13 @@ msgstr "帶有凹槽的切割平面無效"
 
 msgid "Connector"
 msgstr "連接件"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr "用平面分割"
@@ -2019,6 +2029,9 @@ msgstr "設定檔組 %s 的存取未經授權。"
 msgid "Loading user preset"
 msgstr "正在載入使用者預設"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr "%s 已移除。"
@@ -2031,6 +2044,18 @@ msgstr "選擇語言"
 
 msgid "Language"
 msgstr "語言"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2664,6 +2689,45 @@ msgstr "滑鼠左鍵點擊此圖示可編輯這個物件的顏色繪製"
 msgid "Click the icon to shift this object to the bed"
 msgstr "滑鼠左鍵點擊這個圖示可將物件移動到列印板上"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "載入檔案中"
 
@@ -2672,6 +2736,9 @@ msgstr "錯誤！"
 
 msgid "Failed to get the model data in the current file."
 msgstr "取得目前檔案中的模型資料失敗。"
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "一般"
@@ -2684,6 +2751,12 @@ msgstr "切換到物件設定模式編輯所選物件的列印參數。"
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "移除塗刷的絨毛效果"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "移除高度範圍"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "刪除的連接件屬於切割物件的一部分"
@@ -2718,11 +2791,23 @@ msgstr "刪除所有連接件"
 msgid "Deleting the last solid part is not allowed."
 msgstr "不允許刪除物件的最後一個實體零件。"
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "目標物件只有一個部件，無法進行拆分。"
 
+msgid "Split to parts"
+msgstr "拆分為零件"
+
 msgid "Assembly"
 msgstr "組合體"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "切割連接件資訊"
@@ -2757,6 +2842,9 @@ msgstr "高度範圍"
 msgid "Settings for height range"
 msgstr "高度範圍設定"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "層"
 
@@ -2778,6 +2866,9 @@ msgstr "類型："
 
 msgid "Choose part type"
 msgstr "選擇零件類型"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "輸入新名稱"
@@ -2804,6 +2895,9 @@ msgstr "「%s」進行此細分後將超過 100 萬個面，這可能會增加�
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "「%s」零件的網格包含錯誤，請先修復。"
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "附加列印參數預設"
 
@@ -2812,9 +2906,6 @@ msgstr "刪除參數"
 
 msgid "to"
 msgstr "到"
-
-msgid "Remove height range"
-msgstr "移除高度範圍"
 
 msgid "Add height range"
 msgstr "新增高度範圍"
@@ -3200,6 +3291,9 @@ msgstr "開發者模式"
 msgid "Launch troubleshoot center"
 msgstr "啟動疑難排解中心"
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3567,6 +3661,9 @@ msgstr "序號"
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "動態流量係數校正"
+
+msgid "Wiki Guide"
+msgstr "Wiki 指南"
 
 msgid "PA Profile"
 msgstr "PA 設定檔"
@@ -4991,9 +5088,6 @@ msgstr "設為最佳"
 msgid "Regroup filament"
 msgstr "重新分組線材"
 
-msgid "Wiki Guide"
-msgstr "Wiki 指南"
-
 msgid "up to"
 msgstr "達到"
 
@@ -5261,9 +5355,6 @@ msgstr "在選定的列印板上排列物件"
 
 msgid "Split to objects"
 msgstr "拆分為物件"
-
-msgid "Split to parts"
-msgstr "拆分為零件"
 
 msgid "Assembly View"
 msgstr "組裝視角"
@@ -5987,6 +6078,9 @@ msgstr "匯出結果"
 msgid "Select profile to load:"
 msgstr "選擇要載入的設定檔："
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6587,6 +6681,12 @@ msgstr "新增照片"
 
 msgid "Delete Photo"
 msgstr "刪除照片"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "送出"
@@ -7469,8 +7569,20 @@ msgstr ""
 "此操作將破壞切割對應關係。\n"
 "模型的一致性可能無法保證。"
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "選中的模型不可分割。"
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "停用自動落板以保留 Z 定位？\n"
@@ -7497,6 +7609,9 @@ msgstr "選擇新檔案"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "未選擇替換檔案"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr "選擇要替換的資料夾"
@@ -7543,6 +7658,9 @@ msgstr "無法重新載入："
 
 msgid "Error during reload"
 msgstr "重新載入時出現錯誤"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "模型切片警告："
@@ -8313,6 +8431,15 @@ msgstr "清除我在載入檔案後同步列印設備預設的選擇。"
 msgid "Graphics"
 msgstr "圖形"
 
+msgid "Smooth normals"
+msgstr "平滑法線"
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr "Phong 著色"
 
@@ -8328,20 +8455,8 @@ msgstr "在寫實渲染中套用 SSAO。"
 msgid "Shadows"
 msgstr "陰影"
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr "在擬真檢視中於列印板上算繪投射陰影。"
-
-msgid "Smooth normals"
-msgstr "平滑法線"
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
-"將平滑法線套用至擬真檢視。\n"
-"\n"
-"需要手動重新載入場景才能生效（在 3D 檢視中按一下滑鼠右鍵 →「重新載入所有物件」）。"
 
 msgid "Anti-aliasing"
 msgstr "抗鋸齒"
@@ -8656,6 +8771,9 @@ msgstr "新增/刪除 預設"
 msgid "Edit preset"
 msgstr "編輯預設"
 
+msgid "Change extruder color"
+msgstr ""
+
 msgid "Unspecified"
 msgstr "未指定"
 
@@ -8920,6 +9038,12 @@ msgstr "傳送完成"
 
 msgid "Error code"
 msgstr "錯誤代碼"
+
+msgid "Error desc"
+msgstr "錯誤描述"
+
+msgid "Extra info"
+msgstr "額外資訊"
 
 msgid "High Flow"
 msgstr "高流量"
@@ -9889,6 +10013,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "確認要 %1% 所選預設嗎？"
 
+msgid "Select printers"
+msgstr "選擇列印設備"
+
+msgid "Select profiles"
+msgstr "選擇設定檔"
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -10136,6 +10266,12 @@ msgstr "將數值從左邊轉移到右邊"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "如果啟用，則此視窗可用於將選定的數值從左邊轉移到右邊的預設值。"
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "新增檔案"
@@ -10502,6 +10638,9 @@ msgstr "登入"
 msgid "Login failed. Please try again."
 msgstr "登入失敗。請再試一次。"
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[需要操作] "
 
@@ -10815,6 +10954,9 @@ msgstr "列印設備名稱"
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "在哪裡可以找到列印設備的 IP 和訪問代碼?"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "連接"
@@ -12211,9 +12353,6 @@ msgstr ""
 "在偵測尖銳角度之前，幾何形狀將被簡化。此參數表示簡化的最小偏差長度。\n"
 "設為 0 以停用"
 
-msgid "Select printers"
-msgstr "選擇列印設備"
-
 msgid "upward compatible machine"
 msgstr "向上相容的設備"
 
@@ -12223,9 +12362,6 @@ msgstr "條件"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "使用啟用的列印設備設定值來進行布林運算的表達式。如果此表達式的結果為 true，則該設定檔將被視為與目前啟用的列印設備設定檔相容。"
-
-msgid "Select profiles"
-msgstr "選擇設定檔"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
@@ -16938,12 +17074,6 @@ msgstr ""
 msgid "Calibration not supported"
 msgstr "不支援校正"
 
-msgid "Error desc"
-msgstr "錯誤描述"
-
-msgid "Extra info"
-msgstr "額外資訊"
-
 msgid "Flow Dynamics"
 msgstr "動態流量"
 
@@ -19893,6 +20023,18 @@ msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度\n"
 "可以降低翹曲的機率。"
+
+#~ msgid "Renders cast shadows on the plate in realistic view."
+#~ msgstr "在擬真檢視中於列印板上算繪投射陰影。"
+
+#~ msgid ""
+#~ "Applies smooth normals to the realistic view.\n"
+#~ "\n"
+#~ "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+#~ msgstr ""
+#~ "將平滑法線套用至擬真檢視。\n"
+#~ "\n"
+#~ "需要手動重新載入場景才能生效（在 3D 檢視中按一下滑鼠右鍵 →「重新載入所有物件」）。"
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "繼續同步線材"

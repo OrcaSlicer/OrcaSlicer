@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "PO-Revision-Date: 2025-03-07 09:30+0200\n"
 "Last-Translator: \n"
 "Language-Team: Ukrainian\n"
@@ -660,6 +660,9 @@ msgstr "Розрізати на частини"
 msgid "Reset cutting plane and remove connectors"
 msgstr "Скиньте площину різання та зніміть з'єднувачі"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "Виконати розрізання"
 
@@ -699,6 +702,13 @@ msgstr "Площина зрізу з пазом невірна"
 
 msgid "Connector"
 msgstr "З'єднувач"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr "Вирізати площиною"
@@ -2012,6 +2022,9 @@ msgstr ""
 msgid "Loading user preset"
 msgstr "Завантаження користувацького налаштування"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr ""
@@ -2024,6 +2037,18 @@ msgstr "Виберіть мову"
 
 msgid "Language"
 msgstr "Мова"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2664,6 +2689,45 @@ msgstr "Натисніть , щоб змінити колір моделі"
 msgid "Click the icon to shift this object to the bed"
 msgstr "Натисніть значок, щоб перемістити цю модель на стіл"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "Завантаження файлу"
 
@@ -2672,6 +2736,9 @@ msgstr "Помилка!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Не вдалося отримати дані моделі в поточному файлі."
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "Базовий примітив"
@@ -2684,6 +2751,12 @@ msgstr "Переключення в режим роботи з моделями 
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "Видалити намальовану текстурну оболонку"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "Видалення діапазону висот шарів"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Видалити конектор з об'єкта, який є частиною розрізу"
@@ -2715,11 +2788,23 @@ msgstr "Видалити всі з'єднання"
 msgid "Deleting the last solid part is not allowed."
 msgstr "Видалення останньої твердотільного частини не допускається."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "Цільовий об’єкт містить лише одну частину і не може бути розділений."
 
+msgid "Split to parts"
+msgstr "Розділити на частини"
+
 msgid "Assembly"
 msgstr "Збірка"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "Інформація про вирізані з'єднання"
@@ -2754,6 +2839,9 @@ msgstr "Діапазон висот шарів"
 msgid "Settings for height range"
 msgstr "Налаштування для діапазону висот шарів"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "Шар"
 
@@ -2777,6 +2865,9 @@ msgstr "Тип:"
 
 msgid "Choose part type"
 msgstr "Виберіть тип деталі"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "Введіть нове ім'я"
@@ -2809,6 +2900,9 @@ msgstr ""
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr ""
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "Додаткове налаштування процесу"
 
@@ -2817,9 +2911,6 @@ msgstr "Видалити параметр"
 
 msgid "to"
 msgstr "в"
-
-msgid "Remove height range"
-msgstr "Видалення діапазону висот шарів"
 
 msgid "Add height range"
 msgstr "Додавання діапазон висот шарів"
@@ -3207,6 +3298,9 @@ msgstr "Режим розробки"
 msgid "Launch troubleshoot center"
 msgstr ""
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3579,6 +3673,9 @@ msgstr "СН"
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Фактори Калібрування динамічного потоку"
+
+msgid "Wiki Guide"
+msgstr ""
 
 msgid "PA Profile"
 msgstr "Профіль PA"
@@ -4965,9 +5062,6 @@ msgstr ""
 msgid "Regroup filament"
 msgstr "Перегрупувати філамент"
 
-msgid "Wiki Guide"
-msgstr ""
-
 msgid "up to"
 msgstr "аж до"
 
@@ -5232,9 +5326,6 @@ msgstr "Впорядкувати об'єкти на вибраних пласт�
 
 msgid "Split to objects"
 msgstr "Розділити на об'єкти"
-
-msgid "Split to parts"
-msgstr "Розділити на частини"
 
 msgid "Assembly View"
 msgstr "Вигляд складання"
@@ -5960,6 +6051,9 @@ msgstr "Експорт результату"
 msgid "Select profile to load:"
 msgstr "Виберіть профіль для завантаження:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6561,6 +6655,12 @@ msgstr "Додати фото"
 
 msgid "Delete Photo"
 msgstr "Видалити фото"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "Підтвердити"
@@ -7466,8 +7566,20 @@ msgstr ""
 "Ця дія розірве обрізану кореспонденцію.\n"
 "Після цього узгодженість моделі не може бути гарантована."
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "Вибраний об'єкт не може бути поділений."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
@@ -7494,6 +7606,9 @@ msgstr "Виберіть новий файл"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "Не вибраний файл для заміни"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr ""
@@ -7540,6 +7655,9 @@ msgstr "Не вдається перезавантажити:"
 
 msgid "Error during reload"
 msgstr "Помилка під час перезавантаження"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "Є попередження після нарізки моделей:"
@@ -8295,6 +8413,15 @@ msgstr ""
 msgid "Graphics"
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr ""
 
@@ -8310,16 +8437,7 @@ msgstr ""
 msgid "Shadows"
 msgstr ""
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr ""
-
-msgid "Smooth normals"
-msgstr ""
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
@@ -8620,6 +8738,9 @@ msgstr "Додати/видалити пресети"
 msgid "Edit preset"
 msgstr "Змінити попереднє встановлення"
 
+msgid "Change extruder color"
+msgstr ""
+
 msgid "Unspecified"
 msgstr "Не вказано"
 
@@ -8878,6 +8999,12 @@ msgstr "відправлення завершено"
 
 msgid "Error code"
 msgstr "Код помилки"
+
+msgid "Error desc"
+msgstr "Опис помилки"
+
+msgid "Extra info"
+msgstr "Додаткова інформація"
 
 msgid "High Flow"
 msgstr ""
@@ -9857,6 +9984,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Ви впевнені, що %1% вибраної установки?"
 
+msgid "Select printers"
+msgstr ""
+
+msgid "Select profiles"
+msgstr ""
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -10083,6 +10216,12 @@ msgstr "Перенесення значень зліва направо"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "Якщо увімкнено, цей діалог можна використовувати для перенесення вибраних значень зліва направо."
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "Додати файл"
@@ -10440,6 +10579,9 @@ msgstr "Логін"
 msgid "Login failed. Please try again."
 msgstr ""
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr ""
 
@@ -10753,6 +10895,9 @@ msgstr "Назва принтера"
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "Де знайти IP-адресу та код доступу вашого принтера?"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "Підключити"
@@ -12092,9 +12237,6 @@ msgstr ""
 "Геометрія буде оброблена перед детектуванням гострих кутів. Цей параметр вказує мінімальну довжину відхилення для обробки.\n"
 "0 для вимкнення"
 
-msgid "Select printers"
-msgstr ""
-
 msgid "upward compatible machine"
 msgstr "висхідна сумісна машина"
 
@@ -12104,9 +12246,6 @@ msgstr ""
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Логічний вираз, що використовує значення конфігурації активного профілю принтера. Якщо цей вираз оцінюється як Правда, цей профіль вважається сумісним з активним профілем принтера."
-
-msgid "Select profiles"
-msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
@@ -16766,12 +16905,6 @@ msgstr ""
 
 msgid "Calibration not supported"
 msgstr "Калібрування не підтримується"
-
-msgid "Error desc"
-msgstr "Опис помилки"
-
-msgid "Extra info"
-msgstr "Додаткова інформація"
 
 msgid "Flow Dynamics"
 msgstr "Динаміка потоку"

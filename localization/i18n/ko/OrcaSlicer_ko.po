@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -659,6 +659,9 @@ msgstr "부품으로 자르기"
 msgid "Reset cutting plane and remove connectors"
 msgstr "절단면 재설정 및 커넥터 제거"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "잘라내기 실행"
 
@@ -692,6 +695,13 @@ msgstr "홈이 있는 절단면은 유효하지 않습니다"
 
 msgid "Connector"
 msgstr "커넥터"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr "평면으로 자르기"
@@ -2015,6 +2025,9 @@ msgstr ""
 msgid "Loading user preset"
 msgstr "사용자 사전 설정 로드 중"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr ""
@@ -2027,6 +2040,18 @@ msgstr "언어 선택"
 
 msgid "Language"
 msgstr "언어"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2659,6 +2684,45 @@ msgstr "아이콘을 클릭하여 객체의 색상 칠하기를 편집합니다"
 msgid "Click the icon to shift this object to the bed"
 msgstr "아이콘을 클릭하여 이 객체를 베드로 옮깁니다"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "파일 로딩 중"
 
@@ -2667,6 +2731,9 @@ msgstr "오류!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "현재 파일에서 모델의 데이터를 가져오지 못했습니다."
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "일반"
@@ -2679,6 +2746,12 @@ msgstr "객체별 설정 모드로 전환하여 선택한 객체의 프로세스
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "칠한 퍼지 스킨 제거"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "높이 범위 제거"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "잘라내기의 일부인 객체에서 커넥터 삭제"
@@ -2710,11 +2783,23 @@ msgstr "모든 커넥터 삭제"
 msgid "Deleting the last solid part is not allowed."
 msgstr "마지막 꽉찬 부품을 삭제할 수 없습니다."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "대상 객체에는 파트가 하나뿐이며 분할할 수 없습니다."
 
+msgid "Split to parts"
+msgstr "부품으로 분할"
+
 msgid "Assembly"
 msgstr "조립"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "잘라내기 커넥터 정보"
@@ -2749,6 +2834,9 @@ msgstr "높이 범위"
 msgid "Settings for height range"
 msgstr "높이 범위 설정"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "레이어"
 
@@ -2770,6 +2858,9 @@ msgstr "유형:"
 
 msgid "Choose part type"
 msgstr "부품 유형 선택"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "새 이름 입력"
@@ -2796,6 +2887,9 @@ msgstr "\"%s\"은(는) 이 서브디비전 후 100만 면을 초과하여 슬라
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "\"%s\" 파트의 메쉬에 오류가 있습니다. 먼저 수리하세요."
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "추가 프로세스 사전 설정"
 
@@ -2804,9 +2898,6 @@ msgstr "매개 변수 제거"
 
 msgid "to"
 msgstr "으로"
-
-msgid "Remove height range"
-msgstr "높이 범위 제거"
 
 msgid "Add height range"
 msgstr "높이 범위 추가"
@@ -3194,6 +3285,9 @@ msgstr "개발자 모드"
 msgid "Launch troubleshoot center"
 msgstr ""
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3561,6 +3655,9 @@ msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "동적 압출량 교정 계수"
+
+msgid "Wiki Guide"
+msgstr "위키 가이드"
 
 msgid "PA Profile"
 msgstr "PA 사전설정"
@@ -4961,9 +5058,6 @@ msgstr "최적으로 설정"
 msgid "Regroup filament"
 msgstr "필라멘트 재그룹핑"
 
-msgid "Wiki Guide"
-msgstr "위키 가이드"
-
 msgid "up to"
 msgstr "까지"
 
@@ -5230,9 +5324,6 @@ msgstr "선택한 플레이트의 객체 정렬"
 
 msgid "Split to objects"
 msgstr "객체로 분할"
-
-msgid "Split to parts"
-msgstr "부품으로 분할"
 
 msgid "Assembly View"
 msgstr "조립 보기"
@@ -5951,6 +6042,9 @@ msgstr "결과 내보내기"
 msgid "Select profile to load:"
 msgstr "불러올 사전설정 선택:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6547,6 +6641,12 @@ msgstr "사진 추가"
 
 msgid "Delete Photo"
 msgstr "사진 삭제"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "제출"
@@ -7437,8 +7537,20 @@ msgstr ""
 "이 작업을 수행하면 잘라낸 객체간 연결이 끊어집니다.\n"
 "그 이후 모델의 일관성은 보장되지 않습니다."
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "선택한 객체를 분할할 수 없습니다."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
@@ -7465,6 +7577,9 @@ msgstr "새 파일 선택"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "대체할 파일이 선택되지 않았습니다"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr ""
@@ -7511,6 +7626,9 @@ msgstr "새로고침할 수 없음:"
 
 msgid "Error during reload"
 msgstr "새로고침 중 오류가 발생했습니다"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "모델을 슬라이싱한 후 경고 발생:"
@@ -8273,6 +8391,15 @@ msgstr "파일을 로드한 후 프린터 사전 설정 동기화를 선택 취�
 msgid "Graphics"
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr ""
 
@@ -8288,16 +8415,7 @@ msgstr ""
 msgid "Shadows"
 msgstr ""
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr ""
-
-msgid "Smooth normals"
-msgstr ""
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
@@ -8598,6 +8716,9 @@ msgstr "사전 설정 추가/제거"
 msgid "Edit preset"
 msgstr "사전 설정 편집"
 
+msgid "Change extruder color"
+msgstr ""
+
 msgid "Unspecified"
 msgstr ""
 
@@ -8862,6 +8983,12 @@ msgstr "전송 완료"
 
 msgid "Error code"
 msgstr "오류 코드"
+
+msgid "Error desc"
+msgstr "오류 설명"
+
+msgid "Extra info"
+msgstr "추가 정보"
 
 msgid "High Flow"
 msgstr "높은 흐름"
@@ -9826,6 +9953,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "선택한 사전 설정을 %1%로 설정하시겠습니까?"
 
+msgid "Select printers"
+msgstr ""
+
+msgid "Select profiles"
+msgstr ""
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -10052,6 +10185,12 @@ msgstr "왼쪽에서 오른쪽으로 값 전송"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "이 대화 상자를 활성화하면 선택한 값을 왼쪽에서 오른쪽으로 사전 설정으로 변환하는 데 사용할 수 있습니다."
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "파일 추가"
@@ -10417,6 +10556,9 @@ msgstr "로그인"
 msgid "Login failed. Please try again."
 msgstr ""
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr ""
 
@@ -10730,6 +10872,9 @@ msgstr "프린터 이름"
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "프린터의 IP 및 액세스 코드는 어디에서 찾을 수 있습니까?"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "연결"
@@ -12062,9 +12207,6 @@ msgstr ""
 "날카로운 각도를 감지하기 전에 형상이 무시됩니다. 이 매개변수는 무시하는 형상의 최소 길이를 나타냅니다.\n"
 "0으로 비활성화합니다"
 
-msgid "Select printers"
-msgstr ""
-
 msgid "upward compatible machine"
 msgstr "상향 호환 장치"
 
@@ -12074,9 +12216,6 @@ msgstr ""
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "활성 프린터 프로필의 구성 값을 사용하는 불리언 표현식입니다. 이 표현식이 true로 평가되면 이 프로필은 활성 프린터 프로필과 호환되는 것으로 간주됩니다."
-
-msgid "Select profiles"
-msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
@@ -16734,12 +16873,6 @@ msgstr ""
 
 msgid "Calibration not supported"
 msgstr "교정이 지원되지 않음"
-
-msgid "Error desc"
-msgstr "오류 설명"
-
-msgid "Extra info"
-msgstr "추가 정보"
 
 msgid "Flow Dynamics"
 msgstr "동적 압출량"

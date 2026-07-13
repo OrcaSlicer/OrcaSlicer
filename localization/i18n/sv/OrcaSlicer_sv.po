@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -646,6 +646,9 @@ msgstr "Beskär till delar"
 msgid "Reset cutting plane and remove connectors"
 msgstr ""
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "Utför beskärning"
 
@@ -681,6 +684,13 @@ msgstr ""
 
 msgid "Connector"
 msgstr "Kontakt"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr ""
@@ -1975,6 +1985,9 @@ msgstr ""
 msgid "Loading user preset"
 msgstr "Laddar användarens förinställning"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr ""
@@ -1987,6 +2000,18 @@ msgstr "Välj språk"
 
 msgid "Language"
 msgstr "Språk"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2618,6 +2643,45 @@ msgstr "Klicka på ikonen för att redigera färgläggningen av objektet"
 msgid "Click the icon to shift this object to the bed"
 msgstr "Klicka på ikonen för att flytta detta föremål till byggplattan"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "Laddar fil"
 
@@ -2626,6 +2690,9 @@ msgstr "Fel!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Det gick inte att hämta modelldata i den aktuella filen."
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "Allmän"
@@ -2638,6 +2705,12 @@ msgstr "Växla till inställningsläge för varje objekt för att redigera proce
 
 msgid "Remove paint-on fuzzy skin"
 msgstr ""
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "Ta bort höjdintervall"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Ta bort kopplingen från objekt som är en del av snittet"
@@ -2669,11 +2742,23 @@ msgstr "Ta bort alla kopplingar"
 msgid "Deleting the last solid part is not allowed."
 msgstr "Ej tillåtet att radera den senaste fasta delen."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr ""
 
+msgid "Split to parts"
+msgstr "Dela upp i delar"
+
 msgid "Assembly"
 msgstr "Montering"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "Information om kontakter"
@@ -2708,6 +2793,9 @@ msgstr "Höjd intervall"
 msgid "Settings for height range"
 msgstr "Inställningar för höjdintervall"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "Lager"
 
@@ -2729,6 +2817,9 @@ msgstr "Typ:"
 
 msgid "Choose part type"
 msgstr "Välj en del typ"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "Skriv in nytt namn"
@@ -2757,6 +2848,9 @@ msgstr ""
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr ""
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "Ytterligare process inställning"
 
@@ -2765,9 +2859,6 @@ msgstr "Ta bort parameter"
 
 msgid "to"
 msgstr "till"
-
-msgid "Remove height range"
-msgstr "Ta bort höjdintervall"
 
 msgid "Add height range"
 msgstr "Lägg till höjdintervall"
@@ -3155,6 +3246,9 @@ msgstr "Utvecklingsläge"
 msgid "Launch troubleshoot center"
 msgstr ""
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3522,6 +3616,9 @@ msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Faktorer för kalibrering av flödesdynamik"
+
+msgid "Wiki Guide"
+msgstr ""
 
 msgid "PA Profile"
 msgstr "PA profil"
@@ -4896,9 +4993,6 @@ msgstr ""
 msgid "Regroup filament"
 msgstr ""
 
-msgid "Wiki Guide"
-msgstr ""
-
 msgid "up to"
 msgstr "upp till"
 
@@ -5161,9 +5255,6 @@ msgstr "Ordna alla objekt på vald platta"
 
 msgid "Split to objects"
 msgstr "Dela upp till objekt"
-
-msgid "Split to parts"
-msgstr "Dela upp i delar"
 
 msgid "Assembly View"
 msgstr "Monterings vy"
@@ -5883,6 +5974,9 @@ msgstr "Exportera resultat"
 msgid "Select profile to load:"
 msgstr "Välj den profil som ska laddas:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6474,6 +6568,12 @@ msgstr "Lägg till en bild"
 
 msgid "Delete Photo"
 msgstr "Ta bort foto"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "Skicka in"
@@ -7349,8 +7449,20 @@ msgstr ""
 "Denna åtgärd kommer att bryta en klippt korrespondens.\n"
 "Efter det kan modell konsistens inte garanteras."
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "Det valda objektet kan inte delas."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
@@ -7377,6 +7489,9 @@ msgstr "Välj en ny fil"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "Ersättningsfilen valdes inte"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr ""
@@ -7423,6 +7538,9 @@ msgstr "Det gick inte att ladda om:"
 
 msgid "Error during reload"
 msgstr "Fel vid omladdning"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "Varningar efter beredning:"
@@ -8176,6 +8294,15 @@ msgstr ""
 msgid "Graphics"
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr ""
 
@@ -8191,16 +8318,7 @@ msgstr ""
 msgid "Shadows"
 msgstr ""
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr ""
-
-msgid "Smooth normals"
-msgstr ""
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
@@ -8499,6 +8617,9 @@ msgstr "Lägg till/Ta bort förinställningar"
 msgid "Edit preset"
 msgstr "Redigera förinställningar"
 
+msgid "Change extruder color"
+msgstr ""
+
 msgid "Unspecified"
 msgstr ""
 
@@ -8757,6 +8878,12 @@ msgstr "Skicka komplett"
 
 msgid "Error code"
 msgstr "Felkod"
+
+msgid "Error desc"
+msgstr "Fel desc"
+
+msgid "Extra info"
+msgstr ""
 
 msgid "High Flow"
 msgstr ""
@@ -9715,6 +9842,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Välja %1% den valda förinställningen?"
 
+msgid "Select printers"
+msgstr ""
+
+msgid "Select profiles"
+msgstr ""
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -9932,6 +10065,12 @@ msgid "Transfer values from left to right"
 msgstr ""
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
+msgstr ""
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
 msgstr ""
 
 msgid "Add File"
@@ -10287,6 +10426,9 @@ msgstr "Logga in"
 msgid "Login failed. Please try again."
 msgstr ""
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr ""
 
@@ -10600,6 +10742,9 @@ msgstr ""
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "Var hittar du skrivarens IP- och åtkomstkod?"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "Anslut"
@@ -11877,9 +12022,6 @@ msgid ""
 "0 to deactivate."
 msgstr ""
 
-msgid "Select printers"
-msgstr ""
-
 msgid "upward compatible machine"
 msgstr "uppåt kompatibel maskin"
 
@@ -11887,9 +12029,6 @@ msgid "Condition"
 msgstr "Villkor"
 
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
-msgstr ""
-
-msgid "Select profiles"
 msgstr ""
 
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
@@ -16345,12 +16484,6 @@ msgstr ""
 
 msgid "Calibration not supported"
 msgstr "Kalibrering stöds inte"
-
-msgid "Error desc"
-msgstr "Fel desc"
-
-msgid "Extra info"
-msgstr ""
 
 msgid "Flow Dynamics"
 msgstr "Flödesdynamik"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -656,6 +656,9 @@ msgstr "Cắt thành phần"
 msgid "Reset cutting plane and remove connectors"
 msgstr "Đặt lại mặt cắt và xóa connector"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "Thực hiện cắt"
 
@@ -688,6 +691,13 @@ msgid "Cut plane with groove is invalid"
 msgstr "Mặt cắt có rãnh không hợp lệ"
 
 msgid "Connector"
+msgstr ""
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
 msgstr ""
 
 msgid "Cut by Plane"
@@ -2005,6 +2015,9 @@ msgstr ""
 msgid "Loading user preset"
 msgstr "Đang tải preset người dùng"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr ""
@@ -2017,6 +2030,18 @@ msgstr "Chọn ngôn ngữ"
 
 msgid "Language"
 msgstr "Ngôn ngữ"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2647,6 +2672,45 @@ msgstr "Nhấn biểu tượng để chỉnh sửa vẽ màu của vật thể"
 msgid "Click the icon to shift this object to the bed"
 msgstr "Nhấn biểu tượng để đưa vật thể này xuống đế"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "Đang tải file"
 
@@ -2655,6 +2719,9 @@ msgstr "Lỗi!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Không thể lấy dữ liệu model trong file hiện tại."
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "Chung"
@@ -2667,6 +2734,12 @@ msgstr "Chuyển sang chế độ cài đặt từng vật thể để chỉnh s
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "Xóa fuzzy skin vẽ"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "Xóa phạm vi chiều cao"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Xóa connector khỏi vật thể là một phần của cắt"
@@ -2698,11 +2771,23 @@ msgstr "Xóa tất cả connector"
 msgid "Deleting the last solid part is not allowed."
 msgstr "Không được phép xóa phần rắn cuối cùng."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "Vật thể đích chỉ chứa một phần và không thể tách."
 
+msgid "Split to parts"
+msgstr "Tách thành phần"
+
 msgid "Assembly"
 msgstr "Lắp ráp"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "Thông tin connector cắt"
@@ -2737,6 +2822,9 @@ msgstr "Phạm vi chiều cao"
 msgid "Settings for height range"
 msgstr "Cài đặt cho phạm vi chiều cao"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "Lớp"
 
@@ -2758,6 +2846,9 @@ msgstr "Loại:"
 
 msgid "Choose part type"
 msgstr "Chọn loại phần"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "Nhập tên mới"
@@ -2784,6 +2875,9 @@ msgstr ""
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr ""
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "Preset process bổ sung"
 
@@ -2792,9 +2886,6 @@ msgstr "Xóa tham số"
 
 msgid "to"
 msgstr "đến"
-
-msgid "Remove height range"
-msgstr "Xóa phạm vi chiều cao"
 
 msgid "Add height range"
 msgstr "Thêm phạm vi chiều cao"
@@ -3182,6 +3273,9 @@ msgstr "Chế độ phát triển"
 msgid "Launch troubleshoot center"
 msgstr ""
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3549,6 +3643,9 @@ msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Các hệ số của hiệu chỉnh flow động"
+
+msgid "Wiki Guide"
+msgstr ""
 
 msgid "PA Profile"
 msgstr ""
@@ -4936,9 +5033,6 @@ msgstr ""
 msgid "Regroup filament"
 msgstr ""
 
-msgid "Wiki Guide"
-msgstr ""
-
 msgid "up to"
 msgstr "lên đến"
 
@@ -5203,9 +5297,6 @@ msgstr "Sắp xếp vật thể trên các plate đã chọn"
 
 msgid "Split to objects"
 msgstr "Tách thành vật thể"
-
-msgid "Split to parts"
-msgstr "Tách thành phần"
 
 msgid "Assembly View"
 msgstr "Chế độ xem lắp ráp"
@@ -5924,6 +6015,9 @@ msgstr "Kết quả xuất"
 msgid "Select profile to load:"
 msgstr "Chọn hồ sơ để tải:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6517,6 +6611,12 @@ msgstr "Thêm ảnh"
 
 msgid "Delete Photo"
 msgstr "Xóa ảnh"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "Gửi"
@@ -7404,8 +7504,20 @@ msgstr ""
 "Hành động này sẽ phá vỡ sự tương ứng cắt.\n"
 "Sau đó tính nhất quán của model không thể được đảm bảo."
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "Đối tượng đã chọn không thể được tách."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
@@ -7432,6 +7544,9 @@ msgstr "Chọn file mới"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "Chưa chọn file để thay thế"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr ""
@@ -7478,6 +7593,9 @@ msgstr "Không thể tải lại:"
 
 msgid "Error during reload"
 msgstr "Lỗi trong quá trình tải lại"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "Có cảnh báo sau khi slice model:"
@@ -8233,6 +8351,15 @@ msgstr ""
 msgid "Graphics"
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr ""
 
@@ -8248,16 +8375,7 @@ msgstr ""
 msgid "Shadows"
 msgstr ""
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr ""
-
-msgid "Smooth normals"
-msgstr ""
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
@@ -8555,6 +8673,9 @@ msgstr "Thêm/Xóa preset"
 msgid "Edit preset"
 msgstr "Chỉnh sửa preset"
 
+msgid "Change extruder color"
+msgstr ""
+
 msgid "Unspecified"
 msgstr ""
 
@@ -8813,6 +8934,12 @@ msgstr "gửi hoàn tất"
 
 msgid "Error code"
 msgstr "Mã lỗi"
+
+msgid "Error desc"
+msgstr "Mô tả lỗi"
+
+msgid "Extra info"
+msgstr "Thông tin bổ sung"
 
 msgid "High Flow"
 msgstr ""
@@ -9774,6 +9901,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Bạn có chắc chắn %1% preset đã chọn?"
 
+msgid "Select printers"
+msgstr "Chọn máy in"
+
+msgid "Select profiles"
+msgstr "Chọn hồ sơ"
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -10000,6 +10133,12 @@ msgstr "Chuyển giá trị từ trái sang phải"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "Nếu được bật, hộp thoại này có thể được sử dụng để chuyển giá trị đã chọn từ trái sang preset bên phải."
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "Thêm file"
@@ -10357,6 +10496,9 @@ msgstr "Đăng nhập"
 msgid "Login failed. Please try again."
 msgstr ""
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr ""
 
@@ -10670,6 +10812,9 @@ msgstr "Tên máy in"
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "Tìm IP và mã truy cập của máy in ở đâu?"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "Kết nối"
@@ -12005,9 +12150,6 @@ msgstr ""
 "Hình học sẽ được giảm trước khi phát hiện góc sắc. Tham số này chỉ ra độ dài tối thiểu của độ lệch cho việc giảm.\n"
 "0 để vô hiệu hóa."
 
-msgid "Select printers"
-msgstr "Chọn máy in"
-
 msgid "upward compatible machine"
 msgstr "máy tương thích ngược"
 
@@ -12017,9 +12159,6 @@ msgstr "Điều kiện"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Một biểu thức boolean sử dụng giá trị cấu hình của hồ sơ máy in đang hoạt động. Nếu biểu thức này đánh giá là đúng, hồ sơ này được coi là tương thích với hồ sơ máy in đang hoạt động."
-
-msgid "Select profiles"
-msgstr "Chọn hồ sơ"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
@@ -16682,12 +16821,6 @@ msgstr ""
 
 msgid "Calibration not supported"
 msgstr "Hiệu chỉnh không được hỗ trợ"
-
-msgid "Error desc"
-msgstr "Mô tả lỗi"
-
-msgid "Extra info"
-msgstr "Thông tin bổ sung"
 
 msgid "Flow Dynamics"
 msgstr "Động lực lưu lượng"

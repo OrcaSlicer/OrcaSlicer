@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -655,6 +655,9 @@ msgstr "Taglia in parti"
 msgid "Reset cutting plane and remove connectors"
 msgstr "Ripristina il piano di taglio e rimuovi i connettori"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "Effettua taglio"
 
@@ -690,6 +693,13 @@ msgstr "Il piano di taglio con scanalatura non è valido"
 
 msgid "Connector"
 msgstr "Connettore"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr "Taglio per piano"
@@ -2015,6 +2025,9 @@ msgstr "L'accesso al pacchetto %s non è autorizzato."
 msgid "Loading user preset"
 msgstr "Caricamento profili utente"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr "%s è stato rimosso."
@@ -2027,6 +2040,18 @@ msgstr "Seleziona la lingua"
 
 msgid "Language"
 msgstr "Lingua"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2661,6 +2686,45 @@ msgstr "Clicca sull'icona per modificare i colori dell'oggetto"
 msgid "Click the icon to shift this object to the bed"
 msgstr "Fare clic sull'icona per spostare l'oggetto sul piatto"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "Caricamento file"
 
@@ -2669,6 +2733,9 @@ msgstr "Errore!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Impossibile ottenere i dati del modello nel file corrente."
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "Generico"
@@ -2681,6 +2748,12 @@ msgstr "Passa alla modalità di impostazione oggetto per modificare le impostazi
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "Rimuovi superficie ruvida dipinta"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "Rimuovi intervallo altezza"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Elimina il connettore dall'oggetto che fa parte del taglio"
@@ -2712,11 +2785,23 @@ msgstr "Elimina tutti i connettori"
 msgid "Deleting the last solid part is not allowed."
 msgstr "Non è consentita l'eliminazione dell'ultima parte solida."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "L'oggetto di destinazione contiene solo una parte e non può essere suddiviso."
 
+msgid "Split to parts"
+msgstr "Dividi in parti"
+
 msgid "Assembly"
 msgstr "Assemblaggio"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "Informazioni sui connettori di taglio"
@@ -2751,6 +2836,9 @@ msgstr "Intervalli di altezza"
 msgid "Settings for height range"
 msgstr "Impostazioni intervallo altezza"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "Strato"
 
@@ -2772,6 +2860,9 @@ msgstr "Tipo:"
 
 msgid "Choose part type"
 msgstr "Scegli tipo di parte"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "Inserisci un nuovo nome"
@@ -2800,6 +2891,9 @@ msgstr "\"%s\" supererà 1 milione di facce dopo questa suddivisione, il che pot
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "La mesh della parte \"%s\" contiene errori. Ripararla prima."
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "Profilo processo aggiuntivo"
 
@@ -2808,9 +2902,6 @@ msgstr "Rimuovi parametro"
 
 msgid "to"
 msgstr "a"
-
-msgid "Remove height range"
-msgstr "Rimuovi intervallo altezza"
 
 msgid "Add height range"
 msgstr "Aggiungi intervallo di altezza"
@@ -3196,6 +3287,9 @@ msgstr "Modalità sviluppatore"
 msgid "Launch troubleshoot center"
 msgstr ""
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3563,6 +3657,9 @@ msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Fattori di calibrazione della dinamica del flusso"
+
+msgid "Wiki Guide"
+msgstr "Guida Wiki"
 
 msgid "PA Profile"
 msgstr "Profilo AP"
@@ -4962,9 +5059,6 @@ msgstr "Imposta al valore ottimale"
 msgid "Regroup filament"
 msgstr "Raggruppa nuovamente i filamenti"
 
-msgid "Wiki Guide"
-msgstr "Guida Wiki"
-
 msgid "up to"
 msgstr "fino a"
 
@@ -5231,9 +5325,6 @@ msgstr "Disponi gli oggetti sui piatti selezionati"
 
 msgid "Split to objects"
 msgstr "Dividi in oggetti"
-
-msgid "Split to parts"
-msgstr "Dividi in parti"
 
 msgid "Assembly View"
 msgstr "Vista di montaggio"
@@ -5957,6 +6048,9 @@ msgstr "Risultato Esportazione"
 msgid "Select profile to load:"
 msgstr "Seleziona profilo da caricare:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6558,6 +6652,12 @@ msgstr "Aggiungi foto"
 
 msgid "Delete Photo"
 msgstr "Elimina foto"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "Invia"
@@ -7445,8 +7545,20 @@ msgstr ""
 "Questa azione interromperà la corrispondenza tra gli oggetti tagliati.\n"
 "In seguito, la coerenza del modello non può essere garantita."
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "L'oggetto selezionato non può essere diviso."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "Disabilitare la funzione di Rilascio automatico per preservare il posizionamento sull'asse Z?\n"
@@ -7473,6 +7585,9 @@ msgstr "Seleziona nuovo file"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "Il file per la sostituzione non è stato selezionato"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr "Seleziona la cartella da cui sostituire"
@@ -7519,6 +7634,9 @@ msgstr "Impossibile ricaricare:"
 
 msgid "Error during reload"
 msgstr "Errore durante il ricaricamento"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "Ci sono avvisi dopo aver elaborato i modelli:"
@@ -8291,6 +8409,15 @@ msgstr "Cancella la mia scelta per la sincronizzazione del profilo stampante dop
 msgid "Graphics"
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr ""
 
@@ -8306,16 +8433,7 @@ msgstr ""
 msgid "Shadows"
 msgstr ""
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr ""
-
-msgid "Smooth normals"
-msgstr ""
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
@@ -8615,6 +8733,9 @@ msgstr "Aggiungi/Rimuovi profilo"
 msgid "Edit preset"
 msgstr "Modifica profilo"
 
+msgid "Change extruder color"
+msgstr ""
+
 msgid "Unspecified"
 msgstr "Non specificato"
 
@@ -8879,6 +9000,12 @@ msgstr "Invio completato"
 
 msgid "Error code"
 msgstr "Codice di errore"
+
+msgid "Error desc"
+msgstr "Descrizione errore"
+
+msgid "Extra info"
+msgstr "Ulteriori informazioni"
 
 msgid "High Flow"
 msgstr "Alto flusso"
@@ -9850,6 +9977,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Sei sicuro di voler %1% il preset selezionato?"
 
+msgid "Select printers"
+msgstr "Seleziona stampanti"
+
+msgid "Select profiles"
+msgstr "Seleziona profili"
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -10086,6 +10219,12 @@ msgstr "Trasferimento dei valori da sinistra a destra"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "Se abilitata, questa finestra può essere utilizzata per trasferire i valori selezionati dal profilo di sinistra a quello di destra."
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "Aggiungi file"
@@ -10451,6 +10590,9 @@ msgstr "Accedi"
 msgid "Login failed. Please try again."
 msgstr ""
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[Azione necessaria] "
 
@@ -10764,6 +10906,9 @@ msgstr "Nome stampante"
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "Dove trovo l'IP e il codice accesso della stampante?"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "Connetti"
@@ -12135,9 +12280,6 @@ msgstr ""
 "La geometria verrà decimata prima di rilevare gli spigoli vivi. Questo parametro indica la lunghezza minima dello scostamento per la decimazione.\n"
 "0 per disattivare."
 
-msgid "Select printers"
-msgstr "Seleziona stampanti"
-
 msgid "upward compatible machine"
 msgstr "macchina compatibile con versioni successive"
 
@@ -12147,9 +12289,6 @@ msgstr "Condizione"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Un'espressione booleana che usa i valori di configurazione di un profilo stampante attivo. Se questa espressione produce un risultato vero, questo profilo si considera compatibile con il profilo stampante attivo."
-
-msgid "Select profiles"
-msgstr "Seleziona profili"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
@@ -16862,12 +17001,6 @@ msgstr ""
 
 msgid "Calibration not supported"
 msgstr "Calibrazione non supportata"
-
-msgid "Error desc"
-msgstr "Descrizione errore"
-
-msgid "Extra info"
-msgstr "Ulteriori informazioni"
 
 msgid "Flow Dynamics"
 msgstr "Dinamica del flusso"

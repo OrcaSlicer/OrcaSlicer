@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -650,6 +650,9 @@ msgstr "In delen knippen"
 msgid "Reset cutting plane and remove connectors"
 msgstr ""
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "Knippen uitvoeren"
 
@@ -685,6 +688,13 @@ msgstr ""
 
 msgid "Connector"
 msgstr "Verbinding"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr "Snij met behulp van vlak"
@@ -1986,6 +1996,9 @@ msgstr ""
 msgid "Loading user preset"
 msgstr "Gebruikersvoorinstelling laden"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr ""
@@ -1998,6 +2011,18 @@ msgstr "Kies de taal"
 
 msgid "Language"
 msgstr "Taal"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2629,6 +2654,45 @@ msgstr "Klik op het pictogram om de kleur van het object te bewerken"
 msgid "Click the icon to shift this object to the bed"
 msgstr "Klik op het pictogram om dit object te verschuiven op het printbed"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "Bestand laden"
 
@@ -2637,6 +2701,9 @@ msgstr "Fout!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Kon de modelinformatie niet laden uit het huidige bestand."
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "Algemeen"
@@ -2648,6 +2715,12 @@ msgid "Switch to per-object setting mode to edit process settings of selected ob
 msgstr "Schakel over naar de instellingsmodus per object om procesinstellingen van geselecteerde objecten te bewerken."
 
 msgid "Remove paint-on fuzzy skin"
+msgstr ""
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
 msgstr ""
 
 msgid "Delete connector from object which is a part of cut"
@@ -2680,11 +2753,23 @@ msgstr "Verwijder alle vberbindingen"
 msgid "Deleting the last solid part is not allowed."
 msgstr "Het is niet toegestaand om het laaste vaste deel te verwijderen."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr ""
 
+msgid "Split to parts"
+msgstr "Opsplitsten in delen"
+
 msgid "Assembly"
 msgstr "Montage"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr ""
@@ -2719,6 +2804,9 @@ msgstr "Hoogtebereiken"
 msgid "Settings for height range"
 msgstr "Instellingen voor hoogtebereik"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "Laag"
 
@@ -2740,6 +2828,9 @@ msgstr ""
 
 msgid "Choose part type"
 msgstr "Kies het onderdeel type"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "Voer nieuwe naam in"
@@ -2768,6 +2859,9 @@ msgstr ""
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr ""
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "Extra procesvoorinstelling"
 
@@ -2776,9 +2870,6 @@ msgstr "Verwijder parameter"
 
 msgid "to"
 msgstr "naar"
-
-msgid "Remove height range"
-msgstr ""
 
 msgid "Add height range"
 msgstr ""
@@ -3166,6 +3257,9 @@ msgstr "Ontwikkelmodus"
 msgid "Launch troubleshoot center"
 msgstr ""
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3532,6 +3626,9 @@ msgstr ""
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Factoren van Flow Dynamics Calibration"
+
+msgid "Wiki Guide"
+msgstr ""
 
 msgid "PA Profile"
 msgstr "PA-profiel"
@@ -4906,9 +5003,6 @@ msgstr ""
 msgid "Regroup filament"
 msgstr ""
 
-msgid "Wiki Guide"
-msgstr ""
-
 msgid "up to"
 msgstr "tot"
 
@@ -5170,9 +5264,6 @@ msgstr "Rangschikt de objecten op de gelecteerde printbedden"
 
 msgid "Split to objects"
 msgstr "Opsplitsen in objecten"
-
-msgid "Split to parts"
-msgstr "Opsplitsten in delen"
 
 msgid "Assembly View"
 msgstr "Montageweergave"
@@ -5892,6 +5983,9 @@ msgstr "Exporteer resultaat"
 msgid "Select profile to load:"
 msgstr "Selecteer het te laden profiel:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6484,6 +6578,12 @@ msgstr "Foto toevoegen"
 
 msgid "Delete Photo"
 msgstr "Foto verwijderen"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "Indienen"
@@ -7360,8 +7460,20 @@ msgstr ""
 "This action will break a cut correspondence.\n"
 "After that model consistency can't be guaranteed."
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "Het geselecteerde object kan niet opgesplitst worden."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
@@ -7388,6 +7500,9 @@ msgstr "Selecteer een nieuw bestand"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "Het bestand voor de vervanging is niet geselecteerd"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr ""
@@ -7434,6 +7549,9 @@ msgstr "Kan niet herladen:"
 
 msgid "Error during reload"
 msgstr "Fout tijdens herladen"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "Er zijn waarschuwingen na het slicen van modellen:"
@@ -8190,6 +8308,15 @@ msgstr ""
 msgid "Graphics"
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr ""
 
@@ -8205,16 +8332,7 @@ msgstr ""
 msgid "Shadows"
 msgstr ""
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr ""
-
-msgid "Smooth normals"
-msgstr ""
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
@@ -8515,6 +8633,9 @@ msgstr "Voorinstellingen toevoegen/verwijderen"
 msgid "Edit preset"
 msgstr "Voorinstelling bewerken"
 
+msgid "Change extruder color"
+msgstr ""
+
 msgid "Unspecified"
 msgstr "Niet gespecificeerd"
 
@@ -8772,6 +8893,12 @@ msgstr "versturen gelukt"
 
 msgid "Error code"
 msgstr "Foutcode"
+
+msgid "Error desc"
+msgstr "Fout beschrijving"
+
+msgid "Extra info"
+msgstr "Extra informatie"
 
 msgid "High Flow"
 msgstr ""
@@ -9736,6 +9863,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Weet u zeker dat u de geselecteerde preset wilt %1%?"
 
+msgid "Select printers"
+msgstr ""
+
+msgid "Select profiles"
+msgstr ""
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -9953,6 +10086,12 @@ msgid "Transfer values from left to right"
 msgstr ""
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
+msgstr ""
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
 msgstr ""
 
 msgid "Add File"
@@ -10311,6 +10450,9 @@ msgstr "Inloggen"
 msgid "Login failed. Please try again."
 msgstr ""
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr ""
 
@@ -10624,6 +10766,9 @@ msgstr ""
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "Waar vind je het IP-adres en de toegangscode van je printer?"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "Verbinden"
@@ -11901,9 +12046,6 @@ msgid ""
 "0 to deactivate."
 msgstr ""
 
-msgid "Select printers"
-msgstr ""
-
 msgid "upward compatible machine"
 msgstr "opwaarts compatibele machine"
 
@@ -11913,9 +12055,6 @@ msgstr "Voorwaarde"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Een waar/niet waar aanduiding die gebruik maakt van configuratiewaarden van een actief printerprofiel. Als deze aanduiding op waar staat, wordt dit profiel beschouwd als geschikt voor het actieve printerprofiel."
-
-msgid "Select profiles"
-msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
@@ -16371,12 +16510,6 @@ msgstr ""
 
 msgid "Calibration not supported"
 msgstr "Kalibratie wordt niet ondersteund"
-
-msgid "Error desc"
-msgstr "Fout beschrijving"
-
-msgid "Extra info"
-msgstr "Extra informatie"
 
 msgid "Flow Dynamics"
 msgstr "Flowdynamiek"

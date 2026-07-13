@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 12:20-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -668,6 +668,9 @@ msgstr "Объединить в сборку"
 msgid "Reset cutting plane and remove connectors"
 msgstr "Сброс позиции секущей плоскости и удаление всех соединений"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "Разрезать"
 
@@ -705,6 +708,13 @@ msgstr "текущее положение секущей плоскости с �
 
 msgid "Connector"
 msgstr "Соединение"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr "Разрез по плоскости"
@@ -2077,6 +2087,9 @@ msgstr "Доступ к пакету %s не авторизован."
 msgid "Loading user preset"
 msgstr "Загрузка пользовательского профиля"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr "%s был удалён."
@@ -2089,6 +2102,18 @@ msgstr "Выбор языка"
 
 msgid "Language"
 msgstr "Язык"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2697,6 +2722,45 @@ msgstr "Перекрасить модель"
 msgid "Click the icon to shift this object to the bed"
 msgstr "Вытолкнуть на стол"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "Загрузка файла"
 
@@ -2705,6 +2769,9 @@ msgstr "Ошибка!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Не удалось получить данные модели из текущего файла."
+
+msgid "Add primitive"
+msgstr ""
 
 # Базовый примитив – опасно оставлять узкоспециализированный перевод (чисто
 # для фигур), т.к. Generic уже сейчас используется в названии начала профилей.
@@ -2724,6 +2791,12 @@ msgstr ""
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "Удалить покраску нечеткой оболочки"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "Удаление диапазона высот слоёв"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Удаление соединения из модели, которое является частью разреза"
@@ -2754,11 +2827,23 @@ msgstr "Удалить все соединения"
 msgid "Deleting the last solid part is not allowed."
 msgstr "Удаление последней твердотельной части не допускается."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "Заданная модель состоит только из одной части и не может быть разделена."
 
+msgid "Split to parts"
+msgstr "Разделить на части"
+
 msgid "Assembly"
 msgstr "Сборка"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "Информация о вырезанных соединениях"
@@ -2790,6 +2875,9 @@ msgstr "Диапазон высот слоёв"
 msgid "Settings for height range"
 msgstr "Настройки для диапазона высот слоёв"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "Слой"
 
@@ -2810,6 +2898,9 @@ msgstr "Тип:"
 
 msgid "Choose part type"
 msgstr "Выберите тип элемента"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "Введите новое имя"
@@ -2843,6 +2934,9 @@ msgstr "«%s» после сглаживания будет иметь боле�
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "Сетка модели «%s» содержит ошибки. Выполните её восстановление."
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "Доп. профиль настроек"
 
@@ -2851,9 +2945,6 @@ msgstr "Удалить параметр"
 
 msgid "to"
 msgstr "до"
-
-msgid "Remove height range"
-msgstr "Удаление диапазона высот слоёв"
 
 msgid "Add height range"
 msgstr "Добавление диапазона высот слоёв"
@@ -3247,6 +3338,9 @@ msgstr "Режим разработчика"
 msgid "Launch troubleshoot center"
 msgstr "Запустить экран отладки"
 
+msgid "Done."
+msgstr ""
+
 msgid ""
 "All the selected objects are on a locked plate.\n"
 "Cannot auto-arrange these objects."
@@ -3609,6 +3703,9 @@ msgstr "Серийный номер"
 
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Коэф. калиб. динам. потока"
+
+msgid "Wiki Guide"
+msgstr "Руководство"
 
 msgid "PA Profile"
 msgstr "Профиль PA"
@@ -5039,9 +5136,6 @@ msgstr "Оптимизировать"
 msgid "Regroup filament"
 msgstr "Изменить"
 
-msgid "Wiki Guide"
-msgstr "Руководство"
-
 msgid "up to"
 msgstr "до"
 
@@ -5303,9 +5397,6 @@ msgstr "Расставить модели на активном столе"
 
 msgid "Split to objects"
 msgstr "Разделить на модели"
-
-msgid "Split to parts"
-msgstr "Разделить на части"
 
 msgid "Assembly View"
 msgstr "Сборочный вид"
@@ -6061,6 +6152,9 @@ msgstr "Результат экспорта"
 msgid "Select profile to load:"
 msgstr "Выберите профиль для загрузки:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6663,6 +6757,12 @@ msgstr "Добавить фото"
 
 msgid "Delete Photo"
 msgstr "Удалить фото"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "Отправить"
@@ -7561,8 +7661,20 @@ msgstr ""
 "Это действие приведёт к удалению информации о разрезе.\n"
 "Целостность модели после этого не гарантируется."
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "Невозможно разделить выбранную модель."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "Отключить притягивание компонентов к столу для сохранения высоты?\n"
@@ -7588,6 +7700,9 @@ msgstr "Выбор нового файла"
 
 msgid "File for the replacement wasn't selected"
 msgstr "Файл для замены не выбран"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 # В заголовке окна выбора папки и ошибки "папка не найдена"
 msgid "Select folder to replace from"
@@ -7635,6 +7750,9 @@ msgstr "Не удалось перезагрузить:"
 
 msgid "Error during reload"
 msgstr "Ошибка во время перезагрузки"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "Предупреждение о нарезке моделей:"
@@ -8423,6 +8541,15 @@ msgstr "Отменить выбор для синхронизации профи
 msgid "Graphics"
 msgstr "Графика"
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr "Затенение по Фонгу"
 
@@ -8755,6 +8882,9 @@ msgstr "Добавить/удалить профиль"
 msgid "Edit preset"
 msgstr "Изменить профиль"
 
+msgid "Change extruder color"
+msgstr ""
+
 # Название группы материала в выпадающем списке, если включена группировка
 # кастомных профилей и в профиле не задан производитель и/или тип.
 msgid "Unspecified"
@@ -9022,6 +9152,12 @@ msgstr "отправка завершена"
 
 msgid "Error code"
 msgstr "Код ошибки"
+
+msgid "Error desc"
+msgstr "Описание ошибки"
+
+msgid "Extra info"
+msgstr "Доп. информация"
 
 msgid "High Flow"
 msgstr "Высокий расход"
@@ -10029,6 +10165,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Вы действительно хотите %1% выбранный профиль?"
 
+msgid "Select printers"
+msgstr "Профили принтеров"
+
+msgid "Select profiles"
+msgstr "Профили настроек"
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -10262,6 +10404,12 @@ msgstr "Перенести значения из левого профиля"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "При включении активируется режим выбора значений из левого профиля для переноса в правый."
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "Добавить файл"
@@ -10636,6 +10784,9 @@ msgstr "Войти"
 msgid "Login failed. Please try again."
 msgstr "Ошибка входа. Попробуйте ещё раз."
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[Требуется действие] "
 
@@ -10944,6 +11095,9 @@ msgstr "Имя принтера"
 
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "Где найти IP-адрес и код доступа к вашему принтеру?"
+
+msgid "How to trouble shooting"
+msgstr ""
 
 msgid "Connect"
 msgstr "Подключить"
@@ -12322,9 +12476,6 @@ msgstr ""
 "Геометрия модели будет упрощена перед обнаружением острых углов. Этот параметр задаёт минимальную длину отклонения для её упрощения.\n"
 "Установите 0 для отключения."
 
-msgid "Select printers"
-msgstr "Профили принтеров"
-
 msgid "upward compatible machine"
 msgstr "условия для совместимых принтеров"
 
@@ -12336,9 +12487,6 @@ msgstr ""
 "Логическое выражение, с помощью которого можно настраивать условия совместимости профилей принтеров с текущим профилем материала. Если условие выполняется, материал считается совместимым с текущим профилем принтера.\n"
 "\n"
 "Например, для совместимости материала только с соплами крупнее 0.4 мм используйте 'nozzle_diameter[0]>0.4'."
-
-msgid "Select profiles"
-msgstr "Профили настроек"
 
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr ""
@@ -17480,12 +17628,6 @@ msgstr ""
 
 msgid "Calibration not supported"
 msgstr "Калибровка не поддерживается"
-
-msgid "Error desc"
-msgstr "Описание ошибки"
-
-msgid "Extra info"
-msgstr "Доп. информация"
 
 msgid "Flow Dynamics"
 msgstr "Динамика потока"
