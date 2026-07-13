@@ -15,6 +15,9 @@ public:
 
     static bool RunScript(wxWebView * webView, wxString const & msg);
 
+    // Marks "wx" as registered so CreateWebView's deferred add skips the duplicate.
+    static void MarkScriptMessageHandlerAdded(wxWebView * webView);
+
     static void RecreateAll();
 };
 
