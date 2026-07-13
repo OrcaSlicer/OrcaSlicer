@@ -22,10 +22,10 @@ float linearize_depth(float depth)
 }
 
 void main()
-{   
+{
     if (is_outline) {
-    frag_color = vec4(texture(color_texture, tex_coord).rgb, 1.0);
-    return;
+        gl_FragColor = vec4(texture2D(color_texture, tex_coord).rgb, 1.0);
+        return;
     }
     vec3 base = texture2D(color_texture, tex_coord).rgb;
     float depth_center = linearize_depth(texture2D(depth_texture, tex_coord).r);
