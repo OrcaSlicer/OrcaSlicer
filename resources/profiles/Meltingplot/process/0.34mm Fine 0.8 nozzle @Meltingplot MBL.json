@@ -1,0 +1,15 @@
+{
+	"type": "process",
+	"name": "0.34mm Fine 0.8 nozzle @Meltingplot MBL",
+	"inherits": "fdm_process_meltingplot_mbl_08_nozzle",
+	"from": "system",
+	"setting_id": "XVRHVR0F8UrpWAeP",
+	"instantiation": "true",
+	"layer_height": "0.34",
+	"compatible_printers": [
+		"Meltingplot MBL 133 0.8 nozzle",
+		"Meltingplot MBL 136 0.8 nozzle",
+		"Meltingplot MBL 308 0.8 nozzle",
+		"Meltingplot MBL 480 0.8 nozzle"
+	]
+}
