@@ -44,6 +44,8 @@ public:
     bool isLaszer() const { return product_name.Contains("Laser"); }
     bool isCuttingModule() const { return product_name.Contains("Cutting Module"); }
     bool isExtinguishSystem() const { return product_name.Contains("Extinguishing System"); }
+    bool isWTM() const { return name.find("wtm") != std::string::npos; } // nozzle (rack hotend) module firmware
+    bool isFilaTrackSwitch() const { return product_name.Contains("Filament Track"); }
 };
 
 

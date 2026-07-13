@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 12:42-0300\n"
+"POT-Creation-Date: 2026-07-12 12:27-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -162,6 +162,12 @@ msgstr "Výplň"
 msgid "Gap Fill"
 msgstr "Vyplnění mezery"
 
+msgid "Vertical"
+msgstr "Vertikální"
+
+msgid "Horizontal"
+msgstr "Vodorovně"
+
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
 msgstr "Umožňuje malování pouze na plochách vybraných podle: \"%1%\""
@@ -257,12 +263,6 @@ msgstr "Trojúhelník"
 msgid "Height Range"
 msgstr "Rozsah výšky"
 
-msgid "Vertical"
-msgstr "Vertikální"
-
-msgid "Horizontal"
-msgstr "Vodorovně"
-
 msgid "Remove painted color"
 msgstr "Odstranit nanesenou barvu"
 
@@ -327,6 +327,7 @@ msgstr "Gizmo-Otočit"
 msgid "Optimize orientation"
 msgstr "Optimalizovat orientaci"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "Měřítko"
 
@@ -336,8 +337,9 @@ msgstr "Gizmo-Měřítko"
 msgid "Error: Please close all toolbar menus first"
 msgstr "Nejprve prosím zavřete všechna menu nástrojové lišty"
 
+msgctxt "inches"
 msgid "in"
-msgstr "v"
+msgstr ""
 
 msgid "mm"
 msgstr "mm"
@@ -370,6 +372,9 @@ msgstr "Poměry měřítka"
 msgid "Object operations"
 msgstr "Operace s objektem"
 
+msgid "Scale"
+msgstr "Měřítko"
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
 msgstr "Operace s hlasitostí"
@@ -397,26 +402,33 @@ msgstr "Obnovit pozici"
 msgid "Reset rotation"
 msgstr "Resetovat rotaci"
 
-msgid "Object coordinates"
-msgstr "Souřadnice objektu"
+msgid "World"
+msgstr ""
 
-msgid "World coordinates"
-msgstr "Světové souřadnice"
+msgid "Object"
+msgstr "Objekt"
 
-msgid "Translate(Relative)"
-msgstr "Přesunout (relativně)"
+msgid "Part"
+msgstr "Díl"
+
+msgid "Relative"
+msgstr ""
+
+msgid "Coordinate system used for transform actions."
+msgstr ""
+
+msgid "Absolute"
+msgstr ""
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "Obnovit aktuální rotaci na hodnotu při otevření nástroje pro rotaci."
 
-msgid "Rotate (absolute)"
-msgstr "Otočit (absolutně)"
-
 msgid "Reset current rotation to real zeros."
 msgstr "Obnovit aktuální rotaci na skutečné nuly."
 
-msgid "Part coordinates"
-msgstr "Souřadnice části"
+msgctxt "Noun"
+msgid "Scale"
+msgstr "Měřítko"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -520,12 +532,6 @@ msgstr "Mezera"
 
 msgid "Spacing"
 msgstr "Rozestup"
-
-msgid "Part"
-msgstr "Díl"
-
-msgid "Object"
-msgstr "Objekt"
 
 msgid ""
 "Click to flip the cut plane\n"
@@ -1871,28 +1877,41 @@ msgstr "Otevřít projekt"
 msgid "The version of Orca Slicer is too low and needs to be updated to the latest version before it can be used normally."
 msgstr "Verze Orca Slicer je příliš stará a je nutné ji aktualizovat na nejnovější verzi, aby ji bylo možné používat."
 
+msgid "Cloud sync conflict:"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Cloud sync conflict for preset \"%s\":"
+msgstr ""
+
 msgid ""
-"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+"This preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"A preset with this name already exists in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+"A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
-"Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+"There was an unexpected or unidentified preset conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
+"Do you want to continue?"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\n"
 "Do you want to continue?"
 msgstr ""
 
@@ -1976,8 +1995,9 @@ msgstr "Počet uživatelských předvoleb uložených v cloudu překročil povol
 msgid "Sync user presets"
 msgstr "Synchronizovat uživatelské předvolby"
 
-msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
-msgstr "Obsah předvolby je příliš velký pro synchronizaci do cloudu (přesahuje 1 MB). Zmenšete velikost předvolby odstraněním vlastních nastavení nebo ji používejte pouze lokálně."
+#, c-format, boost-format
+msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%s updated from %s to %s"
@@ -2195,6 +2215,9 @@ msgid "Orca Cube"
 msgstr ""
 
 msgid "OrcaSliced Combo"
+msgstr ""
+
+msgid "Orca Badge"
 msgstr ""
 
 msgid "Orca Tolerance Test"
@@ -3636,7 +3659,7 @@ msgstr "Kalibrace byla dokončena. Najděte na vyhřívané podložce nejrovnom�
 msgid "Save"
 msgstr "Uložit"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "Zpět"
 
@@ -5017,6 +5040,7 @@ msgstr "Výměny nástrojů"
 msgid "Color change"
 msgstr "Změna barvy"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "Tisk"
 
@@ -5180,11 +5204,15 @@ msgstr "Vyhněte se kalibrační oblasti extruze"
 msgid "Align to Y axis"
 msgstr "Zarovnat na osu Y"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "Zpět"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "Levý"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "Pravý"
 
@@ -5262,6 +5290,9 @@ msgstr "Převisy"
 
 msgid "Outline"
 msgstr "Obrys"
+
+msgid "Wireframe"
+msgstr ""
 
 msgid "Realistic View"
 msgstr ""
@@ -5509,6 +5540,10 @@ msgstr "Tisková deska"
 msgid "Export G-code file"
 msgstr "Exportovat G-code soubor"
 
+msgctxt "Verb"
+msgid "Print"
+msgstr "Tisk"
+
 msgid "Export plate sliced file"
 msgstr "Exportovat nařezaný soubor desky"
 
@@ -5682,15 +5717,6 @@ msgstr "Exportovat aktuální konfiguraci do souborů"
 msgid "Export"
 msgstr ""
 
-msgid "Sync Presets"
-msgstr ""
-
-msgid "Pull and apply the latest presets from OrcaCloud"
-msgstr ""
-
-msgid "You must be logged in to sync presets from cloud."
-msgstr ""
-
 msgid "Quit"
 msgstr "Ukončit"
 
@@ -5806,6 +5832,15 @@ msgstr "Zobrazit"
 
 msgid "Preset Bundle"
 msgstr "Balík předvoleb"
+
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr ""
 
 msgid "Syncing presets from cloud…"
 msgstr ""
@@ -7900,6 +7935,50 @@ msgstr "Vyberte složku pro stažené položky"
 msgid "Choose Download Directory"
 msgstr "Vyberte adresář pro stažení"
 
+msgid "(Latest)"
+msgstr "(Nejnovější)"
+
+msgid "Network plug-in switched successfully."
+msgstr "Síťový plugin byl úspěšně přepnut."
+
+msgid "Success"
+msgstr "Úspěch"
+
+msgid "Failed to load network plug-in. Please restart the application."
+msgstr "Nepodařilo se načíst síťový plugin. Restartujte prosím aplikaci."
+
+#, c-format, boost-format
+msgid ""
+"You've selected network plug-in version %s.\n"
+"\n"
+"Would you like to download and install this version now?\n"
+"\n"
+"Note: The application may need to restart after installation."
+msgstr ""
+"Vybrali jste verzi síťového pluginu %s.\n"
+"\n"
+"Chcete tuto verzi nyní stáhnout a nainstalovat?\n"
+"\n"
+"Poznámka: Po instalaci může být nutné restartovat aplikaci."
+
+msgid "Download Network Plug-in"
+msgstr "Stáhnout síťový plugin"
+
+msgid "Reload the network plug-in without restarting the application"
+msgstr "Znovu načíst síťový plugin bez restartu aplikace"
+
+msgid "Network plug-in reloaded successfully."
+msgstr "Síťový plugin byl úspěšně znovu načten."
+
+msgid "Reload"
+msgstr "Znovu načíst"
+
+msgid "Failed to reload network plug-in. Please restart the application."
+msgstr "Nepodařilo se znovu načíst síťový plugin. Restartujte prosím aplikaci."
+
+msgid "Reload Failed"
+msgstr "Znovunačtení selhalo"
+
 msgid "Associate"
 msgstr "Přiřadit"
 
@@ -7955,12 +8034,6 @@ msgstr "Zobrazit úvodní obrazovku"
 msgid "Show the splash screen during startup."
 msgstr "Zobrazit úvodní obrazovku při spuštění."
 
-msgid "Show shared profiles notification"
-msgstr "Zobrazit upozornění na sdílené profily"
-
-msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
-msgstr "Při změně vybrané tiskárny zobrazit upozornění s odkazem na sdílené profily."
-
 msgid "Use window buttons on left side"
 msgstr "Používat tlačítka okna na levé straně"
 
@@ -7991,6 +8064,13 @@ msgstr "Chování při načítání"
 msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr "Mají se při otevření souboru 3MF načíst nastavení tiskárny/filamentu/procesu?"
 
+msgid "Auto backup"
+msgstr "Automatické zálohování"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Backup your project periodically to help with restoring from an occasional crash."
+msgstr "Pravidelně zálohujte svůj projekt pro možnost obnovení po případném pádu."
+
 msgid "Maximum recent files"
 msgstr "Maximální počet nedávných souborů"
 
@@ -8009,12 +8089,55 @@ msgstr "Zobrazit možnosti při importu souboru STEP"
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "Pokud je povoleno, během importu souboru STEP se zobrazí dialog nastavení parametrů."
 
-msgid "Auto backup"
-msgstr "Automatické zálohování"
+msgid "STEP importing: linear deflection"
+msgstr ""
 
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Backup your project periodically to help with restoring from an occasional crash."
-msgstr "Pravidelně zálohujte svůj projekt pro možnost obnovení po případném pádu."
+msgid ""
+"Linear deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.003 mm."
+msgstr ""
+
+msgid "STEP importing: angle deflection"
+msgstr ""
+
+msgid ""
+"Angle deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.5."
+msgstr ""
+
+msgid "STEP importing: Split into multiple objects"
+msgstr ""
+
+msgid ""
+"If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: disabled."
+msgstr ""
+
+msgid "Quality level for Draco export"
+msgstr "Úroveň kvality pro export Draco"
+
+msgid "bits"
+msgstr "bitů"
+
+msgid ""
+"Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
+"0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
+"Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."
+msgstr ""
+"Určuje bitovou hloubku kvantizace použitou při kompresi mesh do formátu Draco.\n"
+"0 = bezztrátová komprese (geometrie je zachována v plné přesnosti). Platné ztrátové hodnoty jsou v rozsahu 8 až 30.\n"
+"Nižší hodnoty vytvářejí menší soubory, ale ztrácí více geometrických detailů; vyšší hodnoty zachovávají více detailů za cenu větších souborů."
+
+msgid "Store full source file paths in projects"
+msgstr ""
+
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr ""
 
 msgid "Preset"
 msgstr "Předvolba"
@@ -8046,6 +8169,12 @@ msgstr "filamenty"
 msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr "Optimalizuje maximální výšku oblasti filamentů podle zvoleného počtu filamentů."
 
+msgid "Show shared profiles notification"
+msgstr "Zobrazit upozornění na sdílené profily"
+
+msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
+msgstr "Při změně vybrané tiskárny zobrazit upozornění s odkazem na sdílené profily."
+
 msgid "Features"
 msgstr "Funkce"
 
@@ -8057,21 +8186,6 @@ msgstr "Pokud je tato volba povolena, můžete odeslat úlohu na více zařízen
 
 msgid "Pop up to select filament grouping mode"
 msgstr "Zobrazit dialog pro výběr režimu seskupení filamentů"
-
-msgid "Quality level for Draco export"
-msgstr "Úroveň kvality pro export Draco"
-
-msgid "bits"
-msgstr "bitů"
-
-msgid ""
-"Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
-"0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
-"Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."
-msgstr ""
-"Určuje bitovou hloubku kvantizace použitou při kompresi mesh do formátu Draco.\n"
-"0 = bezztrátová komprese (geometrie je zachována v plné přesnosti). Platné ztrátové hodnoty jsou v rozsahu 8 až 30.\n"
-"Nižší hodnoty vytvářejí menší soubory, ale ztrácí více geometrických detailů; vyšší hodnoty zachovávají více detailů za cenu větších souborů."
 
 msgid "Behaviour"
 msgstr "Chování"
@@ -8300,19 +8414,6 @@ msgstr "Kontrolovat pouze stabilní aktualizace"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "Automatická synchronizace uživatelských předvoleb (tiskárna/filament/proces)"
 
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Update built-in presets automatically."
-msgstr "Automaticky aktualizovat vestavěné předvolby."
-
-msgid "Use encrypted file for token storage"
-msgstr "Použít šifrovaný soubor pro ukládání tokenů"
-
-msgid "Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"
-msgstr "Ukládat autentizační tokeny do šifrovaného souboru místo systémového úložiště klíčů. (Vyžaduje restart)"
-
-msgid "Filament Sync Options"
-msgstr "Možnosti synchronizace filamentů"
-
 msgid "Filament sync mode"
 msgstr "Režim synchronizace filamentů"
 
@@ -8325,6 +8426,16 @@ msgstr "Filament a barva"
 msgid "Color only"
 msgstr "Pouze barva"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Update built-in presets automatically."
+msgstr "Automaticky aktualizovat vestavěné předvolby."
+
+msgid "Use encrypted file for token storage"
+msgstr "Použít šifrovaný soubor pro ukládání tokenů"
+
+msgid "Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"
+msgstr "Ukládat autentizační tokeny do šifrovaného souboru místo systémového úložiště klíčů. (Vyžaduje restart)"
+
 msgid "Bambu network plug-in"
 msgstr ""
 
@@ -8336,35 +8447,6 @@ msgstr "Verze síťového pluginu"
 
 msgid "Select the network plug-in version to use"
 msgstr "Vyberte verzi síťového pluginu"
-
-msgid "(Latest)"
-msgstr "(Nejnovější)"
-
-msgid "Network plug-in switched successfully."
-msgstr "Síťový plugin byl úspěšně přepnut."
-
-msgid "Success"
-msgstr "Úspěch"
-
-msgid "Failed to load network plug-in. Please restart the application."
-msgstr "Nepodařilo se načíst síťový plugin. Restartujte prosím aplikaci."
-
-#, c-format, boost-format
-msgid ""
-"You've selected network plug-in version %s.\n"
-"\n"
-"Would you like to download and install this version now?\n"
-"\n"
-"Note: The application may need to restart after installation."
-msgstr ""
-"Vybrali jste verzi síťového pluginu %s.\n"
-"\n"
-"Chcete tuto verzi nyní stáhnout a nainstalovat?\n"
-"\n"
-"Poznámka: Po instalaci může být nutné restartovat aplikaci."
-
-msgid "Download Network Plug-in"
-msgstr "Stáhnout síťový plugin"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "Přiřadit soubory k OrcaSliceru"
@@ -8411,18 +8493,21 @@ msgstr "Vývojář"
 msgid "Skip AMS blacklist check"
 msgstr "Přeskočit kontrolu blacklistu AMS"
 
-msgid "(Experimental) Keep painted feature after mesh change"
+msgid "Show unsupported presets"
+msgstr ""
+
+msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
+msgstr ""
+
+msgid "Experimental Features"
+msgstr ""
+
+msgid "Keep painted feature after mesh change"
 msgstr ""
 
 msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
 "Highly experimental! Slow and may create artifact."
-msgstr ""
-
-msgid "Show unsupported presets"
-msgstr ""
-
-msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr ""
 
 msgid "Allow Abnormal Storage"
@@ -8453,24 +8538,6 @@ msgstr "ladění"
 msgid "trace"
 msgstr "trasování"
 
-msgid "Network plug-in"
-msgstr "Síťový plugin"
-
-msgid "Reload"
-msgstr "Znovu načíst"
-
-msgid "Reload the network plug-in without restarting the application"
-msgstr "Znovu načíst síťový plugin bez restartu aplikace"
-
-msgid "Network plug-in reloaded successfully."
-msgstr "Síťový plugin byl úspěšně znovu načten."
-
-msgid "Failed to reload network plug-in. Please restart the application."
-msgstr "Nepodařilo se znovu načíst síťový plugin. Restartujte prosím aplikaci."
-
-msgid "Reload Failed"
-msgstr "Znovunačtení selhalo"
-
 msgid "Debug"
 msgstr "Ladění"
 
@@ -8485,25 +8552,6 @@ msgstr "Synchronizace předvoleb"
 
 msgid "Preferences sync"
 msgstr "Synchronizace předvoleb"
-
-msgid "View control settings"
-msgstr "Zobrazit nastavení ovládání"
-
-msgid "Rotate view"
-msgstr "Otočit pohled"
-
-msgid "Pan view"
-msgstr "Posouvat pohled"
-
-msgid "Zoom view"
-msgstr "Přiblížení zobrazení"
-
-msgid "Other"
-msgstr "Ostatní"
-
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Reverse scroll direction while zooming"
-msgstr "Kolečko myši se při přiblížení otáčí opačně"
 
 msgid "Enable SSL(MQTT)"
 msgstr "Povolit SSL (MQTT)"
@@ -10303,11 +10351,7 @@ msgstr ""
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr ""
 
-msgid "Continue to sync filaments"
-msgstr ""
-
-msgctxt "Sync_Nozzle_AMS"
-msgid "Cancel"
+msgid "Do you want to continue to sync filaments?"
 msgstr ""
 
 msgid "Successfully synchronized filament color from printer."
@@ -11634,7 +11678,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -11648,7 +11692,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -12378,6 +12422,42 @@ msgstr "Hustota horního povrchu"
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
 msgstr "Hustota horní povrchové vrstvy. Hodnota 100 % vytvoří zcela plnou, hladkou horní vrstvu. Snížením této hodnoty vznikne texturovaný horní povrch podle zvoleného vzoru horního povrchu. Hodnota 0 % znamená, že na horní vrstvě budou vytvořeny pouze stěny. Určeno pro estetické nebo funkční účely, nikoli k řešení problémů jako je nadměrná extruze."
 
+msgid "Top surface expansion"
+msgstr ""
+
+msgid ""
+"Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+msgstr ""
+
+msgid "Top expansion wall margin"
+msgstr ""
+
+msgid ""
+"Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+"This can cause contraction marks (such as the hull line) on the outer walls.\n"
+"By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
+msgstr ""
+
+msgid "Top expansion direction"
+msgstr ""
+
+msgid ""
+"Direction in which the top surface expansion grows.\n"
+" - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+" - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+" - Inward and Outward does both."
+msgstr ""
+
+msgid "Inward and Outward"
+msgstr ""
+
+msgid "Inward"
+msgstr ""
+
+msgid "Outward"
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "Vzor spodního povrchu"
 
@@ -12419,6 +12499,18 @@ msgstr "Práh malých obvodů"
 
 msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
 msgstr "Tímto se nastavuje práh délky malého obvodu. Výchozí práh je 0 mm."
+
+msgid "Small support perimeters"
+msgstr ""
+
+msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
+msgstr ""
+
+msgid "Small support perimeters threshold"
+msgstr ""
+
+msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
+msgstr ""
 
 msgid "Walls printing order"
 msgstr "Pořadí tisku stěn"
@@ -12608,25 +12700,26 @@ msgstr ""
 "2. Poznamenejte si optimální hodnotu PA pro každou objemovou rychlost průtoku a zrychlení. Hodnotu průtoku zjistíte výběrem „Flow“ v rozbalovací nabídce barevného schématu a posunutím vodorovného posuvníku nad čárami PA vzoru. Číslo by mělo být viditelné dole na stránce. Ideální hodnota PA by měla s rostoucím objemovým průtokem klesat. Pokud tomu tak není, ověřte, že extruder funguje správně. Čím pomaleji a s menším zrychlením tisknete, tím větší je rozsah přijatelných hodnot PA. Pokud není vidět žádný rozdíl, použijte hodnotu PA z rychlejšího testu.\n"
 "3. Zadejte trojice hodnot PA, průtoku a zrychlení do textového pole zde a uložte profil filamentu."
 
-msgid "Enable adaptive pressure advance for overhangs (beta)"
-msgstr "Povolit adaptivní pressure advance pro převisy (beta)"
-
-msgid ""
-"Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+msgid "Enable adaptive pressure advance within features (beta)"
 msgstr ""
 
-msgid "Pressure advance for bridges"
-msgstr "Pressure advance pro mosty"
+msgid ""
+"Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
+"\n"
+"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
+"\n"
+"This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
+msgstr ""
+
+msgid "Static pressure advance for bridges"
+msgstr ""
 
 msgid ""
-"Pressure advance value for bridges. Set to 0 to disable.\n"
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+"equivalent walls (using adaptive settings if enabled).\n"
 "\n"
-"A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+"A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
-"Hodnota Pressure advance pro mosty. Nastavte na 0 pro vypnutí.\n"
-"\n"
-"Nižší hodnota PA při tisku mostů pomáhá omezit výskyt mírné podextruze ihned po mostech. To je způsobeno poklesem tlaku v trysce při tisku do vzduchu a nižší PA tomu pomáhá předcházet."
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Výchozí šířka čáry, pokud jsou ostatní šířky čáry nastaveny na 0. Pokud je zadáno v %, bude vypočteno vůči průměru trysky."
@@ -13009,6 +13102,22 @@ msgstr "Směr plného vyplnění"
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
 msgstr "Úhel pro vzor plného výplně, který určuje počáteční nebo hlavní směr čáry."
 
+msgid "Top layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the top solid infill and ironing lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
+msgid "Bottom layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the bottom solid infill lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
 msgid "Sparse infill density"
 msgstr "Hustota řídké výplně"
 
@@ -13016,12 +13125,12 @@ msgstr "Hustota řídké výplně"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr "Hustota vnitřní řídké výplně, 100 % přemění veškerou řídkou výplň na plnou a použije se vzor vnitřní plné výplně."
 
-msgid "Align infill direction to model"
-msgstr "Zarovnat směr výplně podle modelu"
+msgid "Align directions to model"
+msgstr ""
 
 msgid ""
-"Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-"When enabled, directions rotate with the model to maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+"When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
 
 msgid "Insert solid layers"
@@ -13223,6 +13332,17 @@ msgstr "Rychlost ventilátoru bude lineárně zvyšována od nuly na vrstvě \"z
 
 msgid "layer"
 msgstr "vrstva"
+
+msgid "First layer fan speed"
+msgstr ""
+
+msgid ""
+"Sets an exact fan speed for the first layer, overriding all other cooling settings. Useful for protecting 3D-printed toolhead parts (e.g. Voron-style ABS/ASA ducts) from a hot bed. A small amount of airflow cools the ducts down, without using full cooling that may in certain conditions hurt first-layer adhesion.\n"
+"From the second layer onwards, normal cooling resumes.\n"
+"If \"Full fan speed at layer\" is also set, the fan ramps smoothly from this value on the first layer up to your target by the chosen layer.\n"
+"Only available when \"No cooling for the first\" is 0.\n"
+"Set to -1 to disable it."
+msgstr ""
 
 msgid "Support interface fan speed"
 msgstr "Rychlost ventilátoru rozhraní podpory"
@@ -14784,6 +14904,10 @@ msgstr "Zarovnáno"
 msgid "Aligned back"
 msgstr "Zarovnat zpět"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "Zpět"
+
 msgid "Random"
 msgstr "Náhodně"
 
@@ -15144,6 +15268,18 @@ msgstr "Připravit všechny tiskové extrudery"
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "Pokud je povoleno, všechny tiskové extrudery budou na začátku tisku připraveny na předním okraji tiskové podložky."
 
+msgid "Toolchange ordering"
+msgstr ""
+
+msgid ""
+"Determines the order of tool changes on each layer.\n"
+"- Default: Starts with the last used extruder to minimize tool changes.\n"
+"- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+msgstr ""
+
+msgid "Cyclic"
+msgstr ""
+
 msgid "Slice gap closing radius"
 msgstr "Poloměr uzavření mezery řezu"
 
@@ -15152,6 +15288,9 @@ msgstr "Trhliny menší než 2x poloměr uzavření mezery jsou při řezání t
 
 msgid "Slicing Mode"
 msgstr "Režim slicingu"
+
+msgid "Other"
+msgstr "Ostatní"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "Použijte \"Sudý-lichý\" pro modely letadel 3DLabPrint. Použijte \"Zavřít díry\" pro uzavření všech otvorů v modelu."
@@ -15580,6 +15719,45 @@ msgstr "Tloušťka horního pláště"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Počet horních pevných vrstev bude při slicování zvýšen, pokud tloušťka vypočtená podle horních vrstev bude menší než tato hodnota. Tím lze předejít příliš tenké skořepině při malé výšce vrstvy. 0 znamená, že je nastavení vypnuté a tloušťka horní skořepiny je určena pouze počtem horních vrstev."
 
+msgid "Anisotropic surfaces"
+msgstr ""
+
+msgid ""
+"Anisotropic patterns on the top and bottom surfaces.\n"
+"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
+"This option disable the gap fill.\n"
+"This option can increase a printing time."
+msgstr ""
+
+msgid "Separated infills"
+msgstr ""
+
+msgid ""
+"Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
+"Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+"Affects line and grid patterns and rotation-template infills.\n"
+"Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
+msgstr ""
+
+msgid "Center surface pattern on"
+msgstr ""
+
+msgid ""
+"Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
+" - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+" - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
+" - Each Assembly: uses a single shared center for the whole object or assembly."
+msgstr ""
+
+msgid "Each Surface"
+msgstr ""
+
+msgid "Each Model"
+msgstr ""
+
+msgid "Each Assembly"
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
 msgstr "Rychlost přejezdu bez extruze."
@@ -15826,6 +16004,14 @@ msgstr "Zkroucení polyotvoru"
 
 msgid "Rotate the polyhole every layer."
 msgstr "Otočit polyotvor každou vrstvu."
+
+msgid "Maximum Polyhole edge count"
+msgstr ""
+
+msgid ""
+"Maximum number of polyhole edges\n"
+"This setting limits the amount of edges a polyhole can have"
+msgstr ""
 
 msgid "G-code thumbnails"
 msgstr "Náhledy G-code"
@@ -18217,6 +18403,132 @@ msgstr "Přihlášení/Test"
 msgid "Connection to printers connected via the print host failed."
 msgstr "Připojení k tiskárnám připojeným přes hostitele tisku se nezdařilo."
 
+msgid "Detect Creality K-series printer"
+msgstr ""
+
+msgid "Click Scan to look for K-series printers on your network."
+msgstr ""
+
+msgid "Use Selected"
+msgstr ""
+
+msgid "Scanning the LAN for K-series printers... this takes a few seconds."
+msgstr ""
+
+msgid "No K-series printers found. Make sure the printer is on the same network and not blocked by Wi-Fi client isolation, then click Scan again."
+msgstr ""
+
+#, c-format
+msgid "Found %zu Creality printer(s). Select one and click Use Selected."
+msgstr ""
+
+msgid "Active"
+msgstr ""
+
+msgid "Printers"
+msgstr ""
+
+msgid "Processes"
+msgstr ""
+
+msgid "Show/Hide system information"
+msgstr ""
+
+msgid "Copy system information to clipboard"
+msgstr ""
+
+msgid "We need information for diagnosing source of the issue. Check wiki page for detailed guide."
+msgstr ""
+
+msgid "Pack button collects project file and logs of current session onto a zip file."
+msgstr ""
+
+msgid "Any additional visual examples like images or screen recordings might be helpful while reporting the issue."
+msgstr ""
+
+msgid "Report issue"
+msgstr ""
+
+msgid "Pack"
+msgstr ""
+
+msgid "Cleans and rebuilds system profiles cache on next launch"
+msgstr ""
+
+msgid "Clean system profiles cache"
+msgstr ""
+
+msgid "Clean"
+msgstr ""
+
+msgid "Loaded profiles overview"
+msgstr ""
+
+msgid "This section shows information for loaded profiles"
+msgstr ""
+
+msgid "Exports detailed overview of loaded profiles in json format"
+msgstr ""
+
+msgid "Configurations folder"
+msgstr ""
+
+msgid "Opens configurations folder"
+msgstr ""
+
+msgid "Log level"
+msgstr ""
+
+msgid "Stored logs"
+msgstr ""
+
+msgid "Packs all stored logs onto a zip file."
+msgstr ""
+
+msgid "Profiles"
+msgstr ""
+
+msgid "Select NO to close dialog and review project"
+msgstr ""
+
+msgid "No project file on current session. Only logs will be included to package"
+msgstr ""
+
+msgid "Select NO to close dialog and review project."
+msgstr ""
+
+msgid "Please make sure any instances of OrcaSlicer are not running"
+msgstr ""
+
+msgid "System folder cannot be deleted because some files are in use by another application. Please close any applications using these files and try again."
+msgstr ""
+
+msgid "Failed to delete system folder..."
+msgstr ""
+
+msgid "Failed to determine executable path."
+msgstr ""
+
+msgid "Failed to launch a new instance."
+msgstr ""
+
+msgid "log(s)"
+msgstr ""
+
+msgid "Choose where to save the exported JSON file"
+msgstr ""
+
+msgid ""
+"Export failed\n"
+"Please check write permissions or file in use by another application"
+msgstr ""
+
+msgid "Choose where to save the exported ZIP file"
+msgstr ""
+
+msgid "File already exists. Overwrite?"
+msgstr ""
+
 msgid "3DPrinterOS Cloud upload options"
 msgstr ""
 
@@ -18298,6 +18610,19 @@ msgstr "Připojení k MKS funguje správně."
 
 msgid "Could not connect to MKS"
 msgstr "Nepodařilo se připojit k MKS"
+
+msgid "Connection to Moonraker is working correctly."
+msgstr ""
+
+msgid "Could not connect to Moonraker"
+msgstr ""
+
+msgid "The host responded but it doesn't look like Moonraker (missing result.klippy_state)."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Could not parse Moonraker server response: %s"
+msgstr ""
 
 msgid "Connection to OctoPrint is working correctly."
 msgstr "Připojení k OctoPrint funguje správně."
@@ -19049,6 +19374,12 @@ msgstr ""
 msgid "Calculating, please wait..."
 msgstr ""
 
+msgid "Save these settings as default"
+msgstr ""
+
+msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
+msgstr ""
+
 msgid "PresetBundle"
 msgstr ""
 
@@ -19454,6 +19785,70 @@ msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
 
+#~ msgid "Align infill direction to model"
+#~ msgstr "Zarovnat směr výplně podle modelu"
+
+#~ msgid "Print"
+#~ msgstr "Tisk"
+
+#~ msgid "in"
+#~ msgstr "v"
+
+#~ msgid "Object coordinates"
+#~ msgstr "Souřadnice objektu"
+
+#~ msgid "World coordinates"
+#~ msgstr "Světové souřadnice"
+
+#~ msgid "Translate(Relative)"
+#~ msgstr "Přesunout (relativně)"
+
+#~ msgid "Rotate (absolute)"
+#~ msgstr "Otočit (absolutně)"
+
+#~ msgid "Part coordinates"
+#~ msgstr "Souřadnice části"
+
+#~ msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+#~ msgstr "Obsah předvolby je příliš velký pro synchronizaci do cloudu (přesahuje 1 MB). Zmenšete velikost předvolby odstraněním vlastních nastavení nebo ji používejte pouze lokálně."
+
+#~ msgid "Enable adaptive pressure advance for overhangs (beta)"
+#~ msgstr "Povolit adaptivní pressure advance pro převisy (beta)"
+
+#~ msgid "Pressure advance for bridges"
+#~ msgstr "Pressure advance pro mosty"
+
+#~ msgid ""
+#~ "Pressure advance value for bridges. Set to 0 to disable.\n"
+#~ "\n"
+#~ "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+#~ msgstr ""
+#~ "Hodnota Pressure advance pro mosty. Nastavte na 0 pro vypnutí.\n"
+#~ "\n"
+#~ "Nižší hodnota PA při tisku mostů pomáhá omezit výskyt mírné podextruze ihned po mostech. To je způsobeno poklesem tlaku v trysce při tisku do vzduchu a nižší PA tomu pomáhá předcházet."
+
+#~ msgid "Filament Sync Options"
+#~ msgstr "Možnosti synchronizace filamentů"
+
+#~ msgid "Network plug-in"
+#~ msgstr "Síťový plugin"
+
+#~ msgid "View control settings"
+#~ msgstr "Zobrazit nastavení ovládání"
+
+#~ msgid "Rotate view"
+#~ msgstr "Otočit pohled"
+
+#~ msgid "Pan view"
+#~ msgstr "Posouvat pohled"
+
+#~ msgid "Zoom view"
+#~ msgstr "Přiblížení zobrazení"
+
+# TODO: Review, changed by lang refactor. PR 14254
+#~ msgid "Reverse scroll direction while zooming"
+#~ msgstr "Kolečko myši se při přiblížení otáčí opačně"
+
 #, c-format, boost-format
 #~ msgid "Left: %s"
 #~ msgstr "Vlevo: %s"
@@ -19543,3 +19938,198 @@ msgstr ""
 
 #~ msgid "°"
 #~ msgstr "°"
+
+msgid "Abnormal Hotend"
+msgstr "Hotend v neobvyklém stavu"
+
+msgid "Available Nozzles"
+msgstr "Dostupné trysky"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "Pozor: Kombinace různých průměrů trysek v jednom tisku není podporována. Pokud je zvolená velikost pouze na jednom extruderu, bude vynucen tisk jedním extruderem."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "Během aktualizace hotendu se bude tisková hlava pohybovat. Nevkládejte ruce do komory."
+
+msgid "Enable this if printer support cooling filter"
+msgstr "Povolte tuto možnost, pokud tiskárna podpěruje filtr pro chlazení"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "Chyba: Není možné nastavit počet trysek na nulu."
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "Chyba: Počet trysek nesmí překročit %d."
+
+msgid "Extruder change"
+msgstr "Výměna extruderu"
+
+msgid "Hotend change"
+msgstr "Výměna hotendu"
+
+msgid "Hotend change time"
+msgstr "Interval výměny hotendu"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "Informace o hotendu mohou být nepřesné. Chcete hotend znovu načíst? (Informace o hotendu se mohou po vypnutí změnit.)"
+
+msgid "Hybrid"
+msgstr "Hybridní"
+
+msgid "I confirm all"
+msgstr "Potvrzuji vše"
+
+msgid "Induction Hotend Rack"
+msgstr "Indukční držák hotendu"
+
+msgid "Nozzle Manual"
+msgstr "Ručně pro trysku"
+
+msgid "Nozzle Selection"
+msgstr "Výběr trysky"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "Ověřte prosím, zda požadovaný průměr trysky a průtok odpovídají aktuálně zobrazeným hodnotám."
+
+msgid "Please set nozzle count"
+msgstr "Nastavte prosím počet trysek"
+
+msgid "Preheat temperature delta"
+msgstr "Teplotní rozdíl při předehřevu"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "Věž pro oddělení trysky je vyžadována pro výměnu trysky. Bez věže pro oddělení trysky mohou být na modelu vady. Opravdu chcete zakázat věž pro oddělení trysky?"
+
+msgid "Re-read all"
+msgstr "Znovu načíst vše"
+
+msgid "Reading the hotends, please wait."
+msgstr "Načítání hotendů, prosím čekejte."
+
+msgid "Refresh %d/%d..."
+msgstr "Obnovit %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "Synchronizovat stav trysky"
+
+msgid "TPU High Flow"
+msgstr "TPU vysoký průtok"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "Teplotní rozdíl použitý během předehřevu před výměnou nástroje."
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "Hotend je v neobvyklém stavu a momentálně není k dispozici. Přejděte do 'Zařízení -> Upgrade' pro aktualizaci firmwaru."
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "Maximální objemový průtok pro natlačení před výměnou hotendu, kde -1 znamená použití maximálního objemového průtoku."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "Maximální objemová rychlost pro vytlačování před výměnou extruderu, kde -1 znamená použití maximální objemové rychlosti."
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "Tisková hlava a držák hotendu se mohou pohybovat. Držte ruce mimo komoru."
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "Objem materiálu potřebný k předplnění extruderu při výměně hotendu na věži."
+
+msgid "Time to change hotend."
+msgstr "Je čas vyměnit hotend."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "Aby se zabránilo vytékání, bude teplota trysky během natlačování snížena. Poznámka: provede se pouze příkaz k ochlazení a aktivace ventilátoru; dosažení cílové teploty není zaručeno. 0 znamená vypnuto."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "Aby se zabránilo vytékání, bude teplota trysky během natlačování snížena. Doba natlačování proto musí být delší než doba ochlazování. 0 znamená deaktivováno."
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "Aby se zabránilo vytékání, provede tryska po dokončení natlačování po určitou dobu zpětný pohyb. Toto nastavení určuje dobu pohybu."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "Zjištěna neznámá tryska. Proveďte aktualizaci (neaktualizované trysky budou při slicování přeskočeny)."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "Zjištěna neznámá tryska. Proveďte aktualizaci informací (neaktualizované trysky budou při řezání vyloučeny). Ověřte průměr trysky a průtok vzhledem k zobrazeným hodnotám."
+
+msgid "Use cooling filter"
+msgstr "Použít filtr pro chlazení"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "Při výměně hotendu se doporučuje vytlačit určitou délku filamentu ze stávající trysky. To pomáhá minimalizovat vytékání trysky."
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "Pokud se tato hodnota retrakce změní, použije se jako množství filamentu zataženého v hotendu před výměnou hotendů."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "Vaše tiskárna má nainstalované různé trysky. Vyberte prosím trysku pro tento tisk."
+
+msgid "length when change hotend"
+msgstr "délka při výměně hotendu"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "Na aktuální podložce jsou přiřazeny dynamické trysky. Výběr hotendu není podpěrován."
+
+msgid "Hotend Rack"
+msgstr "Stojan na hotend"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "Stav hotendu je abnormální a momentálně není dostupný. Aktualizujte firmware a zkuste to znovu."
+
+msgid "Hotends"
+msgstr "Hotendy"
+
+msgid "Hotends Info"
+msgstr "Informace o hotendech"
+
+msgid "Hotends on Rack"
+msgstr "Hotendy na stojanu"
+
+msgid "Jump to the upgrade page"
+msgstr "Přejít na stránku upgradu"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "Poznámka: Číslo hotendu na %s je přiřazeno k držáku. Když je hotend přesunut do nového držáku, jeho číslo se automaticky aktualizuje."
+
+msgid "Nozzle ID"
+msgstr "ID trysky"
+
+msgid "Nozzle information needs to be read"
+msgstr "Je nutné načíst informace o trysce"
+
+msgid "Please wait"
+msgstr "Prosím čekejte"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "Tisk s aktuální tryskou může vyprodukovat navíc %0.2f g odpadu."
+
+msgid "Raised"
+msgstr "Zvednuté"
+
+msgid "Read All"
+msgstr "Načíst vše"
+
+msgid "Reading "
+msgstr "Načítání "
+
+msgid "Row A"
+msgstr "Řada A"
+
+msgid "Row B"
+msgstr "Řada B"
+
+msgid "Running..."
+msgstr "Probíhá spouštění..."
+
+msgid "Select Filament && Hotends"
+msgstr "Vyberte filament a hotendy"
+
+msgid "Standard Flow"
+msgstr "Standardní průtok"
+
+msgid "ToolHead"
+msgstr "Tisková hlava"
+
+msgid "Toolhead"
+msgstr "Tisková hlava"
+
+msgid "Used Time: %s"
+msgstr "Použitý čas: %s"

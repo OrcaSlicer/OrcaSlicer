@@ -7,6 +7,7 @@
 #include "../GUI/PartPlate.hpp"
 #include "libslic3r/CutUtils.hpp"
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/Utils.hpp"
 
 #include "libslic3r/Model.hpp"
 #include "slic3r/GUI/Jobs/BoostThreadWorker.hpp"
@@ -27,11 +28,19 @@ const double MIN_PA_K_VALUE = 0.0;
 const double MAX_PA_K_VALUE = 2.0;
 
 std::unique_ptr<Worker> CalibUtils::print_worker;
-wxString wxstr_temp_dir = fs::path(fs::temp_directory_path() / "calib").wstring();
-static const std::string temp_dir = wxstr_temp_dir.utf8_string();
-static const std::string temp_gcode_path = temp_dir + "/temp.gcode";
-static const std::string path            = temp_dir + "/test.3mf";
-static const std::string config_3mf_path = temp_dir + "/test_config.3mf";
+
+// Built lazily so temporary_dir() is read on first use, after set_temporary_dir()
+// has run at startup (it isolates the temp root per user to avoid cross-user collisions).
+static const std::string& calib_temp_dir()
+{
+    static const std::string dir = temporary_dir() + "/calib";
+    return dir;
+}
+static std::string calib_temp_file(const std::string& name) { return calib_temp_dir() + "/" + name; }
+
+static const std::string gcode_filename  = "temp.gcode";
+static const std::string model_filename  = "test.3mf";
+static const std::string config_filename = "test_config.3mf";
 
 static std::string MachineBedTypeString[7] = {
     "auto",
@@ -85,6 +94,10 @@ wxString get_nozzle_volume_type_name(NozzleVolumeType type)
         return _L("Standard");
     } else if (NozzleVolumeType::nvtHighFlow == type) {
         return _L("High Flow");
+    } else if (NozzleVolumeType::nvtHybrid == type) {
+        return _L("Hybrid");
+    } else if (NozzleVolumeType::nvtTPUHighFlow == type) {
+        return _L("TPU High Flow");
     }
     return wxString();
 }
@@ -1599,7 +1612,7 @@ bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &f
     part_plate->update_slice_result_valid_state(true);
 
     gcode_result->reset();
-    fff_print->export_gcode(temp_gcode_path, gcode_result, nullptr);
+    fff_print->export_gcode(calib_temp_file(gcode_filename), gcode_result, nullptr);
 
     std::vector<ThumbnailData*> thumbnails;
     PlateDataPtrs plate_data_list;
@@ -1618,7 +1631,7 @@ bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &f
     }
 
     for (auto plate_data : plate_data_list) {
-        plate_data->gcode_file      = temp_gcode_path;
+        plate_data->gcode_file      = calib_temp_file(gcode_filename);
         plate_data->is_sliced_valid = true;
         plate_data->printer_model_id = obj_->printer_type;
         FilamentInfo& filament_info = plate_data->slice_filaments_info.front();
@@ -1681,7 +1694,7 @@ bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &f
     }
 
     StoreParams store_params;
-    store_params.path            = path.c_str();
+    store_params.path            = calib_temp_file(model_filename);
     store_params.model           = model;
     store_params.plate_data_list = plate_data_list;
     store_params.config = &new_print_config;
@@ -1695,7 +1708,7 @@ bool CalibUtils::process_and_store_3mf(Model *model, const DynamicPrintConfig &f
     bool success = Slic3r::store_bbs_3mf(store_params);
 
     store_params.strategy = SaveStrategy::Silence | SaveStrategy::SplitModel | SaveStrategy::WithSliceInfo | SaveStrategy::SkipAuxiliary;
-    store_params.path = config_3mf_path.c_str();
+    store_params.path = calib_temp_file(config_filename);
     success           = Slic3r::store_bbs_3mf(store_params);
 
     release_PlateData_list(plate_data_list);
@@ -1784,9 +1797,9 @@ void CalibUtils::send_to_print(const CalibInfo &calib_info, wxString &error_mess
     PrintPrepareData job_data;
     job_data.is_from_plater = false;
     job_data.plate_idx = 0;
-    job_data._3mf_config_path = config_3mf_path;
-    job_data._3mf_path = path;
-    job_data._temp_path = temp_dir;
+    job_data._3mf_config_path = calib_temp_file(config_filename);
+    job_data._3mf_path = calib_temp_file(model_filename);
+    job_data._temp_path = calib_temp_dir();
 
     PlateListData plate_data;
     plate_data.is_valid = true;
@@ -1889,9 +1902,9 @@ void CalibUtils::send_to_print(const std::vector<CalibInfo> &calib_infos, wxStri
     PrintPrepareData job_data;
     job_data.is_from_plater   = false;
     job_data.plate_idx        = 0;
-    job_data._3mf_config_path = config_3mf_path;
-    job_data._3mf_path        = path;
-    job_data._temp_path       = temp_dir;
+    job_data._3mf_config_path = calib_temp_file(config_filename);
+    job_data._3mf_path        = calib_temp_file(model_filename);
+    job_data._temp_path       = calib_temp_dir();
 
     PlateListData plate_data;
     plate_data.is_valid        = true;

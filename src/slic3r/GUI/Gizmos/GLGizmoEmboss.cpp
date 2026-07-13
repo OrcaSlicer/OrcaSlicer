@@ -1951,7 +1951,7 @@ void GLGizmoEmboss::draw_model_type()
     float minimum_spacing_x = 8.0f;
     float minimum_offset_x  = ImGui::GetCursorPosX() + minimum_spacing_x;
     float offset_x          = std::max(m_gui_cfg->input_offset, minimum_offset_x);
-    ImGui::SameLine(offset_x);
+    ImGui::SameLine();
     
     ImGuiWrapper::push_radio_style(m_parent.get_scale()); // ORCA
     if (ImGui::RadioButton(_u8L("Join").c_str(), type == part))

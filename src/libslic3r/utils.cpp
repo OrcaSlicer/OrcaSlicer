@@ -8,6 +8,10 @@
 #include <iostream>
 #include <stdio.h>
 #include <filesystem>
+#include <sstream>
+#include <iomanip>
+#include <algorithm>
+#include <cmath>
 
 #include "format.hpp"
 #include "Platform.hpp"
@@ -1285,6 +1289,24 @@ unsigned get_current_pid()
 #endif
 }
 
+std::string per_user_temp_id()
+{
+#ifdef WIN32
+    return {};
+#else
+    return std::to_string(static_cast<unsigned long>(::getuid()));
+#endif
+}
+
+std::string per_user_temp_dir(const std::string &base, const std::string &user_id)
+{
+    if (user_id.empty())
+        return base;
+    // Keep the id at the top level so each user's dir sits directly in the world-writable temp
+    // root; a shared parent dir would be owned by whichever user created it first.
+    return base + "/orcaslicer_" + user_id;
+}
+
 // BBS: backup & restore
 std::string get_process_name(int pid)
 {
@@ -1477,6 +1499,15 @@ std::string format_memsize(size_t bytes, unsigned int decimals)
 				sprintf(buf, "%.*f", decimals, f_tb);
 				return std::to_string(bytes) + " bytes (" + std::string(buf) + "TB)";
 		}
+}
+
+std::string format_diameter_to_str(double diameter, int precision)
+{
+    double candidates[] = {0.2, 0.4, 0.6, 0.8};
+    double best = *std::min_element(std::begin(candidates), std::end(candidates), [diameter](double a, double b) { return std::abs(a - diameter) < std::abs(b - diameter); });
+    std::ostringstream oss;
+    oss << std::fixed << std::setprecision(precision) << best;
+    return oss.str();
 }
 
 // Returns platform-specific string to be used as log output or parsed in SysInfoDialog.

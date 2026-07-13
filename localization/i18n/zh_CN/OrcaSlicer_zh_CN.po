@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-28 12:42-0300\n"
+"POT-Creation-Date: 2026-07-12 12:27-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -165,6 +165,12 @@ msgstr "填充"
 msgid "Gap Fill"
 msgstr "缝隙填充"
 
+msgid "Vertical"
+msgstr "垂直"
+
+msgid "Horizontal"
+msgstr "水平"
+
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
 msgstr "绘制仅对由%1%选中的面片生效"
@@ -260,12 +266,6 @@ msgstr "三角形"
 msgid "Height Range"
 msgstr "高度范围"
 
-msgid "Vertical"
-msgstr "垂直"
-
-msgid "Horizontal"
-msgstr "水平"
-
 msgid "Remove painted color"
 msgstr "移除已绘制的颜色"
 
@@ -330,6 +330,7 @@ msgstr "Gizmo-旋转"
 msgid "Optimize orientation"
 msgstr "优化朝向"
 
+msgctxt "Verb"
 msgid "Scale"
 msgstr "缩放"
 
@@ -339,8 +340,9 @@ msgstr "缩放工具"
 msgid "Error: Please close all toolbar menus first"
 msgstr "错误：请先关闭所有工具栏菜单"
 
+msgctxt "inches"
 msgid "in"
-msgstr "在"
+msgstr ""
 
 msgid "mm"
 msgstr "mm"
@@ -373,6 +375,9 @@ msgstr "缩放比例"
 msgid "Object operations"
 msgstr "对象操作"
 
+msgid "Scale"
+msgstr "缩放"
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
 msgstr "零件操作"
@@ -400,26 +405,33 @@ msgstr "重置位置"
 msgid "Reset rotation"
 msgstr "重置旋转"
 
-msgid "Object coordinates"
-msgstr "物体坐标"
+msgid "World"
+msgstr ""
 
-msgid "World coordinates"
-msgstr "世界坐标"
+msgid "Object"
+msgstr "对象"
 
-msgid "Translate(Relative)"
-msgstr "转换（相对）"
+msgid "Part"
+msgstr "零件"
+
+msgid "Relative"
+msgstr ""
+
+msgid "Coordinate system used for transform actions."
+msgstr ""
+
+msgid "Absolute"
+msgstr ""
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "重置当前旋转为打开旋转工具时的值"
 
-msgid "Rotate (absolute)"
-msgstr "旋转（绝对）"
-
 msgid "Reset current rotation to real zeros."
 msgstr "重置当前旋转为真实零位"
 
-msgid "Part coordinates"
-msgstr "零件坐标"
+msgctxt "Noun"
+msgid "Scale"
+msgstr "缩放"
 
 #. TRN - Input label. Be short as possible
 msgid "Size"
@@ -523,12 +535,6 @@ msgstr "间隙"
 
 msgid "Spacing"
 msgstr "间距"
-
-msgid "Part"
-msgstr "零件"
-
-msgid "Object"
-msgstr "对象"
 
 msgid ""
 "Click to flip the cut plane\n"
@@ -1869,33 +1875,32 @@ msgstr "打开项目"
 msgid "The version of Orca Slicer is too low and needs to be updated to the latest version before it can be used normally."
 msgstr "此逆戟鲸切片器的版本过低，需更新至最新版本方可正常使用"
 
-msgid ""
-"Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
-"Pull downloads the cloud copy. Force push overwrites it with your local preset."
+msgid "Cloud sync conflict:"
 msgstr ""
-"云同步冲突：此预设在 OrcaCloud 中存在更新的版本。\n"
-"拉取将下载云端副本。强制推送将用您的本地预设覆盖它。"
+
+#, c-format, boost-format
+msgid "Cloud sync conflict for preset \"%s\":"
+msgstr ""
 
 msgid ""
-"Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+"This preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
-"云同步冲突：OrcaCloud 中已存在同名预设。\n"
-"拉取将下载云端副本。强制推送将用您的本地预设覆盖它。"
 
 msgid ""
-"Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+"A preset with this name already exists in OrcaCloud.\n"
+"Pull downloads the cloud copy. Force push overwrites it with your local preset."
+msgstr ""
+
+msgid ""
+"A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
 msgstr ""
-"云同步冲突：之前已从云端删除了同名预设。\n"
-"“删除”将删除您的本地预设。“强制推送”将用您的本地预设覆盖它。"
 
 msgid ""
-"Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+"There was an unexpected or unidentified preset conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
 msgstr ""
-"云同步冲突：发生了意外或无法识别的预设冲突。\n"
-"“拉取”将下载云端副本。“强制推送”将用您的本地预设覆盖它。"
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
@@ -1903,6 +1908,12 @@ msgid ""
 msgstr ""
 "强制推送将用您本地的预设更改覆盖云端副本。\n"
 "是否继续？"
+
+#, c-format, boost-format
+msgid ""
+"Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\n"
+"Do you want to continue?"
+msgstr ""
 
 msgid "Resolve cloud sync conflict"
 msgstr "解决云同步冲突"
@@ -1983,8 +1994,9 @@ msgstr "云端缓存的用户预设数量已超过上限，新创建的用户预
 msgid "Sync user presets"
 msgstr "同步用户预设"
 
-msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
-msgstr "预设内容过大，无法同步到云端（超过 1MB）。请通过移除自定义配置来缩减预设大小，或仅在本地使用。"
+#, c-format, boost-format
+msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+msgstr ""
 
 #, c-format, boost-format
 msgid "%s updated from %s to %s"
@@ -2204,6 +2216,9 @@ msgstr "Orca方块"
 
 msgid "OrcaSliced Combo"
 msgstr "OrcaSliced 复合模型"
+
+msgid "Orca Badge"
+msgstr ""
 
 msgid "Orca Tolerance Test"
 msgstr "Orca误差测试"
@@ -3632,7 +3647,7 @@ msgstr "校准完成。如下图中的示例，请在您的热床上找到最均
 msgid "Save"
 msgstr "保存"
 
-# TODO: Review, changed by lang refactor. PR 14254
+msgctxt "Navigation"
 msgid "Back"
 msgstr "背面"
 
@@ -5007,6 +5022,7 @@ msgstr "工具更换"
 msgid "Color change"
 msgstr "颜色更换"
 
+msgctxt "Noun"
 msgid "Print"
 msgstr "打印"
 
@@ -5171,11 +5187,15 @@ msgstr "避开挤出校准区域"
 msgid "Align to Y axis"
 msgstr "对齐到Y轴"
 
-msgctxt "Camera"
+msgctxt "Camera View"
+msgid "Back"
+msgstr "背面"
+
+msgctxt "Camera View"
 msgid "Left"
 msgstr "左"
 
-msgctxt "Camera"
+msgctxt "Camera View"
 msgid "Right"
 msgstr "右"
 
@@ -5253,6 +5273,9 @@ msgstr "悬垂"
 
 msgid "Outline"
 msgstr "轮廓线"
+
+msgid "Wireframe"
+msgstr ""
 
 msgid "Realistic View"
 msgstr "写实渲染"
@@ -5500,6 +5523,10 @@ msgstr "打印单盘"
 msgid "Export G-code file"
 msgstr "导出G-code文件"
 
+msgctxt "Verb"
+msgid "Print"
+msgstr "打印"
+
 msgid "Export plate sliced file"
 msgstr "导出单盘切片文件"
 
@@ -5673,15 +5700,6 @@ msgstr "导出当前选择的预设"
 msgid "Export"
 msgstr "导出"
 
-msgid "Sync Presets"
-msgstr "同步预设"
-
-msgid "Pull and apply the latest presets from OrcaCloud"
-msgstr "从 OrcaCloud 拉取并应用最新的预设"
-
-msgid "You must be logged in to sync presets from cloud."
-msgstr "您必须登录后才能从云端同步预设。"
-
 msgid "Quit"
 msgstr "退出程序"
 
@@ -5797,6 +5815,15 @@ msgstr "视图"
 
 msgid "Preset Bundle"
 msgstr "预设包"
+
+msgid "Sync Presets"
+msgstr "同步预设"
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr "从 OrcaCloud 拉取并应用最新的预设"
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr "您必须登录后才能从云端同步预设。"
 
 msgid "Syncing presets from cloud…"
 msgstr "正在从云端同步预设…"
@@ -7866,6 +7893,45 @@ msgstr "选择下载项目的文件夹"
 msgid "Choose Download Directory"
 msgstr "选择下载文件夹"
 
+msgid "(Latest)"
+msgstr "（最新的）"
+
+msgid "Network plug-in switched successfully."
+msgstr "网络插件切换成功。"
+
+msgid "Success"
+msgstr "成功"
+
+msgid "Failed to load network plug-in. Please restart the application."
+msgstr "无法加载网络插件。请重新启动应用程序。"
+
+#, c-format, boost-format
+msgid ""
+"You've selected network plug-in version %s.\n"
+"\n"
+"Would you like to download and install this version now?\n"
+"\n"
+"Note: The application may need to restart after installation."
+msgstr "您已选择网络插件版本 %s。 您想立即下载并安装此版本吗？ 注意：安装后应用程序可能需要重新启动。"
+
+msgid "Download Network Plug-in"
+msgstr "下载网络插件"
+
+msgid "Reload the network plug-in without restarting the application"
+msgstr "重新加载网络插件而不重新启动应用程序"
+
+msgid "Network plug-in reloaded successfully."
+msgstr "网络插件已成功重新加载。"
+
+msgid "Reload"
+msgstr "重新加载"
+
+msgid "Failed to reload network plug-in. Please restart the application."
+msgstr "无法重新加载网络插件。请重新启动应用程序。"
+
+msgid "Reload Failed"
+msgstr "重新加载失败"
+
 msgid "Associate"
 msgstr "相关的"
 
@@ -7921,12 +7987,6 @@ msgstr "显示启动画面"
 msgid "Show the splash screen during startup."
 msgstr "在启动时显示启动画面。"
 
-msgid "Show shared profiles notification"
-msgstr "显示共享配置文件通知"
-
-msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
-msgstr "当所选打印机更改时，显示带有浏览共享配置文件链接的通知。"
-
 msgid "Use window buttons on left side"
 msgstr "将窗口按钮置于左侧"
 
@@ -7957,6 +8017,13 @@ msgstr "加载 交互项"
 msgid "Should printer/filament/process settings be loaded when opening a 3MF file?"
 msgstr "printter/filament/process 设置项文件能否以 .3mf后缀方式打开"
 
+msgid "Auto backup"
+msgstr "自动备份"
+
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Backup your project periodically to help with restoring from an occasional crash."
+msgstr "定期备份你的项目，以便从偶尔的崩溃中恢复过来。"
+
 msgid "Maximum recent files"
 msgstr "最大最近使用文件数"
 
@@ -7975,12 +8042,55 @@ msgstr "显示STEP网格参数设置对话框"
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "如果启用，在导入STEP文件时将出现参数设置对话框"
 
-msgid "Auto backup"
-msgstr "自动备份"
+msgid "STEP importing: linear deflection"
+msgstr ""
 
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Backup your project periodically to help with restoring from an occasional crash."
-msgstr "定期备份你的项目，以便从偶尔的崩溃中恢复过来。"
+msgid ""
+"Linear deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.003 mm."
+msgstr ""
+
+msgid "STEP importing: angle deflection"
+msgstr ""
+
+msgid ""
+"Angle deflection used when meshing imported STEP files.\n"
+"Smaller values produce higher-quality meshes but increase processing time.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: 0.5."
+msgstr ""
+
+msgid "STEP importing: Split into multiple objects"
+msgstr ""
+
+msgid ""
+"If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
+"Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
+"Default: disabled."
+msgstr ""
+
+msgid "Quality level for Draco export"
+msgstr "Draco 导出的模型质量"
+
+msgid "bits"
+msgstr "位"
+
+msgid ""
+"Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
+"0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
+"Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."
+msgstr ""
+"控制将网格压缩为 Draco 格式时使用的量化位深度。\n"
+"0 = 无损压缩（以全精度保留几何形状）。有效有损值范围为 8 到 30。\n"
+"较低的值会生成较小的文件，但会丢失更多的几何细节；较高的值可保留更多细节，但代价是文件较大。"
+
+msgid "Store full source file paths in projects"
+msgstr ""
+
+msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
+msgstr ""
 
 msgid "Preset"
 msgstr "预设"
@@ -8012,6 +8122,12 @@ msgstr "耗材丝"
 msgid "Optimizes filament area maximum height by chosen filament count."
 msgstr "根据选定的耗材丝数量优化耗材区域最大高度"
 
+msgid "Show shared profiles notification"
+msgstr "显示共享配置文件通知"
+
+msgid "Show a notification with a link to browse shared profiles when the selected printer is changed."
+msgstr "当所选打印机更改时，显示带有浏览共享配置文件链接的通知。"
+
 msgid "Features"
 msgstr "特性"
 
@@ -8023,21 +8139,6 @@ msgstr "启用此选项后，您可以同时向多个设备发送任务并管理
 
 msgid "Pop up to select filament grouping mode"
 msgstr "弹出选择耗材丝分组模式"
-
-msgid "Quality level for Draco export"
-msgstr "Draco 导出的模型质量"
-
-msgid "bits"
-msgstr "位"
-
-msgid ""
-"Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
-"0 = lossless compression (geometry is preserved at full precision). Valid lossy values range from 8 to 30.\n"
-"Lower values produce smaller files but lose more geometric detail; higher values preserve more detail at the cost of larger files."
-msgstr ""
-"控制将网格压缩为 Draco 格式时使用的量化位深度。\n"
-"0 = 无损压缩（以全精度保留几何形状）。有效有损值范围为 8 到 30。\n"
-"较低的值会生成较小的文件，但会丢失更多的几何细节；较高的值可保留更多细节，但代价是文件较大。"
 
 msgid "Behaviour"
 msgstr "行为"
@@ -8283,19 +8384,6 @@ msgstr "仅检测正式版的更新"
 msgid "Auto sync user presets (Printer/Filament/Process)"
 msgstr "同步用户预设（打印机/耗材丝/工艺）"
 
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Update built-in presets automatically."
-msgstr "自动更新系统预设"
-
-msgid "Use encrypted file for token storage"
-msgstr "使用加密文件进行令牌存储"
-
-msgid "Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"
-msgstr "将身份验证令牌存储在加密文件中，而不是系统钥匙串中。 （需要重启）"
-
-msgid "Filament Sync Options"
-msgstr "耗材丝同步选项"
-
 msgid "Filament sync mode"
 msgstr "耗材丝同步模式"
 
@@ -8308,6 +8396,16 @@ msgstr "耗材丝及颜色"
 msgid "Color only"
 msgstr "仅颜色"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Update built-in presets automatically."
+msgstr "自动更新系统预设"
+
+msgid "Use encrypted file for token storage"
+msgstr "使用加密文件进行令牌存储"
+
+msgid "Store authentication tokens in an encrypted file instead of the system keychain. (Requires restart)"
+msgstr "将身份验证令牌存储在加密文件中，而不是系统钥匙串中。 （需要重启）"
+
 msgid "Bambu network plug-in"
 msgstr "Bambu网络插件"
 
@@ -8319,30 +8417,6 @@ msgstr "网络插件版本"
 
 msgid "Select the network plug-in version to use"
 msgstr "选择要使用的网络插件版本"
-
-msgid "(Latest)"
-msgstr "（最新的）"
-
-msgid "Network plug-in switched successfully."
-msgstr "网络插件切换成功。"
-
-msgid "Success"
-msgstr "成功"
-
-msgid "Failed to load network plug-in. Please restart the application."
-msgstr "无法加载网络插件。请重新启动应用程序。"
-
-#, c-format, boost-format
-msgid ""
-"You've selected network plug-in version %s.\n"
-"\n"
-"Would you like to download and install this version now?\n"
-"\n"
-"Note: The application may need to restart after installation."
-msgstr "您已选择网络插件版本 %s。 您想立即下载并安装此版本吗？ 注意：安装后应用程序可能需要重新启动。"
-
-msgid "Download Network Plug-in"
-msgstr "下载网络插件"
 
 msgid "Associate files to OrcaSlicer"
 msgstr "逆戟鲸切片器文件关联"
@@ -8389,8 +8463,17 @@ msgstr "开发者"
 msgid "Skip AMS blacklist check"
 msgstr "跳过AMS黑名单检查"
 
-msgid "(Experimental) Keep painted feature after mesh change"
-msgstr "(实验性) 在网格更改后保留绘制的特征"
+msgid "Show unsupported presets"
+msgstr "显示不受支持的预设"
+
+msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
+msgstr "在打印机和耗材下拉列表中显示不兼容/不受支持的预设。这些预设无法被选择。"
+
+msgid "Experimental Features"
+msgstr ""
+
+msgid "Keep painted feature after mesh change"
+msgstr ""
 
 msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
@@ -8398,12 +8481,6 @@ msgid ""
 msgstr ""
 "在更改对象网格（如切割/从磁盘重新加载/简化/修复等）后，尝试保留绘制的特征（颜色/接缝/支撑/绒毛等）。\n"
 "高度实验性！速度较慢且可能产生瑕疵。"
-
-msgid "Show unsupported presets"
-msgstr "显示不受支持的预设"
-
-msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
-msgstr "在打印机和耗材下拉列表中显示不兼容/不受支持的预设。这些预设无法被选择。"
 
 msgid "Allow Abnormal Storage"
 msgstr "允许异常存储"
@@ -8433,24 +8510,6 @@ msgstr "调试"
 msgid "trace"
 msgstr "跟踪"
 
-msgid "Network plug-in"
-msgstr "网络插件"
-
-msgid "Reload"
-msgstr "重新加载"
-
-msgid "Reload the network plug-in without restarting the application"
-msgstr "重新加载网络插件而不重新启动应用程序"
-
-msgid "Network plug-in reloaded successfully."
-msgstr "网络插件已成功重新加载。"
-
-msgid "Failed to reload network plug-in. Please restart the application."
-msgstr "无法重新加载网络插件。请重新启动应用程序。"
-
-msgid "Reload Failed"
-msgstr "重新加载失败"
-
 msgid "Debug"
 msgstr "调试"
 
@@ -8465,25 +8524,6 @@ msgstr "配置同步"
 
 msgid "Preferences sync"
 msgstr "首选项同步"
-
-msgid "View control settings"
-msgstr "视图控制设置"
-
-msgid "Rotate view"
-msgstr "旋转视角"
-
-msgid "Pan view"
-msgstr "移动视角"
-
-msgid "Zoom view"
-msgstr "缩放视角"
-
-msgid "Other"
-msgstr "其他"
-
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Reverse scroll direction while zooming"
-msgstr "缩放时鼠标滚轮反转"
 
 msgid "Enable SSL(MQTT)"
 msgstr "启用SSL（MQTT）"
@@ -10288,12 +10328,8 @@ msgstr "成功同步喷嘴信息。"
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr "已成功同步喷嘴和 AMS 编号信息。"
 
-msgid "Continue to sync filaments"
-msgstr "继续同步耗材丝"
-
-msgctxt "Sync_Nozzle_AMS"
-msgid "Cancel"
-msgstr "取消"
+msgid "Do you want to continue to sync filaments?"
+msgstr ""
 
 msgid "Successfully synchronized filament color from printer."
 msgstr "已成功同步打印机的耗材丝颜色。"
@@ -11621,19 +11657,11 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
 msgstr ""
-"外部桥接角度覆盖。\n"
-"如果保持为零，每个具体桥接的桥接角度都会自动计算。\n"
-"否则将按以下方式使用所提供的角度：\n"
-" - 绝对坐标\n"
-" - 绝对坐标 + 模型旋转：如果启用了“对齐填充方向到模型”\n"
-" - 最佳自动角度 + 此值：如果启用了“相对桥接角度”\n"
-"\n"
-"使用 180° 表示绝对角度为零。"
 
 msgid "Internal bridge infill direction"
 msgstr "内部桥接填充方向"
@@ -11643,19 +11671,11 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
 msgstr ""
-"内部桥接角度覆盖。\n"
-"如果保持为零，每个具体桥接的桥接角度都会自动计算。\n"
-"否则将按以下方式使用所提供的角度：\n"
-" - 绝对坐标\n"
-" - 绝对坐标 + 模型旋转：如果启用了“对齐填充方向到模型”\n"
-" - 最佳自动角度 + 此值：如果启用了“相对桥接角度”\n"
-"\n"
-"使用 180° 表示绝对角度为零。"
 
 msgid "Relative bridge angle"
 msgstr "相对桥接角度"
@@ -12414,6 +12434,42 @@ msgstr ""
 "100% 的值会创建一个完全实心、平滑的顶面。降低此值会根据所选的顶面图案生成有纹理的顶面。0% 的值将只生成顶层的墙。\n"
 "此选项仅为美观或功能性目的，而不是为了解决过量挤出等问题。"
 
+msgid "Top surface expansion"
+msgstr ""
+
+msgid ""
+"Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+msgstr ""
+
+msgid "Top expansion wall margin"
+msgstr ""
+
+msgid ""
+"Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+"This can cause contraction marks (such as the hull line) on the outer walls.\n"
+"By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
+msgstr ""
+
+msgid "Top expansion direction"
+msgstr ""
+
+msgid ""
+"Direction in which the top surface expansion grows.\n"
+" - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+" - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+" - Inward and Outward does both."
+msgstr ""
+
+msgid "Inward and Outward"
+msgstr ""
+
+msgid "Inward"
+msgstr ""
+
+msgid "Outward"
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "底面图案"
 
@@ -12456,6 +12512,18 @@ msgstr "微小部位周长阈值"
 
 msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
 msgstr "这将设置微小部位周长的阈值。默认阈值为0mm"
+
+msgid "Small support perimeters"
+msgstr ""
+
+msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
+msgstr ""
+
+msgid "Small support perimeters threshold"
+msgstr ""
+
+msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
+msgstr ""
 
 msgid "Walls printing order"
 msgstr "墙顺序"
@@ -12637,24 +12705,26 @@ msgstr ""
 "2. 记下每个体积流速和加速度的最佳 PA 值。您可以通过从配色方案下拉列表中选择流量并将水平滑块移动到 PA 图案线上来找到流量编号。该数字应该在页面底部可见。理想的 PA 值应该随着体积流量的增加而减小。如果不是，请确认您的挤出机运行正常。打印速度越慢且加速度越小，可接受的 PA 值范围就越大。如果没有明显差异，请使用更快测试中的 PA 值\n"
 "3. 在此处的文本框中输入 PA 值、流量和加速度的三元组并保存耗材丝配置文件"
 
-msgid "Enable adaptive pressure advance for overhangs (beta)"
-msgstr "为悬垂启用自适应压力提前（试验）"
-
-msgid ""
-"Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
-"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+msgid "Enable adaptive pressure advance within features (beta)"
 msgstr ""
-"针对悬垂以及同一特征内的流量变化启用自适应 PA。这是一个实验性选项，因为如果未准确设置 PA 配置文件，将导致悬垂前后外表面出现均匀性问题。\n"
-"与 Prusa 打印机不兼容，因为它们会暂停以处理 PA 变化，从而导致延迟和瑕疵。"
-
-msgid "Pressure advance for bridges"
-msgstr "为搭桥启用压力提前"
 
 msgid ""
-"Pressure advance value for bridges. Set to 0 to disable.\n"
+"Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
 "\n"
-"A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
-msgstr "桥梁的压力提前值。设置为 0 以禁用。 打印桥接时较低的 PA 值有助于减少桥接后立即出现的轻微挤压不足现象。这是由在空气中打印时喷嘴中的压力下降引起的，较低的 PA 有助于抵消这种情况。"
+"Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
+"\n"
+"This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
+msgstr ""
+
+msgid "Static pressure advance for bridges"
+msgstr ""
+
+msgid ""
+"Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
+"equivalent walls (using adaptive settings if enabled).\n"
+"\n"
+"A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+msgstr ""
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "当线宽设置为0时走线的默认线宽。如果以%表示，它将基于喷嘴直径来计算。"
@@ -13050,6 +13120,22 @@ msgstr "实心填充方向"
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
 msgstr "实心填充图案的角度，决定走线的开始或整体方向。"
 
+msgid "Top layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the top solid infill and ironing lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
+msgid "Bottom layer direction"
+msgstr ""
+
+msgid ""
+"Fixed angle for the bottom solid infill lines.\n"
+"Set to -1 to follow the default solid infill direction."
+msgstr ""
+
 msgid "Sparse infill density"
 msgstr "稀疏填充密度"
 
@@ -13057,15 +13143,13 @@ msgstr "稀疏填充密度"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr "内部稀疏填充的密度，100%会将所有稀疏填充变为实心填充，并将使用内部实心填充图案。"
 
-msgid "Align infill direction to model"
-msgstr "对齐填充方向到模型"
+msgid "Align directions to model"
+msgstr ""
 
 msgid ""
-"Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-"When enabled, directions rotate with the model to maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+"When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
-"使填充、桥接、熨烫和表面填充的方向跟随模型在打印板上的朝向。\n"
-"启用后，这些方向会随模型一起旋转，以保持最佳的强度特性。"
 
 msgid "Insert solid layers"
 msgstr "插入实心层"
@@ -13272,6 +13356,17 @@ msgstr ""
 
 msgid "layer"
 msgstr "层"
+
+msgid "First layer fan speed"
+msgstr ""
+
+msgid ""
+"Sets an exact fan speed for the first layer, overriding all other cooling settings. Useful for protecting 3D-printed toolhead parts (e.g. Voron-style ABS/ASA ducts) from a hot bed. A small amount of airflow cools the ducts down, without using full cooling that may in certain conditions hurt first-layer adhesion.\n"
+"From the second layer onwards, normal cooling resumes.\n"
+"If \"Full fan speed at layer\" is also set, the fan ramps smoothly from this value on the first layer up to your target by the chosen layer.\n"
+"Only available when \"No cooling for the first\" is 0.\n"
+"Set to -1 to disable it."
+msgstr ""
 
 msgid "Support interface fan speed"
 msgstr "支撐接触面风扇"
@@ -14832,6 +14927,10 @@ msgstr "对齐"
 msgid "Aligned back"
 msgstr "背部对齐"
 
+# TODO: Review, changed by lang refactor. PR 14254
+msgid "Back"
+msgstr "背面"
+
 msgid "Random"
 msgstr "随机"
 
@@ -15198,6 +15297,18 @@ msgstr "所有挤出机画线"
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "如果启用，所有挤出机将在打印开始时在床前画线"
 
+msgid "Toolchange ordering"
+msgstr ""
+
+msgid ""
+"Determines the order of tool changes on each layer.\n"
+"- Default: Starts with the last used extruder to minimize tool changes.\n"
+"- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+msgstr ""
+
+msgid "Cyclic"
+msgstr ""
+
 msgid "Slice gap closing radius"
 msgstr "切片间隙闭合半径"
 
@@ -15206,6 +15317,9 @@ msgstr "在三角形网格切片过程中，小于2倍间隙闭合半径的裂�
 
 msgid "Slicing Mode"
 msgstr "切片模式"
+
+msgid "Other"
+msgstr "其他"
 
 msgid "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model."
 msgstr "对3DLabPrint的飞机模型使用 \"奇偶\"。使用 \"闭孔 \"来关闭模型上的所有孔。"
@@ -15637,6 +15751,45 @@ msgstr "顶部壳体厚度"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "如果由顶部壳体层数算出的厚度小于这个数值，那么切片时将自动增加顶部壳体层数。这能够避免当层高很小时，顶部壳体过薄。0 表示关闭这个设置，同时顶部壳体的厚度完全由顶部壳体层数决定"
 
+msgid "Anisotropic surfaces"
+msgstr ""
+
+msgid ""
+"Anisotropic patterns on the top and bottom surfaces.\n"
+"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
+"This option disable the gap fill.\n"
+"This option can increase a printing time."
+msgstr ""
+
+msgid "Separated infills"
+msgstr ""
+
+msgid ""
+"Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
+"Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+"Affects line and grid patterns and rotation-template infills.\n"
+"Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
+msgstr ""
+
+msgid "Center surface pattern on"
+msgstr ""
+
+msgid ""
+"Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
+" - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+" - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
+" - Each Assembly: uses a single shared center for the whole object or assembly."
+msgstr ""
+
+msgid "Each Surface"
+msgstr ""
+
+msgid "Each Model"
+msgstr ""
+
+msgid "Each Assembly"
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
 msgstr "空驶的速度。空驶是无挤出量的快速移动。"
@@ -15884,6 +16037,14 @@ msgstr "扭曲多边型孔"
 
 msgid "Rotate the polyhole every layer."
 msgstr "按层旋转多边形孔。"
+
+msgid "Maximum Polyhole edge count"
+msgstr ""
+
+msgid ""
+"Maximum number of polyhole edges\n"
+"This setting limits the amount of edges a polyhole can have"
+msgstr ""
 
 msgid "G-code thumbnails"
 msgstr "G-code缩略图尺寸"
@@ -18277,6 +18438,132 @@ msgstr "登录/测试"
 msgid "Connection to printers connected via the print host failed."
 msgstr "无法通过打印机主机连接到打印机。"
 
+msgid "Detect Creality K-series printer"
+msgstr ""
+
+msgid "Click Scan to look for K-series printers on your network."
+msgstr ""
+
+msgid "Use Selected"
+msgstr ""
+
+msgid "Scanning the LAN for K-series printers... this takes a few seconds."
+msgstr ""
+
+msgid "No K-series printers found. Make sure the printer is on the same network and not blocked by Wi-Fi client isolation, then click Scan again."
+msgstr ""
+
+#, c-format
+msgid "Found %zu Creality printer(s). Select one and click Use Selected."
+msgstr ""
+
+msgid "Active"
+msgstr ""
+
+msgid "Printers"
+msgstr ""
+
+msgid "Processes"
+msgstr ""
+
+msgid "Show/Hide system information"
+msgstr ""
+
+msgid "Copy system information to clipboard"
+msgstr ""
+
+msgid "We need information for diagnosing source of the issue. Check wiki page for detailed guide."
+msgstr ""
+
+msgid "Pack button collects project file and logs of current session onto a zip file."
+msgstr ""
+
+msgid "Any additional visual examples like images or screen recordings might be helpful while reporting the issue."
+msgstr ""
+
+msgid "Report issue"
+msgstr ""
+
+msgid "Pack"
+msgstr ""
+
+msgid "Cleans and rebuilds system profiles cache on next launch"
+msgstr ""
+
+msgid "Clean system profiles cache"
+msgstr ""
+
+msgid "Clean"
+msgstr ""
+
+msgid "Loaded profiles overview"
+msgstr ""
+
+msgid "This section shows information for loaded profiles"
+msgstr ""
+
+msgid "Exports detailed overview of loaded profiles in json format"
+msgstr ""
+
+msgid "Configurations folder"
+msgstr ""
+
+msgid "Opens configurations folder"
+msgstr ""
+
+msgid "Log level"
+msgstr ""
+
+msgid "Stored logs"
+msgstr ""
+
+msgid "Packs all stored logs onto a zip file."
+msgstr ""
+
+msgid "Profiles"
+msgstr ""
+
+msgid "Select NO to close dialog and review project"
+msgstr ""
+
+msgid "No project file on current session. Only logs will be included to package"
+msgstr ""
+
+msgid "Select NO to close dialog and review project."
+msgstr ""
+
+msgid "Please make sure any instances of OrcaSlicer are not running"
+msgstr ""
+
+msgid "System folder cannot be deleted because some files are in use by another application. Please close any applications using these files and try again."
+msgstr ""
+
+msgid "Failed to delete system folder..."
+msgstr ""
+
+msgid "Failed to determine executable path."
+msgstr ""
+
+msgid "Failed to launch a new instance."
+msgstr ""
+
+msgid "log(s)"
+msgstr ""
+
+msgid "Choose where to save the exported JSON file"
+msgstr ""
+
+msgid ""
+"Export failed\n"
+"Please check write permissions or file in use by another application"
+msgstr ""
+
+msgid "Choose where to save the exported ZIP file"
+msgstr ""
+
+msgid "File already exists. Overwrite?"
+msgstr ""
+
 msgid "3DPrinterOS Cloud upload options"
 msgstr "3DPrinterOS 云上传选项"
 
@@ -18358,6 +18645,19 @@ msgstr "与 MKS 的连接正常。"
 
 msgid "Could not connect to MKS"
 msgstr "无法连接到 MKS。"
+
+msgid "Connection to Moonraker is working correctly."
+msgstr ""
+
+msgid "Could not connect to Moonraker"
+msgstr ""
+
+msgid "The host responded but it doesn't look like Moonraker (missing result.klippy_state)."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Could not parse Moonraker server response: %s"
+msgstr ""
 
 msgid "Connection to OctoPrint is working correctly."
 msgstr "成功连接到 OctoPrint。"
@@ -19107,6 +19407,12 @@ msgstr "三角面片数量"
 msgid "Calculating, please wait..."
 msgstr "正在计算，请稍候..."
 
+msgid "Save these settings as default"
+msgstr ""
+
+msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
+msgstr ""
+
 msgid "PresetBundle"
 msgstr "预设包"
 
@@ -19516,6 +19822,158 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#~ msgid "Continue to sync filaments"
+#~ msgstr "继续同步耗材丝"
+
+#~ msgctxt "Sync_Nozzle_AMS"
+#~ msgid "Cancel"
+#~ msgstr "取消"
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "External Bridging angle override.\n"
+#~ "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
+#~ "Otherwise the provided angle will be used according to:\n"
+#~ " - The absolute coordinates\n"
+#~ " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+#~ " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
+#~ "\n"
+#~ "Use 180° for zero absolute angle."
+#~ msgstr ""
+#~ "外部桥接角度覆盖。\n"
+#~ "如果保持为零，每个具体桥接的桥接角度都会自动计算。\n"
+#~ "否则将按以下方式使用所提供的角度：\n"
+#~ " - 绝对坐标\n"
+#~ " - 绝对坐标 + 模型旋转：如果启用了“对齐填充方向到模型”\n"
+#~ " - 最佳自动角度 + 此值：如果启用了“相对桥接角度”\n"
+#~ "\n"
+#~ "使用 180° 表示绝对角度为零。"
+
+#~ msgid ""
+#~ "Internal Bridging angle override.\n"
+#~ "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
+#~ "Otherwise the provided angle will be used according to:\n"
+#~ " - The absolute coordinates\n"
+#~ " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+#~ " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
+#~ "\n"
+#~ "Use 180° for zero absolute angle."
+#~ msgstr ""
+#~ "内部桥接角度覆盖。\n"
+#~ "如果保持为零，每个具体桥接的桥接角度都会自动计算。\n"
+#~ "否则将按以下方式使用所提供的角度：\n"
+#~ " - 绝对坐标\n"
+#~ " - 绝对坐标 + 模型旋转：如果启用了“对齐填充方向到模型”\n"
+#~ " - 最佳自动角度 + 此值：如果启用了“相对桥接角度”\n"
+#~ "\n"
+#~ "使用 180° 表示绝对角度为零。"
+
+#~ msgid "Align infill direction to model"
+#~ msgstr "对齐填充方向到模型"
+
+#~ msgid ""
+#~ "Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
+#~ "When enabled, directions rotate with the model to maintain optimal strength characteristics."
+#~ msgstr ""
+#~ "使填充、桥接、熨烫和表面填充的方向跟随模型在打印板上的朝向。\n"
+#~ "启用后，这些方向会随模型一起旋转，以保持最佳的强度特性。"
+
+#~ msgid "Print"
+#~ msgstr "打印"
+
+#~ msgid "in"
+#~ msgstr "在"
+
+#~ msgid "Object coordinates"
+#~ msgstr "物体坐标"
+
+#~ msgid "World coordinates"
+#~ msgstr "世界坐标"
+
+#~ msgid "Translate(Relative)"
+#~ msgstr "转换（相对）"
+
+#~ msgid "Rotate (absolute)"
+#~ msgstr "旋转（绝对）"
+
+#~ msgid "Part coordinates"
+#~ msgstr "零件坐标"
+
+#~ msgid ""
+#~ "Cloud sync conflict: this preset has a newer version in OrcaCloud.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "云同步冲突：此预设在 OrcaCloud 中存在更新的版本。\n"
+#~ "拉取将下载云端副本。强制推送将用您的本地预设覆盖它。"
+
+#~ msgid ""
+#~ "Cloud sync conflict: a preset with this name already exists in OrcaCloud.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "云同步冲突：OrcaCloud 中已存在同名预设。\n"
+#~ "拉取将下载云端副本。强制推送将用您的本地预设覆盖它。"
+
+#~ msgid ""
+#~ "Cloud sync conflict: a preset with the same name was previously deleted from the cloud.\n"
+#~ "Delete will delete your local preset. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "云同步冲突：之前已从云端删除了同名预设。\n"
+#~ "“删除”将删除您的本地预设。“强制推送”将用您的本地预设覆盖它。"
+
+#~ msgid ""
+#~ "Cloud sync conflict: there was an unexpected or unidentified preset conflict.\n"
+#~ "Pull downloads the cloud copy. Force push overwrites it with your local preset."
+#~ msgstr ""
+#~ "云同步冲突：发生了意外或无法识别的预设冲突。\n"
+#~ "“拉取”将下载云端副本。“强制推送”将用您的本地预设覆盖它。"
+
+#~ msgid "The preset content is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
+#~ msgstr "预设内容过大，无法同步到云端（超过 1MB）。请通过移除自定义配置来缩减预设大小，或仅在本地使用。"
+
+#~ msgid "Enable adaptive pressure advance for overhangs (beta)"
+#~ msgstr "为悬垂启用自适应压力提前（试验）"
+
+#~ msgid ""
+#~ "Enable adaptive PA for overhangs as well as when flow changes within the same feature. This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues on the external surfaces before and after overhangs.\n"
+#~ "Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects."
+#~ msgstr ""
+#~ "针对悬垂以及同一特征内的流量变化启用自适应 PA。这是一个实验性选项，因为如果未准确设置 PA 配置文件，将导致悬垂前后外表面出现均匀性问题。\n"
+#~ "与 Prusa 打印机不兼容，因为它们会暂停以处理 PA 变化，从而导致延迟和瑕疵。"
+
+#~ msgid "Pressure advance for bridges"
+#~ msgstr "为搭桥启用压力提前"
+
+#~ msgid ""
+#~ "Pressure advance value for bridges. Set to 0 to disable.\n"
+#~ "\n"
+#~ "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
+#~ msgstr "桥梁的压力提前值。设置为 0 以禁用。 打印桥接时较低的 PA 值有助于减少桥接后立即出现的轻微挤压不足现象。这是由在空气中打印时喷嘴中的压力下降引起的，较低的 PA 有助于抵消这种情况。"
+
+#~ msgid "Filament Sync Options"
+#~ msgstr "耗材丝同步选项"
+
+#~ msgid "(Experimental) Keep painted feature after mesh change"
+#~ msgstr "(实验性) 在网格更改后保留绘制的特征"
+
+#~ msgid "Network plug-in"
+#~ msgstr "网络插件"
+
+#~ msgid "View control settings"
+#~ msgstr "视图控制设置"
+
+#~ msgid "Rotate view"
+#~ msgstr "旋转视角"
+
+#~ msgid "Pan view"
+#~ msgstr "移动视角"
+
+#~ msgid "Zoom view"
+#~ msgstr "缩放视角"
+
+# TODO: Review, changed by lang refactor. PR 14254
+#~ msgid "Reverse scroll direction while zooming"
+#~ msgstr "缩放时鼠标滚轮反转"
 
 #, c-format, boost-format
 #~ msgid "Left: %s"
@@ -20107,3 +20565,189 @@ msgstr ""
 #, c-format, boost-format
 #~ msgid "The selected preset: %s is not found."
 #~ msgstr "未找到所选预设：%s。"
+
+msgid "Abnormal Hotend"
+msgstr "热端异常"
+
+msgid "Available Nozzles"
+msgstr "可用喷嘴"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "注意：不支持在打印中混用不同直径的喷嘴。如果所选尺寸仅存在于一个挤出机上，将强制使用单挤出机打印。"
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "在热端升级过程中，工具头会移动。请勿将手伸入机箱内。"
+
+msgid "Enable this if printer support cooling filter"
+msgstr "开启该功能后，当腔温过高时，会自动关闭过滤以提高冷却效果"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "错误：无法将两个喷嘴数量都设置为零。"
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "错误：喷嘴数量不可以超过%d。"
+
+msgid "Extruder change"
+msgstr "挤出机更换"
+
+msgid "Hotend change"
+msgstr "热端更换"
+
+msgid "Hotend change time"
+msgstr "热端更换时间"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "热端信息可能不准确。是否重新读取热端？（断电期间热端信息可能会发生变化）。"
+
+msgid "Hybrid"
+msgstr "混合"
+
+msgid "I confirm all"
+msgstr "确认无误"
+
+msgid "Induction Hotend Rack"
+msgstr "感应热端架"
+
+msgid "Nozzle Selection"
+msgstr "喷嘴选择"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "请核对喷嘴直径和流量是否与显示值一致。"
+
+msgid "Please set nozzle count"
+msgstr "请设置喷嘴数量"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "切换喷嘴需要擦料塔，否则打印件上可能会有瑕疵。您确定要关闭擦料塔吗？"
+
+msgid "Re-read all"
+msgstr "重新读取全部"
+
+msgid "Reading the hotends, please wait."
+msgstr "正在读取热端信息，请稍候。"
+
+msgid "Refresh %d/%d..."
+msgstr "刷新 %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "同步喷嘴状态"
+
+msgid "TPU High Flow"
+msgstr "TPU高流量"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "热端状态异常，当前不可用。请前往“设备 -> 升级”升级固件。"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "热端更换前的最大预冲刷体积速度，其中 -1 表示使用最大体积速度。"
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "换出挤出机前的最大预冲刷体积速度，-1 表示使用最大体积速度。"
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "工具头和热端架可能会运动，请勿将手伸入机箱。"
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "换热端所需的擦料塔上的清理量。"
+
+msgid "Time to change hotend."
+msgstr "热端更换时间。"
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "为防止溢料，预冲刷过程中喷嘴温度会降低。注意：仅触发冷却指令并启动风扇，不保证达到目标温度。0 表示禁用。"
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "为了防止溢料，预冲刷时会降低喷嘴温度。因此，预冲刷时间必须大于冷却时间。0 表示禁用。"
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "为了防止溢料，预冲刷完成后，喷嘴会进行一段时间的反向空驶。该设置用于定义空驶时间。"
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "检测到未知喷嘴。请刷新以更新信息（未刷新的喷嘴将在切片时被排除）。"
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "检测到未知喷嘴。请刷新以更新信息（未刷新的喷嘴将在切片时被排除）。请核对喷嘴直径和流量是否与显示值一致。"
+
+msgid "Use cooling filter"
+msgstr "开启冷却过滤"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "更换热端时，建议从原热端中挤出一定长度的耗材丝。这有助于最大限度地减少喷嘴漏料。"
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "当修改此回抽数值时，将用于热端内在更换热端前回抽的耗材量。"
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "您的打印机安装了不同的喷嘴。请选择一个喷嘴进行本次打印。"
+
+msgid "length when change hotend"
+msgstr "换热端时回抽量"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "当前盘存在动态分配喷嘴，不支持修改。"
+
+msgid "Hotend Rack"
+msgstr "热端挂架"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "热端状态异常，目前不可用。请升级固件后重试。"
+
+msgid "Hotends"
+msgstr "热端"
+
+msgid "Hotends Info"
+msgstr "热端信息"
+
+msgid "Hotends on Rack"
+msgstr "热端&挂架"
+
+msgid "Jump to the upgrade page"
+msgstr "跳转至升级页面"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "注意：%s上的热端编号与刀架绑定。当热端移动至新刀架时，其编号会自动更新。"
+
+msgid "Nozzle ID"
+msgstr "喷嘴 ID"
+
+msgid "Nozzle information needs to be read"
+msgstr "需要读取喷嘴信息"
+
+msgid "Please wait"
+msgstr "请稍候"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "使用当前喷嘴打印可能会产生额外 %0.2f 克废料。"
+
+msgid "Raised"
+msgstr "已升起"
+
+msgid "Read All"
+msgstr "读取全部"
+
+msgid "Reading "
+msgstr "读取中 "
+
+msgid "Row A"
+msgstr "A排"
+
+msgid "Row B"
+msgstr "B排"
+
+msgid "Running..."
+msgstr "运行中..."
+
+msgid "Select Filament && Hotends"
+msgstr "选择材料预设和喷头"
+
+msgid "Standard Flow"
+msgstr "标准流量"
+
+msgid "ToolHead"
+msgstr "工具头"
+
+msgid "Toolhead"
+msgstr "工具头"
+
+msgid "Used Time: %s"
+msgstr "使用时间: %s"

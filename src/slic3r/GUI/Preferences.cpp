@@ -783,6 +783,47 @@ wxBoxSizer *PreferencesDialog::create_camera_orbit_mult_input(wxString title, wx
     return m_sizer;
 }
 
+wxBoxSizer *PreferencesDialog::create_item_decimal_input(wxString title, wxString title2, wxString tooltip, std::string param, double min, double max, int decimals, const wxString wiki_url)
+{
+    auto tip = tooltip.IsEmpty() ? title : tooltip; // auto fill tooltips with title if its empty
+
+    wxBoxSizer *m_sizer = create_item_label(title, tip, wiki_url);
+
+    auto       input = new ::TextInput(m_parent, wxEmptyString, title2, wxEmptyString, wxDefaultPosition, DESIGN_INPUT_SIZE, wxTE_PROCESS_ENTER);
+    StateColor input_bg(std::pair<wxColour, int>(wxColour("#F0F0F1"), StateColor::Disabled), std::pair<wxColour, int>(*wxWHITE, StateColor::Enabled));
+    input->SetBackgroundColor(input_bg);
+    input->GetTextCtrl()->SetValue(app_config->get(param));
+    wxTextValidator validator(wxFILTER_NUMERIC);
+    input->SetToolTip(tooltip);
+    input->GetTextCtrl()->SetValidator(validator);
+
+    m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
+
+    auto apply_value = [this, param, input, min, max, decimals]() {
+        auto value = input->GetTextCtrl()->GetValue();
+        double conv = min;
+        if (value.ToCDouble(&conv)) {
+            conv = conv < min ? min : conv > max ? max : conv;
+            auto strval = std::string(wxString::FromCDouble(conv, decimals).mb_str());
+            input->GetTextCtrl()->SetValue(strval);
+            app_config->set(param, strval);
+        }
+    };
+
+    input->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [apply_value](wxCommandEvent &e) {
+        apply_value();
+        wxGetApp().app_config->save();
+        e.Skip();
+    });
+
+    input->GetTextCtrl()->Bind(wxEVT_KILL_FOCUS, [apply_value](wxFocusEvent &e) {
+        apply_value();
+        e.Skip();
+    });
+
+    return m_sizer;
+}
+
 wxBoxSizer *PreferencesDialog::create_item_backup(wxString title, wxString tooltip)
 {
     auto tip = tooltip.IsEmpty() ? title : tooltip; // auto fill tooltips with title if its empty
@@ -1605,6 +1646,15 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_step_dialog);
 
+    auto item_step_linear      = create_item_decimal_input(_L("STEP importing: linear deflection"), "mm", _L("Linear deflection used when meshing imported STEP files.\nSmaller values produce higher-quality meshes but increase processing time.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: 0.003 mm."), "linear_deflection", 0.001, 0.1, 3);
+    g_sizer->Add(item_step_linear);
+
+    auto item_step_angle       = create_item_decimal_input(_L("STEP importing: angle deflection"), "", _L("Angle deflection used when meshing imported STEP files.\nSmaller values produce higher-quality meshes but increase processing time.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: 0.5."), "angle_deflection", 0.01, 1.0, 2);
+    g_sizer->Add(item_step_angle);
+
+    auto item_step_split       = create_item_checkbox(_L("STEP importing: Split into multiple objects"), _L("If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\nUsed as the default in the import dialog, or directly when the import dialog is disabled.\nDefault: disabled."), "is_split_compound");
+    g_sizer->Add(item_step_split);
+
     auto item_draco_bits = create_item_spinctrl(_L("Quality level for Draco export"), "",
         _L("bits"),
         _L("Controls the quantization bit depth used when compressing the mesh to Draco format.\n"
@@ -1613,6 +1663,13 @@ void PreferencesDialog::create_items()
         "drc_bits", DRC_BITS_MIN, DRC_BITS_MAX, nullptr, "import_export#drc"
     );
     g_sizer->Add(item_draco_bits);
+
+    auto item_full_source_paths = create_item_checkbox(_L("Store full source file paths in projects"),
+        _L("If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so "
+           "\"Reload from disk\" still works when the source file is kept in a different folder than the project. "
+           "If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."),
+        "export_sources_full_pathnames");
+    g_sizer->Add(item_full_source_paths);
 
     //// GENERAL > Preset
     g_sizer->Add(create_item_title(_L("Preset")), 1, wxEXPAND);
@@ -1740,6 +1797,17 @@ void PreferencesDialog::create_items()
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
 
+    //// GRAPHICS > General
+    g_sizer->Add(create_item_title(_L("General")), 1, wxEXPAND);
+
+    auto smooth_normals = create_item_checkbox(
+        _L("Smooth normals"),
+        _L("Applies smooth normals to the model.\n\nRequires manual scene reload to take effect "
+                                "(right-click on 3D view → \"Reload All\")."),
+        SETTING_OPENGL_PHONG_SMOOTH_NORMALS
+    );
+    g_sizer->Add(smooth_normals);
+
     //// GRAPHICS > Realistic view
     g_sizer->Add(create_item_title(_L("Realistic View")), 1, wxEXPAND);
 
@@ -1759,19 +1827,10 @@ void PreferencesDialog::create_items()
 
     auto item_realistic_shadows = create_item_checkbox(
         _L("Shadows"),
-        _L("Renders cast shadows on the plate in realistic view."),
+        _L("Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."),
         SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS
     );
     g_sizer->Add(item_realistic_shadows);
-
-   
-    auto item_realistic_smooth_normals = create_item_checkbox(
-        _L("Smooth normals"),
-        _L("Applies smooth normals to the realistic view.\n\nRequires manual scene reload to take effect "
-                                "(right-click on 3D view → \"Reload All\")."),
-        SETTING_OPENGL_PHONG_SMOOTH_NORMALS
-    );
-    g_sizer->Add(item_realistic_smooth_normals);
 
     //// GRAPHICS > Anti-aliasing
     g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);

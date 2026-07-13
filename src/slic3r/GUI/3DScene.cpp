@@ -1024,7 +1024,8 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
                                 const Transform3d&                    projection_matrix,
                                 const GUI::Size&                      cnv_size,
                                 std::function<bool(const GLVolume &)> filter_func,
-                                bool                                  partly_inside_enable) const
+                                bool                                  partly_inside_enable,
+                                std::vector<double> *                 printable_heights) const
 {
     GLVolumeWithIdAndZList to_render = volumes_to_render(volumes, type, view_matrix, filter_func);
     if (to_render.empty())
@@ -1108,7 +1109,24 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
             //use -1 ad a invalid type
             shader->set_uniform("print_volume.type", -1);
         }
-  
+
+        // Per-extruder printable-height shading. The flag is set to
+        // 2.0 only for multi-extruder printers (two per-extruder heights); otherwise it is forced to 0.0
+        // on every render so no stale flag survives a multi->single-extruder plate switch, keeping the
+        // shared gouraud shader pixel-identical for single-extruder printers. When active the height
+        // branch reads print_volume.xy_data (the bed rect), so set it explicitly here.
+        std::array<float, 3> extruder_printable_heights = {0.0f, 0.0f, 0.0f};
+        if (printable_heights != nullptr && printable_heights->size() > 1) {
+            extruder_printable_heights[0] = 2.0f;
+            extruder_printable_heights[1] = static_cast<float>((*printable_heights)[0]);
+            extruder_printable_heights[2] = static_cast<float>((*printable_heights)[1]);
+            shader->set_uniform("extruder_printable_heights", extruder_printable_heights);
+            shader->set_uniform("print_volume.xy_data", m_print_volume.data);
+        }
+        else {
+            shader->set_uniform("extruder_printable_heights", extruder_printable_heights);
+        }
+
         shader->set_uniform("volume_world_matrix", volume.first->world_matrix());
         shader->set_uniform("slope.actived", m_slope.isGlobalActive && !volume.first->is_modifier && !volume.first->is_wipe_tower);
         shader->set_uniform("slope.volume_world_normal_matrix", static_cast<Matrix3f>(volume.first->world_matrix().matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>()));

@@ -102,6 +102,9 @@ const std::string& var_dir();
 // Return a full resource path for a file_name.
 std::string var(const std::string &file_name);
 
+// Snap a nozzle diameter to the closest supported value and format it as a string (e.g. 0.4 -> "0.4").
+std::string format_diameter_to_str(double diameter, int precision = 1);
+
 // Set a path with various static definition data (for example the initial config bundles).
 void set_resources_dir(const std::string &path);
 // Return a full path to the resources directory.
@@ -300,6 +303,10 @@ std::string header_gcodeviewer_generated();
 
 // getpid platform wrapper
 extern unsigned get_current_pid();
+// Per-user id for isolating temp dirs; empty on Windows (its temp dir is already per-user).
+std::string per_user_temp_id();
+// Per-user temp root under `base`; an empty `user_id` returns `base` unchanged.
+std::string per_user_temp_dir(const std::string &base, const std::string &user_id);
 // BBS: backup & restore
 std::string get_process_name(int pid);
 

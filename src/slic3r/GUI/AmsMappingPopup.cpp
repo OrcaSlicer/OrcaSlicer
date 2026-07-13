@@ -22,8 +22,12 @@
 #include "Plater.hpp"
 #include "BitmapCache.hpp"
 #include "BindDialog.hpp"
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
 
 #include "DeviceCore/DevFilaSystem.h"
+#include "DeviceCore/DevNozzleRack.h"
+#include "DeviceCore/DevMappingNozzle.h"
+#include "DeviceTab/wgtDeviceNozzleSelect.h"
 
 namespace Slic3r { namespace GUI {
 #define MATERIAL_ITEM_SIZE wxSize(FromDIP(65), FromDIP(50))
@@ -64,6 +68,7 @@ static void _add_containers(const AmsMapingPopup *                 win,
     //m_ams_wheel_mitem = ScalableBitmap(this, "ams_wheel", FromDIP(25));
     m_ams_wheel_mitem = ScalableBitmap(this, "ams_wheel_narrow", 25);
     m_ams_not_match = ScalableBitmap(this, "filament_not_mactch", 25);
+    m_rack_nozzle_bitmap = ScalableBitmap(this, "dev_rack_nozzle_print_job", 22);
 
     m_material_coloul = mcolour;
     m_material_name = mname;
@@ -73,9 +78,7 @@ static void _add_containers(const AmsMapingPopup *                 win,
     SetDoubleBuffered(true);
 #endif //__WINDOWS__
 
-    SetSize(MATERIAL_ITEM_SIZE);
-    SetMinSize(MATERIAL_ITEM_SIZE);
-    SetMaxSize(MATERIAL_ITEM_SIZE);
+    messure_size();
     SetBackgroundColour(*wxWHITE);
 
     Bind(wxEVT_PAINT, &MaterialItem::paintEvent, this);
@@ -89,6 +92,7 @@ void MaterialItem::msw_rescale() {
     m_arraw_bitmap_white.msw_rescale();
     m_transparent_mitem.msw_rescale();
     m_ams_wheel_mitem.msw_rescale();
+    m_rack_nozzle_bitmap.msw_rescale();
 }
 
 void MaterialItem::allow_paint_dropdown(bool flag) {
@@ -114,11 +118,22 @@ void MaterialItem::set_ams_info(wxColour col, wxString txt, int ctype, std::vect
     BOOST_LOG_TRIVIAL(info) << "set_ams_info " << m_ams_name;
 }
 
+void MaterialItem::set_nozzle_info(const wxString& mapped_nozzle_str)
+{
+    if (m_mapped_nozzle_str != mapped_nozzle_str) {
+        m_mapped_nozzle_str = mapped_nozzle_str;
+        messure_size(); // a mapped nozzle adds/removes a row, changing the card height
+        Refresh();
+    }
+}
+
 void MaterialItem::reset_ams_info() {
     m_ams_name   = "-";
     m_ams_coloul = wxColour(0xCE, 0xCE, 0xCE);
     m_ams_cols.clear();
     m_ams_ctype = 0;
+    m_mapped_nozzle_str.Clear();
+    messure_size();
     Refresh();
 }
 
@@ -215,6 +230,11 @@ void MaterialItem::render(wxDC &dc)
         acolor = wxColour(0x90, 0x90, 0x90);
     }
 
+    // Header + AMS name keep their fixed-card positions; a mapped nozzle only adds a row below, so
+    // position this text against the base card height, not the grown one (else it slides down onto
+    // the nozzle row). Identical to GetSize().y when no nozzle row is present.
+    const float base_y = m_mapped_nozzle_str.IsEmpty() ? (float) GetSize().y : (float) MATERIAL_ITEM_SIZE.y;
+
     // materials name
     dc.SetFont(::Label::Body_13);
 
@@ -227,7 +247,7 @@ void MaterialItem::render(wxDC &dc)
     }
 
     auto material_txt_size = dc.GetTextExtent(m_material_name);
-    dc.DrawText(m_material_name, wxPoint((GetSize().x - material_txt_size.x) / 2, ((float)GetSize().y * 2 / 5 - material_txt_size.y) / 2));
+    dc.DrawText(m_material_name, wxPoint((GetSize().x - material_txt_size.x) / 2, (base_y * 2 / 5 - material_txt_size.y) / 2));
 
 
 
@@ -238,11 +258,11 @@ void MaterialItem::render(wxDC &dc)
     if (mapping_txt.size() >= 4) {
         mapping_txt.insert(mapping_txt.size() / 2, "\n");
         mapping_txt_size = dc.GetTextExtent(mapping_txt);
-        m_text_pos_y     = ((float) GetSize().y * 3 / 5 - mapping_txt_size.y) / 2 + (float) GetSize().y * 2 / 5 - mapping_txt_size.y / 2;
+        m_text_pos_y     = (base_y * 3 / 5 - mapping_txt_size.y) / 2 + base_y * 2 / 5 - mapping_txt_size.y / 2;
         m_text_pos_x     = mapping_txt_size.x / 4;
     } else {
         mapping_txt_size = dc.GetTextExtent(mapping_txt);
-        m_text_pos_y     = ((float) GetSize().y * 3 / 5 - mapping_txt_size.y) / 2 + (float) GetSize().y * 2 / 5;
+        m_text_pos_y     = (base_y * 3 / 5 - mapping_txt_size.y) / 2 + base_y * 2 / 5;
         m_text_pos_x     = 0;
     }
 
@@ -258,12 +278,73 @@ void MaterialItem::match(bool mat)
     Refresh();
 }
 
+// A filament can map to several rack nozzles; the joined "R1, R2, ..." string is wrapped to a few
+// slots per line so the label stays readable inside the narrow card.
+static constexpr size_t MAPPED_NOZZLE_STR_MAX_CHARS_PER_LINE = 7;
+
+static wxString s_wrap_mapped_nozzle_str(const wxString& text)
+{
+    if (text.length() <= MAPPED_NOZZLE_STR_MAX_CHARS_PER_LINE)
+        return text;
+
+    wxArrayString parts = wxSplit(text, ',');
+    wxString wrapped;
+    std::vector<wxString> buffers;
+    for (auto& part : parts) {
+        if (!part.empty())
+            buffers.push_back(part.Trim(false).Trim(true));
+
+        if (buffers.size() > 2) {
+            if (!wrapped.empty())
+                wrapped += "\n";
+            wrapped += buffers[0] + " " + buffers[1] + " " + buffers[2];
+            buffers.clear();
+        }
+    }
+
+    if (!wrapped.empty())
+        wrapped += "\n";
+    if (buffers.size() > 0)
+        wrapped += buffers[0];
+    if (buffers.size() > 1)
+        wrapped += " " + buffers[1];
+
+    return wrapped;
+}
+
+static int s_get_mapped_nozzle_str_line_count(const wxString& text)
+{
+    if (text.empty())
+        return 0;
+    return std::max(1, static_cast<int>(wxSplit(s_wrap_mapped_nozzle_str(text), '\n', '\0').size()));
+}
+
+void MaterialItem::messure_size()
+{
+    // Without a mapped nozzle the card is a fixed swatch + AMS wheel; a mapped nozzle adds a row
+    // below (glyph + slot label), growing the height by one text line per wrapped line.
+    if (m_mapped_nozzle_str.empty()) {
+        SetSize(MATERIAL_ITEM_SIZE);
+        SetMinSize(MATERIAL_ITEM_SIZE);
+        SetMaxSize(MATERIAL_ITEM_SIZE);
+    } else {
+        const int line_count = s_get_mapped_nozzle_str_line_count(m_mapped_nozzle_str);
+        const wxSize item_size(MATERIAL_ITEM_SIZE.x, FromDIP(84 + std::max(0, line_count - 1) * 10));
+        SetSize(item_size);
+        SetMinSize(item_size);
+        SetMaxSize(item_size);
+    }
+}
+
 void MaterialItem::doRender(wxDC& dc)
 {
     wxSize size = GetSize();
     auto mcolor = m_material_coloul;
     auto acolor = m_ams_coloul;
     change_the_opacity(acolor);
+    // Header + wheel keep their fixed-card geometry; when a nozzle row is present the extra height
+    // below is used for it, so lay out the top of the card against the base height, not the grown one.
+    const int base_y = m_mapped_nozzle_str.IsEmpty() ? size.y : MATERIAL_ITEM_SIZE.y;
 
     if (mcolor.Alpha() == 0) {
         dc.DrawBitmap(m_transparent_mitem.bmp(), FromDIP(1), FromDIP(1));
@@ -288,7 +369,7 @@ void MaterialItem::doRender(wxDC& dc)
 
     //bottom rectangle in wheel bitmap, size is MATERIAL_REC_WHEEL_SIZE(22)
     auto left = (size.x / 2 - MATERIAL_REC_WHEEL_SIZE.x) / 2 + FromDIP(3);
-    auto up = (size.y * 0.4 + (size.y * 0.6 - MATERIAL_REC_WHEEL_SIZE.y) / 2);
+    auto up = (base_y * 0.4 + (base_y * 0.6 - MATERIAL_REC_WHEEL_SIZE.y) / 2);
     auto right = left + MATERIAL_REC_WHEEL_SIZE.x - FromDIP(3);
     dc.SetPen(*wxTRANSPARENT_PEN);
     //bottom
@@ -350,12 +431,12 @@ void MaterialItem::doRender(wxDC& dc)
     }
 
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
-    dc.DrawRoundedRectangle(FromDIP(0), FromDIP(0), MATERIAL_ITEM_SIZE.x - FromDIP(0), MATERIAL_ITEM_SIZE.y - FromDIP(0), 5);
+    dc.DrawRoundedRectangle(FromDIP(0), FromDIP(0), MATERIAL_ITEM_SIZE.x - FromDIP(0), size.y - FromDIP(0), 5);
 
     if (m_selected) {
         dc.SetPen(wxPen(AMS_CONTROL_BRAND_COLOUR, FromDIP(2)));
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
-        dc.DrawRoundedRectangle(FromDIP(1), FromDIP(1), MATERIAL_ITEM_SIZE.x - FromDIP(1), MATERIAL_ITEM_SIZE.y - FromDIP(1), 5);
+        dc.DrawRoundedRectangle(FromDIP(1), FromDIP(1), MATERIAL_ITEM_SIZE.x - FromDIP(1), size.y - FromDIP(1), 5);
     }
 //#endif
     if (m_text_pos_y > 0 && m_match) {
@@ -368,7 +449,7 @@ void MaterialItem::doRender(wxDC& dc)
     }
 
     auto wheel_left = (GetSize().x / 2 - m_ams_wheel_mitem.GetBmpSize().x) / 2 + FromDIP(2);
-    auto wheel_top = ((float)GetSize().y * 0.6 - m_ams_wheel_mitem.GetBmpSize().y) / 2 + (float)GetSize().y * 0.4;
+    auto wheel_top = ((float)base_y * 0.6 - m_ams_wheel_mitem.GetBmpSize().y) / 2 + (float)base_y * 0.4;
 
     if (!m_match) {
         wheel_left += m_ams_wheel_mitem.GetBmpSize().x;
@@ -379,6 +460,29 @@ void MaterialItem::doRender(wxDC& dc)
         } else {
             dc.DrawBitmap(m_ams_wheel_mitem.bmp(), wheel_left - FromDIP(LEFT_OFFSET), wheel_top);
         }
+    }
+
+    // Rack / filament-switcher printers: draw the physical nozzle the print-dispatch mapping assigned
+    // to this filament — a divider, the rack-nozzle glyph, and the slot label ("R1", "L R", ...) in
+    // the extra row below the wheel. Nothing is drawn when no nozzle is mapped (all other printers).
+    if (!m_mapped_nozzle_str.IsEmpty()) {
+        int row_top = wheel_top + m_ams_wheel_mitem.GetBmpSize().y + FromDIP(4);
+        dc.SetPen(wxPen(wxColour("#CECECE"), 1, wxPENSTYLE_SHORT_DASH)); // Orca: WXCOLOUR_GREY400 macro not in scope here
+        dc.DrawLine(FromDIP(1), row_top, FromDIP(size.x), row_top);
+
+        int bitmap_y = row_top + (size.y - row_top - m_rack_nozzle_bitmap.GetBmpHeight()) / 2;
+        int bitmap_l = wheel_left + (m_ams_wheel_mitem.GetBmpWidth() - m_rack_nozzle_bitmap.GetBmpWidth()) / 2 + FromDIP(2);
+        dc.DrawBitmap(m_rack_nozzle_bitmap.bmp(), bitmap_l, bitmap_y);
+
+        // Orca: BBS width-fits this label via a get_suitable_font_size overload Orca lacks; the wrapped
+        // slot string is short, so a fixed label font renders it cleanly without that helper.
+        const wxString wrapped = s_wrap_mapped_nozzle_str(m_mapped_nozzle_str);
+        dc.SetFont(::Label::Head_12);
+        dc.SetTextForeground(StateColor::darkModeColorFor(wxColour(0x26, 0x2E, 0x30)));
+        const wxSize text_size = dc.GetMultiLineTextExtent(wrapped);
+        int text_x = (size.x + bitmap_l + m_rack_nozzle_bitmap.GetBmpWidth() - text_size.x) / 2;
+        int text_y = row_top + (size.y - row_top - text_size.y) / 2;
+        dc.DrawText(wrapped, text_x, text_y);
     }
 }
 
@@ -569,7 +673,7 @@ void MaterialSyncItem::doRender(wxDC &dc)
     dc.DrawRoundedRectangle(1, 1, MATERIAL_ITEM_SIZE.x - 1, MATERIAL_ITEM_SIZE.y - 1, 5);
 
     if (m_selected) {
-        dc.SetPen(wxColour(0x00, 0xAE, 0x42));
+        dc.SetPen(wxColour("#009688")); // ORCA selected item border color
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
         dc.DrawRoundedRectangle(1, 1, MATERIAL_ITEM_SIZE.x - 1, MATERIAL_ITEM_SIZE.y - 1, 5);
     }
@@ -580,7 +684,7 @@ void MaterialSyncItem::doRender(wxDC &dc)
     dc.DrawRoundedRectangle(0, 0, MATERIAL_ITEM_SIZE.x, MATERIAL_ITEM_SIZE.y, 5);
 
     if (m_selected) {
-        dc.SetPen(wxPen(wxColour(0x00, 0xAE, 0x42), FromDIP(2)));
+        dc.SetPen(wxPen(wxColour("#009688"), FromDIP(2))); // ORCA selected item border color
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
         dc.DrawRoundedRectangle(FromDIP(1), FromDIP(1), MATERIAL_ITEM_SIZE.x - FromDIP(1), MATERIAL_ITEM_SIZE.y - FromDIP(1), 5);
     }
@@ -725,6 +829,16 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
      m_right_first_text_panel->SetMaxSize(wxSize(-1, FromDIP(same_height)));
 
      m_sizer_ams_right->Add(m_right_first_text_panel, 0, wxEXPAND | wxBOTTOM | wxTOP, FromDIP(8));
+
+     // Flush-waste warning (rack printers only). Orca: uses a plain Label here.
+     // Hidden by default => zero layout effect for non-rack printers.
+     m_flush_warning_panel = new Label(m_right_marea_panel);
+     m_flush_warning_panel->SetFont(::Label::Body_12);
+     m_flush_warning_panel->SetForegroundColour(StateColor::darkModeColorFor("#F09A17"));
+     m_flush_warning_panel->SetBackgroundColour(StateColor::darkModeColorFor("#FFFFE0"));
+     m_flush_warning_panel->Show(false);
+     m_sizer_ams_right->Add(m_flush_warning_panel, 0, wxBOTTOM | wxALIGN_LEFT, FromDIP(8));
+
      m_right_split_ams_sizer = create_split_sizer(m_right_marea_panel, _L("Right AMS"));
      m_sizer_ams_right->Add(m_right_split_ams_sizer, 0, wxEXPAND, 0);
      m_sizer_ams_right->Add(m_sizer_ams_basket_right, 0, wxEXPAND|wxTOP, FromDIP(8));
@@ -739,6 +853,14 @@ AmsMapingPopup::AmsMapingPopup(wxWindow *parent, bool use_in_sync_dialog) :
      m_sizer_ams->Add(m_left_marea_panel, 0, wxRIGHT, FromDIP(10));
      m_sizer_ams->Add(0, 0, 0, wxEXPAND, FromDIP(15));
      m_sizer_ams->Add(m_right_marea_panel, 1, wxEXPAND, FromDIP(0));
+
+     // Rack nozzle manual-pick, alongside the AMS area (rack printers only). Hidden by default
+     // => contributes nothing to layout for non-rack printers.
+     m_rack_nozzle_select = new wgtDeviceNozzleRackSelect(this);
+     m_rack_nozzle_select->Bind(EVT_NOZZLE_SELECT_CHANGED, &AmsMapingPopup::OnNozzleMappingSelected, this);
+     m_rack_nozzle_select->Bind(EVT_NOZZLE_SELECT_CLICKED, [this](wxCommandEvent& e) { this->Dismiss(); });
+     m_rack_nozzle_select->Show(false);
+     m_sizer_ams->Add(m_rack_nozzle_select, 0, wxEXPAND | wxTOP | wxLEFT, FromDIP(15));
 
      m_sizer_main->Add(title_panel, 0, wxEXPAND | wxALL, FromDIP(2));
      m_sizer_main->Add(m_sizer_ams, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(14));
@@ -782,6 +904,7 @@ void AmsMapingPopup::msw_rescale()
     m_right_extra_slot->msw_rescale();
     for (auto item : m_mapping_item_list) { item->msw_rescale(); }
     for (auto container : m_amsmapping_container_list) { container->msw_rescale(); }
+    if (m_rack_nozzle_select) { m_rack_nozzle_select->Rescale(); }
 
     Fit();
     Refresh();
@@ -813,7 +936,7 @@ void AmsMapingPopup::msw_rescale()
     m_split_left_line->SetMaxSize(wxSize(-1, 1));
     sizer_split_ams->Add(0, 0, 0, wxEXPAND, 0);
     sizer_split_ams->Add(ams_title_text, 0, wxALIGN_CENTER, 0);
-    sizer_split_ams->Add(m_split_left_line, 1, wxEXPAND, 0);
+    sizer_split_ams->Add(m_split_left_line, 1, wxALIGN_CENTER, 0); // ORCA align line vertically
     return sizer_split_ams;
  }
 
@@ -852,6 +975,8 @@ void AmsMapingPopup::on_left_down(wxMouseEvent &evt)
         auto left = item->GetSize();
 
         if (pos.x > p_rect.x && pos.y > p_rect.y && pos.x < (p_rect.x + item->GetSize().x) && pos.y < (p_rect.y + item->GetSize().y)) {
+            // Orca: the external spool is un-pickable while a Filament Track Switch is installed (Apple hit-tests here).
+            if (m_fila_switch_installed && (item->m_ams_id == VIRTUAL_TRAY_MAIN_ID || item->m_ams_id == VIRTUAL_TRAY_DEPUTY_ID)) { return; }
             if (item->m_tray_data.type == TrayType::NORMAL) {
                 if (!m_ext_mapping_filatype_check && (item->m_ams_id == VIRTUAL_TRAY_MAIN_ID || item->m_ams_id == VIRTUAL_TRAY_DEPUTY_ID)) {
                     // Do nothing
@@ -1038,7 +1163,7 @@ void AmsMapingPopup::update_items_check_state(const std::vector<FilamentInfo>& a
     }
 }
 
-void AmsMapingPopup::update(MachineObject* obj, const std::vector<FilamentInfo>& ams_mapping_result)
+void AmsMapingPopup::update(MachineObject* obj, const std::vector<FilamentInfo>& ams_mapping_result, bool use_dynamic_switch, std::optional<PrintFromType> print_type)
 {
     //BOOST_LOG_TRIVIAL(info) << "ams_mapping nozzle count  " << obj->get_extder_system()->nozzle.size();
     BOOST_LOG_TRIVIAL(info) << "ams_mapping total count " << obj->GetFilaSystem()->GetAmsCount();
@@ -1046,6 +1171,11 @@ void AmsMapingPopup::update(MachineObject* obj, const std::vector<FilamentInfo>&
 
     if (!obj) {return;}
     m_ams_remain_detect_flag = obj->GetFilaSystem()->IsDetectRemainEnabled();
+
+    // Orca: with a Filament Track Switch installed, filament routes through the switch and the external
+    // spool cannot be used, so its mapping slots are rendered greyed-out and un-pickable. Inert (false)
+    // on any printer without a switch — GetFilaSwitch()->IsInstalled() defaults to false.
+    m_fila_switch_installed = obj->GetFilaSwitch()->IsInstalled();
 
     for (auto& ams_container : m_amsmapping_container_list) {
         ams_container->Destroy();
@@ -1252,9 +1382,66 @@ void AmsMapingPopup::update(MachineObject* obj, const std::vector<FilamentInfo>&
     } else {
         m_right_split_ams_sizer->Show(false);
     }
+
+    /*rack (manual nozzle pick; rack printers only)*/
+    update_rack_select(obj, use_dynamic_switch, print_type);
+    update_flush_waste(obj);
+
     Layout();
     Fit();
     Refresh();
+}
+
+void AmsMapingPopup::update_rack_select(MachineObject* obj, bool use_dynamic_switch, std::optional<PrintFromType> print_from_type)
+{
+    // Orca: MachineObject has no GetNozzleRack() convenience; route through the nozzle system instead.
+    m_rack = obj ? obj->GetNozzleSystem()->GetNozzleRack() : nullptr;
+
+    bool show_rack_select_area = false;
+    if (!m_mapping_from_multi_machines && !m_use_in_sync_dialog &&
+        obj && obj->GetNozzleSystem()->GetNozzleRack()->IsSupported() &&
+        print_from_type.has_value() && print_from_type.value() == PrintFromType::FROM_NORMAL) {
+        const auto& nozzle_pos_vec = obj->get_nozzle_mapping_result()->GetMappedNozzlePosVecByFilaId(m_current_filament_id);
+        m_rack_nozzle_select->UpdatSelectedNozzles(obj->GetNozzleSystem()->GetNozzleRack(), nozzle_pos_vec, use_dynamic_switch, print_from_type);
+        show_rack_select_area = true;
+    }
+
+    if (show_rack_select_area != m_rack_nozzle_select->IsShown()) {
+        m_right_tip_text = show_rack_select_area ? _L("Select Filament && Hotends") : _L("Select Filament");
+        m_right_tips->SetLabel(m_right_tip_text);
+        m_rack_nozzle_select->Show(show_rack_select_area);
+        Layout();
+        Fit();
+    }
+}
+
+void AmsMapingPopup::update_flush_waste(MachineObject* obj)
+{
+    if (!obj) {
+        m_flush_warning_panel->Hide();
+        return;
+    };
+
+    float flush_waste_base = obj->get_nozzle_mapping_result()->GetFlushWeightBase();
+    float flush_waste_current = obj->get_nozzle_mapping_result()->GetFlushWeightCurrent();
+    if ((flush_waste_base != -1) && (flush_waste_current != -1) && flush_waste_current > flush_waste_base) {
+        m_flush_warning_panel->SetLabel(wxString::Format(_L("Printing with the current nozzle may produce an extra %0.2f g of waste."), flush_waste_current - flush_waste_base));
+        m_flush_warning_panel->Show();
+    } else {
+        m_flush_warning_panel->Hide();
+    }
+}
+
+void AmsMapingPopup::OnNozzleMappingSelected(wxCommandEvent& evt)
+{
+    if (auto ptr = m_rack.lock()) {
+        MachineObject* obj = ptr->GetNozzleSystem()->GetOwner();
+        obj->get_nozzle_mapping_result()->SetManualNozzleMappingByFila(m_current_filament_id, m_rack_nozzle_select->GetSelectedNozzlePosID());
+        update_flush_waste(obj);
+    }
+
+    evt.Skip();
+    Dismiss();
 }
 
 std::vector<TrayData> AmsMapingPopup::parse_ams_mapping(const std::map<std::string, DevAms*, NumericStrCompare>& amsList)
@@ -1367,6 +1554,20 @@ void AmsMapingPopup::add_ext_ams_mapping(TrayData tray_data, MappingItem* item)
 #ifdef __APPLE__
     m_mapping_item_list.push_back(item);
 #endif
+
+    // Orca: a Filament Track Switch cannot route the external spool, so grey the ext slot out and make it
+    // un-pickable, with a tooltip explaining why (the click below is disabled; on_left_down also skips it).
+    if (m_fila_switch_installed) {
+        const wxString disp_name = (tray_data.type == THIRD) ? wxString("?")
+                                 : (tray_data.type == EMPTY) ? wxString("-")
+                                                             : wxString(tray_data.name);
+        item->set_data(m_tag_material, wxColour(0xEE, 0xEE, 0xEE), disp_name, false, tray_data, true);
+        item->SetToolTip(_L("External spools is not supported since Filament Track Switch has been installed. If you want to use external spool, please uninstall it."));
+        item->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent&) { /* un-pickable while the switch is installed */ });
+        item->set_tray_index(_L("Ext"));
+        return;
+    }
+
     // set button
     if (tray_data.type == NORMAL) {
         if (is_match_material(tray_data.filament_type)) {
@@ -1420,7 +1621,7 @@ bool AmsMapingPopup::ProcessLeftDown(wxMouseEvent &event)
 void AmsMapingPopup::paintEvent(wxPaintEvent &evt)
 {
     wxPaintDC dc(this);
-    dc.SetPen(wxColour(0xAC, 0xAC, 0xAC));
+    dc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour("#009688")),FromDIP(2))); // ORCA use colorful border for separation
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
     dc.DrawRoundedRectangle(0, 0, GetSize().x, GetSize().y, 0);
 }
@@ -2281,7 +2482,7 @@ AmsRMGroup* AmsReplaceMaterialDialog::create_backup_group(wxString gname, std::m
 void AmsReplaceMaterialDialog::paintEvent(wxPaintEvent& evt)
 {
     wxPaintDC dc(this);
-    dc.SetPen(wxColour(0xAC, 0xAC, 0xAC));
+    dc.SetPen(StateColor::darkModeColorFor(wxColour("#DBDBDB"))); // ORCA fix popup border color for dark mode
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
     dc.DrawRoundedRectangle(0, 0, GetSize().x, GetSize().y, 0);
 }
@@ -2305,9 +2506,22 @@ _GetBackupStatus(unsigned int fila_back_group)
 
     for (int j = 16; j < 32; j++)/* single ams is from 128*/
     {
+        // N9 / AMS-Lite-mixed reports its four backup slots in bits 24-27, which decode directly to
+        // tray ids 24-27 (handled in the loop below). Keep those bits out of the single-ams (128+)
+        // range; all other bits keep their existing mapping unchanged.
+        if (j >= 24 && j <= 27)
+            continue;
         if (fila_back_group & (1 << j))
         {
             trayid_group[128 + j - 16] = true;
+        }
+    }
+
+    for (int i = 24; i <= 27; i++)/* ams lite for N9 */
+    {
+        if (fila_back_group & (1 << i))
+        {
+            trayid_group[i] = true;
         }
     }
 
