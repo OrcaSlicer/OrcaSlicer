@@ -1127,7 +1127,8 @@ std::vector<size_t> chain_points_with_postprocessing(const Points &points, const
 		improved |= tsp_remove_crossings(path, points);
 		if (!improved) break;
 	}
-	tsp_rotate_minimize_closing(path, points);
+    if (start_near == nullptr)
+        tsp_rotate_minimize_closing(path, points);
 	return path;
 }
 

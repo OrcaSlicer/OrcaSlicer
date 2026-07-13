@@ -6,7 +6,9 @@
 #include "../ShortestPath.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
+#include <numeric>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -22,6 +24,28 @@ bool tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_
     size_t pn = path.size();
     if (pn <= 2) return false;
 
+    // Pre-compute edge lengths once per pass to avoid redundant norm() calls.
+    auto recompute_edges = [&]() {
+        std::vector<double> el(pn);
+        for (size_t i = 0; i < pn; ++i) {
+            size_t ni = (i + 1) % pn;
+            el[i] = (centers[path[i]].cast<double>() - centers[path[ni]].cast<double>()).norm();
+        }
+        return el;
+    };
+    std::vector<double> el = recompute_edges();
+
+    // Pre-compute squared edge lengths for early rejection in the inner loop.
+    auto recompute_edges_sq = [&]() {
+        std::vector<double> elsq(pn);
+        for (size_t i = 0; i < pn; ++i) {
+            size_t ni = (i + 1) % pn;
+            elsq[i] = (centers[path[i]].cast<double>() - centers[path[ni]].cast<double>()).squaredNorm();
+        }
+        return elsq;
+    };
+    std::vector<double> elsq = recompute_edges_sq();
+
     bool improved = false;
     for (int pass = 0; max_passes <= 0 || pass < max_passes; ++pass) {
         size_t best_i = pn, best_j = pn;
@@ -30,7 +54,8 @@ bool tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_
         for (size_t i = 0; i < pn; ++i) {
             const Vec2d& pi   = centers[path[i]].cast<double>();
             const Vec2d& p_in = centers[path[(i + 1) % pn]].cast<double>();
-            double d_i = (p_in - pi).norm();
+            double d_i = el[i];
+            double d_i_sq = elsq[i];
 
             for (size_t j = i + 2; j < pn; ++j) {
                 size_t j_next = (j + 1) % pn;
@@ -40,10 +65,15 @@ bool tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_
 
                 const Vec2d& pj   = centers[path[j]].cast<double>();
                 const Vec2d& p_jn = centers[path[j_next]].cast<double>();
-                double d_j = (p_jn - pj).norm();
+                double d_j = el[j];
 
-                double new_a = (pj - pi).norm();
-                double new_b = (p_jn - p_in).norm();
+                // Early rejection using squared distances (avoids 2 sqrt calls).
+                double new_a_sq = (pj - pi).squaredNorm();
+                double new_b_sq = (p_jn - p_in).squaredNorm();
+                if (new_a_sq >= d_i_sq && new_b_sq >= elsq[j]) continue;
+
+                double new_a = std::sqrt(new_a_sq);
+                double new_b = std::sqrt(new_b_sq);
                 double gain = d_i + d_j - new_a - new_b;
 
                 if (gain > best_gain) {
@@ -55,8 +85,12 @@ bool tsp_2opt_improve(std::vector<size_t>& path, const Points& centers, int max_
 
         if (best_i == pn) break;
         improved = true;
-        size_t a = best_i + 1, b = best_j;
-        while (a < b) std::swap(path[a++], path[b--]);
+        // Reverse the best swap segment
+        std::reverse(path.begin() + best_i + 1, path.begin() + best_j + 1);
+
+        // Recompute edge lengths after reversal
+        el = recompute_edges();
+        elsq = recompute_edges_sq();
     }
     return improved;
 }
@@ -75,11 +109,6 @@ bool tsp_remove_crossings(std::vector<size_t>& path, const Points& centers)
     size_t pn = path.size();
     if (pn <= 3) return false;
 
-    // Open path: edges 0..pn-2. The closing edge (pn-1->0) is a travel move
-    // and is not checked for crossings (consistent with how slicing treats it).
-    // Note: tsp_2opt_improve treats the path as a cycle and CAN improve the
-    // closing edge. This is intentional — 2-opt can shorten the travel move,
-    // but we don't care if the travel move crosses other edges.
     size_t n_edges = pn - 1;
 
     // Scan for first crossing; returns {i, j} or {npos, npos} if none.
@@ -108,8 +137,7 @@ bool tsp_remove_crossings(std::vector<size_t>& path, const Points& centers)
         auto [ci, cj] = find_crossing();
         if (ci == std::numeric_limits<size_t>::max()) break;
         improved = true;
-        size_t a = ci + 1, b = cj;
-        while (a < b) std::swap(path[a++], path[b--]);
+        std::reverse(path.begin() + ci + 1, path.begin() + cj + 1);
     }
     return improved;
 }
@@ -131,132 +159,160 @@ void tsp_rotate_minimize_closing(std::vector<size_t>& path, const Points& center
  * Snake ordering
  * ==================================================================== */
 
-// Group points into rows by Y coordinate and traverse them in alternating direction.
-static std::vector<size_t> row_serpentine_path(const Points& centers, double fraction_of_y_range = 0.02, double min_threshold_um = 1e4)
+struct SnakeRow { double avg_y; std::vector<size_t> indices; };
+
+// --- Row threshold computation ---
+// Extract unique Y values and use the median gap between them to determine
+// the row threshold.
+static double compute_row_threshold(const std::vector<double>& sorted_ys,
+                                    double y_min, double y_max,
+                                    size_t n,
+                                    double fraction_of_y_range,
+                                    double min_threshold_um)
 {
-    if (centers.empty()) return {};
+    constexpr double MIN_GAP_FILTER = 1.0;  // ignore sub-micron gaps (coord_t = 1/100mm)
 
-    size_t n = centers.size();
-
-    // Row detection parameters.
-    constexpr double MIN_GAP_FILTER = 1.0;        // ignore sub-micron gaps (coord_t = 1/100mm)
-    constexpr double GAP_THRESHOLD_RATIO = 0.5;   // threshold = half the min gap
-    constexpr double MAX_ROW_FRACTION = 0.3;      // at most 30% of points may be separate rows
-    constexpr double ROW_GAP_MULTIPLIER = 2.0;    // min gap must be < 2× average gap
-
-    // Compute row threshold from the minimum gap between distinct Y values.
-    // This adapts to variable row spacing instead of using a fixed fraction
-    // of the total Y range (which breaks when rows have different spacing).
-    std::vector<double> ys;
-    ys.reserve(n);
-    double y_min = std::numeric_limits<double>::max();
-    double y_max = -std::numeric_limits<double>::max();
-    for (const auto& p : centers) {
-        double y = static_cast<double>(p.y());
-        ys.push_back(y);
-        if (y < y_min) y_min = y;
-        if (y > y_max) y_max = y;
-    }
-    std::sort(ys.begin(), ys.end());
-
-    double min_gap = std::numeric_limits<double>::max();
-    for (size_t i = 1; i < ys.size(); ++i) {
-        double gap = ys[i] - ys[i - 1];
-        if (gap > MIN_GAP_FILTER && gap < min_gap) min_gap = gap;
+    // Extract unique Y values
+    std::vector<double> unique_ys;
+    unique_ys.reserve(sorted_ys.size());
+    unique_ys.push_back(sorted_ys[0]);
+    for (size_t i = 1; i < sorted_ys.size(); ++i) {
+        if (sorted_ys[i] - sorted_ys[i - 1] > MIN_GAP_FILTER)
+            unique_ys.push_back(sorted_ys[i]);
     }
 
-    // Use min_gap-based threshold only if it produces a reasonable number of rows.
-    // Estimate row count as range / threshold. If too many rows (> n * MAX_ROW_FRACTION),
-    // fall back to fraction-based threshold to avoid splitting random noise into separate rows.
-    // Also require min_gap to be significantly smaller than the average gap to
-    // confirm a true row structure exists.
-    double row_threshold;
-    if (min_gap < std::numeric_limits<double>::max() && ys.size() > 1) {
-        double est_rows = (y_max - y_min) / (min_gap * GAP_THRESHOLD_RATIO);
-        double avg_gap = (y_max - y_min) / (ys.size() - 1);
-        bool has_row_structure = est_rows <= n * MAX_ROW_FRACTION &&
-                                 min_gap < avg_gap * ROW_GAP_MULTIPLIER;
-        if (has_row_structure)
-            row_threshold = min_gap * GAP_THRESHOLD_RATIO;
-        else
-            row_threshold = (y_max - y_min) * fraction_of_y_range;
+    double fallback_threshold = (y_max - y_min) * fraction_of_y_range;
+    if (unique_ys.size() <= 1) {
+        return std::max(fallback_threshold, min_threshold_um);
+    }
+
+    // Compute gaps between consecutive unique Y values
+    std::vector<double> gaps;
+    gaps.reserve(unique_ys.size() - 1);
+    for (size_t i = 1; i < unique_ys.size(); ++i)
+        gaps.push_back(unique_ys[i] - unique_ys[i - 1]);
+
+    if (gaps.empty()) {
+        return std::max(fallback_threshold, min_threshold_um);
+    }
+
+    // Sort gaps to find the median
+    std::sort(gaps.begin(), gaps.end());
+    double median_gap = gaps[gaps.size() / 2];
+    double min_gap = gaps.front();
+
+    // Threshold: half the gap between consecutive unique Y values.
+    double threshold = (median_gap < min_gap * 1.5) ? min_gap * 0.5 : median_gap * 0.5;
+
+    bool has_row_structure;
+    if (unique_ys.size() * 2 <= n) {
+        has_row_structure = true;
     } else {
-        row_threshold = (y_max - y_min) * fraction_of_y_range;
+        // Single-column or sparse: uniform gaps indicate a deliberate grid
+        double max_gap = *std::max_element(gaps.begin(), gaps.end());
+        has_row_structure = (max_gap < min_gap * 2.0);
     }
-    if (row_threshold < min_threshold_um) row_threshold = min_threshold_um;
 
-    // Group into rows using hash-map binning by Y coordinate.
-    std::unordered_map<int, std::vector<size_t>> row_map;
+    if (has_row_structure) {
+        // For grid-like data, use the gap-based threshold directly.
+        return threshold;
+    }
+
+    return std::max(fallback_threshold, min_threshold_um);
+}
+
+// --- Row grouping ---
+// Bin points into rows by quantising Y / threshold
+static std::vector<SnakeRow> group_into_rows(const Points& centers, double row_threshold)
+{
+    size_t n = centers.size();
+    std::unordered_map<int64_t, std::vector<size_t>> row_map;
     for (size_t i = 0; i < n; ++i) {
-        int y_key = static_cast<int>(centers[i].y() / row_threshold);
+        int64_t y_key = static_cast<int64_t>(std::floor(static_cast<double>(centers[i].y()) / row_threshold));
         row_map[y_key].push_back(i);
     }
 
-    // Convert to vector of rows with precomputed average Y.
-    struct Row { double avg_y; std::vector<size_t> indices; };
-    std::vector<Row> rows;
+    std::vector<SnakeRow> rows;
     rows.reserve(row_map.size());
     for (auto& [key, indices] : row_map) {
-        double sum = 0;
-        for (size_t idx : indices) sum += static_cast<double>(centers[idx].y());
-        rows.push_back({sum / static_cast<double>(indices.size()), std::move(indices)});
+        double avg_y = std::accumulate(indices.begin(), indices.end(), 0.0,
+            [&](double acc, size_t idx) { return acc + static_cast<double>(centers[idx].y()); })
+            / indices.size();
+        rows.push_back({avg_y, std::move(indices)});
     }
 
-    // Sort rows by average Y.
-    std::sort(rows.begin(), rows.end(), [](const auto& a, const auto& b) {
-        return a.avg_y < b.avg_y;
-    });
+    std::sort(rows.begin(), rows.end(),
+              [](const SnakeRow& a, const SnakeRow& b) { return a.avg_y < b.avg_y; });
 
-    // Sort each row by X coordinate, then traverse greedily choosing the
-    // direction that minimizes the transition to the next row.
+    return rows;
+}
+
+// Sort each row by X and greedily pick the direction (left->right or right->left)
+// that minimises the transition distance from the previous row's endpoint.
+static std::vector<size_t> build_serpentine_path(const Points& centers,
+                                                  std::vector<SnakeRow>& rows)
+{
     std::vector<size_t> path;
-    path.reserve(n);
+    path.reserve(centers.size());
 
     for (size_t ri = 0; ri < rows.size(); ++ri) {
         auto& row = rows[ri].indices;
         std::sort(row.begin(), row.end(),
-            [&](size_t a, size_t b) { return centers[a].x() < centers[b].x(); });
+                  [&](size_t a, size_t b) { return centers[a].x() < centers[b].x(); });
 
         if (ri == 0) {
-            // First row: always left→right.
             path.insert(path.end(), row.begin(), row.end());
         } else {
-            // Previous row ended at either its leftmost or rightmost point.
-            // Choose the direction for this row that minimizes the transition.
             const Point& prev_end = centers[path.back()];
-            const Point& row_left = centers[row.front()];
-            const Point& row_right = centers[row.back()];
-            double dist_to_left = (prev_end.cast<double>() - row_left.cast<double>()).squaredNorm();
-            double dist_to_right = (prev_end.cast<double>() - row_right.cast<double>()).squaredNorm();
+            double dist_to_left  = (prev_end.cast<double>() - centers[row.front()].cast<double>()).squaredNorm();
+            double dist_to_right = (prev_end.cast<double>() - centers[row.back()].cast<double>()).squaredNorm();
 
-            if (dist_to_left <= dist_to_right) {
-                // Transition to left end → traverse left→right.
+            if (dist_to_left <= dist_to_right)
                 path.insert(path.end(), row.begin(), row.end());
-            } else {
-                // Transition to right end → traverse right→left.
+            else
                 path.insert(path.end(), row.rbegin(), row.rend());
-            }
         }
     }
 
     return path;
 }
 
+// Row-based serpentine traversal: detect rows, bin points, snake through them.
+static std::vector<size_t> row_serpentine_path(const Points& centers,
+                                                double fraction_of_y_range = 0.02,
+                                                double min_threshold_um = 1e4)
+{
+    if (centers.empty()) return {};
+
+    size_t n = centers.size();
+
+    // Collect and sort Y coordinates.
+    std::vector<double> sorted_ys;
+    sorted_ys.reserve(n);
+    for (const auto& p : centers) sorted_ys.push_back(static_cast<double>(p.y()));
+    std::sort(sorted_ys.begin(), sorted_ys.end());
+
+    auto [ymin, ymax] = std::minmax_element(sorted_ys.begin(), sorted_ys.end());
+    double y_min = *ymin, y_max = *ymax;
+
+    double row_threshold = compute_row_threshold(sorted_ys, y_min, y_max, n,
+                                                  fraction_of_y_range, min_threshold_um);
+
+    auto rows = group_into_rows(centers, row_threshold);
+    return build_serpentine_path(centers, rows);
+}
+
 std::vector<size_t> snake_core(const Points& centers)
 {
     if (centers.empty()) return {};
 
-    // Row-based serpentine traversal with greedy inter-row direction choice.
     std::vector<size_t> path = row_serpentine_path(centers);
 
-    // Post-processing: alternate 2-opt and crossing removal to eliminate
-    // long inter-row jumps and self-crossings. Break early if neither improves.
     for (int iter = 0; iter < 3; ++iter) {
         bool improved = tsp_2opt_improve(path, centers);
         improved |= tsp_remove_crossings(path, centers);
         if (!improved) break;
     }
-    tsp_rotate_minimize_closing(path, centers);
 
     return path;
 }
@@ -303,13 +359,12 @@ std::vector<const PrintInstance*> chain_print_object_instances_best_of(const std
     }
 
     // Pick shortest total path; tiebreak on smallest max edge.
-    size_t best = 0;
-    for (size_t i = 1; i < candidates.size(); ++i) {
-        if (metrics[i].total_len < metrics[best].total_len ||
-            (metrics[i].total_len == metrics[best].total_len && metrics[i].max_edge < metrics[best].max_edge)) {
-            best = i;
-        }
-    }
+    auto best_it = std::min_element(metrics.begin(), metrics.end(),
+        [](const Candidate& a, const Candidate& b) {
+            return a.total_len < b.total_len ||
+                   (a.total_len == b.total_len && a.max_edge < b.max_edge);
+        });
+    size_t best = static_cast<size_t>(std::distance(metrics.begin(), best_it));
 
     return candidates[best];
 }

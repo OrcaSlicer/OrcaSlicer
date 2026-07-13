@@ -95,6 +95,19 @@ std::vector<const PrintInstance*> chain_instances_with_core(
 
     auto path = core_fn(instance_centers);
 
+    // Rotate the cycle so the first element is the best starting point.
+    // When start_near is provided, pick the point closest to it (preserving
+    // the pre-rotation). Otherwise minimise the closing edge.
+    if (start_near != nullptr && !path.empty()) {
+        // Pre-rotation already put the closest point at index 0.
+        // Find where index 0 appears in the path and rotate it to the front.
+        auto it = std::find(path.begin(), path.end(), size_t(0));
+        if (it != path.begin())
+            std::rotate(path.begin(), it, path.end());
+    } else {
+        tsp_rotate_minimize_closing(path, instance_centers);
+    }
+
     std::vector<const PrintInstance*> out;
     out.reserve(path.size());
     for (size_t step : path) {

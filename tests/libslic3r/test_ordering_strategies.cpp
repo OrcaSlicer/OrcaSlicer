@@ -180,12 +180,12 @@ TEST_CASE("snake_core handles empty input", "[Snake]") {
     REQUIRE(path.empty());
 }
 
-TEST_CASE("all strategies handle single point", "[Strategies]") {
+TEST_CASE("snake_core handles single point", "[Snake]") {
     Points pts{{100, 200}};
     CHECK(snake_core(pts) == std::vector<size_t>{0});
 }
 
-TEST_CASE("all strategies handle two points", "[Strategies]") {
+TEST_CASE("snake_core handles two points", "[Snake]") {
     Points pts{{100, 200}, {300, 400}};
     auto p2 = snake_core(pts);
 
@@ -234,7 +234,7 @@ TEST_CASE("snake handles all points on same Y", "[Snake]") {
 
 // --- Core Strategy Tests: Collinear Points ---
 
-TEST_CASE("all strategies handle collinear points", "[Strategies]") {
+TEST_CASE("snake_core handles collinear points", "[Snake]") {
     Points centers = make_linear_5();
 
     auto p2 = snake_core(centers);
@@ -244,7 +244,7 @@ TEST_CASE("all strategies handle collinear points", "[Strategies]") {
 
 // --- Core Strategy Tests: Ring Layout ---
 
-TEST_CASE("all strategies produce valid paths on ring", "[Strategies]") {
+TEST_CASE("snake_core produces valid paths on ring", "[Snake]") {
     Points centers = make_ring_8();
 
     auto p2 = snake_core(centers);
@@ -254,7 +254,7 @@ TEST_CASE("all strategies produce valid paths on ring", "[Strategies]") {
 
 // --- Core Strategy Tests: Random Layout ---
 
-TEST_CASE("all strategies produce valid paths on random input", "[Strategies]") {
+TEST_CASE("snake_core produces valid paths on random input", "[Snake]") {
     Points centers = make_random_16();
 
     auto p2 = snake_core(centers);
@@ -274,7 +274,7 @@ TEST_CASE("snake has no crossings on random input", "[Snake]") {
 
 // --- Edge Cases ---
 
-TEST_CASE("strategies handle duplicate points", "[Strategies]") {
+TEST_CASE("snake_core handles duplicate points", "[Snake]") {
     Points pts;
     pts.emplace_back(100, 200);
     pts.emplace_back(100, 200); // duplicate
@@ -285,7 +285,7 @@ TEST_CASE("strategies handle duplicate points", "[Strategies]") {
     REQUIRE(p2.size() == pts.size());
 }
 
-TEST_CASE("strategies handle three points", "[Strategies]") {
+TEST_CASE("snake_core handles three points", "[Snake]") {
     Points pts;
     pts.emplace_back(0, 0);
     pts.emplace_back(100000, 0);
