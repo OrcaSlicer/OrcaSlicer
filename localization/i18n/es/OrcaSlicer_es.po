@@ -2028,7 +2028,7 @@ msgid "Loading user preset"
 msgstr "Cargando perfil de usuario"
 
 msgid "There is an update available. Open the preset bundle dialog to update it."
-msgstr "Hay una actualización disponible. Abra el diálogo del paquete de perfiles para actualizarlo."
+msgstr "Hay una actualización disponible. Abra el cuadro de diálogo del paquete de perfiles para actualizarlo."
 
 #, c-format, boost-format
 msgid "%s has been removed."
