@@ -5426,6 +5426,9 @@ if (is_marlin_flavor)
         optgroup->append_single_option_line("extra_loading_move", "printer_multimaterial_semm_parameters#extra-loading-distance");
         optgroup->append_single_option_line("high_current_on_filament_swap", "printer_multimaterial_semm_parameters#high-extruder-current-on-filament-swap");
 
+        optgroup = page->new_optgroup(L("Toolchanger"), L"param_advanced");
+        optgroup->append_single_option_line("disable_heater_after_last_use");
+
         optgroup = page->new_optgroup(L("Advanced"), L"param_advanced");
         optgroup->append_single_option_line("machine_load_filament_time", "printer_multimaterial_advanced#filament-load-time");
         optgroup->append_single_option_line("machine_unload_filament_time", "printer_multimaterial_advanced#filament-unload-time");
@@ -5870,6 +5873,7 @@ void TabPrinter::toggle_options()
         toggle_option("extruders_count", !bSEMM);
         toggle_option("manual_filament_change", bSEMM);
         toggle_option("purge_in_prime_tower", bSEMM && supports_wipe_tower_2);
+        toggle_option("disable_heater_after_last_use", !bSEMM);
 
         // Orca: "Tool change on wipe tower" only makes sense for multi-extruder (multi-toolhead) printers
         // using a Type 2 wipe tower. SEMM already always travels to the tower as part of the purge,
