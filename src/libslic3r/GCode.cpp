@@ -474,7 +474,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         // Process wipe path & calculate wipe path length
         double wipe_dist = scale_(config.wipe_distance.get_at(extruder_id));
-        Polyline wipe_path = { last_pos };
+        Polyline wipe_path = {last_pos};
         wipe_path.append(this->path.points.begin() + 1, this->path.points.end());
         double wipe_path_length = std::min(wipe_path.length(), wipe_dist);
 
