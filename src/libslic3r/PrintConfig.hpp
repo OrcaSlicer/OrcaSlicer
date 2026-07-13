@@ -110,6 +110,34 @@ enum InfillPattern : int {
     ipCount,
 };
 
+// Orca: Infill patterns whose alignment origin follows the fill bounding box, so the
+// "separated_infills" option can re-center them per connected body. Patterns evaluated in
+// absolute/global coordinates (Gyroid, TPMS, Honeycomb, CrossHatch, ...) or that are shape-relative
+// (Concentric) ignore that bounding box and are therefore excluded.
+inline bool is_separable_infill_pattern(InfillPattern pattern)
+{
+    switch (pattern) {
+    case ipRectilinear:
+    case ipAlignedRectilinear:
+    case ipZigZag:
+    case ipCrossZag:
+    case ipLockedZag:
+    case ipGrid:
+    case ipTriangles:
+    case ipStars:          // tri-hexagon
+    case ipCubic:
+    case ipQuarterCubic:
+    case ipLateralHoneycomb:
+    case ipLateralLattice:
+    case ipHilbertCurve:
+    case ipArchimedeanChords:
+    case ipOctagramSpiral:
+        return true;
+    default:
+        return false;
+    }
+}
+
 enum class IroningType {
     NoIroning,
     TopSurfaces,
@@ -692,7 +720,7 @@ public:
     bool is_using_different_extruders();
     bool support_different_extruders(int& extruder_count) const;
     int get_index_for_extruder(int extruder_or_filament_id, std::string id_name, ExtruderType extruder_type, NozzleVolumeType nozzle_volume_type, std::string variant_name, unsigned int stride = 1) const;
-    void update_values_to_printer_extruders(DynamicPrintConfig& printer_config, std::set<std::string>& key_set, std::string id_name, std::string variant_name, unsigned int stride = 1, unsigned int extruder_id = 0);
+    std::vector<int> update_values_to_printer_extruders(DynamicPrintConfig& printer_config, std::set<std::string>& key_set, std::string id_name, std::string variant_name, unsigned int stride = 1, unsigned int extruder_id = 0);
     void update_values_to_printer_extruders_for_multiple_filaments(DynamicPrintConfig& printer_config, std::set<std::string>& key_set, std::string id_name, std::string variant_name);
 
     void update_non_diff_values_to_base_config(DynamicPrintConfig& new_config, const t_config_option_keys& keys, const std::set<std::string>& different_keys, std::string extruder_id_name, std::string extruder_variant_name,
@@ -719,6 +747,7 @@ extern std::set<std::string> printer_options_with_variant_1;
 extern std::set<std::string> printer_options_with_variant_2;
 extern std::set<std::string> empty_options;
 
+extern void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPrintConfig& dest_config, std::vector<int> variant_index, std::set<std::string>& key_set1, int stride = 1);
 extern void compute_filament_override_value(const std::string& opt_key, const ConfigOption *opt_old_machine, const ConfigOption *opt_new_machine, const ConfigOption *opt_new_filament, const DynamicPrintConfig& new_full_config,
     t_config_option_keys& diff_keys, DynamicPrintConfig& filament_overrides, std::vector<int>& f_maps);
 

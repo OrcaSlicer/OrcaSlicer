@@ -734,10 +734,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("anisotropic_surfaces", has_centered_surface);
 
     // Orca: separate infills
-    bool is_internal_infill_centered = is_centered_pattern(config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value) ||
-                                       config->opt_string("sparse_infill_rotate_template") != "" ||
-                                       config->opt_string("solid_infill_rotate_template") != "";
-    toggle_line("separated_infills", is_internal_infill_centered);
+    bool is_internal_infill_separable = is_separable_infill_pattern(config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value) ||
+                                        config->opt_string("sparse_infill_rotate_template") != "" ||
+                                        config->opt_string("solid_infill_rotate_template") != "";
+    toggle_line("separated_infills", is_internal_infill_separable);
 
     // Orca: no need gaps
     for (auto el : {"gap_fill_target", "filter_out_gap_fill"})
@@ -946,7 +946,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("wipe_tower_extra_rib_length", have_rib_wall);
     toggle_line("wipe_tower_rib_width", have_rib_wall);
     toggle_line("wipe_tower_fillet_wall", have_rib_wall);
-    toggle_field("prime_tower_width", have_prime_tower && (supports_wipe_tower_2 || have_rib_wall));
+    toggle_field("prime_tower_width", have_prime_tower && !have_rib_wall);
 
     toggle_line("single_extruder_multi_material_priming", !bSEMM && have_prime_tower && supports_wipe_tower_2);
 

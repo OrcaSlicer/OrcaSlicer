@@ -569,7 +569,7 @@ void MaterialSyncItem::doRender(wxDC &dc)
     dc.DrawRoundedRectangle(1, 1, MATERIAL_ITEM_SIZE.x - 1, MATERIAL_ITEM_SIZE.y - 1, 5);
 
     if (m_selected) {
-        dc.SetPen(wxColour(0x00, 0xAE, 0x42));
+        dc.SetPen(wxColour("#009688")); // ORCA selected item border color
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
         dc.DrawRoundedRectangle(1, 1, MATERIAL_ITEM_SIZE.x - 1, MATERIAL_ITEM_SIZE.y - 1, 5);
     }
@@ -580,7 +580,7 @@ void MaterialSyncItem::doRender(wxDC &dc)
     dc.DrawRoundedRectangle(0, 0, MATERIAL_ITEM_SIZE.x, MATERIAL_ITEM_SIZE.y, 5);
 
     if (m_selected) {
-        dc.SetPen(wxPen(wxColour(0x00, 0xAE, 0x42), FromDIP(2)));
+        dc.SetPen(wxPen(wxColour("#009688"), FromDIP(2))); // ORCA selected item border color
         dc.SetBrush(*wxTRANSPARENT_BRUSH);
         dc.DrawRoundedRectangle(FromDIP(1), FromDIP(1), MATERIAL_ITEM_SIZE.x - FromDIP(1), MATERIAL_ITEM_SIZE.y - FromDIP(1), 5);
     }
@@ -813,7 +813,7 @@ void AmsMapingPopup::msw_rescale()
     m_split_left_line->SetMaxSize(wxSize(-1, 1));
     sizer_split_ams->Add(0, 0, 0, wxEXPAND, 0);
     sizer_split_ams->Add(ams_title_text, 0, wxALIGN_CENTER, 0);
-    sizer_split_ams->Add(m_split_left_line, 1, wxEXPAND, 0);
+    sizer_split_ams->Add(m_split_left_line, 1, wxALIGN_CENTER, 0); // ORCA align line vertically
     return sizer_split_ams;
  }
 
@@ -1420,7 +1420,7 @@ bool AmsMapingPopup::ProcessLeftDown(wxMouseEvent &event)
 void AmsMapingPopup::paintEvent(wxPaintEvent &evt)
 {
     wxPaintDC dc(this);
-    dc.SetPen(wxColour(0xAC, 0xAC, 0xAC));
+    dc.SetPen(wxPen(StateColor::darkModeColorFor(wxColour("#009688")),FromDIP(2))); // ORCA use colorful border for separation
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
     dc.DrawRoundedRectangle(0, 0, GetSize().x, GetSize().y, 0);
 }
@@ -2281,7 +2281,7 @@ AmsRMGroup* AmsReplaceMaterialDialog::create_backup_group(wxString gname, std::m
 void AmsReplaceMaterialDialog::paintEvent(wxPaintEvent& evt)
 {
     wxPaintDC dc(this);
-    dc.SetPen(wxColour(0xAC, 0xAC, 0xAC));
+    dc.SetPen(StateColor::darkModeColorFor(wxColour("#DBDBDB"))); // ORCA fix popup border color for dark mode
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
     dc.DrawRoundedRectangle(0, 0, GetSize().x, GetSize().y, 0);
 }

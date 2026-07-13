@@ -1703,11 +1703,13 @@ int CLI::run(int argc, char **argv)
                             const Vec3d &instance_offset = model_instance->get_offset();
                             BOOST_LOG_TRIVIAL(info) << boost::format("instance %1% transform {%2%,%3%,%4%} at %5%:%6%")% model_object->name % instance_offset.x() % instance_offset.y() %instance_offset.z() % __FUNCTION__ % __LINE__<< std::endl;
                         }*/
-                    current_printer_name = config.option<ConfigOptionString>("printer_settings_id")->value;
-                    current_process_name = config.option<ConfigOptionString>("print_settings_id")->value;
+                    // Read defensively — a 3mf missing preset ids (e.g. one produced
+                    // by a non-GUI writer) would otherwise crash here on the deref.
+                    if (const auto *o = config.option<ConfigOptionString>("printer_settings_id"))  current_printer_name  = o->value;
+                    if (const auto *o = config.option<ConfigOptionString>("print_settings_id"))    current_process_name  = o->value;
                     current_printer_model = config.option<ConfigOptionString>("printer_model", true)->value;
-                    current_filaments_name = config.option<ConfigOptionStrings>("filament_settings_id")->values;
-                    current_extruder_count = config.option<ConfigOptionFloats>("nozzle_diameter")->values.size();
+                    if (const auto *o = config.option<ConfigOptionStrings>("filament_settings_id")) current_filaments_name = o->values;
+                    if (const auto *o = config.option<ConfigOptionFloats>("nozzle_diameter"))       current_extruder_count = o->values.size();
                     current_printer_variant_count = config.option<ConfigOptionStrings>("printer_extruder_variant", true)->values.size();
                     current_print_variant_count = config.option<ConfigOptionStrings>("print_extruder_variant", true)->values.size();
                     current_is_multi_extruder = current_extruder_count > 1;

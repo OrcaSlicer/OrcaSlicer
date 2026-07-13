@@ -2975,7 +2975,7 @@ void GLGizmoCut3D::render_cut_plane_input_window(CutConnectors &connectors, floa
         ImGui::SameLine();
         m_imgui->disabled_begin(is_cut_plane_init && !has_connectors);
         if (m_imgui->button(_L("Reset"), _L("Reset cutting plane and remove connectors"))) {
-            Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset Cut", UndoRedo::SnapshotType::GizmoAction);
+            Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Reset Cut"), UndoRedo::SnapshotType::GizmoAction);
             reset_cut_plane();
             reset_connectors();
         }
@@ -3500,10 +3500,10 @@ static void check_objects_after_cut(const ModelObjectPtrs& objects)
     wxString names = from_u8(err_objects_names[0]);
     for (size_t i = 1; i < err_objects_names.size(); i++)
         names += ", " + from_u8(err_objects_names[i]);
-    WarningDialog(wxGetApp().plater(), format_wxstr("Objects(%1%) have duplicated connectors. "
+    WarningDialog(wxGetApp().plater(), format_wxstr(_L("Objects(%1%) have duplicated connectors. "
                                 "Some connectors may be missing in slicing result.\n"
                                 "Please report to PrusaSlicer team in which scenario this issue happened.\n"
-                                "Thank you.", names)).ShowModal();
+                                "Thank you."), names)).ShowModal();
 }
 
 void synchronize_model_after_cut(Model& model, const CutObjectBase& cut_id)
