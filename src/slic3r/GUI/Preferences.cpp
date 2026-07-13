@@ -1827,7 +1827,7 @@ void PreferencesDialog::create_items()
 
     auto item_realistic_shadows = create_item_checkbox(
         _L("Shadows"),
-        _L("Renders cast shadows on the plate in realistic view."),
+        _L("Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."),
         SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS
     );
     g_sizer->Add(item_realistic_shadows);
