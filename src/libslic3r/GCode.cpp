@@ -2931,8 +2931,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 		
 			bbox = bbox_bed;
 			bbox.offset(-25.0);
-			bbox.min.x() = pattern_extents.min.x();
-			bbox.max.x() = pattern_extents.max.x();
+            bbox.min.x() = std::max(pattern_extents.min.x(), bbox.min.x());
+			bbox.max.x() = std::min(pattern_extents.max.x(), bbox.max.x());
 		
 			pts->values.reserve(4);
 			pts->values.emplace_back(bbox.min.x(), bbox.min.y());
