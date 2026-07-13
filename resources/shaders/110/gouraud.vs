@@ -81,8 +81,8 @@ void main()
         vec3 n = normalize((view_normal_matrix * v_normal).xyz);
         vec2 dir = normalize(n.xy);
         if (dot(dir, dir) > 0.0) {
-    //set outline thickness
-            float px = 3;
+            //set outline thickness
+            float px = 3.0;
             gl_Position.xy += dir * (px * 2.0 / screen_size) * gl_Position.w;
         }
     }

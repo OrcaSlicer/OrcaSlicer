@@ -77,12 +77,12 @@ void main()
     world_normal_z = slope.actived ? (normalize(slope.volume_world_normal_matrix * v_normal)).z : 0.0;
 
     gl_Position = projection_matrix * position;
-            if (is_outline) {
+    if (is_outline) {
         vec3 n = normalize((view_normal_matrix * v_normal).xyz);
         vec2 dir = normalize(n.xy);
         if (dot(dir, dir) > 0.0) {
-    //set outline thickness
-            float px = 3;
+            //set outline thickness
+            float px = 3.0;
             gl_Position.xy += dir * (px * 2.0 / screen_size) * gl_Position.w;
         }
     }

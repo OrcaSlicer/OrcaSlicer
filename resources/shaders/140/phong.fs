@@ -111,7 +111,7 @@ float DetectSilho(vec2 fragCoord, vec2 dir)
 
     return smoothstep(0.0, tol*tol, max( - r0*r1, 0.0));
 
-        }
+}
 
 float DetectSilho(vec2 fragCoord)
 {
@@ -241,9 +241,9 @@ void main()
            s = max(s, DetectSilho(fragCoord.xy + vec2(0, i)));
         }
         if (s < 0.01)
-        discard;
-    out_color = vec4(mix(shaded_color.rgb, getBackfaceColor(shaded_color.rgb), s), shaded_color.a);
-}
+            discard;
+        out_color = vec4(mix(shaded_color.rgb, getBackfaceColor(shaded_color.rgb), s), shaded_color.a);
+    }
 #ifdef ENABLE_ENVIRONMENT_MAP
     else if (use_environment_tex)
         out_color = vec4(clamp((0.45 * texture(environment_tex, normalize(eye_normal).xy * 0.5 + 0.5).xyz + window_reflection + 0.8 * color.rgb * diffuse) * PHONG_BRIGHTNESS, vec3(0.0), vec3(1.0)), color.a);

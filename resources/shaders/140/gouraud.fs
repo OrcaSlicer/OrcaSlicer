@@ -179,7 +179,7 @@ void main()
            s = max(s, DetectSilho(fragCoord.xy + vec2(0, i)));
         }
         if (s < 0.01)
-        discard;
+            discard;
         out_color = vec4(mix(color.rgb, getBackfaceColor(color.rgb), s), color.a);
     }
 #ifdef ENABLE_ENVIRONMENT_MAP
