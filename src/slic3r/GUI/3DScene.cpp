@@ -477,7 +477,7 @@ void GLVolume::render()
 }
 
 //BBS: add outline related logic
-void GLVolume::render_with_outline(const GUI::Size& cnv_size, const Transform3d& view_matrix)
+void GLVolume::render_with_outline(const GUI::Size& cnv_size)
 {
     if (!is_active)
         return;
@@ -514,7 +514,6 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size, const Transform3d&
     else
         model.render(this->tverts_range, shader);
     shader->set_uniform("is_outline", false);
-    shader->set_uniform("view_model_matrix", view_matrix * world_matrix());
     glsafe(::glStencilMask(0xFF));
     glsafe(::glDisable(GL_STENCIL_TEST));
 
@@ -1154,7 +1153,7 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         shader->set_uniform("view_normal_matrix", view_normal_matrix);
 		//BBS: add outline related logic
         if (volume.first->selected && GUI::wxGetApp().show_outline())
-            volume.first->render_with_outline(cnv_size, view_matrix);
+            volume.first->render_with_outline(cnv_size);
         else
             volume.first->render();
 
