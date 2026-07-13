@@ -3,6 +3,7 @@
 #include <slic3r/GUI/Widgets/Label.hpp>
 #include <slic3r/GUI/I18N.hpp>
 #include "slic3r/GUI/DeviceTab/uiDeviceUpdateVersion.h"
+#include "slic3r/GUI/DeviceTab/wgtDeviceNozzleRackUpdate.h"
 
 #include "GUI.hpp"
 #include "GUI_App.hpp"
@@ -27,6 +28,7 @@ static const std::unordered_map<wxString, wxString> ACCESSORY_DISPLAY_STR = {
     {"O2L_ACM", "Active Cutting Module"},
     {"O2L_UCM", "Ultrasonic Cutting Module"},
     {"O2L-AFP", L("Auto Fire Extinguishing System")},
+    {"O2L-FTS", L("Filament Track Switch")},
 };
 
 enum FIRMWARE_STASUS
@@ -216,6 +218,10 @@ MachineInfoPanel::MachineInfoPanel(wxWindow* parent, wxWindowID id, const wxPoin
     createLaserWidgets(m_main_left_sizer);
     createAirPumpWidgets(m_main_left_sizer);
     createExtinguishWidgets(m_main_left_sizer);
+    createFilaTrackSwitchWidgets(m_main_left_sizer);
+
+    // nozzle rack widgets (H2C induction hotend rack; hidden unless GetNozzleRack()->IsSupported())
+    createNozzleRackWidgets(m_main_left_sizer);
 
     m_main_sizer->Add(m_main_left_sizer, 1, wxEXPAND, 0);
 
@@ -402,6 +408,27 @@ void MachineInfoPanel::createExtinguishWidgets(wxBoxSizer* main_left_sizer)
     main_left_sizer->Add(m_extinguish_sizer, 0, wxEXPAND, 0);
 }
 
+void MachineInfoPanel::createFilaTrackSwitchWidgets(wxBoxSizer* main_left_sizer)
+{
+    m_filatrack_line_above = new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL);
+    m_filatrack_line_above->SetBackgroundColour(wxColour(206, 206, 206));
+    main_left_sizer->Add(m_filatrack_line_above, 0, wxEXPAND | wxLEFT, FromDIP(40));
+
+    m_filatrack_img = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize(FromDIP(200), FromDIP(200)));
+    m_filatrack_img->SetBitmap(m_img_filatrack.bmp());
+
+    wxBoxSizer* content_sizer = new wxBoxSizer(wxVERTICAL);
+    content_sizer->Add(0, 40, 0, wxEXPAND, FromDIP(5));
+    m_filatrack_version = new uiDeviceUpdateVersion(this, wxID_ANY);
+    content_sizer->Add(m_filatrack_version, 0, wxEXPAND, 0);
+
+    m_filatrack_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_filatrack_sizer->Add(m_filatrack_img, 0, wxALIGN_TOP | wxALL, FromDIP(5));
+    m_filatrack_sizer->Add(content_sizer, 1, wxEXPAND, 0);
+
+    main_left_sizer->Add(m_filatrack_sizer, 0, wxEXPAND, 0);
+}
+
 void MachineInfoPanel::msw_rescale()
 {
     rescale_bitmaps();
@@ -431,6 +458,8 @@ void MachineInfoPanel::init_bitmaps()
         m_img_laser          = ScalableBitmap(this, "laser", 160);
         m_img_cutting        = ScalableBitmap(this, "cut", 160);
         m_img_extinguish     = ScalableBitmap(this, "extinguish", 160);
+        m_img_filatrack      = ScalableBitmap(this, "filament_track_switch", 160);
+        m_img_nozzle_rack    = ScalableBitmap(this, "nozzle_rack", 160);
 
         upgrade_green_icon   = ScalableBitmap(this, "monitor_upgrade_online", 5);
         upgrade_gray_icon    = ScalableBitmap(this, "monitor_upgrade_offline", 5);
@@ -539,6 +568,8 @@ void MachineInfoPanel::update(MachineObject* obj)
         update_cut(obj);
         update_laszer(obj);
         update_extinguish(obj);
+        update_filatrack(obj);
+        update_nozzle_rack(obj);
 
         //update progress
         int upgrade_percent = obj->get_upgrade_percent();
@@ -1123,6 +1154,19 @@ void MachineInfoPanel::update_extinguish(MachineObject* obj)
     }
 }
 
+void MachineInfoPanel::update_filatrack(MachineObject* obj)
+{
+    if (obj && obj->filatrack_version_info.isValid())
+    {
+        m_filatrack_version->UpdateInfo(obj->filatrack_version_info);
+        show_filatrack(true);
+    }
+    else
+    {
+        show_filatrack(false);
+    }
+}
+
 void MachineInfoPanel::show_status(int status, std::string upgrade_status_str)
 {
     if (last_status == status && last_status_str == upgrade_status_str) return;
@@ -1255,6 +1299,90 @@ void MachineInfoPanel::show_extinguish(bool show)
         m_extinguish_line_above->Show(show);
         m_extinguish_version->Show(show);
     }
+}
+
+void MachineInfoPanel::show_filatrack(bool show)
+{
+    if (m_filatrack_version->IsShown() != show)
+    {
+        m_filatrack_img->Show(show);
+        m_filatrack_line_above->Show(show);
+        m_filatrack_version->Show(show);
+    }
+}
+
+void MachineInfoPanel::createNozzleRackWidgets(wxBoxSizer *main_left_sizer)
+{
+    // horizontal line above
+    m_nozzle_rack_line_above = new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL);
+    m_nozzle_rack_line_above->SetBackgroundColour(wxColour(206, 206, 206));
+    main_left_sizer->Add(m_nozzle_rack_line_above, 0, wxEXPAND | wxLEFT, FromDIP(40));
+
+    m_nozzle_rack_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    // left placeholder icon (keep consistent spacing with others)
+    m_nozzle_rack_img = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize(FromDIP(200), FromDIP(200)));
+    m_nozzle_rack_img->SetBitmap(m_img_nozzle_rack.bmp());
+    m_nozzle_rack_sizer->Add(m_nozzle_rack_img, 0, wxALIGN_CENTER_VERTICAL | wxALL, FromDIP(5));
+
+    // right content: label + update button
+    auto *content_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_nozzle_rack_text  = new wxStaticText(this, wxID_ANY, _L("Hotends on Rack"), wxDefaultPosition, wxDefaultSize, 0);
+    m_nozzle_rack_text->Wrap(-1);
+    m_nozzle_rack_text->SetFont(Label::Head_14);
+    content_sizer->Add(m_nozzle_rack_text, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT | wxLEFT, FromDIP(50));
+
+    m_nozzle_rack_update_btn = new Button(this, _L("Info"));
+    StateColor btn_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Disabled), std::pair<wxColour, int>(wxColour(200, 200, 200), StateColor::Pressed),
+                      std::pair<wxColour, int>(wxColour(240, 240, 240), StateColor::Hovered), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled),
+                      std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal));
+    StateColor btn_bd(std::pair<wxColour, int>(wxColour(200, 200, 200), StateColor::Disabled), std::pair<wxColour, int>(wxColour(150, 150, 150), StateColor::Enabled));
+    StateColor btn_text(std::pair<wxColour, int>(wxColour(150, 150, 150), StateColor::Disabled), std::pair<wxColour, int>(wxColour(0, 0, 0), StateColor::Enabled));
+    m_nozzle_rack_update_btn->SetBackgroundColor(btn_bg);
+    m_nozzle_rack_update_btn->SetBorderColor(btn_bd);
+    m_nozzle_rack_update_btn->SetTextColor(btn_text);
+    m_nozzle_rack_update_btn->SetFont(Label::Body_10.Bold());
+    m_nozzle_rack_update_btn->SetMinSize(wxSize(FromDIP(-1), FromDIP(24)));
+    m_nozzle_rack_update_btn->SetCornerRadius(FromDIP(12));
+    m_nozzle_rack_update_btn->Bind(wxEVT_BUTTON, &MachineInfoPanel::on_nozzle_rack_update, this);
+    content_sizer->Add(m_nozzle_rack_update_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(350));
+
+    m_nozzle_rack_sizer->Add(content_sizer, 1, wxEXPAND, 0);
+
+    main_left_sizer->Add(m_nozzle_rack_sizer, 0, wxEXPAND, 0);
+}
+
+void MachineInfoPanel::update_nozzle_rack(MachineObject* obj)
+{
+    if (obj && obj->GetNozzleSystem()) {
+        auto rack = obj->GetNozzleSystem()->GetNozzleRack();
+        if (rack && rack->IsSupported()) {
+            show_nozzle_rack(true);
+        }
+        else {
+            show_nozzle_rack(false);
+        }
+    }
+}
+
+void MachineInfoPanel::show_nozzle_rack(bool show)
+{
+    if (m_nozzle_rack_img->IsShown() != show) {
+        m_nozzle_rack_line_above->Show(show);
+        m_nozzle_rack_update_btn->Show(show);
+        m_nozzle_rack_img->Show(show);
+        m_nozzle_rack_text->Show(show);
+    }
+}
+
+void MachineInfoPanel::on_nozzle_rack_update(wxCommandEvent &event)
+{
+    if (!m_obj || !m_obj->GetNozzleSystem()) return;
+    auto rack = m_obj->GetNozzleSystem()->GetNozzleRack();
+    if (!rack) return;
+
+    wgtDeviceNozzleRackUpgradeDlg dlg(this, rack);
+    dlg.ShowModal();
 }
 
 

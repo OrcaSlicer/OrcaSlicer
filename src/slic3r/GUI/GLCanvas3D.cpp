@@ -8435,6 +8435,11 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
         shader = wxGetApp().get_shader("gouraud");
     ECanvasType canvas_type = this->m_canvas_type;
     bool                 partly_inside_enable = canvas_type == ECanvasType::CanvasAssembleView ? false : true;
+    // The edited printer's per-extruder printable heights feed the object shader's
+    // extruder_printable_heights uniform. Empty for single-extruder printers, so the shader flag stays
+    // 0.0 and rendering is pixel-identical there (see GLVolumeCollection::render).
+    auto printable_height_option = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloatsNullable>("extruder_printable_height");
+    std::vector<double>* printable_heights = printable_height_option ? &printable_height_option->values : nullptr;
     if (shader != nullptr) {
         shader->start_using();
 
@@ -8496,7 +8501,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                             return (m_render_sla_auxiliaries || volume.composite_id.volume_id >= 0);
                         }
                         },
-                        partly_inside_enable);
+                        partly_inside_enable, printable_heights);
                 }
             }
             else {
@@ -8531,7 +8536,7 @@ void GLCanvas3D::_render_objects(GLVolumeCollection::ERenderType type, bool with
                     return true;
                 }
                 },
-                partly_inside_enable);
+                partly_inside_enable, printable_heights);
             // IMEX ghosts are transparent and share the same shader/camera state;
             // render them right after the main transparent pass while the shader is still bound.
             _render_imex_ghosts();

@@ -21210,3 +21210,216 @@ msgstr ""
 
 #~ msgid "Printer local connection failed, please try again."
 #~ msgstr "Falha na conexão local da impressora, por favor tente novamente."
+
+msgid "Abnormal Hotend"
+msgstr "Hotend anormal"
+
+msgid "Available Nozzles"
+msgstr "Bicos Disponíveis"
+
+msgid "Bed mass of the Y axis"
+msgstr "Massa da mesa do eixo Y"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "Atenção: A combinação de diâmetros de bico em uma única impressão não é suportada. Se o tamanho selecionado estiver disponível apenas em um extrusor, a impressão com extrusão única será aplicada."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "Durante a atualização do hotend, o toolhead se moverá. Não coloque a mão dentro da câmara."
+
+msgid "Enable this if printer support cooling filter"
+msgstr "Ative essa opção se a impressora suportar filtro de resfriamento"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "Erro: Não é possível definir a contagem de bicos como zero para ambos."
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "Erro: A contagem de bicos não pode exceder %d."
+
+msgid "Extruder change"
+msgstr "Troca da extrusora"
+
+msgid "Hotend change"
+msgstr "Troca do Hotend"
+
+msgid "Hotend change time"
+msgstr "Tempo de troca do hotend"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "As informações do hotend podem estar imprecisas. Deseja reler o hotend? (As informações do hotend podem mudar durante o desligamento)."
+
+msgid "Hybrid"
+msgstr "Híbrido"
+
+msgid "I confirm all"
+msgstr "Confirmo todos"
+
+msgid "Induction Hotend Rack"
+msgstr "Suporte para Hotend por Indução"
+
+msgid "Maximum force of the Y axis"
+msgstr "Força máxima do eixo Y"
+
+msgid "Nozzle Manual"
+msgstr "Manual do Bico"
+
+msgid "Nozzle Selection"
+msgstr "Seleção de Bocal"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "Por favor, confirme se o diâmetro do bico e a taxa de fluxo necessários correspondem aos valores atualmente exibidos."
+
+msgid "Please set nozzle count"
+msgstr "Por favor, defina a contagem de bicos"
+
+msgid "Preheat temperature delta"
+msgstr "Delta de temperatura de pré-aquecimento"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "A torre principal é necessária para a troca do bico. Pode haver falhas no modelo sem a torre principal. Tem certeza de que deseja desativar a torre principal?"
+
+msgid "Re-read all"
+msgstr "Releia tudo"
+
+msgid "Reading the hotends, please wait."
+msgstr "Lendo os hotends, por favor, espere."
+
+msgid "Refresh %d/%d..."
+msgstr "Atualizando %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "Status do bico de sincronização"
+
+msgid "TPU High Flow"
+msgstr "TPU Alto fluxo"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "Delta de temperatura aplicado durante o pré-aquecimento antes da troca de ferramenta."
+
+msgid "The allowed max printed mass"
+msgstr "Massa máxima de impressão permitida"
+
+msgid "The allowed max printed mass on a plate"
+msgstr "A massa máxima de impressão permitida em uma placa"
+
+msgid "The allowed maximum output force of Y axis"
+msgstr "A força máxima de saída permitida do eixo Y"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "O hotend está em um estado anormal e atualmente indisponível. Por favor, vá em 'Dispositivo -> Atualizar' para atualizar o firmware."
+
+msgid "The machine bed mass load of Y axis"
+msgstr "A carga de massa da mesa do equipamento no eixo Y"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "A velocidade volumétrica máxima para compactação antes de uma troca de hotend, em que -1 significa usar a velocidade volumétrica máxima."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "A velocidade volumétrica máxima para compactação antes da troca de extrusor, onde -1 significa usar a velocidade volumétrica máxima."
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "O toolhead e o suporte do hotend podem se mover. Por favor, mantenha suas mãos afastadas da câmara."
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "O volume de material necessário para preparar o extrusor para uma troca do hotend na torre."
+
+msgid "Time to change hotend."
+msgstr "Hora de trocar o hotend."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "Para evitar o gotejamento, a temperatura do bico será reduzida durante a compactação. Nota: somente um comando de resfriamento e ativação do ventilador são acionados, não sendo garantido o alcance da temperatura alvo. 0 significa desativado."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "Para evitar vazamento, a temperatura do bico será resfriada durante a compactação. Portanto, o tempo de impacto deve ser maior do que o tempo de recarga. 0 significa desativado."
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "Para evitar vazamento, o bocal executará um movimento de deslocamento inverso por um determinado período após a conclusão da compactação. A configuração define o tempo de viagem."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "Bico desconhecido detectado. Atualize para atualizar (bicos não atualizados serão ignorados na fatiagem)."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "Bico desconhecido detectado. Atualize para atualizar as informações (bicos não atualizados serão excluídos durante o fatiamento). Verifique o diâmetro do bico e a taxa de fluxo em relação aos valores exibidos."
+
+msgid "Use cooling filter"
+msgstr "Usar filtro de resfriamento"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "Ao trocar o hotend, é recomendado extrudar um certo comprimento de filamento do bico original. Isso ajuda a minimizar o oozing do bico."
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "Quando este valor de retração for modificado, ele será usado como a quantidade de filament retraído dentro do hotend antes de trocar os hotends."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "Sua impressora tem diferentes bico instalados. Selecione um bico para esta impressão. ."
+
+msgid "g"
+msgstr "G"
+
+msgid "length when change hotend"
+msgstr "comprimento ao trocar o hotend"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "Os bicos dinâmicos são alocados na placa atual. A seleção do hotend não é suportada."
+
+msgid "Hotend Rack"
+msgstr "Rack para Hotend"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "O status do hotend está anormal e indisponível no momento. Atualize o firmware e tente novamente."
+
+msgid "Hotends Info"
+msgstr "Informações sobre Hotends"
+
+msgid "Hotends on Rack"
+msgstr "Hotends no Rack"
+
+msgid "Jump to the upgrade page"
+msgstr "Ir para a página de atualização"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "Nota: O número do hotend no %s está vinculado ao suporte. Quando o hotend for movido para um novo suporte, seu número será atualizado automaticamente."
+
+msgid "Nozzle ID"
+msgstr "ID do Bico"
+
+msgid "Nozzle information needs to be read"
+msgstr "As informações do bico precisam ser lidas"
+
+msgid "Please wait"
+msgstr "Por favor, aguarde"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "Impressão com o bico atual pode produzir um desperdício extra de %0.2f g."
+
+msgid "Raised"
+msgstr "Elevado"
+
+msgid "Read All"
+msgstr "Ler tudo"
+
+msgid "Reading "
+msgstr "Leitura "
+
+msgid "Row A"
+msgstr "Linha A"
+
+msgid "Row B"
+msgstr "Linha B"
+
+msgid "Running..."
+msgstr "Executando..."
+
+msgid "Select Filament && Hotends"
+msgstr "Selecionar Slot de Filamento && Bicos de Aquecimento"
+
+msgid "Standard Flow"
+msgstr "Fluxo Padrão"
+
+msgid "ToolHead"
+msgstr "Cabeça de ferramenta"
+
+msgid "Toolhead"
+msgstr "Cabeça da ferramenta"
+
+msgid "Used Time: %s"
+msgstr "Tempo de uso: %s"

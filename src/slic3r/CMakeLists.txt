@@ -413,6 +413,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Project.hpp
     GUI/PublishDialog.cpp
     GUI/PublishDialog.hpp
+    GUI/PurgeModeDialog.cpp
+    GUI/PurgeModeDialog.hpp
     GUI/RammingChart.cpp
     GUI/RammingChart.hpp
     GUI/RecenterDialog.cpp
@@ -496,6 +498,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/Widgets/AMSControl.hpp
     GUI/Widgets/AMSItem.cpp
     GUI/Widgets/AMSItem.hpp
+    GUI/Widgets/MultiNozzleSync.cpp
+    GUI/Widgets/MultiNozzleSync.hpp
     GUI/Widgets/AxisCtrlButton.cpp
     GUI/Widgets/AxisCtrlButton.hpp
     GUI/SafetyOptionsDialog.hpp

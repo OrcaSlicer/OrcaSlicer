@@ -20253,3 +20253,9 @@ msgstr ""
 
 #~ msgid "Cannot print multiple filaments which have large difference of temperature together. Otherwise, the extruder and nozzle may be blocked or damaged during printing"
 #~ msgstr "Sıcaklık farkı çok büyük olan birden fazla filament aynı anda basılamaz. Aksi takdirde ekstruder ve nozul baskı sırasında tıkanabilir veya zarar görebilir"
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "Sızıntıyı önlemek için, nozul sıcaklığı tokmaklama sırasında soğutulacaktır. Bu nedenle, sıkıştırma süresi soğuma süresinden büyük olmalıdır. 0 devre dışı anlamına gelir."
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "Sızmayı önlemek için nozul, sıkıştırma tamamlandıktan sonra belirli bir süre boyunca ters hareket hareketi gerçekleştirecektir. Ayar, hareket süresini tanımlar."

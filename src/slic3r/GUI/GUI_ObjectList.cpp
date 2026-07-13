@@ -38,6 +38,7 @@
 
 #include "slic3r/Utils/FixModelByCgal.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/Orient.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #ifdef __WXMSW__
@@ -2560,6 +2561,15 @@ void ObjectList::load_shape_object(const std::string &type_name)
     // Create mesh
     BoundingBoxf3 bb;
     TriangleMesh mesh = create_mesh(type_name, bb);
+    // Rotate the largest overhang area toward the part cooling fan so new shapes start in a
+    // cooling friendly orientation. Skip the plain cube: the pressure advance pattern
+    // calibration reuses it as an axis-aligned anchor and scales it by its bounding box,
+    // so its orientation must stay fixed.
+    const Slic3r::DynamicPrintConfig& full_config = wxGetApp().preset_bundle->full_config();
+    if (type_name != "Cube" && full_config.has("fan_direction") && full_config.has("auxiliary_fan")) {
+        FanDirection config_dir = full_config.option<ConfigOptionEnum<FanDirection>>("fan_direction")->value;
+        orientation::orient_for_cooling(mesh, config_dir);
+    }
     // BBS: remove "Shape" prefix
     load_mesh_object(mesh, _(type_name));
     wxGetApp().mainframe->update_title();

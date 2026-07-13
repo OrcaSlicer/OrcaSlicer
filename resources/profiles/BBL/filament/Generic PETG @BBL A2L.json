@@ -1,0 +1,25 @@
+{
+	"type": "filament",
+	"name": "Generic PETG @BBL A2L",
+	"inherits": "Generic PETG @base",
+	"from": "system",
+	"setting_id": "GFSG99_22",
+	"instantiation": "true",
+	"filament_flush_temp_fast": [
+		"255"
+	],
+	"filament_max_volumetric_speed": [
+		"8"
+	],
+	"pre_start_fan_time": [
+		"2"
+	],
+	"compatible_printers": [
+		"Bambu Lab A2L 0.4 nozzle",
+		"Bambu Lab A2L 0.6 nozzle",
+		"Bambu Lab A2L 0.8 nozzle"
+	],
+	"filament_start_gcode": [
+		""
+	]
+}

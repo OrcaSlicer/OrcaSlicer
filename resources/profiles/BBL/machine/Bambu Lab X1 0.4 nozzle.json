@@ -34,6 +34,7 @@
 	"extruder_variant_list": [
 		"Direct Drive Standard,Direct Drive High Flow"
 	],
+	"fan_direction": "left",
 	"long_retractions_when_cut": [
 		"0",
 		"0"

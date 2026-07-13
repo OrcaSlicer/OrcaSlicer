@@ -20576,3 +20576,216 @@ msgstr ""
 
 #~ msgid "Orient the model"
 #~ msgstr "モデルの向きを調整"
+
+msgid "Abnormal Hotend"
+msgstr "異常なホットエンド"
+
+msgid "Available Nozzles"
+msgstr "利用可能なノズル"
+
+msgid "Bed mass of the Y axis"
+msgstr "Y軸のベッド質量"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "注意：1つの造形でノズル径の混在はサポートされていません。選択したサイズが片方の押出機にしかない場合は、単一押出機での造形が強制されます。"
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "ホットエンドのアップグレード中にツールヘッドが動きます。チャンバー内に手を入れないでください。"
+
+msgid "Enable this if printer support cooling filter"
+msgstr "プリンターが冷却フィルターに対応している場合は有効にする"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "エラー：両方のノズル数を0に設定することはできません。"
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "エラー：ノズル数は%dを超えることはできません。"
+
+msgid "Extruder change"
+msgstr "押出機の変更"
+
+msgid "Hotend change"
+msgstr "ホットエンドの変更"
+
+msgid "Hotend change time"
+msgstr "ホットエンド交換時間"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "ホットエンドの情報が正確でない可能性があります。再読み込みしますか？（電源オフ時に情報が変更される場合があります）"
+
+msgid "Hybrid"
+msgstr "ハイブリッド"
+
+msgid "I confirm all"
+msgstr "すべて確認しました"
+
+msgid "Induction Hotend Rack"
+msgstr "誘導式ホットエンドラック"
+
+msgid "Maximum force of the Y axis"
+msgstr "Y軸の最大力"
+
+msgid "Nozzle Manual"
+msgstr "ノズルマニュアル"
+
+msgid "Nozzle Selection"
+msgstr "ノズル選択"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "必要なノズル径と流量が、現在表示されている値と一致しているかご確認ください。"
+
+msgid "Please set nozzle count"
+msgstr "ノズル数を設定してください"
+
+msgid "Preheat temperature delta"
+msgstr "予熱温度差"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "ノズルの切り替えにはプライムタワーが必要です。無効にするとモデルに欠陥が生じる可能性があります。本当にプライムタワーを無効にしますか？"
+
+msgid "Re-read all"
+msgstr "すべて再読み込み"
+
+msgid "Reading the hotends, please wait."
+msgstr "ホットエンドを読み取り中です。しばらくお待ちください。"
+
+msgid "Refresh %d/%d..."
+msgstr "更新中 %d/%d…"
+
+msgid "Sync Nozzle status"
+msgstr "ノズル状態を同期"
+
+msgid "TPU High Flow"
+msgstr "TPUハイフロー"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "工具交換前の予熱中に適用される温度差。"
+
+msgid "The allowed max printed mass"
+msgstr "印刷可能な最大質量"
+
+msgid "The allowed max printed mass on a plate"
+msgstr "プレートに印刷できる最大質量"
+
+msgid "The allowed maximum output force of Y axis"
+msgstr "Y軸の許容最大出力"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "ホットエンドが異常な状態のため、現在使用できません。「デバイス -> アップグレード」からファームウェアをアップデートしてください。"
+
+msgid "The machine bed mass load of Y axis"
+msgstr "Y軸のマシンベッド質量"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "ホットエンド変更前のラミングにおける最大体積流量です。-1 を設定すると、最大体積流量が使用されます。"
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "押出機切り替え前のラミングにおける最大体積流量です。-1 を設定すると、最大体積流量が使用されます。"
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "ツールヘッドおよびホットエンドラックが動く可能性があります。チャンバー内に手を入れないでください。"
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "ホットエンド変更を伴う場合に、プライムタワー上で押出機を初期化するために必要な材料量です。"
+
+msgid "Time to change hotend."
+msgstr "ホットエンドの切り替えにかかる時間です。"
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "ノズルの垂れを防ぐため、ラミング中にノズル温度を冷却します。注：冷却指示とファンの作動のみが行われ、目標温度に達することは保証されません。0を設定すると無効になります。"
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "糸引きを防ぐため、ラム動作中にノズル温度が冷却されます。そのため、ラム動作時間は冷却時間より長く設定する必要があります。0を指定すると、この機能は無効になります。"
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "糸引きを防ぐために、ラム動作の完了後にノズルが一定時間逆方向へ移動します。この設定では、その移動時間を定義します。"
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "不明なノズルが検出されました。情報を更新してください（未更新のノズルはスライスから除外されます）。"
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "不明なノズルが検出されました。情報を更新してください（更新されていないノズルはスライス時に除外されます）。ノズル径と流量が表示と一致しているかご確認ください。"
+
+msgid "Use cooling filter"
+msgstr "冷却フィルターを使用"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "ホットエンドを切り替える際、元のノズルから一定量のフィラメントを押し出すことを推奨します。これにより、ノズルの垂れを最小限に抑えられます。"
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "このリトラクション値を変更すると、ホットエンドを切り替える前にノズル内で引き戻すフィラメントの長さとして使用されます。"
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "プリンターには異なるノズルが取り付けられています。この造形に使用するノズルを選択してください。"
+
+msgid "length when change hotend"
+msgstr "ノズル切替時のリトラクト長さ"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "現在のプレートではダイナミックノズルが割り当てられています。ホットエンドの手動選択はできません。"
+
+msgid "Hotend Rack"
+msgstr "ホットエンドラック"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "ホットエンドの状態が異常のため、現在使用できません。ファームウェアを更新してから再度お試しください。"
+
+msgid "Hotends"
+msgstr "ホットエンド"
+
+msgid "Hotends Info"
+msgstr "ホットエンド情報"
+
+msgid "Hotends on Rack"
+msgstr "ラック上のホットエンド"
+
+msgid "Jump to the upgrade page"
+msgstr "アップグレードページに移動"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "注：%s のホットエンド番号はホルダーに紐づいています。ホットエンドを新しいホルダーに移動すると、その番号は自動的に更新されます。"
+
+msgid "Nozzle ID"
+msgstr "ノズルID"
+
+msgid "Nozzle information needs to be read"
+msgstr "ノズル情報を読み取る必要があります"
+
+msgid "Please wait"
+msgstr "お待ちください"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "現在のノズルで造形すると、約%0.2fgのフィラメントが無駄になる可能性があります。"
+
+msgid "Raised"
+msgstr "上昇した"
+
+msgid "Read All"
+msgstr "すべて読み取り"
+
+msgid "Reading "
+msgstr "読み取り中"
+
+msgid "Row A"
+msgstr "A列"
+
+msgid "Row B"
+msgstr "B列"
+
+msgid "Running..."
+msgstr "実行中..."
+
+msgid "Select Filament && Hotends"
+msgstr "フィラメントとホットエンドを選択"
+
+msgid "Standard Flow"
+msgstr "標準フロー"
+
+msgid "ToolHead"
+msgstr "ツールヘッド"
+
+msgid "Toolhead"
+msgstr "ツールヘッド"
+
+msgid "Used Time: %s"
+msgstr "使用時間: %s"

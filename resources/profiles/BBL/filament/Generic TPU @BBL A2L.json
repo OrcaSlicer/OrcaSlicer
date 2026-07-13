@@ -1,0 +1,31 @@
+{
+	"type": "filament",
+	"name": "Generic TPU @BBL A2L",
+	"inherits": "Generic TPU",
+	"from": "system",
+	"setting_id": "GFSU99_10",
+	"instantiation": "true",
+	"hot_plate_temp": [
+		"30"
+	],
+	"hot_plate_temp_initial_layer": [
+		"30"
+	],
+	"pre_start_fan_time": [
+		"2"
+	],
+	"textured_plate_temp": [
+		"30"
+	],
+	"textured_plate_temp_initial_layer": [
+		"30"
+	],
+	"compatible_printers": [
+		"Bambu Lab A2L 0.4 nozzle",
+		"Bambu Lab A2L 0.6 nozzle",
+		"Bambu Lab A2L 0.8 nozzle"
+	],
+	"filament_start_gcode": [
+		""
+	]
+}

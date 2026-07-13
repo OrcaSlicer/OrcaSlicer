@@ -22202,6 +22202,213 @@ msgstr ""
 #~ "Début > 10 intervalle >= 0\n"
 #~ "Fin > Début + Intervalle"
 
+msgid "Abnormal Hotend"
+msgstr "Hotend Anormal"
+
+msgid "Available Nozzles"
+msgstr "Buses Disponibles"
+
+msgid "Bed mass of the Y axis"
+msgstr "Masse du plateau de l'axe Y"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "Attention : Le mélange de diamètres de buses dans une même impression n'est pas pris en charge. Si la taille sélectionnée se trouve uniquement sur un extrudeur, l'impression mono-extrudeur sera appliquée."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "Pendant la mise à niveau du hotend, la tête d’outil va se déplacer. Ne mettez pas vos mains dans la chambre."
+
+msgid "Enable this if printer support cooling filter"
+msgstr "Activez cette option si l'imprimante prend en charge le filtre de refroidissement"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "Erreur : impossible de définir le nombre de buses à zéro."
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "Erreur : Le nombre de buses ne peut pas dépasser %d."
+
+msgid "Extruder change"
+msgstr "Changement d'extrudeur"
+
+msgid "Hotend change"
+msgstr "Changement de Hotend"
+
+msgid "Hotend change time"
+msgstr "Temps de changement du Hotend"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "Les informations du Hotend peuvent être inexactes. Souhaitez-vous relire le Hotend ? (Les informations du Hotend peuvent changer lors de la coupure d'alimentation)."
+
+msgid "Hybrid"
+msgstr "Hybride"
+
+msgid "I confirm all"
+msgstr "Tout confirmer"
+
+msgid "Induction Hotend Rack"
+msgstr "Rack Hotend Induction"
+
+msgid "Maximum force of the Y axis"
+msgstr "Force maximale de l'axe Y"
+
+msgid "Nozzle Manual"
+msgstr "Manuel de Bu﻿se"
+
+msgid "Nozzle Selection"
+msgstr "Sélection de Buse"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "Veuillez confirmer si le diamètre de la buse requis et le débit correspondent aux valeurs actuellement affichées."
+
+msgid "Please set nozzle count"
+msgstr "Veuillez définir le nombre de buses"
+
+msgid "Preheat temperature delta"
+msgstr "Écart de température de préchauffage"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "Une tour d'amorçage est requise pour le changement de buse. Il peut y avoir des défauts sur le modèle sans cette tour. Êtes-vous sûr de vouloir désactiver la tour d'amorçage ?"
+
+msgid "Re-read all"
+msgstr "Relire tout"
+
+msgid "Reading the hotends, please wait."
+msgstr "Lecture des hotends, veuillez patienter."
+
+msgid "Refresh %d/%d..."
+msgstr "Actualisation %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "Synchroniser Buse"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "Écart de température appliqué lors du préchauffage avant un changement d'outil."
+
+msgid "The allowed max printed mass"
+msgstr "Masse maximale imprimée autorisée"
+
+msgid "The allowed max printed mass on a plate"
+msgstr "Masse maximale imprimée autorisée sur une plaque"
+
+msgid "The allowed maximum output force of Y axis"
+msgstr "Force de sortie maximale autorisée sur l'axe Y"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "Cet hotend est dans un état anormal et est actuellement indisponible. Veuillez aller dans \"Appareil -> Mise à jour\" pour mettre à jour le firmware."
+
+msgid "The machine bed mass load of Y axis"
+msgstr "Charge massique du plateau de la machine sur l'axe Y"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "La vitesse volumétrique maximale pour l'éperonnage avant un changement de Hotend, où -1 signifie utiliser la vitesse volumétrique maximale."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "La vitesse volumétrique maximale pour l'éperonnage avant le changement d'extrudeuse, où -1 signifie utiliser la vitesse volumétrique maximale."
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "La tête d'outil et le rack hotend peuvent se déplacer. Veuillez garder vos mains hors de la chambre."
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "Le volume de matériau nécessaire pour amorcer l'extrudeur lors d'un changement de hotend sur la tourelle."
+
+msgid "Time to change hotend."
+msgstr "Il est temps de changer le Hotend."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "Pour éviter les coulures, la température de la buse sera refroidie pendant l'éperonnage. Remarque : seule une commande de refroidissement et l'activation du ventilateur sont déclenchées, l'obtention de la température cible n'est pas garantie. 0 signifie désactivé."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "Pour éviter tout suintement, la température de la buse sera réduite pendant l'éperonnage. Par conséquent, le temps d'éperonnage doit être supérieur au temps de refroidissement. 0 signifie désactivé."
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "Pour éviter le suintement, la buse effectue un mouvement inverse pendant un certain temps après la fin de l'éperonnage. Le réglage définit le temps de déplacement."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "Buse inconnue détectée. Actualisez pour mettre à jour (les buses non actualisées seront ignorées lors de la découpe)."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "Buse inconnue détectée. Actualisez pour mettre à jour les informations (les buses non actualisées seront exclues lors du découpage). Vérifiez le diamètre de la buse et le débit par rapport aux valeurs affichées."
+
+msgid "Use cooling filter"
+msgstr "Utiliser le filtre de refroidissement"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "Lors du remplacement du hotend, il est recommandé d'extruder une certaine longueur de filament à partir de la buse d'origine. Cela permet de minimiser la bavure de la buse."
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "Lorsque cette valeur de rétraction est modifiée, elle sera utilisée comme la quantité de filament rétractée à l'intérieur du hotend avant de changer de hotend."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "Votre imprimante est équipée de  différentes buses . Veuillez sélectionner une buse pour cette impression."
+
+msgid "length when change hotend"
+msgstr "longueur lors du changement de hotend"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "Les buses dynamiques sont attribuées sur la plaque actuelle. La sélection du hotend n'est pas prise en charge."
+
+msgid "Hotend Rack"
+msgstr "Rack Hotends"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "État du hotend anormal, il est indisponible pour le moment. Veuillez mettre à jour le firmware et réessayer."
+
+msgid "Hotends Info"
+msgstr "Infos Hotends"
+
+msgid "Hotends on Rack"
+msgstr "Hotends sur le Rack"
+
+msgid "Jump to the upgrade page"
+msgstr "Aller à la page de Mise à jour"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "Remarque : Le numéro du hotend sur le %s est lié au support. Lorsque le hotend est déplacé vers un nouveau support, son numéro sera mis à jour automatiquement."
+
+msgid "Nozzle ID"
+msgstr "ID de Buse"
+
+msgid "Nozzle information needs to be read"
+msgstr "Les informations de la buse doivent être lues"
+
+msgid "Please wait"
+msgstr "Veuillez patienter"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "Imprimer avec la buse actuelle peut générer %0.2f g de déchets supplémentaires."
+
+msgid "Raised"
+msgstr "Soulevée"
+
+msgid "Read All"
+msgstr "Tout Lire"
+
+msgid "Reading "
+msgstr "Lecture "
+
+msgid "Row A"
+msgstr "Rang A"
+
+msgid "Row B"
+msgstr "Rang B"
+
+msgid "Running..."
+msgstr "En cours..."
+
+msgid "Select Filament && Hotends"
+msgstr "Sélectionnez Filament && Hotends"
+
+msgid "Standard Flow"
+msgstr "Débit Standard"
+
+msgid "ToolHead"
+msgstr "Tête d'Outil"
+
+msgid "Toolhead"
+msgstr "Tête d'Outil"
+
+msgid "Used Time: %s"
+msgstr "Temps d'Usage: %s"
+
 # Orca: hardcoded GUI strings extracted (i18n FR pass)
 msgid "Rename Object"
 msgstr "Renommer l’objet"
@@ -22328,4 +22535,3 @@ msgstr "Fichiers de configuration (*.json;*.zip;*.orca_printer;*.orca_bundle;*.o
 
 msgid "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\nPlease report to PrusaSlicer team in which scenario this issue happened.\nThank you."
 msgstr "Les objets (%1%) ont des connecteurs dupliqués. Certains connecteurs risquent d’être absents du résultat du découpage.\nVeuillez signaler à l’équipe PrusaSlicer dans quel scénario ce problème est survenu.\nMerci."
-

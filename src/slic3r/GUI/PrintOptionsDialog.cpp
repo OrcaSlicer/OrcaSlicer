@@ -1426,6 +1426,7 @@ wxString PrinterPartsDialog::GetString(NozzleFlowType nozzle_flow_type) const {
     switch (nozzle_flow_type) {
         case Slic3r::S_FLOW: return _L("Standard");
         case Slic3r::H_FLOW: return _L("High flow");
+        case Slic3r::U_FLOW: return _L("TPU High flow");
         default: break;
     }
 

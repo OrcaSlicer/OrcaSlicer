@@ -1,0 +1,62 @@
+{
+	"type": "filament",
+	"name": "Bambu Support For PLA @BBL A2L 0.2 nozzle",
+	"inherits": "Bambu Support For PLA @base",
+	"from": "system",
+	"setting_id": "GFSS02_23",
+	"instantiation": "true",
+	"eng_plate_temp": [
+		"60"
+	],
+	"eng_plate_temp_initial_layer": [
+		"60"
+	],
+	"fan_cooling_layer_time": [
+		"80"
+	],
+	"fan_max_speed": [
+		"80"
+	],
+	"fan_min_speed": [
+		"60"
+	],
+	"filament_flush_temp": [
+		"0"
+	],
+	"filament_flush_temp_fast": [
+		"240"
+	],
+	"filament_max_volumetric_speed": [
+		"0.5"
+	],
+	"hot_plate_temp": [
+		"60"
+	],
+	"hot_plate_temp_initial_layer": [
+		"60"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"pre_start_fan_time": [
+		"2"
+	],
+	"slow_down_min_speed": [
+		"40"
+	],
+	"textured_plate_temp": [
+		"60"
+	],
+	"textured_plate_temp_initial_layer": [
+		"60"
+	],
+	"compatible_printers": [
+		"Bambu Lab A2L 0.2 nozzle"
+	],
+	"filament_start_gcode": [
+		""
+	]
+}

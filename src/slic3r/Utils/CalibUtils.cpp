@@ -94,6 +94,10 @@ wxString get_nozzle_volume_type_name(NozzleVolumeType type)
         return _L("Standard");
     } else if (NozzleVolumeType::nvtHighFlow == type) {
         return _L("High Flow");
+    } else if (NozzleVolumeType::nvtHybrid == type) {
+        return _L("Hybrid");
+    } else if (NozzleVolumeType::nvtTPUHighFlow == type) {
+        return _L("TPU High Flow");
     }
     return wxString();
 }
