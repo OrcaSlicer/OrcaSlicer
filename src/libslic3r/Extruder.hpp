@@ -29,6 +29,13 @@ public:
 
     unsigned int id() const { return m_id; }
 
+    // Column of the per-variant filament/override arrays the getters read. Defaults to the
+    // filament id (one column per filament); the g-code generator refreshes it on layer changes
+    // and toolchanges when a per-layer nozzle grouping gives a filament several variant columns.
+    int  config_index() const { return m_config_index; }
+    // idx < 0 resets to the filament id. Re-syncs the cached e_per_mm3 flow term.
+    void set_config_index(int idx);
+
     unsigned int extruder_id() const;
     double extrude(double dE);
     double retract(double length, double restart_extra);
@@ -51,6 +58,10 @@ public:
     double retracted() const { return m_retracted; }
     // Get extra retraction planned after
     double restart_extra() const { return m_restart_extra; }
+    // Share-aware retracted-length readers (for extruders shared between filaments), consumed by GCodeWriter::get_extruder_retracted_length.
+    bool   is_share_extruder() const { return m_share_extruder; }
+    double get_single_retracted_length() const { return m_retracted; }
+    double get_share_retracted_length() const { return m_share_retracted[extruder_id()]; }
     // Setters for the PlaceholderParser.
     // Set current extruder position. Only applicable with absolute extruder addressing.
     void   set_position(double e) { m_E = e; }
@@ -82,6 +93,8 @@ private:
     GCodeConfig *m_config;
     // Print-wide global ID of this extruder.
     unsigned int m_id;
+    // Column into the per-variant filament/override arrays; equals m_id unless refreshed.
+    int          m_config_index{0};
     // Current state of the extruder axis, may be resetted if use_relative_e_distances.
     double       m_E;
     // Current state of the extruder tachometer, used to output the extruded_volume() and used_filament() statistics.

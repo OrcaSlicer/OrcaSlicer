@@ -13,6 +13,7 @@
 #include <wx/hyperlink.h>
 #include <wx/animate.h>
 #include <wx/dynarray.h>
+#include <tuple>
 
 #include "slic3r/GUI/DeviceCore/DevExtruderSystem.h"
 
@@ -51,7 +52,15 @@ protected:
 
     int         m_total_ext_count = 1;
     AMSextruder *m_extruder{nullptr};
+    SwitcherImage *m_switcher{nullptr};       // Orca: filament-switch routing glyph (hidden unless a switch is installed)
     AMSRoadDownPart* m_down_road{ nullptr };
+
+    // Orca: "AMS not initialized" warning banner, materialized lazily only when a switch needs it (see show_switcher_status)
+    wxBoxSizer*     m_sizer_body{nullptr};
+    wxPanel*        tipPanel{nullptr};
+    wxBoxSizer*     tipSizer{nullptr};
+    wxStaticBitmap* icon{nullptr};
+    wxStaticText*   tipText{nullptr};
 
     /*items*/
     wxBoxSizer* m_sizer_ams_items{nullptr};
@@ -150,6 +159,11 @@ public:
     void PlayRridLoading(wxString amsid, wxString canid);
     void StopRridLoading(wxString amsid, wxString canid);
     void ShowFilamentTip(bool hasams = true);
+
+    // Orca: Filament Track Switch awareness. isFilaSwitchReady() resolves the selected machine and
+    // returns {installed, ready}; show_switcher_status() toggles the "AMS not initialized" banner.
+    std::tuple<bool, bool> isFilaSwitchReady();
+    void show_switcher_status(bool show);
 
     void UpdatePassRoad(string ams_id, AMSPassRoadType type, AMSPassRoadSTEP step);
     void CreateAms();

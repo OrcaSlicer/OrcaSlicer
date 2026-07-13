@@ -21975,3 +21975,216 @@ msgstr ""
 #~ "유효한 값을 입력하십시오:\n"
 #~ "시작 > 10 단계 >= 0\n"
 #~ "끝 > 시작 + 단계)"
+
+msgid "Abnormal Hotend"
+msgstr "비정상 핫엔드"
+
+msgid "Available Nozzles"
+msgstr "사용 가능한 노즐"
+
+msgid "Bed mass of the Y axis"
+msgstr "Y축의 베드 질량"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "주의: 한 번에 여러 노즐 직경을 혼합하여 출력하는 것은 지원되지 않습니다. 선택한 크기가 압출기 하나에만 있는 경우, 단일 압출기 출력이 적용됩니다."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "핫엔드 업그레이드 중에 툴헤드가 움직일 것입니다. 챔버 내부에 손을 넣지 마십시오."
+
+msgid "Enable this if printer support cooling filter"
+msgstr "프린터가 냉각 필터를 지원하는 경우 이 기능을 활성화하세요."
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "오류: 노즐 수를 둘 다 0으로 설정할 수 없습니다."
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "오류: 노즐 수는 %d을 초과할 수 없습니다."
+
+msgid "Extruder change"
+msgstr "압출기 교체"
+
+msgid "Hotend change"
+msgstr "핫엔드 교체"
+
+msgid "Hotend change time"
+msgstr "핫엔드 교체 시간"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "핫엔드 정보가 부정확할 수 있습니다. 핫엔드를 다시 읽어 보시겠습니까? (핫엔드 정보는 전원이 꺼지는 동안 변경될 수 있습니다.)"
+
+msgid "Hybrid"
+msgstr "하이브리드"
+
+msgid "I confirm all"
+msgstr "모두 확인합니다"
+
+msgid "Induction Hotend Rack"
+msgstr "인덕션 핫엔드 랙"
+
+msgid "Maximum force of the Y axis"
+msgstr "Y축의 최대 힘"
+
+msgid "Nozzle Manual"
+msgstr "노즐 설명서"
+
+msgid "Nozzle Selection"
+msgstr "노즐 선택"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "필요한 노즐 직경과 유량이 현재 표시된 값과 일치하는지 확인하세요."
+
+msgid "Please set nozzle count"
+msgstr "노즐 수를 설정하세요"
+
+msgid "Preheat temperature delta"
+msgstr "예열 온도 차이"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "노즐 교체를 위해 프라임 타워가 필요합니다. 프라임 타워가 없으면 모델에 결함이 있을 수 있습니다. 프라임 타워를 비활성화하시겠습니까?"
+
+msgid "Re-read all"
+msgstr "모두 다시 읽기"
+
+msgid "Reading the hotends, please wait."
+msgstr "핫엔드를 읽는 중입니다, 잠시 기다려 주십시오."
+
+msgid "Refresh %d/%d..."
+msgstr "새로 고침 %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "노즐 상태 동기화"
+
+msgid "TPU High Flow"
+msgstr "TPU 고유량"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "도구 교체 전 예열 과정에서 적용되는 온도 차이입니다."
+
+msgid "The allowed max printed mass"
+msgstr "허용되는 최대 출력 질량"
+
+msgid "The allowed max printed mass on a plate"
+msgstr "플레이트에 허용되는 최대 출력 질량"
+
+msgid "The allowed maximum output force of Y axis"
+msgstr "Y축의 허용 최대 출력 힘"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "이 핫엔드에 이상 상태가 발생하여 현재 사용할 수 없습니다. '장치 -> 업그레이드'로 이동하여 펌웨어를 업그레이드해 주세요."
+
+msgid "The machine bed mass load of Y axis"
+msgstr "Y축 장비 베드 질량 하중"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "핫엔드 교체 전에 적용되는 충돌의 최대 체적 속도이며, 여기서 -1은 최대 체적 속도를 사용함을 의미합니다."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "압출기 교체 전 충돌을 위한 최대 체적 속도이며, 여기서 -1은 최대 체적 속도를 사용함을 의미합니다."
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "툴헤드와 핫엔드 랙이 움직일 수 있습니다. 챔버에 손을 대지 마십시오."
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "타워에서 핫엔드를 교체하기 위해 압출기를 준비하는 데 필요한 재료 부피."
+
+msgid "Time to change hotend."
+msgstr "핫엔드를 교체할 시간입니다."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "누수 방지를 위해 충돌 중 노즐 온도가 낮아집니다. 참고: 냉각 명령과 팬 작동만 실행되며, 목표 온도 도달은 보장되지 않습니다. 0은 비활성화를 의미합니다."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "흘러내림을 방지하기 위해 래밍하는 동안 노즐 온도가 냉각됩니다. 따라서 래밍 시간은 쿨다운 시간보다 길어야 합니다. 0은 비활성화를 의미합니다."
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "흘러내림을 방지하기 위해 노즐은 래밍이 완료된 후 일정 시간 동안 역방향 이동을 수행합니다. 이 설정은 이동 시간을 정의합니다."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "알 수 없는 노즐이 감지되었습니다. 새로 고침하여 업데이트하세요(새로 고침되지 않은 노즐은 슬라이싱 시 건너뜁니다)."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "알 수 없는 노즐이 감지되었습니다. 정보를 업데이트하려면 새로 고침하세요(새로 고침되지 않은 노즐은 슬라이싱 과정에서 제외됩니다). 표시된 값과 노즐 직경 및 유량을 확인하세요."
+
+msgid "Use cooling filter"
+msgstr "냉각 필터 사용"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "핫엔드를 교체할 때는 원래 노즐에서 일정 길이의 필라멘트를 압출하는 것이 좋습니다. 이렇게 하면 노즐 흘러내림을 최소화할 수 있습니다."
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "이 수축 값이 수정되면 핫엔드를 변경하기 전에 핫엔드 내부로 수축되는 필라멘트 양으로 사용됩니다."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "프린터에 여러 개의 노즐이 설치되어 있습니다. 이 출력에 맞는 노즐을 선택하세요."
+
+msgid "length when change hotend"
+msgstr "핫엔드 교체 시 길이"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "다이내믹 노즐은 현재 플레이트에 할당됩니다. 핫엔드 선택은 지원되지 않습니다."
+
+msgid "Hotend Rack"
+msgstr "핫엔드 랙"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "핫엔드 상태 비정상, 현재 사용할 수 없습니다. 펌웨어를 업그레이드한 후 다시 시도해 주세요."
+
+msgid "Hotends"
+msgstr "핫엔드"
+
+msgid "Hotends Info"
+msgstr "핫엔드 정보"
+
+msgid "Hotends on Rack"
+msgstr "랙의 핫엔드"
+
+msgid "Jump to the upgrade page"
+msgstr "업그레이드 페이지로 이동"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "참고: %s의 핫엔드 번호는 홀더에 연결되어 있습니다. 핫엔드를 새 홀더로 옮기면 번호가 자동으로 업데이트됩니다."
+
+msgid "Nozzle ID"
+msgstr "노즐 ID"
+
+msgid "Nozzle information needs to be read"
+msgstr "노즐 정보를 읽어야 합니다"
+
+msgid "Please wait"
+msgstr "잠시 기다려 주세요"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "현재 노즐로 출력하면 약 %0.2fg의 낭비물이 발생할 수 있습니다."
+
+msgid "Raised"
+msgstr "상승함"
+
+msgid "Read All"
+msgstr "모두 읽기"
+
+msgid "Reading "
+msgstr "읽는 중 "
+
+msgid "Row A"
+msgstr "A열"
+
+msgid "Row B"
+msgstr "B열"
+
+msgid "Running..."
+msgstr "실행 중..."
+
+msgid "Select Filament && Hotends"
+msgstr "필라멘트 및 핫엔드"
+
+msgid "Standard Flow"
+msgstr "표준 유량"
+
+msgid "ToolHead"
+msgstr "툴헤드"
+
+msgid "Toolhead"
+msgstr "툴헤드"
+
+msgid "Used Time: %s"
+msgstr "사용 시간: %s"

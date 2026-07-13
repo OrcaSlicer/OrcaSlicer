@@ -22029,3 +22029,216 @@ msgstr ""
 
 #~ msgid "Do not recommend bed temperature of other layer to be lower than initial layer for more than this threshold. Too low bed temperature of other layer may cause the model broken free from build plate"
 #~ msgstr "Non è consigliabile che la temperatura del piano degli altri layer sia inferiore a quella del primo layer di oltre questa soglia. Una temperatura del piano troppo bassa degli altri layer può causare il distacco dell'oggetto dal piatto."
+
+msgid "Abnormal Hotend"
+msgstr "Hotend Anomalo"
+
+msgid "Available Nozzles"
+msgstr "Nozzle disponibili"
+
+msgid "Bed mass of the Y axis"
+msgstr "Massa del piano lungo l'asse Y"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "Attenzione: L'uso di diametri nozzle differenti in una sola stampa non è supportata. Se la dimensione selezionata è disponibile solo su un estrusore, verrà forzata la stampa con un solo estrusore."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "Durante l'aggiornamento dell'hotend, la testa di stampa si muoverà. Non inserire la mano nella camera."
+
+msgid "Enable this if printer support cooling filter"
+msgstr "Abilita questa opzione se la stampante supporta il filtro di raffreddamento."
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "Errore: Impossibile impostare il numero di nozzle su zero."
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "Errore: il numero di nozzle non può superare %d."
+
+msgid "Extruder change"
+msgstr "Cambio dell'estrusore"
+
+msgid "Hotend change"
+msgstr "Cambio Hotend"
+
+msgid "Hotend change time"
+msgstr "Tempo cambio Hotend"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "Le informazioni sull'Hotend potrebbero non essere accurate. Vuoi rileggere l'Hotend? (Le informazioni sull'Hotend potrebbero cambiare durante lo spegnimento)."
+
+msgid "Hybrid"
+msgstr "Ibrido"
+
+msgid "I confirm all"
+msgstr "Confermo tutto"
+
+msgid "Induction Hotend Rack"
+msgstr "Rack Hotend a Induzione"
+
+msgid "Maximum force of the Y axis"
+msgstr "Forza massima dell'asse Y"
+
+msgid "Nozzle Manual"
+msgstr "Manuale nozzle"
+
+msgid "Nozzle Selection"
+msgstr "Selezione Nozzle"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "Verifica se il diametro del nozzle richiesto eil flusso corrispondono ai valori attualmente visualizzati."
+
+msgid "Please set nozzle count"
+msgstr "Imposta il numero di nozzle"
+
+msgid "Preheat temperature delta"
+msgstr "Differenza di temperatura di preriscaldamento"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "La torre di spurgo è necessaria per la sostituzione del nozzle. Senza la prime tower potrebbero esserci dei difetti sul modello. Sei sicuro di voler disabilitare la torre di spurgo?"
+
+msgid "Re-read all"
+msgstr "Rileggi tutto"
+
+msgid "Reading the hotends, please wait."
+msgstr "Lettura degli hotend in corso, attendi."
+
+msgid "Refresh %d/%d..."
+msgstr "Aggiornamento %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "Sync Nozzle"
+
+msgid "TPU High Flow"
+msgstr "TPU Alto FLusso"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "Differenza di temperatura applicata durante il preriscaldamento prima del cambio utensile."
+
+msgid "The allowed max printed mass"
+msgstr "La massima massa stampata consentita"
+
+msgid "The allowed max printed mass on a plate"
+msgstr "La massima massa di stampa consentita su un piatto"
+
+msgid "The allowed maximum output force of Y axis"
+msgstr "La forza di uscita massima consentita dell'asse Y"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "Questo hotend presenta un’anomalia ed è attualmente non disponibile. Vai su 'Dispositivo -> Aggiorna' per aggiornare il firmware."
+
+msgid "The machine bed mass load of Y axis"
+msgstr "Il carico di massa del piano della macchina sull'asse Y"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "La velocità volumetrica massima per l'urto prima di una sostituzione del Hotend, dove -1 indica l'utilizzo della velocità volumetrica massima."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "La velocità volumetrica massima per l'urto prima del cambio dell'estrusore, dove -1 indica l'utilizzo della velocità volumetrica massima."
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "La testa di stampa e il supporto hotend potrebbero muoversi. Tieni le mani lontane dalla camera."
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "Volume di materiale necessario per innescare l'estrusore in vista di una sostituzione dell'hotend sulla torre."
+
+msgid "Time to change hotend."
+msgstr "È ora di sostituire l'hotend."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "Per prevenire la trasudazione, la temperatura del nozzle verrà raffreddata durante la pressatura. Nota: viene attivato solo un comando di raffreddamento e la ventola, non è garantito il raggiungimento della temperatura target. 0 significa disabilitato."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "Per evitare fuoriuscite di materiale, la temperatura del nozzle verrà abbassata durante il ramming. Pertanto, il tempo di ramming deve essere superiore al tempo di raffreddamento. 0 indica che la funzione è disattivata."
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "Per evitare trasudamento, il nozzle eseguirà un movimento con percorso inverso per un certo periodo dopo il completamento della battuta. L'impostazione definisce il tempo di percorrenza."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "Nozzle sconosciuto rilevato. Effettua un refresh per aggiornare (i nozzle non aggiornati verranno saltati durante l'elaborazione)."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "Nozzle sconosciuto rilevato. Effettua un refresh per aggiornare le informazioni (i nozzle non aggiornati saranno esclusi durante l'elaborazione). Verifica il diametro del nozzle e il flusso rispetto ai valori mostrati."
+
+msgid "Use cooling filter"
+msgstr "Usa filtro raffreddamento"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "Quando si cambia l'hotend, è consigliato estrudere una certa lunghezza di filamento dall nozzle originale. Questo aiuta a ridurre al minimo la trasudazione dal nozzle."
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "Quando questo valore di retrazione viene modificato, verrà utilizzato come quantità di filamento retratto all'interno del hotend prima di cambiare hotend."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "La tua stampante dispone di diversi nozzle installati. Seleziona un nozzle per questa stampa."
+
+msgid "length when change hotend"
+msgstr "lunghezza quando si cambia hotend"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "I Nozzle Dinamici sono assegnati al piatto corrente. La selezione dell’hotend non è supportata."
+
+msgid "Hotend Rack"
+msgstr "Rack Hotend"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "Stato hotend anomalo, al momento non disponibile. Aggiorna il firmware e riprova."
+
+msgid "Hotends"
+msgstr "Hotend"
+
+msgid "Hotends Info"
+msgstr "Informazioni Hotend"
+
+msgid "Hotends on Rack"
+msgstr "Hotend sul Rack"
+
+msgid "Jump to the upgrade page"
+msgstr "Vai alla pagina dell'aggiornamento"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "Nota: Il numero del hotend su %s è collegato al supporto. Quando un hotend viene spostato su un nuovo supporto, il suo numero verrà aggiornato automaticamente."
+
+msgid "Nozzle ID"
+msgstr "ID Nozzle"
+
+msgid "Nozzle information needs to be read"
+msgstr "È necessario leggere le informazioni sul nozzle"
+
+msgid "Please wait"
+msgstr "Attendi prego"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "La stampa con l'attuale nozzle potrebbe generare un %0.2f g extra di scarto."
+
+msgid "Raised"
+msgstr "Sollevato"
+
+msgid "Read All"
+msgstr "Leggi Tutto"
+
+msgid "Reading "
+msgstr "Lettura "
+
+msgid "Row A"
+msgstr "Fila A"
+
+msgid "Row B"
+msgstr "Fila B"
+
+msgid "Running..."
+msgstr "In Corso..."
+
+msgid "Select Filament && Hotends"
+msgstr "Seleziona Filamento e Hotend"
+
+msgid "Standard Flow"
+msgstr "Flusso standard"
+
+msgid "ToolHead"
+msgstr "Testa di stampa"
+
+msgid "Toolhead"
+msgstr "Testa di stampa"
+
+msgid "Used Time: %s"
+msgstr "Tempo Utilizzo: %s"

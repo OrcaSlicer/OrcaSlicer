@@ -471,6 +471,8 @@ set(lisbslic3r_sources
     FilamentGroup.cpp
     FilamentGroupUtils.hpp
     FilamentGroupUtils.cpp
+    MultiNozzleUtils.hpp
+    MultiNozzleUtils.cpp
     GCode/ToolOrderUtils.hpp
     GCode/ToolOrderUtils.cpp
     FlushVolPredictor.hpp

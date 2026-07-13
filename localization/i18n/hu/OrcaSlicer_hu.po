@@ -20448,3 +20448,213 @@ msgstr ""
 
 #~ msgid "When enabled, the extrusion flow is limited by the smaller of the fitted value (calculated from line width and layer height) and the user-defined maximum flow. When disabled, only the user-defined maximum flow is applied."
 #~ msgstr "Bekapcsolva az extrudálási áramlást az illesztett érték (a vonalszélesség és rétegmagasság alapján számolva) és a felhasználó által megadott maximális áramlás közül a kisebbik korlátozza. Kikapcsolva csak a felhasználó által megadott maximális áramlás érvényesül."
+
+msgid "Abnormal Hotend"
+msgstr "Rendellenes hotend"
+
+msgid "Available Nozzles"
+msgstr "Elérhető fúvókák"
+
+msgid "Bed mass of the Y axis"
+msgstr "Az Y tengely asztaltömege"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "Figyelem: Nem lehetséges a fúvókaátmérők keverése egyetlen nyomtatás során. Ha a kiválasztott méret csak egy extruderen van, akkor az egy extruderes nyomtatás lesz kényszerítve."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "A hotend felismerése során a szerszámfej mozogni fog. Ne nyúlj be a kamrába."
+
+msgid "Enable this if printer support cooling filter"
+msgstr "Engedélyezd a beállítást, ha a nyomtató támogatja a hűtőszűrőt"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "Hiba: Nem lehet mindkét fúvóka számát nullára állítani."
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "Hiba: A fúvóka száma nem haladhatja meg a(z) %d értéket."
+
+msgid "Extruder change"
+msgstr "Extruderváltás"
+
+msgid "Hotend change"
+msgstr "Hotendváltás"
+
+msgid "Hotend change time"
+msgstr "Hotendváltás ideje"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "A hotendinformációk pontatlanok lehetnek. Szeretnéd újra beolvasni a hotendet? (A hotendinformáció kikapcsolt állapotban megváltozhat)."
+
+msgid "Hybrid"
+msgstr "Hibrid"
+
+msgid "I confirm all"
+msgstr "Összes megerősítése"
+
+msgid "Induction Hotend Rack"
+msgstr "Indukciós hotendtartó"
+
+msgid "Maximum force of the Y axis"
+msgstr "Az Y tengely maximális ereje"
+
+msgid "Nozzle Selection"
+msgstr "Fúvóka kiválasztás"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "Kérjük, ellenőrizd, hogy a szükséges fúvókaátmérő és áramlási sebesség megegyezik-e a kijelzőn lévővel."
+
+msgid "Please set nozzle count"
+msgstr "Kérjük, állítsd be a fúvókaszámot"
+
+msgid "Preheat temperature delta"
+msgstr "Előmelegítési hőmérséklet delta"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "A fúvókacsere miatt szükség van a törlőtoronyra. Nélküle előfordulhatnak hibák a nyomtatott tárgyon. Biztos, hogy kikapcsolod a törlőtornyot?"
+
+msgid "Re-read all"
+msgstr "Összes újraolvasása"
+
+msgid "Reading the hotends, please wait."
+msgstr "A hotendek beolvasása folyamatban van, kérjük várj."
+
+msgid "Refresh %d/%d..."
+msgstr "Frissítés %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "Fúvókaállapot szinkronizálása"
+
+msgid "TPU High Flow"
+msgstr "TPU nagy áramlású"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "Hőmérséklet-különbség alkalmazása az eszközcsere előtti előmelegítés során."
+
+msgid "The allowed max printed mass"
+msgstr "A megengedett maximális nyomtatott tömeg"
+
+msgid "The allowed max printed mass on a plate"
+msgstr "A megengedett maximális nyomtatott tömeg egy lemezen"
+
+msgid "The allowed maximum output force of Y axis"
+msgstr "Az Y tengely megengedett maximális kimeneti ereje"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "A hotend állapota rendellenes, és jelenleg nem elérhető. Kérjük, lépj az „Eszköz -> Frissítés“ oldalra a firmware frissítéséhez."
+
+msgid "The machine bed mass load of Y axis"
+msgstr "Az Y tengely gépasztaltömeg-terhelése"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "A hotendváltás előtti betolás maximális áramlási sebessége, ahol -1 a maximális sebesség használatát jelenti."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "Az extruderváltás előtti betolás maximális áramlási sebessége, ahol -1 a maximális sebesség használatát jelenti."
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "Előfordulhat, hogy a szerszámfej és a hotendtartó megmozdul. Kérjük, ne nyúlj a kamrába."
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "Az extruder átöblítéséhez szükséges anyagmennyiség a hotend cseréjekor."
+
+msgid "Time to change hotend."
+msgstr "A hotendváltás ideje."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "A szivárgás megakadályozása érdekében a fúvóka a betolás során lehűl. Megjegyzés: csak a hűtési parancs és a ventilátor bekapcsolása kerül elküldésre, a célhőmérséklet elérése nem garantált. A 0 letiltást jelent."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "A szivárgás elkerülése érdekében a fúvóka lehűl betolás közben. Ezért a betolási időnek hosszabbnak kell lennie, mint a lehűlési időnek. A 0 kikapcsolja ezt az opciót."
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "A szivárgás elkerülése érdekében a fúvóka a betolás befejezése után egy bizonyos ideig visszafelé mozog. A beállítás határozza meg a mozgás idejét."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "Ismeretlen fúvóka érzékelve. Frissítsd az adatokat (a nem frissített fúvókákat nem használjuk a szeleteléskor)."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "Ismeretlen fúvóka érzékelve. Frissítsd az adatokat (a nem frissített fúvókákat nem használjuk a szeleteléskor). Hasonlítsd össze a fúvóka átmérőjét és a térfogatáramot a megjelenített értékekkel."
+
+msgid "Use cooling filter"
+msgstr "Hűtőszűrő használata"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "A hotend cseréjekor ajánlott egy bizonyos hosszúságú filamentet extrudálni az eredeti fúvókából. Ez segít minimalizálni a fúvóka szivárgását."
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "Ha ezt a visszahúzási értéket módosítod, akkor ezt az értéket használja a nyomtató a filament hotend belsejéből történő visszahúzásakor, mielőtt hotendet cserélne."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "A nyomtatóban különböző fúvókák vannak. Kérjük, válassz egy fúvókát a nyomtatáshoz."
+
+msgid "length when change hotend"
+msgstr "hossz hotendcsere esetén"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "A dinamikus fúvókák a jelenlegi tálcához vannak kiosztva. A hotend kiválasztása nem támogatott."
+
+msgid "Hotend Rack"
+msgstr "Hotendtartó"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "A hotend állapota nem megfelelő, jelenleg nem kérdezhető le. Frissítsd a firmware-t, és próbáld újra."
+
+msgid "Hotends"
+msgstr "Hotendek"
+
+msgid "Hotends Info"
+msgstr "Hotendek adatai"
+
+msgid "Hotends on Rack"
+msgstr "Hotendek a tartón"
+
+msgid "Jump to the upgrade page"
+msgstr "Ugrás a frissítés oldalra"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "Megjegyzés: A hotend száma a tartóhoz van rendelve ezen: %s. Amikor a hotendet áthelyezed egy új tartóra, a száma automatikusan frissül."
+
+msgid "Nozzle ID"
+msgstr "Fúvókaazonosító"
+
+msgid "Nozzle information needs to be read"
+msgstr "A fúvókainformációkat be kell olvasni"
+
+msgid "Please wait"
+msgstr "Kérjük, várj"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "A jelenlegi fúvókával történő nyomtatás %0.2f g többlethulladékot eredményezhet."
+
+msgid "Raised"
+msgstr "Felemelve"
+
+msgid "Read All"
+msgstr "Összes beolvasása"
+
+msgid "Reading "
+msgstr "Beolvasás "
+
+msgid "Row A"
+msgstr "„A“ sor"
+
+msgid "Row B"
+msgstr "„B“ sor"
+
+msgid "Running..."
+msgstr "Futtatás..."
+
+msgid "Select Filament && Hotends"
+msgstr "Válassz filamentet és hotendet"
+
+msgid "Standard Flow"
+msgstr "Normál áramlás"
+
+msgid "ToolHead"
+msgstr "Szerszámfej"
+
+msgid "Toolhead"
+msgstr "Szerszámfej"
+
+msgid "Used Time: %s"
+msgstr "Felhasznált idő: %s"
