@@ -12,6 +12,8 @@ add_executable(${_TEST_NAME}_tests
     test_clipper_offset.cpp
     test_clipper_utils.cpp
     test_config.cpp
+    test_config_variant_expansion.cpp
+    test_toolordering_nozzle_group.cpp
     test_preset_bundle_loading.cpp
     test_preset_setting_id.cpp
     test_elephant_foot_compensation.cpp
@@ -20,6 +22,7 @@ add_executable(${_TEST_NAME}_tests
     test_polygon.cpp
     test_mutable_polygon.cpp
     test_mutable_priority_queue.cpp
+    test_nozzle_volume_type.cpp
     test_stl.cpp
     test_meshboolean.cpp
     test_marchingsquares.cpp

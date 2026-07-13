@@ -402,6 +402,41 @@ SCENARIO("update_diff_values_to_child_config tolerates legacy machine-limit vect
 //     }
 // }
 
+TEST_CASE("H2C/A2L-era multi-nozzle and pre-heat config keys exist", "[config]") {
+    // Foundation keys backing H2C 6-nozzle cluster grouping, the pre-heat/pre-cool time
+    // model, and wipe-tower nozzle-change handling. Defaults must keep existing
+    // single-nozzle printers behaving identically.
+    Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
+
+    // Printer / per-extruder options
+    REQUIRE(config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count") != nullptr);
+    REQUIRE(config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count")->values == std::vector<int>{1});
+    REQUIRE(config.option<ConfigOptionBool>("enable_pre_heating") != nullptr);
+    REQUIRE(config.option<ConfigOptionBool>("enable_pre_heating")->value == false);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("hotend_cooling_rate") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("hotend_heating_rate") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloat>("machine_hotend_change_time") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloat>("machine_prepare_compensation_time") != nullptr);
+
+    // Filament pre-cooling / ramming / nozzle-change (nc) options
+    REQUIRE(config.option<ConfigOptionIntsNullable>("filament_pre_cooling_temperature") != nullptr);
+    REQUIRE(config.option<ConfigOptionIntsNullable>("filament_pre_cooling_temperature_nc") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_preheat_temperature_delta") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_retract_length_nc") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloats>("filament_change_length_nc") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloats>("filament_prime_volume_nc") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_ramming_travel_time") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_ramming_travel_time_nc") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_ramming_volumetric_speed") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_ramming_volumetric_speed_nc") != nullptr);
+
+    // Spot-check defaults that must not alter existing behavior.
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_retract_length_nc")->values == std::vector<double>{10.});
+    REQUIRE(config.option<ConfigOptionFloats>("filament_prime_volume_nc")->values == std::vector<double>{60.});
+    REQUIRE(config.option<ConfigOptionIntsNullable>("filament_pre_cooling_temperature_nc")->values == std::vector<int>{0});
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_ramming_volumetric_speed")->values == std::vector<double>{-1});
+}
+
 SCENARIO("ConfigOptionVector::set_to_index with stride=1 copies values correctly", "[Config][set_to_index]") {
     GIVEN("A destination vector and a source vector with 3 values") {
         Slic3r::ConfigOptionFloats dest({0.0});

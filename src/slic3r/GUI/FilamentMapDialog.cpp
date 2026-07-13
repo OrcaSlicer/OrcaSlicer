@@ -36,8 +36,77 @@ static std::vector<int> get_applied_map(DynamicConfig& proj_config, const Plater
     return plater_ref->get_global_filament_map();
 }
 
+static std::vector<int> get_applied_volume_map(DynamicConfig& proj_config, const Plater* plater_ref, const PartPlate* partplate_ref, const bool sync_plate)
+{
+    if (sync_plate)
+        return partplate_ref->get_real_filament_volume_maps(proj_config);
+    return plater_ref->get_global_filament_volume_map();
+}
+
 extern std::string& get_left_extruder_unprintable_text();
 extern std::string& get_right_extruder_unprintable_text();
+
+// Orca: minimal smart-filament toggle. When a filament track switch is ready every AMS filament is
+// reachable from both nozzles, so one filament can be assigned to multiple nozzles to maximize
+// savings. The checkbox drives the enable_filament_dynamic_map project flag.
+class SmartFilamentPanel : public wxPanel
+{
+    static constexpr int spacing = 20;
+
+public:
+    SmartFilamentPanel(wxWindow *parent) : wxPanel(parent)
+    {
+        SetBackgroundColour(*wxWHITE);
+        wxBoxSizer *main_sizer = new wxBoxSizer(wxVERTICAL);
+
+        main_sizer->AddSpacer(FromDIP(spacing));
+
+        auto *separator = new wxPanel(this);
+        separator->SetBackgroundColour(wxColour("#EEEEEE"));
+        main_sizer->Add(separator, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(15));
+
+        main_sizer->AddSpacer(FromDIP(spacing));
+
+        m_smart_filament_checkbox = new CheckBox(this);
+        if (auto *opt = enable_filament_dynamic_map())
+            m_smart_filament_checkbox->SetValue(opt->value);
+        m_smart_filament_checkbox->Bind(wxEVT_TOGGLEBUTTON, &SmartFilamentPanel::on_smart_filament_checkbox, this);
+
+        auto *label = new Label(this, _L("Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"));
+        label->SetFont(Label::Body_12);
+
+        // Orca: dropped the vendor "Learn more" tracking link (no Orca help page for this feature).
+
+        auto *smart_sizer = new wxBoxSizer(wxHORIZONTAL);
+        smart_sizer->Add(m_smart_filament_checkbox, 0, wxALIGN_CENTER_VERTICAL);
+        smart_sizer->Add(label, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(3));
+
+        main_sizer->Add(smart_sizer, 0, wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(15));
+
+        SetSizer(main_sizer);
+        Layout();
+        Fit();
+        wxGetApp().UpdateDarkUIWin(this);
+    }
+
+private:
+    static ConfigOptionBool *enable_filament_dynamic_map()
+    {
+        auto &config = wxGetApp().preset_bundle->project_config;
+        return dynamic_cast<ConfigOptionBool *>(config.option("enable_filament_dynamic_map"));
+    }
+
+    void on_smart_filament_checkbox(wxCommandEvent &event)
+    {
+        if (auto *opt = enable_filament_dynamic_map())
+            opt->value = m_smart_filament_checkbox->GetValue();
+        wxGetApp().plater()->update();
+        event.Skip();
+    }
+
+private:
+    CheckBox *m_smart_filament_checkbox{nullptr};
+};
 
 
 bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* partplate_ref, bool force_pop_up)
@@ -61,7 +130,9 @@ bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* p
     std::vector<std::string> filament_types = full_config.option<ConfigOptionStrings>("filament_type")->values;
     FilamentMapMode applied_mode = get_applied_map_mode(full_config, plater_ref,partplate_ref, sync_plate);
     std::vector<int> applied_maps = get_applied_map(full_config, plater_ref, partplate_ref, sync_plate);
+    std::vector<int> applied_volume_maps = get_applied_volume_map(full_config, plater_ref, partplate_ref, sync_plate);
     applied_maps.resize(filament_colors.size(), 1);
+    applied_volume_maps.resize(filament_colors.size(), 0);
 
     if (!force_pop_up && applied_mode != fmmManual)
         return true;
@@ -79,6 +150,7 @@ bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* p
         filament_colors,
         filament_types,
         applied_maps,
+        applied_volume_maps,
         filament_lists,
         applied_mode,
         plater_ref->get_machine_sync_status(),
@@ -90,25 +162,32 @@ bool try_pop_up_before_slice(bool is_slice_all, Plater* plater_ref, PartPlate* p
     if (ret == wxID_OK) {
         FilamentMapMode new_mode = map_dlg.get_mode();
         std::vector<int> new_maps = map_dlg.get_filament_maps();
+        std::vector<int> new_volume_maps = map_dlg.get_filament_volume_maps();
         if (sync_plate) {
             if (is_slice_all) {
                 auto plate_list = plater_ref->get_partplate_list().get_plate_list();
                 for (int i = 0; i < plate_list.size(); ++i) {
                     plate_list[i]->set_filament_map_mode(new_mode);
-                    if(new_mode == fmmManual)
+                    if (new_mode == fmmManual) {
                         plate_list[i]->set_filament_maps(new_maps);
+                        plate_list[i]->set_filament_volume_maps(new_volume_maps);
+                    }
                 }
             }
             else {
                 partplate_ref->set_filament_map_mode(new_mode);
-                if (new_mode == fmmManual)
+                if (new_mode == fmmManual) {
                     partplate_ref->set_filament_maps(new_maps);
+                    partplate_ref->set_filament_volume_maps(new_volume_maps);
+                }
             }
         }
         else {
             plater_ref->set_global_filament_map_mode(new_mode);
-            if (new_mode == fmmManual)
+            if (new_mode == fmmManual) {
                 plater_ref->set_global_filament_map(new_maps);
+                plater_ref->set_global_filament_volume_map(new_volume_maps);
+            }
         }
         plater_ref->update();
         // check whether able to slice, if not, return false
@@ -124,21 +203,35 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
                                      const std::vector<std::string> &filament_color,
                                      const std::vector<std::string> &filament_type,
                                      const std::vector<int>         &filament_map,
+                                     const std::vector<int>         &filament_volume_map,
                                      const std::vector<int>         &filaments,
                                      const FilamentMapMode           mode,
                                      bool                            machine_synced,
                                      bool                            show_default,
                                      bool                            with_checkbox)
-    : wxDialog(parent, wxID_ANY, _L("Filament grouping"), wxDefaultPosition, wxDefaultSize,wxDEFAULT_DIALOG_STYLE), m_filament_color(filament_color), m_filament_type(filament_type), m_filament_map(filament_map)
+    : wxDialog(parent, wxID_ANY, _L("Filament grouping"), wxDefaultPosition, wxDefaultSize,wxDEFAULT_DIALOG_STYLE)
+    , m_filament_color(filament_color)
+    , m_filament_type(filament_type)
+    , m_filament_map(filament_map)
+    , m_filament_volume_map(filament_volume_map)
 {
     SetBackgroundColour(*wxWHITE);
 
     SetMinSize(wxSize(FromDIP(580), -1));
     SetMaxSize(wxSize(FromDIP(580), -1));
 
+    // Orca: when a filament track switch is ready, every AMS filament reaches both nozzles, so the
+    // Match/Convenience sub-mode is dropped and Auto is presented purely as a filament-saving mode.
+    // Orca has no fmmAutoForQuality, so "only saving" collapses to "switch ready" and the remaining
+    // auto mode set is { fmmAutoForFlush }.
+    m_fila_switch_ready              = wxGetApp().sidebar().is_fila_switch_ready();
+    const bool only_saving_mode     = m_fila_switch_ready;
+    const bool auto_match_available = machine_synced && !m_fila_switch_ready;
+
     if (mode < fmmManual)
         m_page_type = PageType::ptAuto;
-    else if (mode == fmmManual)
+    else if (mode == fmmManual || mode == fmmNozzleManual)
+        // Orca: there is no dedicated nozzle-manual page, so treat an fmmNozzleManual plate as a manual variant and show the Custom page instead of misfiling it as "Same as Global".
         m_page_type = PageType::ptManual;
     else
         m_page_type = PageType::ptDefault;
@@ -148,7 +241,7 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
 
     wxBoxSizer *mode_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    m_auto_btn   = new CapsuleButton(this, PageType::ptAuto, _L("Auto"), false);
+    m_auto_btn   = new CapsuleButton(this, PageType::ptAuto, only_saving_mode ? _L("Fila Saving") : _L("Auto"), false);
     m_manual_btn = new CapsuleButton(this, PageType::ptManual, _L("Custom"), false);
     if (show_default)
         m_default_btn = new CapsuleButton(this, PageType::ptDefault, _L("Same as Global"), true);
@@ -167,12 +260,27 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
 
     auto            panel_sizer       = new wxBoxSizer(wxHORIZONTAL);
 
+    // Orca: fall back to the saving mode whenever Match is unavailable, which now also covers the
+    // filament-track-switch-ready case (auto_match_available folds in !m_fila_switch_ready).
     FilamentMapMode default_auto_mode = mode >= fmmManual ? fmmAutoForFlush :
-        mode == fmmAutoForMatch && !machine_synced ? fmmAutoForFlush :
+        mode == fmmAutoForMatch && !auto_match_available ? fmmAutoForFlush :
         mode;
 
-    m_manual_map_panel                = new FilamentMapManualPanel(this, m_filament_color, m_filament_type, filaments, filament_map);
-    m_auto_map_panel                  = new FilamentMapAutoPanel(this, default_auto_mode, machine_synced);
+    m_manual_map_panel                = new FilamentMapManualPanel(this, m_filament_color, m_filament_type, filaments, filament_map, filament_volume_map);
+    // A manual grouping can point filaments at a nozzle volume the extruder does not physically
+    // carry; the panel's validation timer reports that here so OK is gated on a printable map.
+    m_manual_map_panel->Bind(wxEVT_INVALID_MANUAL_MAP, [this](wxCommandEvent &event) {
+        if (m_page_type != PageType::ptManual) {
+            if (!m_ok_btn->IsEnabled()) { m_ok_btn->Enable(); }
+            return;
+        }
+        if (event.GetInt()) {
+            if (!m_ok_btn->IsEnabled()) { m_ok_btn->Enable(); }
+        } else {
+            if (m_ok_btn->IsEnabled()) { m_ok_btn->Disable(); }
+        }
+    });
+    m_auto_map_panel                  = new FilamentMapAutoPanel(this, default_auto_mode, auto_match_available);
     if (show_default)
         m_default_map_panel = new FilamentMapDefaultPanel(this);
     else
@@ -182,6 +290,13 @@ FilamentMapDialog::FilamentMapDialog(wxWindow                       *parent,
     panel_sizer->Add(m_auto_map_panel, 0, wxEXPAND);
     if (show_default) panel_sizer->Add(m_default_map_panel, 0, wxEXPAND);
     main_sizer->Add(panel_sizer, 0, wxEXPAND);
+
+    // Smart filament section, shown only in filament-saving (flush) mode when the switch is ready.
+    if (m_fila_switch_ready) {
+        m_smart_filament = new SmartFilamentPanel(this);
+        m_smart_filament->Show(get_mode() == fmmAutoForFlush);
+        main_sizer->Add(m_smart_filament, 0, wxEXPAND);
+    }
 
     wxPanel* bottom_panel = new wxPanel(this);
     bottom_panel->SetBackgroundColour(*wxWHITE);
@@ -271,16 +386,8 @@ void FilamentMapDialog::on_checkbox(wxCommandEvent &event)
 void FilamentMapDialog::on_ok(wxCommandEvent &event)
 {
     if (m_page_type == PageType::ptManual) {
-        std::vector<int> left_filaments  = m_manual_map_panel->GetLeftFilaments();
-        std::vector<int> right_filaments = m_manual_map_panel->GetRightFilaments();
-
-        for (int i = 0; i < m_filament_map.size(); ++i) {
-            if (std::find(left_filaments.begin(), left_filaments.end(), i + 1) != left_filaments.end()) {
-                m_filament_map[i] = 1;
-            } else if (std::find(right_filaments.begin(), right_filaments.end(), i + 1) != right_filaments.end()) {
-                m_filament_map[i] = 2;
-            }
-        }
+        m_filament_map        = m_manual_map_panel->GetFilamentMaps();
+        m_filament_volume_map = m_manual_map_panel->GetFilamentVolumeMaps();
     }
 
     EndModal(wxID_OK);
@@ -317,6 +424,14 @@ void FilamentMapDialog::update_panel_status(PageType page)
         m_auto_btn->Select(true);
         m_auto_map_panel->Show();
     }
+
+    // The nozzle-availability gate only constrains manual grouping; every other page must
+    // leave OK usable even if the manual page had disabled it.
+    if (page != PageType::ptManual && m_ok_btn && !m_ok_btn->IsEnabled())
+        m_ok_btn->Enable();
+
+    if (m_smart_filament)
+        m_smart_filament->Show(get_mode() == fmmAutoForFlush);
 
     Layout();
     Fit();

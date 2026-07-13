@@ -3,8 +3,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
-"PO-Revision-Date: 2026-07-04 11:51-0300\n"
+"POT-Creation-Date: 2026-07-07 16:46-0300\n"
+"PO-Revision-Date: 2026-07-08 20:45-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
 "Language: pt_BR\n"
@@ -328,7 +328,7 @@ msgstr "Otimizar orientação"
 
 msgctxt "Verb"
 msgid "Scale"
-msgstr "Escala"
+msgstr "Escalar"
 
 msgid "Gizmo-Scale"
 msgstr "Gizmo-Dimensionar"
@@ -338,7 +338,7 @@ msgstr "Erro: Por favor, feche todos os menus da barra de ferramentas primeiro"
 
 msgctxt "inches"
 msgid "in"
-msgstr ""
+msgstr "pol"
 
 msgid "mm"
 msgstr "mm"
@@ -3590,7 +3590,7 @@ msgstr "Salvar"
 
 msgctxt "Navigation"
 msgid "Back"
-msgstr "Atrás"
+msgstr "Voltar"
 
 msgid "Example"
 msgstr "Exemplo"
@@ -4041,7 +4041,7 @@ msgid "The recommended nozzle temperature for this filament type is [%d, %d] deg
 msgstr "A temperatura do bico recomendada para este tipo de filamento é [%d, %d] graus Celsius."
 
 msgid "Adaptive Pressure Advance model validation failed:\n"
-msgstr ""
+msgstr "Falha na validação do modelo de Pressure Advance Adaptativo:\n"
 
 msgid ""
 "Too small max volumetric speed.\n"
@@ -4665,7 +4665,7 @@ msgid "Layer Time (log)"
 msgstr "Tempo da Camada (log)"
 
 msgid "Pressure Advance"
-msgstr "Avanço de Pressão"
+msgstr "Pressure Advance"
 
 msgid "Noop"
 msgstr ""
@@ -4773,7 +4773,7 @@ msgid "Jerk: "
 msgstr "Jerk: "
 
 msgid "PA: "
-msgstr "AP: "
+msgstr "PA: "
 
 msgid "mm/s"
 msgstr "mm/s"
@@ -4951,7 +4951,7 @@ msgstr "Mudança de cor"
 
 msgctxt "Noun"
 msgid "Print"
-msgstr "Imprimir"
+msgstr "Impressão"
 
 msgid "Printer"
 msgstr "Impressora"
@@ -5762,7 +5762,7 @@ msgid "Max flowrate"
 msgstr "Fluxo máximo"
 
 msgid "Pressure advance"
-msgstr "Avanço de pressão"
+msgstr "Pressure advance"
 
 msgid "Flow ratio"
 msgstr "Taxa de fluxo"
@@ -9448,7 +9448,7 @@ msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "Faixa de temperatura do bico recomendada para este filamento. 0 significa não definido"
 
 msgid "Flow ratio and Pressure Advance"
-msgstr "Taxa de fluxo e Avanço de Pressão"
+msgstr "Taxa de fluxo e Pressure Advance"
 
 msgid "Print chamber temperature"
 msgstr "Temperatura da câmara de impressão"
@@ -11178,7 +11178,7 @@ msgid "The precise wall option will be ignored for outer-inner or inner-outer-in
 msgstr "A opção de parede precisa será ignorada para sequências externa-interna ou interna-externa-interna."
 
 msgid "The Adaptive Pressure Advance model for one or more extruders may contain invalid values."
-msgstr ""
+msgstr "O modelo de Pressure Advance Adaptativo para uma ou mais extrusoras pode conter valores inválidos."
 
 msgid "Filament shrinkage will not be used because filament shrinkage for the used filaments does not match."
 msgstr "A contração de filamento não será usada porque a contração dos filamentos usados difere significativamente."
@@ -12517,16 +12517,16 @@ msgstr ""
 "A taxa de fluxo final do objeto é este valor multiplicado pela taxa de fluxo do filamento."
 
 msgid "Enable pressure advance"
-msgstr "Habilitar avanço de pressão"
+msgstr "Habilitar pressure advance"
 
 msgid "Enable pressure advance, auto calibration result will be overwritten once enabled."
-msgstr "Habilitar avanço de pressão, o resultado da calibração automática será sobrescrito uma vez habilitado."
+msgstr "Habilitar pressure advance, o resultado da calibração automática será sobrescrito uma vez habilitado."
 
 msgid "Pressure advance (Klipper) AKA Linear advance factor (Marlin)."
-msgstr "Avanço de pressão (Klipper) também conhecido como Fator de avanço linear (Marlin)"
+msgstr "Pressure advance (Klipper) também conhecido como Fator de avanço linear (Marlin)"
 
 msgid "Enable adaptive pressure advance (beta)"
-msgstr "Habilitar avanço de pressão adaptativo (beta)"
+msgstr "Habilitar pressure advance adaptativo (beta)"
 
 #, no-c-format, no-boost-format
 msgid ""
@@ -12539,13 +12539,13 @@ msgid ""
 msgstr ""
 "Com o aumento das velocidades de impressão (e, portanto, do fluxo volumétrico através do bico) e acelerações crescentes, observou-se que o valor efetivo de PA normalmente diminui. Isso significa que um único valor de PA nem sempre é 100% ideal para todos os recursos e um valor de compromisso é geralmente usado para não causar muita protuberância em partes com menor velocidade de fluxo e acelerações, mas também não causar lacunas em partes mais rápidas.\n"
 "\n"
-"Este recurso visa abordar essa limitação modelando a resposta do sistema de extrusão da sua impressora dependendo da velocidade de fluxo volumétrico e aceleração em que está imprimindo. Internamente, ele gera um modelo ajustado que pode extrapolar o avanço de pressão necessário para qualquer velocidade de fluxo volumétrico e aceleração, que é então emitido para a impressora dependendo das condições de impressão atuais.\n"
+"Este recurso visa abordar essa limitação modelando a resposta do sistema de extrusão da sua impressora dependendo da velocidade de fluxo volumétrico e aceleração em que está imprimindo. Internamente, ele gera um modelo ajustado que pode extrapolar o pressure advance necessário para qualquer velocidade de fluxo volumétrico e aceleração, que é então emitido para a impressora dependendo das condições de impressão atuais.\n"
 "\n"
-"Quando habilitado, o valor de avanço de pressão acima é substituído. No entanto, um valor padrão razoável acima é fortemente recomendado para atuar como um fallback e para quando a ferramenta for trocada.\n"
+"Quando habilitado, o valor do pressure advance acima é substituído. No entanto, um valor padrão razoável acima é fortemente recomendado para atuar como um fallback e para quando a ferramenta for trocada.\n"
 "\n"
 
 msgid "Adaptive pressure advance measurements (beta)"
-msgstr "Medidas de avanço de pressão adaptativo (beta)"
+msgstr "Medidas do pressure advance adaptativo (beta)"
 
 #, no-c-format, no-boost-format
 msgid ""
@@ -12560,19 +12560,19 @@ msgid ""
 "2. Take note of the optimal PA value for each volumetric flow speed and acceleration. You can find the flow number by selecting flow from the color scheme drop down and move the horizontal slider over the PA pattern lines. The number should be visible at the bottom of the page. The ideal PA value should be decreasing the higher the volumetric flow is. If it is not, confirm that your extruder is functioning correctly. The slower and with less acceleration you print, the larger the range of acceptable PA values. If no difference is visible, use the PA value from the faster test\n"
 "3. Enter the triplets of PA values, Flow and Accelerations in the text box here and save your filament profile."
 msgstr ""
-"Adicione conjuntos de valores de avanço de pressão (PA), as velocidades de fluxo volumétrico e acelerações em que foram medidos, separados por uma vírgula. Um conjunto de valores por linha. Por exemplo\n"
+"Adicione conjuntos de valores do pressure advance (PA), as velocidades de fluxo volumétrico e acelerações em que foram medidos, separados por uma vírgula. Um conjunto de valores por linha. Por exemplo\n"
 "0,04,3,96,3000\n"
 "0,033,3,96,10000\n"
 "0,029,7,91,3000\n"
 "0,026,7,91,10000\n"
 "\n"
 "Como calibrar:\n"
-"1. Execute o teste de avanço de pressão para pelo menos 3 velocidades por valor de aceleração. É recomendado que o teste seja executado para pelo menos a velocidade dos perímetros externos, a velocidade dos perímetros internos e a velocidade de impressão de recurso mais rápida em seu perfil (geralmente é o preenchimento esparso ou sólido). Em seguida, execute-os para as mesmas velocidades para as acelerações de impressão mais lentas e mais rápidas, e não mais rápido do que a aceleração máxima recomendada, conforme fornecido pelo modelador de entrada do Klipper\n"
+"1. Execute o teste de pressure advance para pelo menos 3 velocidades por valor de aceleração. É recomendado que o teste seja executado para pelo menos a velocidade dos perímetros externos, a velocidade dos perímetros internos e a velocidade de impressão de recurso mais rápida em seu perfil (geralmente é o preenchimento esparso ou sólido). Em seguida, execute-os para as mesmas velocidades para as acelerações de impressão mais lentas e mais rápidas, e não mais rápido do que a aceleração máxima recomendada, conforme fornecido pelo modelador de entrada do Klipper\n"
 "2. Anote o valor de PA ideal para cada velocidade e aceleração de fluxo volumétrico. Você pode encontrar o número do fluxo selecionando fluxo no menu suspenso do esquema de cores e movendo o controle deslizante horizontal sobre as linhas do padrão de PA. O número deve estar visível na parte inferior da página. O valor de PA ideal deve diminuir quanto maior for o fluxo volumétrico. Se não estiver, confirme se sua extrusora está funcionando corretamente. Quanto mais lento e com menos aceleração você imprimir, maior será o intervalo de valores de PA aceitáveis. Se nenhuma diferença for visível, use o valor de PA do teste mais rápido\n"
 "3. Insira os tripletos de valores de PA, Fluxo e Acelerações na caixa de texto aqui e salve seu perfil de filamento."
 
 msgid "Enable adaptive pressure advance within features (beta)"
-msgstr ""
+msgstr "Habilitar pressure advance adaptativo nos recursos (beta)"
 
 msgid ""
 "Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
@@ -12583,7 +12583,7 @@ msgid ""
 msgstr ""
 
 msgid "Static pressure advance for bridges"
-msgstr ""
+msgstr "Pressure advance estático para pontes"
 
 msgid ""
 "Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
@@ -12591,6 +12591,10 @@ msgid ""
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
+"Valor de pressure advance (avanço de pressão) estático para pontes. Defina como 0 para aplicar o mesmo pressure advance que \n"
+"paredes equivalentes (usando configurações adaptativas, se habilitadas).\n"
+"\n"
+"Um valor de PA mais baixo ao imprimir pontes ajuda a reduzir a ocorrência de leve subextrusão logo após as pontes. Isso é causado pela queda de pressão no bico durante a impressão no ar, e um PA mais baixo ajuda a compensar esse efeito."
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Largura de linha padrão se outras larguras de linha estiverem definidas como 0. Se expresso como %, será calculado sobre o diâmetro do bico."
@@ -13335,11 +13339,11 @@ msgid ""
 "Voronoi: Divides the surface into voronoi cells, and displaces each one by a random amount. Creates a patchwork texture.\n"
 "Ripple: Uniform ripple pattern that ripples left and right of the original path. Repeating pattern, woven appearance."
 msgstr ""
-"Tipo de ruído a ser usado para geração de textura difusa:\n"
+"Tipos de ruído a serem usados para geração de textura difusa:\n"
 "Clássico: Ruído aleatório uniforme clássico;\n"
 "Perlin: Ruído Perlin, que dá uma textura mais consistente;\n"
 "Billow: Semelhante ao ruído Perlin, mas mais aglomerado;\n"
-"Multifractal estriado: Ruído estriado com características pontiagudas e irregulares. Cria texturas semelhantes a mármore;\n"
+"Multifractal Estriado: Ruído estriado com características pontiagudas e irregulares. Cria texturas semelhantes a mármore;\n"
 "Voronoi: Divide a superfície em células Voronoi e desloca cada uma delas por uma quantidade aleatória. Cria uma textura de retalhos;\n"
 "Ondulação: Padrão de ondulação uniforme que se propaga para a esquerda e para a direita do caminho original. Padrão repetitivo, com aparência de tecido."
 
@@ -13404,7 +13408,7 @@ msgstr ""
 "O deslocamento é aplicado uma vez a cada número de camadas definido em Camadas entre deslocamento de ondulação, de modo que as camadas dentro do mesmo grupo sejam impressas de forma idêntica."
 
 msgid "Layers between ripple offset"
-msgstr "Camadas entre o deslocamento de onda"
+msgstr "Camadas entre o deslocamento de ondulação"
 
 msgid ""
 "Specifies how many consecutive layers share the same ripple phase before the offset is applied.\n"
@@ -14301,9 +14305,9 @@ msgstr ""
 "\n"
 "Um valor de 0 desativa o recurso.\n"
 "\n"
-"Para uma impressora de acionamento direto de alta velocidade e alto fluxo (como a Bambu lab ou Voron), esse valor geralmente não é necessário. No entanto, pode fornecer alguns benefícios marginais em certos casos em que as velocidades das características variam muito. Por exemplo, quando há desacelerações agressivas devido a saliências. Nesses casos, um valor alto de cerca de 300-350 mm³/s² é recomendado, pois isso permite apenas suavização suficiente para ajudar o avanço de pressão a alcançar uma transição de fluxo mais suave.\n"
+"Para uma impressora de acionamento direto de alta velocidade e alto fluxo (como a Bambu lab ou Voron), esse valor geralmente não é necessário. No entanto, pode fornecer alguns benefícios marginais em certos casos em que as velocidades das características variam muito. Por exemplo, quando há desacelerações agressivas devido a saliências. Nesses casos, um valor alto de cerca de 300-350 mm³/s² é recomendado, pois isso permite apenas suavização suficiente para ajudar o pressure advance a alcançar uma transição de fluxo mais suave.\n"
 "\n"
-"Para impressoras mais lentas sem avanço de pressão, o valor deve ser definido muito mais baixo. Um valor de 10-15 mm³/s² é um bom ponto de partida para extrusoras de acionamento direto e 5-10 mm³/s² para estilo Bowden.\n"
+"Para impressoras mais lentas sem pressure advance, o valor deve ser definido muito mais baixo. Um valor de 10-15 mm³/s² é um bom ponto de partida para extrusoras de acionamento direto e 5-10 mm³/s² para estilo Bowden.\n"
 "\n"
 "Este recurso é conhecido como Equalizador de Pressão no PrusaSlicer.\n"
 "\n"
@@ -14700,7 +14704,7 @@ msgid "Direct Drive"
 msgstr "Acionamento Direto"
 
 msgid "Bowden"
-msgstr "Tubo"
+msgstr "Bowden"
 
 msgid "Enable filament dynamic map"
 msgstr "Habilitar mapa dinâmico de filamento"
@@ -19661,17 +19665,17 @@ msgstr ""
 #~ msgstr "O conteúdo da predefinição é muito grande para ser sincronizado com a nuvem (excede 1 MB). Reduza o tamanho da predefinição removendo configurações personalizadas ou use-o apenas localmente."
 
 #~ msgid "Enable adaptive pressure advance for overhangs (beta)"
-#~ msgstr "Habilitar avanço de pressão adaptável para saliências (beta)"
+#~ msgstr "Habilitar pressure advance adaptativo para saliências (beta)"
 
 #~ msgid "Pressure advance for bridges"
-#~ msgstr "Avanço de pressão para pontes"
+#~ msgstr "Pressure advance para pontes"
 
 #~ msgid ""
 #~ "Pressure advance value for bridges. Set to 0 to disable.\n"
 #~ "\n"
 #~ "A lower PA value when printing bridges helps reduce the appearance of slight under extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 #~ msgstr ""
-#~ "Valor de avanço de pressão para pontes. Defina como 0 para desabilitar.\n"
+#~ "Valor do pressure advance para pontes. Defina como 0 para desabilitar.\n"
 #~ "\n"
 #~ "Um valor de PA mais baixo ao imprimir pontes ajuda a reduzir a aparência de leve subextrusão imediatamente após as pontes. Isso é causado pela queda de pressão no bico ao imprimir no ar e um PA mais baixo ajuda a neutralizar isso."
 
@@ -19893,7 +19897,7 @@ msgstr ""
 #~ msgstr ""
 #~ "Habilite esta opção para desacelerar a impressão em áreas onde os perímetros podem ter se curvado para cima. Por exemplo, uma desaceleração adicional será aplicada ao imprimir saliências em cantos afiados, como a parte frontal do casco Benchy, reduzindo a curvatura que se acumula por várias camadas.\n"
 #~ "\n"
-#~ "Geralmente, é recomendável ter esta opção ativada, a menos que o resfriamento da impressora seja potente o suficiente ou a velocidade de impressão lenta o suficiente para que a curvatura do perímetro não aconteça. Se estiver imprimindo com uma alta velocidade de perímetro externo, este parâmetro pode introduzir pequenos artefatos ao desacelerar devido à grande variação nas velocidades de impressão. Se você notar artefatos, certifique-se de que seu avanço de pressão esteja ajustado corretamente.\n"
+#~ "Geralmente, é recomendável ter esta opção ativada, a menos que o resfriamento da impressora seja potente o suficiente ou a velocidade de impressão lenta o suficiente para que a curvatura do perímetro não aconteça. Se estiver imprimindo com uma alta velocidade de perímetro externo, este parâmetro pode introduzir pequenos artefatos ao desacelerar devido à grande variação nas velocidades de impressão. Se você notar artefatos, certifique-se de que seu pressure advance esteja ajustado corretamente.\n"
 #~ "\n"
 #~ "Observação: quando esta opção estiver habilitada, os perímetros de saliência são tratados como saliências, o que significa que a velocidade de saliência é aplicada mesmo se o perímetro de saliência for parte de uma ponte. Por exemplo, quando os perímetros estiverem 100% salientes, sem nenhuma parede apoiando-os por baixo, a velocidade de saliência de 100% será aplicada."
 
@@ -20351,10 +20355,10 @@ msgstr ""
 #~ msgstr "Ok"
 
 #~ msgid "Pressure Advance Guide"
-#~ msgstr "Guia de Avanço de Pressão"
+#~ msgstr "Guia de Pressure Advance"
 
 #~ msgid "Adaptive Pressure Advance Guide"
-#~ msgstr "Guia de Avanço de Pressão Adaptativo"
+#~ msgstr "Guia de Pressure Advance Adaptativo"
 
 #~ msgid "Wiki Guide: Temperature Calibration"
 #~ msgstr "Guia Wiki: Calibração de Temperatura"
@@ -21206,3 +21210,216 @@ msgstr ""
 
 #~ msgid "Printer local connection failed, please try again."
 #~ msgstr "Falha na conexão local da impressora, por favor tente novamente."
+
+msgid "Abnormal Hotend"
+msgstr "Hotend anormal"
+
+msgid "Available Nozzles"
+msgstr "Bicos Disponíveis"
+
+msgid "Bed mass of the Y axis"
+msgstr "Massa da mesa do eixo Y"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "Atenção: A combinação de diâmetros de bico em uma única impressão não é suportada. Se o tamanho selecionado estiver disponível apenas em um extrusor, a impressão com extrusão única será aplicada."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "Durante a atualização do hotend, o toolhead se moverá. Não coloque a mão dentro da câmara."
+
+msgid "Enable this if printer support cooling filter"
+msgstr "Ative essa opção se a impressora suportar filtro de resfriamento"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "Erro: Não é possível definir a contagem de bicos como zero para ambos."
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "Erro: A contagem de bicos não pode exceder %d."
+
+msgid "Extruder change"
+msgstr "Troca da extrusora"
+
+msgid "Hotend change"
+msgstr "Troca do Hotend"
+
+msgid "Hotend change time"
+msgstr "Tempo de troca do hotend"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "As informações do hotend podem estar imprecisas. Deseja reler o hotend? (As informações do hotend podem mudar durante o desligamento)."
+
+msgid "Hybrid"
+msgstr "Híbrido"
+
+msgid "I confirm all"
+msgstr "Confirmo todos"
+
+msgid "Induction Hotend Rack"
+msgstr "Suporte para Hotend por Indução"
+
+msgid "Maximum force of the Y axis"
+msgstr "Força máxima do eixo Y"
+
+msgid "Nozzle Manual"
+msgstr "Manual do Bico"
+
+msgid "Nozzle Selection"
+msgstr "Seleção de Bocal"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "Por favor, confirme se o diâmetro do bico e a taxa de fluxo necessários correspondem aos valores atualmente exibidos."
+
+msgid "Please set nozzle count"
+msgstr "Por favor, defina a contagem de bicos"
+
+msgid "Preheat temperature delta"
+msgstr "Delta de temperatura de pré-aquecimento"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "A torre principal é necessária para a troca do bico. Pode haver falhas no modelo sem a torre principal. Tem certeza de que deseja desativar a torre principal?"
+
+msgid "Re-read all"
+msgstr "Releia tudo"
+
+msgid "Reading the hotends, please wait."
+msgstr "Lendo os hotends, por favor, espere."
+
+msgid "Refresh %d/%d..."
+msgstr "Atualizando %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "Status do bico de sincronização"
+
+msgid "TPU High Flow"
+msgstr "TPU Alto fluxo"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "Delta de temperatura aplicado durante o pré-aquecimento antes da troca de ferramenta."
+
+msgid "The allowed max printed mass"
+msgstr "Massa máxima de impressão permitida"
+
+msgid "The allowed max printed mass on a plate"
+msgstr "A massa máxima de impressão permitida em uma placa"
+
+msgid "The allowed maximum output force of Y axis"
+msgstr "A força máxima de saída permitida do eixo Y"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "O hotend está em um estado anormal e atualmente indisponível. Por favor, vá em 'Dispositivo -> Atualizar' para atualizar o firmware."
+
+msgid "The machine bed mass load of Y axis"
+msgstr "A carga de massa da mesa do equipamento no eixo Y"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "A velocidade volumétrica máxima para compactação antes de uma troca de hotend, em que -1 significa usar a velocidade volumétrica máxima."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "A velocidade volumétrica máxima para compactação antes da troca de extrusor, onde -1 significa usar a velocidade volumétrica máxima."
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "O toolhead e o suporte do hotend podem se mover. Por favor, mantenha suas mãos afastadas da câmara."
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "O volume de material necessário para preparar o extrusor para uma troca do hotend na torre."
+
+msgid "Time to change hotend."
+msgstr "Hora de trocar o hotend."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "Para evitar o gotejamento, a temperatura do bico será reduzida durante a compactação. Nota: somente um comando de resfriamento e ativação do ventilador são acionados, não sendo garantido o alcance da temperatura alvo. 0 significa desativado."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "Para evitar vazamento, a temperatura do bico será resfriada durante a compactação. Portanto, o tempo de impacto deve ser maior do que o tempo de recarga. 0 significa desativado."
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "Para evitar vazamento, o bocal executará um movimento de deslocamento inverso por um determinado período após a conclusão da compactação. A configuração define o tempo de viagem."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "Bico desconhecido detectado. Atualize para atualizar (bicos não atualizados serão ignorados na fatiagem)."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "Bico desconhecido detectado. Atualize para atualizar as informações (bicos não atualizados serão excluídos durante o fatiamento). Verifique o diâmetro do bico e a taxa de fluxo em relação aos valores exibidos."
+
+msgid "Use cooling filter"
+msgstr "Usar filtro de resfriamento"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "Ao trocar o hotend, é recomendado extrudar um certo comprimento de filamento do bico original. Isso ajuda a minimizar o oozing do bico."
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "Quando este valor de retração for modificado, ele será usado como a quantidade de filament retraído dentro do hotend antes de trocar os hotends."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "Sua impressora tem diferentes bico instalados. Selecione um bico para esta impressão. ."
+
+msgid "g"
+msgstr "G"
+
+msgid "length when change hotend"
+msgstr "comprimento ao trocar o hotend"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "Os bicos dinâmicos são alocados na placa atual. A seleção do hotend não é suportada."
+
+msgid "Hotend Rack"
+msgstr "Rack para Hotend"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "O status do hotend está anormal e indisponível no momento. Atualize o firmware e tente novamente."
+
+msgid "Hotends Info"
+msgstr "Informações sobre Hotends"
+
+msgid "Hotends on Rack"
+msgstr "Hotends no Rack"
+
+msgid "Jump to the upgrade page"
+msgstr "Ir para a página de atualização"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "Nota: O número do hotend no %s está vinculado ao suporte. Quando o hotend for movido para um novo suporte, seu número será atualizado automaticamente."
+
+msgid "Nozzle ID"
+msgstr "ID do Bico"
+
+msgid "Nozzle information needs to be read"
+msgstr "As informações do bico precisam ser lidas"
+
+msgid "Please wait"
+msgstr "Por favor, aguarde"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "Impressão com o bico atual pode produzir um desperdício extra de %0.2f g."
+
+msgid "Raised"
+msgstr "Elevado"
+
+msgid "Read All"
+msgstr "Ler tudo"
+
+msgid "Reading "
+msgstr "Leitura "
+
+msgid "Row A"
+msgstr "Linha A"
+
+msgid "Row B"
+msgstr "Linha B"
+
+msgid "Running..."
+msgstr "Executando..."
+
+msgid "Select Filament && Hotends"
+msgstr "Selecionar Slot de Filamento && Bicos de Aquecimento"
+
+msgid "Standard Flow"
+msgstr "Fluxo Padrão"
+
+msgid "ToolHead"
+msgstr "Cabeça de ferramenta"
+
+msgid "Toolhead"
+msgstr "Cabeça da ferramenta"
+
+msgid "Used Time: %s"
+msgstr "Tempo de uso: %s"

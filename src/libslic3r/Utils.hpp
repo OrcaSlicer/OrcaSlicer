@@ -102,6 +102,9 @@ const std::string& var_dir();
 // Return a full resource path for a file_name.
 std::string var(const std::string &file_name);
 
+// Snap a nozzle diameter to the closest supported value and format it as a string (e.g. 0.4 -> "0.4").
+std::string format_diameter_to_str(double diameter, int precision = 1);
+
 // Set a path with various static definition data (for example the initial config bundles).
 void set_resources_dir(const std::string &path);
 // Return a full path to the resources directory.

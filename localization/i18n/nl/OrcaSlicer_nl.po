@@ -20818,3 +20818,213 @@ msgstr ""
 
 #~ msgid "Orient the model"
 #~ msgstr "Oriënteer het model"
+
+msgid "Abnormal Hotend"
+msgstr "Abnormale hot-end"
+
+msgid "Available Nozzles"
+msgstr "Beschikbare nozzles"
+
+msgid "Bed mass of the Y axis"
+msgstr "Bedmassa van de Y-as"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "Waarschuwing: Het combineren van nozzle-diameters in één print wordt niet ondersteund. Als de geselecteerde maat slechts op één extruder aanwezig is, wordt het printen met een enkele extruder afgedwongen."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "Tijdens de hot-end upgrade beweegt de printkop. Steek uw hand niet in de kamer."
+
+msgid "Enable this if printer support cooling filter"
+msgstr "Schakel dit in als de printer koelingsfilter ondersteunt"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "Fout: Kan niet beide nozzles op nul instellen."
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "Fout: Het aantal nozzles mag niet meer zijn dan %d."
+
+msgid "Extruder change"
+msgstr "Extruder wisselen"
+
+msgid "Hotend change"
+msgstr "Hot-end vervangen"
+
+msgid "Hotend change time"
+msgstr "Tijd voor hot-end wisseling"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "Hot-end informatie kan onnauwkeurig zijn. Wilt u de hot-end opnieuw uitlezen? (Hot-end informatie kan veranderen tijdens het uitschakelen)."
+
+msgid "Hybrid"
+msgstr "Hybride"
+
+msgid "I confirm all"
+msgstr "Ik bevestig alles"
+
+msgid "Induction Hotend Rack"
+msgstr "Inductie Hot-end rek"
+
+msgid "Maximum force of the Y axis"
+msgstr "Maximale kracht van de Y-as"
+
+msgid "Nozzle Manual"
+msgstr "Handleiding nozzle"
+
+msgid "Nozzle Selection"
+msgstr "Nozzle selectie"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "Bevestigt u of de vereiste nozzle diameter en doorvoersnelheid overeenkomen met de momenteel weergegeven waarden."
+
+msgid "Please set nozzle count"
+msgstr "Stel het aantal nozzles in"
+
+msgid "Preheat temperature delta"
+msgstr "Voorverwarmingstemperatuurverschil"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "Prime tower is vereist voor het wisselen van de nozzle. Er kunnen fouten in het model zitten zonder prime tower. Weet je zeker dat je prime tower wilt uitschakelen?"
+
+msgid "Re-read all"
+msgstr "Alles opnieuw lezen"
+
+msgid "Reading the hotends, please wait."
+msgstr "De hotends worden gelezen. Even geduld."
+
+msgid "Refresh %d/%d..."
+msgstr "Vernieuwen %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "Synchroniseer nozzlestatus"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "Temperatuurverschil toegepast tijdens het voorverwarmen vóór het wisselen van gereedschap."
+
+msgid "The allowed max printed mass"
+msgstr "De maximaal toegestane printmassa"
+
+msgid "The allowed max printed mass on a plate"
+msgstr "De maximaal toegestane printmassa op een plaat"
+
+msgid "The allowed maximum output force of Y axis"
+msgstr "De maximaal toegestane uitgangskracht van de Y-as"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "De hot-end bevindt zich in een abnormale staat en is momenteel niet beschikbaar. Ga naar 'Apparaat -> Upgrade' om de firmware bij te werken."
+
+msgid "The machine bed mass load of Y axis"
+msgstr "De massabelasting van het machinebed op de Y-as"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "De maximale volumetrische snelheid voor het rammen vóór een hot-end wissel, waarbij -1 betekent dat de maximale volumetrische snelheid wordt gebruikt."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "De maximale volumetrische snelheid voor het rammen vóór extruderwissel, waarbij -1 betekent dat de maximale volumetrische snelheid wordt gebruikt."
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "De printkop en het hot-endrek kunnen bewegen. Houd uw handen uit de buurt van de kamer."
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "Het volume materiaal dat nodig is om de extruder te primen voor een hot-end wissel op de toren."
+
+msgid "Time to change hotend."
+msgstr "Tijd om de hot-end te vervangen."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "Om druipen te voorkomen, wordt de nozzle-temperatuur tijdens het rammen afgekoeld. Opmerking: alleen een koelcommando en ventilatoractivatie worden geactiveerd, het bereiken van de doeldtemperatuur wordt niet gegarandeerd. 0 betekent uitgeschakeld."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "Om doorsijpelen te voorkomen, wordt de temperatuur van de nozzle afgekoeld tijdens het rammen. Daarom moet de rammingtijd groter zijn dan de afkoeltijd. 0 betekent uitgeschakeld."
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "Om doorsijpelen te voorkomen, zal de nozzle na het rammen gedurende een bepaalde tijd een omgekeerde beweging uitvoeren. De instelling bepaalt de rijtijd."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "Onbekende nozzle gedetecteerd. Vernieuw om bij te werken (niet-vernieuwde mondstukken worden overgeslagen bij het slicen)."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "Onbekende nozzle gedetecteerd. Vernieuw om informatie bij te werken (niet-vernieuwde nozzles worden tijdens het slicen uitgesloten). Controleer nozzle diameter en debiet tegen de weergegeven waarden."
+
+msgid "Use cooling filter"
+msgstr "Gebruik koelfilter"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "Als u de hot-end verwisselt, is het aan te raden om een bepaalde lengte filament uit de oorspronkelijke nozzle te extruderen. Dit helpt het druipen van de nozzle te minimaliseren."
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "Wanneer deze terugtrekwaarde wordt aangepast, wordt deze gebruikt als de hoeveelheid filament die binnen de hot-end wordt teruggetrokken voordat de hot-ends worden verwisseld."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "Uw printer heeft verschillende nozzles. Selecteer een spuitmondje voor deze print."
+
+msgid "length when change hotend"
+msgstr "lengte bij het verwisselen van de hot-end"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "Dynamische nozzles zijn toegewezen op de huidige plaat. Het selecteren van een hotend wordt niet ondersteund."
+
+msgid "Hotend Rack"
+msgstr "Hot-end rek"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "Hotendstatus abnormaal, momenteel niet beschikbaar. Werk de firmware bij en probeer het opnieuw."
+
+msgid "Hotends"
+msgstr "Hot-ends"
+
+msgid "Hotends Info"
+msgstr "Hot-end Informatie"
+
+msgid "Hotends on Rack"
+msgstr "Hot-ends op rek"
+
+msgid "Jump to the upgrade page"
+msgstr "Ga naar de upgradepagina"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "Opmerking: Het nummer van de hot-end op de %s is gekoppeld aan de houder. Wanneer de hot-end naar een nieuwe houder wordt verplaatst, wordt het nummer automatisch bijgewerkt."
+
+msgid "Nozzle ID"
+msgstr "Nozzle-ID"
+
+msgid "Nozzle information needs to be read"
+msgstr "Nozzle-informatie moet worden uitgelezen"
+
+msgid "Please wait"
+msgstr "Even geduld"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "Printen met de huidige nozzle kan een extra %0.2f g afval opleveren."
+
+msgid "Raised"
+msgstr "Verhoogd"
+
+msgid "Read All"
+msgstr "Alles lezen"
+
+msgid "Reading "
+msgstr "Lezen "
+
+msgid "Row A"
+msgstr "Rij A"
+
+msgid "Row B"
+msgstr "Rij B"
+
+msgid "Running..."
+msgstr "Bezig met uitvoeren..."
+
+msgid "Select Filament && Hotends"
+msgstr "Selecteer Filament && hot-ends"
+
+msgid "Standard Flow"
+msgstr "Standaardstroom"
+
+msgid "ToolHead"
+msgstr "Printkop"
+
+msgid "Toolhead"
+msgstr "Printkop"
+
+msgid "Used Time: %s"
+msgstr "Gebruikte tijd: %s"

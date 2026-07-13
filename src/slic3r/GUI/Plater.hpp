@@ -50,6 +50,7 @@ class SLAPrint;
 //BBS: add partplatelist and SlicingStatusEvent
 class PartPlateList;
 class SlicingStatusEvent;
+class BackgroundSlicingProcess;
 enum SLAPrintObjectStep : unsigned int;
 enum class ConversionType : int;
 class DevAms;
@@ -195,6 +196,8 @@ public:
     std::map<int, DynamicPrintConfig> build_filament_ams_list(MachineObject* obj);
     void sync_ams_list(bool is_from_big_sync_btn = false);
     bool sync_extruder_list();
+    bool is_fila_switch_ready();
+    void reset_fila_switch();
     bool need_auto_sync_extruder_list_after_connect_priner(const MachineObject* obj);
     void update_sync_status(const MachineObject* obj);
     int get_sidebar_pos_right_x();
@@ -205,6 +208,10 @@ public:
     // Orca
     static bool should_show_SEMM_buttons();
     void show_SEMM_buttons();
+    void enable_purge_mode_btn(bool enable);
+    // Sidebar nozzle-count badge on the extruder cards (multi-nozzle printers only).
+    void set_extruder_nozzle_count(int extruder_id, int nozzle_count);
+    void enable_nozzle_count_edit(bool enable);
     void update_dynamic_filament_list();
 
     PlaterPresetComboBox *  printer_combox();
@@ -519,6 +526,9 @@ public:
     void schedule_background_process(bool schedule = true);
     bool is_background_process_update_scheduled() const;
     void suppress_background_process(const bool stop_background_process) ;
+    // Expose the slicing process so the device GUI can read the current
+    // GCodeProcessorResult (e.g. the nozzle grouping for print-dispatch mapping).
+    BackgroundSlicingProcess& background_process();
     /* -1: send current gcode if not specified
      * -2: send all gcode to target machine */
     int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
@@ -576,7 +586,9 @@ public:
 
     void set_global_filament_map_mode(FilamentMapMode mode);
     void set_global_filament_map(const std::vector<int>& filament_map);
+    void set_global_filament_volume_map(const std::vector<int>& filament_volume_map);
     std::vector<int> get_global_filament_map() const;
+    std::vector<int> get_global_filament_volume_map() const;
     FilamentMapMode get_global_filament_map_mode() const;
 
     void update_menus();
@@ -737,6 +749,11 @@ public:
     bool get_machine_sync_status();
 
     void update_machine_sync_status();
+
+    // Rewrite every plate's per-filament volume choice for the filaments grouped onto this
+    // extruder after its Flow type changed (Hybrid resets them to Standard so the user
+    // re-assigns concrete volumes in the grouping dialog).
+    void update_filament_volume_map(int extruder_id, int volume_type);
 
 #if ENABLE_ENVIRONMENT_MAP
     void init_environment_texture();

@@ -50,6 +50,7 @@ namespace GUI {
 
 // Previous definitions
 class MessageDialog;
+class wgtDeviceNozzleRack;
 
 enum CameraRecordingStatus {
     RECORDING_NONE,
@@ -518,10 +519,15 @@ protected:
     bool            m_show_ams_group{false};
     bool            m_show_filament_group{ false };
 
+    /* AMS control box <-> live nozzle-rack panel toggle (rack printers only) */
+    SwitchBoard*    m_ams_rack_switch{ nullptr };
+
     AMSControl*     m_ams_control;
     StaticBox*      m_ams_control_box;
     wxStaticBitmap *m_ams_extruder_img;
     wxStaticBitmap* m_bitmap_extruder_img;
+
+    wgtDeviceNozzleRack* m_panel_nozzle_rack{ nullptr };
 
     wxPanel *       m_panel_separator_right;
     wxPanel *       m_panel_separotor_bottom;
@@ -611,6 +617,11 @@ public:
     void           show_ams_group(bool show = true);
     void show_filament_load_group(bool show = true);
     MediaPlayCtrl* get_media_play_ctrl() {return m_media_play_ctrl;};
+
+    void jump_to_Rack();
+
+private:
+    void on_ams_rack_switch(wxCommandEvent& event);
 };
 
 
@@ -767,6 +778,7 @@ protected:
     void update_temp_ctrl(MachineObject *obj);
     void update_misc_ctrl(MachineObject *obj);
     void update_ams(MachineObject* obj);
+    void update_rack(MachineObject* obj);
     void update_filament_loading_panel(MachineObject* obj);
 
     void update_extruder_status(MachineObject* obj);

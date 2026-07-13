@@ -46,6 +46,7 @@
 
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/MultiNozzleSync.hpp"
 #include "Widgets/SwitchButton.hpp"
 #include "Widgets/TabCtrl.hpp"
 #include "Widgets/ComboBox.hpp"
@@ -616,26 +617,25 @@ void Tab::parse_extruder_selection(int selection, int &extruder_id, NozzleVolume
     for (int i = 0; i < extruder_nums; ++i) {
         NozzleVolumeType volume_type = NozzleVolumeType(nozzle_volumes->values[i]);
 
-        // TODO: Orca: Support hybrid
-        //if (volume_type == NozzleVolumeType::nvtHybrid) {
-        //    if (selection == current_index) {
-        //        extruder_id = i;
-        //        nozzle_type = NozzleVolumeType::nvtStandard;
-        //        return;
-        //    } else if (selection == current_index + 1) {
-        //        extruder_id = i;
-        //        nozzle_type = NozzleVolumeType::nvtHighFlow;
-        //        return;
-        //    }
-        //    current_index += 2;
-        //} else {
+        if (volume_type == NozzleVolumeType::nvtHybrid) {
+            if (selection == current_index) {
+                extruder_id = i;
+                nozzle_type = NozzleVolumeType::nvtStandard;
+                return;
+            } else if (selection == current_index + 1) {
+                extruder_id = i;
+                nozzle_type = NozzleVolumeType::nvtHighFlow;
+                return;
+            }
+            current_index += 2;
+        } else {
             if (selection == current_index) {
                 extruder_id = i;
                 nozzle_type = volume_type;
                 return;
             }
             current_index += 1;
-        //}
+        }
     }
 
     extruder_id = 0;
@@ -651,17 +651,16 @@ int Tab::calculate_selection_index_for_extruder(int extruder_id, NozzleVolumeTyp
 
     for (int i = 0; i < extruder_nums; ++i) {
         if (i == extruder_id) {
-            // TODO: Orca: Support hybrid
             NozzleVolumeType volume_type = NozzleVolumeType(nozzle_volumes->values[i]);
-            /*if (volume_type == NozzleVolumeType::nvtHybrid) {
+            if (volume_type == NozzleVolumeType::nvtHybrid) {
                 return nozzle_type == NozzleVolumeType::nvtHighFlow ? index + 1 : index;
-            } else*/ {
+            } else {
                 return index;
             }
         }
 
         NozzleVolumeType volume_type = NozzleVolumeType(nozzle_volumes->values[i]);
-        index += /*(volume_type == NozzleVolumeType::nvtHybrid) ? 2 :*/ 1;
+        index += (volume_type == NozzleVolumeType::nvtHybrid) ? 2 : 1;
     }
 
     return 0;
@@ -1847,6 +1846,27 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
     if (opt_key == "enable_prime_tower") {
         auto timelapse_type = m_config->option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
         bool timelapse_enabled = timelapse_type->value == TimelapseType::tlSmooth;
+        if (!boost::any_cast<bool>(value)) {
+            // Disabling the prime tower on a multi-nozzle printer degrades quality because nozzle changes rely
+            // on it. Gate on any extruder having extruder_max_nozzle_count > 1 so single-nozzle and dual-extruder
+            // (H2D, {1,1}) printers keep their exact existing behavior.
+            // Orca: gate on any_of(count > 1) rather than the sum of counts >= 2. The sum form would also fire for
+            // H2D ({1,1} sums to 2); any_of(>1) preserves H2D's current no-dialog behavior.
+            auto *max_nozzle_counts_opt = wxGetApp().preset_bundle->printers.get_edited_preset().config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+            const bool has_multiple_nozzle = max_nozzle_counts_opt &&
+                std::any_of(max_nozzle_counts_opt->values.begin(), max_nozzle_counts_opt->values.end(),
+                            [](int v) { return v > 1 && v != ConfigOptionIntsNullable::nil_value(); });
+            if (has_multiple_nozzle) {
+                MessageDialog dlg(wxGetApp().plater(),
+                    _L("Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"),
+                    _L("Warning"), wxICON_WARNING | wxYES | wxNO);
+                if (dlg.ShowModal() == wxID_NO) {
+                    DynamicPrintConfig new_conf = *m_config;
+                    new_conf.set_key_value("enable_prime_tower", new ConfigOptionBool(true));
+                    m_config_manipulation.apply(m_config, &new_conf);
+                }
+            }
+        }
         if (!boost::any_cast<bool>(value) && timelapse_enabled) {
             bool set_enable_prime_tower = false;
             MessageDialog dlg(wxGetApp().plater(), _L("A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower\?"),
@@ -4935,8 +4955,10 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("nozzle_type", "printer_basic_information_accessory#nozzle-type");
         optgroup->append_single_option_line("nozzle_hrc", "printer_basic_information_accessory#nozzle-hrc");
         optgroup->append_single_option_line("auxiliary_fan", "printer_basic_information_accessory#auxiliary-part-cooling-fan");
+        optgroup->append_single_option_line("fan_direction");
         optgroup->append_single_option_line("support_chamber_temp_control", "printer_basic_information_accessory#support-controlling-chamber-temperature");
         optgroup->append_single_option_line("support_air_filtration", "printer_basic_information_accessory#support-air-filtration");
+        optgroup->append_single_option_line("cooling_filter_enabled");
 
         auto edit_custom_gcode_fn = [this](const t_config_option_key& opt_key) { edit_custom_gcode(opt_key); };
 
@@ -5622,7 +5644,53 @@ void TabPrinter::on_preset_loaded()
         if (use_default_nozzle_volume_type) {
             m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values = current_printer.config.option<ConfigOptionEnumsGeneric>("default_nozzle_volume_type")->values;
         }
+
+        // Changing printer model drops any Filament Track Switch context from the previous
+        // printer; clear both device-derived flags so a switch-less printer never inherits a
+        // stale installed/active state (re-derived by device sync when a printer is connected).
+        if (auto* has_switcher = m_preset_bundle->project_config.opt<ConfigOptionBool>("has_filament_switcher"))
+            has_switcher->value = false;
+        if (auto* dynamic_map = m_preset_bundle->project_config.opt<ConfigOptionBool>("enable_filament_dynamic_map"))
+            dynamic_map->value = false;
+        // Orca: also clear the sidebar switcher status icon on printer-model change (mirrors BBS's
+        // reset_fila_switch on machine change); it re-derives from device sync once a printer connects.
+        if (wxGetApp().plater())
+            wxGetApp().plater()->sidebar().reset_fila_switch();
     }
+
+    // Purge mode selection is only meaningful for printers with multiple sub-nozzles per
+    // extruder (prime saving) or fast-purge support; reset stale project values that the
+    // current printer cannot honor and toggle the sidebar button accordingly.
+    auto extruder_max_nozzle_count = current_printer.config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+    bool has_multiple_nozzle = extruder_max_nozzle_count &&
+        std::any_of(extruder_max_nozzle_count->values.begin(), extruder_max_nozzle_count->values.end(),
+                    [](int v) { return v > 1 && v != ConfigOptionIntsNullable::nil_value(); });
+    auto support_fast_purge_opt = current_printer.config.option<ConfigOptionBool>("support_fast_purge_mode");
+    bool support_fast_purge     = support_fast_purge_opt ? support_fast_purge_opt->value : false;
+    bool show_purge_mode        = has_multiple_nozzle || support_fast_purge;
+    if (auto *prime_volume_mode = m_preset_bundle->project_config.option<ConfigOptionEnum<PrimeVolumeMode>>("prime_volume_mode")) {
+        if (!show_purge_mode)
+            prime_volume_mode->value = PrimeVolumeMode::pvmDefault;
+        else if (!has_multiple_nozzle && prime_volume_mode->value == PrimeVolumeMode::pvmSaving)
+            prime_volume_mode->value = PrimeVolumeMode::pvmDefault;
+        else if (!support_fast_purge && prime_volume_mode->value == PrimeVolumeMode::pvmFast)
+            prime_volume_mode->value = PrimeVolumeMode::pvmDefault;
+    }
+    if (wxGetApp().plater())
+        wxGetApp().plater()->sidebar().enable_purge_mode_btn(show_purge_mode);
+
+    // Sidebar nozzle-count badge on the extruder cards. The `extruder_nozzle_stats` key is session-only —
+    // saved presets never carry it, so any preset switch rebuilds the edited config without it — so
+    // re-baseline it whenever it is missing (each extruder gets extruder_max_nozzle_count nozzles of its
+    // selected volume type), then refresh the badges. Idempotent, so run on every preset load.
+    if (wxGetApp().plater())
+        wxGetApp().plater()->sidebar().enable_nozzle_count_edit(has_multiple_nozzle);
+    const auto *nozzle_stats = m_preset_bundle->printers.get_edited_preset().config.option<ConfigOptionStrings>("extruder_nozzle_stats");
+    if (nozzle_stats == nullptr || nozzle_stats->values.empty())
+        seedExtruderNozzleStats(m_preset_bundle);
+    if (auto *nozzle_volume_type = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type"))
+        for (size_t idx = 0; idx < nozzle_volume_type->values.size(); ++idx)
+            updateNozzleCountDisplay(m_preset_bundle, idx, NozzleVolumeType(nozzle_volume_type->values[idx]));
 }
 
 void TabPrinter::update_pages()
@@ -5838,6 +5906,12 @@ void TabPrinter::toggle_options()
 
         const bool support_parallel_printheads = printer_cfg.opt_bool("support_parallel_printheads");
         toggle_line("parallel_printheads_count", support_parallel_printheads);
+
+        toggle_line("fan_direction", m_config->opt_bool("auxiliary_fan"));
+
+        // The cooling filter and air filtration are alternative accessories: show only the one the printer supports.
+        toggle_line("support_air_filtration", !m_config->opt_bool("support_cooling_filter"));
+        toggle_line("cooling_filter_enabled", m_config->opt_bool("support_cooling_filter"));
     }
     
 
@@ -7440,11 +7514,11 @@ wxSizer* Tab::compatible_widget_create(wxWindow* parent, PresetDependencies &dep
         }
 
         if(deps.type == Preset::TYPE_PRINTER){
-            deps.dialog_title = "Compatible printers";
-            deps.dialog_label = "Select printers";
+            deps.dialog_title = _L("Compatible printers");
+            deps.dialog_label = _L("Select printers");
         }else{
-            deps.dialog_title = "Compatible process profiles";
-            deps.dialog_label = "Select profiles";
+            deps.dialog_title = _L("Compatible process profiles");
+            deps.dialog_label = _L("Select profiles");
         }
 
         MultiChoiceDialog dlg(parent, deps.dialog_label, deps.dialog_title, presets);
@@ -7491,12 +7565,23 @@ void TabPrinter::set_extruder_volume_type(int extruder_id, NozzleVolumeType type
     auto nozzle_volumes = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
     assert(nozzle_volumes->values.size() > (size_t)extruder_id);
     nozzle_volumes->values[extruder_id] = type;
+
+    // Carry the extruder's nozzle count over to the new flow type and refresh the sidebar badge.
+    onNozzleVolumeTypeSwitch(m_preset_bundle, extruder_id, type);
+    updateNozzleCountDisplay(m_preset_bundle, extruder_id, type);
+
     on_value_change((boost::format("nozzle_volume_type#%1%") % extruder_id).str(), int(type));
 
     //save to app config
     if (!m_base_preset_name.empty()) {
-        ConfigOptionEnumsGeneric* nozzle_volume_type_option = m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
-        std::string nozzle_volume_type_str = nozzle_volume_type_option->serialize();
+        // do not save hybrid flow status to config: it depends on the nozzles currently installed
+        // on the connected printer, so it must not be restored in a later session
+        ConfigOptionEnumsGeneric nozzle_volume_type_option = *m_preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type");
+        for (size_t i = 0; i < nozzle_volume_type_option.values.size(); i++) {
+            if (nozzle_volume_type_option.values[i] == (int) nvtHybrid)
+                nozzle_volume_type_option.values[i] = (int) nvtStandard;
+        }
+        std::string nozzle_volume_type_str = nozzle_volume_type_option.serialize();
         wxGetApp().app_config->save_nozzle_volume_types_to_config(m_base_preset_name, nozzle_volume_type_str);
     }
 
@@ -7831,12 +7916,11 @@ std::vector<wxString> Tab::generate_extruder_options()
         wxString extruder_name = _L(DevPrinterConfigUtil::get_toolhead_display_name(
             pt, ext_id, ToolHeadComponent::Nozzle, ToolHeadNameCase::TitleCase, true));
         NozzleVolumeType volume_type = NozzleVolumeType(nozzle_volumes->values[i]);
-        
-        // TODO: Orca: Support hybrid
-        /*if (volume_type == NozzleVolumeType::nvtHybrid) {
+
+        if (volume_type == NozzleVolumeType::nvtHybrid) {
             options.push_back(wxString::Format(_L("%s: %s"), extruder_name, _L("Standard")));
             options.push_back(wxString::Format(_L("%s: %s"), extruder_name, _L("High Flow")));
-        } else*/ {
+        } else {
             wxString volume_name = get_nozzle_volume_type_name(volume_type);
             options.push_back(wxString::Format(_L("%s: %s"), extruder_name, volume_name));
         }
@@ -7885,36 +7969,35 @@ bool Tab::get_extruder_sync_enable_state(int extruder_id)
     if (left_nozzle == right_nozzle) {
         return true;
     }
-    
-    // TODO: Orca: Support hybrid
-    //if (left_nozzle != NozzleVolumeType::nvtHybrid && right_nozzle != NozzleVolumeType::nvtHybrid) {
-    //    return false;
-    //}
 
-    //if (left_nozzle == NozzleVolumeType::nvtHybrid && right_nozzle == NozzleVolumeType::nvtHybrid) {
-    //    return true;
-    //}
+    if (left_nozzle != NozzleVolumeType::nvtHybrid && right_nozzle != NozzleVolumeType::nvtHybrid) {
+        return false;
+    }
 
-    //// Hybrid rules
-    //auto current_nozzle = get_actual_nozzle_volume_type(extruder_id);
-    //if (left_nozzle != NozzleVolumeType::nvtHybrid) {
-    //    if (extruder_id == 0) {
-    //        return true;
-    //    }
-    //    if (extruder_id == 1 && current_nozzle == left_nozzle) {
-    //        return true;
-    //    }
-    //    return false;
-    //}
-    //if (right_nozzle != NozzleVolumeType::nvtHybrid) {
-    //    if (extruder_id == 1) {
-    //        return true;
-    //    }
-    //    if (extruder_id == 0 && current_nozzle == right_nozzle) {
-    //        return true;
-    //    }
-    //    return false;
-    //}
+    if (left_nozzle == NozzleVolumeType::nvtHybrid && right_nozzle == NozzleVolumeType::nvtHybrid) {
+        return true;
+    }
+
+    // Hybrid rules
+    auto current_nozzle = get_actual_nozzle_volume_type(extruder_id);
+    if (left_nozzle != NozzleVolumeType::nvtHybrid) {
+        if (extruder_id == 0) {
+            return true;
+        }
+        if (extruder_id == 1 && current_nozzle == left_nozzle) {
+            return true;
+        }
+        return false;
+    }
+    if (right_nozzle != NozzleVolumeType::nvtHybrid) {
+        if (extruder_id == 1) {
+            return true;
+        }
+        if (extruder_id == 0 && current_nozzle == right_nozzle) {
+            return true;
+        }
+        return false;
+    }
     return false;
 }
 

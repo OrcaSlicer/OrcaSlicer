@@ -20565,3 +20565,189 @@ msgstr ""
 #, c-format, boost-format
 #~ msgid "The selected preset: %s is not found."
 #~ msgstr "未找到所选预设：%s。"
+
+msgid "Abnormal Hotend"
+msgstr "热端异常"
+
+msgid "Available Nozzles"
+msgstr "可用喷嘴"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "注意：不支持在打印中混用不同直径的喷嘴。如果所选尺寸仅存在于一个挤出机上，将强制使用单挤出机打印。"
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "在热端升级过程中，工具头会移动。请勿将手伸入机箱内。"
+
+msgid "Enable this if printer support cooling filter"
+msgstr "开启该功能后，当腔温过高时，会自动关闭过滤以提高冷却效果"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "错误：无法将两个喷嘴数量都设置为零。"
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "错误：喷嘴数量不可以超过%d。"
+
+msgid "Extruder change"
+msgstr "挤出机更换"
+
+msgid "Hotend change"
+msgstr "热端更换"
+
+msgid "Hotend change time"
+msgstr "热端更换时间"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "热端信息可能不准确。是否重新读取热端？（断电期间热端信息可能会发生变化）。"
+
+msgid "Hybrid"
+msgstr "混合"
+
+msgid "I confirm all"
+msgstr "确认无误"
+
+msgid "Induction Hotend Rack"
+msgstr "感应热端架"
+
+msgid "Nozzle Selection"
+msgstr "喷嘴选择"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "请核对喷嘴直径和流量是否与显示值一致。"
+
+msgid "Please set nozzle count"
+msgstr "请设置喷嘴数量"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "切换喷嘴需要擦料塔，否则打印件上可能会有瑕疵。您确定要关闭擦料塔吗？"
+
+msgid "Re-read all"
+msgstr "重新读取全部"
+
+msgid "Reading the hotends, please wait."
+msgstr "正在读取热端信息，请稍候。"
+
+msgid "Refresh %d/%d..."
+msgstr "刷新 %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "同步喷嘴状态"
+
+msgid "TPU High Flow"
+msgstr "TPU高流量"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "热端状态异常，当前不可用。请前往“设备 -> 升级”升级固件。"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "热端更换前的最大预冲刷体积速度，其中 -1 表示使用最大体积速度。"
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "换出挤出机前的最大预冲刷体积速度，-1 表示使用最大体积速度。"
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "工具头和热端架可能会运动，请勿将手伸入机箱。"
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "换热端所需的擦料塔上的清理量。"
+
+msgid "Time to change hotend."
+msgstr "热端更换时间。"
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "为防止溢料，预冲刷过程中喷嘴温度会降低。注意：仅触发冷却指令并启动风扇，不保证达到目标温度。0 表示禁用。"
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "为了防止溢料，预冲刷时会降低喷嘴温度。因此，预冲刷时间必须大于冷却时间。0 表示禁用。"
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "为了防止溢料，预冲刷完成后，喷嘴会进行一段时间的反向空驶。该设置用于定义空驶时间。"
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "检测到未知喷嘴。请刷新以更新信息（未刷新的喷嘴将在切片时被排除）。"
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "检测到未知喷嘴。请刷新以更新信息（未刷新的喷嘴将在切片时被排除）。请核对喷嘴直径和流量是否与显示值一致。"
+
+msgid "Use cooling filter"
+msgstr "开启冷却过滤"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "更换热端时，建议从原热端中挤出一定长度的耗材丝。这有助于最大限度地减少喷嘴漏料。"
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "当修改此回抽数值时，将用于热端内在更换热端前回抽的耗材量。"
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "您的打印机安装了不同的喷嘴。请选择一个喷嘴进行本次打印。"
+
+msgid "length when change hotend"
+msgstr "换热端时回抽量"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "当前盘存在动态分配喷嘴，不支持修改。"
+
+msgid "Hotend Rack"
+msgstr "热端挂架"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "热端状态异常，目前不可用。请升级固件后重试。"
+
+msgid "Hotends"
+msgstr "热端"
+
+msgid "Hotends Info"
+msgstr "热端信息"
+
+msgid "Hotends on Rack"
+msgstr "热端&挂架"
+
+msgid "Jump to the upgrade page"
+msgstr "跳转至升级页面"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "注意：%s上的热端编号与刀架绑定。当热端移动至新刀架时，其编号会自动更新。"
+
+msgid "Nozzle ID"
+msgstr "喷嘴 ID"
+
+msgid "Nozzle information needs to be read"
+msgstr "需要读取喷嘴信息"
+
+msgid "Please wait"
+msgstr "请稍候"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "使用当前喷嘴打印可能会产生额外 %0.2f 克废料。"
+
+msgid "Raised"
+msgstr "已升起"
+
+msgid "Read All"
+msgstr "读取全部"
+
+msgid "Reading "
+msgstr "读取中 "
+
+msgid "Row A"
+msgstr "A排"
+
+msgid "Row B"
+msgstr "B排"
+
+msgid "Running..."
+msgstr "运行中..."
+
+msgid "Select Filament && Hotends"
+msgstr "选择材料预设和喷头"
+
+msgid "Standard Flow"
+msgstr "标准流量"
+
+msgid "ToolHead"
+msgstr "工具头"
+
+msgid "Toolhead"
+msgstr "工具头"
+
+msgid "Used Time: %s"
+msgstr "使用时间: %s"

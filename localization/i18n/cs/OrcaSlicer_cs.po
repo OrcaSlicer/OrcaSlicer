@@ -19938,3 +19938,198 @@ msgstr ""
 
 #~ msgid "°"
 #~ msgstr "°"
+
+msgid "Abnormal Hotend"
+msgstr "Hotend v neobvyklém stavu"
+
+msgid "Available Nozzles"
+msgstr "Dostupné trysky"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "Pozor: Kombinace různých průměrů trysek v jednom tisku není podporována. Pokud je zvolená velikost pouze na jednom extruderu, bude vynucen tisk jedním extruderem."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "Během aktualizace hotendu se bude tisková hlava pohybovat. Nevkládejte ruce do komory."
+
+msgid "Enable this if printer support cooling filter"
+msgstr "Povolte tuto možnost, pokud tiskárna podpěruje filtr pro chlazení"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "Chyba: Není možné nastavit počet trysek na nulu."
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "Chyba: Počet trysek nesmí překročit %d."
+
+msgid "Extruder change"
+msgstr "Výměna extruderu"
+
+msgid "Hotend change"
+msgstr "Výměna hotendu"
+
+msgid "Hotend change time"
+msgstr "Interval výměny hotendu"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "Informace o hotendu mohou být nepřesné. Chcete hotend znovu načíst? (Informace o hotendu se mohou po vypnutí změnit.)"
+
+msgid "Hybrid"
+msgstr "Hybridní"
+
+msgid "I confirm all"
+msgstr "Potvrzuji vše"
+
+msgid "Induction Hotend Rack"
+msgstr "Indukční držák hotendu"
+
+msgid "Nozzle Manual"
+msgstr "Ručně pro trysku"
+
+msgid "Nozzle Selection"
+msgstr "Výběr trysky"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "Ověřte prosím, zda požadovaný průměr trysky a průtok odpovídají aktuálně zobrazeným hodnotám."
+
+msgid "Please set nozzle count"
+msgstr "Nastavte prosím počet trysek"
+
+msgid "Preheat temperature delta"
+msgstr "Teplotní rozdíl při předehřevu"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "Věž pro oddělení trysky je vyžadována pro výměnu trysky. Bez věže pro oddělení trysky mohou být na modelu vady. Opravdu chcete zakázat věž pro oddělení trysky?"
+
+msgid "Re-read all"
+msgstr "Znovu načíst vše"
+
+msgid "Reading the hotends, please wait."
+msgstr "Načítání hotendů, prosím čekejte."
+
+msgid "Refresh %d/%d..."
+msgstr "Obnovit %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "Synchronizovat stav trysky"
+
+msgid "TPU High Flow"
+msgstr "TPU vysoký průtok"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "Teplotní rozdíl použitý během předehřevu před výměnou nástroje."
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "Hotend je v neobvyklém stavu a momentálně není k dispozici. Přejděte do 'Zařízení -> Upgrade' pro aktualizaci firmwaru."
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "Maximální objemový průtok pro natlačení před výměnou hotendu, kde -1 znamená použití maximálního objemového průtoku."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "Maximální objemová rychlost pro vytlačování před výměnou extruderu, kde -1 znamená použití maximální objemové rychlosti."
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "Tisková hlava a držák hotendu se mohou pohybovat. Držte ruce mimo komoru."
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "Objem materiálu potřebný k předplnění extruderu při výměně hotendu na věži."
+
+msgid "Time to change hotend."
+msgstr "Je čas vyměnit hotend."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "Aby se zabránilo vytékání, bude teplota trysky během natlačování snížena. Poznámka: provede se pouze příkaz k ochlazení a aktivace ventilátoru; dosažení cílové teploty není zaručeno. 0 znamená vypnuto."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "Aby se zabránilo vytékání, bude teplota trysky během natlačování snížena. Doba natlačování proto musí být delší než doba ochlazování. 0 znamená deaktivováno."
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "Aby se zabránilo vytékání, provede tryska po dokončení natlačování po určitou dobu zpětný pohyb. Toto nastavení určuje dobu pohybu."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "Zjištěna neznámá tryska. Proveďte aktualizaci (neaktualizované trysky budou při slicování přeskočeny)."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "Zjištěna neznámá tryska. Proveďte aktualizaci informací (neaktualizované trysky budou při řezání vyloučeny). Ověřte průměr trysky a průtok vzhledem k zobrazeným hodnotám."
+
+msgid "Use cooling filter"
+msgstr "Použít filtr pro chlazení"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "Při výměně hotendu se doporučuje vytlačit určitou délku filamentu ze stávající trysky. To pomáhá minimalizovat vytékání trysky."
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "Pokud se tato hodnota retrakce změní, použije se jako množství filamentu zataženého v hotendu před výměnou hotendů."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "Vaše tiskárna má nainstalované různé trysky. Vyberte prosím trysku pro tento tisk."
+
+msgid "length when change hotend"
+msgstr "délka při výměně hotendu"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "Na aktuální podložce jsou přiřazeny dynamické trysky. Výběr hotendu není podpěrován."
+
+msgid "Hotend Rack"
+msgstr "Stojan na hotend"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "Stav hotendu je abnormální a momentálně není dostupný. Aktualizujte firmware a zkuste to znovu."
+
+msgid "Hotends"
+msgstr "Hotendy"
+
+msgid "Hotends Info"
+msgstr "Informace o hotendech"
+
+msgid "Hotends on Rack"
+msgstr "Hotendy na stojanu"
+
+msgid "Jump to the upgrade page"
+msgstr "Přejít na stránku upgradu"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "Poznámka: Číslo hotendu na %s je přiřazeno k držáku. Když je hotend přesunut do nového držáku, jeho číslo se automaticky aktualizuje."
+
+msgid "Nozzle ID"
+msgstr "ID trysky"
+
+msgid "Nozzle information needs to be read"
+msgstr "Je nutné načíst informace o trysce"
+
+msgid "Please wait"
+msgstr "Prosím čekejte"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "Tisk s aktuální tryskou může vyprodukovat navíc %0.2f g odpadu."
+
+msgid "Raised"
+msgstr "Zvednuté"
+
+msgid "Read All"
+msgstr "Načíst vše"
+
+msgid "Reading "
+msgstr "Načítání "
+
+msgid "Row A"
+msgstr "Řada A"
+
+msgid "Row B"
+msgstr "Řada B"
+
+msgid "Running..."
+msgstr "Probíhá spouštění..."
+
+msgid "Select Filament && Hotends"
+msgstr "Vyberte filament a hotendy"
+
+msgid "Standard Flow"
+msgstr "Standardní průtok"
+
+msgid "ToolHead"
+msgstr "Tisková hlava"
+
+msgid "Toolhead"
+msgstr "Tisková hlava"
+
+msgid "Used Time: %s"
+msgstr "Použitý čas: %s"

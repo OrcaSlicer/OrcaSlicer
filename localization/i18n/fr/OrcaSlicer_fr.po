@@ -393,7 +393,7 @@ msgid "Reset rotation"
 msgstr "Réinitialiser la rotation"
 
 msgid "World"
-msgstr ""
+msgstr "Monde"
 
 msgid "Object"
 msgstr "Objet"
@@ -402,13 +402,13 @@ msgid "Part"
 msgstr "Pièce"
 
 msgid "Relative"
-msgstr ""
+msgstr "Relatif"
 
 msgid "Coordinate system used for transform actions."
-msgstr ""
+msgstr "Système de coordonnées utilisé pour les actions de transformation."
 
 msgid "Absolute"
-msgstr ""
+msgstr "Absolu"
 
 msgid "Reset current rotation to the value when open the rotation tool."
 msgstr "Réinitialiser la rotation actuelle à la valeur lors de l'ouverture de l'outil de rotation."
@@ -1862,31 +1862,31 @@ msgid "The version of Orca Slicer is too low and needs to be updated to the late
 msgstr "La version de OrcaSlicer est trop ancienne et doit être mise à jour vers la dernière version afin qu’il puisse être utilisé normalement."
 
 msgid "Cloud sync conflict:"
-msgstr ""
+msgstr "Conflit de synchronisation cloud :"
 
 #, c-format, boost-format
 msgid "Cloud sync conflict for preset \"%s\":"
-msgstr ""
+msgstr "Conflit de synchronisation cloud pour le préréglage « %s » :"
 
 msgid ""
 "This preset has a newer version in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
-msgstr ""
+msgstr "Ce préréglage possède une version plus récente dans OrcaCloud.\nRécupérer télécharge la copie du cloud. Forcer l’envoi l’écrase avec votre préréglage local."
 
 msgid ""
 "A preset with this name already exists in OrcaCloud.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
-msgstr ""
+msgstr "Un préréglage de ce nom existe déjà dans OrcaCloud.\nRécupérer télécharge la copie du cloud. Forcer l’envoi l’écrase avec votre préréglage local."
 
 msgid ""
 "A preset with the same name was previously deleted from the cloud.\n"
 "Delete will delete your local preset. Force push overwrites it with your local preset."
-msgstr ""
+msgstr "Un préréglage du même nom a été précédemment supprimé du cloud.\nSupprimer effacera votre préréglage local. Forcer l’envoi l’écrase avec votre préréglage local."
 
 msgid ""
 "There was an unexpected or unidentified preset conflict.\n"
 "Pull downloads the cloud copy. Force push overwrites it with your local preset."
-msgstr ""
+msgstr "Un conflit de préréglage inattendu ou non identifié s’est produit.\nRécupérer télécharge la copie du cloud. Forcer l’envoi l’écrase avec votre préréglage local."
 
 msgid ""
 "Force push will overwrite the cloud copy with your local preset changes.\n"
@@ -1899,7 +1899,7 @@ msgstr ""
 msgid ""
 "Force push will overwrite the cloud copy of preset \"%s\" with your local changes.\n"
 "Do you want to continue?"
-msgstr ""
+msgstr "Forcer l’envoi écrasera la copie cloud du préréglage « %s » avec vos modifications locales.\nVoulez-vous continuer ?"
 
 msgid "Resolve cloud sync conflict"
 msgstr "Résoudre le conflit de synchronisation cloud"
@@ -1982,7 +1982,7 @@ msgstr "Synchroniser les réglages prédéfinis de l’utilisateur"
 
 #, c-format, boost-format
 msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
-msgstr ""
+msgstr "Le préréglage « %s » est trop volumineux pour être synchronisé vers le cloud (dépasse 1 Mo). Veuillez réduire sa taille en supprimant des configurations personnalisées, ou l’utiliser uniquement en local."
 
 #, c-format, boost-format
 msgid "%s updated from %s to %s"
@@ -2192,7 +2192,7 @@ msgid "OrcaSliced Combo"
 msgstr "OrcaSliced Combo"
 
 msgid "Orca Badge"
-msgstr ""
+msgstr "Orca Badge"
 
 msgid "Orca Tolerance Test"
 msgstr "Test de tolérance Orca"
@@ -5173,7 +5173,7 @@ msgid "Outline"
 msgstr "Contour"
 
 msgid "Wireframe"
-msgstr ""
+msgstr "Fil de fer"
 
 msgid "Realistic View"
 msgstr "Vue réaliste"
@@ -7911,33 +7911,33 @@ msgid "If enabled, a parameter settings dialog will appear during STEP file impo
 msgstr "Si activé, une boîte de dialogue de paramètres apparaîtra lors de l'importation d'un fichier STEP."
 
 msgid "STEP importing: linear deflection"
-msgstr ""
+msgstr "Import STEP : déviation linéaire"
 
 msgid ""
 "Linear deflection used when meshing imported STEP files.\n"
 "Smaller values produce higher-quality meshes but increase processing time.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
 "Default: 0.003 mm."
-msgstr ""
+msgstr "Déviation linéaire utilisée lors du maillage des fichiers STEP importés.\nDes valeurs plus petites produisent des maillages de meilleure qualité mais augmentent le temps de traitement.\nUtilisée par défaut dans la fenêtre d’import, ou directement lorsque la fenêtre d’import est désactivée.\nPar défaut : 0,003 mm."
 
 msgid "STEP importing: angle deflection"
-msgstr ""
+msgstr "Import STEP : déviation angulaire"
 
 msgid ""
 "Angle deflection used when meshing imported STEP files.\n"
 "Smaller values produce higher-quality meshes but increase processing time.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
 "Default: 0.5."
-msgstr ""
+msgstr "Déviation angulaire utilisée lors du maillage des fichiers STEP importés.\nDes valeurs plus petites produisent des maillages de meilleure qualité mais augmentent le temps de traitement.\nUtilisée par défaut dans la fenêtre d’import, ou directement lorsque la fenêtre d’import est désactivée.\nPar défaut : 0,5."
 
 msgid "STEP importing: Split into multiple objects"
-msgstr ""
+msgstr "Import STEP : diviser en plusieurs objets"
 
 msgid ""
 "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
 "Default: disabled."
-msgstr ""
+msgstr "Si activé, les formes compound et compsolid des fichiers STEP importés sont divisées en plusieurs objets.\nUtilisé par défaut dans la fenêtre d’import, ou directement lorsque la fenêtre d’import est désactivée.\nPar défaut : désactivé."
 
 msgid "Quality level for Draco export"
 msgstr "Niveau de qualité pour l'exportation Draco"
@@ -7955,10 +7955,10 @@ msgstr ""
 "Des valeurs plus basses produisent des fichiers plus petits mais perdent plus de détails géométriques ; des valeurs plus élevées préservent plus de détails au prix de fichiers plus volumineux."
 
 msgid "Store full source file paths in projects"
-msgstr ""
+msgstr "Stocker les chemins complets des fichiers source dans les projets"
 
 msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
-msgstr ""
+msgstr "Si activé, les projets enregistrés stockent le chemin absolu des fichiers source importés (STEP/STL/…), afin que « Recharger à partir du disque » fonctionne toujours lorsque le fichier source est conservé dans un dossier différent du projet. Si désactivé, seul le nom du fichier est stocké, ce qui garde les projets portables et évite d’intégrer des chemins absolus."
 
 msgid "Preset"
 msgstr "Préréglage"
@@ -12294,7 +12294,7 @@ msgid "Line width of outer wall. If expressed as a %, it will be computed over t
 msgstr "Largeur de la ligne de la paroi extérieure. Si elle est exprimée en %, elle sera calculée sur le diamètre de la buse."
 
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
-msgstr "Vitesse de paroi extérieure qui est la plus à l'extérieur et visible. Elle est généralement plus lente que la vitesse de la paroi interne pour obtenir une meilleure qualité."
+msgstr "Vitesse de paroi extérieure qui est la plus à l'extérieur et visible. Elle est généralement plus lente que la vitesse de la paroi intérieure pour obtenir une meilleure qualité."
 
 msgid "Small perimeters"
 msgstr "Petits périmètres"
@@ -12309,16 +12309,16 @@ msgid "This sets the threshold for small perimeter length. Default threshold is 
 msgstr "Cela définit le seuil pour une petite longueur de périmètre. Le seuil par défaut est de 0 mm"
 
 msgid "Small support perimeters"
-msgstr ""
+msgstr "Petits périmètres de support"
 
 msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
-msgstr ""
+msgstr "Comme « Petits périmètres », mais pour les supports. Ce réglage distinct affecte la vitesse des supports pour les zones <= `small_support_perimeter_threshold`. S’il est exprimé en pourcentage (par exemple : 80 %), il est calculé à partir du réglage de vitesse des supports ou de l’interface de support ci-dessus. Réglez sur zéro pour automatique."
 
 msgid "Small support perimeters threshold"
-msgstr ""
+msgstr "Seuil des petits périmètres de support"
 
 msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr ""
+msgstr "Définit le seuil de longueur des petits périmètres de support. Le seuil par défaut est 0 mm."
 
 msgid "Walls printing order"
 msgstr "Ordre d’impression des parois"
@@ -12506,7 +12506,7 @@ msgstr ""
 "3 Entrez les triplets de valeurs PA, de débit et d’accélérations dans la zone de texte ici et sauvegardez votre profil de filament."
 
 msgid "Enable adaptive pressure advance within features (beta)"
-msgstr ""
+msgstr "Activer l’avance de pression adaptative au sein des structures (bêta)"
 
 msgid ""
 "Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
@@ -12514,17 +12514,17 @@ msgid ""
 "Not compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\n"
 "\n"
 "This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
-msgstr ""
+msgstr "Activer le PA adaptatif dès qu’il y a des changements de débit dans une structure, comme des variations de largeur de ligne dans un angle ou des surplombs.\n\nIncompatible avec les imprimantes Prusa, car elles marquent une pause pour traiter les changements de PA, ce qui cause des retards et des défauts.\n\nIl s’agit d’une option expérimentale : si le profil de PA n’est pas réglé avec précision, elle provoquera des problèmes d’uniformité."
 
 msgid "Static pressure advance for bridges"
-msgstr ""
+msgstr "Avance de pression statique pour les ponts"
 
 msgid ""
 "Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
 "equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
-msgstr ""
+msgstr "Valeur d’avance de pression statique pour les ponts. Réglez sur 0 pour appliquer la même avance de pression que \npour les parois équivalentes (en utilisant les réglages adaptatifs si activés).\n\nUne valeur de PA plus faible lors de l’impression des ponts aide à réduire l’apparition d’une légère sous-extrusion juste après les ponts. Elle est causée par la chute de pression dans la buse lors de l’impression dans le vide, et un PA plus faible aide à la contrer."
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Largeur de ligne par défaut si les autres largeurs de ligne sont fixées à 0. Si elle est exprimée en %, elle sera calculée sur le diamètre de la buse."
@@ -12897,20 +12897,20 @@ msgid "Angle for solid infill pattern, which controls the start or main directio
 msgstr "Angle pour le motif de remplissage, qui contrôle le début ou la direction principale de la ligne"
 
 msgid "Top layer direction"
-msgstr ""
+msgstr "Direction de la couche supérieure"
 
 msgid ""
 "Fixed angle for the top solid infill and ironing lines.\n"
 "Set to -1 to follow the default solid infill direction."
-msgstr ""
+msgstr "Angle fixe pour le remplissage plein supérieur et les lignes de lissage.\nRéglez sur -1 pour suivre la direction de remplissage plein par défaut."
 
 msgid "Bottom layer direction"
-msgstr ""
+msgstr "Direction de la couche inférieure"
 
 msgid ""
 "Fixed angle for the bottom solid infill lines.\n"
 "Set to -1 to follow the default solid infill direction."
-msgstr ""
+msgstr "Angle fixe pour les lignes de remplissage plein inférieur.\nRéglez sur -1 pour suivre la direction de remplissage plein par défaut."
 
 msgid "Sparse infill density"
 msgstr "Densité de remplissage"
@@ -14382,7 +14382,7 @@ msgid "This detects the overhang percentage relative to line width and uses a di
 msgstr "Détectez le pourcentage de surplomb par rapport à la largeur de la ligne et utilisez une vitesse différente pour imprimer. Pour un surplomb de 100%% la vitesse du pont est utilisée."
 
 msgid "Outer walls"
-msgstr "Parois externes"
+msgstr "Parois extérieures"
 
 msgid ""
 "Filament to print outer walls.\n"
@@ -14392,7 +14392,7 @@ msgstr ""
 "\"Défaut\" utilise le filament actif de l’objet ou de la pièce."
 
 msgid "Inner walls"
-msgstr "Parois internes"
+msgstr "Parois intérieures"
 
 msgid ""
 "Filament to print inner walls.\n"
@@ -14752,7 +14752,7 @@ msgid "Minimum number of segments of each scarf."
 msgstr "Nombre minimum de segments de chaque biseau."
 
 msgid "Scarf joint for inner walls"
-msgstr "Joint en biseau pour les parois internes"
+msgstr "Joint en biseau pour les parois intérieures"
 
 msgid "Use scarf joint for inner walls as well."
 msgstr "Utiliser également un joint en biseau pour les parois intérieures."
@@ -15740,12 +15740,12 @@ msgid "Rotate the polyhole every layer."
 msgstr "Faites pivoter le trou polygone à chaque couche."
 
 msgid "Maximum Polyhole edge count"
-msgstr ""
+msgstr "Nombre maximal d’arêtes de polyhole"
 
 msgid ""
 "Maximum number of polyhole edges\n"
 "This setting limits the amount of edges a polyhole can have"
-msgstr ""
+msgstr "Nombre maximal d’arêtes de polyhole\nCe réglage limite le nombre d’arêtes qu’un polyhole peut avoir"
 
 msgid "G-code thumbnails"
 msgstr "Vignette G-code"
@@ -19077,10 +19077,10 @@ msgid "Calculating, please wait..."
 msgstr "Calcul en cours, veuillez patienter…"
 
 msgid "Save these settings as default"
-msgstr ""
+msgstr "Enregistrer ces réglages par défaut"
 
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
-msgstr ""
+msgstr "Si activé, les valeurs ci-dessus sont stockées comme valeurs par défaut pour les futurs imports STEP (et affichées dans les Préférences)."
 
 msgid "PresetBundle"
 msgstr "Paquet de préréglages"
@@ -22201,3 +22201,337 @@ msgstr ""
 #~ "Veuillez saisir des valeurs valides :\n"
 #~ "Début > 10 intervalle >= 0\n"
 #~ "Fin > Début + Intervalle"
+
+msgid "Abnormal Hotend"
+msgstr "Hotend Anormal"
+
+msgid "Available Nozzles"
+msgstr "Buses Disponibles"
+
+msgid "Bed mass of the Y axis"
+msgstr "Masse du plateau de l'axe Y"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "Attention : Le mélange de diamètres de buses dans une même impression n'est pas pris en charge. Si la taille sélectionnée se trouve uniquement sur un extrudeur, l'impression mono-extrudeur sera appliquée."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "Pendant la mise à niveau du hotend, la tête d’outil va se déplacer. Ne mettez pas vos mains dans la chambre."
+
+msgid "Enable this if printer support cooling filter"
+msgstr "Activez cette option si l'imprimante prend en charge le filtre de refroidissement"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "Erreur : impossible de définir le nombre de buses à zéro."
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "Erreur : Le nombre de buses ne peut pas dépasser %d."
+
+msgid "Extruder change"
+msgstr "Changement d'extrudeur"
+
+msgid "Hotend change"
+msgstr "Changement de Hotend"
+
+msgid "Hotend change time"
+msgstr "Temps de changement du Hotend"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "Les informations du Hotend peuvent être inexactes. Souhaitez-vous relire le Hotend ? (Les informations du Hotend peuvent changer lors de la coupure d'alimentation)."
+
+msgid "Hybrid"
+msgstr "Hybride"
+
+msgid "I confirm all"
+msgstr "Tout confirmer"
+
+msgid "Induction Hotend Rack"
+msgstr "Rack Hotend Induction"
+
+msgid "Maximum force of the Y axis"
+msgstr "Force maximale de l'axe Y"
+
+msgid "Nozzle Manual"
+msgstr "Manuel de Bu﻿se"
+
+msgid "Nozzle Selection"
+msgstr "Sélection de Buse"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "Veuillez confirmer si le diamètre de la buse requis et le débit correspondent aux valeurs actuellement affichées."
+
+msgid "Please set nozzle count"
+msgstr "Veuillez définir le nombre de buses"
+
+msgid "Preheat temperature delta"
+msgstr "Écart de température de préchauffage"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "Une tour d'amorçage est requise pour le changement de buse. Il peut y avoir des défauts sur le modèle sans cette tour. Êtes-vous sûr de vouloir désactiver la tour d'amorçage ?"
+
+msgid "Re-read all"
+msgstr "Relire tout"
+
+msgid "Reading the hotends, please wait."
+msgstr "Lecture des hotends, veuillez patienter."
+
+msgid "Refresh %d/%d..."
+msgstr "Actualisation %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "Synchroniser Buse"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "Écart de température appliqué lors du préchauffage avant un changement d'outil."
+
+msgid "The allowed max printed mass"
+msgstr "Masse maximale imprimée autorisée"
+
+msgid "The allowed max printed mass on a plate"
+msgstr "Masse maximale imprimée autorisée sur une plaque"
+
+msgid "The allowed maximum output force of Y axis"
+msgstr "Force de sortie maximale autorisée sur l'axe Y"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "Cet hotend est dans un état anormal et est actuellement indisponible. Veuillez aller dans \"Appareil -> Mise à jour\" pour mettre à jour le firmware."
+
+msgid "The machine bed mass load of Y axis"
+msgstr "Charge massique du plateau de la machine sur l'axe Y"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "La vitesse volumétrique maximale pour l'éperonnage avant un changement de Hotend, où -1 signifie utiliser la vitesse volumétrique maximale."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "La vitesse volumétrique maximale pour l'éperonnage avant le changement d'extrudeuse, où -1 signifie utiliser la vitesse volumétrique maximale."
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "La tête d'outil et le rack hotend peuvent se déplacer. Veuillez garder vos mains hors de la chambre."
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "Le volume de matériau nécessaire pour amorcer l'extrudeur lors d'un changement de hotend sur la tourelle."
+
+msgid "Time to change hotend."
+msgstr "Il est temps de changer le Hotend."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "Pour éviter les coulures, la température de la buse sera refroidie pendant l'éperonnage. Remarque : seule une commande de refroidissement et l'activation du ventilateur sont déclenchées, l'obtention de la température cible n'est pas garantie. 0 signifie désactivé."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "Pour éviter tout suintement, la température de la buse sera réduite pendant l'éperonnage. Par conséquent, le temps d'éperonnage doit être supérieur au temps de refroidissement. 0 signifie désactivé."
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "Pour éviter le suintement, la buse effectue un mouvement inverse pendant un certain temps après la fin de l'éperonnage. Le réglage définit le temps de déplacement."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "Buse inconnue détectée. Actualisez pour mettre à jour (les buses non actualisées seront ignorées lors de la découpe)."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "Buse inconnue détectée. Actualisez pour mettre à jour les informations (les buses non actualisées seront exclues lors du découpage). Vérifiez le diamètre de la buse et le débit par rapport aux valeurs affichées."
+
+msgid "Use cooling filter"
+msgstr "Utiliser le filtre de refroidissement"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "Lors du remplacement du hotend, il est recommandé d'extruder une certaine longueur de filament à partir de la buse d'origine. Cela permet de minimiser la bavure de la buse."
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "Lorsque cette valeur de rétraction est modifiée, elle sera utilisée comme la quantité de filament rétractée à l'intérieur du hotend avant de changer de hotend."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "Votre imprimante est équipée de  différentes buses . Veuillez sélectionner une buse pour cette impression."
+
+msgid "length when change hotend"
+msgstr "longueur lors du changement de hotend"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "Les buses dynamiques sont attribuées sur la plaque actuelle. La sélection du hotend n'est pas prise en charge."
+
+msgid "Hotend Rack"
+msgstr "Rack Hotends"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "État du hotend anormal, il est indisponible pour le moment. Veuillez mettre à jour le firmware et réessayer."
+
+msgid "Hotends Info"
+msgstr "Infos Hotends"
+
+msgid "Hotends on Rack"
+msgstr "Hotends sur le Rack"
+
+msgid "Jump to the upgrade page"
+msgstr "Aller à la page de Mise à jour"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "Remarque : Le numéro du hotend sur le %s est lié au support. Lorsque le hotend est déplacé vers un nouveau support, son numéro sera mis à jour automatiquement."
+
+msgid "Nozzle ID"
+msgstr "ID de Buse"
+
+msgid "Nozzle information needs to be read"
+msgstr "Les informations de la buse doivent être lues"
+
+msgid "Please wait"
+msgstr "Veuillez patienter"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "Imprimer avec la buse actuelle peut générer %0.2f g de déchets supplémentaires."
+
+msgid "Raised"
+msgstr "Soulevée"
+
+msgid "Read All"
+msgstr "Tout Lire"
+
+msgid "Reading "
+msgstr "Lecture "
+
+msgid "Row A"
+msgstr "Rang A"
+
+msgid "Row B"
+msgstr "Rang B"
+
+msgid "Running..."
+msgstr "En cours..."
+
+msgid "Select Filament && Hotends"
+msgstr "Sélectionnez Filament && Hotends"
+
+msgid "Standard Flow"
+msgstr "Débit Standard"
+
+msgid "ToolHead"
+msgstr "Tête d'Outil"
+
+msgid "Toolhead"
+msgstr "Tête d'Outil"
+
+msgid "Used Time: %s"
+msgstr "Temps d'Usage: %s"
+
+# Orca: hardcoded GUI strings extracted (i18n FR pass)
+msgid "Rename Object"
+msgstr "Renommer l’objet"
+
+msgid "Rename Part"
+msgstr "Renommer la pièce"
+
+msgid "Paste settings"
+msgstr "Coller les réglages"
+
+msgid "Shift objects to bed"
+msgstr "Déplacer les objets sur le plateau"
+
+msgid "Object order changed"
+msgstr "Ordre des objets modifié"
+
+msgid "Layer setting added"
+msgstr "Réglage de couche ajouté"
+
+msgid "Part setting added"
+msgstr "Réglage de pièce ajouté"
+
+msgid "Object setting added"
+msgstr "Réglage d’objet ajouté"
+
+msgid "Height range settings added"
+msgstr "Réglages de plage de hauteur ajoutés"
+
+msgid "Part settings added"
+msgstr "Réglages de pièce ajoutés"
+
+msgid "Object settings added"
+msgstr "Réglages d’objet ajoutés"
+
+msgid "Load Part"
+msgstr "Charger une pièce"
+
+msgid "Load Modifier"
+msgstr "Charger un modificateur"
+
+msgid "Add primitive"
+msgstr "Ajouter une primitive"
+
+msgid "Delete Settings"
+msgstr "Supprimer les réglages"
+
+msgid "Delete part"
+msgstr "Supprimer la pièce"
+
+msgid "Merge parts to an object"
+msgstr "Fusionner les pièces en un objet"
+
+msgid "Add layers"
+msgstr "Ajouter des couches"
+
+msgid "Delete selected"
+msgstr "Supprimer la sélection"
+
+msgid "Instances to Separated Objects"
+msgstr "Séparer les instances en objets"
+
+msgid "Change Filaments"
+msgstr "Changer les filaments"
+
+msgid "Delete Object"
+msgstr "Supprimer l’objet"
+
+msgid "Delete All Objects"
+msgstr "Supprimer tous les objets"
+
+msgid "Reset Project"
+msgstr "Réinitialiser le projet"
+
+msgid "Split to Objects"
+msgstr "Scinder en objets"
+
+msgid "Replace with 3D file"
+msgstr "Remplacer par un fichier 3D"
+
+msgid "Reload all"
+msgstr "Tout recharger"
+
+msgid "Reset Cut"
+msgstr "Réinitialiser la découpe"
+
+msgid "How to trouble shooting"
+msgstr "Comment résoudre les problèmes ?"
+
+msgid "parse json failed"
+msgstr "Échec de l’analyse du JSON"
+
+msgid "Select Images"
+msgstr "Sélectionner des images"
+
+msgid "One of the presets does not exist"
+msgstr "L’un des préréglages n’existe pas."
+
+msgid "Compared presets has different printer technology"
+msgstr "Les préréglages comparés utilisent une technologie d’imprimante différente."
+
+msgid "Done."
+msgstr "Terminé."
+
+msgid "Change extruder color"
+msgstr "Changer la couleur de l’extrudeur"
+
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr "Une mise à jour est disponible. Ouvrez la boîte de dialogue du paquet de préréglages pour l’installer."
+
+msgid "Orca Slicer - Switching language failed"
+msgstr "Orca Slicer — Échec du changement de langue"
+
+msgid "Switching Orca Slicer to language %s failed."
+msgstr "Le passage d’Orca Slicer à la langue %s a échoué."
+
+msgid "\nYou may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr "\nVous devrez peut-être reconfigurer les paramètres régionaux manquants, probablement en exécutant les commandes « locale-gen » et « dpkg-reconfigure locales ».\n"
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr "Fichiers image (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr "Fichiers de configuration (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+
+msgid "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\nPlease report to PrusaSlicer team in which scenario this issue happened.\nThank you."
+msgstr "Les objets (%1%) ont des connecteurs dupliqués. Certains connecteurs risquent d’être absents du résultat du découpage.\nVeuillez signaler à l’équipe PrusaSlicer dans quel scénario ce problème est survenu.\nMerci."
