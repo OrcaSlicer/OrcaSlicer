@@ -643,7 +643,7 @@ msgid "Reset cutting plane and remove connectors"
 msgstr "Reajustar el plano de corte y retirar los conectores"
 
 msgid "Reset Cut"
-msgstr ""
+msgstr "Reiniciar corte"
 
 msgid "Perform cut"
 msgstr "Realizar corte"
@@ -687,6 +687,9 @@ msgid ""
 "Please report to PrusaSlicer team in which scenario this issue happened.\n"
 "Thank you."
 msgstr ""
+"Los objetos(%1%) tienen conectores duplicados. Es posible que falten algunos conectores en el resultado del laminado.\n"
+"Informe al equipo de PrusaSlicer sobre el escenario en el que se produjo este problema.\n"
+"Gracias."
 
 msgid "Cut by Plane"
 msgstr "Corte por plano"
@@ -2025,7 +2028,7 @@ msgid "Loading user preset"
 msgstr "Cargando perfil de usuario"
 
 msgid "There is an update available. Open the preset bundle dialog to update it."
-msgstr ""
+msgstr "Hay una actualización disponible. Abra el diálogo del paquete de perfiles para actualizarlo."
 
 #, c-format, boost-format
 msgid "%s has been removed."
@@ -2042,15 +2045,17 @@ msgstr "Idioma"
 
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
-msgstr ""
+msgstr "No se pudo cambiar Orca Slicer al idioma %s."
 
 msgid ""
 "\n"
 "You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
 msgstr ""
+"\n"
+"Puede que necesite reconfigurar las configuraciones regionales que faltan, probablemente ejecutando los comandos \"locale-gen\" y \"dpkg-reconfigure locales\".\n"
 
 msgid "Orca Slicer - Switching language failed"
-msgstr ""
+msgstr "Orca Slicer - Error al cambiar el idioma"
 
 msgid "*"
 msgstr "*"
@@ -2649,43 +2654,43 @@ msgid "Click the icon to shift this object to the bed"
 msgstr "Presionar el icono para desplazar este objeto a la cama"
 
 msgid "Rename Object"
-msgstr ""
+msgstr "Renombrar objeto"
 
 msgid "Rename Part"
-msgstr ""
+msgstr "Renombrar pieza"
 
 msgid "Paste settings"
-msgstr ""
+msgstr "Pegar ajustes"
 
 msgid "Shift objects to bed"
-msgstr ""
+msgstr "Desplazar objetos a la cama"
 
 msgid "Object order changed"
-msgstr ""
+msgstr "Orden de objetos cambiado"
 
 msgid "Layer setting added"
-msgstr ""
+msgstr "Ajuste de capa añadido"
 
 msgid "Part setting added"
-msgstr ""
+msgstr "Ajuste de pieza añadido"
 
 msgid "Object setting added"
-msgstr ""
+msgstr "Ajuste de objeto añadido"
 
 msgid "Height range settings added"
-msgstr ""
+msgstr "Ajustes de rango de altura añadidos"
 
 msgid "Part settings added"
-msgstr ""
+msgstr "Ajustes de pieza añadidos"
 
 msgid "Object settings added"
-msgstr ""
+msgstr "Ajustes de objeto añadidos"
 
 msgid "Load Part"
-msgstr ""
+msgstr "Cargar pieza"
 
 msgid "Load Modifier"
-msgstr ""
+msgstr "Cargar modificador"
 
 msgid "Loading file"
 msgstr "Cargando archivo"
@@ -2697,7 +2702,7 @@ msgid "Failed to get the model data in the current file."
 msgstr "Fallo recuperando los datos del modelo del archivo actual."
 
 msgid "Add primitive"
-msgstr ""
+msgstr "Añadir primitivo"
 
 msgid "Generic"
 msgstr "Genérico"
@@ -2712,7 +2717,7 @@ msgid "Remove paint-on fuzzy skin"
 msgstr "Eliminar la piel rugosa pintada"
 
 msgid "Delete Settings"
-msgstr ""
+msgstr "Borrar ajustes"
 
 msgid "Remove height range"
 msgstr "Borrar rango de altura"
@@ -2747,7 +2752,7 @@ msgid "Deleting the last solid part is not allowed."
 msgstr "No se permite borrar la última parte sólida."
 
 msgid "Delete part"
-msgstr ""
+msgstr "Borrar pieza"
 
 msgid "The target object contains only one part and can not be split."
 msgstr "El objeto de destino contiene solo una parte y no se puede dividir."
@@ -2759,10 +2764,10 @@ msgid "Assembly"
 msgstr "Ensamblaje"
 
 msgid "Merge parts to an object"
-msgstr ""
+msgstr "Fusionar piezas en un objeto"
 
 msgid "Add layers"
-msgstr ""
+msgstr "Añadir capas"
 
 msgid "Cut Connectors information"
 msgstr "Información de Conectores de Corte"
@@ -2795,7 +2800,7 @@ msgid "Settings for height range"
 msgstr "Ajustes de rango de altura"
 
 msgid "Delete selected"
-msgstr ""
+msgstr "Borrar seleccionado"
 
 msgid "Layer"
 msgstr "Capa"
@@ -2819,7 +2824,7 @@ msgid "Choose part type"
 msgstr "Elija el tipo de pieza"
 
 msgid "Instances to Separated Objects"
-msgstr ""
+msgstr "Instancias a objetos separados"
 
 msgid "Enter new name"
 msgstr "Introduce un nuevo nombre"
@@ -2849,7 +2854,7 @@ msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "La malla de la pieza \"%s\" contiene errores. Por favor, repárela primero."
 
 msgid "Change Filaments"
-msgstr ""
+msgstr "Cambiar filamentos"
 
 msgid "Additional process preset"
 msgstr "Perfil de proceso adicional"
@@ -3235,7 +3240,7 @@ msgid "Launch troubleshoot center"
 msgstr "Abrir el centro de resolución de problemas"
 
 msgid "Done."
-msgstr ""
+msgstr "Hecho."
 
 msgid ""
 "All the selected objects are on a locked plate.\n"
@@ -5939,7 +5944,7 @@ msgid "Select profile to load:"
 msgstr "Seleccionar perfil a cargar:"
 
 msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
-msgstr ""
+msgstr "Archivos de configuración (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
 
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
@@ -6534,10 +6539,10 @@ msgid "Delete Photo"
 msgstr "Borrar Foto"
 
 msgid "Select Images"
-msgstr ""
+msgstr "Seleccionar imágenes"
 
 msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
-msgstr ""
+msgstr "Archivos de imagen (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
 
 msgid "Submit"
 msgstr "Aceptar"
@@ -7406,19 +7411,19 @@ msgstr ""
 "Después de eso la consistencia del modelo no puede ser garantizada."
 
 msgid "Delete Object"
-msgstr ""
+msgstr "Borrar objeto"
 
 msgid "Delete All Objects"
-msgstr ""
+msgstr "Borrar todos los objetos"
 
 msgid "Reset Project"
-msgstr ""
+msgstr "Reiniciar proyecto"
 
 msgid "The selected object couldn't be split."
 msgstr "El objeto seleccionado no ha podido ser dividido."
 
 msgid "Split to Objects"
-msgstr ""
+msgstr "Separar en objetos"
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "¿Desactivar la caída automática para mantener la posición en el eje Z?\n"
@@ -7445,7 +7450,7 @@ msgid "File for the replacement wasn't selected"
 msgstr "El archivo de reemplazo no ha sido seleccionado"
 
 msgid "Replace with 3D file"
-msgstr ""
+msgstr "Reemplazar con archivo 3D"
 
 msgid "Select folder to replace from"
 msgstr "Seleccionar carpeta desde la que reemplazar"
@@ -7494,7 +7499,7 @@ msgid "Error during reload"
 msgstr "Error durante la recarga"
 
 msgid "Reload all"
-msgstr ""
+msgstr "Recargar todo"
 
 msgid "There are warnings after slicing models:"
 msgstr "Hay alertas después de laminar los modelos:"
@@ -8272,6 +8277,9 @@ msgid ""
 "\n"
 "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
 msgstr ""
+"Aplica normales suavizadas al modelo.\n"
+"\n"
+"Requiere recargar manualmente la escena para que surta efecto (clic derecho en la vista 3D → «Recargar todo»)."
 
 msgid "Phong shading"
 msgstr "Sombreado Phong"
@@ -8289,7 +8297,7 @@ msgid "Shadows"
 msgstr "Sombras"
 
 msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
-msgstr ""
+msgstr "Renderiza sombras proyectadas sobre la cama, sobre otros objetos y de cada objeto sobre sí mismo en la vista realista."
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -8598,7 +8606,7 @@ msgid "Edit preset"
 msgstr "Editar ajuste"
 
 msgid "Change extruder color"
-msgstr ""
+msgstr "Cambiar color del extrusor"
 
 msgid "Unspecified"
 msgstr "No especificado"
@@ -10067,10 +10075,10 @@ msgid "If enabled, this dialog can be used for transfer selected values from lef
 msgstr "Si se activa, este cuadro de diálogo se puede utilizar para transferir los valores seleccionados de los perfiles de la izquierda a la los de la derecha."
 
 msgid "One of the presets does not exist"
-msgstr ""
+msgstr "Uno de los perfiles no existe"
 
 msgid "Compared presets has different printer technology"
-msgstr ""
+msgstr "Los perfiles comparados tienen distinta tecnología de impresora"
 
 msgid "Add File"
 msgstr "Añadir archivo"
@@ -10328,7 +10336,7 @@ msgid "Successfully synchronized nozzle and AMS number information."
 msgstr "Información de boquilla y número AMS sincronizada con éxito."
 
 msgid "Do you want to continue to sync filaments?"
-msgstr ""
+msgstr "¿Desea continuar sincronizando filamentos?"
 
 msgid "Successfully synchronized filament color from printer."
 msgstr "Color de filamento sincronizado desde la impresora con éxito."
@@ -10434,7 +10442,7 @@ msgid "Login failed. Please try again."
 msgstr "El inicio de sesión ha fallado. Inténtalo de nuevo."
 
 msgid "parse json failed"
-msgstr ""
+msgstr "error al analizar el json"
 
 msgid "[Action Required] "
 msgstr "[Acción requerida] "
@@ -10743,7 +10751,7 @@ msgid "Where to find your printer's IP and Access Code?"
 msgstr "¿Dónde encontrar la IP de su impresora y el Código de Acceso?"
 
 msgid "How to trouble shooting"
-msgstr ""
+msgstr "Cómo resolver problemas"
 
 msgid "Connect"
 msgstr "Conectar"
@@ -11607,6 +11615,14 @@ msgid ""
 "\n"
 "Use 180° for zero absolute angle."
 msgstr ""
+"Anulación del ángulo de puente externo.\n"
+"Si se deja en cero, el ángulo de puente se calculará automáticamente para cada puente específico.\n"
+"De lo contrario, el ángulo indicado se utilizará según:\n"
+" - Las coordenadas absolutas\n"
+" - Las coordenadas absolutas + rotación del modelo: si «Alinear direcciones al modelo» está activado\n"
+" - El ángulo automático óptimo + este valor: si «Ángulo de puente relativo» está activado\n"
+"\n"
+"Use 180° para un ángulo absoluto de cero."
 
 msgid "Internal bridge infill direction"
 msgstr "Dirección de relleno de puentes internos"
@@ -11621,6 +11637,14 @@ msgid ""
 "\n"
 "Use 180° for zero absolute angle."
 msgstr ""
+"Anulación del ángulo de puente interno.\n"
+"Si se deja en cero, el ángulo de puente se calculará automáticamente para cada puente específico.\n"
+"De lo contrario, el ángulo indicado se utilizará según:\n"
+" - Las coordenadas absolutas\n"
+" - Las coordenadas absolutas + rotación del modelo: si «Alinear direcciones al modelo» está activado\n"
+" - El ángulo automático óptimo + este valor: si «Ángulo de puente relativo» está activado\n"
+"\n"
+"Use 180° para un ángulo absoluto de cero."
 
 msgid "Relative bridge angle"
 msgstr "Ángulo de puente relativo"
@@ -12388,24 +12412,29 @@ msgid "Density of top surface layer. A value of 100% creates a fully solid, smoo
 msgstr "Densidad de la capa superficial superior. Un valor de 100% crea una capa superior totalmente sólida y lisa. Reducir este valor produce una superficie superior texturada, según el patrón elegido. Un valor de 0% provocará que sólo se creen las paredes en la capa superior. Destinado a fines estéticos o funcionales, no para corregir problemas como la sobreextrusión."
 
 msgid "Top surface expansion"
-msgstr ""
+msgstr "Expansión de la superficie superior"
 
 msgid ""
 "Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
 "Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
 msgstr ""
+"Expande las superficies superiores esta distancia para conectar superficies superiores distintas y rellenar huecos.\n"
+"Útil en casos en los que la superficie superior queda interrumpida por un elemento en relieve, como texto sobre un plano. Al expandirla se eliminan los huecos bajo estos elementos y se crea un trazado continuo con un mejor acabado para imprimir encima. La expansión se aplica a la superficie superior original, antes de cualquier otro procesamiento como el puenteo o la detección de salientes."
 
 msgid "Top expansion wall margin"
-msgstr ""
+msgstr "Margen de perímetro de la expansión superior"
 
 msgid ""
 "Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
 "This can cause contraction marks (such as the hull line) on the outer walls.\n"
 "By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
 msgstr ""
+"Usar «Expansión de la superficie superior» puede hacer que una superficie que antes no tocaba los perímetros exteriores del modelo ahora sí lo haga.\n"
+"Esto puede provocar marcas de contracción (como la línea del casco) en los perímetros exteriores.\n"
+"Al añadir un pequeño margen, esta contracción no se producirá directamente sobre los perímetros, evitando así una marca visible."
 
 msgid "Top expansion direction"
-msgstr ""
+msgstr "Dirección de la expansión superior"
 
 msgid ""
 "Direction in which the top surface expansion grows.\n"
@@ -12413,15 +12442,19 @@ msgid ""
 " - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
 " - Inward and Outward does both."
 msgstr ""
+"Dirección en la que crece la expansión de la superficie superior.\n"
+" - Hacia dentro crece en los huecos y espacios que dejan los elementos que se elevan desde el centro de una superficie superior.\n"
+" - Hacia fuera crece en el borde exterior de la superficie, conectando superficies separadas por elementos que pueden dividir una superficie, como un patrón de enrejado.\n"
+" - Hacia dentro y hacia fuera hace ambas cosas."
 
 msgid "Inward and Outward"
-msgstr ""
+msgstr "Hacia dentro y hacia fuera"
 
 msgid "Inward"
-msgstr ""
+msgstr "Hacia dentro"
 
 msgid "Outward"
-msgstr ""
+msgstr "Hacia fuera"
 
 msgid "Bottom surface pattern"
 msgstr "Patrón de relleno de cubierta inferior"
@@ -13088,12 +13121,14 @@ msgid "Density of internal sparse infill, 100% turns all sparse infill into soli
 msgstr "Densidad del relleno de baja densidad interno, el 100% convierte el relleno de baja densidad en relleno sólido y se utilizará el patrón de relleno sólido interno."
 
 msgid "Align directions to model"
-msgstr ""
+msgstr "Alinear direcciones al modelo"
 
 msgid ""
 "Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
 "When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
+"Alinea las direcciones de relleno, puente, alisado y superficie superior/inferior para que sigan la orientación del modelo sobre la cama de impresión.\n"
+"Cuando está activado, estas direcciones giran junto con el modelo, de modo que los elementos impresos mantienen su orientación prevista respecto a la pieza, conservando la resistencia y las características de superficie óptimas independientemente de cómo se coloque el modelo."
 
 msgid "Insert solid layers"
 msgstr "Insertar capas sólidas"
@@ -15184,16 +15219,19 @@ msgid "If enabled, all printing extruders will be primed at the front edge of th
 msgstr "Sí se activa, todos los extrusores serán purgados en el frontal de la cama de impresión al inicio de la impresión."
 
 msgid "Toolchange ordering"
-msgstr ""
+msgstr "Orden de cambios de herramienta"
 
 msgid ""
 "Determines the order of tool changes on each layer.\n"
 "- Default: Starts with the last used extruder to minimize tool changes.\n"
 "- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
 msgstr ""
+"Determina el orden de los cambios de herramienta en cada capa.\n"
+"- Por defecto: Comienza con el último extrusor utilizado para minimizar los cambios de herramienta.\n"
+"- Cíclico: Utiliza una secuencia de herramientas fija en cada capa. Esto sacrifica velocidad a cambio de una mejor calidad de superficie, ya que los cambios de herramienta adicionales dan más tiempo a las capas para enfriarse."
 
 msgid "Cyclic"
-msgstr ""
+msgstr "Cíclico"
 
 msgid "Slice gap closing radius"
 msgstr "Radio de cierre de laminado"
@@ -15632,7 +15670,7 @@ msgid "The number of top solid layers is increased when slicing if the thickness
 msgstr "El número de capas sólidas superiores se incrementa al laminar si el espesor calculado por las capas de la cubierta es más delgado que este valor. Esto puede evitar tener una cubierta demasiado fina cuando la altura de la capa es pequeña. 0 significa que este ajuste está desactivado y el grosor de la capa superior está absolutamente determinado por las capas de la cubierta superior."
 
 msgid "Anisotropic surfaces"
-msgstr ""
+msgstr "Superficies anisótropas"
 
 msgid ""
 "Anisotropic patterns on the top and bottom surfaces.\n"
@@ -15640,9 +15678,13 @@ msgid ""
 "This option disable the gap fill.\n"
 "This option can increase a printing time."
 msgstr ""
+"Patrones anisótropos en las superficies superior e inferior.\n"
+"Se aplicará el modo de impresión codireccional. Para ciertos patrones, el relleno omnidireccional proporciona dispersión del color al usar plásticos multicolor o de tipo seda.\n"
+"Esta opción desactiva el relleno de huecos.\n"
+"Esta opción puede aumentar el tiempo de impresión."
 
 msgid "Separated infills"
-msgstr ""
+msgstr "Rellenos separados"
 
 msgid ""
 "Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
@@ -15650,9 +15692,13 @@ msgid ""
 "Affects line and grid patterns and rotation-template infills.\n"
 "Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
 msgstr ""
+"Centra el relleno interno de cada pieza sobre sí misma, como si se laminara por separado, en lugar de sobre todo el conjunto. Las piezas que se tocan o se superponen se tratan como un solo cuerpo y comparten un centro; las piezas separadas (u objetos 3D distintos) tienen cada una el suyo.\n"
+"Útil cuando un conjunto agrupa varios objetos que deben mantener cada uno un relleno coherente y autocentrado.\n"
+"Afecta a los patrones de línea y cuadrícula y a los rellenos con plantilla de rotación.\n"
+"Los patrones anclados a coordenadas globales (Giroide, Panal, TPMS, ...) no se ven afectados."
 
 msgid "Center surface pattern on"
-msgstr ""
+msgstr "Centrar el patrón de superficie en"
 
 msgid ""
 "Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
@@ -15660,15 +15706,19 @@ msgid ""
 " - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
 " - Each Assembly: uses a single shared center for the whole object or assembly."
 msgstr ""
+"Elige dónde se sitúa el punto de centrado de los patrones centrados de superficie superior/inferior (Espiral de Arquímedes, Espiral Octagonal).\n"
+" - Cada superficie: centra el patrón en cada región de superficie individual, de modo que cada isla es simétrica por sí misma.\n"
+" - Cada modelo: centra el patrón en cada cuerpo conectado. Las piezas que se tocan o se superponen comparten un centro; las piezas separadas del resto tienen cada una el suyo.\n"
+" - Cada conjunto: usa un único centro compartido para todo el objeto o conjunto."
 
 msgid "Each Surface"
-msgstr ""
+msgstr "Cada superficie"
 
 msgid "Each Model"
-msgstr ""
+msgstr "Cada modelo"
 
 msgid "Each Assembly"
-msgstr ""
+msgstr "Cada conjunto"
 
 msgid "This is the speed at which traveling is done."
 msgstr "Velocidad de desplazamiento más rápida y sin extrusión."
