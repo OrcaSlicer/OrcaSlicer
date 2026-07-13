@@ -79,7 +79,7 @@ jobs:
               throw error;
             }
 
-  localization-glossary-reminder:
+  localization-pr:
     if: github.event_name == 'pull_request_target'
     permissions:
       contents: read
@@ -87,7 +87,7 @@ jobs:
       issues: write
     runs-on: ubuntu-latest
     steps:
-      - name: Remind about the localization glossary
+      - name: Auto-label and remind about the localization glossary
         uses: actions/github-script@v9
         with:
           script: |
@@ -97,7 +97,7 @@ jobs:
 
             const pr = context.payload.pull_request;
 
-            // Detect translation changes (mirrors the `localization/**` paths filter in check_locale.yml)
+            // List changed files once (mirrors the `localization/**` paths filter in check_locale.yml)
             const files = await github.paginate(github.rest.pulls.listFiles, {
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -105,6 +105,27 @@ jobs:
               per_page: 100
             });
             const touchesLocalization = files.some((file) => file.filename.startsWith('localization/'));
+            const onlyPoFiles = files.length > 0 && files.every((file) => file.filename.endsWith('.po'));
+
+            // If the PR changes only .po files, automatically apply the Localization label
+            if (onlyPoFiles) {
+              try {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  labels: ['Localization']
+                });
+                core.info('Applied Localization label (PR changes only .po files).');
+              } catch (error) {
+                if (isPermissionDenied(error)) {
+                  core.warning('Cannot add Localization label because token cannot write.');
+                } else {
+                  throw error;
+                }
+              }
+            }
+
             if (!touchesLocalization) {
               core.info('No localization changes detected; skipping glossary reminder.');
               return;
