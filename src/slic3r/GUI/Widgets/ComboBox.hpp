@@ -80,10 +80,12 @@ public:
 
     wxBitmap GetItemBitmap(unsigned int n);
     void     SetItemBitmap(unsigned int n, wxBitmap const &bitmap);
+    void     SetItemActionBitmap(unsigned int n, wxBitmap const &bitmap);
     bool     is_drop_down(){return drop_down;}
     void     DeleteOneItem(unsigned int pos) { DoDeleteOneItem(pos); }
 
     void ForceDropdownOpen();
+    void RefreshDropdownIfOpen();
 
 protected:
     virtual int  DoInsertItems(const wxArrayStringsAdapter &items,

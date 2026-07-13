@@ -13,6 +13,7 @@
 #include <set>
 
 wxDEFINE_EVENT(EVT_DISMISS, wxCommandEvent);
+wxDEFINE_EVENT(EVT_DROPDOWN_ITEM_ACTION, wxCommandEvent);
 
 BEGIN_EVENT_TABLE(DropDown, PopupWindow)
 
@@ -225,6 +226,29 @@ static wxSize GetBmpSize(wxBitmap & bmp)
 #endif
 }
 
+wxSize DropDown::actionIconSize() const
+{
+    wxSize size;
+    std::set<wxString> groups;
+    for (const Item& item : items) {
+        if (group.IsEmpty()) {
+            if (!item.group_key.IsEmpty()) {
+                if (groups.find(item.group_key) != groups.end())
+                    continue;
+                groups.insert(item.group_key);
+            }
+        } else if (item.group_key != group) {
+            continue;
+        }
+
+        wxBitmap icon = item.action_icon;
+        wxSize icon_size = GetBmpSize(icon);
+        size.x = std::max(size.x, icon_size.x);
+        size.y = std::max(size.y, icon_size.y);
+    }
+    return size;
+}
+
 static void _DrawSplitItem(const wxWindow* w, wxDC& dc, wxString split_text, wxPoint start_pt, int item_width, int item_height)
 {
     // save dc
@@ -354,6 +378,9 @@ void DropDown::render(wxDC &dc)
         rcContent.width -= szBmp.x + 5;
     }
 
+    const wxSize action_icon_size = actionIconSize();
+    const int action_column_width = action_icon_size.x > 0 ? action_icon_size.x + FromDIP(16) : 0;
+
     std::set<wxString> groups;
     // draw texts & icons
     int index = 0;
@@ -392,6 +419,7 @@ void DropDown::render(wxDC &dc)
         }
         if (rcContent.y > size.y) break;
         wxPoint pt   = rcContent.GetLeftTop();
+        int rcContent_width = rcContent.width;
 
         if (item.style & DD_ITEM_STYLE_SPLIT_ITEM) {
             _DrawSplitItem(this, dc, item.text, pt, rowSize.GetWidth(), rowSize.GetHeight());
@@ -417,13 +445,27 @@ void DropDown::render(wxDC &dc)
         auto text = group.IsEmpty()
                         ? (item.group_key.IsEmpty() ? item.text : item.group_label)
                         : item.text;
+        if (action_column_width > 0)
+            rcContent.width -= action_column_width;
+
+        if (item.action_icon.IsOk()) {
+            auto action_size = GetBmpSize(item.action_icon);
+            wxPoint action_pt(rcContent.x + rcContent_width - action_size.x - FromDIP(8),
+                              rcContent.y + (rcContent.height - action_size.y) / 2);
+            dc.DrawBitmap(item.action_icon, action_pt);
+        }
+
         if (!text_off && !text.IsEmpty()) {
             wxSize tSize = dc.GetMultiLineTextExtent(text);
             if (pt.x + tSize.x > rcContent.GetRight()) {
-                if (is_hover && item.tip.IsEmpty())
-                    SetToolTip(text);
-                text = wxControl::Ellipsize(text, dc, wxELLIPSIZE_END,
-                                            rcContent.GetRight() - pt.x);
+                int max_text_width = rcContent.GetRight() - pt.x;
+                if (max_text_width <= 0) {
+                    text.clear();
+                } else {
+                    if (is_hover && item.tip.IsEmpty())
+                        SetToolTip(text);
+                    text = wxControl::Ellipsize(text, dc, wxELLIPSIZE_END, max_text_width);
+                }
             }
             pt.y += (rcContent.height - textSize.y) / 2;
             dc.SetFont(GetFont());
@@ -436,6 +478,7 @@ void DropDown::render(wxDC &dc)
                 dc.DrawBitmap(arrow_bitmap.bmp(), pt);
             }
         }
+        rcContent.width = rcContent_width;
         rcContent.y += rowSize.y;
     }
 }
@@ -545,6 +588,8 @@ void DropDown::messureSize()
                 size1.x += size2.x + (text_off ? 0 : 5);
             }
         }
+        if (item.action_icon.IsOk())
+            size1.x += GetBmpSize(item.action_icon).x + FromDIP(16);
         if (size1.x > textSize.x) textSize = size1;
     }
     if (!align_icon) iconSize.x = 0;
@@ -612,6 +657,11 @@ void DropDown::messureSize()
         });
 #endif
         subDropDown->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent &e) {
+            e.SetEventObject(this);
+            e.SetId(GetId());
+            GetEventHandler()->ProcessEvent(e);
+        });
+        subDropDown->Bind(EVT_DROPDOWN_ITEM_ACTION, [this](wxCommandEvent &e) {
             e.SetEventObject(this);
             e.SetId(GetId());
             GetEventHandler()->ProcessEvent(e);
@@ -694,6 +744,19 @@ void DropDown::mouseReleased(wxMouseEvent& event)
         if (hover_item < 0)
             return;
         if (hover_item >= 0 && (subDropDown == nullptr || subDropDown->group.empty())) { // not moved
+            int index = hoverIndex();
+            if (index >= 0 && items[index].action_icon.IsOk()) {
+                wxSize action_size = actionIconSize();
+                int action_right = GetSize().x;
+                if (rowSize.y * count > GetSize().y)
+                    action_right -= 6;
+                int action_left = action_right - action_size.x - FromDIP(16);
+                if (event.GetX() >= action_left && event.GetX() <= action_right) {
+                    sendDropDownActionEvent(index);
+                    paintNow();
+                    return;
+                }
+            }
             sendDropDownEvent();
             if (mainDropDown)
                 mainDropDown->hover_item = -1; // To Dismiss mainDropDown
@@ -804,6 +867,17 @@ void DropDown::sendDropDownEvent()
     if (index < 0 || (items[index].style & DD_ITEM_STYLE_DISABLED))
         return;
     wxCommandEvent event(wxEVT_COMBOBOX, GetId());
+    event.SetEventObject(this);
+    event.SetInt(index);
+    event.SetString(items[index].text);
+    GetEventHandler()->ProcessEvent(event);
+}
+
+void DropDown::sendDropDownActionEvent(int index)
+{
+    if (index < 0 || index >= int(items.size()) || (items[index].style & DD_ITEM_STYLE_DISABLED))
+        return;
+    wxCommandEvent event(EVT_DROPDOWN_ITEM_ACTION, GetId());
     event.SetEventObject(this);
     event.SetInt(index);
     event.SetString(items[index].text);

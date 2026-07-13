@@ -15,6 +15,7 @@
 #define DD_ITEM_STYLE_DISABLED    0x0002 // ----text----, text with horizontal line arounds
 
 wxDECLARE_EVENT(EVT_DISMISS, wxCommandEvent);
+wxDECLARE_EVENT(EVT_DROPDOWN_ITEM_ACTION, wxCommandEvent);
 
 class DropDown : public PopupWindow
 {
@@ -25,6 +26,7 @@ public:
         wxString text_static_tips;// display static tips for TextInput.eg.PrinterInfoBox
         wxBitmap icon;
         wxBitmap icon_textctrl;// display icon for TextInput.eg.PrinterInfoBox
+        wxBitmap action_icon;
         void *   data{nullptr};
         wxString group_key{};
         wxString group_label{};
@@ -123,6 +125,7 @@ private:
     int hoverIndex();
 
     int selectedItem();
+    wxSize actionIconSize() const;
 
     friend class ComboBox;
     void messureSize();
@@ -136,6 +139,7 @@ private:
     void mouseWheelMoved(wxMouseEvent &event);
 
     void sendDropDownEvent();
+    void sendDropDownActionEvent(int index);
 
 
     DECLARE_EVENT_TABLE()

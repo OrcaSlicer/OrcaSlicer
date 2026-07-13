@@ -69,6 +69,11 @@ ComboBox::ComboBox(wxWindow *parent,
         e.SetId(GetId());
         GetEventHandler()->ProcessEvent(e);
     });
+    drop.Bind(EVT_DROPDOWN_ITEM_ACTION, [this](wxCommandEvent &e) {
+        e.SetEventObject(this);
+        e.SetId(GetId());
+        GetEventHandler()->ProcessEvent(e);
+    });
     drop.Bind(EVT_DISMISS, [this](auto &) {
         drop_down = false;
         wxCommandEvent e(wxEVT_COMBOBOX_CLOSEUP);
@@ -222,7 +227,7 @@ int ComboBox::Append(const wxString &text,
                      int style)
 {
     auto valid_bit_map = (&bitmap && bitmap.IsOk()) ? bitmap : wxNullBitmap;
-    Item item{text, wxEmptyString, valid_bit_map, valid_bit_map, clientData, group_key, group_label};
+    Item item{text, wxEmptyString, valid_bit_map, valid_bit_map, wxNullBitmap, clientData, group_key, group_label};
     item.style = style;
     items.push_back(item);
     SetClientDataType(wxClientData_Void);
@@ -266,6 +271,27 @@ void ComboBox::ForceDropdownOpen()
         wxCommandEvent e(wxEVT_COMBOBOX_DROPDOWN);
         GetEventHandler()->ProcessEvent(e);
     }
+}
+
+void ComboBox::RefreshDropdownIfOpen()
+{
+    if (!drop_down)
+        return;
+
+    drop.hover_item = -1;
+    drop.offset = wxPoint();
+    if (drop.subDropDown) {
+        drop.subDropDown->group.clear();
+        drop.subDropDown->hover_item = -1;
+        drop.subDropDown->offset = wxPoint();
+        if (drop.subDropDown->IsShown())
+            drop.subDropDown->Dismiss();
+    }
+
+    drop.need_sync = true;
+    drop.messureSize();
+    drop.autoPosition();
+    drop.paintNow();
 }
 
 unsigned int ComboBox::GetCount() const { return items.size(); }
@@ -321,6 +347,13 @@ void ComboBox::SetItemBitmap(unsigned int n, wxBitmap const &bitmap)
     drop.Invalidate();
 }
 
+void ComboBox::SetItemActionBitmap(unsigned int n, wxBitmap const &bitmap)
+{
+    if (n >= items.size()) return;
+    items[n].action_icon = (&bitmap && bitmap.IsOk()) ? bitmap : wxNullBitmap;
+    drop.Invalidate();
+}
+
 int ComboBox::DoInsertItems(const wxArrayStringsAdapter &items,
                             unsigned int                 pos,
                             void **                      clientData,
@@ -328,7 +361,7 @@ int ComboBox::DoInsertItems(const wxArrayStringsAdapter &items,
 {
     if (pos > this->items.size()) return -1;
     for (int i = 0; i < items.GetCount(); ++i) {
-        Item item { items[i], wxEmptyString, wxNullBitmap, wxNullBitmap, clientData ? clientData[i] : NULL };
+        Item item { items[i], wxEmptyString, wxNullBitmap, wxNullBitmap, wxNullBitmap, clientData ? clientData[i] : NULL };
         this->items.insert(this->items.begin() + pos, item);
         ++pos;
     }

@@ -139,6 +139,7 @@ protected:
     void create_panel_kn(wxWindow* parent);
     void on_dpi_changed(const wxRect &suggested_rect) override;
     void on_select_filament(wxCommandEvent& evt);
+    void on_toggle_favorite_filament(wxCommandEvent& evt);
     void on_select_cali_result(wxCommandEvent &evt);
     void on_select_ok(wxCommandEvent &event);
     void on_select_reset(wxCommandEvent &event);
@@ -146,6 +147,10 @@ protected:
     void on_clr_picker(wxMouseEvent &event);
     bool is_virtual_tray();
     void update_widgets();
+    void rebuild_filament_dropdown_items(const std::string& selected_filament_id);
+    std::set<std::string> load_favorite_filament_ids() const;
+    void save_favorite_filament_ids(const std::set<std::string>& favorite_ids);
+    void toggle_favorite_filament(const std::string& filament_id);
 
     void update_filament_editing(bool is_printing);
 
@@ -183,11 +188,7 @@ protected:
 
     int m_pa_cali_select_id = 0;
 
-#ifdef __APPLE__
-    wxComboBox *m_comboBox_filament;
-#else
     ComboBox *m_comboBox_filament;
-#endif
     ComboBox * m_comboBox_cali_result;
     TextInput*       m_readonly_filament;
 
@@ -195,7 +196,15 @@ protected:
         std::string filament_id;
         std::string setting_id;
     };
+    struct FilamentListItem {
+        FilamentInfos filament;
+        bool          is_filament{false};
+    };
+    const FilamentInfos* selected_filament_info() const;
+
     std::map<std::string, FilamentInfos> map_filament_items;
+    std::vector<wxString>                m_sorted_filament_items;
+    std::vector<FilamentListItem>        m_filament_list_items;
 };
 
 wxDECLARE_EVENT(EVT_SELECTED_COLOR, wxCommandEvent);
