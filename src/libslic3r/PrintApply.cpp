@@ -1237,8 +1237,16 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     {
         auto* pem = new_full_config.option<ConfigOptionInts>("physical_extruder_map", true);
         const auto* pei = new_full_config.option<ConfigOptionInts>("printer_extruder_id");
-        if (pem)
+        if (pem) {
             pem->values = effective_physical_extruder_map(pem, pei).values;
+            // m_ori_full_print_config was snapshotted above, before this derivation, and the
+            // selector write-back path rebuilds m_full_print_config from that snapshot. Without
+            // mirroring the derived map into it, m_full_print_config keeps the unexpanded default
+            // while every later apply re-derives the expanded one, so an unchanged config diffs
+            // on physical_extruder_map forever and invalidates all steps on every re-apply.
+            if (auto* ori_pem = m_ori_full_print_config.option<ConfigOptionInts>("physical_extruder_map", true))
+                ori_pem->values = pem->values;
+        }
     }
 
     auto opt_filament_map = new_full_config.option<ConfigOptionInts>("filament_map");
