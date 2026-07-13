@@ -481,8 +481,8 @@ BoundingBoxf CalibPressureAdvanceLine::print_extents(const BoundingBoxf &bed_ext
     double line_long     = 40.0 + std::min(bed_width - 120.0, 0.0);
     double total_line_len = m_length_short * 2 + line_long;
     double start_x       = adjusted_bed.min.x() + (bed_width - 2 * m_length_short - line_long - 20.0) / 2.0;
-    double box_width     = number_spacing() * 8;   // 3.0 * 8 = 24 mm
-    
+    double box_width     = m_draw_numbers ? (number_spacing() * 8) : 0.0;   // 3.0 * 8 = 24 mm
+
     BoundingBoxf extent;
     extent.min.x() = start_x;
     extent.max.x() = start_x + total_line_len + m_line_width + box_width;
