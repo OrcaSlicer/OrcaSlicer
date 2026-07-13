@@ -717,6 +717,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         int new_extruder_id = get_extruder_index(*m_print_config, new_filament_id);
 
         bool is_nozzle_change = !tcr.nozzle_change_result.gcode.empty() && (gcodegen.config().nozzle_diameter.size() > 1);
+        const bool needs_toolchange = new_filament_id >= 0 && gcodegen.writer().need_toolchange(new_filament_id);
 
         std::string gcode;
 
@@ -836,6 +837,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
 
         end_filament_gcode_str = toolchange_retract_str + object_end_label_temp + end_filament_gcode_str;
+
+        if (needs_toolchange && gcodegen.m_ooze_prevention.enable && gcodegen.writer().filament() != nullptr)
+            end_filament_gcode_str += gcodegen.m_ooze_prevention.pre_toolchange(gcodegen);
 
         std::string wipe_next_start_point_str;
         bool        need_travel_after_change_filament_gcode = false; // travel need be after the filament changed to get the correct "m_curr_extruder_id"
@@ -991,7 +995,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         }
 
         std::string toolchange_command;
-        if (tcr.priming || (new_filament_id >= 0 && gcodegen.writer().need_toolchange(new_filament_id)))
+        if (tcr.priming || needs_toolchange)
             toolchange_command = gcodegen.writer().toolchange(new_filament_id);
         if (!custom_gcode_changes_tool(toolchange_gcode_str, gcodegen.writer().toolchange_prefix(), new_filament_id))
             toolchange_gcode_str += toolchange_command;
