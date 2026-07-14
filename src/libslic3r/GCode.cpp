@@ -5459,22 +5459,12 @@ LayerResult GCode::process_layer(
             break;
         }
         case CalibMode::Calib_VFA_Tower: {
-            // Each speed block is vfa_layers_per_block layers tall; the tower geometry in Plater::calib_VFA is
-            // scaled so its physical block height equals vfa_layers_per_block * layer_height. Keep the speed
-            // stepping in sync with the (possibly auto-adjusted) layer height chosen there.
-            double layer_height = print.calib_params().vfa_layer_height;
-            if (layer_height <= 0.0) {
-                // Fallback for older params: default layer height is nozzle_diameter / 2.
-                const auto& nozzle_diameters = print.config().nozzle_diameter.values;
-                size_t      nozzle_id        = static_cast<size_t>(std::max(print.calib_params().extruder_id, 0));
-                double      nozzle_diameter  = nozzle_diameters.empty() ? vfa_base_nozzle_diameter
-                                                                        : nozzle_diameters[std::min(nozzle_id, nozzle_diameters.size() - 1)];
-                if (nozzle_diameter <= 0.0)
-                    nozzle_diameter = vfa_base_nozzle_diameter;
-                layer_height = nozzle_diameter / 2.0;
-            }
-            const double block_height = vfa_layers_per_block * layer_height;
-            auto _speed = print.calib_params().start + std::floor(print_z / block_height) * print.calib_params().step;
+            // Step the outer wall speed from start to end across the tower's layers. Plater::calib_VFA sizes the
+            // geometry so each speed step spans one visual block (a fixed number of layers), so the layer-based
+            // stepping stays aligned with the blocks regardless of nozzle size / layer height.
+            float _speed = this->interpolate_value_across_layers(static_cast<float>(print.calib_params().start),
+                                                                 static_cast<float>(print.calib_params().end),
+                                                                 static_cast<float>(print.calib_params().step));
             m_calib_config.set_key_value("outer_wall_speed", new ConfigOptionFloatsNullable({std::round(_speed)}));
             break;
         }
