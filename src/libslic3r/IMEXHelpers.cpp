@@ -352,6 +352,12 @@ int resolve_filament_for_head(const std::map<int,int>& plate_map,
     return first_filament_for_physical_head(pem, physical);
 }
 
+ImexMirrorAxis imex_mirror_axis_for(int primary_phys, int target_phys, int tools_per_gantry)
+{
+    const int tpg = std::max(1, tools_per_gantry);
+    return (target_phys / tpg) == (primary_phys / tpg) ? ImexMirrorAxis::X : ImexMirrorAxis::Y;
+}
+
 Transform3d imex_head_transform(int /*primary*/, int /*target*/, ImexRole role,
                                 const Vec2d& gantry_offset,
                                 const Vec2d& primary_zone_center,

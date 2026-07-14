@@ -1148,11 +1148,8 @@ void PartPlate::calc_imex_ghosts()
         return false;
     };
 
-    // Tools on the primary's gantry are beside it along X; tools on another gantry are in
-    // front of / behind it along Y. A mirror reflects across the boundary separating the two
-    // zones, so the axis follows the gantry row. Single-gantry printers always land on X.
-    auto imex_mirror_axis_for = [&](int phys) -> ImexMirrorAxis {
-        return (phys / tpg) == (primary_phys / tpg) ? ImexMirrorAxis::X : ImexMirrorAxis::Y;
+    auto mirror_axis_for = [&](int phys) {
+        return imex_mirror_axis_for(primary_phys, phys, tpg);
     };
 
     // Zone centers are the source of truth for ghost placement: they come from the
@@ -1166,10 +1163,14 @@ void PartPlate::calc_imex_ghosts()
     };
     const Vec2d primary_off = center_for(primary_phys);
 
-    // For aggregated gantries the zone is a full-X row strip, so mirror has to
-    // reflect across the bed centerline (not primary's column-aligned center) and
-    // copy translates purely along Y. Compose primary_zone_center + gantry_offset
-    // to land each role correctly inside the strip.
+    // An aggregated gantry's zone is a full-X row strip, so it has no column of its own to
+    // align to. Putting BOTH the primary and target X frames on the bed centerline makes
+    // gantry_offset.x zero, which is what we want: a cross-gantry tool tracks primary's X
+    // (it reflects in Y, not X — see imex_mirror_axis_for) and only translates along Y.
+    // NB: the X frame is NOT a reflection plane. Do not "simplify" the bed_x_center
+    // substitution away on the grounds that the mirror no longer reflects in X — dropping it
+    // reintroduces a nonzero gantry_offset.x and shoves aggregated ghosts a column off their
+    // strip.
     auto bed_ext = get_extents(m_shape);
     const double bed_x_center = 0.5 * (bed_ext.min(0) + bed_ext.max(0));
     auto resolve_centers = [&](int phys) -> std::pair<Vec2d, Vec2d> {
@@ -1178,8 +1179,6 @@ void PartPlate::calc_imex_ghosts()
             // Per-tool: target stays at its column-aligned zone center.
             return {primary_off, target_off - primary_off};
         }
-        // Aggregated: shift the X frame onto bed centerline so mirror reflects
-        // across the whole bed and copy stays at primary's X within the strip.
         const Vec2d aggregated_primary{bed_x_center, primary_off.y()};
         const Vec2d aggregated_target {bed_x_center, target_off.y()};
         return {aggregated_primary, aggregated_target - aggregated_primary};
@@ -1229,7 +1228,7 @@ void PartPlate::calc_imex_ghosts()
             // row strips — the Y axis. Copy translates by `gantry`; aggregated tools resolve
             // gantry.x to 0, so a cross-gantry mirror tracks primary's X and reflects only Y.
             const Transform3d head_xf = imex_head_transform(
-                primary_phys, phys, role, gantry, pri_center, imex_mirror_axis_for(phys));
+                primary_phys, phys, role, gantry, pri_center, mirror_axis_for(phys));
             const Transform3d ghost_xf = head_xf * inst_world;
 
             ColorRGBA color = get_imex_head_filament_color(phys);
@@ -1274,9 +1273,10 @@ void PartPlate::update_imex_ghost_transforms(
     };
     const Vec2d primary_off = center_for(primary_phys);
 
-    // Same aggregation-aware center resolution as calc_imex_ghosts uses, so live
-    // drags reflect the ghost across bed centerline (not the rep's column-aligned
-    // center) when the gantry is aggregated by Span.
+    // Same aggregation-aware center resolution as calc_imex_ghosts uses, so a live drag
+    // moves the ghost exactly as a rebuild would place it. See the note there: for an
+    // aggregated gantry both X frames sit on the bed centerline, which zeroes gantry_offset.x
+    // so the cross-gantry mirror tracks primary's X and reflects in Y.
     int tpg = 1;
     if (auto* tpg_opt = wxGetApp().preset_bundle->printers.get_edited_preset()
                             .config.option<ConfigOptionInt>("imex_tools_per_gantry"))
@@ -1299,8 +1299,8 @@ void PartPlate::update_imex_ghost_transforms(
         const Vec2d at{bed_x_center, target_off.y()};
         return {ap, at - ap};
     };
-    auto imex_mirror_axis_for = [&](int phys) -> ImexMirrorAxis {
-        return (phys / tpg) == (primary_phys / tpg) ? ImexMirrorAxis::X : ImexMirrorAxis::Y;
+    auto mirror_axis_for = [&](int phys) {
+        return imex_mirror_axis_for(primary_phys, phys, tpg);
     };
 
     // Build a phys → role map once so the per-ghost loop is a lookup, not a reparse.
@@ -1340,7 +1340,7 @@ void PartPlate::update_imex_ghost_transforms(
         // reflects in Y and tracks primary's X, so drag no longer pushes it off-bed and the
         // old bake-the-flip-into-the-mesh workaround is unnecessary.
         const Transform3d head_xf = imex_head_transform(
-            primary_phys, head, role, gantry, pri_center, imex_mirror_axis_for(head));
+            primary_phys, head, role, gantry, pri_center, mirror_axis_for(head));
         const Transform3d ghost_xf = head_xf * primary_xf;
         ghost->set_instance_transformation(ghost_xf);
     }

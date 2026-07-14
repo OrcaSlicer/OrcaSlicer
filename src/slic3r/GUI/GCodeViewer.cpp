@@ -1658,9 +1658,11 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                     auto* active_tools_opt = printer_cfg.opt<ConfigOptionStrings>("imex_mode_active_tools");
 
                     auto* tpg_opt = printer_cfg.opt<ConfigOptionInt>("imex_tools_per_gantry");
+                    auto* gc_opt  = printer_cfg.opt<ConfigOptionInt>("imex_gantry_count");
                     auto* wx_opt  = printer_cfg.opt<ConfigOptionFloat>("imex_nozzle_clearance_x");
                     auto* wy_opt  = printer_cfg.opt<ConfigOptionFloat>("imex_nozzle_clearance_y");
                     int tools_per_gantry = tpg_opt ? std::max(1, tpg_opt->value) : 1;
+                    int gantry_count     = gc_opt  ? std::max(1, gc_opt->value)  : 1;
                     imex_box_wx = wx_opt ? (float)wx_opt->value : 30.0f;
                     imex_box_wy = wy_opt ? (float)wy_opt->value : 30.0f;
 
@@ -1671,6 +1673,13 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                     std::vector<int> sec_tool_ids;
                     std::map<int,int> sec_tool_states; // tool_id -> 2=Copy, 3=Mirror
                     std::set<int>     sec_aggregated;  // representatives standing in for a whole gantry
+                    // Which tools SIZE the grid is a different question from which tools get a
+                    // MARKER. calc_imex_zones sizes its grid from every Copy/Mirror tool — an
+                    // aggregated gantry's non-representatives still donate their column — while only
+                    // the representative contributes a cell. Track both sets, or the strips here come
+                    // out a different width than the ones painted on the plate and every marker
+                    // drifts from its ghost.
+                    std::vector<int> grid_tool_ids;
                     if (mode_names_opt && active_tools_opt) {
                         for (size_t i = 0; i < mode_names_opt->values.size(); ++i) {
                             if (i < active_tools_opt->values.size() && mode_names_opt->values[i] == mode) {
@@ -1690,7 +1699,25 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                                     sec_tool_ids.push_back(phys_idx);
                                     if (aggregated) sec_aggregated.insert(phys_idx);
                                 };
+                                // Out-of-grid tool indices (a stale mode string carried over from a
+                                // printer with more tools) are handled inconsistently by the code we
+                                // must agree with: calc_imex_zones drops them, calc_imex_ghosts keeps
+                                // them. No single policy matches both, so bound only what has to
+                                // match the ZONE grid — the sizing set — and leave pri_tool and the
+                                // markers exactly as they were. Clamping pri_tool instead is a trap:
+                                // the -1 sentinel truncates to gantry 0 in imex_mirror_axis_for and
+                                // flips the marker to the opposite mirror axis from the ghost.
+                                const int grid_slots = tools_per_gantry * gantry_count;
                                 for (const auto& grp : grouping.groups) {
+                                    // Grid sizing: every in-grid Copy/Mirror tool, aggregated or not —
+                                    // matches calc_imex_zones' ac_set/ar_set exactly.
+                                    for (const auto& [phys_idx, role] : grp.tools) {
+                                        if (phys_idx < 0 || phys_idx >= grid_slots) continue;
+                                        if (phys_idx == pri_tool) continue;
+                                        if (role == ImexRole::Copy || role == ImexRole::Mirror)
+                                            grid_tool_ids.push_back(phys_idx);
+                                    }
+                                    // Markers: an aggregated non-primary gantry shows only its rep.
                                     if (grp.aggregate && grp.gantry_index != grouping.primary_gantry)
                                         add_tool(grp.representative_phys, grp.representative_role, true);
                                     else
@@ -1743,9 +1770,6 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                             }
                         }
 
-                        auto* gc_opt = printer_cfg.opt<ConfigOptionInt>("imex_gantry_count");
-                        int gantry_count = gc_opt ? std::max(1, gc_opt->value) : 1;
-
                         // Apply the same flip logic as PartPlate::calc_imex_zones() so physical
                         // grid positions match the bed zone visualization. Use option<>() not
                         // opt<>(): enum options load from presets as ConfigOptionEnumGeneric, so
@@ -1769,12 +1793,26 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                         // zone sizes and positions stay in sync with the bed visualization.
                         const int   pri_phys_col = (pri_tool >= 0) ? phys_col_of(pri_tool) : 0;
                         const int   pri_phys_row = (pri_tool >= 0) ? phys_row_of(pri_tool) : 0;
+
+                        // Grid sizing and cell placement answer different questions, and
+                        // calc_imex_zones answers them differently — match it on both counts or the
+                        // markers drift from the ghosts:
+                        //   sizing:    every Copy/Mirror tool donates its OWN column/row (ac_set is
+                        //              built from tool_to_phys, unpinned), so an aggregated gantry's
+                        //              non-representatives still widen the grid.
+                        //   placement: an aggregated cell is PINNED to the primary's column
+                        //              (copy_cells/mirror_cells insert {pri_col, r}), because the
+                        //              row-strip spans full X and has no column of its own.
+                        auto eff_col_of = [&](int tid) {
+                            return sec_aggregated.count(tid) ? pri_phys_col : phys_col_of(tid);
+                        };
+
                         std::map<int,int> phys_col_to_zone_gv, phys_row_to_zone_gv;
                         int n_active_cols_gv = 1, n_active_rows_gv = 1;
                         {
                             std::set<int> ac, ar;
                             ac.insert(pri_phys_col); ar.insert(pri_phys_row);
-                            for (int tid : sec_tool_ids) {
+                            for (int tid : grid_tool_ids) {
                                 ac.insert(phys_col_of(tid));
                                 ar.insert(phys_row_of(tid));
                             }
@@ -1799,7 +1837,7 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                         float pri_box_offset_x = (pri_zone_col == 0) ? 0.0f : -imex_box_wx;
                         float pri_box_offset_y = -imex_box_wy;
                         for (int i = 0; i < sec_count; ++i) {
-                            int sc = phys_col_of(sec_tool_ids[i]);
+                            int sc = eff_col_of(sec_tool_ids[i]);
                             int sr = phys_row_of(sec_tool_ids[i]);
                             if      (sc > pri_phys_col) { pri_box_offset_x = 0.0f;         }
                             else if (sc < pri_phys_col) { pri_box_offset_x = -imex_box_wx; }
@@ -1814,7 +1852,7 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                         const float rel_y      = prim_pos.y() - pri_zone_y;
 
                         for (int i = 0; i < sec_count; ++i) {
-                            int sec_phys_col = phys_col_of(sec_tool_ids[i]);
+                            int sec_phys_col = eff_col_of(sec_tool_ids[i]);
                             int sec_phys_row = phys_row_of(sec_tool_ids[i]);
                             int sec_zc       = zone_col(sec_phys_col);
                             int sec_zr       = zone_row(sec_phys_row);
@@ -1822,18 +1860,20 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
 
                             // A carriage stays inside its own zone; a Mirror reflects its
                             // zone-relative offset about that zone's centerline, on the axis of the
-                            // boundary it shares with primary — the same rule the ghosts use (see
-                            // imex_head_transform / ImexMirrorAxis):
+                            // boundary it shares with primary — the same rule the ghosts use:
                             //   Copy                  → tracks primary on both axes.
                             //   Mirror, same gantry   → reflect X (zones sit side by side).
                             //   Mirror, other gantry  → reflect Y (zones sit front-to-back); X
                             //                           tracks primary, since the part off that
                             //                           gantry is a Y-reflection of the tool
                             //                           directly behind it.
-                            const bool is_mirror     = (sec_state == 3);
-                            const bool cross_gantry  = (sec_phys_row != pri_phys_row);
-                            const float sec_zone_x   = bed_x_min + (float)sec_zc * strip_width;
-                            const float sec_zone_y   = bed_y_min + (float)sec_zr * row_strip_height;
+                            // The axis comes from the shared helper, so the markers can never drift
+                            // out of step with the plate ghosts.
+                            const bool is_mirror    = (sec_state == 3);
+                            const bool cross_gantry = imex_mirror_axis_for(pri_tool, sec_tool_ids[i],
+                                                                           tools_per_gantry) == ImexMirrorAxis::Y;
+                            const float sec_zone_x  = bed_x_min + (float)sec_zc * strip_width;
+                            const float sec_zone_y  = bed_y_min + (float)sec_zr * row_strip_height;
 
                             const float sec_x = (is_mirror && !cross_gantry)
                                                     ? sec_zone_x + (strip_width - rel_x)
@@ -1845,11 +1885,14 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                             Vec3f sec_pos{ sec_x, sec_y, prim_pos.z() };
                             m_sequential_view.m_imex_secondary_markers[i].set_world_position(sec_pos);
                             m_sequential_view.m_imex_secondary_markers[i].set_z_offset(m_z_offset + 0.5f);
-                            // Only an X-axis (same-gantry) mirror flips which side of the nozzle the
-                            // toolhead body sits on: reflecting the carriage in X reverses its
-                            // orientation. A cross-gantry mirror reflects in Y, so its X orientation
-                            // matches the tool directly behind it and the body stays on the same side
-                            // as primary's — same as a Copy.
+                            // The box shows the side a toolhead could COLLIDE from, not merely which
+                            // way its body hangs. Tools sharing a gantry share an X rail and can
+                            // actually run into each other, and only in a same-gantry (X-axis) mirror
+                            // do they converge — so that is the one case where the secondary's box
+                            // flips to face the primary. Tools on different gantries cannot collide
+                            // in X at all, so a cross-gantry mirror keeps the primary's facing, the
+                            // same as a Copy. Do not "fix" this to follow carriage geometry: a box on
+                            // the far side would point away from the only tool it can hit.
                             float sec_box_offset_x;
                             if (is_mirror && !cross_gantry) {
                                 if      (sec_phys_col > pri_phys_col) sec_box_offset_x = -imex_box_wx;
@@ -1858,10 +1901,19 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                             } else {
                                 sec_box_offset_x = pri_box_offset_x;
                             }
+                            // Y follows the same collision rule: face the gantry you could hit. A tool
+                            // on ANOTHER row faces the primary's row; a tool on the primary's OWN row
+                            // shares its gantry and can only hit the same other gantry, so it faces
+                            // wherever the primary faces. The old `else` hardcoded -imex_box_wy, which
+                            // happens to equal pri_box_offset_y on the rear-* layouts (primary's row
+                            // sits above the others, so the loop below settles on -imex_box_wy anyway)
+                            // — hence a no-op there. On the front-* layouts the primary flips to 0.0f
+                            // and the hardcoded value pointed the same-gantry secondary away from the
+                            // only tools it could run into.
                             float sec_box_offset_y;
                             if      (sec_phys_row > pri_phys_row) sec_box_offset_y = -imex_box_wy;
                             else if (sec_phys_row < pri_phys_row) sec_box_offset_y = 0.0f;
-                            else                                  sec_box_offset_y = -imex_box_wy;
+                            else                                  sec_box_offset_y = pri_box_offset_y;
                             carriage_box_draws.push_back({
                                 sec_pos, s_carriage_colors[(i + 1) % s_carriage_colors.size()],
                                 sec_box_offset_x, sec_box_offset_y });

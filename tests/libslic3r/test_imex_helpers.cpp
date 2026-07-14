@@ -422,7 +422,7 @@ TEST_CASE("has_non_primary_mmu - empty / single-entry pem", "[IMEX]") {
 
 TEST_CASE("imex_head_transform - copy mode is pure translation", "[IMEX]") {
     const Vec2d offset{120.0, 0.0};
-    Transform3d xf = imex_head_transform(0, 1, ImexRole::Copy, offset);
+    Transform3d xf = imex_head_transform(0, 1, ImexRole::Copy, offset, Vec2d::Zero(), ImexMirrorAxis::X);
     const Vec3d in{10.0, 20.0, 30.0};
     const Vec3d out = xf * in;
     REQUIRE_THAT(out.x(), WithinAbs(130.0, 1e-9));
@@ -434,7 +434,7 @@ TEST_CASE("imex_head_transform - mirror at origin places ghost at gantry offset"
     // Primary instance at origin: ghost origin lands at the gantry offset (Copy-style),
     // and applying mirror flips geometry about origin (= primary's translation).
     const Vec2d offset{120.0, 0.0};
-    Transform3d xf = imex_head_transform(0, 1, ImexRole::Mirror, offset);
+    Transform3d xf = imex_head_transform(0, 1, ImexRole::Mirror, offset, Vec2d::Zero(), ImexMirrorAxis::X);
     const Vec3d mapped = xf * Vec3d::Zero();
     REQUIRE_THAT(mapped.x(), WithinAbs(120.0, 1e-9));
     REQUIRE_THAT(mapped.y(), WithinAbs(0.0,   1e-9));
@@ -448,7 +448,7 @@ TEST_CASE("imex_head_transform - mirror lands ghost at reflected position in tar
     // (x = 100), i.e. world-space (120, 20, 0) — NOT the Copy-style (180, 20, 0).
     const Vec2d offset{100.0, 0.0};
     const Vec2d primary_zone_center{50.0, 50.0};
-    Transform3d xf = imex_head_transform(0, 1, ImexRole::Mirror, offset, primary_zone_center);
+    Transform3d xf = imex_head_transform(0, 1, ImexRole::Mirror, offset, primary_zone_center, ImexMirrorAxis::X);
 
     const Vec3d primary{80.0, 20.0, 0.0};
     const Vec3d ghost_origin = xf * primary;
@@ -467,7 +467,7 @@ TEST_CASE("imex_head_transform - mirror reflects primary drag motion", "[IMEX]")
     // ghost stops being a true mirror once the primary moves.
     const Vec2d offset{120.0, 0.0};
     const Vec2d primary_zone_center{60.0, 50.0};
-    Transform3d xf = imex_head_transform(0, 1, ImexRole::Mirror, offset, primary_zone_center);
+    Transform3d xf = imex_head_transform(0, 1, ImexRole::Mirror, offset, primary_zone_center, ImexMirrorAxis::X);
 
     const Vec3d p0{10.0, 20.0, 0.0};
     const Vec3d p1{40.0, 15.0, 0.0};
@@ -485,7 +485,7 @@ TEST_CASE("imex_head_transform - mirror reflects model point across primary orig
     // Primary at origin, offset +X. Model point at +5 X lands 5 left of ghost origin.
     // Matches the pre-refactor semantics for the special case primary_origin = 0.
     const Vec2d offset{120.0, 0.0};
-    Transform3d xf = imex_head_transform(0, 1, ImexRole::Mirror, offset);
+    Transform3d xf = imex_head_transform(0, 1, ImexRole::Mirror, offset, Vec2d::Zero(), ImexMirrorAxis::X);
     const Vec3d in{5.0, 7.0, 0.0};
     const Vec3d out = xf * in;
     REQUIRE_THAT(out.x(), WithinAbs(115.0, 1e-9));
@@ -564,36 +564,58 @@ TEST_CASE("imex_head_transform - mirror is a reflection, not a rotation, on both
 
 TEST_CASE("imex_head_transform - primary is identity", "[IMEX]") {
     const Vec2d offset{120.0, 30.0};
-    Transform3d xf = imex_head_transform(0, 0, ImexRole::Primary, offset);
+    Transform3d xf = imex_head_transform(0, 0, ImexRole::Primary, offset, Vec2d::Zero(), ImexMirrorAxis::X);
     REQUIRE(xf.isApprox(Transform3d::Identity()));
 }
 
 TEST_CASE("imex_head_transform - mirror with zero offset is identity", "[IMEX]") {
     const Vec2d offset{0.0, 0.0};
-    Transform3d xf = imex_head_transform(0, 1, ImexRole::Mirror, offset);
+    Transform3d xf = imex_head_transform(0, 1, ImexRole::Mirror, offset, Vec2d::Zero(), ImexMirrorAxis::X);
     REQUIRE(xf.isApprox(Transform3d::Identity()));
 }
 
-TEST_CASE("imex_head_transform - mirror on 2x2 off-row target (diagonal offset) flips X only", "[IMEX]") {
-    // 2x2 IMEX layout: primary T0 at rear-left, target T3 at front-right → diagonal
-    // gantry_offset. Reflection plane must still be X-axis (same as on-row T1 mirror),
-    // not the diagonal direction — otherwise T3's ghost reads as rotated ~45° in plan
-    // view (the bug this test guards against). Primary origin (0,0,0) maps to target
-    // origin (100,100,0) regardless.
+TEST_CASE("imex_head_transform - mirror on 2x2 off-row target reflects Y, not X", "[IMEX]") {
+    // Supersedes an earlier test that asserted the diagonal target "flips X only". T3 is on
+    // the OTHER gantry, so it mirrors the tool directly in front of/behind it — a Y
+    // reflection — and merely translates in X into its own column. Reflecting X here is what
+    // stacked T2 and T3 on the same marker position and mirrored the ghosts on the wrong axis.
     const Vec2d offset{100.0, 100.0};
-    Transform3d xf = imex_head_transform(0, 3, ImexRole::Mirror, offset);
+    const ImexMirrorAxis axis = imex_mirror_axis_for(/*primary=*/0, /*target=*/3, /*tpg=*/2);
+    REQUIRE(axis == ImexMirrorAxis::Y);
 
+    Transform3d xf = imex_head_transform(0, 3, ImexRole::Mirror, offset, Vec2d::Zero(), axis);
+
+    // Primary origin still lands on the target zone origin.
     const Vec3d mapped = xf * Vec3d::Zero();
     REQUIRE_THAT(mapped.x(), WithinAbs(100.0, 1e-9));
     REQUIRE_THAT(mapped.y(), WithinAbs(100.0, 1e-9));
     REQUIRE_THAT(mapped.z(), WithinAbs(0.0,   1e-9));
 
-    // A model point offset +5 X from primary ends up 5 LEFT of the ghost origin
-    // (X flipped), while Y translates 1:1 (Y unflipped).
-    const Vec3d in{5.0, 7.0, 0.0};
-    const Vec3d out = xf * in;
-    REQUIRE_THAT(out.x(), WithinAbs(95.0,  1e-9));   // 100 - 5
-    REQUIRE_THAT(out.y(), WithinAbs(107.0, 1e-9));   // 100 + 7
+    // A model point +5 X / +7 Y from primary: X translates 1:1, Y is flipped.
+    const Vec3d out = xf * Vec3d{5.0, 7.0, 0.0};
+    REQUIRE_THAT(out.x(), WithinAbs(105.0, 1e-9));   // 100 + 5, translated
+    REQUIRE_THAT(out.y(), WithinAbs(93.0,  1e-9));   // 100 - 7, reflected
+}
+
+TEST_CASE("imex_mirror_axis_for - axis follows the gantry row", "[IMEX]") {
+    // 2x2: T0/T1 on gantry 0, T2/T3 on gantry 1.
+    REQUIRE(imex_mirror_axis_for(0, 1, 2) == ImexMirrorAxis::X);  // same gantry, beside it
+    REQUIRE(imex_mirror_axis_for(0, 2, 2) == ImexMirrorAxis::Y);  // other gantry, in front
+    REQUIRE(imex_mirror_axis_for(0, 3, 2) == ImexMirrorAxis::Y);  // other gantry, diagonal
+    REQUIRE(imex_mirror_axis_for(2, 3, 2) == ImexMirrorAxis::X);  // primary on gantry 1
+
+    // Single-gantry IDEX (all 4 tools on one gantry, tpg=4): every tool shares the primary's
+    // gantry, so mirrors stay on X. This is the pre-existing behavior and must not change.
+    REQUIRE(imex_mirror_axis_for(0, 1, 4) == ImexMirrorAxis::X);
+    REQUIRE(imex_mirror_axis_for(0, 3, 4) == ImexMirrorAxis::X);
+
+    // tools_per_gantry = 1: every tool is its own gantry, so any secondary is cross-gantry.
+    REQUIRE(imex_mirror_axis_for(0, 1, 1) == ImexMirrorAxis::Y);
+
+    // Degenerate tools_per_gantry clamps to 1 rather than dividing by zero.
+    REQUIRE(imex_mirror_axis_for(0, 1, 0)  == ImexMirrorAxis::Y);
+    REQUIRE(imex_mirror_axis_for(0, 1, -3) == ImexMirrorAxis::Y);
+    REQUIRE(imex_mirror_axis_for(0, 0, 0)  == ImexMirrorAxis::X);
 }
 
 TEST_CASE("resolve_filament_for_head - no routing returns -1 (ghost color fallback)", "[IMEX]") {

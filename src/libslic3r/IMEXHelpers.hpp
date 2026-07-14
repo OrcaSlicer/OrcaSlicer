@@ -280,11 +280,22 @@ ImexGantryGrouping group_imex_active_tools_by_gantry(const std::string& active_t
 // only ever use X.
 enum class ImexMirrorAxis { X, Y };
 
+// The single source of truth for that choice. Gantry row is `phys / tools_per_gantry`, the
+// same derivation PartPlate and GCodeViewer use to build their zone grids. Keep every caller
+// on this helper: if the three of them ever disagree about the axis, the plate ghosts and the
+// preview markers place the same tool in different spots for the same mode.
+// `tools_per_gantry` is clamped to >= 1, so a zero/negative config divides safely. Note the
+// clamp lands on "one tool per gantry", meaning every secondary is then cross-gantry and
+// mirrors on Y — not "everything on one gantry". That is the honest reading of tpg = 1.
+ImexMirrorAxis imex_mirror_axis_for(int primary_phys, int target_phys, int tools_per_gantry);
+
 // `gantry_offset` = center_for(target) - center_for(primary) (XY, in mm).
 // `primary_zone_center` = XY center of the primary head's zone in world coords. Only
 //   consulted for Mirror; Copy/Primary ignore it.
-// `mirror_axis` = axis the Mirror reflection negates. Callers know each tool's gantry row,
-//   so they pick: same row as primary → X, different row → Y. Ignored by Copy/Primary.
+// `mirror_axis` = axis the Mirror reflection negates; get it from imex_mirror_axis_for().
+//   Deliberately NOT defaulted: a default would silently hand a forgetful caller the X
+//   reflection, which is wrong for every cross-gantry tool and would fail silently — the
+//   ghosts would just quietly go back to mirroring on the wrong axis. Ignored by Copy/Primary.
 // Copy:    pure translation by gantry_offset. Ghost tracks primary 1:1 during drag.
 // Mirror:  true reflection (det = -1, so chirality flips — a real mirror image) about the
 //          zone-boundary plane between primary and target, perpendicular to `mirror_axis`
@@ -296,8 +307,8 @@ enum class ImexMirrorAxis { X, Y };
 // Primary: identity.
 Transform3d imex_head_transform(int primary, int target, ImexRole role,
                                 const Vec2d& gantry_offset,
-                                const Vec2d& primary_zone_center = Vec2d::Zero(),
-                                ImexMirrorAxis mirror_axis = ImexMirrorAxis::X);
+                                const Vec2d& primary_zone_center,
+                                ImexMirrorAxis mirror_axis);
 
 // Slice-time XY shift for printers that delegate copy/mirror placement to firmware.
 // When `imex_firmware_managed_zones` is on AND the active mode is non-primary, returns
