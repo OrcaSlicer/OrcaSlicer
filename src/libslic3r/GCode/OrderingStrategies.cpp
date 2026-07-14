@@ -374,4 +374,57 @@ std::vector<const PrintInstance*> chain_print_object_instances_best_of(const Pri
     return chain_print_object_instances_best_of(print.objects().vector(), nullptr);
 }
 
+/* ====================================================================
+ * Island-level ordering entry point
+ * ==================================================================== */
+
+std::vector<size_t> order_points_with_strategy(const Points& points, PrintOrder print_order, const Point* start_near)
+{
+    if (points.empty())
+        return {};
+
+    if (print_order != PrintOrder::Snake && print_order != PrintOrder::BestOfStrategies)
+        // Nearest neighbor + post-processing; honours start_near natively.
+        return chain_points_with_postprocessing(points, start_near);
+
+    auto run_snake = [&points, start_near]() {
+        std::vector<size_t> path = snake_core(points);
+        if (start_near != nullptr && !path.empty()) {
+            // Start the cycle at the point closest to start_near.
+            size_t best_start = 0;
+            double best_d2 = std::numeric_limits<double>::max();
+            for (size_t k = 0; k < points.size(); ++k) {
+                double d2 = (points[k].cast<double>() - start_near->cast<double>()).squaredNorm();
+                if (d2 < best_d2) { best_d2 = d2; best_start = k; }
+            }
+            auto it = std::find(path.begin(), path.end(), best_start);
+            if (it != path.begin() && it != path.end())
+                std::rotate(path.begin(), it, path.end());
+        } else {
+            tsp_rotate_minimize_closing(path, points);
+        }
+        return path;
+    };
+
+    if (print_order == PrintOrder::Snake)
+        return run_snake();
+
+    // Best-of: pick the shortest total cycle; tiebreak on smallest max edge.
+    std::vector<std::vector<size_t>> candidates;
+    candidates.emplace_back(chain_points_with_postprocessing(points, start_near));
+    candidates.emplace_back(run_snake());
+
+    size_t best      = 0;
+    double best_len  = std::numeric_limits<double>::max();
+    double best_edge = std::numeric_limits<double>::max();
+    for (size_t i = 0; i < candidates.size(); ++i) {
+        double len  = tsp_cycle_path_length(candidates[i], points);
+        double edge = tsp_max_edge_length(candidates[i], points);
+        if (len < best_len || (len == best_len && edge < best_edge)) {
+            best_len = len; best_edge = edge; best = i;
+        }
+    }
+    return candidates[best];
+}
+
 } // namespace Slic3r

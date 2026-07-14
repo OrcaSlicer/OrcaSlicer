@@ -136,6 +136,11 @@ std::vector<const PrintInstance*> chain_print_object_instances_snake(const Print
 std::vector<const PrintInstance*> chain_print_object_instances_best_of(const std::vector<const PrintObject*>& print_objects, const Point* start_near);
 std::vector<const PrintInstance*> chain_print_object_instances_best_of(const Print& print);
 
+// Order raw points with the selected strategy, returning an index permutation. Island-level
+// counterpart of the chain_print_object_instances_* helpers. The returned cycle starts at the
+// point closest to start_near; orders without a dedicated strategy use nearest-neighbor chaining.
+std::vector<size_t> order_points_with_strategy(const Points& points, PrintOrder print_order, const Point* start_near);
+
 #endif // SLIC3R_TEST_HARNESS
 
 } // namespace Slic3r
