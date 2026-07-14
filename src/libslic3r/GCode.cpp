@@ -8143,29 +8143,22 @@ std::string GCode::extrusion_role_to_string_for_parser(const ExtrusionRole & rol
 }
 
 // Calculate the interpolated value for the current layer between start_value and end_value.
-// Step will create equal layers steps from first to last value.
+// Step > 0 splits the range into equal-width bands from first to last value (both inclusive).
 // Step = 0 means gradual interpolation finishing at last value.
 float GCode::interpolate_value_across_layers(float start_value, float end_value, float step) const
 {
     if (m_layer_index <= 1) {
         return start_value;
     }
-    else {
-        bool use_steps = step > 0.f;
-        if (use_steps) {
-            if (start_value > end_value) {
-                start_value += step;
-            } else {
-                end_value += step;
-            }
-        }
-        float ratio = m_layer_index / (m_layer_count - 1.f);
-        float value = start_value + ratio * (end_value - start_value);
-        if (use_steps) {
-            value = trunc(value / step) * step;
-        }
-        return value;
+    const float ratio = m_layer_index / (m_layer_count - 1.f);
+    if (step > 0.f) {
+        // Discrete equal-width bands. band is clamped to the last band so the result can't overshoot the range:
+        // at the top layer ratio * n_bands == n_bands, which would otherwise index one band past the end.
+        const int n_bands = std::lround(std::abs(end_value - start_value) / step) + 1;
+        const int band    = std::min(n_bands - 1, static_cast<int>(ratio * n_bands));
+        return start_value + (end_value >= start_value ? 1.f : -1.f) * band * step;
     }
+    return start_value + ratio * (end_value - start_value);
 }
 
 std::string encodeBase64(uint64_t value)
