@@ -972,6 +972,12 @@ void PlaterPresetComboBox::OnSelect(wxCommandEvent &evt)
             evt.Skip();
             return;
         }
+        // ORCA #12105: open the Rename Printer Model flow (the item resets the selection above).
+        if (marker == LABEL_ITEM_WIZARD_RENAME_PRINTERS) {
+            evt.StopPropagation();
+            wxTheApp->CallAfter([]() { wxGetApp().mainframe->show_rename_printer_model_dialog(); });
+            return;
+        }
         evt.StopPropagation();
         if (marker == LABEL_ITEM_MARKER || marker == LABEL_ITEM_DISABLED)
             return;
@@ -1485,6 +1491,13 @@ void PlaterPresetComboBox::update()
     // so only group user presets by those attributes for the filament combobox.
     add_presets(nonsys_presets, selected_user_preset, L("User presets"),
                 m_type == Preset::TYPE_FILAMENT ? group_filament_presets_by : wxString(""));
+    // ORCA #12105: a "Rename printer (user presets)" action at the bottom of the User-presets group,
+    // shown only when there are custom printer models to rename (mirrors "Create printer" below, but
+    // scoped to user presets). Opens the same RenamePrinterModelDialog the File menu used to.
+    if (m_type == Preset::TYPE_PRINTER && !wxGetApp().preset_bundle->printers.user_printer_models().empty()) {
+        wxBitmap* bmp = get_bmp("edit_preset_list", wide_icons, "edit_uni");
+        set_label_marker(Append(separator(L("Rename printer (user presets)")), *bmp), LABEL_ITEM_WIZARD_RENAME_PRINTERS);
+    }
     // ORCA: add bundle presets with sub-dropdown grouping for filament and printer
     auto bundle_group_name = (m_type == Preset::TYPE_FILAMENT || m_type == Preset::TYPE_PRINTER) ? "by_bundle" : "";
     add_presets(bundle_presets, selected_bundle_preset, L("Bundle presets"), bundle_group_name);

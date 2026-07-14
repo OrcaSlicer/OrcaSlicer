@@ -49,6 +49,7 @@ public:
         LABEL_ITEM_WIZARD_FILAMENTS,
         LABEL_ITEM_WIZARD_MATERIALS,
         LABEL_ITEM_WIZARD_ADD_PRINTERS,
+        LABEL_ITEM_WIZARD_RENAME_PRINTERS, // ORCA #12105: rename a user printer model from the dropdown
 
         LABEL_ITEM_MAX,
 	};
