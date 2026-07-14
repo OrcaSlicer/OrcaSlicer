@@ -1121,7 +1121,7 @@ void GUI_App::shutdown()
     if (m_is_recreating_gui) return;
     stop_http_server();
     set_closing(true);
-    Slic3r::PluginManager::instance().get_loader().set_shutting_down();
+    Slic3r::PluginManager::instance().set_shutting_down();
 
     if (m_agent)
         m_agent->set_printer_agent(nullptr);
@@ -2723,12 +2723,12 @@ void GUI_App::init_plugin_gui_wiring()
         });
     };
 
-    plugin_mgr.get_loader().subscribe_on_load_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
-    plugin_mgr.get_loader().subscribe_on_unload_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
-    plugin_mgr.get_loader().subscribe_on_load_callback(NetworkAgentFactory::register_python_plugin);
-    plugin_mgr.get_loader().subscribe_on_unload_callback(NetworkAgentFactory::deregister_python_plugin);
-    plugin_mgr.get_loader().subscribe_on_capability_load_callback(
-        [refresh_plugins_dialog](const PluginCapabilityIdentifier& capability) {
+    plugin_mgr.subscribe_on_load_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
+    plugin_mgr.subscribe_on_unload_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
+    plugin_mgr.subscribe_on_load_callback(NetworkAgentFactory::register_python_plugin);
+    plugin_mgr.subscribe_on_unload_callback(NetworkAgentFactory::deregister_python_plugin);
+    plugin_mgr.subscribe_on_capability_load_callback(
+        [refresh_plugins_dialog](const PluginCapabilityId& capability) {
             if (capability.type == PluginCapabilityType::PrinterConnection)
                 NetworkAgentFactory::register_python_printer_agent(capability.plugin_key, capability.name);
             refresh_plugins_dialog();
@@ -2740,8 +2740,8 @@ void GUI_App::init_plugin_gui_wiring()
                         plater->revalidate_current_plate_if_plugins_missing();
                 });
         });
-    plugin_mgr.get_loader().subscribe_on_capability_unload_callback(
-        [refresh_plugins_dialog](const PluginCapabilityIdentifier& capability) {
+    plugin_mgr.subscribe_on_capability_unload_callback(
+        [refresh_plugins_dialog](const PluginCapabilityId& capability) {
             if (capability.type == PluginCapabilityType::PrinterConnection)
                 NetworkAgentFactory::deregister_python_printer_agent(capability.plugin_key, capability.name);
             refresh_plugins_dialog();
@@ -3162,17 +3162,16 @@ bool GUI_App::on_init_inner()
     // plugins are discovered even before the network agent is ready.
     const std::string preset_folder = app_config->get("preset_folder");
     if (!preset_folder.empty()) {
-        plugin_mgr.get_catalog().set_cloud_plugin_dir(preset_folder);
-        plugin_mgr.get_loader().set_cloud_user_id(preset_folder);
+        plugin_mgr.set_cloud_user(preset_folder);
     }
 
     plugin_mgr.discover_plugins(false, true);
 
     init_plugin_gui_wiring();
 
-    for (const std::string& plugin_key : plugin_mgr.get_catalog().get_enabled_plugin_keys()) {
-        if (!plugin_mgr.get_loader().is_plugin_loaded(plugin_key)) {
-            plugin_mgr.get_loader().load_plugin(plugin_mgr.get_catalog(), plugin_key, false);
+    for (const std::string& plugin_key : plugin_mgr.get_enabled_plugin_keys()) {
+        if (!plugin_mgr.is_plugin_loaded(plugin_key)) {
+            plugin_mgr.load_plugin(plugin_key, false);
             BOOST_LOG_TRIVIAL(info) << "Auto-loading plugin on startup: " << plugin_key;
         }
     }
@@ -3182,8 +3181,7 @@ bool GUI_App::on_init_inner()
 
     if (m_agent && m_agent->is_user_login()) {
         enable_user_preset_folder(true);
-        plugin_mgr.get_catalog().set_cloud_plugin_dir(m_agent->get_user_id());
-        plugin_mgr.get_loader().set_cloud_user_id(m_agent->get_user_id());
+        plugin_mgr.set_cloud_user(m_agent->get_user_id());
         // If there is a user logged in we do an immediate sync.
         std::vector<std::string> not_found, unauthorized;
         plugin_mgr.fetch_plugins_from_cloud(&not_found, &unauthorized);
@@ -3203,8 +3201,7 @@ bool GUI_App::on_init_inner()
         }
     } else {
         enable_user_preset_folder(false);
-        plugin_mgr.get_catalog().set_cloud_plugin_dir("");
-        plugin_mgr.get_loader().set_cloud_user_id("");
+        plugin_mgr.set_cloud_user("");
     }
 
     // BBS if load user preset failed
@@ -4776,10 +4773,9 @@ void GUI_App::request_user_logout(const std::string& provider/* = ORCA_CLOUD_PRO
 
             remove_user_presets();
             enable_user_preset_folder(false);
-            Slic3r::PluginManager::instance().get_loader().unload_cloud_plugins();
-            Slic3r::PluginManager::instance().get_catalog().clear_cloud_plugin_catalog();
-            Slic3r::PluginManager::instance().get_catalog().set_cloud_plugin_dir("");
-            Slic3r::PluginManager::instance().get_loader().set_cloud_user_id("");
+            Slic3r::PluginManager::instance().unload_cloud_plugins();
+            Slic3r::PluginManager::instance().clear_cloud_plugin_catalog();
+            Slic3r::PluginManager::instance().set_cloud_user("");
             preset_bundle->load_user_presets(DEFAULT_USER_FOLDER_NAME, ForwardCompatibilitySubstitutionRule::Enable);
             mainframe->update_side_preset_ui();
 
@@ -5325,14 +5321,12 @@ void GUI_App::enable_user_preset_folder(bool enable)
         std::string user_id = m_agent->get_user_id();
         app_config->set("preset_folder", user_id);
         GUI::wxGetApp().preset_bundle->update_user_presets_directory(user_id);
-        PluginManager::instance().get_catalog().set_cloud_plugin_dir(user_id);
-        PluginManager::instance().get_loader().set_cloud_user_id(user_id);
+        PluginManager::instance().set_cloud_user(user_id);
     } else {
         BOOST_LOG_TRIVIAL(info) << "preset_folder: set to empty";
         app_config->set("preset_folder", "");
         GUI::wxGetApp().preset_bundle->update_user_presets_directory(DEFAULT_USER_FOLDER_NAME);
-        PluginManager::instance().get_catalog().set_cloud_plugin_dir("");
-        PluginManager::instance().get_loader().set_cloud_user_id("");
+        PluginManager::instance().set_cloud_user("");
     }
 }
 

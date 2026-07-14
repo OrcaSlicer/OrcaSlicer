@@ -56,7 +56,6 @@ struct PluginDescriptor
     std::string version;                                // Selected plugin version
     std::string latest_version;                         // Latest available cloud version fallback when changelog is unavailable.
     std::string installed_version;                       // Locally installed package version. Preserved across cloud merges, which overwrite `version` with the latest cloud version. Empty when not installed.
-    std::vector<PluginCapabilityType> capability_types; // Capability types this package materializes (one package → N capabilities)
     std::vector<std::string> display_types;             // Display-only "compatibility" labels (cloud: raw service labels; local: from real capabilities). Never used for dispatch.
     std::string plugin_root;                            // Installed plugin directory, even when entry_path is invalid or ambiguous.
     std::string entry_path;                             // Full path to the installed plugin entry file
@@ -68,6 +67,10 @@ struct PluginDescriptor
     std::string error;                     // Blocking error message. Non-empty means the plugin is in an error state.
     std::optional<CloudPluginState> cloud; // Extra cloud state layered on top of a normal plugin descriptor.
     bool metadata_valid = false;           // Manifest/package validity stays separate from the user-facing error field.
+    // Package auto-load flag, read from .install_state.json. Defaults to FALSE: a package with no
+    // sidecar has never been installed through Orca and carries no auto-load intent, so it must not
+    // be loaded at startup. Installing a package writes the sidecar with enabled = true.
+    bool enabled = false;
     std::string sharing_token;             // Use BASE_URL/p/SHARING_TOKEN to open relevant plugin in browser.
     std::string thumbnail_url;             // Cloud main_image pre-signed (access_url) thumbnail; empty for local plugins. Display-only.
 
@@ -76,22 +79,13 @@ struct PluginDescriptor
     bool has_local_package() const { return !is_cloud_plugin() || cloud->installed || !plugin_root.empty() || !entry_path.empty(); }
     bool is_metadata_valid() const { return metadata_valid; }
 
-    // Capability-type helpers. A package may materialize several capability types;
-    // these accessors give callers that still reason about a single "type" (catalog
-    // display, cloud overlay, dispatch — finalized in later tasks) a stable view.
-    bool has_capability_type(PluginCapabilityType t) const
-    {
-        return std::find(capability_types.begin(), capability_types.end(), t) != capability_types.end();
-    }
-    PluginCapabilityType primary_capability_type() const
-    {
-        return capability_types.empty() ? PluginCapabilityType::Unknown : capability_types.front();
-    }
-    // Set the package to a single capability type (metadata/cloud sources currently
-    // declare one type; multi-type discovery is finalized in later tasks).
-    void set_capability_type(PluginCapabilityType t) { capability_types.assign(1, t); }
-    // Canonical label derived from the primary type for UI / config matching.
-    std::string type_label() const { return plugin_capability_type_to_string(primary_capability_type()); }
+    // A package that exists on disk but whose manifest could not be parsed.
+    //
+    // Deliberately not just !is_metadata_valid(): a cloud plugin that is merely available
+    // (subscribed but not installed) also has metadata_valid == false — the cloud service never
+    // sets it — yet it is a valid catalog row, not a broken package. What separates the two is
+    // whether there is a local package behind the descriptor at all.
+    bool is_invalid_package() const { return !metadata_valid && has_local_package(); }
 
     std::string normalized_error() const
     {
@@ -159,8 +153,6 @@ inline void apply_plugin_metadata_fallbacks(PluginDescriptor& target, const Plug
         target.author = fallback.author;
     if (target.version.empty())
         target.version = fallback.version;
-    if (target.capability_types.empty())
-        target.capability_types = fallback.capability_types;
     if (target.entry_package.empty())
         target.entry_package = fallback.entry_package;
     if (target.dependencies.empty())

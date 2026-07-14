@@ -1,6 +1,7 @@
 #ifndef slic3r_PythonPluginInterface_hpp_
 #define slic3r_PythonPluginInterface_hpp_
 
+#include <atomic>
 #include <cctype>
 #include <string>
 #include <string_view>
@@ -98,20 +99,54 @@ class PluginCapabilityInterface
 public:
     virtual ~PluginCapabilityInterface() = default;
 
-    virtual std::string get_name() const = 0;                                                    // required — overridden in Python
-    virtual PluginCapabilityType get_type() const { return PluginCapabilityType::Unknown; }      // optional — typed bases override
+    // DO NOT CALL THESE OUTSIDE THE LOADER'S MATERIALIZATION BLOCK. get_name() is pure virtual and
+    // always implemented in Python: the trampoline routes it through PYBIND11_OVERRIDE_PURE, so every
+    // call acquires the GIL, dispatches into the plugin, and opens a filesystem-enforcement scope.
+    // Capability lookup is by name and runs under the plugin registry lock, so calling this on a
+    // lookup would hold that lock while taking the GIL — inverting the lock order against plugin
+    // dispatch on the slicing threads — and it is undefined after the interpreter is finalized.
+    // get_type() is virtual with a C++ default that the typed bases override in C++, but the untyped
+    // trampoline still routes it to Python, so it is only GIL-free by accident of the base chosen.
+    //
+    // The loader resolves both exactly once, at materialization, under the GIL it already holds, and
+    // caches them below. Everything else reads name()/type().
+    virtual std::string get_name() const = 0;                                               // required — overridden in Python
+    virtual PluginCapabilityType get_type() const { return PluginCapabilityType::Unknown; } // optional — typed bases override
 
     virtual void on_load() {}
     virtual void on_unload() {}
 
-    // C++-only audit identity (never exposed to Python). Set by PluginLoader after
-    // plugin capture so trampoline calls can scope filesystem enforcement to this
-    // plugin. This is PluginDescriptor::plugin_key, the canonical runtime id.
+    // ── C++-only host state, never exposed to Python. Set by the loader at materialization. ──
+    //
+    // The capability owns its own identity and enable flag: they are read once under the GIL, live
+    // exactly as long as the capability does, and are discarded with it on unload. Nothing about a
+    // capability outlives the capability — the durable record is the .install_state.json sidecar.
+
+    // Cached identity. Plain C++ reads, safe under any lock and after the interpreter is gone.
+    const std::string&   name() const { return m_name; }
+    PluginCapabilityType type() const { return m_type; }
+    void                 set_resolved_identity(std::string name, PluginCapabilityType type)
+    {
+        m_name = std::move(name);
+        m_type = type;
+    }
+
+    // Logical enable/disable. A disabled capability stays loaded but is skipped by consumers.
+    // Atomic because dispatch reads it off a shared_ptr handed out by the manager, i.e. without the
+    // registry lock held. Seeded from the sidecar at load; PluginManager writes it through on change.
+    bool is_enabled() const { return m_enabled.load(std::memory_order_acquire); }
+    void set_enabled(bool enabled) { m_enabled.store(enabled, std::memory_order_release); }
+
+    // The owning package (PluginDescriptor::plugin_key), the canonical runtime id. Also scopes
+    // filesystem enforcement for trampoline calls.
     void set_audit_plugin_key(std::string key) { m_audit_plugin_key = std::move(key); }
     const std::string& audit_plugin_key() const { return m_audit_plugin_key; }
 
 private:
-    std::string m_audit_plugin_key;
+    std::string          m_name;
+    PluginCapabilityType m_type = PluginCapabilityType::Unknown;
+    std::atomic<bool>    m_enabled{true};
+    std::string          m_audit_plugin_key;
 };
 
 } // namespace Slic3r

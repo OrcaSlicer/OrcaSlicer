@@ -57,15 +57,14 @@ TEST_CASE("install_plugin rejects a cloud UUID containing path traversal", "[Plu
     // Package contents are irrelevant: the UUID is validated before metadata is read.
     const fs::path py = write_py_file(data_dir_guard.dir / "src", "evil.py", "print('hi')\n");
 
-    PluginLoader loader;
-    loader.set_cloud_user_id("test-user");
+
 
     PluginDescriptor descriptor;
     // is_cloud_plugin() -> true; cloud_uuid() -> the traversal string.
     descriptor.cloud = CloudPluginState{"../../escape", true, false, false, false};
 
     std::string error;
-    const bool installed = loader.install_plugin(py, descriptor, error);
+    const bool installed = plugin_loader::install_plugin(py, /*cloud_user_id=*/"test-user", descriptor, error);
 
     REQUIRE_FALSE(installed);
     CHECK_THAT(error, Catch::Matchers::ContainsSubstring("valid identifier"));
@@ -78,11 +77,10 @@ TEST_CASE("install_plugin rejects a side-loaded .py with no PEP 723 metadata", "
     // No `# /// script` block -> name stays empty and type stays Unknown.
     const fs::path py = write_py_file(data_dir_guard.dir / "src", "nameless.py", "print('no metadata here')\n");
 
-    PluginLoader loader; // non-cloud: no cloud user id, descriptor has no cloud state
 
     PluginDescriptor descriptor;
     std::string error;
-    const bool installed = loader.install_plugin(py, descriptor, error);
+    const bool installed = plugin_loader::install_plugin(py, /*cloud_user_id=*/"", descriptor, error);
 
     REQUIRE_FALSE(installed);
     CHECK_THAT(error, Catch::Matchers::ContainsSubstring("PEP 723"));
@@ -103,11 +101,10 @@ TEST_CASE("install_plugin accepts a side-loaded .py with complete PEP 723 metada
         "print('ok')\n";
     const fs::path py = write_py_file(data_dir_guard.dir / "src", "good.py", contents);
 
-    PluginLoader loader; // non-cloud
 
     PluginDescriptor descriptor;
     std::string error;
-    const bool installed = loader.install_plugin(py, descriptor, error);
+    const bool installed = plugin_loader::install_plugin(py, /*cloud_user_id=*/"", descriptor, error);
 
     // Positive control: a complete side-loaded .py must still install (guards against over-rejection).
     REQUIRE(installed);
@@ -168,10 +165,9 @@ TEST_CASE("install_plugin parses [tool.orcaslicer.plugin.settings] into descript
         "print('ok')\n";
     const fs::path py = write_py_file(data_dir_guard.dir / "src", "settings.py", contents);
 
-    PluginLoader loader; // non-cloud
     PluginDescriptor descriptor;
     std::string error;
-    const bool installed = loader.install_plugin(py, descriptor, error);
+    const bool installed = plugin_loader::install_plugin(py, /*cloud_user_id=*/"", descriptor, error);
 
     REQUIRE(installed);
     CHECK(error.empty());

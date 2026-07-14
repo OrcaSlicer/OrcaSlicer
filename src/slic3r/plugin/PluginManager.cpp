@@ -1,86 +1,44 @@
 #include "PluginManager.hpp"
-#include "slic3r/GUI/GUI_App.hpp"
 
 #include <pybind11/embed.h>
 
-#include "PythonPluginBridge.hpp"
 #include "PluginFsUtils.hpp"
 #include "PluginHooks.hpp"
 #include "PythonFileUtils.hpp"
-
-#include <boost/log/trivial.hpp>
-#include <boost/filesystem.hpp>
-#include <mutex>
-#include <algorithm>
-#include <chrono>
-#include <slic3r/GUI/NotificationManager.hpp>
-#include <slic3r/plugin/PluginDescriptor.hpp>
-#include <vector>
-#include <utility>
-
 #include "PythonInterpreter.hpp"
-#include "slic3r/GUI/GUI_App.hpp"
+#include "PythonPluginBridge.hpp"
 
 #include "OrcaCloudServiceAgent.hpp"
+#include "libslic3r/Semver.hpp"
+#include "libslic3r/Utils.hpp"
+#include "slic3r/GUI/GUI_App.hpp"
+#include "slic3r/GUI/NotificationManager.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
+
+#include <boost/filesystem.hpp>
+#include <boost/log/trivial.hpp>
+
+#include <algorithm>
+#include <chrono>
+#include <mutex>
+#include <thread>
+#include <utility>
+#include <vector>
 
 namespace Slic3r {
 namespace {
 
-bool wait_for_plugin_catalog(const PluginCatalog& catalog, std::string& error)
-{
-    error.clear();
-    if (!catalog.wait_for_discovery(std::chrono::milliseconds::max(), error)) {
-        if (error.empty())
-            error = "Plugin discovery is still running";
-        return false;
-    }
-
-    return true;
-}
-
-bool find_plugin_descriptor_by_key(const std::vector<PluginDescriptor>& catalog,
-                                 const std::vector<PluginDescriptor>& invalid_plugins,
-                                 const std::string& plugin_key,
-                                 PluginDescriptor& descriptor)
-{
-    auto find_by_key = [&plugin_key](const PluginDescriptor& entry) { return entry.plugin_key == plugin_key; };
-
-    auto catalog_it = std::find_if(catalog.begin(), catalog.end(), find_by_key);
-    if (catalog_it != catalog.end()) {
-        descriptor = *catalog_it;
-        return true;
-    }
-
-    auto invalid_it = std::find_if(invalid_plugins.begin(), invalid_plugins.end(), find_by_key);
-    if (invalid_it != invalid_plugins.end()) {
-        descriptor = *invalid_it;
-        return true;
-    }
-
-    return false;
-}
-
-void remove_plugin_from_entries(std::vector<PluginDescriptor>& entries, const std::string& plugin_key)
-{
-    entries.erase(std::remove_if(entries.begin(), entries.end(),
-                                 [&plugin_key](const PluginDescriptor& entry) { return entry.plugin_key == plugin_key; }),
-                  entries.end());
-}
-
-void clear_plugin_cloud_state(std::vector<PluginDescriptor>& entries, const std::string& plugin_key)
-{
-    for (auto& entry : entries) {
-        if (entry.plugin_key == plugin_key) {
-            entry.cloud.reset();
-            return;
-        }
-    }
-}
+// Sentinel error returned by the registry pre-check when the load was cancelled while it ran.
+// A cancelled load records no error and fires no failure path — it just unwinds.
+const char* const LOAD_CANCELLED = "__plugin_load_cancelled__";
 
 } // namespace
 
-LoadedPlugin::~LoadedPlugin()
+void Plugin::release_module()
 {
+    // Once the interpreter is finalized there is no safe way to touch the object
+    // (gil_scoped_acquire after Py_Finalize is undefined), so drop the pointer and deliberately
+    // leak the reference.
     if (!PythonInterpreter::instance().is_initialized()) {
         module = nullptr;
         return;
@@ -95,6 +53,8 @@ LoadedPlugin::~LoadedPlugin()
 
 PluginManager& PluginManager::instance()
 {
+    // Touch the interpreter first so its static outlives this one: ~Plugin needs it alive to
+    // decide whether it may DECREF its module.
     PythonInterpreter::instance();
     static PluginManager inst;
     return inst;
@@ -104,14 +64,14 @@ PluginManager::~PluginManager() { shutdown(); }
 
 bool PluginManager::initialize()
 {
-    std::lock_guard<std::mutex> lock(m_mutex);
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_initialized)
+            return true;
+    }
 
-    if (m_initialized)
-        return true;
-
-    // Initialize the Python interpreter eagerly on the main thread.
-    // CPython must be initialized from the main thread; calling
-    // Py_InitializeFromConfig from a background thread (e.g. the
+    // Initialize the Python interpreter eagerly on the main thread. CPython must be initialized
+    // from the main thread; calling Py_InitializeFromConfig from a background thread (e.g. the
     // load_plugin worker) causes heap corruption in CPython internals.
     PythonInterpreter& interpreter = PythonInterpreter::instance();
     if (!interpreter.is_initialized() && !interpreter.initialize()) {
@@ -119,28 +79,30 @@ bool PluginManager::initialize()
         return false;
     }
 
-    m_initialized = true;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_initialized)
+            return true;
+        m_initialized = true;
+    }
 
-    // Install the libslic3r hooks (capability resolver, slicing-pipeline
-    // dispatcher). Uninstalled in shutdown() before the interpreter finalizes.
+    // Install the libslic3r hooks (capability resolver, slicing-pipeline dispatcher).
+    // Uninstalled in shutdown() before the interpreter finalizes.
     plugin_hooks::install();
 
     // Persist auto-load / capability state to each plugin's .install_state.json sidecar.
-    // On load: write enabled=true plus current capability flags. On unload: flip enabled=false.
-    // The on-unload callback is skipped during shutdown (run_on_unload_callbacks is gated by
-    // !m_shutting_down), so app exit does not wipe the auto-load list.
-    m_loader.subscribe_on_load_callback([this](const std::string& key) {
-        m_loader.write_loaded_plugin_install_state(key);
-    });
-    m_loader.subscribe_on_unload_callback([this](const std::string& key) {
+    // On load: write enabled=true plus the current capability flags. On unload: flip enabled=false.
+    // The on-unload callback is skipped during shutdown, so app exit does not wipe the auto-load list.
+    subscribe_on_load_callback([this](const std::string& key) { write_loaded_plugin_install_state(key); });
+    subscribe_on_unload_callback([this](const std::string& key) {
         PluginDescriptor descriptor;
-        if (!m_catalog.try_get_plugin_descriptor(key, descriptor) || descriptor.plugin_root.empty())
+        if (!try_get_plugin_descriptor(key, descriptor) || descriptor.plugin_root.empty())
             return;
         const boost::filesystem::path root(descriptor.plugin_root);
-        PluginInstallState st;
-        if (read_install_state(root, st)) {
-            st.enabled = false;
-            write_install_state(root, st);
+        PluginInstallState            state;
+        if (read_install_state(root, state)) {
+            state.enabled = false;
+            write_install_state(root, state);
         }
     });
 
@@ -149,32 +111,43 @@ bool PluginManager::initialize()
     return true;
 }
 
+void PluginManager::set_shutting_down() { m_shutting_down.store(true, std::memory_order_release); }
+
 void PluginManager::shutdown()
 {
     {
         std::lock_guard<std::mutex> lock(m_mutex);
-        if (!m_initialized && !m_catalog.is_discovery_in_progress() && m_loader.is_idle_and_empty())
+        const bool idle_and_empty = m_load_in_progress.empty() &&
+                                    std::none_of(m_plugins.begin(), m_plugins.end(),
+                                                 [](const Plugin& plugin) { return plugin.is_loaded(); });
+        if (!m_initialized && !m_discovery_in_progress && idle_and_empty)
             return;
     }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": PluginManager shutdown enter";
 
-    // Detach the libslic3r hooks first so nothing dispatches into Python while
-    // (or after) plugins unload. Callers stop background slicing before this.
+    // Detach the libslic3r hooks first so nothing dispatches into Python while (or after) plugins
+    // unload. Callers stop background slicing before this.
     plugin_hooks::uninstall();
 
-    // Signal the loader to reject new plugin loads before we drain.
-    m_loader.set_shutting_down();
+    // Reject new plugin loads before we drain.
+    set_shutting_down();
 
     std::string wait_error;
-    if (!m_catalog.wait_for_discovery(std::chrono::milliseconds::max(), wait_error) && !wait_error.empty())
+    if (!wait_for_discovery(std::chrono::milliseconds::max(), wait_error) && !wait_error.empty())
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Plugin discovery did not finish cleanly during shutdown: " << wait_error;
 
-    // Wait for any in-progress plugin loads.
-    m_loader.wait_for_all_plugin_loads();
+    // Wait for any in-progress plugin loads. Cancelled loads keep their slot until their worker
+    // has actually unwound, so this cannot return while one is still executing Python.
+    wait_for_all_plugin_loads();
 
-    m_loader.unload_all_plugins();
+    unload_all_plugins();
     PythonPluginBridge::instance().clear_pending_captures();
+
+    // Drop the lifecycle subscriptions taken out during initialize(). Without this a second
+    // initialize() in the same process re-subscribes the same callbacks on top of the old ones,
+    // and every load would then write the install-state sidecar once per duplicate.
+    clear_callbacks();
 
     {
         std::lock_guard<std::mutex> lock(m_mutex);
@@ -184,15 +157,69 @@ void PluginManager::shutdown()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": PluginManager shutdown exit";
 }
 
+// ── Registry helpers ────────────────────────────────────────────────────────────────────────
+
+Plugin* PluginManager::find_plugin_locked(const std::string& plugin_key)
+{
+    const auto it = std::find_if(m_plugins.begin(), m_plugins.end(),
+                                 [&plugin_key](const Plugin& plugin) { return plugin.descriptor.plugin_key == plugin_key; });
+    return it == m_plugins.end() ? nullptr : &*it;
+}
+
+const Plugin* PluginManager::find_plugin_locked(const std::string& plugin_key) const
+{
+    const auto it = std::find_if(m_plugins.begin(), m_plugins.end(),
+                                 [&plugin_key](const Plugin& plugin) { return plugin.descriptor.plugin_key == plugin_key; });
+    return it == m_plugins.end() ? nullptr : &*it;
+}
+
+std::string PluginManager::check_registry_locked(const std::string& plugin_key, const Plugin& candidate) const
+{
+    const Plugin* entry = find_plugin_locked(plugin_key);
+    if (entry != nullptr && entry->is_loaded())
+        return "Plugin package is already loaded: " + plugin_key;
+
+    // A capability name must be unique per type across every loaded package.
+    for (const auto& capability : candidate.capabilities) {
+        if (!capability)
+            continue;
+        for (const Plugin& other : m_plugins) {
+            if (!other.is_loaded() || other.descriptor.plugin_key == plugin_key)
+                continue;
+            for (const auto& existing : other.capabilities) {
+                if (existing && existing->type() == capability->type() && existing->name() == capability->name())
+                    return "Capability collision for type " + plugin_capability_type_to_string(capability->type()) +
+                           " and name '" + capability->name() + "'";
+            }
+        }
+    }
+
+    return {};
+}
+
+// ── Discovery ───────────────────────────────────────────────────────────────────────────────
+
 void PluginManager::discover_plugins(bool async, bool clear)
 {
     if (!initialize())
         return;
 
-    if (clear)
-        m_catalog.clear_all_plugin_errors();
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (m_discovery_in_progress) {
+            BOOST_LOG_TRIVIAL(debug) << "Plugin discovery already running";
+            return;
+        }
+        if (clear) {
+            for (Plugin& plugin : m_plugins)
+                plugin.descriptor.clear_error();
+        }
+        m_discovery_in_progress = true;
+        m_discovery_complete    = false;
+        m_discovery_error.clear();
+    }
 
-    m_catalog.discover_plugins(async, clear);
+    run_discovery(async, clear);
 }
 
 void PluginManager::rescan_plugins()
@@ -200,30 +227,915 @@ void PluginManager::rescan_plugins()
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Rescanning plugins...";
 
     std::string wait_error;
-    m_catalog.wait_for_discovery(std::chrono::milliseconds::max(), wait_error);
+    wait_for_discovery(std::chrono::milliseconds::max(), wait_error);
 
-    if (!initialize())
+    discover_plugins(/*async=*/false, /*clear=*/true);
+}
+
+void PluginManager::run_discovery(bool async, bool clear)
+{
+    auto task = [this, clear]() { run_discovery_task(clear); };
+
+    if (async)
+        std::thread(std::move(task)).detach();
+    else
+        task();
+}
+
+void PluginManager::run_discovery_task(bool clear)
+{
+    std::string error;
+
+    try {
+        std::string cloud_user_id;
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            cloud_user_id = m_cloud_user_id;
+        }
+
+        const std::vector<std::string> dirs       = get_plugin_directories(cloud_user_id);
+        std::vector<PluginDescriptor>  discovered = discover_plugin_packages(dirs, error);
+        merge_discovered_plugins(std::move(discovered), clear);
+    } catch (const std::exception& ex) {
+        error = std::string("Plugin discovery failed: ") + ex.what();
+        BOOST_LOG_TRIVIAL(error) << error;
+    } catch (...) {
+        error = "Plugin discovery failed: unknown error";
+        BOOST_LOG_TRIVIAL(error) << error;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_discovery_error       = std::move(error);
+        m_discovery_complete    = true;
+        m_discovery_in_progress = false;
+    }
+    m_discovery_cv.notify_all();
+}
+
+void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> discovered, bool clear)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    std::vector<std::string> seen;
+    seen.reserve(discovered.size());
+
+    for (PluginDescriptor& descriptor : discovered) {
+        if (descriptor.plugin_key.empty())
+            continue;
+        seen.push_back(descriptor.plugin_key);
+
+        Plugin* existing = find_plugin_locked(descriptor.plugin_key);
+        if (existing == nullptr) {
+            Plugin plugin;
+            plugin.descriptor = std::move(descriptor);
+            m_plugins.push_back(std::move(plugin));
+            continue;
+        }
+
+        // A manifest-only rescan has nothing to say about capabilities, so the live module and
+        // instances are left alone.
+        existing->descriptor = std::move(descriptor);
+    }
+
+    if (!clear)
         return;
 
-    m_catalog.clear_all_plugin_errors();
-    m_catalog.discover_plugins(false, true);
+    // Drop entries that are no longer on disk. A loaded package is never removed — that would
+    // strand a live Python module with nothing owning it.
+    m_plugins.erase(std::remove_if(m_plugins.begin(), m_plugins.end(),
+                                   [&seen](const Plugin& plugin) {
+                                       if (plugin.is_loaded())
+                                           return false;
+                                       return std::find(seen.begin(), seen.end(), plugin.descriptor.plugin_key) == seen.end();
+                                   }),
+                    m_plugins.end());
+}
+
+bool PluginManager::is_discovery_complete() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_discovery_complete;
+}
+
+bool PluginManager::is_discovery_in_progress() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_discovery_in_progress;
+}
+
+std::string PluginManager::get_discovery_error() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_discovery_error;
+}
+
+bool PluginManager::wait_for_discovery(std::chrono::milliseconds timeout, std::string& error) const
+{
+    std::unique_lock<std::mutex> lock(m_mutex);
+    if (!m_discovery_in_progress)
+        return true;
+
+    const auto done = [this]() { return !m_discovery_in_progress; };
+
+    if (timeout == std::chrono::milliseconds::max()) {
+        m_discovery_cv.wait(lock, done);
+        return true;
+    }
+
+    if (!m_discovery_cv.wait_for(lock, timeout, done)) {
+        error = "Plugin discovery is still running";
+        return false;
+    }
+
+    return true;
+}
+
+// ── Descriptors ─────────────────────────────────────────────────────────────────────────────
+
+std::vector<PluginDescriptor> PluginManager::get_plugin_descriptors(bool include_invalid) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    std::vector<PluginDescriptor> result;
+    result.reserve(m_plugins.size());
+    for (const Plugin& plugin : m_plugins) {
+        if (!include_invalid && plugin.descriptor.is_invalid_package())
+            continue;
+        result.push_back(plugin.descriptor);
+    }
+    return result;
+}
+
+std::vector<PluginDescriptor> PluginManager::get_plugin_descriptors(PluginCapabilityType type) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    std::vector<PluginDescriptor> result;
+    for (const Plugin& plugin : m_plugins) {
+        if (plugin.descriptor.is_invalid_package())
+            continue;
+        // A package's capability types are only known while it is loaded, so a never-loaded
+        // package never matches.
+        const bool has_type = std::any_of(plugin.capabilities.begin(), plugin.capabilities.end(),
+                                          [type](const std::shared_ptr<PluginCapabilityInterface>& capability) {
+                                              return capability && capability->type() == type;
+                                          });
+        if (has_type)
+            result.push_back(plugin.descriptor);
+    }
+    return result;
+}
+
+bool PluginManager::try_get_plugin_descriptor(const std::string& plugin_key, PluginDescriptor& out) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    const Plugin* plugin = find_plugin_locked(plugin_key);
+    if (plugin == nullptr)
+        return false;
+
+    out = plugin->descriptor;
+    return true;
+}
+
+bool PluginManager::try_get_valid_plugin_descriptor(const std::string& plugin_key, PluginDescriptor& out) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    const Plugin* plugin = find_plugin_locked(plugin_key);
+    if (plugin == nullptr || plugin->descriptor.is_invalid_package())
+        return false;
+
+    out = plugin->descriptor;
+    return true;
+}
+
+std::vector<std::string> PluginManager::get_enabled_plugin_keys() const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    std::vector<std::string> keys;
+    for (const Plugin& plugin : m_plugins) {
+        if (plugin.descriptor.enabled && plugin.descriptor.has_local_package())
+            keys.push_back(plugin.descriptor.plugin_key);
+    }
+    return keys;
+}
+
+bool PluginManager::try_get_plugin_descriptor_for_capability(const std::string&   capability_name,
+                                                             PluginCapabilityType type,
+                                                             PluginDescriptor&    out) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    for (const Plugin& plugin : m_plugins) {
+        for (const auto& capability : plugin.capabilities) {
+            if (!capability || capability->name() != capability_name)
+                continue;
+            if (type != PluginCapabilityType::Unknown && capability->type() != type)
+                continue;
+            out = plugin.descriptor;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// ── Capability instances ────────────────────────────────────────────────────────────────────
+
+std::vector<std::shared_ptr<PluginCapabilityInterface>> PluginManager::get_plugin_capabilities(const std::string&   plugin_key,
+                                                                                               PluginCapabilityType type,
+                                                                                               bool only_enabled) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    std::vector<std::shared_ptr<PluginCapabilityInterface>> result;
+    for (const Plugin& plugin : m_plugins) {
+        if (!plugin_key.empty() && plugin.descriptor.plugin_key != plugin_key)
+            continue;
+
+        for (const auto& capability : plugin.capabilities) {
+            if (!capability)
+                continue;
+            if (type != PluginCapabilityType::Unknown && capability->type() != type)
+                continue;
+            if (only_enabled && !capability->is_enabled())
+                continue;
+            result.push_back(capability);
+        }
+    }
+    return result;
+}
+
+std::shared_ptr<PluginCapabilityInterface> PluginManager::get_plugin_capability(const std::string&   plugin_key,
+                                                                                const std::string&   capability_name,
+                                                                                PluginCapabilityType type,
+                                                                                bool                 only_enabled) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    const Plugin* plugin = find_plugin_locked(plugin_key);
+    if (plugin == nullptr)
+        return nullptr;
+
+    for (const auto& capability : plugin->capabilities) {
+        if (!capability || capability->name() != capability_name)
+            continue;
+        if (type != PluginCapabilityType::Unknown && capability->type() != type)
+            continue;
+        if (only_enabled && !capability->is_enabled())
+            continue;
+        return capability;
+    }
+
+    return nullptr;
+}
+
+std::shared_ptr<PluginCapabilityInterface> PluginManager::get_plugin_capability(const std::string&   capability_name,
+                                                                                PluginCapabilityType type,
+                                                                                bool                 only_enabled) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    for (const Plugin& plugin : m_plugins) {
+        for (const auto& capability : plugin.capabilities) {
+            if (!capability || capability->name() != capability_name)
+                continue;
+            if (type != PluginCapabilityType::Unknown && capability->type() != type)
+                continue;
+            if (only_enabled && !capability->is_enabled())
+                continue;
+            return capability;
+        }
+    }
+
+    return nullptr;
+}
+
+std::map<std::string, std::string> PluginManager::get_plugin_settings(const std::string& plugin_key) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+
+    const Plugin* plugin = find_plugin_locked(plugin_key);
+    if (plugin == nullptr || !plugin->is_loaded())
+        return {};
+
+    return plugin->descriptor.settings;
+}
+
+// ── Lifecycle ───────────────────────────────────────────────────────────────────────────────
+
+bool PluginManager::is_plugin_loaded(const std::string& plugin_key) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const Plugin* plugin = find_plugin_locked(plugin_key);
+    return plugin != nullptr && plugin->is_loaded();
+}
+
+bool PluginManager::is_plugin_load_in_progress(const std::string& plugin_key) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_load_in_progress.count(plugin_key) > 0;
+}
+
+void PluginManager::wait_for_all_plugin_loads() const
+{
+    std::unique_lock<std::mutex> lock(m_mutex);
+    m_load_cv.wait(lock, [this]() { return m_load_in_progress.empty(); });
+}
+
+bool PluginManager::wait_for_all_plugin_loads(std::chrono::milliseconds timeout) const
+{
+    std::unique_lock<std::mutex> lock(m_mutex);
+    return m_load_cv.wait_for(lock, timeout, [this]() { return m_load_in_progress.empty(); });
+}
+
+bool PluginManager::wait_for_plugin_load(const std::string& plugin_key, std::chrono::milliseconds timeout, std::string& error) const
+{
+    std::unique_lock<std::mutex> lock(m_mutex);
+
+    const auto done = [this, &plugin_key]() { return m_load_in_progress.count(plugin_key) == 0; };
+
+    if (timeout == std::chrono::milliseconds::max()) {
+        m_load_cv.wait(lock, done);
+    } else if (!m_load_cv.wait_for(lock, timeout, done)) {
+        error = "Plugin load is still in progress";
+        return false;
+    }
+
+    const auto it = m_load_errors.find(plugin_key);
+    if (it != m_load_errors.end()) {
+        error = it->second;
+        return false;
+    }
+
+    return true;
+}
+
+std::string PluginManager::get_plugin_load_error(const std::string& plugin_key) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const auto                  it = m_load_errors.find(plugin_key);
+    return it == m_load_errors.end() ? std::string{} : it->second;
+}
+
+bool PluginManager::cancel_plugin_load(const std::string& plugin_key)
+{
+    bool cancelled = false;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        cancelled = cancel_plugin_load_locked(plugin_key);
+    }
+
+    notify_plugin_load_state_changed(cancelled);
+    return cancelled;
+}
+
+bool PluginManager::cancel_plugin_load_locked(const std::string& plugin_key)
+{
+    if (m_load_in_progress.count(plugin_key) == 0)
+        return false;
+
+    m_cancelled.insert(plugin_key);
+    m_load_errors.erase(plugin_key);
+    return true;
+}
+
+bool PluginManager::is_plugin_load_cancelled_locked(const std::string& plugin_key) const
+{
+    return m_cancelled.count(plugin_key) > 0;
+}
+
+void PluginManager::notify_plugin_load_state_changed(bool changed)
+{
+    if (changed)
+        m_load_cv.notify_all();
+}
+
+void PluginManager::release_load_slot(const std::string& plugin_key)
+{
+    bool changed = false;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        changed = m_load_in_progress.erase(plugin_key) > 0;
+        m_cancelled.erase(plugin_key);
+    }
+    notify_plugin_load_state_changed(changed);
+}
+
+void PluginManager::load_plugin(const std::string& plugin_key, bool skip_deps, std::vector<std::string> capabilities_to_enable)
+{
+    std::string plugin_id = plugin_key;
+
+    bool                               exists           = false;
+    bool                               invalid          = false;
+    bool                               already_loaded   = false;
+    bool                               load_in_progress = false;
+    std::string              invalid_error;
+    std::vector<std::string> loaded_capability_names;
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        const Plugin* plugin = find_plugin_locked(plugin_key);
+        if (plugin != nullptr) {
+            exists         = true;
+            plugin_id      = plugin->descriptor.plugin_key;
+            invalid        = plugin->descriptor.is_invalid_package();
+            already_loaded = plugin->is_loaded();
+            invalid_error  = plugin->descriptor.normalized_error();
+            if (already_loaded) {
+                for (const auto& capability : plugin->capabilities)
+                    if (capability)
+                        loaded_capability_names.push_back(capability->name());
+            }
+        }
+
+        load_in_progress = m_load_in_progress.count(plugin_id) > 0;
+    }
+
+    if (already_loaded) {
+        // The caller may be asking us to enable capabilities that are currently disabled (e.g.
+        // resolving an inactive-plugin reference). The load path below is skipped for an
+        // already-loaded plugin, so honor the request here. Runs outside m_mutex.
+        for (const std::string& capability_name : loaded_capability_names) {
+            const bool enable_requested = capabilities_to_enable.empty() ||
+                                          std::find(capabilities_to_enable.begin(), capabilities_to_enable.end(), capability_name) !=
+                                              capabilities_to_enable.end();
+            if (enable_requested)
+                set_capability_enabled(plugin_id, capability_name, true);
+        }
+
+        run_on_load_callbacks(plugin_id);
+        return;
+    }
+
+    if (load_in_progress)
+        return;
+
+    if (m_shutting_down.load(std::memory_order_acquire)) {
+        BOOST_LOG_TRIVIAL(info) << "Plugin load rejected — shutting down: " << plugin_id;
+        run_on_load_callbacks(plugin_id);
+        return;
+    }
+
+    if (!exists || invalid) {
+        std::string message;
+        if (invalid) {
+            message = "Plugin is invalid: " + plugin_id;
+            if (!invalid_error.empty())
+                message += " - " + invalid_error;
+        } else {
+            message = "Plugin not found: " + plugin_id;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_load_errors[plugin_id] = message;
+            BOOST_LOG_TRIVIAL(error) << message;
+        }
+
+        if (invalid)
+            set_plugin_error(plugin_id, message);
+
+        run_on_load_callbacks(plugin_id);
+        return;
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_load_in_progress.insert(plugin_id);
+        m_load_errors.erase(plugin_id);
+    }
+
+    clear_plugin_error(plugin_id);
+
+    std::thread([this, plugin_id, skip_deps, capabilities_to_enable]() {
+        auto fail_unexpected = [this, &plugin_id](std::string message) {
+            BOOST_LOG_TRIVIAL(error) << "[load_plugin] Unexpected worker failure plugin=" << plugin_id << " error=" << message;
+            set_plugin_error(plugin_id, message);
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                m_load_errors[plugin_id] = std::move(message);
+            }
+        };
+
+        try {
+            load_plugin_impl(plugin_id, skip_deps, capabilities_to_enable);
+        } catch (const std::exception& ex) {
+            fail_unexpected(std::string("Unexpected plugin load failure: ") + ex.what());
+        } catch (...) {
+            fail_unexpected("Unexpected plugin load failure");
+        }
+
+        if (!m_shutting_down.load(std::memory_order_acquire))
+            run_on_load_callbacks(plugin_id);
+
+        // The worker owns its slot and releases it here, once it is done with Python for good —
+        // including a load that was cancelled mid-flight, which is what keeps
+        // wait_for_all_plugin_loads() blocking until the worker is really gone.
+        release_load_slot(plugin_id);
+    }).detach();
+}
+
+void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_deps, const std::vector<std::string>& capabilities_to_enable)
+{
+    auto fail = [this, &plugin_key](std::string message) {
+        BOOST_LOG_TRIVIAL(error) << "[load_plugin_impl] FAIL plugin=" << plugin_key << " error=" << message;
+        set_plugin_error(plugin_key, message);
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_load_errors[plugin_key] = std::move(message);
+        }
+    };
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
+        fail("Plugin manifest not found: " + plugin_key);
+        return;
+    }
+
+    // Reject a duplicate package or a capability-name collision BEFORE on_load() runs, so a
+    // rejected load costs no on_load/on_unload cycle. Also the point at which a cancellation that
+    // arrived while the module was importing is noticed.
+    auto registry_precheck = [this, &plugin_key](const Plugin& candidate) -> std::string {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        if (is_plugin_load_cancelled_locked(plugin_key))
+            return LOAD_CANCELLED;
+        return check_registry_locked(plugin_key, candidate);
+    };
+
+    Plugin      plugin;
+    std::string error;
+    if (!plugin_loader::load(descriptor, skip_deps, capabilities_to_enable, registry_precheck, plugin, error)) {
+        if (error == LOAD_CANCELLED)
+            return; // cancelled: nothing materialized survives, and no error is recorded
+        fail(std::move(error));
+        return;
+    }
+
+    bool        committed = false;
+    bool        cancelled = false;
+    std::string registry_error;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        cancelled = is_plugin_load_cancelled_locked(plugin_key);
+        if (!cancelled) {
+            registry_error = check_registry_locked(plugin_key, plugin);
+            if (registry_error.empty()) {
+                Plugin* entry = find_plugin_locked(plugin_key);
+                if (entry == nullptr) {
+                    registry_error = "Plugin manifest not found: " + plugin_key;
+                } else {
+                    entry->descriptor   = std::move(plugin.descriptor);
+                    entry->capabilities = std::move(plugin.capabilities);
+                    entry->module       = plugin.module;
+                    plugin.module       = nullptr;
+                    committed           = true;
+                }
+            }
+        }
+    }
+
+    if (!committed) {
+        // Outside the lock: this runs on_unload() and DECREFs the module.
+        plugin_loader::unload(plugin);
+        if (!cancelled)
+            fail(std::move(registry_error));
+        return;
+    }
+
+    clear_plugin_error(plugin_key);
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_load_errors.erase(plugin_key);
+    }
+
+    BOOST_LOG_TRIVIAL(info) << "[load_plugin_impl] SUCCESS plugin=" << plugin_key;
+}
+
+bool PluginManager::unload_plugin(const std::string& plugin_key)
+{
+    auto notify_unload_complete = [this, &plugin_key]() {
+        if (!m_shutting_down.load(std::memory_order_acquire))
+            run_on_unload_callbacks(plugin_key);
+    };
+
+    Plugin                            removed;
+    std::vector<PluginCapabilityType> teardown_types;
+    bool                              cancelled = false;
+    bool                              found     = false;
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        // Cancel any in-progress load for this plugin so its worker discards the result.
+        cancelled = cancel_plugin_load_locked(plugin_key);
+
+        Plugin* plugin = find_plugin_locked(plugin_key);
+        if (plugin != nullptr && plugin->is_loaded()) {
+            found = true;
+            for (const auto& capability : plugin->capabilities)
+                if (capability)
+                    teardown_types.push_back(capability->type());
+
+            // Take the live parts out of the entry; the descriptor stays behind, so the package
+            // remains discovered. Everything capability-shaped is discarded with the capabilities —
+            // the user's enable choices live on in the .install_state.json sidecar.
+            removed.capabilities = std::move(plugin->capabilities);
+            removed.module       = plugin->module;
+            plugin->capabilities.clear();
+            plugin->module = nullptr;
+        }
+    }
+
+    notify_plugin_load_state_changed(cancelled);
+
+    if (!found) {
+        notify_unload_complete();
+        return true;
+    }
+
+    // Teardown runs outside m_mutex: it calls into Python and must not hold the registry lock.
+    plugin_loader::unload(removed);
+
+    // The .install_state.json sidecar is flipped to enabled=false by the on-unload callback
+    // (skipped during shutdown), so the auto-load list survives app exit.
+    BOOST_LOG_TRIVIAL(info) << "Unloaded plugin: " << plugin_key;
+
+    std::vector<PluginCapabilityType> torn_down;
+    for (const PluginCapabilityType type : teardown_types) {
+        if (std::find(torn_down.begin(), torn_down.end(), type) != torn_down.end())
+            continue;
+        torn_down.push_back(type);
+        if (type == PluginCapabilityType::PrinterConnection)
+            NetworkAgentFactory::deregister_python_plugin(plugin_key);
+    }
+
+    notify_unload_complete();
+
+    return true;
+}
+
+void PluginManager::unload_all_plugins()
+{
+    std::vector<Plugin> removed;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        for (Plugin& plugin : m_plugins) {
+            if (!plugin.is_loaded())
+                continue;
+
+            Plugin taken;
+            taken.capabilities = std::move(plugin.capabilities);
+            taken.module       = plugin.module;
+            plugin.capabilities.clear();
+            plugin.module = nullptr;
+            removed.push_back(std::move(taken));
+        }
+    }
+
+    for (Plugin& plugin : removed)
+        plugin_loader::unload(plugin);
+}
+
+void PluginManager::unload_cloud_plugins()
+{
+    std::vector<std::string> keys;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        for (const Plugin& plugin : m_plugins) {
+            if (plugin.is_loaded() && plugin.descriptor.is_cloud_plugin())
+                keys.push_back(plugin.descriptor.plugin_key);
+        }
+    }
+
+    // Release m_mutex before unloading: unload_plugin() re-acquires it and runs plugin teardown
+    // plus unload callbacks, which can re-enter the manager.
+    for (const std::string& key : keys)
+        unload_plugin(key);
+}
+
+// ── Enable state ────────────────────────────────────────────────────────────────────────────
+
+void PluginManager::set_capability_enabled(const std::string& plugin_key, const std::string& capability_name, bool enabled)
+{
+    PluginCapabilityId changed;
+    bool               did_change = false;
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        Plugin* plugin = find_plugin_locked(plugin_key);
+        if (plugin == nullptr || !plugin->is_loaded())
+            return;
+
+        for (const auto& capability : plugin->capabilities) {
+            if (!capability || capability->name() != capability_name || capability->is_enabled() == enabled)
+                continue;
+            capability->set_enabled(enabled);
+            changed    = PluginCapabilityId{capability->type(), capability->name(), plugin_key};
+            did_change = true;
+            break;
+        }
+    }
+
+    if (!did_change)
+        return;
+
+    write_loaded_plugin_install_state(plugin_key);
+
+    if (enabled)
+        run_on_capability_load_callbacks(changed);
+    else
+        run_on_capability_unload_callbacks(changed);
+}
+
+void PluginManager::write_loaded_plugin_install_state(const std::string& plugin_key)
+{
+    PluginDescriptor                         descriptor;
+    std::vector<std::pair<std::string, bool>> capabilities;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        const Plugin* plugin = find_plugin_locked(plugin_key);
+        if (plugin == nullptr || !plugin->is_loaded())
+            return;
+
+        descriptor = plugin->descriptor;
+        for (const auto& capability : plugin->capabilities)
+            if (capability)
+                capabilities.emplace_back(capability->name(), capability->is_enabled());
+    }
+
+    if (descriptor.plugin_root.empty())
+        return;
+
+    write_install_state(boost::filesystem::path(descriptor.plugin_root), descriptor, /*enabled=*/true, capabilities);
+}
+
+// ── Callbacks ───────────────────────────────────────────────────────────────────────────────
+
+void PluginManager::subscribe_on_load_callback(PluginLifecycleCompleteFn fn)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_callbacks[CallbackType::Load].push_back(std::move(fn));
+}
+
+void PluginManager::subscribe_on_unload_callback(PluginLifecycleCompleteFn fn)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_callbacks[CallbackType::Unload].push_back(std::move(fn));
+}
+
+void PluginManager::subscribe_on_capability_load_callback(CapabilityLifecycleFn fn)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_capability_callbacks[CallbackType::Load].push_back(std::move(fn));
+}
+
+void PluginManager::subscribe_on_capability_unload_callback(CapabilityLifecycleFn fn)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_capability_callbacks[CallbackType::Unload].push_back(std::move(fn));
+}
+
+void PluginManager::clear_callbacks()
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_callbacks.clear();
+    m_capability_callbacks.clear();
+}
+
+std::vector<PluginManager::PluginLifecycleCompleteFn> PluginManager::copy_callbacks(CallbackType type) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const auto                  it = m_callbacks.find(type);
+    return it == m_callbacks.end() ? std::vector<PluginLifecycleCompleteFn>{} : it->second;
+}
+
+std::vector<PluginManager::CapabilityLifecycleFn> PluginManager::copy_capability_callbacks(CallbackType type) const
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    const auto                  it = m_capability_callbacks.find(type);
+    return it == m_capability_callbacks.end() ? std::vector<CapabilityLifecycleFn>{} : it->second;
+}
+
+// The run_on_*_callbacks below are called from detached load/unload workers. They copy the
+// subscriber list under m_mutex and invoke it OUTSIDE the lock: subscribers re-enter the manager,
+// and no callback may run while the registry lock is held.
+void PluginManager::run_on_load_callbacks(const std::string& plugin_key)
+{
+    for (auto& fn : copy_callbacks(CallbackType::Load)) {
+        try {
+            fn(plugin_key);
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin load completion callback failed for " << plugin_key << ": " << ex.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin load completion callback failed for " << plugin_key;
+        }
+    }
+}
+
+void PluginManager::run_on_unload_callbacks(const std::string& plugin_key)
+{
+    for (auto& fn : copy_callbacks(CallbackType::Unload)) {
+        try {
+            fn(plugin_key);
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin unload completion callback failed for " << plugin_key << ": " << ex.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin unload completion callback failed for " << plugin_key << ": unknown error";
+        }
+    }
+}
+
+void PluginManager::run_on_capability_load_callbacks(const PluginCapabilityId& id)
+{
+    for (auto& fn : copy_capability_callbacks(CallbackType::Load)) {
+        try {
+            fn(id);
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin capability load callback failed for " << id.plugin_key << "/" << id.name << ": "
+                                     << ex.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin capability load callback failed for " << id.plugin_key << "/" << id.name;
+        }
+    }
+}
+
+void PluginManager::run_on_capability_unload_callbacks(const PluginCapabilityId& id)
+{
+    for (auto& fn : copy_capability_callbacks(CallbackType::Unload)) {
+        try {
+            fn(id);
+        } catch (const std::exception& ex) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin capability unload callback failed for " << id.plugin_key << "/" << id.name << ": "
+                                     << ex.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "Plugin capability unload callback failed for " << id.plugin_key << "/" << id.name;
+        }
+    }
+}
+
+// ── Cloud user ──────────────────────────────────────────────────────────────────────────────
+
+void PluginManager::set_cloud_user(const std::string& user_id)
+{
+    std::lock_guard<std::mutex> lock(m_mutex);
+    m_cloud_user_id = user_id;
+}
+
+// ── Errors ──────────────────────────────────────────────────────────────────────────────────
+
+bool PluginManager::set_plugin_error(const std::string& plugin_key, std::string error)
+{
+    std::string wait_error;
+    if (!wait_for_discovery(std::chrono::milliseconds::max(), wait_error))
+        return false;
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    Plugin*                     plugin = find_plugin_locked(plugin_key);
+    if (plugin == nullptr)
+        return false;
+
+    plugin->descriptor.set_error(std::move(error));
+    return true;
+}
+
+bool PluginManager::clear_plugin_error(const std::string& plugin_key)
+{
+    std::string wait_error;
+    if (!wait_for_discovery(std::chrono::milliseconds::max(), wait_error))
+        return false;
+
+    std::lock_guard<std::mutex> lock(m_mutex);
+    Plugin*                     plugin = find_plugin_locked(plugin_key);
+    if (plugin == nullptr || !plugin->descriptor.is_metadata_valid())
+        return false;
+
+    plugin->descriptor.clear_error();
+    return true;
+}
+
+// ── Install / inspect ───────────────────────────────────────────────────────────────────────
+
+bool PluginManager::inspect_local_plugin_package(const boost::filesystem::path& filepath,
+                                                 PluginDescriptor&              plugin_descriptor,
+                                                 bool&                          existing_installation,
+                                                 std::string&                   error) const
+{
+    return plugin_loader::inspect_local_plugin_package(filepath, plugin_descriptor, existing_installation, error);
 }
 
 bool PluginManager::install_plugin(const boost::filesystem::path& filepath, std::string& error)
 {
-    error.clear();
-
-    std::string wait_error;
-    if (!wait_for_plugin_catalog(m_catalog, wait_error)) {
-        error = wait_error;
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin installation failed while waiting for discovery: " << wait_error;
-        return false;
-    }
-
-    if (!m_loader.install_plugin(filepath, error))
-        return false;
-
-    return true;
+    PluginDescriptor descriptor{};
+    return install_plugin(filepath, descriptor, error);
 }
 
 bool PluginManager::install_plugin(const boost::filesystem::path& filepath, PluginDescriptor& plugin_descriptor, std::string& error)
@@ -231,208 +1143,167 @@ bool PluginManager::install_plugin(const boost::filesystem::path& filepath, Plug
     error.clear();
 
     std::string wait_error;
-    if (!wait_for_plugin_catalog(m_catalog, wait_error)) {
-        error = wait_error;
+    if (!wait_for_discovery(std::chrono::milliseconds::max(), wait_error)) {
+        error = wait_error.empty() ? "Plugin discovery is still running" : wait_error;
         if (!plugin_descriptor.plugin_key.empty())
-            m_catalog.set_plugin_error(plugin_descriptor.plugin_key, error);
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin installation failed while waiting for discovery: " << wait_error;
+            set_plugin_error(plugin_descriptor.plugin_key, error);
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Plugin installation failed while waiting for discovery: " << error;
         return false;
     }
 
-    if (!m_loader.install_plugin(filepath, plugin_descriptor, error)) {
+    std::string cloud_user_id;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        cloud_user_id = m_cloud_user_id;
+    }
+
+    if (!plugin_loader::install_plugin(filepath, cloud_user_id, plugin_descriptor, error)) {
         if (!plugin_descriptor.plugin_key.empty())
-            m_catalog.set_plugin_error(plugin_descriptor.plugin_key, error);
+            set_plugin_error(plugin_descriptor.plugin_key, error);
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << error;
         return false;
     }
 
     if (!plugin_descriptor.plugin_key.empty())
-        m_catalog.clear_plugin_error(plugin_descriptor.plugin_key);
+        clear_plugin_error(plugin_descriptor.plugin_key);
 
     return true;
 }
 
-bool PluginManager::set_plugin_error(const std::string& plugin_key, std::string error)
+// ── Cloud overlay ───────────────────────────────────────────────────────────────────────────
+
+namespace {
+
+bool is_cloud_version_newer(const std::string& cloud_version, const std::string& local_version)
 {
-    std::string wait_error;
-    if (!wait_for_plugin_catalog(m_catalog, wait_error))
-        return false;
-
-    PluginDescriptor descriptor;
-    if (!m_catalog.try_get_plugin_descriptor(plugin_key, descriptor))
-        return false;
-
-    descriptor.set_error(std::move(error));
-    return m_catalog.update_plugin_descriptor(plugin_key, descriptor);
+    auto cloud_parsed = Semver::parse(cloud_version);
+    auto local_parsed = Semver::parse(local_version);
+    if (cloud_parsed && local_parsed)
+        return *cloud_parsed > *local_parsed;
+    // Fall back to string comparison if semver parsing fails for either version.
+    return cloud_version != local_version;
 }
 
-bool PluginManager::clear_plugin_error(const std::string& plugin_key)
+const char* const CLOUD_PLUGIN_NOT_FOUND_ERROR = "Plugin was not found in the cloud.";
+
+} // namespace
+
+void PluginManager::update_cloud_catalog(const std::vector<PluginDescriptor>& cloud_list)
 {
-    std::string wait_error;
-    if (!wait_for_plugin_catalog(m_catalog, wait_error))
-        return false;
+    std::lock_guard<std::mutex> lock(m_mutex);
 
-    PluginDescriptor descriptor;
-    if (!m_catalog.try_get_plugin_descriptor(plugin_key, descriptor))
-        return false;
-    if (!descriptor.is_metadata_valid())
-        return false;
+    // Collected and appended after the scan: push_back into m_plugins would invalidate the
+    // pointers the loop is holding.
+    std::vector<PluginDescriptor> new_entries;
 
-    descriptor.clear_error();
-    return m_catalog.update_plugin_descriptor(plugin_key, descriptor);
+    for (const PluginDescriptor& cloud_entry : cloud_list) {
+        const std::string cloud_uuid = cloud_entry.cloud_uuid();
+        const std::string cloud_key  = cloud_entry.plugin_key;
+        if (cloud_uuid.empty()) {
+            BOOST_LOG_TRIVIAL(warning) << "Skipping cloud plugin record without UUID";
+            continue;
+        }
+
+        const auto matches_cloud_descriptor = [&cloud_key, &cloud_uuid](const PluginDescriptor& entry) {
+            if (!cloud_key.empty() && entry.plugin_key == cloud_key)
+                return true;
+            return entry.is_cloud_plugin() && entry.cloud_uuid() == cloud_uuid;
+        };
+
+        const auto existing = std::find_if(m_plugins.begin(), m_plugins.end(), [&matches_cloud_descriptor](const Plugin& plugin) {
+            return matches_cloud_descriptor(plugin.descriptor);
+        });
+
+        if (existing == m_plugins.end()) {
+            PluginDescriptor normalized_entry = cloud_entry;
+            if (normalized_entry.plugin_key.empty())
+                normalized_entry.plugin_key = cloud_uuid;
+            if (!normalized_entry.cloud.has_value())
+                normalized_entry.cloud = CloudPluginState{cloud_uuid, false, false, false};
+            else if (normalized_entry.cloud->uuid.empty())
+                normalized_entry.cloud->uuid = cloud_uuid;
+            new_entries.push_back(std::move(normalized_entry));
+            continue;
+        }
+
+        PluginDescriptor& entry = existing->descriptor;
+
+        const PluginDescriptor local_entry        = entry;
+        const std::string      installed_version  = entry.installed_version;
+        const std::string      latest_version     = cloud_entry.latest_available_version();
+        const std::string      local_plugin_root  = entry.plugin_root;
+        const std::string      local_entry_path   = entry.entry_path;
+        const bool             local_metadata_ok  = entry.is_metadata_valid();
+        const bool             has_local_package  = entry.has_local_package();
+        const std::string      previous_error     = entry.error;
+        // The cloud does not know about the local auto-load flag, which comes from the sidecar.
+        const bool             enabled            = entry.enabled;
+
+        entry             = cloud_entry;
+        entry.plugin_root = local_plugin_root;
+        entry.entry_path  = local_entry_path;
+        if (has_local_package)
+            apply_plugin_metadata_fallbacks(entry, local_entry);
+        if (entry.plugin_key.empty())
+            entry.plugin_key = cloud_uuid;
+        entry.metadata_valid     = has_local_package ? local_metadata_ok : cloud_entry.metadata_valid;
+        entry.error              = previous_error;
+        entry.enabled            = enabled;
+        if (!entry.cloud.has_value())
+            entry.cloud = CloudPluginState{cloud_uuid, has_local_package, false, false};
+        else if (entry.cloud->uuid.empty())
+            entry.cloud->uuid = cloud_uuid;
+
+        entry.cloud->installed = has_local_package;
+        // The installed version is the source of truth read back from the install-state sidecar
+        // (the version fetched from the cloud at install time), not the local manifest/PEP723
+        // header. The header may be stale — the cloud can bump the version without the header
+        // changing — which would otherwise make an already-updated plugin appear perpetually out
+        // of date.
+        entry.installed_version       = has_local_package ? installed_version : std::string{};
+        entry.cloud->update_available = has_local_package && local_metadata_ok && !installed_version.empty() &&
+                                        !latest_version.empty() && is_cloud_version_newer(latest_version, installed_version);
+        if (entry.normalized_error() == CLOUD_PLUGIN_NOT_FOUND_ERROR)
+            entry.clear_error();
+    }
+
+    for (PluginDescriptor& descriptor : new_entries) {
+        Plugin plugin;
+        plugin.descriptor = std::move(descriptor);
+        m_plugins.push_back(std::move(plugin));
+    }
 }
 
-bool PluginManager::delete_plugin(const std::string& plugin_key, std::string& error)
+void PluginManager::clear_cloud_plugin_catalog()
 {
-    if (!wait_for_plugin_catalog(m_catalog, error))
-        return false;
+    std::lock_guard<std::mutex> lock(m_mutex);
 
-    error.clear();
+    // Drop EVERY cloud row, not just the ones with nothing installed behind them.
+    //
+    // This runs on sign-out, right after set_cloud_user("") stops the per-user _subscribed
+    // directory from being scanned at all. An installed cloud plugin lives in that directory, so
+    // once it is out of the scan its row is stale: a rescan will not rediscover it and will drop
+    // it. Keeping the row here only made sign-out and refresh disagree — the plugin stayed listed
+    // (merely unloaded) until the user happened to hit refresh, at which point it vanished.
+    //
+    // A still-loaded plugin is never dropped: that would destroy its module without running
+    // on_unload() or deregistering its agents. unload_cloud_plugins() runs first and unloads them,
+    // so this guard should never fire — it is here so that a failure to unload degrades into a
+    // lingering row rather than a stranded Python module.
+    m_plugins.erase(std::remove_if(m_plugins.begin(), m_plugins.end(),
+                                   [](const Plugin& plugin) {
+                                       return !plugin.is_loaded() && plugin.descriptor.is_cloud_plugin();
+                                   }),
+                    m_plugins.end());
 
-    PluginDescriptor descriptor;
-    if (!m_catalog.try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
-        return false;
+    // A local plugin can still be carrying a stale "not found in the cloud" error from when it was
+    // cloud-tracked.
+    for (Plugin& plugin : m_plugins) {
+        if (plugin.descriptor.normalized_error() == CLOUD_PLUGIN_NOT_FOUND_ERROR)
+            plugin.descriptor.clear_error();
     }
 
-    if (!delete_installed_plugin_package(descriptor, error)) {
-        m_catalog.set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Deleted plugin: " << plugin_key;
-    return true;
-}
-
-bool PluginManager::unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error)
-{
-    if (!wait_for_plugin_catalog(m_catalog, error))
-        return false;
-
-    error.clear();
-
-    PluginDescriptor descriptor;
-    if (!m_catalog.try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
-        return false;
-    }
-
-    if (!descriptor.is_cloud_plugin()) {
-        error = "Only cloud plugins can be unsubscribed.";
-        m_catalog.set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (descriptor.cloud && descriptor.cloud->is_mine) {
-        error = "Cannot unsubscribe your own plugins. Use Delete from Cloud instead.";
-        m_catalog.set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!m_cloud_service.request_cloud_unsubscribe(descriptor, error)) {
-        m_catalog.set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    return finalize_cloud_plugin_removal(descriptor, true, error);
-}
-
-bool PluginManager::delete_and_unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error)
-{
-    if (!wait_for_plugin_catalog(m_catalog, error))
-        return false;
-
-    error.clear();
-
-    PluginDescriptor descriptor;
-    if (!m_catalog.try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
-        return false;
-    }
-
-    if (!descriptor.is_cloud_plugin()) {
-        error = "Only cloud plugins can be deleted and unsubscribed.";
-        m_catalog.set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (descriptor.cloud->is_mine) {
-        error = "Use Delete local and cloud for owned plugins.";
-        m_catalog.set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!m_cloud_service.request_cloud_unsubscribe(descriptor, error)) {
-        m_catalog.set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    return finalize_cloud_plugin_removal(descriptor, false, error);
-}
-
-bool PluginManager::delete_mine_plugin_from_cloud(const std::string& plugin_key, std::string& error)
-{
-    if (!wait_for_plugin_catalog(m_catalog, error))
-        return false;
-
-    error.clear();
-
-    PluginDescriptor descriptor;
-    if (!m_catalog.try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
-        return false;
-    }
-
-    if (!descriptor.is_cloud_plugin()) {
-        error = "Only owned cloud plugins can be deleted from the cloud.";
-        m_catalog.set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!descriptor.cloud->is_mine) {
-        error = "Only your own plugins can be deleted from the cloud.";
-        m_catalog.set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!m_cloud_service.request_cloud_delete(descriptor, error)) {
-        m_catalog.set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    return finalize_cloud_plugin_removal(descriptor, true, error);
-}
-
-bool PluginManager::delete_mine_local_and_cloud_plugin(const std::string& plugin_key, std::string& error)
-{
-    if (!wait_for_plugin_catalog(m_catalog, error))
-        return false;
-
-    error.clear();
-
-    PluginDescriptor descriptor;
-    if (!m_catalog.try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
-        return false;
-    }
-
-    if (!descriptor.is_cloud_plugin()) {
-        error = "Only owned cloud plugins can be deleted from local and cloud.";
-        m_catalog.set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!descriptor.cloud->is_mine) {
-        error = "Only your own plugins can be deleted from local and cloud.";
-        m_catalog.set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!m_cloud_service.request_cloud_delete(descriptor, error)) {
-        m_catalog.set_plugin_error(plugin_key, error);
-        return false;
-    }
-    return finalize_cloud_plugin_removal(descriptor, false, error);
+    BOOST_LOG_TRIVIAL(info) << "Cleared cloud plugin catalog entries";
 }
 
 void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_found, std::vector<std::string>* out_unauthorized)
@@ -441,9 +1312,8 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
         return;
 
     std::vector<PluginDescriptor> cloud_list{};
-    std::vector<std::string> not_found{}, unauthorized{};
-    bool result = m_cloud_service.fetch_manifests_into_descriptors(cloud_list, not_found, unauthorized);
-    if (!result) {
+    std::vector<std::string>      not_found{}, unauthorized{};
+    if (!m_cloud_service.fetch_manifests_into_descriptors(cloud_list, not_found, unauthorized)) {
         if (GUI::wxGetApp().plater() != nullptr && GUI::wxGetApp().imgui()->display_initialized()) {
             GUI::wxGetApp()
                 .plater()
@@ -454,17 +1324,45 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
         }
     }
 
-    m_catalog.update_cloud_catalog(cloud_list);
-    m_catalog.clear_cloud_plugin_unauthorized();
-    m_catalog.clear_cloud_plugin_not_found_errors();
+    update_cloud_catalog(cloud_list);
 
-    // Mark cloud issues in the catalog so app UIs can reflect their shared state.
-    for (const auto& uuid : not_found)
-        m_catalog.mark_cloud_plugin_not_found(uuid);
-    for (const auto& uuid : unauthorized)
-        m_catalog.mark_cloud_plugin_unauthorized(uuid);
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
 
-    // Return the vectors to callers that need them (e.g. for notifications).
+        // Clear the previous cloud verdicts before re-applying the fresh ones.
+        for (Plugin& plugin : m_plugins) {
+            PluginDescriptor& entry = plugin.descriptor;
+            if (!entry.is_cloud_plugin())
+                continue;
+            entry.set_unauthorized(false);
+            if (entry.normalized_error() == CLOUD_PLUGIN_NOT_FOUND_ERROR)
+                entry.clear_error();
+        }
+
+        for (const std::string& uuid : not_found) {
+            for (Plugin& plugin : m_plugins) {
+                PluginDescriptor& entry = plugin.descriptor;
+                if (!entry.is_cloud_plugin() || entry.cloud_uuid() != uuid)
+                    continue;
+                if (!entry.has_local_package())
+                    entry.set_error(CLOUD_PLUGIN_NOT_FOUND_ERROR);
+                break;
+            }
+        }
+
+        for (const std::string& uuid : unauthorized) {
+            for (Plugin& plugin : m_plugins) {
+                PluginDescriptor& entry = plugin.descriptor;
+                if (!entry.is_cloud_plugin() || entry.cloud_uuid() != uuid)
+                    continue;
+                entry.set_unauthorized(true);
+                if (entry.cloud.has_value())
+                    entry.cloud->update_available = false;
+                break;
+            }
+        }
+    }
+
     if (out_not_found)
         *out_not_found = std::move(not_found);
     if (out_unauthorized)
@@ -488,11 +1386,11 @@ bool PluginManager::subscribe_and_install_cloud_plugin(const std::string& plugin
     }
 
     PluginDescriptor descriptor;
-    bool found = m_catalog.try_get_plugin_descriptor(plugin_key, descriptor) && descriptor.is_cloud_plugin();
+    bool             found = try_get_plugin_descriptor(plugin_key, descriptor) && descriptor.is_cloud_plugin();
     if (!found) {
         // The plugin may already be subscribed or owned while the local catalog is stale.
         fetch_plugins_from_cloud();
-        found = m_catalog.try_get_plugin_descriptor(plugin_key, descriptor) && descriptor.is_cloud_plugin();
+        found = try_get_plugin_descriptor(plugin_key, descriptor) && descriptor.is_cloud_plugin();
     }
 
     if (!found) {
@@ -500,7 +1398,7 @@ bool PluginManager::subscribe_and_install_cloud_plugin(const std::string& plugin
             return false;
 
         fetch_plugins_from_cloud();
-        found = m_catalog.try_get_plugin_descriptor(plugin_key, descriptor) && descriptor.is_cloud_plugin();
+        found = try_get_plugin_descriptor(plugin_key, descriptor) && descriptor.is_cloud_plugin();
         if (!found) {
             error = "Subscribed cloud plugin was not returned by OrcaCloud.";
             return false;
@@ -518,20 +1416,20 @@ bool PluginManager::download_and_install_cloud_plugin(const std::string& plugin_
     error.clear();
 
     CloudPluginDownload download;
-    PluginDescriptor descriptor;
-    if (!m_catalog.try_get_plugin_descriptor(plugin_key, descriptor)) {
+    PluginDescriptor    descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
         error = "Plugin not found: " + plugin_key;
         BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Failed to find plugin key " << plugin_key;
         return false;
     }
 
-    m_catalog.clear_plugin_error(plugin_key);
+    clear_plugin_error(plugin_key);
 
     const std::string requested_version = version.empty() ? descriptor.version : version;
     if (!m_cloud_service.download_cloud_plugin(descriptor, requested_version, download, error)) {
         if (error.empty())
             error = "Failed to download cloud plugin.";
-        m_catalog.set_plugin_error(plugin_key, error);
+        set_plugin_error(plugin_key, error);
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << error;
         return false;
     }
@@ -540,18 +1438,18 @@ bool PluginManager::download_and_install_cloud_plugin(const std::string& plugin_
     if (auto agent = m_cloud_service.get_cloud_agent()) {
         const std::string user_id = agent->get_user_id();
         if (!user_id.empty())
-            m_loader.set_cloud_user_id(user_id);
+            set_cloud_user(user_id);
     }
 
     // Record the version we just fetched from the cloud so install_plugin persists it to the
-    // install-state sidecar (the source of truth for the installed cloud version) instead of
-    // the local manifest/PEP723 header version.
+    // install-state sidecar (the source of truth for the installed cloud version) instead of the
+    // local manifest/PEP723 header version.
     descriptor.installed_version = requested_version;
 
     if (!install_plugin(download.package_path, descriptor, error)) {
         if (error.empty())
             error = "Failed to install cloud plugin.";
-        m_catalog.set_plugin_error(plugin_key, error);
+        set_plugin_error(plugin_key, error);
         boost::system::error_code ec;
         boost::filesystem::remove(download.package_path, ec);
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": " << error;
@@ -571,11 +1469,19 @@ bool PluginManager::download_and_install_cloud_plugin(const std::string& plugin_
     updated_descriptor.clear_error();
     updated_descriptor.set_unauthorized(false);
 
-    if (!m_catalog.update_plugin_descriptor(plugin_key, updated_descriptor)) {
-        error = "Plugin Manifest not found.";
-        m_catalog.set_plugin_error(plugin_key, error);
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Cloud plugin " << plugin_key
-                                   << " downloaded successfully but failed to update plugin manifest. Manifest not found in catalog.";
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        Plugin*                     entry = find_plugin_locked(plugin_key);
+        if (entry == nullptr) {
+            error = "Plugin Manifest not found.";
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": Cloud plugin " << plugin_key
+                                       << " downloaded successfully but failed to update plugin manifest. Manifest not found in catalog.";
+        } else {
+            entry->descriptor = std::move(updated_descriptor);
+        }
+    }
+    if (!error.empty()) {
+        set_plugin_error(plugin_key, error);
         return false;
     }
 
@@ -583,11 +1489,158 @@ bool PluginManager::download_and_install_cloud_plugin(const std::string& plugin_
     return true;
 }
 
+bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version)
+{
+    error.clear();
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
+        error = "Plugin not found: " + plugin_key;
+        return false;
+    }
+
+    if (!descriptor.is_cloud_plugin()) {
+        error = "Only cloud plugins can be updated.";
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    // An empty version means "update the current plugin". If there is no update available, the
+    // intention is unclear.
+    if (version.empty()) {
+        if (descriptor.cloud->update_available) {
+            version = descriptor.latest_available_version();
+        } else {
+            error = "Trying to update plugin with no available update. Version is empty.";
+            set_plugin_error(plugin_key, error);
+            return false;
+        }
+    }
+
+    clear_plugin_error(plugin_key);
+
+    if (descriptor.has_local_package()) {
+        boost::filesystem::path resolved_root;
+        if (!resolve_allowed_plugin_root(descriptor, get_plugin_directories(m_cloud_user_id),
+                                         "Refusing to delete a plugin outside the known plugin directories.", resolved_root, error)) {
+            set_plugin_error(plugin_key, error);
+            return false;
+        }
+
+        unload_plugin(plugin_key);
+
+        if (!delete_plugin_root(resolved_root, plugin_key, error)) {
+            set_plugin_error(plugin_key, error);
+            return false;
+        }
+    }
+
+    if (!download_and_install_cloud_plugin(plugin_key, version, error)) {
+        set_plugin_error(plugin_key, error);
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
+        return false;
+    }
+
+    clear_plugin_error(plugin_key);
+    return true;
+}
+
+// ── Delete / unsubscribe ────────────────────────────────────────────────────────────────────
+
+bool PluginManager::delete_installed_plugin_package(const PluginDescriptor& plugin, std::string& error)
+{
+    boost::filesystem::path resolved_root;
+    if (!resolve_allowed_plugin_root(plugin, get_plugin_directories(m_cloud_user_id),
+                                     "Refusing to delete a plugin outside the known plugin directories.", resolved_root, error))
+        return false;
+
+    unload_plugin(plugin.plugin_key);
+
+    if (!delete_plugin_root(resolved_root, plugin.plugin_key, error))
+        return false;
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_plugins.erase(std::remove_if(m_plugins.begin(), m_plugins.end(),
+                                       [&plugin](const Plugin& entry) { return entry.descriptor.plugin_key == plugin.plugin_key; }),
+                        m_plugins.end());
+    }
+
+    return true;
+}
+
+bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugin_descriptor, std::string& error)
+{
+    namespace fs = boost::filesystem;
+
+    boost::filesystem::path resolved_root;
+    if (!resolve_allowed_plugin_root(plugin_descriptor, get_plugin_directories(m_cloud_user_id),
+                                     "Refusing to update a plugin outside the known plugin directories.", resolved_root, error))
+        return false;
+
+    const std::string old_key = plugin_descriptor.plugin_key;
+
+    // Generate a new local key from the entry file stem (cloud -> local conversion).
+    const std::string entry_stem = fs::path(plugin_descriptor.entry_path).stem().string();
+    const std::string new_key    = make_local_plugin_key(!entry_stem.empty() ? entry_stem : resolved_root.stem().string());
+
+    PluginDescriptor local_descriptor = plugin_descriptor;
+    local_descriptor.plugin_key       = new_key;
+    local_descriptor.cloud            = std::nullopt;
+    local_descriptor.clear_error();
+
+    if (!write_install_state(resolved_root, local_descriptor)) {
+        error = "Failed to update plugin install state: " + (resolved_root / INSTALL_STATE_FILE).string();
+        return false;
+    }
+
+    // Re-key the entry in place, carrying the live module/capabilities (if any) with it. The
+    // capabilities' audit key must follow, since it is what identifies their owning package.
+    std::vector<PluginCapabilityId> rekeyed;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
+        Plugin* entry = find_plugin_locked(old_key);
+        if (entry == nullptr)
+            return true;
+
+        if (find_plugin_locked(new_key) != nullptr && new_key != old_key) {
+            BOOST_LOG_TRIVIAL(warning) << "Cannot update loaded plugin key to existing package key: " << new_key;
+            return true;
+        }
+
+        entry->descriptor.plugin_key = new_key;
+        entry->descriptor.cloud.reset();
+        entry->descriptor.clear_error();
+
+        for (const auto& capability : entry->capabilities) {
+            if (capability)
+                capability->set_audit_plugin_key(new_key);
+        }
+
+        for (const auto& capability : entry->capabilities) {
+            if (capability && capability->is_enabled())
+                rekeyed.push_back(PluginCapabilityId{capability->type(), capability->name(), new_key});
+        }
+    }
+
+    // Subscribers key their own state by plugin_key. Publish the identity transition after the
+    // registry update and outside m_mutex so they can safely query the manager.
+    for (const PluginCapabilityId& id : rekeyed) {
+        run_on_capability_unload_callbacks(PluginCapabilityId{id.type, id.name, old_key});
+        run_on_capability_load_callbacks(id);
+    }
+
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Transitioned plugin from " << old_key << " to " << new_key;
+
+    return true;
+}
+
 bool PluginManager::finalize_cloud_plugin_removal(const PluginDescriptor& plugin, bool keep_local, std::string& error)
 {
-    // Shared by all four cloud-removal entrypoints after the cloud-side request
-    // succeeds. Handles the common local follow-up of keeping a detached local
-    // copy, deleting local files, or dropping a cloud-only row from the catalog.
+    // Shared by all four cloud-removal entrypoints after the cloud-side request succeeds. Handles
+    // the common local follow-up of keeping a detached local copy, deleting local files, or
+    // dropping a cloud-only row from the catalog.
     if (keep_local && plugin.has_local_package()) {
         if (!keep_installed_plugin_as_local(plugin, error))
             return false;
@@ -598,141 +1651,175 @@ bool PluginManager::finalize_cloud_plugin_removal(const PluginDescriptor& plugin
     if (plugin.has_local_package()) {
         if (!delete_installed_plugin_package(plugin, error))
             return false;
-        // Re-sync the cloud catalog so observers/UI see the updated cloud list
-        // after the local package has been removed.
+        // Re-sync the cloud catalog so observers/UI see the updated cloud list after the local
+        // package has been removed.
         fetch_plugins_from_cloud();
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Deleted local package after cloud removal: " << plugin.plugin_key;
         return true;
     }
 
-    m_catalog.remove_plugin(plugin.plugin_key);
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_plugins.erase(std::remove_if(m_plugins.begin(), m_plugins.end(),
+                                       [&plugin](const Plugin& entry) { return entry.descriptor.plugin_key == plugin.plugin_key; }),
+                        m_plugins.end());
+    }
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Removed cloud-only plugin from catalog: " << plugin.plugin_key;
     return true;
 }
 
-bool PluginManager::delete_installed_plugin_package(const PluginDescriptor& plugin, std::string& error)
+bool PluginManager::delete_plugin(const std::string& plugin_key, std::string& error)
 {
-    boost::filesystem::path resolved_root;
-    if (!resolve_allowed_plugin_root(plugin, m_catalog.get_plugin_directories(),
-                                     "Refusing to delete a plugin outside the known plugin directories.", resolved_root, error))
+    if (!wait_for_discovery(std::chrono::milliseconds::max(), error))
         return false;
 
-    m_loader.unload_plugin(plugin.plugin_key, plugin.primary_capability_type());
-
-    if (!delete_plugin_root(resolved_root, plugin.plugin_key, error))
-        return false;
-
-    m_catalog.remove_plugin(plugin.plugin_key);
-    return true;
-}
-
-bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugin_descriptor, std::string& error)
-{
-    namespace fs = boost::filesystem;
-
-    boost::filesystem::path resolved_root;
-    if (!resolve_allowed_plugin_root(plugin_descriptor, m_catalog.get_plugin_directories(),
-                                     "Refusing to update a plugin outside the known plugin directories.", resolved_root, error))
-        return false;
-
-    const std::string old_key = plugin_descriptor.plugin_key;
-
-    // Generate new local key from the entry file stem (cloud → local conversion).
-    const std::string entry_stem = fs::path(plugin_descriptor.entry_path).stem().string();
-    const std::string new_key    = make_local_plugin_key(
-        !entry_stem.empty() ? entry_stem : resolved_root.stem().string());
-
-    // Update metadata.
-    PluginDescriptor local_descriptor = plugin_descriptor;
-    local_descriptor.plugin_key     = new_key;
-    local_descriptor.cloud          = std::nullopt;
-    local_descriptor.clear_error();
-
-    if (!write_install_state(resolved_root, local_descriptor)) {
-        error = "Failed to update plugin install state: " + (resolved_root / INSTALL_STATE_FILE).string();
-        return false;
-    }
-
-    // Update catalog entry key in-memory.
-    {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        auto& catalog_entries = const_cast<std::vector<PluginDescriptor>&>(m_catalog.get_plugin_catalog());
-        for (auto& entry : catalog_entries) {
-            if (entry.plugin_key == old_key) {
-                entry.plugin_key = new_key;
-                entry.cloud.reset();
-                entry.clear_error();
-                break;
-            }
-        }
-    }
-
-    // Update loaded plugin manifest key if currently loaded.
-    m_loader.update_loaded_plugin_key(old_key, new_key);
-
-    // Auto-load state for the new local key is carried by the .install_state.json sidecar
-    // written above with the new local descriptor.
-
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Transitioned plugin from " << old_key << " to " << new_key;
-
-    return true;
-}
-
-bool PluginManager::update_cloud_plugin(const std::string& plugin_key, std::string& error, std::string version)
-{
     error.clear();
 
-    // delete local plugin file and download newer version
     PluginDescriptor descriptor;
-    if (!m_catalog.try_get_plugin_descriptor(plugin_key, descriptor)) {
+    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
+        error = "Plugin not found: " + plugin_key;
+        return false;
+    }
+
+    if (!delete_installed_plugin_package(descriptor, error)) {
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Deleted plugin: " << plugin_key;
+    return true;
+}
+
+bool PluginManager::unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error)
+{
+    if (!wait_for_discovery(std::chrono::milliseconds::max(), error))
+        return false;
+
+    error.clear();
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
         error = "Plugin not found: " + plugin_key;
         return false;
     }
 
     if (!descriptor.is_cloud_plugin()) {
-        error = "Only cloud plugins can be updated.";
-        m_catalog.set_plugin_error(plugin_key, error);
+        error = "Only cloud plugins can be unsubscribed.";
+        set_plugin_error(plugin_key, error);
         return false;
     }
 
-    // Empty version should represent that we are trying to update the current plugin.
-    // So if the version is empty but there isn't an update available, the intention is unclear.
-    if (version.empty()) {
-        if (descriptor.cloud->update_available)
-            version = descriptor.latest_available_version();
-        else {
-            error = "Trying to update plugin with no available update. Version is empty.";
-            m_catalog.set_plugin_error(plugin_key, error);
-            return false;
-        }
-    }
-
-    m_catalog.clear_plugin_error(plugin_key);
-
-    if (descriptor.has_local_package()) {
-        boost::filesystem::path resolved_root;
-        if (!resolve_allowed_plugin_root(descriptor, m_catalog.get_plugin_directories(),
-                                         "Refusing to delete a plugin outside the known plugin directories.", resolved_root, error)) {
-            m_catalog.set_plugin_error(plugin_key, error);
-            return false;
-        }
-
-        m_loader.unload_plugin(plugin_key, descriptor.primary_capability_type());
-
-        if (!delete_plugin_root(resolved_root, plugin_key, error)) {
-            m_catalog.set_plugin_error(plugin_key, error);
-            return false;
-        }
-    }
-
-    if (!download_and_install_cloud_plugin(plugin_key, version, error)) {
-        m_catalog.set_plugin_error(plugin_key, error);
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": " << error;
+    if (descriptor.cloud && descriptor.cloud->is_mine) {
+        error = "Cannot unsubscribe your own plugins. Use Delete from Cloud instead.";
+        set_plugin_error(plugin_key, error);
         return false;
     }
 
-    m_catalog.clear_plugin_error(plugin_key);
-    return true;
+    if (!m_cloud_service.request_cloud_unsubscribe(descriptor, error)) {
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    return finalize_cloud_plugin_removal(descriptor, true, error);
+}
+
+bool PluginManager::delete_and_unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error)
+{
+    if (!wait_for_discovery(std::chrono::milliseconds::max(), error))
+        return false;
+
+    error.clear();
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
+        error = "Plugin not found: " + plugin_key;
+        return false;
+    }
+
+    if (!descriptor.is_cloud_plugin()) {
+        error = "Only cloud plugins can be deleted and unsubscribed.";
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    if (descriptor.cloud->is_mine) {
+        error = "Use Delete local and cloud for owned plugins.";
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    if (!m_cloud_service.request_cloud_unsubscribe(descriptor, error)) {
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    return finalize_cloud_plugin_removal(descriptor, false, error);
+}
+
+bool PluginManager::delete_mine_plugin_from_cloud(const std::string& plugin_key, std::string& error)
+{
+    if (!wait_for_discovery(std::chrono::milliseconds::max(), error))
+        return false;
+
+    error.clear();
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
+        error = "Plugin not found: " + plugin_key;
+        return false;
+    }
+
+    if (!descriptor.is_cloud_plugin()) {
+        error = "Only owned cloud plugins can be deleted from the cloud.";
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    if (!descriptor.cloud->is_mine) {
+        error = "Only your own plugins can be deleted from the cloud.";
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    if (!m_cloud_service.request_cloud_delete(descriptor, error)) {
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    return finalize_cloud_plugin_removal(descriptor, true, error);
+}
+
+bool PluginManager::delete_mine_local_and_cloud_plugin(const std::string& plugin_key, std::string& error)
+{
+    if (!wait_for_discovery(std::chrono::milliseconds::max(), error))
+        return false;
+
+    error.clear();
+
+    PluginDescriptor descriptor;
+    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
+        error = "Plugin not found: " + plugin_key;
+        return false;
+    }
+
+    if (!descriptor.is_cloud_plugin()) {
+        error = "Only owned cloud plugins can be deleted from local and cloud.";
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    if (!descriptor.cloud->is_mine) {
+        error = "Only your own plugins can be deleted from local and cloud.";
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    if (!m_cloud_service.request_cloud_delete(descriptor, error)) {
+        set_plugin_error(plugin_key, error);
+        return false;
+    }
+
+    return finalize_cloud_plugin_removal(descriptor, false, error);
 }
 
 } // namespace Slic3r

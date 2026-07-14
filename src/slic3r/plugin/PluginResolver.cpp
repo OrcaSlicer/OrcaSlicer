@@ -116,15 +116,19 @@ std::string resolve_recovery_url(const PluginCapabilityRef& ref)
 // loaded or does not provide the capability.
 static std::pair<bool, bool> loaded_capability_state(const std::string& plugin_key, const PluginCapabilityRef& ref)
 {
-    bool present = false, enabled = false;
-    PluginLoader& loader = PluginManager::instance().get_loader();
-    for (const auto& capability : loader.get_loaded_plugin_capabilities(plugin_key))
-        if (capability && capability->name == ref.capability_name) {
-            present = true;
-            if (capability->enabled)
-                enabled = true;
-        }
-    return {present, enabled};
+    PluginManager& mgr = PluginManager::instance();
+
+    // Only a loaded package exposes capabilities; a discovered one carries their names in its
+    // descriptor but has materialized nothing.
+    if (!mgr.is_plugin_loaded(plugin_key))
+        return {false, false};
+
+    const auto capability = mgr.get_plugin_capability(plugin_key, ref.capability_name, PluginCapabilityType::Unknown,
+                                                      /*only_enabled=*/false);
+    if (!capability)
+        return {false, false};
+
+    return {true, capability->is_enabled()};
 }
 
 void refresh_missing_plugins(const PresetBundle& preset_bundle)
@@ -162,8 +166,7 @@ void refresh_missing_plugins(Preset::Type type, const ConfigOptionStrings* manif
     if (manifest == nullptr)
         return;
 
-    PluginLoader&        loader  = PluginManager::instance().get_loader();
-    const PluginCatalog& catalog = PluginManager::instance().get_catalog();
+    PluginManager& mgr = PluginManager::instance();
     for (const std::string& entry : manifest->values) {
         const auto ref = parse_capability_ref(entry);
         if (!ref)
@@ -175,9 +178,9 @@ void refresh_missing_plugins(Preset::Type type, const ConfigOptionStrings* manif
             continue;
 
         PluginDescriptor descriptor;
-        const bool in_catalog = catalog.try_get_plugin_descriptor(key, descriptor);
+        const bool in_catalog = mgr.try_get_plugin_descriptor(key, descriptor);
         const bool installed  = in_catalog && descriptor.has_local_package();
-        const bool loaded     = installed && loader.is_plugin_loaded(descriptor.plugin_key);
+        const bool loaded     = installed && mgr.is_plugin_loaded(descriptor.plugin_key);
         const auto cap_state  = installed ? loaded_capability_state(descriptor.plugin_key, *ref)
                                           : std::pair<bool, bool>{false, false};
         const bool cap_present = cap_state.first;
@@ -311,7 +314,7 @@ void resolve_missing_plugins(const std::vector<std::string>& refs, PluginInstall
             // Use a friendly name for the progress message when the catalog already knows it.
             std::string display_name = uuid;
             PluginDescriptor known;
-            if (mgr.get_catalog().try_get_plugin_descriptor(uuid, known) && !known.name.empty())
+            if (mgr.try_get_plugin_descriptor(uuid, known) && !known.name.empty())
                 display_name = known.name;
             if (progress.on_plugin_begin)
                 progress.on_plugin_begin(display_name, i, total);
@@ -322,14 +325,13 @@ void resolve_missing_plugins(const std::vector<std::string>& refs, PluginInstall
                 continue;
             }
             PluginDescriptor descriptor;
-            if (!mgr.get_catalog().try_get_plugin_descriptor(uuid, descriptor)) {
+            if (!mgr.try_get_plugin_descriptor(uuid, descriptor)) {
                 report_install_failure(uuid + ": installed plugin was not found in the catalog.");
                 continue;
             }
-            PluginLoader& loader = mgr.get_loader();
-            loader.load_plugin(mgr.get_catalog(), descriptor.plugin_key, false);
-            if (!loader.wait_for_plugin_load(descriptor.plugin_key, std::chrono::minutes(5), error) ||
-                !loader.is_plugin_loaded(descriptor.plugin_key)) {
+            mgr.load_plugin(descriptor.plugin_key, false);
+            if (!mgr.wait_for_plugin_load(descriptor.plugin_key, std::chrono::minutes(5), error) ||
+                !mgr.is_plugin_loaded(descriptor.plugin_key)) {
                 report_install_failure(descriptor.name + ": " + (error.empty() ? "plugin failed to load." : error));
             }
         }
@@ -341,8 +343,7 @@ void resolve_missing_plugins(const std::vector<std::string>& refs, PluginInstall
 
 void resolve_inactive_plugins(const std::vector<std::string>& refs)
 {
-    PluginManager& mgr     = PluginManager::instance();
-    PluginCatalog& catalog = mgr.get_catalog();
+    PluginManager& mgr = PluginManager::instance();
 
     // Group the requested capabilities by owning plugin so each plugin is loaded once with the full
     // set to enable.
@@ -353,7 +354,7 @@ void resolve_inactive_plugins(const std::vector<std::string>& refs)
             continue;
         const std::string key = ref->uuid.empty() ? ref->name : ref->uuid;
         PluginDescriptor descriptor;
-        if (!catalog.try_get_plugin_descriptor(key, descriptor) || !descriptor.has_local_package())
+        if (!mgr.try_get_plugin_descriptor(key, descriptor) || !descriptor.has_local_package())
             continue;
         by_plugin[descriptor.plugin_key].push_back(ref->capability_name);
     }
@@ -367,13 +368,11 @@ void resolve_inactive_plugins(const std::vector<std::string>& refs)
     // if the loaded plugin turns out not to provide the capability.
     std::vector<std::pair<std::string, std::vector<std::string>>> work(by_plugin.begin(), by_plugin.end());
     std::thread([work = std::move(work)]() {
-        PluginManager& mgr     = PluginManager::instance();
-        PluginLoader&  loader  = mgr.get_loader();
-        PluginCatalog& catalog = mgr.get_catalog();
+        PluginManager& mgr = PluginManager::instance();
         for (auto& [plugin_key, capabilities] : work) {
-            loader.load_plugin(catalog, plugin_key, /*skip_deps=*/false, capabilities);
+            mgr.load_plugin(plugin_key, /*skip_deps=*/false, capabilities);
             std::string error;
-            loader.wait_for_plugin_load(plugin_key, std::chrono::minutes(5), error);
+            mgr.wait_for_plugin_load(plugin_key, std::chrono::minutes(5), error);
         }
         GUI::wxGetApp().CallAfter([]() {
             if (GUI::Plater* plater = GUI::wxGetApp().plater())

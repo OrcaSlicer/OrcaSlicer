@@ -683,8 +683,13 @@ std::string OptionsGroup::pick_plugin(const ConfigOptionDef& opt)
         return {};
     }
 
-    auto caps = manager.get_loader().get_plugin_capabilities_by_type(plugin_type);
-    caps.erase(std::remove_if(caps.begin(), caps.end(), [](const auto& cap) { return !cap || !cap->enabled; }), caps.end());
+    struct CapabilityRef { std::string plugin_key; std::string name; };
+    std::vector<CapabilityRef> caps;
+    for (const auto& capability : manager.get_plugin_capabilities(/*plugin_key=*/"", plugin_type, /*only_enabled=*/true))
+        caps.push_back({capability->audit_plugin_key(), capability->name()});
+    std::sort(caps.begin(), caps.end(), [](const CapabilityRef& lhs, const CapabilityRef& rhs) {
+        return lhs.name == rhs.name ? lhs.plugin_key < rhs.plugin_key : lhs.name < rhs.name;
+    });
 
     if (caps.empty()) {
         wxMessageBox(_L("No plugins capabilities available for this type.\nEnable or install some to use."), _L("Plugin Selection"), wxOK | wxICON_INFORMATION, m_parent);
@@ -695,10 +700,10 @@ std::string OptionsGroup::pick_plugin(const ConfigOptionDef& opt)
     entries.reserve(caps.size());
     for (const auto& cap : caps) {
         Slic3r::PluginDescriptor descriptor;
-        wxString package_name = manager.get_catalog().try_get_plugin_descriptor(cap->plugin_key, descriptor)
-                                    ? from_u8(descriptor.name) : from_u8(cap->plugin_key);
+        wxString package_name = manager.try_get_plugin_descriptor(cap.plugin_key, descriptor)
+                                    ? from_u8(descriptor.name) : from_u8(cap.plugin_key);
         entries.push_back({
-            cap->plugin_key, cap->name, from_u8(cap->name) + from_u8(" \xE2\x80\x94 ") + package_name, package_name
+            cap.plugin_key, cap.name, from_u8(cap.name) + from_u8(" \xE2\x80\x94 ") + package_name, package_name
         });
     }
 
@@ -713,7 +718,7 @@ std::string OptionsGroup::pick_plugin(const ConfigOptionDef& opt)
     // name is stored in the option; the full "name;uuid;capability" reference is derived lazily
     // when the preset is serialized (see ConfigBase::save_plugin_collection).
     Slic3r::PluginDescriptor descriptor;
-    if (!manager.get_catalog().try_get_plugin_descriptor(selection.plugin_key, descriptor) || descriptor.name.empty())
+    if (!manager.try_get_plugin_descriptor(selection.plugin_key, descriptor) || descriptor.name.empty())
         return {};
 
     BOOST_LOG_TRIVIAL(info) << "Picked plugin capability: " << selection.name;

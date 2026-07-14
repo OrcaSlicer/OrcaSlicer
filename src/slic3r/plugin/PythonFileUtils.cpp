@@ -492,35 +492,25 @@ bool extract_zip_to_directory(const boost::filesystem::path& zip_path, const boo
 
 void read_install_state(const boost::filesystem::path& plugin_dir, PluginDescriptor& entry)
 {
-    namespace fs                = boost::filesystem;
-    const fs::path sidecar_path = plugin_dir / ".install_state.json";
-
-    if (!fs::exists(sidecar_path) || !fs::is_regular_file(sidecar_path))
+    PluginInstallState state;
+    if (!read_install_state(plugin_dir, state))
         return;
 
-    boost::nowide::ifstream f(sidecar_path.string());
-    if (!f)
-        return;
+    // The cloud identity and the persisted installed version are read back. plugin_key
+    // is always derived by the catalog scan (filename for local, the cloud uuid for
+    // cloud), so it is not read from the sidecar. installed_version is the source of
+    // truth for a cloud plugin's installed version: it records the version fetched from
+    // the cloud at install time, independent of the (possibly stale) manifest/PEP723
+    // header that scan_directory parses into entry.version.
+    if (!state.installed_version.empty())
+        entry.installed_version = state.installed_version;
+    if (!state.cloud_uuid.empty())
+        entry.cloud = CloudPluginState{state.cloud_uuid, true, false, false};
 
-    try {
-        nlohmann::json state = nlohmann::json::parse(f, nullptr, false, true);
-        if (state.is_discarded() || !state.is_object())
-            return;
-
-        // The cloud identity and the persisted installed version are read back. plugin_key
-        // is always derived by the catalog scan (filename for local, the cloud uuid for
-        // cloud), so it is not read from the sidecar. installed_version is the source of
-        // truth for a cloud plugin's installed version: it records the version fetched from
-        // the cloud at install time, independent of the (possibly stale) manifest/PEP723
-        // header that scan_directory parses into entry.version.
-        if (state.contains("installed_version") && state["installed_version"].is_string())
-            entry.installed_version = state["installed_version"].get<std::string>();
-        if (state.contains("cloud_uuid") && state["cloud_uuid"].is_string()) {
-            const std::string cloud_uuid = state["cloud_uuid"].get<std::string>();
-            if (!cloud_uuid.empty())
-                entry.cloud = CloudPluginState{cloud_uuid, true, false, false};
-        }
-    } catch (...) {}
+    // Package-level auto-load flag only. The per-capability enable flags stay in the sidecar: a
+    // capability has no existence — and so no state — until it is materialized, at which point the
+    // loader seeds the flag onto the capability itself.
+    entry.enabled = state.enabled;
 }
 
 bool read_install_state(const boost::filesystem::path& plugin_dir, PluginInstallState& out)
@@ -616,6 +606,10 @@ bool write_install_state(const boost::filesystem::path& plugin_dir, const Plugin
 
 bool write_install_state(const boost::filesystem::path& plugin_dir, const PluginDescriptor& entry)
 {
+    // Install-time writer: the package is not loaded, so its capabilities are not known yet and the
+    // sidecar is (re)initialized to "auto-load, nothing disabled". PluginManager writes the real
+    // per-capability flags once the package is loaded, via the (dir, entry, enabled, capabilities)
+    // overload.
     return write_install_state(plugin_dir, entry, true, {});
 }
 

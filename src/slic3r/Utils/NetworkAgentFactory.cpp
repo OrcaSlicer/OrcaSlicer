@@ -229,35 +229,33 @@ std::unique_ptr<NetworkAgent> create_agent_from_config(const std::string& log_di
 
 void NetworkAgentFactory::register_python_plugin(const std::string& plugin_key)
 {
-    auto capabilities = PluginManager::instance().get_loader().get_plugin_capabilities_by_type(
-        plugin_key, PluginCapabilityType::PrinterConnection);
-    for (const auto& capability : capabilities)
-        if (capability && capability->enabled)
-            register_python_printer_agent(plugin_key, capability->name);
+    for (const auto& capability : PluginManager::instance().get_plugin_capabilities(plugin_key, PluginCapabilityType::PrinterConnection,
+                                                                                   /*only_enabled=*/true))
+        register_python_printer_agent(plugin_key, capability->name());
 }
 
 void NetworkAgentFactory::register_python_printer_agent(const std::string& plugin_key, const std::string& capability_name)
 {
     PluginManager& plugin_manager = PluginManager::instance();
 
-    auto cap = plugin_manager.get_loader().get_plugin_capability_by_name(plugin_key, PluginCapabilityType::PrinterConnection,
-                                                                         capability_name);
+    auto cap = plugin_manager.get_plugin_capability(plugin_key, capability_name, PluginCapabilityType::PrinterConnection,
+                                                     /*only_enabled=*/false);
     if (!cap) {
         BOOST_LOG_TRIVIAL(warning) << "Printer-agent capability '" << capability_name << "' not found for plugin '" << plugin_key << "'";
         return;
     }
-    if (!cap->enabled) {
+
+    PluginDescriptor descriptor;
+    if (!plugin_manager.try_get_plugin_descriptor(plugin_key, descriptor)) {
+        BOOST_LOG_TRIVIAL(warning) << "Could not find descriptor for plugin key: '" << plugin_key;
+        return;
+    }
+    if (!cap->is_enabled()) {
         BOOST_LOG_TRIVIAL(warning) << "Printer-agent capability '" << capability_name << "' is disabled for plugin '" << plugin_key << "'";
         return;
     }
 
-    PluginDescriptor descriptor;
-    if (!plugin_manager.get_catalog().try_get_plugin_descriptor(plugin_key, descriptor)) {
-        BOOST_LOG_TRIVIAL(warning) << "Could not find descriptor for plugin key: '" << plugin_key;
-        return;
-    }
-
-    auto plugin = std::dynamic_pointer_cast<PrinterAgentPluginCapability>(cap->instance);
+    auto plugin = std::dynamic_pointer_cast<PrinterAgentPluginCapability>(cap);
 
     if (!plugin) {
         BOOST_LOG_TRIVIAL(warning) << "Loaded plugin capability '" << capability_name << "' is not a printer-agent plugin";
@@ -305,9 +303,10 @@ void NetworkAgentFactory::register_python_printer_agent(const std::string& plugi
 
     // Python work above may allow disable/unload/reload to replace this capability.
     // Re-resolve without holding the registry mutex to avoid lock inversion and reentrancy.
-    auto current_cap = plugin_manager.get_loader().get_plugin_capability_by_name(plugin_key, PluginCapabilityType::PrinterConnection,
-                                                                                 capability_name);
-    if (current_cap != cap || !current_cap->enabled) {
+    // only_enabled defaults to true here, so a capability that changed identity (reload) or was
+    // merely disabled both surface the same way: current_cap no longer equals cap.
+    auto current_cap = plugin_manager.get_plugin_capability(plugin_key, capability_name, PluginCapabilityType::PrinterConnection);
+    if (current_cap != cap) {
         BOOST_LOG_TRIVIAL(debug) << "Printer-agent capability '" << capability_name << "' from plugin '" << plugin_key
                                  << "' changed or was disabled during registration";
         return;
@@ -322,7 +321,9 @@ void NetworkAgentFactory::register_python_printer_agent(const std::string& plugi
                                      [&plugin_key, &capability_name](const auto& entry) {
                                          return entry.first.first == plugin_key && entry.first.second == capability_name;
                                      });
-        if (token_it == s_python_printer_agent_registration_tokens.end() || token_it->second != registration_token || !cap->enabled) {
+        const bool cap_still_enabled = cap->is_enabled();
+        if (token_it == s_python_printer_agent_registration_tokens.end() || token_it->second != registration_token ||
+            !cap_still_enabled) {
             BOOST_LOG_TRIVIAL(debug) << "Printer-agent capability '" << capability_name << "' from plugin '" << plugin_key
                                      << "' was disabled before registry commit";
             return;

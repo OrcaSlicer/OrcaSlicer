@@ -25,7 +25,7 @@ class wxTimer;
 
 namespace Slic3r {
 
-struct LoadedPluginCapability;
+class PluginCapabilityInterface;
 enum class PluginCapabilityType;
 
 namespace GUI {
@@ -55,7 +55,7 @@ private:
     nlohmann::json build_plugins_payload() const;
 
     bool get_descriptor(const std::string& plugin_key, Slic3r::PluginDescriptor& descriptor) const;
-    std::shared_ptr<LoadedPluginCapability> get_capability(const std::string& plugin_key, PluginCapabilityType type, const std::string& capability_name) const;
+    std::shared_ptr<PluginCapabilityInterface> get_capability(const std::string& plugin_key, PluginCapabilityType type, const std::string& capability_name) const;
 
     void refresh_plugin_catalog_async(const wxString& title, const wxString& message, bool fetch_cloud);
     void refresh_plugins();

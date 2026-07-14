@@ -123,19 +123,19 @@ struct PluginDialogItem
 constexpr bool kFetchCloudCatalog      = true;
 constexpr bool kUseCurrentCloudCatalog = false;
 
+// The type of a package's first loaded capability. A package that is not loaded has no type.
+PluginCapabilityType primary_capability_type_of(PluginManager& manager, const std::string& plugin_key)
+{
+    const auto capabilities = manager.get_plugin_capabilities(plugin_key, PluginCapabilityType::Unknown, /*only_enabled=*/false);
+    return capabilities.empty() ? PluginCapabilityType::Unknown : capabilities.front()->type();
+}
+
 std::vector<PluginDescriptor> current_cloud_catalog_snapshot()
 {
-    const auto& catalog = PluginManager::instance().get_catalog();
-
     std::vector<PluginDescriptor> cloud_entries;
-    auto append_cloud_entries = [&cloud_entries](const std::vector<PluginDescriptor>& entries) {
-        for (const PluginDescriptor& entry : entries)
-            if (entry.is_cloud_plugin())
-                cloud_entries.push_back(entry);
-    };
-
-    append_cloud_entries(catalog.get_all_plugin_descriptors());
-    append_cloud_entries(catalog.get_invalid_plugins());
+    for (const PluginDescriptor& entry : PluginManager::instance().get_plugin_descriptors(/*include_invalid=*/true))
+        if (entry.is_cloud_plugin())
+            cloud_entries.push_back(entry);
     return cloud_entries;
 }
 
@@ -165,7 +165,7 @@ void refresh_plugin_catalog_blocking(bool fetch_cloud)
     manager.rescan_plugins();
 
     if (!fetch_cloud) {
-        manager.get_catalog().update_cloud_catalog(current_cloud_catalog);
+        manager.update_cloud_catalog(current_cloud_catalog);
         return;
     }
 
@@ -305,7 +305,7 @@ PluginAvailableActions evaluate_action_policy(const PluginDialogItem& item)
 PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
 {
     PluginDialogItem item;
-    const auto& loader = PluginManager::instance().get_loader();
+    PluginManager& manager = PluginManager::instance();
 
     item.plugin_key        = descriptor.plugin_key;
     item.display_name      = descriptor.name;
@@ -323,18 +323,25 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
     // why: sort by the same version the row displays (GetDisplayVersion in index.js) - installed when
     //   installed, otherwise latest - so the Version sort matches what the user sees.
     item.sort_version      = item.installed_version.empty() ? item.latest_version : item.installed_version;
-    item.type_label        = descriptor.type_label();
-    item.type_key          = plugin_capability_type_to_string(descriptor.primary_capability_type());
+    // A package that is not loaded has no capabilities, so its row contributes none and does not
+    // expand.
+    const std::vector<std::shared_ptr<PluginCapabilityInterface>> capabilities =
+        manager.get_plugin_capabilities(descriptor.plugin_key, PluginCapabilityType::Unknown, /*only_enabled=*/false);
+
+    const PluginCapabilityType primary_type = capabilities.empty() ? PluginCapabilityType::Unknown :
+                                                                     capabilities.front()->type();
+    item.type_label        = plugin_capability_type_to_string(primary_type);
+    item.type_key          = plugin_capability_type_to_string(primary_type);
     // "types" is the display-only compatibility list. Cloud plugins show the raw labels the
     // service returned (which may not map to real capability types); local plugins derive them
-    // from the capabilities actually discovered/loaded.
+    // from the capabilities actually loaded.
     if (descriptor.is_cloud_plugin() && !descriptor.display_types.empty()) {
         for (const std::string& label : descriptor.display_types)
             if (std::find(item.type_labels.begin(), item.type_labels.end(), label) == item.type_labels.end())
                 item.type_labels.push_back(label);
     } else {
-        for (PluginCapabilityType type : descriptor.capability_types) {
-            const std::string label = plugin_capability_type_display_name(type);
+        for (const auto& capability : capabilities) {
+            const std::string label = plugin_capability_type_display_name(capability->type());
             if (std::find(item.type_labels.begin(), item.type_labels.end(), label) == item.type_labels.end())
                 item.type_labels.push_back(label);
         }
@@ -348,30 +355,14 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
     item.is_cloud_plugin       = descriptor.is_cloud_plugin();
     item.has_local_package     = descriptor.has_local_package();
     item.unauthorized          = descriptor.is_unauthorized();
-    item.has_script_capability = descriptor.has_capability_type(Slic3r::PluginCapabilityType::Script);
-    item.is_loaded                = loader.is_plugin_loaded(descriptor.plugin_key);
-    item.loading               = loader.is_plugin_load_in_progress(descriptor.plugin_key);
-    if (item.is_loaded) {
-        for (const auto& cap : loader.get_loaded_plugin_capabilities(descriptor.plugin_key)) {
-            if (cap) {
-                item.capabilities.push_back({cap->name, plugin_capability_type_display_name(cap->type),
-                                             plugin_capability_type_to_string(cap->type), cap->enabled, true, false});
-                if (cap->type == PluginCapabilityType::Script)
-                    item.has_script_capability = true;
-            }
-        }
-    }
-    if (item.capabilities.empty()) {
-        for (PluginCapabilityType type : descriptor.capability_types) {
-            const std::string type_key = plugin_capability_type_to_string(type);
-            const auto existing        = std::find_if(item.capabilities.begin(), item.capabilities.end(),
-                                                      [&type_key](const PluginCapabilityView& capability) {
-                                                   return capability.type_key == type_key;
-                                               });
-            if (existing != item.capabilities.end())
-                continue;
-            item.capabilities.push_back({std::string{}, plugin_capability_type_display_name(type), type_key, false, false, false});
-        }
+    item.is_loaded             = manager.is_plugin_loaded(descriptor.plugin_key);
+    item.loading               = manager.is_plugin_load_in_progress(descriptor.plugin_key);
+    item.has_script_capability = false;
+    for (const auto& capability : capabilities) {
+        item.capabilities.push_back({capability->name(), plugin_capability_type_display_name(capability->type()),
+                                     plugin_capability_type_to_string(capability->type()), capability->is_enabled(), true, false});
+        if (capability->type() == PluginCapabilityType::Script)
+            item.has_script_capability = true;
     }
     item.sharing_token = descriptor.sharing_token;
     item.thumbnail_url = descriptor.thumbnail_url;
@@ -467,8 +458,8 @@ void PluginsDialog::resolve_pending_activation()
     if (m_activating_plugin_key.empty())
         return;
 
-    PluginLoader& loader = PluginManager::instance().get_loader();
-    if (loader.is_plugin_load_in_progress(m_activating_plugin_key))
+    PluginManager& manager = PluginManager::instance();
+    if (manager.is_plugin_load_in_progress(m_activating_plugin_key))
         return; // Still loading: keep the "Activating..." message until the load resolves.
 
     const std::string plugin_key = m_activating_plugin_key;
@@ -478,7 +469,7 @@ void PluginsDialog::resolve_pending_activation()
     PluginDescriptor descriptor;
     if (get_descriptor(plugin_key, descriptor) && descriptor.has_error())
         show_status(wxString::Format(_L("Failed to activate \"%s\"."), plugin_display_name(plugin_key)), "error");
-    else if (loader.is_plugin_loaded(plugin_key))
+    else if (manager.is_plugin_loaded(plugin_key))
         show_status(wxString::Format(_L("Activated \"%s\"."), plugin_display_name(plugin_key)), "success");
     // Otherwise it ended up inactive (toggled off or cancelled mid-load): stay silent.
 }
@@ -543,18 +534,13 @@ nlohmann::json PluginsDialog::build_plugins_payload() const
     response["sort_order"]     = to_string(m_plugin_sort_order);
     response["data"]           = nlohmann::json::array();
 
-    const auto& catalog = PluginManager::instance().get_catalog();
-    const auto valid    = catalog.get_all_plugin_descriptors();
-    const auto invalid  = catalog.get_invalid_plugins();
-    BOOST_LOG_TRIVIAL(info) << "Prepared " << valid.size() + invalid.size() << " plugin rows for Plugins dialog";
+    const auto rows = PluginManager::instance().get_plugin_descriptors(/*include_invalid=*/true);
+    BOOST_LOG_TRIVIAL(info) << "Prepared " << rows.size() << " plugin rows for Plugins dialog";
 
     std::vector<PluginDialogItem> items;
-    items.reserve(valid.size() + invalid.size());
+    items.reserve(rows.size());
 
-    for (const PluginDescriptor& row : valid)
-        items.push_back(build_plugin_dialog_item(row));
-
-    for (const PluginDescriptor& row : invalid)
+    for (const PluginDescriptor& row : rows)
         items.push_back(build_plugin_dialog_item(row));
 
     // In-place sort
@@ -568,19 +554,19 @@ nlohmann::json PluginsDialog::build_plugins_payload() const
 
 bool PluginsDialog::get_descriptor(const std::string& plugin_key, PluginDescriptor& descriptor) const
 {
-    const auto& catalog = PluginManager::instance().get_catalog();
-    if (const PluginDescriptor* valid_descriptor = catalog.find_valid_plugin_descriptor(plugin_key)) {
-        descriptor = *valid_descriptor;
+    PluginManager& manager = PluginManager::instance();
+    if (manager.try_get_valid_plugin_descriptor(plugin_key, descriptor))
         return true;
-    }
-    return catalog.try_get_invalid_plugin_descriptor(plugin_key, descriptor);
+    return manager.try_get_plugin_descriptor(plugin_key, descriptor) && descriptor.is_invalid_package();
 }
 
-std::shared_ptr<LoadedPluginCapability> PluginsDialog::get_capability(const std::string& plugin_key,
-                                                                      PluginCapabilityType type,
-                                                                      const std::string& capability_name) const
+std::shared_ptr<PluginCapabilityInterface> PluginsDialog::get_capability(const std::string& plugin_key,
+                                                                          PluginCapabilityType type,
+                                                                          const std::string& capability_name) const
 {
-    return PluginManager::instance().get_loader().get_plugin_capability_by_name(plugin_key, type, capability_name);
+    // only_enabled=false: this is an existence check used to gate both enabling and disabling a
+    // capability from the dialog, so a currently-disabled capability must still resolve.
+    return PluginManager::instance().get_plugin_capability(plugin_key, capability_name, type, /*only_enabled=*/false);
 }
 
 void PluginsDialog::refresh_plugin_catalog_async(const wxString& title, const wxString& message, bool fetch_cloud)
@@ -616,7 +602,7 @@ void PluginsDialog::toggle_plugin(const std::string& plugin_key, bool enabled)
 
     PluginManager& manager = PluginManager::instance();
     if (!enabled) {
-        if (!manager.get_loader().unload_plugin(plugin_key)) {
+        if (!manager.unload_plugin(plugin_key)) {
             BOOST_LOG_TRIVIAL(error) << "Failed to unload plugin from Plugins dialog: " << plugin_key;
             show_status(_L("Failed to unload plugin."), "warn");
             send_plugins();
@@ -631,9 +617,6 @@ void PluginsDialog::toggle_plugin(const std::string& plugin_key, bool enabled)
         show_status(wxString::Format(_L("Deactivated \"%s\"."), plugin_display_name(plugin_key)), "success");
         return;
     }
-
-    // Check for capabilities that are currently in use
-    auto loaded_capabilities = manager.get_loader().get_loaded_plugin_capabilities(plugin_key);
 
     if (!available_actions.can_toggle) {
         if (dialog_item.unauthorized && available_actions.toggle_installs_cloud_plugin == false && row_data.has_local_package() == false) {
@@ -666,25 +649,25 @@ void PluginsDialog::toggle_plugin(const std::string& plugin_key, bool enabled)
         }
     }
 
-    if (manager.get_loader().is_plugin_loaded(plugin_key)) {
+    if (manager.is_plugin_loaded(plugin_key)) {
         send_plugins();
         return;
     }
 
-    const PluginDescriptor* descriptor_ptr = manager.get_catalog().find_valid_plugin_descriptor(plugin_key);
-    if (!descriptor_ptr) {
+    PluginDescriptor valid_descriptor;
+    if (!manager.try_get_valid_plugin_descriptor(plugin_key, valid_descriptor)) {
         show_status(_L("Plugin manifest was not found."), "warn");
         send_plugins();
         return;
     }
 
-    if (manager.get_loader().is_plugin_load_in_progress(plugin_key)) {
+    if (manager.is_plugin_load_in_progress(plugin_key)) {
         send_plugins();
         return;
     }
 
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Starting plugin load from web dialog: " << plugin_key;
-    manager.get_loader().load_plugin(manager.get_catalog(), plugin_key);
+    manager.load_plugin(plugin_key);
     send_plugins();
     // Loading is asynchronous: show a pending message now; resolve_pending_activation() turns it into
     // Activated/Failed once the loader's completion callback runs update_plugin_dialog_ui().
@@ -713,14 +696,14 @@ void PluginsDialog::toggle_plugin_capability(const std::string& plugin_key, Plug
         return;
     }
 
-    PluginLoader& loader = PluginManager::instance().get_loader();
+    PluginManager& manager = PluginManager::instance();
     if (enabled) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Enabling plugin capability: " << plugin_key << " | " << capability_name;
-        loader.enable_capability(plugin_key, capability_name, type);
+        manager.set_capability_enabled(plugin_key, capability_name, true);
     } else {
         // check if the capability is currently in use here.
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Disabling plugin capability: " << plugin_key << " | " << capability_name;
-        loader.disable_capability(plugin_key, capability_name, type);
+        manager.set_capability_enabled(plugin_key, capability_name, false);
     }
 
     send_plugins();
@@ -795,8 +778,7 @@ bool PluginsDialog::install_plugin_package(const std::string& package_path)
     };
 
     try {
-        if (!PluginManager::instance().get_loader().inspect_local_plugin_package(package_file, plugin_descriptor, existing_installation,
-                                                                                 error))
+        if (!PluginManager::instance().inspect_local_plugin_package(package_file, plugin_descriptor, existing_installation, error))
             return report_inspection_failure();
     } catch (const std::exception& ex) {
         error = ex.what();
@@ -905,15 +887,16 @@ void PluginsDialog::run_script_plugin(const std::string& plugin_key, const std::
     }
 
     PluginManager& manager = PluginManager::instance();
-    auto cap = manager.get_loader().get_plugin_capability_by_name(
-        plugin_key, Slic3r::PluginCapabilityType::Script, capability_name);
+    // only_enabled=false: "missing" and "disabled" are reported separately below.
+    auto cap = manager.get_plugin_capability(plugin_key, capability_name, Slic3r::PluginCapabilityType::Script,
+                                             /*only_enabled=*/false);
     if (!cap) {
         BOOST_LOG_TRIVIAL(warning) << "Ignoring stale run request for missing script capability. plugin_key=" << plugin_key
                                    << " capability_name=" << capability_name;
         send_plugins();
         return;
     }
-    if (!cap->enabled) {
+    if (!manager.get_plugin_capability(plugin_key, capability_name)) {
         BOOST_LOG_TRIVIAL(warning) << "Ignoring stale run request for disabled script capability. plugin_key=" << plugin_key
                                    << " capability_name=" << capability_name;
         send_plugins();
@@ -934,10 +917,10 @@ void PluginsDialog::run_script_plugin(const std::string& plugin_key, const std::
 
     auto complete_with_error = [this, &manager, &plugin_key](const std::string& plugin_error, const wxString& status_message) {
         const std::string normalized_error = plugin_error.empty() ? "Script plugin failed." : plugin_error;
-        if (!manager.get_catalog().set_plugin_error(plugin_key, normalized_error))
+        if (!manager.set_plugin_error(plugin_key, normalized_error))
             BOOST_LOG_TRIVIAL(warning) << "Failed to record plugin error. plugin_key=" << plugin_key;
 
-        if (!manager.get_loader().unload_plugin(plugin_key))
+        if (!manager.unload_plugin(plugin_key))
             BOOST_LOG_TRIVIAL(error) << "Failed to unload plugin after script error. plugin_key=" << plugin_key;
 
         send_plugins();
@@ -962,26 +945,26 @@ void PluginsDialog::run_script_plugin(const std::string& plugin_key, const std::
 
     // Should not reach here, handle for extra safety
     if (!descriptor.is_metadata_valid()) {
-        std::string plugin_type_str    = plugin_capability_type_to_string(descriptor.primary_capability_type());
+        std::string plugin_type_str    = plugin_capability_type_to_string(primary_capability_type_of(manager, plugin_key));
         std::string metadata_valid     = descriptor.is_metadata_valid() ? "true" : "false";
         const std::string plugin_error = "Cannot run plugin because its metadata is invalid:\n\tplugin type: " + plugin_type_str +
                                          "\n\tmetadata_valid: " + metadata_valid;
         BOOST_LOG_TRIVIAL(error) << "Cannot run plugin because its metadata is invalid. plugin_key=" << plugin_key
                                  << " is_metadata_valid=" << descriptor.is_metadata_valid()
-                                 << " type=" << plugin_capability_type_to_string(descriptor.primary_capability_type());
+                                 << " type=" << plugin_capability_type_to_string(primary_capability_type_of(manager, plugin_key));
         complete_with_error(plugin_error, _L("Only plugins with valid metadata can be run from this dialog."));
         return;
     }
 
     // Should not reach here as non-loaded plugins have disabled run buttons, handle for extra safety
-    if (!manager.get_loader().is_plugin_loaded(plugin_key)) {
+    if (!manager.is_plugin_loaded(plugin_key)) {
         BOOST_LOG_TRIVIAL(warning) << "Cannot run script plugin because it is not loaded. plugin_key=" << plugin_key;
         complete_with_error("Load the script plugin before running it: Cannot run script plugin because it is not loaded.",
                             _L("Load the script plugin before running it."));
         return;
     }
 
-    auto plugin = std::dynamic_pointer_cast<Slic3r::ScriptPluginCapability>(cap->instance);
+    auto plugin = std::dynamic_pointer_cast<Slic3r::ScriptPluginCapability>(cap);
     if (!plugin) {
         BOOST_LOG_TRIVIAL(error) << "Loaded plugin does not implement ScriptPluginCapability. plugin_key=" << plugin_key;
         complete_with_error("The selected plugin is not a runnable script plugin: Loaded plugin does not implement ScriptPluginCapability.",
@@ -1190,16 +1173,16 @@ void PluginsDialog::reinstall_local_plugin(const std::string& plugin_key)
         return;
 
     PluginManager& manager = PluginManager::instance();
-    const bool was_loaded  = manager.get_loader().is_plugin_loaded(plugin_key);
-    if (!manager.get_loader().unload_plugin(plugin_key)) {
+    const bool was_loaded  = manager.is_plugin_loaded(plugin_key);
+    if (!manager.unload_plugin(plugin_key)) {
         show_status(_L("Failed to unload plugin."), "warn");
         send_plugins();
         return;
     }
 
-    manager.get_loader().load_plugin(manager.get_catalog(), plugin_key, false);
+    manager.load_plugin(plugin_key, false);
 
-    if (!was_loaded && !manager.get_loader().unload_plugin(plugin_key)) {
+    if (!was_loaded && !manager.unload_plugin(plugin_key)) {
         show_status(_L("Plugin reloaded, but failed to restore the inactive state."), "warn");
         send_plugins();
         return;
@@ -1216,7 +1199,7 @@ void PluginsDialog::reinstall_cloud_plugin(const PluginDescriptor& plugin)
         return;
 
     PluginManager& manager = PluginManager::instance();
-    const bool was_loaded  = manager.get_loader().is_plugin_loaded(plugin_key);
+    const bool was_loaded  = manager.is_plugin_loaded(plugin_key);
 
     std::string error;
     if (plugin.has_local_package()) {
@@ -1226,7 +1209,7 @@ void PluginsDialog::reinstall_cloud_plugin(const PluginDescriptor& plugin)
             return;
         }
 
-        manager.get_catalog().update_cloud_catalog(std::vector<PluginDescriptor>{as_cloud_only_descriptor(plugin)});
+        manager.update_cloud_catalog(std::vector<PluginDescriptor>{as_cloud_only_descriptor(plugin)});
     }
 
     if (!install_cloud_plugin(plugin_key, plugin.version, from_u8(plugin.name))) {
@@ -1235,7 +1218,7 @@ void PluginsDialog::reinstall_cloud_plugin(const PluginDescriptor& plugin)
     }
 
     if (was_loaded) {
-        manager.get_loader().load_plugin(manager.get_catalog(), plugin_key);
+        manager.load_plugin(plugin_key);
     }
 
     send_plugins();

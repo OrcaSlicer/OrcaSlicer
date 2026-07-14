@@ -25,12 +25,16 @@ void install_capability_resolver()
 {
     ConfigBase::set_resolve_capability_fn([](const std::string& cap_name, const std::string& cap_type) {
         PluginManager& plugin_mgr = PluginManager::instance();
-        auto plugin_cap = plugin_mgr.get_loader().try_get_plugin_capability_by_name_and_type(cap_name, plugin_capability_type_from_string(cap_type));
+        const PluginCapabilityType type = plugin_capability_type_from_string(cap_type);
+        // only_enabled = false: this resolves the reference a preset STORES, which must stay
+        // resolvable whether or not the user currently has the capability enabled. Filtering on
+        // the enable flag here would quietly drop the reference out of the preset's manifest.
+        auto plugin_cap = plugin_mgr.get_plugin_capability(cap_name, type, /*only_enabled=*/false);
         if (!plugin_cap)
             return std::string();
 
         PluginDescriptor descriptor;
-        if (!plugin_mgr.get_catalog().try_get_plugin_descriptor(plugin_cap->plugin_key, descriptor))
+        if (!plugin_mgr.try_get_plugin_descriptor_for_capability(cap_name, type, descriptor))
             return std::string();
 
         // Cloud plugins are resolved at runtime via the UUID in the middle field, so the first
@@ -79,7 +83,7 @@ void install_slicing_pipeline_hook()
                         // hand the plugin its own [tool.orcaslicer.plugin.settings] as ctx.params
                         // (same plugin_key the capability was resolved by, so it always matches).
                         const std::string plugin_key = ref.uuid.empty() ? ref.name : ref.uuid;
-                        ctx.params = PluginManager::instance().get_loader().get_plugin_settings(plugin_key);
+                        ctx.params = PluginManager::instance().get_plugin_settings(plugin_key);
                         r = cap->execute(ctx);
                     } catch (const CanceledException&) {
                         throw; // cancellation must reach process(), never become a slicing error
