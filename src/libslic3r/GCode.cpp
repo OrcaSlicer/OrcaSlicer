@@ -5459,7 +5459,21 @@ LayerResult GCode::process_layer(
             break;
         }
         case CalibMode::Calib_VFA_Tower: {
-            auto _speed = print.calib_params().start + std::floor(print_z / 5.0) * print.calib_params().step;
+            // The VFA tower geometry is scaled by nozzle_diameter / base_nozzle_diameter in Plater::calib_VFA,
+            // so the physical height of each speed block scales with it too. Keep the speed stepping in sync.
+            constexpr double base_vfa_nozzle_diameter = 0.4;
+            constexpr double base_vfa_block_height     = 5.0;
+            const auto& nozzle_diameters = print.config().nozzle_diameter.values;
+            size_t      nozzle_id        = static_cast<size_t>(std::max(print.calib_params().extruder_id, 0));
+            double      nozzle_diameter  = base_vfa_nozzle_diameter;
+            if (!nozzle_diameters.empty()) {
+                nozzle_id       = std::min(nozzle_id, nozzle_diameters.size() - 1);
+                nozzle_diameter = nozzle_diameters[nozzle_id];
+            }
+            if (nozzle_diameter <= 0.0)
+                nozzle_diameter = base_vfa_nozzle_diameter;
+            const double block_height = base_vfa_block_height * (nozzle_diameter / base_vfa_nozzle_diameter);
+            auto _speed = print.calib_params().start + std::floor(print_z / block_height) * print.calib_params().step;
             m_calib_config.set_key_value("outer_wall_speed", new ConfigOptionFloatsNullable({std::round(_speed)}));
             break;
         }

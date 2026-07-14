@@ -14217,6 +14217,9 @@ void Plater::calib_retraction(const Calib_Params& params)
 
 void Plater::calib_VFA(const Calib_Params& params)
 {
+    constexpr double base_vfa_nozzle_diameter = 0.4;
+    constexpr double base_vfa_block_height     = 5.0;
+
     const auto calib_vfa_name = wxString::Format(L"VFA test");
     new_project(false, false, calib_vfa_name);
     wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
@@ -14227,6 +14230,31 @@ void Plater::calib_VFA(const Calib_Params& params)
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
+
+    const ConfigOptionFloats* nozzle_diameter_config = printer_config->option<ConfigOptionFloats>("nozzle_diameter");
+    size_t nozzle_id = static_cast<size_t>(std::max(params.extruder_id, 0));
+    double nozzle_diameter = base_vfa_nozzle_diameter;
+    if (nozzle_diameter_config && !nozzle_diameter_config->values.empty()) {
+        nozzle_id = std::min(nozzle_id, nozzle_diameter_config->values.size() - 1);
+        nozzle_diameter = nozzle_diameter_config->values[nozzle_id];
+    }
+    if (nozzle_diameter <= 0.0)
+        nozzle_diameter = base_vfa_nozzle_diameter;
+    const double nozzle_scale = nozzle_diameter / base_vfa_nozzle_diameter;
+
+    // cut upper (on the unscaled model, using the base block height); the scaling below keeps the
+    // physical block height in sync with the speed stepping in GCode::process_layer.
+    auto obj_bb = model().objects[0]->bounding_box_exact();
+    auto height = base_vfa_block_height * ((params.end - params.start) / params.step + 1);
+    if (height < obj_bb.size().z()) {
+        cut_horizontal(0, 0, height, ModelObjectCutAttribute::KeepLower);
+    }
+
+    if (std::abs(nozzle_scale - 1.0) > EPSILON)
+        model().objects[0]->scale(nozzle_scale, nozzle_scale, nozzle_scale);
+
+    model().objects[0]->ensure_on_bed();
+
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     filament_config->set_key_value("slow_down_layer_time", new ConfigOptionFloats { 0.0 });
     set_config_values<bool, ConfigOptionBoolsNullable>(print_config, "enable_overhang_speed", false);
@@ -14240,6 +14268,8 @@ void Plater::calib_VFA(const Calib_Params& params)
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
     print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
+    print_config->set_key_value("initial_layer_print_height", new ConfigOptionFloat(nozzle_diameter/2));
+    model().objects[0]->config.set_key_value("layer_height", new ConfigOptionFloat(nozzle_diameter/2));
     model().objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model().objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(3.0));
     model().objects[0]->config.set_key_value("brim_object_gap", new ConfigOptionFloat(0.0));
@@ -14249,13 +14279,6 @@ void Plater::calib_VFA(const Calib_Params& params)
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_dirty();
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update_ui_from_settings();
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_ui_from_settings();
-
-    // cut upper
-    auto obj_bb = model().objects[0]->bounding_box_exact();
-    auto height = 5 * ((params.end - params.start) / params.step + 1);
-    if (height < obj_bb.size().z()) {
-        cut_horizontal(0, 0, height, ModelObjectCutAttribute::KeepLower);
-    }
 
     p->background_process.fff_print()->set_calib_params(params);
 }

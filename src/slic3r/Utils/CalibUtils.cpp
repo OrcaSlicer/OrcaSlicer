@@ -1265,6 +1265,19 @@ void CalibUtils::calib_VFA(const CalibInfo &calib_info, wxString &error_message)
     DynamicPrintConfig filament_config = calib_info.filament_prest->config;
     DynamicPrintConfig printer_config  = calib_info.printer_prest->config;
 
+    constexpr double base_vfa_nozzle_diameter = 0.4;
+    constexpr double base_vfa_block_height     = 5.0;
+    const ConfigOptionFloats* nozzle_diameter_config = printer_config.option<ConfigOptionFloats>("nozzle_diameter");
+    size_t nozzle_id = static_cast<size_t>(std::max(params.extruder_id, 0));
+    double nozzle_diameter = base_vfa_nozzle_diameter;
+    if (nozzle_diameter_config && !nozzle_diameter_config->values.empty()) {
+        nozzle_id = std::min(nozzle_id, nozzle_diameter_config->values.size() - 1);
+        nozzle_diameter = nozzle_diameter_config->values[nozzle_id];
+    }
+    if (nozzle_diameter <= 0.0)
+        nozzle_diameter = base_vfa_nozzle_diameter;
+    const double nozzle_scale = nozzle_diameter / base_vfa_nozzle_diameter;
+
     filament_config.set_key_value("slow_down_layer_time", new ConfigOptionInts{0});
     filament_config.set_key_value("filament_max_volumetric_speed", new ConfigOptionFloats{200});
     filament_config.set_key_value("curr_bed_type", new ConfigOptionEnum<BedType>(calib_info.bed_type));
@@ -1280,13 +1293,16 @@ void CalibUtils::calib_VFA(const CalibInfo &calib_info, wxString &error_message)
     print_config.set_key_value("sparse_infill_density", new ConfigOptionPercent(0));
     print_config.set_key_value("overhang_reverse", new ConfigOptionBool(false));
     print_config.set_key_value("spiral_mode", new ConfigOptionBool(true));
+    print_config.set_key_value("initial_layer_print_height", new ConfigOptionFloat(nozzle_diameter / 2));
+    model.objects[0]->config.set_key_value("layer_height", new ConfigOptionFloat(nozzle_diameter / 2));
     model.objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model.objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(3.0));
     model.objects[0]->config.set_key_value("brim_object_gap", new ConfigOptionFloat(0.0));
 
-    // cut upper
+    // cut upper (on the unscaled model, using the base block height); the scaling below keeps the
+    // physical block height in sync with the speed stepping in GCode::process_layer.
     auto obj_bb = model.objects[0]->bounding_box_exact();
-    auto height = 5 * ((params.end - params.start) / params.step + 1);
+    auto height = base_vfa_block_height * ((params.end - params.start) / params.step + 1);
     if (height < obj_bb.size().z()) {
         cut_model(model, height, ModelObjectCutAttribute::KeepLower);
     }
@@ -1294,6 +1310,10 @@ void CalibUtils::calib_VFA(const CalibInfo &calib_info, wxString &error_message)
         error_message = _L("The start, end or step is not valid value.");
         return;
     }
+
+    if (std::abs(nozzle_scale - 1.0) > EPSILON)
+        model.objects[0]->scale(nozzle_scale, nozzle_scale, nozzle_scale);
+    model.objects[0]->ensure_on_bed();
 
     DynamicPrintConfig full_config;
     full_config.apply(FullPrintConfig::defaults());
