@@ -14129,6 +14129,7 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     obj_cfg.set_key_value("precise_z_height", new ConfigOptionBool(false));
     print_config->set_key_value("timelapse_type", new ConfigOptionEnum<TimelapseType>(tlTraditional));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
+    print_config->set_key_value("spiral_mode_bottom_fillet_radius", new ConfigOptionFloat(0));
     print_config->set_key_value("max_volumetric_extrusion_rate_slope", new ConfigOptionFloat(0));
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
 
@@ -14238,6 +14239,7 @@ void Plater::calib_VFA(const Calib_Params& params)
     print_config->set_key_value("sparse_infill_density", new ConfigOptionPercent(0));
     print_config->set_key_value("detect_thin_wall", new ConfigOptionBool(false));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
+    print_config->set_key_value("spiral_mode_bottom_fillet_radius", new ConfigOptionFloat(0));
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
     print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
     model().objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
@@ -14304,6 +14306,7 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     print_config->set_key_value("sparse_infill_density", new ConfigOptionPercent(0));
     print_config->set_key_value("detect_thin_wall", new ConfigOptionBool(false));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
+    print_config->set_key_value("spiral_mode_bottom_fillet_radius", new ConfigOptionFloat(0));
     print_config->set_key_value("spiral_mode_smooth", new ConfigOptionBool(false));
     print_config->set_key_value("bottom_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
     const double machine_max_speed = std::min(printer_config->option<ConfigOptionFloats>("machine_max_speed_x")->get_at(0), printer_config->option<ConfigOptionFloats>("machine_max_speed_y")->get_at(0));
@@ -14368,6 +14371,7 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     print_config->set_key_value("sparse_infill_density", new ConfigOptionPercent(0));
     print_config->set_key_value("detect_thin_wall", new ConfigOptionBool(false));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
+    print_config->set_key_value("spiral_mode_bottom_fillet_radius", new ConfigOptionFloat(0));
     print_config->set_key_value("spiral_mode_smooth", new ConfigOptionBool(false));
     print_config->set_key_value("bottom_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
     const double machine_max_speed = std::min(printer_config->option<ConfigOptionFloats>("machine_max_speed_x")->get_at(0), printer_config->option<ConfigOptionFloats>("machine_max_speed_y")->get_at(0));
@@ -14436,6 +14440,7 @@ void Plater::Calib_Cornering(const Calib_Params& params)
     print_config->set_key_value("sparse_infill_density", new ConfigOptionPercent(0));
     print_config->set_key_value("detect_thin_wall", new ConfigOptionBool(false));
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
+    print_config->set_key_value("spiral_mode_bottom_fillet_radius", new ConfigOptionFloat(0));
     print_config->set_key_value("spiral_mode_smooth", new ConfigOptionBool(false));
     print_config->set_key_value("bottom_surface_pattern", new ConfigOptionEnum<InfillPattern>(ipRectilinear));
     const double machine_max_speed = std::min(printer_config->option<ConfigOptionFloats>("machine_max_speed_x")->get_at(0), printer_config->option<ConfigOptionFloats>("machine_max_speed_y")->get_at(0));

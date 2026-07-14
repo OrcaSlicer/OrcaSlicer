@@ -6256,6 +6256,18 @@ void PrintConfigDef::init_fff_params()
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
 
+    def = this->add("spiral_mode_bottom_fillet_radius", coFloat);
+    def->label = L("Bottom fillet radius");
+    def->tooltip = L("Print a fillet of this radius between the bottom shell and the vase wall, to strengthen "
+                     "and smooth the transition. The fillet is built from extra concentric walls on the inside "
+                     "of the vase, tapering with height along a quarter-circle profile. Layers within the fillet "
+                     "are printed as regular layers, so the seam is still visible there; the spiral starts right "
+                     "above the fillet. 0 disables the fillet.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(0));
+
     def = this->add("spiral_mode_smooth", coBool);
     def->label = L("Smooth Spiral");
     def->tooltip = L("Smooth Spiral smooths out X and Y moves as well, "

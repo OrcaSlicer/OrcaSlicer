@@ -93,6 +93,26 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
         (this->layer()->id() >= size_t(region_config.bottom_shell_layers.value) &&
          this->layer()->print_z >= region_config.bottom_shell_thickness - EPSILON);
 
+    // Orca: spiral vase bottom fillet — extra tapering inner walls right above the bottom shell.
+    coord_t spiral_fillet_inset = 0;
+    if (spiral_mode && print_config.spiral_mode_bottom_fillet_radius.value > 0.) {
+        const double r = print_config.spiral_mode_bottom_fillet_radius.value;
+        // Top Z of the last layer below the spiral (in sync with the spiral_mode flag above).
+        double z_base = 0.;
+        const PrintObject &object = *this->layer()->object();
+        for (size_t i = 0; i < object.layer_count(); ++ i) {
+            const Layer *layer = object.get_layer(int(i));
+            if (i >= size_t(region_config.bottom_shell_layers.value) &&
+                layer->print_z >= region_config.bottom_shell_thickness - EPSILON)
+                break;
+            z_base = layer->print_z;
+        }
+        // Quarter-circle profile evaluated at this layer's bottom Z, so every ring rests on the wider ring below.
+        const double h = std::max(0., this->layer()->print_z - this->layer()->height - z_base);
+        if (h < r - EPSILON)
+            spiral_fillet_inset = scale_(r - std::sqrt(r * r - (r - h) * (r - h)));
+    }
+
     double model_rotation_rad = 0.0;
     if (region_config.align_infill_direction_to_model) {
         auto m = this->layer()->object()->trafo().matrix();
@@ -131,6 +151,7 @@ void LayerRegion::make_perimeters(const SurfaceCollection &slices, const LayerRe
         g.upper_slices_same_region = &this->layer()->upper_layer->get_region(region_id)->slices;
 
     g.layer_id              = (int)this->layer()->id();
+    g.spiral_fillet_inset   = spiral_fillet_inset;
     g.ext_perimeter_flow    = this->flow(frExternalPerimeter);
     g.overhang_flow         = this->bridging_flow(frPerimeter, object_config.thick_bridges);
     g.solid_infill_flow     = this->flow(frSolidInfill);
