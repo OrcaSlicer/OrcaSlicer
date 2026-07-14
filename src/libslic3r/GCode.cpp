@@ -10903,6 +10903,14 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             gcode += toolchange_command;
         if (Extruder *fil = m_writer.filament())
             fil->set_config_index((int)get_filament_config_index((int)fil->id()));
+        // Creality CFS printers reset the nozzle temperature on a T command, so set it again after T0.
+        if (!toolchange_command.empty() && m_config.single_extruder_multi_material && !m_config.enable_prime_tower) {
+            size_t new_fi = get_filament_config_index(new_filament_id);
+            int temp = (m_layer_index <= 0 ? m_config.nozzle_temperature_initial_layer.get_at(new_fi) :
+                                             m_config.nozzle_temperature.get_at(new_fi));
+            gcode += m_writer.set_temperature(temp, false);
+        }
+
         if (position_before_toolchange)
             this->synchronize_toolchange_position(*position_before_toolchange, gcode);
         return gcode;

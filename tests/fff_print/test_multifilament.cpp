@@ -2151,3 +2151,57 @@ TEST_CASE("Nozzle change ramming is symmetric for identical filaments", "[MultiF
     }
     CHECK_THAT(medians[0], Catch::Matchers::WithinRel(medians[1], 0.01));
 }
+
+// Regression for #14753: emit M104 after T0 in single-extruder MM to override firmware/CFS reset.
+TEST_CASE("Single-extruder MM emits M104 after T0 toolchange", "[MultiFilament]")
+{
+    const int expected_temp = 240;
+    const std::string gcode = slice({ cube(20) },
+        multifilament_config(2, {
+            { "nozzle_temperature",               std::to_string(expected_temp) + "," + std::to_string(expected_temp) },
+            { "nozzle_temperature_initial_layer", std::to_string(expected_temp) + "," + std::to_string(expected_temp) },
+            { "machine_start_gcode",              "" },
+            { "enable_prime_tower",               "0" },
+        }));
+
+    bool found_t0 = false;
+    bool found_temp_after_t0 = false;
+    int  temp_after_t0 = -1;
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&](GCodeReader&, const GCodeReader::GCodeLine& line) {
+        const std::string cmd(line.cmd());
+        if (!found_t0) {
+            if (cmd == "T0")
+                found_t0 = true;
+        } else if (!found_temp_after_t0 && (cmd == "M104" || cmd == "M109")) {
+            found_temp_after_t0 = true;
+            float s_val = 0;
+            if (line.has_value('S', s_val))
+                temp_after_t0 = int(s_val);
+        }
+    });
+
+    REQUIRE(found_t0);
+    REQUIRE(found_temp_after_t0);
+    REQUIRE(temp_after_t0 == expected_temp);
+}
+
+// Single-filament prints must not get an M104 after start G-code when no T command was written.
+TEST_CASE("Single-filament print does not emit M104 after start G-code", "[MultiFilament]")
+{
+    const std::string gcode = slice({ cube(20) },
+        multifilament_config(1, {
+            { "machine_start_gcode", "; START_GCODE_END\n" },
+            { "enable_prime_tower",  "0" },
+        }));
+
+    const size_t start_pos = gcode.find("; START_GCODE_END");
+    REQUIRE(start_pos != std::string::npos);
+    const size_t layer_pos = gcode.find(";LAYER_CHANGE", start_pos);
+    REQUIRE(layer_pos != std::string::npos);
+
+    const std::string between = gcode.substr(start_pos, layer_pos - start_pos);
+    CHECK(between.find("M104") == std::string::npos);
+    CHECK(between.find("M109") == std::string::npos);
+    CHECK(between.find("T0") == std::string::npos);
+}
