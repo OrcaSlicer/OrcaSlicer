@@ -8931,8 +8931,7 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         "smooth_coefficient", "overhang_totally_speed", "silent_mode",
         "overhang_speed_classic", "filament_prime_volume",
         "calib_flowrate_topinfill_special_order",
-        // Orca: superseded by top_surface_fill_order / bottom_surface_fill_order
-        "anisotropic_surfaces",
+        "anisotropic_surfaces", // superseded by top_surface_fill_order / bottom_surface_fill_order
     };
 
     if (ignore.find(opt_key) != ignore.end()) {
