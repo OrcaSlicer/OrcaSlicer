@@ -74,6 +74,7 @@ public:
     static std::string get_printer_use_ams_type(std::string type_str) { return get_value_from_config<std::string>(type_str, "use_ams_type"); }
     static std::string get_printer_ams_img(const std::string& type_str) { return get_value_from_config<std::string>(type_str, "printer_use_ams_image"); }
     static std::string get_printer_ext_img(const std::string& type_str, int pos);//printer_ext_image
+    static std::string get_filament_load_img(const std::string &type_str, int ext_id, bool has_nozzle_rack = false);
 
     /*fan*/
     static std::string get_fan_text(const std::string& type_str, const std::string& key);

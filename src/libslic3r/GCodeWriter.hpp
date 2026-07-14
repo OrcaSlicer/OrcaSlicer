@@ -67,10 +67,13 @@ public:
     bool        need_toolchange(unsigned int filament_id) const;
     std::string set_extruder(unsigned int filament_id);
     void init_extruder(unsigned int filament_id);
+    // Current parked-retract length of a filament's extruder (share-aware). Used for the
+    // new_extruder_retracted_length change-filament placeholder. Returns 0 if the filament is unknown.
+    double get_extruder_retracted_length(const int filament_id);
     // Prefix of the toolchange G-code line, to be used by the CoolingBuffer to separate sections of the G-code
     // printed with the same extruder.
     std::string toolchange_prefix() const;
-    std::string toolchange(unsigned int filament_id);
+    std::string toolchange(unsigned int filament_id, int nozzle_id);
     std::string set_speed(double F, const std::string &comment = std::string(), const std::string &cooling_marker = std::string());
     // SoftFever NOTE: the returned speed is mm/minute
     double      get_current_speed() const { return m_current_speed;}
@@ -84,7 +87,9 @@ public:
     std::string extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
     std::string retract(bool before_wipe = false, double retract_length = 0);
     std::string retract_for_toolchange(bool before_wipe = false, double retract_length = 0);
-    std::string unretract();
+    // extra_retract adds a small over-extrusion to the deretract move (PETG pre-extrusion).
+    // Default 0 -> byte-identical to the plain deretract.
+    std::string unretract(float extra_retract = 0.f);
     // do lift instantly
     std::string eager_lift(const LiftType type);
     // record a lift request, do realy lift in next travel

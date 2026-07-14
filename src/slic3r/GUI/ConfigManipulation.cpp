@@ -721,7 +721,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_field("top_surface_expansion_direction", has_top_surface_expansion);
 
     // Orca: Archimedean Chords and Octagram Spiral are the centered surface patterns that the
-    // pattern-centering, anisotropic-surface and separated-infill features act on.
+    // pattern-centering feature acts on.
     auto is_centered_pattern = [](InfillPattern p) {
         return p == InfillPattern::ipArchimedeanChords || p == InfillPattern::ipOctagramSpiral;
     };
@@ -729,9 +729,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool is_bottom_centered = is_centered_pattern(config->option<ConfigOptionEnum<InfillPattern>>("bottom_surface_pattern")->value);
     bool has_centered_surface = (has_top_shell && is_top_centered) || (has_bottom_shell && is_bottom_centered);
 
-    // Orca: center of surface pattern / anisotropic surfaces
+    // Orca: center of surface pattern
     toggle_line("center_of_surface_pattern", has_centered_surface);
-    toggle_line("anisotropic_surfaces", has_centered_surface);
 
     // Orca: separate infills
     bool is_internal_infill_separable = is_separable_infill_pattern(config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value) ||
@@ -739,9 +738,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
                                         config->opt_string("solid_infill_rotate_template") != "";
     toggle_line("separated_infills", is_internal_infill_separable);
 
-    // Orca: no need gaps
-    for (auto el : {"gap_fill_target", "filter_out_gap_fill"})
-        toggle_field(el, !config->opt_bool("anisotropic_surfaces"));
+    // Fill order is only meaningful for the center-based surface fill patterns; hide it otherwise.
+    auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipArchimedeanChords || p == ipOctagramSpiral; };
+    toggle_line("top_surface_fill_order", has_top_shell && is_centered_fill(config->opt_enum<InfillPattern>("top_surface_pattern")));
+    toggle_line("bottom_surface_fill_order", has_bottom_shell && is_centered_fill(config->opt_enum<InfillPattern>("bottom_surface_pattern")));
 
     for (auto el : { "infill_direction", "sparse_infill_line_width", "gap_fill_target","filter_out_gap_fill","infill_wall_overlap",
         "bridge_angle", "internal_bridge_angle", "relative_bridge_angle",

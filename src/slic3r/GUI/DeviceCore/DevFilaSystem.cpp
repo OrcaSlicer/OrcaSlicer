@@ -1,5 +1,6 @@
 #include <nlohmann/json.hpp>
 #include "DevFilaSystem.h"
+#include "DevNozzleSystem.h" // DevNozzle / DevNozzleSystem for GetNozzleFlowStringByAmsId
 
 // TODO: remove this include
 #include "slic3r/GUI/DeviceManager.hpp"
@@ -111,7 +112,7 @@ DevAms::DevAms(const std::string& ams_id, int nozzle_id, int type)
     m_ams_id = ams_id;
     m_ext_id = nozzle_id;
     m_ams_type = (AmsType)type;
-    assert(DUMMY < type && m_ams_type <= N3S);
+    assert(DUMMY < type && m_ams_type <= AMS_LITE_MIXED);
 }
 
 DevAms::~DevAms()
@@ -137,7 +138,8 @@ static unordered_map<int, wxString> s_ams_display_formats = {
 wxString DevAms::GetDisplayName() const
 {
     wxString ams_display_format;
-    auto iter = s_ams_display_formats.find(m_ams_type);
+    // GetAmsType() maps AMS_LITE_MIXED -> AMS_LITE so N9 shows the AMS-Lite name.
+    auto iter = s_ams_display_formats.find(GetAmsType());
     if (iter != s_ams_display_formats.end()) 
     {
         ams_display_format = iter->second;
@@ -166,11 +168,13 @@ wxString DevAms::GetDisplayName() const
 
 int DevAms::GetSlotCount() const
 {
-    if (m_ams_type == AMS || m_ams_type == AMS_LITE || m_ams_type == N3F)
+    // GetAmsType() maps AMS_LITE_MIXED -> AMS_LITE, so N9 reports 4 slots like AMS-Lite.
+    auto ams_type = GetAmsType();
+    if (ams_type == AMS || ams_type == AMS_LITE || ams_type == N3F)
     {
         return 4;
     }
-    else if (m_ams_type == N3S)
+    else if (ams_type == N3S)
     {
         return 1;
     }
@@ -258,6 +262,44 @@ int DevFilaSystem::GetExtruderIdByAmsId(const std::string& ams_id) const
     return 0; // not found
 }
 
+std::string DevFilaSystem::GetNozzleFlowStringByAmsId(const std::string& ams_id) const
+{
+    auto extruder_id = GetExtruderIdByAmsId(ams_id);
+    auto nozzle      = GetOwner()->GetNozzleSystem()->GetExtNozzle(extruder_id);
+    return DevNozzle::GetNozzleFlowTypeString(nozzle.GetNozzleFlowType());
+}
+
+std::map<int, DevAmsSlotId> DevFilaSystem::GetTrayIndexMap()
+{
+    std::map<int, DevAmsSlotId> tray_id_map;
+    tray_id_map[VIRTUAL_TRAY_MAIN_ID]   = DevAmsSlotId{VIRTUAL_TRAY_MAIN_ID, 0};
+    tray_id_map[VIRTUAL_TRAY_DEPUTY_ID] = DevAmsSlotId{VIRTUAL_TRAY_DEPUTY_ID, 0};
+
+    for (auto& [ams_id, ams_item] : GetAmsList()) {
+        for (auto &[slot_id, slot_item] : ams_item->GetTrays()) {
+            if (ams_item && slot_item) {
+                try {
+                    int ams_id_int  = stoi(ams_id);
+                    int slot_id_int = stoi(slot_id);
+                    int tray_index  = -1;
+                    if (ams_item->GetAmsType() == DevAms::N3S) {
+                        tray_index = ams_id_int;
+                    } else if(ams_item->GetAmsType() == DevAms::AMS_LITE && ams_item->IsAmsLiteMixed()) {
+                        tray_index = 24 + slot_id_int;
+                    } else {
+                        tray_index = (ams_id_int * 4 + slot_id_int);
+                    }
+                    tray_id_map[tray_index] = {ams_id_int, slot_id_int};
+                } catch(...) {
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << "invalid ams id: " << ams_id << " or slot id: " << slot_id;
+                }
+            }
+        }
+    }
+
+    return  tray_id_map;
+}
+
 bool DevFilaSystem::IsAmsSettingUp() const
 {
     int setting_up_stat = DevUtil::get_flag_bits(m_ams_cali_stat, 0, 8);
@@ -304,6 +346,15 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
 
             if (!key_field_only)
             {
+                // Newer firmware sends the exact filament-change step sequence in ams.cfs, so the
+                // client no longer hardcodes the steps per model. Absent on current firmware, which
+                // keeps the list empty and the legacy hardcoded/ams_status_sub step path in effect.
+                if (jj["ams"].contains("cfs")) {
+                    system->m_filament_change_steps = DevJsonValParser::GetVal<std::vector<DevFilamentStep>>(jj["ams"], "cfs");
+                } else {
+                    system->m_filament_change_steps.clear();
+                }
+
                 if (jj["ams"].contains("tray_read_done_bits"))
                 {
                     obj->tray_read_done_bits = stol(jj["ams"]["tray_read_done_bits"].get<std::string>(), nullptr, 16);
@@ -361,17 +412,43 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                     int type_id = 1;   // 0:dummy 1:ams 2:ams-lite 3:n3f 4:n3s
 
                     /*ams info*/
+                    std::set<int> binded_extruder_set;
+                    std::optional<DevFilaSwitch::SwitchPos> binded_switcher_pos;
                     if (it->contains("info")) {
                         const std::string& info = (*it)["info"].get<std::string>();
                         type_id = DevUtil::get_flag_bits(info, 0, 4);
                         extuder_id = DevUtil::get_flag_bits(info, 8, 4);
+                        if (extuder_id == 0xE && obj->GetFilaSwitch()->IsInstalled()) {
+                            int bind_switch_in = DevUtil::get_flag_bits(info, 24, 4);
+                            if (bind_switch_in == 0 || bind_switch_in == 1) {
+                                binded_extruder_set = { MAIN_EXTRUDER_ID, DEPUTY_EXTRUDER_ID };
+                            }
+
+                            if (bind_switch_in == 0) {
+                                binded_switcher_pos = DevFilaSwitch::SwitchPos::POS_IN_B;
+                            } else if (bind_switch_in == 1) {
+                                binded_switcher_pos = DevFilaSwitch::SwitchPos::POS_IN_A;
+                            }
+
+                            // Orca: the switch feeds every AMS to both extruders; pin a deterministic
+                            // single-extruder id so legacy GetExtruderId() consumers keep a valid value
+                            // while switch-aware code reads the binding set instead.
+                            extuder_id = MAIN_EXTRUDER_ID;
+                        } else if (extuder_id != 0xE) {
+                            binded_extruder_set = { extuder_id };
+                        }
                     } else {
                         if (!obj->is_enable_ams_np && obj->get_printer_ams_type() == "f1") {
                             type_id = DevAms::AMS_LITE;
                         }
+                        binded_extruder_set = { MAIN_EXTRUDER_ID };
                     }
 
                     /*AMS without initialization*/
+                    // Orca: an AMS reporting extruder 0xE without a Filament Track Switch installed has
+                    // no usable extruder binding; drop it, preserving the existing display for
+                    // half-initialized printers. With the switch installed the 0xE case is remapped
+                    // above to both extruders and falls through to normal handling.
                     if (extuder_id == 0xE)
                     {
                         ams_id_set.erase(ams_id);
@@ -403,6 +480,13 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                     /*set ams type flag*/
                     curr_ams->SetAmsType(type_id);
 
+                    // Refresh the switch-aware extruder binding on every push (both create and
+                    // update paths) so it can't go stale after an AMS is re-homed to another
+                    // extruder. Without the switch the set holds the single bound extruder and
+                    // the track position stays empty.
+                    curr_ams->m_binded_extruder_set = binded_extruder_set;
+                    curr_ams->m_binded_switcher_pos = binded_switcher_pos;
+
 
                     /*set ams exist flag*/
                     try
@@ -414,6 +498,11 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                             if (type_id < 4)
                             {
                                 curr_ams->m_exist = (obj->ams_exist_bits & (1 << ams_id_int)) != 0 ? true : false;
+                            }
+                            else if (type_id == DevAms::AMS_LITE_MIXED)
+                            {
+                                // Mixed AMS-Lite (A2L / N9) exist flag lives at bit 12.
+                                curr_ams->m_exist = DevUtil::get_flag_bits(obj->ams_exist_bits, 12);
                             }
                             else
                             {
@@ -627,6 +716,11 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                     if (type_id < 4)
                                     {
                                         curr_tray->is_exists = (obj->tray_exist_bits & (1 << (ams_id_int * 4 + tray_id_int))) != 0 ? true : false;
+                                    }
+                                    else if (type_id == DevAms::AMS_LITE_MIXED)
+                                    {
+                                        // Mixed AMS-Lite (A2L / N9) trays occupy tray-exist bits 24..27.
+                                        curr_tray->is_exists = DevUtil::get_flag_bits(obj->tray_exist_bits, AMS_LITE_MIXED_TRAY_INDEX_OFFSET + tray_id_int);
                                     }
                                     else
                                     {
