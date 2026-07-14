@@ -36,6 +36,23 @@ int GetTextMax(wxWindow* parent, const std::vector<wxString>& labels)
     return text_size.x + parent->FromDIP(10);
 }
 
+CheckBox* add_scale_checkbox(wxWindow* parent, wxSizer* settings_sizer)
+{
+    auto row  = new wxBoxSizer(wxHORIZONTAL);
+    auto cb   = new CheckBox(parent);
+    cb->SetValue(true);
+    auto text = new wxStaticText(parent, wxID_ANY, _L("Auto-scale for nozzle"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
+    cb->SetToolTip(_L("This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+                      "When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter"
+                      " and an appropriate layer height, making the test both accurate and easy to read.\n"
+                      "Turn scaling off only if you wish to print the reference model exactly as-is."));
+    text->SetToolTip(cb->GetToolTipText());
+    row->Add(cb  , 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
+    row->Add(text, 0, wxALL | wxALIGN_CENTER_VERTICAL, parent->FromDIP(2));
+    settings_sizer->Add(row, 0, wxLEFT | wxTOP, parent->FromDIP(3));
+    return cb;
+}
+
 std::vector<std::string> get_shaper_type_values()
 {
     if (auto* preset_bundle = wxGetApp().preset_bundle) {
@@ -405,17 +422,7 @@ Temp_Calibration_Dlg::Temp_Calibration_Dlg(wxWindow* parent, wxWindowID id, Plat
     settings_sizer->Add(temp_step_sizer, 0, wxLEFT, FromDIP(3));
 
     // Resize the model to the nozzle diameter (recommended)
-    auto resize_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cbResize = new CheckBox(this);
-    m_cbResize->SetValue(true);
-    auto resize_text = new wxStaticText(this, wxID_ANY, _L("Resize for nozzle diameter"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-    m_cbResize->SetToolTip(_L("The calibration model is designed for a 0.4 mm nozzle and 0.2 mm layer height. When enabled it is "
-                              "scaled to your nozzle diameter with a matching layer height, which is recommended for an accurate "
-                              "test that is easy to read. Disable only to print the reference model as-is."));
-    resize_text->SetToolTip(m_cbResize->GetToolTipText());
-    resize_sizer->Add(m_cbResize , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    resize_sizer->Add(resize_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    settings_sizer->Add(resize_sizer, 0, wxLEFT | wxTOP, FromDIP(3));
+    m_cbResize = add_scale_checkbox(this, settings_sizer);
 
     settings_sizer->AddSpacer(FromDIP(5));
 
@@ -708,17 +715,7 @@ VFA_Test_Dlg::VFA_Test_Dlg(wxWindow* parent, wxWindowID id, Plater* plater)
     settings_sizer->Add(vol_step_sizer, 0, wxLEFT, FromDIP(3));
 
     // Resize the model to the nozzle diameter (recommended)
-    auto resize_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_cbResize = new CheckBox(this);
-    m_cbResize->SetValue(true);
-    auto resize_text = new wxStaticText(this, wxID_ANY, _L("Resize for nozzle diameter"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-    m_cbResize->SetToolTip(_L("The calibration model is designed for a 0.4 mm nozzle and 0.2 mm layer height. When enabled it is "
-                              "scaled to your nozzle diameter with a matching layer height, which is recommended for an accurate "
-                              "test that is easy to read. Disable only to print the reference model as-is."));
-    resize_text->SetToolTip(m_cbResize->GetToolTipText());
-    resize_sizer->Add(m_cbResize , 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    resize_sizer->Add(resize_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(2));
-    settings_sizer->Add(resize_sizer, 0, wxLEFT | wxTOP, FromDIP(3));
+    m_cbResize = add_scale_checkbox(this, settings_sizer);
 
     // Auto-adjust parameters to the filament's max volumetric speed
     auto auto_adjust_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -814,6 +811,17 @@ void VFA_Test_Dlg::on_start(wxCommandEvent& event)
             return mm3_per_mm > 0.0 ? max_vol_speed / mm3_per_mm : 1e9;
         };
 
+        auto confirm_clamp = [&](const wxString& question) -> bool {
+            MessageDialog msg_dlg(nullptr,
+                wxString::Format(_L("The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
+                                    "(%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and "
+                                    "layer height.\n Speeds above this will be clamped, so the upper blocks of the tower "
+                                    "will not print at the requested speed.\n\n%s"),
+                                 m_params.end, max_vol_speed, speed_limit_for_lh(default_lh), question),
+                _L("VFA test"), wxICON_WARNING | wxYES_NO | wxNO_DEFAULT);
+            return msg_dlg.ShowModal() == wxID_YES;
+        };
+
         if (max_vol_speed > 0.0 && nozzle_diameter > 0.0 && m_params.end > speed_limit_for_lh(default_lh)) {
             // The layer-height auto-adjust only applies when resizing is enabled (it changes the layer height).
             if (m_cbAutoAdjust->GetValue() && m_params.nozzle_based_resize) {
@@ -880,32 +888,14 @@ void VFA_Test_Dlg::on_start(wxCommandEvent& event)
                     m_params.vfa_layer_height = min_lh;
                 } else {
                     // No compatible process profiles to draw layer heights from: warn and let the user decide.
-                    const double max_speed = speed_limit_for_lh(default_lh);
-                    MessageDialog msg_dlg(nullptr,
-                        wxString::Format(_L("The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
-                                            "(%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and "
-                                            "layer height. Speeds above this will be clamped, so the upper blocks of the tower "
-                                            "will not print at the requested speed.\n\n"
-                                            "Continue anyway?"),
-                                         m_params.end, max_vol_speed, max_speed),
-                        _L("VFA test"), wxICON_WARNING | wxYES_NO | wxNO_DEFAULT);
-                    if (msg_dlg.ShowModal() != wxID_YES)
+                    if (!confirm_clamp(_L("Continue anyway?")))
                         return;
                 }
             } else {
                 // Auto-adjust off, or resizing disabled (which forbids changing the layer height): just warn.
-                const double max_speed = speed_limit_for_lh(default_lh);
-                const wxString hint = m_params.nozzle_based_resize
-                    ? _L("Enable \"Auto-adjust\" to fix this automatically, or continue anyway?")
-                    : _L("Enable \"Resize for nozzle diameter\" and \"Auto-adjust\" to fix this automatically, or continue anyway?");
-                MessageDialog msg_dlg(nullptr,
-                    wxString::Format(_L("The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed "
-                                        "(%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and "
-                                        "layer height. Speeds above this will be clamped, so the upper blocks of the tower will "
-                                        "not print at the requested speed.\n\n%s"),
-                                     m_params.end, max_vol_speed, max_speed, hint),
-                    _L("VFA test"), wxICON_WARNING | wxYES_NO | wxNO_DEFAULT);
-                if (msg_dlg.ShowModal() != wxID_YES)
+                if (!confirm_clamp(m_params.nozzle_based_resize
+                        ? _L("Enable \"Auto-adjust\" to fix this automatically, or continue anyway?")
+                        : _L("Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?")))
                     return;
             }
         }
