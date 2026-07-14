@@ -175,22 +175,23 @@ unsigned int color_distance(unsigned int target_color_value, const std::string& 
     return dr * dr + dg * dg + db * db;
 }
 
-// Ranking key for a candidate preset. Two buckets fall out of is_subtype_hit: presets with
-// a sub-type hit, and presets without -- is_user_derived and distance only ever break ties
-// within one of those two buckets, never across them (see is_better()).
+// Ranking key for a candidate preset. Two buckets fall out of subtype_matches: presets
+// whose sub-type situation matches the tray's, and presets whose don't -- is_user_derived
+// and distance only ever break ties within one of those two buckets, never across them
+// (see is_better()).
 struct MatchRank
 {
-    bool is_subtype_hit;
+    bool subtype_matches;
     bool is_user_derived;
     unsigned int distance;
 
     // Is *this* rank better than other? Checked tier by tier, most important first: a
-    // sub-type hit always outranks a non-hit; only when that's tied does user-derived-vs-
+    // sub-type match always outranks a non-match; only when that's tied does user-derived-vs-
     // system decide; only when that's also tied does the closer color win.
     bool is_better(const MatchRank& other) const
     {
-        if (is_subtype_hit != other.is_subtype_hit)
-            return is_subtype_hit;
+        if (subtype_matches != other.subtype_matches)
+            return subtype_matches;
 
         if (is_user_derived != other.is_user_derived)
             return is_user_derived;
@@ -229,8 +230,9 @@ std::string SnapmakerPrinterAgent::combine_filament_type(const std::string& type
 // Candidates must match vendor and base type exactly (system presets and user-derived
 // presets alike -- a user's own tweaked copy of a system preset is a legitimate, often
 // more specific, match). Among those, ranked from most to least specific (see MatchRank):
-//   1. presets whose name scrapes to include the tray's sub-type
-//      (so a "MATTE" tray prefers "Overture Matte PLA" over plain "Overture PLA")
+//   1. presets whose name-scraped sub-type situation matches the tray's -- a "MATTE" tray
+//      prefers "Overture Matte PLA" over plain "Overture PLA", and a plain (no sub-type)
+//      tray prefers plain "Overture PLA" over "Overture Matte PLA"
 //   2. user-derived presets (a customized copy of a system preset) over system presets,
 //      since a user's own tuning is more likely to reflect what they actually want
 //   3. closest color match
@@ -254,18 +256,19 @@ bool SnapmakerPrinterAgent::try_vendor_subtype_color_match(const SlotInput& inpu
             continue;
         }
 
-        // Does our tray's sub-type match any of the tokens scraped from this preset's name?
+        // Does this preset's sub-type situation match the tray's? If the tray has a
+        // sub-type, the preset must scrape to include it; if the tray has none, the
+        // preset must scrape to no sub-type either -- a plain "Overture PLA" tray should
+        // prefer plain "Overture PLA" over "Overture Matte PLA", not tie with it.
         // TODO - Some day we might have multiple sub-types per tray.
-        bool is_subtype_hit = false;
-        if (!input.tray_sub_type.empty()) {
-            std::set<std::string> preset_sub_types = SubTypeRegistry::instance().findSubTypes(p.name);
-            is_subtype_hit                         = preset_sub_types.count(input.tray_sub_type) != 0;
-        }
+        std::set<std::string> preset_sub_types = SubTypeRegistry::instance().findSubTypes(p.name);
+        bool subtype_matches = input.tray_sub_type.empty() ? preset_sub_types.empty()
+                                                             : preset_sub_types.count(input.tray_sub_type) != 0;
 
         const bool is_user_derived  = !p.is_system;
         const unsigned int distance = color_distance(target_color_value, p.config.opt_string("default_filament_colour", 0u));
 
-        MatchRank rank{is_subtype_hit, is_user_derived, distance};
+        MatchRank rank{subtype_matches, is_user_derived, distance};
         if (!best_match || rank.is_better(best_rank)) {
             best_match = &p;
             best_rank  = rank;
