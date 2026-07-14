@@ -99,6 +99,7 @@ protected:
     TextInput* m_tiStart;
     TextInput* m_tiEnd;
     TextInput* m_tiStep;
+    CheckBox*  m_cbAutoAdjust;
     Plater* m_plater;
 };
 

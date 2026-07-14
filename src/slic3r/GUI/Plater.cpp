@@ -14217,9 +14217,6 @@ void Plater::calib_retraction(const Calib_Params& params)
 
 void Plater::calib_VFA(const Calib_Params& params)
 {
-    constexpr double base_vfa_nozzle_diameter = 0.4;
-    constexpr double base_vfa_block_height     = 5.0;
-
     const auto calib_vfa_name = wxString::Format(L"VFA test");
     new_project(false, false, calib_vfa_name);
     wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
@@ -14233,25 +14230,31 @@ void Plater::calib_VFA(const Calib_Params& params)
 
     const ConfigOptionFloats* nozzle_diameter_config = printer_config->option<ConfigOptionFloats>("nozzle_diameter");
     size_t nozzle_id = static_cast<size_t>(std::max(params.extruder_id, 0));
-    double nozzle_diameter = base_vfa_nozzle_diameter;
+    double nozzle_diameter = vfa_base_nozzle_diameter;
     if (nozzle_diameter_config && !nozzle_diameter_config->values.empty()) {
         nozzle_id = std::min(nozzle_id, nozzle_diameter_config->values.size() - 1);
         nozzle_diameter = nozzle_diameter_config->values[nozzle_id];
     }
     if (nozzle_diameter <= 0.0)
-        nozzle_diameter = base_vfa_nozzle_diameter;
-    const double nozzle_scale = nozzle_diameter / base_vfa_nozzle_diameter;
+        nozzle_diameter = vfa_base_nozzle_diameter;
 
-    // cut upper (on the unscaled model, using the base block height); the scaling below keeps the
-    // physical block height in sync with the speed stepping in GCode::process_layer.
+    // Resolved layer height: use the (possibly auto-adjusted) value from the dialog, else default to nozzle/2.
+    double layer_height = params.vfa_layer_height > 0.0 ? params.vfa_layer_height : nozzle_diameter / 2.0;
+
+    // cut upper (on the unscaled model, using the base block height); the scaling below keeps the physical
+    // block height (vfa_layers_per_block * layer_height) in sync with the speed stepping in GCode::process_layer.
     auto obj_bb = model().objects[0]->bounding_box_exact();
-    auto height = base_vfa_block_height * ((params.end - params.start) / params.step + 1);
+    auto height = vfa_base_block_height * ((params.end - params.start) / params.step + 1);
     if (height < obj_bb.size().z()) {
         cut_horizontal(0, 0, height, ModelObjectCutAttribute::KeepLower);
     }
 
-    if (std::abs(nozzle_scale - 1.0) > EPSILON)
-        model().objects[0]->scale(nozzle_scale, nozzle_scale, nozzle_scale);
+    // XY scales with the nozzle (footprint / line width); Z scales so each base block becomes
+    // vfa_layers_per_block layers of the resolved layer height.
+    const double xy_scale = nozzle_diameter / vfa_base_nozzle_diameter;
+    const double z_scale  = (vfa_layers_per_block * layer_height) / vfa_base_block_height;
+    if (std::abs(xy_scale - 1.0) > EPSILON || std::abs(z_scale - 1.0) > EPSILON)
+        model().objects[0]->scale(xy_scale, xy_scale, z_scale);
 
     model().objects[0]->ensure_on_bed();
 
@@ -14268,8 +14271,8 @@ void Plater::calib_VFA(const Calib_Params& params)
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
     print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
-    print_config->set_key_value("initial_layer_print_height", new ConfigOptionFloat(nozzle_diameter/2));
-    model().objects[0]->config.set_key_value("layer_height", new ConfigOptionFloat(nozzle_diameter/2));
+    print_config->set_key_value("initial_layer_print_height", new ConfigOptionFloat(layer_height));
+    model().objects[0]->config.set_key_value("layer_height", new ConfigOptionFloat(layer_height));
     model().objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model().objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(3.0));
     model().objects[0]->config.set_key_value("brim_object_gap", new ConfigOptionFloat(0.0));
@@ -14280,7 +14283,10 @@ void Plater::calib_VFA(const Calib_Params& params)
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update_ui_from_settings();
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_ui_from_settings();
 
-    p->background_process.fff_print()->set_calib_params(params);
+    // Pass the resolved layer height on so the GCode speed stepping matches the geometry.
+    Calib_Params calib_params = params;
+    calib_params.vfa_layer_height = layer_height;
+    p->background_process.fff_print()->set_calib_params(calib_params);
 }
 
 void Plater::calib_input_shaping_freq(const Calib_Params& params)
