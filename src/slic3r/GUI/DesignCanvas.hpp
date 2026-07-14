@@ -245,6 +245,11 @@ public:
     // scheduled Refresh() is frequently dropped there. Backend cached on first use.
     // Public: DesignPanel calls it after a tree edit to force a frame on software GL.
     void request_repaint();
+    // Repaint synchronously, once the pending show/resize has settled. Needed when the
+    // notebook re-shows the Design page: an invalidation issued while the page is still
+    // being shown is dropped on hardware GL and no wxEVT_PAINT ever follows, leaving the
+    // canvas blank until another tab switch forces an expose.
+    void force_repaint();
 
 private:
     void reload(bool keep_view);

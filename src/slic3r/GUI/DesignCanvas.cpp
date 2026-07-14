@@ -193,6 +193,20 @@ void DesignCanvas::request_repaint()
     }
 }
 
+void DesignCanvas::force_repaint()
+{
+    if (m_canvas == nullptr || m_canvas_widget == nullptr)
+        return;
+
+    CallAfter([this]() {
+        if (m_canvas == nullptr || m_canvas_widget == nullptr)
+            return;
+        m_canvas->set_as_dirty();
+        m_canvas_widget->Refresh();
+        m_canvas_widget->Update();   // synchronous: an expose may never come after a page show
+    });
+}
+
 void DesignCanvas::reload(bool keep_view)
 {
     m_canvas->reset_volumes();

@@ -3196,6 +3196,7 @@ void DesignPanel::on_tab_shown()
         }
     }
     update_reference_planes();   // entering the Design tab: show the XY/XZ/YZ planes if no object yet
+    if (m_viewport) m_viewport->force_repaint();   // the page was just re-shown: paint it for real
 }
 
 void DesignPanel::load_recipe(const std::string& blob)
