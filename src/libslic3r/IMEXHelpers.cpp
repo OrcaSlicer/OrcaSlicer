@@ -354,7 +354,8 @@ int resolve_filament_for_head(const std::map<int,int>& plate_map,
 
 Transform3d imex_head_transform(int /*primary*/, int /*target*/, ImexRole role,
                                 const Vec2d& gantry_offset,
-                                const Vec2d& primary_zone_center)
+                                const Vec2d& primary_zone_center,
+                                ImexMirrorAxis mirror_axis)
 {
     switch (role) {
     case ImexRole::Primary:
@@ -366,22 +367,27 @@ Transform3d imex_head_transform(int /*primary*/, int /*target*/, ImexRole role,
         const double len2 = gantry_offset.squaredNorm();
         if (len2 < 1e-12)
             return Transform3d::Identity();
-        // True reflection about the zone-boundary plane (perpendicular to X, passing
-        // through primary_zone_center.x + gantry_offset.x/2). This makes the ghost
-        // land at the mirrored position within the target zone — matching where the
-        // mirror tool will actually print — and reflects drag motion so X is inverted
-        // while Y translates 1:1 by gantry_offset.y. Off-row Mirror targets (e.g. T3
-        // on a 2x2) still reflect across this X-plane rather than the diagonal, so
-        // they visually match their on-row counterparts.
-        //   .linear()      = Reflect(X) = diag(-1, 1, 1)
-        //   .translation() = (2*primary_zone_center.x + gantry_offset.x, gantry_offset.y, 0)
-        // TODO: if a future IMEX printer has Y-oriented gantries, lift this to a
-        // caller-supplied axis.
+        // True reflection about the zone-boundary plane between the two zones: perpendicular
+        // to `mirror_axis`, passing through the midpoint of the zone centers along it. The
+        // ghost lands at the mirrored position within the target zone — matching where the
+        // mirror tool actually prints — and drag reflects across that plane, so the mirrored
+        // axis inverts while the other translates 1:1.
+        //   X: linear = diag(-1, 1, 1), translation = (2*center.x + off.x, off.y, 0)
+        //   Y: linear = diag( 1,-1, 1), translation = (off.x, 2*center.y + off.y, 0)
+        // Both have det = -1: a real mirror image, not a 180° rotation (which would be
+        // diag(-1,-1,1), det = +1, and would print the primary's part merely turned around).
         Transform3d out = Transform3d::Identity();
-        out.linear()      = Eigen::DiagonalMatrix<double, 3>(-1.0, 1.0, 1.0);
-        out.translation() = Vec3d(2.0 * primary_zone_center.x() + gantry_offset.x(),
-                                  gantry_offset.y(),
-                                  0.0);
+        if (mirror_axis == ImexMirrorAxis::Y) {
+            out.linear()      = Eigen::DiagonalMatrix<double, 3>(1.0, -1.0, 1.0);
+            out.translation() = Vec3d(gantry_offset.x(),
+                                      2.0 * primary_zone_center.y() + gantry_offset.y(),
+                                      0.0);
+        } else {
+            out.linear()      = Eigen::DiagonalMatrix<double, 3>(-1.0, 1.0, 1.0);
+            out.translation() = Vec3d(2.0 * primary_zone_center.x() + gantry_offset.x(),
+                                      gantry_offset.y(),
+                                      0.0);
+        }
         return out;
     }
     }

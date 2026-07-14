@@ -492,16 +492,74 @@ TEST_CASE("imex_head_transform — mirror reflects model point across primary or
     REQUIRE_THAT(out.y(), WithinAbs(7.0,   1e-9));
 }
 
-TEST_CASE("imex_head_transform — mirror reflection is X-axis regardless of offset direction", "[IMEX]") {
-    // Mirror's reflection plane normal is the primary-row gantry axis (X), not
-    // gantry_offset.normalized(). A pure-Y offset (off-row target) must still flip
-    // X, not Y — otherwise off-row Mirror ghosts end up rotated vs their on-row peers.
+TEST_CASE("imex_head_transform — mirror axis comes from the caller, not the offset direction", "[IMEX]") {
+    // The reflection plane normal is caller-supplied, never inferred from
+    // gantry_offset.normalized(). A diagonal target (different column AND different gantry)
+    // has offset components on both axes, so the vector alone cannot pick an axis.
     const Vec2d offset{0.0, 80.0};
-    Transform3d xf = imex_head_transform(0, 1, ImexRole::Mirror, offset);
     const Vec3d in{3.0, 10.0, 0.0};
-    const Vec3d out = xf * in;
-    REQUIRE_THAT(out.x(), WithinAbs(-3.0, 1e-9));  // X flipped about origin
-    REQUIRE_THAT(out.y(), WithinAbs(90.0, 1e-9));  // Y translated by gantry, unflipped
+
+    const Vec3d as_x = imex_head_transform(0, 1, ImexRole::Mirror, offset, Vec2d::Zero(),
+                                           ImexMirrorAxis::X) * in;
+    REQUIRE_THAT(as_x.x(), WithinAbs(-3.0, 1e-9));  // X flipped about origin
+    REQUIRE_THAT(as_x.y(), WithinAbs(90.0, 1e-9));  // Y translated by gantry, unflipped
+
+    const Vec3d as_y = imex_head_transform(0, 1, ImexRole::Mirror, offset, Vec2d::Zero(),
+                                           ImexMirrorAxis::Y) * in;
+    REQUIRE_THAT(as_y.x(), WithinAbs(3.0,  1e-9));  // X tracks 1:1
+    REQUIRE_THAT(as_y.y(), WithinAbs(70.0, 1e-9));  // Y flipped about origin, then translated
+}
+
+TEST_CASE("imex_head_transform — cross-gantry mirror reflects Y and tracks X", "[IMEX]") {
+    // Two-gantry machine: gantry 1's zone sits in FRONT of the primary's, stacked along Y.
+    // The part that comes off it is a Y-reflection of the tool directly behind it, so the
+    // mirror plane is the horizontal boundary between the two row strips.
+    // Primary zone centered (50,150), target (50,50) → boundary at y = 100.
+    const Vec2d offset{0.0, -100.0};
+    const Vec2d primary_zone_center{50.0, 150.0};
+    Transform3d xf = imex_head_transform(0, 2, ImexRole::Mirror, offset, primary_zone_center,
+                                         ImexMirrorAxis::Y);
+
+    // Primary at (20,130) reflects through y=100 to (20,70): X unchanged, Y mirrored.
+    const Vec3d primary{20.0, 130.0, 0.0};
+    const Vec3d ghost_origin = xf * primary;
+    REQUIRE_THAT(ghost_origin.x(), WithinAbs(20.0, 1e-9));
+    REQUIRE_THAT(ghost_origin.y(), WithinAbs(70.0, 1e-9));
+
+    // Geometry is flipped in Y: a model point +5 in Y lands 5 BELOW the ghost origin.
+    const Vec3d mapped = xf * (primary + Vec3d(0.0, 5.0, 0.0));
+    REQUIRE_THAT(mapped.y(), WithinAbs(65.0, 1e-9));
+
+    // Drag: primary +X → ghost +X (1:1), primary +Y → ghost -Y (mirrored).
+    const Vec3d d = (xf * (primary + Vec3d(7.0, 3.0, 0.0))) - ghost_origin;
+    REQUIRE_THAT(d.x(), WithinAbs( 7.0, 1e-9));
+    REQUIRE_THAT(d.y(), WithinAbs(-3.0, 1e-9));
+}
+
+TEST_CASE("imex_head_transform — diagonal cross-gantry mirror translates X, reflects Y", "[IMEX]") {
+    // T3 on a 2x2: different column AND different gantry. It mirrors the tool directly
+    // behind it (T1), so it is a Y-reflection translated into its own column — NOT a
+    // double flip, which would compose to a 180° rotation and print an unmirrored part.
+    const Vec2d offset{200.0, -100.0};
+    const Vec2d primary_zone_center{100.0, 150.0};
+    Transform3d xf = imex_head_transform(0, 3, ImexRole::Mirror, offset, primary_zone_center,
+                                         ImexMirrorAxis::Y);
+
+    const Vec3d primary{40.0, 130.0, 0.0};
+    const Vec3d ghost = xf * primary;
+    REQUIRE_THAT(ghost.x(), WithinAbs(240.0, 1e-9));  // 40 + 200: translated, not flipped
+    REQUIRE_THAT(ghost.y(), WithinAbs(70.0,  1e-9));  // reflected through y=100
+}
+
+TEST_CASE("imex_head_transform — mirror is a reflection, not a rotation, on both axes", "[IMEX]") {
+    // det = -1 means chirality flips: an asymmetric part comes off the mirror tool as a
+    // true mirror image. A 180° rotation (diag(-1,-1,1)) has det = +1 and would print the
+    // primary's part merely turned around — a different physical result.
+    const Vec2d offset{120.0, -80.0};
+    for (ImexMirrorAxis axis : {ImexMirrorAxis::X, ImexMirrorAxis::Y}) {
+        Transform3d xf = imex_head_transform(0, 1, ImexRole::Mirror, offset, Vec2d{10.0, 20.0}, axis);
+        REQUIRE_THAT(xf.linear().determinant(), WithinAbs(-1.0, 1e-9));
+    }
 }
 
 TEST_CASE("imex_head_transform — primary is identity", "[IMEX]") {

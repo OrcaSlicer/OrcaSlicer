@@ -1795,15 +1795,6 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                         const int   pri_zone_col     = zone_col(pri_phys_col);
                         const int   pri_zone_row     = zone_row(pri_phys_row);
 
-                        // Pre-pass: for each physical row, find the Copy reference physical column.
-                        // The primary row's reference is the primary itself.
-                        std::map<int,int> row_copy_col; // phys_row → phys_col of copy reference
-                        row_copy_col[pri_phys_row] = pri_phys_col;
-                        for (int i = 0; i < sec_count; ++i) {
-                            if (sec_tool_states[sec_tool_ids[i]] == 2)
-                                row_copy_col[phys_row_of(sec_tool_ids[i])] = phys_col_of(sec_tool_ids[i]);
-                        }
-
                         // Primary carriage box
                         float pri_box_offset_x = (pri_zone_col == 0) ? 0.0f : -imex_box_wx;
                         float pri_box_offset_y = -imex_box_wy;
@@ -1829,49 +1820,43 @@ void GCodeViewer::render(int canvas_width, int canvas_height, int right_margin)
                             int sec_zr       = zone_row(sec_phys_row);
                             const int sec_state = sec_tool_states[sec_tool_ids[i]];
 
-                            // Y: all tools on a row share a Y rail — always zone-relative copy.
-                            float sec_zone_y = bed_y_min + (float)sec_zr * row_strip_height;
-                            float sec_y      = sec_zone_y + rel_y;
+                            // A carriage stays inside its own zone; a Mirror reflects its
+                            // zone-relative offset about that zone's centerline, on the axis of the
+                            // boundary it shares with primary — the same rule the ghosts use (see
+                            // imex_head_transform / ImexMirrorAxis):
+                            //   Copy                  → tracks primary on both axes.
+                            //   Mirror, same gantry   → reflect X (zones sit side by side).
+                            //   Mirror, other gantry  → reflect Y (zones sit front-to-back); X
+                            //                           tracks primary, since the part off that
+                            //                           gantry is a Y-reflection of the tool
+                            //                           directly behind it.
+                            const bool is_mirror     = (sec_state == 3);
+                            const bool cross_gantry  = (sec_phys_row != pri_phys_row);
+                            const float sec_zone_x   = bed_x_min + (float)sec_zc * strip_width;
+                            const float sec_zone_y   = bed_y_min + (float)sec_zr * row_strip_height;
 
-                            // X: Copy → same zone-relative position.
-                            // Mirror → reflect copy reference across the boundary it shares with
-                            // this mirror zone (left or right edge of copy zone depending on side).
-                            const bool is_aggregated = sec_aggregated.count(sec_tool_ids[i]) > 0;
-                            float sec_x;
-                            if (sec_state == 2) {
-                                sec_x = bed_x_min + (float)sec_zc * strip_width + rel_x;
-                            } else if (is_aggregated) {
-                                // Aggregated Span gantry: the secondary strip spans full-X, so the
-                                // mirror axis is the bed centerline (no adjacent copy column to
-                                // reflect across). Reflecting across a zone edge here would push
-                                // the marker off the bed.
-                                sec_x = (bed_x_min + bed_x_max) - prim_pos.x();
-                            } else {
-                                auto ref_it = row_copy_col.find(sec_phys_row);
-                                int ref_phys_col = (ref_it != row_copy_col.end()) ? ref_it->second : pri_phys_col;
-                                int ref_zc       = zone_col(ref_phys_col);
-                                float ref_zone_x = bed_x_min + (float)ref_zc * strip_width;
-                                float ref_abs    = ref_zone_x + rel_x;
-                                if (sec_phys_col < ref_phys_col) {
-                                    // Mirror left of copy — reflects across copy zone's left edge
-                                    sec_x = 2.0f * ref_zone_x - ref_abs;
-                                } else {
-                                    // Mirror right of copy — reflects across copy zone's right edge
-                                    float ref_zone_right = bed_x_min + (float)(ref_zc + 1) * strip_width;
-                                    sec_x = 2.0f * ref_zone_right - ref_abs;
-                                }
-                            }
+                            const float sec_x = (is_mirror && !cross_gantry)
+                                                    ? sec_zone_x + (strip_width - rel_x)
+                                                    : sec_zone_x + rel_x;
+                            const float sec_y = (is_mirror && cross_gantry)
+                                                    ? sec_zone_y + (row_strip_height - rel_y)
+                                                    : sec_zone_y + rel_y;
 
                             Vec3f sec_pos{ sec_x, sec_y, prim_pos.z() };
                             m_sequential_view.m_imex_secondary_markers[i].set_world_position(sec_pos);
                             m_sequential_view.m_imex_secondary_markers[i].set_z_offset(m_z_offset + 0.5f);
+                            // Only an X-axis (same-gantry) mirror flips which side of the nozzle the
+                            // toolhead body sits on: reflecting the carriage in X reverses its
+                            // orientation. A cross-gantry mirror reflects in Y, so its X orientation
+                            // matches the tool directly behind it and the body stays on the same side
+                            // as primary's — same as a Copy.
                             float sec_box_offset_x;
-                            if (sec_state == 2) {
-                                sec_box_offset_x = pri_box_offset_x;
-                            } else {
+                            if (is_mirror && !cross_gantry) {
                                 if      (sec_phys_col > pri_phys_col) sec_box_offset_x = -imex_box_wx;
                                 else if (sec_phys_col < pri_phys_col) sec_box_offset_x = 0.0f;
                                 else                                  sec_box_offset_x = pri_box_offset_x;
+                            } else {
+                                sec_box_offset_x = pri_box_offset_x;
                             }
                             float sec_box_offset_y;
                             if      (sec_phys_row > pri_phys_row) sec_box_offset_y = -imex_box_wy;

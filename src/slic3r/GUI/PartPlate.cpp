@@ -1148,6 +1148,13 @@ void PartPlate::calc_imex_ghosts()
         return false;
     };
 
+    // Tools on the primary's gantry are beside it along X; tools on another gantry are in
+    // front of / behind it along Y. A mirror reflects across the boundary separating the two
+    // zones, so the axis follows the gantry row. Single-gantry printers always land on X.
+    auto imex_mirror_axis_for = [&](int phys) -> ImexMirrorAxis {
+        return (phys / tpg) == (primary_phys / tpg) ? ImexMirrorAxis::X : ImexMirrorAxis::Y;
+    };
+
     // Zone centers are the source of truth for ghost placement: they come from the
     // same grid math that paints the colored secondary zones, so a ghost always lands
     // in its own tool's zone. extruder_offset is physical-nozzle data and is left at
@@ -1215,36 +1222,15 @@ void PartPlate::calc_imex_ghosts()
             if (role == ImexRole::Span) continue;  // within-gantry partner; primary's zone covers it
             if (skip_for_aggregation(phys)) continue;  // non-rep on an aggregated gantry
 
-            const bool aggregated_mirror = is_aggregated(phys) && role == ImexRole::Mirror;
-            Transform3d ghost_xf;
-            if (aggregated_mirror) {
-                // Span aggregation: gantries don't share an X rail, so reflecting
-                // ghost X motion against primary serves no collision purpose and
-                // makes the ghost drift off-bed when primary drags. Translate 1:1
-                // with primary (copy-style position) and bake the X-flip into the
-                // mesh-local frame so geometry still reads as mirrored.
-                //
-                // Flip pivots on the mesh's bbox center, not its local origin —
-                // models whose local origin sits at a corner (calibration cubes,
-                // STL imports anchored at min) would otherwise shift left by 2x
-                // the bbox-center offset.
-                const Vec2d target_off = center_for(phys);
-                const Vec3d bc = mo->raw_mesh_bounding_box().center();
-                ghost_xf = inst_world;
-                ghost_xf.linear() = ghost_xf.linear()
-                                    * Eigen::DiagonalMatrix<double, 3>(-1.0, 1.0, 1.0);
-                ghost_xf.translation() += inst_world.linear()
-                                          * Vec3d(2.0 * bc.x(), 0.0, 0.0);
-                ghost_xf.translation().y() += target_off.y() - primary_off.y();
-            } else {
-                const auto [pri_center, gantry] = resolve_centers(phys);
-                // Per-tool mirror still reflects about pri_center.x + gantry.x/2 so
-                // each individual mirror lands inside its own zone. Copy translates by
-                // `gantry`; aggregated copy resolves gantry.x to 0 → pure-Y translate.
-                const Transform3d head_xf = imex_head_transform(
-                    primary_phys, phys, role, gantry, pri_center);
-                ghost_xf = head_xf * inst_world;
-            }
+            const auto [pri_center, gantry] = resolve_centers(phys);
+            // A mirror on the primary's own gantry sits beside it in X, so it reflects across
+            // the vertical boundary between their zones. A mirror on another gantry sits in
+            // front of / behind it, so it reflects across the horizontal boundary between the
+            // row strips — the Y axis. Copy translates by `gantry`; aggregated tools resolve
+            // gantry.x to 0, so a cross-gantry mirror tracks primary's X and reflects only Y.
+            const Transform3d head_xf = imex_head_transform(
+                primary_phys, phys, role, gantry, pri_center, imex_mirror_axis_for(phys));
+            const Transform3d ghost_xf = head_xf * inst_world;
 
             ColorRGBA color = get_imex_head_filament_color(phys);
             color.a(GHOST_ALPHA);
@@ -1313,6 +1299,9 @@ void PartPlate::update_imex_ghost_transforms(
         const Vec2d at{bed_x_center, target_off.y()};
         return {ap, at - ap};
     };
+    auto imex_mirror_axis_for = [&](int phys) -> ImexMirrorAxis {
+        return (phys / tpg) == (primary_phys / tpg) ? ImexMirrorAxis::X : ImexMirrorAxis::Y;
+    };
 
     // Build a phys → role map once so the per-ghost loop is a lookup, not a reparse.
     std::map<int, ImexRole> role_by_phys;
@@ -1346,27 +1335,13 @@ void PartPlate::update_imex_ghost_transforms(
         }
 
         const ImexRole role = role_for(head);
-        const bool aggregated_mirror = is_aggregated(head) && role == ImexRole::Mirror;
-        Transform3d ghost_xf;
-        if (aggregated_mirror) {
-            // Span aggregation: drop X reflection — gantries don't share an X rail
-            // so reflecting motion serves no collision purpose. Translate 1:1 in X
-            // and bake X-flip into mesh-local frame, pivoting on the bbox center so
-            // off-origin meshes don't shift sideways. Same math as calc_imex_ghosts.
-            const Vec2d target_off = center_for(head);
-            const Vec3d bc = mo->raw_mesh_bounding_box().center();
-            ghost_xf = primary_xf;
-            ghost_xf.linear() = ghost_xf.linear()
-                                * Eigen::DiagonalMatrix<double, 3>(-1.0, 1.0, 1.0);
-            ghost_xf.translation() += primary_xf.linear()
-                                      * Vec3d(2.0 * bc.x(), 0.0, 0.0);
-            ghost_xf.translation().y() += target_off.y() - primary_off.y();
-        } else {
-            const auto [pri_center, gantry] = resolve_centers(head);
-            const Transform3d head_xf = imex_head_transform(
-                primary_phys, head, role, gantry, pri_center);
-            ghost_xf = head_xf * primary_xf;
-        }
+        const auto [pri_center, gantry] = resolve_centers(head);
+        // Mirror axis follows the gantry row — see calc_imex_ghosts(). A cross-gantry mirror
+        // reflects in Y and tracks primary's X, so drag no longer pushes it off-bed and the
+        // old bake-the-flip-into-the-mesh workaround is unnecessary.
+        const Transform3d head_xf = imex_head_transform(
+            primary_phys, head, role, gantry, pri_center, imex_mirror_axis_for(head));
+        const Transform3d ghost_xf = head_xf * primary_xf;
         ghost->set_instance_transformation(ghost_xf);
     }
 }

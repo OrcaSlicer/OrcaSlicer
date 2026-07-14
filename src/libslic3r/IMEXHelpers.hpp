@@ -272,24 +272,32 @@ ImexGantryGrouping group_imex_active_tools_by_gantry(const std::string& active_t
 
 // World-space transform composed as `head_xf * primary_instance_world` to place a ghost
 // copy of the primary into `target`'s frame under `role`.
+// Which boundary a Mirror reflects across. Tools on the primary's own gantry sit beside
+// it along X, so they mirror across the vertical boundary between their zones. Tools on a
+// different gantry sit in front of / behind it along Y, so they mirror across the
+// horizontal boundary between the gantry row strips — the part comes off that gantry as a
+// Y-reflection of the tool directly behind it, not an X-reflection. Single-gantry printers
+// only ever use X.
+enum class ImexMirrorAxis { X, Y };
+
 // `gantry_offset` = center_for(target) - center_for(primary) (XY, in mm).
 // `primary_zone_center` = XY center of the primary head's zone in world coords. Only
 //   consulted for Mirror; Copy/Primary ignore it.
+// `mirror_axis` = axis the Mirror reflection negates. Callers know each tool's gantry row,
+//   so they pick: same row as primary → X, different row → Y. Ignored by Copy/Primary.
 // Copy:    pure translation by gantry_offset. Ghost tracks primary 1:1 during drag.
-// Mirror:  true reflection about the zone-boundary plane between primary and target.
-//          The plane is perpendicular to the primary-row gantry axis (X for all current
-//          IMEX printers) and passes through `primary_zone_center.x + gantry_offset.x / 2`.
-//          Ghost origin lands at the mirrored position within the target zone (matches
-//          where the mirror tool will actually print), and primary drag reflects across
-//          that plane so the ghost's X moves opposite the primary's X while Y tracks 1:1
-//          — i.e. the ghost stays a true mirror as you drag. Geometry is X-flipped
-//          regardless of gantry_offset direction so off-row Mirror targets (e.g. T3 on
-//          a 2x2) reflect across the same plane as on-row peers.
+// Mirror:  true reflection (det = -1, so chirality flips — a real mirror image) about the
+//          zone-boundary plane between primary and target, perpendicular to `mirror_axis`
+//          and passing through the midpoint of the two zone centers along that axis. The
+//          ghost origin lands at the mirrored position within the target zone, and primary
+//          drag reflects across that plane, so the mirrored axis moves opposite the primary
+//          while the other axis tracks 1:1.
 //          Zero-length gantry_offset degenerates to identity.
 // Primary: identity.
 Transform3d imex_head_transform(int primary, int target, ImexRole role,
                                 const Vec2d& gantry_offset,
-                                const Vec2d& primary_zone_center = Vec2d::Zero());
+                                const Vec2d& primary_zone_center = Vec2d::Zero(),
+                                ImexMirrorAxis mirror_axis = ImexMirrorAxis::X);
 
 // Slice-time XY shift for printers that delegate copy/mirror placement to firmware.
 // When `imex_firmware_managed_zones` is on AND the active mode is non-primary, returns
