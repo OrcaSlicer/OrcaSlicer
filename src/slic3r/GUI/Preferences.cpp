@@ -797,7 +797,7 @@ wxBoxSizer *PreferencesDialog::create_item_decimal_input(wxString title, wxStrin
     input->SetToolTip(tooltip);
     input->GetTextCtrl()->SetValidator(validator);
 
-    m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
+    m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
 
     auto apply_value = [this, param, input, min, max, decimals]() {
         auto value = input->GetTextCtrl()->GetValue();
@@ -1797,6 +1797,17 @@ void PreferencesDialog::create_items()
     g_sizer = f_sizers.back();
     g_sizer->AddGrowableCol(0, 1);
 
+    //// GRAPHICS > General
+    g_sizer->Add(create_item_title(_L("General")), 1, wxEXPAND);
+
+    auto smooth_normals = create_item_checkbox(
+        _L("Smooth normals"),
+        _L("Applies smooth normals to the model.\n\nRequires manual scene reload to take effect "
+                                "(right-click on 3D view → \"Reload All\")."),
+        SETTING_OPENGL_PHONG_SMOOTH_NORMALS
+    );
+    g_sizer->Add(smooth_normals);
+
     //// GRAPHICS > Realistic view
     g_sizer->Add(create_item_title(_L("Realistic View")), 1, wxEXPAND);
 
@@ -1816,19 +1827,10 @@ void PreferencesDialog::create_items()
 
     auto item_realistic_shadows = create_item_checkbox(
         _L("Shadows"),
-        _L("Renders cast shadows on the plate in realistic view."),
+        _L("Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."),
         SETTING_OPENGL_PHONG_BASIC_PLATE_SHADOWS
     );
     g_sizer->Add(item_realistic_shadows);
-
-   
-    auto item_realistic_smooth_normals = create_item_checkbox(
-        _L("Smooth normals"),
-        _L("Applies smooth normals to the realistic view.\n\nRequires manual scene reload to take effect "
-                                "(right-click on 3D view → \"Reload All\")."),
-        SETTING_OPENGL_PHONG_SMOOTH_NORMALS
-    );
-    g_sizer->Add(item_realistic_smooth_normals);
 
     //// GRAPHICS > Anti-aliasing
     g_sizer->Add(create_item_title(_L("Anti-aliasing")), 1, wxEXPAND);

@@ -1,3 +1,7 @@
+#include <limits>
+#include <numeric>
+#include <unordered_map>
+
 #include "ClipperUtils.hpp"
 #include "Geometry.hpp"
 #include "ShortestPath.hpp"
@@ -929,6 +933,77 @@ Slic3r::Polylines intersection_pl(const Slic3r::Polylines &subject, const Slic3r
     { return _clipper_pl_open(ClipperLib::ctIntersection, ClipperUtils::PolylinesProvider(subject), ClipperUtils::ExPolygonsProvider(clip)); }
 Slic3r::Polylines intersection_pl(const Slic3r::Polygons &subject, const Slic3r::Polygons &clip)
     { return _clipper_pl_closed(ClipperLib::ctIntersection, ClipperUtils::PolygonsProvider(subject), ClipperUtils::PolygonsProvider(clip)); }
+
+// Orca: Sort and orient open polyline fragments produced by clipping `source` with
+// intersection_pl(), so that they run in the same order and direction as the source
+// polyline. Clipping creates new endpoints at the clip boundary, but it keeps the
+// interior source vertices intact, so a fragment's position on the source path is
+// recovered exactly by looking its vertices up in the source. Fragments without any
+// surviving source vertex lie on a single source segment, found by a nearest-segment
+// search.
+void restore_source_path_order(const Slic3r::Polyline &source, Slic3r::Polylines &fragments)
+{
+    const Points &src = source.points;
+    if (src.size() < 2 || fragments.empty())
+        return;
+
+    std::unordered_map<Point, size_t, PointHash> source_index;
+    source_index.reserve(src.size());
+    for (size_t i = 0; i < src.size(); ++ i)
+        source_index.emplace(src[i], i);
+
+    // Sort key: index of the source vertex where the fragment starts, then the signed
+    // offset of the fragment's start from that vertex, to order multiple fragments cut
+    // from one long source segment.
+    std::vector<std::pair<size_t, double>> keys(fragments.size());
+    for (size_t n = 0; n < fragments.size(); ++ n) {
+        Polyline    &pl    = fragments[n];
+        const size_t npos  = size_t(-1);
+        size_t       front = npos;
+        size_t       back  = npos;
+        for (const Point &pt : pl.points)
+            if (auto it = source_index.find(pt); it != source_index.end()) {
+                front = it->second;
+                break;
+            }
+        for (auto i = pl.points.rbegin(); i != pl.points.rend(); ++ i)
+            if (auto it = source_index.find(*i); it != source_index.end()) {
+                back = it->second;
+                break;
+            }
+        Vec2crd source_dir;
+        if (front == npos) {
+            // All vertices were created by clipping, thus the whole fragment lies on a
+            // single source segment. Find that segment.
+            double best = std::numeric_limits<double>::max();
+            for (size_t i = 0; i + 1 < src.size(); ++ i)
+                if (double d = Line::distance_to_squared(pl.first_point(), src[i], src[i + 1]); d < best) {
+                    best  = d;
+                    front = i;
+                }
+            back       = front;
+            source_dir = src[front + 1] - src[front];
+        } else
+            source_dir = src[std::min(back + 1, src.size() - 1)] - src[front > 0 ? front - 1 : 0];
+        if (front > back) {
+            pl.reverse();
+            std::swap(front, back);
+        } else if (front == back &&
+                   (pl.last_point() - pl.first_point()).cast<double>().dot(source_dir.cast<double>()) < 0.)
+            pl.reverse();
+        const Vec2crd seg = src[std::min(front + 1, src.size() - 1)] - src[front];
+        keys[n] = { front, (pl.first_point() - src[front]).cast<double>().dot(seg.cast<double>()) };
+    }
+
+    std::vector<size_t> order(fragments.size());
+    std::iota(order.begin(), order.end(), size_t(0));
+    std::sort(order.begin(), order.end(), [&keys](size_t a, size_t b) { return keys[a] < keys[b]; });
+    Polylines sorted;
+    sorted.reserve(fragments.size());
+    for (size_t n : order)
+        sorted.emplace_back(std::move(fragments[n]));
+    fragments = std::move(sorted);
+}
 
 Lines _clipper_ln(ClipperLib::ClipType clipType, const Lines &subject, const Polygons &clip)
 {

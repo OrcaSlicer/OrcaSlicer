@@ -133,49 +133,26 @@ void FillPlanePath::_fill_surface_single(
         polylines = intersection_pl(std::move(polylines), expolygon);
         if (!polylines.empty()) {
             Polylines chained;
-            if (!params.is_anisotropic) { // Orca: not anisotropic surface
-                if ((params.dont_connect() || params.density > 0.5)) {
-                    // ORCA: special flag for flow rate calibration
-                    auto is_flow_calib = params.extrusion_role == erTopSolidInfill &&
-                                         this->print_object_config->has("calib_flowrate_topinfill_special_order") &&
-                                         this->print_object_config->option("calib_flowrate_topinfill_special_order")->getBool() &&
-                                         dynamic_cast<FillArchimedeanChords*>(this);
-                    if (is_flow_calib) {
-                        // We want the spiral part to be printed inside-out
-                        // Find the center spiral line first, by looking for the longest one
-                        auto     it            = std::max_element(polylines.begin(), polylines.end(),
-                                                                  [](const Polyline& a, const Polyline& b) { return a.length() < b.length(); });
-                        Polyline center_spiral = std::move(*it);
-
-                        // Ensure the spiral is printed from inside to out
-                        if ((center_spiral.first_point().squaredNorm() > center_spiral.last_point().squaredNorm())) {
-                            center_spiral.reverse();
-                        }
-
-                        // Chain the other polylines
-                        polylines.erase(it);
-                        chained = chain_polylines(std::move(polylines), nullptr);
-
-                        // Then add the center spiral back
-                        chained.push_back(std::move(center_spiral));
-                    } else {
-                        chained = chain_polylines(std::move(polylines), nullptr);
+            if (params.dont_connect() || params.density > 0.5) {
+                if (params.fill_order != SurfaceFillOrder::Default) {
+                    // Orca: print the fragments in the order they appear along the generated
+                    // path, which runs from the center outwards. The Euclidean distance from
+                    // the center cannot be used for this: along the Octagram Spiral the radius
+                    // oscillates by far more than the ring spacing, so fragments of different
+                    // rings would interleave.
+                    restore_source_path_order(polyline, polylines);
+                    chained = std::move(polylines);
+                    if (params.fill_order == SurfaceFillOrder::Inward) {
+                        // The source path runs from the center outwards; flip everything for inward.
+                        std::reverse(chained.begin(), chained.end());
+                        for (Polyline &pl : chained)
+                            pl.reverse();
                     }
-                } else
-                    connect_infill(std::move(polylines), expolygon, chained, this->spacing, params);
-            } else { // Orca: anisotropic surface
-                const Point _center(0., 0.);
-                for (Polyline& segment : polylines) { // sort paths by its direction
-                    if (segment.size() > 1) { // need at least two points to evaluate direction
-                        if (segment.first_point().ccw(segment.points[1], _center) < 0)
-                            segment.reverse();
-                    }
-                    chained.emplace_back(std::move(segment));
+                } else {
+                    chained = chain_polylines(std::move(polylines), nullptr);
                 }
-                std::sort(chained.begin(), chained.end(), [&_center](const Polyline& a, const Polyline& b) { // just sort polylines from center to outside
-                    return a.distance_to(_center) < b.distance_to(_center);
-                });
-            }
+            } else
+                connect_infill(std::move(polylines), expolygon, chained, this->spacing, params);
             // paths must be repositioned and rotated back
             for (Polyline& pl : chained) {
                 pl.translate(shift.x(), shift.y());
