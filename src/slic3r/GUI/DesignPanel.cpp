@@ -27,6 +27,7 @@
 #include <wx/dialog.h>
 #include <wx/colordlg.h>
 #include <wx/menu.h>
+#include <wx/progdlg.h>
 
 #include <string>
 #include <memory>
@@ -34,6 +35,8 @@
 #include <cmath>
 #include <cstdio>
 #include <algorithm>
+#include <thread>
+#include <atomic>
 
 #include "slic3r/GUI/wxExtensions.hpp"   // ScalableButton, create_scaled_bitmap
 #include "Widgets/Label.hpp"             // HarmonyOS Sans fonts (Head_*/Body_*) shared with the rest of Orca
@@ -2369,6 +2372,28 @@ void DesignPanel::on_import_svg()
     add_imported_sketch(svg_to_regions(path, 1.0), _L("SVG"));
 }
 
+// Run a long CAD computation off the UI thread. A big STEP costs tens of seconds in OCCT
+// (parse + tessellate); running it inline froze the whole window — the compositor marked the
+// app unresponsive and nothing repainted. The dialog is app-modal, so the document cannot be
+// touched while the worker owns it. Exceptions must not escape the worker: `work` is expected
+// to swallow them (OCCT throws Standard_Failure, which is not a std::exception).
+static void run_off_ui_thread(wxWindow* parent, const wxString& message, const std::function<void()>& work)
+{
+    wxProgressDialog dlg(_L("SnapOrca"), message, 100, parent,
+                         wxPD_APP_MODAL | wxPD_AUTO_HIDE | wxPD_SMOOTH);
+    std::atomic<bool> done{false};
+    std::thread worker([&work, &done]() {
+        work();
+        done.store(true, std::memory_order_release);
+    });
+    while (!done.load(std::memory_order_acquire)) {
+        dlg.Pulse();
+        wxYield();               // keep painting; app-modal blocks input to the rest of the UI
+        wxMilliSleep(30);
+    }
+    worker.join();
+}
+
 void DesignPanel::on_import_step()
 {
     wxFileDialog dlg(this, _L("Import STEP"), wxEmptyString, wxEmptyString,
@@ -2380,7 +2405,17 @@ void DesignPanel::on_import_step()
     std::string err;
     // Keep the OCCT B-rep (don't mesh it like the slicer importer): each top-level solid
     // becomes a coexisting CadBody, fully editable by the on-face/edge feature tools.
-    const std::vector<TopoDS_Shape> solids = GeometryEngine::read_step_solids(path, err);
+    std::vector<TopoDS_Shape> solids;
+    run_off_ui_thread(this, _L("Reading STEP…"), [&]() {
+        try {
+            solids = GeometryEngine::read_step_solids(path, err);
+        } catch (const Standard_Failure& e) {
+            const char* what = e.GetMessageString();
+            err = (what != nullptr && *what != '\0') ? what : "OCCT failure";
+        } catch (const std::exception& e) {
+            err = e.what();
+        }
+    });
     if (solids.empty()) {
         m_status->SetForegroundColour(wxColour(235, 110, 110));
         m_status->SetLabel(err.empty() ? _L("No solids found in STEP")
@@ -2398,7 +2433,18 @@ void DesignPanel::on_import_step()
         f.mode           = BooleanMode::New;   // each solid is its own coexisting body
         m_doc.features.push_back(f);
     }
-    if (!m_doc.recompute()) {
+    bool rebuilt = false;
+    run_off_ui_thread(this, _L("Rebuilding model…"), [&]() {
+        try {
+            rebuilt = m_doc.recompute();
+        } catch (const Standard_Failure& e) {
+            const char* what = e.GetMessageString();
+            m_doc.error = (what != nullptr && *what != '\0') ? what : "OCCT failure";
+        } catch (const std::exception& e) {
+            m_doc.error = e.what();
+        }
+    });
+    if (!rebuilt) {
         m_status->SetForegroundColour(wxColour(235, 110, 110));
         m_status->SetLabel(_L("STEP import failed: ") + wxString::FromUTF8(m_doc.error));
         m_status->Refresh();

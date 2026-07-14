@@ -3267,7 +3267,10 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
         m_last_frame_start_time = now;
     }
 
-    _refresh_if_shown_on_screen();
+    // Not on screen yet (e.g. the notebook is still showing this page): nothing was rendered,
+    // so keep the frame pending instead of dropping it — clearing m_dirty here leaves the
+    // canvas blank until some later event happens to dirty it again.
+    const bool rendered = _refresh_if_shown_on_screen();
 
 #if ENABLE_ENHANCED_IMGUI_SLIDER_FLOAT
     if (m_extra_frame_requested || mouse3d_controller_applied || imgui_requires_extra_frame || wxGetApp().imgui()->requires_extra_frame()) {
@@ -3279,7 +3282,7 @@ void GLCanvas3D::on_idle(wxIdleEvent& evt)
         evt.RequestMore();
     }
     else
-        m_dirty = false;
+        m_dirty = !rendered;
 }
 
 void GLCanvas3D::on_char(wxKeyEvent& evt)
@@ -7251,16 +7254,18 @@ void GLCanvas3D::_update_camera_zoom(double zoom)
     m_dirty = true;
 }
 
-void GLCanvas3D::_refresh_if_shown_on_screen()
+bool GLCanvas3D::_refresh_if_shown_on_screen()
 {
-    if (_is_shown_on_screen()) {
-        const Size& cnv_size = get_canvas_size();
-        _resize((unsigned int)cnv_size.get_width(), (unsigned int)cnv_size.get_height());
+    if (!_is_shown_on_screen())
+        return false;
 
-        // Because of performance problems on macOS, where PaintEvents are not delivered
-        // frequently enough, we call render() here directly when we can.
-        render();
-    }
+    const Size& cnv_size = get_canvas_size();
+    _resize((unsigned int)cnv_size.get_width(), (unsigned int)cnv_size.get_height());
+
+    // Because of performance problems on macOS, where PaintEvents are not delivered
+    // frequently enough, we call render() here directly when we can.
+    render();
+    return true;
 }
 
 void GLCanvas3D::_picking_pass()
