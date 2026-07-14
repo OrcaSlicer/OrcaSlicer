@@ -65,6 +65,7 @@ protected:
     TextInput* m_tiStart;
     TextInput* m_tiEnd;
     TextInput* m_tiStep;
+    CheckBox*  m_cbResize;
     Plater* m_plater;
 };
 
@@ -100,6 +101,7 @@ protected:
     TextInput* m_tiEnd;
     TextInput* m_tiStep;
     CheckBox*  m_cbAutoAdjust;
+    CheckBox*  m_cbResize;
     Plater* m_plater;
 };
 

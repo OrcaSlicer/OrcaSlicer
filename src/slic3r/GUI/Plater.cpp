@@ -14047,7 +14047,7 @@ void Plater::calib_temp(const Calib_Params& params) {
         }
     }
 
-    if (std::abs(nozzle_scale - 1.0) > EPSILON)
+    if (params.nozzle_based_resize && std::abs(nozzle_scale - 1.0) > EPSILON)
         model().objects[0]->scale(nozzle_scale, nozzle_scale, nozzle_scale);
 
     model().objects[0]->ensure_on_bed();
@@ -14055,7 +14055,9 @@ void Plater::calib_temp(const Calib_Params& params) {
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});
     set_config_values<int, ConfigOptionInts>(filament_config, "nozzle_temperature_initial_layer", (int) start_temp);
     set_config_values<int, ConfigOptionInts>(filament_config, "nozzle_temperature", (int) start_temp);
-    model().objects[0]->config.set_key_value("layer_height", new ConfigOptionFloat(nozzle_diameter/2));
+    // When resizing is disabled the 0.4 mm / 0.2 mm reference model is printed as-is (preset layer height kept).
+    if (params.nozzle_based_resize)
+        model().objects[0]->config.set_key_value("layer_height", new ConfigOptionFloat(nozzle_diameter/2));
     model().objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model().objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(5.0));
     model().objects[0]->config.set_key_value("brim_object_gap", new ConfigOptionFloat(0.0));
@@ -14066,7 +14068,8 @@ void Plater::calib_temp(const Calib_Params& params) {
 
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
-    print_config->set_key_value("initial_layer_print_height", new ConfigOptionFloat(nozzle_diameter/2));
+    if (params.nozzle_based_resize)
+        print_config->set_key_value("initial_layer_print_height", new ConfigOptionFloat(nozzle_diameter/2));
 
 
     changed_objects({ 0 });
@@ -14251,12 +14254,15 @@ void Plater::calib_VFA(const Calib_Params& params)
         cut_horizontal(0, 0, height, ModelObjectCutAttribute::KeepLower);
     }
 
-    // XY scales with the nozzle (footprint / line width); Z scales so each base block becomes
-    // vfa_layers_per_block layers of the resolved layer height.
-    const double xy_scale = nozzle_diameter / vfa_base_nozzle_diameter;
-    const double z_scale  = (vfa_layers_per_block * layer_height) / vfa_base_block_height;
-    if (std::abs(xy_scale - 1.0) > EPSILON || std::abs(z_scale - 1.0) > EPSILON)
-        model().objects[0]->scale(xy_scale, xy_scale, z_scale);
+    // When resizing is enabled, XY scales with the nozzle (footprint / line width) and Z scales so each base
+    // block becomes vfa_layers_per_block layers of the resolved layer height. When disabled the 0.4 mm / 0.2 mm
+    // reference model is printed as-is (preset layer height kept).
+    if (params.nozzle_based_resize) {
+        const double xy_scale = nozzle_diameter / vfa_base_nozzle_diameter;
+        const double z_scale  = (vfa_layers_per_block * layer_height) / vfa_base_block_height;
+        if (std::abs(xy_scale - 1.0) > EPSILON || std::abs(z_scale - 1.0) > EPSILON)
+            model().objects[0]->scale(xy_scale, xy_scale, z_scale);
+    }
 
     model().objects[0]->ensure_on_bed();
 
@@ -14273,8 +14279,10 @@ void Plater::calib_VFA(const Calib_Params& params)
     print_config->set_key_value("spiral_mode", new ConfigOptionBool(true));
     print_config->set_key_value("enable_wrapping_detection", new ConfigOptionBool(false));
     print_config->set_key_value("precise_z_height", new ConfigOptionBool(false));
-    print_config->set_key_value("initial_layer_print_height", new ConfigOptionFloat(layer_height));
-    model().objects[0]->config.set_key_value("layer_height", new ConfigOptionFloat(layer_height));
+    if (params.nozzle_based_resize) {
+        print_config->set_key_value("initial_layer_print_height", new ConfigOptionFloat(layer_height));
+        model().objects[0]->config.set_key_value("layer_height", new ConfigOptionFloat(layer_height));
+    }
     model().objects[0]->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
     model().objects[0]->config.set_key_value("brim_width", new ConfigOptionFloat(3.0));
     model().objects[0]->config.set_key_value("brim_object_gap", new ConfigOptionFloat(0.0));
@@ -14285,9 +14293,10 @@ void Plater::calib_VFA(const Calib_Params& params)
     wxGetApp().get_tab(Preset::TYPE_PRINT)->update_ui_from_settings();
     wxGetApp().get_tab(Preset::TYPE_FILAMENT)->update_ui_from_settings();
 
-    // Pass the resolved layer height on so the GCode speed stepping matches the geometry.
+    // Pass the resolved layer height on (only meaningful when resized). GCode's VFA stepping is layer-based, so
+    // it does not require it, but keep it consistent with the geometry.
     Calib_Params calib_params = params;
-    calib_params.vfa_layer_height = layer_height;
+    calib_params.vfa_layer_height = params.nozzle_based_resize ? layer_height : 0.0;
     p->background_process.fff_print()->set_calib_params(calib_params);
 }
 

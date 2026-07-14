@@ -45,6 +45,9 @@ struct Calib_Params
     // Resolved layer height for the VFA tower (0 = auto: nozzle_diameter / 2). Each speed block is a
     // fixed number of layers tall, so this also determines the physical block height / tower height.
     double vfa_layer_height = 0.0;
+    // Scale the calibration model to the nozzle diameter and set the layer height accordingly (temp tower / VFA).
+    // When false the 0.4 mm / 0.2 mm reference model is printed as-is.
+    bool nozzle_based_resize = true;
 
     CalibMode mode;
 };
