@@ -563,11 +563,6 @@ void PrintObject::prepare_infill()
 {
     if (! this->set_started(posPrepareInfill))
         return;
-
-    // Orca: clear all volume bbox caches
-    for (auto volume : this->model_object()->volumes)
-        volume->reset_volume_bbox();
-
     m_print->set_status(25, L("Generating infill regions"));
     if (m_typed_slices) {
         // To improve robustness of detect_surfaces_type() when reslicing (working with typed slices), see GH issue #7442.
@@ -710,6 +705,72 @@ void PrintObject::infill()
 
     if (this->set_started(posInfill)) {
         m_print->set_status(35, L("Generating infill toolpath"));
+
+        // Orca: precompute the object's 3D connected bodies for separated infills / per-model
+        // centering. Two islands belong to the same body when their slices overlap on adjacent
+        // layers; islands that only overlap in top-down projection but never touch (e.g. interleaved
+        // chain links) stay separate, matching "split to objects". Each layer island then records
+        // the full bounding box of its body, so its infill is centered on that body as if it were
+        // sliced alone. Done once here, before the parallel fill, and only when a region needs it.
+        bool needs_separated_components = false;
+        for (size_t i = 0; i < this->num_printing_regions(); ++ i) {
+            const PrintRegionConfig &rc = this->printing_region(i).config();
+            if (rc.separated_infills || rc.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model) {
+                needs_separated_components = true;
+                break;
+            }
+        }
+        // Fast path: the feature only changes anything when the object is made of more than one
+        // connected body. Detect that cheaply the same way as "Split to objects" — more than one
+        // model part, or a single part whose mesh is splittable (is_splittable() is cached). A single
+        // body already shares the object center, i.e. the default, so skip the connectivity pass.
+        if (needs_separated_components) {
+            int                parts      = 0;
+            const ModelVolume *first_part = nullptr;
+            for (const ModelVolume *v : this->model_object()->volumes)
+                if (v->is_model_part()) { ++ parts; first_part = v; }
+            if (parts <= 1 && ! (first_part != nullptr && first_part->is_splittable()))
+                needs_separated_components = false;
+        }
+        for (Layer *layer : m_layers)
+            layer->lslices_separated_component_bboxes.clear();
+        if (needs_separated_components) {
+            const size_t        nl = m_layers.size();
+            std::vector<size_t> offset(nl + 1, 0); // flat index of the first island of each layer
+            for (size_t i = 0; i < nl; ++ i)
+                offset[i + 1] = offset[i] + m_layers[i]->lslices.size();
+            const size_t nreg = offset[nl];
+            // Union-find over every (layer, island).
+            std::vector<size_t> parent(nreg);
+            for (size_t i = 0; i < nreg; ++ i) parent[i] = i;
+            auto find = [&parent](size_t x) {
+                while (parent[x] != x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+                return x;
+            };
+            auto unite = [&](size_t a, size_t b) { a = find(a); b = find(b); if (a != b) parent[a] = b; };
+            // Join islands that overlap between two consecutive layers.
+            for (size_t i = 0; i + 1 < nl; ++ i) {
+                const Layer *la = m_layers[i], *lb = m_layers[i + 1];
+                for (size_t a = 0; a < la->lslices.size(); ++ a)
+                    for (size_t b = 0; b < lb->lslices.size(); ++ b)
+                        if (la->lslices_bboxes[a].overlap(lb->lslices_bboxes[b]) &&
+                            ! intersection_ex(la->lslices[a], lb->lslices[b]).empty())
+                            unite(offset[i] + a, offset[i + 1] + b);
+            }
+            // Full bounding box of each body, indexed by its union-find root.
+            std::vector<BoundingBox> body_bbox(nreg);
+            for (size_t i = 0; i < nl; ++ i)
+                for (size_t a = 0; a < m_layers[i]->lslices.size(); ++ a)
+                    body_bbox[find(offset[i] + a)].merge(m_layers[i]->lslices_bboxes[a]);
+            // Store the body bbox for every island.
+            for (size_t i = 0; i < nl; ++ i) {
+                Layer *layer = m_layers[i];
+                layer->lslices_separated_component_bboxes.resize(layer->lslices.size());
+                for (size_t a = 0; a < layer->lslices.size(); ++ a)
+                    layer->lslices_separated_component_bboxes[a] = body_bbox[find(offset[i] + a)];
+            }
+        }
+
         const auto& adaptive_fill_octree = this->m_adaptive_fill_octrees.first;
         const auto& support_fill_octree = this->m_adaptive_fill_octrees.second;
 

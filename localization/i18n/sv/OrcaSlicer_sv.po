@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 16:46-0300\n"
+"POT-Creation-Date: 2026-07-12 12:27-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -159,6 +159,12 @@ msgstr "Fyll"
 msgid "Gap Fill"
 msgstr "Gap Fyllning"
 
+msgid "Vertical"
+msgstr "Vertikal"
+
+msgid "Horizontal"
+msgstr "Horisontell"
+
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
 msgstr "Tillåter målning endast på fasetter som valts av: ”%1%”"
@@ -253,12 +259,6 @@ msgstr "Triangel"
 
 msgid "Height Range"
 msgstr "Höjd intervall"
-
-msgid "Vertical"
-msgstr "Vertikal"
-
-msgid "Horizontal"
-msgstr "Horisontell"
 
 msgid "Remove painted color"
 msgstr "Ta bort färgläggning"
@@ -5638,15 +5638,6 @@ msgstr "Exportera aktuell konfiguration till filer"
 msgid "Export"
 msgstr "Exportera"
 
-msgid "Sync Presets"
-msgstr ""
-
-msgid "Pull and apply the latest presets from OrcaCloud"
-msgstr ""
-
-msgid "You must be logged in to sync presets from cloud."
-msgstr ""
-
 msgid "Quit"
 msgstr "Avsluta"
 
@@ -5761,6 +5752,15 @@ msgid "View"
 msgstr "Vy"
 
 msgid "Preset Bundle"
+msgstr ""
+
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
 msgstr ""
 
 msgid "Syncing presets from cloud…"
@@ -10181,12 +10181,8 @@ msgstr ""
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr ""
 
-msgid "Continue to sync filaments"
+msgid "Do you want to continue to sync filaments?"
 msgstr ""
-
-msgctxt "Sync_Nozzle_AMS"
-msgid "Cancel"
-msgstr "Avbryt"
 
 msgid "Successfully synchronized filament color from printer."
 msgstr ""
@@ -11481,7 +11477,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -11495,7 +11491,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -12137,6 +12133,42 @@ msgstr ""
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
 msgstr ""
 
+msgid "Top surface expansion"
+msgstr ""
+
+msgid ""
+"Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+msgstr ""
+
+msgid "Top expansion wall margin"
+msgstr ""
+
+msgid ""
+"Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+"This can cause contraction marks (such as the hull line) on the outer walls.\n"
+"By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
+msgstr ""
+
+msgid "Top expansion direction"
+msgstr ""
+
+msgid ""
+"Direction in which the top surface expansion grows.\n"
+" - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+" - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+" - Inward and Outward does both."
+msgstr ""
+
+msgid "Inward and Outward"
+msgstr ""
+
+msgid "Inward"
+msgstr ""
+
+msgid "Outward"
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "Botten ytans mönster"
 
@@ -12752,12 +12784,12 @@ msgstr "Sparsam ifyllnads densitet"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr ""
 
-msgid "Align infill direction to model"
+msgid "Align directions to model"
 msgstr ""
 
 msgid ""
-"Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-"When enabled, directions rotate with the model to maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+"When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
 
 msgid "Insert solid layers"
@@ -14764,6 +14796,18 @@ msgstr ""
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr ""
 
+msgid "Toolchange ordering"
+msgstr ""
+
+msgid ""
+"Determines the order of tool changes on each layer.\n"
+"- Default: Starts with the last used extruder to minimize tool changes.\n"
+"- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+msgstr ""
+
+msgid "Cyclic"
+msgstr ""
+
 msgid "Slice gap closing radius"
 msgstr "Bered spaltens stängningsradie"
 
@@ -15190,6 +15234,45 @@ msgstr "Övre skalets tjocklek"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Antal solida övre lager ökas när tjockleken kalkyleras och övre skalet är tunnare än detta värde. Detta kan undvika att ha för tunt skal när lagerhöjden är liten. 0 betyder att den här inställningen är inaktiverad och tjockleken på det övre skalet bestäms av de övre skal lagerna"
+
+msgid "Anisotropic surfaces"
+msgstr ""
+
+msgid ""
+"Anisotropic patterns on the top and bottom surfaces.\n"
+"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
+"This option disable the gap fill.\n"
+"This option can increase a printing time."
+msgstr ""
+
+msgid "Separated infills"
+msgstr ""
+
+msgid ""
+"Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
+"Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+"Affects line and grid patterns and rotation-template infills.\n"
+"Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
+msgstr ""
+
+msgid "Center surface pattern on"
+msgstr ""
+
+msgid ""
+"Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
+" - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+" - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
+" - Each Assembly: uses a single shared center for the whole object or assembly."
+msgstr ""
+
+msgid "Each Surface"
+msgstr ""
+
+msgid "Each Model"
+msgstr ""
+
+msgid "Each Assembly"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19076,6 +19159,10 @@ msgstr ""
 "Undvik vridning\n"
 "Visste du att när du skriver ut material som är benägna att vrida, såsom ABS, kan en lämplig ökning av värmebäddens temperatur minska sannolikheten för vridning?"
 
+#~ msgctxt "Sync_Nozzle_AMS"
+#~ msgid "Cancel"
+#~ msgstr "Avbryt"
+
 #~ msgid "Print"
 #~ msgstr "Skriv ut"
 
@@ -20693,3 +20780,207 @@ msgstr ""
 
 #~ msgid "Orient the model"
 #~ msgstr "Orientera modellen"
+
+msgid "Abnormal Hotend"
+msgstr "Onormal Hotend"
+
+msgid "Available Nozzles"
+msgstr "Tillgängliga nozzle"
+
+msgid "Bed mass of the Y axis"
+msgstr "Y-axelns bäddmassa"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "Varning: Blandning av nozzle diametrar i en utskrift stöds inte. Om den valda storleken bara är på en extruder kommer singel extruder utskrift att utföras."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "Under hotend uppgraderingen kommer verktygshuvudet att röra sig. Stoppa inte in något i kammaren."
+
+msgid "Enable this if printer support cooling filter"
+msgstr "Aktivera detta om printern stöder kylfilter"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "Fel: Kan inte ställa in båda nozzle till noll."
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "Fel: Antal nozzle får inte överskrida %d."
+
+msgid "Extruder change"
+msgstr "Extruder byte"
+
+msgid "Hotend change"
+msgstr "Byte av hotend"
+
+msgid "Hotend change time"
+msgstr "Tid för byte av hotend"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "Informationen om hotend kan vara felaktig. Vill du läsa av hotend igen? (Informationen om hotend kan ändras vid avstängning)."
+
+msgid "I confirm all"
+msgstr "Jag bekräftar allt"
+
+msgid "Induction Hotend Rack"
+msgstr "Induktion Hotend Ställning"
+
+msgid "Maximum force of the Y axis"
+msgstr "Maximal kraft för Y-axeln"
+
+msgid "Nozzle Manual"
+msgstr "Nozzle manual"
+
+msgid "Nozzle Selection"
+msgstr "Val av nozzle"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "Bekräfta om den önskade nozzle diametern och flödes hastigheten matchar de värden som visas just nu."
+
+msgid "Please set nozzle count"
+msgstr "Ange antal nozzle"
+
+msgid "Preheat temperature delta"
+msgstr "Förvärmningstemperaturdelta"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "Prime tower krävs för nozzle byte. Det kan bli brister på modellen utan prime tower. Är du säker på att du vill inaktivera prime tower?"
+
+msgid "Re-read all"
+msgstr "Läs om allt"
+
+msgid "Reading the hotends, please wait."
+msgstr "Läser av hotends, vänta."
+
+msgid "Refresh %d/%d..."
+msgstr "Uppdatera %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "Synkronisera nozzle status"
+
+msgid "TPU High Flow"
+msgstr "TPU Hög Flöde"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "Temperaturdelta tillämpad under förvärmning före verktygsbyte."
+
+msgid "The allowed max printed mass"
+msgstr "Den maximalt tillåtna tryckta massan"
+
+msgid "The allowed max printed mass on a plate"
+msgstr "Den maximalt tillåtna tryckta massan på en platta"
+
+msgid "The allowed maximum output force of Y axis"
+msgstr "Den maximalt tillåtna utgående kraften för Y-axeln"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "Hotend är i ett onormalt tillstånd och är inte tillgängligt. Gå till 'Enhet -> Uppgradera' för att uppgradera firmware."
+
+msgid "The machine bed mass load of Y axis"
+msgstr "Maskinbäddens massbelastning på Y-axeln"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "Den maximala volymetriska hastigheten för ramning före ett hotend byte, där -1 innebär att den maximala volymetriska hastigheten används."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "Den maximala volymetriska hastigheten för ramning före extruder byte, där -1 innebär att den maximala volymetriska hastigheten används."
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "Verktygs huvudet och hotend stället kan röra sig. Håll händerna borta från kammaren."
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "Volymen av material som krävs för att prima extrudern för en hotend förändring på tower."
+
+msgid "Time to change hotend."
+msgstr "Dags att byta hotend."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "För att förhindra läckage kyls nozzle temperatur ner under ramningen. Obs: endast ett nedkylnings kommando och fläktaktivering utlöses, det är inte garanterat att måltemperaturen uppnås. 0 betyder inaktiverad."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "För att förhindra ooze ur nozzle kyls nozzle temperatur under ramning. Ramningstiden måste därför vara längre än nedkylningstiden. 0 betyder avaktiverad."
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "För att förhindra oozing ur nozzle görs en bakåtriktad rörelse under en viss period efter att ramningen är klar. Inställningen definierar rörelse tiden."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "Okänd nozzle upptäckt. Uppdatera för att uppdatera (ej uppdaterad nozzle kommer att hoppas över i beredning)."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "Okänd nozzle upptäckt. Uppdatera för att uppdatera info (ej uppdaterad nozzle kommer att uteslutas under beredning). Verifiera nozzle diameter och flödes hastighet mot visade värden."
+
+msgid "Use cooling filter"
+msgstr "Använd kylfilter"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "När du byter hotend, rekommenderas det att extrudera en viss längd av filament från det ursprungliga nozzle. Detta hjälper till att minimera nozzle läckage."
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "När detta indragnings värde ändras, kommer det att användas som mängden indraget filament inuti hotend innan du byter hotend."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "Din printer har olika nozzle installerade. Välj en nozzle för denna utskrift."
+
+msgid "length when change hotend"
+msgstr "längd vid byte av hotend"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "Dynamiska nozzles är tilldelade på den aktuella plattan. Val av hotend stöds inte."
+
+msgid "Hotend Rack"
+msgstr "Hotend Ställning"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "Hotend status onormal, ej tillgänglig för närvarande. Uppgradera firmware och försök igen."
+
+msgid "Hotends Info"
+msgstr "Hotend Information"
+
+msgid "Hotends on Rack"
+msgstr "Hotends på ställning"
+
+msgid "Jump to the upgrade page"
+msgstr "Gå till uppgraderings sidan"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "Obs: Hotend numret på %s är kopplat till hållaren. När hotend flyttas till en ny hållare uppdateras dess nummer automatiskt."
+
+msgid "Nozzle information needs to be read"
+msgstr "Nozzle information måste läsas"
+
+msgid "Please wait"
+msgstr "Vänligen vänta"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "Utskrift med det aktuell nozzle kan ge extra %0.2fg avfall."
+
+msgid "Raised"
+msgstr "Upphöjd"
+
+msgid "Read All"
+msgstr "Läs allt"
+
+msgid "Reading "
+msgstr "Läser "
+
+msgid "Row A"
+msgstr "Rad A"
+
+msgid "Row B"
+msgstr "Rad B"
+
+msgid "Running..."
+msgstr "Kör..."
+
+msgid "Select Filament && Hotends"
+msgstr "Välj Filament && Hotends"
+
+msgid "Standard Flow"
+msgstr "Standard flöde"
+
+msgid "ToolHead"
+msgstr "Verktygshuvud"
+
+msgid "Toolhead"
+msgstr "Verktygshuvud"
+
+msgid "Used Time: %s"
+msgstr "Använd tid: %s"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 16:46-0300\n"
+"POT-Creation-Date: 2026-07-12 12:27-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -159,6 +159,12 @@ msgstr "Kitöltés"
 msgid "Gap Fill"
 msgstr "Hézagok kitöltése"
 
+msgid "Vertical"
+msgstr "Függőleges"
+
+msgid "Horizontal"
+msgstr "Vízszintes"
+
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
 msgstr "Csak a(z) \"%1%\" által kijelölt felületeken történik festés"
@@ -253,12 +259,6 @@ msgstr "Háromszög"
 
 msgid "Height Range"
 msgstr "Magasságtartomány"
-
-msgid "Vertical"
-msgstr "Függőleges"
-
-msgid "Horizontal"
-msgstr "Vízszintes"
 
 msgid "Remove painted color"
 msgstr "Festett szín eltávolítása"
@@ -5711,15 +5711,6 @@ msgstr "Aktuális konfiguráció exportálása fájlokba"
 msgid "Export"
 msgstr "Exportálás"
 
-msgid "Sync Presets"
-msgstr "Beállítások szinkronizálása"
-
-msgid "Pull and apply the latest presets from OrcaCloud"
-msgstr "Hívd le és alkalmazd az OrcaCloud legújabb beállításait"
-
-msgid "You must be logged in to sync presets from cloud."
-msgstr "A beállítások felhőből történő szinkronizálásához be kell jelentkezz."
-
 msgid "Quit"
 msgstr "Kilépés"
 
@@ -5835,6 +5826,15 @@ msgstr "Nézet"
 
 msgid "Preset Bundle"
 msgstr "Beállításcsomag"
+
+msgid "Sync Presets"
+msgstr "Beállítások szinkronizálása"
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr "Hívd le és alkalmazd az OrcaCloud legújabb beállításait"
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr "A beállítások felhőből történő szinkronizálásához be kell jelentkezz."
 
 msgid "Syncing presets from cloud…"
 msgstr "Beállítások szinkronizálása a felhőből…"
@@ -10360,12 +10360,8 @@ msgstr "A fúvókainformációk szinkronizálása sikerült."
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr "A fúvóka- és AMS-száminformációk szinkronizálása sikerült."
 
-msgid "Continue to sync filaments"
-msgstr "Filamentek szinkronizálásának folytatása"
-
-msgctxt "Sync_Nozzle_AMS"
-msgid "Cancel"
-msgstr "Mégse"
+msgid "Do you want to continue to sync filaments?"
+msgstr ""
 
 msgid "Successfully synchronized filament color from printer."
 msgstr "A filament színének szinkronizálása a nyomtatóról sikerült."
@@ -11694,7 +11690,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -11708,7 +11704,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -12443,6 +12439,42 @@ msgstr "Felső felületi sűrűség"
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
 msgstr "A felső felületi réteg sűrűsége. A 100%-os érték teljesen tömör, sima felső réteget hoz létre. Ennek az értéknek a csökkentése a kiválasztott felső felületi mintázatnak megfelelően texturált felső felületet eredményez. A 0%-os érték azt eredményezi, hogy a felső rétegen csak a falak jönnek létre. Esztétikai vagy funkcionális célokra szolgál, nem pedig olyan problémák javítására, mint a túlextrudálás."
 
+msgid "Top surface expansion"
+msgstr ""
+
+msgid ""
+"Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+msgstr ""
+
+msgid "Top expansion wall margin"
+msgstr ""
+
+msgid ""
+"Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+"This can cause contraction marks (such as the hull line) on the outer walls.\n"
+"By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
+msgstr ""
+
+msgid "Top expansion direction"
+msgstr ""
+
+msgid ""
+"Direction in which the top surface expansion grows.\n"
+" - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+" - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+" - Inward and Outward does both."
+msgstr ""
+
+msgid "Inward and Outward"
+msgstr ""
+
+msgid "Inward"
+msgstr ""
+
+msgid "Outward"
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "Alsó felület mintázata"
 
@@ -13110,12 +13142,12 @@ msgstr "Kitöltés sűrűsége"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr "A belső ritka kitöltés sűrűsége. A 100% minden ritka kitöltést tömör kitöltéssé alakít, és a belső tömör kitöltési minta kerül használatra."
 
-msgid "Align infill direction to model"
-msgstr "Kitöltési irány igazítása a modellhez"
+msgid "Align directions to model"
+msgstr ""
 
 msgid ""
-"Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-"When enabled, directions rotate with the model to maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+"When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
 
 msgid "Insert solid layers"
@@ -15265,6 +15297,18 @@ msgstr "Az összes nyomtató extruder előkészítése"
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "Ha engedélyezve van, akkor a nyomtatás kezdetén az összes nyomtató extruder előkészítésre kerül a tárgyasztal elülső szélénél."
 
+msgid "Toolchange ordering"
+msgstr ""
+
+msgid ""
+"Determines the order of tool changes on each layer.\n"
+"- Default: Starts with the last used extruder to minimize tool changes.\n"
+"- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+msgstr ""
+
+msgid "Cyclic"
+msgstr ""
+
 msgid "Slice gap closing radius"
 msgstr "Szeletelési hézag lezárási sugara"
 
@@ -15711,6 +15755,45 @@ msgstr "Felső héj vastagság"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "A felső szilárd rétegek száma szeleteléskor megnő, ha a felső héjrétegekből számított vastagság kisebb ennél az értéknél. Ezzel elkerülhető, hogy túl vékony legyen a héj kis rétegmagasságnál. A 0 azt jelenti, hogy ez a beállítás ki van kapcsolva, és a felső héj vastagságát egyszerűen a felső héjrétegek száma határozza meg."
+
+msgid "Anisotropic surfaces"
+msgstr ""
+
+msgid ""
+"Anisotropic patterns on the top and bottom surfaces.\n"
+"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
+"This option disable the gap fill.\n"
+"This option can increase a printing time."
+msgstr ""
+
+msgid "Separated infills"
+msgstr ""
+
+msgid ""
+"Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
+"Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+"Affects line and grid patterns and rotation-template infills.\n"
+"Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
+msgstr ""
+
+msgid "Center surface pattern on"
+msgstr ""
+
+msgid ""
+"Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
+" - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+" - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
+" - Each Assembly: uses a single shared center for the whole object or assembly."
+msgstr ""
+
+msgid "Each Surface"
+msgstr ""
+
+msgid "Each Model"
+msgstr ""
+
+msgid "Each Assembly"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19733,6 +19816,16 @@ msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor a tárgyasztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
 
+#~ msgid "Continue to sync filaments"
+#~ msgstr "Filamentek szinkronizálásának folytatása"
+
+#~ msgctxt "Sync_Nozzle_AMS"
+#~ msgid "Cancel"
+#~ msgstr "Mégse"
+
+#~ msgid "Align infill direction to model"
+#~ msgstr "Kitöltési irány igazítása a modellhez"
+
 #~ msgid "Print"
 #~ msgstr "Nyomtatás"
 
@@ -20355,3 +20448,213 @@ msgstr ""
 
 #~ msgid "When enabled, the extrusion flow is limited by the smaller of the fitted value (calculated from line width and layer height) and the user-defined maximum flow. When disabled, only the user-defined maximum flow is applied."
 #~ msgstr "Bekapcsolva az extrudálási áramlást az illesztett érték (a vonalszélesség és rétegmagasság alapján számolva) és a felhasználó által megadott maximális áramlás közül a kisebbik korlátozza. Kikapcsolva csak a felhasználó által megadott maximális áramlás érvényesül."
+
+msgid "Abnormal Hotend"
+msgstr "Rendellenes hotend"
+
+msgid "Available Nozzles"
+msgstr "Elérhető fúvókák"
+
+msgid "Bed mass of the Y axis"
+msgstr "Az Y tengely asztaltömege"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "Figyelem: Nem lehetséges a fúvókaátmérők keverése egyetlen nyomtatás során. Ha a kiválasztott méret csak egy extruderen van, akkor az egy extruderes nyomtatás lesz kényszerítve."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "A hotend felismerése során a szerszámfej mozogni fog. Ne nyúlj be a kamrába."
+
+msgid "Enable this if printer support cooling filter"
+msgstr "Engedélyezd a beállítást, ha a nyomtató támogatja a hűtőszűrőt"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "Hiba: Nem lehet mindkét fúvóka számát nullára állítani."
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "Hiba: A fúvóka száma nem haladhatja meg a(z) %d értéket."
+
+msgid "Extruder change"
+msgstr "Extruderváltás"
+
+msgid "Hotend change"
+msgstr "Hotendváltás"
+
+msgid "Hotend change time"
+msgstr "Hotendváltás ideje"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "A hotendinformációk pontatlanok lehetnek. Szeretnéd újra beolvasni a hotendet? (A hotendinformáció kikapcsolt állapotban megváltozhat)."
+
+msgid "Hybrid"
+msgstr "Hibrid"
+
+msgid "I confirm all"
+msgstr "Összes megerősítése"
+
+msgid "Induction Hotend Rack"
+msgstr "Indukciós hotendtartó"
+
+msgid "Maximum force of the Y axis"
+msgstr "Az Y tengely maximális ereje"
+
+msgid "Nozzle Selection"
+msgstr "Fúvóka kiválasztás"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "Kérjük, ellenőrizd, hogy a szükséges fúvókaátmérő és áramlási sebesség megegyezik-e a kijelzőn lévővel."
+
+msgid "Please set nozzle count"
+msgstr "Kérjük, állítsd be a fúvókaszámot"
+
+msgid "Preheat temperature delta"
+msgstr "Előmelegítési hőmérséklet delta"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "A fúvókacsere miatt szükség van a törlőtoronyra. Nélküle előfordulhatnak hibák a nyomtatott tárgyon. Biztos, hogy kikapcsolod a törlőtornyot?"
+
+msgid "Re-read all"
+msgstr "Összes újraolvasása"
+
+msgid "Reading the hotends, please wait."
+msgstr "A hotendek beolvasása folyamatban van, kérjük várj."
+
+msgid "Refresh %d/%d..."
+msgstr "Frissítés %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "Fúvókaállapot szinkronizálása"
+
+msgid "TPU High Flow"
+msgstr "TPU nagy áramlású"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "Hőmérséklet-különbség alkalmazása az eszközcsere előtti előmelegítés során."
+
+msgid "The allowed max printed mass"
+msgstr "A megengedett maximális nyomtatott tömeg"
+
+msgid "The allowed max printed mass on a plate"
+msgstr "A megengedett maximális nyomtatott tömeg egy lemezen"
+
+msgid "The allowed maximum output force of Y axis"
+msgstr "Az Y tengely megengedett maximális kimeneti ereje"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "A hotend állapota rendellenes, és jelenleg nem elérhető. Kérjük, lépj az „Eszköz -> Frissítés“ oldalra a firmware frissítéséhez."
+
+msgid "The machine bed mass load of Y axis"
+msgstr "Az Y tengely gépasztaltömeg-terhelése"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "A hotendváltás előtti betolás maximális áramlási sebessége, ahol -1 a maximális sebesség használatát jelenti."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "Az extruderváltás előtti betolás maximális áramlási sebessége, ahol -1 a maximális sebesség használatát jelenti."
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "Előfordulhat, hogy a szerszámfej és a hotendtartó megmozdul. Kérjük, ne nyúlj a kamrába."
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "Az extruder átöblítéséhez szükséges anyagmennyiség a hotend cseréjekor."
+
+msgid "Time to change hotend."
+msgstr "A hotendváltás ideje."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "A szivárgás megakadályozása érdekében a fúvóka a betolás során lehűl. Megjegyzés: csak a hűtési parancs és a ventilátor bekapcsolása kerül elküldésre, a célhőmérséklet elérése nem garantált. A 0 letiltást jelent."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "A szivárgás elkerülése érdekében a fúvóka lehűl betolás közben. Ezért a betolási időnek hosszabbnak kell lennie, mint a lehűlési időnek. A 0 kikapcsolja ezt az opciót."
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "A szivárgás elkerülése érdekében a fúvóka a betolás befejezése után egy bizonyos ideig visszafelé mozog. A beállítás határozza meg a mozgás idejét."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "Ismeretlen fúvóka érzékelve. Frissítsd az adatokat (a nem frissített fúvókákat nem használjuk a szeleteléskor)."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "Ismeretlen fúvóka érzékelve. Frissítsd az adatokat (a nem frissített fúvókákat nem használjuk a szeleteléskor). Hasonlítsd össze a fúvóka átmérőjét és a térfogatáramot a megjelenített értékekkel."
+
+msgid "Use cooling filter"
+msgstr "Hűtőszűrő használata"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "A hotend cseréjekor ajánlott egy bizonyos hosszúságú filamentet extrudálni az eredeti fúvókából. Ez segít minimalizálni a fúvóka szivárgását."
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "Ha ezt a visszahúzási értéket módosítod, akkor ezt az értéket használja a nyomtató a filament hotend belsejéből történő visszahúzásakor, mielőtt hotendet cserélne."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "A nyomtatóban különböző fúvókák vannak. Kérjük, válassz egy fúvókát a nyomtatáshoz."
+
+msgid "length when change hotend"
+msgstr "hossz hotendcsere esetén"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "A dinamikus fúvókák a jelenlegi tálcához vannak kiosztva. A hotend kiválasztása nem támogatott."
+
+msgid "Hotend Rack"
+msgstr "Hotendtartó"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "A hotend állapota nem megfelelő, jelenleg nem kérdezhető le. Frissítsd a firmware-t, és próbáld újra."
+
+msgid "Hotends"
+msgstr "Hotendek"
+
+msgid "Hotends Info"
+msgstr "Hotendek adatai"
+
+msgid "Hotends on Rack"
+msgstr "Hotendek a tartón"
+
+msgid "Jump to the upgrade page"
+msgstr "Ugrás a frissítés oldalra"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "Megjegyzés: A hotend száma a tartóhoz van rendelve ezen: %s. Amikor a hotendet áthelyezed egy új tartóra, a száma automatikusan frissül."
+
+msgid "Nozzle ID"
+msgstr "Fúvókaazonosító"
+
+msgid "Nozzle information needs to be read"
+msgstr "A fúvókainformációkat be kell olvasni"
+
+msgid "Please wait"
+msgstr "Kérjük, várj"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "A jelenlegi fúvókával történő nyomtatás %0.2f g többlethulladékot eredményezhet."
+
+msgid "Raised"
+msgstr "Felemelve"
+
+msgid "Read All"
+msgstr "Összes beolvasása"
+
+msgid "Reading "
+msgstr "Beolvasás "
+
+msgid "Row A"
+msgstr "„A“ sor"
+
+msgid "Row B"
+msgstr "„B“ sor"
+
+msgid "Running..."
+msgstr "Futtatás..."
+
+msgid "Select Filament && Hotends"
+msgstr "Válassz filamentet és hotendet"
+
+msgid "Standard Flow"
+msgstr "Normál áramlás"
+
+msgid "ToolHead"
+msgstr "Szerszámfej"
+
+msgid "Toolhead"
+msgstr "Szerszámfej"
+
+msgid "Used Time: %s"
+msgstr "Felhasznált idő: %s"
