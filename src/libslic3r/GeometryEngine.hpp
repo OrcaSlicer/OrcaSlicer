@@ -118,6 +118,12 @@ public:
     // per-triangle face id, so a picked triangle's id maps back to a face here.
     static TopoDS_Face face_by_index(const TopoDS_Shape& shape, int index);  // null if out of range
     static int         face_count(const TopoDS_Shape& shape);
+    // Bulk enumeration in the SAME order as face_by_index / edge_by_index, so ids are
+    // interchangeable. Walking a body with the _by_index accessors is quadratic (each call
+    // rescans the shape — edge_by_index even rebuilds the whole indexed map), which cost
+    // ~15 s on a 4.7k-face imported solid; enumerate once instead.
+    static std::vector<TopoDS_Face> faces_of(const TopoDS_Shape& shape);
+    static std::vector<TopoDS_Edge> edges_of(const TopoDS_Shape& shape);
     static std::vector<TopoDS_Edge> edges_of_face(const TopoDS_Face& face);
     // Centre of mass (world) of a face — used to compute the extrude length for "up to face".
     static Vec3d face_centroid_world(const TopoDS_Face& face);

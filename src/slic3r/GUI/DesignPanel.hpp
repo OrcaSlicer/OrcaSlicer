@@ -37,6 +37,9 @@ class DesignPanel : public wxPanel
 public:
     explicit DesignPanel(wxWindow* parent);
     void on_tab_shown();        // re-sync bed to the active printer when the Design tab is activated
+    // Rebuild off the UI thread (progress dialog only if it turns out to be slow), so a feature
+    // op on a heavy imported solid does not freeze the window. Returns m_doc.recompute()'s result.
+    bool recompute_guarded(const wxString& message);
 
     // MCP control hooks: let the external control server (McpControl.cpp) drive and
     // perceive the SAME kernel the GUI uses. Called only on the wx main thread.

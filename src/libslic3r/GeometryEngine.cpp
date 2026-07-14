@@ -499,6 +499,25 @@ TopoDS_Face GeometryEngine::face_by_index(const TopoDS_Shape& shape, int index)
     return TopoDS_Face();
 }
 
+std::vector<TopoDS_Face> GeometryEngine::faces_of(const TopoDS_Shape& shape)
+{
+    std::vector<TopoDS_Face> out;
+    for (TopExp_Explorer e(shape, TopAbs_FACE); e.More(); e.Next())
+        out.push_back(TopoDS::Face(e.Current()));   // same order as face_by_index
+    return out;
+}
+
+std::vector<TopoDS_Edge> GeometryEngine::edges_of(const TopoDS_Shape& shape)
+{
+    TopTools_IndexedMapOfShape map;
+    TopExp::MapShapes(shape, TopAbs_EDGE, map);     // same order as edge_by_index
+    std::vector<TopoDS_Edge> out;
+    out.reserve(map.Extent());
+    for (int i = 1; i <= map.Extent(); ++i)
+        out.push_back(TopoDS::Edge(map(i)));
+    return out;
+}
+
 std::vector<TopoDS_Edge> GeometryEngine::edges_of_face(const TopoDS_Face& face)
 {
     std::vector<TopoDS_Edge> result;

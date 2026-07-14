@@ -291,10 +291,16 @@ const TopoDS_Shape& body_shape(DesignPanel* panel, const json& params)
 json query_topology(DesignPanel* panel, const json& params)
 {
     const TopoDS_Shape& shape = body_shape(panel, params);
+    // Enumerate once. The _by_index accessors rescan the shape on every call (edge_by_index
+    // rebuilds the whole indexed map), so indexing a body face-by-face is quadratic: ~15 s on a
+    // 4.7k-face imported solid, on the UI thread. faces_of/edges_of keep the very same ids.
+    const std::vector<TopoDS_Face> all_faces = GeometryEngine::faces_of(shape);
+    const std::vector<TopoDS_Edge> all_edges = GeometryEngine::edges_of(shape);
+
     json faces = json::array();
-    int nf = GeometryEngine::face_count(shape);
+    const int nf = int(all_faces.size());
     for (int i = 0; i < nf; ++i) {
-        TopoDS_Face f = GeometryEngine::face_by_index(shape, i);
+        const TopoDS_Face& f = all_faces[i];
         if (f.IsNull()) continue;
         json jf{{"id", i}, {"centroid", vec3(GeometryEngine::face_centroid_world(f))},
                 {"normal", vec3(GeometryEngine::face_normal_world(f))}, {"kind", "planar"}};
@@ -304,9 +310,9 @@ json query_topology(DesignPanel* panel, const json& params)
         faces.push_back(std::move(jf));
     }
     json edges = json::array();
-    int ne = GeometryEngine::edge_count(shape);
+    const int ne = int(all_edges.size());
     for (int i = 0; i < ne; ++i) {
-        TopoDS_Edge e = GeometryEngine::edge_by_index(shape, i);
+        const TopoDS_Edge& e = all_edges[i];
         if (e.IsNull()) continue;
         std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
         if (pts.size() < 2) continue;

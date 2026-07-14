@@ -28,6 +28,7 @@
 #include <wx/colordlg.h>
 #include <wx/menu.h>
 #include <wx/progdlg.h>
+#include <wx/utils.h>    // wxWindowDisabler, wxMilliSleep
 
 #include <string>
 #include <memory>
@@ -2379,19 +2380,51 @@ void DesignPanel::on_import_svg()
 // to swallow them (OCCT throws Standard_Failure, which is not a std::exception).
 static void run_off_ui_thread(wxWindow* parent, const wxString& message, const std::function<void()>& work)
 {
-    wxProgressDialog dlg(_L("SnapOrca"), message, 100, parent,
-                         wxPD_APP_MODAL | wxPD_AUTO_HIDE | wxPD_SMOOTH);
     std::atomic<bool> done{false};
     std::thread worker([&work, &done]() {
         work();
         done.store(true, std::memory_order_release);
     });
+
+    // Input stays blocked for the whole operation: the worker owns the document, so nothing
+    // in the UI may mutate it meanwhile. The dialog only appears if the work is actually slow —
+    // a fillet on a small body finishes in milliseconds and must not flash a dialog.
+    wxWindowDisabler disabler;
+    std::unique_ptr<wxProgressDialog> dlg;
+    int elapsed_ms = 0;
     while (!done.load(std::memory_order_acquire)) {
-        dlg.Pulse();
-        wxYield();               // keep painting; app-modal blocks input to the rest of the UI
+        if (dlg == nullptr && elapsed_ms >= 300)
+            dlg = std::make_unique<wxProgressDialog>(_L("SnapOrca"), message, 100, parent,
+                                                     wxPD_AUTO_HIDE | wxPD_SMOOTH);
+        if (dlg != nullptr)
+            dlg->Pulse();
+        wxYield();               // keep the window painting instead of going unresponsive
         wxMilliSleep(30);
+        elapsed_ms += 30;
     }
     worker.join();
+}
+
+// Rebuild the document off the UI thread. Every feature op (fillet, cut, shell, boolean, ...)
+// goes through recompute(), and on a heavy imported solid that is seconds of OCCT work — inline
+// it freezes the window. OCCT throws Standard_Failure, which is not a std::exception and would
+// terminate the process if it escaped the worker, so both are caught here.
+bool DesignPanel::recompute_guarded(const wxString& message)
+{
+    bool ok = false;
+    run_off_ui_thread(this, message, [this, &ok]() {
+        try {
+            ok = m_doc.recompute();
+        } catch (const Standard_Failure& e) {
+            const char* what = e.GetMessageString();
+            m_doc.error = (what != nullptr && *what != '\0') ? what : "OCCT failure";
+            ok = false;
+        } catch (const std::exception& e) {
+            m_doc.error = e.what();
+            ok = false;
+        }
+    });
+    return ok;
 }
 
 void DesignPanel::on_import_step()
@@ -2537,7 +2570,7 @@ void DesignPanel::on_import_mesh()
     f.mode           = BooleanMode::New;   // its own coexisting body, like a STEP solid
     m_doc.features.push_back(f);
 
-    if (!m_doc.recompute()) {
+    if (!recompute_guarded(_L("Rebuilding model…"))) {
         fail(_L("Mesh import failed: ") + wxString::FromUTF8(m_doc.error));
         return;
     }
@@ -2749,7 +2782,7 @@ void DesignPanel::on_add_extrude()
             && m_doc.features[m_extrude_sketch_ref].import_on_face)
             f.target_body = m_doc.features[m_extrude_sketch_ref].import_face_body;
     }
-    if (!m_doc.recompute())
+    if (!recompute_guarded(_L("Rebuilding model…")))
         m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
     else
         set_status_ok();
@@ -2782,7 +2815,7 @@ void DesignPanel::on_add_dressup()
     if (didx >= 0 && didx < int(m_doc.features.size()))
         m_doc.features[didx].target_body = m_sel_solid_body;
 
-    if (!m_doc.recompute())
+    if (!recompute_guarded(_L("Rebuilding model…")))
         m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
     else
         set_status_ok();
@@ -2818,7 +2851,7 @@ void DesignPanel::on_add_hole()
     if (m_hole_on_face && hidx >= 0 && hidx < int(m_doc.features.size()))
         m_doc.features[hidx].target_body = m_hole_face_body;
 
-    if (!m_doc.recompute())
+    if (!recompute_guarded(_L("Rebuilding model…")))
         m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
     else
         set_status_ok();
@@ -2898,7 +2931,7 @@ void DesignPanel::on_add_thread()
     if (m_thread_on_face && tidx >= 0 && tidx < int(m_doc.features.size()))
         m_doc.features[tidx].target_body = m_thread_face_body;
 
-    if (!m_doc.recompute())
+    if (!recompute_guarded(_L("Rebuilding model…")))
         m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
     else
         set_status_ok();
@@ -2922,7 +2955,7 @@ void DesignPanel::on_add_revolve()
                       m_revolve_axis->GetSelection(), m_revolve_flip->GetValue(),
                       mode, "Revolve" + std::to_string(m_feature_counter));
 
-    if (!m_doc.recompute())
+    if (!recompute_guarded(_L("Rebuilding model…")))
         m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
     else
         set_status_ok();
@@ -2952,7 +2985,7 @@ void DesignPanel::on_add_sweep()
     m_doc.add_sweep(m_sweep_profile_ref, path_ref, mode,
                     "Sweep" + std::to_string(m_feature_counter));
 
-    if (!m_doc.recompute())
+    if (!recompute_guarded(_L("Rebuilding model…")))
         m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
     else
         set_status_ok();
@@ -2980,7 +3013,7 @@ void DesignPanel::on_add_loft()
     m_doc.add_loft(refs, m_loft_ruled->GetValue(), mode,
                    "Loft" + std::to_string(m_feature_counter));
 
-    if (!m_doc.recompute())
+    if (!recompute_guarded(_L("Rebuilding model…")))
         m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
     else
         set_status_ok();
@@ -3003,7 +3036,7 @@ void DesignPanel::on_add_pattern()
                       m_pattern_angle->GetValue(), target,
                       "Pattern" + std::to_string(m_feature_counter));
 
-    if (!m_doc.recompute())
+    if (!recompute_guarded(_L("Rebuilding model…")))
         m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
     else
         set_status_ok();
@@ -3053,7 +3086,7 @@ void DesignPanel::on_add_boolean()
     m_doc.add_boolean(op, m_bool_target->GetSelection(), m_bool_tool->GetSelection(),
                       m_bool_keep->GetValue(), m_bool_tol->GetValue(), -1, -1,
                       "Boolean" + std::to_string(m_feature_counter));
-    if (!m_doc.recompute())
+    if (!recompute_guarded(_L("Rebuilding model…")))
         m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
     else
         set_status_ok();
@@ -3070,7 +3103,7 @@ void DesignPanel::on_add_cut()
     m_doc.add_cut(plane_from_choice(m_cut_plane->GetSelection()), m_cut_offset->GetValue(),
                   /*flip*/ false, /*keep_upper*/ true, /*keep_lower*/ true,
                   m_cut_target->GetSelection(), "Cut" + std::to_string(m_feature_counter));
-    if (!m_doc.recompute())
+    if (!recompute_guarded(_L("Rebuilding model…")))
         m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
     else
         set_status_ok();
@@ -3165,7 +3198,7 @@ void DesignPanel::on_add_shell()
     m_doc.add_shell(m_shell_thickness->GetValue(), face, m_sel_solid_body,
                     "Shell" + std::to_string(m_feature_counter));
 
-    if (!m_doc.recompute())
+    if (!recompute_guarded(_L("Rebuilding model…")))
         m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
     else
         set_status_ok();
@@ -3190,7 +3223,7 @@ void DesignPanel::on_add_draft()
     m_doc.add_draft(m_draft_angle->GetValue(), m_sel_solid_face, m_sel_solid_body,
                     "Draft" + std::to_string(m_feature_counter));
 
-    if (!m_doc.recompute())
+    if (!recompute_guarded(_L("Rebuilding model…")))
         m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
     else
         set_status_ok();
@@ -3638,7 +3671,7 @@ void DesignPanel::on_toggle_visibility()
     // solid to build), but that is a VALID state for hide — so clear the body
     // explicitly instead of letting after_tree_edit treat it as a rejected edit
     // (which would skip the overlay refresh, leaving hidden art on screen).
-    if (!m_doc.recompute()) {
+    if (!recompute_guarded(_L("Rebuilding model…"))) {
         m_doc.body         = TopoDS_Shape();
         m_doc.display_mesh = TriangleMesh{};
         m_doc.error.clear();
