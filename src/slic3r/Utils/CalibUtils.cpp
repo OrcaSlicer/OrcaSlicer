@@ -1301,8 +1301,10 @@ void CalibUtils::calib_VFA(const CalibInfo &calib_info, wxString &error_message)
 
     // cut upper (on the unscaled model, using the base block height); the scaling below keeps the physical
     // block height (vfa_layers_per_block * layer_height) in sync with the speed stepping in GCode::process_layer.
+    // Subtract EPSILON (as the temperature tower does) so the cut lands just below the flat block surface instead
+    // of exactly on it, which would otherwise add a degenerate extra layer.
     auto obj_bb = model.objects[0]->bounding_box_exact();
-    auto height = vfa_base_block_height * ((params.end - params.start) / params.step + 1);
+    auto height = vfa_base_block_height * ((params.end - params.start) / params.step + 1) - EPSILON;
     if (height < obj_bb.size().z()) {
         cut_model(model, height, ModelObjectCutAttribute::KeepLower);
     }
