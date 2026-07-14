@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 16:46-0300\n"
+"POT-Creation-Date: 2026-07-12 12:27-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -168,6 +168,12 @@ msgstr "填充"
 msgid "Gap Fill"
 msgstr "縫隙填充"
 
+msgid "Vertical"
+msgstr "垂直"
+
+msgid "Horizontal"
+msgstr "水平"
+
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
 msgstr "僅允許在由以下條件選擇的平面上進行繪製：「%1%」"
@@ -262,12 +268,6 @@ msgstr "三角形"
 
 msgid "Height Range"
 msgstr "高度範圍"
-
-msgid "Vertical"
-msgstr "垂直"
-
-msgid "Horizontal"
-msgstr "水平"
 
 msgid "Remove painted color"
 msgstr "移除已繪製的顏色"
@@ -5743,15 +5743,6 @@ msgstr "匯出目前選擇的設定檔"
 msgid "Export"
 msgstr "匯出"
 
-msgid "Sync Presets"
-msgstr "同步預設"
-
-msgid "Pull and apply the latest presets from OrcaCloud"
-msgstr "從 OrcaCloud 拉取並套用最新的預設"
-
-msgid "You must be logged in to sync presets from cloud."
-msgstr "您必須登入才能從雲端同步預設。"
-
 msgid "Quit"
 msgstr "結束"
 
@@ -5867,6 +5858,15 @@ msgstr "視角"
 
 msgid "Preset Bundle"
 msgstr "設定檔組"
+
+msgid "Sync Presets"
+msgstr "同步預設"
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr "從 OrcaCloud 拉取並套用最新的預設"
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr "您必須登入才能從雲端同步預設。"
 
 msgid "Syncing presets from cloud…"
 msgstr "正在從雲端同步預設…"
@@ -10392,12 +10392,8 @@ msgstr "成功同步噴嘴資訊。"
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr "成功同步噴嘴和 AMS 數量資訊。"
 
-msgid "Continue to sync filaments"
-msgstr "繼續同步線材"
-
-msgctxt "Sync_Nozzle_AMS"
-msgid "Cancel"
-msgstr "取消"
+msgid "Do you want to continue to sync filaments?"
+msgstr ""
 
 msgid "Successfully synchronized filament color from printer."
 msgstr "成功從列印設備同步線材顏色。"
@@ -11728,19 +11724,11 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
 msgstr ""
-"外部橋接角度覆蓋。\n"
-"若保持為零，將為每個特定橋接自動計算橋接角度。\n"
-"否則將依下列方式使用所提供的角度：\n"
-" - 絕對座標\n"
-" - 絕對座標 + 模型旋轉：若已啟用「對齊填充方向至模型」\n"
-" - 最佳自動角度 + 此數值：若已啟用「相對橋接角度」\n"
-"\n"
-"若要設定絕對角度為零，請使用 180°。"
 
 msgid "Internal bridge infill direction"
 msgstr "內部橋接結構的填充方向"
@@ -11750,19 +11738,11 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
 msgstr ""
-"內部橋接角度覆寫。\n"
-"若保持為零，將為每個特定橋接自動計算橋接角度。\n"
-"否則將依照下列方式使用所提供的角度：\n"
-" - 絕對座標\n"
-" - 絕對座標 + 模型旋轉：若啟用「將填充方向對齊模型」\n"
-" - 最佳自動角度 + 此值：若啟用「相對橋接角度」\n"
-"\n"
-"使用 180° 表示零絕對角度。"
 
 msgid "Relative bridge angle"
 msgstr "相對橋接角度"
@@ -12521,6 +12501,42 @@ msgstr "頂面密度"
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
 msgstr "頂面層的密度。100% 將建立完全實心且平滑的頂層。降低此數值會根據所選的頂面圖案產生紋理表面。0% 則只會建立頂層的牆體。此功能旨在實現美觀或功能需求，而非修正過擠等問題"
 
+msgid "Top surface expansion"
+msgstr ""
+
+msgid ""
+"Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+msgstr ""
+
+msgid "Top expansion wall margin"
+msgstr ""
+
+msgid ""
+"Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+"This can cause contraction marks (such as the hull line) on the outer walls.\n"
+"By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
+msgstr ""
+
+msgid "Top expansion direction"
+msgstr ""
+
+msgid ""
+"Direction in which the top surface expansion grows.\n"
+" - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+" - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+" - Inward and Outward does both."
+msgstr ""
+
+msgid "Inward and Outward"
+msgstr ""
+
+msgid "Inward"
+msgstr ""
+
+msgid "Outward"
+msgstr ""
+
 msgid "Bottom surface pattern"
 msgstr "底面圖案"
 
@@ -13181,15 +13197,13 @@ msgstr "稀疏填充密度"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr "設定內部稀疏填充的密度，當密度為 100% 時，所有稀疏填充將變為實心填充，並套用內部實心填充的圖案"
 
-msgid "Align infill direction to model"
-msgstr "對齊填充方向至模型"
+msgid "Align directions to model"
+msgstr ""
 
 msgid ""
-"Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-"When enabled, directions rotate with the model to maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+"When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
-"使填充、橋接、熨燙與表面填充的方向對齊，以跟隨模型在列印板上的方向。\n"
-"啟用後，方向會隨模型一同旋轉，以維持最佳的強度特性。"
 
 msgid "Insert solid layers"
 msgstr "插入實心層"
@@ -15333,6 +15347,18 @@ msgstr "所有擠出機畫線"
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "如果啟用，所有擠出機將在列印開始時在列印板前方畫線。"
 
+msgid "Toolchange ordering"
+msgstr ""
+
+msgid ""
+"Determines the order of tool changes on each layer.\n"
+"- Default: Starts with the last used extruder to minimize tool changes.\n"
+"- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+msgstr ""
+
+msgid "Cyclic"
+msgstr ""
+
 msgid "Slice gap closing radius"
 msgstr "切片間隙閉合半徑"
 
@@ -15772,6 +15798,45 @@ msgstr "頂部外殼厚度"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "當切片時，如果通過頂部殼層計算的厚度小於設定值，將自動增加頂部實心層的數量，以避免層高較小時頂部殼層過薄。若設為 0，則停用此功能，頂部殼層厚度完全由設定的頂部殼層數決定"
+
+msgid "Anisotropic surfaces"
+msgstr ""
+
+msgid ""
+"Anisotropic patterns on the top and bottom surfaces.\n"
+"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
+"This option disable the gap fill.\n"
+"This option can increase a printing time."
+msgstr ""
+
+msgid "Separated infills"
+msgstr ""
+
+msgid ""
+"Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
+"Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+"Affects line and grid patterns and rotation-template infills.\n"
+"Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
+msgstr ""
+
+msgid "Center surface pattern on"
+msgstr ""
+
+msgid ""
+"Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
+" - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+" - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
+" - Each Assembly: uses a single shared center for the whole object or assembly."
+msgstr ""
+
+msgid "Each Surface"
+msgstr ""
+
+msgid "Each Model"
+msgstr ""
+
+msgid "Each Assembly"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -19829,6 +19894,62 @@ msgstr ""
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度\n"
 "可以降低翹曲的機率。"
 
+#~ msgid "Continue to sync filaments"
+#~ msgstr "繼續同步線材"
+
+#~ msgctxt "Sync_Nozzle_AMS"
+#~ msgid "Cancel"
+#~ msgstr "取消"
+
+#, no-c-format, no-boost-format
+#~ msgid ""
+#~ "External Bridging angle override.\n"
+#~ "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
+#~ "Otherwise the provided angle will be used according to:\n"
+#~ " - The absolute coordinates\n"
+#~ " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+#~ " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
+#~ "\n"
+#~ "Use 180° for zero absolute angle."
+#~ msgstr ""
+#~ "外部橋接角度覆蓋。\n"
+#~ "若保持為零，將為每個特定橋接自動計算橋接角度。\n"
+#~ "否則將依下列方式使用所提供的角度：\n"
+#~ " - 絕對座標\n"
+#~ " - 絕對座標 + 模型旋轉：若已啟用「對齊填充方向至模型」\n"
+#~ " - 最佳自動角度 + 此數值：若已啟用「相對橋接角度」\n"
+#~ "\n"
+#~ "若要設定絕對角度為零，請使用 180°。"
+
+#~ msgid ""
+#~ "Internal Bridging angle override.\n"
+#~ "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
+#~ "Otherwise the provided angle will be used according to:\n"
+#~ " - The absolute coordinates\n"
+#~ " - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+#~ " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
+#~ "\n"
+#~ "Use 180° for zero absolute angle."
+#~ msgstr ""
+#~ "內部橋接角度覆寫。\n"
+#~ "若保持為零，將為每個特定橋接自動計算橋接角度。\n"
+#~ "否則將依照下列方式使用所提供的角度：\n"
+#~ " - 絕對座標\n"
+#~ " - 絕對座標 + 模型旋轉：若啟用「將填充方向對齊模型」\n"
+#~ " - 最佳自動角度 + 此值：若啟用「相對橋接角度」\n"
+#~ "\n"
+#~ "使用 180° 表示零絕對角度。"
+
+#~ msgid "Align infill direction to model"
+#~ msgstr "對齊填充方向至模型"
+
+#~ msgid ""
+#~ "Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
+#~ "When enabled, directions rotate with the model to maintain optimal strength characteristics."
+#~ msgstr ""
+#~ "使填充、橋接、熨燙與表面填充的方向對齊，以跟隨模型在列印板上的方向。\n"
+#~ "啟用後，方向會隨模型一同旋轉，以維持最佳的強度特性。"
+
 #~ msgid "Print"
 #~ msgstr "列印"
 
@@ -20456,3 +20577,198 @@ msgstr ""
 #, c-format, boost-format
 #~ msgid "The selected preset: %s is not found."
 #~ msgstr "找不到所選的預設：%s"
+
+msgid "Abnormal Hotend"
+msgstr "熱端異常"
+
+msgid "Available Nozzles"
+msgstr "可用噴嘴"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "注意：不支援在列印中混用不同直徑的噴嘴。如果所選尺寸僅存在於一個擠出機上，將強制使用單擠出機列印。"
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "在熱端升級過程中，工具頭會移動。請勿將手伸入機箱內。"
+
+msgid "Enable this if printer support cooling filter"
+msgstr "開啟該功能後，當腔溫過高時，會自動關閉過濾以提高冷卻效果"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "錯誤：無法將兩個噴嘴數量都設定為零。"
+
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "錯誤：噴嘴數量不可以超過%d。"
+
+msgid "Extruder change"
+msgstr "擠出機更換"
+
+msgid "Hotend change"
+msgstr "熱端更換"
+
+msgid "Hotend change time"
+msgstr "熱端更換時間"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "熱端資訊可能不準確。是否重新讀取熱端？（斷電期間熱端資訊可能會發生變化）。"
+
+msgid "Hybrid"
+msgstr "混合"
+
+msgid "I confirm all"
+msgstr "確認無誤"
+
+msgid "Induction Hotend Rack"
+msgstr "感應熱端架"
+
+msgid "Nozzle Manual"
+msgstr "噴嘴手動"
+
+msgid "Nozzle Selection"
+msgstr "噴嘴選擇"
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "請核對噴嘴直徑和流量是否與顯示值一致。"
+
+msgid "Please set nozzle count"
+msgstr "請設定噴嘴數量"
+
+msgid "Preheat temperature delta"
+msgstr "預熱溫度差"
+
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "切換噴嘴需要擦料塔，否則列印件上可能會有瑕疵。您確定要關閉擦料塔嗎？"
+
+msgid "Re-read all"
+msgstr "重新讀取全部"
+
+msgid "Reading the hotends, please wait."
+msgstr "正在讀取熱端資訊，請稍候。"
+
+msgid "Refresh %d/%d..."
+msgstr "重新整理 %d/%d..."
+
+msgid "Sync Nozzle status"
+msgstr "同步噴嘴狀態"
+
+msgid "TPU High Flow"
+msgstr "TPU高流量"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "工具切換前預熱期間套用的溫度差。"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "熱端狀態異常，當前不可用。請前往“裝置 -> 升級”升級韌體。"
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "熱端更換前的最大預沖刷體積速度，其中 -1 表示使用最大體積速度。"
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "換出擠出機前的最大預沖刷體積速度，-1 表示使用最大體積速度。"
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "工具頭和熱端架可能會運動，請勿將手伸入機箱。"
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "換熱端所需的擦料塔上的清理量。"
+
+msgid "Time to change hotend."
+msgstr "熱端更換時間。"
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "為防止溢料，預沖刷過程中噴嘴溫度會降低。注意：僅觸發冷卻指令並啟動風扇，不保證達到目標溫度。0 表示禁用。"
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "為了防止溢料，預沖刷時會降低噴嘴溫度。因此，預沖刷時間必須大於冷卻時間。0 表示禁用。"
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "為了防止溢料，預沖刷完成後，噴嘴會進行一段時間的反向空駛。該設定用於定義空駛時間。"
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "檢測到未知噴嘴。請重新整理以更新資訊（未重新整理的噴嘴將在切片時被排除）。"
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "檢測到未知噴嘴。請重新整理以更新資訊（未重新整理的噴嘴將在切片時被排除）。請核對噴嘴直徑和流量是否與顯示值一致。"
+
+msgid "Use cooling filter"
+msgstr "開啟冷卻過濾"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "更換熱端時，建議從原熱端中擠出一定長度的耗材絲。這有助於最大限度地減少噴嘴漏料。"
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "當修改此回抽數值時，將用於熱端內在更換熱端前回抽的耗材量。"
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "您的印表機安裝了不同的噴嘴。請選擇一個噴嘴進行本次列印。"
+
+msgid "length when change hotend"
+msgstr "換熱端時回抽量"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "當前盤存在動態分配噴嘴，不支援修改。"
+
+msgid "Hotend Rack"
+msgstr "熱端掛架"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "熱端狀態異常，目前不可用。請升級韌體後重試。"
+
+msgid "Hotends"
+msgstr "熱端"
+
+msgid "Hotends Info"
+msgstr "熱端資訊"
+
+msgid "Hotends on Rack"
+msgstr "熱端&掛架"
+
+msgid "Jump to the upgrade page"
+msgstr "跳轉至升級頁面"
+
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "注意：%s上的熱端編號與刀架繫結。當熱端移動至新刀架時，其編號會自動更新。"
+
+msgid "Nozzle ID"
+msgstr "噴嘴 ID"
+
+msgid "Nozzle information needs to be read"
+msgstr "需要讀取噴嘴資訊"
+
+msgid "Please wait"
+msgstr "請稍候"
+
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "使用當前噴嘴列印可能會產生額外 %0.2f 克廢料。"
+
+msgid "Raised"
+msgstr "已升起"
+
+msgid "Read All"
+msgstr "讀取全部"
+
+msgid "Reading "
+msgstr "讀取中 "
+
+msgid "Row A"
+msgstr "A排"
+
+msgid "Row B"
+msgstr "B排"
+
+msgid "Running..."
+msgstr "執行中..."
+
+msgid "Select Filament && Hotends"
+msgstr "選擇材料預設和噴頭"
+
+msgid "Standard Flow"
+msgstr "標準流量"
+
+msgid "ToolHead"
+msgstr "工具頭"
+
+msgid "Toolhead"
+msgstr "工具頭"
+
+msgid "Used Time: %s"
+msgstr "使用時間: %s"

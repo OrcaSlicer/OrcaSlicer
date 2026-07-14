@@ -3,6 +3,7 @@
 #include "../BitmapCache.hpp"
 #include "../I18N.hpp"
 #include "../GUI_App.hpp"
+#include "../DeviceCore/DevFilaSystem.h"
 
 #include <wx/simplebook.h>
 #include <wx/dcgraph.h>
@@ -37,6 +38,28 @@ FilamentLoad::FilamentLoad(wxWindow* parent, wxWindowID id, const wxPoint& pos, 
     //FILAMENT_CHANGE_STEP_STRING[FilamentStep::STEP_FEED_FILAMENT]       = _L("Feed Filament");
     FILAMENT_CHANGE_STEP_STRING[FilamentStep::STEP_CONFIRM_EXTRUDED]    = _L("Confirm extruded");
     FILAMENT_CHANGE_STEP_STRING[FilamentStep::STEP_CHECK_POSITION]      = _L("Check filament location");
+
+    // Orca: labels for the device-numbered steps carried by the AMS (ams.cfs). Overlapping steps
+    // reuse the wording above so the current-step highlight (driven by the legacy ams_status_sub
+    // path) still text-matches; the switch/hotend/cooling and Filament Track Switch steps are new.
+    // STEP_CHECK_POSITION and STEP_CONFIRM_EXTRUDED share code 0x08, so CONFIRM is assigned first
+    // and CHECK_POSITION last, leaving code 0x08 mapped to "Check filament location" as on device.
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_IDLE]                = _L("Idling...");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_PAUSE]               = _L("Pause");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_HEAT_NOZZLE]         = _L("Heat the nozzle");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_CUT_FILAMENT]        = _L("Cut filament");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_PULL_CURR_FILAMENT]  = _L("Pull back the current filament");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_PUSH_NEW_FILAMENT]   = _L("Push new filament into extruder");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_GRAB_NEW_FILAMENT]   = _L("Grab new filament");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_PURGE_OLD_FILAMENT]  = _L("Purge old filament");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_SWITCH_EXTRUDER]     = _L("Switch") + " " + _L("extruder");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_SWITCH_HOTEND]       = _L("Switch") + " " + _L("hotend");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_AMS_FILA_COOLING]    = _L("Wait for AMS cooling");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_PUSH_SWITCHER_FILA]  = _L("Switch current filament at Filament Track Switch");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_PULL_SWITCHER_FILA]  = _L("Pull back current filament at Filament Track Switch");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_SWITCHER_SWITCH]     = _L("Switch track at Filament Track Switch");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_CONFIRM_EXTRUDED]    = _L("Confirm extruded");
+    DEV_FILAMENT_CHANGE_STEP_STRING[DevFilamentStep::STEP_CHECK_POSITION]      = _L("Check filament location");
 }
 
 void FilamentLoad::SetFilamentStep(FilamentStep item_idx, FilamentStepType f_type)
@@ -124,10 +147,33 @@ void FilamentLoad::SetFilamentStep(FilamentStep item_idx, FilamentStepType f_typ
     step_control->SetSlotInformation(slot_info);
 }
 
-void FilamentLoad::SetupSteps(bool has_fila_to_switch) {
+void FilamentLoad::SetupSteps(MachineObject* obj_, bool has_fila_to_switch) {
     m_filament_load_steps->DeleteAllItems();
     m_filament_unload_steps->DeleteAllItems();
     m_filament_vt_load_steps->DeleteAllItems();
+
+    // Orca: newer firmware sends the exact change-step sequence through the AMS (ams.cfs). When
+    // present, build the visible steps straight from that list and skip the hardcoded per-model
+    // sequences below. Inert on current firmware: the list is empty, so this branch is skipped and
+    // the legacy logic runs unchanged.
+    if (obj_ && obj_->GetFilaSystem() && !obj_->GetFilaSystem()->GetFilamentChangeSteps().empty()) {
+        const auto& steps = obj_->GetFilaSystem()->GetFilamentChangeSteps();
+        for (auto step : steps) {
+            auto iter = DEV_FILAMENT_CHANGE_STEP_STRING.find(step);
+            if (iter == DEV_FILAMENT_CHANGE_STEP_STRING.end()) {
+                BOOST_LOG_TRIVIAL(error) << "Unknown filament change step: " << static_cast<int>(step);
+                continue;
+            }
+
+            m_filament_load_steps->AppendItem(iter->second);
+            m_filament_unload_steps->AppendItem(iter->second);
+            m_filament_vt_load_steps->AppendItem(iter->second);
+        }
+
+        Layout();
+        Fit();
+        return;
+    }
 
     if (m_ams_model == AMSModel::GENERIC_AMS || m_ext_model == AMSModel::N3F_AMS || m_ext_model == AMSModel::N3S_AMS) {
         if (has_fila_to_switch) {

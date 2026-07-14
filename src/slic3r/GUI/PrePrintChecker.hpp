@@ -55,6 +55,8 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusNozzleDataInvalid,
     PrintStatusNozzleDiameterMismatch,
     PrintStatusNozzleTypeMismatch,
+    PrintStatusNozzleNoMatchedHotends,
+    PrintStatusNozzleRackMaximumInstalled,
     PrintStatusRefreshingMachineList,
     PrintStatusSending,
     PrintStatusLanModeNoSdcard,
@@ -65,6 +67,10 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusNotSupportedPrintAll,
     PrintStatusBlankPlate,
     PrintStatusUnsupportedPrinter,
+    PrintStatusRackNozzleMappingWaiting,
+    PrintStatusRackNozzleMappingError,
+    PrintStatusRackReading,
+    PrintStatusFilaSwitcherError,
     PrintStatusPrinterErrorEnd,
 
     // Errors for filament, Block Print
@@ -89,6 +95,10 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusTimelapseWarning,
     PrintStatusMixAmsAndVtSlotWarning,
     PrintStatusToolHeadCoolingFanWarning,
+    PrintStatusRackNozzleMappingWarning,
+    PrintStatusFilaSwitcherSlicingNotMatch,
+    PrintStatusRackNozzleNumUnmeetWarning,
+    PrintStatusHasUnreliableNozzleWarning,
     PrintStatusPrinterWarningEnd,
 
     // Warnings for filament
@@ -100,6 +110,7 @@ enum PrintDialogStatus : unsigned int {
     PrintStatusFilamentWarningHighChamberTempSoft,
     PrintStatusFilamentWarningUnknownHighChamberTempSoft,
     PrintStatusWarningExtFilamentNotMatch,
+    PrintStatusFilamentWarningNozzleHRC,
     PrintStatusFilamentWarningEnd,
 
     PrintStatusWarningEnd,//->end error<-

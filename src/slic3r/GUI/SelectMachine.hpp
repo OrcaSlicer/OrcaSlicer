@@ -32,6 +32,7 @@
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
 #include "DeviceManager.hpp"
+#include "DeviceCore/DevNozzleSystem.h" // DevNozzle (get_mapped_nozzles return type)
 #include "Plater.hpp"
 #include "BBLStatusBar.hpp"
 #include "BBLStatusBarPrint.hpp"
@@ -61,10 +62,8 @@ namespace Slic3r { namespace GUI {
 
 std::string get_nozzle_volume_type_cloud_string(NozzleVolumeType nozzle_volume_type);
 void        print_ams_mapping_result(std::vector<FilamentInfo> &result);
-enum PrintFromType {
-    FROM_NORMAL,
-    FROM_SDCARD_VIEW,
-};
+// enum PrintFromType moved to DeviceCore/DevDefs.h so shared device-mapping GUI
+// headers can name it without an include cycle. SelectMachine.hpp still sees it via DeviceManager.hpp.
 
 enum PrintPageMode {
     PrintPageModePrepare = 0,
@@ -324,6 +323,7 @@ private:
     std::vector<MachineObject*>         m_list;
     std::vector<FilamentInfo>           m_filaments;
     std::vector<FilamentInfo>           m_ams_mapping_result;
+    std::unordered_map<int, int>        m_nozzle_mapping_result; // cached rack print-dispatch mapping: filament/group id -> physical nozzle pos
     std::vector<int>                    m_filaments_map;
     std::shared_ptr<BBLStatusBarPrint>  m_status_bar;
     std::unique_ptr<Worker>             m_worker;
@@ -508,8 +508,39 @@ public:
     bool build_nozzles_info(std::string& nozzles_info);
     bool can_hybrid_mapping(DevExtderSystem data);
     void auto_supply_with_ext(std::vector<DevAmsTray> slots);
-    bool is_nozzle_type_match(DevExtderSystem data, wxString& error_message) const;
     int  convert_filament_map_nozzle_id_to_task_nozzle_id(int nozzle_id) const;
+
+    // Physical nozzle(s) a mapped filament (by filament index / FilamentInfo::id) prints on.
+    // key: nozzle pos id, value: nozzle. Used by the per-nozzle filament blacklist check loop.
+    std::map<int, DevNozzle> get_mapped_nozzles(int fila_id) const;
+
+    // Short label of the physical nozzle(s) a filament prints on, shown on its send-dialog card:
+    // rack slots ("R1", "R2 R3") for a nozzle-rack printer, or "L"/"R"/"L R" for a filament-switcher
+    // printer. Empty for printers with neither (the card then shows no nozzle row).
+    wxString get_mapped_nozzle_str(int fila_id) const;
+
+    // Block Send while a rack printer is still reading its hotend information.
+    bool CheckErrorRackStatus(MachineObject* obj_);
+    // Warn (without blocking) when the rack inventory looks insufficient for the sliced plate:
+    // fewer matching hotends than the plate needs, or matches relying on unreliable nozzle info.
+    void CheckWarningRackStatus(MachineObject* obj_);
+    // Compare the slicing file's nozzle requirements (validity, flow, diameter) against the
+    // printer; the rack extruder is checked against its whole inventory (mounted + rack).
+    bool CheckErrorExtruderNozzleWithSlicing(MachineObject* obj_);//return true if no errors
+
+    // Rack print-dispatch nozzle mapping (H2C): request the printer's auto-mapping and consume the
+    // result, gating the Send button while the printer computes. Both are no-ops for non-rack printers.
+    bool CheckErrorSyncNozzleMappingResultV1(MachineObject* obj_);
+    bool CheckErrorSyncNozzleMappingResultV0(MachineObject* obj_);
+    void clear_nozzle_mapping();
+    bool use_dynamic_nozzle_map() const;
+
+    // Filament Track Switch: warn when the sliced switch state doesn't match the installed
+    // hardware, and (for dynamic nozzle mapping) block Send when the switch is missing or not
+    // set up. slicing_with_fila_switch() reports whether the file was sliced assuming a switch.
+    bool slicing_with_fila_switch() const;
+    bool CheckErrorDynamicSwitchNozzle(MachineObject* obj_);
+    void on_flow_cali_option_changed();
 
     PrintFromType get_print_type() {return m_print_type;};
     wxString    format_steel_name(NozzleType type);

@@ -556,7 +556,7 @@ bool ProgressDialog::Update(int value, const wxString &newmsg, bool *skip)
 
             if (newmsg.empty()) {
                 // also provide the finishing message if the application didn't
-                m_msg->SetLabel(wxGetTranslation("Done."));
+                m_msg->SetLabel(_L("Done."));
             }
 
             // allow the window to repaint:

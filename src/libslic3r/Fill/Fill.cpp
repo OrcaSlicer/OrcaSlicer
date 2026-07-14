@@ -1335,7 +1335,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         bool is_per_model_center = is_top_or_bottom && params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model && is_centered_infill;
         bool is_separate_infill = !is_top_or_bottom && surface_fill.params.separated_infills &&
                                   (
-                                  is_centered_infill ||
+                                  is_separable_infill_pattern(surface_fill.params.pattern) ||
                                   params.config->solid_infill_rotate_template != "" ||
                                   params.config->sparse_infill_rotate_template != "" );
 
@@ -1364,59 +1364,30 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
 
             // Orca: separate infill / per-model pattern centering.
             //
-            // First assign this fill region to the model part whose slice at this layer overlaps it
-            // the most. A strict "contains" test is ambiguous for assemblies whose parts overlap (a
-            // region may sit inside several parts, or straddle a boundary and be inside none), so we
-            // pick by intersection area instead.
-            //
-            // The center must belong to an *overlap group*, not a single part: parts that
-            // touch/overlap form one connected physical body that shares a single center, while a
-            // part detached from the rest of the assembly gets its own. This holds for both
-            // separated infills and Each_Model surface centering (Each_Model == per connected body).
-            // firstLayerObjGroups() already holds these connected components, so we widen the chosen
-            // part's bbox to the whole group it belongs to.
+            // Center the pattern on each connected body of the object independently, so every piece
+            // is filled exactly as if it were sliced on its own: touching/overlapping parts merge
+            // into one body sharing a center, while separate parts and disconnected islands (even
+            // interleaved-but-not-touching ones, e.g. chain links) each get their own. The body each
+            // island belongs to, and its full bounding box, were resolved in 3D by PrintObject::
+            // infill() (lslices_separated_component_bboxes, aligned with this layer's lslices). We
+            // match this fill region to the island it overlaps most, then re-use the whole-object
+            // bounding box (origin-centered — identical extent to the default, so coverage and cost
+            // are unchanged) re-centered on that body.
             if (is_per_model_center || is_separate_infill) {
-                double               best_overlap  = 0.;
-                ObjectID             best_vol_id;
-                const PrintInstance* best_instance = nullptr;
-                for (const auto& instance : this->object()->instances()) {
-                    for (const auto& volume : instance.print_object->firstLayerObjSlice()) {
-                        if (f->layer_id >= volume.slices.size())
-                            continue;
-                        const double overlap = area(intersection_ex(volume.slices[f->layer_id], ExPolygons{expoly}));
-                        if (overlap > best_overlap) {
-                            best_overlap  = overlap;
-                            best_vol_id   = volume.volume_id;
-                            best_instance = &instance;
-                        }
+                double      best_overlap = 0.;
+                BoundingBox best_component;
+                for (size_t r = 0; r < this->lslices.size() && r < this->lslices_separated_component_bboxes.size(); ++ r) {
+                    const double overlap = area(intersection_ex(this->lslices[r], expoly));
+                    if (overlap > best_overlap) {
+                        best_overlap   = overlap;
+                        best_component = this->lslices_separated_component_bboxes[r];
                     }
                 }
-                if (best_instance) {
-                    const Transform3d matrix  = best_instance->model_instance->get_matrix();
-                    Point             shift   = best_instance->shift; // get_volume_bbox takes a non-const ref
-                    auto&             volumes = best_instance->model_instance->get_object()->volumes;
-
-                    // Volume ids to center on: the whole overlap group the winning part belongs to,
-                    // falling back to just that part if it isn't part of any group.
-                    std::vector<ObjectID> center_ids;
-                    for (const auto& group : best_instance->print_object->firstLayerObjGroups()) {
-                        bool in_group = false;
-                        for (const ObjectID& vid : group.volume_ids)
-                            if (vid == best_vol_id) { in_group = true; break; }
-                        if (in_group) { center_ids = group.volume_ids; break; }
-                    }
-                    if (center_ids.empty())
-                        center_ids.push_back(best_vol_id);
-
-                    BoundingBox bbox;
-                    for (const ObjectID& vid : center_ids)
-                        for (auto model_volume : volumes)
-                            if (vid.id == model_volume->id().id) {
-                                bbox.merge(model_volume->get_volume_bbox(matrix, shift, true));
-                                break;
-                            }
-                    if (bbox.defined)
-                        f->set_bounding_box(bbox);
+                if (best_component.defined) {
+                    const Point c         = best_component.center();
+                    BoundingBox part_bbox = bbox; // origin-centered, whole-object extent (from above)
+                    part_bbox.translate(c.x(), c.y()); // re-center on this body
+                    f->set_bounding_box(part_bbox);
                 }
             } // - End: separate infill / per-model pattern centering
 
