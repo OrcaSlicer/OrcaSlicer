@@ -56,6 +56,7 @@
 	],
 	"min_resonance_avoidance_speed": "40",
 	"max_resonance_avoidance_speed": "105",
+	"time_cost": "5",
 	"retraction_minimum_travel": [
 		"2"
 	],
