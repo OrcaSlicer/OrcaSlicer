@@ -1231,6 +1231,10 @@
 			"sub_path": "process/0.40mm Standard @Creality K1C 0.8 nozzle.json"
 		},
 		{
+			"name": "0.40mm Standard @Creality K1 SE 0.8 nozzle",
+			"sub_path": "process/0.40mm Standard @Creality K1 SE 0.8 nozzle.json"
+		},
+		{
 			"name": "0.40mm Standard @Creality K1Max (0.8 nozzle)",
 			"sub_path": "process/0.40mm Standard @Creality K1Max (0.8 nozzle).json"
 		},

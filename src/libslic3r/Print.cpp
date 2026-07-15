@@ -3677,6 +3677,8 @@ int Print::get_filament_config_indx(int filament_id, int layer_id)
 
 void Print::update_filament_self_index_cache()
 {
+    m_missing_nozzle_group_logged.clear();   // reset the per-slice get_config_index log dedupe
+
     std::vector<int> values;
     if (m_full_print_config.has("filament_self_index")) {
         values = m_full_print_config.option<ConfigOptionInts>("filament_self_index")->values;
@@ -3722,9 +3724,12 @@ int Print::get_config_index(int filament_id, int layer_id, const std::vector<std
         return filament_id;
     auto nozzle_info  = group_result->get_nozzle_for_filament(filament_id, layer_id);
     if (!nozzle_info.has_value()) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__
-                                 << boost::format(", Line %1%: could not found group_nozzle_info corresponding to filament_id %2%, layer_id %3%") % __LINE__ % filament_id %
-                                        layer_id;
+        // Orca: this fallback runs per-filament/per-layer in the g-code hot path — log once per filament
+        // (reset each slice) instead of flooding thousands of identical lines that bury the real error.
+        if (m_missing_nozzle_group_logged.insert(filament_id).second)
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__
+                                     << boost::format(", Line %1%: could not found group_nozzle_info corresponding to filament_id %2%, layer_id %3% (further occurrences for this filament suppressed)") % __LINE__ % filament_id %
+                                            layer_id;
         return 0;
     }
 
@@ -3751,9 +3756,12 @@ int Print::get_config_index(int filament_id, int layer_id, const std::vector<std
         return (int)get_extruder_id(filament_id);
     auto nozzle_info  = group_result->get_nozzle_for_filament(filament_id, layer_id);
     if (!nozzle_info.has_value()) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__
-                                 << boost::format(", Line %1%: could not found group_nozzle_info corresponding to filament_id %2%, layer_id %3%") % __LINE__ % filament_id %
-                                        layer_id;
+        // Orca: this fallback runs per-filament/per-layer in the g-code hot path — log once per filament
+        // (reset each slice) instead of flooding thousands of identical lines that bury the real error.
+        if (m_missing_nozzle_group_logged.insert(filament_id).second)
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__
+                                     << boost::format(", Line %1%: could not found group_nozzle_info corresponding to filament_id %2%, layer_id %3% (further occurrences for this filament suppressed)") % __LINE__ % filament_id %
+                                            layer_id;
         return 0;
     }
 
