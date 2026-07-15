@@ -1619,9 +1619,6 @@ void PreferencesDialog::create_items()
 
     auto item_thumbnails_with_bed_3mf_scr  = create_item_checkbox(_L("Show bed in 3mf file metadata pictures"), _L("Show the bed texture in the 3mf file metadata pictures used for icons."), "thumbnails_with_bed_3mf");
     g_sizer->Add(item_thumbnails_with_bed_3mf_scr);
-  
-    auto item_shared_profiles  = create_item_checkbox(_L("Show shared profiles notification"), _L("Show a notification with a link to browse shared profiles when the selected printer is changed."), "show_shared_profiles_notification");
-    g_sizer->Add(item_shared_profiles);
 
 #ifdef __linux__
     auto item_window_button_pos  = create_item_checkbox(_L("Use window buttons on left side"), "", "window_buttons_on_left", _L("(Requires restart)"));
