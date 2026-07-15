@@ -7,6 +7,8 @@
 #include "PluginSort.hpp"
 #include "slic3r/plugin/PluginDescriptor.hpp"
 
+#include <atomic>
+#include <boost/log/trivial.hpp>
 #include <exception>
 #include <functional>
 #include <memory>
@@ -17,6 +19,7 @@
 #include <type_traits>
 #include <utility>
 #include <wx/evtloop.h>
+#include <wx/app.h>
 #include <wx/progdlg.h>
 #include <wx/string.h>
 #include <wx/timer.h>
@@ -91,34 +94,51 @@ private:
                          const wxString& title,
                          const wxString& message,
                          int maximum = 100,
-                         int style   = wxPD_APP_MODAL | wxPD_AUTO_HIDE)
+                         int style   = wxPD_APP_MODAL | wxPD_AUTO_HIDE,
+                         bool finish_after_dialog_destroyed = false)
     {
+        const auto alive = m_alive;
         wxProgressDialog* progress = new wxProgressDialog(title, message, maximum, this, style);
         wxTimer* timer             = new wxTimer();
 
-        timer->Bind(wxEVT_TIMER, [progress, message](wxTimerEvent&) {
-            if (progress)
+        timer->Bind(wxEVT_TIMER, [alive, progress, message](wxTimerEvent&) {
+            if (alive->load(std::memory_order_acquire) && progress)
                 progress->Pulse(message);
         });
 
         timer->Start(100);
 
-        std::thread([this,
+        std::thread([alive,
                      progress,
                      timer,
                      run       = std::forward<Run>(run),
-                     on_finish = std::forward<OnFinish>(on_finish)]() mutable {
+                     on_finish = std::forward<OnFinish>(on_finish),
+                     finish_after_dialog_destroyed]() mutable {
             try {
                 run();
+            } catch (const std::exception& ex) {
+                BOOST_LOG_TRIVIAL(error) << "Plugin dialog worker failed: " << ex.what();
             } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "Plugin dialog worker failed with an unknown exception";
             }
 
-            CallAfter([progress, timer, on_finish = std::move(on_finish)]() mutable {
+            if (wxTheApp == nullptr)
+                return;
+
+            wxTheApp->CallAfter([alive,
+                                 progress,
+                                 timer,
+                                 on_finish = std::move(on_finish),
+                                 finish_after_dialog_destroyed]() mutable {
                 timer->Stop();
                 delete timer;
 
-                progress->Destroy();
-                on_finish();
+                if (alive->load(std::memory_order_acquire)) {
+                    progress->Destroy();
+                    on_finish();
+                } else if (finish_after_dialog_destroyed) {
+                    on_finish();
+                }
             });
         }).detach();
     }
@@ -157,7 +177,7 @@ private:
                         state->exception = std::current_exception();
                     }
                 },
-                on_finish, title, message, maximum, style);
+                on_finish, title, message, maximum, style, true);
 
             if (!finished)
                 loop.Run();
@@ -190,7 +210,7 @@ private:
                         state->exception = std::current_exception();
                     }
                 },
-                on_finish, title, message, maximum, style);
+                on_finish, title, message, maximum, style, true);
 
             if (!finished)
                 loop.Run();
@@ -210,6 +230,7 @@ private:
     }
 
     std::function<void()> m_open_terminal_dlg_fn;
+    std::shared_ptr<std::atomic<bool>> m_alive = std::make_shared<std::atomic<bool>>(true);
     PluginSortKey m_plugin_sort_key       = PluginSortKey::None;
     PluginSortOrder m_plugin_sort_order   = PluginSortOrder::Asc;
 

@@ -97,6 +97,20 @@ struct ExecutionResult
 class PluginCapabilityInterface
 {
 public:
+    class RefCounter
+    {
+    public:
+        explicit RefCounter(const PluginCapabilityInterface& iface) : m_iface(&iface) { m_iface->increment(); }
+
+        ~RefCounter() { m_iface->decrement(); }
+
+        RefCounter(const RefCounter&)            = delete;
+        RefCounter& operator=(const RefCounter&) = delete;
+
+    private:
+        const PluginCapabilityInterface* m_iface;
+    };
+
     virtual ~PluginCapabilityInterface() = default;
 
     // DO NOT CALL THESE OUTSIDE THE LOADER'S MATERIALIZATION BLOCK. get_name() is pure virtual and
@@ -115,6 +129,7 @@ public:
 
     virtual void on_load() {}
     virtual void on_unload() {}
+    virtual void on_cancelled() {}
 
     // ── C++-only host state, never exposed to Python. Set by the loader at materialization. ──
     //
@@ -142,11 +157,17 @@ public:
     void set_audit_plugin_key(std::string key) { m_audit_plugin_key = std::move(key); }
     const std::string& audit_plugin_key() const { return m_audit_plugin_key; }
 
+    void increment() const { m_refs.fetch_add(1, std::memory_order_acq_rel); }
+    void decrement() const { m_refs.fetch_sub(1, std::memory_order_acq_rel); }
+    int ref_count() const { return m_refs.load(std::memory_order_acquire); }
+
 private:
-    std::string          m_name;
+    std::string m_name;
     PluginCapabilityType m_type = PluginCapabilityType::Unknown;
-    std::atomic<bool>    m_enabled{true};
-    std::string          m_audit_plugin_key;
+    std::atomic<bool> m_enabled{true};
+    std::string m_audit_plugin_key;
+
+    mutable std::atomic<int> m_refs{0};
 };
 
 } // namespace Slic3r

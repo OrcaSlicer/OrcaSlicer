@@ -54,6 +54,9 @@ struct Plugin
 {
     PluginDescriptor descriptor;       // All plugin state and metadata lives here.
     PyObject*        module = nullptr; // Python module object, shared by all capabilities. nullptr => not loaded.
+    std::string               module_name;      // Root name used in sys.modules, including package submodules.
+    std::vector<std::string>  plugin_sys_paths; // Paths added for this plugin load.
+    std::vector<std::string>  plugin_modules;   // Plugin-originated sys.modules entries.
 
     // Materialized capability instances. Empty unless loaded.
     std::vector<std::shared_ptr<PluginCapabilityInterface>> capabilities;
@@ -65,7 +68,12 @@ struct Plugin
     // Move transfers module ownership; the moved-from package must not Py_DECREF it. Move
     // assignment is required: the manager's vector is erased from and reordered.
     Plugin(Plugin&& other) noexcept
-        : descriptor(std::move(other.descriptor)), module(other.module), capabilities(std::move(other.capabilities))
+        : descriptor(std::move(other.descriptor)),
+          module(other.module),
+          module_name(std::move(other.module_name)),
+          plugin_sys_paths(std::move(other.plugin_sys_paths)),
+          plugin_modules(std::move(other.plugin_modules)),
+          capabilities(std::move(other.capabilities))
     {
         other.module = nullptr;
     }
@@ -74,10 +82,13 @@ struct Plugin
     {
         if (this != &other) {
             release_module();
-            descriptor   = std::move(other.descriptor);
-            module       = other.module;
-            capabilities = std::move(other.capabilities);
-            other.module = nullptr;
+            descriptor        = std::move(other.descriptor);
+            module            = other.module;
+            module_name       = std::move(other.module_name);
+            plugin_sys_paths  = std::move(other.plugin_sys_paths);
+            plugin_modules    = std::move(other.plugin_modules);
+            capabilities      = std::move(other.capabilities);
+            other.module      = nullptr;
         }
         return *this;
     }
@@ -86,29 +97,12 @@ struct Plugin
 
     bool is_loaded() const { return module != nullptr; }
 
-    // Drops the module reference. If the interpreter is already finalized there is no safe way to
-    // touch the object — acquiring the GIL after Py_Finalize is undefined — so the reference is
-    // deliberately leaked instead. Defined in PluginManager.cpp.
+    // Removes the module namespace and plugin-owned sys.path entries before dropping the module
+    // reference. If the interpreter is already finalized, PythonInterpreter deliberately leaves
+    // the raw reference untouched because there is no safe way to DECREF it.
     void release_module();
 };
 
-// The single owner of all plugin state.
-//
-// Every discovered plugin — valid or not, loaded or not — lives in one std::vector<Plugin>;
-// module == nullptr simply means "not loaded". Discovery (PluginFsUtils) and loading
-// (plugin_loader) are stateless services this class drives; all mutable state, all locking and all
-// async orchestration are here.
-//
-// Two rules the API is built around:
-//
-//  1. Never hand out a reference into m_plugins. The vector reallocates on push_back, and a
-//     detached load worker can push while the GUI reads. Descriptor queries therefore return
-//     snapshots by value, capability queries return shared_ptrs, and Plugin& is internal only.
-//
-//  2. Never acquire the GIL under m_mutex. Every lookup and filter reads the values the loader
-//     cached on the capability (name()/type()/is_enabled()) and never calls get_name()/get_type(),
-//     which dispatch into Python — doing so under the registry lock would invert the lock order
-//     against plugin dispatch on the slicing threads. No user callback runs under m_mutex either.
 class PluginManager
 {
 public:
@@ -128,13 +122,6 @@ public:
     // Reject new plugin loads. Called early in app teardown, before shutdown() drains.
     void set_shutting_down();
 
-    // ── Discovery ───────────────────────────────────────────────────────────────────────────
-    // Discover and scan plugins from the standard directories (manifest-only, no Python loading).
-    // Runs on a worker thread when async = true.
-    //
-    // Discovery MERGES: a plugin that is currently loaded keeps its module and capabilities, and
-    // only its descriptor is refreshed. `clear` drops entries that are no longer on disk (loaded
-    // ones are always kept — removing them would strand a live Python module).
     void discover_plugins(bool async = false, bool clear = false);
     // Manually trigger a manifest-only rescan. Blocks until discovery is complete.
     void rescan_plugins();
@@ -144,13 +131,10 @@ public:
     std::string get_discovery_error() const;
     bool wait_for_discovery(std::chrono::milliseconds timeout, std::string& error) const;
 
-    // ── Descriptors (package metadata; snapshots, safe to hold) ──────────────────────────────
-    // Valid packages only by default; include_invalid adds the packages whose manifest could not
-    // be parsed (descriptor.is_invalid_package()).
+
     std::vector<PluginDescriptor> get_plugin_descriptors(bool include_invalid = false) const;
     // Packages that materialize at least one capability of this type. A package's capability types
     // are only known once it has been loaded, so a never-loaded package never matches.
-    std::vector<PluginDescriptor> get_plugin_descriptors(PluginCapabilityType type) const;
     bool try_get_plugin_descriptor(const std::string& plugin_key, PluginDescriptor& out) const;
     // Same, but only for packages that are loadable (i.e. not an invalid package).
     bool try_get_valid_plugin_descriptor(const std::string& plugin_key, PluginDescriptor& out) const;
@@ -161,7 +145,6 @@ public:
                                                   PluginCapabilityType type,
                                                   PluginDescriptor& out) const;
 
-    // ── Capability instances (dispatch only; shared_ptr, safe to hold) ───────────────────────
     std::vector<std::shared_ptr<PluginCapabilityInterface>> get_plugin_capabilities(
         const std::string& plugin_key = "",                            // "" => all plugins
         PluginCapabilityType type     = PluginCapabilityType::Unknown, // Unknown => all types
@@ -174,9 +157,6 @@ public:
                                                                      PluginCapabilityType type = PluginCapabilityType::Unknown,
                                                                      bool only_enabled         = true) const;
 
-    // ── Lifecycle ───────────────────────────────────────────────────────────────────────────
-    // Asynchronous: spawns a detached worker. capabilities_to_enable selects which capabilities
-    // come up enabled (empty => all), though a flag already persisted for a capability wins.
     void load_plugin(const std::string& plugin_key, bool skip_deps = false, std::vector<std::string> capabilities_to_enable = {});
     bool unload_plugin(const std::string& plugin_key);
     void unload_all_plugins();
@@ -189,22 +169,18 @@ public:
     bool cancel_plugin_load(const std::string& plugin_key);
     std::string get_plugin_load_error(const std::string& plugin_key) const;
 
-    // ── Enable state (writes through to the .install_state.json sidecar) ─────────────────────
     void set_capability_enabled(const std::string& plugin_key, const std::string& capability_name, bool enabled);
 
-    // ── Misc ────────────────────────────────────────────────────────────────────────────────
     // The plugin's [tool.orcaslicer.plugin.settings] table (empty if the plugin is unknown). This will be replaced once the config is merged in.
     std::map<std::string, std::string> get_plugin_settings(const std::string& plugin_key) const;
     // Sets the cloud user whose _subscribed/{user_id} directory is scanned and installed into.
     void set_cloud_user(const std::string& user_id);
 
-    // ── Callbacks ───────────────────────────────────────────────────────────────────────────
     void subscribe_on_load_callback(PluginLifecycleCompleteFn fn);
     void subscribe_on_unload_callback(PluginLifecycleCompleteFn fn);
     void subscribe_on_capability_load_callback(CapabilityLifecycleFn fn);
     void subscribe_on_capability_unload_callback(CapabilityLifecycleFn fn);
 
-    // ── Install / delete / cloud ─────────────────────────────────────────────────────────────
     void set_cloud_agent(std::shared_ptr<OrcaCloudServiceAgent> agent) { m_cloud_service.set_cloud_agent(std::move(agent)); }
 
     bool install_plugin(const boost::filesystem::path& filepath, std::string& error);
@@ -256,6 +232,8 @@ private:
     bool is_plugin_load_cancelled_locked(const std::string& plugin_key) const;
     void notify_plugin_load_state_changed(bool changed);
     void release_load_slot(const std::string& plugin_key);
+    void cancel_and_wait_for_capabilities(
+        const std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities);
 
     // Snapshot subscribers under m_mutex so they can be invoked without holding it.
     std::vector<PluginLifecycleCompleteFn> copy_callbacks(CallbackType type) const;
@@ -276,6 +254,9 @@ private:
     bool m_initialized = false;
     CloudPluginService m_cloud_service;
 
+    // Leaf lock: code holding m_mutex must not call Python, acquire the GIL, invoke lifecycle
+    // callbacks, or re-enter the manager. Live plugin payloads are detached and torn down after
+    // releasing this lock.
     mutable std::mutex m_mutex;
 
     // Every discovered plugin, loaded or not. module == nullptr => not loaded.

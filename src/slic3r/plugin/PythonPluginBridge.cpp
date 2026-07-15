@@ -44,18 +44,34 @@ struct PluginInstanceHandle
     ~PluginInstanceHandle()
     {
         if (keep_alive) {
-            if (Py_IsInitialized()) {
-                // Dropping a py::object decrefs the Python object, so reacquire the GIL.
-                PythonGILState gil;
+            // Dropping a py::object decrefs the Python object, so acquire a runtime lease and
+            // the GIL. If shutdown has already won the lease, intentionally abandon the wrapper.
+            PythonGILState gil;
+            if (gil) {
                 keep_alive = py::object();
             } else {
-                // During interpreter shutdown it is no longer safe to decref Python objects.
-                // release() forgets the wrapper ownership without touching Python runtime state.
                 (void) keep_alive.release();
             }
         }
     }
 };
+
+void discard_pending_capture_without_python(const std::string& plugin_key)
+{
+    std::lock_guard<std::mutex> lock(g_registry_mutex);
+    auto                        capabilities = g_pending_capabilities.find(plugin_key);
+    if (capabilities != g_pending_capabilities.end()) {
+        for (py::object& capability : capabilities->second)
+            (void) capability.release();
+        g_pending_capabilities.erase(capabilities);
+    }
+
+    auto package = g_pending_package.find(plugin_key);
+    if (package != g_pending_package.end()) {
+        (void) package->second.release();
+        g_pending_package.erase(package);
+    }
+}
 
 } // namespace
 
@@ -68,6 +84,10 @@ PythonPluginBridge& PythonPluginBridge::instance()
 void PythonPluginBridge::begin_plugin_capture(const std::string& plugin_key)
 {
     PythonGILState gil;
+    if (!gil) {
+        BOOST_LOG_TRIVIAL(warning) << "Cannot begin Python plugin capture while the interpreter is shutting down";
+        return;
+    }
     BOOST_LOG_TRIVIAL(info) << "Beginning Python plugin capture for key " << plugin_key;
     {
         std::lock_guard<std::mutex> lock(g_registry_mutex);
@@ -84,6 +104,10 @@ void PythonPluginBridge::begin_plugin_capture(const std::string& plugin_key)
 std::vector<CapturedCapability> PythonPluginBridge::finalize_plugin_capture(const std::string& plugin_key, std::string& error)
 {
     PythonGILState gil;
+    if (!gil) {
+        error = "Python interpreter is shutting down";
+        return {};
+    }
     BOOST_LOG_TRIVIAL(info) << "Finalizing Python plugin capture for key " << plugin_key;
 
     // Phase 1: run the package class's register_capabilities() while the active key is
@@ -236,6 +260,13 @@ void PythonPluginBridge::cancel_plugin_capture(const std::string& plugin_key)
     PythonGILState gil;
     BOOST_LOG_TRIVIAL(warning) << "Cancelling Python plugin capture for key " << plugin_key;
 
+    if (!gil) {
+        discard_pending_capture_without_python(plugin_key);
+        if (g_active_plugin_key == plugin_key)
+            g_active_plugin_key.clear();
+        return;
+    }
+
     {
         std::lock_guard<std::mutex> lock(g_registry_mutex);
         // Import or dependency setup failed before finalization. Drop anything the module
@@ -250,7 +281,8 @@ void PythonPluginBridge::cancel_plugin_capture(const std::string& plugin_key)
 
 void PythonPluginBridge::clear_pending_captures()
 {
-    if (!Py_IsInitialized()) {
+    PythonGILState gil;
+    if (!gil) {
         std::lock_guard<std::mutex> lock(g_registry_mutex);
         BOOST_LOG_TRIVIAL(info) << "Clearing " << g_pending_capabilities.size()
                                 << " pending Python plugin capture(s) without Python interpreter";
@@ -270,9 +302,6 @@ void PythonPluginBridge::clear_pending_captures()
         g_active_plugin_key.clear();
         return;
     }
-
-    // Normal shutdown path: hold the GIL and let py::object destructors decref cleanly.
-    PythonGILState gil;
 
     std::lock_guard<std::mutex> lock(g_registry_mutex);
     BOOST_LOG_TRIVIAL(info) << "Clearing " << g_pending_capabilities.size() << " pending Python plugin capture(s)";

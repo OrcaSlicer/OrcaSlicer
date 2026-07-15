@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <memory>
 #include <mutex>
+#include <stdexcept>
 #include <vector>
 
 #include <wx/dialog.h>
@@ -171,20 +172,24 @@ void refresh_plugin_catalog_blocking(bool fetch_cloud)
 
     manager.fetch_plugins_from_cloud(&not_found, &unauthorized);
 
-    auto plater = wxGetApp().plater();
+    wxGetApp().CallAfter([not_found = std::move(not_found), unauthorized = std::move(unauthorized)]() {
+        if (wxGetApp().is_closing())
+            return;
+        Plater* plater = wxGetApp().plater();
+        if (plater == nullptr)
+            return;
 
-    if (plater) {
-        for (const auto& uuid : not_found) {
-            plater->get_notification_manager()->push_notification(NotificationType::CustomNotification,
-                                                                  NotificationManager::NotificationLevel::RegularNotificationLevel,
-                                                                  format(_L("Plugin %s is no longer available."), uuid));
-        }
-        for (const auto& uuid : unauthorized) {
-            plater->get_notification_manager()->push_notification(NotificationType::CustomNotification,
-                                                                  NotificationManager::NotificationLevel::RegularNotificationLevel,
-                                                                  format(_L("Plugin %s access is unauthorized."), uuid));
-        }
-    }
+        for (const auto& uuid : not_found)
+            plater->get_notification_manager()->push_notification(
+                NotificationType::CustomNotification,
+                NotificationManager::NotificationLevel::RegularNotificationLevel,
+                format(_L("Plugin %s is no longer available."), uuid));
+        for (const auto& uuid : unauthorized)
+            plater->get_notification_manager()->push_notification(
+                NotificationType::CustomNotification,
+                NotificationManager::NotificationLevel::RegularNotificationLevel,
+                format(_L("Plugin %s access is unauthorized."), uuid));
+    });
 }
 
 std::string to_string(PluginUpdateStatus status);
@@ -438,7 +443,7 @@ PluginsDialog::PluginsDialog(wxWindow* parent, wxWindowID id, const wxString&, c
     : WebViewHostDialog(parent, id, _L("Plugins"), pos, size, style)
 { create_webview("web/dialog/PluginsDialog/index.html", _L("Plugins"), wxSize(900, 820), wxSize(760, 715)); }
 
-PluginsDialog::~PluginsDialog() = default;
+PluginsDialog::~PluginsDialog() { m_alive->store(false, std::memory_order_release); }
 
 void PluginsDialog::set_open_terminal_dlg_fn()
 {
@@ -986,6 +991,8 @@ void PluginsDialog::run_script_plugin(const std::string& plugin_key, const std::
         wxBusyCursor busy;
         try {
             PythonGILState gil;
+            if (!gil)
+                throw std::runtime_error("Python interpreter is shutting down");
             result = plugin->execute();
         } catch (const std::exception& ex) {
             error = ex.what();
@@ -1172,18 +1179,35 @@ void PluginsDialog::reinstall_local_plugin(const std::string& plugin_key)
     if (plugin_key.empty())
         return;
 
-    PluginManager& manager = PluginManager::instance();
-    const bool was_loaded  = manager.is_plugin_loaded(plugin_key);
-    if (!manager.unload_plugin(plugin_key)) {
-        show_status(_L("Failed to unload plugin."), "warn");
-        send_plugins();
-        return;
+    const bool was_loaded = PluginManager::instance().is_plugin_loaded(plugin_key);
+    std::pair<bool, std::string> reload_result{false, ""};
+    try {
+        reload_result = run_with_dialog_wait(
+            [plugin_key, was_loaded]() -> std::pair<bool, std::string> {
+                PluginManager& manager = PluginManager::instance();
+                if (!manager.unload_plugin(plugin_key))
+                    return {false, "Failed to unload plugin."};
+
+                manager.load_plugin(plugin_key, false);
+                std::string error;
+                if (!manager.wait_for_plugin_load(plugin_key, std::chrono::minutes(5), error) ||
+                    !manager.is_plugin_loaded(plugin_key))
+                    return {false, error.empty() ? "Plugin failed to load." : error};
+
+                if (!was_loaded && !manager.unload_plugin(plugin_key))
+                    return {false, "Plugin reloaded, but failed to restore the inactive state."};
+
+                return {true, {}};
+            },
+            _L("Reloading plugin"), _L("Reloading plugin"));
+    } catch (const std::exception& ex) {
+        reload_result = {false, ex.what()};
+    } catch (...) {
+        reload_result = {false, "Unknown plugin reload error."};
     }
 
-    manager.load_plugin(plugin_key, false);
-
-    if (!was_loaded && !manager.unload_plugin(plugin_key)) {
-        show_status(_L("Plugin reloaded, but failed to restore the inactive state."), "warn");
+    if (!reload_result.first) {
+        show_status(reload_result.second.empty() ? _L("Failed to reload plugin.") : from_u8(reload_result.second), "warn");
         send_plugins();
         return;
     }
@@ -1199,7 +1223,7 @@ void PluginsDialog::reinstall_cloud_plugin(const PluginDescriptor& plugin)
         return;
 
     PluginManager& manager = PluginManager::instance();
-    const bool was_loaded  = manager.is_plugin_loaded(plugin_key);
+    const bool was_loaded = PluginManager::instance().is_plugin_loaded(plugin_key);
 
     std::string error;
     if (plugin.has_local_package()) {
@@ -1218,7 +1242,30 @@ void PluginsDialog::reinstall_cloud_plugin(const PluginDescriptor& plugin)
     }
 
     if (was_loaded) {
-        manager.load_plugin(plugin_key);
+        std::pair<bool, std::string> reload_result{false, ""};
+        try {
+            reload_result = run_with_dialog_wait(
+                [plugin_key]() -> std::pair<bool, std::string> {
+                    PluginManager& manager = PluginManager::instance();
+                    manager.load_plugin(plugin_key);
+                    std::string error;
+                    if (!manager.wait_for_plugin_load(plugin_key, std::chrono::minutes(5), error) ||
+                        !manager.is_plugin_loaded(plugin_key))
+                        return {false, error.empty() ? "Plugin failed to load." : error};
+                    return {true, {}};
+                },
+                _L("Reloading plugin"), _L("Reloading plugin"));
+        } catch (const std::exception& ex) {
+            reload_result = {false, ex.what()};
+        } catch (...) {
+            reload_result = {false, "Unknown plugin reload error."};
+        }
+
+        if (!reload_result.first) {
+            show_status(reload_result.second.empty() ? _L("Failed to reload plugin.") : from_u8(reload_result.second), "warn");
+            send_plugins();
+            return;
+        }
     }
 
     send_plugins();

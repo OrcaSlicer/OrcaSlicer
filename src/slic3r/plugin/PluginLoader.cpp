@@ -23,6 +23,7 @@
 #include <chrono>
 #include <exception>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <thread>
 #include <unordered_map>
@@ -101,8 +102,6 @@ bool read_local_plugin_package_metadata(const boost::filesystem::path& source_pa
 // on_unload() the first `lifecycle_count` capabilities — the ones that actually got on_load() —
 // then drop them all.
 //
-// When the interpreter is already gone the shared_ptrs are dropped WITHOUT the GIL — whether a
-// pybind11 trampoline holder can safely be destroyed after Py_Finalize is an open question.
 void teardown_capabilities(std::vector<std::shared_ptr<PluginCapabilityInterface>>& capabilities, std::size_t lifecycle_count)
 {
     if (capabilities.empty())
@@ -114,6 +113,11 @@ void teardown_capabilities(std::vector<std::shared_ptr<PluginCapabilityInterface
     }
 
     PythonGILState gil;
+    if (!gil) {
+        capabilities.clear();
+        return;
+    }
+
     lifecycle_count = std::min(lifecycle_count, capabilities.size());
     for (std::size_t index = 0; index < lifecycle_count; ++index) {
         const auto& capability = capabilities[index];
@@ -131,7 +135,9 @@ void teardown_capabilities(std::vector<std::shared_ptr<PluginCapabilityInterface
 }
 
 // Add every .whl sitting next to the plugin entry file to sys.path, extracting it first.
-bool add_wheel_dependencies_to_sys_path(const PluginDescriptor& descriptor, std::string& error)
+bool add_wheel_dependencies_to_sys_path(const PluginDescriptor& descriptor,
+                                         std::vector<std::string>& plugin_paths,
+                                         std::string&              error)
 {
     namespace fs = boost::filesystem;
 
@@ -158,26 +164,39 @@ bool add_wheel_dependencies_to_sys_path(const PluginDescriptor& descriptor, std:
         }
 
         std::string syspath_error;
-        if (!interpreter.add_sys_path(dep_dir.string(), syspath_error)) {
+        if (!interpreter.add_plugin_sys_path(dep_dir.string(), syspath_error)) {
             error = "Failed to add .whl dependency to sys.path: " + syspath_error;
             return false;
         }
+        plugin_paths.push_back(dep_dir.string());
     }
 
     return true;
 }
 
-PyObject* import_plugin_module(const PluginDescriptor& descriptor, std::string& error)
+PyObject* import_plugin_module(const PluginDescriptor& descriptor,
+                               std::vector<std::string>& plugin_paths,
+                               std::vector<std::string>& plugin_modules,
+                               std::string&              error)
 {
     PythonInterpreter& interpreter = PythonInterpreter::instance();
 
     if (descriptor.entry_package.empty())
-        return interpreter.load_module_from_file(descriptor.entry_path, error);
+        return interpreter.load_module_from_file(descriptor.entry_path, error, &plugin_paths, &plugin_modules);
 
     if (boost::filesystem::path(descriptor.entry_path).extension() == ".whl")
-        return interpreter.load_module_from_whl(descriptor.entry_path, descriptor.entry_package, error);
+        return interpreter.load_module_from_whl(
+            descriptor.entry_path, descriptor.entry_package, error, &plugin_paths, &plugin_modules);
 
-    return interpreter.load_module_from_directory(descriptor.entry_path, descriptor.entry_package, error);
+    return interpreter.load_module_from_directory(
+        descriptor.entry_path, descriptor.entry_package, error, &plugin_paths, &plugin_modules);
+}
+
+std::string plugin_module_name(const PluginDescriptor& descriptor)
+{
+    if (!descriptor.entry_package.empty())
+        return descriptor.entry_package;
+    return boost::filesystem::path(descriptor.entry_path).stem().string();
 }
 
 } // namespace
@@ -224,6 +243,10 @@ bool load(const PluginDescriptor&                          descriptor,
     static std::mutex           load_serializer;
     std::lock_guard<std::mutex> load_lock(load_serializer);
 
+    Plugin plugin;
+    plugin.descriptor  = descriptor;
+    plugin.module_name = plugin_module_name(descriptor);
+
     if (!skip_deps) {
         std::string pkg_install_error;
         if (!install_packages(descriptor.dependencies, pkg_install_error)) {
@@ -236,14 +259,14 @@ bool load(const PluginDescriptor&                          descriptor,
     bridge.begin_plugin_capture(descriptor.entry_path);
 
     std::string wheel_error;
-    if (!add_wheel_dependencies_to_sys_path(descriptor, wheel_error)) {
+    if (!add_wheel_dependencies_to_sys_path(descriptor, plugin.plugin_sys_paths, wheel_error)) {
         bridge.cancel_plugin_capture(descriptor.entry_path);
         error = std::move(wheel_error);
         return false;
     }
 
     std::string load_error;
-    PyObject*   module = import_plugin_module(descriptor, load_error);
+    PyObject*   module = import_plugin_module(descriptor, plugin.plugin_sys_paths, plugin.plugin_modules, load_error);
     if (module == nullptr) {
         bridge.cancel_plugin_capture(descriptor.entry_path);
         error = "Failed to load plugin module: " + load_error;
@@ -252,9 +275,7 @@ bool load(const PluginDescriptor&                          descriptor,
 
     // From here on the module reference is owned by `plugin`: every failure path below returns and
     // lets ~Plugin release it.
-    Plugin plugin;
-    plugin.module     = module;
-    plugin.descriptor = descriptor;
+    plugin.module = module;
 
     // finalize_plugin_capture runs the module's @orca.plugin package class register_capabilities()
     // (while the active plugin key is set), then instantiates each registered capability and caches
@@ -262,7 +283,6 @@ bool load(const PluginDescriptor&                          descriptor,
     std::string bridge_error;
     auto        capabilities_found = bridge.finalize_plugin_capture(descriptor.entry_path, bridge_error);
     if (!bridge_error.empty()) {
-        PythonGILState gil;
         capabilities_found.clear();
         error = "Plugin registration failed: " + bridge_error;
         return false;
@@ -289,46 +309,52 @@ bool load(const PluginDescriptor&                          descriptor,
 
     {
         PythonGILState gil;
-        try {
-            for (auto& found : capabilities_found) {
-                if (!found.instance) {
-                    materialization_error = "Plugin capability instance is null";
-                    break;
-                }
+        if (!gil) {
+            materialization_error = "Python interpreter is shutting down";
+        } else {
+            try {
+                for (auto& found : capabilities_found) {
+                    if (!found.instance) {
+                        materialization_error = "Plugin capability instance is null";
+                        break;
+                    }
 
-                std::shared_ptr<PluginCapabilityInterface> instance = std::move(found.instance);
-                const PluginCapabilityType                 type     = instance->get_type();
+                    std::shared_ptr<PluginCapabilityInterface> instance = std::move(found.instance);
+                    const PluginCapabilityType                 type     = instance->get_type();
 
-                // A capability comes up enabled unless the caller asked for a specific subset, and
-                // in either case the flag persisted in the sidecar wins.
-                bool enabled = capabilities_to_enable.empty() ||
-                               std::find(capabilities_to_enable.begin(), capabilities_to_enable.end(), found.name) !=
-                                   capabilities_to_enable.end();
-                if (have_install_state) {
-                    for (const auto& [cap_name, cap_enabled] : install_state.capabilities) {
-                        if (cap_name == found.name) {
-                            enabled = cap_enabled;
-                            break;
+                    // An empty request restores the sidecar state (or enables capabilities by
+                    // default). An explicit request overrides the sidecar for that capability;
+                    // all other capabilities retain their persisted state.
+                    const bool explicitly_requested =
+                        std::find(capabilities_to_enable.begin(), capabilities_to_enable.end(), found.name) !=
+                        capabilities_to_enable.end();
+                    bool enabled = capabilities_to_enable.empty() || explicitly_requested;
+                    if (have_install_state && !explicitly_requested) {
+                        for (const auto& [cap_name, cap_enabled] : install_state.capabilities) {
+                            if (cap_name == found.name) {
+                                enabled = cap_enabled;
+                                break;
+                            }
                         }
                     }
+
+                    if (!seen_capabilities[type].insert(found.name).second) {
+                        materialization_error = "Plugin declares duplicate capability '" + found.name + "' for type " +
+                                                plugin_capability_type_to_string(type);
+                        break;
+                    }
+
+                    instance->set_audit_plugin_key(descriptor.plugin_key);
+                    instance->set_resolved_identity(found.name, type);
+                    instance->set_enabled(enabled);
+
+                    capabilities.push_back(std::move(instance));
                 }
-
-                if (!seen_capabilities[type].insert(found.name).second) {
-                    materialization_error = "Plugin declares duplicate capability '" + found.name + "' for type " +
-                                            plugin_capability_type_to_string(type);
-                    break;
-                }
-
-                instance->set_audit_plugin_key(descriptor.plugin_key);
-                instance->set_resolved_identity(found.name, type);
-                instance->set_enabled(enabled);
-
-                capabilities.push_back(std::move(instance));
+            } catch (const std::exception& ex) {
+                materialization_error = std::string("Plugin capability materialization failed: ") + ex.what();
+            } catch (...) {
+                materialization_error = "Plugin capability materialization failed";
             }
-        } catch (const std::exception& ex) {
-            materialization_error = std::string("Plugin capability materialization failed: ") + ex.what();
-        } catch (...) {
-            materialization_error = "Plugin capability materialization failed";
         }
 
         if (!materialization_error.empty()) {
@@ -360,6 +386,8 @@ bool load(const PluginDescriptor&                          descriptor,
     std::size_t lifecycle_count = 0;
     try {
         PythonGILState gil;
+        if (!gil)
+            throw std::runtime_error("Python interpreter is shutting down");
         for (const auto& capability : plugin.capabilities) {
             ++lifecycle_count;
             capability->on_load();

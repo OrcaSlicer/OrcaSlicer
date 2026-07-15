@@ -34,6 +34,8 @@ using json   = nlohmann::json;
 namespace Slic3r {
 namespace {
 
+thread_local unsigned int g_pipeline_hook_depth = 0;
+
 // --------------------------------------------------------------------------
 // JSON <-> Python conversion (caller must hold the GIL).
 // --------------------------------------------------------------------------
@@ -105,7 +107,10 @@ struct GilSafeCallable
     {
         if (fn) {
             PythonGILState gil;
-            fn = py::object();
+            if (gil)
+                fn = py::object();
+            else
+                (void) fn.release();
         }
     }
 };
@@ -127,6 +132,8 @@ GUI::PluginWebDialog::MessageHandler make_message_adapter(py::object on_message)
         return nullptr;
     return [holder](const json& data) {
         PythonGILState gil;
+        if (!gil)
+            return;
         try {
             holder->fn(json_to_py(data));
         } catch (py::error_already_set& e) {
@@ -216,6 +223,8 @@ template<typename Fn>
 auto run_on_ui_blocking(Fn&& fn) -> std::invoke_result_t<Fn&>
 {
     using R = std::invoke_result_t<Fn&>;
+    if (PluginHostUi::is_pipeline_hook_context())
+        throw std::runtime_error("orca.host.ui is unavailable from slicing pipeline hooks");
     if (wxTheApp == nullptr)
         throw std::runtime_error("OrcaSlicer application is not initialized");
 
@@ -343,6 +352,8 @@ py::object ui_create_window(const std::string& html, const std::string& title, i
         if (close_holder) {
             on_close = [close_holder]() {
                 PythonGILState gil;
+                if (!gil)
+                    return;
                 try {
                     close_holder->fn();
                 } catch (py::error_already_set& e) {
@@ -367,6 +378,8 @@ py::object ui_create_window(const std::string& html, const std::string& title, i
 
 void handle_post(int id, py::object data)
 {
+    if (PluginHostUi::is_pipeline_hook_context())
+        throw std::runtime_error("orca.host.ui is unavailable from slicing pipeline hooks");
     if (wxTheApp == nullptr)
         return;
     json j = py_to_json(data); // GIL held (binding body)
@@ -378,6 +391,8 @@ void handle_post(int id, py::object data)
 
 void handle_close(int id)
 {
+    if (PluginHostUi::is_pipeline_hook_context())
+        throw std::runtime_error("orca.host.ui is unavailable from slicing pipeline hooks");
     if (wxTheApp == nullptr)
         return;
     GUI::wxGetApp().CallAfter([id]() {
@@ -412,6 +427,8 @@ UiProgressHandle* new_progress_dialog(const std::string& title, const std::strin
 
 bool progress_is_open(int id)
 {
+    if (PluginHostUi::is_pipeline_hook_context())
+        throw std::runtime_error("orca.host.ui is unavailable from slicing pipeline hooks");
     return UiRegistry::instance().get_as<GUI::PluginProgressDialog>(id) != nullptr;
 }
 
@@ -457,6 +474,12 @@ void progress_close(int id)
 
 } // namespace
 
+PluginHostUi::PipelineHookScope::PipelineHookScope() { ++g_pipeline_hook_depth; }
+
+PluginHostUi::PipelineHookScope::~PipelineHookScope() { --g_pipeline_hook_depth; }
+
+bool PluginHostUi::is_pipeline_hook_context() { return g_pipeline_hook_depth != 0; }
+
 void PluginHostUi::RegisterBindings(pybind11::module_& host)
 {
     auto ui = host.def_submodule(
@@ -492,7 +515,11 @@ void PluginHostUi::RegisterBindings(pybind11::module_& host)
         .def(
             "close", [](const UiWindowHandle& h) { handle_close(h.id); }, "Close the window (fires on_close).")
         .def(
-            "is_open", [](const UiWindowHandle& h) { return UiRegistry::instance().is_open(h.id); },
+            "is_open", [](const UiWindowHandle& h) {
+                if (PluginHostUi::is_pipeline_hook_context())
+                    throw std::runtime_error("orca.host.ui is unavailable from slicing pipeline hooks");
+                return UiRegistry::instance().is_open(h.id);
+            },
             "Return True while the window is open.");
 
     ui.def("create_window", &ui_create_window, py::arg("html"), py::arg("title") = "OrcaSlicer", py::arg("width") = 820,

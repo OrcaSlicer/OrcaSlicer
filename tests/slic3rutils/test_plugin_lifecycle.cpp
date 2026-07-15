@@ -178,6 +178,52 @@ TEST_CASE("A discovered script plugin loads and materializes its capability", "[
     manager.unload_plugin("Echo_Plugin");
 }
 
+TEST_CASE("Plugin manager can initialize again after shutdown", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-reinitialize");
+    write_plugin(data_dir_guard, "Echo_Plugin", ECHO_PLUGIN_SOURCE);
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    manager.shutdown();
+
+    REQUIRE(manager.initialize());
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    std::string error;
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
+    CHECK(manager.is_plugin_loaded("Echo_Plugin"));
+
+    manager.unload_plugin("Echo_Plugin");
+}
+
+TEST_CASE("Duplicate discovered plugin keys are reported", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-duplicate-key");
+    for (const char* directory_name : {"first", "second"}) {
+        const fs::path plugin_dir = data_dir_guard.plugins_dir() / directory_name;
+        fs::create_directories(plugin_dir);
+        std::ofstream out((plugin_dir / "Shared.py").string(), std::ios::binary);
+        out << ECHO_PLUGIN_SOURCE;
+    }
+
+    PluginManager& manager = PluginManager::instance();
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+
+    PluginDescriptor descriptor;
+    REQUIRE(manager.try_get_plugin_descriptor("Shared", descriptor));
+    CHECK(descriptor.has_error());
+    CHECK(descriptor.normalized_error().find("Duplicate plugin key") != std::string::npos);
+}
+
 TEST_CASE("Unloading a plugin drops the package and its capabilities", "[PluginLifecycle][Python]")
 {
     ScopedPluginManager plugin_system;
@@ -204,6 +250,98 @@ TEST_CASE("Unloading a plugin drops the package and its capabilities", "[PluginL
     const PluginDescriptor descriptor = descriptor_of(manager, "Echo_Plugin");
     CHECK(descriptor.plugin_key == "Echo_Plugin");
     CHECK(capabilities_of(manager, "Echo_Plugin").empty());
+}
+
+TEST_CASE("Python module release removes package submodules and owned sys.path", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("module-release");
+    const fs::path package_root = data_dir_guard.dir / "reload_package";
+    fs::create_directories(package_root);
+
+    auto write_package = [&](const std::string& value) {
+        std::ofstream init((package_root / "__init__.py").string());
+        init << "import reload_helper\nfrom . import sub\nVALUE = sub.VALUE\n";
+        std::ofstream sub((package_root / "sub.py").string());
+        sub << "VALUE = " << value << "\n";
+        std::ofstream helper((package_root.parent_path() / "reload_helper.py").string());
+        helper << "VALUE = 'helper'\n";
+    };
+
+    write_package("'old'");
+
+    PythonInterpreter& interpreter = PythonInterpreter::instance();
+    std::vector<std::string> paths;
+    std::vector<std::string> modules;
+    std::string              error;
+    PyObject*                module = interpreter.load_module_from_directory(
+        package_root.parent_path().string(), "reload_package", error, &paths, &modules);
+    REQUIRE(module != nullptr);
+    INFO("module load error: " << error);
+    REQUIRE(error.empty());
+    REQUIRE(paths.size() == 1);
+
+    {
+        PythonGILState gil;
+        REQUIRE(gil);
+        PyObject* modules = PyImport_GetModuleDict();
+        REQUIRE(modules != nullptr);
+        CHECK(PyDict_GetItemString(modules, "reload_package") != nullptr);
+        CHECK(PyDict_GetItemString(modules, "reload_package.sub") != nullptr);
+        CHECK(PyDict_GetItemString(modules, "reload_helper") != nullptr);
+    }
+
+    Plugin loaded;
+    loaded.module           = module;
+    loaded.module_name      = "reload_package";
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
+
+    {
+        PythonGILState gil;
+        REQUIRE(gil);
+        PyObject* modules = PyImport_GetModuleDict();
+        REQUIRE(modules != nullptr);
+        CHECK(PyDict_GetItemString(modules, "reload_package") == nullptr);
+        CHECK(PyDict_GetItemString(modules, "reload_package.sub") == nullptr);
+        CHECK(PyDict_GetItemString(modules, "reload_helper") == nullptr);
+
+        PyObject* sys_path = PySys_GetObject("path");
+        REQUIRE(sys_path != nullptr);
+        PyObjectPtr path(PyUnicode_DecodeFSDefault(paths.front().c_str()));
+        REQUIRE(path);
+        CHECK(PySequence_Contains(sys_path, path.get()) == 0);
+    }
+
+    // Ensure the next import executes the new submodule rather than reusing a stale package child.
+    write_package("'new'");
+    boost::system::error_code ec;
+    fs::remove_all(package_root / "__pycache__", ec);
+
+    paths.clear();
+    modules.clear();
+    module = interpreter.load_module_from_directory(
+        package_root.parent_path().string(), "reload_package", error, &paths, &modules);
+    REQUIRE(module != nullptr);
+    REQUIRE(error.empty());
+
+    {
+        PythonGILState gil;
+        REQUIRE(gil);
+        PyObjectPtr value(PyObject_GetAttrString(module, "VALUE"));
+        REQUIRE(value);
+        CHECK(std::string(PyUnicode_AsUTF8(value.get())) == "new");
+    }
+
+    loaded.module           = module;
+    loaded.module_name      = "reload_package";
+    loaded.plugin_sys_paths = paths;
+    loaded.plugin_modules   = modules;
+    loaded.release_module();
 }
 
 TEST_CASE("A capability disabled in the sidecar loads disabled", "[PluginLifecycle][Python]")
@@ -238,6 +376,12 @@ TEST_CASE("A capability disabled in the sidecar loads disabled", "[PluginLifecyc
 
     CHECK(manager.get_plugin_capabilities("Echo_Plugin", PluginCapabilityType::Unknown, /*only_enabled=*/true).empty());
     CHECK(manager.get_plugin_capabilities("Echo_Plugin", PluginCapabilityType::Unknown, /*only_enabled=*/false).size() == 1);
+
+    // An empty load request must preserve the persisted disabled state even when the package is
+    // already loaded.
+    std::string no_request_error;
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", no_request_error));
+    CHECK_FALSE(find_capability(manager, "Echo_Plugin", "Echo")->is_enabled());
 
     manager.unload_plugin("Echo_Plugin");
 }
@@ -335,7 +479,10 @@ TEST_CASE("Re-enabling a disabled capability writes the sidecar back", "[PluginL
     std::string error;
     REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
 
-    manager.set_capability_enabled("Echo_Plugin", "Echo", true);
+    // An explicit request overrides the persisted disabled state, including on a fresh load.
+    REQUIRE(manager.unload_plugin("Echo_Plugin"));
+    std::string enable_error;
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", enable_error, {"Echo"}));
 
     const auto echo = find_capability(manager, "Echo_Plugin", "Echo");
     REQUIRE(echo != nullptr);
@@ -348,6 +495,32 @@ TEST_CASE("Re-enabling a disabled capability writes the sidecar back", "[PluginL
     CHECK(persisted.capabilities.front().second);
 
     manager.unload_plugin("Echo_Plugin");
+}
+
+TEST_CASE("Overwriting a local plugin unloads its live module", "[PluginLifecycle][Python]")
+{
+    ScopedPluginManager plugin_system;
+    if (!plugin_system.initialized)
+        SKIP("Bundled Python interpreter unavailable: " + PythonInterpreter::instance().last_error());
+
+    ScopedDataDir data_dir_guard("lifecycle-overwrite");
+    const fs::path package_dir = data_dir_guard.dir / "packages";
+    fs::create_directories(package_dir);
+    const fs::path package = package_dir / "Echo_Plugin.py";
+    {
+        std::ofstream out(package.string(), std::ios::binary);
+        out << ECHO_PLUGIN_SOURCE;
+    }
+
+    PluginManager& manager = PluginManager::instance();
+    std::string error;
+    REQUIRE(manager.install_plugin(package, error));
+    manager.discover_plugins(/*async=*/false, /*clear=*/true);
+    REQUIRE(load_and_wait(manager, "Echo_Plugin", error));
+    REQUIRE(manager.is_plugin_loaded("Echo_Plugin"));
+
+    REQUIRE(manager.install_plugin(package, error));
+    CHECK_FALSE(manager.is_plugin_loaded("Echo_Plugin"));
 }
 
 TEST_CASE("capabilities_to_enable selects which capabilities come up enabled", "[PluginLifecycle][Python]")

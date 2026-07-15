@@ -14,10 +14,21 @@ class PluginHostUi
 public:
     static void RegisterBindings(pybind11::module_& host);
 
-    // Lifecycle hook: close and tear down every UI window owned by a plugin.
-    // Registered via PluginLoader::subscribe_on_unload_callback so UI windows
-    // are destroyed on plugin unload/reload and at app shutdown (before the
-    // Python interpreter is finalized). Matches PluginLifecycleCompleteFn.
+    // Scope used by the slicing dispatcher to reject UI calls from pipeline hooks. Blocking on the
+    // UI event loop from a slicing worker can deadlock when the UI is waiting for that worker.
+    class PipelineHookScope
+    {
+    public:
+        PipelineHookScope();
+        ~PipelineHookScope();
+        PipelineHookScope(const PipelineHookScope&)            = delete;
+        PipelineHookScope& operator=(const PipelineHookScope&) = delete;
+    };
+
+    static bool is_pipeline_hook_context();
+
+    // Lifecycle hook: close and tear down every UI window owned by a plugin. PluginManager invokes
+    // this after plugin teardown and also for bulk unload during application shutdown.
     static void close_windows_for_plugin(const std::string& plugin_key);
 };
 

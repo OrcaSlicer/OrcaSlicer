@@ -15,10 +15,68 @@
 #include <cstring>
 #include <ctime>
 #include <iomanip>
+#include <mutex>
 #include <sstream>
 #include <vector>
 
 namespace Slic3r {
+
+thread_local PythonInterpreter* PythonRuntimeLease::s_owner = nullptr;
+thread_local unsigned int      PythonRuntimeLease::s_depth = 0;
+
+PythonRuntimeLease::PythonRuntimeLease(PythonInterpreter& interpreter)
+{
+    if (s_owner == &interpreter) {
+        m_interpreter = &interpreter;
+        ++s_depth;
+        return;
+    }
+
+    m_lock = std::shared_lock<std::shared_mutex>(interpreter.m_runtime_mutex);
+    if (!interpreter.m_initialized.load(std::memory_order_acquire)) {
+        m_lock.unlock();
+        return;
+    }
+
+    m_interpreter = &interpreter;
+    s_owner       = &interpreter;
+    s_depth       = 1;
+}
+
+PythonRuntimeLease::PythonRuntimeLease(PythonRuntimeLease&& other) noexcept
+    : m_interpreter(other.m_interpreter), m_lock(std::move(other.m_lock))
+{
+    other.m_interpreter = nullptr;
+}
+
+PythonRuntimeLease& PythonRuntimeLease::operator=(PythonRuntimeLease&& other) noexcept
+{
+    if (this != &other) {
+        release();
+        m_lock         = std::move(other.m_lock);
+        m_interpreter  = other.m_interpreter;
+        other.m_interpreter = nullptr;
+    }
+    return *this;
+}
+
+void PythonRuntimeLease::release()
+{
+    if (!m_interpreter)
+        return;
+
+    if (s_owner == m_interpreter && s_depth > 0) {
+        --s_depth;
+        if (s_depth == 0)
+            s_owner = nullptr;
+    }
+    m_interpreter = nullptr;
+}
+
+PythonRuntimeLease::~PythonRuntimeLease()
+{
+    release();
+}
 
 void log_python_exception_keep(pybind11::error_already_set& err)
 {
@@ -26,6 +84,8 @@ void log_python_exception_keep(pybind11::error_already_set& err)
     // local destroyed by stack unwinding before this catch runs. Touching Python
     // state below needs the GIL. PyGILState_Ensure is reentrant — harmless if held.
     PythonGILState gil;
+    if (!gil)
+        return;
 
     // Non-destructive: print the traceback to sys.stderr (tee'd to the session log)
     // WITHOUT consuming err, so the caller can rethrow it intact. For example, downstream C++
@@ -108,8 +168,11 @@ std::string executable_name(const char* base)
 #endif
 }
 
-bool add_sys_path_entry(const boost::filesystem::path& path, std::string& error)
+bool add_sys_path_entry(const boost::filesystem::path& path, std::string& error, bool* inserted = nullptr)
 {
+    if (inserted)
+        *inserted = false;
+
     PyObject* sys_path = PySys_GetObject("path");
     if (!sys_path || !PyList_Check(sys_path)) {
         error = "Python sys.path is not available";
@@ -135,6 +198,9 @@ bool add_sys_path_entry(const boost::filesystem::path& path, std::string& error)
         PyErr_Clear();
         return false;
     }
+
+    if (inserted)
+        *inserted = true;
 
     return true;
 }
@@ -387,11 +453,16 @@ std::string PythonInterpreter::bundled_uv_path()
 
 bool PythonInterpreter::initialize()
 {
-    if (m_initialized) {
+    std::unique_lock<std::shared_mutex> runtime_lock(m_runtime_mutex);
+    if (m_initialized.load(std::memory_order_acquire)) {
         return true;
     }
 
     m_last_error.clear();
+    m_plugin_path_users.clear();
+    m_plugin_path_owned.clear();
+    m_plugin_module_users.clear();
+    m_plugin_module_owned.clear();
 
     try {
         // Set Python home to the bundled Python installation
@@ -631,11 +702,10 @@ bool PythonInterpreter::initialize()
         // background-thread exceptions) to <data_dir>/log/python_*.log.
         install_python_stderr_redirect();
 
-        m_initialized = true;
-
         // Release the GIL so other threads can acquire it via PyGILState_Ensure.
         // Without this, calls from background threads will block trying to acquire the GIL.
         m_main_thread_state = PyEval_SaveThread();
+        m_initialized.store(true, std::memory_order_release);
         BOOST_LOG_TRIVIAL(debug) << "Main thread released Python GIL after initialization";
         return true;
 
@@ -650,7 +720,8 @@ PythonInterpreter::~PythonInterpreter() { shutdown(); }
 
 void PythonInterpreter::shutdown()
 {
-    if (!m_initialized)
+    std::unique_lock<std::shared_mutex> runtime_lock(m_runtime_mutex);
+    if (!m_initialized.load(std::memory_order_acquire))
         return;
 
     BOOST_LOG_TRIVIAL(info) << "Python interpreter shutdown enter";
@@ -668,54 +739,327 @@ void PythonInterpreter::shutdown()
     m_interpreter.reset();
     BOOST_LOG_TRIVIAL(info) << "Python interpreter finalized";
 
-    m_initialized = false;
+    m_plugin_path_users.clear();
+    m_plugin_path_owned.clear();
+    m_plugin_module_users.clear();
+    m_plugin_module_owned.clear();
+    m_initialized.store(false, std::memory_order_release);
 }
 
 bool PythonInterpreter::add_sys_path(const std::string& path, std::string& error)
 {
-    if (!m_initialized) {
+    if (!m_initialized.load(std::memory_order_acquire)) {
         error = "Python interpreter not initialized";
         return false;
     }
 
     PythonGILState gil;
-
-    PyObject* sys_path = PySys_GetObject("path");
-    if (!sys_path || !PyList_Check(sys_path)) {
-        error = "Python sys.path is not available";
+    if (!gil) {
+        error = "Python interpreter is shutting down";
         return false;
     }
 
-    PyObjectPtr py_path(PyUnicode_DecodeFSDefault(path.c_str()));
-    if (!py_path) {
-        error = "Failed to decode path for Python sys.path: " + path;
-        PyErr_Clear();
+    return add_sys_path_entry(boost::filesystem::path(path), error);
+}
+
+bool PythonInterpreter::add_plugin_sys_path(const std::string& path, std::string& error)
+{
+    if (!m_initialized.load(std::memory_order_acquire)) {
+        error = "Python interpreter not initialized";
         return false;
     }
 
-    const int contains = PySequence_Contains(sys_path, py_path.get());
-    if (contains == 1)
-        return true;
-    if (contains < 0)
-        PyErr_Clear();
-
-    if (PyList_Insert(sys_path, 0, py_path.get()) != 0) {
-        error = "Failed to append path to Python sys.path: " + path;
-        PyErr_Clear();
+    PythonGILState gil;
+    if (!gil) {
+        error = "Python interpreter is shutting down";
         return false;
+    }
+
+    return add_plugin_sys_path_locked(path, error);
+}
+
+bool PythonInterpreter::add_plugin_sys_path_locked(const std::string& path, std::string& error)
+{
+    bool inserted = false;
+    if (!add_sys_path_entry(boost::filesystem::path(path), error, &inserted))
+        return false;
+
+    auto users = m_plugin_path_users.find(path);
+    if (users == m_plugin_path_users.end()) {
+        m_plugin_path_owned[path] = inserted;
+        m_plugin_path_users.emplace(path, 1);
+    } else {
+        ++users->second;
     }
 
     return true;
 }
 
+void PythonInterpreter::remove_plugin_sys_paths_locked(const std::vector<std::string>& paths)
+{
+    PyObject* sys_path = PySys_GetObject("path");
+    if (!sys_path || !PyList_Check(sys_path)) {
+        PyErr_Clear();
+        return;
+    }
+
+    for (const std::string& path : paths) {
+        auto users = m_plugin_path_users.find(path);
+        if (users == m_plugin_path_users.end())
+            continue;
+
+        if (--users->second != 0)
+            continue;
+
+        const bool owned = m_plugin_path_owned[path];
+        m_plugin_path_users.erase(users);
+        m_plugin_path_owned.erase(path);
+        if (!owned)
+            continue;
+
+        PyObjectPtr py_path(PyUnicode_DecodeFSDefault(path.c_str()));
+        if (!py_path) {
+            PyErr_Clear();
+            continue;
+        }
+
+        for (Py_ssize_t index = PyList_Size(sys_path) - 1; index >= 0; --index) {
+            PyObject* entry = PyList_GetItem(sys_path, index); // borrowed reference
+            int         equal = entry ? PyObject_RichCompareBool(entry, py_path.get(), Py_EQ) : 0;
+            if (equal == 1 && PySequence_DelItem(sys_path, index) != 0)
+                PyErr_Clear();
+            else if (equal < 0)
+                PyErr_Clear();
+        }
+    }
+}
+
+void PythonInterpreter::record_plugin_modules_locked(const std::string& module_name,
+                                                      const std::vector<std::string>& plugin_paths,
+                                                      std::vector<std::string>* plugin_modules)
+{
+    if (!plugin_modules)
+        return;
+
+    PyObject* modules = PyImport_GetModuleDict();
+    if (!modules)
+        return;
+
+    PyObjectPtr names(PyDict_Keys(modules));
+    if (!names) {
+        PyErr_Clear();
+        return;
+    }
+
+    const std::string prefix = module_name + ".";
+    const auto        path_matches = [](const std::string& file, const std::string& root) {
+        namespace fs = boost::filesystem;
+
+        boost::system::error_code ec;
+        fs::path                  file_path = fs::weakly_canonical(fs::path(file), ec);
+        if (ec) {
+            ec.clear();
+            file_path = fs::absolute(fs::path(file), ec);
+        }
+        if (ec)
+            return false;
+
+        ec.clear();
+        fs::path root_path = fs::weakly_canonical(fs::path(root), ec);
+        if (ec) {
+            ec.clear();
+            root_path = fs::absolute(fs::path(root), ec);
+        }
+        if (ec)
+            return false;
+
+        const std::string file_string = file_path.generic_string();
+        std::string       root_string = root_path.generic_string();
+        if (root_string.empty())
+            return false;
+        if (root_string.back() != '/')
+            root_string.push_back('/');
+        return file_string.compare(0, root_string.size(), root_string) == 0;
+    };
+
+    const Py_ssize_t count = PyList_Size(names.get());
+    for (Py_ssize_t index = 0; index < count; ++index) {
+        PyObject* name_obj = PyList_GetItem(names.get(), index); // borrowed reference
+        if (!name_obj || !PyUnicode_Check(name_obj))
+            continue;
+
+        const char* name_utf8 = PyUnicode_AsUTF8(name_obj);
+        if (!name_utf8) {
+            PyErr_Clear();
+            continue;
+        }
+
+        const std::string name(name_utf8);
+        const bool        is_plugin_namespace = name == module_name || name.compare(0, prefix.size(), prefix) == 0;
+        bool              is_plugin_path_module = false;
+        if (!is_plugin_namespace) {
+            PyObject* module = PyDict_GetItem(modules, name_obj); // borrowed reference
+            if (!module)
+                continue;
+
+            PyObjectPtr file(PyObject_GetAttrString(module, "__file__"));
+            if (file && PyUnicode_Check(file.get())) {
+                const char* file_utf8 = PyUnicode_AsUTF8(file.get());
+                if (file_utf8) {
+                    for (const std::string& path : plugin_paths) {
+                        if (path_matches(file_utf8, path)) {
+                            is_plugin_path_module = true;
+                            break;
+                        }
+                    }
+                } else {
+                    PyErr_Clear();
+                }
+            } else {
+                PyErr_Clear();
+            }
+
+            if (!is_plugin_path_module) {
+                PyObjectPtr package_path(PyObject_GetAttrString(module, "__path__"));
+                if (package_path) {
+                    const Py_ssize_t path_count = PySequence_Size(package_path.get());
+                    if (path_count < 0) {
+                        PyErr_Clear();
+                    } else {
+                        for (Py_ssize_t path_index = 0; path_index < path_count && !is_plugin_path_module; ++path_index) {
+                            PyObjectPtr path_entry(PySequence_GetItem(package_path.get(), path_index));
+                            if (!path_entry) {
+                                PyErr_Clear();
+                                continue;
+                            }
+                            if (!PyUnicode_Check(path_entry.get()))
+                                continue;
+                            const char* path_utf8 = PyUnicode_AsUTF8(path_entry.get());
+                            if (!path_utf8) {
+                                PyErr_Clear();
+                                continue;
+                            }
+                            for (const std::string& path : plugin_paths) {
+                                if (path_matches(path_utf8, path)) {
+                                    is_plugin_path_module = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    PyErr_Clear();
+                }
+            }
+        }
+
+        if (!is_plugin_namespace && !is_plugin_path_module)
+            continue;
+
+        auto users = m_plugin_module_users.find(name);
+        if (users == m_plugin_module_users.end()) {
+            m_plugin_module_owned[name] = true;
+            m_plugin_module_users.emplace(name, 1);
+        } else {
+            ++users->second;
+        }
+        plugin_modules->push_back(name);
+    }
+}
+
+void PythonInterpreter::remove_plugin_modules_locked(const std::vector<std::string>& plugin_modules)
+{
+    PyObject* modules = PyImport_GetModuleDict();
+    if (!modules)
+        return;
+
+    for (const std::string& name : plugin_modules) {
+        auto users = m_plugin_module_users.find(name);
+        if (users == m_plugin_module_users.end())
+            continue;
+
+        if (--users->second != 0)
+            continue;
+
+        const bool owned = m_plugin_module_owned[name];
+        m_plugin_module_users.erase(users);
+        m_plugin_module_owned.erase(name);
+        if (owned && PyDict_DelItemString(modules, name.c_str()) != 0)
+            PyErr_Clear();
+    }
+}
+
+void PythonInterpreter::remove_module_tree_locked(const std::string& module_name)
+{
+    if (module_name.empty())
+        return;
+
+    PyObject* modules = PyImport_GetModuleDict();
+    if (!modules)
+        return;
+
+    PyObjectPtr names(PyDict_Keys(modules));
+    if (!names) {
+        PyErr_Clear();
+        return;
+    }
+
+    const std::string prefix = module_name + ".";
+    const Py_ssize_t count  = PyList_Size(names.get());
+    for (Py_ssize_t index = 0; index < count; ++index) {
+        PyObject* name_obj = PyList_GetItem(names.get(), index); // borrowed reference
+        if (!name_obj || !PyUnicode_Check(name_obj))
+            continue;
+
+        const char* name_utf8 = PyUnicode_AsUTF8(name_obj);
+        if (!name_utf8) {
+            PyErr_Clear();
+            continue;
+        }
+
+        const std::string name(name_utf8);
+        if (name != module_name && name.compare(0, prefix.size(), prefix) != 0)
+            continue;
+
+        if (PyDict_DelItem(modules, name_obj) != 0)
+            PyErr_Clear();
+    }
+}
+
+void PythonInterpreter::unload_module(PyObject*                      module,
+                                      const std::string&              module_name,
+                                      const std::vector<std::string>& plugin_paths,
+                                      const std::vector<std::string>& plugin_modules)
+{
+    if (!module && plugin_paths.empty() && plugin_modules.empty())
+        return;
+
+    if (!m_initialized.load(std::memory_order_acquire))
+        return;
+
+    PythonGILState gil;
+    if (!gil)
+        return;
+
+    remove_plugin_modules_locked(plugin_modules);
+    if (plugin_modules.empty())
+        remove_module_tree_locked(module_name);
+    remove_plugin_sys_paths_locked(plugin_paths);
+    Py_XDECREF(module);
+}
+
 bool PythonInterpreter::execute_string(const std::string& code, std::string& error)
 {
-    if (!m_initialized) {
+    if (!m_initialized.load(std::memory_order_acquire)) {
         error = "Python interpreter not initialized";
         return false;
     }
 
     PythonGILState gil;
+    if (!gil) {
+        error = "Python interpreter is shutting down";
+        return false;
+    }
 
     PyObject* main_module = PyImport_AddModule("__main__");
     if (!main_module) {
@@ -739,9 +1083,12 @@ bool PythonInterpreter::execute_string(const std::string& code, std::string& err
     return true;
 }
 
-PyObject* PythonInterpreter::load_module_from_file(const std::string& file_path, std::string& error)
+PyObject* PythonInterpreter::load_module_from_file(const std::string&       file_path,
+                                                   std::string&              error,
+                                                   std::vector<std::string>* plugin_paths,
+                                                   std::vector<std::string>* plugin_modules)
 {
-    if (!m_initialized) {
+    if (!m_initialized.load(std::memory_order_acquire)) {
         error = "Python interpreter not initialized";
         return nullptr;
     }
@@ -755,49 +1102,27 @@ PyObject* PythonInterpreter::load_module_from_file(const std::string& file_path,
     }
 
     PythonGILState gil;
+    if (!gil) {
+        error = "Python interpreter is shutting down";
+        return nullptr;
+    }
 
     // Add the directory to sys.path
     fs::path dir_path       = path.parent_path();
     std::string module_name = path.stem().string();
 
-    PyObjectPtr sys(PyImport_ImportModule("sys"));
-    if (!sys) {
-        error = "Failed to import sys module";
+    const std::string dir = dir_path.string();
+    if (!add_plugin_sys_path_locked(dir, error))
         return nullptr;
-    }
-
-    PyObject* sys_path = PyObject_GetAttrString(sys.get(), "path");
-    if (!sys_path) {
-        error = "Failed to get sys.path";
-        return nullptr;
-    }
-
-    PyObjectPtr dir_str(PyUnicode_FromString(dir_path.string().c_str()));
-    if (!dir_str) {
-        Py_DECREF(sys_path);
-        error = "Failed to create directory string";
-        return nullptr;
-    }
-
-    if (PyList_Insert(sys_path, 0, dir_str.get()) < 0) {
-        Py_DECREF(sys_path);
-        error = "Failed to add directory to sys.path";
-        return nullptr;
-    }
-
-    Py_DECREF(sys_path);
+    if (plugin_paths)
+        plugin_paths->push_back(dir);
 
     // Ensure module is re-imported fresh by removing any cached instance.
-    if (PyObject* modules = PyImport_GetModuleDict()) {
-        if (PyDict_GetItemString(modules, module_name.c_str())) {
-            if (PyDict_DelItemString(modules, module_name.c_str()) != 0) {
-                PyErr_Clear();
-            }
-        }
-    }
+    remove_module_tree_locked(module_name);
 
     // Import the module
     PyObject* module = PyImport_ImportModule(module_name.c_str());
+    record_plugin_modules_locked(module_name, plugin_paths ? *plugin_paths : std::vector<std::string>{}, plugin_modules);
     if (!module) {
         PyObject *ptype, *pvalue, *ptraceback;
         PyErr_Fetch(&ptype, &pvalue, &ptraceback);
@@ -811,9 +1136,13 @@ PyObject* PythonInterpreter::load_module_from_file(const std::string& file_path,
     return module;
 }
 
-PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_path, const std::string& pkg_name, std::string& error)
+PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_path,
+                                                        const std::string& pkg_name,
+                                                        std::string&       error,
+                                                        std::vector<std::string>* plugin_paths,
+                                                        std::vector<std::string>* plugin_modules)
 {
-    if (!m_initialized) {
+    if (!m_initialized.load(std::memory_order_acquire)) {
         error = "Python interpreter not initialized";
         return nullptr;
     }
@@ -827,43 +1156,21 @@ PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_p
     }
 
     PythonGILState gil;
-
-    PyObjectPtr sys(PyImport_ImportModule("sys"));
-    if (!sys) {
-        error = "Failed to import sys module";
+    if (!gil) {
+        error = "Python interpreter is shutting down";
         return nullptr;
     }
 
-    PyObject* sys_path = PyObject_GetAttrString(sys.get(), "path");
-    if (!sys_path) {
-        error = "Failed to get sys.path";
+    const std::string directory = dir.string();
+    if (!add_plugin_sys_path_locked(directory, error))
         return nullptr;
-    }
+    if (plugin_paths)
+        plugin_paths->push_back(directory);
 
-    PyObjectPtr dir_str(PyUnicode_FromString(dir.string().c_str()));
-    if (!dir_str) {
-        Py_DECREF(sys_path);
-        error = "Failed to create directory string";
-        return nullptr;
-    }
-
-    if (PyList_Insert(sys_path, 0, dir_str.get()) < 0) {
-        Py_DECREF(sys_path);
-        error = "Failed to add directory to sys.path";
-        return nullptr;
-    }
-
-    Py_DECREF(sys_path);
-
-    if (PyObject* modules = PyImport_GetModuleDict()) {
-        if (PyDict_GetItemString(modules, pkg_name.c_str())) {
-            if (PyDict_DelItemString(modules, pkg_name.c_str()) != 0) {
-                PyErr_Clear();
-            }
-        }
-    }
+    remove_module_tree_locked(pkg_name);
 
     PyObject* module = PyImport_ImportModule(pkg_name.c_str());
+    record_plugin_modules_locked(pkg_name, plugin_paths ? *plugin_paths : std::vector<std::string>{}, plugin_modules);
     if (!module) {
         PyObject *ptype, *pvalue, *ptraceback;
         PyErr_Fetch(&ptype, &pvalue, &ptraceback);
@@ -877,9 +1184,13 @@ PyObject* PythonInterpreter::load_module_from_directory(const std::string& dir_p
     return module;
 }
 
-PyObject* PythonInterpreter::load_module_from_whl(const std::string& file_path, const std::string& pkg_name, std::string& error)
+PyObject* PythonInterpreter::load_module_from_whl(const std::string& file_path,
+                                                  const std::string& pkg_name,
+                                                  std::string&       error,
+                                                  std::vector<std::string>* plugin_paths,
+                                                  std::vector<std::string>* plugin_modules)
 {
-    if (!m_initialized) {
+    if (!m_initialized.load(std::memory_order_acquire)) {
         error = "Python interpreter not initialized";
         return nullptr;
     }
@@ -900,18 +1211,22 @@ PyObject* PythonInterpreter::load_module_from_whl(const std::string& file_path, 
             return nullptr;
     }
 
-    return load_module_from_directory(extract_dir.string(), pkg_name, error);
+    return load_module_from_directory(extract_dir.string(), pkg_name, error, plugin_paths, plugin_modules);
 }
 
 bool PythonInterpreter::call_function(
     PyObject* module, const std::string& function_name, const std::string& arg, std::string& result, std::string& error)
 {
-    if (!m_initialized || !module) {
+    if (!m_initialized.load(std::memory_order_acquire) || !module) {
         error = "Python interpreter not initialized or module is null";
         return false;
     }
 
     PythonGILState gil;
+    if (!gil) {
+        error = "Python interpreter is shutting down";
+        return false;
+    }
 
     PyObject* func = PyObject_GetAttrString(module, function_name.c_str());
     if (!func || !PyCallable_Check(func)) {
@@ -943,12 +1258,16 @@ bool PythonInterpreter::call_function(
 
 bool PythonInterpreter::call_function_no_args(PyObject* module, const std::string& function_name, std::string& result, std::string& error)
 {
-    if (!m_initialized || !module) {
+    if (!m_initialized.load(std::memory_order_acquire) || !module) {
         error = "Python interpreter not initialized or module is null";
         return false;
     }
 
     PythonGILState gil;
+    if (!gil) {
+        error = "Python interpreter is shutting down";
+        return false;
+    }
 
     PyObject* func = PyObject_GetAttrString(module, function_name.c_str());
     if (!func || !PyCallable_Check(func)) {

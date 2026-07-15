@@ -3,6 +3,7 @@
 #include "PluginManager.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginInterface.hpp"
+#include "host/PluginHostUi.hpp"
 #include "pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp"
 
 #include "libslic3r/Config.hpp"
@@ -14,6 +15,7 @@
 
 #include <memory>
 #include <string>
+#include <stdexcept>
 
 namespace Slic3r::plugin_hooks {
 namespace {
@@ -66,11 +68,18 @@ void install_slicing_pipeline_hook()
             execute_capabilities_from_refs<SlicingPipelinePluginCapability>(
                 *caps, plugs, PluginCapabilityType::SlicingPipeline,
                 [&](std::shared_ptr<SlicingPipelinePluginCapability> cap, const PluginCapabilityRef& ref) {
+                    PluginHostUi::PipelineHookScope pipeline_hook_scope;
+                    const std::string plugin_key = ref.uuid.empty() ? ref.name : ref.uuid;
                     ExecutionResult r;
                     try {
+                        // Read manager state before acquiring the GIL so this path does not take
+                        // m_mutex in the opposite order to plugin teardown.
+                        const auto plugin_settings = PluginManager::instance().get_plugin_settings(plugin_key);
                         // GIL is acquired per capability (not once for the whole dispatch) so it
                         // is released between capabilities.
                         PythonGILState gil;
+                        if (!gil)
+                            throw std::runtime_error("Python interpreter is shutting down");
                         // throw_if_canceled() is protected on PrintBase; canceled() is the public
                         // equivalent check (same cancel flag), so honor cancellation via it.
                         if (print.canceled())
@@ -82,8 +91,7 @@ void install_slicing_pipeline_hook()
                         ctx.object = object;
                         // hand the plugin its own [tool.orcaslicer.plugin.settings] as ctx.params
                         // (same plugin_key the capability was resolved by, so it always matches).
-                        const std::string plugin_key = ref.uuid.empty() ? ref.name : ref.uuid;
-                        ctx.params = PluginManager::instance().get_plugin_settings(plugin_key);
+                        ctx.params = plugin_settings;
                         r = cap->execute(ctx);
                     } catch (const CanceledException&) {
                         throw; // cancellation must reach process(), never become a slicing error

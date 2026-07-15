@@ -2723,6 +2723,7 @@ void GUI_App::init_plugin_gui_wiring()
         });
     };
 
+    plugin_mgr.subscribe_on_unload_callback(PluginHostUi::close_windows_for_plugin);
     plugin_mgr.subscribe_on_load_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
     plugin_mgr.subscribe_on_unload_callback([refresh_plugins_dialog](const std::string&) { refresh_plugins_dialog(); });
     plugin_mgr.subscribe_on_load_callback(NetworkAgentFactory::register_python_plugin);
@@ -8224,7 +8225,7 @@ void GUI_App::open_plugins_dialog(size_t open_on_tab, const std::string& highlig
     }
 
     try {
-        m_plugins_dlg = new PluginsDialog(mainframe, open_on_tab, highlight_option);
+        m_plugins_dlg = new PluginsDialog(mainframe, wxID_ANY, _L("Plugins"));
         m_plugins_dlg->set_open_terminal_dlg_fn();
         m_plugins_dlg->Bind(wxEVT_DESTROY, [this](wxWindowDestroyEvent& event) {
             if (event.GetEventObject() == m_plugins_dlg)
