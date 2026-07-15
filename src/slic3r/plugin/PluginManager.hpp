@@ -208,6 +208,8 @@ public:
     bool delete_mine_plugin_from_cloud(const std::string& plugin_key, std::string& error);
     bool delete_mine_local_and_cloud_plugin(const std::string& plugin_key, std::string& error);
 
+    ExecutionResult run_script_capability(const std::string& plugin_key, const std::string& capability_name, std::string& error);
+
 private:
     PluginManager()                                = default;
     PluginManager(const PluginManager&)            = delete;
@@ -227,6 +229,15 @@ private:
     void run_discovery(bool async, bool clear);
     void run_discovery_task(bool clear);
     void merge_discovered_plugins(std::vector<PluginDescriptor> discovered, bool clear);
+
+    // Unload every loaded Plugin matching should_remove, then erase every matching entry (loaded or
+    // not). Unloading runs outside m_mutex (Python teardown and lifecycle callbacks can re-enter the
+    // manager), so the snapshot-unload cycle retries until a pass finds nothing left to unload; the
+    // final check and the erase itself run in one critical section so a concurrent load cannot make a
+    // live entry reach vector compaction and move-assignment. after_erase_locked, if given, runs right
+    // after the erase while m_mutex is still held.
+    void unload_and_erase_if(const std::function<bool(const Plugin&)>& should_remove,
+                              const std::function<void()>& after_erase_locked = {});
 
     bool cancel_plugin_load_locked(const std::string& plugin_key);
     bool is_plugin_load_cancelled_locked(const std::string& plugin_key) const;

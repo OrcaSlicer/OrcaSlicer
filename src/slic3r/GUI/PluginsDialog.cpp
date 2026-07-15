@@ -885,40 +885,11 @@ wxString PluginsDialog::plugin_display_name(const std::string& plugin_key) const
 
 void PluginsDialog::run_script_plugin(const std::string& plugin_key, const std::string& capability_name)
 {
-    if (plugin_key.empty() || capability_name.empty()) {
-        BOOST_LOG_TRIVIAL(warning) << "Ignoring run_script_plugin with an empty plugin key or capability name";
-        send_plugins();
-        return;
-    }
-
+    
     PluginManager& manager = PluginManager::instance();
-    // only_enabled=false: "missing" and "disabled" are reported separately below.
-    auto cap = manager.get_plugin_capability(plugin_key, capability_name, Slic3r::PluginCapabilityType::Script,
-                                             /*only_enabled=*/false);
-    if (!cap) {
-        BOOST_LOG_TRIVIAL(warning) << "Ignoring stale run request for missing script capability. plugin_key=" << plugin_key
-                                   << " capability_name=" << capability_name;
-        send_plugins();
-        return;
-    }
-    if (!manager.get_plugin_capability(plugin_key, capability_name)) {
-        BOOST_LOG_TRIVIAL(warning) << "Ignoring stale run request for disabled script capability. plugin_key=" << plugin_key
-                                   << " capability_name=" << capability_name;
-        send_plugins();
-        return;
-    }
 
-    // A plugin's modal orca.host.ui dialog or the result message box pumps a nested event
-    // loop; the WebView could re-dispatch this command mid-run. Refuse the overlapping run.
-    if (m_script_running) {
-        BOOST_LOG_TRIVIAL(info) << "Ignoring run_script_plugin; a plugin is already running. plugin_key=" << plugin_key;
-        return;
-    }
-    m_script_running = true;
-    ScopeGuard running_guard([this]() { m_script_running = false; });
-
-    BOOST_LOG_TRIVIAL(info) << "Run script plugin requested from Plugins dialog. plugin_key=" << plugin_key
-                            << " capability_name=" << capability_name;
+    std::string error;
+    ExecutionResult result;
 
     auto complete_with_error = [this, &manager, &plugin_key](const std::string& plugin_error, const wxString& status_message) {
         const std::string normalized_error = plugin_error.empty() ? "Script plugin failed." : plugin_error;
@@ -936,76 +907,12 @@ void PluginsDialog::run_script_plugin(const std::string& plugin_key, const std::
         show_status(message, "error");
     };
 
-    PluginDescriptor descriptor;
-    if (!get_descriptor(plugin_key, descriptor)) {
-        BOOST_LOG_TRIVIAL(error) << "Cannot run script plugin because manifest was not found. plugin_key=" << plugin_key;
-        complete_with_error("Plugin manifest was not found.", _L("Plugin manifest was not found."));
-        return;
-    }
-
-    if (descriptor.has_error()) {
-        complete_with_error(descriptor.normalized_error(), wxString());
-        return;
-    }
-
-    // Should not reach here, handle for extra safety
-    if (!descriptor.is_metadata_valid()) {
-        std::string plugin_type_str    = plugin_capability_type_to_string(primary_capability_type_of(manager, plugin_key));
-        std::string metadata_valid     = descriptor.is_metadata_valid() ? "true" : "false";
-        const std::string plugin_error = "Cannot run plugin because its metadata is invalid:\n\tplugin type: " + plugin_type_str +
-                                         "\n\tmetadata_valid: " + metadata_valid;
-        BOOST_LOG_TRIVIAL(error) << "Cannot run plugin because its metadata is invalid. plugin_key=" << plugin_key
-                                 << " is_metadata_valid=" << descriptor.is_metadata_valid()
-                                 << " type=" << plugin_capability_type_to_string(primary_capability_type_of(manager, plugin_key));
-        complete_with_error(plugin_error, _L("Only plugins with valid metadata can be run from this dialog."));
-        return;
-    }
-
-    // Should not reach here as non-loaded plugins have disabled run buttons, handle for extra safety
-    if (!manager.is_plugin_loaded(plugin_key)) {
-        BOOST_LOG_TRIVIAL(warning) << "Cannot run script plugin because it is not loaded. plugin_key=" << plugin_key;
-        complete_with_error("Load the script plugin before running it: Cannot run script plugin because it is not loaded.",
-                            _L("Load the script plugin before running it."));
-        return;
-    }
-
-    auto plugin = std::dynamic_pointer_cast<Slic3r::ScriptPluginCapability>(cap);
-    if (!plugin) {
-        BOOST_LOG_TRIVIAL(error) << "Loaded plugin does not implement ScriptPluginCapability. plugin_key=" << plugin_key;
-        complete_with_error("The selected plugin is not a runnable script plugin: Loaded plugin does not implement ScriptPluginCapability.",
-                            _L("The selected plugin is not a runnable script plugin."));
-        return;
-    }
-
-    std::string error;
-    ExecutionResult result;
-
-    // Script plugins run on the main/UI thread (not a worker). They hold live, non-owning
-    // ModelObject*/ModelVolume*/ModelInstance* aliases into host data and can mint ObjectIDs,
-    // which libslic3r requires on the main thread (ObjectID.hpp's non-atomic s_last_id). Running
-    // here makes those reads/instantiations legal and means nothing mutates the model underneath
-    // a run. The trade-off is that a slow execute() freezes the UI, so the contract is to keep
-    // execute() quick and offload heavy work to the plugin's own threading.Thread. orca.host.ui
-    // calls already no-op their main-thread marshaling here.
     {
         wxBusyCursor busy;
-        try {
-            PythonGILState gil;
-            if (!gil)
-                throw std::runtime_error("Python interpreter is shutting down");
-            result = plugin->execute();
-        } catch (const std::exception& ex) {
-            error = ex.what();
-            BOOST_LOG_TRIVIAL(error) << "Script plugin execution threw exception. plugin_key=" << plugin_key << " error=" << error;
-        } catch (...) {
-            error = "Unknown error";
-            BOOST_LOG_TRIVIAL(error) << "Script plugin execution threw unknown exception. plugin_key=" << plugin_key;
-        }
+        result = manager.run_script_capability(plugin_key, capability_name, error);
     }
 
     if (!error.empty()) {
-        plugin.reset();
-        cap.reset();
         complete_with_error(error, wxString());
         return;
     }
@@ -1013,11 +920,8 @@ void PluginsDialog::run_script_plugin(const std::string& plugin_key, const std::
     BOOST_LOG_TRIVIAL(info) << "Script plugin execution completed. plugin_key=" << plugin_key
                             << " status=" << static_cast<int>(result.status) << " message=" << result.message << " data=" << result.data;
 
-    const bool failed = result.status == PluginResult::RecoverableError || result.status == PluginResult::FatalError;
+    const bool failed = result.status == PluginResult::RecoverableError || result.status == PluginResult::FatalError || !error.empty();
     if (failed) {
-        plugin.reset();
-        cap.reset();
-        // complete_with_error normalizes an empty message to "Script plugin failed." and reports via the status bar.
         complete_with_error(result.message, wxString());
         return;
     }

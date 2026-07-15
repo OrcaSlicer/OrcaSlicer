@@ -1,5 +1,6 @@
 #include "PluginManager.hpp"
 
+#include <memory>
 #include <pybind11/embed.h>
 
 #include "PluginFsUtils.hpp"
@@ -20,6 +21,8 @@
 #include <chrono>
 #include <mutex>
 #include <slic3r/plugin/PluginLoader.hpp>
+#include <slic3r/plugin/PythonPluginInterface.hpp>
+#include <slic3r/plugin/pluginTypes/script/ScriptPluginCapability.hpp>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -312,15 +315,23 @@ void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> disco
             return;
     }
 
-    // Unloading may call Python and lifecycle subscribers may re-enter the manager, so never do
-    // it while holding m_mutex. Keep retrying the set before erasing in case another caller starts
-    // a load between the initial snapshot and the teardown.
+    // Unloading may call Python and lifecycle subscribers may re-enter the manager, so never do it
+    // while holding m_mutex. unload_and_erase_if() retries until no matching entry is loaded at the
+    // moment of erase, in case another caller starts a load between the initial snapshot and the
+    // teardown.
+    unload_and_erase_if(
+        [&seen](const Plugin& plugin) { return std::find(seen.begin(), seen.end(), plugin.descriptor.plugin_key) == seen.end(); });
+}
+
+void PluginManager::unload_and_erase_if(const std::function<bool(const Plugin&)>& should_remove,
+                                        const std::function<void()>& after_erase_locked)
+{
     for (;;) {
         std::vector<std::string> unload_keys;
         {
             std::lock_guard<std::mutex> lock(m_mutex);
             for (const Plugin& plugin : m_plugins) {
-                if (std::find(seen.begin(), seen.end(), plugin.descriptor.plugin_key) == seen.end() && plugin.is_loaded())
+                if (should_remove(plugin) && plugin.is_loaded())
                     unload_keys.push_back(plugin.descriptor.plugin_key);
             }
         }
@@ -331,7 +342,7 @@ void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> disco
             // live entry reach vector compaction and move-assignment.
             bool loaded_entry_found = false;
             for (const Plugin& plugin : m_plugins) {
-                if (std::find(seen.begin(), seen.end(), plugin.descriptor.plugin_key) == seen.end() && plugin.is_loaded()) {
+                if (should_remove(plugin) && plugin.is_loaded()) {
                     loaded_entry_found = true;
                     break;
                 }
@@ -339,11 +350,9 @@ void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> disco
             if (loaded_entry_found)
                 continue;
 
-            m_plugins.erase(std::remove_if(m_plugins.begin(), m_plugins.end(),
-                                           [&seen](const Plugin& plugin) {
-                                               return std::find(seen.begin(), seen.end(), plugin.descriptor.plugin_key) == seen.end();
-                                           }),
-                            m_plugins.end());
+            m_plugins.erase(std::remove_if(m_plugins.begin(), m_plugins.end(), should_remove), m_plugins.end());
+            if (after_erase_locked)
+                after_erase_locked();
             break;
         }
         for (const std::string& key : unload_keys)
@@ -850,13 +859,13 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
                 if (entry == nullptr) {
                     registry_error = "Plugin manifest not found: " + plugin_key;
                 } else {
-                    entry->capabilities     = std::move(plugin.capabilities);
-                    entry->module           = plugin.module;
-                    entry->module_name      = std::move(plugin.module_name);
-                    entry->plugin_sys_paths = std::move(plugin.plugin_sys_paths);
-                    entry->plugin_modules   = std::move(plugin.plugin_modules);
-                    plugin.module           = nullptr;
-                    committed               = true;
+                    // Move everything via Plugin's own move assignment, but the package's
+                    // descriptor (identity/metadata) belongs to the registry entry, not to the
+                    // freshly-loaded `plugin` -- preserve it across the move.
+                    PluginDescriptor entry_descriptor = std::move(entry->descriptor);
+                    *entry                            = std::move(plugin);
+                    entry->descriptor                 = std::move(entry_descriptor);
+                    committed                         = true;
                 }
             }
         }
@@ -901,16 +910,13 @@ bool PluginManager::unload_plugin(const std::string& plugin_key)
         if (plugin != nullptr && plugin->is_loaded()) {
             found = true;
 
-            // Take the live parts out of the entry; the descriptor stays behind, so the package
-            // remains discovered. Everything capability-shaped is discarded with the capabilities —
-            // the user's enable choices live on in the .install_state.json sidecar.
-            removed.capabilities     = std::move(plugin->capabilities);
-            removed.module           = plugin->module;
-            removed.module_name      = std::move(plugin->module_name);
-            removed.plugin_sys_paths = std::move(plugin->plugin_sys_paths);
-            removed.plugin_modules   = std::move(plugin->plugin_modules);
-            plugin->capabilities.clear();
-            plugin->module = nullptr;
+            // Take the live parts out of the entry via Plugin's own move assignment; the
+            // descriptor stays behind, so the package remains discovered. Everything
+            // capability-shaped is discarded with the capabilities — the user's enable choices
+            // live on in the .install_state.json sidecar.
+            PluginDescriptor kept_descriptor = std::move(plugin->descriptor);
+            removed                          = std::move(*plugin);
+            plugin->descriptor               = std::move(kept_descriptor);
         }
     }
 
@@ -946,14 +952,11 @@ void PluginManager::unload_all_plugins()
             if (!plugin.is_loaded())
                 continue;
 
-            Plugin taken;
-            taken.capabilities     = std::move(plugin.capabilities);
-            taken.module           = plugin.module;
-            taken.module_name      = std::move(plugin.module_name);
-            taken.plugin_sys_paths = std::move(plugin.plugin_sys_paths);
-            taken.plugin_modules   = std::move(plugin.plugin_modules);
-            plugin.capabilities.clear();
-            plugin.module = nullptr;
+            // Take the live parts out via Plugin's own move; the descriptor stays behind, as in
+            // unload_plugin() above.
+            PluginDescriptor kept_descriptor = std::move(plugin.descriptor);
+            Plugin           taken           = std::move(plugin);
+            plugin.descriptor                = std::move(kept_descriptor);
             removed.push_back(std::move(taken));
             removed_keys.push_back(plugin.descriptor.plugin_key);
             capabilities.insert(capabilities.end(), removed.back().capabilities.begin(), removed.back().capabilities.end());
@@ -1355,43 +1358,16 @@ void PluginManager::clear_cloud_plugin_catalog()
     // Cloud entries may own live Python modules. Unload them before erasing their vector entries,
     // and do so outside m_mutex because both Python teardown and lifecycle callbacks can re-enter
     // the manager.
-    for (;;) {
-        std::vector<std::string> unload_keys;
-        {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            for (const Plugin& plugin : m_plugins) {
-                if (plugin.descriptor.is_cloud_plugin() && plugin.is_loaded())
-                    unload_keys.push_back(plugin.descriptor.plugin_key);
-            }
-        }
-
-        if (unload_keys.empty()) {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            bool loaded_cloud_entry_found = false;
-            for (const Plugin& plugin : m_plugins) {
-                if (plugin.descriptor.is_cloud_plugin() && plugin.is_loaded()) {
-                    loaded_cloud_entry_found = true;
-                    break;
-                }
-            }
-            if (loaded_cloud_entry_found)
-                continue;
-
-            m_plugins.erase(std::remove_if(m_plugins.begin(), m_plugins.end(),
-                                           [](const Plugin& plugin) { return plugin.descriptor.is_cloud_plugin(); }),
-                            m_plugins.end());
-
-            // A local plugin can still be carrying a stale "not found in the cloud" error from when it was
-            // cloud-tracked.
+    unload_and_erase_if(
+        [](const Plugin& plugin) { return plugin.descriptor.is_cloud_plugin(); },
+        [this]() {
+            // A local plugin can still be carrying a stale "not found in the cloud" error from
+            // when it was cloud-tracked.
             for (Plugin& plugin : m_plugins) {
                 if (plugin.descriptor.normalized_error() == CLOUD_PLUGIN_NOT_FOUND_ERROR)
                     plugin.descriptor.clear_error();
             }
-            break;
-        }
-        for (const std::string& key : unload_keys)
-            unload_plugin(key);
-    }
+        });
 
     BOOST_LOG_TRIVIAL(info) << "Cleared cloud plugin catalog entries";
 }
@@ -1953,6 +1929,39 @@ bool PluginManager::delete_mine_local_and_cloud_plugin(const std::string& plugin
     }
 
     return finalize_cloud_plugin_removal(descriptor, false, error);
+}
+
+ExecutionResult PluginManager::run_script_capability(const std::string& plugin_key, const std::string& capability_name, std::string& error)
+{
+    if (plugin_key.empty() || capability_name.empty()) {
+        return {};
+    }
+
+    auto cap = get_plugin_capability(plugin_key, capability_name, PluginCapabilityType::Script);
+    if (!cap)
+        return {};
+
+    auto cap_interface = std::dynamic_pointer_cast<ScriptPluginCapability>(cap);
+    if (cap_interface)
+        return {};
+
+    ExecutionResult result;
+    try {
+        PythonGILState gil;
+        result = cap_interface->execute();
+    } catch (const std::exception& ex) {
+        error = ex.what();
+        BOOST_LOG_TRIVIAL(error) << "Script plugin execution threw exception. plugin_key=" << plugin_key << " error=" << error;
+    } catch (...) {
+        error = "Unknown error";
+        BOOST_LOG_TRIVIAL(error) << "Script plugin execution threw unknown exception. plugin_key=" << plugin_key;
+    }
+
+    if (!error.empty()) {
+        set_plugin_error(plugin_key, error);
+    }
+
+    return result;
 }
 
 } // namespace Slic3r

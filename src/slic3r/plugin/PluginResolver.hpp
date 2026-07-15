@@ -81,8 +81,6 @@ void open_missing_plugins_on_cloud(const std::vector<std::string>& local_refs);
 std::string create_full_ref(const PluginCapabilityRef& ref);
 std::string resolve_recovery_url(const PluginCapabilityRef& ref);
 
-bool check_capability_in_use(const std::string& capability_refs);
-
 } // namespace Slic3r
 
 #endif

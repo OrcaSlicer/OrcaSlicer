@@ -66,15 +66,9 @@ public:
     // Finalize the Python interpreter.
     void shutdown();
 
-    // Add a filesystem path to sys.path if not already present.
-    bool add_sys_path(const std::string& path, std::string& error);
-
     // Add a path owned by one plugin load. The path is reference-counted across plugins and is
     // removed when the final plugin using it is unloaded.
     bool add_plugin_sys_path(const std::string& path, std::string& error);
-
-    // Execute a Python string and return result
-    bool execute_string(const std::string& code, std::string& error);
 
     // Load a Python module from file path
     PyObject* load_module_from_file(const std::string& file_path,
@@ -98,17 +92,6 @@ public:
                        const std::string& module_name,
                        const std::vector<std::string>& plugin_paths,
                        const std::vector<std::string>& plugin_modules);
-
-    // Call a Python function with string argument, return string result
-    bool call_function(PyObject* module, const std::string& function_name,
-                      const std::string& arg, std::string& result, std::string& error);
-
-    // Call a Python function with no arguments, return string result
-    bool call_function_no_args(PyObject* module, const std::string& function_name,
-                              std::string& result, std::string& error);
-
-    // Helper to get string from Python object
-    static std::string py_object_to_string(PyObject* obj);
 
     // Destructor finalizes Python if shutdown() was not called explicitly.
     ~PythonInterpreter();

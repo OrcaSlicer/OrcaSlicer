@@ -393,8 +393,4 @@ void open_missing_plugins_on_cloud(const std::vector<std::string>& local_refs)
     wxLaunchDefaultBrowser(GUI::from_u8(resolve_cloud_base_url() + "/app/plugins/plugin-hub"), wxBROWSER_NEW_WINDOW);
 }
 
-bool check_capability_in_use(const std::string &capability_refs) {
-    return false;
-}
-
 } // namespace Slic3r
