@@ -3127,7 +3127,8 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // Therefore initialize the printing extruders from there.
         this->set_extruders(tool_ordering.all_extruders());
         print_object_instances_ordering =
-            // By default, order object instances using a nearest neighbor search.
+            // By default, order object instances using nearest-neighbor chaining plus
+            // 2-opt and crossing-removal post-processing.
             (print.config().print_order == PrintOrder::Default ? chain_print_object_instances(print)
             // Snake: serpentine row traversal + 2-opt
             : (print.config().print_order == PrintOrder::Snake ? chain_print_object_instances_snake(print)
@@ -6005,7 +6006,12 @@ LayerResult GCode::process_layer(
             std::vector<size_t>          node_instances;
             auto quantize_to_mm = [](const Point &pt) -> Point {
                 const coord_t grid = coord_t(scale_(1.));
-                return Point((pt.x() / grid) * grid, (pt.y() / grid) * grid);
+                // Round to the nearest 1 mm symmetrically (integer division truncates toward
+                // zero, which would make the bucket straddling the origin twice as wide).
+                auto q = [grid](coord_t v) -> coord_t {
+                    return ((v >= 0 ? v + grid / 2 : v - grid / 2) / grid) * grid;
+                };
+                return Point(q(pt.x()), q(pt.y()));
             };
             for (ObjectByExtruder &object_by_extruder : objects_by_extruder) {
                 if (object_by_extruder.islands.empty() && (object_by_extruder.support == nullptr || object_by_extruder.support->empty())) continue;

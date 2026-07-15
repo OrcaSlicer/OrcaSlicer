@@ -109,17 +109,22 @@ bool tsp_remove_crossings(std::vector<size_t>& path, const Points& centers)
     size_t pn = path.size();
     if (pn <= 3) return false;
 
-    size_t n_edges = pn - 1;
+    // Treat path as a cycle: include the closing edge (pn-1 -> 0), consistent with the other
+    // TSP helpers (2-opt, closing-edge rotation) that operate on the full cycle.
+    size_t n_edges = pn;
 
     // Scan for first crossing; returns {i, j} or {npos, npos} if none.
     auto find_crossing = [&]() -> std::pair<size_t, size_t> {
         for (size_t i = 0; i < n_edges; ++i) {
             const Point& ai = centers[path[i]];
-            const Point& bi = centers[path[i + 1]];
+            const Point& bi = centers[path[(i + 1) % pn]];
 
             for (size_t j = i + 2; j < n_edges; ++j) {
+                // Skip the (0, pn-1) pair: edges (0,1) and (pn-1,0) share node 0.
+                if (i == 0 && j == pn - 1) continue;
+
                 const Point& aj = centers[path[j]];
-                const Point& bj = centers[path[j + 1]];
+                const Point& bj = centers[path[(j + 1) % pn]];
 
                 if (!bboxes_overlap(ai, bi, aj, bj)) continue;
                 if (Geometry::segments_intersect(ai, bi, aj, bj))
