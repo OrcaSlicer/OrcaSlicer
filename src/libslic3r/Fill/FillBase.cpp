@@ -162,10 +162,11 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
         out.push_back(eec = new ExtrusionEntityCollection());
         // Only concentric fills are not sorted.
         eec->no_sort = this->no_sort();
-        // ORCA: special flag for flow rate calibration
-        auto is_flow_calib = params.extrusion_role == erTopSolidInfill && this->print_object_config->has("calib_flowrate_topinfill_special_order") &&
-                             this->print_object_config->option("calib_flowrate_topinfill_special_order")->getBool();
-        if (is_flow_calib || params.is_anisotropic) { // Orca: disable sorting while anisotropic surfaces
+        // Orca: a forced surface fill order must survive the G-code path planner, which would
+        // otherwise re-chain and possibly reverse the paths. This also covers the flow rate
+        // calibration, which forces an outward fill order on its top surfaces.
+        const bool keep_fill_order = params.fill_order != SurfaceFillOrder::Default;
+        if (keep_fill_order) {
             eec->no_sort = true;
         }
         size_t idx   = eec->entities.size();
@@ -180,14 +181,13 @@ void Fill::fill_surface_extrusion(const Surface* surface, const FillParams& para
                 params.extrusion_role,
                 flow_mm3_per_mm, float(flow_width), params.flow.height());
         }
-        if (!params.can_reverse || is_flow_calib) {
+        if (!params.can_reverse || keep_fill_order) {
             for (size_t i = idx; i < eec->entities.size(); i++)
                 eec->entities[i]->set_reverse();
         }
 
         // Orca: run gap fill
-        if (!(params.is_anisotropic)) // Orca: Disable gap filling while anisotropic
-            this->_create_gap_fill(surface, params, eec);
+        this->_create_gap_fill(surface, params, eec);
     }
 }
 

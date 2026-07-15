@@ -441,22 +441,30 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         
         // Declare & initialize retraction lengths
         double retraction_length_remaining = 0,
-                retractionBeforeWipe = 0,
-                retractionDuringWipe = 0;
+            retraction_length_before_wipe = 0,
+            retraction_length_during_wipe = 0,
+            retraction_length_after_wipe = 0;
         
-        // initialise the remaining retraction amount with the full retraction amount.
-        retraction_length_remaining = toolchange ? extruder->retract_length_toolchange() : extruder->retraction_length();
+        // Initialise the remaining retraction amount with the full retraction amount.
+        retraction_length_remaining = toolchange ? 
+            extruder->retract_length_toolchange() : extruder->retraction_length();
         
-        // nothing to retract - return early
-        if(retraction_length_remaining <=EPSILON) return {0.f,0.f};
+        // Nothing to retract - return early
+        if (retraction_length_remaining <= EPSILON)
+            return { 0.f, 0.f, 0.f };
         
-        // calculate retraction before wipe distance from the user setting. Keep adding to this variable any excess retraction needed
-        // to be performed before the wipe.
-        retractionBeforeWipe = retraction_length_remaining * extruder->retract_before_wipe();
-        retraction_length_remaining -= retractionBeforeWipe; // subtract it from the remaining retraction length
-        
-        // all of the retraction is to be done before the wipe
-        if(retraction_length_remaining <=EPSILON) return {retractionBeforeWipe,0.f};
+        // Calculate retraction before and after wipe distances from the user setting. 
+        // Keep adding to the for retraction before wipe variable any excess retraction 
+        // needed to be performed before the wipe.
+        retraction_length_before_wipe = retraction_length_remaining * extruder->retract_before_wipe();
+        retraction_length_after_wipe = retraction_length_remaining * extruder->retract_after_wipe();
+
+        // Subtract it from the remaining retraction length
+        retraction_length_remaining -= retraction_length_before_wipe + retraction_length_after_wipe;
+
+        // All of the retraction is to be done before the wipe
+        if (retraction_length_remaining <= EPSILON) 
+            return { retraction_length_before_wipe, 0., retraction_length_after_wipe };
         
         // Calculate wipe speed
         // Orca: resolve the travel_speed slot via the Print-side per-layer resolver; the writer's
@@ -471,18 +479,25 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         double wipe_path_length = std::min(wipe_path.length(), wipe_dist);
 
         // Calculate the maximum retraction amount during wipe
-        retractionDuringWipe = config.retraction_speed.get_at(extruder_id) * unscale_(wipe_path_length) / wipe_speed;
-        // If the maximum retraction amount during wipe is too small, return 0 and retract everything prior to the wipe.
-        if(retractionDuringWipe <= EPSILON) return {retractionBeforeWipe,0.f};
+        retraction_length_during_wipe = config.retraction_speed.get_at(extruder_id) * 
+            unscale_(wipe_path_length) / wipe_speed;
+
+        // If the maximum retraction amount during wipe is too small,
+        // disable wipe-time retraction and leave any remaining retract amount
+        // to the subsequent standard retract flow.
+        if (retraction_length_during_wipe <= EPSILON) 
+            return { retraction_length_before_wipe, 0., retraction_length_after_wipe };
         
         // If the maximum retraction amount during wipe is greater than any remaining retraction length
         // return the remaining retraction length to be retracted during the wipe
-        if (retractionDuringWipe - retraction_length_remaining > EPSILON) return {retractionBeforeWipe,retraction_length_remaining};
+        if (retraction_length_during_wipe - retraction_length_remaining > EPSILON) 
+            return { retraction_length_before_wipe, retraction_length_remaining, retraction_length_after_wipe };
         
         // We will always proceed with incrementing the retraction amount before wiping with the difference
         // and return the maximum allowed wipe amount to be retracted during the wipe move
-        retractionBeforeWipe += retraction_length_remaining - retractionDuringWipe;
-        return {retractionBeforeWipe, retractionDuringWipe};
+        retraction_length_before_wipe += retraction_length_remaining - retraction_length_during_wipe;
+
+        return { retraction_length_before_wipe, retraction_length_during_wipe, retraction_length_after_wipe };
     }
 
     std::string transform_gcode(const std::string &gcode, Vec2f pos, const Vec2f &translation, float angle)
@@ -8507,8 +8522,12 @@ std::string GCode::retract(bool toolchange, bool is_last_retraction, LiftType li
     // wipe (if it's enabled for this extruder and we have a stored wipe path and no-zero wipe distance)
     if (FILAMENT_CONFIG(wipe) && m_wipe.has_path() && scale_(FILAMENT_CONFIG(wipe_distance)) > SCALED_EPSILON) {
         Wipe::RetractionValues wipeRetractions = m_wipe.calculateWipeRetractionLengths(*this, toolchange);
-        gcode += toolchange ? m_writer.retract_for_toolchange(true,wipeRetractions.retractLengthBeforeWipe) : m_writer.retract(true, wipeRetractions.retractLengthBeforeWipe);
-        gcode += m_wipe.wipe(*this,wipeRetractions.retractLengthDuringWipe, toolchange, is_last_retraction);
+        gcode += toolchange ? m_writer.retract_for_toolchange(true, wipeRetractions.retraction_length_before_wipe) :
+                              m_writer.retract(true, wipeRetractions.retraction_length_before_wipe);
+        gcode += m_wipe.wipe(*this, wipeRetractions.retraction_length_during_wipe, toolchange, is_last_retraction);
+
+        // Orca: wipeRetractions.retraction_length_after_wipe is not being used explicitly,
+        // the remaining retraction after wipe is handled by the subsequent m_writer.retract() call
     }
 
     /*  The parent class will decide whether we need to perform an actual retraction

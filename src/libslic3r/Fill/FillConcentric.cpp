@@ -41,6 +41,10 @@ void FillConcentric::_fill_surface_single(
     // generate paths from the outermost to the innermost, to avoid
     // adhesion problems of the first central tiny loops
     loops = union_pt_chained_outside_in(loops);
+
+    // Orca: an outward fill order prints the innermost loops first instead.
+    if (params.fill_order == SurfaceFillOrder::Outward)
+        std::reverse(loops.begin(), loops.end());
     
     // split paths using a nearest neighbor search
     size_t iPathFirst = polylines_out.size();
@@ -108,6 +112,17 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
                 all_extrusions.emplace_back(&wall);
         }
 
+        // Orca: a forced fill order prints the loops in strictly monotonic depth order so
+        // that surfaces broken up by holes or slots cannot hop outward and back inward.
+        const bool forced_fill_order = params.fill_order != SurfaceFillOrder::Default;
+        if (forced_fill_order) {
+            const bool outward = params.fill_order == SurfaceFillOrder::Outward;
+            std::stable_sort(all_extrusions.begin(), all_extrusions.end(),
+                             [outward](const Arachne::ExtrusionLine *a, const Arachne::ExtrusionLine *b) {
+                                 return outward ? a->inset_idx > b->inset_idx : a->inset_idx < b->inset_idx;
+                             });
+        }
+
         // Split paths using a nearest neighbor search.
         size_t firts_poly_idx = thick_polylines_out.size();
         Point  last_pos(0, 0);
@@ -136,7 +151,8 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
         if (j < thick_polylines_out.size())
             thick_polylines_out.erase(thick_polylines_out.begin() + int(j), thick_polylines_out.end());
 
-        reorder_by_shortest_traverse(thick_polylines_out);
+        if (!forced_fill_order)
+            reorder_by_shortest_traverse(thick_polylines_out);
     }
     else {
         Polylines polylines;

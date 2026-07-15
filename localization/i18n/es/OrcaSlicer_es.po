@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 16:24-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -35,6 +35,24 @@ msgstr "TPU no soportado por el AMS."
 msgid "AMS does not support 'Bambu Lab PET-CF'."
 msgstr "'Bambu Lab PET-CF' no soportado por el AMS."
 
+msgid "The current filament doesn't support the E3D high-flow nozzle and can't be used."
+msgstr ""
+
+msgid "The current filament doesn't support the TPU high-flow nozzle and can't be used."
+msgstr ""
+
+msgid "Auto dynamic flow calibration is not supported for TPU filament."
+msgstr ""
+
+msgid "Bambu TPU 85A is not supported for printing with 0.4 mm Standard or High Flow nozzles."
+msgstr ""
+
+msgid "How to feed TPU filament."
+msgstr ""
+
+msgid "How to feed TPU filament on X2D."
+msgstr ""
+
 msgid "Please cold pull before printing TPU to avoid clogging. You may use cold pull maintenance on the printer."
 msgstr "Por favor, realice un cold pull antes de imprimir TPU para evitar obstrucciones. Puede utilizar el cold pull de mantenimiento de la impresora."
 
@@ -47,6 +65,9 @@ msgstr "El PVA húmedo es flexible y puede atascarse en el extrusor. Séquelo an
 msgid "The rough surface of PLA Glow can accelerate wear on the AMS system, particularly on the internal components of the AMS Lite."
 msgstr "La superficie rugosa del PLA Glow puede acelerar el desgaste del sistema AMS, especialmente en los componentes internos del AMS Lite."
 
+msgid "PLA Glow may wear the AMS first stage feeder. Use an external spool instead."
+msgstr ""
+
 msgid "CF/GF filaments are hard and brittle, it's easy to break or get stuck in AMS, please use with caution."
 msgstr "Los filamentos CF/GF son duros y quebradizos. Es fácil romperlos o crear atascos en el AMS, por favor úselos con precaución."
 
@@ -56,9 +77,89 @@ msgstr "PPS-CF es quebradizo y podría romperse en el tubo PTFE doblado por enci
 msgid "PPA-CF is brittle and could break in bended PTFE tube above Toolhead."
 msgstr "PPA-CF es quebradizo y podría romperse en el tubo PTFE doblado por encima del cabezal de la herramienta."
 
+msgid "Default settings may affect print quality. Adjust as needed for best results."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has a risk of nozzle clogging when using 0.4mm high-flow nozzles. Use with caution."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s filaments are hard and brittle and could break in AMS, and there is also a risk of nozzle clogging when using 0.4mm high-flow nozzles. Use with caution."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has a risk of nozzle clogging when using 0.4, 0.6, 0.8mm high-flow nozzles. Use with caution."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s may fail to load or unload due to the Filament Track Switch. If you wish to continue."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s is not supported by %s extruder."
 msgstr "%s no es compatible con el extrusor %s."
+
+#, c-format, boost-format
+msgid "There may be critical print quality issues when printing '%s' with %s Bowden extruder. Use with caution!"
+msgstr ""
+
+#, c-format, boost-format
+msgid "There may be critical print quality issues when printing '%s' with %s extruder. Use with caution!"
+msgstr ""
+
+#, c-format, boost-format
+msgid "There may be print quality issues when printing '%s' with %s Bowden extruder. Use with caution."
+msgstr ""
+
+#, c-format, boost-format
+msgid "There may be print quality issues when printing '%s' with %s extruder. Use with caution."
+msgstr ""
+
+msgid "High Flow"
+msgstr "Flujo alto"
+
+msgid "Standard"
+msgstr "Estándar"
+
+msgid "TPU High Flow"
+msgstr "TPU de alto flujo"
+
+msgid "Unknown"
+msgstr "Desconocido"
+
+msgid "Hardened Steel"
+msgstr "Acero endurecido"
+
+msgid "Stainless Steel"
+msgstr "Acero inoxidable"
+
+msgid "Tungsten Carbide"
+msgstr "Carburo de tungsteno"
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "Es posible que el cabezal y el rack del hotend se muevan. Mantenga las manos alejadas de la cámara."
+
+msgid "Warning"
+msgstr "Advertencia"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "La información del hotend podría ser inexacta. ¿Desea volver a leer el hotend? (La información del hotend puede cambiar al apagar el dispositivo)."
+
+msgid "I confirm all"
+msgstr "Confirmar todo"
+
+msgid "Re-read all"
+msgstr "Volver a leerlo todo"
+
+msgid "Reading the hotends, please wait."
+msgstr "Leyendo los hotends, por favor espere."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "Durante la actualización del hotend, el cabezal se moverá. No meta la mano en la cámara."
+
+msgid "Update"
+msgstr "Actualizar"
 
 msgid "Current AMS humidity"
 msgstr "Humedad actual del AMS"
@@ -89,6 +190,85 @@ msgstr "Versión:"
 
 msgid "Latest version"
 msgstr "Última versión"
+
+msgid "Row A"
+msgstr "Fila A"
+
+msgid "Row B"
+msgstr "Fila B"
+
+msgid "Toolhead"
+msgstr "Cabezal"
+
+msgid "Empty"
+msgstr "Vacío"
+
+msgid "Error"
+msgstr "Error"
+
+msgid "Induction Hotend Rack"
+msgstr "Estante de Hotend por Inducción"
+
+msgid "Hotends Info"
+msgstr "Información de Hotends"
+
+msgid "Read All"
+msgstr "Leer todo"
+
+msgid "Reading "
+msgstr "Leyendo "
+
+msgid "Please wait"
+msgstr "Espere por favor"
+
+msgid "Running..."
+msgstr "En ejecución..."
+
+msgid "Raised"
+msgstr "Aumentado"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "Este hotend presenta un problema y no está disponible en este momento. Por favor, vaya a \"Dispositivo -> Actualizar\" para actualizar el firmware."
+
+msgid "Abnormal Hotend"
+msgstr "Hotend anómalo"
+
+msgid "Refresh"
+msgstr "Actualizar"
+
+msgid "Refreshing"
+msgstr "Actualizando"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "El estado del hotend es anormal y no está disponible actualmente. Por favor, actualice el firmware e inténtelo de nuevo."
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Jump to the upgrade page"
+msgstr "Ir a la página de actualización"
+
+msgid "SN"
+msgstr "SN"
+
+msgid "Version"
+msgstr "Versión"
+
+#, c-format, boost-format
+msgid "Used Time: %s"
+msgstr "Tiempo empleado: %s"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "Las boquillas dinámicas están asignadas a la placa actual. Seleccionar hotend no está soportado."
+
+msgid "Hotend Rack"
+msgstr "Rack del hotend"
+
+msgid "ToolHead"
+msgstr "Cabezal"
+
+msgid "Nozzle information needs to be read"
+msgstr "Es necesario leer la información de la boquilla"
 
 msgid "Support Painting"
 msgstr "Pintar soportes"
@@ -333,7 +513,7 @@ msgstr "Error: Por favor, cierre primero todos los menús de la barra de herrami
 
 msgctxt "inches"
 msgid "in"
-msgstr "\""
+msgstr "″"
 
 msgid "mm"
 msgstr "mm"
@@ -599,9 +779,6 @@ msgstr "Proporción de espacio en relación al radio"
 msgid "Confirm connectors"
 msgstr "Confirmar conectores"
 
-msgid "Cancel"
-msgstr "Cancelar"
-
 msgid "Flip cut plane"
 msgstr "Voltear plano de corte"
 
@@ -642,11 +819,11 @@ msgstr "Cortar en piezas"
 msgid "Reset cutting plane and remove connectors"
 msgstr "Reajustar el plano de corte y retirar los conectores"
 
+msgid "Reset Cut"
+msgstr "Reiniciar corte"
+
 msgid "Perform cut"
 msgstr "Realizar corte"
-
-msgid "Warning"
-msgstr "Advertencia"
 
 msgid "Invalid connectors detected"
 msgstr "Conectores inválidos detectados"
@@ -677,6 +854,16 @@ msgstr "El plano de corte con ranura no es válido"
 
 msgid "Connector"
 msgstr "Conector"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
+"Los objetos(%1%) tienen conectores duplicados. Es posible que falten algunos conectores en el resultado del laminado.\n"
+"Informe al equipo de PrusaSlicer sobre el escenario en el que se produjo este problema.\n"
+"Gracias."
 
 msgid "Cut by Plane"
 msgstr "Corte por plano"
@@ -723,9 +910,6 @@ msgstr "Simplificar"
 
 msgid "Simplification is currently only allowed when a single part is selected"
 msgstr "La simplificación por el momento sólo se permite cuando se selecciona una sola pieza"
-
-msgid "Error"
-msgstr "Error"
 
 msgid "Extra high"
 msgstr "Extra alto"
@@ -2014,6 +2198,9 @@ msgstr "El acceso al paquete %s no está autorizado."
 msgid "Loading user preset"
 msgstr "Cargando perfil de usuario"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr "Hay una actualización disponible. Abra el cuadro de diálogo del paquete de perfiles para actualizarlo."
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr "Se ha eliminado %s."
@@ -2026,6 +2213,20 @@ msgstr "Seleccionar el idioma"
 
 msgid "Language"
 msgstr "Idioma"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr "No se pudo cambiar Orca Slicer al idioma %s."
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+"\n"
+"Puede que necesite reconfigurar las configuraciones regionales que faltan, probablemente ejecutando los comandos \"locale-gen\" y \"dpkg-reconfigure locales\".\n"
+
+msgid "Orca Slicer - Switching language failed"
+msgstr "Orca Slicer - Error al cambiar el idioma"
 
 msgid "*"
 msgstr "*"
@@ -2623,6 +2824,45 @@ msgstr "Haga clic en el icono para editar el pintado de colores del objeto"
 msgid "Click the icon to shift this object to the bed"
 msgstr "Presionar el icono para desplazar este objeto a la cama"
 
+msgid "Rename Object"
+msgstr "Renombrar objeto"
+
+msgid "Rename Part"
+msgstr "Renombrar pieza"
+
+msgid "Paste settings"
+msgstr "Pegar ajustes"
+
+msgid "Shift objects to bed"
+msgstr "Desplazar objetos a la cama"
+
+msgid "Object order changed"
+msgstr "Orden de objetos cambiado"
+
+msgid "Layer setting added"
+msgstr "Ajuste de capa añadido"
+
+msgid "Part setting added"
+msgstr "Ajuste de pieza añadido"
+
+msgid "Object setting added"
+msgstr "Ajuste de objeto añadido"
+
+msgid "Height range settings added"
+msgstr "Ajustes de rango de altura añadidos"
+
+msgid "Part settings added"
+msgstr "Ajustes de pieza añadidos"
+
+msgid "Object settings added"
+msgstr "Ajustes de objeto añadidos"
+
+msgid "Load Part"
+msgstr "Cargar pieza"
+
+msgid "Load Modifier"
+msgstr "Cargar modificador"
+
 msgid "Loading file"
 msgstr "Cargando archivo"
 
@@ -2631,6 +2871,9 @@ msgstr "¡Error!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Fallo recuperando los datos del modelo del archivo actual."
+
+msgid "Add primitive"
+msgstr "Añadir primitivo"
 
 msgid "Generic"
 msgstr "Genérico"
@@ -2643,6 +2886,12 @@ msgstr "Cambiar al modo de ajuste a modo por objeto para editar los ajustes de p
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "Eliminar la piel rugosa pintada"
+
+msgid "Delete Settings"
+msgstr "Borrar ajustes"
+
+msgid "Remove height range"
+msgstr "Borrar rango de altura"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Borrar conector del objeto el cual es parte del corte"
@@ -2673,11 +2922,23 @@ msgstr "Borrar todos los conectores"
 msgid "Deleting the last solid part is not allowed."
 msgstr "No se permite borrar la última parte sólida."
 
+msgid "Delete part"
+msgstr "Borrar pieza"
+
 msgid "The target object contains only one part and can not be split."
 msgstr "El objeto de destino contiene solo una parte y no se puede dividir."
 
+msgid "Split to parts"
+msgstr "Separar en piezas"
+
 msgid "Assembly"
 msgstr "Ensamblaje"
+
+msgid "Merge parts to an object"
+msgstr "Fusionar piezas en un objeto"
+
+msgid "Add layers"
+msgstr "Añadir capas"
 
 msgid "Cut Connectors information"
 msgstr "Información de Conectores de Corte"
@@ -2709,6 +2970,9 @@ msgstr "Rangos de altura"
 msgid "Settings for height range"
 msgstr "Ajustes de rango de altura"
 
+msgid "Delete selected"
+msgstr "Borrar seleccionado"
+
 msgid "Layer"
 msgstr "Capa"
 
@@ -2729,6 +2993,9 @@ msgstr "Tipo:"
 
 msgid "Choose part type"
 msgstr "Elija el tipo de pieza"
+
+msgid "Instances to Separated Objects"
+msgstr "Instancias a objetos separados"
 
 msgid "Enter new name"
 msgstr "Introduce un nuevo nombre"
@@ -2757,6 +3024,9 @@ msgstr "\"%s\" tendrá más de 1 millón de caras tras esta subdivisión, lo que
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "La malla de la pieza \"%s\" contiene errores. Por favor, repárela primero."
 
+msgid "Change Filaments"
+msgstr "Cambiar filamentos"
+
 msgid "Additional process preset"
 msgstr "Perfil de proceso adicional"
 
@@ -2765,9 +3035,6 @@ msgstr "Eliminar parámetro"
 
 msgid "to"
 msgstr "a"
-
-msgid "Remove height range"
-msgstr "Borrar rango de altura"
 
 msgid "Add height range"
 msgstr "Añadir rango de altura"
@@ -2971,6 +3238,9 @@ msgstr "Elija una ranura AMS y pulse el botón \"Cargar\" o \"Descargar\" para c
 msgid "Filament type is unknown which is required to perform this action. Please set target filament's informations."
 msgstr "Se desconoce el tipo de filamento necesario para realizar esta acción. Configure la información del filamento de destino."
 
+msgid "AMS has not been initialized. Please initialize it before use."
+msgstr ""
+
 msgid "Changing fan speed during printing may affect print quality, please choose carefully."
 msgstr "Cambiar la velocidad del ventilador durante la impresión puede afectar a la calidad de impresión, por lo que se recomienda elegir con cuidado."
 
@@ -3092,6 +3362,24 @@ msgstr "Confirmación de extrusión"
 msgid "Check filament location"
 msgstr "Probar localización de filamento"
 
+msgid "Switch"
+msgstr ""
+
+msgid "hotend"
+msgstr ""
+
+msgid "Wait for AMS cooling"
+msgstr ""
+
+msgid "Switch current filament at Filament Track Switch"
+msgstr ""
+
+msgid "Pull back current filament at Filament Track Switch"
+msgstr ""
+
+msgid "Switch track at Filament Track Switch"
+msgstr ""
+
 msgid "The maximum temperature cannot exceed "
 msgstr "La temperatura máxima no puede superar "
 
@@ -3142,6 +3430,62 @@ msgstr "Modo de desarrollador"
 
 msgid "Launch troubleshoot center"
 msgstr "Abrir el centro de resolución de problemas"
+
+msgid "Set nozzle count"
+msgstr ""
+
+msgid "Please set nozzle count"
+msgstr "Por favor, configure el número de boquillas"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "Error: No se puede establecer el conteo de boquillas a cero."
+
+#, c-format, boost-format
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "Error: La cantidad de boquillas no puede exceder de %d."
+
+msgid "Confirm"
+msgstr "Confirmar"
+
+msgid "Extruder"
+msgstr "Extrusor"
+
+msgid "Nozzle Selection"
+msgstr "Guía de selección de boquillas"
+
+msgid "Available Nozzles"
+msgstr "Boquillas Disponibles"
+
+msgid "Nozzle Info"
+msgstr "Información de boquilla"
+
+msgid "Sync Nozzle status"
+msgstr "Estado de la boquilla de sincronización"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "Precaución: No se incluye la combinación de diámetros de boquilla en una misma impresión. Si el tamaño seleccionado está únicamente en un extrusor, se aplicará la impresión con un solo extrusor."
+
+#, c-format, boost-format
+msgid "Refresh %d/%d..."
+msgstr "Actualizar %d/%d..."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "Se ha detectado una boquilla desconocida. Actualice para obtener información actualizada (las boquillas no actualizadas se excluirán durante el corte). Verifique el diámetro y la tasa de flujo de la boquilla con los valores mostrados."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "Boquilla desconocida detectada. Actualiza para sincronizarla (las boquillas no actualizadas se omitirán durante el laminado)."
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "Por favor, confirme si el diámetro de la boquilla y el caudal requeridos coinciden con los valores que se muestran actualmente."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "Su impresora tiene diferentes boquillas instaladas. Por favor, seleccione una boquilla para esta impresión."
+
+msgid "Ignore"
+msgstr "Ignorar"
+
+msgid "Done."
+msgstr "Hecho."
 
 msgid ""
 "All the selected objects are on a locked plate.\n"
@@ -3466,14 +3810,8 @@ msgstr "OrcaSlicer nació con ese mismo espíritu, inspirándose en PrusaSlicer,
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "Hoy en día, OrcaSlicer es el programa de corte de código abierto más utilizado y con mayor desarrollo activo en la comunidad de la impresión 3D. Muchas de sus innovaciones han sido adoptadas por otros programas de corte, lo que lo convierte en un motor impulsor de todo el sector."
 
-msgid "Version"
-msgstr "Versión"
-
 msgid "AMS Materials Setting"
 msgstr "Ajustes de materiales AMS"
-
-msgid "Confirm"
-msgstr "Confirmar"
 
 msgid "Close"
 msgstr "Cerrar"
@@ -3495,11 +3833,11 @@ msgstr "min"
 msgid "The input value should be greater than %1% and less than %2%"
 msgstr "El valor de entrada debe ser mayor que %1% y menor que %2%"
 
-msgid "SN"
-msgstr "SN"
-
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Factores de calibración de dinámicas de flujo"
+
+msgid "Wiki Guide"
+msgstr "Guía en Wiki"
 
 msgid "PA Profile"
 msgstr "Perfil de «Pressure advance»"
@@ -3671,6 +4009,19 @@ msgstr "Boquilla derecha"
 
 msgid "Nozzle"
 msgstr "Boquilla"
+
+msgid "Select Filament && Hotends"
+msgstr "Seleccionar Filamento && Hotends"
+
+msgid "Select Filament"
+msgstr "Seleccionar Filamento"
+
+#, c-format, boost-format
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "La impresión con la boquilla actual puede producir un extra de %0.2f g de desperdicio."
+
+msgid "External spools is not supported since Filament Track Switch has been installed. If you want to use external spool, please uninstall it."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Note: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
@@ -4359,9 +4710,6 @@ msgstr "Midiendo la superficie"
 msgid "Calibrating the detection position of nozzle clumping"
 msgstr "Calibrando la posición de detección de acumulación en la boquilla"
 
-msgid "Unknown"
-msgstr "Desconocido"
-
 msgid "Update successful."
 msgstr "Actualización exitosa."
 
@@ -4870,9 +5218,6 @@ msgstr "Ajustar a óptimo"
 msgid "Regroup filament"
 msgstr "Reagrupar filamentos"
 
-msgid "Wiki Guide"
-msgstr "Guía en Wiki"
-
 msgid "up to"
 msgstr "hasta"
 
@@ -4923,9 +5268,6 @@ msgstr "Cambios de filamento"
 
 msgid "Options"
 msgstr "Opciones"
-
-msgid "Extruder"
-msgstr "Extrusor"
 
 msgid "Cost"
 msgstr "Coste"
@@ -5131,9 +5473,6 @@ msgstr "Organizar los objetos en las camas seleccionadas"
 
 msgid "Split to objects"
 msgstr "Separar en objetos"
-
-msgid "Split to parts"
-msgstr "Separar en piezas"
 
 msgid "Assembly View"
 msgstr "Vista de Emsamblado"
@@ -5847,6 +6186,9 @@ msgstr "Exportar resultado"
 msgid "Select profile to load:"
 msgstr "Seleccionar perfil a cargar:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr "Archivos de configuración (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6012,9 +6354,6 @@ msgstr "Descargar achivos seleccionados desde la impresora."
 
 msgid "Batch manage files."
 msgstr "Procesado de archivo por lotes."
-
-msgid "Refresh"
-msgstr "Actualizar"
 
 msgid "Reload file list from printer."
 msgstr "Recarga la lista de archivos desde la impresora."
@@ -6322,6 +6661,9 @@ msgstr "Opciones de Impresora"
 msgid "Safety Options"
 msgstr "Opciones de seguridad"
 
+msgid "Hotends"
+msgstr ""
+
 msgid "Lamp"
 msgstr "Luz"
 
@@ -6354,6 +6696,12 @@ msgstr "Cuando la impresión está en pausa, la carga y descarga de filamento so
 
 msgid "Current extruder is busy changing filament."
 msgstr "El extrusor actual está ocupado cambiando el filamento."
+
+msgid "\"Load\" or \"Unload\" is not supported for external spool while using Filament Track Switch."
+msgstr ""
+
+msgid "The Filament Track Switch has not been setup. Please setup on printer."
+msgstr ""
 
 msgid "Current slot has already been loaded."
 msgstr "La ranura actual ya está cargada."
@@ -6403,9 +6751,6 @@ msgstr "Esto solo tendrá efecto durante la impresión"
 msgid "Silent"
 msgstr "Silencioso"
 
-msgid "Standard"
-msgstr "Estándar"
-
 msgid "Sport"
 msgstr "Deportivo"
 
@@ -6438,6 +6783,12 @@ msgstr "Añadir Foto"
 
 msgid "Delete Photo"
 msgstr "Borrar Foto"
+
+msgid "Select Images"
+msgstr "Seleccionar imágenes"
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr "Archivos de imagen (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
 
 msgid "Submit"
 msgstr "Aceptar"
@@ -6621,6 +6972,9 @@ msgstr "Cómo usar el modo solo LAN"
 
 msgid "Don't show this dialog again"
 msgstr "No mostrar este mensaje de nuevo"
+
+msgid "Please refer to Wiki before use->"
+msgstr "Consulte la Wiki antes de usar->"
 
 msgid "3D Mouse disconnected."
 msgstr "Ratón 3D desconectado."
@@ -6869,26 +7223,17 @@ msgstr "Flujo"
 msgid "Please change the nozzle settings on the printer."
 msgstr "Por favor, cambie los ajustes de la boquilla en la impresora."
 
-msgid "Hardened Steel"
-msgstr "Acero endurecido"
-
-msgid "Stainless Steel"
-msgstr "Acero inoxidable"
-
-msgid "Tungsten Carbide"
-msgstr "Carburo de tungsteno"
-
 msgid "Brass"
 msgstr "Latón"
 
 msgid "High flow"
 msgstr "Alto flujo"
 
+msgid "TPU High flow"
+msgstr ""
+
 msgid "No wiki link available for this printer."
 msgstr "No hay enlace a la wiki disponible para esta impresora."
-
-msgid "Refreshing"
-msgstr "Actualizando"
 
 msgid "Unavailable while heating maintenance function is on."
 msgstr "No disponible mientras la función de mantenimiento de calentamiento esté activa."
@@ -7012,6 +7357,15 @@ msgstr "Cambiar diámetro"
 msgid "Configuration incompatible"
 msgstr "Configuración incompatible"
 
+msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing. "
+msgstr ""
+
+msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use. "
+msgstr ""
+
+msgid "Tips"
+msgstr "Consejos"
+
 msgid "Sync printer information"
 msgstr "Sincronizar información de la impresora"
 
@@ -7039,6 +7393,9 @@ msgstr "Click para cambiar el ajuste inicial"
 
 msgid "Project Filaments"
 msgstr "Filamentos del proyecto"
+
+msgid "Purge mode"
+msgstr ""
 
 msgid "Flushing volumes"
 msgstr "Volúmenes de limpieza"
@@ -7255,9 +7612,6 @@ msgstr "La impresora conectada es %s. Debe coincidir con el preajuste del proyec
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "¿Desea sincronizar la información de la impresora y cambiar automáticamente el preajuste?"
 
-msgid "Tips"
-msgstr "Consejos"
-
 msgid "The file does not contain any geometry data."
 msgstr "El archivo no contiene ninguna información geométrica."
 
@@ -7305,8 +7659,20 @@ msgstr ""
 "Esta acción romperá una correspondencia de corte.\n"
 "Después de eso la consistencia del modelo no puede ser garantizada."
 
+msgid "Delete Object"
+msgstr "Borrar objeto"
+
+msgid "Delete All Objects"
+msgstr "Borrar todos los objetos"
+
+msgid "Reset Project"
+msgstr "Reiniciar proyecto"
+
 msgid "The selected object couldn't be split."
 msgstr "El objeto seleccionado no ha podido ser dividido."
+
+msgid "Split to Objects"
+msgstr "Separar en objetos"
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "¿Desactivar la caída automática para mantener la posición en el eje Z?\n"
@@ -7331,6 +7697,9 @@ msgstr "Seleccione un nuevo archivo"
 
 msgid "File for the replacement wasn't selected"
 msgstr "El archivo de reemplazo no ha sido seleccionado"
+
+msgid "Replace with 3D file"
+msgstr "Reemplazar con archivo 3D"
 
 msgid "Select folder to replace from"
 msgstr "Seleccionar carpeta desde la que reemplazar"
@@ -7377,6 +7746,9 @@ msgstr "No es posible recargar:"
 
 msgid "Error during reload"
 msgstr "Error durante la recarga"
+
+msgid "Reload all"
+msgstr "Recargar todo"
 
 msgid "There are warnings after slicing models:"
 msgstr "Hay alertas después de laminar los modelos:"
@@ -8146,6 +8518,18 @@ msgstr "Limpiar mi elección para sincronizar el preajuste de la impresora despu
 msgid "Graphics"
 msgstr "Gráficos"
 
+msgid "Smooth normals"
+msgstr "Suavizar normales"
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+"Aplica normales suavizadas al modelo.\n"
+"\n"
+"Requiere recargar manualmente la escena para que surta efecto (clic derecho en la vista 3D → «Recargar todo»)."
+
 msgid "Phong shading"
 msgstr "Sombreado Phong"
 
@@ -8161,20 +8545,8 @@ msgstr "Aplica SSAO en vista realista."
 msgid "Shadows"
 msgstr "Sombras"
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr "Los objetos renderizados proyectan sombras sobre la cama en la vista realista."
-
-msgid "Smooth normals"
-msgstr "Suavizar normales"
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
-msgstr ""
-"Aplica normales suavizadas a la vista realista.\n"
-"\n"
-"Requiere recargar la escena manualmente para que surta efecto (clic derecho en la vista 3D → \"Recargar todo\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
+msgstr "Renderiza sombras proyectadas sobre la cama, sobre otros objetos y de cada objeto sobre sí mismo en la vista realista."
 
 msgid "Anti-aliasing"
 msgstr "Anti-aliasing"
@@ -8464,6 +8836,9 @@ msgstr "Perfiles incompatibles"
 msgid "My Printer"
 msgstr "Mi impresora"
 
+msgid "AMS filaments"
+msgstr ""
+
 msgid "Left filaments"
 msgstr "Filamentos del lado izquierdo"
 
@@ -8481,6 +8856,9 @@ msgstr "Añadir/Quitar ajustes"
 
 msgid "Edit preset"
 msgstr "Editar ajuste"
+
+msgid "Change extruder color"
+msgstr "Cambiar color del extrusor"
 
 msgid "Unspecified"
 msgstr "No especificado"
@@ -8511,9 +8889,6 @@ msgstr "Seleccionar/Borrar impresoras (perfiles del sistema)"
 
 msgid "Create printer"
 msgstr "Crear impresora"
-
-msgid "Empty"
-msgstr "Vacío"
 
 msgid "Incompatible"
 msgstr "Incompatible"
@@ -8743,12 +9118,42 @@ msgstr "Envío completo"
 msgid "Error code"
 msgstr "Código de error"
 
-msgid "High Flow"
-msgstr "Flujo alto"
+msgid "Error desc"
+msgstr "Error en la descripción"
+
+msgid "Extra info"
+msgstr "Información extra"
+
+msgid "The Filament Track Switch installed on the printer does not match the slicing file. Please re-slice to avoid print quality issues."
+msgstr ""
+
+msgid "This print requires a Filament Track Switch. Please install it first."
+msgstr ""
+
+msgid "The Filament Track Switch has not been setup. Please setup it first."
+msgstr ""
 
 #, c-format, boost-format
-msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
-msgstr "La configuración de flujo de la boquilla de %s(%s) no coincide con el archivo de laminado (%s). Asegúrese de que la boquilla instalada coincide con los ajustes de la impresora y, al laminar, seleccione el preajuste de impresora correspondiente."
+msgid "Failed to send nozzle auto-mapping request to printer { code: %d }. Please try to refresh the printer information. If it still does not recover, you can try to rebind the printer and check the network connection."
+msgstr ""
+
+msgid "The printer is calculating nozzle mapping."
+msgstr ""
+
+msgid "Please wait a moment..."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to receive nozzle auto-mapping table from printer { msg: %s }. Please refresh the printer information."
+msgstr ""
+
+#, c-format, boost-format
+msgid "The printer failed to build the nozzle auto-mapping table { code: %d }. Please refresh nozzle information."
+msgstr ""
+
+#, c-format, boost-format
+msgid "The current nozzle mapping may produce an extra %0.2f g of waste."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Filament %s does not match the filament in AMS slot %s. Please update the printer firmware to support AMS slot assignment."
@@ -8810,8 +9215,38 @@ msgstr "Costo %dg de filamento y %d cambios más que la agrupación óptima."
 msgid "nozzle"
 msgstr "boquilla"
 
-msgid "both extruders"
-msgstr "ambos extrusores"
+#, c-format, boost-format
+msgid "Refreshing information of hotends(%d/%d)."
+msgstr ""
+
+msgid "There are not enough available hotends currently."
+msgstr ""
+
+msgid "Please complete the hotend rack setup and try again."
+msgstr ""
+
+msgid "Please refresh the nozzle information and try again."
+msgstr ""
+
+msgid "Please re-slice to avoid filament waste."
+msgstr ""
+
+msgid "The reported hotend information may be unreliable."
+msgstr ""
+
+#, c-format, boost-format
+msgid "The printer has no nozzle matching the slicing file (%s)."
+msgstr ""
+
+msgid "Please install a matching nozzle in the hotend rack, or set the corresponding printer preset while slicing."
+msgstr ""
+
+msgid "The toolhead and hotend rack are full. Please remove at least one hotend before printing."
+msgstr ""
+
+#, c-format, boost-format
+msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
+msgstr "La configuración de flujo de la boquilla de %s(%s) no coincide con el archivo de laminado (%s). Asegúrese de que la boquilla instalada coincide con los ajustes de la impresora y, al laminar, seleccione el preajuste de impresora correspondiente."
 
 msgid "Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."
 msgstr "Consejo: Si ha cambiado recientemente la boquilla de su impresora, vaya a 'Dispositivo -> Piezas de la impresora' para actualizar la configuración de la boquilla."
@@ -8824,9 +9259,16 @@ msgstr "El diámetro %s (%.1f mm) de la impresora actual no coincide con el del 
 msgid "The current nozzle diameter (%.1fmm) doesn't match with the slicing file (%.1fmm). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset when slicing."
 msgstr "El diámetro actual de la boquilla (%.1f mm) no coincide con el del archivo de laminado (%.1f mm). Asegúrese de que la boquilla instalada coincide con la configuración de la impresora y seleccione el preset de impresora correspondiente al laminar."
 
+msgid "both extruders"
+msgstr "ambos extrusores"
+
 #, c-format, boost-format
 msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). Please verify the nozzle or material settings and try again."
 msgstr "La dureza del material actual (%s) supera la dureza de %s(%s). Verifique la boquilla o la configuración del material e inténtelo de nuevo."
+
+#, c-format, boost-format
+msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). It may cause nozzle wear, leading to material leakage and unstable flow. Please exercise caution when using it."
+msgstr ""
 
 #, c-format, boost-format
 msgid "[ %s ] requires printing in a high-temperature environment. Please close the door."
@@ -8936,9 +9378,6 @@ msgstr "El firmware actual admite un máximo de 16 materiales. Puede reducir el 
 
 msgid "The type of external filament is unknown or does not match with the filament type in the slicing file. Please make sure you have installed the correct filament in the external spool."
 msgstr "Se desconoce el tipo de filamento externo o no coincide con el tipo de filamento indicado en el archivo de corte. Asegúrate de haber colocado el filamento correcto en la bobina externa."
-
-msgid "Please refer to Wiki before use->"
-msgstr "Consulte la Wiki antes de usar->"
 
 msgid "Current firmware does not support file transfer to internal storage."
 msgstr "El firmware actual no admite la transferencia de archivos al almacenamiento interno."
@@ -9118,6 +9557,9 @@ msgstr "Sincroniza la modificación de parámetros con los parámetros correspon
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Presionar para reiniciar todos los ajustes al perfil guardado por defecto."
 
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "Se requiere una torre de purga para el cambio de boquilla. Puede haber imperfecciones en el modelo sin la torre de purga. ¿Está seguro de que desea desactivar la torre de purga?"
+
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "Se requiere una torre de purga para un timelapse suave. Puede haber defectos en los modelos si no se usa una torre de purga. ¿Está seguro de que quiere deshabilitar la torre de purgado?"
 
@@ -9195,9 +9637,6 @@ msgstr "¿Desea ajustar el rango automáticamente?\n"
 
 msgid "Adjust"
 msgstr "Ajustar"
-
-msgid "Ignore"
-msgstr "Ignorar"
 
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Función experimental: retraer y cortar el filamento a una mayor distancia durante los cambios de filamento para minimizar el purgado. Aunque puede reducir notablemente el purgado, también puede aumentar el riesgo de atascos de boquilla u otras complicaciones de impresión.Característica experimental: Retraer y cortar el filamento a mayor distancia durante los cambios de filamento para minimizar el descarte. Aunque puede reducir notablemente el descarte, también puede elevar el riesgo de atascos de boquillas u otros problemas en la impresión."
@@ -9692,6 +10131,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "¿Está seguro de %1% el perfil seleccionado?"
 
+msgid "Select printers"
+msgstr "Seleccionar impresoras"
+
+msgid "Select profiles"
+msgstr "Seleccionar perfiles"
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -9935,6 +10380,12 @@ msgstr "Transferir valores de izquierda a derecha"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "Si se activa, este cuadro de diálogo se puede utilizar para transferir los valores seleccionados de los perfiles de la izquierda a la los de la derecha."
+
+msgid "One of the presets does not exist"
+msgstr "Uno de los perfiles no existe"
+
+msgid "Compared presets has different printer technology"
+msgstr "Los perfiles comparados tienen distinta tecnología de impresora"
 
 msgid "Add File"
 msgstr "Añadir archivo"
@@ -10192,7 +10643,7 @@ msgid "Successfully synchronized nozzle and AMS number information."
 msgstr "Información de boquilla y número AMS sincronizada con éxito."
 
 msgid "Do you want to continue to sync filaments?"
-msgstr ""
+msgstr "¿Desea continuar sincronizando filamentos?"
 
 msgid "Successfully synchronized filament color from printer."
 msgstr "Color de filamento sincronizado desde la impresora con éxito."
@@ -10296,6 +10747,9 @@ msgstr "Inicio de sesión"
 
 msgid "Login failed. Please try again."
 msgstr "El inicio de sesión ha fallado. Inténtalo de nuevo."
+
+msgid "parse json failed"
+msgstr "error al analizar el json"
 
 msgid "[Action Required] "
 msgstr "[Acción requerida] "
@@ -10603,6 +11057,9 @@ msgstr "Nombre de la impresora"
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "¿Dónde encontrar la IP de su impresora y el Código de Acceso?"
 
+msgid "How to trouble shooting"
+msgstr "Cómo resolver problemas"
+
 msgid "Connect"
 msgstr "Conectar"
 
@@ -10667,6 +11124,9 @@ msgstr "Módulo de corte"
 msgid "Auto Fire Extinguishing System"
 msgstr "Sistema de extinción automática de incendios"
 
+msgid "Filament Track Switch"
+msgstr ""
+
 msgid "Beta"
 msgstr "Beta"
 
@@ -10684,6 +11144,9 @@ msgstr "Actualización fallida"
 
 msgid "Update successful"
 msgstr "Actualización exitosa"
+
+msgid "Hotends on Rack"
+msgstr "Hotends en el rack"
 
 msgid "Are you sure you want to update? This will take about 10 minutes. Do not turn off the power while the printer is updating."
 msgstr "¿Estás seguro que deseas actualizar? Esto puede llevar sobre 10 minutos. No apague mientras la impresora está actualizando."
@@ -10787,6 +11250,9 @@ msgstr "Error de agrupación: "
 
 msgid " can not be placed in the "
 msgstr " no se puede colocar en el "
+
+msgid "Group error in manual mode. Please check nozzle count or regroup."
+msgstr ""
 
 msgid "Internal Bridge"
 msgstr "Puente Interior"
@@ -11465,6 +11931,14 @@ msgid ""
 "\n"
 "Use 180° for zero absolute angle."
 msgstr ""
+"Anulación del ángulo de puente externo.\n"
+"Si se deja en cero, el ángulo de puente se calculará automáticamente para cada puente específico.\n"
+"De lo contrario, el ángulo indicado se utilizará según:\n"
+" - Las coordenadas absolutas\n"
+" - Las coordenadas absolutas + rotación del modelo: si «Alinear direcciones al modelo» está activado\n"
+" - El ángulo automático óptimo + este valor: si «Ángulo de puente relativo» está activado\n"
+"\n"
+"Use 180° para un ángulo absoluto de cero."
 
 msgid "Internal bridge infill direction"
 msgstr "Dirección de relleno de puentes internos"
@@ -11479,6 +11953,14 @@ msgid ""
 "\n"
 "Use 180° for zero absolute angle."
 msgstr ""
+"Anulación del ángulo de puente interno.\n"
+"Si se deja en cero, el ángulo de puente se calculará automáticamente para cada puente específico.\n"
+"De lo contrario, el ángulo indicado se utilizará según:\n"
+" - Las coordenadas absolutas\n"
+" - Las coordenadas absolutas + rotación del modelo: si «Alinear direcciones al modelo» está activado\n"
+" - El ángulo automático óptimo + este valor: si «Ángulo de puente relativo» está activado\n"
+"\n"
+"Use 180° para un ángulo absoluto de cero."
 
 msgid "Relative bridge angle"
 msgstr "Ángulo de puente relativo"
@@ -11972,9 +12454,6 @@ msgstr ""
 "La geometría se verá diezmada antes de detectar angulos agudos. Este parámetro indica la longitud mínima de desviación para el diezmado\n"
 "0 para desactivar."
 
-msgid "Select printers"
-msgstr "Seleccionar impresoras"
-
 msgid "upward compatible machine"
 msgstr "máquina compatible ascendente"
 
@@ -11983,9 +12462,6 @@ msgstr "Condición"
 
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Una expresión booleana que utiliza los valores de configuración de un perfil de impresora activo. Si esta expresión es verdadera, el perfil será considerado compatible con el perfil de impresora activo."
-
-msgid "Select profiles"
-msgstr "Seleccionar perfiles"
 
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "Una expresión booleana que utiliza los valores de configuración de un perfil de impresión activo. Si el resultado de esta expresión es verdadero, se considera que este perfil es compatible con el perfil de impresión activo."
@@ -12252,24 +12728,29 @@ msgid "Density of top surface layer. A value of 100% creates a fully solid, smoo
 msgstr "Densidad de la capa superficial superior. Un valor de 100% crea una capa superior totalmente sólida y lisa. Reducir este valor produce una superficie superior texturada, según el patrón elegido. Un valor de 0% provocará que sólo se creen las paredes en la capa superior. Destinado a fines estéticos o funcionales, no para corregir problemas como la sobreextrusión."
 
 msgid "Top surface expansion"
-msgstr ""
+msgstr "Expansión de la superficie superior"
 
 msgid ""
 "Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
 "Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
 msgstr ""
+"Expande las superficies superiores esta distancia para conectar superficies superiores distintas y rellenar huecos.\n"
+"Útil en casos en los que la superficie superior queda interrumpida por un elemento en relieve, como texto sobre un plano. Al expandirla se eliminan los huecos bajo estos elementos y se crea un trazado continuo con un mejor acabado para imprimir encima. La expansión se aplica a la superficie superior original, antes de cualquier otro procesamiento como el puenteo o la detección de salientes."
 
 msgid "Top expansion wall margin"
-msgstr ""
+msgstr "Margen de perímetro de la expansión superior"
 
 msgid ""
 "Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
 "This can cause contraction marks (such as the hull line) on the outer walls.\n"
 "By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
 msgstr ""
+"Usar «Expansión de la superficie superior» puede hacer que una superficie que antes no tocaba los perímetros exteriores del modelo ahora sí lo haga.\n"
+"Esto puede provocar marcas de contracción (como la línea del casco) en los perímetros exteriores.\n"
+"Al añadir un pequeño margen, esta contracción no se producirá directamente sobre los perímetros, evitando así una marca visible."
 
 msgid "Top expansion direction"
-msgstr ""
+msgstr "Dirección de la expansión superior"
 
 msgid ""
 "Direction in which the top surface expansion grows.\n"
@@ -12277,15 +12758,19 @@ msgid ""
 " - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
 " - Inward and Outward does both."
 msgstr ""
+"Dirección en la que crece la expansión de la superficie superior.\n"
+" - Hacia dentro crece en los huecos y espacios que dejan los elementos que se elevan desde el centro de una superficie superior.\n"
+" - Hacia fuera crece en el borde exterior de la superficie, conectando superficies separadas por elementos que pueden dividir una superficie, como un patrón de enrejado.\n"
+" - Hacia dentro y hacia fuera hace ambas cosas."
 
 msgid "Inward and Outward"
-msgstr ""
+msgstr "Hacia dentro y hacia fuera"
 
 msgid "Inward"
-msgstr ""
+msgstr "Hacia dentro"
 
 msgid "Outward"
-msgstr ""
+msgstr "Hacia fuera"
 
 msgid "Bottom surface pattern"
 msgstr "Patrón de relleno de cubierta inferior"
@@ -12620,11 +13105,17 @@ msgstr "Auto para Descarga"
 msgid "Auto For Match"
 msgstr "Auto para Coincidencia"
 
+msgid "Nozzle Manual"
+msgstr "Manual de la boquilla"
+
 msgid "Flush temperature"
 msgstr "Temperatura de descarga"
 
 msgid "Temperature when flushing filament. 0 indicates the upper bound of the recommended nozzle temperature range."
 msgstr "Temperatura al limpiar el filamento. 0 indica el límite superior del rango de temperatura recomendado para la boquilla."
+
+msgid "Flush temperature used in fast purge mode."
+msgstr ""
 
 msgid "Flush volumetric speed"
 msgstr "Velocidad volumétrica de descarga"
@@ -12888,6 +13379,12 @@ msgstr "Filamento imprimible"
 msgid "The filament is printable in extruder."
 msgstr "El filamento es imprimible en el extrusor."
 
+msgid "Filament-extruder compatibility"
+msgstr ""
+
+msgid "A single 32-bit int encoding the compatibility level of a filament across all extruders (up to 10). Every 3 bits represent one extruder (bits [3*i, 3*i+2] for extruder i). 0: printable, 1: error, 2: critical warning, 3: warning, 4-7: reserved."
+msgstr ""
+
 msgid "Softening temperature"
 msgstr "Temperatura de ablandado"
 
@@ -12952,12 +13449,14 @@ msgid "Density of internal sparse infill, 100% turns all sparse infill into soli
 msgstr "Densidad del relleno de baja densidad interno, el 100% convierte el relleno de baja densidad en relleno sólido y se utilizará el patrón de relleno sólido interno."
 
 msgid "Align directions to model"
-msgstr ""
+msgstr "Alinear direcciones al modelo"
 
 msgid ""
 "Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
 "When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
+"Alinea las direcciones de relleno, puente, alisado y superficie superior/inferior para que sigan la orientación del modelo sobre la cama de impresión.\n"
+"Cuando está activado, estas direcciones giran junto con el modelo, de modo que los elementos impresos mantienen su orientación prevista respecto a la pieza, conservando la resistencia y las características de superficie óptimas independientemente de cómo se coloque el modelo."
 
 msgid "Insert solid layers"
 msgstr "Insertar capas sólidas"
@@ -13482,6 +13981,15 @@ msgstr "Mejor auto posicionamiento de los objetos en el rango [0,1] con respecto
 msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
 msgstr "Activar esta opción si la máquina dispone de ventilador auxiliar de refrigeración de piezas. Comando G-Code: M106 P2 S(0-255)."
 
+msgid "Fan direction"
+msgstr ""
+
+msgid "Cooling fan direction of the printer"
+msgstr ""
+
+msgid "Both"
+msgstr ""
+
 msgid ""
 "Start the fan this number of seconds earlier than its target start time (you can use fractional seconds). It assumes infinite acceleration for this time estimation, and will only take into account G1 and G0 moves (arc fitting is unsupported).\n"
 "It won't move fan commands from custom G-code (they act as a sort of 'barrier').\n"
@@ -13552,6 +14060,12 @@ msgid ""
 msgstr ""
 "Active esta opción si la impresora admite filtración de aire\n"
 "Comando G-Code: M106 P3 S(0-255)"
+
+msgid "Use cooling filter"
+msgstr "Usar un filtro de enfriamiento"
+
+msgid "Enable this if printer support cooling filter"
+msgstr "Activar esta opción si la impresora soporta el filtro de enfriamiento"
 
 msgid "G-code flavor"
 msgstr "Tipo de G-Code"
@@ -14073,6 +14587,30 @@ msgstr "Velocidad mínima de desplazamiento"
 
 msgid "Minimum travel speed (M205 T)"
 msgstr "Velocidad mínima de desplazamiento (M205 T)"
+
+msgid "Maximum force of the Y axis"
+msgstr "Fuerza máxima del eje Y"
+
+msgid "The allowed maximum output force of Y axis"
+msgstr "La fuerza máxima permitida del eje Y"
+
+msgid "N"
+msgstr ""
+
+msgid "Bed mass of the Y axis"
+msgstr "Masa de la cama del eje Y"
+
+msgid "The machine bed mass load of Y axis"
+msgstr "La carga de la masa de la cama de la máquina del eje Y"
+
+msgid "g"
+msgstr ""
+
+msgid "The allowed max printed mass"
+msgstr "Masa máxima de impresión permitida"
+
+msgid "The allowed max printed mass on a plate"
+msgstr "Masa máxima impresa permitida en una placa"
 
 msgid "Maximum acceleration for extruding"
 msgstr "Aceleración máxima para la extrusión"
@@ -14626,6 +15164,9 @@ msgstr "Extrusor Directo"
 msgid "Bowden"
 msgstr "Bowden"
 
+msgid "Hybrid"
+msgstr "Híbrido"
+
 msgid "Enable filament dynamic map"
 msgstr "Habilitar mapa dinámico de filamentos"
 
@@ -14658,6 +15199,12 @@ msgstr "Velocidad de De-retracción"
 
 msgid "Speed for reloading filament into the nozzle. Zero means same speed of retraction."
 msgstr "Velocidad para recargar el filamento en la boquilla. Cero significa la misma velocidad que la retracción."
+
+msgid "Deretraction speed (extruder change)"
+msgstr ""
+
+msgid "Speed for reloading filament into the nozzle when switching extruder."
+msgstr ""
 
 msgid "Use firmware retraction"
 msgstr "Usar retracción de firmware (beta)"
@@ -14962,6 +15509,12 @@ msgstr "Si se selecciona el modo suave o tradicional, se generará un vídeo tim
 msgid "Traditional"
 msgstr "Tradicional"
 
+msgid "Farthest point timelapse"
+msgstr ""
+
+msgid "When enabled, the timelapse snapshot is taken at the farthest point from camera instead of traveling to the wipe tower or excess chute. Only effective in traditional timelapse mode on non-I3 printers."
+msgstr ""
+
 msgid "Temperature variation"
 msgstr "Variación de temperatura"
 
@@ -15048,16 +15601,19 @@ msgid "If enabled, all printing extruders will be primed at the front edge of th
 msgstr "Sí se activa, todos los extrusores serán purgados en el frontal de la cama de impresión al inicio de la impresión."
 
 msgid "Toolchange ordering"
-msgstr ""
+msgstr "Orden de cambios de herramienta"
 
 msgid ""
 "Determines the order of tool changes on each layer.\n"
 "- Default: Starts with the last used extruder to minimize tool changes.\n"
 "- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
 msgstr ""
+"Determina el orden de los cambios de herramienta en cada capa.\n"
+"- Por defecto: Comienza con el último extrusor utilizado para minimizar los cambios de herramienta.\n"
+"- Cíclico: Utiliza una secuencia de herramientas fija en cada capa. Esto sacrifica velocidad a cambio de una mejor calidad de superficie, ya que los cambios de herramienta adicionales dan más tiempo a las capas para enfriarse."
 
 msgid "Cyclic"
-msgstr ""
+msgstr "Cíclico"
 
 msgid "Slice gap closing radius"
 msgstr "Radio de cierre de laminado"
@@ -15496,7 +16052,7 @@ msgid "The number of top solid layers is increased when slicing if the thickness
 msgstr "El número de capas sólidas superiores se incrementa al laminar si el espesor calculado por las capas de la cubierta es más delgado que este valor. Esto puede evitar tener una cubierta demasiado fina cuando la altura de la capa es pequeña. 0 significa que este ajuste está desactivado y el grosor de la capa superior está absolutamente determinado por las capas de la cubierta superior."
 
 msgid "Anisotropic surfaces"
-msgstr ""
+msgstr "Superficies anisótropas"
 
 msgid ""
 "Anisotropic patterns on the top and bottom surfaces.\n"
@@ -15504,9 +16060,13 @@ msgid ""
 "This option disable the gap fill.\n"
 "This option can increase a printing time."
 msgstr ""
+"Patrones anisótropos en las superficies superior e inferior.\n"
+"Se aplicará el modo de impresión codireccional. Para ciertos patrones, el relleno omnidireccional proporciona dispersión del color al usar plásticos multicolor o de tipo seda.\n"
+"Esta opción desactiva el relleno de huecos.\n"
+"Esta opción puede aumentar el tiempo de impresión."
 
 msgid "Separated infills"
-msgstr ""
+msgstr "Rellenos separados"
 
 msgid ""
 "Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
@@ -15514,9 +16074,13 @@ msgid ""
 "Affects line and grid patterns and rotation-template infills.\n"
 "Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
 msgstr ""
+"Centra el relleno interno de cada pieza sobre sí misma, como si se laminara por separado, en lugar de sobre todo el conjunto. Las piezas que se tocan o se superponen se tratan como un solo cuerpo y comparten un centro; las piezas separadas (u objetos 3D distintos) tienen cada una el suyo.\n"
+"Útil cuando un conjunto agrupa varios objetos que deben mantener cada uno un relleno coherente y autocentrado.\n"
+"Afecta a los patrones de línea y cuadrícula y a los rellenos con plantilla de rotación.\n"
+"Los patrones anclados a coordenadas globales (Giroide, Panal, TPMS, ...) no se ven afectados."
 
 msgid "Center surface pattern on"
-msgstr ""
+msgstr "Centrar el patrón de superficie en"
 
 msgid ""
 "Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
@@ -15524,15 +16088,19 @@ msgid ""
 " - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
 " - Each Assembly: uses a single shared center for the whole object or assembly."
 msgstr ""
+"Elige dónde se sitúa el punto de centrado de los patrones centrados de superficie superior/inferior (Espiral de Arquímedes, Espiral Octagonal).\n"
+" - Cada superficie: centra el patrón en cada región de superficie individual, de modo que cada isla es simétrica por sí misma.\n"
+" - Cada modelo: centra el patrón en cada cuerpo conectado. Las piezas que se tocan o se superponen comparten un centro; las piezas separadas del resto tienen cada una el suyo.\n"
+" - Cada conjunto: usa un único centro compartido para todo el objeto o conjunto."
 
 msgid "Each Surface"
-msgstr ""
+msgstr "Cada superficie"
 
 msgid "Each Model"
-msgstr ""
+msgstr "Cada modelo"
 
 msgid "Each Assembly"
-msgstr ""
+msgstr "Cada conjunto"
 
 msgid "This is the speed at which traveling is done."
 msgstr "Velocidad de desplazamiento más rápida y sin extrusión."
@@ -15577,11 +16145,29 @@ msgstr "Multiplicador de flujo"
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "El volumen de flujo real es igual al producto del multiplicador de flujo y los volúmenes de flujo de la tabla."
 
+msgid "Flush multiplier (Fast mode)"
+msgstr ""
+
+msgid "The flush multiplier used in fast purge mode."
+msgstr ""
+
 msgid "Prime volume"
 msgstr "Volumen de purga"
 
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "El volumen de material para purgar la extrusora en la torre."
+
+msgid "Prime volume mode"
+msgstr ""
+
+msgid "Selects how the wipe-tower prime and flush volumes are computed on multi-extruder printers."
+msgstr ""
+
+msgid "Saving"
+msgstr ""
+
+msgid "Fast"
+msgstr ""
 
 msgid "This is the width of prime towers."
 msgstr "Ancho de la torre de purga."
@@ -15869,6 +16455,57 @@ msgstr "Ancho mínimo del perímetro"
 
 msgid "Width of the wall that will replace thin features (according to the Minimum feature size) of the model. If the Minimum wall width is thinner than the thickness of the feature, the wall will become as thick as the feature itself. It's expressed as a percentage over nozzle diameter."
 msgstr "Anchura del perímetro que sustituirá a los elementos finos (según el tamaño mínimo del elemento) del modelo. Si la anchura mínima del perímetro es menor que el grosor de la característica, el perímetro será tan grueso como la propia característica. Se expresa en porcentaje en base al diámetro de la boquilla."
+
+msgid "Hotend change time"
+msgstr "Tiempo del cambio de Hotend"
+
+msgid "Time to change hotend."
+msgstr "Es hora de cambiar el Hotend."
+
+msgid "Hotend change"
+msgstr "Cambio del Hotend"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "Al cambiar el hotend, se recomienda extruir una determinada longitud de filamento de la boquilla original. Esto ayuda a minimizar el rezumado de la boquilla."
+
+msgid "Extruder change"
+msgstr "Cambio de extrusor"
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "Para evitar la exudación, la boquilla realizará un movimiento de desplazamiento inverso durante un cierto tiempo una vez finalizado el apisonado. El ajuste define el tiempo de desplazamiento."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "Para evitar la supuración, la temperatura de la boquilla se enfriará durante la embestida. Por lo tanto, el tiempo de embestida debe ser mayor que el tiempo de enfriamiento. 0 significa que está desactivado."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "La velocidad volumétrica máxima para embestir antes del cambio de extrusor, donde -1 significa usar la velocidad volumétrica máxima."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "Para evitar el rezumado, la temperatura de la boquilla se enfriará durante el empuje. Nota: solo se activan un comando de enfriamiento y el ventilador, no se garantiza alcanzar la temperatura objetivo. 0 significa deshabilitado."
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "La velocidad volumétrica máxima para embestir antes de un cambio de Hotend, donde -1 significa usar la velocidad volumétrica máxima."
+
+msgid "length when change hotend"
+msgstr "longitud al cambiar el hotend"
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "Cuando se modifique este valor de retracción, se utilizará como la cantidad de filamento retraído dentro del hotend antes de cambiar los hotends."
+
+msgid "Support fast purge mode"
+msgstr ""
+
+msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "El volumen de material necesario para cebar el extrusor al cambiar el Hotend en la torre."
+
+msgid "Preheat temperature delta"
+msgstr "Diferencial de temperatura de precalentamiento"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "Diferencial de temperatura aplicado durante el precalentamiento antes del cambio de herramienta."
 
 msgid "Detect narrow internal solid infills"
 msgstr "Detectar relleno sólido interno estrecho"
@@ -16610,12 +17247,6 @@ msgstr ""
 msgid "Calibration not supported"
 msgstr "Calibración no soportada"
 
-msgid "Error desc"
-msgstr "Error en la descripción"
-
-msgid "Extra info"
-msgstr "Información extra"
-
 msgid "Flow Dynamics"
 msgstr "Dinámicas de Flujo"
 
@@ -16819,6 +17450,12 @@ msgstr "Por favor, introduzca el nombre que quiera asignar a la impresora."
 msgid "The name cannot exceed 40 characters."
 msgstr "El nombre no puede exceder de 40 caracteres."
 
+msgid "Nozzle ID"
+msgstr "ID de la boquilla"
+
+msgid "Standard Flow"
+msgstr "Flujo estándar"
+
 msgid "Please find the best line on your plate"
 msgstr "Por favor encuentre la mejor línea en su cama"
 
@@ -16908,9 +17545,6 @@ msgstr "La información de AMS y de la boquilla está sincronizada"
 msgid "Nozzle Flow"
 msgstr "Flujo de boquilla"
 
-msgid "Nozzle Info"
-msgstr "Información de boquilla"
-
 msgid "Filament position"
 msgstr "Posición de filamento"
 
@@ -16983,6 +17617,10 @@ msgstr "Éxito recuperando el historial de resultados"
 
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "Refrescar el histórico de resultados de Calibración de Dinámicas de Flujo"
+
+#, c-format, boost-format
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "Nota: El número del hotend en el %s está vinculado al soporte. Cuando el hotend se mueve a un nuevo soporte, su número se actualizará automáticamente."
 
 msgid "Action"
 msgstr "Acción"
@@ -18728,6 +19366,12 @@ msgstr "Error de impresión"
 msgid "Removed"
 msgstr "Eliminado"
 
+msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
+msgstr ""
+
+msgid "Fila Saving"
+msgstr ""
+
 msgid "Don't remind me again"
 msgstr "No me recuerdes de nuevo"
 
@@ -18761,11 +19405,24 @@ msgstr "Vídeo tutorial"
 msgid "(Sync with printer)"
 msgstr "(Sincronizar con impresora)"
 
+#, c-format, boost-format
+msgid "Error: %s extruder has no available %s nozzle, current group result is invalid."
+msgstr ""
+
 msgid "We will slice according to this grouping method:"
 msgstr "Laminar según este método de agrupación:"
 
 msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr "Tip: Puedes arrastrar los filamentos para reasignarlos a diferentes boquillas."
+
+msgid "Please adjust your grouping or click "
+msgstr ""
+
+msgid " to set nozzle count"
+msgstr ""
+
+msgid "Set the physical nozzle count..."
+msgstr ""
 
 msgid "The filament grouping method for current plate is determined by the dropdown option at the slicing plate button."
 msgstr "El método de agrupación de filamentos para la placa actual se determina por la opción desplegable en el botón de placa de laminado."
@@ -18997,9 +19654,6 @@ msgstr "Esta acción no se puede deshacer. ¿Continuar?"
 
 msgid "Skipping objects."
 msgstr "Omitiendo objetos."
-
-msgid "Select Filament"
-msgstr "Seleccionar Filamento"
 
 msgid "Null Color"
 msgstr "Color Nulo"
@@ -19514,6 +20168,18 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+#~ msgid "Renders cast shadows on the plate in realistic view."
+#~ msgstr "Los objetos renderizados proyectan sombras sobre la cama en la vista realista."
+
+#~ msgid ""
+#~ "Applies smooth normals to the realistic view.\n"
+#~ "\n"
+#~ "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+#~ msgstr ""
+#~ "Aplica normales suavizadas a la vista realista.\n"
+#~ "\n"
+#~ "Requiere recargar la escena manualmente para que surta efecto (clic derecho en la vista 3D → \"Recargar todo\")."
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "Continuar sincronizando filamentos"
@@ -20425,9 +21091,6 @@ msgstr ""
 
 #~ msgid "Can't start this without SD card."
 #~ msgstr "No puede iniciarse sin una tarjeta SD."
-
-#~ msgid "Update"
-#~ msgstr "Actualizar"
 
 #~ msgid "Sensitivity of pausing is"
 #~ msgstr "La sensibilidad de pausa es"
@@ -22903,213 +23566,3 @@ msgstr ""
 
 #~ msgid "preparing, export 3MF failed!"
 #~ msgstr "Preparando; ¡Error al exportar 3MF!"
-
-msgid "Abnormal Hotend"
-msgstr "Hotend anómalo"
-
-msgid "Available Nozzles"
-msgstr "Boquillas Disponibles"
-
-msgid "Bed mass of the Y axis"
-msgstr "Masa de la cama del eje Y"
-
-msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
-msgstr "Precaución: No se incluye la combinación de diámetros de boquilla en una misma impresión. Si el tamaño seleccionado está únicamente en un extrusor, se aplicará la impresión con un solo extrusor."
-
-msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
-msgstr "Durante la actualización del hotend, el cabezal se moverá. No meta la mano en la cámara."
-
-msgid "Enable this if printer support cooling filter"
-msgstr "Activar esta opción si la impresora soporta el filtro de enfriamiento"
-
-msgid "Error: Can not set both nozzle count to zero."
-msgstr "Error: No se puede establecer el conteo de boquillas a cero."
-
-msgid "Error: Nozzle count can not exceed %d."
-msgstr "Error: La cantidad de boquillas no puede exceder de %d."
-
-msgid "Extruder change"
-msgstr "Cambio de extrusor"
-
-msgid "Hotend change"
-msgstr "Cambio del Hotend"
-
-msgid "Hotend change time"
-msgstr "Tiempo del cambio de Hotend"
-
-msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
-msgstr "La información del hotend podría ser inexacta. ¿Desea volver a leer el hotend? (La información del hotend puede cambiar al apagar el dispositivo)."
-
-msgid "Hybrid"
-msgstr "Híbrido"
-
-msgid "I confirm all"
-msgstr "Confirmar todo"
-
-msgid "Induction Hotend Rack"
-msgstr "Estante de Hotend por Inducción"
-
-msgid "Maximum force of the Y axis"
-msgstr "Fuerza máxima del eje Y"
-
-msgid "Nozzle Manual"
-msgstr "Manual de la boquilla"
-
-msgid "Nozzle Selection"
-msgstr "Guía de selección de boquillas"
-
-msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
-msgstr "Por favor, confirme si el diámetro de la boquilla y el caudal requeridos coinciden con los valores que se muestran actualmente."
-
-msgid "Please set nozzle count"
-msgstr "Por favor, configure el número de boquillas"
-
-msgid "Preheat temperature delta"
-msgstr "Diferencial de temperatura de precalentamiento"
-
-msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
-msgstr "Se requiere una torre de purga para el cambio de boquilla. Puede haber imperfecciones en el modelo sin la torre de purga. ¿Está seguro de que desea desactivar la torre de purga?"
-
-msgid "Re-read all"
-msgstr "Volver a leerlo todo"
-
-msgid "Reading the hotends, please wait."
-msgstr "Leyendo los hotends, por favor espere."
-
-msgid "Refresh %d/%d..."
-msgstr "Actualizar %d/%d..."
-
-msgid "Sync Nozzle status"
-msgstr "Estado de la boquilla de sincronización"
-
-msgid "TPU High Flow"
-msgstr "TPU de alto flujo"
-
-msgid "Temperature delta applied during pre-heating before tool change."
-msgstr "Diferencial de temperatura aplicado durante el precalentamiento antes del cambio de herramienta."
-
-msgid "The allowed max printed mass"
-msgstr "Masa máxima de impresión permitida"
-
-msgid "The allowed max printed mass on a plate"
-msgstr "Masa máxima impresa permitida en una placa"
-
-msgid "The allowed maximum output force of Y axis"
-msgstr "La fuerza máxima permitida del eje Y"
-
-msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
-msgstr "Este hotend presenta un problema y no está disponible en este momento. Por favor, vaya a \"Dispositivo -> Actualizar\" para actualizar el firmware."
-
-msgid "The machine bed mass load of Y axis"
-msgstr "La carga de la masa de la cama de la máquina del eje Y"
-
-msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
-msgstr "La velocidad volumétrica máxima para embestir antes de un cambio de Hotend, donde -1 significa usar la velocidad volumétrica máxima."
-
-msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
-msgstr "La velocidad volumétrica máxima para embestir antes del cambio de extrusor, donde -1 significa usar la velocidad volumétrica máxima."
-
-msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
-msgstr "Es posible que el cabezal y el rack del hotend se muevan. Mantenga las manos alejadas de la cámara."
-
-msgid "The volume of material required to prime the extruder for a hotend change on the tower."
-msgstr "El volumen de material necesario para cebar el extrusor al cambiar el Hotend en la torre."
-
-msgid "Time to change hotend."
-msgstr "Es hora de cambiar el Hotend."
-
-msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
-msgstr "Para evitar el rezumado, la temperatura de la boquilla se enfriará durante el empuje. Nota: solo se activan un comando de enfriamiento y el ventilador, no se garantiza alcanzar la temperatura objetivo. 0 significa deshabilitado."
-
-msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
-msgstr "Para evitar la supuración, la temperatura de la boquilla se enfriará durante la embestida. Por lo tanto, el tiempo de embestida debe ser mayor que el tiempo de enfriamiento. 0 significa que está desactivado."
-
-msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
-msgstr "Para evitar la exudación, la boquilla realizará un movimiento de desplazamiento inverso durante un cierto tiempo una vez finalizado el apisonado. El ajuste define el tiempo de desplazamiento."
-
-msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
-msgstr "Boquilla desconocida detectada. Actualiza para sincronizarla (las boquillas no actualizadas se omitirán durante el laminado)."
-
-msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
-msgstr "Se ha detectado una boquilla desconocida. Actualice para obtener información actualizada (las boquillas no actualizadas se excluirán durante el corte). Verifique el diámetro y la tasa de flujo de la boquilla con los valores mostrados."
-
-msgid "Use cooling filter"
-msgstr "Usar un filtro de enfriamiento"
-
-msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
-msgstr "Al cambiar el hotend, se recomienda extruir una determinada longitud de filamento de la boquilla original. Esto ayuda a minimizar el rezumado de la boquilla."
-
-msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
-msgstr "Cuando se modifique este valor de retracción, se utilizará como la cantidad de filamento retraído dentro del hotend antes de cambiar los hotends."
-
-msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
-msgstr "Su impresora tiene diferentes boquillas instaladas. Por favor, seleccione una boquilla para esta impresión."
-
-msgid "length when change hotend"
-msgstr "longitud al cambiar el hotend"
-
-msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
-msgstr "Las boquillas dinámicas están asignadas a la placa actual. Seleccionar hotend no está soportado."
-
-msgid "Hotend Rack"
-msgstr "Rack del hotend"
-
-msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
-msgstr "El estado del hotend es anormal y no está disponible actualmente. Por favor, actualice el firmware e inténtelo de nuevo."
-
-msgid "Hotends Info"
-msgstr "Información de Hotends"
-
-msgid "Hotends on Rack"
-msgstr "Hotends en el rack"
-
-msgid "Jump to the upgrade page"
-msgstr "Ir a la página de actualización"
-
-msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
-msgstr "Nota: El número del hotend en el %s está vinculado al soporte. Cuando el hotend se mueve a un nuevo soporte, su número se actualizará automáticamente."
-
-msgid "Nozzle ID"
-msgstr "ID de la boquilla"
-
-msgid "Nozzle information needs to be read"
-msgstr "Es necesario leer la información de la boquilla"
-
-msgid "Please wait"
-msgstr "Espere por favor"
-
-msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
-msgstr "La impresión con la boquilla actual puede producir un extra de %0.2f g de desperdicio."
-
-msgid "Raised"
-msgstr "Aumentado"
-
-msgid "Read All"
-msgstr "Leer todo"
-
-msgid "Reading "
-msgstr "Leyendo "
-
-msgid "Row A"
-msgstr "Fila A"
-
-msgid "Row B"
-msgstr "Fila B"
-
-msgid "Running..."
-msgstr "En ejecución..."
-
-msgid "Select Filament && Hotends"
-msgstr "Seleccionar Filamento && Hotends"
-
-msgid "Standard Flow"
-msgstr "Flujo estándar"
-
-msgid "ToolHead"
-msgstr "Cabezal"
-
-msgid "Toolhead"
-msgstr "Cabezal"
-
-msgid "Used Time: %s"
-msgstr "Tiempo empleado: %s"
