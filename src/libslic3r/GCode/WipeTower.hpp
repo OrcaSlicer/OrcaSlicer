@@ -404,6 +404,9 @@ public:
     void add_depth_to_block(int filament_id, int filament_adhesiveness_category, float depth, bool is_nozzle_change = false);
 	int get_filament_category(int filament_id);
 	bool is_in_same_extruder(int filament_id_1, int filament_id_2);
+	// Clamp a per-filament change-length read; the config array may be shorter than the
+	// filament count for partial or legacy configs.
+	double filament_change_length_at(size_t filament_id) const;
 	// Vortek H2C: format BBS-compatible NOZZLE_CHANGE_START/END tag with OF/NF/ON/NN payload
 	std::string format_nozzle_change_tag(bool start, int old_filament_id, int new_filament_id) const;
 	void reset_block_status();
