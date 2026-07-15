@@ -1,9 +1,5 @@
 #include "MainFrame.hpp"
 
-#include <wx/event.h>
-#ifdef __WXGTK__
-#include <wx/gtk/app.h>
-#endif
 #include <wx/panel.h>
 #include <wx/notebook.h>
 #include <wx/listbook.h>

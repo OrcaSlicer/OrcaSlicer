@@ -16761,14 +16761,15 @@ void Plater::reslice()
     if (get_view3D_canvas3D()->get_gizmos_manager().is_in_editing_mode(true))
         return;
 
-    // Keep slicing blocked even if a toolbar/menu path has not refreshed its enabled state yet.
-    // validate_current_plate also refreshes the missing-plugin notifications and plate readiness.
-    bool model_fits = false;
-    bool validate_error = false;
-    validate_current_plate(model_fits, validate_error);
-    if (!model_fits || validate_error) {
+    // Enforce the missing-plugin block at the slicing choke point: menu/keyboard/queued triggers can
+    // carry a stale enabled state while plugins load asynchronously. refresh_missing_plugin_block
+    // rebuilds the missing sets and notifications from the active presets without running
+    // Print::validate; all other validation keeps upstream behavior and is surfaced by
+    // update_background_process() below.
+    if (refresh_missing_plugin_block()) {
+        p->partplate_list.get_curr_plate()->update_slice_ready_status(false);
         p->main_frame->update_slice_print_status(MainFrame::eEventPlateUpdate, false);
-        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": current plate validation failed; slicing blocked.";
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": required plugins missing; slicing blocked.";
         return;
     }
 
@@ -18713,7 +18714,7 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
     }
 
     PartPlate* part_plate = p->partplate_list.get_curr_plate();
-    part_plate->update_slice_ready_status(model_fits && !validate_error);
+    part_plate->update_slice_ready_status(model_fits);
 
     // The toolbar Slice button is normally refreshed only by the canvas
     // (EVT_GLCANVAS_ENABLE_ACTION_BUTTONS) on geometry updates. When the missing-plugin block toggles
@@ -18722,7 +18723,7 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
     // can_slice() flag that get_enable_slice_status() reads — so the button doesn't lag until the
     // next bed click.
     if (plugins_block_changed && !p->background_process.running())
-        p->main_frame->update_slice_print_status(MainFrame::eEventObjectUpdate, model_fits && !validate_error);
+        p->main_frame->update_slice_print_status(MainFrame::eEventObjectUpdate, model_fits);
 
     return;
 }

@@ -722,7 +722,7 @@ public:
     // Rebuild the missing-plugin sets from the active presets and (re)show/close their notifications.
     // Returns true when slicing must be blocked (a referenced plugin is still missing); sets
     // *block_toggled when the blocked state changed since the previous call (so the caller can refresh
-    // the Slice button). Helper for validate_current_plate.
+    // the Slice button). Helper for validate_current_plate and the reslice() gate.
     bool refresh_missing_plugin_block(bool* block_toggled = nullptr);
     // Re-run plate validation when a plugin finishes loading, but only while a missing-plugin
     // notification is active, so it clears automatically once the required plugin is available.

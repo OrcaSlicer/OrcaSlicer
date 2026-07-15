@@ -695,16 +695,16 @@ bool PresetBundle::use_bbl_network()
 }
 
 bool PresetBundle::use_bbl_device_tab() {
-    const auto cfg = printers.get_edited_preset().config;
-
-    if (!is_bbl_vendor())
+    if (!is_bbl_vendor()) {
         return false;
+    }
 
     if (use_bbl_network()) {
         return true;
     }
 
-    // Use bbl device tab if printhost webui url is not set
+    const auto cfg = printers.get_edited_preset().config;
+    // Use bbl device tab if printhost webui url is not set 
     return cfg.opt_string("print_host_webui").empty();
 }
 
