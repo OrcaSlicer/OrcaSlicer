@@ -3,6 +3,8 @@
 #include "libslic3r/Format/3mf.hpp"
 #include "libslic3r/Format/STL.hpp"
 
+#include "test_utils.hpp"
+
 #include <boost/filesystem/operations.hpp>
 
 #include <catch2/catch_tostring.hpp>
@@ -103,8 +105,8 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
         src_object->instances.front()->set_transformation(src_instance_transform);
 
         WHEN("model is saved+loaded to/from 3mf file") {
-            // save the model to 3mf file
-            std::string test_file = std::string(TEST_DATA_DIR) + "/test_3mf/prusa.3mf";
+            ScopedTemporaryFile temp(".3mf");
+            const std::string test_file = temp.string();
             store_3mf(test_file.c_str(), &src_model, nullptr, false);
 
             // load back the model from the 3mf file
@@ -114,7 +116,6 @@ SCENARIO("Export+Import geometry to/from 3mf file cycle", "[3mf]") {
                 ConfigSubstitutionContext ctxt{ ForwardCompatibilitySubstitutionRule::Disable };
                 load_3mf(test_file.c_str(), dst_config, ctxt, &dst_model, false);
             }
-            boost::filesystem::remove(test_file);
 
             // compare meshes
             TriangleMesh src_mesh = src_model.mesh();
@@ -146,7 +147,7 @@ SCENARIO("2D convex hull of sinking object", "[3mf][.]") {
             object->center_around_origin(false);
 
 	    // This outputs the same exact data as the Prusaslicer test
-	    object->volumes[0]->mesh().write_ascii("/tmp/orca.ascii");
+	    write_debug_stl("3mf/orca.ascii", object->volumes[0]->mesh());
 
             // set instance's attitude so that it is rotated, scaled (and sinking? how is it sinking? the rotation? does it matter if it's sinking?)
             ModelInstance* instance = object->instances[0];
