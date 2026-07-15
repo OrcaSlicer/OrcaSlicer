@@ -1942,12 +1942,16 @@ ExecutionResult PluginManager::run_script_capability(const std::string& plugin_k
         return {};
 
     auto cap_interface = std::dynamic_pointer_cast<ScriptPluginCapability>(cap);
-    if (cap_interface)
+    if (!cap_interface)
         return {};
 
     ExecutionResult result;
     try {
         PythonGILState gil;
+        if (!gil) {
+            error = "Python interpreter is shutting down";
+            return {};
+        }
         result = cap_interface->execute();
     } catch (const std::exception& ex) {
         error = ex.what();
