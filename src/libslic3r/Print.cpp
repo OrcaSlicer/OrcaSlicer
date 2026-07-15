@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <limits>
 #include <numeric>
+#include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <sstream>
@@ -77,21 +78,42 @@ static std::vector<BedExcludeRegion> translated_bed_exclusion_volumes(const Prin
     return regions;
 }
 
-static bool intersects_bed_exclusion_volume(const ModelInstance &instance, const std::vector<BedExcludeRegion> &regions)
+static std::vector<std::vector<BedExcludeRegion>> translated_bed_exclusion_volumes_by_extruder(const Print &print)
 {
-    if (regions.empty())
-        return false;
+    std::vector<std::vector<BedExcludeRegion>> regions_by_extruder = get_bed_excluded_regions_by_extruder(print.config());
+    const Point print_origin(scale_(print.get_plate_origin().x()), scale_(print.get_plate_origin().y()));
+    for (std::vector<BedExcludeRegion> &regions : regions_by_extruder)
+        for (BedExcludeRegion &region : regions)
+            region.polygon.translate(print_origin);
+    return regions_by_extruder;
+}
 
-    Polygon hull = const_cast<ModelInstance&>(instance).convex_hull_2d();
-    for (const BedExcludeRegion &region : regions) {
-        if (intersection(Polygons{ region.polygon }, Polygons{ hull }).empty())
-            continue;
+static std::optional<size_t> colliding_bed_exclusion_extruder(
+    const Print &print,
+    const PrintObject &print_object,
+    const ModelInstance &instance,
+    const std::vector<std::vector<BedExcludeRegion>> &regions_by_extruder)
+{
+    if (regions_by_extruder.empty())
+        return std::nullopt;
 
-        if (instance.intersects_bed_exclude_region(region))
-            return true;
+    if (is_auto_filament_map_mode(print.get_filament_map_mode())) {
+        std::optional<size_t> first_collision;
+        for (size_t extruder_id = 0; extruder_id < regions_by_extruder.size(); ++extruder_id) {
+            if (!instance.intersects_bed_exclude_regions(regions_by_extruder[extruder_id]))
+                return std::nullopt;
+            if (!first_collision.has_value())
+                first_collision = extruder_id;
+        }
+        return first_collision;
     }
 
-    return false;
+    for (const unsigned int filament_id : print_object.printing_extruders()) {
+        const size_t extruder_id = std::min(print.get_extruder_id(filament_id), regions_by_extruder.size() - 1);
+        if (instance.intersects_bed_exclude_regions(regions_by_extruder[extruder_id]))
+            return extruder_id;
+    }
+    return std::nullopt;
 }
 
 static Polygons full_height_bed_exclusion_polygons(const std::vector<BedExcludeRegion> &regions)
@@ -154,7 +176,10 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "max_travel_detour_distance",
         "printable_area",
         //BBS: add bed_exclude_area
+        "bed_exclude_area_mode",
         "bed_exclude_area",
+        "extruder_bed_exclude_area",
+        "extruder_offset",
         "thumbnail_size",
         "before_layer_change_gcode",
         "enable_pressure_advance",
@@ -686,7 +711,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
     StringObjectException single_object_exception;
     const auto& print_config = print.config();
     const Vec3d print_origin = print.get_plate_origin();
-    const std::vector<BedExcludeRegion> exclusion_volumes = translated_bed_exclusion_volumes(print);
+    const std::vector<std::vector<BedExcludeRegion>> exclusion_volumes = translated_bed_exclusion_volumes_by_extruder(print);
 
     struct print_instance_info
     {
@@ -737,15 +762,20 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     // Convert the shift from the PrintObject's coordinates into ModelObject's coordinates by removing the centering offset.
                     convex_hull.translate(instance.shift - print_object->center_offset());
                 }
-                if (intersects_bed_exclusion_volume(*instance.model_instance, exclusion_volumes)) {
+                const std::optional<size_t> collision_extruder = colliding_bed_exclusion_extruder(
+                    print, *print_object, *instance.model_instance, exclusion_volumes);
+                if (collision_extruder.has_value()) {
+                    const std::string collision_message = is_auto_filament_map_mode(print.get_filament_map_mode()) ?
+                        (boost::format(L("%1% intersects exclusion volumes for every available extruder.")) % instance.model_instance->get_object()->name).str() :
+                        (boost::format(L("%1% intersects an exclusion volume for extruder %2%.")) % instance.model_instance->get_object()->name % (*collision_extruder + 1)).str();
                     if (single_object_exception.string.empty()) {
-                        single_object_exception.string = (boost::format(L("%1% is too close to exclusion volume, there may be collisions when printing.")) %instance.model_instance->get_object()->name).str();
+                        single_object_exception.string = collision_message;
                         // single_object_exception.object = instance.model_instance->get_object();
                         //ORCA: Pass ModelInstance instead of ModelObject
                         single_object_exception.object = instance.model_instance;
                     }
                     else {
-                        single_object_exception.string += "\n" + (boost::format(L("%1% is too close to exclusion volume, there may be collisions when printing.")) % instance.model_instance->get_object()->name).str();
+                        single_object_exception.string += "\n" + collision_message;
                         single_object_exception.object = nullptr;
                     }
                 }
@@ -1001,8 +1031,8 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
 
     const auto& print_config = print.config();
     const Vec3d print_origin = print.get_plate_origin();
-    const std::vector<BedExcludeRegion> exclusion_volumes = translated_bed_exclusion_volumes(print);
-    const Polygons prime_tower_exclude_polys = full_height_bed_exclusion_polygons(exclusion_volumes);
+    const std::vector<std::vector<BedExcludeRegion>> exclusion_volumes = translated_bed_exclusion_volumes_by_extruder(print);
+    const Polygons prime_tower_exclude_polys = full_height_bed_exclusion_polygons(translated_bed_exclusion_volumes(print));
 
     Pointfs wrapping_detection_area = print_config.wrapping_exclude_area.values;
     Polygon wrapping_poly;
@@ -1031,8 +1061,13 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
             }
             current_instance_hulls.emplace_back(volume_hull);
         }
-        if (intersects_bed_exclusion_volume(*inst->model_instance, exclusion_volumes))
-            return {inst->model_instance->get_object()->name + L(" is too close to exclusion volume, there may be collisions when printing.") + "\n", inst->model_instance};
+        if (const std::optional<size_t> collision_extruder = colliding_bed_exclusion_extruder(
+                print, *inst->print_object, *inst->model_instance, exclusion_volumes); collision_extruder.has_value()) {
+            const std::string message = is_auto_filament_map_mode(print.get_filament_map_mode()) ?
+                (boost::format(L("%1% intersects exclusion volumes for every available extruder.")) % inst->model_instance->get_object()->name).str() :
+                (boost::format(L("%1% intersects an exclusion volume for extruder %2%.")) % inst->model_instance->get_object()->name % (*collision_extruder + 1)).str();
+            return {message + "\n", inst->model_instance};
+        }
 
         if (!intersection(convex_hulls_other, current_instance_hulls).empty()) {
             if (warning) {

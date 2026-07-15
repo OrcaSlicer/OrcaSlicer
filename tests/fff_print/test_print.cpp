@@ -119,6 +119,23 @@ size_t count_opt_key(const std::vector<StringObjectException>& warnings, const s
         [&](const StringObjectException& w) { return w.opt_key == key; });
 }
 
+DynamicPrintConfig dual_extruder_exclusion_config(FilamentMapMode map_mode, int mapped_extruder)
+{
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_num_extruders(2);
+    config.set_key_value("nozzle_diameter", new ConfigOptionFloats{ 0.4, 0.4 });
+    config.set_key_value("extruder_offset", new ConfigOptionPoints{ Vec2d::Zero(), Vec2d(20.0, 0.0) });
+    config.set_key_value("extruder_printable_height", new ConfigOptionFloatsNullable{ 256.0, 256.0 });
+    config.set_key_value("bed_exclude_area_mode", new ConfigOptionEnum<BedExcludeAreaMode>(BedExcludeAreaMode::PerExtruder));
+    config.set_key_value("extruder_bed_exclude_area", new ConfigOptionStrings{
+        "0..256;-100x-100,300x-100,300x300,-100x300",
+        ""
+    });
+    config.set_key_value("filament_map_mode", new ConfigOptionEnum<FilamentMapMode>(map_mode));
+    config.set_key_value("filament_map", new ConfigOptionInts{ mapped_extruder });
+    return config;
+}
+
 // Make `default_acceleration` exceed the machine's extruding-acceleration limit.
 void trigger_acceleration_warning(DynamicPrintConfig& c)
 {
@@ -144,6 +161,26 @@ void trigger_precise_wall_warning(DynamicPrintConfig& c)
 }
 
 } // namespace
+
+TEST_CASE("Print validation applies exclusion volumes to the relevant extruder", "[Print][BedExclude][MultiNozzle]")
+{
+    std::vector<StringObjectException> warnings;
+
+    SECTION("manual mapping rejects the colliding extruder") {
+        const StringObjectException error = validate_cubes(dual_extruder_exclusion_config(fmmManual, 1), warnings);
+        CHECK(error.string.find("extruder 1") != std::string::npos);
+    }
+
+    SECTION("manual mapping accepts a clear extruder") {
+        const StringObjectException error = validate_cubes(dual_extruder_exclusion_config(fmmManual, 2), warnings);
+        CHECK(error.string.empty());
+    }
+
+    SECTION("automatic mapping remains valid when at least one extruder is clear") {
+        const StringObjectException error = validate_cubes(dual_extruder_exclusion_config(fmmAutoForMatch, 1), warnings);
+        CHECK(error.string.empty());
+    }
+}
 
 // ---------------------------------------------------------------------------
 // {first_object_name} filename placeholder

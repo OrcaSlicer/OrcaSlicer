@@ -3643,6 +3643,36 @@ bool ModelInstance::intersects_bed_exclude_region(const BedExcludeRegion &region
     return intersects;
 }
 
+bool ModelInstance::intersects_bed_exclude_regions(
+    const std::vector<BedExcludeRegion> &regions,
+    indexed_triangle_set *intersection_mesh) const
+{
+    if (intersection_mesh != nullptr)
+        intersection_mesh->clear();
+    if (regions.empty())
+        return false;
+
+    const Polygon hull = const_cast<ModelInstance *>(this)->convex_hull_2d();
+    bool intersects = false;
+    for (const BedExcludeRegion &region : regions) {
+        if (intersection(Polygons{ region.polygon }, Polygons{ hull }).empty())
+            continue;
+
+        if (intersection_mesh == nullptr) {
+            if (intersects_bed_exclude_region(region))
+                return true;
+            continue;
+        }
+
+        indexed_triangle_set region_intersection;
+        if (intersects_bed_exclude_region(region, &region_intersection) && !region_intersection.empty()) {
+            intersects = true;
+            its_merge(*intersection_mesh, region_intersection);
+        }
+    }
+    return intersects;
+}
+
 //BBS: invalidate instance's convex_hull_2d
 void ModelInstance::invalidate_convex_hull_2d()
 {

@@ -7,6 +7,7 @@
 #include <string>
 #include <thread>
 #include <mutex>
+#include <memory>
 
 #include "libslic3r/ObjectID.hpp"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
@@ -136,6 +137,7 @@ private:
     GLModel m_wrapping_detection_triangles;
     GLModel m_exclusion_volume_floor_triangles;
     GLModel m_exclusion_volume_border_triangles;
+    std::vector<std::pair<std::unique_ptr<GLModel>, ColorRGBA>> m_extruder_exclusion_volume_borders;
     GLModel m_active_exclusion_volume_prisms;
     GLModel m_exclusion_volume_intersection_triangles;
     std::string m_exclusion_volume_preview_cache_key;

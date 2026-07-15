@@ -1212,14 +1212,31 @@ void PartPlate::update_exclusion_volume_preview_models()
         m_exclusion_volume_preview_cache_key.clear();
         m_exclusion_volume_floor_triangles.reset();
         m_exclusion_volume_border_triangles.reset();
+        m_extruder_exclusion_volume_borders.clear();
         m_active_exclusion_volume_prisms.reset();
         m_exclusion_volume_intersection_triangles.reset();
         m_exclusion_volume_intersections_cleared = false;
         return;
     }
 
+    const std::vector<std::vector<BedExcludeRegion>> regions_by_extruder = get_bed_excluded_regions_by_extruder(*config);
     std::vector<BedExcludeRegion> regions = get_bed_excluded_regions(*config);
-    const std::string cache_key = exclusion_volume_preview_cache_key(regions);
+    const BedExcludeAreaMode mode = config->opt_enum<BedExcludeAreaMode>("bed_exclude_area_mode");
+    std::ostringstream grouped_key;
+    grouped_key << exclusion_volume_preview_cache_key(regions) << "mode:" << int(mode) << ";groups:";
+    for (const std::vector<BedExcludeRegion> &group : regions_by_extruder)
+        grouped_key << group.size() << ',';
+    const std::vector<std::string> filament_colors = m_plater->get_extruder_colors_from_plater_config();
+    std::vector<std::string> preview_colors(regions_by_extruder.size());
+    const ConfigOptionInts *filament_map = wxGetApp().preset_bundle->project_config.opt<ConfigOptionInts>("filament_map");
+    for (size_t filament_id = 0; filament_id < filament_colors.size(); ++filament_id) {
+        const int mapped_extruder = filament_map != nullptr && filament_id < filament_map->size() ? filament_map->values[filament_id] - 1 : int(filament_id);
+        if (mapped_extruder >= 0 && size_t(mapped_extruder) < preview_colors.size() && preview_colors[mapped_extruder].empty())
+            preview_colors[mapped_extruder] = filament_colors[filament_id];
+    }
+    for (const std::string &color : preview_colors)
+        grouped_key << color << ',';
+    const std::string cache_key = grouped_key.str();
     if (cache_key == m_exclusion_volume_preview_cache_key && !m_exclusion_volume_intersections_cleared)
         return;
     m_exclusion_volume_preview_cache_key = cache_key;
@@ -1227,6 +1244,7 @@ void PartPlate::update_exclusion_volume_preview_models()
 
     m_exclusion_volume_floor_triangles.reset();
     m_exclusion_volume_border_triangles.reset();
+    m_extruder_exclusion_volume_borders.clear();
     m_active_exclusion_volume_prisms.reset();
     m_exclusion_volume_intersection_triangles.reset();
 
@@ -1237,6 +1255,37 @@ void PartPlate::update_exclusion_volume_preview_models()
     std::vector<std::pair<BedExcludeRegion, Polygon>> preview_regions;
     Polygons preview_footprints;
     std::vector<ExclusionVolumePrismPreview> active_prisms;
+
+    if (mode != BedExcludeAreaMode::Shared) {
+        static const std::array<ColorRGBA, 6> fallback_colors = {
+            ColorRGBA{ .18f, .52f, .95f, .92f }, ColorRGBA{ .95f, .35f, .22f, .92f },
+            ColorRGBA{ .25f, .72f, .38f, .92f }, ColorRGBA{ .72f, .34f, .88f, .92f },
+            ColorRGBA{ .95f, .68f, .16f, .92f }, ColorRGBA{ .18f, .76f, .78f, .92f }
+        };
+        const coord_t tool_border_width = scale_(0.55);
+        for (size_t extruder_id = 0; extruder_id < regions_by_extruder.size(); ++extruder_id) {
+            ColorRGBA color = fallback_colors[extruder_id % fallback_colors.size()];
+            if (extruder_id < preview_colors.size()) {
+                ColorRGBA decoded;
+                if (decode_color(preview_colors[extruder_id], decoded)) {
+                    color = decoded;
+                    color.a(0.92f);
+                }
+            }
+
+            for (const BedExcludeRegion &region_src : regions_by_extruder[extruder_id]) {
+                Polygon footprint = region_src.polygon;
+                footprint.translate(plate_offset);
+                footprint.make_counter_clockwise();
+                const Polygons inner = offset(Polygons{ footprint }, -tool_border_width, jtMiter, 2.0);
+                const ExPolygons border = inner.empty() ? ExPolygons{ expolygon_from_polygon(footprint) } : diff_ex(Polygons{ footprint }, inner);
+                auto model = std::make_unique<GLModel>();
+                const float border_z = static_cast<float>(std::max<double>(GROUND_Z + 0.026, region_src.has_z_range ? region_src.z_min + 0.026 : GROUND_Z + 0.026));
+                if (init_model_from_expolygons(*model, border, border_z) && model->is_initialized())
+                    m_extruder_exclusion_volume_borders.emplace_back(std::move(model), color);
+            }
+        }
+    }
 
     for (const BedExcludeRegion &region_src : regions) {
         Polygon region = region_src.polygon;
@@ -1334,6 +1383,11 @@ void PartPlate::render_exclusion_volume_previews(bool force_default_color)
 
     m_exclusion_volume_border_triangles.set_color(ribbon_color);
     m_exclusion_volume_border_triangles.render();
+
+    for (auto &colored_border : m_extruder_exclusion_volume_borders) {
+        colored_border.first->set_color(colored_border.second);
+        colored_border.first->render();
+    }
 
     m_active_exclusion_volume_prisms.set_color(prism_color);
     m_active_exclusion_volume_prisms.render();

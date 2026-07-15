@@ -530,6 +530,14 @@ enum FilamentMapMode {
     fmmDefault
 };
 
+// Defines how bed exclusion volumes are resolved for printers with multiple
+// independently positioned nozzles/toolheads.
+enum class BedExcludeAreaMode {
+    Shared = 0,
+    ToolheadOffset,
+    PerExtruder
+};
+
 // All auto modes are ordered before fmmManual (see the enum ordering note above).
 inline bool is_auto_filament_map_mode(FilamentMapMode mode) {
     return mode < fmmManual;
@@ -1752,7 +1760,9 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionInt,                parallel_printheads_count))
     ((ConfigOptionStrings,            parallel_printheads_bed_exclude_areas))
     //BBS: add bed_exclude_area
+    ((ConfigOptionEnum<BedExcludeAreaMode>, bed_exclude_area_mode))
     ((ConfigOptionPoints,             bed_exclude_area))
+    ((ConfigOptionStrings,            extruder_bed_exclude_area))
     ((ConfigOptionPoints,             head_wrap_detect_zone))
     // BBS
     ((ConfigOptionString,             bed_custom_texture))
@@ -2310,7 +2320,12 @@ struct BedExcludeRegion {
 };
 std::vector<BedExcludeRegion> get_bed_excluded_regions(const DynamicPrintConfig& cfg);
 std::vector<BedExcludeRegion> get_bed_excluded_regions(const PrintConfig& cfg);
+std::vector<BedExcludeRegion> get_bed_excluded_regions(const DynamicPrintConfig &cfg, size_t extruder_id);
+std::vector<BedExcludeRegion> get_bed_excluded_regions(const PrintConfig &cfg, size_t extruder_id);
+std::vector<std::vector<BedExcludeRegion>> get_bed_excluded_regions_by_extruder(const DynamicPrintConfig &cfg);
+std::vector<std::vector<BedExcludeRegion>> get_bed_excluded_regions_by_extruder(const PrintConfig &cfg);
 bool has_bed_exclusion_volume_syntax(const ConfigOptionPoints& bed_exclude_area);
+bool is_valid_bed_exclude_area_string(const std::string &value, double printable_height);
 Slic3r::Polygons get_bed_excluded_area(const PrintConfig& cfg);
 Slic3r::Polygon get_bed_shape_with_excluded_area(const PrintConfig& cfg, bool use_share = false);
 bool has_skirt(const DynamicPrintConfig& cfg);
