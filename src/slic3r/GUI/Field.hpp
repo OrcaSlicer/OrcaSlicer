@@ -43,6 +43,7 @@ using t_back_to_init = std::function<void(const std::string&)>;
 wxString double_to_string(double const value, const int max_precision = 4);
 wxString get_thumbnail_string(const Vec2d& value);
 wxString get_thumbnails_string(const std::vector<Vec2d>& values);
+wxString get_formatted_tooltip_text(const ConfigOptionDef& opt, const t_config_option_key& id);
 
 class UndoValueUIManager
 {
@@ -189,6 +190,7 @@ public:
     /// Call the attached m_fn_edit_value method.
 	void			on_edit_value();
 
+    virtual void propagate_value(){}
 public:
     /// parent wx item, opportunity to refactor (probably not necessary - data duplication)
     wxWindow*		m_parent {nullptr};
@@ -316,7 +318,7 @@ public:
     void BUILD() override;
     bool value_was_changed();
     // Propagate value from field to the OptionGroupe and Config after kill_focus/ENTER
-    void propagate_value();
+    virtual void propagate_value() override;
     wxWindow* window {nullptr};
 
     void	set_value(const std::string& value, bool change_event = false) {

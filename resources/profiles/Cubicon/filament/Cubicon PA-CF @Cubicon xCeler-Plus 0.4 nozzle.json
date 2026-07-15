@@ -1,0 +1,13 @@
+{
+	"type": "filament",
+	"name": "Cubicon PA-CF @Cubicon xCeler-Plus 0.4 nozzle",
+	"inherits": "Cubicon PA-CF @base",
+	"setting_id": "ygB1Uf9Vbw9LJZc8",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Cubicon xCeler-Plus 0.4 nozzle"
+	],
+	"filament_settings_id": [
+		"Cubicon PA-CF @Cubicon xCeler-Plus 0.4 nozzle"
+	]
+}

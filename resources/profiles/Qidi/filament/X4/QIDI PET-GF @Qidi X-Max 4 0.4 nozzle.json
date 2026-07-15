@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "QIDI PET-GF @Qidi X-Max 4 0.4 nozzle",
+	"inherits": "QIDI PET-GF@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "C3LQIPedb6PsEmGT",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi X-Max 4 0.4 nozzle"
+	]
+}

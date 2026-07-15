@@ -161,10 +161,11 @@ namespace AABBTreeLines {
     // on centroids of the lines.
     // Epsilon is applied to the bounding boxes of the AABB Tree to cope with numeric inaccuracies
     // during tree traversal.
-    template <typename LineType>
-    inline AABBTreeIndirect::Tree<2, typename LineType::Scalar> build_aabb_tree_over_indexed_lines(const std::vector<LineType>& lines)
+    template<typename LineType>
+    inline AABBTreeIndirect::Tree<LineType::Dim, typename LineType::Scalar> build_aabb_tree_over_indexed_lines(
+        const std::vector<LineType>& lines)
     {
-        using TreeType = AABBTreeIndirect::Tree<2, typename LineType::Scalar>;
+        using TreeType = AABBTreeIndirect::Tree<LineType::Dim, typename LineType::Scalar>;
         //    using              CoordType      = typename TreeType::CoordType;
         using VectorType = typename TreeType::VectorType;
         using BoundingBox = typename TreeType::BoundingBox;
@@ -303,7 +304,7 @@ namespace AABBTreeLines {
 
     private:
         std::vector<LineType> lines;
-        AABBTreeIndirect::Tree<2, Scalar> tree;
+        AABBTreeIndirect::Tree<LineType::Dim, Scalar> tree;
 
     public:
         explicit LinesDistancer(const std::vector<LineType>& lines)
@@ -321,15 +322,15 @@ namespace AABBTreeLines {
         LinesDistancer() = default;
 
         // 1 true, -1 false, 0 cannot determine
-        int outside(const Vec<2, Scalar>& point) const { return point_outside_closed_contours(lines, tree, point); }
+        int outside(const Vec<LineType::Dim, Scalar>& point) const { return point_outside_closed_contours(lines, tree, point); }
 
         // negative sign means inside
-        template <bool SIGNED_DISTANCE>
-        std::tuple<Floating, size_t, Vec<2, Floating>> distance_from_lines_extra(const Vec<2, Scalar>& point) const
+        template<bool SIGNED_DISTANCE>
+        std::tuple<Floating, size_t, Vec<LineType::Dim, Floating>> distance_from_lines_extra(const Vec<LineType::Dim, Scalar>& point) const
         {
             size_t nearest_line_index_out = size_t(-1);
-            Vec<2, Floating> nearest_point_out = Vec<2, Floating>::Zero();
-            Vec<2, Floating> p = point.template cast<Floating>();
+            Vec<LineType::Dim, Floating> nearest_point_out      = Vec<LineType::Dim, Floating>::Zero();
+            Vec<LineType::Dim, Floating> p                      = point.template cast<Floating>();
             auto distance = AABBTreeLines::squared_distance_to_indexed_lines(lines, tree, p, nearest_line_index_out, nearest_point_out);
 
             if (distance < 0) {
@@ -344,22 +345,20 @@ namespace AABBTreeLines {
             return { distance, nearest_line_index_out, nearest_point_out };
         }
 
-        template <bool SIGNED_DISTANCE>
-        Floating distance_from_lines(const Vec<2, typename LineType::Scalar>& point) const
+        template<bool SIGNED_DISTANCE> Floating distance_from_lines(const Vec<LineType::Dim, typename LineType::Scalar>& point) const
         {
             auto [dist, idx, np] = distance_from_lines_extra<SIGNED_DISTANCE>(point);
             return dist;
         }
 
-    	std::vector<size_t> all_lines_in_radius(const Vec<2, Scalar> &point, Floating radius)
-    	{
-        	return AABBTreeLines::all_lines_in_radius(this->lines, this->tree, point.template cast<Floating>(), radius * radius);
-    	}
-
-        template <bool sorted>
-        std::vector<std::pair<Vec<2, Scalar>, size_t>> intersections_with_line(const LineType& line) const
+        std::vector<size_t> all_lines_in_radius(const Vec<LineType::Dim, Scalar>& point, Floating radius)
         {
-            return get_intersections_with_line<sorted, Vec<2, Scalar>>(lines, tree, line);
+            return AABBTreeLines::all_lines_in_radius(this->lines, this->tree, point.template cast<Floating>(), radius * radius);
+        }
+
+        template<bool sorted> std::vector<std::pair<Vec<LineType::Dim, Scalar>, size_t>> intersections_with_line(const LineType& line) const
+        {
+            return get_intersections_with_line<sorted, Vec<LineType::Dim, Scalar>>(lines, tree, line);
         }
 
         const LineType& get_line(size_t line_idx) const { return lines[line_idx]; }

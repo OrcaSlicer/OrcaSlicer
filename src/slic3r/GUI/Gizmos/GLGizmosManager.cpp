@@ -251,22 +251,22 @@ bool GLGizmosManager::init_icon_textures()
     ImTextureID texture_id;
 
     icon_list.clear();
-    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_reset.svg", 14, 14, texture_id))
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_reset.svg", 16, 16, texture_id))
         icon_list.insert(std::make_pair((int)IC_TOOLBAR_RESET, texture_id));
     else
         return false;
 
-    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_reset_hover.svg", 14, 14, texture_id))
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_reset_hover.svg", 16, 16, texture_id))
         icon_list.insert(std::make_pair((int)IC_TOOLBAR_RESET_HOVER, texture_id));
     else
         return false;
 
-    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_reset_zero.svg", 14, 14, texture_id))
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_reset_zero.svg", 16, 16, texture_id))
         icon_list.insert(std::make_pair((int) IC_TOOLBAR_RESET_ZERO, texture_id));
     else
         return false;
 
-    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_reset_zero_hover.svg", 14, 14, texture_id))
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/toolbar_reset_zero_hover.svg", 16, 16, texture_id))
         icon_list.insert(std::make_pair((int) IC_TOOLBAR_RESET_ZERO_HOVER, texture_id));
     else
         return false;
@@ -281,23 +281,43 @@ bool GLGizmosManager::init_icon_textures()
     else
         return false;
 
-    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/axis_toggle.svg", 64, 64, texture_id))
-        icon_list.insert(std::make_pair((int) IC_AXIS_TOGGLE, texture_id));
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/canvas_menu.svg", 72, 72, texture_id))
+        icon_list.insert(std::make_pair((int) IC_CANVAS_MENU, texture_id));
     else
         return false;
 
-    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/axis_toggle_hover.svg", 64, 64, texture_id))
-        icon_list.insert(std::make_pair((int) IC_AXIS_TOGGLE_HOVER, texture_id));
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/canvas_menu_hover.svg", 72, 72, texture_id))
+        icon_list.insert(std::make_pair((int) IC_CANVAS_MENU_HOVER, texture_id));
     else
         return false;
 
-    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/axis_toggle_dark.svg", 64, 64, texture_id))
-        icon_list.insert(std::make_pair((int) IC_AXIS_TOGGLE_DARK, texture_id));
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/canvas_menu_dark.svg", 72, 72, texture_id))
+        icon_list.insert(std::make_pair((int) IC_CANVAS_MENU_DARK, texture_id));
     else
         return false;
 
-    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/axis_toggle_hover_dark.svg", 64, 64, texture_id))
-        icon_list.insert(std::make_pair((int) IC_AXIS_TOGGLE_DARK_HOVER, texture_id));
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/canvas_menu_dark_hover.svg", 72, 72, texture_id))
+        icon_list.insert(std::make_pair((int) IC_CANVAS_MENU_DARK_HOVER, texture_id));
+    else
+        return false;
+
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/canvas_zoom.svg", 72, 72, texture_id))
+        icon_list.insert(std::make_pair((int) IC_CANVAS_ZOOM, texture_id));
+    else
+        return false;
+
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/canvas_zoom_hover.svg", 72, 72, texture_id))
+        icon_list.insert(std::make_pair((int) IC_CANVAS_ZOOM_HOVER, texture_id));
+    else
+        return false;
+
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/canvas_zoom_dark.svg", 72, 72, texture_id))
+        icon_list.insert(std::make_pair((int) IC_CANVAS_ZOOM_DARK, texture_id));
+    else
+        return false;
+
+    if (IMTexture::load_from_svg_file(Slic3r::resources_dir() + "/images/canvas_zoom_dark_hover.svg", 72, 72, texture_id))
+        icon_list.insert(std::make_pair((int) IC_CANVAS_ZOOM_DARK_HOVER, texture_id));
     else
         return false;
     
@@ -1366,8 +1386,13 @@ bool GLGizmosManager::activate_gizmo(EType type)
                          UndoRedo::SnapshotType::LeavingGizmoWithAction);
     }
 
-    if (type == Undefined) { 
+    if (type == Undefined) {
         // it is deactivation of gizmo
+        if (m_restore_realistic_view_after_paint && wxGetApp().app_config != nullptr) {
+            wxGetApp().app_config->set_bool(SETTING_OPENGL_REALISTIC_MODE, true);
+            wxGetApp().app_config->save();
+            m_restore_realistic_view_after_paint = false;
+        }
         m_current = Undefined;
         return true;
     }
@@ -1375,6 +1400,16 @@ bool GLGizmosManager::activate_gizmo(EType type)
     // set up new gizmo
     GLGizmoBase& new_gizmo = *m_gizmos[type];
     if (!new_gizmo.is_activable()) return false;
+
+    if (type == Seam || type == FdmSupports || type == FuzzySkin) {
+        if (wxGetApp().app_config != nullptr && wxGetApp().app_config->get_bool(SETTING_OPENGL_REALISTIC_MODE)) {
+            m_restore_realistic_view_after_paint = true;
+            wxGetApp().app_config->set_bool(SETTING_OPENGL_REALISTIC_MODE, false);
+            wxGetApp().app_config->save();
+        }
+    } else {
+        m_restore_realistic_view_after_paint = false;
+    }
 
     if (!m_serializing && new_gizmo.wants_enter_leave_snapshots())
         Plater::TakeSnapshot snapshot(wxGetApp().plater(),

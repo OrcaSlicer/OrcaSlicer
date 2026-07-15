@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "QIDI UltraPA-CF25 @Qidi X-Max 4 0.4 nozzle",
+	"inherits": "QIDI UltraPA-CF25@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "vPCQfOT2QXyEpBWg",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi X-Max 4 0.4 nozzle"
+	]
+}

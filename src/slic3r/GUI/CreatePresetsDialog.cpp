@@ -8,6 +8,7 @@
 #include <openssl/evp.h>
 #include <wx/dcgraph.h>
 #include <wx/tooltip.h>
+#include <wx/utils.h>
 #include <boost/nowide/cstdio.hpp>
 #include "libslic3r/PresetBundle.hpp"
 #include "I18N.hpp"
@@ -17,6 +18,7 @@
 #include "Tab.hpp"
 #include "MainFrame.hpp"
 #include "libslic3r_version.h"
+#include "Widgets/HyperLink.hpp" // ORCA
 
 #define NAME_OPTION_COMBOBOX_SIZE wxSize(FromDIP(200), FromDIP(24))
 #define FILAMENT_PRESET_COMBOBOX_SIZE wxSize(FromDIP(300), FromDIP(24))
@@ -54,12 +56,12 @@ namespace GUI {
      "Justmaker",             "Keene Village Plastics",  "Kexcelled",              "LDO",                    "MakerBot",
      "MatterHackers",         "MIKA3D",                  "NinjaTek",               "Nobufil",                "Novamaker",
      "OVERTURE",              "OVVNYXE",                 "Polymaker",              "Priline",                "Printed Solid",
-     "Protopasta",            "Prusament",               "Push Plastic",           "R3D",                    "Re-pet3D",
-     "Recreus",               "Regen",                   "RatRig",                 "Sain SMART",             "SliceWorx",
-     "Snapmaker",             "SnoLabs",                 "Spectrum",               "SUNLU",                  "TTYT3D",
-     "Tianse",                "UltiMaker",               "Valment",                "Verbatim",               "VO3D",
-     "Voxelab",               "VOXELPLA",                "YOOPAI",                 "Yousu",                  "Ziro", 
-     "Zyltech"};
+     "Protopasta",            "Prusament",               "Push Plastic",           "R3D",                    "re3D",
+     "Re-pet3D",              "Recreus",                 "Regen",                  "RatRig",                 "Sain SMART",             
+     "SliceWorx",             "Snapmaker",               "SnoLabs",                "Spectrum",               "SUNLU",                  
+     "TTYT3D",                "Tianse",                  "UltiMaker",              "Valment",                "Verbatim",               
+     "VO3D",                  "Voxelab",                 "VOXELPLA",               "YOOPAI",                 "Yousu",                  
+     "Ziro",                  "Zyltech"};
      
 static const std::vector<std::string> filament_types = {"PLA",    "rPLA",  "PLA+",      "PLA Tough", "PETG",  "ABS",    "ASA",    "FLEX",   "HIPS",   "PA",     "PACF",
                                                         "NYLON",  "PVA",   "PVB",       "PC",        "PCABS", "PCTG",   "PCCF",   "PHA",    "PP",     "PEI",    "PET",
@@ -73,16 +75,16 @@ static const std::vector<std::string> printer_vendors =
      "FLSun",              "FlyingBear",         "Folgertech",         "Geeetech",           "Ginger Additive",
      "InfiMech",           "Kingroon",           "Lulzbot",            "MagicMaker",         "Mellow",
      "Orca Arena Printer", "Peopoly",            "Positron 3D",        "Prusa",              "Qidi",
-     "Raise3D",            "RatRig",             "RolohaunDesign",     "SecKit",             "Snapmaker",
-     "Sovol",              "Thinker X400",       "Tronxy",             "TwoTrees",           "UltiMaker",
-     "Vivedino",           "Volumic",            "Voron",              "Voxelab",            "Vzbot",
-     "Wanhao",             "Z-Bolt"};
+     "Raise3D",            "RatRig",             "re3D",               "RolohaunDesign",     "SecKit",             
+     "Snapmaker",          "Sovol",              "Thinker X400",       "Tronxy",             "TwoTrees",           
+     "UltiMaker",          "Vivedino",           "Volumic",            "Voron",              "Voxelab",            
+     "Vzbot",              "Wanhao",             "Z-Bolt"};
 
 static const std::unordered_map<std::string, std::vector<std::string>> printer_model_map =
     {{"Anker",             {"Anker M5",                   "Anker M5 All-Metal Hot End", "Anker M5C"}},
      {"Anycubic",          {"Anycubic i3 Mega S",    "Anycubic Chiron",       "Anycubic Vyper",        "Anycubic Kobra",        "Anycubic Kobra Max",
                             "Anycubic Kobra Plus",   "Anycubic 4Max Pro",     "Anycubic 4Max Pro 2",   "Anycubic Kobra 2",      "Anycubic Kobra 2 Plus",
-                            "Anycubic Kobra 2 Max",  "Anycubic Kobra 2 Pro",  "Anycubic Kobra 2 Neo",  "Anycubic Kobra 3",      "Anycubic Kobra S1", "Anycubic Predator", }},
+                            "Anycubic Kobra 2 Max",  "Anycubic Kobra 2 Pro",  "Anycubic Kobra 2 Neo",  "Anycubic Kobra 3",      "Anycubic Kobra 3 Max", "Anycubic Kobra S1", "Anycubic Predator", }},
      {"Artillery",         {"Artillery Sidewinder X1",      "Artillery Genius",             "Artillery Genius Pro",         "Artillery Sidewinder X2",      "Artillery Hornet",
                             "Artillery Sidewinder X3 Pro",  "Artillery Sidewinder X3 Plus", "Artillery Sidewinder X4 Pro",  "Artillery Sidewinder X4 Plus"}},
      {"Bambulab",          {"Bambu Lab X1 Carbon", "Bambu Lab X1",        "Bambu Lab X1E",       "Bambu Lab P1P",       "Bambu Lab P1S",
@@ -102,12 +104,12 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
                             "Creality Hi"}},
      {"DeltaMaker",        {"DeltaMaker 2",   "DeltaMaker 2T",  "DeltaMaker 2XT"}},
      {"Dremel",            {"Dremel 3D20", "Dremel 3D40", "Dremel 3D45"}},
-     {"Elegoo",            {"Elegoo Centauri Carbon",  "Elegoo Centauri",         "Elegoo Neptune",          "Elegoo Neptune X",        "Elegoo Neptune 2",
+     {"Elegoo",            {"Elegoo Centauri Carbon 2", "Elegoo Centauri Carbon",  "Elegoo Centauri",         "Elegoo Neptune",          "Elegoo Neptune X",        "Elegoo Neptune 2",
                             "Elegoo Neptune 2S",       "Elegoo Neptune 2D",       "Elegoo Neptune 3",        "Elegoo Neptune 3 Pro",    "Elegoo Neptune 3 Plus",
                             "Elegoo Neptune 3 Max",    "Elegoo Neptune 4 Pro",    "Elegoo Neptune 4",        "Elegoo Neptune 4 Max",    "Elegoo Neptune 4 Plus",
                             "Elegoo OrangeStorm Giga"}},
      {"Flashforge",        {"Flashforge Adventurer 5M",       "Flashforge Adventurer 5M Pro",   "Flashforge AD5X",                "Flashforge Adventurer 3 Series", "Flashforge Adventurer 4 Series",
-                            "Flashforge Guider 3 Ultra",      "Flashforge Guider 2s"}},
+                            "Flashforge Guider 3 Ultra",      "Flashforge Guider 2s", "Flashforge Artemis"}},
      {"FLSun",             {"FLSun Q5",               "FLSun QQ-S Pro",         "FLSun Super Racer (SR)", "FLSun V400",             "FLSun T1",
                             "FLSun S1"}},
      {"FlyingBear",        {"FlyingBear Reborn3", "FlyingBear S1",      "FlyingBear Ghost 6"}},
@@ -125,7 +127,7 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
      {"Orca Arena Printer",{"Orca Arena X1 Carbon"}},
      {"Peopoly",           {"Peopoly Magneto X"}},
      {"Positron 3D",       {"The Positron"}},
-     {"Prusa",             {"Prusa CORE One", "Prusa CORE One HF", "MK4IS", "MK4S", "MK4S HF",
+     {"Prusa",             {"Prusa CORE One", "Prusa CORE One HF", "Prusa CORE One L", "Prusa CORE One L HF", "MK4IS", "MK4S", "MK4S HF",
                             "Prusa XL", "Prusa XL 5T", "MK3.5", "MK3S", "MINI", "MINIIS"}},
      {"Qidi",              {"Qidi X-Plus 4",  "Qidi Q1 Pro",    "Qidi X-Max 3",   "Qidi X-Plus 3",  "Qidi X-Smart 3",
                             "Qidi X-Plus",    "Qidi X-Max",     "Qidi X-CF Pro"}},
@@ -135,6 +137,8 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
                             "RatRig V-Core 4 HYBRID 400",           "RatRig V-Core 4 HYBRID 500",           "RatRig V-Core 4 IDEX 300",             "RatRig V-Core 4 IDEX 300 COPY MODE",   "RatRig V-Core 4 IDEX 300 MIRROR MODE",
                             "RatRig V-Core 4 IDEX 400",             "RatRig V-Core 4 IDEX 400 COPY MODE",   "RatRig V-Core 4 IDEX 400 MIRROR MODE", "RatRig V-Core 4 IDEX 500",             "RatRig V-Core 4 IDEX 500 COPY MODE",
                             "RatRig V-Core 4 IDEX 500 MIRROR MODE"}},
+     {"re3D",              {"re3D Gigabot 4",                       "re3D Gigabot 4 XLT",                   "re3D Terabot 4",
+                            "re3D GigabotX 2",                      "re3D GigabotX 2 XLT",                  "re3D TerabotX 2"}},
      {"RolohaunDesign",    {"Rook MK1 LDO"}},
      {"SecKit",            {"SecKit SK-Tank", "Seckit Go3"}},
      {"Snapmaker",         {"Snapmaker J1",                 "Snapmaker A250",               "Snapmaker A350",               "Snapmaker A250 Dual",          "Snapmaker A350 Dual",
@@ -159,10 +163,11 @@ static const std::unordered_map<std::string, std::vector<std::string>> printer_m
      {"Z-Bolt",            {"Z-Bolt S300",      "Z-Bolt S300 Dual", "Z-Bolt S400",      "Z-Bolt S400 Dual", "Z-Bolt S600",
                             "Z-Bolt S600 Dual"}}};
 
-static std::vector<std::string>               nozzle_diameter_vec = {"0.4", "0.15", "0.2", "0.25", "0.3", "0.35", "0.5", "0.6", "0.75", "0.8", "1.0", "1.2"};
+static std::vector<std::string>               nozzle_diameter_vec = {"0.4", "0.15", "0.2", "0.25", "0.3", "0.35", "0.5", "0.6", "0.75", "0.8", "1.0", "1.2", "1.75"};
 static std::unordered_map<std::string, float> nozzle_diameter_map = {{"0.15", 0.15}, {"0.2", 0.2},   {"0.25", 0.25}, {"0.3", 0.3},
                                                                      {"0.35", 0.35}, {"0.4", 0.4},   {"0.5", 0.5},   {"0.6", 0.6},
-                                                                     {"0.75", 0.75}, {"0.8", 0.8},   {"1.0", 1.0},   {"1.2", 1.2}};
+                                                                     {"0.75", 0.75}, {"0.8", 0.8},   {"1.0", 1.0},   {"1.2", 1.2}, 
+                                                                     {"1.75", 1.75}};
 
 static std::set<int> cannot_input_key = {9, 10, 13, 33, 35, 36, 37, 38, 40, 41, 42, 44, 46, 47, 59, 60, 62, 63, 64, 92, 94, 95, 124, 126};
 
@@ -243,8 +248,7 @@ static bool delete_filament_preset_by_name(std::string delete_preset_name, std::
         if (!need_delete_preset) BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't find delete preset and name: %1%") % delete_preset_name;
         if (!need_delete_preset->setting_id.empty()) {
             BOOST_LOG_TRIVIAL(info) << "delete preset = " << need_delete_preset->name << ", setting_id = " << need_delete_preset->setting_id;
-            m_presets.set_sync_info_and_save(need_delete_preset->name, need_delete_preset->setting_id, "delete", 0);
-            wxGetApp().delete_preset_from_cloud(need_delete_preset->setting_id);
+            wxGetApp().delete_preset_from_cloud(need_delete_preset->setting_id, need_delete_preset->file);
         } else {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" can't preset setting id is empty and name: %1%") % delete_preset_name;
         }
@@ -766,7 +770,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_vendor_item()
     wxStaticText *static_vendor_text = new wxStaticText(this, wxID_ANY, _L("Vendor"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_vendor_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
     // Convert all std::any to std::string
     std::vector<std::string> string_vendors;
@@ -807,7 +811,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_vendor_item()
         event.Skip();
     });
     m_filament_custom_vendor_input->Hide();
-    vendor_sizer->Add(textInputSizer, 0, wxEXPAND | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    vendor_sizer->Add(textInputSizer, 0, wxEXPAND, FromDIP(10));
 
     wxBoxSizer *comboBoxSizer      = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *checkbox_sizer     = new wxBoxSizer(wxHORIZONTAL);
@@ -844,7 +848,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_vendor_item()
 
     comboBoxSizer->Add(vendor_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
     comboBoxSizer->Add(checkbox_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
-    horizontal_sizer->Add(comboBoxSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    horizontal_sizer->Add(comboBoxSizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
     return horizontal_sizer;
 
@@ -858,7 +862,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_type_item()
     wxStaticText *static_type_text = new wxStaticText(this, wxID_ANY, _L("Type"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_type_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
     wxArrayString filament_type;
     for (const wxString filament : m_system_filament_types_set) {
@@ -872,7 +876,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_type_item()
     m_filament_type_combobox->SetLabelColor(DEFAULT_PROMPT_TEXT_COLOUR);
     m_filament_type_combobox->Set(filament_type);
     comboBoxSizer->Add(m_filament_type_combobox, 0, wxEXPAND | wxALL, 0);
-    horizontal_sizer->Add(comboBoxSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    horizontal_sizer->Add(comboBoxSizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
     m_filament_type_combobox->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent &e) {
         m_filament_type_combobox->SetLabelColor(*wxBLACK);
@@ -904,7 +908,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_serial_item()
     wxStaticText *static_serial_text = new wxStaticText(this, wxID_ANY, _L("Serial"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_serial_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
     wxBoxSizer *comboBoxSizer = new wxBoxSizer(wxVERTICAL);
     m_filament_serial_input   = new TextInput(this, "", "", "", wxDefaultPosition, NAME_OPTION_COMBOBOX_SIZE, wxTE_PROCESS_ENTER);
@@ -923,7 +927,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_serial_item()
     static_eg_text->SetForegroundColour(wxColour("#6B6B6B"));
     static_eg_text->SetFont(::Label::Body_12);
     comboBoxSizer->Add(static_eg_text, 0, wxEXPAND | wxTOP, FromDIP(5));
-    horizontal_sizer->Add(comboBoxSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    horizontal_sizer->Add(comboBoxSizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
     return horizontal_sizer;
 }
@@ -936,7 +940,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_filament_preset_item()
     wxStaticText *static_filament_preset_text = new wxStaticText(this, wxID_ANY, _L("Filament Preset"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_filament_preset_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     wxBoxSizer *  comboBoxSizer  = new wxBoxSizer(wxVERTICAL);
     comboBoxSizer->Add(create_radio_item(m_create_type.base_filament, this, wxEmptyString, m_create_type_btns), 0, wxEXPAND | wxALL, 0);
@@ -1011,7 +1015,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_filament_preset_item()
 
     comboBoxSizer->Add(create_radio_item(m_create_type.base_filament_preset, this, wxEmptyString, m_create_type_btns), 0, wxEXPAND | wxTOP, FromDIP(10));
 
-    horizontal_sizer->Add(comboBoxSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(comboBoxSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     horizontal_sizer->Add(0, 0, 0, wxLEFT, FromDIP(30));
 
@@ -1027,7 +1031,7 @@ wxBoxSizer *CreateFilamentPresetDialog::create_filament_preset_for_printer_item(
     m_filament_preset_panel->SetSize(PRINTER_LIST_SIZE);
     m_filament_presets_sizer = new wxGridSizer(3, FromDIP(5), FromDIP(5));
     m_filament_preset_panel->SetSizer(m_filament_presets_sizer);
-    vertical_sizer->Add(m_filament_preset_panel, 0, wxEXPAND | wxTOP | wxALIGN_CENTER_HORIZONTAL, FromDIP(5));
+    vertical_sizer->Add(m_filament_preset_panel, 0, wxEXPAND | wxTOP, FromDIP(5));
 
     return vertical_sizer;
 }
@@ -1045,7 +1049,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
 
         if (!m_can_not_find_vendor_checkbox->GetValue()) {
             if (_L("Select Vendor") == vendor_str) {
-                MessageDialog dlg(this, _L("Vendor is not selected, please reselect vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+                MessageDialog dlg(this, _L("Vendor is not selected; please reselect vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                                   wxYES | wxYES_DEFAULT | wxCENTRE);
                 dlg.ShowModal();
                 return;
@@ -1054,7 +1058,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
             }
         } else {
             if (m_filament_custom_vendor_input->GetTextCtrl()->GetValue().empty()) {
-                MessageDialog dlg(this, _L("Custom vendor is not input, please input custom vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+                MessageDialog dlg(this, _L("Custom vendor missing; please input custom vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                                   wxYES | wxYES_DEFAULT | wxCENTRE);
                 dlg.ShowModal();
                 return;
@@ -1083,7 +1087,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
         wxString    serial_str = m_filament_serial_input->GetTextCtrl()->GetValue();
         std::string serial_name;
         if (serial_str.empty()) {
-            MessageDialog dlg(this, _L("Filament serial is not entered, please enter serial."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+            MessageDialog dlg(this, _L("Filament serial missing; please input serial."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                               wxYES | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();
             return;
@@ -1094,7 +1098,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
         serial_name = remove_special_key(serial_name);
 
         if (vendor_name.empty() || serial_name.empty()) {
-            MessageDialog dlg(this, _L("There may be escape characters in the vendor or serial input of filament. Please delete and re-enter."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+            MessageDialog dlg(this, _L("There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                               wxYES | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();
             return;
@@ -1108,7 +1112,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
             return;
         }
         if (m_can_not_find_vendor_checkbox->GetValue() && str_is_all_digit(vendor_name)) {
-            MessageDialog dlg(this, _L("The vendor cannot be a number. Please re-enter."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+            MessageDialog dlg(this, _L("The vendor cannot be a number; please re-enter."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                               wxYES | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();
             return;
@@ -1125,8 +1129,7 @@ wxWindow *CreateFilamentPresetDialog::create_dialog_buttons()
         PresetBundle *preset_bundle        = wxGetApp().preset_bundle;
         if (preset_bundle->filaments.is_alias_exist(filament_preset_name)) {
             MessageDialog dlg(this,
-                              wxString::Format(_L("The Filament name %s you created already exists.\n"
-                                                  "If you continue creating, the preset created will be displayed with its full name. Do you want to continue?"),
+                              wxString::Format(_L("The Filament name %s you created already exists.\nIf you continue, the preset created will be displayed with its full name. Do you want to continue\?"),
                                                from_u8(filament_preset_name)),
                               wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
             if (wxID_YES != dlg.ShowModal()) { return; }
@@ -1589,8 +1592,7 @@ CreatePrinterPresetDialog::CreatePrinterPresetDialog(wxWindow *parent)
     m_page1 = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);
     m_page1->SetBackgroundColour(*wxWHITE);
     m_page1->SetScrollRate(5, 5);
-    m_page2 = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);\
-    m_page2->SetBackgroundColour(*wxWHITE);
+    m_page2 = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);    m_page2->SetBackgroundColour(*wxWHITE);
 
     create_printer_page1(m_page1);
     create_printer_page2(m_page2);
@@ -1643,16 +1645,16 @@ wxBoxSizer *CreatePrinterPresetDialog::create_step_switch_item()
     step_switch_panel->SetBackgroundColour(*wxWHITE);
     horizontal_sizer->Add(0, 0, 1, wxEXPAND,0);
     m_step_1 = new wxStaticBitmap(step_switch_panel, wxID_ANY, create_scaled_bitmap("step_1", nullptr, FromDIP(20)), wxDefaultPosition, wxDefaultSize);
-    horizontal_sizer->Add(m_step_1, 0, wxEXPAND | wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(3));
+    horizontal_sizer->Add(m_step_1, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(3));
     wxStaticText *static_create_printer_text = new wxStaticText(step_switch_panel, wxID_ANY, m_create_type.create_printer, wxDefaultPosition, wxDefaultSize);
-    horizontal_sizer->Add(static_create_printer_text, 0, wxEXPAND | wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(3));
+    horizontal_sizer->Add(static_create_printer_text, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(3));
     auto divider_line = new wxPanel(step_switch_panel, wxID_ANY, wxDefaultPosition, wxSize(FromDIP(50), 1));
     divider_line->SetBackgroundColour(PRINTER_LIST_COLOUR);
     horizontal_sizer->Add(divider_line, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(3));
     m_step_2 = new wxStaticBitmap(step_switch_panel, wxID_ANY, create_scaled_bitmap("step_2_ready", nullptr, FromDIP(20)), wxDefaultPosition, wxDefaultSize);
-    horizontal_sizer->Add(m_step_2, 0, wxEXPAND | wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(3));
+    horizontal_sizer->Add(m_step_2, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(3));
     wxStaticText *static_import_presets_text = new wxStaticText(step_switch_panel, wxID_ANY, _L("Import Preset"), wxDefaultPosition, wxDefaultSize);
-    horizontal_sizer->Add(static_import_presets_text, 0, wxEXPAND | wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(3));
+    horizontal_sizer->Add(static_import_presets_text, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(3));
     horizontal_sizer->Add(0, 0, 1, wxEXPAND, 0);
 
     step_switch_panel->SetSizer(horizontal_sizer);
@@ -1703,13 +1705,13 @@ wxBoxSizer *CreatePrinterPresetDialog::create_type_item(wxWindow *parent)
     wxStaticText *static_serial_text = new wxStaticText(parent, wxID_ANY, _L("Create Type"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_serial_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     wxBoxSizer *radioBoxSizer = new wxBoxSizer(wxVERTICAL);
 
     radioBoxSizer->Add(create_radio_item(m_create_type.create_printer, parent, wxEmptyString, m_create_type_btns), 0, wxEXPAND | wxALL, 0);
     radioBoxSizer->Add(create_radio_item(m_create_type.create_nozzle, parent, wxEmptyString, m_create_type_btns), 0, wxEXPAND | wxTOP, FromDIP(10));
-    horizontal_sizer->Add(radioBoxSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(radioBoxSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     return horizontal_sizer;
 }
@@ -1722,7 +1724,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_item(wxWindow *parent)
     wxStaticText *static_vendor_text = new wxStaticText(parent, wxID_ANY, _L("Printer"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_vendor_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     wxBoxSizer *vertical_sizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *comboBoxSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -1752,7 +1754,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_item(wxWindow *parent)
                 m_select_model->SetLabelColor(*wxBLACK);
             }
         } else {
-            MessageDialog dlg(this, _L("The model was not found, please reselect vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES | wxYES_DEFAULT | wxCENTRE);
+            MessageDialog dlg(this, _L("The model was not found; please reselect vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();
         }
 
@@ -1850,7 +1852,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_item(wxWindow *parent)
 
     vertical_sizer->Add(checkbox_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
 
-    horizontal_sizer->Add(vertical_sizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(vertical_sizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     return horizontal_sizer;
 
@@ -1864,7 +1866,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_nozzle_diameter_item(wxWindow *par
     wxStaticText *static_type_text = new wxStaticText(parent, wxID_ANY, _L("Nozzle Diameter"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_type_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     wxBoxSizer *vertical_sizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *comboBoxSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -1929,7 +1931,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_nozzle_diameter_item(wxWindow *par
     });
 
     vertical_sizer->Add(checkbox_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
-    horizontal_sizer->Add(vertical_sizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(vertical_sizer, 0, wxEXPAND | wxALL, FromDIP(10));
     horizontal_sizer->Add(0, 0, 0, wxEXPAND | wxLEFT, FromDIP(200));
 
     return horizontal_sizer;
@@ -1943,12 +1945,12 @@ wxBoxSizer *CreatePrinterPresetDialog::create_bed_shape_item(wxWindow *parent)
     wxStaticText *static_type_text = new wxStaticText(parent, wxID_ANY, _L("Bed Shape"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_type_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     wxBoxSizer *  bed_shape_sizer       = new wxBoxSizer(wxVERTICAL);
     wxStaticText *static_bed_shape_text = new wxStaticText(parent, wxID_ANY, _L("Rectangle"), wxDefaultPosition, wxDefaultSize);
     bed_shape_sizer->Add(static_bed_shape_text, 0, wxEXPAND | wxALL, 0);
-    horizontal_sizer->Add(bed_shape_sizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(bed_shape_sizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     return horizontal_sizer;
 }
@@ -1961,26 +1963,26 @@ wxBoxSizer *CreatePrinterPresetDialog::create_bed_size_item(wxWindow *parent)
     wxStaticText *static_type_text = new wxStaticText(parent, wxID_ANY, _L("Printable Space"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_type_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     wxBoxSizer *  length_sizer          = new wxBoxSizer(wxVERTICAL);
      // ORCA use icon on input box to match style with other Point fields
-    horizontal_sizer->Add(length_sizer, 0, wxEXPAND | wxLEFT | wxTOP | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(length_sizer, 0, wxEXPAND | wxLEFT | wxTOP, FromDIP(10));
     wxBoxSizer *length_input_sizer      = new wxBoxSizer(wxVERTICAL);
     m_bed_size_x_input = new TextInput(parent, "200", _L("mm"), "inputbox_x", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
     wxTextValidator validator(wxFILTER_DIGITS);
     m_bed_size_x_input->GetTextCtrl()->SetValidator(validator);
     length_input_sizer->Add(m_bed_size_x_input, 0, wxEXPAND | wxLEFT, FromDIP(5));
-    horizontal_sizer->Add(length_input_sizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    horizontal_sizer->Add(length_input_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
     wxBoxSizer *  width_sizer      = new wxBoxSizer(wxVERTICAL);
     // ORCA use icon on input box to match style with other Point fields
-    horizontal_sizer->Add(width_sizer, 0, wxEXPAND | wxLEFT | wxTOP | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(width_sizer, 0, wxEXPAND | wxLEFT | wxTOP, FromDIP(10));
     wxBoxSizer *width_input_sizer      = new wxBoxSizer(wxVERTICAL);
     m_bed_size_y_input            = new TextInput(parent, "200", _L("mm"), "inputbox_y", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
     m_bed_size_y_input->GetTextCtrl()->SetValidator(validator);
     width_input_sizer->Add(m_bed_size_y_input, 0, wxEXPAND | wxALL, 0);
-    horizontal_sizer->Add(width_input_sizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    horizontal_sizer->Add(width_input_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
     return horizontal_sizer;
 
@@ -1994,26 +1996,26 @@ wxBoxSizer *CreatePrinterPresetDialog::create_origin_item(wxWindow *parent)
     wxStaticText *static_type_text = new wxStaticText(parent, wxID_ANY, _L("Origin"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_type_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     wxBoxSizer *  length_sizer       = new wxBoxSizer(wxVERTICAL);
     // ORCA use icon on input box to match style with other Point fields
-    horizontal_sizer->Add(length_sizer, 0, wxEXPAND | wxLEFT | wxTOP | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(length_sizer, 0, wxEXPAND | wxLEFT | wxTOP, FromDIP(10));
     wxBoxSizer *length_input_sizer = new wxBoxSizer(wxVERTICAL);
     m_bed_origin_x_input           = new TextInput(parent, "0", _L("mm"), "inputbox_x", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
     wxTextValidator validator(wxFILTER_DIGITS);
     m_bed_origin_x_input->GetTextCtrl()->SetValidator(validator);
     length_input_sizer->Add(m_bed_origin_x_input, 0, wxEXPAND | wxLEFT, FromDIP(5)); // Align with other
-    horizontal_sizer->Add(length_input_sizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    horizontal_sizer->Add(length_input_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
     wxBoxSizer *  width_sizer       = new wxBoxSizer(wxVERTICAL);
     // ORCA use icon on input box to match style with other Point fields
-    horizontal_sizer->Add(width_sizer, 0, wxEXPAND | wxLEFT | wxTOP | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(width_sizer, 0, wxEXPAND | wxLEFT | wxTOP, FromDIP(10));
     wxBoxSizer *width_input_sizer = new wxBoxSizer(wxVERTICAL);
     m_bed_origin_y_input          = new TextInput(parent, "0", _L("mm"), "inputbox_y", wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER);
     m_bed_origin_y_input->GetTextCtrl()->SetValidator(validator);
     width_input_sizer->Add(m_bed_origin_y_input, 0, wxEXPAND | wxALL, 0);
-    horizontal_sizer->Add(width_input_sizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    horizontal_sizer->Add(width_input_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
     return horizontal_sizer;
 }
@@ -2026,7 +2028,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_hot_bed_stl_item(wxWindow *parent)
     wxStaticText *static_type_text = new wxStaticText(parent, wxID_ANY, _L("Hot Bed STL"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_type_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     wxBoxSizer *hot_bed_stl_sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -2036,11 +2038,11 @@ wxBoxSizer *CreatePrinterPresetDialog::create_hot_bed_stl_item(wxWindow *parent)
 
     hot_bed_stl_sizer->Add(m_button_bed_stl, 0, wxEXPAND | wxALL, 0);
 
-    horizontal_sizer->Add(hot_bed_stl_sizer, 0, wxEXPAND | wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(hot_bed_stl_sizer, 0, wxEXPAND | wxLEFT, FromDIP(10));
 
     m_upload_stl_tip_text = new wxStaticText(parent, wxID_ANY, "", wxDefaultPosition, wxDefaultSize);
     m_upload_stl_tip_text->SetLabelText(_L("Empty"));
-    horizontal_sizer->Add(m_upload_stl_tip_text, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(m_upload_stl_tip_text, 0, wxEXPAND | wxALL, FromDIP(10));
     return horizontal_sizer;
 }
 
@@ -2052,7 +2054,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_hot_bed_svg_item(wxWindow *parent)
     wxStaticText *static_type_text = new wxStaticText(parent, wxID_ANY, _L("Hot Bed SVG"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_type_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     wxBoxSizer *hot_bed_stl_sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -2062,11 +2064,11 @@ wxBoxSizer *CreatePrinterPresetDialog::create_hot_bed_svg_item(wxWindow *parent)
 
     hot_bed_stl_sizer->Add(m_button_bed_svg, 0, wxEXPAND | wxALL, 0);
 
-    horizontal_sizer->Add(hot_bed_stl_sizer, 0, wxEXPAND | wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(hot_bed_stl_sizer, 0, wxEXPAND | wxLEFT, FromDIP(10));
 
     m_upload_svg_tip_text = new wxStaticText(parent, wxID_ANY, "", wxDefaultPosition, wxDefaultSize);
     m_upload_svg_tip_text->SetLabelText(_L("Empty"));
-    horizontal_sizer->Add(m_upload_svg_tip_text, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(m_upload_svg_tip_text, 0, wxEXPAND | wxALL, FromDIP(10));
     return horizontal_sizer;
 }
 
@@ -2078,14 +2080,14 @@ wxBoxSizer *CreatePrinterPresetDialog::create_max_print_height_item(wxWindow *pa
     wxStaticText *static_type_text = new wxStaticText(parent, wxID_ANY, _L("Max Print Height"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_type_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     wxBoxSizer *hight_input_sizer = new wxBoxSizer(wxVERTICAL);
     m_print_height_input          = new TextInput(parent, "200", _L("mm"), wxEmptyString, wxDefaultPosition, PRINTER_SPACE_SIZE, wxTE_PROCESS_ENTER); // Use same alignment with all other input boxes
     wxTextValidator validator(wxFILTER_DIGITS);
     m_print_height_input->GetTextCtrl()->SetValidator(validator);
     hight_input_sizer->Add(m_print_height_input, 0, wxEXPAND | wxLEFT, FromDIP(5));
-    horizontal_sizer->Add(hight_input_sizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    horizontal_sizer->Add(hight_input_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
 
     return horizontal_sizer;
 }
@@ -2186,7 +2188,7 @@ bool CreatePrinterPresetDialog::load_system_and_user_presets_with_curr_model(Pre
     }
     if (m_printer_preset_vendor_selected.id.empty() || m_printer_preset_model_selected.id.empty()) {
         BOOST_LOG_TRIVIAL(info) << "selected id was not found";
-        MessageDialog dlg(this, _L("Preset path was not found, please reselect vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
+        MessageDialog dlg(this, _L("Preset path was not found; please reselect vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
         dlg.ShowModal();
         return false;
     }
@@ -2207,15 +2209,20 @@ bool CreatePrinterPresetDialog::load_system_and_user_presets_with_curr_model(Pre
 
         if (preset_path.empty()) {
             BOOST_LOG_TRIVIAL(info) << "Preset path was not found";
-            MessageDialog dlg(this, _L("Preset path was not found, please reselect vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+            MessageDialog dlg(this, _L("Preset path was not found; please reselect vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                               wxYES_NO | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();
             return false;
         }
 
         try {
-            temp_preset_bundle.load_vendor_configs_from_json(preset_path, selected_vendor_id, PresetBundle::LoadConfigBundleAttribute::LoadSystem,
-                                                             ForwardCompatibilitySubstitutionRule::EnableSilent);
+            // Pass the app's preset bundle (which already holds OrcaFilamentLibrary) as the base
+            // bundle so vendor filaments that inherit OFL bases resolve via the existing
+            // cross-vendor inheritance path.
+            temp_preset_bundle.load_vendor_configs_from_json(preset_path, selected_vendor_id,
+                                                             PresetBundle::LoadConfigBundleAttribute::LoadSystem,
+                                                             ForwardCompatibilitySubstitutionRule::EnableSilent,
+                                                             wxGetApp().preset_bundle);
         } catch (...) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "load vendor fonfigs form json failed";
             MessageDialog dlg(this, _L("The printer model was not found, please reselect."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
@@ -2244,7 +2251,7 @@ bool CreatePrinterPresetDialog::load_system_and_user_presets_with_curr_model(Pre
         varient = model_varient.substr(index_at + 3, index_nozzle - index_at - 4);
     } else {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "get nozzle failed";
-        MessageDialog dlg(this, _L("The nozzle diameter was not found, please reselect."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
+        MessageDialog dlg(this, _L("The nozzle diameter was not found; please reselect."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
         dlg.ShowModal();
         return false;
     }
@@ -2255,7 +2262,7 @@ bool CreatePrinterPresetDialog::load_system_and_user_presets_with_curr_model(Pre
     if (temp_printer_preset) {
         m_printer_preset = new Preset(*temp_printer_preset);
     } else {
-        MessageDialog dlg(this, _L("The printer preset was not found, please reselect."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
+        MessageDialog dlg(this, _L("The printer preset was not found; please reselect."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
         dlg.ShowModal();
         return false;
     }
@@ -2271,7 +2278,7 @@ bool CreatePrinterPresetDialog::load_system_and_user_presets_with_curr_model(Pre
         }
         if (preset_path.empty()) {
             BOOST_LOG_TRIVIAL(info) << "Preset path was not found";
-            MessageDialog dlg(this, _L("Preset path was not found, please reselect vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+            MessageDialog dlg(this, _L("Preset path was not found; please reselect vendor."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                               wxYES_NO | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();
             return false;
@@ -2591,7 +2598,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_preset_item(wxWindow *pare
     wxStaticText *static_vendor_text = new wxStaticText(parent, wxID_ANY, _L("Printer Preset"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_vendor_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     wxBoxSizer *  vertical_sizer = new wxBoxSizer(wxVERTICAL);
     wxStaticText *combobox_title = new wxStaticText(parent, wxID_ANY, m_create_type.base_curr_printer, wxDefaultPosition, wxDefaultSize, 0);
@@ -2624,7 +2631,7 @@ wxBoxSizer *CreatePrinterPresetDialog::create_printer_preset_item(wxWindow *pare
     comboBox_sizer->Add(m_printer_model, 0, wxEXPAND | wxLEFT, FromDIP(10));
     vertical_sizer->Add(comboBox_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
 
-    horizontal_sizer->Add(vertical_sizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(vertical_sizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     return horizontal_sizer;
 
@@ -2638,13 +2645,13 @@ wxBoxSizer *CreatePrinterPresetDialog::create_presets_item(wxWindow *parent)
     wxStaticText *static_serial_text = new wxStaticText(parent, wxID_ANY, _L("Presets"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_serial_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     wxBoxSizer *radioBoxSizer = new wxBoxSizer(wxVERTICAL);
 
     radioBoxSizer->Add(create_radio_item(m_create_type.base_template, parent, wxEmptyString, m_create_presets_btns), 0, wxEXPAND | wxALL, 0);
     radioBoxSizer->Add(create_radio_item(m_create_type.base_curr_printer, parent, wxEmptyString, m_create_presets_btns), 0, wxEXPAND | wxTOP, FromDIP(10));
-    horizontal_sizer->Add(radioBoxSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(radioBoxSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     return horizontal_sizer;
 }
@@ -2730,14 +2737,14 @@ wxBoxSizer *CreatePrinterPresetDialog::create_presets_template_item(wxWindow *pa
     m_preset_template_panel->SetSizer(m_filament_sizer);
     m_scrooled_preset_sizer->Add(m_preset_template_panel, 0, wxEXPAND | wxALL, 0);
     m_scrolled_preset_window->SetSizerAndFit(m_scrooled_preset_sizer);
-    vertical_sizer->Add(m_scrolled_preset_window, 0, wxEXPAND | wxLEFT | wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    vertical_sizer->Add(m_scrolled_preset_window, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
 
     return vertical_sizer;
 }
 
 wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *parent)
 {
-    auto dlg_btns = new DialogButtons(parent, {"Return", "OK", "Cancel"});
+    auto dlg_btns = new DialogButtons(parent, {"Return", "OK", "Cancel"}, "", 1 /*left_aligned*/);
 
     dlg_btns->GetRETURN()->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { show_page1(); });
 
@@ -2758,7 +2765,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
         }
 
         if (!save_printable_area_config(m_printer_preset)) {
-            MessageDialog dlg(this, _L("You have entered an illegal input in the printable area section on the first page. Please check before creating it."),
+            MessageDialog dlg(this, _L("You have entered a disallowed character in the printable area section on the first page. Please use only numbers."),
                               wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();
             show_page1();
@@ -2779,9 +2786,7 @@ wxWindow *CreatePrinterPresetDialog::create_page2_dialog_buttons(wxWindow *paren
         // Confirm if the printer preset has a duplicate name
         if (!rewritten && preset_bundle->printers.find_preset(printer_preset_name)) {
             MessageDialog dlg(this,
-                              _L("The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n\tYes: Overwrite the printer preset with the "
-                                 "same name, and filament and process presets with the same preset name will be recreated \nand filament and process presets without the same preset name will be reserve.\n\tCancel: Do not create a preset, return to the "
-                                 "creation interface."),
+                              _L("The printer preset you created already has a preset with the same name. Do you want to overwrite it\?\n\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \nand filament and process presets without the same preset name will be reserved.\n\tCancel: Do not create a preset; return to the creation interface."),
                               wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES | wxCANCEL | wxYES_DEFAULT | wxCENTRE);
             int           res = dlg.ShowModal();
             if (res == wxID_YES) {
@@ -3040,7 +3045,7 @@ void CreatePrinterPresetDialog::on_select_printer_model(wxCommandEvent &e)
             return;
         }
 
-        MessageDialog dlg(this, _L("Vendor was not found, please reselect."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
+        MessageDialog dlg(this, _L("Vendor was not found; please reselect."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
         dlg.ShowModal();
         return;
     }
@@ -3313,7 +3318,7 @@ bool CreatePrinterPresetDialog::validate_input_valid()
         std::string vendor_name = get_printer_vendor();
         std::string model_name  = get_printer_model();
         if ((vendor_name.empty() || model_name.empty())) {
-            MessageDialog dlg(this, _L("You have not selected the vendor and model or entered the custom vendor and model."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+            MessageDialog dlg(this, _L("You have not selected the vendor and model or input the custom vendor and model."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                               wxYES | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();
             return false;
@@ -3344,7 +3349,7 @@ bool CreatePrinterPresetDialog::validate_input_valid()
     } else if (curr_selected_printer_type == m_create_type.create_nozzle) {
         wxString printer_name = m_select_printer->GetStringSelection();
         if (printer_name.empty()) {
-            MessageDialog dlg(this, _L("You have not yet selected the printer to replace the nozzle, please choose."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
+            MessageDialog dlg(this, _L("You have not yet selected the printer to replace the nozzle for; please choose a printer."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
                               wxYES | wxYES_DEFAULT | wxCENTRE);
             dlg.ShowModal();
             return false;
@@ -3374,9 +3379,30 @@ bool CreatePrinterPresetDialog::validate_input_valid()
 
     if (auto preset = wxGetApp().preset_bundle->printers.find_preset(custom_printer_name)) {
         if (preset->is_system) {
-            MessageDialog dlg(this, _L("The system preset does not allow creation. \nPlease re-enter the printer model or nozzle diameter."), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"),
-                              wxYES | wxYES_DEFAULT | wxCENTRE);
-            dlg.ShowModal();
+            // ORCA offer switcing to existing preset to reduce confusion
+            std::string diameters;
+            auto printer_model = preset->config.opt_string("printer_model");
+            for (auto &preset : wxGetApp().preset_bundle->printers) {
+                if (preset.config.opt_string("printer_model") == printer_model)
+                    diameters += preset.config.opt_string("printer_variant") + "  ";
+            }
+            MessageDialog dlg(this, _L("The system preset does not allow creation. \nPlease re-enter the printer model or nozzle diameter.")
+                                  + _L("\n\nAvailable nozzle profiles for this printer:")
+                                  + "\n" + diameters
+                                  + _L("\n\nChoose YES to switch existing preset:")
+                                  + "\n" + preset->name
+                              , wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info")
+                              , wxYES | wxYES_DEFAULT | wxNO | wxCENTRE);
+            if (dlg.ShowModal() == wxID_YES){
+                auto bundle = wxGetApp().preset_bundle;
+                bundle->printers.select_preset_by_name(preset->name, true);
+                bundle->update_compatible(PresetSelectCompatibleType::Always);
+                wxGetApp().load_current_presets();
+                wxGetApp().mainframe->update_side_preset_ui();
+                wxGetApp().sidebar().update_ui_from_settings();
+                wxGetApp().sidebar().update_all_preset_comboboxes();
+                EndModal(wxID_CANCEL);
+            }
             return false;
         }
     }
@@ -3457,8 +3483,7 @@ CreatePresetSuccessfulDialog::CreatePresetSuccessfulDialog(wxWindow *parent, con
         break;
     case FILAMENT:
         success_text = new wxStaticText(this, wxID_ANY, _L("Filament Created"));
-        wxString prompt_text = _L("Please go to filament setting to edit your presets if you need.\nPlease note that nozzle temperature, hot bed temperature, and maximum "
-                                  "volumetric speed has a significant impact on printing quality. Please set them carefully.");
+        wxString prompt_text = _L("Please go to filament settings to edit your presets if you need to.\nPlease note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully.");
         wxString sync_text = sync_user_preset_need_enabled ? _L("\n\nOrca has detected that your user presets synchronization function is not enabled, "
                                                                 "which may result in unsuccessful Filament settings on the Device page.\n"
                                                                 "Click \"Sync user presets\" to enable the synchronization function.") : "";
@@ -3666,8 +3691,7 @@ std::string ExportConfigsDialog::initial_file_name(const wxString &path, const s
     std::string             export_path         = into_u8(path);
     boost::filesystem::path printer_export_path = (boost::filesystem::path(export_path) / file_name).make_preferred();
     if (boost::filesystem::exists(printer_export_path)) {
-        MessageDialog dlg(this, wxString::Format(_L("The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it.\nIf not, a time suffix will be "
-                             "added, and you can modify the name after creation."), file_name), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
+        MessageDialog dlg(this, wxString::Format(_L("The \'%s\' folder already exists in the current directory. Do you want to clear it and rebuild it\?\nIf not, a time suffix will be added, and you can modify the name after creation."), file_name), wxString(SLIC3R_APP_FULL_NAME) + " - " + _L("Info"), wxYES_NO | wxYES_DEFAULT | wxCENTRE);
         int           res = dlg.ShowModal();
         if (wxID_YES == res) {
             try {
@@ -3717,13 +3741,13 @@ wxBoxSizer *ExportConfigsDialog::create_export_config_item(wxWindow *parent)
     wxStaticText *static_serial_text = new wxStaticText(parent, wxID_ANY, _L("Presets"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(static_serial_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     wxBoxSizer *radioBoxSizer = new wxBoxSizer(wxVERTICAL);
 
     radioBoxSizer->Add(create_radio_item(m_exprot_type.preset_bundle, parent, wxEmptyString, m_export_type_btns), 0, wxEXPAND | wxALL, 0);
     radioBoxSizer->Add(0, 0, 0, wxTOP, FromDIP(6));
-    wxStaticText *static_export_printer_preset_bundle_text = new wxStaticText(parent, wxID_ANY, _L("Printer and all the filament&&process presets that belongs to the printer.\n"
+    wxStaticText *static_export_printer_preset_bundle_text = new wxStaticText(parent, wxID_ANY, _L("Printer and all the filament and process presets that belongs to the printer.\n"
                                                                                                    "Can be shared with others."), wxDefaultPosition, wxDefaultSize);
     static_export_printer_preset_bundle_text->SetFont(Label::Body_12);
     static_export_printer_preset_bundle_text->SetForegroundColour(wxColour("#6B6B6B"));
@@ -3737,7 +3761,7 @@ wxBoxSizer *ExportConfigsDialog::create_export_config_item(wxWindow *parent)
     radioBoxSizer->Add(create_radio_item(m_exprot_type.printer_preset, parent, wxEmptyString, m_export_type_btns), 0, wxEXPAND | wxTOP, FromDIP(10));
     radioBoxSizer->Add(create_radio_item(m_exprot_type.filament_preset, parent, wxEmptyString, m_export_type_btns), 0, wxEXPAND | wxTOP, FromDIP(10));
     radioBoxSizer->Add(create_radio_item(m_exprot_type.process_preset, parent, wxEmptyString, m_export_type_btns), 0, wxEXPAND | wxTOP, FromDIP(10));
-    horizontal_sizer->Add(radioBoxSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(radioBoxSizer, 0, wxEXPAND | wxALL, FromDIP(10));
 
     return horizontal_sizer;
 }
@@ -3839,7 +3863,7 @@ void ExportConfigsDialog::select_curr_radiobox(std::vector<std::pair<RadioBox *,
                     wxString printer_name = wxString::FromUTF8(preset_name);
                     m_preset_sizer->Add(create_checkbox(m_presets_window, preset.second, printer_name, m_preset), 0, wxEXPAND | wxTOP | wxLEFT | wxRIGHT, FromDIP(5));
                 }
-                m_serial_text->SetLabel(_L("Only display printer names with changes to printer, filament, and process presets."));
+                m_serial_text->SetLabel(_L("Only display printers with changes to printer, filament, and process presets are displayed."));
             }else if (export_type == m_exprot_type.filament_bundle) {
                 for (std::pair<std::string, std::vector<std::pair<std::string, Preset*>>> filament_name_to_preset : m_filament_name_to_presets) {
                     if (filament_name_to_preset.second.empty()) continue;
@@ -4277,10 +4301,10 @@ wxBoxSizer *ExportConfigsDialog::create_select_printer(wxWindow *parent)
     wxBoxSizer *horizontal_sizer = new wxBoxSizer(wxVERTICAL);
 
     wxBoxSizer *  optionSizer        = new wxBoxSizer(wxVERTICAL);
-    m_serial_text           = new wxStaticText(parent, wxID_ANY, _L("Please select a type you want to export"), wxDefaultPosition, wxDefaultSize);
+    m_serial_text           = new wxStaticText(parent, wxID_ANY, _L("Please select a preset type you want to export"), wxDefaultPosition, wxDefaultSize);
     optionSizer->Add(m_serial_text, 0, wxEXPAND | wxALL, 0);
     optionSizer->SetMinSize(OPTION_SIZE);
-    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    horizontal_sizer->Add(optionSizer, 0, wxEXPAND | wxALL, FromDIP(10));
     m_scrolled_preset_window = new wxScrolledWindow(parent);
     m_scrolled_preset_window->SetScrollRate(5, 5);
     m_scrolled_preset_window->SetBackgroundColour(*wxWHITE);
@@ -4343,7 +4367,7 @@ void ExportConfigsDialog::data_init()
 
             const std::deque<Preset> &filament_presets = preset_bundle.filaments.get_presets();
             for (const Preset &filament_preset : filament_presets) {
-                if (filament_preset.is_system || filament_preset.is_default || filament_preset.is_project_embedded) continue;
+                if (!filament_preset.is_user()) continue;
                 if (filament_preset.is_compatible) {
                     Preset *new_filament_preset = new Preset(filament_preset);
                     m_filament_presets[preset_name].push_back(new_filament_preset);
@@ -4352,7 +4376,7 @@ void ExportConfigsDialog::data_init()
 
             const std::deque<Preset> &process_presets = preset_bundle.prints.get_presets();
             for (const Preset &process_preset : process_presets) {
-                if (process_preset.is_system || process_preset.is_default || process_preset.is_project_embedded) continue;
+                if (!process_preset.is_user()) continue;
                 if (process_preset.is_compatible) {
                     Preset *new_prpcess_preset = new Preset(process_preset);
                     m_process_presets[preset_name].push_back(new_prpcess_preset);
@@ -4366,7 +4390,7 @@ void ExportConfigsDialog::data_init()
     }
     const std::deque<Preset> &filament_presets = preset_bundle.filaments.get_presets();
     for (const Preset &filament_preset : filament_presets) {
-        if (filament_preset.is_system || filament_preset.is_default) continue;
+        if (!filament_preset.can_overwrite()) continue;
         Preset *new_filament_preset = new Preset(filament_preset);
         const Preset *base_filament_preset = preset_bundle.filaments.get_preset_base(*new_filament_preset);
 
@@ -4449,7 +4473,7 @@ EditFilamentPresetDialog::EditFilamentPresetDialog(wxWindow *parent, Filamentinf
     m_main_sizer->Add(create_add_filament_btn(), 0, wxEXPAND | wxALL, 0);
     m_main_sizer->Add(create_preset_tree_sizer(), 0, wxEXPAND | wxALL, 0);
     m_note_text = new wxStaticText(this, wxID_ANY, _L("Note: If the only preset under this filament is deleted, the filament will be deleted after exiting the dialog."));
-    m_main_sizer->Add(m_note_text, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    m_main_sizer->Add(m_note_text, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, FromDIP(10));
     m_note_text->Hide();
     m_main_sizer->Add(create_dialog_buttons(), 0, wxEXPAND);
 
@@ -4651,31 +4675,31 @@ wxBoxSizer *EditFilamentPresetDialog::create_filament_basic_info()
     wxStaticText *static_vendor_text = new wxStaticText(this, wxID_ANY, _L("Vendor"), wxDefaultPosition, wxDefaultSize);
     vendor_key_sizer->Add(static_vendor_text, 0, wxEXPAND | wxALL, 0);
     vendor_key_sizer->SetMinSize(OPTION_SIZE);
-    vendor_sizer->Add(vendor_key_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    vendor_sizer->Add(vendor_key_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM, FromDIP(10));
 
     wxBoxSizer *vendor_value_sizer = new wxBoxSizer(wxVERTICAL);
     wxStaticText *vendor_text = new wxStaticText(this, wxID_ANY, from_u8(m_vendor_name), wxDefaultPosition, wxDefaultSize);
     vendor_value_sizer->Add(vendor_text, 0, wxEXPAND | wxALL, 0);
-    vendor_sizer->Add(vendor_value_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    vendor_sizer->Add(vendor_value_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM, FromDIP(10));
 
     //type
     wxBoxSizer *  type_key_sizer   = new wxBoxSizer(wxVERTICAL);
     wxStaticText *static_type_text = new wxStaticText(this, wxID_ANY, _L("Type"), wxDefaultPosition, wxDefaultSize);
     type_key_sizer->Add(static_type_text, 0, wxEXPAND | wxALL, 0);
     type_key_sizer->SetMinSize(OPTION_SIZE);
-    type_sizer->Add(type_key_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    type_sizer->Add(type_key_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM, FromDIP(10));
 
     wxBoxSizer *  type_value_sizer = new wxBoxSizer(wxVERTICAL);
     wxStaticText *type_text        = new wxStaticText(this, wxID_ANY, from_u8(m_filament_type), wxDefaultPosition, wxDefaultSize);
     type_value_sizer->Add(type_text, 0, wxEXPAND | wxALL, 0);
-    type_sizer->Add(type_value_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    type_sizer->Add(type_value_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM, FromDIP(10));
 
     //serial
     wxBoxSizer *  serial_key_sizer   = new wxBoxSizer(wxVERTICAL);
     wxStaticText *static_serial_text = new wxStaticText(this, wxID_ANY, _L("Serial"), wxDefaultPosition, wxDefaultSize);
     serial_key_sizer->Add(static_serial_text, 0, wxEXPAND | wxALL, 0);
     serial_key_sizer->SetMinSize(OPTION_SIZE);
-    serial_sizer->Add(serial_key_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    serial_sizer->Add(serial_key_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM, FromDIP(10));
 
     wxBoxSizer *  serial_value_sizer = new wxBoxSizer(wxVERTICAL);
     wxString      full_filamnet_serial = from_u8(m_filament_serial);
@@ -4687,7 +4711,7 @@ wxBoxSizer *EditFilamentPresetDialog::create_filament_basic_info()
     wxToolTip *   toolTip     = new wxToolTip(full_filamnet_serial);
     serial_text->SetToolTip(toolTip);
     serial_value_sizer->Add(serial_text, 0, wxEXPAND | wxALL, 0);
-    serial_sizer->Add(serial_value_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    serial_sizer->Add(serial_value_sizer, 0, wxEXPAND | wxLEFT | wxBOTTOM, FromDIP(10));
 
     basic_info_sizer->Add(vendor_sizer, 0, wxEXPAND | wxALL, 0);
     basic_info_sizer->Add(type_sizer, 0, wxEXPAND | wxALL, 0);
@@ -4734,16 +4758,16 @@ wxBoxSizer *EditFilamentPresetDialog::create_preset_tree_sizer()
     wxBoxSizer* m_preset_tree_window_sizer = new wxBoxSizer(wxVERTICAL);
     m_preset_tree_window_sizer->Add(m_preset_tree_panel, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(10));
     m_preset_tree_window->SetSizerAndFit(m_preset_tree_window_sizer);
-    filament_preset_tree_sizer->Add(m_preset_tree_window, 0, wxEXPAND | wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    filament_preset_tree_sizer->Add(m_preset_tree_window, 0, wxEXPAND | wxALL, FromDIP(10));
 
     return filament_preset_tree_sizer;
 }
 
 wxWindow *EditFilamentPresetDialog::create_dialog_buttons()
 {
-    auto dlg_btns = new DialogButtons(this, {"Delete", "OK"});
+    auto dlg_btns = new DialogButtons(this, {"Delete", "OK"}, "", 1 /*left_aligned*/);
 
-    dlg_btns->GetButtonFromID(wxID_DELETE)->Bind(wxEVT_BUTTON, ([this](wxCommandEvent &e) {
+    dlg_btns->GetFIRST()->Bind(wxEVT_BUTTON, ([this](wxCommandEvent &e) {
         WarningDialog dlg(this, _L("All the filament presets belong to this filament would be deleted.\n"
                                    "If you are using this filament on your printer, please reset the filament information for that slot."),
                           _L("Delete filament"), wxYES | wxCANCEL | wxCANCEL_DEFAULT | wxCENTRE);
@@ -5027,8 +5051,8 @@ wxPanel *PresetTree::get_child_item(wxPanel *parent, std::shared_ptr<Preset> pre
     bool base_id_error = false;
     if (preset->inherits() == "" && preset->base_id != "") base_id_error = true;
     if (base_id_error) {
-        std::string      wiki_url             = "https://wiki.bambulab.com/en/software/bambu-studio/custom-filament-issue";
-        wxHyperlinkCtrl *m_download_hyperlink = new wxHyperlinkCtrl(panel, wxID_ANY, _L("[Delete Required]"), wiki_url, wxDefaultPosition, wxDefaultSize, wxHL_DEFAULT_STYLE);
+        // ORCA standardized HyperLink
+        HyperLink *m_download_hyperlink = new HyperLink(panel, _L("[Delete Required]"), "https://wiki.bambulab.com/en/software/bambu-studio/custom-filament-issue");
         m_download_hyperlink->SetFont(Label::Body_10);
         sizer->Add(m_download_hyperlink, 0, wxEXPAND | wxALL, 5);
     }

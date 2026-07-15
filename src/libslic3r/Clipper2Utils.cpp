@@ -35,6 +35,11 @@ Clipper2Lib::Paths64 Slic3rPoints_to_Paths64(const Container& in)
     return out;
 }
 
+Clipper2Lib::Paths64 Slic3rPolylines_to_Paths64(const Polylines& in)
+{
+    return Slic3rPoints_to_Paths64(in);
+}
+
 Points Path64ToPoints(const Clipper2Lib::Path64& path64)
 {
     Points points;
@@ -176,6 +181,18 @@ ExPolygons offset_ex_2(const ExPolygons &expolygons, double delta)
     Clipper2Lib::Paths64 subject = Slic3rExPolygons_to_Paths64(expolygons);
     Clipper2Lib::ClipperOffset offsetter;
     offsetter.AddPaths(subject, Clipper2Lib::JoinType::Round, Clipper2Lib::EndType::Polygon);
+    Clipper2Lib::PolyPath64 polytree;
+    offsetter.Execute(delta, polytree);
+    ExPolygons results = PolyTreeToExPolygons(std::move(polytree));
+
+    return results;
+}
+
+ExPolygons offset_ex_2(const ExPolygons &expolygons, double delta, Clipper2Lib::JoinType joinType)
+{
+    Clipper2Lib::Paths64 subject = Slic3rExPolygons_to_Paths64(expolygons);
+    Clipper2Lib::ClipperOffset offsetter;
+    offsetter.AddPaths(subject, joinType, Clipper2Lib::EndType::Polygon);
     Clipper2Lib::PolyPath64 polytree;
     offsetter.Execute(delta, polytree);
     ExPolygons results = PolyTreeToExPolygons(std::move(polytree));

@@ -15,6 +15,7 @@
 #include "slic3r/GUI/Selection.hpp"
 #include "slic3r/GUI/Plater.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
+#include "GLGizmoUtils.hpp"
 
 #include <boost/algorithm/string.hpp>
 
@@ -53,26 +54,29 @@ GizmoObjectManipulation::GizmoObjectManipulation(GLCanvas3D& glcanvas)
     : m_glcanvas(glcanvas)
 {
     m_imperial_units = wxGetApp().app_config->get("use_inches") == "1";
-    m_new_unit_string = m_imperial_units ? L("in") : L("mm");
+    m_new_unit_string = m_imperial_units ? L_CONTEXT("in", "inches") : L("mm");
 
-    const wxString shift                   = _L("Shift+");
+    const wxString shift                   = GUI::shortkey_shift_prefix();
     const wxString alt                     = GUI::shortkey_alt_prefix();
     const wxString ctrl                    = GUI::shortkey_ctrl_prefix();
 
-    m_desc_move["part_selection_caption"] = alt + _L("Left mouse button");
-    m_desc_move["part_selection"]         = _L("Part selection");
-    m_desc_move["snap_step_caption"] = shift + _L("Left mouse button");
-    m_desc_move["snap_step"]        = _L("Fixed step drag");
+    m_shortcuts_move = {
+        {alt + _L("Left mouse button"),     _L("Part selection")},
+        {shift + _L("Left mouse button"),   _L("Fixed step drag")},
+        {_L("Context Menu"),                _L("Toggle Auto-Drop")}
+    };
 
-    m_desc_rotate["part_selection_caption"] = alt + _L("Left mouse button");
-    m_desc_rotate["part_selection"]         = _L("Part selection");
+    m_shortcuts_rotate = {
+        {alt + _L("Left mouse button"),     _L("Part selection")},
+        {_L("Context Menu"),                _L("Toggle Auto-Drop")}
+    };
 
-    m_desc_scale["part_selection_caption"] = alt + _L("Left mouse button");
-    m_desc_scale["part_selection"]         = _L("Part selection");
-    m_desc_scale["snap_step_caption"]      = shift + _L("Left mouse button");
-    m_desc_scale["snap_step"]              = _L("Fixed step drag");
-    m_desc_scale["single_sided_caption"] = ctrl + _L("Left mouse button");
-    m_desc_scale["single_sided"]         = _L("Single sided scaling");
+    m_shortcuts_scale = {
+        {alt + _L("Left mouse button"),     _L("Part selection")},
+        {shift + _L("Left mouse button"),   _L("Fixed step drag")},
+        {ctrl + _L("Left mouse button"),    _L("Single sided scaling")},
+        {_L("Context Menu"),                _L("Toggle Auto-Drop")}
+    };
 }
 
 void GizmoObjectManipulation::UpdateAndShow(const bool show)
@@ -88,7 +92,7 @@ void GizmoObjectManipulation::update_ui_from_settings()
     if (m_imperial_units != (wxGetApp().app_config->get("use_inches") == "1")) {
         m_imperial_units = wxGetApp().app_config->get("use_inches") == "1";
 
-        m_new_unit_string = m_imperial_units ? L("in") : L("mm");
+        m_new_unit_string = m_imperial_units ? L_CONTEXT("in", "inches") : L("mm");
 
         update_buffered_value();
     }
@@ -134,7 +138,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
 
         m_new_enabled  = true;
         // BBS: change "Instance Operations" to "Object Operations"
-        m_new_title_string = L("Object Operations");
+        m_new_title_string = L("Object operations");
     }
     else if (selection.is_single_full_object() && obj_list->is_selected(itObject)) {
         const BoundingBoxf3& box = selection.get_bounding_box();
@@ -143,7 +147,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
         m_new_size     = selection.get_bounding_box_in_current_reference_system().first.size();
 		m_new_scale_label_string  = L("Scale");
         m_new_enabled  = true;
-        m_new_title_string = L("Object Operations");
+        m_new_title_string = L("Object operations");
     } else if (selection.is_single_volume_or_modifier()) {
         const GLVolume *volume = selection.get_first_volume();
         auto            rotation = volume->get_volume_transformation().get_rotation_by_quaternion();
@@ -169,7 +173,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
             m_new_size                = selection.get_bounding_box_in_current_reference_system().first.size();
         }
         m_new_enabled = true;
-        m_new_title_string = L("Volume Operations");
+        m_new_title_string = L("Volume operations");
     } else if (obj_list->is_connectors_item_selected() || obj_list->multiple_selection() || obj_list->is_selected(itInstanceRoot)) {
         reset_settings_value();
 		m_new_move_label_string   = L("Translate");
@@ -177,7 +181,7 @@ void GizmoObjectManipulation::update_settings_value(const Selection &selection)
         m_unscale_size            = selection.get_bounding_box_in_current_reference_system().first.size();
         m_new_size                = selection.get_bounding_box_in_current_reference_system().first.size();
         m_new_enabled  = true;
-        m_new_title_string = L("Group Operations");
+        m_new_title_string = L("Group operations");
     } else if (selection.is_wipe_tower()) {
         const BoundingBoxf3 &box = selection.get_bounding_box();
         m_new_position           = box.center();
@@ -357,7 +361,7 @@ void GizmoObjectManipulation::change_rotation_value(int axis, double value)
 
     selection.setup_cache();
     selection.rotate((M_PI / 180.0) * (transformation_type.absolute() ? rotation : rotation - m_cache.rotation), transformation_type);
-    wxGetApp().plater()->take_snapshot(_u8L("Set Orientation"), UndoRedo::SnapshotType::GizmoAction);
+    wxGetApp().plater()->take_snapshot(_u8L("Set orientation"), UndoRedo::SnapshotType::GizmoAction);
     m_glcanvas.do_rotate("");
 
     m_cache.rotation = rotation;
@@ -465,7 +469,7 @@ void GizmoObjectManipulation::do_scale(int axis, const Vec3d &scale) const
 
     selection.setup_cache();
     selection.scale(scaling_factor, transformation_type);
-    m_glcanvas.do_scale(L("Set Scale"));
+    m_glcanvas.do_scale(L("Set scale"));
 }
 
 
@@ -500,9 +504,12 @@ void GizmoObjectManipulation::on_change(const std::string &opt_key, int axis, do
 bool GizmoObjectManipulation::render_combo(
     ImGuiWrapper *imgui_wrapper, const std::string &label, const std::vector<std::string> &lines, size_t &selection_idx, float label_width, float item_width)
 {
-    ImGui::AlignTextToFramePadding();
-    imgui_wrapper->text(label);
-    ImGui::SameLine(label_width);
+    if(!label.empty()){
+        ImGui::AlignTextToFramePadding();
+        imgui_wrapper->text(label);
+        ImGui::SameLine(label_width);
+    }
+
     ImGui::PushItemWidth(item_width);
 
     size_t selection_out = selection_idx;
@@ -545,7 +552,7 @@ void GizmoObjectManipulation::reset_position_value()
         return;
 
     // Copy position values from GLVolumes into Model (ModelInstance / ModelVolume), trigger background processing.
-    wxGetApp().plater()->take_snapshot(_u8L("Reset Position"), UndoRedo::SnapshotType::GizmoAction);
+    wxGetApp().plater()->take_snapshot(_u8L("Reset position"), UndoRedo::SnapshotType::GizmoAction);
     m_glcanvas.do_move("");
 
     UpdateAndShow(true);
@@ -586,7 +593,7 @@ void GizmoObjectManipulation::reset_rotation_value(bool reset_relative)
     selection.synchronize_unselected_instances(Selection::SyncRotationType::RESET);
     selection.synchronize_unselected_volumes();
     // Copy rotation values from GLVolumes into Model (ModelInstance / ModelVolume), trigger background processing.
-    m_glcanvas.do_rotate(L("Reset Rotation"));
+    m_glcanvas.do_rotate(L("Reset rotation"));
 
     UpdateAndShow(true);
 }
@@ -638,37 +645,51 @@ static const char* label_scale_values[2][3] = {
 { "##size_x", "##size_y", "##size_z"}
 };
 
-bool GizmoObjectManipulation::reset_button(ImGuiWrapper *imgui_wrapper, float caption_max, float unit_size, float space_size, float end_text_size)
+bool GizmoObjectManipulation::reset_button(ImGuiWrapper *imgui_wrapper, bool enabled)
 {
+    imgui_wrapper->disabled_begin(!enabled);
     bool        pressed   = false;
     ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_RESET);
     ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_RESET_HOVER);
 
-    float font_size = ImGui::GetFontSize();
-    ImVec2 button_size = ImVec2(font_size, font_size);
+    float  scale       = m_glcanvas.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
+    ImVec2 button_size = ImVec2(16 * scale, 16 * scale); // ORCA: Use exact resolution will prevent blur on icon
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
 
-    pressed = ImGui::ImageButton3(normal_id, hover_id, button_size);
+    pressed = ImGui::ImageButton3(normal_id, hover_id, button_size, {0,0}, {1,1}, -1, {0,0,0,0}, {1,1,1, enabled ? 1.f : 0.f});  // ORCA make icon invisible to prevent changes on layout
 
     ImGui::PopStyleVar(1);
+
+    imgui_wrapper->disabled_end();
     return pressed;
 }
 
-bool GizmoObjectManipulation::reset_zero_button(ImGuiWrapper *imgui_wrapper, float caption_max, float unit_size, float space_size, float end_text_size)
+bool GizmoObjectManipulation::reset_zero_button(ImGuiWrapper *imgui_wrapper,  bool enabled)
 {
+    imgui_wrapper->disabled_begin(!enabled);
     bool        pressed   = false;
     ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_RESET_ZERO);
     ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_RESET_ZERO_HOVER);
 
-    float  font_size   = ImGui::GetFontSize() * 1.1;
-    ImVec2 button_size = ImVec2(font_size, font_size);
+    float  scale       = m_glcanvas.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
+    ImVec2 button_size = ImVec2(16 * scale, 16 * scale); // ORCA: Use exact resolution will prevent blur on icon
 
     ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
 
-    pressed = ImGui::ImageButton3(normal_id, hover_id, button_size);
+    pressed = ImGui::ImageButton3(normal_id, hover_id, button_size, {0,0}, {1,1}, -1, {0,0,0,0}, {1,1,1, enabled ? 1.f : 0.f});  // ORCA make icon invisible to prevent changes on layout
 
     ImGui::PopStyleVar(1);
+
+    imgui_wrapper->disabled_end();
     return pressed;
 }
 
@@ -709,90 +730,6 @@ bool GizmoObjectManipulation::reset_zero_button(ImGuiWrapper *imgui_wrapper, flo
 
      if (b_value) { ImGui::PopStyleColor(3); }
      return result;
-}
-
-void GizmoObjectManipulation::show_move_tooltip_information(ImGuiWrapper *imgui_wrapper, float caption_max, float x, float y)
-{
-    ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
-
-    float  scale       = m_glcanvas.get_scale();
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &imgui_wrapper,& caption_max](const wxString &caption, const wxString &text) {
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : std::array<std::string, 2>{"part_selection", "snap_step"})
-            draw_text_with_caption(m_desc_move.at(t + "_caption") + ": ", m_desc_move.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
-}
-
-void GizmoObjectManipulation::show_rotate_tooltip_information(ImGuiWrapper *imgui_wrapper, float caption_max, float x, float y)
-{
-    ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
-
-    float  scale       = m_glcanvas.get_scale();
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &imgui_wrapper, &caption_max](const wxString &caption, const wxString &text) {
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : std::array<std::string, 1>{"part_selection"})
-            draw_text_with_caption(m_desc_rotate.at(t + "_caption") + ": ", m_desc_rotate.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
-}
-
-void GizmoObjectManipulation::show_scale_tooltip_information(ImGuiWrapper *imgui_wrapper, float caption_max, float x, float y)
-{
-    ImTextureID normal_id = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_glcanvas.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += imgui_wrapper->calc_text_size(": "sv).x + 35.f;
-
-    float  scale       = m_glcanvas.get_scale();
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, ImGui::GetStyle().FramePadding.y});
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &imgui_wrapper, &caption_max](const wxString &caption, const wxString &text) {
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            imgui_wrapper->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : std::array<std::string, 3>{"part_selection", "snap_step", "single_sided"})
-            draw_text_with_caption(m_desc_scale.at(t + "_caption") + ": ", m_desc_scale.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
 }
 
 void GizmoObjectManipulation::set_init_rotation(const Geometry::Transformation &value) {
@@ -837,8 +774,17 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     };
 
     float space_size    = imgui_wrapper->get_style_scaling() * 8;
-    float position_size = imgui_wrapper->calc_text_size(_L("Position")).x + space_size;
-    float caption_max    = imgui_wrapper->calc_text_size(_L("Object coordinates")).x + 2 * space_size;
+    //ORCA
+    float coord_combo_width = std::max({
+        imgui_wrapper->calc_text_size(_L("World")).x,
+        imgui_wrapper->calc_text_size(_L("Object")).x,
+        imgui_wrapper->calc_text_size(_L("Part")).x
+    }) + imgui_wrapper->calc_text_size("xxx"sv).x + imgui_wrapper->scaled(3.5f);
+    float label_max = std::max({
+        imgui_wrapper->calc_text_size(_L("Position")).x,
+        imgui_wrapper->calc_text_size(_L("Relative")).x
+    });
+    float caption_max = std::max(label_max, coord_combo_width - 3 * space_size);
     float end_text_size = imgui_wrapper->calc_text_size(this->m_new_unit_string).x;
 
     // position
@@ -858,7 +804,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     unsigned int current_active_id = ImGui::GetActiveID();
 
     Selection &              selection = m_glcanvas.get_selection();
-    std::vector<std::string> modes     = {_u8L("World coordinates"), _u8L("Object coordinates")};//_u8L("Part coordinates")
+    std::vector<std::string> modes     = {_u8L("World"), _u8L("Object")};//_u8L("Part") // ORCA use shorter terms to make UI more compact
     if (selection.is_multiple_full_object() || selection.is_wipe_tower()) {
         modes.pop_back();
     }
@@ -868,16 +814,17 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         selection_idx = 0;
     }
 
-    float caption_cs_size     = imgui_wrapper->calc_text_size(""sv).x;
-    float caption_size        = caption_cs_size + 2 * space_size;
-    float combox_content_size = imgui_wrapper->calc_text_size(_L("Object coordinates")).x * 1.2 + imgui_wrapper->calc_text_size("xxx"sv).x + imgui_wrapper->scaled(3);
     ImGuiWrapper::push_combo_style(m_glcanvas.get_scale());
     bool combox_changed = false;
-    if (render_combo(imgui_wrapper, "", modes, selection_idx, caption_size, combox_content_size)) {
+    if (render_combo(imgui_wrapper, "", modes, selection_idx, 0, coord_combo_width)) {
         combox_changed = true;
     }
+    if (ImGui::IsItemHovered()) {
+        auto tooltip_str = _L("Coordinate system used for transform actions.");
+        imgui_wrapper->tooltip(tooltip_str, imgui_wrapper->calc_text_size(tooltip_str).x + 3 * space_size);
+    }
     ImGuiWrapper::pop_combo_style();
-    caption_max = combox_content_size - 4 * space_size;
+
     // ORCA use TextColored to match axes color
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
     ImGui::SameLine(caption_max + index * space_size + offset_to_center);
@@ -891,7 +838,7 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
     index_unit = 1;
     ImGui::AlignTextToFramePadding();
     if (selection.is_single_full_instance() && is_instance_coordinates()) {
-        imgui_wrapper->text(_L("Translate(Relative)"));
+        imgui_wrapper->text(_L("Relative")); // ORCA
     }
     else {
         imgui_wrapper->text(_L("Position"));
@@ -937,18 +884,25 @@ void GizmoObjectManipulation::do_render_move_window(ImGuiWrapper *imgui_wrapper,
         }
     }
     if (!focued_on_text) m_glcanvas.handle_sidebar_focus_event("", false);
-    float get_cur_y      = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    float tip_caption_max    = 0.f;
-    float total_text_max = 0.f;
-    for (const auto &t : std::array<std::string, 2>{"part_selection", "snap_step"}) {
-        tip_caption_max = std::max(tip_caption_max, imgui_wrapper->calc_text_size(m_desc_move[t + "_caption"]).x);
-        total_text_max = std::max(total_text_max, imgui_wrapper->calc_text_size(m_desc_move[t]).x);
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+    float f_scale = m_glcanvas.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+
+    GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_move, x, y);
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (imgui_wrapper->button(_L("Done"))) {
+        m_glcanvas.reset_all_gizmos();
     }
-    show_move_tooltip_information(imgui_wrapper, tip_caption_max, x, get_cur_y);
+
     m_last_active_item = current_active_id;
     last_move_input_window_width = ImGui::GetWindowWidth();
     imgui_wrapper->end();
-    ImGui::PopStyleVar(1);
+    ImGui::PopStyleVar(2);
     ImGuiWrapper::pop_toolbar_style();
 }
 
@@ -989,10 +943,15 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     };
 
     float space_size    = imgui_wrapper->get_style_scaling() * 8;
-    float position_size = imgui_wrapper->calc_text_size(_L("Rotate (relative)")).x + space_size;
-    float World_size    = imgui_wrapper->calc_text_size(_L("World coordinates")).x + space_size;
-    float caption_max   = std::max(position_size, World_size) + 2 * space_size;
-    float end_text_size = imgui_wrapper->calc_text_size(this->m_new_unit_string).x;
+    // ORCA
+    float caption_max = std::max({
+        imgui_wrapper->calc_text_size(_L("Relative")).x,
+        imgui_wrapper->calc_text_size(_L("Absolute")).x,
+        imgui_wrapper->calc_text_size(_L("World")).x
+        //imgui_wrapper->calc_text_size(_L("Object")).x,
+        //imgui_wrapper->calc_text_size(_L("Part")).x
+    }) + 3.f * space_size;
+    float end_text_size = ImGui::CalcTextSize("°").x; // ORCA rotate gizmo not uses mm or inch
 
     // position
     Vec3d original_position;
@@ -1011,7 +970,11 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     ImGui::AlignTextToFramePadding();
     unsigned int current_active_id = ImGui::GetActiveID();
     ImGui::PushItemWidth(caption_max);
-    imgui_wrapper->text(_L("World coordinates"));
+    imgui_wrapper->text(_L("World")); // ORCA
+    if (ImGui::IsItemHovered()) {
+        auto tooltip_str = _L("Coordinate system used for transform actions.");
+        imgui_wrapper->tooltip(tooltip_str, imgui_wrapper->calc_text_size(tooltip_str).x + 3 * space_size);
+    }
     // ORCA use TextColored to match axes color
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
     ImGui::SameLine(caption_max + index * space_size + offset_to_center);
@@ -1027,7 +990,7 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     // ImGui::PushItemWidth(unit_size * 2);
     bool is_relative_input = false;
     ImGui::AlignTextToFramePadding();
-    imgui_wrapper->text(_L("Rotate (relative)"));
+    imgui_wrapper->text(_L("Relative")); // ORCA
     ImGui::SameLine(caption_max + index * space_size);
     ImGui::PushItemWidth(unit_size);
     if (ImGui::BBLInputDouble(label_values[1][0], &rotation[0], 0.0f, 0.0f, "%.2f")) {
@@ -1056,19 +1019,14 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
         }
     }
 
-    if (m_show_clear_rotation) {
-        ImGui::SameLine(caption_max + 3 * unit_size + 4 * space_size + end_text_size);
-        if (reset_button(imgui_wrapper, caption_max, unit_size, space_size, end_text_size)) {
-            reset_rotation_value(true);
-        }
-        if (ImGui::IsItemHovered()) {
-            float tooltip_size = imgui_wrapper->calc_text_size(_L("Reset current rotation to the value when open the rotation tool.")).x + 3 * space_size;
-            imgui_wrapper->tooltip(_u8L("Reset current rotation to the value when open the rotation tool."), tooltip_size);
-        }
-    } else {
-        ImGui::SameLine(caption_max + 3 * unit_size + 5 * space_size + end_text_size);
-        ImGui::InvisibleButton("", ImVec2(ImGui::GetFontSize(), ImGui::GetFontSize()));
+    ImGui::SameLine(caption_max + index_unit * unit_size + (++index) * space_size + end_text_size);
+    if (reset_button(imgui_wrapper, m_show_clear_rotation)) // ORCA reserve icon space to prevent changes on layout
+        reset_rotation_value(true);
+    if (m_show_clear_rotation && ImGui::IsItemHovered()) {
+        float tooltip_size = imgui_wrapper->calc_text_size(_L("Reset current rotation to the value when open the rotation tool.")).x + 3 * space_size;
+        imgui_wrapper->tooltip(_u8L("Reset current rotation to the value when open the rotation tool."), tooltip_size);
     }
+
     // send focus to m_glcanvas
     bool focued_on_text = false;
     for (int j = 0; j < 3; j++) {
@@ -1083,7 +1041,7 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     index      = 1;
     index_unit = 1;
     ImGui::AlignTextToFramePadding();
-    imgui_wrapper->text(_L("Rotate (absolute)"));
+    imgui_wrapper->text(_L("Absolute"));
     ImGui::SameLine(caption_max + index * space_size);
     ImGui::PushItemWidth(unit_size);
     bool is_absolute_input = false;
@@ -1113,13 +1071,12 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
         }
     }
 
-    if (m_show_reset_0_rotation) {
-        ImGui::SameLine(caption_max + 3 * unit_size + 4 * space_size + end_text_size);
-        if (reset_zero_button(imgui_wrapper, caption_max, unit_size, space_size, end_text_size)) { reset_rotation_value(false); }
-        if (ImGui::IsItemHovered()) {
-            float tooltip_size = imgui_wrapper->calc_text_size(_L("Reset current rotation to real zeros.")).x + 3 * space_size;
-            imgui_wrapper->tooltip(_L("Reset current rotation to real zeros."), tooltip_size);
-        }
+    ImGui::SameLine(caption_max + index_unit * unit_size + (++index) * space_size + end_text_size);
+    if (reset_zero_button(imgui_wrapper, m_show_reset_0_rotation)) // ORCA reserve icon space to prevent changes on layout
+        reset_rotation_value(false);
+    if (m_show_reset_0_rotation && ImGui::IsItemHovered()) {
+        float tooltip_size = imgui_wrapper->calc_text_size(_L("Reset current rotation to real zeros.")).x + 3 * space_size;
+        imgui_wrapper->tooltip(_L("Reset current rotation to real zeros."), tooltip_size);
     }
     // send focus to m_glcanvas
     bool absolute_focued_on_text = false;
@@ -1134,20 +1091,26 @@ void GizmoObjectManipulation::do_render_rotate_window(ImGuiWrapper *imgui_wrappe
     if (!focued_on_text  && !absolute_focued_on_text)
         m_glcanvas.handle_sidebar_focus_event("", false);
 
-    float get_cur_y       = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    float tip_caption_max = 0.f;
-    float total_text_max  = 0.f;
-    for (const auto &t : std::array<std::string, 1>{"part_selection"}) {
-        tip_caption_max = std::max(tip_caption_max, imgui_wrapper->calc_text_size(m_desc_move[t + "_caption"]).x);
-        total_text_max  = std::max(total_text_max, imgui_wrapper->calc_text_size(m_desc_move[t]).x);
+    ImGui::Spacing(); // needed after Text
+    ImGui::Separator();
+    ImGui::Spacing();
+    float f_scale = m_glcanvas.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+
+    GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_rotate, x, y);
+    
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (imgui_wrapper->button(_L("Done"))) {
+        m_glcanvas.reset_all_gizmos();
     }
-    show_rotate_tooltip_information(imgui_wrapper, tip_caption_max, x, get_cur_y);
+
     m_last_active_item = current_active_id;
     last_rotate_input_window_width = ImGui::GetWindowWidth();
     imgui_wrapper->end();
 
     // BBS
-    ImGui::PopStyleVar(1);
+    ImGui::PopStyleVar(2);
     ImGuiWrapper::pop_toolbar_style();
 }
 
@@ -1191,8 +1154,17 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     };
 
     float space_size = imgui_wrapper->get_style_scaling() * 8;
-    float scale_size = imgui_wrapper->calc_text_size(_L("Scale")).x + space_size;
-    float caption_max   = imgui_wrapper->calc_text_size(_L("Object coordinates")).x + 2 * space_size;
+    // ORCA
+    float coord_combo_width = std::max({
+        imgui_wrapper->calc_text_size(_L("World")).x,
+        imgui_wrapper->calc_text_size(_L("Object")).x,
+        imgui_wrapper->calc_text_size(_L("Part")).x
+    }) + imgui_wrapper->calc_text_size("xxx"sv).x + imgui_wrapper->scaled(3.5f);
+    float label_max = std::max({
+        imgui_wrapper->calc_text_size(_CTX("Scale", "Noun")).x,
+        imgui_wrapper->calc_text_size(_L("Size")).x
+    });
+    float caption_max = std::max(label_max, coord_combo_width - 3 * space_size);
     float end_text_size = imgui_wrapper->calc_text_size(this->m_new_unit_string).x;
     ImGui::AlignTextToFramePadding();
     unsigned int current_active_id = ImGui::GetActiveID();
@@ -1209,7 +1181,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     int index_unit = 1;
 
     Selection &              selection = m_glcanvas.get_selection();
-    std::vector<std::string> modes     = {_u8L("World coordinates"), _u8L("Object coordinates"), _u8L("Part coordinates")};
+    std::vector<std::string> modes     = {_u8L("World"), _u8L("Object"), _u8L("Part")}; // ORCA use shorter terms to make UI more compact
     if (selection.is_single_full_object()) { modes.pop_back(); }
     if (selection.is_multiple_full_object()) {
         modes.pop_back();
@@ -1221,17 +1193,17 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         selection_idx = 0;
     }
 
-    float caption_cs_size     = imgui_wrapper->calc_text_size(""sv).x;
-    float caption_size        = caption_cs_size + 2 * space_size;
-    float combox_content_size = imgui_wrapper->calc_text_size(_L("Object coordinates")).x * 1.2 + imgui_wrapper->calc_text_size("xxx"sv).x + imgui_wrapper->scaled(3);
     ImGuiWrapper::push_combo_style(m_glcanvas.get_scale());
     bool combox_changed = false;
-    if (render_combo(imgui_wrapper, "", modes, selection_idx, caption_size, combox_content_size)) {
+    if (render_combo(imgui_wrapper, "", modes, selection_idx, 0, coord_combo_width)) {
         combox_changed = true;
     }
+    if (ImGui::IsItemHovered()) {
+        auto tooltip_str = _L("Coordinate system used for transform actions.");
+        imgui_wrapper->tooltip(tooltip_str, imgui_wrapper->calc_text_size(tooltip_str).x + 3 * space_size);
+    }
     ImGuiWrapper::pop_combo_style();
-    caption_max = combox_content_size - 4 * space_size;
-    //ImGui::Dummy(ImVec2(caption_max, -1));
+
     // ORCA use TextColored to match axes color
     float offset_to_center = (unit_size - ImGui::CalcTextSize("O").x) / 2;
     ImGui::SameLine(caption_max + space_size + offset_to_center);
@@ -1246,7 +1218,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
 
     //ImGui::PushItemWidth(unit_size * 2);
     ImGui::AlignTextToFramePadding();
-    imgui_wrapper->text(_L("Scale"));
+    imgui_wrapper->text(_CTX("Scale", "Noun"));
     ImGui::SameLine(caption_max + space_size);
     ImGui::PushItemWidth(unit_size);
     ImGui::BBLInputDouble(label_scale_values[0][0], &scale[0], 0.0f, 0.0f, "%.2f");
@@ -1262,14 +1234,9 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         m_buffered_scale = scale;
     }
 
-    if (m_show_clear_scale) {
-        ImGui::SameLine(caption_max + 3 * unit_size + 4 * space_size + end_text_size);
-        if (reset_button(imgui_wrapper, caption_max, unit_size, space_size, end_text_size))
-            reset_scale_value();
-    } else {
-        ImGui::SameLine(caption_max + 3 * unit_size + 5 * space_size + end_text_size);
-        ImGui::InvisibleButton("", ImVec2(ImGui::GetFontSize(), ImGui::GetFontSize()));
-    }
+    ImGui::SameLine(caption_max + 3 * unit_size + 4 * space_size + end_text_size);
+    if (reset_button(imgui_wrapper, m_show_clear_scale))
+        reset_scale_value();
 
     //Size
     Vec3d original_size;
@@ -1302,7 +1269,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
     if (display_size.x() > 0 && display_size.y() > 0 && display_size.z() > 0) {
         m_buffered_size = display_size;
     }
-    ImGui::Separator();
+
     ImGui::AlignTextToFramePadding();
     bool is_avoid_one_update{false};
     if (combox_changed) {
@@ -1312,7 +1279,7 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         is_avoid_one_update = true;
     }
 
-    auto uniform_scale_size =imgui_wrapper->calc_text_size(_L("uniform scale")).x;
+    auto uniform_scale_size =imgui_wrapper->calc_text_size(_L("Uniform scale")).x;
     ImGui::PushItemWidth(uniform_scale_size);
     int size_sel{-1};
     if (!is_avoid_one_update) {
@@ -1328,10 +1295,10 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
 
     //if (uniform_scale_only) {
     //    imgui_wrapper->disabled_begin(true);
-    //    imgui_wrapper->bbl_checkbox(_L("uniform scale"), uniform_scale_only);
+    //    imgui_wrapper->bbl_checkbox(_L("Uniform scale"), uniform_scale_only);
     //    imgui_wrapper->disabled_end();
     //} else {
-        imgui_wrapper->bbl_checkbox(_L("uniform scale"), uniform_scale);
+        imgui_wrapper->bbl_checkbox(_L("Uniform scale"), uniform_scale);
     //}
     if (uniform_scale != this->m_uniform_scale) { this->set_uniform_scaling(uniform_scale); }
 
@@ -1374,20 +1341,26 @@ void GizmoObjectManipulation::do_render_scale_input_window(ImGuiWrapper* imgui_w
         }
     if (!focued_on_text)
         m_glcanvas.handle_sidebar_focus_event("", false);
-    float get_cur_y       = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    float tip_caption_max = 0.f;
-    float total_text_max  = 0.f;
-    for (const auto &t : std::array<std::string, 3>{"part_selection", "snap_step", "single_sided"}) {
-        tip_caption_max = std::max(tip_caption_max, imgui_wrapper->calc_text_size(m_desc_scale[t + "_caption"]).x);
-        total_text_max  = std::max(total_text_max, imgui_wrapper->calc_text_size(m_desc_scale[t]).x);
+    
+    ImGui::Separator();
+    float f_scale = m_glcanvas.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+
+    GLGizmoUtils::render_tooltip_button(imgui_wrapper, m_glcanvas, m_shortcuts_scale, x, y);
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({ _L("Done") });
+    if (imgui_wrapper->button(_L("Done"))) {
+        m_glcanvas.reset_all_gizmos();
     }
-    show_scale_tooltip_information(imgui_wrapper, tip_caption_max, x, get_cur_y);
+
     m_last_active_item = current_active_id;
 
     last_scale_input_window_width = ImGui::GetWindowWidth();
     imgui_wrapper->end();
 
     //BBS
+    ImGui::PopStyleVar(1);
     ImGuiWrapper::pop_toolbar_style();
 }
 

@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "QIDI TPU 95A-HF @Qidi X-Max 4 0.4 nozzle",
+	"inherits": "QIDI TPU 95A-HF@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "DMbPx29AcKUuqzsv",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi X-Max 4 0.4 nozzle"
+	]
+}

@@ -34,6 +34,8 @@
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevPrintTaskInfo.h"
 
+#include "DeviceTab/wgtDeviceNozzleRack.h"
+
 
 
 #include "PrintOptionsDialog.hpp"
@@ -356,28 +358,13 @@ ExtruderSwithingStatus::ExtruderSwithingStatus(wxWindow *parent)
     { m_switching_status_label->SetBackgroundColour(parent->GetBackgroundColour());
     }
 
-    StateColor e_ctrl_bg(std::pair<wxColour, int>(BUTTON_PRESS_COL, StateColor::Pressed), std::pair<wxColour, int>(BUTTON_NORMAL1_COL, StateColor::Normal));
-    StateColor e_ctrl_bd(std::pair<wxColour, int>(BUTTON_HOVER_COL, StateColor::Hovered), std::pair<wxColour, int>(BUTTON_NORMAL1_COL, StateColor::Normal));
-
     m_button_quit = new Button(this, _CTX(L_CONTEXT("Quit", "Quit_Switching"), "Quit_Switching"), "", 0, FromDIP(22));
-    m_button_quit->SetFont(::Label::Body_13);
+    m_button_quit->SetStyle(ButtonStyle::Regular, ButtonType::Window);
     m_button_quit->Bind(wxEVT_BUTTON, &ExtruderSwithingStatus::on_quit, this);
-    m_button_quit->SetMinSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_quit->SetMaxSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_quit->SetBackgroundColor(e_ctrl_bg);
-    m_button_quit->SetBorderColor(e_ctrl_bd);
-    m_button_quit->SetBorderWidth(2);
-    if (parent) { m_button_quit->SetBackgroundColour(parent->GetBackgroundColour()); }
 
     m_button_retry = new Button(this, _L("Retry"), "", 0, FromDIP(22));
-    m_button_retry->SetFont(::Label::Body_13);
+    m_button_retry->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     m_button_retry->Bind(wxEVT_BUTTON, &ExtruderSwithingStatus::on_retry, this);
-    m_button_retry->SetMinSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_retry->SetMaxSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_retry->SetBackgroundColor(e_ctrl_bg);
-    m_button_retry->SetBorderColor(e_ctrl_bd);
-    m_button_retry->SetBorderWidth(2);
-    if (parent) { m_button_retry->SetBackgroundColour(parent->GetBackgroundColour()); }
 
     wxBoxSizer *btn_sizer  = new wxBoxSizer(wxHORIZONTAL);
     btn_sizer->Add(m_button_quit, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(10));
@@ -476,10 +463,8 @@ bool ExtruderSwithingStatus::has_content_shown() const
 
 void ExtruderSwithingStatus::msw_rescale()
 {
-    m_button_quit->SetMinSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_quit->SetMaxSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_retry->SetMinSize(SWITCHING_STATUS_BTN_SIZE);
-    m_button_retry->SetMaxSize(SWITCHING_STATUS_BTN_SIZE);
+    m_button_quit->Rescale(); // ORCA
+    m_button_retry->Rescale(); // ORCA
     Layout();
 }
 
@@ -533,7 +518,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     m_panel_printing_title = new wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(-1, PAGE_TITLE_HEIGHT), wxTAB_TRAVERSAL);
     m_panel_printing_title->SetBackgroundColour(STATUS_TITLE_BG);
 
-    m_staticText_printing = new wxStaticText(m_panel_printing_title, wxID_ANY ,_L("Printing Progress"));
+    m_staticText_printing = new wxStaticText(m_panel_printing_title, wxID_ANY ,_L("Printing progress"));
     m_staticText_printing->Wrap(-1);
     //m_staticText_printing->SetFont(PAGE_TITLE_FONT);
     m_staticText_printing->SetForegroundColour(PAGE_TITLE_FONT_COL);
@@ -621,7 +606,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
                           std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Hovered), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled),
                           std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal));
 
-    m_button_partskip = new Button(progress_lr_panel, wxEmptyString, "print_control_partskip_disable", 0, 20, wxID_ANY);
+    m_button_partskip = new Button(progress_lr_panel, wxEmptyString, "print_control_partskip_disable", 0, 16, wxID_ANY); // ORCA match icon size
     m_button_partskip->Enable(false);
     m_button_partskip->Hide();
     m_button_partskip->SetBackgroundColor(white_bg);
@@ -702,7 +687,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     #endif
 
 
-    m_staticText_progress_left = new wxStaticText(penel_text, wxID_ANY, L("N/A"), wxDefaultPosition, wxDefaultSize, 0);
+    m_staticText_progress_left = new wxStaticText(penel_text, wxID_ANY, _L("N/A"), wxDefaultPosition, wxDefaultSize, 0);
     m_staticText_progress_left->Wrap(-1);
     m_staticText_progress_left->SetFont(wxFont(12, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("HarmonyOS Sans SC")));
     m_staticText_progress_left->SetForegroundColour(wxColour(146, 146, 146));
@@ -800,11 +785,11 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     printingstage_horizontal_sizer->Add(m_printing_stage_value, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL, 0);
     printingstage_horizontal_sizer->Add(m_question_button, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
     printingstage_vertical_sizer->Add(printingstage_horizontal_sizer, 0, wxALIGN_CENTER_VERTICAL, 0);
-    printingstage_vertical_sizer->Add(m_printing_stage_underline, 0, wxEXPAND |wxALIGN_TOP, 0);
+    printingstage_vertical_sizer->Add(m_printing_stage_underline, 0, wxEXPAND, 0);
     m_printing_stage_panel->SetSizer(printingstage_vertical_sizer);
 
     // Orca: display the end time of the print
-    m_staticText_progress_end = new wxStaticText(penel_finish_time, wxID_ANY, L("N/A"), wxDefaultPosition, wxDefaultSize, 0);
+    m_staticText_progress_end = new wxStaticText(penel_finish_time, wxID_ANY, _L("N/A"), wxDefaultPosition, wxDefaultSize, 0);
     m_staticText_progress_end->Wrap(-1);
     m_staticText_progress_end->SetFont(
         wxFont(12, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, wxT("HarmonyOS Sans SC")));
@@ -870,18 +855,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     static_text_sizer->Add(m_error_text, 1, wxEXPAND | wxLEFT, FromDIP(17));
 
     m_button_clean = new Button(m_panel_error_txt, _L("Clear"));
-    StateColor clean_bg(std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Disabled), std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-                        std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered), std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Enabled),
-                        std::pair<wxColour, int>(wxColour(255, 255, 255), StateColor::Normal));
-    StateColor clean_bd(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-    StateColor clean_text(std::pair<wxColour, int>(wxColour(144, 144, 144), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-
-
-    m_button_clean->SetBackgroundColor(clean_bg);
-    m_button_clean->SetBorderColor(clean_bd);
-    m_button_clean->SetTextColor(clean_text);
-    m_button_clean->SetFont(Label::Body_10);
-    m_button_clean->SetMinSize(TASK_BUTTON_SIZE2);
+    m_button_clean->SetStyle(ButtonStyle::Regular, ButtonType::Window);
 
     static_text_sizer->Add( FromDIP(10), 0, 0, 0, 0 );
     static_text_sizer->Add(m_button_clean, 0, wxALIGN_CENTRE_VERTICAL|wxRIGHT, FromDIP(5));
@@ -906,21 +880,15 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     m_request_failed_panel    = new wxPanel(parent, wxID_ANY);
     m_request_failed_panel->SetBackgroundColour(*wxWHITE);
     wxBoxSizer *static_request_failed_panel_sizer = new wxBoxSizer(wxHORIZONTAL);
-    m_request_failed_info = new wxStaticText(m_request_failed_panel, wxID_ANY, _L("You have completed printing the mall model, \nbut the synchronization of rating information has failed."), wxDefaultPosition, wxDefaultSize, 0);
+    m_request_failed_info = new wxStaticText(m_request_failed_panel, wxID_ANY, _L("You have completed printing the mall model, \nbut synchronizing rating information has failed."), wxDefaultPosition, wxDefaultSize, 0);
     m_request_failed_info->Wrap(-1);
     m_request_failed_info->SetForegroundColour(*wxRED);
     m_request_failed_info->SetFont(::Label::Body_10);
     static_request_failed_panel_sizer->Add(m_request_failed_info, 0, wxEXPAND | wxALL, FromDIP(10));
-    StateColor btn_bg_green(std::pair<wxColour, int>(AMS_CONTROL_DISABLE_COLOUR, StateColor::Disabled), std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-                            std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered), std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Normal));
-    StateColor btn_bd_green(std::pair<wxColour, int>(AMS_CONTROL_WHITE_COLOUR, StateColor::Disabled), std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Enabled));
+
     m_button_market_retry = new Button(m_request_failed_panel, _L("Retry"));
-    m_button_market_retry->SetBackgroundColor(btn_bg_green);
-    m_button_market_retry->SetBorderColor(btn_bd_green);
-    m_button_market_retry->SetTextColor(wxColour("#FFFFFE"));
-    m_button_market_retry->SetSize(wxSize(FromDIP(128), FromDIP(26)));
-    m_button_market_retry->SetMinSize(wxSize(-1, FromDIP(26)));
-    m_button_market_retry->SetCornerRadius(FromDIP(13));
+    m_button_market_retry->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
+
     static_request_failed_panel_sizer->Add(0, 0, 1, wxEXPAND, 0);
     static_request_failed_panel_sizer->Add(m_button_market_retry, 0, wxEXPAND | wxALL, FromDIP(10));
     m_request_failed_panel->SetSizer(static_request_failed_panel_sizer);
@@ -969,12 +937,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     }
 
     m_button_market_scoring = new Button(m_score_subtask_info, _L("Rate"));
-    m_button_market_scoring->SetBackgroundColor(btn_bg_green);
-    m_button_market_scoring->SetBorderColor(btn_bd_green);
-    m_button_market_scoring->SetTextColor(wxColour("#FFFFFE"));
-    m_button_market_scoring->SetSize(wxSize(FromDIP(128), FromDIP(26)));
-    m_button_market_scoring->SetMinSize(wxSize(-1, FromDIP(26)));
-    m_button_market_scoring->SetCornerRadius(FromDIP(13));
+    m_button_market_scoring->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     m_button_market_scoring->Enable(false);
 
     static_score_star_sizer->Add(0, 0, 1, wxEXPAND, 0);
@@ -1619,39 +1582,19 @@ wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
     //m_staticText_control->SetFont(PAGE_TITLE_FONT);
     m_staticText_control->SetForegroundColour(PAGE_TITLE_FONT_COL);
 
-    StateColor btn_bg_green(std::pair<wxColour, int>(AMS_CONTROL_DISABLE_COLOUR, StateColor::Disabled), std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered), std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Normal));
-    StateColor btn_bd_green(std::pair<wxColour, int>(AMS_CONTROL_WHITE_COLOUR, StateColor::Disabled), std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Enabled));
-
     m_parts_btn = new Button(m_panel_control_title, _L("Printer Parts"));
-    m_parts_btn->SetBackgroundColor(btn_bg_green);
-    m_parts_btn->SetBorderColor(btn_bd_green);
-    m_parts_btn->SetTextColor(wxColour("#FFFFFE"));
-    m_parts_btn->SetSize(wxSize(FromDIP(128), FromDIP(26)));
-    m_parts_btn->SetMinSize(wxSize(-1, FromDIP(26)));
+    m_parts_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
 
     m_options_btn = new Button(m_panel_control_title, _L("Print Options"));
-    m_options_btn->SetBackgroundColor(btn_bg_green);
-    m_options_btn->SetBorderColor(btn_bd_green);
-    m_options_btn->SetTextColor(wxColour("#FFFFFE"));
-    m_options_btn->SetSize(wxSize(FromDIP(128), FromDIP(26)));
-    m_options_btn->SetMinSize(wxSize(-1, FromDIP(26)));
-
+    m_options_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
+  
     m_safety_btn = new Button(m_panel_control_title, _L("Safety Options"));
-    m_safety_btn->SetBackgroundColor(btn_bg_green);
-    m_safety_btn->SetBorderColor(btn_bd_green);
-    m_safety_btn->SetTextColor(wxColour("#FFFFFE"));
-    m_safety_btn->SetSize(wxSize(FromDIP(128), FromDIP(26)));
-    m_safety_btn->SetMinSize(wxSize(-1, FromDIP(26)));
+    m_safety_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
 
     m_calibration_btn = new Button(m_panel_control_title, _L("Calibration"));
-    m_calibration_btn->SetBackgroundColor(btn_bg_green);
-    m_calibration_btn->SetBorderColor(btn_bd_green);
-    m_calibration_btn->SetTextColor(wxColour("#FFFFFE"));
-    m_calibration_btn->SetSize(wxSize(FromDIP(128), FromDIP(26)));
-    m_calibration_btn->SetMinSize(wxSize(-1, FromDIP(26)));
+    m_calibration_btn->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     m_calibration_btn->EnableTooltipEvenDisabled();
-
+  
     m_options_btn->Hide();
     m_safety_btn->Hide();
 
@@ -1670,13 +1613,26 @@ wxBoxSizer *StatusBasePanel::create_machine_control_page(wxWindow *parent)
     wxBoxSizer *bSizer_control = new wxBoxSizer(wxVERTICAL);
 
     auto temp_axis_ctrl_sizer = create_temp_axis_group(parent);
-    auto m_ams_ctrl_sizer = create_ams_group(parent);
     auto m_filament_load_sizer = create_filament_group(parent);
+
+    /* ams control box or live nozzle-rack panel (rack printers switch between the two) */
+    wxSizer *ams_rack_sizer = new wxBoxSizer(wxHORIZONTAL);
+    ams_rack_sizer->Add(create_ams_group(parent), 0, wxEXPAND | wxLEFT);
+
+    m_panel_nozzle_rack = new wgtDeviceNozzleRack(parent);
+    m_panel_nozzle_rack->Show(false);
+    ams_rack_sizer->Add(m_panel_nozzle_rack, 0, wxEXPAND | wxLEFT);
+
+    m_ams_rack_switch = new SwitchBoard(parent, _L("Filament"), _L("Hotends"), wxSize(FromDIP(126), FromDIP(26)));
+    m_ams_rack_switch->updateState("left");
+    m_ams_rack_switch->Hide();
+    m_ams_rack_switch->Bind(wxCUSTOMEVT_SWITCH_POS, &StatusBasePanel::on_ams_rack_switch, this);
 
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(8));
     bSizer_control->Add(temp_axis_ctrl_sizer,   0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
+    bSizer_control->Add(m_ams_rack_switch,      0, wxALIGN_CENTRE|wxTOP, FromDIP(6));
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(6));
-    bSizer_control->Add(m_ams_ctrl_sizer,       0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
+    bSizer_control->Add(ams_rack_sizer,         0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(6));
     bSizer_control->Add(m_filament_load_sizer,  0, wxALIGN_CENTER|wxLEFT|wxRIGHT, FromDIP(8));
     bSizer_control->Add(0, 0, 0, wxTOP, FromDIP(4));
@@ -2171,18 +2127,8 @@ wxBoxSizer* StatusBasePanel::create_filament_group(wxWindow* parent)
     steps_sizer->Add(m_filament_load_img, 0, wxALIGN_TOP, FromDIP(30));
     steps_sizer->AddStretchSpacer();
 
-    StateColor btn_bd_white(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-    StateColor btn_text_white(std::pair<wxColour, int>(wxColour(255, 255, 254), StateColor::Disabled), std::pair<wxColour, int>(wxColour(38, 46, 48), StateColor::Enabled));
-    StateColor btn_bg_white(std::pair<wxColour, int>(AMS_CONTROL_DISABLE_COLOUR, StateColor::Disabled), std::pair<wxColour, int>(AMS_CONTROL_DISABLE_COLOUR, StateColor::Pressed),
-                            std::pair<wxColour, int>(AMS_CONTROL_DEF_BLOCK_BK_COLOUR, StateColor::Hovered),
-                            std::pair<wxColour, int>(AMS_CONTROL_WHITE_COLOUR, StateColor::Normal));
-
     m_button_retry = new Button(m_filament_load_box, _L("Retry"));
-    m_button_retry->SetFont(Label::Body_13);
-    m_button_retry->SetBorderColor(btn_bd_white);
-    m_button_retry->SetTextColor(btn_text_white);
-    m_button_retry->SetMinSize(wxSize(FromDIP(80), FromDIP(31)));
-    m_button_retry->SetBackgroundColor(btn_bg_white);
+    m_button_retry->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     //m_button_retry->Hide();
 
     m_button_retry->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
@@ -2191,7 +2137,7 @@ wxBoxSizer* StatusBasePanel::create_filament_group(wxWindow* parent)
     });
 
 
-    sizer_box->Add(steps_sizer, 0, wxEXPAND | wxALIGN_LEFT | wxTOP, FromDIP(5));
+    sizer_box->Add(steps_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
     sizer_box->Add(m_button_retry, 0, wxLEFT, FromDIP(28));
     sizer_box->Add(0, 0, 0, wxTOP, FromDIP(5));
     m_filament_load_box->SetBackgroundColour(*wxWHITE);
@@ -2232,7 +2178,19 @@ void StatusBasePanel::expand_filament_loading(wxMouseEvent& e)
         else if (obj->is_series_o())
         {
             const auto& ext_system = obj->GetExtderSystem();
-            if (ext_system->GetTotalExtderCount() == 2)
+            // Prefer the config-driven filament-load image: H2C ships per-extruder bitmaps, and a printer
+            // fitted with an induction hotend rack picks the rack-specific set (filament_load_image_nozzle_rack).
+            // Printers whose profile carries no such key (e.g. H2D) get an empty name here and fall through to
+            // the generic O-series bitmaps below, so their monitor page stays byte-identical. Rack-driven, so
+            // there is no behavior change for any non-rack printer.
+            int  cur_ext_id      = (ext_system && ext_system->GetTotalExtderCount() > 1) ? ext_system->GetCurrentExtderId() : 0;
+            bool has_nozzle_rack = obj->GetNozzleSystem()->GetNozzleRack()->IsSupported();
+            std::string img_name = DevPrinterConfigUtil::get_filament_load_img(obj->printer_type, cur_ext_id, has_nozzle_rack);
+            if (!img_name.empty())
+            {
+                m_filament_load_img->SetBitmap(create_scaled_bitmap(img_name, this, load_img_size));
+            }
+            else if (ext_system->GetTotalExtderCount() == 2)
             {
                 int cur_extder_id = ext_system->GetCurrentExtderId();
                 if (cur_extder_id == MAIN_EXTRUDER_ID)
@@ -2271,6 +2229,10 @@ void StatusBasePanel::show_ams_group(bool show)
         wxGetApp().mainframe->m_monitor->Layout();
     }
 
+    // On rack printers, don't clobber the rack view when the user has the switch on "Hotends".
+    // Inert for every non-rack printer: the switch stays hidden, so this guard never triggers.
+    if (show && m_ams_rack_switch->IsShown() && (m_ams_rack_switch->switch_left != true)) { return; }
+
     if (m_ams_control_box->IsShown() != show) {
         m_ams_control_box->Show(show);
         m_ams_control->Layout();
@@ -2296,7 +2258,7 @@ void StatusBasePanel::show_filament_load_group(bool show)
         }
 
         auto cur_ext = obj->GetExtderSystem()->GetCurrentExtder();
-        m_filament_step->SetupSteps(cur_ext ? cur_ext->HasFilamentInExt() : false);
+        m_filament_step->SetupSteps(obj, cur_ext ? cur_ext->HasFilamentInExt() : false);
 
         Layout();
         Fit();
@@ -2304,6 +2266,31 @@ void StatusBasePanel::show_filament_load_group(bool show)
         wxGetApp().mainframe->m_monitor->get_status_panel()->Layout();
         wxGetApp().mainframe->m_monitor->Layout();
     }
+}
+
+void StatusBasePanel::jump_to_Rack()
+{
+    if (obj && obj->GetNozzleSystem()->GetNozzleRack()->IsSupported()) {
+        m_ams_rack_switch->updateState("right");
+        m_ams_control_box->Show(false);
+        m_panel_nozzle_rack->Show(true);
+        Layout();
+    }
+}
+
+void StatusBasePanel::on_ams_rack_switch(wxCommandEvent &e)
+{
+    if (!m_ams_control_box->IsShown() && e.GetInt() == 1) {
+        m_ams_control_box->Show(e.GetInt() == 1);
+        m_panel_nozzle_rack->Show(e.GetInt() == 0);
+        Layout();
+    } else if (!m_panel_nozzle_rack->IsShown() && e.GetInt() == 0) {
+        m_ams_control_box->Show(e.GetInt() == 1);
+        m_panel_nozzle_rack->Show(e.GetInt() == 0);
+        Layout();
+    }
+
+    e.Skip();
 }
 
 void StatusPanel::update_camera_state(MachineObject* obj)
@@ -2572,6 +2559,8 @@ StatusPanel::~StatusPanel()
 
 void StatusPanel::init_scaled_buttons()
 {
+    if (!m_project_task_panel) return;
+
     m_project_task_panel->init_scaled_buttons();
     m_bpButton_z_10->SetMinSize(Z_BUTTON_SIZE);
     m_bpButton_z_10->SetCornerRadius(0);
@@ -2844,6 +2833,8 @@ void StatusPanel::update(MachineObject *obj)
 
     update_ams(obj);
     update_cali(obj);
+
+    update_rack(obj);
 
     if (obj) {
         //nozzle ui
@@ -3401,6 +3392,7 @@ void StatusPanel::update_ams(MachineObject *obj)
 
     // must select a current can
     m_ams_control->UpdateAms(obj->get_printer_series_str(), obj->printer_type, ams_info, ext_info, *obj->GetExtderSystem(), obj->get_dev_id(), false);
+    m_ams_control->UpdateAmsDryControl(obj);
 
     last_tray_exist_bits  = obj->tray_exist_bits;
     last_ams_exist_bits   = obj->ams_exist_bits;
@@ -3479,7 +3471,14 @@ void StatusPanel::update_ams(MachineObject *obj)
                 int         tray_id_int = atoi(tray_id.c_str());
                 // new protocol
                 if (ams_id_int < 128) {
-                    if ((obj->tray_reading_bits & (1 << (ams_id_int * 4 + tray_id_int))) != 0) {
+                    if (ams_it->second->IsAmsLiteMixed()) {
+                        // Mixed AMS-Lite (A2L / N9) RFID-reading bits occupy positions 24..27.
+                        if ((obj->tray_reading_bits & (1 << (AMS_LITE_MIXED_TRAY_INDEX_OFFSET + tray_id_int))) != 0) {
+                            m_ams_control->PlayRridLoading(ams_id, tray_id);
+                        } else {
+                            m_ams_control->StopRridLoading(ams_id, tray_id);
+                        }
+                    } else if ((obj->tray_reading_bits & (1 << (ams_id_int * 4 + tray_id_int))) != 0) {
                         m_ams_control->PlayRridLoading(ams_id, tray_id);
                     } else {
                         m_ams_control->StopRridLoading(ams_id, tray_id);
@@ -3526,8 +3525,16 @@ void StatusPanel::update_ams_control_state(std::string ams_id, std::string slot_
         }
 
         if (ams_id.empty() || slot_id.empty()) {
-            load_error_info = _L("Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filaments.");
-            unload_error_info = _L("Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filaments.");
+            load_error_info = _L("Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament.");
+            unload_error_info = _L("Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament.");
+        } else if (obj->GetFilaSwitch()->IsInstalled() && devPrinterUtil::IsVirtualSlot(ams_id)) {
+            // Orca: with a Filament Track Switch installed the external spool cannot be routed, so both actions are blocked.
+            load_error_info  = _L("\"Load\" or \"Unload\" is not supported for external spool while using Filament Track Switch.");
+            unload_error_info = load_error_info;
+        } else if (obj->GetFilaSwitch()->IsInstalled() && !obj->GetFilaSwitch()->IsReady()) {
+            // Orca: an un-calibrated Filament Track Switch cannot route filament to either extruder, so block both actions.
+            load_error_info  = _L("The Filament Track Switch has not been setup. Please setup on printer.");
+            unload_error_info = load_error_info;
         } else if (ams_id == std::to_string(VIRTUAL_TRAY_MAIN_ID) || ams_id == std::to_string(VIRTUAL_TRAY_DEPUTY_ID)) {
             for (auto ext : obj->GetExtderSystem()->GetExtruders()) {
                 if (ext.GetSlotNow().ams_id == ams_id && ext.GetSlotNow().slot_id == slot_id)
@@ -3537,6 +3544,8 @@ void StatusPanel::update_ams_control_state(std::string ams_id, std::string slot_
             }
         } else {
             for (auto ext : obj->GetExtderSystem()->GetExtruders()) {
+                // Orca: with a Filament Track Switch installed a slot is not bound to a single extruder, so skip the "already loaded" identity check.
+                if (obj->GetFilaSwitch()->IsInstalled()) { continue; }
                 if (ext.GetSlotNow().ams_id == ams_id && ext.GetSlotNow().slot_id == slot_id)
                 {
                     load_error_info = _L("Current slot has already been loaded.");
@@ -3547,14 +3556,14 @@ void StatusPanel::update_ams_control_state(std::string ams_id, std::string slot_
             auto ams_item = obj->GetFilaSystem()->GetAmsById(ams_id);
             if (!ams_item)
             {
-                load_error_info = _L("Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filaments.");
+                load_error_info = _L("Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament.");
             }
             else
             {
                 auto tray_item = ams_item->GetTray(slot_id);
                 if (!tray_item)
                 {
-                    load_error_info = _L("Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filaments.");
+                    load_error_info = _L("Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament.");
                 }
                 else if (!tray_item->is_exists)
                 {
@@ -3738,7 +3747,7 @@ void StatusPanel::update_subtask(MachineObject *obj)
                 if (obj->queue_number <= 0) {
                     prepare_text = wxString::Format(_L("Cloud Slicing..."));
                 } else {
-                    prepare_text = wxString::Format(_L("In Cloud Slicing Queue, there are %s tasks ahead."), std::to_string(obj->queue_number));
+                    prepare_text = wxString::Format(_L("In Cloud Slicing Queue, there are %s tasks ahead of you."), std::to_string(obj->queue_number));
                     show_percent = false;
                 }
             } else
@@ -4052,14 +4061,14 @@ void StatusPanel::on_axis_ctrl_z_down_10(wxCommandEvent &event)
 void StatusPanel::axis_ctrl_e_hint(bool up_down)
 {
     if (ctrl_e_hint_dlg == nullptr) {
-        /* ctrl_e_hint_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Warning"), SecondaryCheckDialog::ButtonStyle::CONFIRM_AND_CANCEL, wxDefaultPosition,
-         ctrl_e_hint_dlg->update_text(_L("Please heat the nozzle to above 170°C before loading or unloading filament."));
+        /* ctrl_e_hint_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Warning"), SecondaryCheckDialog::VisibleButtons::CONFIRM_AND_CANCEL, wxDefaultPosition,
+         ctrl_e_hint_dlg->update_text(_L("Please heat the nozzle to above 170\u2103 before loading or unloading filament."));
          ctrl_e_hint_dlg->m_show_again_checkbox->Hide();
          ctrl_e_hint_dlg->m_button_cancel->Hide();
          ctrl_e_hint_dlg->m_staticText_release_note->SetMaxSize(wxSize(FromDIP(360), -1));
          ctrl_e_hint_dlg->m_staticText_release_note->SetMinSize(wxSize(FromDIP(360), -1));
          ctrl_e_hint_dlg->Fit();*/
-        ctrl_e_hint_dlg = new MessageDialog(this, _L("Please heat the nozzle to above 170°C before loading or unloading filament."), wxString(_L("Warning")), wxOK | wxCENTER);
+        ctrl_e_hint_dlg = new MessageDialog(this, _L("Please heat the nozzle to above 170\u2103 before loading or unloading filament."), wxString(_L("Warning")), wxOK | wxCENTER);
     }
       ctrl_e_hint_dlg->ShowModal();
    // ctrl_e_hint_dlg->on_show();
@@ -4233,6 +4242,43 @@ void StatusPanel::on_ams_load_curr()
         std::string                            curr_ams_id = m_ams_control->GetCurentAms();
         std::string                            curr_can_id = m_ams_control->GetCurrentCan(curr_ams_id);
 
+        std::optional<int> extruder_id = std::nullopt;
+        if (obj->GetFilaSwitch() && obj->GetFilaSwitch()->IsInstalled()) {
+            if (!obj->GetFilaSwitch()->IsReady()) {
+                MessageDialog msg_dlg(nullptr, _L("The Filament Track Switch has not been setup. Please setup on printer."), wxEmptyString, wxICON_WARNING | wxOK);
+                msg_dlg.ShowModal();
+                return;
+            }
+
+            // Filament Track Switch is calibrated: the load can go to either extruder, so ask the
+            // user which. Record each extruder's currently-loaded slot so the dialog can grey out a
+            // side that already holds this filament.
+            std::vector<std::pair<std::string, std::string>> extruderSlots(2, {"", ""});
+            if (auto ext = obj->GetExtderSystem()->GetExtderById(MAIN_EXTRUDER_ID); ext.has_value())
+            {
+                if (ext->HasFilamentInExt())
+                {
+                    extruderSlots[MAIN_EXTRUDER_ID] = {ext->GetSlotNow().ams_id, ext->GetSlotNow().slot_id};
+                }
+            }
+            if (auto ext = obj->GetExtderSystem()->GetExtderById(DEPUTY_EXTRUDER_ID); ext.has_value())
+            {
+                if (ext->HasFilamentInExt())
+                {
+                    extruderSlots[DEPUTY_EXTRUDER_ID] = {ext->GetSlotNow().ams_id, ext->GetSlotNow().slot_id};
+                }
+            }
+
+            FeedDirectionDialog dialog(nullptr, 2, obj->printer_type);
+            dialog.SetExtruderMapping(obj, curr_ams_id, curr_can_id, extruderSlots);
+            auto rtn = dialog.ShowModal();
+
+            if (rtn != wxID_OK)
+            {
+                return;
+            }
+            extruder_id = dialog.GetExtruderID();
+        }
 
         update_load_with_temp();
         //virtual tray
@@ -4264,11 +4310,11 @@ void StatusPanel::on_ams_load_curr()
             if (obj->is_enable_np || obj->is_enable_ams_np) {
                 try {
                     if (!curr_ams_id.empty() && !curr_can_id.empty()) {
-                        obj->command_ams_change_filament(true, curr_ams_id, "0", old_temp, new_temp);
+                        obj->command_ams_change_filament(true, curr_ams_id, "0", old_temp, new_temp, extruder_id);
                     }
                 } catch (...) {}
             } else {
-                obj->command_ams_change_filament(true, "254", "0", old_temp, new_temp);
+                obj->command_ams_change_filament(true, "254", "0", old_temp, new_temp, extruder_id);
             }
         }
 
@@ -4304,12 +4350,12 @@ void StatusPanel::on_ams_load_curr()
         if (obj->is_enable_np) {
             try {
                 if (!curr_ams_id.empty() && !curr_can_id.empty()) {
-                    obj->command_ams_change_filament(true, curr_ams_id, curr_can_id, old_temp, new_temp);
+                    obj->command_ams_change_filament(true, curr_ams_id, curr_can_id, old_temp, new_temp, extruder_id);
                 }
             }
             catch (...){}
         } else {
-            obj->command_ams_change_filament(true, curr_ams_id, curr_can_id, old_temp, new_temp);
+            obj->command_ams_change_filament(true, curr_ams_id, curr_can_id, old_temp, new_temp, extruder_id);
         }
     }
 }
@@ -4615,7 +4661,7 @@ void StatusPanel::on_ams_refresh_rfid(wxCommandEvent &event)
         }
 
         if (has_filament_at_extruder) {
-            MessageDialog msg_dlg(nullptr, _L("Cannot read filament info: the filament is loaded to the tool head,please unload the filament and try again."), wxEmptyString,
+            MessageDialog msg_dlg(nullptr, _L("Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."), wxEmptyString,
                                   wxICON_WARNING | wxYES);
             msg_dlg.ShowModal();
             return;
@@ -4898,7 +4944,7 @@ void StatusPanel::on_camera_enter(wxMouseEvent& event)
         m_camera_popup->Bind(EVT_VCAMERA_SWITCH, &StatusPanel::on_switch_vcamera, this);
         m_camera_popup->Bind(EVT_SDCARD_ABSENT_HINT, [this](wxCommandEvent &e) {
             if (sdcard_hint_dlg == nullptr) {
-                sdcard_hint_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Warning"), SecondaryCheckDialog::ButtonStyle::ONLY_CONFIRM);
+                sdcard_hint_dlg = new SecondaryCheckDialog(this->GetParent(), wxID_ANY, _L("Warning"), SecondaryCheckDialog::VisibleButtons::ONLY_CONFIRM); // ORCA VisibleButtons instead ButtonStyle 
                 sdcard_hint_dlg->update_text(_L("Can't start this without storage."));
             }
             sdcard_hint_dlg->on_show();
@@ -5152,6 +5198,9 @@ void StatusPanel::set_default()
     m_ams_control->Hide();
     m_ams_control_box->Hide();
     m_ams_control->Reset();
+    m_ams_rack_switch->updateState("left");
+    m_ams_rack_switch->Hide();
+    m_panel_nozzle_rack->Hide();
     m_scale_panel->Hide();
     m_filament_load_box->Hide();
     m_filament_step->Hide();
@@ -5329,6 +5378,7 @@ void StatusPanel::msw_rescale()
     m_extruder_switching_status->msw_rescale();
 
     m_ams_control->msw_rescale();
+    m_panel_nozzle_rack->Rescale();
     // m_filament_step->Rescale();
 
 
@@ -5348,6 +5398,20 @@ void StatusPanel::msw_rescale()
 
     Layout();
     Refresh();
+}
+
+void StatusPanel::update_rack(MachineObject *obj)
+{
+    // Rack switch + live rack panel are shown only for printers whose nozzle system reports a rack
+    // (H2C). Every other Bambu printer keeps the switch hidden and the panel collapsed -> the AMS
+    // monitor page is unchanged for X1/P1/A1/H2D/H2S.
+    if (obj && obj->GetNozzleSystem()->GetNozzleRack()->IsSupported()) {
+        m_ams_rack_switch->Show();
+        m_panel_nozzle_rack->UpdateRackInfo(obj->GetNozzleSystem()->GetNozzleRack());
+    } else {
+        m_ams_rack_switch->Show(false);
+        m_panel_nozzle_rack->Show(false);
+    }
 }
 
 void StatusPanel::update_filament_loading_panel(MachineObject* obj)
@@ -5789,7 +5853,7 @@ wxBoxSizer *ScoreDialog::get_photo_btn_sizer() {
 
     m_add_photo->Bind(wxEVT_LEFT_DOWN, [this](auto &e) {
         // add photo logic
-        wxFileDialog openFileDialog(this, "Select Images", "", "", "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg", wxFD_OPEN | wxFD_FILE_MUST_EXIST | wxFD_MULTIPLE);
+        wxFileDialog openFileDialog(this, _L("Select Images"), "", "", _L("Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"), wxFD_OPEN | wxFD_FILE_MUST_EXIST | wxFD_MULTIPLE);
 
         if (openFileDialog.ShowModal() == wxID_CANCEL) return;
 
@@ -5851,18 +5915,9 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
     wxBoxSizer *bSizer_button = new wxBoxSizer(wxHORIZONTAL);
     bSizer_button->Add(0, 0, 1, wxEXPAND, 0);
 
-    StateColor btn_bg_green(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                            std::pair<wxColour, int>(AMS_CONTROL_BRAND_COLOUR, StateColor::Normal));
-
     m_button_ok = new Button(this, _L("Submit"));
-    m_button_ok->SetBackgroundColor(btn_bg_green);
-    m_button_ok->SetBorderColor(*wxWHITE);
-    m_button_ok->SetTextColor(wxColour("#FFFFFE"));
-    m_button_ok->SetFont(Label::Body_12);
-    m_button_ok->SetSize(wxSize(FromDIP(58), FromDIP(24)));
-    m_button_ok->SetMinSize(wxSize(FromDIP(58), FromDIP(24)));
-    m_button_ok->SetCornerRadius(FromDIP(12));
-    bSizer_button->Add(m_button_ok, 0, wxRIGHT, FromDIP(24));
+    m_button_ok->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
+    bSizer_button->Add(m_button_ok, 0, wxRIGHT, FromDIP(ButtonProps::ChoiceButtonGap()));
 
     m_button_ok->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
         m_upload_status_code = StatusCode::UPLOAD_PROGRESS;
@@ -5967,7 +6022,7 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
                 if (ret == -1)
                     error_info += _L("Upload failed\n").ToUTF8().data();
                 else
-                    error_info += _L("obtaining instance_id failed\n").ToUTF8().data();
+                    error_info += _L("Obtaining instance_id failed\n").ToUTF8().data();
                 if (!error_info.empty()) { BOOST_LOG_TRIVIAL(info) << error_info; }
 
                 dlg_info = new MessageDialog(this,
@@ -5997,17 +6052,9 @@ wxBoxSizer *ScoreDialog::get_button_sizer()
         }
     });
 
-    StateColor btn_bg_white(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed), std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-                            std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-
     m_button_cancel = new Button(this, _L("Cancel"));
-    m_button_cancel->SetBackgroundColor(btn_bg_white);
-    m_button_cancel->SetBorderColor(wxColour(38, 46, 48));
-    m_button_cancel->SetFont(Label::Body_12);
-    m_button_cancel->SetSize(wxSize(FromDIP(58), FromDIP(24)));
-    m_button_cancel->SetMinSize(wxSize(FromDIP(58), FromDIP(24)));
-    m_button_cancel->SetCornerRadius(FromDIP(12));
-    bSizer_button->Add(m_button_cancel, 0, wxRIGHT, FromDIP(24));
+    m_button_cancel->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+    bSizer_button->Add(m_button_cancel, 0, wxRIGHT, FromDIP(ButtonProps::ChoiceButtonGap()));
 
     m_button_cancel->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) { EndModal(wxID_CANCEL); });
 

@@ -30,6 +30,17 @@ public:
     ~dePrinterConfigFactory() = default;
 };
 
+enum class ToolHeadComponent {
+    Extruder,
+    Nozzle,
+    Hotend
+};
+
+enum class ToolHeadNameCase {
+    TitleCase = 0,
+    SentenceCase = 1,
+    LowerCase = 2
+};
 
 class DevPrinterConfigUtil
 {
@@ -63,6 +74,7 @@ public:
     static std::string get_printer_use_ams_type(std::string type_str) { return get_value_from_config<std::string>(type_str, "use_ams_type"); }
     static std::string get_printer_ams_img(const std::string& type_str) { return get_value_from_config<std::string>(type_str, "printer_use_ams_image"); }
     static std::string get_printer_ext_img(const std::string& type_str, int pos);//printer_ext_image
+    static std::string get_filament_load_img(const std::string &type_str, int ext_id, bool has_nozzle_rack = false);
 
     /*fan*/
     static std::string get_fan_text(const std::string& type_str, const std::string& key);
@@ -70,6 +82,12 @@ public:
 
     /*extruder*/
     static bool get_printer_can_set_nozzle(std::string type_str) { return get_value_from_config<bool>(type_str, "enable_set_nozzle_info"); }// can set nozzle from studio
+    static std::string get_toolhead_display_name(
+        const std::string& type_str,
+        int ext_id,
+        ToolHeadComponent component,
+        ToolHeadNameCase name_case = ToolHeadNameCase::TitleCase,
+        bool short_name = false);
 
     /*print job*/
     static bool support_ams_ext_mix_print(std::string type_str) { return get_value_from_config<bool>(type_str, "print", "support_ams_ext_mix_print"); }

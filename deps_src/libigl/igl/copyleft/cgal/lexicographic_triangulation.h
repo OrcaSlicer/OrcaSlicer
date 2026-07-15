@@ -18,21 +18,17 @@ namespace igl
   {
     namespace cgal
     {
-
-      // Given a set of points in 2D, return a lexicographic triangulation of these
-      // points.
-      //
-      // Inputs:
-      //   P  #P by 2 list of vertex positions
-      //
-      // Outputs:
-      //   F  #F by 3 of faces in lexicographic triangulation.
+      /// Given a set of points in 2D, return a lexicographic triangulation of these
+      /// points.
+      ///
+      /// @param[in] P  #P by 2 list of vertex positions
+      /// @param[out] F  #F by 3 of faces in lexicographic triangulation.
       template<
         typename DerivedP,
         typename DerivedF
         >
       IGL_INLINE void lexicographic_triangulation(
-          const Eigen::PlainObjectBase<DerivedP>& P,
+          const Eigen::MatrixBase<DerivedP>& P,
           Eigen::PlainObjectBase<DerivedF>& F);
     }
   }

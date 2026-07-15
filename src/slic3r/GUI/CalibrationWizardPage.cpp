@@ -466,21 +466,12 @@ void CaliPageCaption::init_bitmaps() {
 
 void CaliPageCaption::create_wiki(wxWindow* parent)
 {
-    m_wiki_text = new Label(parent, _L("Wiki"));
-    m_wiki_text->SetFont(Label::Head_14);
-    m_wiki_text->SetForegroundColour({ 0, 88, 220 });
-    m_wiki_text->Bind(wxEVT_ENTER_WINDOW, [this](wxMouseEvent& e) {
-        e.Skip();
-        SetCursor(wxCURSOR_HAND);
-        });
-    m_wiki_text->Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent& e) {
-        e.Skip();
-        SetCursor(wxCURSOR_ARROW);
-        });
+    // ORCA standardized HyperLink
+    m_wiki_text = new HyperLink(parent, _L("Wiki Guide"));
     m_wiki_text->Bind(wxEVT_LEFT_UP, [this](wxMouseEvent& e) {
         if (!m_wiki_url.empty())
             wxLaunchDefaultBrowser(m_wiki_url);
-        });
+    });
 }
 
 void CaliPageCaption::show_prev_btn(bool show)
@@ -610,7 +601,7 @@ PAPageHelpPanel::PAPageHelpPanel(wxWindow* parent, bool ground_panel, wxWindowID
     wxBoxSizer* top_sizer = new wxBoxSizer(wxVERTICAL);
     top_sizer->AddSpacer(FromDIP(10));
 
-    auto help_text_title = new Label(this, _L("How to use calibration result?"));
+    auto help_text_title = new Label(this, _L("How can I use calibration results\?"));
     help_text_title->SetFont(Label::Head_14);
     top_sizer->Add(help_text_title, 0, wxLEFT | wxRIGHT, left_align_padding);
 

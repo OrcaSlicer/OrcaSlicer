@@ -19,7 +19,7 @@ void FillConcentric::_fill_surface_single(
     // no rotation is supported for this infill pattern
     BoundingBox bounding_box = expolygon.contour.bounding_box();
     
-    coord_t min_spacing = scale_(this->spacing);
+    coord_t min_spacing = scale_(this->spacing) * params.multiline;
     coord_t distance = coord_t(min_spacing / params.density);
     
     if (params.density > 0.9999f && !params.dont_adjust) {
@@ -27,8 +27,12 @@ void FillConcentric::_fill_surface_single(
         this->spacing = unscale<double>(distance);
     }
 
-    Polygons   loops = to_polygons(expolygon);
-    ExPolygons last { std::move(expolygon) };
+    // Contract surface polygon by half line width to avoid excesive overlap with perimeter
+    ExPolygons contracted = offset_ex(expolygon, -float(scale_(0.5 * (params.multiline - 1) * this->spacing )));
+
+    Polygons loops = to_polygons(contracted);
+
+    ExPolygons last { std::move(contracted) };
     while (! last.empty()) {
         last = offset2_ex(last, -(distance + min_spacing/2), +min_spacing/2);
         append(loops, to_polygons(last));
@@ -37,6 +41,10 @@ void FillConcentric::_fill_surface_single(
     // generate paths from the outermost to the innermost, to avoid
     // adhesion problems of the first central tiny loops
     loops = union_pt_chained_outside_in(loops);
+
+    // Orca: an outward fill order prints the innermost loops first instead.
+    if (params.fill_order == SurfaceFillOrder::Outward)
+        std::reverse(loops.begin(), loops.end());
     
     // split paths using a nearest neighbor search
     size_t iPathFirst = polylines_out.size();
@@ -45,6 +53,9 @@ void FillConcentric::_fill_surface_single(
         polylines_out.emplace_back(loop.split_at_index(last_pos.nearest_point_index(loop.points)));
         last_pos = polylines_out.back().last_point();
     }
+
+    // Apply multiline offset if needed
+    multiline_fill(polylines_out, params, spacing);
 
     // clip the paths to prevent the extruder from getting exactly on the first point of the loop
     // Keep valid paths only.
@@ -101,6 +112,17 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
                 all_extrusions.emplace_back(&wall);
         }
 
+        // Orca: a forced fill order prints the loops in strictly monotonic depth order so
+        // that surfaces broken up by holes or slots cannot hop outward and back inward.
+        const bool forced_fill_order = params.fill_order != SurfaceFillOrder::Default;
+        if (forced_fill_order) {
+            const bool outward = params.fill_order == SurfaceFillOrder::Outward;
+            std::stable_sort(all_extrusions.begin(), all_extrusions.end(),
+                             [outward](const Arachne::ExtrusionLine *a, const Arachne::ExtrusionLine *b) {
+                                 return outward ? a->inset_idx > b->inset_idx : a->inset_idx < b->inset_idx;
+                             });
+        }
+
         // Split paths using a nearest neighbor search.
         size_t firts_poly_idx = thick_polylines_out.size();
         Point  last_pos(0, 0);
@@ -129,7 +151,8 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
         if (j < thick_polylines_out.size())
             thick_polylines_out.erase(thick_polylines_out.begin() + int(j), thick_polylines_out.end());
 
-        reorder_by_shortest_traverse(thick_polylines_out);
+        if (!forced_fill_order)
+            reorder_by_shortest_traverse(thick_polylines_out);
     }
     else {
         Polylines polylines;

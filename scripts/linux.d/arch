@@ -1,7 +1,7 @@
 #!/bin/bash
 # these are the Arch Linux specific build functions
 
-# Addtional Dev packages for OrcaSlicer
+# Additional Dev packages for OrcaSlicer
 export REQUIRED_DEV_PACKAGES=(
     cmake
     curl
@@ -12,8 +12,8 @@ export REQUIRED_DEV_PACKAGES=(
     gettext
     git
     glew
+    gst-plugins-good
     gstreamer
-    gstreamermm
     gtk3
     libmspack
     libsecret
@@ -23,7 +23,7 @@ export REQUIRED_DEV_PACKAGES=(
     openssl
     texinfo
     wayland-protocols
-    webkit2gtk
+    webkit2gtk-4.1
     wget
 )
 
@@ -36,7 +36,7 @@ then
     done
 
     if [[ "${#NEEDED_PKGS[*]}" -gt 0 ]]; then
-        sudo pacman -Syy --noconfirm "${NEEDED_PKGS[@]}"
+        sudo pacman -Syu --noconfirm "${NEEDED_PKGS[@]}"
     fi
     echo -e "done\n"
     exit 0

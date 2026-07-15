@@ -1,0 +1,24 @@
+{
+	"type": "machine",
+	"setting_id": "FylvH6NMzPbR9Bz6",
+	"name": "Elegoo Neptune 3 Plus 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "Elegoo Neptune 3 Pro 0.4 nozzle",
+	"host_type": "elegoolink",
+	"printer_model": "Elegoo Neptune 3 Plus",
+	"default_print_profile": "0.20mm Standard @Elegoo N3Plus 0.4 nozzle",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printable_area": [
+		"0x0",
+		"325x0",
+		"325x325",
+		"0x325"
+	],
+	"printable_height": "400",
+	"retract_lift_below": [
+		"399"
+	]
+}

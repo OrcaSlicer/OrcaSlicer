@@ -80,7 +80,7 @@ bool Printerhive::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Er
         .form_add_file("file", upload_data.source_path.string(), upload_filename.string())
         .on_complete([&](std::string body, unsigned status) {
             BOOST_LOG_TRIVIAL(debug) << boost::format("%1%: File uploaded: HTTP %2%: %3%") % name % status % body;
-            
+
             // If "Switch to Device tab after upload" is enabled, load Printerhive URL in Device tab
             auto& app = GUI::wxGetApp();
             if (app.app_config->get_bool("open_device_tab_post_upload")) {
@@ -96,7 +96,7 @@ bool Printerhive::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Er
                     } catch (const std::exception& e) {
                         BOOST_LOG_TRIVIAL(warning) << boost::format("%1%: Failed to parse response JSON: %2%") % name % e.what();
                     }
-                    
+
                     // Build URL from host: replace /orcaslicer/ with /orcaslicer-print/ and append /file_uuid
                     std::string display_url = m_host;
                     boost::algorithm::replace_first(display_url, "/orcaslicer/", "/orcaslicer-print/");
@@ -105,16 +105,16 @@ bool Printerhive::upload(PrintHostUpload upload_data, ProgressFn prorgess_fn, Er
                         display_url.erase(display_url.find_last_not_of(" \t") + 1);
                         display_url += "/" + file_uuid;
                     }
-                    
+
                     // Add API key as query parameter if not empty
                     if (!m_apikey.empty()) {
                         display_url += (display_url.find('?') == std::string::npos ? "?" : "&");
                         display_url += "api_key=" + m_apikey;
                     }
-                    
+
                     BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Loading URL in Device tab: %2%") % name % display_url;
                     BOOST_LOG_TRIVIAL(info) << boost::format("%1%: Using API key: %2%") % name % (m_apikey.empty() ? "(empty)" : m_apikey);
-                    
+
                     // Use CallAfter to safely call GUI functions from HTTP callback thread
                     app.CallAfter([mainframe, display_url]() {
                         // Switch Device tab to PrinterWebView (if it's currently showing MonitorPanel)

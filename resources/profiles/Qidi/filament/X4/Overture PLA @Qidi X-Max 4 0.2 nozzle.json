@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Overture PLA @Qidi X-Max 4 0.2 nozzle",
+	"inherits": "Overture PLA@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "fviMGr9MBOAvKSMl",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"pressure_advance": [
+		"0.062"
+	],
+	"compatible_printers": [
+		"Qidi X-Max 4 0.2 nozzle"
+	]
+}

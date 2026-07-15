@@ -13,25 +13,26 @@
 #include "slic3r/GUI/DeviceCore/DevUtil.h"
 
 #include "slic3r/Utils/FileTransferUtils.hpp"
+#include "slic3r/Utils/BBLNetworkPlugin.hpp"
 
 namespace Slic3r {
 namespace GUI {
 
-static auto check_gcode_failed_str      = _u8L("Abnormal print file data. Please slice again.");
+static auto check_gcode_failed_str      = _u8L("Abnormal print file data: please slice again.");
 static auto     printjob_cancel_str         = _u8L("Task canceled.");
 static auto     timeout_to_upload_str       = _u8L("Upload task timed out. Please check the network status and try again.");
 static auto     failed_in_cloud_service_str = _u8L("Cloud service connection failed. Please try again.");
-static auto     file_is_not_exists_str      = _u8L("Print file not found. Please slice again.");
+static auto     file_is_not_exists_str      = _u8L("Print file not found; please slice again.");
 static auto file_over_size_str = _u8L("The print file exceeds the maximum allowable size (1GB). Please simplify the model and slice again.");
 static auto print_canceled_str    = _u8L("Task canceled.");
 static auto send_print_failed_str = _u8L("Failed to send the print job. Please try again.");
 static auto upload_ftp_failed_str = _u8L("Failed to upload file to ftp. Please try again.");
 
-static auto     desc_network_error          = _u8L("Check the current status of the bambu server by clicking on the link above.");
+static auto     desc_network_error          = _u8L("Check the current status of the Bambu Lab server by clicking on the link above.");
 static auto     desc_file_too_large         = _u8L("The size of the print file is too large. Please adjust the file size and try again.");
-static auto     desc_fail_not_exist         = _u8L("Print file not found, please slice it again and send it for printing.");
+static auto     desc_fail_not_exist         = _u8L("Print file not found; please slice it again and send it for printing.");
 
-static auto desc_upload_ftp_failed      = _u8L("Failed to upload print file to FTP. Please check the network status and try again.");
+static auto desc_upload_ftp_failed      = _u8L("Failed to upload print file via FTP. Please check the network status and try again.");
 
 static auto sending_over_lan_str        = _u8L("Sending print job over LAN");
 static auto sending_over_cloud_str      = _u8L("Sending print job through cloud service");
@@ -197,12 +198,12 @@ void PrintJob::process(Ctl &ctl)
         this->task_bed_type = bed_type_to_gcode_string(plate_data.is_valid ? plate_data.bed_type : curr_plate->get_bed_type(true));
     }
 
-    BBL::PrintParams params;
+    PrintParams params;
 
     // local print access
     params.dev_ip = m_dev_ip;
     params.use_ssl_for_ftp  = m_local_use_ssl_for_ftp;
-    params.use_ssl_for_mqtt  = m_local_use_ssl_for_mqtt;
+    params.use_ssl_for_mqtt  = m_local_use_ssl;
     params.username = "bblp";
     params.password = m_access_code;
 
@@ -214,8 +215,13 @@ void PrintJob::process(Ctl &ctl)
             std::string devIP = m_dev_ip;
             std::string accessCode = m_access_code;
             std::string url = "bambu:///local/" + devIP + "?port=6000&user=" + "bblp" + "&passwd=" + accessCode;
-            std::unique_ptr<FileTransferTunnel> tunnel = std::make_unique<FileTransferTunnel>(module(), url);
-            emmc_ok = tunnel->sync_start_connect();
+            try {
+                std::unique_ptr<FileTransferTunnel> tunnel = std::make_unique<FileTransferTunnel>(module(), url);
+                emmc_ok = tunnel->sync_start_connect();
+            } catch (const std::exception &e) {
+                BOOST_LOG_TRIVIAL(warning) << "eMMC tunnel unavailable, falling back to FTP: " << e.what();
+                emmc_ok = false;
+            }
         }
         {
             params.dev_id = m_dev_id;
@@ -228,7 +234,15 @@ void PrintJob::process(Ctl &ctl)
             ftp_ok = result == 0;
         }
         if (!emmc_ok && !ftp_ok) {
-            BOOST_LOG_TRIVIAL(error) << "access code is invalid";
+            bool legacy_mode = BBLNetworkPlugin::instance().use_legacy_network();
+            BOOST_LOG_TRIVIAL(error) << "LAN connection verification failed:"
+                << " emmc_ok=" << emmc_ok
+                << ", ftp_ok=" << ftp_ok
+                << ", ftp_result=" << result
+                << ", dev_ip=" << m_dev_ip
+                << ", dev_id=" << m_dev_id
+                << ", password_length=" << m_access_code.size()
+                << ", legacy_mode=" << (legacy_mode ? "true" : "false");
             m_enter_ip_address_fun_fail();
             m_job_finished = true;
             return;
@@ -261,7 +275,17 @@ void PrintJob::process(Ctl &ctl)
     params.auto_flow_cali       = this->auto_flow_cali;
     params.auto_offset_cali     = this->auto_offset_cali;
     params.task_ext_change_assist = this->task_ext_change_assist;
-    params.try_emmc_print         = this->could_emmc_print;
+    // Allow disabling the eMMC print path via AppConfig. Plugin 02.03.00.62's
+    // eMMC tunnel code hangs indefinitely at the upload phase with some
+    // printers (e.g., Bambu H2D), so we default to disabled. Users with
+    // working eMMC support can opt-in by setting disable_emmc_print = 0.
+    bool disable_emmc = true;
+    if (wxGetApp().app_config) {
+        auto v = wxGetApp().app_config->get("disable_emmc_print");
+        if (v == "0" || v == "false")
+            disable_emmc = false;
+    }
+    params.try_emmc_print         = this->could_emmc_print && !disable_emmc;
 
     if (m_print_type == "from_sdcard_view") {
         params.dst_file = m_dst_path;
@@ -382,14 +406,14 @@ void PrintJob::process(Ctl &ctl)
         StagePercentPoint
     ](int stage, int code, std::string info) {
 
-                        if (stage == BBL::SendingPrintJobStage::PrintingStageCreate && !is_try_lan_mode_failed) {
+                        if (stage == SendingPrintJobStage::PrintingStageCreate && !is_try_lan_mode_failed) {
                             if (this->connection_type == "lan") {
                                 msg = _u8L("Sending print job over LAN");
                             } else {
                                 msg = _u8L("Sending print job through cloud service");
                             }
                         }
-                        else if (stage == BBL::SendingPrintJobStage::PrintingStageUpload && !is_try_lan_mode_failed) {
+                        else if (stage == SendingPrintJobStage::PrintingStageUpload && !is_try_lan_mode_failed) {
                             if (code >= 0 && code <= 100 && !info.empty()) {
                                 if (this->connection_type == "lan") {
                                     msg = _u8L("Sending print job over LAN");
@@ -399,24 +423,24 @@ void PrintJob::process(Ctl &ctl)
                                 msg += format("(%s)", info);
                             }
                         }
-                        else if (stage == BBL::SendingPrintJobStage::PrintingStageWaiting) {
+                        else if (stage == SendingPrintJobStage::PrintingStageWaiting) {
                             if (this->connection_type == "lan") {
                                 msg = _u8L("Sending print job over LAN");
                             } else {
                                 msg = _u8L("Sending print job through cloud service");
                             }
                         }
-                        else  if (stage == BBL::SendingPrintJobStage::PrintingStageRecord && !is_try_lan_mode) {
+                        else  if (stage == SendingPrintJobStage::PrintingStageRecord && !is_try_lan_mode) {
                             msg = _u8L("Sending print configuration");
                         }
-                        else if (stage == BBL::SendingPrintJobStage::PrintingStageSending && !is_try_lan_mode) {
+                        else if (stage == SendingPrintJobStage::PrintingStageSending && !is_try_lan_mode) {
                             if (this->connection_type == "lan") {
                                 msg = _u8L("Sending print job over LAN");
                             } else {
                                 msg = _u8L("Sending print job through cloud service");
                             }
                         }
-                        else if (stage == BBL::SendingPrintJobStage::PrintingStageFinished) {
+                        else if (stage == SendingPrintJobStage::PrintingStageFinished) {
                             msg = format(_u8L("Successfully sent. Will automatically jump to the device page in %ss"), info);
                             if (m_print_job_completed_id == wxGetApp().plater()->get_send_calibration_finished_event()) {
                                 msg = format(_u8L("Successfully sent. Will automatically jump to the next page in %ss"), info);
@@ -433,15 +457,15 @@ void PrintJob::process(Ctl &ctl)
                         // update current percnet
                         if (stage >= 0 && stage <= (int) PrintingStageFinished) {
                             curr_percent = StagePercentPoint[stage];
-                            if ((stage == BBL::SendingPrintJobStage::PrintingStageUpload
-                                || stage == BBL::SendingPrintJobStage::PrintingStageRecord)
+                            if ((stage == SendingPrintJobStage::PrintingStageUpload
+                                || stage == SendingPrintJobStage::PrintingStageRecord)
                                 && (code > 0 && code <= 100)) {
                                 curr_percent = (StagePercentPoint[stage + 1] - StagePercentPoint[stage]) * code / 100 + StagePercentPoint[stage];
                             }
                         }
 
                         //get errors
-                        if (code > 100 || code < 0 || stage == BBL::SendingPrintJobStage::PrintingStageERROR) {
+                        if (code > 100 || code < 0 || stage == SendingPrintJobStage::PrintingStageERROR) {
                             if (code == BAMBU_NETWORK_ERR_PRINT_WR_FILE_OVER_SIZE || code == BAMBU_NETWORK_ERR_PRINT_SP_FILE_OVER_SIZE) {
                                 m_plater->update_print_error_info(code, desc_file_too_large, info);
                             }else if (code == BAMBU_NETWORK_ERR_PRINT_WR_FILE_NOT_EXIST || code == BAMBU_NETWORK_ERR_PRINT_SP_FILE_NOT_EXIST){

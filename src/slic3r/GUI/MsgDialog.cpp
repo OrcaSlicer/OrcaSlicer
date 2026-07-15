@@ -19,6 +19,7 @@
 #include "I18N.hpp"
 //#include "ConfigWizard.hpp"
 #include "wxExtensions.hpp"
+#include "Widgets/Label.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "GUI_App.hpp"
 #define MSG_DLG_MAX_SIZE wxSize(-1, FromDIP(464))//notice:ban setting the maximum width value
@@ -58,7 +59,7 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
     main_sizer->Add(topsizer, 1, wxEXPAND);
 
     m_dsa_sizer = new wxBoxSizer(wxHORIZONTAL);
-    btn_sizer->Add(0, 0, 0, wxLEFT, FromDIP(120));
+    btn_sizer->Add(0, 0, 0, wxLEFT, FromDIP(LOGO_SPACING + 64 + LOGO_GAP));
     btn_sizer->Add(m_dsa_sizer, 0, wxEXPAND);
     btn_sizer->AddStretchSpacer();
     main_sizer->Add(btn_sizer, 0, wxBOTTOM | wxRIGHT | wxEXPAND | wxTOP, FromDIP(10));
@@ -76,7 +77,7 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
 void MsgDialog::show_dsa_button(wxString const &title)
 {
     m_checkbox_dsa = new CheckBox(this);
-    m_dsa_sizer->Add(m_checkbox_dsa, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+    m_dsa_sizer->Add(m_checkbox_dsa, 0, wxALIGN_CENTER);
     m_checkbox_dsa->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
         auto event = wxCommandEvent(EVT_CHECKBOX_CHANGE);
         event.SetInt(m_checkbox_dsa->GetValue()?1:0);
@@ -86,7 +87,17 @@ void MsgDialog::show_dsa_button(wxString const &title)
     });
 
     auto  m_text_dsa = new wxStaticText(this, wxID_ANY, title.IsEmpty() ? _L("Don't show again") : title, wxDefaultPosition, wxDefaultSize, 0);
+    auto on_toggle = [this]() {
+        m_checkbox_dsa->SetValue(!m_checkbox_dsa->GetValue());
+        wxCommandEvent ev(wxEVT_TOGGLEBUTTON, m_checkbox_dsa->GetId());
+        ev.SetEventObject(m_checkbox_dsa);
+        m_checkbox_dsa->GetEventHandler()->ProcessEvent(ev);
+    };
+    m_text_dsa->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle();});
+    m_text_dsa->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle();});
+
     m_dsa_sizer->Add(m_text_dsa, 0, wxALL | wxALIGN_CENTER, FromDIP(2));
+    m_dsa_sizer->AddSpacer(FromDIP(10)); // spacing after checkbox
     m_text_dsa->SetFont(::Label::Body_13);
     m_text_dsa->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#323A3D")));
     btn_sizer->Layout();
@@ -169,7 +180,7 @@ Button* MsgDialog::add_button(wxWindowID btn_id, bool set_focus /*= false*/, con
 
     if (set_focus)
         btn->SetFocus();
-    btn_sizer->Add(btn, 0, wxRIGHT | wxALIGN_CENTER_VERTICAL, FromDIP(ButtonProps::ChoiceButtonGap()));
+    btn_sizer->Add(btn, 0, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(ButtonProps::ChoiceButtonGap()));
     btn->Bind(wxEVT_BUTTON, [this, btn_id](wxCommandEvent&) { EndModal(btn_id); });
 
     MsgButton *mb = new MsgButton;
@@ -289,7 +300,8 @@ static void add_msg_content(wxWindow   *parent,
     }
     else {
         wxClientDC dc(parent);
-        wxSize     msg_sz = dc.GetMultiLineTextExtent(msg);
+        dc.SetFont(font); // ORCA without this it calculates bigger size
+        wxSize msg_sz = dc.GetMultiLineTextExtent(msg) + parent->FromDIP(wxSize(10,5)); // added extra spacing to prevent wrapping
 
         page_size = wxSize(std::min(msg_sz.GetX(), info_width), std::min(msg_sz.GetY(), info_width));
         // Extra line breaks in message dialog
@@ -355,7 +367,7 @@ ErrorDialog::ErrorDialog(wxWindow *parent, const wxString &temp_msg, bool monosp
     add_msg_content(this, content_sizer, msg, monospaced_font);
 
 	// Use a small bitmap with monospaced font, as the error text will not be wrapped.
-	logo->SetBitmap(create_scaled_bitmap("OrcaSlicer_192px_grayscale.png", this, monospaced_font ? 48 : /*1*/84));
+	logo->SetBitmap(create_scaled_bitmap("OrcaSlicer_192px_grayscale.png", this, monospaced_font ? 48 : /*1*/64));
 
     SetMaxSize(MSG_DLG_MAX_SIZE);
 
@@ -563,7 +575,7 @@ Newer3mfVersionDialog::Newer3mfVersionDialog(wxWindow *parent, const Semver *fil
     main_sizer->Add(0, 0, 0, wxTOP, FromDIP(5));
 
     wxBoxSizer *    content_sizer = new wxBoxSizer(wxHORIZONTAL);
-    wxStaticBitmap *info_bitmap   = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("info", nullptr, 60), wxDefaultPosition, wxSize(FromDIP(70), FromDIP(70)), 0);
+    wxStaticBitmap *info_bitmap   = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("info", nullptr, 64), wxDefaultPosition, wxSize(FromDIP(70), FromDIP(70)), 0);
     wxBoxSizer *    msg_sizer     = get_msg_sizer();
     content_sizer->Add(info_bitmap, 0, wxEXPAND | wxALL, FromDIP(5));
     content_sizer->Add(msg_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
@@ -586,7 +598,8 @@ wxBoxSizer *Newer3mfVersionDialog::get_msg_sizer()
     if (file_version_newer) { 
         text1 = new wxStaticText(this, wxID_ANY, _L("The 3MF file version is in Beta and it is newer than the current OrcaSlicer version."));
         wxStaticText *   text2       = new wxStaticText(this, wxID_ANY, _L("If you would like to try Orca Slicer Beta, you may click to"));
-        wxHyperlinkCtrl *github_link = new wxHyperlinkCtrl(this, wxID_ANY, _L("Download Beta Version"), "https://github.com/bambulab/BambuStudio/releases");
+        // ORCA standardized HyperLink
+        HyperLink *      github_link = new HyperLink(this, _L("Download Beta Version"), "https://github.com/SoftFever/OrcaSlicer/releases");
         horizontal_sizer->Add(text2, 0, wxEXPAND, 0);
         horizontal_sizer->Add(github_link, 0, wxEXPAND | wxLEFT, 5);
         
@@ -672,11 +685,9 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
 
     wxBoxSizer* sizer_link = new wxBoxSizer(wxVERTICAL);
 
-    m_link_server_state = new wxHyperlinkCtrl(this, wxID_ANY, _L("Check the status of current system services"), "");
+    // ORCA standardized HyperLink
+    m_link_server_state = new HyperLink(this, _L("Check the status of current system services"), wxGetApp().link_to_network_check());
     m_link_server_state->SetFont(::Label::Body_13);
-    m_link_server_state->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {wxGetApp().link_to_network_check(); });
-    m_link_server_state->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_HAND); });
-    m_link_server_state->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_ARROW); });
 
     sizer_link->Add(m_link_server_state, 0, wxALL, 0);
 
@@ -690,11 +701,9 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
     m_text_proposal->SetFont(::Label::Body_14);
     m_text_proposal->SetForegroundColour(0x323A3C);
 
-    m_text_wiki = new wxHyperlinkCtrl(this, wxID_ANY, _L("How to use LAN only mode"), "");
+    // ORCA standardized HyperLink
+    m_text_wiki = new HyperLink(this, _L("How to use LAN only mode"), wxGetApp().link_to_lan_only_wiki());
     m_text_wiki->SetFont(::Label::Body_13);
-    m_text_wiki->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {wxGetApp().link_to_lan_only_wiki(); });
-    m_text_wiki->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_HAND); });
-    m_text_wiki->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) {SetCursor(wxCURSOR_ARROW); });
 
     sizer_help->Add(m_text_proposal, 0, wxEXPAND, 0);
     sizer_help->Add(m_text_wiki, 0, wxALL, 0);
@@ -740,6 +749,47 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
     Layout();
     sizer_main->Fit(this);
     Centre(wxBOTH);
+}
+
+
+FilamentWarningDialog::FilamentWarningDialog(wxWindow *parent, const wxString &title, std::vector<FilamentWarningInfo> infos)
+    : MsgDialog(parent, title.IsEmpty() ? wxString::Format(_L("%s warning"), SLIC3R_APP_FULL_NAME) : title, wxEmptyString, wxOK | wxICON_WARNING), m_messages(infos)
+{
+    BuildContent();
+    finalize();
+}
+
+void FilamentWarningDialog::BuildContent()
+{
+    wxBoxSizer *messages_sizer = new wxBoxSizer(wxVERTICAL);
+
+    int message_count = 0;
+    for (int i = 0; i < m_messages.size(); i++)
+    {
+        const wxString &message  = m_messages[i].info_msg;
+        const wxString &wiki_url = m_messages[i].wiki_url;
+        if (message_count > 0) { messages_sizer->AddSpacer(FromDIP(10)); }
+
+        if (wiki_url.IsEmpty()) {
+            // No wiki link - just display as regular text
+            Label *text = new Label(this, message);
+            text->SetFont(::Label::Body_12);
+            text->Wrap(FromDIP(400));
+            messages_sizer->Add(text, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
+        } else {
+            Label *link = new Label(this, message + " " + _L("Please refer to Wiki before use->"));
+            link->SetForegroundColour(wxColour(8, 153, 46));
+            link->SetFont(::Label::Body_12);
+            link->Wrap(FromDIP(400));
+            link->Bind(wxEVT_ENTER_WINDOW, [this](auto &e) { SetCursor(wxCURSOR_HAND); });
+            link->Bind(wxEVT_LEAVE_WINDOW, [this](auto &e) { SetCursor(wxCURSOR_ARROW); });
+            link->Bind(wxEVT_LEFT_DOWN, [wiki_url](auto &event) { wxLaunchDefaultBrowser(wiki_url); });
+            messages_sizer->Add(link, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
+        }
+        message_count++;
+    }
+
+    content_sizer->Add(messages_sizer, 1, wxEXPAND | wxALL, FromDIP(5));
 }
 
 } // namespace GUI

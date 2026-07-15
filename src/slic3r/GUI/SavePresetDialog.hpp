@@ -56,6 +56,9 @@ class SavePresetDialog : public DPIDialog
         //BBS: add project embedded preset relate logic
         bool save_to_project() const { return m_save_to_project; }
 
+        // Method to get detach state
+        bool is_detached() const { return m_detach; }
+
         Preset::Type    m_type;
         ValidationType  m_valid_type;
         std::string		m_preset_name;
@@ -71,6 +74,8 @@ class SavePresetDialog : public DPIDialog
         //BBS: add project embedded preset relate logic
         bool                m_save_to_project {false};
         RadioGroup*         m_radio_group; // ORCA
+        bool                m_detach{false};
+        wxCheckBox*         m_detach_checkbox{nullptr};
 
         void update();
     };
@@ -81,13 +86,14 @@ class SavePresetDialog : public DPIDialog
     wxStaticText*       m_label             {nullptr};
     wxBoxSizer*         m_radio_sizer       {nullptr};  
     ActionType          m_action            {UndefAction};
+    int                 m_mode;
 
     std::string         m_ph_printer_name;
     std::string         m_old_preset_name;
 
 public:
-    SavePresetDialog(wxWindow *parent, Preset::Type type, std::string suffix = "");
-    SavePresetDialog(wxWindow* parent, std::vector<Preset::Type> types, std::string suffix = "");
+    SavePresetDialog(wxWindow* parent, Preset::Type type, int mode = 0, std::string suffix = "");
+    SavePresetDialog(wxWindow* parent, std::vector<Preset::Type> types, int mode = 0, std::string suffix = "");
     ~SavePresetDialog();
 
     void AddItem(Preset::Type type, const std::string& suffix);
@@ -103,6 +109,8 @@ public:
     void layout();
     //BBS: add project embedded preset relate logic
     bool get_save_to_project_selection(Preset::Type type);
+    // Method to get the detach state
+    bool get_detach_value(Preset::Type type);
 
 protected:
     void on_dpi_changed(const wxRect& suggested_rect) override;

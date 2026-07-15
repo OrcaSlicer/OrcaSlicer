@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PPS-CF @Qidi X-Max 4 0.6 nozzle",
+	"inherits": "QIDI PPS-CF@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "y8Xv7Pqorh4ZF8Ww",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.021"
+	],
+	"compatible_printers": [
+		"Qidi X-Max 4 0.6 nozzle"
+	]
+}

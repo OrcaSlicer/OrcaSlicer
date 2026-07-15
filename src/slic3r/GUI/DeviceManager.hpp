@@ -8,6 +8,7 @@
 #include <memory>
 #include <chrono>
 #include <unordered_set>
+#include <optional>
 #include <boost/thread.hpp>
 #include <boost/nowide/fstream.hpp>
 #include "nlohmann/json.hpp"
@@ -83,10 +84,12 @@ class DevExtensionTool;
 class DevExtderSystem;
 class DevFan;
 class DevFilaSystem;
+class DevFilaSwitch;
 class DevPrintOptions;
 class DevHMS;
 class DevLamp;
 class DevNozzleSystem;
+class DevNozzleMappingCtrl;
 class DeviceManager;
 class DevStorage;
 struct DevPrintTaskRatingInfo;
@@ -114,7 +117,8 @@ private:
     std::shared_ptr<DevExtensionTool> m_extension_tool;
     DevExtderSystem*  m_extder_system;
     DevNozzleSystem*  m_nozzle_system;
-    DevFilaSystem*    m_fila_system;
+    std::shared_ptr<DevFilaSystem> m_fila_system;
+    DevFilaSwitch*    m_fila_switch;
     DevFan*           m_fan;
     DevBed *          m_bed;
     DevStorage*       m_storage;
@@ -131,9 +135,16 @@ private:
     /*Config*/
     DevConfig* m_config;
 
+    /* print-dispatch nozzle mapping (H2C hotend rack). Created unconditionally in the ctor so
+       get_nozzle_mapping_result() is always valid; stays empty (no result attached) for every
+       non-rack printer. */
+    std::shared_ptr<DevNozzleMappingCtrl> m_nozzle_mapping_ptr;
+
 public:
     MachineObject(DeviceManager* manager, NetworkAgent* agent, std::string name, std::string id, std::string ip);
     ~MachineObject();
+
+    void set_agent(NetworkAgent* agent) { m_agent = agent; }
 
 public:
     enum ActiveState {
@@ -162,7 +173,11 @@ public:
     std::string get_dev_id() const { return dev_id; }
     void set_dev_id(std::string val) { dev_id = val; }
 
-    bool        local_use_ssl_for_mqtt { true };
+    // Generate consistent dev_id from host address and optional port
+    // Returns "host:port" or "host" if port is empty
+    static std::string dev_id_from_address(const std::string& host, const std::string& port = "");
+
+    bool        local_use_ssl { true };
     bool        local_use_ssl_for_ftp { true };
     std::string get_ftp_folder();
 
@@ -212,6 +227,7 @@ public:
     bool is_series_p() const;
     bool is_series_x() const;
     bool is_series_o() const;
+    bool can_use_emmc_print() const;
 
     void reload_printer_settings();
     std::string get_printer_thumbnail_img_str() const;
@@ -253,6 +269,8 @@ public:
     long  tray_read_done_bits = 0;
     long  tray_reading_bits = 0;
     bool  ams_air_print_status { false };
+    /** Whether this printer supports virtual trays (external/manual filament loading).
+     *  When true, vt_slot data is used by build_filament_ams_list() to include external filaments. */
     bool  ams_support_virtual_tray { true };
     time_t ams_user_setting_start = 0;
     time_t ams_switch_filament_start = 0;
@@ -283,7 +301,6 @@ public:
 
     bool is_target_slot_unload() const;
     bool can_unload_filament();
-    bool is_support_amx_ext_mix_mapping() const { return true;}
 
     void get_ams_colors(std::vector<wxColour>& ams_colors);
 
@@ -321,7 +338,12 @@ public:
 
     DevNozzleSystem* GetNozzleSystem() const { return m_nozzle_system;}
 
-    DevFilaSystem*   GetFilaSystem() const { return m_fila_system;}
+    /* print-dispatch nozzle mapping (H2C hotend rack); result stays empty for non-rack printers */
+    std::shared_ptr<DevNozzleMappingCtrl> get_nozzle_mapping_result() const { return m_nozzle_mapping_ptr; }
+    void clear_auto_nozzle_mapping();// defined in DevMappingNozzle.cpp
+
+    std::shared_ptr<DevFilaSystem>   GetFilaSystem() const { return m_fila_system;}
+    DevFilaSwitch*   GetFilaSwitch() const { return m_fila_switch;}
     bool             HasAms() const;
 
     DevLamp*         GetLamp() const { return m_lamp; }
@@ -357,6 +379,7 @@ public:
     DevFirmwareVersionInfo laser_version_info;
     DevFirmwareVersionInfo cutting_module_version_info;
     DevFirmwareVersionInfo extinguish_version_info;
+    DevFirmwareVersionInfo filatrack_version_info;
     std::map<std::string, DevFirmwareVersionInfo> module_vers;
     std::map<std::string, DevFirmwareVersionInfo> new_ver_list;
     bool    m_new_ver_list_exist = false;
@@ -612,6 +635,8 @@ public:
 
     // fun2
     bool is_support_print_with_emmc{false};
+    bool is_support_remote_dry = false;
+    bool is_support_check_track_switch_match_slice_printer{false};
 
     bool installed_upgrade_kit{false};
     int  bed_temperature_limit = -1;
@@ -725,7 +750,7 @@ public:
     int check_resume_condition();
     // ams controls
     //int command_ams_switch(int tray_index, int old_temp = 210, int new_temp = 210);
-    int command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp = 210, int new_temp = 210);
+    int command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp = 210, int new_temp = 210, std::optional<int> extruder_id = std::nullopt);
     int command_ams_user_settings(bool start_read_opt, bool tray_read_opt, bool remain_flag = false);
     int command_ams_switch_filament(bool switch_filament);
     int command_ams_air_print_detect(bool air_print_detect);
@@ -854,7 +879,16 @@ public:
     bool                        is_enable_np{ false };
     bool                        is_enable_ams_np{ false };
 
-    /*vi slot data*/
+    /**
+     * Virtual Tray (vt_slot) - External/manual filament loading slots.
+     *
+     * Data Flow: Populated from printer JSON via parse_vt_tray() during MachineObject::parse_json().
+     * Used by: Sidebar::build_filament_ams_list() when ams_support_virtual_tray is true.
+     *
+     * Virtual trays represent filament that is manually loaded into the extruder
+     * rather than fed through an AMS unit. This supports printers without AMS
+     * or scenarios where users want to bypass the AMS.
+     */
     std::vector<DevAmsTray> vt_slot;
     DevAmsTray parse_vt_tray(json vtray);
 

@@ -16,6 +16,9 @@
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevFilaBlackList.h"
 #include "DeviceCore/DevFilaSystem.h"
+#include "DeviceCore/DevFilaSwitch.h"
+#include "DeviceCore/DevNozzleSystem.h" // DevNozzle / GetNozzleByPosId / GetNozzleRack
+#include "DeviceCore/DevNozzleRack.h"   // DevNozzleRack::IsSupported (rack gating)
 
 #define FILAMENT_MAX_TEMP       300
 #define FILAMENT_MIN_TEMP       120
@@ -57,32 +60,15 @@ void AMSMaterialsSetting::create()
     m_sizer_button->Add(0, 0, 1, wxEXPAND, 0);
 
     m_button_confirm = new Button(this, _L("Confirm"));
-    m_btn_bg_green   = StateColor(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-                            std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-    m_button_confirm->SetBackgroundColor(m_btn_bg_green);
-    m_button_confirm->SetBorderColor(wxColour(0, 150, 136));
-    m_button_confirm->SetTextColor(wxColour("#FFFFFE"));
-    m_button_confirm->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
-    m_button_confirm->SetCornerRadius(FromDIP(12));
+    m_button_confirm->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_confirm->Bind(wxEVT_BUTTON, &AMSMaterialsSetting::on_select_ok, this);
 
     m_button_reset = new Button(this, _L("Reset"));
-    m_btn_bg_gray = StateColor(std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed), std::pair<wxColour, int>(*wxWHITE, StateColor::Focused),
-        std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-        std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-    m_button_reset->SetBackgroundColor(m_btn_bg_gray);
-    m_button_reset->SetBorderColor(AMS_MATERIALS_SETTING_GREY900);
-    m_button_reset->SetTextColor(AMS_MATERIALS_SETTING_GREY900);
-    m_button_reset->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
-    m_button_reset->SetCornerRadius(FromDIP(12));
+    m_button_reset->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_reset->Bind(wxEVT_BUTTON, &AMSMaterialsSetting::on_select_reset, this);
 
     m_button_close = new Button(this, _L("Close"));
-    m_button_close->SetBackgroundColor(m_btn_bg_gray);
-    m_button_close->SetBorderColor(AMS_MATERIALS_SETTING_GREY900);
-    m_button_close->SetTextColor(AMS_MATERIALS_SETTING_GREY900);
-    m_button_close->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
-    m_button_close->SetCornerRadius(FromDIP(12));
+    m_button_close->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_close->Bind(wxEVT_BUTTON, &AMSMaterialsSetting::on_select_close, this);
 
     m_sizer_button->Add(m_button_confirm, 0, wxALIGN_CENTER | wxRIGHT, FromDIP(20));
@@ -315,11 +301,7 @@ void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
     if (language.find("zh") == 0)
         region = "zh";
     wxString link_url = wxString::Format("https://wiki.bambulab.com/%s/software/bambu-studio/calibration_pa", region);
-    m_wiki_ctrl = new wxHyperlinkCtrl(parent, wxID_ANY, "Wiki", link_url);
-    m_wiki_ctrl->SetNormalColour(*wxBLUE);
-    m_wiki_ctrl->SetHoverColour(wxColour(0, 0, 200));
-    m_wiki_ctrl->SetVisitedColour(*wxBLUE);
-    m_wiki_ctrl->SetFont(Label::Head_14);
+    m_wiki_ctrl = new HyperLink(parent, _L("Wiki Guide"), link_url);
     cali_title_sizer->Add(m_ratio_text, 0, wxALIGN_CENTER_VERTICAL);
     cali_title_sizer->Add(m_wiki_ctrl, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -552,56 +534,121 @@ void AMSMaterialsSetting::on_select_reset(wxCommandEvent& event) {
     Close();
 }
 
+// Nozzle-context builder for the AMS-edit blacklist check. Factors the blacklist evaluation out of
+// on_select_ok and threads rack-gated per-nozzle context (extruder id + nozzle flow + nozzle diameter)
+// into CheckFilamentInfo, returning the accumulate-all CheckResult. As a side effect it resolves
+// ams_filament_id/ams_setting_id from the matched preset. fila_name is kept as the preset name (not
+// the short alias) so the name / name_suffix rules match on the non-rack fleet (no unintended
+// activation of e.g. the PLA Glow rule).
+static DevFilaBlacklist::CheckResult
+sCheckFilamentInfo(PresetBundle*      preset_bundle,
+                   MachineObject*     obj,
+                   int                ams_id,
+                   int                slot_id,
+                   const std::string& filament_id,
+                   std::string&       ams_filament_id,
+                   std::string&       ams_setting_id)
+{
+    DevFilaBlacklist::CheckResult result;
+    if (!preset_bundle || !obj)
+        return result;
+
+    // Orca: there is no lookup struct that also carries setting_id, so resolve the (root) preset by
+    // scanning the filaments collection for a matching filament_id.
+    Preset* fila_preset = nullptr;
+    for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); ++it) {
+        if (it->filament_id == filament_id) {
+            fila_preset = &(*it);
+            break;
+        }
+    }
+    if (!fila_preset)
+        return result;
+
+    if (wxGetApp().app_config->get("skip_ams_blacklist_check") != "true") {
+        std::string filamnt_type;
+        fila_preset->get_filament_type(filamnt_type);
+
+        DevFilaBlacklist::CheckFilamentInfo check_info;
+        check_info.dev_id              = obj->get_dev_id();
+        check_info.model_id            = obj->printer_type;
+        check_info.fila_id             = fila_preset->filament_id;
+        check_info.fila_type           = filamnt_type;
+        check_info.fila_name           = fila_preset->name;
+        check_info.has_filament_switch = obj->GetFilaSwitch()->IsInstalled();
+        check_info.ams_id              = ams_id;
+        check_info.slot_id             = slot_id;
+
+        if (auto vendor = dynamic_cast<ConfigOptionStrings*>(fila_preset->config.option("filament_vendor"));
+            vendor && !vendor->values.empty()) {
+            check_info.fila_vendor = vendor->values[0];
+        }
+
+        check_info.extruder_id = obj->GetFilaSystem()->GetExtruderIdByAmsId(std::to_string(ams_id));
+
+        // Rack-gated per-nozzle context. For a multi-nozzle main extruder on a rack printer (H2C) the
+        // specific nozzle is resolved later by the print-dispatch rack mapping, so leave
+        // nozzle_flow/nozzle_diameter unset here to keep the high-flow nozzle rules dormant. Every
+        // non-rack printer takes the else branch, threading the reported nozzle flow + diameter and
+        // thereby activating the high-flow blacklist warnings in the AMS-edit dialog for H2D/H2S/X2D/P2S
+        // (and the E3D-kit X1C/P1x).
+        DevNozzleSystem* nozzle_system = obj->GetNozzleSystem();
+        const bool       rack_supported = nozzle_system && nozzle_system->GetNozzleRack() &&
+                                    nozzle_system->GetNozzleRack()->IsSupported();
+        if (check_info.extruder_id == MAIN_EXTRUDER_ID && rack_supported) {
+            ; // multi-nozzle main extruder on a rack printer — nozzle resolved later by print dispatch
+        } else {
+            check_info.nozzle_flow = obj->GetFilaSystem()->GetNozzleFlowStringByAmsId(std::to_string(ams_id));
+            if (nozzle_system) {
+                DevNozzle nozzle = nozzle_system->GetNozzleByPosId(check_info.extruder_id.value_or(-1));
+                if (!nozzle.IsEmpty())
+                    check_info.nozzle_diameter = nozzle.GetNozzleDiameter();
+            }
+        }
+
+        result = DevFilaBlacklist::check_filaments_in_blacklist(check_info);
+    }
+
+    ams_filament_id = fila_preset->filament_id;
+    ams_setting_id  = fila_preset->setting_id;
+    return result;
+}
+
 void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
 {
+    if (!obj)
+        return;
+
     //get filament id
     ams_filament_id = "";
     ams_setting_id = "";
 
+    // the combobox item
+    auto filament_item = map_filament_items[m_comboBox_filament->GetValue().ToStdString()];
+
+    // check filament info (rack-gated per-nozzle blacklist evaluation)
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-    if (preset_bundle) {
-        for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
+    const auto& fila_check_res = sCheckFilamentInfo(preset_bundle, obj, ams_id, slot_id,
+                                                    filament_item.filament_id, ams_filament_id, ams_setting_id);
 
-            auto filament_item = map_filament_items[m_comboBox_filament->GetValue().ToStdString()];
-            std::string filament_id = filament_item.filament_id;
-            if (it->filament_id.compare(filament_id) == 0) {
+    if (const auto& prohibit_items = fila_check_res.get_items_by_action("prohibition"); !prohibit_items.empty()) {
+        wxString info_msg;
+        for (const auto& item : prohibit_items) { info_msg += item.info_msg + "\n"; }
+        MessageDialog msg_wingow(nullptr, info_msg, _L("Error"), wxICON_WARNING | wxOK);
+        msg_wingow.ShowModal();
+        return;
+    }
 
-
-                //check is it in the filament blacklist
-                if (wxGetApp().app_config->get("skip_ams_blacklist_check") != "true") {
-                    bool in_blacklist = false;
-                    std::string action;
-                    wxString info;
-                    std::string filamnt_type;
-                    std::string filamnt_name;
-                    it->get_filament_type(filamnt_type);
-
-                    auto vendor = dynamic_cast<ConfigOptionStrings *>(it->config.option("filament_vendor"));
-
-                    if (vendor && (vendor->values.size() > 0)) {
-                        std::string vendor_name = vendor->values[0];
-                        DevFilaBlacklist::check_filaments_in_blacklist(obj->printer_type, vendor_name, filamnt_type, it->filament_id, ams_id, slot_id, it->name, in_blacklist, action, info);
-                    }
-
-                    if (in_blacklist) {
-                        if (action == "prohibition") {
-                            MessageDialog msg_wingow(nullptr, info, _L("Error"), wxICON_WARNING | wxOK);
-                            msg_wingow.ShowModal();
-                            //m_comboBox_filament->SetSelection(m_filament_selection);
-                            return;
-                        }
-                        else if (action == "warning") {
-                            MessageDialog msg_wingow(nullptr, info, _L("Warning"), wxICON_INFORMATION | wxOK);
-                            msg_wingow.ShowModal();
-                        }
-                    }
-                }
-
-                ams_filament_id = it->filament_id;
-                ams_setting_id = it->setting_id;
-                break;
-            }
+    if (const auto& warning_items = fila_check_res.get_items_by_action("warning"); !warning_items.empty()) {
+        std::vector<FilamentWarningInfo> infos;
+        for (const auto& item : warning_items) {
+            FilamentWarningInfo winfo;
+            winfo.info_msg = item.info_msg;
+            winfo.wiki_url = item.wiki_url;
+            infos.emplace_back(winfo);
         }
+        FilamentWarningDialog msg_window(nullptr, _L("Warning"), infos);
+        msg_window.ShowModal();
     }
 
     wxString nozzle_temp_min = m_input_nozzle_min->GetTextCtrl()->GetValue();
@@ -836,7 +883,7 @@ void AMSMaterialsSetting::update_widgets()
 bool AMSMaterialsSetting::Show(bool show)
 {
     if (show) {
-        m_button_confirm->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
+        m_button_confirm->Rescale(); // ORCA re applies size
         m_input_nozzle_max->GetTextCtrl()->SetSize(wxSize(-1, FromDIP(20)));
         m_input_nozzle_min->GetTextCtrl()->SetSize(wxSize(-1, FromDIP(20)));
         //m_clr_picker->set_color(m_clr_picker->GetParent()->GetBackgroundColour());
@@ -884,7 +931,15 @@ void AMSMaterialsSetting::Popup(wxString filament, wxString sn, wxString temp_mi
     std::set<std::string> filament_id_set;
     PresetBundle *        preset_bundle = wxGetApp().preset_bundle;
     std::ostringstream    stream;
-    stream << std::fixed << std::setprecision(1) << obj->GetExtderSystem()->GetNozzleDiameter(0);
+    // Defensive: this dialog is opened only from StatusPanel (BBL-only) today, so the fallback fires
+    // only during the brief BBL startup window before firmware reports nozzle info. Without this,
+    // the "0.0" lookup string returns an empty set and the filament dropdown goes blank.
+    float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
+    if (machine_diameter == 0.0f && preset_bundle) {
+        const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
+        if (opt) machine_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
+    }
+    stream << std::fixed << std::setprecision(1) << machine_diameter;
     std::string nozzle_diameter_str = stream.str();
     std::set<std::string> printer_names = preset_bundle->get_printer_names_by_printer_type_and_nozzle(DevPrinterConfigUtil::get_printer_display_name(obj->printer_type), nozzle_diameter_str);
 
@@ -1122,8 +1177,17 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
     if (preset_bundle) {
         std::ostringstream stream;
-        if (obj)
-            stream << std::fixed << std::setprecision(1) << obj->GetExtderSystem()->GetNozzleDiameter(0);
+        if (obj) {
+            // Defensive: this dialog is opened only from StatusPanel (BBL-only) today, so the fallback fires
+            // only during the brief BBL startup window before firmware reports nozzle info. Without this,
+            // the "0.0" lookup string returns an empty set and filament lookup yields no results.
+            float machine_diameter = obj->GetExtderSystem()->GetNozzleDiameter(0);
+            if (machine_diameter == 0.0f) {
+                const ConfigOption *opt = preset_bundle->printers.get_selected_preset().config.option("nozzle_diameter");
+                if (opt) machine_diameter = static_cast<const ConfigOptionFloats *>(opt)->values[0];
+            }
+            stream << std::fixed << std::setprecision(1) << machine_diameter;
+        }
         std::string nozzle_diameter_str = stream.str();
         std::set<std::string> printer_names = preset_bundle->get_printer_names_by_printer_type_and_nozzle(DevPrinterConfigUtil::get_printer_display_name(obj->printer_type),
                                                                                                           nozzle_diameter_str);
@@ -1193,9 +1257,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
     if ( !this->obj || m_filament_selection < 0) {
         m_input_k_val->Enable(false);
         m_input_n_val->Enable(false);
-        m_button_confirm->Disable();
-        m_button_confirm->SetBackgroundColor(wxColour(0x90, 0x90, 0x90));
-        m_button_confirm->SetBorderColor(wxColour(0x90, 0x90, 0x90));
+        m_button_confirm->Disable(); // ORCA No need to change style
         m_comboBox_cali_result->Clear();
         m_comboBox_cali_result->SetValue(wxEmptyString);
         m_input_k_val->GetTextCtrl()->SetValue(wxEmptyString);
@@ -1204,10 +1266,7 @@ void AMSMaterialsSetting::on_select_filament(wxCommandEvent &evt)
         return;
     }
     else {
-        m_button_confirm->SetBackgroundColor(m_btn_bg_green);
-        m_button_confirm->SetBorderColor(wxColour(0, 150, 136));
-        m_button_confirm->SetTextColor(wxColour("#FFFFFE"));
-        m_button_confirm->Enable(true);
+        m_button_confirm->Enable(true);  // ORCA No need to change style
     }
 
     //filament id
@@ -1357,12 +1416,9 @@ void AMSMaterialsSetting::on_dpi_changed(const wxRect &suggested_rect)
     degree->msw_rescale();
     bitmap_max_degree->SetBitmap(degree->bmp());
     bitmap_min_degree->SetBitmap(degree->bmp());
-    m_button_reset->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
-    m_button_reset->SetCornerRadius(FromDIP(12));
-    m_button_confirm->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
-    m_button_confirm->SetCornerRadius(FromDIP(12));
-    m_button_close->SetMinSize(AMS_MATERIALS_SETTING_BUTTON_SIZE);
-    m_button_close->SetCornerRadius(FromDIP(12));
+    m_button_reset->Rescale(); // ORCA
+    m_button_confirm->Rescale(); // ORCA
+    m_button_close->Rescale(); // ORCA
     this->Refresh();
 }
 

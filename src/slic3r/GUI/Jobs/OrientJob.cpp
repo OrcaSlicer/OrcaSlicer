@@ -229,15 +229,32 @@ orientation::OrientMesh OrientJob::get_orient_mesh(ModelInstance* instance)
     auto obj = instance->get_object();
     om.name = obj->name;
     om.mesh = obj->mesh(); // don't know the difference to obj->raw_mesh(). Both seem OK
+    const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
     if (obj->config.has("support_threshold_angle"))
         om.overhang_angle = obj->config.opt_int("support_threshold_angle");
     else {
-        const Slic3r::DynamicPrintConfig& config = wxGetApp().preset_bundle->full_config();
         om.overhang_angle = config.opt_int("support_threshold_angle");
+    }
+
+    if (config.has("fan_direction") && config.has("auxiliary_fan")) {
+        FanDirection config_dir = config.option<ConfigOptionEnum<FanDirection>>("fan_direction")->value;
+        if (config_dir == FanDirection::fdUndefine || !config.opt_bool("auxiliary_fan")) {
+            // no part cooling airflow to face, keep the orientation around the z axis unchanged
+            om.cooling_direction = {0, 0, 0};
+        } else if (config_dir == FanDirection::fdRight) {
+            // the part cooling airflow comes from the right side
+            om.cooling_direction = {1, 0, 0};
+            om.has_cooling_fan = true;
+        } else {
+            // the part cooling airflow comes from the left side, or from both sides
+            om.cooling_direction = {-1, 0, 0};
+            om.has_cooling_fan = true;
+        }
     }
 
     om.setter = [instance](const OrientMesh& p) {
         instance->rotate(p.rotation_matrix);
+        instance->rotate(p.rotation_matrix_vertical);
         instance->get_object()->invalidate_bounding_box();
         instance->get_object()->ensure_on_bed();
     };

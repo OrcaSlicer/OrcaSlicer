@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Generic ABS @Qidi X-Max 4 0.4 nozzle",
+	"inherits": "Generic ABS@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "ysDcErFoFj9ed7bU",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.03"
+	],
+	"compatible_printers": [
+		"Qidi X-Max 4 0.4 nozzle"
+	]
+}

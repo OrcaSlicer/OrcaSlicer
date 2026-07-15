@@ -160,7 +160,7 @@ void LabeledStaticBox::DrawBorderAndLabel(wxDC& dc)
     wxSize wSz = GetSize();
 
     dc.SetBrush(*wxTRANSPARENT_BRUSH);
-    dc.SetPen(wxPen(border_color.colorForStates(state_handler.states()), m_border_width, wxSOLID));
+    dc.SetPen(wxPen(border_color.colorForStates(state_handler.states()), m_border_width, wxPENSTYLE_SOLID));
     dc.DrawRoundedRectangle( // Border
         std::max(0, m_pos.x),
         std::max(0, m_pos.y) + m_label_height * .5,

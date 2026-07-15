@@ -66,22 +66,22 @@ void BindJob::process(Ctl &ctl)
             result_code = code;
             result_info = info;
 
-            if (stage == BBL::BindJobStage::LoginStageConnect) {
+            if (stage == BindJobStage::LoginStageConnect) {
                 curr_percent = 15;
                 msg = _u8L("Logging in");
-            } else if (stage == BBL::BindJobStage::LoginStageLogin) {
+            } else if (stage == BindJobStage::LoginStageLogin) {
                 curr_percent = 30;
                 msg = _u8L("Logging in");
-            } else if (stage == BBL::BindJobStage::LoginStageWaitForLogin) {
+            } else if (stage == BindJobStage::LoginStageWaitForLogin) {
                 curr_percent = 45;
                 msg = _u8L("Logging in");
-            } else if (stage == BBL::BindJobStage::LoginStageGetIdentify) {
+            } else if (stage == BindJobStage::LoginStageGetIdentify) {
                 curr_percent = 60;
                 msg = _u8L("Logging in");
-            } else if (stage == BBL::BindJobStage::LoginStageWaitAuth) {
+            } else if (stage == BindJobStage::LoginStageWaitAuth) {
                 curr_percent = 80;
                 msg = _u8L("Logging in");
-            } else if (stage == BBL::BindJobStage::LoginStageFinished) {
+            } else if (stage == BindJobStage::LoginStageFinished) {
                 curr_percent = 100;
                 msg = _u8L("Logging in");
             } else {
@@ -125,7 +125,7 @@ void BindJob::process(Ctl &ctl)
         post_fail_event(result_code, result_info);
         return;
     }
-    dev->update_user_machine_list_info();
+    dev->update_user_machine_list_info(wxGetApp().get_printer_cloud_provider());
 
      wxCommandEvent event(EVT_BIND_MACHINE_SUCCESS);
      event.SetEventObject(m_event_handle);

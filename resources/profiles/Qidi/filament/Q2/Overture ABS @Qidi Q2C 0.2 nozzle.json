@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Overture ABS @Qidi Q2C 0.2 nozzle",
+	"inherits": "Overture ABS@Q2C-Series",
+	"from": "system",
+	"setting_id": "VYySI4tCOnfTintD",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"pressure_advance": [
+		"0.054"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.2 nozzle"
+	]
+}

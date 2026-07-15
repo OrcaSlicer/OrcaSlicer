@@ -1001,7 +1001,7 @@ void FanControlPopupNew::init_names(MachineObject* obj) {
     air_door_func_name[AIR_DOOR::AIR_DOOR_FUNC_INNERLOOP] = _L("Innerloop");
     air_door_func_name[AIR_DOOR::AIR_DOOR_FUNC_TOP] = L("Top");/*UNUSED*/
 
-    label_text[AIR_DUCT::AIR_DUCT_NONE] = _L("The fan controls the temperature during printing to improve print quality."
+    label_text[AIR_DUCT::AIR_DUCT_NONE] = _L("The fan controls the temperature during printing to improve print quality. "
                                              "The system automatically adjusts the fan's switch and speed "
                                              "according to different printing materials.");
     label_text[AIR_DUCT::AIR_DUCT_COOLING_FILT] = _L("Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the chamber air.");

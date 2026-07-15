@@ -1,7 +1,9 @@
 {
-    "type": "process",
-    "name": "0.42mm Extra Draft @Elegoo C 0.6 nozzle",
-    "inherits": "0.30mm Standard @Elegoo C 0.6 nozzle",
-    "instantiation": "true",
-    "layer_height": "0.42"
+	"type": "process",
+	"inherits": "0.30mm Standard @Elegoo C 0.6 nozzle",
+	"layer_height": "0.42",
+	"name": "0.42mm Extra Draft @Elegoo C 0.6 nozzle",
+	"from": "system",
+	"setting_id": "ex5zv2heDmy6ZcbP",
+	"instantiation": "true"
 }

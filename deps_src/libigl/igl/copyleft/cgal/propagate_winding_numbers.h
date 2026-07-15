@@ -25,73 +25,65 @@ namespace igl
   {
     namespace cgal
     {
-      // TODO: This shouldn't need to be in igl::copyleft::cgal, it should
-      // instead take as input an index of the ambient cell and the winding
-      // number vector there.
-      //
-      // Compute winding number on each side of the face.  The input mesh
-      // could contain multiple connected components.  The input mesh must
-      // represent the boundary of a valid 3D volume, which means it is
-      // closed, consistently oriented and induces integer winding numbers.
-      //
-      // Inputs:
-      //   V  #V by 3 list of vertex positions.
-      //   F  #F by 3 list of triangle indices into V.
-      //   labels  #F list of facet labels ranging from 0 to k-1.
-      // Output:
-      //   W  #F by k*2 list of winding numbers.  ``W(i,j*2)`` is the winding
-      //      number on the positive side of facet ``i`` with respect to the
-      //      facets labeled ``j``.  Similarly, ``W(i,j*2+1)`` is the winding
-      //      number on the negative side of facet ``i`` with respect to the
-      //      facets labeled ``j``.
-      // Returns true iff the input induces a piecewise-constant winding number
-      //   field.
+      /// Compute winding number on each side of the face.  The input mesh
+      /// could contain multiple connected components.  The input mesh must
+      /// represent the boundary of a valid 3D volume, which means it is
+      /// closed, consistently oriented and induces integer winding numbers.
+      ///
+      /// @param[in] V  #V by 3 list of vertex positions.
+      /// @param[in] F  #F by 3 list of triangle indices into V.
+      /// @param[in] labels  #F list of facet labels ranging from 0 to k-1.
+      /// @param[out] W  #F by k*2 list of winding numbers.  ``W(i,j*2)`` is the winding
+      ///      number on the positive side of facet ``i`` with respect to the
+      ///      facets labeled ``j``.  Similarly, ``W(i,j*2+1)`` is the winding
+      ///      number on the negative side of facet ``i`` with respect to the
+      ///      facets labeled ``j``.
+      /// @return true iff the input induces a piecewise-constant winding number
+      ///   field.
+      ///
+      /// \note This shouldn't need to be in igl::copyleft::cgal, it should
+      /// instead take as input an index of the ambient cell and the winding
+      /// number vector there.
       template<
         typename DerivedV,
         typename DerivedF,
         typename DerivedL,
         typename DerivedW>
       IGL_INLINE bool propagate_winding_numbers(
-        const Eigen::PlainObjectBase<DerivedV>& V,
-        const Eigen::PlainObjectBase<DerivedF>& F,
-        const Eigen::PlainObjectBase<DerivedL>& labels,
+        const Eigen::MatrixBase<DerivedV>& V,
+        const Eigen::MatrixBase<DerivedF>& F,
+        const Eigen::MatrixBase<DerivedL>& labels,
         Eigen::PlainObjectBase<DerivedW>& W);
-
-      // Inputs:
-      //   V  #V by 3 list of vertex positions.
-      //   F  #F by 3 list of triangle indices into V.
-      //   uE    #uE by 2 list of vertex_indices, represents undirected edges.
-      //   uE2E  #uE list of lists that maps uE to E. (a one-to-many map)
-      //   num_patches  number of patches
-      //   P  #F list of patch ids.
-      //   num_cells    number of cells
-      //   C  #P by 2 list of cell ids on each side of each patch.
-      //   labels  #F list of facet labels ranging from 0 to k-1.
-      // Output:
-      //   W  #F by k*2 list of winding numbers.  ``W(i,j*2)`` is the winding
-      //      number on the positive side of facet ``i`` with respect to the
-      //      facets labeled ``j``.  Similarly, ``W(i,j*2+1)`` is the winding
-      //      number on the negative side of facet ``i`` with respect to the
-      //      facets labeled ``j``.
+      // \overload
+      //
+      // @param[in] uE    #uE by 2 list of vertex_indices, represents undirected edges.
+      // @param[in] uEC  #uE+1 list of cumsums of directed edges sharing each unique edge
+      // @param[in] uEE  #E list of indices into E (see `igl::unique_edge_map`)
+      // @param[in] num_patches  number of patches
+      // @param[in] P  #F list of patch ids.
+      // @param[in] num_cells    number of cells
+      // @param[in] C  #P by 2 list of cell ids on each side of each patch.
       template<
         typename DerivedV,
         typename DerivedF,
         typename DeriveduE,
-        typename uE2EType,
+        typename DeriveduEC,
+        typename DeriveduEE,
         typename DerivedP,
         typename DerivedC,
         typename DerivedL,
         typename DerivedW>
       IGL_INLINE bool propagate_winding_numbers(
-        const Eigen::PlainObjectBase<DerivedV>& V,
-        const Eigen::PlainObjectBase<DerivedF>& F,
-        const Eigen::PlainObjectBase<DeriveduE>& uE,
-        const std::vector<std::vector<uE2EType> >& uE2E,
+        const Eigen::MatrixBase<DerivedV>& V,
+        const Eigen::MatrixBase<DerivedF>& F,
+        const Eigen::MatrixBase<DeriveduE>& uE,
+        const Eigen::MatrixBase<DeriveduEC>& uEC,
+        const Eigen::MatrixBase<DeriveduEE>& uEE,
         const size_t num_patches,
-        const Eigen::PlainObjectBase<DerivedP>& P,
+        const Eigen::MatrixBase<DerivedP>& P,
         const size_t num_cells,
-        const Eigen::PlainObjectBase<DerivedC>& C,
-        const Eigen::PlainObjectBase<DerivedL>& labels,
+        const Eigen::MatrixBase<DerivedC>& C,
+        const Eigen::MatrixBase<DerivedL>& labels,
         Eigen::PlainObjectBase<DerivedW>& W);
     }
   }

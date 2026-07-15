@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "HATCHBOX PETG @Qidi X-Max 4 0.4 nozzle",
+	"inherits": "HATCHBOX PETG@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "WDKsFE4N46eYgxds",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.056"
+	],
+	"compatible_printers": [
+		"Qidi X-Max 4 0.4 nozzle"
+	]
+}

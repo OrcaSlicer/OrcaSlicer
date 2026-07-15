@@ -1,5 +1,5 @@
-#include <catch2/catch.hpp>
-#include <test_utils.hpp>
+#include <catch2/catch_all.hpp>
+#include "test_utils.hpp"
 
 #include <libslic3r/Polygon.hpp>
 #include <libslic3r/Polyline.hpp>
@@ -10,6 +10,7 @@
 #include <libslic3r/Geometry/VoronoiVisualUtils.hpp>
 
 #include <numeric>
+#include <random>
 
 // #define VORONOI_DEBUG_OUT
 
@@ -70,7 +71,7 @@ TEST_CASE("Voronoi missing edges - points 12067", "[Voronoi]")
         vd, pts, Lines());
 #endif
 
-//    REQUIRE(closest_point.z() == Approx(1.));
+//    REQUIRE(closest_point.z() == Catch::Approx(1.));
 }
 
 // https://svn.boost.org/trac10/ticket/12707
@@ -341,7 +342,7 @@ TEST_CASE("Voronoi division by zero 12903", "[Voronoi]")
 // Funny sample from a dental industry?
 // Vojtech confirms this test fails and rightly so, because the input data contain self intersections.
 // This test is suppressed.
-TEST_CASE("Voronoi NaN coordinates 12139", "[Voronoi][!hide][!mayfail]")
+TEST_CASE("Voronoi NaN coordinates 12139", "[Voronoi][.][!mayfail]")
 {
     Lines lines = {
         { {  260500,1564400 }, { 261040,1562960 } },

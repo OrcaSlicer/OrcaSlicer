@@ -62,7 +62,7 @@ COPY ./ OrcaSlicer
 
 WORKDIR OrcaSlicer
 
-# These can run together, but we run them seperate for podman caching
+# These can run together, but we run them separate for podman caching
 # Update System dependencies
 RUN ./build_linux.sh -u
 

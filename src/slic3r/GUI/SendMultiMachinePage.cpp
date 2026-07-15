@@ -341,12 +341,8 @@ void SendMultiMachinePage::on_dpi_changed(const wxRect& suggested_rect)
     print_weight->msw_rescale();
     timeimg->SetBitmap(print_time->bmp());
     weightimg->SetBitmap(print_weight->bmp());
-    m_button_add->Rescale();
-    m_button_add->SetMinSize(wxSize(FromDIP(90), FromDIP(36)));
-    m_button_add->SetMaxSize(wxSize(FromDIP(90), FromDIP(36)));
-    m_button_send->Rescale();
-    m_button_send->SetMinSize(wxSize(FromDIP(120), FromDIP(40)));
-    m_button_send->SetMinSize(wxSize(FromDIP(120), FromDIP(40)));
+    m_button_add->Rescale(); // ORCA no need to re set size
+    m_button_send->Rescale(); // ORCA no need to re set size
 
     for (auto it = m_device_items.begin(); it != m_device_items.end(); ++it) {
         it->second->Refresh();
@@ -443,9 +439,9 @@ void SendMultiMachinePage::refresh_user_device()
     Fit();
 }
 
-BBL::PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
+PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
 {
-    BBL::PrintParams params;
+    PrintParams params;
 
     //get all setting
     bool bed_leveling = app_config->get("print", "bed_leveling") == "1" ? true : false;
@@ -453,12 +449,10 @@ BBL::PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
     bool timelapse = app_config->get("print", "timelapse") == "1" ? true : false;
     auto use_ams = false;
 
-    AmsRadioSelectorList::Node* node = m_radio_group.GetFirst();
     auto                     groupid = 0;
 
-
-    while (node) {
-        AmsRadioSelector* rs = node->GetData();
+    for (auto it = m_radio_group.begin(); it != m_radio_group.end(); ++it) {
+        AmsRadioSelector* rs = *it;
         if (rs->m_param_name == "use_ams" && rs->m_radiobox->GetValue()) {
             use_ams = true;
         }
@@ -466,8 +460,6 @@ BBL::PrintParams SendMultiMachinePage::request_params(MachineObject* obj)
         if (rs->m_param_name == "use_extra" && rs->m_radiobox->GetValue()) {
             use_ams = false;
         }
-
-        node = node->GetNext();
     }
 
     //use ams
@@ -738,7 +730,7 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
     }
 
 
-    std::vector<BBL::PrintParams> print_params;
+    std::vector<PrintParams> print_params;
 
     for (auto it = m_device_items.begin(); it != m_device_items.end(); ++it) {
         auto obj = it->second->get_obj();
@@ -746,7 +738,7 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
         if (obj && obj->is_online() && !obj->can_abort() && !obj->is_in_upgrading() && it->second->get_state_selected() == 1 && it->second->state_printable <= 2) {
 
             if (!it->second->is_blocking_printing(obj)) {
-                BBL::PrintParams params = request_params(obj);
+                PrintParams params = request_params(obj);
                 print_params.push_back(params);
             }
         }
@@ -805,7 +797,7 @@ bool SendMultiMachinePage::Show(bool show)
         m_refresh_timer->Stop();
         m_refresh_timer->SetOwner(this);
         m_refresh_timer->Start(4000);
-        wxPostEvent(this, wxTimerEvent());
+        wxPostEvent(this, wxTimerEvent(*m_refresh_timer));
     }
     else {
         m_refresh_timer->Stop();
@@ -942,7 +934,7 @@ wxBoxSizer* SendMultiMachinePage::create_item_radiobox(wxString title, wxWindow*
 
 void SendMultiMachinePage::OnSelectRadio(wxMouseEvent& event)
 {
-    AmsRadioSelectorList::Node* node = m_radio_group.GetFirst();
+    AmsRadioSelectorList::compatibility_iterator node = m_radio_group.GetFirst();
     auto                     groupid = 0;
 
     //while (node) {
@@ -979,7 +971,7 @@ void SendMultiMachinePage::OnSelectRadio(wxMouseEvent& event)
 
 void SendMultiMachinePage::on_select_radio(std::string param)
 {
-    AmsRadioSelectorList::Node* node = m_radio_group.GetFirst();
+    AmsRadioSelectorList::compatibility_iterator node = m_radio_group.GetFirst();
     auto                     groupid = 0;
 
     while (node) {
@@ -999,7 +991,7 @@ void SendMultiMachinePage::on_select_radio(std::string param)
 
 bool SendMultiMachinePage::get_value_radio(std::string param)
 {
-    AmsRadioSelectorList::Node* node = m_radio_group.GetFirst();
+    AmsRadioSelectorList::compatibility_iterator node = m_radio_group.GetFirst();
     auto                     groupid = 0;
     while (node) {
         AmsRadioSelector* rs = node->GetData();
@@ -1349,21 +1341,8 @@ wxPanel* SendMultiMachinePage::create_page()
     m_tip_text->SetFont(::Label::Head_20);
     m_tip_text->Wrap(-1);
 
-    auto m_btn_bg_enable = StateColor(
-        std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal)
-    );
-
     m_button_add = new Button(main_page, _L("Add"));
-    m_button_add->SetBackgroundColor(m_btn_bg_enable);
-    m_button_add->SetBorderColor(m_btn_bg_enable);
-    m_button_add->SetTextColor(*wxWHITE);
-    m_button_add->SetFont(Label::Body_12);
-    m_button_add->SetCornerRadius(6);
-    m_button_add->SetMinSize(wxSize(FromDIP(90), FromDIP(36)));
-    m_button_add->SetMaxSize(wxSize(FromDIP(90), FromDIP(36)));
-
+    m_button_add->SetStyle(ButtonStyle::Confirm, ButtonType::Window);
     m_button_add->Bind(wxEVT_BUTTON, [this](wxCommandEvent& evt) {
         MultiMachinePickPage dlg;
         dlg.ShowModal();
@@ -1390,7 +1369,7 @@ wxPanel* SendMultiMachinePage::create_page()
 
     // add printing options
     wxBoxSizer* title_print_option = create_item_title(_L("Printing Options"), main_page, "");
-    wxBoxSizer* item_bed_level = create_item_checkbox(_L("Bed Leveling"), main_page, "", 50, "bed_leveling");
+    wxBoxSizer* item_bed_level = create_item_checkbox(_L("Bed leveling"), main_page, "", 50, "bed_leveling");
     wxBoxSizer* item_timelapse = create_item_checkbox(_L("Timelapse"), main_page, "", 50, "timelapse");
     wxBoxSizer* item_flow_dy_ca = create_item_checkbox(_L("Flow Dynamic Calibration"), main_page, "", 50, "flow_cali");
     sizer->Add(title_print_option, 0, wxEXPAND, 0);
@@ -1404,7 +1383,7 @@ wxPanel* SendMultiMachinePage::create_page()
     // add send option
     wxBoxSizer* title_send_option = create_item_title(_L("Send Options"), main_page, "");
     wxBoxSizer* max_printer_send = create_item_input(_L("Send to"), _L("printers at the same time. (It depends on how many devices can undergo heating at the same time.)"), main_page, "", "max_send");
-    wxBoxSizer* delay_time = create_item_input(_L("Wait"), _L("minute each batch. (It depends on how long it takes to complete the heating.)"), main_page, "", "sending_interval");
+    wxBoxSizer* delay_time = create_item_input(_L("Wait"), _L("minute each batch. (It depends on how long it takes to complete heating.)"), main_page, "", "sending_interval");
     sizer->Add(title_send_option, 0, wxEXPAND, 0);
     sizer->Add(max_printer_send, 0, wxLEFT, FromDIP(20));
     sizer->AddSpacer(FromDIP(3));
@@ -1412,17 +1391,8 @@ wxPanel* SendMultiMachinePage::create_page()
     sizer->AddSpacer(FromDIP(10));
 
     // add send button
-    btn_bg_enable = StateColor(std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed), std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-
     m_button_send = new Button(main_page, _L("Send"));
-    m_button_send->SetBackgroundColor(btn_bg_enable);
-    m_button_send->SetBorderColor(btn_bg_enable);
-    m_button_send->SetTextColor(StateColor::darkModeColorFor("#FFFFFE"));
-    m_button_send->SetSize(wxSize(FromDIP(120), FromDIP(40)));
-    m_button_send->SetMinSize(wxSize(FromDIP(120), FromDIP(40)));
-    m_button_send->SetMinSize(wxSize(FromDIP(120), FromDIP(40)));
-    m_button_send->SetCornerRadius(FromDIP(5));
+    m_button_send->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_send->Bind(wxEVT_BUTTON, &SendMultiMachinePage::on_send, this);
     //m_button_send->Disable();
     //m_button_send->SetBackgroundColor(wxColour(0x90, 0x90, 0x90));
@@ -1680,17 +1650,17 @@ void SendMultiMachinePage::on_rename_enter()
     }
 
     if (m_valid_type == Valid && new_file_name.empty()) {
-        info_line = _L("The name is not allowed to be empty.");
+        info_line = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_first_of(' ') == 0) {
-        info_line = _L("The name is not allowed to start with space character.");
+        info_line = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_last_of(' ') == new_file_name.length() - 1) {
-        info_line = _L("The name is not allowed to end with space character.");
+        info_line = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 

@@ -363,7 +363,7 @@ void PrintOptionsDialog::update_options(MachineObject* obj_)
     if (obj_->is_support_build_plate_marker_detect) {
         if (obj_->m_plate_maker_detect_type == MachineObject::POS_CHECK && (text_plate_mark->GetLabel() != _L("Enable detection of build plate position"))) {
             text_plate_mark->SetLabel(_L("Enable detection of build plate position"));
-            text_plate_mark_caption->SetLabel(_L("The localization tag of build plate is detected, and printing is paused if the tag is not in predefined range."));
+            text_plate_mark_caption->SetLabel(_L("The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."));
             text_plate_mark_caption->Wrap(FromDIP(400));
         } else if (obj_->m_plate_maker_detect_type == MachineObject::TYPE_POS_CHECK && (text_plate_mark->GetLabel() != _L("Build Plate Detection"))) {
             text_plate_mark->SetLabel(_L("Build Plate Detection"));
@@ -639,7 +639,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     ai_refine_sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
 
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    text_spaghetti_detection_caption0 = new Label(ai_refine_panel, _L("Detect spaghetti failure(scattered lose filament)."));
+    text_spaghetti_detection_caption0 = new Label(ai_refine_panel, _L("Detect spaghetti failures (scattered lose filament)."));
     text_spaghetti_detection_caption0->SetFont(Label::Body_12);
     text_spaghetti_detection_caption0->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
     text_spaghetti_detection_caption0->Wrap(-1);
@@ -813,9 +813,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     line_sizer->Add(FromDIP(5), 0, 0, 0);
 
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
-    wxString caption_text = _L(
-        "The localization tag of build plate is detected, and printing is paused if the tag is not in predefined range."
-    );
+    wxString caption_text = _L("The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range.");
     text_plate_mark_caption = new Label(parent, caption_text);
     text_plate_mark_caption->Wrap(FromDIP(400));
     text_plate_mark_caption->SetFont(Label::Body_12);
@@ -855,7 +853,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     // auto-recovery from step loss
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_cb_auto_recovery = new CheckBox(parent);
-    text_auto_recovery = new Label(parent, _L("Auto-recovery from step loss"));
+    text_auto_recovery = new Label(parent, _L("Auto-recover from step loss"));
     text_auto_recovery->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_auto_recovery, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -907,7 +905,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     //filament tangle detect
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_cb_filament_tangle = new CheckBox(parent);
-    text_filament_tangle = new Label(parent, _L("Filament Tangle Detect"));
+    text_filament_tangle = new Label(parent, _L("Filament Tangle Detection"));
     text_filament_tangle->SetFont(Label::Body_14);
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_filament_tangle, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
@@ -1153,11 +1151,8 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
     change_nozzle_tips->SetFont(Label::Body_13);
     change_nozzle_tips->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
 
-    m_wiki_link = new Label(single_panel, _L("View wiki"));
+    m_wiki_link = new HyperLink(single_panel, _L("Wiki Guide")); // ORCA
     m_wiki_link->SetFont(Label::Body_13);
-    m_wiki_link->SetForegroundColour(wxColour("#009688"));
-    m_wiki_link->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_HAND); });
-    m_wiki_link->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_ARROW); });
     m_wiki_link->Bind(wxEVT_LEFT_DOWN, &PrinterPartsDialog::OnWikiClicked, this);
 
     h_tips_sizer->Add(change_nozzle_tips, 0, wxLEFT);
@@ -1267,11 +1262,8 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
     multiple_change_nozzle_tips->SetFont(Label::Body_13);
     multiple_change_nozzle_tips->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
 
-    multiple_wiki_link = new Label(multiple_panel, _L("View wiki"));
+    multiple_wiki_link = new HyperLink(multiple_panel, _L("Wiki Guide")); // ORCA
     multiple_wiki_link->SetFont(Label::Body_13);
-    multiple_wiki_link->SetForegroundColour(wxColour("#009688"));
-    multiple_wiki_link->Bind(wxEVT_ENTER_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_HAND); });
-    multiple_wiki_link->Bind(wxEVT_LEAVE_WINDOW, [this](auto& e) { SetCursor(wxCURSOR_ARROW); });
     multiple_wiki_link->Bind(wxEVT_LEFT_DOWN, &PrinterPartsDialog::OnWikiClicked, this);
 
     wxSizer* multiple_change_tips_sizer = new wxBoxSizer(wxHORIZONTAL);
@@ -1351,7 +1343,7 @@ bool PrinterPartsDialog::Show(bool show)
             auto type     = obj->GetExtderSystem()->GetNozzleType(MAIN_EXTRUDER_ID);
             auto diameter = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
             nozzle_type_checkbox->SetValue(GetString(type));
-            nozzle_diameter_checkbox->SetValue(GetString(diameter));
+            nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
 
             // nozzle flow type
             nozzle_flow_type_label->Show(obj->is_nozzle_flow_type_supported());
@@ -1375,7 +1367,7 @@ bool PrinterPartsDialog::Show(bool show)
             auto diameter  = obj->GetExtderSystem()->GetNozzleDiameter(DEPUTY_EXTRUDER_ID);
             auto flow_type = obj->GetExtderSystem()->GetNozzleFlowType(DEPUTY_EXTRUDER_ID);
             multiple_left_nozzle_type_checkbox->SetValue(GetString(type));
-            multiple_left_nozzle_diameter_checkbox->SetValue(GetString(diameter));
+            multiple_left_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
             multiple_left_nozzle_flow_checkbox->SetValue(GetString(flow_type));
 
             //right
@@ -1383,7 +1375,7 @@ bool PrinterPartsDialog::Show(bool show)
             diameter  = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
             flow_type = obj->GetExtderSystem()->GetNozzleFlowType(MAIN_EXTRUDER_ID);
             multiple_right_nozzle_type_checkbox->SetValue(GetString(type));
-            multiple_right_nozzle_diameter_checkbox->SetValue(GetString(diameter));
+            multiple_right_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
             multiple_right_nozzle_flow_checkbox->SetValue(GetString(flow_type));
 
             if (obj->is_support_refresh_nozzle) {
@@ -1427,13 +1419,14 @@ wxString PrinterPartsDialog::GetString(NozzleType nozzle_type) const {
         default: break;
     }
 
-    return wxEmptyString;
+    return _L("Unknown");
 }
 
 wxString PrinterPartsDialog::GetString(NozzleFlowType nozzle_flow_type) const {
     switch (nozzle_flow_type) {
         case Slic3r::S_FLOW: return _L("Standard");
         case Slic3r::H_FLOW: return _L("High flow");
+        case Slic3r::U_FLOW: return _L("TPU High flow");
         default: break;
     }
 
@@ -1489,7 +1482,7 @@ void PrinterPartsDialog::UpdateNozzleInfo(){
         auto type     = obj->GetExtderSystem()->GetNozzleType(MAIN_EXTRUDER_ID);
         auto diameter = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
         nozzle_type_checkbox->SetValue(GetString(type));
-        nozzle_diameter_checkbox->SetValue(GetString(diameter));
+        nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
 
         // nozzle flow type
         nozzle_flow_type_label->Show(obj->is_nozzle_flow_type_supported());
@@ -1505,7 +1498,7 @@ void PrinterPartsDialog::UpdateNozzleInfo(){
         auto diameter  = obj->GetExtderSystem()->GetNozzleDiameter(DEPUTY_EXTRUDER_ID);
         auto flow_type = obj->GetExtderSystem()->GetNozzleFlowType(DEPUTY_EXTRUDER_ID);
         multiple_left_nozzle_type_checkbox->SetValue(GetString(type));
-        multiple_left_nozzle_diameter_checkbox->SetValue(GetString(diameter));
+        multiple_left_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
         multiple_left_nozzle_flow_checkbox->SetValue(GetString(flow_type));
 
         //right
@@ -1513,7 +1506,7 @@ void PrinterPartsDialog::UpdateNozzleInfo(){
         diameter  = obj->GetExtderSystem()->GetNozzleDiameter(MAIN_EXTRUDER_ID);
         flow_type = obj->GetExtderSystem()->GetNozzleFlowType(MAIN_EXTRUDER_ID);
         multiple_right_nozzle_type_checkbox->SetValue(GetString(type));
-        multiple_right_nozzle_diameter_checkbox->SetValue(GetString(diameter));
+        multiple_right_nozzle_diameter_checkbox->SetValue(format_nozzle_diameter(diameter));
         multiple_right_nozzle_flow_checkbox->SetValue(GetString(flow_type));
     }
 

@@ -13,6 +13,7 @@ namespace Slic3r {
 
 class TriangleMesh;
 class Polygon;
+class GLShaderProgram;
 using Polygons = std::vector<Polygon, PointsAllocator<Polygon>>;
 class BuildVolume;
 
@@ -131,6 +132,7 @@ namespace GUI {
         struct RenderData
         {
             Geometry geometry;
+            unsigned int vao_id{ 0 };
             unsigned int vbo_id{ 0 };
             unsigned int ibo_id{ 0 };
             size_t vertices_count{ 0 };
@@ -176,8 +178,8 @@ namespace GUI {
         const ColorRGBA& get_color() const { return m_render_data.geometry.color; }
 
         void reset();
-        void render();
-        void render(const std::pair<size_t, size_t>& range);
+        void render(GLShaderProgram* shader = nullptr);
+        void render(const std::pair<size_t, size_t>& range, GLShaderProgram* shader = nullptr);
         void render_instanced(unsigned int instances_vbo, unsigned int instances_count);
 
         bool is_initialized() const { return vertices_count() > 0 && indices_count() > 0; }
@@ -259,4 +261,3 @@ namespace GUI {
 } // namespace Slic3r
 
 #endif // slic3r_GLModel_hpp_
-

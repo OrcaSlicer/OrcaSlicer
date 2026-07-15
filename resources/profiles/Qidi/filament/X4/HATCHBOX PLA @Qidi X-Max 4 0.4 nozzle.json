@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "HATCHBOX PLA @Qidi X-Max 4 0.4 nozzle",
+	"inherits": "HATCHBOX PLA@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "kjoWs9L40bAEED57",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.034"
+	],
+	"compatible_printers": [
+		"Qidi X-Max 4 0.4 nozzle"
+	]
+}

@@ -19,6 +19,7 @@ public:
     GCodeWriter() :
         multiple_extruders(false), m_curr_filament_extruder(MAXIMUM_EXTRUDER_NUMBER, nullptr),
         m_curr_extruder_id (-1),
+        m_cached_extruder_idx(0),
         m_single_extruder_multi_material(false),
         m_last_acceleration(0), m_max_acceleration(0),m_last_travel_acceleration(0), m_max_travel_acceleration(0),
         m_last_jerk(0), m_max_jerk_x(0), m_max_jerk_y(0),
@@ -61,14 +62,18 @@ public:
     std::string set_input_shaping(char axis, float damp, float freq, std::string type) const;
     std::string reset_e(bool force = false);
     std::string update_progress(unsigned int num, unsigned int tot, bool allow_100 = false) const;
+    std::string enable_power_loss_recovery(PowerLossRecoveryMode mode);
     // return false if this extruder was already selected
     bool        need_toolchange(unsigned int filament_id) const;
     std::string set_extruder(unsigned int filament_id);
     void init_extruder(unsigned int filament_id);
+    // Current parked-retract length of a filament's extruder (share-aware). Used for the
+    // new_extruder_retracted_length change-filament placeholder. Returns 0 if the filament is unknown.
+    double get_extruder_retracted_length(const int filament_id);
     // Prefix of the toolchange G-code line, to be used by the CoolingBuffer to separate sections of the G-code
     // printed with the same extruder.
     std::string toolchange_prefix() const;
-    std::string toolchange(unsigned int filament_id);
+    std::string toolchange(unsigned int filament_id, int nozzle_id);
     std::string set_speed(double F, const std::string &comment = std::string(), const std::string &cooling_marker = std::string());
     // SoftFever NOTE: the returned speed is mm/minute
     double      get_current_speed() const { return m_current_speed;}
@@ -82,7 +87,9 @@ public:
     std::string extrude_to_xyz(const Vec3d &point, double dE, const std::string &comment = std::string(), bool force_no_extrusion = false);
     std::string retract(bool before_wipe = false, double retract_length = 0);
     std::string retract_for_toolchange(bool before_wipe = false, double retract_length = 0);
-    std::string unretract();
+    // extra_retract adds a small over-extrusion to the deretract move (PETG pre-extrusion).
+    // Default 0 -> byte-identical to the plain deretract.
+    std::string unretract(float extra_retract = 0.f);
     // do lift instantly
     std::string eager_lift(const LiftType type);
     // record a lift request, do realy lift in next travel
@@ -97,13 +104,15 @@ public:
     void set_xy_offset(double x, double y) { m_x_offset = x; m_y_offset = y; }
     Vec2f get_xy_offset() { return Vec2f{m_x_offset, m_y_offset}; };
     // To be called by the CoolingBuffer from another thread.
-    static std::string set_fan(const GCodeFlavor gcode_flavor, unsigned int speed);
+    // ORCA: `part_cooling_fan_min_pwm` (0-100, default 0) is a floor applied only when `speed` is non-zero, used to overcome
+    // PWM start-up thresholds on fans that won't spool below a certain duty cycle. A `speed` of 0 is always honoured.
+    static std::string set_fan(const GCodeFlavor gcode_flavor, unsigned int speed, unsigned int part_cooling_fan_min_pwm = 0);
     // To be called by the main thread. It always emits the G-code, it does not remember the previous state.
     // Keeping the state is left to the CoolingBuffer, which runs asynchronously on another thread.
     std::string set_fan(unsigned int speed) const;
     //BBS: set additional fan speed for BBS machine only
     static std::string set_additional_fan(unsigned int speed);
-    static std::string set_exhaust_fan(int speed,bool add_eol);
+    static std::string set_exhaust_fan(int speed);
     //BBS
     void set_object_start_str(std::string start_string) { m_gcode_label_objects_start = start_string; }
     bool is_object_start_str_empty() { return m_gcode_label_objects_start.empty(); }
@@ -132,22 +141,24 @@ public:
     bool            m_single_extruder_multi_material;
     std::vector<Extruder*> m_curr_filament_extruder;
     int        m_curr_extruder_id;
-    unsigned int    m_last_acceleration;
-    unsigned int    m_last_travel_acceleration;
-    unsigned int    m_max_travel_acceleration;
+    // Motion uses the global/base process variant until a filament becomes active.
+    size_t     m_cached_extruder_idx;
+    unsigned int              m_last_acceleration;
+    unsigned int              m_last_travel_acceleration;
+    std::vector<unsigned int> m_max_travel_acceleration;
 
     // Limit for setting the acceleration, to respect the machine limits set for the Marlin firmware.
-    // If set to zero, the limit is not in action.
-    unsigned int    m_max_acceleration;
-    double          m_max_jerk_x;
-    double          m_max_jerk_y;
-    double          m_last_jerk;
-    double          m_max_jerk_z;
-    double          m_max_jerk_e;
-    double          m_max_junction_deviation;
+    // If set to zero, the limit is not in action. Indexed by 0-based physical nozzle id.
+    std::vector<unsigned int> m_max_acceleration;
+    std::vector<double>       m_max_jerk_x;
+    std::vector<double>       m_max_jerk_y;
+    double                    m_last_jerk;
+    std::vector<double>       m_max_jerk_z;
+    std::vector<double>       m_max_jerk_e;
+    std::vector<double>       m_max_junction_deviation;
 
-    unsigned int  m_travel_acceleration;
-    unsigned int  m_travel_jerk;
+    // unsigned int  m_travel_acceleration;
+    // unsigned int  m_travel_jerk;
 
 
     //BBS
@@ -167,6 +178,9 @@ public:
     //BBS: x, y offset for gcode generated
     double          m_x_offset{ 0 };
     double          m_y_offset{ 0 };
+
+    // Orca: slicing resolution in mm
+    double          m_resolution = 0.01;
     
     std::string m_gcode_label_objects_start;
     std::string m_gcode_label_objects_end;

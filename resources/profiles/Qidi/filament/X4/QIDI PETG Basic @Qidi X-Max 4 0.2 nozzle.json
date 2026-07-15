@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG Basic @Qidi X-Max 4 0.2 nozzle",
+	"inherits": "QIDI PETG Basic@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "WEaXpXvyA5hqq0im",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.054"
+	],
+	"compatible_printers": [
+		"Qidi X-Max 4 0.2 nozzle"
+	]
+}

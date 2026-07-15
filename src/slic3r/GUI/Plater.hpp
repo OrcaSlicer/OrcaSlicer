@@ -50,6 +50,7 @@ class SLAPrint;
 //BBS: add partplatelist and SlicingStatusEvent
 class PartPlateList;
 class SlicingStatusEvent;
+class BackgroundSlicingProcess;
 enum SLAPrintObjectStep : unsigned int;
 enum class ConversionType : int;
 class DevAms;
@@ -121,7 +122,8 @@ public:
     static int TitlebarMargin(){ return 8 ;} // Use as side margins on titlebar. Has less margin on sides to create separation with its content
     static int ContentMargin() { return 12;} // Use as side margins contents of title
     static int ContentMarginV(){ return 9 ;} // Use as vertical margins contents of title
-    static int IconSpacing()   { return 10;} // Use on main elements
+    static int IconSpacing()   { return 10;} // Use on main elements in same group of controls
+    static int WideSpacing()   { return 18;} // Use between main elements / control groups for separation or preventing accidental clicks important
     static int ElementSpacing(){ return 5 ;} // Use if elements has relation between them like edit button for combo box etc.
 };
 
@@ -171,6 +173,8 @@ public:
     void set_bed_type_accord_combox(BedType bed_type);
     bool reset_bed_type_combox_choices(bool is_sidebar_init = false);
     void change_top_border_for_mode_sizer(bool increase_border);
+    void update_filaments_area_height();
+    void update_filaments_counter(bool force_layout = false);
     void msw_rescale();
     void sys_color_changed();
     void search();
@@ -192,6 +196,8 @@ public:
     std::map<int, DynamicPrintConfig> build_filament_ams_list(MachineObject* obj);
     void sync_ams_list(bool is_from_big_sync_btn = false);
     bool sync_extruder_list();
+    bool is_fila_switch_ready();
+    void reset_fila_switch();
     bool need_auto_sync_extruder_list_after_connect_priner(const MachineObject* obj);
     void update_sync_status(const MachineObject* obj);
     int get_sidebar_pos_right_x();
@@ -201,7 +207,11 @@ public:
     void get_small_btn_sync_pos_size(wxPoint &pt, wxSize &size);
     // Orca
     static bool should_show_SEMM_buttons();
-    void show_SEMM_buttons(bool bshow);
+    void show_SEMM_buttons();
+    void enable_purge_mode_btn(bool enable);
+    // Sidebar nozzle-count badge on the extruder cards (multi-nozzle printers only).
+    void set_extruder_nozzle_count(int extruder_id, int nozzle_count);
+    void enable_nozzle_count_edit(bool enable);
     void update_dynamic_filament_list();
 
     PlaterPresetComboBox *  printer_combox();
@@ -325,11 +335,12 @@ public:
     void load_gcode();
     void load_gcode(const wxString& filename);
     void reload_gcode_from_disk();
-    void refresh_print();
+    void reload_print();
 
     // SoftFever
     void calib_pa(const Calib_Params& params);
-    void calib_flowrate(bool is_linear, int pass);
+    //ORCA: Add pattern parameter to calib_flowrate
+    void calib_flowrate(bool is_linear, int pass, InfillPattern pattern = ipArchimedeanChords);
     void calib_temp(const Calib_Params& params);
     void calib_max_vol_speed(const Calib_Params& params);
     void calib_retraction(const Calib_Params& params);
@@ -484,7 +495,7 @@ public:
     void send_gcode_finish(wxString name);
     void export_core_3mf();
     static TriangleMesh combine_mesh_fff(const ModelObject& mo, int instance_id, std::function<void(const std::string&)> notify_func = {});
-    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false);
+    void export_stl(bool extended = false, bool selection_only = false, bool multi_stls = false, FileType file_type = FT_STL);
     //BBS: remove amf
     //void export_amf();
     //BBS add extra param for exporting 3mf silence
@@ -515,10 +526,13 @@ public:
     void schedule_background_process(bool schedule = true);
     bool is_background_process_update_scheduled() const;
     void suppress_background_process(const bool stop_background_process) ;
+    // Expose the slicing process so the device GUI can read the current
+    // GCodeProcessorResult (e.g. the nozzle grouping for print-dispatch mapping).
+    BackgroundSlicingProcess& background_process();
     /* -1: send current gcode if not specified
      * -2: send all gcode to target machine */
     int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
-    void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr, bool use_3mf = false);
+    void send_gcode_legacy(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
     int export_config_3mf(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
     //BBS jump to nonitor after print job finished
     void send_calibration_job_finished(wxCommandEvent &evt);
@@ -572,7 +586,9 @@ public:
 
     void set_global_filament_map_mode(FilamentMapMode mode);
     void set_global_filament_map(const std::vector<int>& filament_map);
+    void set_global_filament_volume_map(const std::vector<int>& filament_volume_map);
     std::vector<int> get_global_filament_map() const;
+    std::vector<int> get_global_filament_volume_map() const;
     FilamentMapMode get_global_filament_map_mode() const;
 
     void update_menus();
@@ -641,7 +657,8 @@ public:
     void drop_selection();
     void search(bool plater_is_active, Preset::Type  type, wxWindow *tag, TextInput *etag, wxWindow *stag);
     void mirror(Axis axis);
-    void split_object();
+    void split_object(bool auto_drop = true);
+    void split_object(int obj_idx, bool auto_drop = true);
     void split_volume();
     void optimize_rotation();
     // find all empty cells on the plate and won't overlap with exclusion areas
@@ -659,8 +676,9 @@ public:
     bool can_increase_instances() const;
     bool can_decrease_instances() const;
     bool can_set_instance_to_object() const;
-    bool can_fix_through_netfabb() const;
+    bool can_fix_through_cgal() const;
     bool can_simplify() const;
+    bool can_smooth_mesh() const;
     bool can_split_to_objects() const;
     bool can_split_to_volumes() const;
     bool can_arrange() const;
@@ -711,7 +729,7 @@ public:
     int delete_plate(int plate_index = -1);
     int duplicate_plate(int plate_index = -1);
     //BBS: select the sliced plate by index
-    int select_sliced_plate(int plate_index);
+    int select_sliced_plate(int plate_index, bool skip_zoom = false);
     //BBS: set bed positions
     void set_bed_position(Vec2d& pos);
     //BBS: is the background process slicing currently
@@ -731,6 +749,11 @@ public:
     bool get_machine_sync_status();
 
     void update_machine_sync_status();
+
+    // Rewrite every plate's per-filament volume choice for the filaments grouped onto this
+    // extruder after its Flow type changed (Hybrid resets them to Standard so the user
+    // re-assigns concrete volumes in the grouping dialog).
+    void update_filament_volume_map(int extruder_id, int volume_type);
 
 #if ENABLE_ENVIRONMENT_MAP
     void init_environment_texture();

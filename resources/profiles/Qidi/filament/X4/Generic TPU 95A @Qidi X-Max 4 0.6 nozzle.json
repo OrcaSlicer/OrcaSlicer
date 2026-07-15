@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Generic TPU 95A @Qidi X-Max 4 0.6 nozzle",
+	"inherits": "Generic TPU 95A@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "Uh1TenQIQNw4u4JD",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi X-Max 4 0.6 nozzle"
+	]
+}

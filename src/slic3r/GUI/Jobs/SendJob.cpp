@@ -10,20 +10,20 @@
 namespace Slic3r {
 namespace GUI {
 
-static auto check_gcode_failed_str = _u8L("Abnormal print file data. Please slice again.");
+static auto check_gcode_failed_str = _u8L("Abnormal print file data: please slice again.");
 static auto printjob_cancel_str         = _u8L("Task canceled.");
 static auto timeout_to_upload_str       = _u8L("Upload task timed out. Please check the network status and try again.");
 static auto failed_in_cloud_service_str = _u8L("Cloud service connection failed. Please try again.");
-static auto file_is_not_exists_str      = _u8L("Print file not found. Please slice again.");
+static auto file_is_not_exists_str      = _u8L("Print file not found; please slice again.");
 static auto file_over_size_str = _u8L("The print file exceeds the maximum allowable size (1GB). Please simplify the model and slice again.");
 static auto print_canceled_str    = _u8L("Task canceled.");
 static auto send_print_failed_str = _u8L("Failed to send the print job. Please try again.");
 static auto upload_ftp_failed_str = _u8L("Failed to upload file to ftp. Please try again.");
 
-static auto desc_network_error     = _u8L("Check the current status of the bambu server by clicking on the link above.");
+static auto desc_network_error     = _u8L("Check the current status of the Bambu Lab server by clicking on the link above.");
 static auto desc_file_too_large    = _u8L("The size of the print file is too large. Please adjust the file size and try again.");
-static auto desc_fail_not_exist    = _u8L("Print file not found, please slice it again and send it for printing.");
-static auto desc_upload_ftp_failed = _u8L("Failed to upload print file to FTP. Please check the network status and try again.");
+static auto desc_fail_not_exist    = _u8L("Print file not found; please slice it again and send it for printing.");
+static auto desc_upload_ftp_failed = _u8L("Failed to upload print file via FTP. Please check the network status and try again.");
 
 static auto sending_over_lan_str   = _u8L("Sending print job over LAN");
 static auto sending_over_cloud_str = _u8L("Sending print job through cloud service");
@@ -100,10 +100,10 @@ inline std::string get_transform_string(int bytes)
 
 void SendJob::process(Ctl &ctl)
 {
-    BBL::PrintParams params;
+    PrintParams params;
     std::string msg;
     int curr_percent = 10;
-    NetworkAgent* m_agent = wxGetApp().getAgent();
+    NetworkAgent* agent = wxGetApp().getAgent();
     AppConfig* config = wxGetApp().app_config;
     int result = -1;
     std::string http_body;
@@ -183,7 +183,7 @@ void SendJob::process(Ctl &ctl)
     params.username = "bblp";
     params.password = m_access_code;
     params.use_ssl_for_ftp = m_local_use_ssl_for_ftp;
-    params.use_ssl_for_mqtt = m_local_use_ssl_for_mqtt;
+    params.use_ssl_for_mqtt = m_local_use_ssl;
     wxString error_text;
     std::string msg_text;
 
@@ -234,14 +234,14 @@ void SendJob::process(Ctl &ctl)
                         // update current percnet
                         if (stage >= 0 && stage <= (int) PrintingStageFinished) {
                             curr_percent = StagePercentPoint[stage];
-                            if ((stage == BBL::SendingPrintJobStage::PrintingStageUpload) &&
+                            if ((stage == SendingPrintJobStage::PrintingStageUpload) &&
                                 (code > 0 && code <= 100)) {
                                 curr_percent = (StagePercentPoint[stage + 1] - StagePercentPoint[stage]) * code / 100 + StagePercentPoint[stage];
                             }
                         }
 
                         //get errors
-                        if (code > 100 || code < 0 || stage == BBL::SendingPrintJobStage::PrintingStageERROR) {
+                        if (code > 100 || code < 0 || stage == SendingPrintJobStage::PrintingStageERROR) {
                             if (code == BAMBU_NETWORK_ERR_PRINT_WR_FILE_OVER_SIZE || code == BAMBU_NETWORK_ERR_PRINT_SP_FILE_OVER_SIZE) {
                                 m_plater->update_print_error_info(code, desc_file_too_large, info);
                             }
@@ -281,7 +281,7 @@ void SendJob::process(Ctl &ctl)
             // try to send local with record
             BOOST_LOG_TRIVIAL(info) << "send_job: try to send gcode to printer";
             ctl.update_status(curr_percent, _u8L("Sending G-code file over LAN"));
-            result = m_agent->start_send_gcode_to_sdcard(params, update_fn, cancel_fn, nullptr);
+            result = agent->start_send_gcode_to_sdcard(params, update_fn, cancel_fn, nullptr);
             if (result == BAMBU_NETWORK_ERR_FTP_UPLOAD_FAILED) {
                 params.comments = "upload_failed";
             } else {
@@ -304,8 +304,8 @@ void SendJob::process(Ctl &ctl)
                 case DevStorage::SdcardState::HAS_SDCARD_ABNORMAL:
                     if(this->has_sdcard) {
                         // means the sdcard is abnormal but can be used option is enabled
-                        ctl.update_status(curr_percent, _u8L("Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."));
-                        result = m_agent->start_send_gcode_to_sdcard(params, update_fn, cancel_fn, nullptr);
+                         ctl.update_status(curr_percent, _u8L("Sending G-code file over LAN, but the Storage in the printer is abnormal and print-issues may be caused by this."));
+                         result = agent->start_send_gcode_to_sdcard(params, update_fn, cancel_fn, nullptr);
                         break;
                     }
                     ctl.update_status(curr_percent, _u8L("The Storage in the printer is abnormal. Please replace it with a normal Storage before sending to printer."));
@@ -315,7 +315,7 @@ void SendJob::process(Ctl &ctl)
                     return;
                 case DevStorage::SdcardState::HAS_SDCARD_NORMAL:
                     ctl.update_status(curr_percent, _u8L("Sending G-code file over LAN"));
-                    result = m_agent->start_send_gcode_to_sdcard(params, update_fn, cancel_fn, nullptr);
+                    result = agent->start_send_gcode_to_sdcard(params, update_fn, cancel_fn, nullptr);       
                     break;
                 default:
                     ctl.update_status(curr_percent, _u8L("Encountered an unknown error with the Storage status. Please try again."));

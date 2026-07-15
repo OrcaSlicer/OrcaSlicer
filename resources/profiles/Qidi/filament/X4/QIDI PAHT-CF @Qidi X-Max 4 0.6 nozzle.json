@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "QIDI PAHT-CF @Qidi X-Max 4 0.6 nozzle",
+	"inherits": "QIDI PAHT-CF@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "XgMFDDBcAUniNXKJ",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi X-Max 4 0.6 nozzle"
+	]
+}

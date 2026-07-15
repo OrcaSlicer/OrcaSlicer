@@ -83,6 +83,7 @@ public:
         bool                    priming;
 
 		bool                    is_tool_change{false};
+        bool                    is_contact{false};
 		Vec2f                   tool_change_start_pos;
 
         // Pass a polyline so that normal G-code generator can do a wipe for us.
@@ -160,8 +161,9 @@ public:
                                    bool priming,
                                    size_t old_tool,
                                    bool is_finish,
-		                           bool is_tool_change,
-                                   float purge_volume) const;
+                                   bool is_tool_change,
+                                   float purge_volume,
+                                   bool is_contact = false) const;
 
     ToolChangeResult construct_block_tcr(WipeTowerWriter& writer,
                                    bool priming,
@@ -311,6 +313,13 @@ public:
 	void set_has_tpu_filament(bool has_tpu) { m_has_tpu_filament = has_tpu; }
     bool has_tpu_filament() const { return m_has_tpu_filament; }
 
+    // Orca: has_filament_switcher is not a static PrintConfig member, so it is pushed in from Print
+    // via a setter rather than read in the ctor. Device-set only.
+    void set_has_filament_switcher(bool v) { m_has_filament_switcher = v; }
+    // The region every extruder can reach, used to clamp the PETG pre-extrusion offset to the
+    // printable bed.
+    void set_shared_print_bed(const Polygons &bed) { m_shared_print_bed = bed; }
+
     struct FilamentParameters {
         std::string 	    material = "PLA";
         int                 category;
@@ -319,6 +328,7 @@ public:
         bool                is_support = false;
         int  			    nozzle_temperature = 0;
         int  			    nozzle_temperature_initial_layer = 0;
+        int                 interface_print_temperature = 0;
         float               loading_speed = 0.f;
         float               loading_speed_start = 0.f;
         float               unloading_speed = 0.f;
@@ -336,6 +346,16 @@ public:
         float               retract_length;
         float               retract_speed;
         float               wipe_dist;
+        float               tower_interface_pre_extrusion_dist = 0.f;
+        float               tower_interface_pre_extrusion_length = 0.f;
+        // Outward shift of the wipe start for a PETG pre-extrusion on filament-switcher devices;
+        // set from filament_tower_interface_pre_extrusion_dist.
+        float               petg_pre_extrusion_offset_dist = 0.f;
+        float               tower_ironing_area = 4.f;
+        float               tower_interface_purge_length = 0.f;
+        // Distance (in mm of filament) that a hotend is allowed to pre-cool before the
+        // tower is reached; drives the prime-tower heating-during-wipe model (multi-nozzle only).
+        float               filament_cooling_before_tower = 0.f;
     };
 
 
@@ -455,6 +475,22 @@ private:
     bool            m_adhesion                  = true;
     GCodeFlavor     m_gcode_flavor;
 
+    // Multi-nozzle prime-tower heating during wipe. m_is_multiple_nozzle gates the whole
+    // feature; it is false for every current (single-nozzle) printer (extruder_max_nozzle_count
+    // defaults to 1), so the pre-heat/pre-cool path is inert and wipe-tower g-code is unchanged.
+    bool                m_is_multiple_nozzle = false;
+    std::vector<double> m_hotend_heating_rate;     // config.hotend_heating_rate (deg/s per extruder)
+    std::vector<int>    m_physical_extruder_map;   // logical extruder -> physical tool number (M104 T param)
+
+    // Per-extruder printable-height clamp. m_printable_height = config.extruder_printable_height
+    // (per-extruder Z limit; empty for single-extruder printers, [320,325] for H2D). m_last_layer_id
+    // records, per extruder, the last wipe-tower layer that uses it. is_valid_last_layer() is gated on
+    // m_is_multi_extruder so single-extruder wipe-tower g-code is unchanged; the clamp only bites a
+    // multi-extruder wipe tower whose final per-extruder layer exceeds that extruder's printable
+    // height (near the Z limit).
+    std::vector<double> m_printable_height;
+    std::vector<int>    m_last_layer_id;
+
     // Bed properties
     enum {
         RectangularBed,
@@ -492,6 +528,15 @@ private:
     std::map<float,Polylines> m_outer_wall;
     bool is_first_layer() const { return size_t(m_layer_info - m_plan.begin()) == m_first_layer_idx; }
     bool                       m_flat_ironing=false;
+    bool                       m_enable_tower_interface_features=false;
+    bool                       m_enable_tower_interface_cooldown_during_tower=false;
+    // Filament-switcher device flag + shared printable bed for the PETG pre-extrusion offset.
+    // m_has_filament_switcher is false for the whole shipping fleet (no profile sets the key), so
+    // the PETG branch in get_next_pos never runs -> no change fleet-wide.
+    bool                       m_has_filament_switcher=false;
+    Polygons                   m_shared_print_bed;
+    bool                       m_prev_layer_had_interface=false;
+    bool                       m_current_layer_has_interface=false;
 	// Calculates length of extrusion line to extrude given volume
 	float volume_to_length(float volume, float line_width, float layer_height) const {
 		return std::max(0.f, volume / (layer_height * (line_width - layer_height * (1.f - float(M_PI) / 4.f))));
@@ -503,12 +548,13 @@ private:
 	// Goes through m_plan and recalculates depths and width of the WT to make it exactly square - experimental
 	void make_wipe_tower_square();
 
-	Vec2f get_next_pos(const WipeTower::box_coordinates &cleaning_box, float wipe_length);
+	Vec2f get_next_pos(const WipeTower::box_coordinates &cleaning_box, float wipe_length, bool interface_layer, size_t interface_tool);
 
     // Goes through m_plan, calculates border and finish_layer extrusions and subtracts them from last wipe
     void save_on_last_wipe();
 
 	bool is_tpu_filament(int filament_id) const;
+	bool is_petg_filament(int filament_id) const;
 
 	// BBS
 	box_coordinates align_perimeter(const box_coordinates& perimeter_box);
@@ -575,6 +621,12 @@ private:
 		const box_coordinates  &cleaning_box,
 		float wipe_volume);
     void get_wall_skip_points(const WipeTowerInfo &layer);
+
+    // Per-extruder printable-height clamp (see m_printable_height). is_valid_last_layer returns
+    // false only for a multi-extruder wipe tower's final per-extruder layer that exceeds that
+    // extruder's printable height; returns true (no clamp) in every other case.
+    bool is_valid_last_layer(int tool, int layer_id, double layer_z) const;
+    void set_nozzle_last_layer_id();
 };
 
 

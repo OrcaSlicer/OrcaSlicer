@@ -6,8 +6,26 @@
 #include "SelectMachine.hpp"
 #include "DeviceManager.hpp"
 
+#include <wx/control.h>
 
 using namespace Slic3r::GUI;
+
+class CenteredTitle : public wxControl
+{
+public:
+    CenteredTitle(wxWindow* parent);
+    void SetTitle(const wxString& title);
+
+    wxSize DoGetBestSize() const override;
+
+protected:
+#ifdef __WXMSW__
+    WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override;
+#endif
+
+private:
+    wxString m_title;
+};
 
 class BBLTopbar : public wxAuiToolBar
 {
@@ -31,7 +49,7 @@ public:
     void OnMouseCaptureLost(wxMouseCaptureLostEvent& event);
     void OnMenuClose(wxMenuEvent& event);
     void OnOpenProject(wxAuiToolBarEvent& event);
-    void show_publish_button(bool show);
+    //void show_publish_button(bool show);
     void OnSaveProject(wxAuiToolBarEvent& event);
     void OnUndo(wxAuiToolBarEvent& event);
     void OnRedo(wxAuiToolBarEvent& event);
@@ -57,7 +75,7 @@ public:
     void ShowCalibrationButton(bool show = true);
 
 protected:
-#ifdef __WIN32__
+#ifdef __WXMSW__
     WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override;
 #endif
 
@@ -67,14 +85,18 @@ private:
     wxAuiToolBarItem* m_dropdown_menu_item;
     wxRect m_normalRect;
     wxPoint m_delta;
+    wxPoint m_last_mouse_position{wxDefaultPosition};
     wxMenu m_top_menu;
     wxMenu* m_file_menu;
     wxMenu m_calib_menu;
-    wxAuiToolBarItem* m_title_item;
+    
+    CenteredTitle*    m_title_ctrl { nullptr };
+    wxString          m_titleText;
+
     wxAuiToolBarItem* m_account_item;
     wxAuiToolBarItem* m_model_store_item;
     
-    wxAuiToolBarItem *m_publish_item;
+    //wxAuiToolBarItem *m_publish_item;
     wxAuiToolBarItem* m_undo_item;
     wxAuiToolBarItem* m_redo_item;
     wxAuiToolBarItem* m_calib_item;

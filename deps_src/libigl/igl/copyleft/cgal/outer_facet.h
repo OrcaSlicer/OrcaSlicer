@@ -17,54 +17,23 @@ namespace igl
   {
     namespace cgal
     {
-        // Find a facet that is reachable from infinity without crossing any faces.
-        // Such facet is called "outer facet."
-        //
-        // Precondition: The input mesh must have all self-intersection resolved.  I.e
-        // there is no duplicated vertices, no overlapping edge and no intersecting
-        // faces (the only exception is there could be topologically duplicated faces).
-        // See cgal::remesh_self_intersections.h for how to obtain such input.
-        //
-        // This function differ from igl::outer_facet() in the fact this
-        // function is more robust because it does not rely on facet normals.
-        //
-        // Inputs:
-        //   V  #V by 3 list of vertex positions
-        //   F  #F by 3 list of triangle indices into V
-        //   I  #I list of facets to consider
-        // Outputs:
-        //   f  Index of the outer facet.
-        //   flipped  true iff the normal of f points inwards.
-        template<
-            typename DerivedV,
-            typename DerivedF,
-            typename DerivedI,
-            typename IndexType
-            >
-        IGL_INLINE void outer_facet(
-                const Eigen::PlainObjectBase<DerivedV> & V,
-                const Eigen::PlainObjectBase<DerivedF> & F,
-                const Eigen::PlainObjectBase<DerivedI> & I,
-                IndexType & f,
-                bool & flipped);
-
-      // Find a facet that is reachable from infinity without crossing any faces.
-      // Such facet is called "outer facet."
-      //
-      // Precondition: The input mesh must have all self-intersection resolved.
-      // I.e there is no duplicated vertices, no overlapping edge and no
-      // intersecting faces (the only exception is there could be topologically
-      // duplicated faces).  See cgal::remesh_self_intersections.h for how to
-      // obtain such input.
-      //
-      // Inputs:
-      //   V  #V by 3 list of vertex positions
-      //   F  #F by 3 list of triangle indices into V
-      //   N  #N by 3 list of face normals
-      //   I  #I list of facets to consider
-      // Outputs:
-      //   f  Index of the outer facet.
-      //   flipped  true iff the normal of f points inwards.
+      /// Find a facet that is reachable from infinity without crossing any faces.
+      /// Such facet is called "outer facet."
+      ///
+      /// \pre The input mesh must have all self-intersection resolved.  I.e
+      /// there is no duplicated vertices, no overlapping edge and no intersecting
+      /// faces (the only exception is there could be topologically duplicated faces).
+      /// See cgal::remesh_self_intersections.h for how to obtain such input.
+      ///
+      /// This function differ from igl::outer_facet() in the fact this
+      /// function is more robust because it does not rely on facet normals.
+      ///
+      /// @param[in] V  #V by 3 list of vertex positions
+      /// @param[in] F  #F by 3 list of triangle indices into V
+      /// @param[in] I  #I list of facets to consider
+      /// @param[in] N  #N by 3 list of face normals
+      /// @param[out] f  Index of the outer facet.
+      /// @param[out] flipped  true iff the normal of f points inwards.
       template<
           typename DerivedV,
           typename DerivedF,
@@ -73,13 +42,25 @@ namespace igl
           typename IndexType
           >
       IGL_INLINE void outer_facet(
-              const Eigen::PlainObjectBase<DerivedV> & V,
-              const Eigen::PlainObjectBase<DerivedF> & F,
-              const Eigen::PlainObjectBase<DerivedN> & N,
-              const Eigen::PlainObjectBase<DerivedI> & I,
+              const Eigen::MatrixBase<DerivedV> & V,
+              const Eigen::MatrixBase<DerivedF> & F,
+              const Eigen::MatrixBase<DerivedN> & N,
+              const Eigen::MatrixBase<DerivedI> & I,
               IndexType & f,
               bool & flipped);
-
+      /// \overload
+      template<
+          typename DerivedV,
+          typename DerivedF,
+          typename DerivedI,
+          typename IndexType
+          >
+      IGL_INLINE void outer_facet(
+        const Eigen::MatrixBase<DerivedV> & V,
+        const Eigen::MatrixBase<DerivedF> & F,
+        const Eigen::MatrixBase<DerivedI> & I,
+        IndexType & f,
+        bool & flipped);
     }
 
   }

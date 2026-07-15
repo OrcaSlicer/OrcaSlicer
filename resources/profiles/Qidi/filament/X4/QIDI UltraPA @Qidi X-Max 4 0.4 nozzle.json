@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "QIDI UltraPA @Qidi X-Max 4 0.4 nozzle",
+	"inherits": "QIDI UltraPA@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "drEdS5phclobkiNO",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi X-Max 4 0.4 nozzle"
+	]
+}

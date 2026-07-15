@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Overture ABS @Qidi X-Max 4 0.4 nozzle",
+	"inherits": "Overture ABS@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "wmt9ksAtegWWht1z",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.033"
+	],
+	"compatible_printers": [
+		"Qidi X-Max 4 0.4 nozzle"
+	]
+}

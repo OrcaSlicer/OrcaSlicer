@@ -342,7 +342,7 @@ void FillBedJob::finalize(bool canceled, std::exception_ptr &eptr)
         //model_object->ensure_on_bed();
         //BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ": model_object->ensure_on_bed()";
 
-        if (m_instances && wxGetApp().app_config->get("auto_arrange") == "true") {
+        if (m_instances) {// && wxGetApp().app_config->get("auto_arrange") == "true") {
             m_plater->set_prepare_state(Job::PREPARE_STATE_MENU);
             m_plater->arrange();
         }

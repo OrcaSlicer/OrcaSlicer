@@ -1,6 +1,37 @@
 @REM OrcaSlicer build script for Windows with VS auto-detect
 @echo off
 set WP=%CD%
+set _START_TIME=%TIME%
+
+@REM Default target architecture to the host CPU arch; override by passing
+@REM "x64" or "arm64" as an argument. PROCESSOR_ARCHITEW6432 covers a 32-bit
+@REM shell running on a 64-bit OS, where PROCESSOR_ARCHITECTURE reads "x86".
+set arch=x64
+if /I "%PROCESSOR_ARCHITECTURE%"=="ARM64" set arch=ARM64
+if /I "%PROCESSOR_ARCHITEW6432%"=="ARM64" set arch=ARM64
+if /I "%1"=="arm64" set arch=ARM64
+if /I "%2"=="arm64" set arch=ARM64
+if /I "%1"=="x64" set arch=x64
+if /I "%2"=="x64" set arch=x64
+
+@REM Check for Ninja Multi-Config option (-x)
+set USE_NINJA=0
+for %%a in (%*) do (
+    if "%%a"=="-x" set USE_NINJA=1
+)
+
+@REM Check for unit-tests option ("tests")
+set BUILD_TESTS=OFF
+for %%a in (%*) do (
+    if /I "%%a"=="tests" set BUILD_TESTS=ON
+)
+
+if "%USE_NINJA%"=="1" (
+    echo Using Ninja Multi-Config generator
+    set CMAKE_GENERATOR="Ninja Multi-Config"
+    set VS_VERSION=Ninja
+    goto :generator_ready
+)
 
 @REM Detect Visual Studio version using msbuild
 echo Detecting Visual Studio version using msbuild...
@@ -50,15 +81,18 @@ if "%VS_MAJOR%"=="16" (
 echo Detected Visual Studio %VS_VERSION% (version %VS_MAJOR%)
 echo Using CMake generator: %CMAKE_GENERATOR%
 
+:generator_ready
+
 @REM Pack deps
 if "%1"=="pack" (
-    setlocal ENABLEDELAYEDEXPANSION 
+    setlocal ENABLEDELAYEDEXPANSION
     cd %WP%/deps/build
+    if "%arch%"=="ARM64" cd %WP%/deps/build-arm64
     for /f "tokens=2-4 delims=/ " %%a in ('date /t') do set build_date=%%c%%b%%a
-    echo packing deps: OrcaSlicer_dep_win64_!build_date!_vs!VS_VERSION!.zip
+    echo packing deps: OrcaSlicer_dep_win-!arch!_!build_date!_vs!VS_VERSION!.zip
 
-    %WP%/tools/7z.exe a OrcaSlicer_dep_win64_!build_date!_vs!VS_VERSION!.zip OrcaSlicer_dep
-    exit /b 0
+    %WP%/tools/7z.exe a OrcaSlicer_dep_win-!arch!_!build_date!_vs!VS_VERSION!.zip OrcaSlicer_dep
+    goto :done
 )
 
 set debug=OFF
@@ -79,9 +113,10 @@ if "%debug%"=="ON" (
         set build_dir=build
     )
 )
-echo build type set to %build_type%
+if "%arch%"=="ARM64" set build_dir=%build_dir%-arm64
+echo build type set to %build_type%, arch=%arch%
 
-setlocal DISABLEDELAYEDEXPANSION 
+setlocal DISABLEDELAYEDEXPANSION
 cd deps
 mkdir %build_dir%
 cd %build_dir%
@@ -96,11 +131,16 @@ echo "building deps.."
 echo on
 REM Set minimum CMake policy to avoid <3.5 errors
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
-cmake ../ -G %CMAKE_GENERATOR% -A x64 -DCMAKE_BUILD_TYPE=%build_type%
-cmake --build . --config %build_type% --target deps -- -m
+if "%USE_NINJA%"=="1" (
+    cmake ../ -G %CMAKE_GENERATOR% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake --build . --config %build_type% --target deps
+) else (
+    cmake ../ -G %CMAKE_GENERATOR% -A %arch% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake --build . --config %build_type% --target deps -- -m
+)
 @echo off
 
-if "%1"=="deps" exit /b 0
+if "%1"=="deps" goto :done
 
 :slicer
 echo "building Orca Slicer..."
@@ -110,10 +150,28 @@ cd %build_dir%
 
 echo on
 set CMAKE_POLICY_VERSION_MINIMUM=3.5
-cmake .. -G %CMAKE_GENERATOR% -A x64 -DORCA_TOOLS=ON %SIG_FLAG% -DCMAKE_BUILD_TYPE=%build_type%
-cmake --build . --config %build_type% --target ALL_BUILD -- -m
+if "%USE_NINJA%"=="1" (
+    cmake .. -G %CMAKE_GENERATOR% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake --build . --config %build_type% --target ALL_BUILD
+) else (
+    cmake .. -G %CMAKE_GENERATOR% -A %arch% -DORCA_TOOLS=ON %SIG_FLAG% -DBUILD_TESTS=%BUILD_TESTS% -DCMAKE_BUILD_TYPE=%build_type%
+    cmake --build . --config %build_type% --target ALL_BUILD -- -m
+)
 @echo off
 cd ..
 call scripts/run_gettext.bat
 cd %build_dir%
 cmake --build . --target install --config %build_type%
+
+:done
+@echo off
+for /f "tokens=1-3 delims=:.," %%a in ("%_START_TIME: =0%") do set /a "_start_s=%%a*3600+%%b*60+%%c"
+for /f "tokens=1-3 delims=:.," %%a in ("%TIME: =0%") do set /a "_end_s=%%a*3600+%%b*60+%%c"
+set /a "_elapsed=_end_s - _start_s"
+if %_elapsed% lss 0 set /a "_elapsed+=86400"
+set /a "_hours=_elapsed / 3600"
+set /a "_remainder=_elapsed - _hours * 3600"
+set /a "_mins=_remainder / 60"
+set /a "_secs=_remainder - _mins * 60"
+echo.
+echo Build completed in %_hours%h %_mins%m %_secs%s

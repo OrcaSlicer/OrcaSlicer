@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PAHT-GF @Qidi X-Max 4 0.8 nozzle",
+	"inherits": "QIDI PAHT-GF@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "Awxpatb5e911W0ob",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.01"
+	],
+	"compatible_printers": [
+		"Qidi X-Max 4 0.8 nozzle"
+	]
+}

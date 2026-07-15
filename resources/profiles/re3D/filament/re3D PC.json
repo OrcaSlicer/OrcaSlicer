@@ -1,0 +1,23 @@
+{
+	"type": "filament",
+	"name": "re3D PC",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pc",
+	"filament_id": "GFG99",
+	"setting_id": "eSR00TZTotTvJs8l",
+	"filament_settings_id": [
+		"re3D PC"
+	],
+	"compatible_printers": [
+		"re3D Gigabot 4 0.4 nozzle",
+		"re3D Gigabot 4 XLT 0.4 nozzle",
+		"re3D Terabot 4 0.4 nozzle",
+		"re3D Gigabot 4 0.8 nozzle",
+		"re3D Gigabot 4 XLT 0.8 nozzle",
+		"re3D Terabot 4 0.8 nozzle"
+	],
+	"filament_vendor": [
+		"re3D"
+	]
+}

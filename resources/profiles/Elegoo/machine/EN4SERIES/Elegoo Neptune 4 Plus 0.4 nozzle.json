@@ -1,0 +1,85 @@
+{
+	"type": "machine",
+	"name": "Elegoo Neptune 4 Plus 0.4 nozzle",
+	"from": "system",
+	"setting_id": "Rc54LjtIhvBWRS2Y",
+	"instantiation": "true",
+	"inherits": "Elegoo Neptune 4 0.4 nozzle",
+	"host_type": "elegoolink",
+	"printer_model": "Elegoo Neptune 4 Plus",
+	"default_print_profile": "0.20mm Standard @Elegoo N4Plus 0.4 nozzle",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printer_variant": "0.4",
+	"printable_area": [
+		"0x0",
+		"325x0",
+		"325x325",
+		"0x325"
+	],
+	"bed_texture_area": [
+		"0x-12.3",
+		"325x-12.3",
+		"325x321.5",
+		"0x321.5"
+	],
+	"printable_height": "385",
+	"retract_lift_below": [
+		"384"
+	],
+	"extruder_offset": [
+		"-2x-0"
+	],
+	"machine_max_acceleration_extruding": [
+		"8000",
+		"8000"
+	],
+	"machine_max_acceleration_retracting": [
+		"8000",
+		"8000"
+	],
+	"machine_max_acceleration_x": [
+		"8000",
+		"8000"
+	],
+	"machine_max_acceleration_y": [
+		"8000",
+		"8000"
+	],
+	"machine_max_acceleration_z": [
+		"300",
+		"300"
+	],
+	"machine_max_acceleration_e": [
+		"5000",
+		"5000"
+	],
+	"machine_max_acceleration_travel": [
+		"8000",
+		"8000"
+	],
+	"machine_max_speed_e": [
+		"60",
+		"60"
+	],
+	"machine_max_speed_x": [
+		"500",
+		"500"
+	],
+	"machine_max_speed_y": [
+		"500",
+		"500"
+	],
+	"machine_max_speed_z": [
+		"20",
+		"20"
+	],
+	"cooling_tube_length": "5",
+	"enable_filament_ramming": "1",
+	"nozzle_volume": "110",
+	"default_filament_profile": [
+		"Elegoo PLA @EN4 Series"
+	],
+	"renamed_from": "Elegoo Neptune 4 Plus (0.4 nozzle)"
+}

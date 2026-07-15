@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG Tough @Qidi X-Max 4 0.6 nozzle",
+	"inherits": "QIDI PETG Tough@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "7GJvjbWv3gOXoUvj",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.04"
+	],
+	"compatible_printers": [
+		"Qidi X-Max 4 0.6 nozzle"
+	]
+}

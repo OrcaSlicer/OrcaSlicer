@@ -15,13 +15,11 @@ namespace igl
 {
   namespace opengl
   {
-    // Read an image from a .tga file and use it as a texture
-    //
-    // Input:
-    //  tga_file  path to .tga file
-    // Output:
-    //  id  of generated openGL texture
-    // Returns true on success, false on failure
+    /// Read an image from a .tga file and use it as a texture
+    ///
+    /// @param[in] tga_file  path to .tga file
+    /// @param[out] id  of generated openGL texture
+    /// @return true on success, false on failure
     IGL_INLINE bool texture_from_tga(const std::string tga_file, GLuint & id);
   }
 }

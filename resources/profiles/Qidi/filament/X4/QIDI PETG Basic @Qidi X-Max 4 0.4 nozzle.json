@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG Basic @Qidi X-Max 4 0.4 nozzle",
+	"inherits": "QIDI PETG Basic@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "wCCu8057Era4CijT",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi X-Max 4 0.4 nozzle"
+	]
+}

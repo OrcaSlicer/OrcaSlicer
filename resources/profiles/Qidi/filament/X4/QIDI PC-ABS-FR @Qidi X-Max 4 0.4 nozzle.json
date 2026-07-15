@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI PC/ABS-FR @Qidi X-Max 4 0.4 nozzle",
+	"inherits": "QIDI PC/ABS-FR@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "EpS2lRAk9UncJ0Qh",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.042"
+	],
+	"compatible_printers": [
+		"Qidi X-Max 4 0.4 nozzle"
+	]
+}

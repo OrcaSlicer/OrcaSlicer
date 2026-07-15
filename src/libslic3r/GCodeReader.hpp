@@ -26,11 +26,15 @@ public:
         const std::string_view  comment() const
             { size_t pos = m_raw.find(';'); return (pos == std::string::npos) ? std::string_view() : std::string_view(m_raw).substr(pos + 1); }
 
+        // Return position in this->raw() string starting with the "axis" character.
+        std::string_view axis_pos(char axis) const;
         void  clear() { m_raw.clear(); }
         bool  has(Axis axis) const { return (m_mask & (1 << int(axis))) != 0; }
         float value(Axis axis) const { return m_axis[axis]; }
         bool  has(char axis) const;
         bool  has_value(char axis, float &value) const;
+        // Parse value of an axis from raw string starting at axis_pos.
+        static bool has_value(std::string_view axis_pos, float &value);
         float new_X(const GCodeReader &reader) const { return this->has(X) ? this->x() : reader.x(); }
         float new_Y(const GCodeReader &reader) const { return this->has(Y) ? this->y() : reader.y(); }
         float new_Z(const GCodeReader &reader) const { return this->has(Z) ? this->z() : reader.z(); }
@@ -190,6 +194,7 @@ private:
             ; // silence -Wempty-body
         return c;
     }
+    static const char*  axis_pos(const char *raw_str, char axis);
 
     GCodeConfig m_config;
     float       m_position[NUM_AXES];

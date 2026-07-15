@@ -167,7 +167,7 @@ private:
     wxCoord m_name_texture_height;
 
     void init();
-    bool valid_instance(int obj_id, int instance_id);
+    bool valid_instance(int obj_id, int instance_id) const;
     void generate_print_polygon(ExPolygon &print_polygon);
     void generate_exclude_polygon(ExPolygon &exclude_polygon);
     void generate_logo_polygon(ExPolygon &logo_polygon);
@@ -200,6 +200,7 @@ private:
     void render_icons(bool bottom, bool only_name = false, int hover_id = -1);
     void render_only_numbers(bool bottom);
     void render_plate_name_texture();
+    void invalidate_plate_name_texture();
     void register_raycasters_for_picking(GLCanvas3D& canvas);
     int picking_id_component(int idx) const;
 
@@ -252,6 +253,7 @@ public:
     PrintSequence get_real_print_seq(bool* plate_same_as_global=nullptr) const;
 
     std::vector<int> get_real_filament_maps(const DynamicConfig& g_config, bool* use_global_param = nullptr)const;
+    std::vector<int> get_real_filament_volume_maps(const DynamicConfig& g_config, bool* use_global_param = nullptr) const;
     FilamentMapMode  get_real_filament_map_mode(const DynamicConfig& g_config,bool * use_global_param = nullptr) const;
 
     FilamentMapMode get_filament_map_mode() const;
@@ -260,6 +262,15 @@ public:
     // get filament map, 0 based filament ids, 1 based extruder ids
     std::vector<int> get_filament_maps() const;
     void set_filament_maps(const std::vector<int>& f_maps);
+
+    // per-filament nozzle-volume choice (NozzleVolumeType values, 0 based filament ids)
+    std::vector<int> get_filament_volume_maps() const;
+    void set_filament_volume_maps(const std::vector<int>& f_maps);
+    void clear_filament_volume_map();
+
+    // per-filament nozzle-group choice (0 based filament and nozzle ids)
+    std::vector<int> get_filament_nozzle_maps() const;
+    void set_filament_nozzle_maps(const std::vector<int>& f_maps);
 
     void clear_filament_map();
     void clear_filament_map_mode();
@@ -337,7 +348,9 @@ public:
     std::vector<int> get_extruders_without_support(bool conside_custom_gcode = false) const;
     // get used filaments from gcode result, 1 based idx
     std::vector<int> get_used_filaments();
+    const std::vector<FilamentInfo>& get_slice_filaments_info() const { return slice_filaments_info; }
     int  get_physical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const;
+    int  get_logical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const;
     bool check_filament_printable(const DynamicPrintConfig & config, wxString& error_message);
     bool check_tpu_printable_status(const DynamicPrintConfig & config, const std::vector<int> &tpu_filaments);
     bool check_mixture_of_pla_and_petg(const DynamicPrintConfig & config);
@@ -628,13 +641,12 @@ class PartPlateList : public ObjectBase
     void generate_icon_textures();
     void release_icon_textures();
 
-    void set_default_wipe_tower_pos_for_plate(int plate_idx);
-
     friend class cereal::access;
     friend class UndoRedo::StackImpl;
     friend class PartPlate;
 
 public:
+    void set_default_wipe_tower_pos_for_plate(int plate_idx, bool init_pos = false);
     class BedTextureInfo {
     public:
         class TexturePart {
@@ -666,6 +678,12 @@ public:
                 this->buffer    = part.buffer;
                 this->filename  = part.filename;
                 this->texture   = part.texture;
+            }
+            void update_pos(float xx, float yy, float ww, float hh) {
+                x = xx;
+                y = yy;
+                w = ww;
+                h = hh;
             }
             void update_file(std::string file) {
                 filename = file;
