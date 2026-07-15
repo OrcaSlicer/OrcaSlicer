@@ -5399,7 +5399,7 @@ void GUI_App::on_user_login_handle(wxCommandEvent &evt)
 
 void GUI_App::check_track_enable()
 {
-    // Orca: alaways disable track event
+    // Orca: telemetry only exists on the BBL cloud agent; always disable it.
     if (m_agent) {
         m_agent->track_enable(false);
         m_agent->track_remove_files();
