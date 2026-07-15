@@ -73,6 +73,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/Utils.hpp"
+#include "libslic3r/LocalesUtils.hpp" // ORCA #12105: locale-safe string_to_double_decimal_point
 #include "libslic3r/PresetBundle.hpp"
 #include "libslic3r/PublishSettings.hpp"
 #include "slic3r/Utils/CrealityPrint.hpp"
@@ -2278,7 +2279,7 @@ void Sidebar::priv::add_nozzle_size_to_user_printer()
     for (const std::string& s : system_sizes)
         if (existing.count(s) == 0) addable.push_back(s);
     std::sort(addable.begin(), addable.end(),
-              [](const std::string& a, const std::string& b) { return atof(a.c_str()) < atof(b.c_str()); });
+              [](const std::string& a, const std::string& b) { return string_to_double_decimal_point(a) < string_to_double_decimal_point(b); });
 
     AddNozzleSizeDialog dlg(plater, user_model, addable,
                             std::vector<std::string>(existing.begin(), existing.end()));
@@ -2305,14 +2306,21 @@ void Sidebar::priv::add_nozzle_size_to_user_printer()
         if (override_size) {
             auto& cfg = printers.get_edited_preset().config;
             if (auto* nd = dynamic_cast<ConfigOptionFloats*>(cfg.option("nozzle_diameter"))) {
-                double val = atof(size.c_str());
+                double val = string_to_double_decimal_point(size);
                 if (nd->values.empty()) nd->values.push_back(val);
                 else for (double& v : nd->values) v = val;
             }
         }
         tab->save_preset(user_model);
-        last_added = printers.get_selected_preset().name; // the new variant is now selected
-        ++added;
+        // Only record the new variant if the save actually produced a user preset for this model. A
+        // failed / early-returning save (e.g. the collision or empty-name backstops in
+        // Tab::save_preset) leaves the SYSTEM preset selected — which must not become last_added, or
+        // the final selection would land on a system preset.
+        const Preset& saved = printers.get_selected_preset();
+        if (saved.is_user() && saved.config.opt_string("printer_model") == user_model) {
+            last_added = saved.name;
+            ++added;
+        }
     };
 
     for (const std::string& size : to_add)
@@ -2325,11 +2333,11 @@ void Sidebar::priv::add_nozzle_size_to_user_printer()
         if (exact != nullptr) {
             fork_from_system(custom_variant, exact, false);
         } else {
-            const double target = atof(custom_variant.c_str());
+            const double target = string_to_double_decimal_point(custom_variant);
             const Preset* nearest = nullptr;
             double best = 1e9, best_val = -1.0;
             for (const std::string& s : system_sizes) {
-                const double v = atof(s.c_str());
+                const double v = string_to_double_decimal_point(s);
                 const double diff = std::abs(v - target);
                 // Nearest by absolute diameter difference; on a tie (e.g. 0.9 between 0.8 and 1.0)
                 // round UP — prefer the larger nozzle, whose flow settings suit a big custom nozzle.

@@ -177,4 +177,38 @@ TEST_CASE("rename_user_printer_model trims the new model name", "[Preset][Varian
 
     // A whitespace-only new name is a no-op.
     CHECK(bundle.printers.rename_user_printer_model("My Printer", "   ") == 0);
+
+    // Renaming onto a built-in (system) model name is refused (backstop; the dialog blocks it inline).
+    CHECK(bundle.printers.rename_user_printer_model("My Printer", "Fixture Printer") == 0);
+    CHECK(bundle.printers.find_preset("Fixture Printer 0.4 nozzle - Copy", false)->config.opt_string("printer_model") == "My Printer");
+}
+
+TEST_CASE("get_similar_printer_preset: user model with no system counterpart resolves to a user variant",
+          "[Preset][Variants][12105]")
+{
+    TempPresetDir temp;
+    PresetBundle  bundle;
+    const auto   &def = bundle.printers.default_preset().config;
+    const fs::path sys = temp.path / "sys", usr = temp.path / "usr";
+
+    write_printer_preset(def, sys, "Fixture Printer 0.4 nozzle", "Fixture Printer", "0.4", 0.4);
+    write_printer_preset(def, sys, "Fixture Printer 0.6 nozzle", "Fixture Printer", "0.6", 0.6);
+    write_printer_preset(def, usr, "Fixture Printer 0.4 nozzle - Copy", "Fixture Printer", "0.4", 0.4, "Fixture Printer 0.4 nozzle");
+    write_printer_preset(def, usr, "Fixture Printer 0.6 nozzle - Copy", "Fixture Printer", "0.6", 0.6, "Fixture Printer 0.6 nozzle");
+    load_printers(bundle, sys, usr, {"Fixture Printer 0.4 nozzle", "Fixture Printer 0.6 nozzle"});
+    bundle.printers.migrate_user_models_for_variants("Copy"); // user model -> "Fixture Printer - Copy"
+
+    // A selection provides the resolver's variant/alias context.
+    bundle.printers.select_preset_by_name("Fixture Printer 0.4 nozzle - Copy", true);
+
+    // Empty variant + a USER model (no system counterpart) resolves among the user's own variants.
+    const Preset* user_res = bundle.get_similar_printer_preset("Fixture Printer - Copy", "");
+    REQUIRE(user_res != nullptr);
+    CHECK(user_res->is_user());
+    CHECK(user_res->config.opt_string("printer_model") == "Fixture Printer - Copy");
+
+    // Empty variant + a model WITH a system counterpart keeps the system-only behavior.
+    const Preset* sys_res = bundle.get_similar_printer_preset("Fixture Printer", "");
+    REQUIRE(sys_res != nullptr);
+    CHECK(sys_res->is_system);
 }

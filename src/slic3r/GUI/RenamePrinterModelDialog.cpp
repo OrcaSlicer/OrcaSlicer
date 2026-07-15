@@ -44,7 +44,7 @@ RenamePrinterModelDialog::RenamePrinterModelDialog(wxWindow* parent, const std::
     w_sizer->Add(name_label, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
 
     m_name_input = new ::TextInput(this, wxString(), wxEmptyString, wxEmptyString, wxDefaultPosition,
-        wxSize(FromDIP(360), -1), wxTE_PROCESS_ENTER);
+        wxSize(FromDIP(360), -1), 0); // no wxTE_PROCESS_ENTER: let Enter trigger the dialog's OK button
     w_sizer->Add(m_name_input, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
 
     // Inline validation message, orange like SavePresetDialog.

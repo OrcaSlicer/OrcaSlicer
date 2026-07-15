@@ -45,7 +45,7 @@ AddNozzleSizeDialog::AddNozzleSizeDialog(wxWindow* parent, const std::string& us
     w_sizer->Add(custom_label, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
 
     m_custom_input = new ::TextInput(this, wxString(), wxEmptyString, wxEmptyString, wxDefaultPosition,
-        wxSize(FromDIP(120), -1), wxTE_PROCESS_ENTER);
+        wxSize(FromDIP(120), -1), 0); // no wxTE_PROCESS_ENTER: let Enter trigger the dialog's OK button
     w_sizer->Add(m_custom_input, 0, wxLEFT | wxRIGHT | wxTOP, FromDIP(12));
 
     // Inline validation message for the custom size, orange like SavePresetDialog.

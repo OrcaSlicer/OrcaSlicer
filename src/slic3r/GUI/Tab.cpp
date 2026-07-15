@@ -7489,12 +7489,18 @@ void Tab::save_preset(std::string name /*= ""*/, bool detach, bool save_to_proje
     // so a user's printer behaves like a system one: grouped per-model in the dropdown, with nozzle
     // changes staying within the user's own variants. The variant keeps inheriting the source system
     // nozzle preset (handled by save_current_preset), mirroring the system file layout.
-    if (m_type == Preset::TYPE_PRINTER && !from_input && !name.empty()) {
-        // ORCA #12105: trim the model name so a whitespace-padded model (e.g. from a non-dialog
-        // caller) can never stamp a padded printer_model or derive a malformed "<model>  X.X nozzle"
-        // variant name with a doubled space. The Save dialog already blocks trailing spaces inline.
+    // ORCA #12105: here `name` is a bare user MODEL (Save dialog field / Add Nozzle Size), from which
+    // the per-nozzle variant name is derived. Exclude re-saves that pass the full preset name — e.g.
+    // the "Detach preset" button does save_preset(edited_preset.name, true) — via
+    // `name != curr_preset_name`, so a full "<model> X.X nozzle" name is never mistaken for the model
+    // (which would double-append the suffix and stamp the wrong printer_model).
+    if (m_type == Preset::TYPE_PRINTER && !from_input && !name.empty() && name != curr_preset_name) {
+        // Trim so a whitespace-padded model can't stamp a padded printer_model or a doubled-space
+        // "<model>  X.X nozzle" variant name. The Save dialog already blocks trailing spaces inline.
         std::string model_name = name;
         boost::trim(model_name);
+        if (model_name.empty())
+            return; // nothing to save under an empty model name (the Save dialog blocks this too)
         // ORCA #12105: a user printer_model must not collide with a built-in (system) model, or it
         // would hijack per-model grouping and compatibility resolution. The Save dialog blocks this
         // inline (orange warning in SavePresetDialog::Item::update); this is a defensive backstop for

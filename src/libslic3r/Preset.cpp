@@ -4329,6 +4329,11 @@ int PrinterPresetCollection::rename_user_printer_model(const std::string &old_mo
     const std::string new_model = (first == std::string::npos) ? std::string() : new_model_raw.substr(first, last - first + 1);
     if (old_model.empty() || new_model.empty() || old_model == new_model)
         return 0;
+    // ORCA #12105: never assign a built-in (system) model name to user presets — it would hijack
+    // per-model grouping/compatibility. Backstop; the Rename dialog blocks this inline.
+    const std::vector<std::string> sys_models = this->system_printer_models();
+    if (std::find(sys_models.begin(), sys_models.end(), new_model) != sys_models.end())
+        return 0;
     int renamed = 0;
     for (Preset &preset : *this) {
         if (!preset.is_user())
