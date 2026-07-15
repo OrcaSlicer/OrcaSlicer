@@ -850,7 +850,6 @@ void PluginManager::load_plugin_impl(const std::string& plugin_key, bool skip_de
                 if (entry == nullptr) {
                     registry_error = "Plugin manifest not found: " + plugin_key;
                 } else {
-                    entry->descriptor       = std::move(plugin.descriptor);
                     entry->capabilities     = std::move(plugin.capabilities);
                     entry->module           = plugin.module;
                     entry->module_name      = std::move(plugin.module_name);
@@ -1556,6 +1555,7 @@ bool PluginManager::download_and_install_cloud_plugin(const std::string& plugin_
         updated_descriptor.version = requested_version;
     // The version just downloaded and installed is now the locally installed version.
     updated_descriptor.installed_version = requested_version.empty() ? descriptor.version : requested_version;
+    updated_descriptor.enabled = true;
     if (updated_descriptor.cloud.has_value()) {
         updated_descriptor.cloud->installed        = true;
         updated_descriptor.cloud->update_available = false;
@@ -1705,11 +1705,6 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
     local_descriptor.cloud            = std::nullopt;
     local_descriptor.clear_error();
 
-    if (!write_install_state(resolved_root, local_descriptor)) {
-        error = "Failed to update plugin install state: " + (resolved_root / INSTALL_STATE_FILE).string();
-        return false;
-    }
-
     // Re-key the entry in place, carrying the live module/capabilities (if any) with it. The
     // capabilities' audit key must follow, since it is what identifies their owning package.
     std::vector<PluginCapabilityId> rekeyed;
@@ -1717,12 +1712,34 @@ bool PluginManager::keep_installed_plugin_as_local(const PluginDescriptor& plugi
         std::lock_guard<std::mutex> lock(m_mutex);
 
         Plugin* entry = find_plugin_locked(old_key);
-        if (entry == nullptr)
-            return true;
+        if (entry == nullptr) {
+            error = "Plugin manifest not found: " + old_key;
+            return false;
+        }
 
         if (find_plugin_locked(new_key) != nullptr && new_key != old_key) {
-            BOOST_LOG_TRIVIAL(warning) << "Cannot update loaded plugin key to existing package key: " << new_key;
-            return true;
+            error = "Cannot keep plugin local: local plugin key already exists: " + new_key;
+            BOOST_LOG_TRIVIAL(warning) << error;
+            return false;
+        }
+
+        // Preserve the sidecar's package and capability choices while changing only its origin.
+        // Re-keying an installed plugin must not silently re-enable capabilities.
+        PluginInstallState install_state;
+        if (!read_install_state(resolved_root, install_state)) {
+            install_state.installed_version = !local_descriptor.installed_version.empty()
+                                                  ? local_descriptor.installed_version
+                                                  : local_descriptor.version;
+            install_state.enabled = local_descriptor.enabled;
+        }
+        install_state.installed_from = "local";
+        install_state.plugin_name    = local_descriptor.name;
+        install_state.cloud_uuid.clear();
+        if (install_state.installed_version.empty())
+            install_state.installed_version = local_descriptor.version;
+        if (!write_install_state(resolved_root, install_state)) {
+            error = "Failed to update plugin install state: " + (resolved_root / INSTALL_STATE_FILE).string();
+            return false;
         }
 
         entry->descriptor.plugin_key = new_key;

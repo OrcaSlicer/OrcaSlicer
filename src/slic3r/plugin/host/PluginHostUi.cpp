@@ -429,7 +429,7 @@ bool progress_is_open(int id)
 {
     if (PluginHostUi::is_pipeline_hook_context())
         throw std::runtime_error("orca.host.ui is unavailable from slicing pipeline hooks");
-    return UiRegistry::instance().get_as<GUI::PluginProgressDialog>(id) != nullptr;
+    return UiRegistry::instance().is_open(id);
 }
 
 bool progress_pulse(int id, const std::string& message)

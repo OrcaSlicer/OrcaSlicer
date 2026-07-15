@@ -40,8 +40,6 @@ public:
     // Returns the {plugin_key, name} of the selected capability (capability path).
     CapabilityEntry selected_capability() const;
 
-    void update_plugin_list(const std::vector<PluginDescriptor>& updated_plugins) { m_plugins = updated_plugins; }
-
 private:
     void build_ui(const wxString& plugin_type_label);
     void build_capability_ui(const wxString& plugin_type_label);

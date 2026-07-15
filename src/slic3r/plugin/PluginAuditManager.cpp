@@ -2,6 +2,7 @@
 
 #include "libslic3r/Utils.hpp"
 
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/log/trivial.hpp>
 
 #include <cstdlib>
@@ -44,8 +45,16 @@ bool is_inside_allowed_root(const std::filesystem::path& candidate, const std::f
     auto root_it  = canon_root.begin();
     auto root_end = canon_root.end();
 
+    const auto same_component = [](const fs::path& lhs, const fs::path& rhs) {
+#ifdef _WIN32
+        return boost::algorithm::iequals(lhs.native(), rhs.native());
+#else
+        return lhs == rhs;
+#endif
+    };
+
     // Consume matching components
-    while (root_it != root_end && cand_it != cand_end && *root_it == *cand_it) {
+    while (root_it != root_end && cand_it != cand_end && same_component(*root_it, *cand_it)) {
         ++root_it;
         ++cand_it;
     }

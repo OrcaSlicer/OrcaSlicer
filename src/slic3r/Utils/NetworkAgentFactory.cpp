@@ -449,6 +449,18 @@ void NetworkAgentFactory::deregister_python_printer_agent(const std::string& plu
     if (cached_agent)
         cached_agent->disconnect_printer();
 
+    // The GUI may still own the active capability separately from the factory cache. Clear that
+    // handle before the plugin module is torn down, otherwise NetworkAgent can retain a Python
+    // object whose implementation is about to be unloaded.
+    if (!agent_id.empty() && wxTheApp) {
+        NetworkAgent* network_agent = GUI::wxGetApp().getAgent();
+        if (network_agent) {
+            const auto active_agent = network_agent->get_printer_agent();
+            if (active_agent && active_agent->get_agent_info().id == agent_id)
+                network_agent->set_printer_agent(nullptr);
+        }
+    }
+
     BOOST_LOG_TRIVIAL(info) << "Deregistered Python printer-agent capability '" << capability_name << "' from plugin '"
                             << plugin_key << "' with agent ID '" << agent_id << "'";
 }

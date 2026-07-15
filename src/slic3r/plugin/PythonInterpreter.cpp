@@ -610,6 +610,10 @@ bool PythonInterpreter::initialize()
         // Set Python home - this is the prefix where Python libraries are located
         PyConfig config;
         PyConfig_InitPythonConfig(&config);
+        // Do not let the host process's PYTHONPATH or user site-packages override the bundled
+        // runtime used by plugins.
+        config.use_environment    = 0;
+        config.user_site_directory = 0;
 
         BOOST_LOG_TRIVIAL(debug) << "Calling PyConfig_SetBytesString with home=" << python_home;
         PyStatus status = PyConfig_SetBytesString(&config, &config.home, python_home.c_str());
@@ -1231,6 +1235,7 @@ bool PythonInterpreter::call_function(
     PyObject* func = PyObject_GetAttrString(module, function_name.c_str());
     if (!func || !PyCallable_Check(func)) {
         Py_XDECREF(func);
+        PyErr_Clear();
         error = "Function '" + function_name + "' not found or not callable";
         return false;
     }
@@ -1272,6 +1277,7 @@ bool PythonInterpreter::call_function_no_args(PyObject* module, const std::strin
     PyObject* func = PyObject_GetAttrString(module, function_name.c_str());
     if (!func || !PyCallable_Check(func)) {
         Py_XDECREF(func);
+        PyErr_Clear();
         error = "Function '" + function_name + "' not found or not callable";
         return false;
     }
