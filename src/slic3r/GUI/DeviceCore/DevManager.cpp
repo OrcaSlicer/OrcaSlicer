@@ -539,6 +539,7 @@ namespace Slic3r
             }
             else
             {
+                Slic3r::GUI::wxGetApp().reset_unsigned_plugin_warning();
                 if (m_agent)
                 {
                     if (it->second->connection_type() != "lan" || it->second->connection_type().empty())
