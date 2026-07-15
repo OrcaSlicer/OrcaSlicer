@@ -1989,7 +1989,7 @@ void GLGizmoSVG::draw_mirroring()
 
 void GLGizmoSVG::draw_model_type()
 {
-    ImGui::AlignTextToFramePadding();
+    //ImGui::AlignTextToFramePadding();
     bool is_last_solid_part = m_volume->is_the_only_one_part();
     std::string title = _u8L("Operation");
     if (is_last_solid_part) {
@@ -2004,6 +2004,8 @@ void GLGizmoSVG::draw_model_type()
     ModelVolumeType negative = ModelVolumeType::NEGATIVE_VOLUME;
     ModelVolumeType part = ModelVolumeType::MODEL_PART;
     ModelVolumeType type = m_volume->type();
+
+    ImGui::SameLine();
 
     //TRN EmbossOperation
     ImGuiWrapper::push_radio_style(m_parent.get_scale()); //ORCA

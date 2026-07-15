@@ -520,7 +520,7 @@ void MediaFilePanel::fetchUrl(boost::weak_ptr<PrinterFileSystem> wfs)
                     fs->SetUrl(res);
                 }
             });
-        });
+        }, wxGetApp().get_printer_cloud_provider());
     }
 }
 

@@ -72,6 +72,7 @@
 #define BBL_JSON_KEY_BOTTOM_TEXTURE_END_NAME    "bottom_texture_end_name"
 #define BBL_JSON_KEY_USE_DOUBLE_EXTRUDER_DEFAULT_TEXTURE  "use_double_extruder_default_texture"
 #define BBL_JSON_KEY_BOTTOM_TEXTURE_RECT        "bottom_texture_rect"
+#define BBL_JSON_KEY_BOTTOM_TEXTURE_RECT_LONGER  "bottom_texture_rect_longer"
 #define BBL_JSON_KEY_MIDDLE_TEXTURE_RECT        "middle_texture_rect"
 
 #define BBL_JSON_KEY_HOTEND_MODEL               "hotend_model"
@@ -150,6 +151,7 @@ public:
         std::string                 bottom_texture_end_name;
         std::string                 use_double_extruder_default_texture;
         std::string                 bottom_texture_rect;
+        std::string                 bottom_texture_rect_longer;
         std::string                 middle_texture_rect;
         std::string                 hotend_model;
         PrinterVariant*       variant(const std::string &name) {

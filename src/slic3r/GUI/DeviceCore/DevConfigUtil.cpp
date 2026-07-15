@@ -87,6 +87,28 @@ std::string DevPrinterConfigUtil::get_printer_ext_img(const std::string& type_st
     return (vec.size() > pos) ? vec[pos] : std::string();
 };
 
+std::string DevPrinterConfigUtil::get_filament_load_img(const std::string &type_str, int ext_id, bool has_nozzle_rack)
+{
+    if (has_nozzle_rack)
+    {
+        const auto &rack_vec = get_value_from_config<std::vector<std::string>>(type_str, "filament_load_image_nozzle_rack");
+        if (!rack_vec.empty())
+        {
+            if (ext_id >= 0 && static_cast<size_t>(ext_id) < rack_vec.size())
+            {
+                return rack_vec[ext_id];
+            }
+            return rack_vec[0];
+        }
+    }
+    const auto &vec = get_value_from_config<std::vector<std::string>>(type_str, "filament_load_image");
+    if (ext_id >= 0 && static_cast<size_t>(ext_id) < vec.size())
+    {
+        return vec[ext_id];
+    }
+    return vec.empty() ? std::string() : vec[0];
+}
+
 std::string DevPrinterConfigUtil::get_fan_text(const std::string& type_str, const std::string& key)
 {
     std::vector<std::string> filaments;

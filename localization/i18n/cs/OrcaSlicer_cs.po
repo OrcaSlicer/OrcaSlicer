@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-07 16:46-0300\n"
+"POT-Creation-Date: 2026-07-13 16:24-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -35,6 +35,24 @@ msgstr "TPU není podporováno AMS."
 msgid "AMS does not support 'Bambu Lab PET-CF'."
 msgstr "AMS nepodporuje „Bambu Lab PET-CF“."
 
+msgid "The current filament doesn't support the E3D high-flow nozzle and can't be used."
+msgstr ""
+
+msgid "The current filament doesn't support the TPU high-flow nozzle and can't be used."
+msgstr ""
+
+msgid "Auto dynamic flow calibration is not supported for TPU filament."
+msgstr ""
+
+msgid "Bambu TPU 85A is not supported for printing with 0.4 mm Standard or High Flow nozzles."
+msgstr ""
+
+msgid "How to feed TPU filament."
+msgstr ""
+
+msgid "How to feed TPU filament on X2D."
+msgstr ""
+
 msgid "Please cold pull before printing TPU to avoid clogging. You may use cold pull maintenance on the printer."
 msgstr "Před tiskem z TPU proveďte cold pull, abyste předešli ucpání trysky.Na tiskárně můžete provést údržbu pomocí metody cold pull."
 
@@ -47,6 +65,9 @@ msgstr "Navlhlé (vlhké) PVA je pružné a může se zaseknout v extruderu. Př
 msgid "The rough surface of PLA Glow can accelerate wear on the AMS system, particularly on the internal components of the AMS Lite."
 msgstr "Hrubý povrch PLA Glow může urychlit opotřebení systému AMSzejména vnitřních součástí AMS Lite."
 
+msgid "PLA Glow may wear the AMS first stage feeder. Use an external spool instead."
+msgstr ""
+
 msgid "CF/GF filaments are hard and brittle, it's easy to break or get stuck in AMS, please use with caution."
 msgstr "CF/GF filamenty jsou tvrdé a křehké, snadno se lámou nebo zasekávají v AMS, používejte opatrně."
 
@@ -56,9 +77,89 @@ msgstr "PPS-CF je křehký a může se zlomit v ohnuté PTFE trubičce nad tisko
 msgid "PPA-CF is brittle and could break in bended PTFE tube above Toolhead."
 msgstr "PPA-CF je křehký a může se zlomit v ohnuté PTFE trubičce nad tiskovou hlavou."
 
+msgid "Default settings may affect print quality. Adjust as needed for best results."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has a risk of nozzle clogging when using 0.4mm high-flow nozzles. Use with caution."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s filaments are hard and brittle and could break in AMS, and there is also a risk of nozzle clogging when using 0.4mm high-flow nozzles. Use with caution."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has a risk of nozzle clogging when using 0.4, 0.6, 0.8mm high-flow nozzles. Use with caution."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s may fail to load or unload due to the Filament Track Switch. If you wish to continue."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s is not supported by %s extruder."
 msgstr "%s není podporováno extruderem %s."
+
+#, c-format, boost-format
+msgid "There may be critical print quality issues when printing '%s' with %s Bowden extruder. Use with caution!"
+msgstr ""
+
+#, c-format, boost-format
+msgid "There may be critical print quality issues when printing '%s' with %s extruder. Use with caution!"
+msgstr ""
+
+#, c-format, boost-format
+msgid "There may be print quality issues when printing '%s' with %s Bowden extruder. Use with caution."
+msgstr ""
+
+#, c-format, boost-format
+msgid "There may be print quality issues when printing '%s' with %s extruder. Use with caution."
+msgstr ""
+
+msgid "High Flow"
+msgstr ""
+
+msgid "Standard"
+msgstr ""
+
+msgid "TPU High Flow"
+msgstr "TPU vysoký průtok"
+
+msgid "Unknown"
+msgstr "Neznámé"
+
+msgid "Hardened Steel"
+msgstr "Kalená ocel"
+
+msgid "Stainless Steel"
+msgstr "Nerezová ocel"
+
+msgid "Tungsten Carbide"
+msgstr "Karbid wolframu"
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr "Tisková hlava a držák hotendu se mohou pohybovat. Držte ruce mimo komoru."
+
+msgid "Warning"
+msgstr "Varování"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr "Informace o hotendu mohou být nepřesné. Chcete hotend znovu načíst? (Informace o hotendu se mohou po vypnutí změnit.)"
+
+msgid "I confirm all"
+msgstr "Potvrzuji vše"
+
+msgid "Re-read all"
+msgstr "Znovu načíst vše"
+
+msgid "Reading the hotends, please wait."
+msgstr "Načítání hotendů, prosím čekejte."
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr "Během aktualizace hotendu se bude tisková hlava pohybovat. Nevkládejte ruce do komory."
+
+msgid "Update"
+msgstr ""
 
 msgid "Current AMS humidity"
 msgstr "Aktuální vlhkost AMS"
@@ -89,6 +190,85 @@ msgstr "Verze:"
 
 msgid "Latest version"
 msgstr "Nejnovější verze"
+
+msgid "Row A"
+msgstr "Řada A"
+
+msgid "Row B"
+msgstr "Řada B"
+
+msgid "Toolhead"
+msgstr "Tisková hlava"
+
+msgid "Empty"
+msgstr "Prázdné"
+
+msgid "Error"
+msgstr "Chyba"
+
+msgid "Induction Hotend Rack"
+msgstr "Indukční držák hotendu"
+
+msgid "Hotends Info"
+msgstr "Informace o hotendech"
+
+msgid "Read All"
+msgstr "Načíst vše"
+
+msgid "Reading "
+msgstr "Načítání "
+
+msgid "Please wait"
+msgstr "Prosím čekejte"
+
+msgid "Running..."
+msgstr "Probíhá spouštění..."
+
+msgid "Raised"
+msgstr "Zvednuté"
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr "Hotend je v neobvyklém stavu a momentálně není k dispozici. Přejděte do 'Zařízení -> Upgrade' pro aktualizaci firmwaru."
+
+msgid "Abnormal Hotend"
+msgstr "Hotend v neobvyklém stavu"
+
+msgid "Refresh"
+msgstr "Obnovit"
+
+msgid "Refreshing"
+msgstr "Obnovování"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr "Stav hotendu je abnormální a momentálně není dostupný. Aktualizujte firmware a zkuste to znovu."
+
+msgid "Cancel"
+msgstr "Zrušit"
+
+msgid "Jump to the upgrade page"
+msgstr "Přejít na stránku upgradu"
+
+msgid "SN"
+msgstr ""
+
+msgid "Version"
+msgstr "Verze"
+
+#, c-format, boost-format
+msgid "Used Time: %s"
+msgstr "Použitý čas: %s"
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr "Na aktuální podložce jsou přiřazeny dynamické trysky. Výběr hotendu není podpěrován."
+
+msgid "Hotend Rack"
+msgstr "Stojan na hotend"
+
+msgid "ToolHead"
+msgstr "Tisková hlava"
+
+msgid "Nozzle information needs to be read"
+msgstr "Je nutné načíst informace o trysce"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Support Painting"
@@ -161,6 +341,12 @@ msgstr "Výplň"
 
 msgid "Gap Fill"
 msgstr "Vyplnění mezery"
+
+msgid "Vertical"
+msgstr "Vertikální"
+
+msgid "Horizontal"
+msgstr "Vodorovně"
 
 #, boost-format
 msgid "Allows painting only on facets selected by: \"%1%\""
@@ -256,12 +442,6 @@ msgstr "Trojúhelník"
 
 msgid "Height Range"
 msgstr "Rozsah výšky"
-
-msgid "Vertical"
-msgstr "Vertikální"
-
-msgid "Horizontal"
-msgstr "Vodorovně"
 
 msgid "Remove painted color"
 msgstr "Odstranit nanesenou barvu"
@@ -612,9 +792,6 @@ msgstr "Podíl mezery vůči poloměru"
 msgid "Confirm connectors"
 msgstr "Potvrdit konektory"
 
-msgid "Cancel"
-msgstr "Zrušit"
-
 msgid "Flip cut plane"
 msgstr "Převrátit rovinu řezu"
 
@@ -655,11 +832,11 @@ msgstr "Rozdělit na části"
 msgid "Reset cutting plane and remove connectors"
 msgstr "Resetovat řezací rovinu a odstranit konektory"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "Provést řez"
-
-msgid "Warning"
-msgstr "Varování"
 
 msgid "Invalid connectors detected"
 msgstr "Zjištěny neplatné konektory"
@@ -692,6 +869,13 @@ msgstr "Řezací rovina s drážkou je neplatná"
 
 msgid "Connector"
 msgstr "Konektor"
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
+msgstr ""
 
 msgid "Cut by Plane"
 msgstr "Řezat podle roviny"
@@ -739,9 +923,6 @@ msgstr "Zjednodušit"
 
 msgid "Simplification is currently only allowed when a single part is selected"
 msgstr "Zjednodušení je aktuálně povoleno pouze při výběru jednoho dílu"
-
-msgid "Error"
-msgstr "Chyba"
 
 msgid "Extra high"
 msgstr "Extra vysoká"
@@ -2018,6 +2199,9 @@ msgstr "Přístup k balíčku %s není autorizován."
 msgid "Loading user preset"
 msgstr "Načítání uživatelské předvolby"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr "%s bylo odstraněno."
@@ -2030,6 +2214,18 @@ msgstr "Zvolte jazyk"
 
 msgid "Language"
 msgstr "Jazyk"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2666,6 +2862,45 @@ msgstr "Kliknutím na ikonu upravíte barevné malování objektu."
 msgid "Click the icon to shift this object to the bed"
 msgstr "Kliknutím na ikonu přesunete tento objekt na podložku."
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "Načítání souboru"
 
@@ -2674,6 +2909,9 @@ msgstr "Chyba!"
 
 msgid "Failed to get the model data in the current file."
 msgstr "Nepodařilo se získat data modelu v aktuálním souboru."
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "Obecné"
@@ -2686,6 +2924,12 @@ msgstr "Přepnout do režimu nastavení podle objektu pro úpravu nastavení pro
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "Odstranit nanesenou fuzzy skin"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "Odstranit rozsah výšky"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Smazat konektor z objektu, který je součástí řezu"
@@ -2717,11 +2961,23 @@ msgstr "Smazat všechny konektory"
 msgid "Deleting the last solid part is not allowed."
 msgstr "Smazání poslední pevné části není povoleno."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "Cílový objekt obsahuje pouze jednu část a nelze jej rozdělit."
 
+msgid "Split to parts"
+msgstr "Rozdělit na části"
+
 msgid "Assembly"
 msgstr "Sestava"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "Informace o řezacích spojích"
@@ -2756,6 +3012,9 @@ msgstr "Rozsahy výšky"
 msgid "Settings for height range"
 msgstr "Nastavení pro rozsah výšky"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "Vrstva"
 
@@ -2777,6 +3036,9 @@ msgstr "Typ:"
 
 msgid "Choose part type"
 msgstr "Vyberte typ dílu"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "Zadejte nový název"
@@ -2807,6 +3069,9 @@ msgstr "„%s“ bude mít po tomto dělení více než 1 milion ploch, což mů
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "Síť části „%s“ obsahuje chyby. Nejprve ji opravte."
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "Další procesní předvolba"
 
@@ -2815,9 +3080,6 @@ msgstr "Odstranit parametr"
 
 msgid "to"
 msgstr "do"
-
-msgid "Remove height range"
-msgstr "Odstranit rozsah výšky"
 
 msgid "Add height range"
 msgstr "Přidat rozsah výšky"
@@ -3029,6 +3291,9 @@ msgstr "Vyberte slot AMS a poté stiskněte tlačítko \"Načíst\" nebo \"Vysun
 msgid "Filament type is unknown which is required to perform this action. Please set target filament's informations."
 msgstr "Typ filamentu není znám, což je pro provedení této akce vyžadováno. Nastavte informace o cílovém filamentu."
 
+msgid "AMS has not been initialized. Please initialize it before use."
+msgstr ""
+
 msgid "Changing fan speed during printing may affect print quality, please choose carefully."
 msgstr "Změna rychlosti ventilátoru během tisku může ovlivnit kvalitu tisku, proto vybírejte opatrně."
 
@@ -3151,6 +3416,24 @@ msgstr "Potvrdit extruzi"
 msgid "Check filament location"
 msgstr "Zkontrolujte polohu filamentu"
 
+msgid "Switch"
+msgstr ""
+
+msgid "hotend"
+msgstr ""
+
+msgid "Wait for AMS cooling"
+msgstr ""
+
+msgid "Switch current filament at Filament Track Switch"
+msgstr ""
+
+msgid "Pull back current filament at Filament Track Switch"
+msgstr ""
+
+msgid "Switch track at Filament Track Switch"
+msgstr ""
+
 msgid "The maximum temperature cannot exceed "
 msgstr "Maximální teplota nesmí překročit "
 
@@ -3201,6 +3484,62 @@ msgid "Developer mode"
 msgstr "Vývojářský režim"
 
 msgid "Launch troubleshoot center"
+msgstr ""
+
+msgid "Set nozzle count"
+msgstr ""
+
+msgid "Please set nozzle count"
+msgstr "Nastavte prosím počet trysek"
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr "Chyba: Není možné nastavit počet trysek na nulu."
+
+#, c-format, boost-format
+msgid "Error: Nozzle count can not exceed %d."
+msgstr "Chyba: Počet trysek nesmí překročit %d."
+
+msgid "Confirm"
+msgstr "Potvrdit"
+
+msgid "Extruder"
+msgstr ""
+
+msgid "Nozzle Selection"
+msgstr "Výběr trysky"
+
+msgid "Available Nozzles"
+msgstr "Dostupné trysky"
+
+msgid "Nozzle Info"
+msgstr "Informace o trysce"
+
+msgid "Sync Nozzle status"
+msgstr "Synchronizovat stav trysky"
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr "Pozor: Kombinace různých průměrů trysek v jednom tisku není podporována. Pokud je zvolená velikost pouze na jednom extruderu, bude vynucen tisk jedním extruderem."
+
+#, c-format, boost-format
+msgid "Refresh %d/%d..."
+msgstr "Obnovit %d/%d..."
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr "Zjištěna neznámá tryska. Proveďte aktualizaci informací (neaktualizované trysky budou při řezání vyloučeny). Ověřte průměr trysky a průtok vzhledem k zobrazeným hodnotám."
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr "Zjištěna neznámá tryska. Proveďte aktualizaci (neaktualizované trysky budou při slicování přeskočeny)."
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr "Ověřte prosím, zda požadovaný průměr trysky a průtok odpovídají aktuálně zobrazeným hodnotám."
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr "Vaše tiskárna má nainstalované různé trysky. Vyberte prosím trysku pro tento tisk."
+
+msgid "Ignore"
+msgstr "Ignorovat"
+
+msgid "Done."
 msgstr ""
 
 msgid ""
@@ -3536,14 +3875,8 @@ msgstr "OrcaSlicer vznikl ve stejném duchu a vycházel z projektů PrusaSlicer,
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr "Dnes je OrcaSlicer nejpoužívanějším a nejaktivněji vyvíjeným open-source slicerem v komunitě 3D tisku. Mnoho jeho inovací převzaly i další slicery, díky čemuž se stal hnací silou celého odvětví."
 
-msgid "Version"
-msgstr "Verze"
-
 msgid "AMS Materials Setting"
 msgstr "Nastavení materiálů AMS"
-
-msgid "Confirm"
-msgstr "Potvrdit"
 
 msgid "Close"
 msgstr "Zavřít"
@@ -3563,11 +3896,11 @@ msgstr ""
 msgid "The input value should be greater than %1% and less than %2%"
 msgstr "Vstupní hodnota musí být větší než %1% a menší než %2%."
 
-msgid "SN"
-msgstr ""
-
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Faktory kalibrace dynamiky průtoku"
+
+msgid "Wiki Guide"
+msgstr "Wiki příručka"
 
 msgid "PA Profile"
 msgstr "PA profil"
@@ -3742,6 +4075,19 @@ msgstr "Pravá tryska"
 
 msgid "Nozzle"
 msgstr "Tryska"
+
+msgid "Select Filament && Hotends"
+msgstr "Vyberte filament a hotendy"
+
+msgid "Select Filament"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr "Tisk s aktuální tryskou může vyprodukovat navíc %0.2f g odpadu."
+
+msgid "External spools is not supported since Filament Track Switch has been installed. If you want to use external spool, please uninstall it."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Note: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
@@ -4453,9 +4799,6 @@ msgstr "Měření povrchu"
 msgid "Calibrating the detection position of nozzle clumping"
 msgstr "Kalibrace detekční pozice usazenin na trysce"
 
-msgid "Unknown"
-msgstr "Neznámé"
-
 msgid "Update successful."
 msgstr "Aktualizace proběhla úspěšně."
 
@@ -4967,9 +5310,6 @@ msgstr "Nastavit optimální"
 msgid "Regroup filament"
 msgstr "Znovu seskupit filament"
 
-msgid "Wiki Guide"
-msgstr "Wiki příručka"
-
 msgid "up to"
 msgstr "až do"
 
@@ -5024,9 +5364,6 @@ msgstr "Výměny filamentu"
 
 msgid "Options"
 msgstr "Možnosti"
-
-msgid "Extruder"
-msgstr ""
 
 msgid "Cost"
 msgstr "Náklady"
@@ -5236,9 +5573,6 @@ msgstr "Rozložit objekty na vybraných deskách"
 
 msgid "Split to objects"
 msgstr "Rozdělit na objekty"
-
-msgid "Split to parts"
-msgstr "Rozdělit na části"
 
 msgid "Assembly View"
 msgstr "Zobrazení sestavy"
@@ -5717,15 +6051,6 @@ msgstr "Exportovat aktuální konfiguraci do souborů"
 msgid "Export"
 msgstr ""
 
-msgid "Sync Presets"
-msgstr ""
-
-msgid "Pull and apply the latest presets from OrcaCloud"
-msgstr ""
-
-msgid "You must be logged in to sync presets from cloud."
-msgstr ""
-
 msgid "Quit"
 msgstr "Ukončit"
 
@@ -5841,6 +6166,15 @@ msgstr "Zobrazit"
 
 msgid "Preset Bundle"
 msgstr "Balík předvoleb"
+
+msgid "Sync Presets"
+msgstr ""
+
+msgid "Pull and apply the latest presets from OrcaCloud"
+msgstr ""
+
+msgid "You must be logged in to sync presets from cloud."
+msgstr ""
 
 msgid "Syncing presets from cloud…"
 msgstr ""
@@ -5962,6 +6296,9 @@ msgstr "Exportovat výsledek"
 
 msgid "Select profile to load:"
 msgstr "Vyberte profil k načtení:"
+
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
 
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
@@ -6131,9 +6468,6 @@ msgstr "Stáhnout vybrané soubory z tiskárny."
 
 msgid "Batch manage files."
 msgstr "Hromadná správa souborů."
-
-msgid "Refresh"
-msgstr "Obnovit"
 
 msgid "Reload file list from printer."
 msgstr "Znovu načíst seznam souborů z tiskárny."
@@ -6448,6 +6782,9 @@ msgstr "Možnosti tisku"
 msgid "Safety Options"
 msgstr "Bezpečnostní možnosti"
 
+msgid "Hotends"
+msgstr "Hotendy"
+
 msgid "Lamp"
 msgstr "Osvětlení"
 
@@ -6480,6 +6817,12 @@ msgstr "Při pozastaveném tisku je zavádění a vysouvání filamentu podporov
 
 msgid "Current extruder is busy changing filament."
 msgstr "Aktuální extruder právě mění filament."
+
+msgid "\"Load\" or \"Unload\" is not supported for external spool while using Filament Track Switch."
+msgstr ""
+
+msgid "The Filament Track Switch has not been setup. Please setup on printer."
+msgstr ""
 
 msgid "Current slot has already been loaded."
 msgstr "Aktuální slot je již zaveden."
@@ -6531,9 +6874,6 @@ msgstr "Tato volba má účinek pouze během tisku"
 msgid "Silent"
 msgstr "Tichý"
 
-msgid "Standard"
-msgstr ""
-
 msgid "Sport"
 msgstr ""
 
@@ -6566,6 +6906,12 @@ msgstr "Přidat fotografii"
 
 msgid "Delete Photo"
 msgstr "Smazat fotografii"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "Odeslat"
@@ -6747,6 +7093,9 @@ msgstr "Jak používat režim pouze LAN"
 
 msgid "Don't show this dialog again"
 msgstr "Tento dialog již nezobrazovat"
+
+msgid "Please refer to Wiki before use->"
+msgstr "Před použitím si přečtěte Wiki ->"
 
 msgid "3D Mouse disconnected."
 msgstr "3D myš odpojena."
@@ -7006,26 +7355,17 @@ msgstr "Průtok"
 msgid "Please change the nozzle settings on the printer."
 msgstr "Změňte prosím nastavení trysky na tiskárně."
 
-msgid "Hardened Steel"
-msgstr "Kalená ocel"
-
-msgid "Stainless Steel"
-msgstr "Nerezová ocel"
-
-msgid "Tungsten Carbide"
-msgstr "Karbid wolframu"
-
 msgid "Brass"
 msgstr "Mosaz"
 
 msgid "High flow"
 msgstr "Vysoký průtok"
 
+msgid "TPU High flow"
+msgstr ""
+
 msgid "No wiki link available for this printer."
 msgstr "Pro tuto tiskárnu není k dispozici odkaz na wiki."
-
-msgid "Refreshing"
-msgstr "Obnovování"
 
 msgid "Unavailable while heating maintenance function is on."
 msgstr "Není k dispozici, pokud je zapnutá funkce udržování ohřevu."
@@ -7149,6 +7489,15 @@ msgstr "Přepnout průměr"
 msgid "Configuration incompatible"
 msgstr "Konfigurace není kompatibilní"
 
+msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing. "
+msgstr ""
+
+msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use. "
+msgstr ""
+
+msgid "Tips"
+msgstr "Tipy"
+
 msgid "Sync printer information"
 msgstr "Synchronizovat informace o tiskárně"
 
@@ -7175,6 +7524,9 @@ msgid "Click to edit preset"
 msgstr "Klikněte pro úpravu předvolby"
 
 msgid "Project Filaments"
+msgstr ""
+
+msgid "Purge mode"
 msgstr ""
 
 msgid "Flushing volumes"
@@ -7399,9 +7751,6 @@ msgstr "Připojená tiskárna je %s. Musí odpovídat předvolbě projektu pro t
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "Chcete synchronizovat informace o tiskárně a automaticky přepnout předvolbu?"
 
-msgid "Tips"
-msgstr "Tipy"
-
 msgid "The file does not contain any geometry data."
 msgstr "Soubor neobsahuje žádná geometrická data."
 
@@ -7452,8 +7801,20 @@ msgstr ""
 "Tato akce naruší vztah řezu.\n"
 "Poté nemůže být konzistence modelu zaručena."
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "Zvolený objekt nelze rozdělit."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr "Zakázat automatické položení pro zachování pozice v ose Z?\n"
@@ -7480,6 +7841,9 @@ msgstr "Vyberte nový soubor"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "Soubor pro nahrazení nebyl vybrán"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr "Vyberte složku pro nahrazení"
@@ -7526,6 +7890,9 @@ msgstr "Nelze znovu načíst:"
 
 msgid "Error during reload"
 msgstr "Chyba při opětovném načtení"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "Po řezu modelů byla zjištěna varování:"
@@ -8298,6 +8665,15 @@ msgstr "Vymazat mou volbu pro synchronizaci předvolby tiskárny po načtení so
 msgid "Graphics"
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr ""
 
@@ -8313,16 +8689,7 @@ msgstr ""
 msgid "Shadows"
 msgstr ""
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr ""
-
-msgid "Smooth normals"
-msgstr ""
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
@@ -8603,6 +8970,9 @@ msgstr "Nekompatibilní předvolby"
 msgid "My Printer"
 msgstr "Moje tiskárna"
 
+msgid "AMS filaments"
+msgstr ""
+
 msgid "Left filaments"
 msgstr "Levé filamenty"
 
@@ -8621,6 +8991,9 @@ msgstr "Přidat/Odebrat předvolby"
 
 msgid "Edit preset"
 msgstr "Upravit předvolbu"
+
+msgid "Change extruder color"
+msgstr ""
 
 msgid "Unspecified"
 msgstr "Nespecifikováno"
@@ -8652,9 +9025,6 @@ msgstr "Vybrat/Odebrat tiskárny (systémové předvolby)"
 
 msgid "Create printer"
 msgstr "Vytvořit tiskárnu"
-
-msgid "Empty"
-msgstr "Prázdné"
 
 msgid "Incompatible"
 msgstr "Nekompatibilní"
@@ -8887,12 +9257,42 @@ msgstr "Odeslání dokončeno"
 msgid "Error code"
 msgstr "Kód chyby"
 
-msgid "High Flow"
+msgid "Error desc"
+msgstr "Popis chyby"
+
+msgid "Extra info"
+msgstr "Další informace"
+
+msgid "The Filament Track Switch installed on the printer does not match the slicing file. Please re-slice to avoid print quality issues."
+msgstr ""
+
+msgid "This print requires a Filament Track Switch. Please install it first."
+msgstr ""
+
+msgid "The Filament Track Switch has not been setup. Please setup it first."
 msgstr ""
 
 #, c-format, boost-format
-msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
-msgstr "Nastavení průtoku trysky %s (%s) neodpovídá slicovacímu souboru (%s). Ujistěte se, že instalovaná tryska odpovídá nastavení v tiskárně, a při slicování zvolte odpovídající předvolbu tiskárny."
+msgid "Failed to send nozzle auto-mapping request to printer { code: %d }. Please try to refresh the printer information. If it still does not recover, you can try to rebind the printer and check the network connection."
+msgstr ""
+
+msgid "The printer is calculating nozzle mapping."
+msgstr ""
+
+msgid "Please wait a moment..."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to receive nozzle auto-mapping table from printer { msg: %s }. Please refresh the printer information."
+msgstr ""
+
+#, c-format, boost-format
+msgid "The printer failed to build the nozzle auto-mapping table { code: %d }. Please refresh nozzle information."
+msgstr ""
+
+#, c-format, boost-format
+msgid "The current nozzle mapping may produce an extra %0.2f g of waste."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Filament %s does not match the filament in AMS slot %s. Please update the printer firmware to support AMS slot assignment."
@@ -8956,8 +9356,38 @@ msgstr "Spotřebuje o %dg filamentu a o %d změn více než optimální seskupen
 msgid "nozzle"
 msgstr "tryska"
 
-msgid "both extruders"
-msgstr "oba extrudery"
+#, c-format, boost-format
+msgid "Refreshing information of hotends(%d/%d)."
+msgstr ""
+
+msgid "There are not enough available hotends currently."
+msgstr ""
+
+msgid "Please complete the hotend rack setup and try again."
+msgstr ""
+
+msgid "Please refresh the nozzle information and try again."
+msgstr ""
+
+msgid "Please re-slice to avoid filament waste."
+msgstr ""
+
+msgid "The reported hotend information may be unreliable."
+msgstr ""
+
+#, c-format, boost-format
+msgid "The printer has no nozzle matching the slicing file (%s)."
+msgstr ""
+
+msgid "Please install a matching nozzle in the hotend rack, or set the corresponding printer preset while slicing."
+msgstr ""
+
+msgid "The toolhead and hotend rack are full. Please remove at least one hotend before printing."
+msgstr ""
+
+#, c-format, boost-format
+msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
+msgstr "Nastavení průtoku trysky %s (%s) neodpovídá slicovacímu souboru (%s). Ujistěte se, že instalovaná tryska odpovídá nastavení v tiskárně, a při slicování zvolte odpovídající předvolbu tiskárny."
 
 msgid "Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."
 msgstr "Tip: Pokud jste nedávno vyměnili trysku tiskárny, přejděte do „Zařízení -> Součásti tiskárny“ a upravte nastavení trysky."
@@ -8970,9 +9400,16 @@ msgstr "Průměr %s (%.1f mm) aktuální tiskárny neodpovídá slicovacímu sou
 msgid "The current nozzle diameter (%.1fmm) doesn't match with the slicing file (%.1fmm). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset when slicing."
 msgstr "Aktuální průměr trysky (%.1f mm) neodpovídá slicovacímu souboru (%.1f mm). Ujistěte se, že instalovaná tryska odpovídá nastavení v tiskárně, a při slicování zvolte odpovídající předvolbu tiskárny."
 
+msgid "both extruders"
+msgstr "oba extrudery"
+
 #, c-format, boost-format
 msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). Please verify the nozzle or material settings and try again."
 msgstr "Tvrdost aktuálního materiálu (%s) překračuje tvrdost %s (%s). Zkontrolujte nastavení trysky nebo materiálu a zkuste to znovu."
+
+#, c-format, boost-format
+msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). It may cause nozzle wear, leading to material leakage and unstable flow. Please exercise caution when using it."
+msgstr ""
 
 #, c-format, boost-format
 msgid "[ %s ] requires printing in a high-temperature environment. Please close the door."
@@ -9083,9 +9520,6 @@ msgstr "Aktuální firmware podporuje maximálně 16 materiálů. Na stránce P�
 
 msgid "The type of external filament is unknown or does not match with the filament type in the slicing file. Please make sure you have installed the correct filament in the external spool."
 msgstr "Typ externího filamentu je neznámý nebo neodpovídá typu filamentu v slicovacím souboru. Ujistěte se, že je na externí cívce správný filament."
-
-msgid "Please refer to Wiki before use->"
-msgstr "Před použitím si přečtěte Wiki ->"
 
 msgid "Current firmware does not support file transfer to internal storage."
 msgstr "Aktuální firmware nepodporuje přenos souborů do interního úložiště."
@@ -9268,6 +9702,9 @@ msgstr ""
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Kliknutím obnovíte všechna nastavení na poslední uloženou předvolbu."
 
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr "Věž pro oddělení trysky je vyžadována pro výměnu trysky. Bez věže pro oddělení trysky mohou být na modelu vady. Opravdu chcete zakázat věž pro oddělení trysky?"
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "Pro plynulý časosběr je vyžadována čistící věž. Bez čistící věže se mohou na modelu objevit vady. Opravdu chcete čistící věž zakázat?"
@@ -9348,9 +9785,6 @@ msgstr "Automaticky upravit do nastaveného rozsahu?\n"
 
 msgid "Adjust"
 msgstr "Upravit"
-
-msgid "Ignore"
-msgstr "Ignorovat"
 
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Experimentální funkce: Stažení a odstřižení filamentu na větší vzdálenost během výměny filamentu pro minimalizaci purge. Ačkoliv to může výrazně snížit purge, může to také zvýšit riziko ucpání trysky nebo jiných komplikací při tisku."
@@ -9860,6 +10294,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Opravdu chcete %1% vybranou předvolbu?"
 
+msgid "Select printers"
+msgstr "Vyberte tiskárny"
+
+msgid "Select profiles"
+msgstr "Vyberte profily"
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -10095,6 +10535,12 @@ msgstr "Přenést hodnoty zleva doprava"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "Pokud je povoleno, toto dialogové okno lze použít k přenosu vybraných hodnot z levé do pravé předvolby."
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "Přidat soubor"
@@ -10351,11 +10797,7 @@ msgstr ""
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr ""
 
-msgid "Continue to sync filaments"
-msgstr ""
-
-msgctxt "Sync_Nozzle_AMS"
-msgid "Cancel"
+msgid "Do you want to continue to sync filaments?"
 msgstr ""
 
 msgid "Successfully synchronized filament color from printer."
@@ -10459,6 +10901,9 @@ msgid "Login"
 msgstr ""
 
 msgid "Login failed. Please try again."
+msgstr ""
+
+msgid "parse json failed"
 msgstr ""
 
 msgid "[Action Required] "
@@ -10775,6 +11220,9 @@ msgstr "Název tiskárny"
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "Kde najdete IP adresu a přístupový kód vaší tiskárny?"
 
+msgid "How to trouble shooting"
+msgstr ""
+
 msgid "Connect"
 msgstr "Připojit"
 
@@ -10839,6 +11287,9 @@ msgstr "Řezací modul"
 msgid "Auto Fire Extinguishing System"
 msgstr ""
 
+msgid "Filament Track Switch"
+msgstr ""
+
 msgid "Beta"
 msgstr "Beta"
 
@@ -10856,6 +11307,9 @@ msgstr "Aktualizace se nezdařila"
 
 msgid "Update successful"
 msgstr "Aktualizace proběhla úspěšně"
+
+msgid "Hotends on Rack"
+msgstr "Hotendy na stojanu"
 
 msgid "Are you sure you want to update? This will take about 10 minutes. Do not turn off the power while the printer is updating."
 msgstr "Opravdu chcete aktualizovat? To potrvá přibližně 10 minut. Během aktualizace tiskárny nevypínejte napájení."
@@ -10965,6 +11419,9 @@ msgstr "Chyba seskupení: "
 
 msgid " can not be placed in the "
 msgstr " nelze umístit do "
+
+msgid "Group error in manual mode. Please check nozzle count or regroup."
+msgstr ""
 
 msgid "Internal Bridge"
 msgstr "Vnitřní most"
@@ -11682,7 +12139,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -11696,7 +12153,7 @@ msgid ""
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
 "Otherwise the provided angle will be used according to:\n"
 " - The absolute coordinates\n"
-" - The absolute coordinates + Model rotation: If Align infill direction to model is enabled\n"
+" - The absolute coordinates + Model rotation: If Align directions to model is enabled\n"
 " - The optimal automatic angle + this value: If 'Relative Bridge Angle' is enabled\n"
 "\n"
 "Use 180° for zero absolute angle."
@@ -12142,9 +12599,6 @@ msgstr ""
 "Geometrie bude decimována před detekcí ostrých úhlů. Tento parametr určuje minimální délku odchylky pro decimaci.\n"
 "0 pro deaktivaci."
 
-msgid "Select printers"
-msgstr "Vyberte tiskárny"
-
 msgid "upward compatible machine"
 msgstr "stroj zpětně kompatibilní"
 
@@ -12154,9 +12608,6 @@ msgstr "Podmínka"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Booleovský výraz využívající konfigurační hodnoty aktivního profilu tiskárny. Pokud je tento výraz pravdivý, považuje se profil za kompatibilní s aktivním profilem tiskárny."
-
-msgid "Select profiles"
-msgstr "Vyberte profily"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
@@ -12425,6 +12876,42 @@ msgstr "Hustota horního povrchu"
 
 msgid "Density of top surface layer. A value of 100% creates a fully solid, smooth top layer. Reducing this value results in a textured top surface, according to the chosen top surface pattern. A value of 0% will result in only the walls on the top layer being created. Intended for aesthetic or functional purposes, not to fix issues such as over-extrusion."
 msgstr "Hustota horní povrchové vrstvy. Hodnota 100 % vytvoří zcela plnou, hladkou horní vrstvu. Snížením této hodnoty vznikne texturovaný horní povrch podle zvoleného vzoru horního povrchu. Hodnota 0 % znamená, že na horní vrstvě budou vytvořeny pouze stěny. Určeno pro estetické nebo funkční účely, nikoli k řešení problémů jako je nadměrná extruze."
+
+msgid "Top surface expansion"
+msgstr ""
+
+msgid ""
+"Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+msgstr ""
+
+msgid "Top expansion wall margin"
+msgstr ""
+
+msgid ""
+"Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
+"This can cause contraction marks (such as the hull line) on the outer walls.\n"
+"By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
+msgstr ""
+
+msgid "Top expansion direction"
+msgstr ""
+
+msgid ""
+"Direction in which the top surface expansion grows.\n"
+" - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
+" - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
+" - Inward and Outward does both."
+msgstr ""
+
+msgid "Inward and Outward"
+msgstr ""
+
+msgid "Inward"
+msgstr ""
+
+msgid "Outward"
+msgstr ""
 
 msgid "Bottom surface pattern"
 msgstr "Vzor spodního povrchu"
@@ -12758,11 +13245,17 @@ msgstr "Automaticky pro čištění"
 msgid "Auto For Match"
 msgstr "Automaticky pro přiřazení"
 
+msgid "Nozzle Manual"
+msgstr "Ručně pro trysku"
+
 msgid "Flush temperature"
 msgstr "Teplota čištění"
 
 msgid "Temperature when flushing filament. 0 indicates the upper bound of the recommended nozzle temperature range."
 msgstr "Teplota při čištění filamentu. Hodnota 0 označuje horní hranici doporučeného rozsahu teplot trysky."
+
+msgid "Flush temperature used in fast purge mode."
+msgstr ""
 
 msgid "Flush volumetric speed"
 msgstr "Objemová rychlost čištění"
@@ -13031,6 +13524,12 @@ msgstr "Tisknutelný filament"
 msgid "The filament is printable in extruder."
 msgstr "Filament lze tisknout v extruderu."
 
+msgid "Filament-extruder compatibility"
+msgstr ""
+
+msgid "A single 32-bit int encoding the compatibility level of a filament across all extruders (up to 10). Every 3 bits represent one extruder (bits [3*i, 3*i+2] for extruder i). 0: printable, 1: error, 2: critical warning, 3: warning, 4-7: reserved."
+msgstr ""
+
 msgid "Softening temperature"
 msgstr "Teplota změknutí"
 
@@ -13093,12 +13592,12 @@ msgstr "Hustota řídké výplně"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr "Hustota vnitřní řídké výplně, 100 % přemění veškerou řídkou výplň na plnou a použije se vzor vnitřní plné výplně."
 
-msgid "Align infill direction to model"
-msgstr "Zarovnat směr výplně podle modelu"
+msgid "Align directions to model"
+msgstr ""
 
 msgid ""
-"Aligns infill, bridge, ironing and surface fill directions to follow the model's orientation on the build plate.\n"
-"When enabled, directions rotate with the model to maintain optimal strength characteristics."
+"Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
+"When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
 
 msgid "Insert solid layers"
@@ -13636,6 +14135,15 @@ msgstr "Nejvhodnější automaticky uspořádaná pozice v rozsahu [0,1] vzhlede
 msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
 msgstr "Povolte tuto možnost, pokud má tiskárna pomocný ventilátor chlazení dílů. G-code příkaz: M106 P2 S(0-255)."
 
+msgid "Fan direction"
+msgstr ""
+
+msgid "Cooling fan direction of the printer"
+msgstr ""
+
+msgid "Both"
+msgstr ""
+
 msgid ""
 "Start the fan this number of seconds earlier than its target start time (you can use fractional seconds). It assumes infinite acceleration for this time estimation, and will only take into account G1 and G0 moves (arc fitting is unsupported).\n"
 "It won't move fan commands from custom G-code (they act as a sort of 'barrier').\n"
@@ -13706,6 +14214,12 @@ msgid ""
 msgstr ""
 "Povolte tuto možnost, pokud tiskárna podporuje filtraci vzduchu\n"
 "G-code příkaz: M106 P3 S(0-255)"
+
+msgid "Use cooling filter"
+msgstr "Použít filtr pro chlazení"
+
+msgid "Enable this if printer support cooling filter"
+msgstr "Povolte tuto možnost, pokud tiskárna podpěruje filtr pro chlazení"
 
 msgid "G-code flavor"
 msgstr ""
@@ -14237,6 +14751,30 @@ msgstr "Minimální rychlost přesunu"
 
 msgid "Minimum travel speed (M205 T)"
 msgstr "Minimální rychlost přesunu (M205 T)"
+
+msgid "Maximum force of the Y axis"
+msgstr ""
+
+msgid "The allowed maximum output force of Y axis"
+msgstr ""
+
+msgid "N"
+msgstr ""
+
+msgid "Bed mass of the Y axis"
+msgstr ""
+
+msgid "The machine bed mass load of Y axis"
+msgstr ""
+
+msgid "g"
+msgstr ""
+
+msgid "The allowed max printed mass"
+msgstr ""
+
+msgid "The allowed max printed mass on a plate"
+msgstr ""
 
 msgid "Maximum acceleration for extruding"
 msgstr "Maximální zrychlení pro vytlačování"
@@ -14806,6 +15344,9 @@ msgstr "Direct Drive"
 msgid "Bowden"
 msgstr "Bowden"
 
+msgid "Hybrid"
+msgstr "Hybridní"
+
 msgid "Enable filament dynamic map"
 msgstr ""
 
@@ -14840,6 +15381,12 @@ msgstr "Rychlost deretrakce"
 
 msgid "Speed for reloading filament into the nozzle. Zero means same speed of retraction."
 msgstr "Rychlost pro zavedení filamentu do trysky. Nula znamená stejnou rychlost jako při zatahování."
+
+msgid "Deretraction speed (extruder change)"
+msgstr ""
+
+msgid "Speed for reloading filament into the nozzle when switching extruder."
+msgstr ""
 
 msgid "Use firmware retraction"
 msgstr "Použít zatažení pomocí firmwaru"
@@ -15149,6 +15696,12 @@ msgstr "Pokud je vybrán plynulý nebo tradiční režim, bude pro každý tisk 
 msgid "Traditional"
 msgstr "Tradiční"
 
+msgid "Farthest point timelapse"
+msgstr ""
+
+msgid "When enabled, the timelapse snapshot is taken at the farthest point from camera instead of traveling to the wipe tower or excess chute. Only effective in traditional timelapse mode on non-I3 printers."
+msgstr ""
+
 msgid "Temperature variation"
 msgstr "Kolísání teploty"
 
@@ -15235,6 +15788,18 @@ msgstr "Připravit všechny tiskové extrudery"
 
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "Pokud je povoleno, všechny tiskové extrudery budou na začátku tisku připraveny na předním okraji tiskové podložky."
+
+msgid "Toolchange ordering"
+msgstr ""
+
+msgid ""
+"Determines the order of tool changes on each layer.\n"
+"- Default: Starts with the last used extruder to minimize tool changes.\n"
+"- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
+msgstr ""
+
+msgid "Cyclic"
+msgstr ""
 
 msgid "Slice gap closing radius"
 msgstr "Poloměr uzavření mezery řezu"
@@ -15675,6 +16240,45 @@ msgstr "Tloušťka horního pláště"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Počet horních pevných vrstev bude při slicování zvýšen, pokud tloušťka vypočtená podle horních vrstev bude menší než tato hodnota. Tím lze předejít příliš tenké skořepině při malé výšce vrstvy. 0 znamená, že je nastavení vypnuté a tloušťka horní skořepiny je určena pouze počtem horních vrstev."
 
+msgid "Anisotropic surfaces"
+msgstr ""
+
+msgid ""
+"Anisotropic patterns on the top and bottom surfaces.\n"
+"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
+"This option disable the gap fill.\n"
+"This option can increase a printing time."
+msgstr ""
+
+msgid "Separated infills"
+msgstr ""
+
+msgid ""
+"Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
+"Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
+"Affects line and grid patterns and rotation-template infills.\n"
+"Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
+msgstr ""
+
+msgid "Center surface pattern on"
+msgstr ""
+
+msgid ""
+"Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
+" - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
+" - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
+" - Each Assembly: uses a single shared center for the whole object or assembly."
+msgstr ""
+
+msgid "Each Surface"
+msgstr ""
+
+msgid "Each Model"
+msgstr ""
+
+msgid "Each Assembly"
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
 msgstr "Rychlost přejezdu bez extruze."
@@ -15723,12 +16327,30 @@ msgstr "Násobitel proplachu"
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "Skutečné vyplachovací objemy jsou rovny násobiči vyplachování vynásobenému objemy v tabulce."
 
+msgid "Flush multiplier (Fast mode)"
+msgstr ""
+
+msgid "The flush multiplier used in fast purge mode."
+msgstr ""
+
 msgid "Prime volume"
 msgstr "Objem základní věže"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Objem materiálu pro načerpání extruderu na základní věži."
+
+msgid "Prime volume mode"
+msgstr ""
+
+msgid "Selects how the wipe-tower prime and flush volumes are computed on multi-extruder printers."
+msgstr ""
+
+msgid "Saving"
+msgstr ""
+
+msgid "Fast"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the width of prime towers."
@@ -16021,6 +16643,57 @@ msgstr "Minimální šířka stěny"
 
 msgid "Width of the wall that will replace thin features (according to the Minimum feature size) of the model. If the Minimum wall width is thinner than the thickness of the feature, the wall will become as thick as the feature itself. It's expressed as a percentage over nozzle diameter."
 msgstr "Šířka stěny, která nahradí tenké prvky (dle minimální velikosti prvku) modelu. Pokud je minimální šířka stěny menší než tloušťka prvku, bude stěna tak silná, jako je samotný prvek. Je vyjádřena jako procento průměru trysky."
+
+msgid "Hotend change time"
+msgstr "Interval výměny hotendu"
+
+msgid "Time to change hotend."
+msgstr "Je čas vyměnit hotend."
+
+msgid "Hotend change"
+msgstr "Výměna hotendu"
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr "Při výměně hotendu se doporučuje vytlačit určitou délku filamentu ze stávající trysky. To pomáhá minimalizovat vytékání trysky."
+
+msgid "Extruder change"
+msgstr "Výměna extruderu"
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr "Aby se zabránilo vytékání, provede tryska po dokončení natlačování po určitou dobu zpětný pohyb. Toto nastavení určuje dobu pohybu."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr "Aby se zabránilo vytékání, bude teplota trysky během natlačování snížena. Doba natlačování proto musí být delší než doba ochlazování. 0 znamená deaktivováno."
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr "Maximální objemová rychlost pro vytlačování před výměnou extruderu, kde -1 znamená použití maximální objemové rychlosti."
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr "Aby se zabránilo vytékání, bude teplota trysky během natlačování snížena. Poznámka: provede se pouze příkaz k ochlazení a aktivace ventilátoru; dosažení cílové teploty není zaručeno. 0 znamená vypnuto."
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr "Maximální objemový průtok pro natlačení před výměnou hotendu, kde -1 znamená použití maximálního objemového průtoku."
+
+msgid "length when change hotend"
+msgstr "délka při výměně hotendu"
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr "Pokud se tato hodnota retrakce změní, použije se jako množství filamentu zataženého v hotendu před výměnou hotendů."
+
+msgid "Support fast purge mode"
+msgstr ""
+
+msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr "Objem materiálu potřebný k předplnění extruderu při výměně hotendu na věži."
+
+msgid "Preheat temperature delta"
+msgstr "Teplotní rozdíl při předehřevu"
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr "Teplotní rozdíl použitý během předehřevu před výměnou nástroje."
 
 msgid "Detect narrow internal solid infills"
 msgstr "Detekovat úzkou vnitřní plnou výplň"
@@ -16775,12 +17448,6 @@ msgstr ""
 msgid "Calibration not supported"
 msgstr "Kalibrace není podporována"
 
-msgid "Error desc"
-msgstr "Popis chyby"
-
-msgid "Extra info"
-msgstr "Další informace"
-
 msgid "Flow Dynamics"
 msgstr "Dynamika průtoku"
 
@@ -16987,6 +17654,12 @@ msgstr "Zadejte název, který chcete uložit do tiskárny."
 msgid "The name cannot exceed 40 characters."
 msgstr "Název nesmí přesáhnout 40 znaků."
 
+msgid "Nozzle ID"
+msgstr "ID trysky"
+
+msgid "Standard Flow"
+msgstr "Standardní průtok"
+
 msgid "Please find the best line on your plate"
 msgstr "Najděte nejlepší čáru na své desce."
 
@@ -17077,9 +17750,6 @@ msgstr "Informace AMS a trysky jsou synchronizovány"
 msgid "Nozzle Flow"
 msgstr "Průtok trysky"
 
-msgid "Nozzle Info"
-msgstr "Informace o trysce"
-
 msgid "Filament position"
 msgstr "Pozice filamentu"
 
@@ -17153,6 +17823,10 @@ msgstr "Historie výsledků byla úspěšně načtena"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "Obnovování historických záznamů kalibrace dynamiky průtoku"
+
+#, c-format, boost-format
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr "Poznámka: Číslo hotendu na %s je přiřazeno k držáku. Když je hotend přesunut do nového držáku, jeho číslo se automaticky aktualizuje."
 
 msgid "Action"
 msgstr "Akce"
@@ -18911,6 +19585,12 @@ msgstr "Tisk se nezdařil"
 msgid "Removed"
 msgstr "Odstraněno"
 
+msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
+msgstr ""
+
+msgid "Fila Saving"
+msgstr ""
+
 msgid "Don't remind me again"
 msgstr ""
 
@@ -18944,10 +19624,23 @@ msgstr "Video tutoriál"
 msgid "(Sync with printer)"
 msgstr ""
 
+#, c-format, boost-format
+msgid "Error: %s extruder has no available %s nozzle, current group result is invalid."
+msgstr ""
+
 msgid "We will slice according to this grouping method:"
 msgstr ""
 
 msgid "Tip: You can drag the filaments to reassign them to different nozzles."
+msgstr ""
+
+msgid "Please adjust your grouping or click "
+msgstr ""
+
+msgid " to set nozzle count"
+msgstr ""
+
+msgid "Set the physical nozzle count..."
 msgstr ""
 
 msgid "The filament grouping method for current plate is determined by the dropdown option at the slicing plate button."
@@ -19179,9 +19872,6 @@ msgid "This action cannot be undone. Continue?"
 msgstr ""
 
 msgid "Skipping objects."
-msgstr ""
-
-msgid "Select Filament"
 msgstr ""
 
 msgid "Null Color"
@@ -19701,6 +20391,9 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+#~ msgid "Align infill direction to model"
+#~ msgstr "Zarovnat směr výplně podle modelu"
 
 #~ msgid "Print"
 #~ msgstr "Tisk"
