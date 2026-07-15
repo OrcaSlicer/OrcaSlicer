@@ -1,9 +1,9 @@
 {
 	"type": "filament",
-	"name": "Bambu PLA Pure @BBL H2S",
+	"name": "Bambu PLA Pure @BBL H2S 0.6 nozzle",
 	"inherits": "Bambu PLA Pure @base",
 	"from": "system",
-	"setting_id": "GFSA19_18",
+	"setting_id": "GFSA19_46",
 	"instantiation": "true",
 	"description": "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets.",
 	"additional_cooling_fan_speed": [
@@ -26,6 +26,18 @@
 	"filament_deretraction_speed": [
 		"nil",
 		"nil"
+	],
+	"filament_dev_ams_drying_temperature": [
+		"45",
+		"45",
+		"45",
+		"45"
+	],
+	"filament_dev_ams_drying_time": [
+		"12",
+		"12",
+		"12",
+		"12"
 	],
 	"filament_extruder_variant": [
 		"Direct Drive Standard",
@@ -158,7 +170,7 @@
 		"0 0 0 0 0 0"
 	],
 	"compatible_printers": [
-		"Bambu Lab H2S 0.4 nozzle"
+		"Bambu Lab H2S 0.6 nozzle"
 	],
 	"filament_start_gcode": [
 		"; filament start gcode\n"

@@ -1,11 +1,10 @@
 {
 	"type": "filament",
-	"name": "Bambu PLA Pure @BBL H2S",
+	"name": "Bambu PLA Pure @BBL H2D 0.6 nozzle",
 	"inherits": "Bambu PLA Pure @base",
 	"from": "system",
-	"setting_id": "GFSA19_18",
+	"setting_id": "GFSA19_44",
 	"instantiation": "true",
-	"description": "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets.",
 	"additional_cooling_fan_speed": [
 		"75"
 	],
@@ -26,6 +25,18 @@
 	"filament_deretraction_speed": [
 		"nil",
 		"nil"
+	],
+	"filament_dev_ams_drying_temperature": [
+		"45",
+		"45",
+		"45",
+		"45"
+	],
+	"filament_dev_ams_drying_time": [
+		"12",
+		"12",
+		"12",
+		"12"
 	],
 	"filament_extruder_variant": [
 		"Direct Drive Standard",
@@ -60,8 +71,8 @@
 		"0"
 	],
 	"filament_preheat_temperature_delta": [
-		"10",
-		"10"
+		"20",
+		"20"
 	],
 	"filament_ramming_travel_time": [
 		"0",
@@ -128,8 +139,8 @@
 		"Spiral Lift"
 	],
 	"long_retractions_when_ec": [
-		"0",
-		"0"
+		"1",
+		"1"
 	],
 	"nozzle_temperature": [
 		"220",
@@ -140,8 +151,8 @@
 		"220"
 	],
 	"retraction_distances_when_ec": [
-		"0",
-		"0"
+		"10",
+		"10"
 	],
 	"slow_down_min_speed": [
 		"20",
@@ -158,10 +169,10 @@
 		"0 0 0 0 0 0"
 	],
 	"compatible_printers": [
-		"Bambu Lab H2S 0.4 nozzle"
+		"Bambu Lab H2D 0.6 nozzle"
 	],
 	"filament_start_gcode": [
-		"; filament start gcode\n"
+		"; filament start gcode\nM145 P0 ; set airduct mode to cooling mode\nM142 P1 R35 S40 U0.3 V0.5 ; set chamber autocooling"
 	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"

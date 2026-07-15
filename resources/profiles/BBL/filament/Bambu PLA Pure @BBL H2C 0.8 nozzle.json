@@ -1,11 +1,10 @@
 {
 	"type": "filament",
-	"name": "Bambu PLA Pure @BBL H2S",
+	"name": "Bambu PLA Pure @BBL H2C 0.8 nozzle",
 	"inherits": "Bambu PLA Pure @base",
 	"from": "system",
-	"setting_id": "GFSA19_18",
+	"setting_id": "GFSA19_43",
 	"instantiation": "true",
-	"description": "The generic presets are conservatively tuned for compatibility with a wider range of filaments. For higher printing quality and speeds, please use Bambu filaments with Bambu presets.",
 	"additional_cooling_fan_speed": [
 		"75"
 	],
@@ -19,6 +18,12 @@
 		"0",
 		"0"
 	],
+	"filament_change_length": [
+		"4"
+	],
+	"filament_change_length_nc": [
+		"4"
+	],
 	"filament_cooling_before_tower": [
 		"10",
 		"10"
@@ -26,6 +31,18 @@
 	"filament_deretraction_speed": [
 		"nil",
 		"nil"
+	],
+	"filament_dev_ams_drying_temperature": [
+		"45",
+		"45",
+		"45",
+		"45"
+	],
+	"filament_dev_ams_drying_time": [
+		"12",
+		"12",
+		"12",
+		"12"
 	],
 	"filament_extruder_variant": [
 		"Direct Drive Standard",
@@ -56,20 +73,26 @@
 		"0"
 	],
 	"filament_pre_cooling_temperature_nc": [
-		"0",
-		"0"
+		"180",
+		"180"
 	],
 	"filament_preheat_temperature_delta": [
-		"10",
-		"10"
+		"20",
+		"20"
+	],
+	"filament_prime_volume": [
+		"30"
+	],
+	"filament_prime_volume_nc": [
+		"30"
 	],
 	"filament_ramming_travel_time": [
 		"0",
 		"0"
 	],
 	"filament_ramming_travel_time_nc": [
-		"0",
-		"0"
+		"1",
+		"1"
 	],
 	"filament_ramming_volumetric_speed": [
 		"-1",
@@ -84,8 +107,8 @@
 		"nil"
 	],
 	"filament_retract_length_nc": [
-		"14",
-		"14"
+		"18",
+		"18"
 	],
 	"filament_retract_restart_extra": [
 		"nil",
@@ -128,8 +151,8 @@
 		"Spiral Lift"
 	],
 	"long_retractions_when_ec": [
-		"0",
-		"0"
+		"1",
+		"1"
 	],
 	"nozzle_temperature": [
 		"220",
@@ -140,8 +163,8 @@
 		"220"
 	],
 	"retraction_distances_when_ec": [
-		"0",
-		"0"
+		"10",
+		"10"
 	],
 	"slow_down_min_speed": [
 		"20",
@@ -158,10 +181,10 @@
 		"0 0 0 0 0 0"
 	],
 	"compatible_printers": [
-		"Bambu Lab H2S 0.4 nozzle"
+		"Bambu Lab H2C 0.8 nozzle"
 	],
 	"filament_start_gcode": [
-		"; filament start gcode\n"
+		"; filament start gcode\nM145 P0 ; set airduct mode to cooling mode\nM142 P1 R35 S40 U0.3 V0.5 ; set chamber autocooling"
 	],
 	"filament_end_gcode": [
 		"; filament end gcode \n"
