@@ -1300,10 +1300,8 @@ static FilamentGroupContext build_filament_group_context(
 
     auto machine_filament_info = build_machine_filaments(print->get_extruder_filament_info(), extruder_ams_counts, ignore_ext_filament);
 
-    std::vector<std::string>   filament_types      = print_config.filament_type.values;
-    std::vector<std::string>   filament_colours    = print_config.filament_colour.values;
-    std::vector<unsigned char> filament_is_support = print_config.filament_is_support.values;
-    std::vector<std::string>   filament_ids        = print_config.filament_ids.values;
+    std::vector<std::string> filament_types = print_config.filament_type.values;
+    std::vector<std::string> filament_ids   = print_config.filament_ids.values;
 
     FGMode fg_mode = mode == FilamentMapMode::fmmAutoForMatch ? FGMode::MatchMode : FGMode::FlushMode;
     context.model_info.flush_matrix          = std::move(nozzle_flush_mtx);
@@ -1312,11 +1310,13 @@ static FilamentGroupContext build_filament_group_context(
     context.model_info.filament_ids          = filament_ids;
     context.model_info.unprintable_volumes   = unprintable_volumes;
 
+    // The sibling arrays (colour, is_support) can be shorter than filament_type for partial or
+    // legacy configs, so read them through get_at, which clamps instead of indexing out of bounds.
     for (size_t idx = 0; idx < filament_types.size(); ++idx) {
         FilamentGroupUtils::FilamentInfo info;
-        info.color      = filament_colours[idx];
+        info.color      = print_config.filament_colour.get_at(idx);
         info.type       = filament_types[idx];
-        info.is_support = filament_is_support[idx];
+        info.is_support = print_config.filament_is_support.get_at(idx);
         context.model_info.filament_info.emplace_back(std::move(info));
     }
 
