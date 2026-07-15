@@ -3,7 +3,7 @@
     "name": "Soleyin Basic PETG @K2 Plus-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "w8SHt6Slm8uIqTbh",
     "instantiation": "true",
     "complete_print_exhaust_fan_speed": [
         "0"

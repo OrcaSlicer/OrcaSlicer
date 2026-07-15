@@ -3,7 +3,7 @@
 	"name": "0.10mm HighDetail @Creality CR-M4",
 	"inherits": "fdm_process_creality_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "vtCpsHiGx0zYKKBI",
 	"instantiation": "true",
 	"bottom_surface_pattern": "monotonic",
 	"bottom_shell_layers": "4",

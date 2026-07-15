@@ -17,6 +17,7 @@ class LayerRegion;
 using LayerRegionPtrs = std::vector<LayerRegion*>;
 class PrintRegion;
 class PrintObject;
+class Print;
 
 namespace FillAdaptive {
     struct Octree;
@@ -156,6 +157,10 @@ public:
     ExPolygons 				 lslices;
     ExPolygons 				 lslices_extrudable;  // BBS: the extrudable part of lslices used for tree support
     std::vector<BoundingBox> lslices_bboxes;
+    // Orca: for separated infills / per-model centering. Aligned with lslices: for each island, the
+    // full bounding box of the 3D connected body (across all layers) it belongs to. Populated by
+    // PrintObject::infill() only when the feature is used; empty otherwise.
+    std::vector<BoundingBox> lslices_separated_component_bboxes;
 
     // BBS
     ExPolygons              loverhangs;
@@ -186,7 +191,7 @@ public:
     }
 
     // Whether two regions can be printed in a continues perimeter
-    static bool             is_perimeter_compatible(const PrintRegion& a, const PrintRegion& b);
+    static bool             is_perimeter_compatible(const Print& print, const PrintRegion& a, const PrintRegion& b);
     void                    make_perimeters();
     // Phony version of make_fills() without parameters for Perl integration only.
     void                    make_fills() { this->make_fills(nullptr, nullptr); }

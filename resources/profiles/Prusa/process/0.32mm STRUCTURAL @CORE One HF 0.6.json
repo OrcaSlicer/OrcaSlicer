@@ -3,6 +3,7 @@
 	"name": "0.32mm STRUCTURAL @CORE One HF 0.6",
 	"inherits": "0.32mm STRUCTURAL @MK4S HF0.6",
 	"from": "system",
+	"setting_id": "VeYx8eYxSM2B7X2d",
 	"instantiation": "true",
 	"overhang_3_4_speed": "35",
 	"support_speed": "110",

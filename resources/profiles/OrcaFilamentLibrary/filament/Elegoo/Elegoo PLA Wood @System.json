@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA Wood @System",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "OEPLAWOODS00",
+	"setting_id": "pMgazYJG8tyTpAVE",
 	"instantiation": "true",
 	"renamed_from": "Elegoo PLA Wood",
 	"fan_min_speed": [

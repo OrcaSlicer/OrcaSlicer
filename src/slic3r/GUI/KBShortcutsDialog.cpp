@@ -199,9 +199,9 @@ void KBShortcutsDialog::fill_shortcuts()
             { ctrl + L("Tab"), L("Switch table page")},
             //DEL
             #ifdef __APPLE__
-                {"fn+⌫", L("Delete selected")},
+                {"fn+⌫", L("Delete Selected")},
             #else
-                {L("Del"), L("Delete selected")},
+                {L("Del"), L("Delete Selected")},
             #endif
             // Help
             { "?", L("Show keyboard shortcuts list") }
@@ -231,12 +231,12 @@ void KBShortcutsDialog::fill_shortcuts()
             {alt + L("Left mouse button"), L("Select a part")},
             {ctrl + L("Left mouse button"), L("Select multiple objects")},
             {shift + L("Left mouse button"), L("Select objects by rectangle")},
-            {L("Arrow Up"), L("Move selection 10 mm in positive Y direction")},
-            {L("Arrow Down"), L("Move selection 10 mm in negative Y direction")},
-            {L("Arrow Left"), L("Move selection 10 mm in negative X direction")},
-            {L("Arrow Right"), L("Move selection 10 mm in positive X direction")},
-            {shift + L("Any arrow"), L("Movement step set to 1 mm")},
-            {L("Esc"), L("Deselect all")},
+            {L("Arrow Up"), L("Move selection 10mm in positive Y direction")},
+            {L("Arrow Down"), L("Move selection 10mm in negative Y direction")},
+            {L("Arrow Left"), L("Move selection 10mm in negative X direction")},
+            {L("Arrow Right"), L("Move selection 10mm in positive X direction")},
+            {shift + L("Any arrow"), L("Movement step set to 1mm")},
+            {L("Esc"), L("Deselect All")},
             {"1-9", L("Keyboard 1-9: set filament for object/part")},
             {ctrl + "0", L("Camera view - Default")},
             {ctrl + "1", L("Camera view - Top")},
@@ -247,7 +247,7 @@ void KBShortcutsDialog::fill_shortcuts()
             {ctrl + "6", L("Camera Angle - Right side")},
 
             {ctrl + "A", L("Select all objects")},
-            {ctrl + "D", L("Delete all")},
+            {ctrl + "D", L("Delete All")},
             {ctrl + "Z", L("Undo")},
             {ctrl + "Y", L("Redo")},
             { "M", L("Gizmo move") },
@@ -272,7 +272,7 @@ void KBShortcutsDialog::fill_shortcuts()
         m_full_shortcuts.push_back({ { _L("Plater"), "" }, plater_shortcuts });
 
         Shortcuts gizmos_shortcuts = {
-            {L("Esc"), L("Deselect all")},
+            {L("Esc"), L("Deselect All")},
             {shift, L("Move: press to snap by 1mm")},
             {ctrl + L("Mouse wheel"), L("Support/Color Painting: adjust pen radius")},
             {alt + L("Mouse wheel"), L("Support/Color Painting: adjust section position")},
@@ -282,12 +282,12 @@ void KBShortcutsDialog::fill_shortcuts()
         Shortcuts object_list_shortcuts = {
             {"1-9", L("Set extruder number for the objects and parts") },
             {L("Del"), L("Delete objects, parts, modifiers")},
-            {L("Esc"), L("Deselect all")},
+            {L("Esc"), L("Deselect All")},
             {ctrl + "C", L("Copy to clipboard")},
             {ctrl + "V", L("Paste from clipboard")},
             {ctrl + "X", L("Cut")},
             {ctrl + "A", L("Select all objects")},
-            {ctrl + "K", L("Clone selected")},
+            {ctrl + "K", L("Clone Selected")},
             {ctrl + "Z", L("Undo")},
             {ctrl + "Y", L("Redo")},
             {L("Space"), L("Select the object/part and press space to change the name")},

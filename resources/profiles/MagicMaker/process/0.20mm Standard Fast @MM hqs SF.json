@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard Fast @MM hqs sf",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "TkBYOyBebm3pMHrl",
 	"instantiation": "true",
 	"adaptive_layer_height": "1",
 	"reduce_crossing_wall": "0",
@@ -110,6 +110,6 @@
 	"travel_acceleration": "10000",
 	"travel_speed": "300",
 	"compatible_printers": [
-		"MM hqs sf 0.4 nozzle"
+		"MM hqs SF 0.4 nozzle"
 	]
 }

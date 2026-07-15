@@ -7,7 +7,7 @@
 #include "I18N.hpp"
 #include "MsgDialog.hpp"
 #include "DownloadProgressDialog.hpp"
-#include "slic3r/Utils/NetworkAgent.hpp"
+#include "slic3r/Utils/BBLNetworkPlugin.hpp"
 
 
 #include <boost/lexical_cast.hpp>
@@ -29,10 +29,10 @@
 static std::map<int, std::string> error_messages = {
     {1, L("The device cannot handle more conversations. Please retry later.")},
     {2, L("Player is malfunctioning. Please reinstall the system player.")},
-    {100, L("The player is not loaded, please click \"play\" button to retry.")},
-    {101, L("The player is not loaded, please click \"play\" button to retry.")},
-    {102, L("The player is not loaded, please click \"play\" button to retry.")},
-    {103, L("The player is not loaded, please click \"play\" button to retry.")},
+    {100, L("The player is not loaded; please click the \"play\" button to retry.")},
+    {101, L("The player is not loaded; please click the \"play\" button to retry.")},
+    {102, L("The player is not loaded; please click the \"play\" button to retry.")},
+    {103, L("The player is not loaded; please click the \"play\" button to retry.")},
     {104, L("The player is not loaded because the GStreamer GTK video sink is missing or failed to initialize.")}
 };
 
@@ -161,7 +161,7 @@ void MediaPlayCtrl::SetMachineObject(MachineObject* obj)
         m_device_busy    = obj->is_camera_busy_off();
         m_tutk_state     = obj->tutk_state;
 
-        if (DevPrinterConfigUtil::get_printer_series_str(obj->printer_type) == "series_o" && NetworkAgent::use_legacy_network) {
+        if (DevPrinterConfigUtil::get_printer_series_str(obj->printer_type) == "series_o" && BBLNetworkPlugin::instance().use_legacy_network()) {
             // Legacy plugin cannot support remote play for H2D, force using local mode
             m_remote_proto = MachineObject::LVR_None;
         }
@@ -330,7 +330,7 @@ void MediaPlayCtrl::Play()
     if (!m_remote_proto) { // not support tutk
         m_failed_code = -1;
         m_url = "bambu:///local/";
-        Stop(_L("Please enter the IP of printer to connect."));
+        Stop(_L("Please enter the IP of the printer to connect."));
         return;
     }
 

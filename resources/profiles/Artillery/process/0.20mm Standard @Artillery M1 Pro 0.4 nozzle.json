@@ -3,6 +3,7 @@
 	"name": "0.20mm Standard @Artillery M1 Pro 0.4 nozzle",
 	"inherits": "fdm_process_common",
 	"from": "system",
+	"setting_id": "9dVH4oV6niEWJpMU",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"brim_type": "no_brim",

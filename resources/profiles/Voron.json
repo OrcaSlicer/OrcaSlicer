@@ -1,6 +1,6 @@
 {
 	"name": "Voron",
-	"version": "02.04.00.01",
+	"version": "02.04.00.02",
 	"force_update": "0",
 	"description": "Voron configurations",
 	"machine_model_list": [
@@ -205,6 +205,10 @@
 		{
 			"name": "0.24mm Fine 0.8 nozzle @Voron",
 			"sub_path": "process/0.24mm Fine 0.8 nozzle @Voron.json"
+		},
+		{
+			"name": "0.32mm Optimal 0.8 nozzle @Voron",
+			"sub_path": "process/0.32mm Optimal 0.8 nozzle @Voron.json"
 		},
 		{
 			"name": "0.40mm Standard 0.8 nozzle @Voron",

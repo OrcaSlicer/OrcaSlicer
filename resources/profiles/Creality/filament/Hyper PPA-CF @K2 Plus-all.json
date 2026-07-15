@@ -3,7 +3,7 @@
     "name": "Hyper PPA-CF @K2 Plus-all",
     "inherits": "fdm_filament_pa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "ltnrZwbu4XXaDTkF",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

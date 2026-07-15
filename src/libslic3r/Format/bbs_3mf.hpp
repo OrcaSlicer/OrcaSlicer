@@ -73,6 +73,7 @@ struct PlateData
     std::map<int, std::pair<int, int>> obj_inst_map;
     std::string     printer_model_id;
     std::string     nozzle_diameters;
+    std::string     nozzle_volume_types;
     std::string     gcode_file;
     std::string     gcode_file_md5;
     std::string     thumbnail_file;
@@ -101,6 +102,13 @@ struct PlateData
     std::vector<unsigned int> filament_change_sequence;
     std::vector<unsigned int> nozzle_change_sequence;
     std::vector<int> optimal_assignment;
+
+    // Multi-nozzle grouping surface. nozzles_info accumulates the <nozzle> tags read from a
+    // gcode.3mf; nozzle_group_result is the slicer's per-filament→nozzle assignment carried into the
+    // saved 3mf metadata (write) and reconstructed on load. Both are empty/nullopt for single-nozzle
+    // prints, so the saved-3mf output for single-nozzle printers is byte-identical.
+    std::vector<MultiNozzleUtils::NozzleInfo> nozzles_info;
+    std::optional<MultiNozzleUtils::LayeredNozzleGroupResult> nozzle_group_result;
 
     // Hexadecimal number,
     // the 0th digit corresponds to extruder 1
@@ -226,7 +234,7 @@ typedef std::map<int, PlateData*> PlateDataMaps;
 
 struct StoreParams
 {
-    const char* path;
+    std::string path;
     Model* model = nullptr;
     PlateDataPtrs plate_data_list;
     int export_plate_idx = -1;

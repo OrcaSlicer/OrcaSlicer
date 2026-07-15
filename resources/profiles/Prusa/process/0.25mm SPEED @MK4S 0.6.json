@@ -3,6 +3,7 @@
 	"name": "0.25mm SPEED @MK4S 0.6",
 	"inherits": "process_common_mk4s",
 	"from": "system",
+	"setting_id": "lhcpQ2vaUl3bNZav",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"bottom_shell_thickness": "0.6",

@@ -3,7 +3,7 @@
 	"name": "Elegoo PETG HF @System",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "OERPETGHFS00",
+	"setting_id": "d6gNuzrG00SXvMth",
 	"instantiation": "true",
 	"renamed_from": "Elegoo PETG HF",
 	"pressure_advance": [

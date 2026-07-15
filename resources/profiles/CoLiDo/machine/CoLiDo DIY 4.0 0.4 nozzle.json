@@ -2,7 +2,7 @@
 	"type": "machine",
 	"name": "CoLiDo DIY 4.0 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "mtJZggmYcrGa2LTJ",
 	"instantiation": "true",
 	"printer_model": "CoLiDo DIY 4.0",
 	"adaptive_bed_mesh_margin": "0",

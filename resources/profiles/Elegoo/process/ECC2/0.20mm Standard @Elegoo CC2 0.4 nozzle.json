@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Elegoo CC2 0.4 nozzle",
 	"inherits": "fdm_process_elegoo_04020",
 	"from": "system",
-	"setting_id": "PECC204020",
+	"setting_id": "pjHwBoHNTMAhLSbk",
 	"instantiation": "true",
 	"bottom_shell_layers": "3",
 	"bottom_shell_thickness": "0.6",

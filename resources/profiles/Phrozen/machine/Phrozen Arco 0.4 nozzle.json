@@ -3,6 +3,7 @@
 	"name": "Phrozen Arco 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "User",
+	"setting_id": "lvaYKTUZr5C9jSwk",
 	"instantiation": "true",
 	"printer_technology": "FFF",
 	"printer_settings_id": "Phrozen Arco 0.4 nozzle",

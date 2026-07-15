@@ -3,7 +3,7 @@
 	"name": "Flashforge PLA-CF",
 	"inherits": "Flashforge Generic PLA-CF10",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "JxNlb64lTODaaQhU",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge PLA-CF"

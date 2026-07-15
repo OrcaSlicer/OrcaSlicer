@@ -3,6 +3,7 @@
     "name": "FilAr PETG Gris Plata",
     "inherits": "FilAr PETG @base",
     "from": "system",
+    "setting_id": "eCJ5aFcQ00m97U35",
     "filament_id": "FILAR0057",
     "instantiation": "true",
     "filament_vendor": [

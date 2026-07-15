@@ -3,7 +3,7 @@
 	"name": "Sovol SV06 Plus ACE 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "OPYo1a3aIyXMdlI7",
 	"instantiation": "true",
 	"printer_model": "Sovol SV06 Plus ACE",
 	"default_print_profile": "0.20mm Standard @Sovol SV06 Plus ACE",

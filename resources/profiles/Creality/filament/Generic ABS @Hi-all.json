@@ -3,7 +3,7 @@
     "name": "Generic ABS @Hi-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "9z0uoXnHksedYsyq",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

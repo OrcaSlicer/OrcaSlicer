@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "Eryone PETG-CF @0.2 nozzle",
 	"from": "system",
+	"setting_id": "wsR57UlUrO2aW2Lc",
 	"instantiation": "true",
 	"inherits": "Eryone PETG-CF",
 	"compatible_printers": [

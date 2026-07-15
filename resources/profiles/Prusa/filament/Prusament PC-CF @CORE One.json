@@ -3,7 +3,7 @@
 	"name": "Prusament PC-CF @CORE One",
 	"inherits": "fdm_filament_pc",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "IK6Z7DVevvmR96Or",
 	"filament_id": "Prusament PC-CF @CORE One",
 	"instantiation": "true",
 	"chamber_temperature": [

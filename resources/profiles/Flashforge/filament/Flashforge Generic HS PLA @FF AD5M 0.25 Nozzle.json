@@ -4,7 +4,7 @@
 	"renamed_from": "Flashforge HS PLA @FF AD5M 0.25 Nozzle",
 	"inherits": "Flashforge Generic HS PLA",
 	"from": "system",
-	"setting_id": "GFSA04_09",
+	"setting_id": "1cvcaoBFNbg2GucE",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"compatible_printers": [

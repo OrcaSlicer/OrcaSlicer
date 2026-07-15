@@ -35,10 +35,10 @@ wxString get_fail_reason(int code)
         return _L("Failed to publish login request");
 
     else if (code == BAMBU_NETWORK_ERR_BIND_GET_PRINTER_TICKET_TIMEOUT)
-        return _L("Get ticket from device timeout");
+        return _L("Timeout getting ticket from device");
 
     else if (code == BAMBU_NETWORK_ERR_BIND_GET_CLOUD_TICKET_TIMEOUT)
-        return _L("Get ticket from server timeout");
+        return _L("Timeout getting ticket from server");
 
     else if (code == BAMBU_NETWORK_ERR_BIND_POST_TICKET_TO_CLOUD_FAILED)
         return _L("Failed to post ticket to server");
@@ -590,7 +590,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      sizer_error_code->Add(m_st_txt_error_code, 0, wxALL, 0);
 
 
-     auto st_title_error_desc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, wxT("Error desc"));
+     auto st_title_error_desc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, _L("Error desc"));
      auto st_title_error_desc_doc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, ": ");
      m_st_txt_error_desc = new Label(m_sw_bind_failed_info, wxEmptyString);
      st_title_error_desc->SetForegroundColour(0x909090);
@@ -607,7 +607,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      sizer_error_desc->Add(st_title_error_desc_doc, 0, wxALL, 0);
      sizer_error_desc->Add(m_st_txt_error_desc, 0, wxALL, 0);
 
-     auto st_title_extra_info = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, wxT("Extra info"));
+     auto st_title_extra_info = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, _L("Extra info"));
      auto st_title_extra_info_doc = new wxStaticText(m_sw_bind_failed_info, wxID_ANY, ": ");
      m_st_txt_extra_info = new Label(m_sw_bind_failed_info, wxEmptyString);
      st_title_extra_info->SetForegroundColour(0x909090);
