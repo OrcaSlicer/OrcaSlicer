@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <set>
+#include <map>
 #include <array>
 #include <string>
 #include <thread>
@@ -372,6 +373,16 @@ public:
     const std::vector<FilamentInfo>& get_slice_filaments_info() const { return slice_filaments_info; }
     int  get_physical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const;
     int  get_logical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const;
+    // Resolve the mapping policy used specifically by exclusion regions.
+    // Values are 1-based nozzle ids; 0 means automatic Bambu mapping has not
+    // produced a concrete plate-local assignment yet.
+    std::vector<int> get_effective_exclusion_filament_maps(const DynamicConfig &g_config, size_t filament_count,
+                                                           size_t extruder_count) const;
+    // 1-based filament id -> 0-based nozzle/exclusion-region id for the
+    // object's current plate mapping. Includes every filament referenced by
+    // any model volume (including painted facets).
+    std::map<int, size_t> get_object_filament_extruders(const ModelObject &object, const DynamicConfig &g_config,
+                                                        size_t extruder_count) const;
     bool check_filament_printable(const DynamicPrintConfig & config, wxString& error_message);
     bool check_tpu_printable_status(const DynamicPrintConfig & config, const std::vector<int> &tpu_filaments);
     bool check_mixture_of_pla_and_petg(const DynamicPrintConfig & config);
@@ -752,6 +763,8 @@ public:
 
     // Pantheon: update plates after moving plate to the front
     void update_plates();
+    void invalidate_exclusion_volume_previews();
+    void render_exclusion_volume_intersections(const Transform3d &view_matrix, const Transform3d &projection_matrix);
 
     /*basic plate operations*/
     //create an empty plate and return its index

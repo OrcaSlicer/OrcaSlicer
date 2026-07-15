@@ -13155,6 +13155,30 @@ static std::vector<BedExcludeRegion> flatten_bed_excluded_regions(
 
 } // namespace
 
+int bed_exclusion_extruder_for_filament(
+    const size_t filament_id, const std::vector<int> &configured_map, const FilamentMapMode map_mode,
+    const bool is_bambu, const bool automatic_map_resolved, const size_t extruder_count)
+{
+    if (extruder_count == 0)
+        return -1;
+
+    const bool automatic = is_auto_filament_map_mode(map_mode);
+    if (automatic && is_bambu && !automatic_map_resolved)
+        return -1;
+
+    // Generic multi-tool printers use filament ids as tool ids. Their global
+    // filament_map still carries the Bambu grouping seed [1, 1, ...], which is
+    // not a meaningful assignment for these machines.
+    if (automatic && !is_bambu && filament_id < extruder_count)
+        return int(filament_id);
+
+    if (filament_id < configured_map.size() && configured_map[filament_id] > 0 &&
+        size_t(configured_map[filament_id]) <= extruder_count)
+        return configured_map[filament_id] - 1;
+
+    return filament_id < extruder_count ? int(filament_id) : -1;
+}
+
 std::vector<std::vector<BedExcludeRegion>> get_bed_excluded_regions_by_extruder(const DynamicPrintConfig &cfg)
 {
     const ConfigOptionFloat *height_option = cfg.opt<ConfigOptionFloat>("printable_height");

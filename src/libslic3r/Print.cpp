@@ -97,7 +97,13 @@ static std::optional<size_t> colliding_bed_exclusion_extruder(
     if (regions_by_extruder.empty())
         return std::nullopt;
 
-    if (is_auto_filament_map_mode(print.get_filament_map_mode())) {
+    const bool automatic = is_auto_filament_map_mode(print.get_filament_map_mode());
+    if (automatic && print.is_BBL_printer()) {
+        // Bambu automatic grouping owns the concrete filament assignment and
+        // the config starts with a non-authoritative [1, 1, ...] seed. Its
+        // geometric-unprintable input steers individual filaments away from
+        // colliding nozzles; validation only blocks an object when no nozzle
+        // can print it.
         std::optional<size_t> first_collision;
         for (size_t extruder_id = 0; extruder_id < regions_by_extruder.size(); ++extruder_id) {
             if (!instance.intersects_bed_exclude_regions(regions_by_extruder[extruder_id]))
@@ -109,7 +115,12 @@ static std::optional<size_t> colliding_bed_exclusion_extruder(
     }
 
     for (const unsigned int filament_id : print_object.printing_extruders()) {
-        const size_t extruder_id = std::min(print.get_extruder_id(filament_id), regions_by_extruder.size() - 1);
+        const int resolved_extruder = bed_exclusion_extruder_for_filament(
+            filament_id, print.get_filament_maps(), print.get_filament_map_mode(), print.is_BBL_printer(),
+            true, regions_by_extruder.size());
+        if (resolved_extruder < 0)
+            continue;
+        const size_t extruder_id = size_t(resolved_extruder);
         if (instance.intersects_bed_exclude_regions(regions_by_extruder[extruder_id]))
             return extruder_id;
     }
@@ -765,7 +776,8 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 const std::optional<size_t> collision_extruder = colliding_bed_exclusion_extruder(
                     print, *print_object, *instance.model_instance, exclusion_volumes);
                 if (collision_extruder.has_value()) {
-                    const std::string collision_message = is_auto_filament_map_mode(print.get_filament_map_mode()) ?
+                    const std::string collision_message =
+                        is_auto_filament_map_mode(print.get_filament_map_mode()) && print.is_BBL_printer() ?
                         (boost::format(L("%1% intersects exclusion volumes for every available extruder.")) % instance.model_instance->get_object()->name).str() :
                         (boost::format(L("%1% intersects an exclusion volume for extruder %2%.")) % instance.model_instance->get_object()->name % (*collision_extruder + 1)).str();
                     if (single_object_exception.string.empty()) {
@@ -1063,7 +1075,8 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
         }
         if (const std::optional<size_t> collision_extruder = colliding_bed_exclusion_extruder(
                 print, *inst->print_object, *inst->model_instance, exclusion_volumes); collision_extruder.has_value()) {
-            const std::string message = is_auto_filament_map_mode(print.get_filament_map_mode()) ?
+            const std::string message =
+                is_auto_filament_map_mode(print.get_filament_map_mode()) && print.is_BBL_printer() ?
                 (boost::format(L("%1% intersects exclusion volumes for every available extruder.")) % inst->model_instance->get_object()->name).str() :
                 (boost::format(L("%1% intersects an exclusion volume for extruder %2%.")) % inst->model_instance->get_object()->name % (*collision_extruder + 1)).str();
             return {message + "\n", inst->model_instance};

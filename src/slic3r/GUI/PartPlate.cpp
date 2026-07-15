@@ -1086,6 +1086,15 @@ void PartPlate::render_exclude_area(bool force_default_color) {
 	if (force_default_color) //for thumbnail case
 		return;
 
+    // Non-shared modes are rendered from their resolved per-extruder regions in
+    // render_exclusion_volume_previews(). The legacy model only represents the
+    // master area and would otherwise fill that one region twice while leaving
+    // the other extruders' regions hollow.
+    const DynamicPrintConfig *config = m_plater != nullptr ? m_plater->config() : nullptr;
+    if (config != nullptr &&
+        config->opt_enum<BedExcludeAreaMode>("bed_exclude_area_mode") != BedExcludeAreaMode::Shared)
+        return;
+
 	ColorRGBA select_color{   .9f, .86f, .82f, .7f }; // ORCA
 	ColorRGBA unselect_color{ .6f, .6f, .6f, .3f }; // ORCA
 	//ColorRGBA default_color{ 0.9f, 0.9f, 0.9f, 1.0f };
@@ -1189,6 +1198,8 @@ std::string PartPlate::exclusion_volume_preview_cache_key(const std::vector<BedE
 
             for (const ModelVolume *volume : object->volumes) {
                 key << static_cast<const void*>(volume) << ':';
+                for (const int filament_id : volume->get_extruders())
+                    key << 'f' << filament_id << ',';
                 const Transform3d volume_matrix = volume->get_matrix();
                 for (int r = 0; r < int(volume_matrix.matrix().rows()); ++r)
                     for (int c = 0; c < int(volume_matrix.matrix().cols()); ++c)
@@ -1220,7 +1231,9 @@ void PartPlate::update_exclusion_volume_preview_models()
     }
 
     const std::vector<std::vector<BedExcludeRegion>> regions_by_extruder = get_bed_excluded_regions_by_extruder(*config);
-    std::vector<BedExcludeRegion> regions = get_bed_excluded_regions(*config);
+    std::vector<BedExcludeRegion> regions;
+    for (const std::vector<BedExcludeRegion> &extruder_regions : regions_by_extruder)
+        regions.insert(regions.end(), extruder_regions.begin(), extruder_regions.end());
     const BedExcludeAreaMode mode = config->opt_enum<BedExcludeAreaMode>("bed_exclude_area_mode");
     std::ostringstream grouped_key;
     grouped_key << exclusion_volume_preview_cache_key(regions) << "mode:" << int(mode) << ";groups:";
@@ -1228,11 +1241,40 @@ void PartPlate::update_exclusion_volume_preview_models()
         grouped_key << group.size() << ',';
     const std::vector<std::string> filament_colors = m_plater->get_extruder_colors_from_plater_config();
     std::vector<std::string> preview_colors(regions_by_extruder.size());
-    const ConfigOptionInts *filament_map = wxGetApp().preset_bundle->project_config.opt<ConfigOptionInts>("filament_map");
+
+    // Use the same effective filament-to-nozzle policy as collision checks so
+    // the coloured border never implies a mapping the validator does not use.
+    const DynamicPrintConfig &project_config = wxGetApp().preset_bundle->project_config;
+    const std::vector<int> filament_map = get_effective_exclusion_filament_maps(
+        project_config, filament_colors.size(), regions_by_extruder.size());
+    grouped_key << "map:";
+    for (const int extruder_id : filament_map)
+        grouped_key << extruder_id << ',';
+    grouped_key << ';';
+    grouped_key << "object_maps:";
+    if (m_model != nullptr) {
+        for (const std::pair<int, int> &object_instance : obj_to_instance_set) {
+            const int object_id = object_instance.first;
+            if (object_id < 0 || object_id >= int(m_model->objects.size()))
+                continue;
+            grouped_key << object_id << ':';
+            for (const auto &[filament_id, extruder_id] : get_object_filament_extruders(
+                     *m_model->objects[object_id], project_config, regions_by_extruder.size()))
+                grouped_key << filament_id << '>' << extruder_id << ',';
+            grouped_key << ';';
+        }
+    }
     for (size_t filament_id = 0; filament_id < filament_colors.size(); ++filament_id) {
-        const int mapped_extruder = filament_map != nullptr && filament_id < filament_map->size() ? filament_map->values[filament_id] - 1 : int(filament_id);
+        const int mapped_extruder = filament_id < filament_map.size() ? filament_map[filament_id] - 1 : int(filament_id);
         if (mapped_extruder >= 0 && size_t(mapped_extruder) < preview_colors.size() && preview_colors[mapped_extruder].empty())
             preview_colors[mapped_extruder] = filament_colors[filament_id];
+    }
+
+    if (const ConfigOptionStrings *extruder_colors = config->opt<ConfigOptionStrings>("extruder_colour");
+        extruder_colors != nullptr) {
+        for (size_t extruder_id = 0; extruder_id < preview_colors.size() && extruder_id < extruder_colors->size(); ++extruder_id)
+            if (preview_colors[extruder_id].empty())
+                preview_colors[extruder_id] = extruder_colors->values[extruder_id];
     }
     for (const std::string &color : preview_colors)
         grouped_key << color << ',';
@@ -1252,7 +1294,12 @@ void PartPlate::update_exclusion_volume_preview_models()
     Polygons floor_regions;
     ExPolygons border_regions;
     const coord_t ribbon_width = scale_(1.6);
-    std::vector<std::pair<BedExcludeRegion, Polygon>> preview_regions;
+    struct PreviewRegion {
+        BedExcludeRegion region;
+        Polygon          footprint;
+        size_t           extruder_id;
+    };
+    std::vector<PreviewRegion> preview_regions;
     Polygons preview_footprints;
     std::vector<ExclusionVolumePrismPreview> active_prisms;
 
@@ -1287,34 +1334,44 @@ void PartPlate::update_exclusion_volume_preview_models()
         }
     }
 
-    for (const BedExcludeRegion &region_src : regions) {
-        Polygon region = region_src.polygon;
-        region.translate(plate_offset);
-        region.make_counter_clockwise();
-        BedExcludeRegion translated_region = region_src;
-        translated_region.polygon = region;
-        preview_regions.emplace_back(std::move(translated_region), region);
-        preview_footprints.emplace_back(region);
+    for (size_t extruder_id = 0; extruder_id < regions_by_extruder.size(); ++extruder_id) {
+        // Shared regions are identical for every nozzle. Keeping one copy
+        // avoids duplicate floor, prism and intersection geometry.
+        if (mode == BedExcludeAreaMode::Shared && extruder_id > 0)
+            break;
 
-        if (region_src.from_3d_config) {
-            if (!region_src.has_z_range || region_src.z_min <= EPSILON) {
-                floor_regions.emplace_back(region);
-            } else {
-                const Polygons inner = offset(Polygons{ region }, -ribbon_width, jtMiter, 2.0);
-                ExPolygons border = inner.empty() ? ExPolygons{ expolygon_from_polygon(region) } : diff_ex(Polygons{ region }, inner);
-                border_regions.insert(border_regions.end(), border.begin(), border.end());
+        for (const BedExcludeRegion &region_src : regions_by_extruder[extruder_id]) {
+            Polygon region = region_src.polygon;
+            region.translate(plate_offset);
+            region.make_counter_clockwise();
+            BedExcludeRegion translated_region = region_src;
+            translated_region.polygon = region;
+            preview_regions.push_back({ std::move(translated_region), region, extruder_id });
+            preview_footprints.emplace_back(region);
+
+            // In non-shared modes these resolved regions are the authoritative bed
+            // preview, including legacy master polygons duplicated by nozzle offset.
+            // Shared legacy polygons continue to use m_exclude_triangles above.
+            if (region_src.from_3d_config || mode != BedExcludeAreaMode::Shared) {
+                if (!region_src.has_z_range || region_src.z_min <= EPSILON) {
+                    floor_regions.emplace_back(region);
+                } else {
+                    const Polygons inner = offset(Polygons{ region }, -ribbon_width, jtMiter, 2.0);
+                    ExPolygons border = inner.empty() ? ExPolygons{ expolygon_from_polygon(region) } : diff_ex(Polygons{ region }, inner);
+                    border_regions.insert(border_regions.end(), border.begin(), border.end());
+                }
             }
         }
     }
 
     const double preview_height = max_broad_phase_intersecting_object_height(preview_footprints);
     if (preview_height > EPSILON) {
-        for (const std::pair<BedExcludeRegion, Polygon> &preview_region : preview_regions) {
-            const BedExcludeRegion &region_src = preview_region.first;
+        for (const PreviewRegion &preview_region : preview_regions) {
+            const BedExcludeRegion &region_src = preview_region.region;
             const double z_min = region_src.has_z_range ? region_src.z_min : 0.0;
             const double z_max = std::min(region_src.z_max, preview_height);
             if (z_max > z_min + EPSILON)
-                active_prisms.push_back({ preview_region.second, z_min, z_max });
+                active_prisms.push_back({ preview_region.footprint, z_min, z_max });
         }
     }
 
@@ -1334,11 +1391,22 @@ void PartPlate::update_exclusion_volume_preview_models()
             if (!instance->printable)
                 continue;
 
+            std::set<size_t> relevant_extruders;
+            if (mode != BedExcludeAreaMode::Shared) {
+                for (const auto &mapping : get_object_filament_extruders(
+                         *object, project_config, regions_by_extruder.size()))
+                    relevant_extruders.emplace(mapping.second);
+            }
+
             Polygon hull = instance->convex_hull_2d();
             const BoundingBoxf3 instance_box = object->instance_convex_hull_bounding_box(instance_id);
-            for (const std::pair<BedExcludeRegion, Polygon> &preview_region : preview_regions) {
-                const BedExcludeRegion &region = preview_region.first;
-                if (intersection(Polygons{ preview_region.second }, Polygons{ hull }).empty())
+            for (const PreviewRegion &preview_region : preview_regions) {
+                if (mode != BedExcludeAreaMode::Shared &&
+                    relevant_extruders.find(preview_region.extruder_id) == relevant_extruders.end())
+                    continue;
+
+                const BedExcludeRegion &region = preview_region.region;
+                if (intersection(Polygons{ preview_region.footprint }, Polygons{ hull }).empty())
                     continue;
                 if (instance_box.max.z() < region.z_min || instance_box.min.z() > region.z_max)
                     continue;
@@ -1391,8 +1459,6 @@ void PartPlate::render_exclusion_volume_previews(bool force_default_color)
 
     m_active_exclusion_volume_prisms.set_color(prism_color);
     m_active_exclusion_volume_prisms.render();
-
-    render_exclusion_volume_intersections();
 
     glsafe(::glLineWidth(1.0f * m_scale_factor));
     glsafe(::glDepthMask(GL_TRUE));
@@ -2465,6 +2531,122 @@ int PartPlate::get_logical_extruder_by_filament_id(const DynamicConfig& g_config
 	return filament_map[idx - 1] - 1;
 }
 
+std::vector<int> PartPlate::get_effective_exclusion_filament_maps(
+    const DynamicConfig &g_config, const size_t filament_count, const size_t extruder_count) const
+{
+    std::vector<int> result(filament_count, 0);
+    if (extruder_count == 0)
+        return result;
+
+    const std::vector<int> configured_map = get_real_filament_maps(g_config);
+    const FilamentMapMode map_mode = get_real_filament_map_mode(g_config);
+    PresetBundle *preset_bundle = wxGetApp().preset_bundle;
+    const bool is_bambu = preset_bundle != nullptr && preset_bundle->is_bbl_vendor();
+    const bool automatic = is_auto_filament_map_mode(map_mode);
+    const bool automatic_map_resolved = !automatic || !get_filament_maps().empty();
+    for (size_t filament_id = 0; filament_id < filament_count; ++filament_id) {
+        const int extruder_id = bed_exclusion_extruder_for_filament(
+            filament_id, configured_map, map_mode, is_bambu, automatic_map_resolved, extruder_count);
+        if (extruder_id >= 0)
+            result[filament_id] = extruder_id + 1;
+    }
+    return result;
+}
+
+std::map<int, size_t> PartPlate::get_object_filament_extruders(
+    const ModelObject &object, const DynamicConfig &g_config, const size_t extruder_count) const
+{
+    std::set<int> filament_ids;
+    const DynamicPrintConfig &process_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
+    const auto effective_option = [&object, &process_config](const char *key) -> const ConfigOption * {
+        if (const ConfigOption *option = object.config.option(key); option != nullptr)
+            return option;
+        return process_config.option(key);
+    };
+    const auto effective_int = [&effective_option](const char *key) {
+        const ConfigOption *option = effective_option(key);
+        return option != nullptr ? option->getInt() : 0;
+    };
+    const auto effective_float = [&effective_option](const char *key) {
+        const ConfigOption *option = effective_option(key);
+        return option != nullptr ? option->getFloat() : 0.0;
+    };
+    const auto effective_bool = [&effective_option](const char *key) {
+        const ConfigOption *option = effective_option(key);
+        return option != nullptr && option->getBool();
+    };
+
+    const bool has_brim = effective_int("brim_type") != int(BrimType::btNoBrim) && effective_float("brim_width") > 0.0;
+    const int wall_loops = effective_int("wall_loops");
+    const double sparse_infill_density = effective_float("sparse_infill_density");
+    const int top_shell_layers = effective_int("top_shell_layers");
+    const int bottom_shell_layers = effective_int("bottom_shell_layers");
+    const std::array<std::pair<const char *, bool>, 6> feature_filament_keys = {
+        std::pair{ "outer_wall_filament_id", wall_loops > 0 || has_brim },
+        std::pair{ "inner_wall_filament_id", wall_loops > 1 },
+        std::pair{ "sparse_infill_filament_id", sparse_infill_density > 0.0 },
+        std::pair{ "internal_solid_filament_id", sparse_infill_density > 0.0 || top_shell_layers > 0 || bottom_shell_layers > 0 },
+        std::pair{ "top_surface_filament_id", top_shell_layers > 0 },
+        std::pair{ "bottom_surface_filament_id", bottom_shell_layers > 0 }
+    };
+    auto collect_config_filaments = [&filament_ids, &feature_filament_keys](const DynamicConfig &config) {
+        for (const auto &[key, active] : feature_filament_keys) {
+            if (active) {
+                if (const ConfigOption *option = config.option(key); option != nullptr && option->getInt() > 0)
+                    filament_ids.emplace(option->getInt());
+            }
+        }
+        if (const ConfigOption *option = config.option("extruder"); option != nullptr && option->getInt() > 0)
+            filament_ids.emplace(option->getInt());
+    };
+
+    for (const ModelVolume *volume : object.volumes) {
+        const std::vector<int> volume_filaments = volume->get_extruders();
+        filament_ids.insert(volume_filaments.begin(), volume_filaments.end());
+        collect_config_filaments(volume->config.get());
+    }
+    collect_config_filaments(object.config.get());
+    for (const auto &layer_range : object.layer_config_ranges)
+        collect_config_filaments(layer_range.second.get());
+
+    // Process-level feature assignments also apply when the object has no
+    // override. This mirrors the relevant parts of PrintObject::printing_extruders()
+    // closely enough for an unsliced placement preview.
+    for (const auto &[key, active] : feature_filament_keys) {
+        if (active && !object.config.has(key) && process_config.has(key) && process_config.opt_int(key) > 0)
+            filament_ids.emplace(process_config.opt_int(key));
+    }
+
+    const bool has_support = effective_bool("enable_support") || effective_int("raft_layers") > 0;
+    if (has_support) {
+        const int support_filament = effective_int("support_filament");
+        const int interface_filament = effective_int("support_interface_filament");
+        if (support_filament > 0)
+            filament_ids.emplace(support_filament);
+        if (interface_filament > 0)
+            filament_ids.emplace(interface_filament);
+    }
+
+    // Match Orca's normal fallback for an unassigned object.
+    if (filament_ids.empty())
+        filament_ids.emplace(1);
+
+    const size_t required_filament_count = filament_ids.empty() ? 0 : size_t(*filament_ids.rbegin());
+    const std::vector<int> filament_map = get_effective_exclusion_filament_maps(
+        g_config, required_filament_count, extruder_count);
+    std::map<int, size_t> result;
+    for (const int filament_id : filament_ids) {
+        if (filament_id <= 0)
+            continue;
+
+        const int mapped_extruder = size_t(filament_id) <= filament_map.size() && filament_map[filament_id - 1] > 0 ?
+            filament_map[filament_id - 1] - 1 : -1;
+        if (mapped_extruder >= 0 && size_t(mapped_extruder) < extruder_count)
+            result.emplace(filament_id, size_t(mapped_extruder));
+    }
+    return result;
+}
+
 std::vector<int> PartPlate::get_used_filaments()
 {
 	std::vector<int> used_filaments;
@@ -3265,28 +3447,41 @@ bool PartPlate::check_outside(int obj_id, int instance_id, BoundingBoxf3* boundi
         const DynamicPrintConfig *config = m_plater != nullptr ? m_plater->config() : nullptr;
         bool checked_config_regions = false;
         if (config != nullptr) {
-            const std::vector<BedExcludeRegion> regions = get_bed_excluded_regions(*config);
-            checked_config_regions = !regions.empty();
+            const std::vector<std::vector<BedExcludeRegion>> regions_by_extruder =
+                get_bed_excluded_regions_by_extruder(*config);
+            const BedExcludeAreaMode mode = config->opt_enum<BedExcludeAreaMode>("bed_exclude_area_mode");
+            // The legacy outside flag has no filament/nozzle context. Keep it
+            // authoritative for the shared mode, but let the newer per-extruder
+            // placement pipeline handle offset/individual modes so a collision
+            // belonging to an unused nozzle does not block the whole plate.
+            checked_config_regions = mode != BedExcludeAreaMode::Shared;
             const Point plate_offset(scale_(m_origin.x()), scale_(m_origin.y()));
             Polygon hull = instance->convex_hull_2d();
 
-            for (const BedExcludeRegion &region_src : regions) {
-                Polygon region = region_src.polygon;
-                region.translate(plate_offset);
-                region.make_counter_clockwise();
+            const size_t groups_to_check = mode == BedExcludeAreaMode::Shared && !regions_by_extruder.empty() ? 1 : 0;
+            for (size_t group_id = 0; group_id < groups_to_check; ++group_id) {
+                const std::vector<BedExcludeRegion> &extruder_regions = regions_by_extruder[group_id];
+                checked_config_regions = checked_config_regions || !extruder_regions.empty();
+                for (const BedExcludeRegion &region_src : extruder_regions) {
+                    Polygon region = region_src.polygon;
+                    region.translate(plate_offset);
+                    region.make_counter_clockwise();
 
-                if (intersection(Polygons{ region }, Polygons{ hull }).empty())
-                    continue;
+                    if (intersection(Polygons{ region }, Polygons{ hull }).empty())
+                        continue;
 
-                if (instance_box.max.z() < region_src.z_min || instance_box.min.z() > region_src.z_max)
-                    continue;
+                    if (instance_box.max.z() < region_src.z_min || instance_box.min.z() > region_src.z_max)
+                        continue;
 
-                BedExcludeRegion translated_region = region_src;
-                translated_region.polygon = region;
-                if (instance->intersects_bed_exclude_region(translated_region)) {
-                    outside = true;
-                    break;
+                    BedExcludeRegion translated_region = region_src;
+                    translated_region.polygon = std::move(region);
+                    if (instance->intersects_bed_exclude_region(translated_region)) {
+                        outside = true;
+                        break;
+                    }
                 }
+                if (outside)
+                    break;
             }
         }
 
@@ -4456,6 +4651,7 @@ void PartPlate::set_filament_map_mode(const FilamentMapMode& mode)
 		clear_filament_map_mode();
 	else
 		m_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value = mode;
+    invalidate_exclusion_volume_preview();
 }
 
 std::vector<int> PartPlate::get_filament_maps() const
@@ -4470,12 +4666,14 @@ std::vector<int> PartPlate::get_filament_maps() const
 void PartPlate::set_filament_maps(const std::vector<int>& f_maps)
 {
     m_config.option<ConfigOptionInts>("filament_map", true)->values = f_maps;
+    invalidate_exclusion_volume_preview();
 }
 
 void PartPlate::clear_filament_map()
 {
     if (m_config.has("filament_map"))
         m_config.erase("filament_map");
+    invalidate_exclusion_volume_preview();
 }
 
 std::vector<int> PartPlate::get_filament_volume_maps() const
@@ -5161,6 +5359,39 @@ void PartPlateList::update_plates()
 {
     update_all_plates_pos_and_size(true, false);
     set_shapes(m_shape, m_exclude_areas, m_wrapping_exclude_areas, m_extruder_areas, m_extruder_heights, m_logo_texture_filename, m_height_to_lid, m_height_to_rod);
+}
+
+void PartPlateList::invalidate_exclusion_volume_previews()
+{
+    for (PartPlate *plate : m_plate_list)
+        if (plate != nullptr)
+            plate->invalidate_exclusion_volume_preview();
+}
+
+void PartPlateList::render_exclusion_volume_intersections(
+    const Transform3d &view_matrix,
+    const Transform3d &projection_matrix)
+{
+    GLShaderProgram *shader = wxGetApp().get_shader("flat");
+    if (shader == nullptr)
+        return;
+
+    shader->start_using();
+    shader->set_uniform("view_model_matrix", view_matrix);
+    shader->set_uniform("projection_matrix", projection_matrix);
+
+    glsafe(::glEnable(GL_DEPTH_TEST));
+    glsafe(::glEnable(GL_BLEND));
+    glsafe(::glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+    glsafe(::glDepthMask(GL_FALSE));
+
+    for (PartPlate *plate : m_plate_list)
+        if (plate != nullptr)
+            plate->render_exclusion_volume_intersections();
+
+    glsafe(::glDepthMask(GL_TRUE));
+    glsafe(::glDisable(GL_BLEND));
+    shader->stop_using();
 }
 
 int PartPlateList::create_plate(bool adjust_position)
