@@ -1,0 +1,12 @@
+{
+  "default_bed_type": "Textured PEI Plate",
+  "name": "Eryone Thinker X400",
+  "model_id": "Eryone Thinker X400",
+  "nozzle_diameter": "0.4;0.2;0.6;0.8",
+  "machine_tech": "FFF",
+  "hotend_model": "",
+  "family": "Eryone",
+  "bed_model": "X400_bed.stl",
+  "bed_texture": "Eryone Thinker X400_texture.png",
+  "type": "machine_model"
+}

@@ -1,0 +1,16 @@
+{
+    "type": "machine",
+    "from": "system",
+    "name": "Eryone Thinker X400 0.4 nozzle",
+    "inherits": "fdm_machine_eryone_Thinker_X400_common",
+    "setting_id": "GM00320",
+    "printer_model": "Eryone Thinker X400",
+    "default_print_profile": "0.20mm Standard @Eryone Thinker X400 0.4 nozzle",
+    "nozzle_diameter": [
+        "0.4"
+    ],
+    "printer_variant": "0.4",
+    "default_filament_profile": "Eryone PLA;Eryone ABS;Eryone ASA;Eryone PETG;Eryone Silk PLA;Eryone TPU;Eryone ABS-CF;Eryone ASA-CF;Eryone PA;Eryone PA-CF;Eryone PA-GF;Eryone PETG-CF;Eryone PLA-CF;Eryone PP;Eryone PP-CF;",
+    "instantiation": "true"
+ 
+}
