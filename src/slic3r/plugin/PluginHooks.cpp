@@ -3,7 +3,6 @@
 #include "PluginManager.hpp"
 #include "PythonInterpreter.hpp"
 #include "PythonPluginInterface.hpp"
-#include "host/PluginHostUi.hpp"
 #include "pluginTypes/slicingPipeline/SlicingPipelinePluginCapability.hpp"
 
 #include "libslic3r/Config.hpp"
@@ -68,7 +67,6 @@ void install_slicing_pipeline_hook()
             execute_capabilities_from_refs<SlicingPipelinePluginCapability>(
                 *caps, plugs, PluginCapabilityType::SlicingPipeline,
                 [&](std::shared_ptr<SlicingPipelinePluginCapability> cap, const PluginCapabilityRef& ref) {
-                    PluginHostUi::PipelineHookScope pipeline_hook_scope;
                     const std::string plugin_key = ref.uuid.empty() ? ref.name : ref.uuid;
                     ExecutionResult r;
                     try {
