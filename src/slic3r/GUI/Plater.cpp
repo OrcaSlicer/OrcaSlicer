@@ -20034,6 +20034,7 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
 {
     bool update_scheduled = false;
     bool bed_shape_changed = false;
+    bool exclusion_preview_changed = false;
     //bool print_sequence_changed = false;
     t_config_option_keys diff_keys = p->config->diff(config);
 
@@ -20075,6 +20076,12 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
         }
 
         p->config->set_key_value(opt_key, config.option(opt_key)->clone());
+        if (opt_key == "bed_exclude_area_mode" || opt_key == "bed_exclude_area" ||
+            opt_key == "extruder_bed_exclude_area" || opt_key == "extruder_offset" ||
+            opt_key == "master_extruder_id" || opt_key == "nozzle_diameter" ||
+            opt_key == "printable_height" || opt_key == "extruder_colour")
+            exclusion_preview_changed = true;
+
         if (opt_key == "printer_technology") {
             this->set_printer_technology(config.opt_enum<PrinterTechnology>(opt_key));
             // print technology is changed, so we should to update a search list
@@ -20146,8 +20153,13 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
     if (bed_shape_changed) {
         set_bed_shape();
         get_current_canvas3D()->requires_check_outside_state();
-        get_current_canvas3D()->request_extra_frame();
     }
+
+    if (exclusion_preview_changed)
+        p->partplate_list.invalidate_exclusion_volume_previews();
+
+    if (bed_shape_changed || exclusion_preview_changed)
+        get_current_canvas3D()->request_extra_frame();
 
     config_change_notification(config, std::string("print_sequence"));
 
@@ -20889,7 +20901,9 @@ void Plater::clone_selection()
     dlg.ShowModal();
 }
 
-std::vector<Vec2f> Plater::get_empty_cells(const Vec2f step)
+std::vector<Vec2f> Plater::get_empty_cells(const Vec2f step,
+                                           const std::vector<BoundingBoxf> &local_exclude_boxes,
+                                           bool include_plate_exclude_areas)
 {
     PartPlate* plate = wxGetApp().plater()->get_partplate_list().get_curr_plate();
     BoundingBoxf3 build_volume = plate->get_build_volume(true);
@@ -20898,11 +20912,18 @@ std::vector<Vec2f> Plater::get_empty_cells(const Vec2f step)
     std::vector<Vec2f> cells;
     auto min_x = step(0)/2;// start_point.x() - step(0) * int((start_point.x() - bbox.min.x()) / step(0));
     auto min_y = step(1)/2;// start_point.y() - step(1) * int((start_point.y() - bbox.min.y()) / step(1));
-    auto& exclude_box3s = plate->get_exclude_areas();
     std::vector<BoundingBoxf> exclude_boxs;
-    for (auto& box : exclude_box3s) {
-        Vec2d vmin(box.min.x(), box.min.y()), vmax(box.max.x(), box.max.y());
-        exclude_boxs.emplace_back(vmin, vmax);
+    if (include_plate_exclude_areas) {
+        const auto &exclude_box3s = plate->get_exclude_areas();
+        for (const auto &box : exclude_box3s) {
+            Vec2d vmin(box.min.x(), box.min.y()), vmax(box.max.x(), box.max.y());
+            exclude_boxs.emplace_back(vmin, vmax);
+        }
+    }
+    const Vec3d plate_origin = plate->get_origin();
+    for (BoundingBoxf box : local_exclude_boxes) {
+        box.translate(Vec2d(plate_origin.x(), plate_origin.y()));
+        exclude_boxs.emplace_back(std::move(box));
     }
     for (float x = min_x + bbox.min.x(); x < bbox.max.x() - step(0) / 2; x += step(0))
         for (float y = min_y + bbox.min.y(); y < bbox.max.y() - step(1) / 2; y += step(1)) {

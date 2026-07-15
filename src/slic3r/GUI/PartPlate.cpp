@@ -1327,7 +1327,9 @@ void PartPlate::update_exclusion_volume_preview_models()
                 const Polygons inner = offset(Polygons{ footprint }, -tool_border_width, jtMiter, 2.0);
                 const ExPolygons border = inner.empty() ? ExPolygons{ expolygon_from_polygon(footprint) } : diff_ex(Polygons{ footprint }, inner);
                 auto model = std::make_unique<GLModel>();
-                const float border_z = static_cast<float>(std::max<double>(GROUND_Z + 0.026, region_src.has_z_range ? region_src.z_min + 0.026 : GROUND_Z + 0.026));
+                // Nozzle colours identify the bed footprint, not the volume's
+                // vertical position, so keep this border with the grey preview.
+                const float border_z = GROUND_Z + 0.026f;
                 if (init_model_from_expolygons(*model, border, border_z) && model->is_initialized())
                     m_extruder_exclusion_volume_borders.emplace_back(std::move(model), color);
             }
@@ -6451,7 +6453,8 @@ bool PartPlateList::preprocess_arrange_polygon_other_locked(int obj_index, int i
 	return locked;
 }
 
-bool PartPlateList::preprocess_exclude_areas(arrangement::ArrangePolygons &unselected, bool enable_wrapping_detect, int num_plates, float inflation)
+bool PartPlateList::preprocess_exclude_areas(arrangement::ArrangePolygons &unselected, const DynamicPrintConfig &config,
+                                             bool enable_wrapping_detect, int num_plates, float inflation)
 {
 	bool added = false;
 
@@ -6483,10 +6486,45 @@ bool PartPlateList::preprocess_exclude_areas(arrangement::ArrangePolygons &unsel
 		}
 		added = true;
 	}
+    const BedExcludeAreaMode mode = config.opt_enum<BedExcludeAreaMode>("bed_exclude_area_mode");
+    const ConfigOptionPoints *configured_areas = config.opt<ConfigOptionPoints>("bed_exclude_area");
+    const bool use_resolved_regions = mode != BedExcludeAreaMode::Shared ||
+        (configured_areas != nullptr && has_bed_exclusion_volume_syntax(*configured_areas));
 
-	// excluded area
-	if (m_exclude_areas.size() > 0)
-	{
+    if (use_resolved_regions) {
+        const std::vector<std::vector<BedExcludeRegion>> regions_by_extruder =
+            get_bed_excluded_regions_by_extruder(config);
+        const size_t extruder_count = mode == BedExcludeAreaMode::Shared ?
+            std::min<size_t>(1, regions_by_extruder.size()) : regions_by_extruder.size();
+
+        for (size_t extruder_id = 0; extruder_id < extruder_count; ++extruder_id) {
+            for (size_t region_id = 0; region_id < regions_by_extruder[extruder_id].size(); ++region_id) {
+                const BedExcludeRegion &region = regions_by_extruder[extruder_id][region_id];
+                const BoundingBox bbox = region.polygon.bounding_box();
+                if (!bbox.defined || (region.has_z_range && region.z_max <= region.z_min + EPSILON))
+                    continue;
+
+                for (int plate_idx = 0; plate_idx < num_plates; ++plate_idx) {
+                    arrangement::ArrangePolygon blocker;
+                    blocker.poly.contour = bbox.polygon();
+                    blocker.translation = Vec2crd::Zero();
+                    blocker.rotation = 0.0;
+                    blocker.is_virt_object = true;
+                    blocker.is_bed_exclusion = true;
+                    blocker.bed_exclusion_extruder_id = mode == BedExcludeAreaMode::Shared ? -1 : int(extruder_id);
+                    blocker.bed_idx = plate_idx;
+                    blocker.height = std::max(0.0, region.z_max - region.z_min);
+                    blocker.z_min = region.z_min;
+                    blocker.z_max = region.z_max;
+                    blocker.has_z_range = region.has_z_range;
+                    blocker.name = "BedExclusionVolume" + std::to_string(extruder_id) + "_" + std::to_string(region_id);
+                    blocker.inflation = inflation;
+                    unselected.emplace_back(std::move(blocker));
+                }
+                added = true;
+            }
+        }
+    } else if (!m_exclude_areas.empty()) {
 		//has exclude areas
 		PartPlate *plate = m_plate_list[0];
 

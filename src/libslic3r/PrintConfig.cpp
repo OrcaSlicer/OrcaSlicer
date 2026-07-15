@@ -13186,8 +13186,8 @@ std::vector<std::vector<BedExcludeRegion>> get_bed_excluded_regions_by_extruder(
     const std::vector<BedExcludeRegion> master_regions = parse_master_bed_excluded_regions(
         cfg.opt<ConfigOptionPoints>("bed_exclude_area"), printable_height);
 
-    const ConfigOptionEnum<BedExcludeAreaMode> *mode_option = cfg.opt<ConfigOptionEnum<BedExcludeAreaMode>>("bed_exclude_area_mode");
-    const BedExcludeAreaMode mode = mode_option != nullptr ? mode_option->value : BedExcludeAreaMode::Shared;
+    const BedExcludeAreaMode mode = cfg.has("bed_exclude_area_mode") ?
+        cfg.opt_enum<BedExcludeAreaMode>("bed_exclude_area_mode") : BedExcludeAreaMode::Shared;
     const ConfigOptionStrings *per_extruder_option = cfg.opt<ConfigOptionStrings>("extruder_bed_exclude_area");
     const ConfigOptionPoints *offset_option = cfg.opt<ConfigOptionPoints>("extruder_offset");
     const ConfigOptionFloats *nozzle_option = cfg.opt<ConfigOptionFloats>("nozzle_diameter");
@@ -13239,8 +13239,8 @@ std::vector<BedExcludeRegion> get_bed_excluded_regions(const PrintConfig &cfg, c
 
 std::vector<BedExcludeRegion> get_bed_excluded_regions(const DynamicPrintConfig &cfg)
 {
-    const ConfigOptionEnum<BedExcludeAreaMode> *mode_option = cfg.opt<ConfigOptionEnum<BedExcludeAreaMode>>("bed_exclude_area_mode");
-    const BedExcludeAreaMode mode = mode_option != nullptr ? mode_option->value : BedExcludeAreaMode::Shared;
+    const BedExcludeAreaMode mode = cfg.has("bed_exclude_area_mode") ?
+        cfg.opt_enum<BedExcludeAreaMode>("bed_exclude_area_mode") : BedExcludeAreaMode::Shared;
     return flatten_bed_excluded_regions(mode, get_bed_excluded_regions_by_extruder(cfg));
 }
 
