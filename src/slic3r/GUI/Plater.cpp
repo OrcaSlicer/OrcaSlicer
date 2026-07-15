@@ -266,11 +266,11 @@ wxDEFINE_EVENT(EVT_NOTICE_FULL_SCREEN_CHANGED, IntEvent);
 // save flow produce identical printer_variant strings ("0.25"/"0.15"/"1.0").
 static string get_diameter_string(float diameter) { return format_printer_variant(diameter); }
 
-// ORCA #12105: label of the "--Add nozzle --" action item shown at the end of the nozzle dropdown
-// for user printers, styled like the "--Create printer --" separator item in the Printer dropdown
-// (separator_head "--", separator_tail " --"). Used both to append the item and to recognize it when
-// selected, so the two must call this function.
-static wxString add_nozzle_item_label() { return "--" + _L("Add nozzle") + " --"; }
+// ORCA #12105: label of the "Add nozzle" action item shown at the end of the nozzle dropdown for user
+// printers, styled with the same built-in separator() helper the Printer/Filament dropdowns use for
+// "Create printer" etc. (platform-specific dashes). Used both to append the item and to recognize it
+// when selected, so the two must call this function.
+static wxString add_nozzle_item_label() { return PresetComboBox::separator(L("Add nozzle")); }
 
 template <typename T, typename OptionType>
 static void set_config_values(DynamicPrintConfig *config, const std::string &key, T value)

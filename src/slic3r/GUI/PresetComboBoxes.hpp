@@ -155,6 +155,8 @@ protected:
     // BBS: ams
     int  update_ams_color();
 
+public: // ORCA #12105: expose the separator helpers so a plain ComboBox (the nozzle dropdown) can
+        // style its action item identically to the printer/filament dropdowns.
 #ifdef __linux__
     static const char* separator_head() { return "-- "; }
     static const char* separator_tail() { return " --"; }
@@ -163,6 +165,7 @@ protected:
     static const char* separator_tail() { return " --"; }
 #endif // __linux__
     static wxString    separator(const std::string& label);
+protected:
 
     wxBitmap* get_bmp(  std::string bitmap_key, bool wide_icons, const std::string& main_icon_name,
                         bool is_compatible = true, bool is_system = false, bool is_single_bar = false,
