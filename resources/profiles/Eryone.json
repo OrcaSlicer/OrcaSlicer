@@ -473,10 +473,6 @@
 			"sub_path": "filament/Eryone PLA-CF.json"
 		},
 		{
-			"name": "Eryone PP",
-			"sub_path": "filament/Eryone PP.json"
-		},
-		{
 			"name": "Eryone PP-CF",
 			"sub_path": "filament/Eryone PP-CF.json"
 		},
@@ -565,10 +561,6 @@
 			"sub_path": "filament/Eryone PLA-Matte HS @Thinker X400 0.4 nozzle.json"
 		},
 		{
-			"name": "Eryone PLA-Silk @Thinker X400 0.4 nozzle",
-			"sub_path": "filament/Eryone PLA-Silk @Thinker X400 0.4 nozzle.json"
-		},
-		{
 			"name": "Eryone pla-Ultra Silk @Thinker X400 0.4 nozzle",
 			"sub_path": "filament/Eryone pla-Ultra Silk @Thinker X400 0.4 nozzle.json"
 		},
@@ -583,10 +575,6 @@
 		{
 			"name": "Eryone PETG HS @Thinker X400 0.4 nozzle",
 			"sub_path": "filament/Eryone PETG HS @Thinker X400 0.4 nozzle.json"
-		},
-		{
-			"name": "Eryone PETG-CF @Thinker X400 0.4 nozzle",
-			"sub_path": "filament/Eryone PETG-CF @Thinker X400 0.4 nozzle.json"
 		},
 		{
 			"name": "Eryone PETG-GF @Thinker X400 0.4 nozzle",
@@ -609,16 +597,8 @@
 			"sub_path": "filament/Eryone petg-Galaxy @Thinker X400 0.4 nozzle.json"
 		},
 		{
-			"name": "Eryone ASA-CF @Thinker X400 0.4 nozzle",
-			"sub_path": "filament/Eryone ASA-CF @Thinker X400 0.4 nozzle.json"
-		},
-		{
 			"name": "Eryone ASA-HS @Thinker X400 0.4 nozzle",
 			"sub_path": "filament/Eryone ASA-HS @Thinker X400 0.4 nozzle.json"
-		},
-		{
-			"name": "Eryone PA-CF @Thinker X400 0.4 nozzle",
-			"sub_path": "filament/Eryone PA-CF @Thinker X400 0.4 nozzle.json"
 		}
 	],
 	"machine_list": [
