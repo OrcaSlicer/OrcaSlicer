@@ -1,4 +1,5 @@
 #include "../ClipperUtils.hpp"
+#include "../ExclusionVolumeGeometry.hpp"
 // #include "../ClipperZUtils.hpp"
 #include "../ExtrusionEntityCollection.hpp"
 #include "../Layer.hpp"
@@ -34,6 +35,124 @@
 #include <cassert>
 
 namespace Slic3r {
+
+namespace {
+
+int object_layer_id_at_z(const PrintObject &object, const coordf_t print_z)
+{
+    const ConstLayerPtrsAdaptor layers = object.layers();
+    if (layers.empty())
+        return -1;
+    const auto it = std::lower_bound(layers.begin(), layers.end(), print_z - EPSILON,
+        [](const Layer *layer, const coordf_t z) { return layer->print_z < z; });
+    return int(it == layers.end() ? layers.size() - 1 : size_t(it - layers.begin()));
+}
+
+bool support_layer_uses_interface_material(const SupportGeneratorLayer &layer)
+{
+    return one_of(layer.layer_type, {
+        SupporLayerType::RaftInterface,
+        SupporLayerType::BottomContact,
+        SupporLayerType::BottomInterface,
+        SupporLayerType::TopContact,
+        SupporLayerType::TopInterface });
+}
+
+void trim_polygons(Polygons &polygons, const Polygons &excluded)
+{
+    if (!polygons.empty() && !excluded.empty())
+        polygons = diff(polygons, excluded, ApplySafetyOffset::Yes);
+}
+
+} // namespace
+
+std::vector<unsigned int> support_exclusion_filaments(
+    const PrintObject &object,
+    const bool interface_material)
+{
+    const int configured = interface_material ? object.config().support_interface_filament.value :
+                                                object.config().support_filament.value;
+    if (configured > 0)
+        return { unsigned(configured - 1) };
+
+    // "Current filament" is assigned during tool ordering, not from the
+    // supported object. It may therefore use a filament from another object,
+    // or one selected for flush-into-support, on any particular layer.
+    return object.print() == nullptr ? object.object_extruders() : object.print()->extruders(false);
+}
+
+std::vector<Polygons> support_exclusion_areas_for_layers(
+    const PrintObject &object,
+    const std::vector<std::pair<coordf_t, coordf_t>> &layer_z_ranges,
+    const bool interface_material)
+{
+    std::vector<Polygons> result(layer_z_ranges.size());
+    if (layer_z_ranges.empty() || object.print() == nullptr)
+        return result;
+
+    const Print &print = *object.print();
+    const std::vector<std::vector<BedExcludeRegion>> regions_by_extruder =
+        get_bed_excluded_regions_by_extruder(print.config());
+    if (regions_by_extruder.empty() ||
+        std::all_of(regions_by_extruder.begin(), regions_by_extruder.end(),
+            [](const std::vector<BedExcludeRegion> &regions) { return regions.empty(); }))
+        return result;
+
+    const std::vector<unsigned int> filaments = support_exclusion_filaments(object, interface_material);
+    for (size_t idx = 0; idx < layer_z_ranges.size(); ++idx) {
+        const auto [z_min, z_max] = layer_z_ranges[idx];
+        const int layer_id = object_layer_id_at_z(object, z_max);
+        const std::vector<size_t> physical_extruders = bed_exclusion_physical_extruders(
+            print, filaments, regions_by_extruder.size(), layer_id);
+        result[idx] = to_polygons(active_bed_exclusion_footprints_for_object(
+            object, regions_by_extruder, physical_extruders, z_min, z_max, coord_t(SCALED_EPSILON)));
+    }
+    return result;
+}
+
+void trim_support_layers_by_exclusion_volumes(
+    const PrintObject                     &object,
+    const SupportGeneratorLayersPtr       &raft_layers,
+    const SupportGeneratorLayersPtr       &bottom_contacts,
+    const SupportGeneratorLayersPtr       &top_contacts,
+    const SupportGeneratorLayersPtr       &intermediate_layers,
+    const SupportGeneratorLayersPtr       &interface_layers,
+    const SupportGeneratorLayersPtr       &base_interface_layers)
+{
+    SupportGeneratorLayersPtr layers;
+    layers.reserve(raft_layers.size() + bottom_contacts.size() + top_contacts.size() +
+                   intermediate_layers.size() + interface_layers.size() + base_interface_layers.size());
+    for (const SupportGeneratorLayersPtr *source : {
+             &raft_layers, &bottom_contacts, &top_contacts, &intermediate_layers,
+             &interface_layers, &base_interface_layers })
+        append(layers, *source);
+    std::sort(layers.begin(), layers.end());
+    layers.erase(std::unique(layers.begin(), layers.end()), layers.end());
+
+    for (const bool interface_material : { false, true }) {
+        SupportGeneratorLayersPtr selected;
+        std::vector<std::pair<coordf_t, coordf_t>> z_ranges;
+        for (SupportGeneratorLayer *layer : layers) {
+            if (layer != nullptr && support_layer_uses_interface_material(*layer) == interface_material) {
+                selected.emplace_back(layer);
+                z_ranges.emplace_back(layer->bottom_print_z(), layer->print_z);
+            }
+        }
+
+        const std::vector<Polygons> excluded =
+            support_exclusion_areas_for_layers(object, z_ranges, interface_material);
+        for (size_t idx = 0; idx < selected.size(); ++idx) {
+            SupportGeneratorLayer &layer = *selected[idx];
+            trim_polygons(layer.polygons, excluded[idx]);
+            if (layer.contact_polygons)
+                trim_polygons(*layer.contact_polygons, excluded[idx]);
+            if (layer.overhang_polygons)
+                trim_polygons(*layer.overhang_polygons, excluded[idx]);
+            if (layer.enforcer_polygons)
+                trim_polygons(*layer.enforcer_polygons, excluded[idx]);
+        }
+    }
+}
 
 // how much we extend support around the actual contact area
 //FIXME this should be dependent on the nozzle diameter!

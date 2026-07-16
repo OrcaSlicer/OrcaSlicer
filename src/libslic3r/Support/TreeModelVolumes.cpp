@@ -136,22 +136,18 @@ TreeModelVolumes::TreeModelVolumes(
                 }
         });
     }
-    if (! additional_excluded_areas.empty()) {
-        tbb::parallel_for(tbb::blocked_range<size_t>(0, m_anti_overhang.size()),
-            [&](const tbb::blocked_range<size_t> &range) {
-            for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++ layer_idx) {
-                if (layer_idx < coord_t(additional_excluded_areas.size()))
-                    append(m_anti_overhang[layer_idx], additional_excluded_areas[layer_idx]);
-    //          if (SUPPORT_TREE_AVOID_SUPPORT_BLOCKER)
-    //              append(m_anti_overhang[layer_idx], storage.support.supportLayers[layer_idx].anti_overhang);
-    //FIXME block wipe tower
-    //          if (storage.primeTower.enabled)
-    //              append(m_anti_overhang[layer_idx], layer_idx == 0 ? storage.primeTower.outer_poly_first_layer : storage.primeTower.outer_poly);
-                m_anti_overhang[layer_idx] = union_(m_anti_overhang[layer_idx]);
-            }
-        });
-    }
 #endif
+
+    if (!additional_excluded_areas.empty()) {
+        m_anti_overhang.resize(std::max(m_anti_overhang.size(), additional_excluded_areas.size()));
+        tbb::parallel_for(tbb::blocked_range<size_t>(0, additional_excluded_areas.size()),
+            [&](const tbb::blocked_range<size_t> &range) {
+                for (size_t layer_idx = range.begin(); layer_idx < range.end(); ++layer_idx) {
+                    append(m_anti_overhang[layer_idx], additional_excluded_areas[layer_idx]);
+                    m_anti_overhang[layer_idx] = union_(m_anti_overhang[layer_idx]);
+                }
+            });
+    }
 }
 
 void TreeModelVolumes::precalculate(const PrintObject& print_object, const coord_t max_layer, std::function<void()> throw_on_cancel)
@@ -432,7 +428,8 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
     if (calculate_placable)
         data_placeable.allocate(data.begin(), data.end());
 
-    for (size_t outline_idx : layer_outline_indices)
+    for (size_t outline_pos = 0; outline_pos < layer_outline_indices.size(); ++outline_pos) {
+        const size_t outline_idx = layer_outline_indices[outline_pos];
         if (const std::vector<Polygons> &outlines = m_layer_outlines[outline_idx].second; ! outlines.empty()) {
             const TreeSupportMeshGroupSettings  &settings = m_layer_outlines[outline_idx].first;
             const coord_t       layer_height              = settings.layer_height;
@@ -469,7 +466,7 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
             });
 
             // 2) Sum over top / bottom ranges.
-            const bool processing_last_mesh = outline_idx == layer_outline_indices.back();
+            const bool processing_last_mesh = outline_pos + 1 == layer_outline_indices.size();
             tbb::parallel_for(tbb::blocked_range<LayerIndex>(data.begin(), data.end()),
                 [&collision_areas_offsetted, &outlines, &machine_border = m_machine_border, &anti_overhang = m_anti_overhang, radius, 
                     xy_distance, z_distance_bottom_layers, z_distance_top_layers, min_resolution = m_min_resolution, &data, processing_last_mesh, &throw_on_cancel]
@@ -563,6 +560,7 @@ void TreeModelVolumes::calculateCollision(const coord_t radius, const LayerIndex
                 // Calculating just the collision areas.
             }
         }
+    }
 #ifdef SLIC3R_TREESUPPORTS_PROGRESS
     {
         std::lock_guard<std::mutex> critical_section(*m_critical_progress);

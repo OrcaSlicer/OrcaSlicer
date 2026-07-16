@@ -8,10 +8,12 @@
 #include "PrintConfig.hpp"
 #include "MaterialType.hpp"
 #include "Model.hpp"
+#include "Support/SupportCommon.hpp"
 #include <algorithm>
 #include <cstdint>
 #include <limits>
 #include <numeric>
+#include <optional>
 #include <tbb/parallel_for.h>
 
 #include <boost/log/trivial.hpp>
@@ -25,37 +27,6 @@
 #endif
 
 namespace Slic3r {
-
-static std::vector<size_t> brim_physical_extruders(
-    const Print &print,
-    const size_t filament_id,
-    const size_t physical_extruder_count)
-{
-    if (physical_extruder_count == 0)
-        return {};
-
-    if (const auto grouping = print.get_layered_nozzle_group_result()) {
-        if (const auto nozzle = grouping->get_nozzle_for_filament(int(filament_id), 0);
-            nozzle.has_value() && nozzle->extruder_id >= 0 &&
-            size_t(nozzle->extruder_id) < physical_extruder_count)
-            return { size_t(nozzle->extruder_id) };
-    }
-
-    const bool automatic_mapping_resolved =
-        !is_auto_filament_map_mode(print.get_filament_map_mode()) || !print.is_BBL_printer() ||
-        print.get_nozzle_group_result() != nullptr;
-    const int resolved = bed_exclusion_extruder_for_filament(
-        filament_id, print.get_filament_maps(), print.get_filament_map_mode(), print.is_BBL_printer(),
-        automatic_mapping_resolved, physical_extruder_count);
-    if (resolved >= 0)
-        return { size_t(resolved) };
-
-    // Generated geometry must remain safe if a late automatic assignment has
-    // not selected a physical nozzle yet.
-    std::vector<size_t> candidates(physical_extruder_count);
-    std::iota(candidates.begin(), candidates.end(), size_t(0));
-    return candidates;
-}
 
 static coord_t brim_exclusion_clearance(const Flow &flow)
 {
@@ -470,10 +441,6 @@ static ExPolygons outer_inner_brim_area(const Print& print,
         get_bed_excluded_regions_by_extruder(print.config());
     const double first_layer_top_z = std::max(0.0, print.skirt_first_layer_height());
     const coord_t exclusion_clearance = brim_exclusion_clearance(flow);
-    std::vector<size_t> combined_brim_physical_extruders;
-    if (combine_object_brims(print) && !printExtruders.empty())
-        combined_brim_physical_extruders = brim_physical_extruders(
-            print, printExtruders.front(), exclusion_regions_by_extruder.size());
 
     ExPolygons brim_area;
     ExPolygons no_brim_area;
@@ -690,11 +657,8 @@ static ExPolygons outer_inner_brim_area(const Print& print,
         std::vector<size_t> object_physical_extruders;
 
         if (iter != objPrintVec.end() && iter->second > 0) {
-            object_physical_extruders = brim_physical_extruders(
-                print, size_t(iter->second - 1), exclusion_regions_by_extruder.size());
-            object_physical_extruders.insert(
-                object_physical_extruders.end(),
-                combined_brim_physical_extruders.begin(), combined_brim_physical_extruders.end());
+            object_physical_extruders = bed_exclusion_physical_extruders(
+                print, { iter->second - 1 }, exclusion_regions_by_extruder.size(), 0);
             for (const size_t extruder_id : object_physical_extruders) {
                 if (extruder_id >= extruder_unprintable_area.size())
                     continue;

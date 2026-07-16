@@ -1,8 +1,10 @@
 #include "ExclusionVolumeGeometry.hpp"
 
 #include "ClipperUtils.hpp"
+#include "Print.hpp"
 
 #include <algorithm>
+#include <numeric>
 #include <utility>
 
 namespace Slic3r {
@@ -87,6 +89,69 @@ ExPolygons active_bed_exclusion_footprints(
         append_active_footprints(footprints, regions, z_min, z_max, translation);
     }
     return union_active_footprints(std::move(footprints), clearance);
+}
+
+std::vector<size_t> bed_exclusion_physical_extruders(
+    const Print &print,
+    const std::vector<unsigned int> &filament_ids,
+    const size_t physical_extruder_count,
+    const int layer_id)
+{
+    if (physical_extruder_count == 0)
+        return {};
+
+    std::vector<size_t> result;
+    const auto grouping = print.get_layered_nozzle_group_result();
+    const bool automatic_mapping_resolved =
+        !is_auto_filament_map_mode(print.get_filament_map_mode()) || !print.is_BBL_printer() ||
+        print.get_nozzle_group_result() != nullptr;
+    bool unresolved = filament_ids.empty();
+
+    for (const unsigned int filament_id : filament_ids) {
+        if (grouping) {
+            if (const auto nozzle = grouping->get_nozzle_for_filament(int(filament_id), layer_id);
+                nozzle.has_value() && nozzle->extruder_id >= 0 &&
+                size_t(nozzle->extruder_id) < physical_extruder_count) {
+                result.emplace_back(size_t(nozzle->extruder_id));
+                continue;
+            }
+        }
+
+        const int resolved = bed_exclusion_extruder_for_filament(
+            filament_id, print.get_filament_maps(), print.get_filament_map_mode(), print.is_BBL_printer(),
+            automatic_mapping_resolved, physical_extruder_count);
+        if (resolved >= 0)
+            result.emplace_back(size_t(resolved));
+        else
+            unresolved = true;
+    }
+
+    std::sort(result.begin(), result.end());
+    result.erase(std::unique(result.begin(), result.end()), result.end());
+    if (!unresolved && !result.empty())
+        return result;
+
+    result.resize(physical_extruder_count);
+    std::iota(result.begin(), result.end(), size_t(0));
+    return result;
+}
+
+ExPolygons active_bed_exclusion_footprints_for_object(
+    const PrintObject &object,
+    const std::vector<std::vector<BedExcludeRegion>> &regions_by_extruder,
+    const std::vector<size_t> &physical_extruders,
+    const double z_min,
+    const double z_max,
+    const coord_t clearance)
+{
+    ExPolygons result;
+    for (const PrintInstance &instance : object.instances()) {
+        const Point instance_shift = instance.shift_without_plate_offset();
+        const Point shift(-instance_shift.x(), -instance_shift.y());
+        expolygons_append(result, active_bed_exclusion_footprints(
+            regions_by_extruder, physical_extruders, z_min, z_max, shift, clearance));
+    }
+    return result.empty() ? ExPolygons{} : union_ex(result);
 }
 
 } // namespace Slic3r

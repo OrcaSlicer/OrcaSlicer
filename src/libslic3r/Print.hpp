@@ -1009,6 +1009,8 @@ public:
         struct Brim {
             ExtrusionEntityCollection brim;
             std::vector<ObjectInstanceID> instances;
+            // Zero-based logical filament selected when the brim was planned.
+            unsigned int filament_id { unsigned(-1) };
         };
 
         ExtrusionEntityCollection skirt;
@@ -1321,6 +1323,8 @@ private:
     bool                                    m_has_shared_per_object_skirt { false };
     // Orca: Object-keyed brim paths kept for existing code.
     std::map<ObjectID, ExtrusionEntityCollection>         m_brimMap;
+    // Zero-based logical filament selected for each object's brim.
+    std::map<ObjectID, unsigned int>                       m_brimFilamentMap;
     // Orca: Actual brim paths keyed by object instance.
     std::map<ObjectInstanceID, ExtrusionEntityCollection> m_brimMapByInstance;
     // Orca: Translated brim areas keyed by instance, used to find touching brims.
