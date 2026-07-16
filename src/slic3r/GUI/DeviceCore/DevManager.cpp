@@ -496,6 +496,26 @@ namespace Slic3r
         OnSelectedMachineChanged(previous_selected_machine, selected_machine);
     }
 
+    void DeviceManager::clear_other_devices()
+    {
+        // why: on agent swap, keep "My Devices" but drop the transient "Other Devices"
+        // Those belong to the previous agent's network scan; the new agent's start_discovery re-populates its own.
+        const auto my = get_my_machine_list();
+        for (auto it = localMachineList.begin(); it != localMachineList.end();)
+        {
+            if (my.find(it->first) == my.end())
+            {
+                // not a "My Device" -> an "Other Device"
+                delete it->second;
+                it = localMachineList.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
     bool DeviceManager::set_selected_machine(std::string dev_id)
     {
         BOOST_LOG_TRIVIAL(info) << "set_selected_machine=" << dev_id
@@ -862,15 +882,13 @@ namespace Slic3r
         if (all_machines.empty())
             return;
         
-        // Then connect to the machine we last selected if available
+        // Reconnect the machine the user last selected, if it's still available.
+        // why: no first-available fallback - auto-connecting an arbitrary machine
+        // fights the agent-swap reset, which intentionally leaves nothing selected.
         const std::string last_monitor_machine = m_agent ? m_agent->get_user_selected_machine() : "";
-        const auto        last_machine         = all_machines.find(last_monitor_machine);
-        if (last_machine != all_machines.end()) {
+        const auto        last_machine = all_machines.find(last_monitor_machine);
+        if (last_machine != all_machines.end())
             this->set_selected_machine(last_machine->second->get_dev_id());
-        } else {
-            // If not, then select the first available one
-            this->set_selected_machine(all_machines.begin()->second->get_dev_id());
-        }
     }
 
     void DeviceManager::OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state)

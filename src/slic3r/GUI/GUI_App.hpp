@@ -802,6 +802,11 @@ private:
     void            window_pos_center(wxTopLevelWindow *window);
     bool            select_language();
 
+    // Dynamic printer agent selection - internal helpers for switch_printer_agent
+    // and the plugin load/unload callbacks (init_plugin_gui_wiring).
+    void refresh_printer_agent_dropdown();
+    void set_live_printer_agent(std::shared_ptr<IPrinterAgent> agent); // null clears the selection
+
     bool            config_wizard_startup();
 	void            check_updates(const bool verbose);
 
