@@ -3854,6 +3854,18 @@ unsigned GUI_App::get_colour_approx_luma(const wxColour &colour)
         ));
 }
 
+std::string GUI_App::resolve_printer_agent_id(const std::string& stored_id)
+{
+    if (!stored_id.empty())
+        return stored_id;
+    return (preset_bundle && preset_bundle->is_bbl_vendor()) ? BBL_PRINTER_AGENT_ID : ORCA_PRINTER_AGENT_ID;
+}
+
+std::string GUI_App::canonical_printer_agent_id(const std::string& picked_id)
+{
+    return picked_id == resolve_printer_agent_id("") ? std::string() : picked_id;
+}
+
 void GUI_App::switch_printer_agent()
 {
     if (!m_agent) {
@@ -3861,17 +3873,8 @@ void GUI_App::switch_printer_agent()
         return;
     }
 
-    // Read printer_agent from config, falling back to default
-    std::string effective_agent_id = ORCA_PRINTER_AGENT_ID;
-    if (preset_bundle->is_bbl_vendor())
-        effective_agent_id = BBL_PRINTER_AGENT_ID;
-
     const DynamicPrintConfig& config = preset_bundle->printers.get_edited_preset().config;
-    if (config.has("printer_agent")) {
-        const std::string& value = config.option<ConfigOptionString>("printer_agent")->value;
-        if (!value.empty())
-            effective_agent_id = value;
-    }
+    const std::string effective_agent_id = resolve_printer_agent_id(config.opt_string("printer_agent"));
 
     // Check if agent is registered
     const PrinterAgentInfo* agent_info_ptr = NetworkAgentFactory::get_printer_agent_info(effective_agent_id);
