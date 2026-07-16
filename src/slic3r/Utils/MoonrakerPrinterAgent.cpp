@@ -595,8 +595,10 @@ bool MoonrakerPrinterAgent::fetch_filament_info(std::string dev_id)
 
     // Attempt Happy Hare first (more widely adopted, supports more filament changers)
     if (fetch_hh_filament_info(trays, max_lane_index)) {
-        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Happy Hare MMU with "
-                                << (max_lane_index + 1) << " gates";
+        // max_lane_index is the highest loaded gate, not the MMU's gate count —
+        // log what it actually is instead of calling it "gates".
+        BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent::fetch_filament_info: Detected Happy Hare MMU: "
+                                << trays.size() << " loaded gate(s), highest gate index " << max_lane_index;
         int ams_count = (max_lane_index + 4) / 4;
         build_ams_payload(ams_count, max_lane_index, trays);
         return true;
