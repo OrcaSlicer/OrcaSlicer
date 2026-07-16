@@ -9039,16 +9039,25 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
     };
     const auto route_around_exclusion_volumes = [&](
         Polyline &path,
-        const std::optional<double> &start_z_override) {
+        const std::optional<double> &start_z_override,
+        const bool include_planned_lift = false) {
         if (m_exclusion_volume_travel_avoidance.empty() || path.size() < 2)
             return false;
 
         const double target_z = z == DBL_MAX ? m_nominal_z : z;
+        double route_start_z = start_z_override.value_or(nominal_writer_z());
+        double route_end_z = target_z;
+        if (include_planned_lift) {
+            const Vec2d destination_xy = this->point_to_gcode(path.back());
+            std::tie(route_start_z, route_end_z) = m_writer.planned_travel_z(
+                Vec3d(destination_xy.x(), destination_xy.y(), target_z),
+                m_need_change_layer_lift_z);
+        }
         const ExclusionVolumeTravelAvoidance::Result result =
             m_exclusion_volume_travel_avoidance.route(
                 to_gcode_polyline(path),
-                start_z_override.value_or(nominal_writer_z()),
-                target_z,
+                route_start_z,
+                route_end_z,
                 active_extruder_id());
         if (!result.rerouted())
             return false;
@@ -9157,7 +9166,7 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
         }
 
         exclusion_volume_travel_rerouted =
-            route_around_exclusion_volumes(travel, std::nullopt) ||
+            route_around_exclusion_volumes(travel, std::nullopt, true) ||
             (last_post_before_retract == this->last_pos() && exclusion_volume_travel_rerouted);
     } else {
         // Reset the wipe path when traveling, so one would not wipe along an old path.
