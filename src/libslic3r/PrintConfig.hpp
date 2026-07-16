@@ -840,6 +840,8 @@ extern std::set<std::string> printer_options_with_variant_1;
 extern std::set<std::string> printer_options_with_variant_2;
 extern std::set<std::string> empty_options;
 
+extern std::set<std::string> filament_dev_options;
+
 extern void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPrintConfig& dest_config, std::vector<int> variant_index, std::set<std::string>& key_set1, int stride = 1);
 extern void compute_filament_override_value(const std::string& opt_key, const ConfigOption *opt_old_machine, const ConfigOption *opt_new_machine, const ConfigOption *opt_new_filament, const DynamicPrintConfig& new_full_config,
     t_config_option_keys& diff_keys, DynamicPrintConfig& filament_overrides, std::vector<int>& f_map_indices);
@@ -1678,6 +1680,16 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Printer flag: whether the printer offers the fast-purge mode selector.
     // Default false; no shipping profile sets it, so the fast-purge UI stays hidden.
     ((ConfigOptionBool,                support_fast_purge_mode))
+
+    //ams chamber
+    ((ConfigOptionStrings,  filament_dev_ams_drying_ams_limitations))
+    ((ConfigOptionFloats,   filament_dev_ams_drying_temperature))
+    ((ConfigOptionFloats,   filament_dev_ams_drying_time))
+    ((ConfigOptionFloats,   filament_dev_ams_drying_heat_distortion_temperature))
+    ((ConfigOptionFloats,   filament_dev_chamber_drying_bed_temperature))
+    ((ConfigOptionFloats,   filament_dev_chamber_drying_time))
+    ((ConfigOptionFloats,   filament_dev_drying_softening_temperature))
+    ((ConfigOptionFloats,   filament_dev_drying_cooling_temperature))
 )
 
 // This object is mapped to Perl as Slic3r::Config::Print.

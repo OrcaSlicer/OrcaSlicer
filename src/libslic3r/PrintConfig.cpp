@@ -7797,6 +7797,30 @@ void PrintConfigDef::init_fff_params()
     def->min = 0;
     def->set_default_value(new ConfigOptionPercent(85));
 
+    def = this->add("filament_dev_ams_drying_ams_limitations", coStrings);
+    def->set_default_value(new ConfigOptionStrings{""});
+
+    def = this->add("filament_dev_ams_drying_temperature", coFloats);
+    def->set_default_value(new ConfigOptionFloats{0});
+
+    def = this->add("filament_dev_ams_drying_time", coFloats);
+    def->set_default_value(new ConfigOptionFloats{0});
+
+    def = this->add("filament_dev_ams_drying_heat_distortion_temperature", coFloats);
+    def->set_default_value(new ConfigOptionFloats{0});
+
+    def = this->add("filament_dev_chamber_drying_bed_temperature", coFloats);
+    def->set_default_value(new ConfigOptionFloats{0});
+
+    def = this->add("filament_dev_chamber_drying_time", coFloats);
+    def->set_default_value(new ConfigOptionFloats{0});
+
+    def = this->add("filament_dev_drying_softening_temperature", coFloats);
+    def->set_default_value(new ConfigOptionFloats{0});
+
+    def = this->add("filament_dev_drying_cooling_temperature", coFloats);
+    def->set_default_value(new ConfigOptionFloats{0});
+
     // Declare retract values for filament profile, overriding the printer's extruder profile.
     for (auto& opt_key : filament_extruder_override_keys) {
         const std::string filament_prefix = "filament_";
@@ -9231,6 +9255,17 @@ std::set<std::string> printer_options_with_variant_2 = {
 };
 
 std::set<std::string> empty_options;
+
+std::set<std::string> filament_dev_options = {
+    "filament_dev_ams_drying_ams_limitations",
+    "filament_dev_ams_drying_temperature",
+    "filament_dev_ams_drying_time",
+    "filament_dev_ams_drying_heat_distortion_temperature",
+    "filament_dev_chamber_drying_bed_temperature",
+    "filament_dev_chamber_drying_time",
+    "filament_dev_drying_softening_temperature",
+    "filament_dev_drying_cooling_temperature"
+};
 
 DynamicPrintConfig DynamicPrintConfig::full_print_config()
 {

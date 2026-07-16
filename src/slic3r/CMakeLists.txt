@@ -28,6 +28,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/AMSMaterialsSetting.hpp
     GUI/AMSSetting.cpp
     GUI/AMSSetting.hpp
+    GUI/AMSDryControl.cpp
+    GUI/AMSDryControl.hpp
     GUI/AmsWidgets.cpp
     GUI/AmsWidgets.hpp
     GUI/Auxiliary.cpp

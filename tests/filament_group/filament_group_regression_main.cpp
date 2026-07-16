@@ -211,19 +211,23 @@ static std::vector<PropertySpec>& get_property_specs() {
     return specs;
 }
 
-// Orca: a small number of config_c "stress" goldens run the nozzle-centric kmedoids clustering path,
-// which is bounded by a 3000 ms wall-clock budget (FilamentGroup.cpp calc_group_by_kmedoids). On
-// slower hardware the clustering explores fewer restarts and lands on a deterministically-worse-but-
-// valid grouping than the stored golden. We regression-lock those against Orca's own deterministic
-// score (bit-stable across runs on this machine — verified twice) so the gate stays green while the
-// divergence is documented; every other golden is a true parity gate at 3% tolerance.
-static std::optional<double> orca_locked_base_score(const std::string& stem) {
-    if (stem == "stress_66") return 125103.0; // config_c 15-filament kmedoids case; golden 117843
-    return std::nullopt;
-}
+// Under the default wall clock the result depends on how fast the machine is (see ClusteringBudget),
+// so the goldens are graded under a fixed budget instead. Two restarts is the fewest that reaches
+// parity with the reference on every golden, stress_79 being the last to get there. Four leaves
+// margin, since the search follows a different path on each standard library (see below).
+static constexpr ClusteringBudget FIXED_SEARCH_BUDGET{
+    /*timeout_ms*/ 0, // no wall clock
+    /*max_restarts*/ 4};
 
 // ============ Layer 1: Golden Regression (all configs) ============
 
+// Graded against the BambuStudio golden the harness was ported from, one-directional at 3%.
+//
+// The tolerance is a parity allowance, and it also covers a small spread across standard libraries.
+// The k-medoids search seeds each restart with std::shuffle, whose algorithm the C++ standard leaves
+// unspecified, so libstdc++, libc++ and the MSVC STL permute the same seed differently, start from
+// different medoids, and settle on slightly different groupings, about 3e-4 apart on either side of
+// the reference, and only on the goldens heavy enough to reach the k-medoids search.
 TEST_CASE("FilamentGroup golden regression", "[filament_group][golden]") {
     auto files = get_golden_files();
     if (files.empty()) {
@@ -238,29 +242,49 @@ TEST_CASE("FilamentGroup golden regression", "[filament_group][golden]") {
         auto tc = load_test_case(file_path);
         REQUIRE(tc.base_result.has_value());
 
-        auto result = run_and_evaluate(tc.context);
+        auto result = run_and_evaluate(tc.context, FIXED_SEARCH_BUDGET);
         auto eval = full_evaluate_map(tc.context, result.filament_map);
 
         auto& base = *tc.base_result;
 
-        // Reference score: the stored golden by default; Orca's deterministic score for the
-        // documented heuristic-divergent config_c stress golden (see orca_locked_base_score).
-        std::string stem = fs::path(file_path).stem().string();
-        double base_score = base.full_score;
-        if (auto locked = orca_locked_base_score(stem))
-            base_score = *locked;
-
         INFO("Case: " << tc.metadata.id);
-        INFO("Reference score: " << base_score << " (BBS golden " << base.full_score << ")");
+        INFO("Golden score: " << base.full_score);
         INFO("Actual score: " << eval.full_score);
-        INFO("Flush cost: " << eval.flush_cost << " (BBS golden " << base.flush_cost << ")");
+        INFO("Flush cost: " << eval.flush_cost << " (golden " << base.flush_cost << ")");
         INFO("Elapsed: " << result.elapsed_ms << " ms");
 
-        int tolerance = std::max(50, (int)(base_score * 0.03));
+        int tolerance = std::max(50, (int)(base.full_score * 0.03));
 
         REQUIRE(result.constraints_ok);
-        REQUIRE(eval.full_score <= base_score + tolerance);
-        // RelWithDebInfo runaway guard; the Release-calibrated 20 s limit is raised for the slower build.
+        REQUIRE(eval.full_score <= base.full_score + tolerance);
+
+        // A slower search still scores the same above, since it searches just as far, but in slicing
+        // it would mean fewer restarts fit in the wall clock and so worse groupings. Loose on
+        // purpose, so it never becomes a proxy for how loaded the runner is.
+        const double throughput_ceiling_ms = 10.0 * ClusteringBudget{}.timeout_ms;
+        REQUIRE(result.elapsed_ms < throughput_ceiling_ms);
+    }
+}
+
+// Covers the path real slicing takes, under the default wall clock. The score there depends on the
+// runner rather than on the code (see FIXED_SEARCH_BUDGET), so the only things worth asserting are
+// that the grouping comes back valid and that the search terminates.
+TEST_CASE("FilamentGroup returns a valid grouping under the default budget", "[filament_group][budget]") {
+    auto files = get_golden_files();
+    REQUIRE(!files.empty());
+
+    auto file_path = GENERATE_REF(from_range(files));
+
+    DYNAMIC_SECTION("Golden: " << fs::path(file_path).stem().string()) {
+        auto tc = load_test_case(file_path);
+
+        auto result = run_and_evaluate(tc.context); // the default budget, as real slicing runs it
+
+        INFO("Case: " << tc.metadata.id);
+        INFO("Elapsed: " << result.elapsed_ms << " ms");
+
+        REQUIRE(result.constraints_ok);
+        // A hang guard. The clock is only checked between swaps, so a sweep can overshoot.
         REQUIRE(result.elapsed_ms < 40000.0);
     }
 }

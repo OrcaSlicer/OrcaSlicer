@@ -1303,6 +1303,10 @@ private:
     FilamentIndexMap m_filament_index_map;
     // Used to cache printer and process parameter information
     PrintIndexMap m_nozzle_index_map;
+    // Orca: filament ids already reported as missing a nozzle-group entry this slice. get_config_index()
+    // falls back per-filament/per-layer in the g-code hot path, so this dedupes its log to once per
+    // filament instead of flooding thousands of identical error lines. Cleared with the caches each slice.
+    std::set<int> m_missing_nozzle_group_logged;
     // save the config value of "filament_self_index"
     std::vector<int> m_filament_self_index;
 

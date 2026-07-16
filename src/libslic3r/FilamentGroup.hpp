@@ -142,6 +142,16 @@ namespace Slic3r
         FilamentGroupContext::SpeedInfo m_speed_info;
     };
 
+    // Search budget for the k-medoids clustering, an anytime search. Each restart is seeded from its
+    // own index, so what it returns depends on how many restarts complete before the clock expires,
+    // and therefore on the speed of the machine. A timeout_ms <= 0 removes the clock and bounds the
+    // search by max_restarts alone.
+    struct ClusteringBudget
+    {
+        int timeout_ms = 3000;
+        int max_restarts = 30;
+    };
+
     class FilamentGroup
     {
         using MemoryedGroup = FilamentGroupUtils::MemoryedGroup;
@@ -149,6 +159,8 @@ namespace Slic3r
     public:
         explicit FilamentGroup(const FilamentGroupContext& ctx_) :ctx(ctx_) {}
     public:
+        void set_clustering_budget(const ClusteringBudget& budget) { m_clustering_budget = budget; }
+
         std::vector<int> calc_filament_group(int * cost = nullptr);
         std::vector<std::vector<int>> get_memoryed_groups()const { return m_memoryed_groups; }
 
@@ -162,7 +174,7 @@ namespace Slic3r
         std::vector<int> calc_group_by_enum(int k, const std::vector<unsigned int>& used_filaments,
             const std::unordered_map<int, std::vector<int>>& unplaceable_limits, int* cost = nullptr);
         std::vector<int> calc_group_by_kmedoids(int k, const std::vector<unsigned int>& used_filaments,
-            const std::unordered_map<int, std::vector<int>>& unplaceable_limits, int* cost = nullptr, int timeout_ms = 500);
+            const std::unordered_map<int, std::vector<int>>& unplaceable_limits, int* cost = nullptr);
 
         std::map<int, int> rebuild_unprintables(const std::vector<unsigned int>& used_filaments, const std::map<int,int>& extruder_unprintables);
         std::unordered_map<int, std::vector<int>> rebuild_nozzle_unprintables(const std::vector<unsigned int>& used_filaments, const std::unordered_map<int, std::vector<int>>& extruder_unprintables, const std::vector<int>& filament_volume_map);
@@ -175,6 +187,7 @@ namespace Slic3r
         FilamentGroupContext ctx;
         MemoryedGroupHeap m_memoryed_heap;
         std::vector<std::vector<int>> m_memoryed_groups;
+        ClusteringBudget m_clustering_budget;
     public:
         std::optional<std::function<bool(int, std::vector<int>&)>> get_custom_seq;
     };
@@ -220,7 +233,7 @@ namespace Slic3r
         void set_memory_threshold(double threshold) { memory_threshold = threshold; }
         MemoryedGroupHeap get_memoryed_groups()const { return memoryed_groups; }
 
-        void do_clustering(const FilamentGroupContext& context, int timeout_ms = 100, int retry = 10);
+        void do_clustering(const FilamentGroupContext& context, const ClusteringBudget& budget);
         std::vector<int> get_cluster_labels()const { return m_cluster_labels; }
 
     protected:
