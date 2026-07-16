@@ -1,6 +1,7 @@
 #include "ExclusionVolumeTravelAvoidance.hpp"
 
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/ExclusionVolumeGeometry.hpp"
 #include "libslic3r/Line.hpp"
 #include "libslic3r/Polygon.hpp"
 
@@ -13,7 +14,6 @@ namespace Slic3r {
 
 namespace {
 
-constexpr double Z_EPSILON_MM = 1e-6;
 constexpr double T_EPSILON = 1e-9;
 constexpr size_t MAX_REROUTE_ITERATIONS = 16;
 
@@ -27,11 +27,6 @@ struct SegmentIntersection
 double boundary_epsilon()
 {
     return std::max<double>(SCALED_EPSILON, scale_(0.005));
-}
-
-bool z_ranges_overlap(double a_min, double a_max, double b_min, double b_max)
-{
-    return a_max >= b_min - Z_EPSILON_MM && a_min <= b_max + Z_EPSILON_MM;
 }
 
 bool line_intersection_t(
@@ -462,17 +457,11 @@ ExclusionVolumeTravelAvoidance::active_obstacles(
     double z_min,
     double z_max) const
 {
-    Polygons active_polygons;
-    active_polygons.reserve(space.regions.size());
-    for (const BedExcludeRegion &region : space.regions)
-        if (z_ranges_overlap(z_min, z_max, region.z_min, region.z_max))
-            active_polygons.emplace_back(region.polygon);
-
-    if (active_polygons.empty())
-        return std::nullopt;
-
     ActiveObstacles active;
-    active.obstacles = union_ex(expand(active_polygons, float(m_clearance)));
+    active.obstacles = active_bed_exclusion_footprints(
+        space.regions, z_min, z_max, Point(0, 0), m_clearance);
+    if (active.obstacles.empty())
+        return std::nullopt;
     if (space.bed_shape.points.size() >= 3) {
         active.valid_bed = offset_ex(space.bed_shape, -float(m_clearance));
         if (active.valid_bed.empty())

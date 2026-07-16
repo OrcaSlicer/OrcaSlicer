@@ -114,6 +114,8 @@ set(lisbslic3r_sources
     Emboss.hpp
     EmbossShape.hpp
     enum_bitmask.hpp
+    ExclusionVolumeGeometry.cpp
+    ExclusionVolumeGeometry.hpp
     Execution/Execution.hpp
     Execution/ExecutionSeq.hpp
     Execution/ExecutionTBB.hpp
