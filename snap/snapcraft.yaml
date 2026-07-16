@@ -1,0 +1,89 @@
+name: orcaslicer
+# Snap name must be lowercase with no dots; it has to be registered in the Snap
+# Store before the first upload (`snapcraft register orcaslicer`).
+base: core24
+adopt-info: metadata          # version (from version.inc) + summary/description (from the metainfo)
+grade: stable
+# Classic confinement: like the AppImage, OrcaSlicer runs in the host namespace
+# and uses host libraries. This is required for full hardware/filesystem access —
+# notably the 3D mouse (SpaceMouse via the host spacenavd socket at
+# /run/spnav.sock), which no strict-confinement interface can reach.
+# NOTE: classic confinement must be granted once by the Snap Store (forum request)
+# before uploads to any channel are accepted. See snap/README.md.
+confinement: classic
+license: AGPL-3.0-only
+icon: resources/images/OrcaSlicer_192px.png
+compression: lzo              # faster first-launch decompression for a large (~1 GB) snap
+
+# As with the AppImage, the desktop stack (GTK / WebKitGTK / GStreamer / GLU) is
+# resolved from the host, not bundled. The classic/library linters assume a
+# self-contained snap and would flag every host-resolved library, so silence them;
+# runtime smoke tests are the real check (see snap/README.md).
+lint:
+  ignore:
+    - classic
+    - library
+
+platforms:
+  amd64:
+  arm64:
+
+apps:
+  orcaslicer:
+    command: bin/launcher                              # snap/local/launcher (NOT the AppImage orca-slicer-env)
+    common-id: com.orcaslicer.OrcaSlicer               # ties the app to the AppStream component id
+    desktop: usr/share/applications/com.orcaslicer.OrcaSlicer.desktop
+
+parts:
+  # The compiled application, reused verbatim from the AppImage build output
+  # (build/package = bin/orca-slicer + lib/orca-runtime + resources + share).
+  # Dumped at the snap root so the binary finds its data at bin/../resources,
+  # exactly as it does inside the AppImage. The host supplies the desktop stack
+  # (GTK / WebKitGTK / GStreamer / GLU) just as it does for the AppImage.
+  orcaslicer:
+    plugin: dump
+    source: build/package
+
+  # Desktop integration + Store metadata. Reuses the existing desktop file,
+  # metainfo and icon (no forks). Mirrors the Flatpak post-install step.
+  metadata:
+    plugin: nil
+    parse-info: [usr/share/metainfo/com.orcaslicer.OrcaSlicer.metainfo.xml]
+    build-packages: [desktop-file-utils]
+    override-build: |
+      set -e
+      # AppStream metainfo (drives the Store listing: summary, description, screenshots)
+      install -Dm644 "$CRAFT_PROJECT_DIR/scripts/flatpak/com.orcaslicer.OrcaSlicer.metainfo.xml" \
+        "$CRAFT_PART_INSTALL/usr/share/metainfo/com.orcaslicer.OrcaSlicer.metainfo.xml"
+
+      # Desktop entry: reuse the canonical one, point Exec/Icon at the snap.
+      install -Dm644 "$CRAFT_PROJECT_DIR/src/dev-utils/platform/unix/com.orcaslicer.OrcaSlicer.desktop" \
+        "$CRAFT_PART_INSTALL/usr/share/applications/com.orcaslicer.OrcaSlicer.desktop"
+      desktop-file-edit \
+        --set-key=Exec --set-value="orcaslicer %U" \
+        --set-icon="orcaslicer" \
+        "$CRAFT_PART_INSTALL/usr/share/applications/com.orcaslicer.OrcaSlicer.desktop"
+
+      # Icons (name must match the desktop Icon= key and the snap name).
+      install -Dm644 "$CRAFT_PROJECT_DIR/resources/images/OrcaSlicer.svg" \
+        "$CRAFT_PART_INSTALL/usr/share/icons/hicolor/scalable/apps/orcaslicer.svg"
+      install -Dm644 "$CRAFT_PROJECT_DIR/resources/images/OrcaSlicer_192px.png" \
+        "$CRAFT_PART_INSTALL/usr/share/icons/hicolor/192x192/apps/orcaslicer.png"
+
+      # Ship the bundled fonts in a fontconfig-scanned directory so Pango knows
+      # them before initialization (avoids the AddPrivateFont/ensure_faces crash
+      # the Flatpak guards against).
+      install -d "$CRAFT_PART_INSTALL/usr/share/fonts/OrcaSlicer"
+      install -m644 "$CRAFT_PROJECT_DIR"/resources/fonts/*.ttf \
+        "$CRAFT_PART_INSTALL/usr/share/fonts/OrcaSlicer/"
+
+      # Version straight from version.inc (single source of truth, same as AppImage/Flatpak).
+      ver=$(grep 'set(SoftFever_VERSION' "$CRAFT_PROJECT_DIR/version.inc" | cut -d '"' -f2)
+      craftctl set version="$ver"
+
+  # Minimal snap launch wrapper (replaces the AppImage orca-slicer-env / Flatpak entrypoint).
+  launcher:
+    plugin: dump
+    source: snap/local
+    organize:
+      launcher: bin/launcher

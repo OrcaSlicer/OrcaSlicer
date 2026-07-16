@@ -79,6 +79,7 @@ jobs:
             -p 'OrcaSlicer_Mac_universal_*' \
             -p 'OrcaSlicer_Linux_ubuntu_*' \
             -p 'OrcaSlicer-Linux-flatpak_*' \
+            -p 'OrcaSlicer-Linux-snap_*' \
             -p 'PDB'
           echo "Downloaded artifact folders:"
           ls -1 artifacts
@@ -103,6 +104,9 @@ jobs:
           find artifacts -type f -name '*.AppImage' -exec cp -v {} upload/ \;
           # Flatpak bundles (x86_64 + aarch64).
           find artifacts -type f -name '*.flatpak' -exec cp -v {} upload/ \;
+          # Snaps are intentionally NOT copied here: they go to the Snap Store
+          # only (see the "Publish snaps to the Snap Store" step), not to the
+          # GitHub release.
           # Windows debug symbols (PDB archive, for developers).
           find artifacts -type f -name 'Debug_PDB_*.7z' -exec cp -v {} upload/ \;
 
@@ -129,3 +133,30 @@ jobs:
           gh release upload "$TAG" upload/* --repo "$GITHUB_REPOSITORY" --clobber
           echo "Uploaded to draft release: $TAG"
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name'
+
+      - name: Publish snaps to the Snap Store
+        # Snaps ship to the Store only (not as release assets). Channel comes from
+        # the tag suffix; nightly -> edge is handled in the build workflows.
+        # NOTE: classic confinement means the Store holds uploads for manual
+        # review until classic is granted (see snap/README.md).
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        run: |
+          set -euo pipefail
+          mapfile -t snaps < <(find artifacts -type f -name '*.snap')
+          if [ ${#snaps[@]} -eq 0 ]; then
+            echo "::warning::No .snap artifacts in run $RUN_ID; skipping Snap Store publish."
+            exit 0
+          fi
+          case "$TAG" in
+            *-rc*)            channel=candidate ;;
+            *-beta*|*-alpha*) channel=beta ;;
+            *)                channel=stable ;;
+          esac
+          echo "Releasing $TAG to Snap Store channel: $channel"
+          sudo snap install snapcraft --classic
+          for s in "${snaps[@]}"; do
+            echo "::group::snapcraft upload $s --release=$channel"
+            snapcraft upload "$s" --release="$channel"
+            echo "::endgroup::"
+          done

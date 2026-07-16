@@ -1,0 +1,24 @@
+#!/bin/sh
+# Snap launch wrapper for OrcaSlicer (classic confinement).
+#
+# Classic confinement runs in the host namespace and uses host libraries, just
+# like the AppImage. This wrapper sets up only the load-bearing environment and
+# execs the binary. It deliberately does NOT reuse the AppImage's orca-slicer-env
+# (which probes the host for WebKitGTK and exit 1's if absent, and sets LC_ALL=C
+# which would break translations) nor the Flatpak entrypoint (which assumes /app).
+
+# Keep the C numeric locale (decimal separator) without overriding the UI
+# language, matching the Flatpak entrypoint. Otherwise some locales corrupt
+# G-code coordinates.
+export LC_NUMERIC=C
+
+# Resolve OrcaSlicer's bundled private libraries first (OpenSSL 1.1.x, CURL,
+# etc.). The desktop stack (GTK / WebKitGTK / GStreamer / GLU) resolves from the
+# host, exactly as in the AppImage.
+export LD_LIBRARY_PATH="$SNAP/lib/orca-runtime:$SNAP/bin${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+# 3D mouse (3Dconnexion SpaceMouse via the host spacenavd daemon). Classic
+# confinement can reach the host socket; mirrors the Flatpak's SPNAV_SOCKET env.
+export SPNAV_SOCKET=/run/spnav.sock
+
+exec "$SNAP/bin/orca-slicer" "$@"

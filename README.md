@@ -159,6 +159,28 @@ flatpak run com.orcaslicer.OrcaSlicer
 
 It can also be installed through graphical software managers (KDE Discover, GNOME Software, etc.) when Flathub is enabled. Search for **OrcaSlicer** in your software center.
 
+### Snap Store
+
+OrcaSlicer is available from the Snap Store:
+
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/orcaslicer)
+
+```shell
+sudo snap install orcaslicer --classic
+```
+
+Use a different channel for pre-releases or bleeding-edge builds:
+
+```shell
+sudo snap install orcaslicer --classic --candidate # release candidates (vX.Y.Z-rc)
+sudo snap install orcaslicer --classic --beta      # alpha / beta pre-releases
+sudo snap install orcaslicer --classic --edge      # nightly builds
+```
+
+The snap uses classic confinement, so it has full hardware and filesystem access just like the
+AppImage — including USB/serial printers, removable media, network shares, and 3D mice
+(3Dconnexion SpaceMouse via `spacenavd`). No extra setup is required after install.
+
 ### AppImage
 
 AppImages are published for both **x86_64** and **aarch64** (ARM64). Pick the file matching your CPU — the ARM64 build has `aarch64` in its name (e.g. `OrcaSlicer_Linux_AppImage_Ubuntu2404_aarch64_*.AppImage`).

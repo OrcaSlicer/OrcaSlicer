@@ -15,6 +15,7 @@ on:
      - 'resources/**'
      - ".github/workflows/build_*.yml"
      - 'scripts/flatpak/**'
+     - 'snap/**'
      - 'scripts/msix/**'
      - 'tests/**'
 
@@ -34,6 +35,7 @@ on:
      - 'build_release_vs2022.bat'
      - 'build_release_macos.sh'
      - 'scripts/flatpak/**'
+     - 'snap/**'
      - 'scripts/msix/**'
      - 'tests/**'
 
@@ -58,7 +60,7 @@ jobs:
     strategy:
       fail-fast: false
       # Build both arches on every event (PRs included), through the same
-      # build_check_cache -> build_deps -> build_orca chain (the AppImage).
+      # build_check_cache -> build_deps -> build_orca chain (AppImage + snap).
       # aarch64 always uses the GitHub-hosted arm runner (there is no arm
       # self-hosted server). amd64's empty arch is load-bearing: it keeps the
       # historical 'linux-clang' deps cache key and the unsuffixed asset names.

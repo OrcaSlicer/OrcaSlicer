@@ -87,10 +87,14 @@ jobs:
           echo "ver_pure=$ver_pure" >> $GITHUB_ENV
           echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
           echo "git_commit_hash=$git_commit_hash" >> $GITHUB_ENV
-          # Per-arch Linux AppImage naming: amd64 keeps the historical unsuffixed
-          # name (arch_suffix empty). Unused on macOS/Windows.
+          # Per-arch Linux naming, computed once: amd64 keeps the historical
+          # unsuffixed names (arch_suffix empty); snap_arch is snapcraft's token.
+          # Unused on macOS/Windows.
           if [ '${{ inputs.arch }}' = 'aarch64' ]; then
             echo "arch_suffix=_aarch64" >> $GITHUB_ENV
+            echo "snap_arch=arm64" >> $GITHUB_ENV
+          else
+            echo "snap_arch=amd64" >> $GITHUB_ENV
           fi
         shell: bash
 
@@ -495,6 +499,37 @@ jobs:
           mv -n ./build/OrcaSlicer_Linux_V${{ env.ver_pure }}.AppImage "$appimage"
           chmod +x "$appimage"
           tar -cvf build_tests.tar build/tests
+
+        # Build the snap right here, reusing the AppDir we just produced
+        # (build/package): the compiled binary + bundled libs + resources are
+        # repackaged as-is, for both amd64 and aarch64. Skipped on PRs (snapcraft
+        # adds several minutes per arch). The snap is Store-only; it is never
+        # attached to a GitHub release.
+      - name: Free disk space for snap build
+        if: runner.os == 'Linux' && !vars.SELF_HOSTED && github.event_name != 'pull_request'
+        run: sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /opt/hostedtoolcache || true
+      - name: Build snap
+        if: runner.os == 'Linux' && !vars.SELF_HOSTED && github.event_name != 'pull_request'
+        id: snapbuild
+        uses: snapcore/action-build@v1
+      - name: Upload snap artifact
+        if: ${{ ! env.ACT && runner.os == 'Linux' && !vars.SELF_HOSTED && github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: OrcaSlicer-Linux-snap_${{ env.ver }}_${{ env.snap_arch }}.snap
+          path: ${{ steps.snapbuild.outputs.snap }}
+          retention-days: 5
+          if-no-files-found: error
+        # Nightly -> Snap Store 'edge'. NOTE: classic confinement means the Store
+        # holds uploads for manual review until classic is granted (snap/README.md).
+      - name: Publish snap to edge (nightly)
+        if: github.repository == 'OrcaSlicer/OrcaSlicer' && github.ref == 'refs/heads/main' && runner.os == 'Linux' && !vars.SELF_HOSTED
+        uses: snapcore/action-publish@v1
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_STORE_CREDENTIALS }}
+        with:
+          snap: ${{ steps.snapbuild.outputs.snap }}
+          release: edge
 
         # Use tar because upload-artifacts won't always preserve directory structure
         # and doesn't preserve file permissions
