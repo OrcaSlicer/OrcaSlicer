@@ -1235,6 +1235,11 @@ void PartPlate::update_exclusion_volume_preview_models()
     for (const std::vector<BedExcludeRegion> &extruder_regions : regions_by_extruder)
         regions.insert(regions.end(), extruder_regions.begin(), extruder_regions.end());
     const BedExcludeAreaMode mode = config->opt_enum<BedExcludeAreaMode>("bed_exclude_area_mode");
+    // A coloured border communicates which physical nozzle owns a footprint.
+    // With only one nozzle the exclusion applies to every filament, so using
+    // the first filament colour would incorrectly imply material ownership.
+    const bool show_nozzle_ownership =
+        regions_by_extruder.size() > 1 && mode != BedExcludeAreaMode::Shared;
     std::ostringstream grouped_key;
     grouped_key << exclusion_volume_preview_cache_key(regions) << "mode:" << int(mode) << ";groups:";
     for (const std::vector<BedExcludeRegion> &group : regions_by_extruder)
@@ -1303,7 +1308,7 @@ void PartPlate::update_exclusion_volume_preview_models()
     Polygons preview_footprints;
     std::vector<ExclusionVolumePrismPreview> active_prisms;
 
-    if (mode != BedExcludeAreaMode::Shared) {
+    if (show_nozzle_ownership) {
         static const std::array<ColorRGBA, 6> fallback_colors = {
             ColorRGBA{ .18f, .52f, .95f, .92f }, ColorRGBA{ .95f, .35f, .22f, .92f },
             ColorRGBA{ .25f, .72f, .38f, .92f }, ColorRGBA{ .72f, .34f, .88f, .92f },
