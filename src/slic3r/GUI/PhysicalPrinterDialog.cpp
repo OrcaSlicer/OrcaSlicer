@@ -669,7 +669,7 @@ void PhysicalPrinterDialog::update(bool printer_change)
                 }
 
                 // For bbl printers, show option to control the device tab
-                if (wxGetApp().preset_bundle->is_bbl_vendor()) {
+                if (wxGetApp().preset_bundle->is_bbl_vendor() || wxGetApp().app_config->get_bool("use_printer_agents")) {
                     m_optgroup->show_field("bbl_use_print_host_webui");
                     const bool use_print_host_webui = !current_webui.empty();
                     if (Field* printhost_webui_field = m_optgroup->get_field("bbl_use_print_host_webui"); printhost_webui_field) {
