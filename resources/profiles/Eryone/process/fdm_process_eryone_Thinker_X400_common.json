@@ -59,7 +59,7 @@
     "infill_jerk": "9",
     "infill_wall_overlap": "25%",
     "initial_layer_acceleration": "500",
-    "initial_layer_infill_speed": "105",
+    "initial_layer_infill_speed": "80",
     "initial_layer_jerk": "9",
     "initial_layer_line_width": "0.5",
     "initial_layer_min_bead_width": "85%",
