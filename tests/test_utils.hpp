@@ -44,4 +44,22 @@ private:
     boost::filesystem::path m_path;
 };
 
+// Changes the working directory and restores the previous one on scope exit, including when an
+// assertion throws. It is process wide state shared with every other test.
+class ScopedWorkingDirectory
+{
+public:
+    explicit ScopedWorkingDirectory(const boost::filesystem::path &dir)
+        : m_previous(boost::filesystem::current_path())
+    {
+        boost::filesystem::current_path(dir);
+    }
+    ~ScopedWorkingDirectory() { boost::system::error_code ec; boost::filesystem::current_path(m_previous, ec); }
+    ScopedWorkingDirectory(const ScopedWorkingDirectory &) = delete;
+    ScopedWorkingDirectory &operator=(const ScopedWorkingDirectory &) = delete;
+
+private:
+    boost::filesystem::path m_previous;
+};
+
 #endif // SLIC3R_TEST_UTILS
