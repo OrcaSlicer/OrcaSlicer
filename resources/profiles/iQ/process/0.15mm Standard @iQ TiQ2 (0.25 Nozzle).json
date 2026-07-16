@@ -3,6 +3,7 @@
 	"name": "0.15mm Standard @iQ TiQ2 (0.25 Nozzle)",
 	"inherits": "fdm_process_tiq_common",
 	"from": "system",
+	"setting_id": "PNxZXC0peOlGlKwG",
 	"instantiation": "true",
 	"compatible_printers": [
 		"iQ TiQ2 0.25 Nozzle"

@@ -997,7 +997,6 @@ public:
     void select_curr_plate_all();
     void select_object_from_idx(std::vector<int>& object_idxs);
     void remove_curr_plate_all();
-    void update_plate_thumbnails();
 
     void select_all();
     void deselect_all();

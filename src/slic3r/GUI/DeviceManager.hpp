@@ -117,7 +117,7 @@ private:
     std::shared_ptr<DevExtensionTool> m_extension_tool;
     DevExtderSystem*  m_extder_system;
     DevNozzleSystem*  m_nozzle_system;
-    DevFilaSystem*    m_fila_system;
+    std::shared_ptr<DevFilaSystem> m_fila_system;
     DevFilaSwitch*    m_fila_switch;
     DevFan*           m_fan;
     DevBed *          m_bed;
@@ -342,7 +342,7 @@ public:
     std::shared_ptr<DevNozzleMappingCtrl> get_nozzle_mapping_result() const { return m_nozzle_mapping_ptr; }
     void clear_auto_nozzle_mapping();// defined in DevMappingNozzle.cpp
 
-    DevFilaSystem*   GetFilaSystem() const { return m_fila_system;}
+    std::shared_ptr<DevFilaSystem>   GetFilaSystem() const { return m_fila_system;}
     DevFilaSwitch*   GetFilaSwitch() const { return m_fila_switch;}
     bool             HasAms() const;
 
@@ -635,6 +635,7 @@ public:
 
     // fun2
     bool is_support_print_with_emmc{false};
+    bool is_support_remote_dry = false;
     bool is_support_check_track_switch_match_slice_printer{false};
 
     bool installed_upgrade_kit{false};

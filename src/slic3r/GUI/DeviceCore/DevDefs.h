@@ -41,6 +41,16 @@ enum AmsStatusMain
     AMS_STATUS_MAIN_UNKNOWN = 0xFF,
 };
 
+enum DevAmsType : int
+{
+    EXT_SPOOL = 0,      // EXT
+    AMS = 1,            // AMS1
+    AMS_LITE = 2,       // AMS-Lite
+    N3F = 3,            // N3F, AMS 2PRO
+    N3S = 4,            // N3S, AMS HT
+    AMS_LITE_MIXED = 5, // AMS-Lite for N9
+};
+
 // Device-numbered filament-change step codes. Newer firmware reports the exact change-step
 // sequence through the AMS (ams.cfs), keyed by these codes, instead of the client hardcoding
 // steps per model. Distinct from the legacy GUI-side Slic3r::GUI::FilamentStep enum.

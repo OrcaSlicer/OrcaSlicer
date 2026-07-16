@@ -805,6 +805,9 @@ public:
     std::string     path_from_name(const std::string &new_name, bool detach = false) const;
     std::string     path_for_preset(const Preset & preset) const;
 
+    // Get the alias of a preset, setting it if it's empty
+    std::string     get_preset_alias(Preset &preset, bool force = false);
+
     size_t num_default_presets() { return m_num_default_presets; }
 
 protected:

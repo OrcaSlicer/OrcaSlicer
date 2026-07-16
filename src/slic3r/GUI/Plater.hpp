@@ -936,6 +936,10 @@ public:
 
     bool is_loading_project() const { return m_loading_project; }
 
+    void mark_plate_toolbar_image_dirty();
+    bool is_plate_toolbar_image_dirty() const;
+    void clear_plate_toolbar_image_dirty();
+
 private:
     struct priv;
     std::unique_ptr<priv> p;
@@ -956,6 +960,7 @@ private:
     std::string m_preview_only_filename;
     int m_valid_plates_count { 0 };
     int m_check_status = 0; // 0 not check, 1 check success, 2 check failed
+    bool m_b_plate_toolbar_image_dirty{ true };
 
     void suppress_snapshots();
     void allow_snapshots();
