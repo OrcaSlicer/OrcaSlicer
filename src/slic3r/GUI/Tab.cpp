@@ -33,6 +33,7 @@
 
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"
+#include "slic3r/Utils/NetworkAgentFactory.hpp"
 #include "slic3r/Utils/PresetUpdater.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
@@ -4978,6 +4979,40 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("gcode_flavor", "printer_basic_information_advanced#g-code-flavor");
         optgroup->append_single_option_line("pellet_modded_printer", "printer_basic_information_advanced#pellet-modded-printer");
         optgroup->append_single_option_line("bbl_use_printhost", "printer_basic_information_advanced#use-3rd-party-print-host");
+
+        // "Printer Agent" dropdown - printer_agent is a coString; gui_type routes it to
+        // PrinterAgentChoice instead of a TextCtrl. Rows and values come from the live agent
+        // registry, and the value is stored as the agent-id string.
+        if (wxGetApp().getAgent() != nullptr)
+        {
+            auto registered_printer_agents = NetworkAgentFactory::get_registered_printer_agents();
+            if (!registered_printer_agents.empty())
+            {
+                ConfigOptionDef def;
+                def.type = coString;
+                def.gui_type = ConfigOptionDef::GUIType::printer_agent_select;
+                def.width = 3 * Field::def_width_wider() / 2;
+                def.label = L("Printer Agent");
+                def.tooltip = L("Select the network agent implementation for printer communication. "
+                    "Available agents are registered at startup.");
+                def.mode = comAdvanced;
+
+                // Create the field without get_option() so it is not registered in m_opt_map.
+                // ConfigOptionsGroup handles printer_agent before the generic mapped write path.
+                Line agent_line = optgroup->create_single_option_line(Option(def, "printer_agent"));
+                optgroup->append_line(agent_line);
+                if (Field* agent_field = get_field("printer_agent"))
+                {
+                    if (auto* choice = dynamic_cast<PrinterAgentChoice*>(agent_field); choice && choice->getWindow())
+                        choice->set_value(m_config->opt_string("printer_agent"), false);
+                }
+
+                // Register by hand so the UnsavedChanges dialog can render a row for it.
+                wxGetApp().sidebar().get_searcher().add_key("printer_agent", m_type, optgroup->title,
+                                                            optgroup->config_category());
+            }
+        }
+
         optgroup->append_single_option_line("use_3mf");
         optgroup->append_single_option_line("scan_first_layer" , "printer_basic_information_advanced#scan-first-layer");
         optgroup->append_single_option_line("enable_power_loss_recovery", "printer_basic_information_advanced#power-loss-recovery");
@@ -5841,6 +5876,16 @@ void TabPrinter::reload_config()
     // so update it implicitly
     if (m_active_page && m_active_page->title() == "Multimaterial")
         m_active_page->set_value("extruders_count", int(m_extruders_count));
+
+    // m_opt_map-driven reload does not cover printer_agent, so sync this custom field explicitly.
+    if (Field* agent_field = get_field("printer_agent"))
+    {
+        if (auto* choice = dynamic_cast<PrinterAgentChoice*>(agent_field); choice && choice->getWindow())
+        {
+            const std::string selected_agent = m_config->opt_string("printer_agent");
+            choice->set_value(selected_agent, false);
+        }
+    }
 }
 
 void TabPrinter::activate_selected_page(std::function<void()> throw_if_canceled)
@@ -5851,6 +5896,16 @@ void TabPrinter::activate_selected_page(std::function<void()> throw_if_canceled)
     // so update it implicitly
     if (m_active_page && m_active_page->title() == "Multimaterial")
         m_active_page->set_value("extruders_count", int(m_extruders_count));
+
+    // m_opt_map-driven reload does not cover printer_agent, so sync this custom field explicitly.
+    if (Field* agent_field = get_field("printer_agent"))
+    {
+        if (auto* choice = dynamic_cast<PrinterAgentChoice*>(agent_field); choice && choice->getWindow())
+        {
+            const std::string selected_agent = m_config->opt_string("printer_agent");
+            choice->set_value(selected_agent, false);
+        }
+    }
 }
 
 void TabPrinter::clear_pages()
