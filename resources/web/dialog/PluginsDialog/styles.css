@@ -374,6 +374,11 @@ body {
   font-weight: 600;
 }
 
+.status-cell.status-runtimeerror {
+  color: var(--plugin-status-warn);
+  font-weight: 600;
+}
+
 .status-cell.status-loading {
   color: var(--plugin-status-warn);
   font-weight: 600;
@@ -624,6 +629,11 @@ body {
 .detail-status-chip.status-error {
   background: var(--plugin-status-danger-bg);
   color: var(--plugin-status-danger);
+}
+
+.detail-status-chip.status-runtimeerror {
+  background: var(--plugin-status-warn-bg);
+  color: var(--plugin-status-warn);
 }
 
 .detail-status-chip.status-loading {
