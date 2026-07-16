@@ -11,6 +11,7 @@
 #include "EdgeGrid.hpp"
 #include "Geometry/ConvexHull.hpp"
 #include "GCode/PrintExtents.hpp"
+#include "GCodeReader.hpp"
 #include "GCode/Thumbnails.hpp"
 #include "GCode/WipeTower.hpp"
 #include "GCode/WipeTower2.hpp"
@@ -85,6 +86,53 @@ using namespace std::literals::string_view_literals;
 #include <assert.h>
 
 namespace Slic3r {
+
+namespace {
+
+// Follow XY commands in a generated G-code block. This deliberately handles
+// only standard motion/modal commands: an opaque macro that moves the head is
+// already outside the position guarantees made by GCodeWriter.
+std::optional<Vec2d> emitted_xy_after_gcode(const std::string &gcode, const Vec2d &initial_xy)
+{
+    Vec2d position = initial_xy;
+    bool  absolute = true;
+    bool  coordinate_frame_known = true;
+
+    GCodeReader reader;
+    reader.parse_buffer(gcode, [&position, &absolute, &coordinate_frame_known](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        if (line.cmd_is("G90")) {
+            absolute = true;
+            return;
+        }
+        if (line.cmd_is("G91")) {
+            absolute = false;
+            return;
+        }
+
+        const bool is_motion = line.cmd_is("G0") || line.cmd_is("G1") || line.cmd_is("G2") || line.cmd_is("G3");
+        if (is_motion) {
+            if (line.has_x())
+                position.x() = absolute ? line.x() : position.x() + line.x();
+            if (line.has_y())
+                position.y() = absolute ? line.y() : position.y() + line.y();
+            return;
+        }
+
+        // G92 changes the coordinate system without moving the machine, and
+        // G28 moves to a firmware-defined position. Do not invent a position
+        // if either command affects XY.
+        if (line.cmd_is("G92")) {
+            coordinate_frame_known = coordinate_frame_known && !line.has_x() && !line.has_y();
+        } else if (line.cmd_is("G28")) {
+            const bool homes_all = !line.has_x() && !line.has_y() && !line.has_z();
+            coordinate_frame_known = coordinate_frame_known && !homes_all && !line.has_x() && !line.has_y();
+        }
+    });
+
+    return coordinate_frame_known ? std::optional<Vec2d>(position) : std::nullopt;
+}
+
+} // namespace
 
     //! macro used to mark string used at localization,
     //! return same string
@@ -970,6 +1018,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         if (new_filament_id != -1 && new_filament_id != tcr.new_tool)
             throw Slic3r::InvalidArgument("Error: WipeTowerIntegration::append_tcr was asked to do a toolchange it didn't expect.");
 
+        const std::optional<GCode::ToolchangePositionState> position_before_toolchange =
+            gcodegen.capture_toolchange_position();
+
         int new_extruder_id = get_extruder_index(*m_print_config, new_filament_id);
 
         // Logical nozzle grouping for this print (null on paths that don't populate it).
@@ -1465,6 +1516,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         // Let the planner know we are traveling between objects.
         gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
+        if (position_before_toolchange)
+            gcodegen.synchronize_toolchange_position(*position_before_toolchange, gcode);
         return gcode;
     }
 
@@ -1475,6 +1528,9 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     {
         if (new_extruder_id != -1 && new_extruder_id != tcr.new_tool)
             throw Slic3r::InvalidArgument("Error: WipeTowerIntegration::append_tcr was asked to do a toolchange it didn't expect.");
+
+        const std::optional<GCode::ToolchangePositionState> position_before_toolchange =
+            gcodegen.capture_toolchange_position();
 
         std::string gcode;
 
@@ -1792,6 +1848,8 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
 
         // Let the planner know we are traveling between objects.
         gcodegen.m_avoid_crossing_perimeters.use_external_mp_once();
+        if (position_before_toolchange)
+            gcodegen.synchronize_toolchange_position(*position_before_toolchange, gcode);
         return gcode;
     }
 
@@ -7139,6 +7197,37 @@ void GCode::set_extruders(const std::vector<unsigned int> &extruder_ids)
         }
 }
 
+std::optional<GCode::ToolchangePositionState> GCode::capture_toolchange_position()
+{
+    if (m_exclusion_volume_travel_avoidance.empty() || !m_last_pos_defined || m_writer.filament() == nullptr)
+        return std::nullopt;
+
+    const Vec2d plate_offset = m_writer.get_xy_offset().cast<double>();
+    return ToolchangePositionState{
+        int(m_writer.filament()->extruder_id()),
+        this->point_to_gcode(m_last_pos.to_point()) - plate_offset
+    };
+}
+
+void GCode::synchronize_toolchange_position(const ToolchangePositionState &before, const std::string &emitted_gcode)
+{
+    if (m_writer.filament() == nullptr || int(m_writer.filament()->extruder_id()) == before.physical_extruder_id)
+        return;
+
+    const std::optional<Vec2d> emitted_xy = emitted_xy_after_gcode(emitted_gcode, before.emitted_xy);
+    if (!emitted_xy)
+        return;
+
+    // GCodeWriter stores coordinates before applying the per-plate output
+    // offset. Convert the parsed file coordinates back into that space, then
+    // into model space using the newly active nozzle offset.
+    const Vec2d writer_xy = *emitted_xy + m_writer.get_xy_offset().cast<double>();
+    Vec3d       writer_position = m_writer.get_position();
+    writer_position.head<2>() = writer_xy;
+    m_writer.set_position(writer_position);
+    this->set_last_pos(this->gcode_to_point(writer_xy));
+}
+
 void GCode::set_origin(const Vec2d &pointf)
 {
     // if origin increases (goes towards right), last_pos decreases because it goes towards left
@@ -9436,6 +9525,9 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     if (!m_writer.need_toolchange(new_filament_id))
         return "";
 
+    const std::optional<ToolchangePositionState> position_before_toolchange =
+        this->capture_toolchange_position();
+
     // if we are running a single-extruder setup, just set the extruder and return nothing
     if (!m_writer.multiple_extruders) {
         this->placeholder_parser().set("current_extruder", new_filament_id);
@@ -9480,6 +9572,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
         gcode += m_writer.toolchange(new_filament_id, new_extruder_id);
         if (Extruder *fil = m_writer.filament())
             fil->set_config_index((int)get_filament_config_index((int)fil->id()));
+        if (position_before_toolchange)
+            this->synchronize_toolchange_position(*position_before_toolchange, gcode);
         return gcode;
     }
 
@@ -9872,6 +9966,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     }
     //Orca: tool changer or IDEX's firmware may change Z position, so we set it to unknown/undefined
     m_last_pos_defined = false;
+    if (position_before_toolchange)
+        this->synchronize_toolchange_position(*position_before_toolchange, gcode);
 
     return gcode;
 }

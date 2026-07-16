@@ -715,6 +715,19 @@ private:
     Point3                              m_last_pos;
     bool                                m_last_pos_defined;
 
+    struct ToolchangePositionState
+    {
+        int   physical_extruder_id{-1};
+        Vec2d emitted_xy{Vec2d::Zero()};
+    };
+
+    // Capture and restore the actual command-space position around a physical
+    // nozzle change. Model-space m_last_pos is tied to the active nozzle offset,
+    // while the machine position itself does not change when Tx is emitted.
+    std::optional<ToolchangePositionState> capture_toolchange_position();
+    void synchronize_toolchange_position(const ToolchangePositionState &before,
+                                         const std::string             &emitted_gcode);
+
     std::unique_ptr<CoolingBuffer>      m_cooling_buffer;
     std::unique_ptr<SpiralVase>         m_spiral_vase;
 
