@@ -4601,6 +4601,7 @@ void Print::export_gcode_from_previous_file(const std::string& file, GCodeProces
         // (via ensure_nozzle_group_result), so the multi-nozzle send/monitor mapping survives here.
         if (result != nullptr && result->nozzle_group_result)
             processor.initialize_from_context(result->nozzle_group_result);
+        processor.configure_exclusion_volume_path_check(this->config());
         //processor.enable_producers(true);
         processor.process_file(file);
 

@@ -2582,6 +2582,18 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     m_processor.result().nozzle_group_result = m_print->get_layered_nozzle_group_result();
 
     m_processor.finalize(true);
+    if (m_processor.get_result().exclusion_volume_path_conflict) {
+        const int extruder_id = m_processor.get_result().exclusion_volume_conflict_extruder_id;
+        const std::string warning = extruder_id >= 0 ?
+            Slic3r::format(
+                _(L("A G-code move intersects an exclusion volume for extruder %1%. This may cause a printer collision.")),
+                std::to_string(extruder_id + 1)) :
+            _(L("A G-code move intersects an exclusion volume. This may cause a printer collision."));
+        print->active_step_add_warning(
+            PrintStateBase::WarningLevel::CRITICAL,
+            warning,
+            PrintStateBase::SlicingExclusionVolumeToolpath);
+    }
 //    DoExport::update_print_estimated_times_stats(m_processor, print->m_print_statistics);
     DoExport::update_print_estimated_stats(m_processor, m_writer.extruders(), print->m_print_statistics, print->config());
     // Printed-mass safety check. Flushed filament leaves the bed, so subtract it
@@ -2644,6 +2656,7 @@ namespace DoExport {
         processor.initialize_from_context(nozzle_group_result);
         processor.initialize_result_moves();
         processor.apply_config(config);
+        processor.configure_exclusion_volume_path_check(config);
         processor.enable_stealth_time_estimator(silent_time_estimator_enabled);
     }
 
