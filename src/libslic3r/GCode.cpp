@@ -2435,6 +2435,8 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
     // BBS
     m_curr_print = print;
     m_skirt_group_done.clear();
+    m_pending_start_gcode_position.reset();
+    m_exclusion_volume_travel_avoidance.init(print->config(), print->get_plate_origin());
 
     GCodeWriter::full_gcode_comment = print->config().gcode_comments;
     CNumericLocalesSetter locales_setter;
@@ -3775,6 +3777,17 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // Ugly hack: Do not set the initial extruder if the extruder is primed using the MMU priming towers at the edge of the print bed.
         file.write(this->set_extruder(initial_extruder_id, 0.));
     }
+
+    // Direct output writes are parsed synchronously. Preserve the startup
+    // endpoint before the generator establishes its first model-space point,
+    // so that first travel can be planned from the position the G-code actually
+    // left the machine at rather than the default last_pos value.
+    GCodeProcessor::PositionState startup_position = m_processor.get_current_position();
+    const Vec2f plate_offset = m_writer.get_xy_offset();
+    startup_position.position.x() += plate_offset.x();
+    startup_position.position.y() += plate_offset.y();
+    m_pending_start_gcode_position = !m_last_pos_defined && startup_position.has_known_xy() ?
+        std::optional<GCodeProcessor::PositionState>(startup_position) : std::nullopt;
 
     this->m_objsWithBrim.clear();
     m_brim_done = false;
@@ -8883,10 +8896,17 @@ std::string GCode::_encode_label_ids_to_base64(std::vector<size_t> ids)
 // This method accepts &point in print coordinates.
 std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string comment, double z/* = DBL_MAX*/)
 {
+    const std::optional<GCodeProcessor::PositionState> start_gcode_position =
+        !m_exclusion_volume_travel_avoidance.empty() && !m_last_pos_defined &&
+        !m_writer.is_current_position_clear() && m_pending_start_gcode_position.has_value() ?
+        m_pending_start_gcode_position : std::nullopt;
+
     /*  Define the travel move as a line between current position and the taget point.
         This is expressed in print coordinates, so it will need to be translated by
         this->origin in order to get G-code coordinates.  */
-    Polyline travel { this->last_pos(), point };
+    const Point travel_start = start_gcode_position ?
+        this->gcode_to_point(to_2d(start_gcode_position->position)) : this->last_pos();
+    Polyline travel { travel_start, point };
 
     // check whether a straight travel move would need retraction
     LiftType lift_type = LiftType::SpiralLift;
@@ -8896,6 +8916,57 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
     // Save state of use_external_mp_once for the case that will be needed to call twice m_avoid_crossing_perimeters.travel_to.
     const bool used_external_mp_once  = m_avoid_crossing_perimeters.used_external_mp_once();
     std::string gcode;
+    bool exclusion_volume_travel_rerouted = false;
+
+    const auto active_extruder_id = [this]() {
+        if (m_writer.filament() == nullptr)
+            return -1;
+        const size_t id = m_writer.filament()->extruder_id();
+        return id < m_config.nozzle_diameter.size() ? int(id) : -1;
+    };
+    const auto to_gcode_point = [this](const Point &local_point) {
+        const Vec2d point = this->point_to_gcode(local_point);
+        return Point(scale_(point.x()), scale_(point.y()));
+    };
+    const auto to_local_point = [this](const Point &gcode_point) {
+        return this->gcode_to_point(unscaled(gcode_point));
+    };
+    const auto to_gcode_polyline = [&to_gcode_point](const Polyline &local_path) {
+        Polyline result;
+        result.points.reserve(local_path.points.size());
+        for (const Point &local_point : local_path.points)
+            result.append(to_gcode_point(local_point));
+        return result;
+    };
+    const auto to_local_polyline = [&to_local_point](const Polyline &gcode_path) {
+        Polyline result;
+        result.points.reserve(gcode_path.points.size());
+        for (const Point &gcode_point : gcode_path.points)
+            result.append(to_local_point(gcode_point));
+        return result;
+    };
+    const auto nominal_writer_z = [this]() {
+        return m_writer.get_position().z() - m_writer.get_zhop();
+    };
+    const auto route_around_exclusion_volumes = [&](
+        Polyline &path,
+        const std::optional<double> &start_z_override) {
+        if (m_exclusion_volume_travel_avoidance.empty() || path.size() < 2)
+            return false;
+
+        const double target_z = z == DBL_MAX ? m_nominal_z : z;
+        const ExclusionVolumeTravelAvoidance::Result result =
+            m_exclusion_volume_travel_avoidance.route(
+                to_gcode_polyline(path),
+                start_z_override.value_or(nominal_writer_z()),
+                target_z,
+                active_extruder_id());
+        if (!result.rerouted())
+            return false;
+
+        path = to_local_polyline(result.path);
+        return true;
+    };
 
     // Orca: we don't need to optimize the Klipper as only set once
     double jerk_to_set = 0.0;
@@ -8960,6 +9031,14 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
         //if (needs_retraction && m_layer_index > 1) exit(0);
     }
 
+    const std::optional<double> start_gcode_z =
+        start_gcode_position && start_gcode_position->has_known_z() ?
+        std::optional<double>(start_gcode_position->position.z()) : std::nullopt;
+    if (route_around_exclusion_volumes(travel, start_gcode_z)) {
+        exclusion_volume_travel_rerouted = true;
+        needs_retraction = this->needs_retraction(travel, role, lift_type);
+    }
+
     // Re-allow reduce_crossing_wall for the next travel moves
     m_avoid_crossing_perimeters.reset_once_modifiers();
 
@@ -8975,15 +9054,22 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
         // When "Wipe while retracting" is enabled, then extruder moves to another position, and travel from this position can cross perimeters.
         // Because of it, it is necessary to call avoid crossing perimeters again with new starting point after calling retraction()
         // FIXME Lukas H.: Try to predict if this second calling of avoid crossing perimeters will be needed or not. It could save computations.
-        if (last_post_before_retract != this->last_pos() && m_config.reduce_crossing_wall) {
-            // If in the previous call of m_avoid_crossing_perimeters.travel_to was use_external_mp_once set to true restore this value for next call.
-            if (used_external_mp_once)
-                m_avoid_crossing_perimeters.use_external_mp_once();
-            travel = m_avoid_crossing_perimeters.travel_to(*this, point);
-            // If state of use_external_mp_once was changed reset it to right value.
-            if (used_external_mp_once)
-                m_avoid_crossing_perimeters.reset_once_modifiers();
+        if (last_post_before_retract != this->last_pos()) {
+            travel = Polyline { this->last_pos(), point };
+            if (m_config.reduce_crossing_wall) {
+                // If in the previous call of m_avoid_crossing_perimeters.travel_to was use_external_mp_once set to true restore this value for next call.
+                if (used_external_mp_once)
+                    m_avoid_crossing_perimeters.use_external_mp_once();
+                travel = m_avoid_crossing_perimeters.travel_to(*this, point);
+                // If state of use_external_mp_once was changed reset it to right value.
+                if (used_external_mp_once)
+                    m_avoid_crossing_perimeters.reset_once_modifiers();
+            }
         }
+
+        exclusion_volume_travel_rerouted =
+            route_around_exclusion_volumes(travel, std::nullopt) ||
+            (last_post_before_retract == this->last_pos() && exclusion_volume_travel_rerouted);
     } else {
         // Reset the wipe path when traveling, so one would not wipe along an old path.
         m_wipe.reset_path();
@@ -9015,6 +9101,24 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
                 Vec3d dest3d(dest2d(0), dest2d(1), z == DBL_MAX ? m_nominal_z : z);
                 gcode += m_writer.travel_to_xyz(dest3d, comment, m_need_change_layer_lift_z);
                 m_need_change_layer_lift_z = false;
+            } else if (exclusion_volume_travel_rerouted && z != DBL_MAX) {
+                // Preserve the original sloped-Z move over the longer detour.
+                // The router activates every volume touched by the complete Z
+                // range, so this interpolation remains conservative.
+                const double start_z = m_writer.get_position().z();
+                const double total_length = std::max(travel.length(), 1.0);
+                double traveled = 0.0;
+                for (size_t i = 1; i < travel.size(); ++i) {
+                    traveled += (travel.points[i] - travel.points[i - 1]).cast<double>().norm();
+                    const Vec2d dest2d = this->point_to_gcode(travel.points[i]);
+                    const Vec3d dest3d(
+                        dest2d.x(),
+                        dest2d.y(),
+                        start_z + (z - start_z) * std::min(1.0, traveled / total_length));
+                    gcode += m_writer.travel_to_xyz(dest3d, comment, i == 1 && m_need_change_layer_lift_z);
+                    if (i == 1)
+                        m_need_change_layer_lift_z = false;
+                }
             } else {
                 // Extra movements emitted by avoid_crossing_perimeters, lift the z to normal height at the beginning, then apply the z
                 // ratio at the last point

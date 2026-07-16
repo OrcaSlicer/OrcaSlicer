@@ -234,6 +234,8 @@ set(lisbslic3r_sources
     GCode/CoolingBuffer.hpp
     GCode/ExclusionVolumePathCheck.cpp
     GCode/ExclusionVolumePathCheck.hpp
+    GCode/ExclusionVolumeTravelAvoidance.cpp
+    GCode/ExclusionVolumeTravelAvoidance.hpp
     GCode/TimelapsePosPicker.cpp
     GCode/TimelapsePosPicker.hpp
     GCode.cpp
