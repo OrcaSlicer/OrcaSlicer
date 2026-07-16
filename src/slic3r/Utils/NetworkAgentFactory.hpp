@@ -166,8 +166,6 @@ public:
     static void register_python_printer_agent(const std::string& plugin_key, const std::string& capability_name);
     static void deregister_python_printer_agent(const std::string& plugin_key, const std::string& capability_name);
 
-    static bool is_current_printer_agent_plugin();
-
 private:
     // Factory is not instantiable
     NetworkAgentFactory()                                      = delete;
