@@ -1604,24 +1604,19 @@ public:
         }
 
         const bool has_extended_bed_exclusion_syntax = str.find('|') != std::string::npos || (str.find("..") != std::string::npos && str.find(';') != std::string::npos);
-        if (has_extended_bed_exclusion_syntax && ! append)
-            m_serialized_override = str;
+        if (has_extended_bed_exclusion_syntax && append)
+            return false;
 
-        std::string points_str = str;
         if (has_extended_bed_exclusion_syntax) {
-            std::ostringstream points;
-            std::istringstream regions(str);
-            std::string region;
-            while (std::getline(regions, region, '|')) {
-                const size_t sep = region.find(';');
-                if (points.tellp() > 0)
-                    points << ",";
-                points << (sep == std::string::npos ? region : region.substr(sep + 1));
-            }
-            points_str = points.str();
+            m_serialized_override = str;
+            // Multiple independent polygons have no valid representation in
+            // the legacy flat point array. Keep the serialized definition as
+            // the sole source of truth so old consumers cannot mistake their
+            // concatenated vertices for one polygon.
+            return true;
         }
 
-        std::istringstream is(points_str);
+        std::istringstream is(str);
         std::string point_str;
         while (std::getline(is, point_str, ',')) {
             Vec2d point(Vec2d::Zero());

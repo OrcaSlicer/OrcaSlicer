@@ -24,6 +24,24 @@ BoundingBox region_bounds(const BedExcludeRegion &region)
 
 } // namespace
 
+TEST_CASE("Extended exclusion syntax does not populate the legacy point array", "[PrintConfig][BedExclude]")
+{
+    ConfigOptionPoints option;
+
+    REQUIRE(option.deserialize("0..10;0x0,10x0,10x10,0x10|20x20,30x20,30x30,20x30"));
+    CHECK(option.values.empty());
+    CHECK(option.serialize() == "0..10;0x0,10x0,10x10,0x10|20x20,30x20,30x30,20x30");
+}
+
+TEST_CASE("Legacy exclusion syntax retains its point representation", "[PrintConfig][BedExclude]")
+{
+    ConfigOptionPoints option;
+
+    REQUIRE(option.deserialize("0x0,10x0,10x10,0x10"));
+    REQUIRE(option.values.size() == 4);
+    CHECK(option.serialize() == "0x0,10x0,10x10,0x10");
+}
+
 TEST_CASE("Shared exclusion volumes resolve identically for every extruder", "[PrintConfig][BedExclude]")
 {
     DynamicPrintConfig config = two_extruder_config();

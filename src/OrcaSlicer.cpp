@@ -59,6 +59,7 @@ using namespace nlohmann;
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/Platform.hpp"
 #include "libslic3r/Print.hpp"
+#include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/SLAPrint.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include "libslic3r/Format/AMF.hpp"
@@ -114,6 +115,12 @@ using namespace Slic3r;
 }error_message;*/
 
 #define MAX_CLONEABLE_SIZE 512
+
+static Pointfs legacy_bed_exclude_area_points(const DynamicPrintConfig &config)
+{
+    const ConfigOptionPoints *option = config.option<ConfigOptionPoints>("bed_exclude_area");
+    return option != nullptr && !has_bed_exclusion_volume_syntax(*option) ? option->values : Pointfs{};
+}
 
 std::map<int, std::string> cli_errors = {
     {CLI_SUCCESS, "Success."},
@@ -1795,7 +1802,7 @@ int CLI::run(int argc, char **argv)
 
                     //use Pointfs insteadof Points
                     old_printable_area = config.option<ConfigOptionPoints>("printable_area", true)->values;
-                    old_exclude_area = config.option<ConfigOptionPoints>("bed_exclude_area", true)->values;
+                    old_exclude_area = legacy_bed_exclude_area_points(config);
                     if (old_printable_area.size() >= 4) {
                         BoundingBoxf old_printable_bbox(old_printable_area);
                         old_printable_width = static_cast<int>(old_printable_bbox.size().x());
@@ -3826,7 +3833,7 @@ int CLI::run(int argc, char **argv)
     Slic3r::GUI::PartPlateList partplate_list(NULL, m_models.data(), printer_technology);
     //use Pointfs insteadof Points
     Pointfs current_printable_area = m_print_config.opt<ConfigOptionPoints>("printable_area")->values;
-    Pointfs current_exclude_area = m_print_config.opt<ConfigOptionPoints>("bed_exclude_area")->values;
+    Pointfs current_exclude_area = legacy_bed_exclude_area_points(m_print_config);
     std::vector<Pointfs> current_extruder_areas;
     //update part plate's size
     double print_height = m_print_config.opt_float("printable_height");
@@ -4236,7 +4243,7 @@ int CLI::run(int argc, char **argv)
             printer_plate.printer_name = config_name;
 
             temp_printable_area = config.option<ConfigOptionPoints>("printable_area", true)->values;
-            temp_exclude_area = config.option<ConfigOptionPoints>("bed_exclude_area", true)->values;
+            temp_exclude_area = legacy_bed_exclude_area_points(config);
             temp_wrapping_area = config.option<ConfigOptionPoints>("wrapping_exclude_area", true)->values;
             temp_extruder_areas = config.option<ConfigOptionPointsGroups>("extruder_printable_area", true)->values;
             temp_extruder_print_heights = config.option<ConfigOptionFloatsNullable>("extruder_printable_height", true)->values;
