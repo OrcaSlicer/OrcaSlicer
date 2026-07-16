@@ -28,6 +28,8 @@ list(APPEND SLIC3R_GUI_SOURCES
     GUI/DeviceCore/DevFilaSystem.h
     GUI/DeviceCore/DevFilaSystem.cpp
     GUI/DeviceCore/DevFilaSystemCtrl.cpp
+    GUI/DeviceCore/DevFilaSwitch.h
+    GUI/DeviceCore/DevFilaSwitch.cpp
     GUI/DeviceCore/DevFirmware.h
     GUI/DeviceCore/DevFirmware.cpp
     GUI/DeviceCore/DevPrintOptions.h
@@ -47,10 +49,17 @@ list(APPEND SLIC3R_GUI_SOURCES
     GUI/DeviceCore/DevManager.cpp
     GUI/DeviceCore/DevMapping.h
     GUI/DeviceCore/DevMapping.cpp
+    GUI/DeviceCore/DevMappingNozzle.h
+    GUI/DeviceCore/DevMappingNozzle.cpp
     GUI/DeviceCore/DevNozzleSystem.h
     GUI/DeviceCore/DevNozzleSystem.cpp
+    GUI/DeviceCore/DevNozzleRack.h
+    GUI/DeviceCore/DevNozzleRack.cpp
+    GUI/DeviceCore/DevNozzleRackCtrl.cpp
     GUI/DeviceCore/DevUtil.h
     GUI/DeviceCore/DevUtil.cpp
+    GUI/DeviceCore/DevUtilBackend.h
+    GUI/DeviceCore/DevUtilBackend.cpp
 
 )
 set(SLIC3R_GUI_SOURCES ${SLIC3R_GUI_SOURCES} PARENT_SCOPE)

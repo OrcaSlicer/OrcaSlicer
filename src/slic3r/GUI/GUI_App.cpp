@@ -7160,7 +7160,7 @@ void GUI_App::start_sync_user_preset(bool with_progress_dlg)
                                 .plater()
                                 ->get_notification_manager()
                                 ->push_notification(NotificationType::CustomNotification,
-                                                    NotificationManager::NotificationLevel::RegularNotificationLevel, "There is an update available. Open the preset bundle dialog to update it.");
+                                                    NotificationManager::NotificationLevel::RegularNotificationLevel, _u8L("There is an update available. Open the preset bundle dialog to update it."));
 
                             update_available = false;
                         }
@@ -7738,14 +7738,14 @@ bool GUI_App::load_language(wxString language, bool initial)
 
     if (!wxLocale::IsAvailable(locale_language_info->Language)) {
     	// Loading the language dictionary failed.
-	    wxString message = "Switching Orca Slicer to language " + requested_language_code + " failed.";
+	    wxString message = wxString::Format(_L("Switching Orca Slicer to language %s failed."), requested_language_code);
 #if !defined(_WIN32) && !defined(__APPLE__)
         // likely some linux system
-        message += "\nYou may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n";
+        message += _L("\nYou may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n");
 #endif
         if (initial)
         	message + "\n\nApplication will close.";
-        wxMessageBox(message, "Orca Slicer - Switching language failed", wxOK | wxICON_ERROR);
+        wxMessageBox(message, _L("Orca Slicer - Switching language failed"), wxOK | wxICON_ERROR);
         if (initial)
 			std::exit(EXIT_FAILURE);
 		else

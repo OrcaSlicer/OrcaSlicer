@@ -6,6 +6,7 @@
 #include "libslic3r/ExtrusionEntity.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/CustomGCode.hpp"
+#include "libslic3r/MultiNozzleUtils.hpp"
 
 #include <cstdint>
 #include <array>
@@ -43,6 +44,23 @@ class Print;
         Count
     };
 
+    // Classifies why a wipe-tower / change_filament / time-lapse region is safe to relocate a
+    // pre-heat M104 into, for the pre-heat/pre-cool injector. The shipping time_lapse_gcode
+    // template (timelapse-on by default) emits SKIPPABLE_* on essentially every slice, so the
+    // "timelapse" payload -> stTimelapse classification is exercised widely.
+    enum SkipType
+    {
+        stTimelapse,
+        stHeadWrapDetect,
+        stOther,
+        stNone
+    };
+
+    const std::unordered_map<std::string_view, SkipType> skip_type_map{
+        {"timelapse", SkipType::stTimelapse},
+        {"head_wrap_detect", SkipType::stHeadWrapDetect}
+    };
+
     struct PrintEstimatedStatistics
     {
         enum class ETimeMode : unsigned char
@@ -77,6 +95,10 @@ class Print;
 
         std::array<Mode, static_cast<size_t>(ETimeMode::Count)> modes;
         unsigned int                                        total_filament_changes;
+        // Number of filament changes that actually re-flush a nozzle (a filament-in-nozzle change
+        // onto a non-empty nozzle), tracked only by the richer multi-nozzle hotend-change time model.
+        // Stays 0 for single-nozzle printers (X1/P1/A1/H2S/A2L), which never enter the two-arg model.
+        unsigned int                                        total_flush_filament_changes;
         unsigned int                                        total_extruder_changes;
         float                                               total_filament_load_time;
         float                                               total_filament_unload_time;
@@ -101,6 +123,7 @@ class Print;
             flush_per_filament.clear();
             used_filaments_per_role.clear();
             total_filament_changes = 0;
+            total_flush_filament_changes = 0;
             total_extruder_changes = 0;
             total_filament_load_time = 0.0f;
             total_filament_unload_time = 0.0f;
@@ -166,6 +189,14 @@ class Print;
         ConflictResultOpt conflict_result;
         GCodeCheckResult  gcode_check_result;
         FilamentPrintableResult filament_printable_reuslt;
+        // The per-filament -> logical-nozzle grouping the slicer computed for this
+        // result, surfaced onto the object the device GUI reads
+        // (plater->background_process().get_current_gcode_result()). Populated only from
+        // Print::get_layered_nozzle_group_result() (ToolOrdering's static L/R + rack subset);
+        // default-empty (null) and read by no g-code emitter, so it is invisible in the emitted
+        // g-code. Consumed by the print-dispatch nozzle mapping (DevNozzleMappingCtrl) via
+        // DevUtilBackend::GetNozzleGroupResult.
+        std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> nozzle_group_result;
         float initial_layer_time;
 
         struct SettingsIds
@@ -263,6 +294,14 @@ class Print;
         std::vector<SliceWarning> warnings;
         int nozzle_hrc;
         std::vector<NozzleType> nozzle_type;
+        // Per-extruder physical hotend type. Fed to the pre-heat injector's TimeProcessContext
+        // (mixed-type X2D workaround). Populated in apply_config; unused until the injector side-pass
+        // consumes it.
+        std::vector<ExtruderType> extruder_types;
+        // Machine-slot layout of the per-variant printer arrays (one entry per (extruder x
+        // volume-type) slot). Populated in apply_config; keys the per-slot machine-limit lookup.
+        std::vector<std::string> printer_extruder_variant;
+        std::vector<int>         printer_extruder_id;
         // first key stores filaments, second keys stores the layer ranges(enclosed) that use the filaments
         std::unordered_map<std::vector<unsigned int>, std::vector<std::pair<int, int>>,FilamentSequenceHash> layer_filaments;
         std::vector<unsigned int> nozzle_change_sequence;
@@ -270,6 +309,11 @@ class Print;
         std::vector<int> optimal_assignment;
         // first key stores `from` filament, second keys stores the `to` filament
         std::map<std::pair<int,int>, int > filament_change_count_map;
+
+        // Accumulated print time spent inside SKIPPABLE regions, per skip type. Populated by the time
+        // estimator; consumed only downstream. The shipping time_lapse_gcode template emits SKIPPABLE_*
+        // widely, so this is typically populated (stTimelapse) on most slices.
+        std::unordered_map<SkipType, float> skippable_part_time;
 
         BedType bed_type = BedType::btCount;
         void reset();
@@ -304,11 +348,20 @@ class Print;
             gcode_check_result = other.gcode_check_result;
             limit_filament_maps = other.limit_filament_maps;
             filament_printable_reuslt = other.filament_printable_reuslt;
+            // Orca: copy the shared grouping result so a copied result keeps it (shared_ptr =>
+            // memory-safe), rather than leaving a stale pointer on the target. No g-code effect either way.
+            nozzle_group_result = other.nozzle_group_result;
+            // Keep the per-extruder hotend types on a copied result (injector input).
+            extruder_types = other.extruder_types;
+            printer_extruder_variant = other.printer_extruder_variant;
+            printer_extruder_id = other.printer_extruder_id;
             layer_filaments = other.layer_filaments;
             filament_change_sequence = other.filament_change_sequence;
             nozzle_change_sequence = other.nozzle_change_sequence;
             optimal_assignment = other.optimal_assignment;
             filament_change_count_map = other.filament_change_count_map;
+            // Keep the SKIPPABLE per-type time on a copied result.
+            skippable_part_time = other.skippable_part_time;
             initial_layer_time = other.initial_layer_time;
 #if ENABLE_GCODE_VIEWER_STATISTICS
             time = other.time;
@@ -318,6 +371,75 @@ class Print;
         void  lock() const { result_mutex.lock(); }
         void  unlock() const { result_mutex.unlock(); }
     };
+
+    // First-pass usage-block descriptors for the pre-heat/pre-cool injector. FilamentUsageBlock
+    // records the [lower,upper) output-line-id span a single filament occupies; ExtruderUsageBlcok
+    // (the "Blcok" typo is intentional) records the span an extruder is active in, with the start/end
+    // filament + logical-nozzle ids and the post-extrusion (pre-switch) partial-free sub-range. Built
+    // during run_post_process, consumed only by the injector side-pass under the enable_pre_heating gate.
+    namespace ExtruderPreHeating
+    {
+        struct FilamentUsageBlock
+        {
+            int filament_id;
+            int extruder_id;
+            int nozzle_id;
+            unsigned int lower_gcode_id;
+            unsigned int upper_gcode_id;  // [lower_gcode_id,upper_gcode_id) uses current filament , upper gcode id will be set after finding next block
+            FilamentUsageBlock(int filament_id_, int extruder_id_, int nozzle_id_, unsigned int lower_gcode_id_, unsigned int upper_gcode_id_) :filament_id(filament_id_), extruder_id(extruder_id_), nozzle_id(nozzle_id_), lower_gcode_id(lower_gcode_id_), upper_gcode_id(upper_gcode_id_) {}
+        };
+
+        /**
+         * @brief Describle the usage of a exturder in a section
+         *
+         * The strucutre stores the start and end lines of the sections as well as
+         * the filament used at the beginning and end of the section.
+         * Post extrusion means the final extrusion before switching to the next extruder.
+         *
+         * Simplified GCode Flow:
+         * 1.Extruder Change Block (ext0 switch to ext1)
+         * 2.Extruder Usage Block  (use ext1 to print)
+         * 3.Extruder Change Block (ext1 switch to ext0)
+         * 4.Extruder Usage Block  (use ext0 to print)
+         * 5.Extruder Change Block (ext0 switch to ex1)
+         * ...
+         *
+         * So the construct of extruder usage block relys on two extruder change block
+        */
+        struct ExtruderUsageBlcok
+        {
+            int extruder_id = -1;
+            unsigned int start_id = -1;
+            unsigned int end_id = -1;
+            int start_filament = -1;
+            int end_filament = -1;
+            int start_nozzle_id = -1;
+            int end_nozzle_id = -1;
+            unsigned int post_extrusion_start_id = -1;
+            unsigned int post_extrusion_end_id = -1;
+            bool         ignore_cooling_before_tower = false;
+
+            void initialize_step_1(int extruder_id_, int start_id_, int start_filament_, int start_nozzle_id_) {
+                extruder_id = extruder_id_;
+                start_id = start_id_;
+                start_filament = start_filament_;
+                start_nozzle_id = start_nozzle_id_;
+            };
+            void initialize_step_2(int post_extrusion_start_id_) {
+                post_extrusion_start_id = post_extrusion_start_id_;
+            }
+            void initialize_step_3(int end_id_, int end_filament_, int post_extrusion_end_id_, int end_nozzle_id_) {
+                end_id = end_id_;
+                end_filament = end_filament_;
+                post_extrusion_end_id = post_extrusion_end_id_;
+                end_nozzle_id = end_nozzle_id_;
+            }
+            void reset() {
+                *this = ExtruderUsageBlcok();
+            }
+            ExtruderUsageBlcok() = default;
+        };
+    }
 
 
     class CommandProcessor {
@@ -347,6 +469,24 @@ class Print;
         static const std::string VFlush_Start_Tag;
         static const std::string VFlush_End_Tag;
         static const std::string External_Purge_Tag;
+    public:
+        // Orca: SKIPPABLE region tags, stored as static strings (the FLUSH idiom above) rather than
+        // a CustomETags/CustomTags array. Public so the emission sites (WipeTower / change_filament
+        // path) can reference them single-sourced.
+        static const std::string Skippable_Start_Tag;
+        static const std::string Skippable_End_Tag;
+        static const std::string Skippable_Type_Tag;
+        // Orca: usage-block builder markers (MACHINE_START_GCODE_END / MACHINE_END_GCODE_START /
+        // NOZZLE_CHANGE_START / NOZZLE_CHANGE_END / CP_TOOLCHANGE_WIPE), stored as static strings (the
+        // FLUSH/SKIPPABLE idiom above) rather than extending the Reserved_Tags arrays — these are
+        // multi-nozzle markers only ever emitted by BBL-printer paths. Public so the emission sites can
+        // reference them single-sourced. The MACHINE_*_GCODE_* emission (GCode.cpp, gated
+        // enable_pre_heating) activates the usage-block builder.
+        static const std::string Machine_Start_GCode_End_Tag;
+        static const std::string Machine_End_GCode_Start_Tag;
+        static const std::string Nozzle_Change_Start_Tag;
+        static const std::string Nozzle_Change_End_Tag;
+        static const std::string Toolchange_Wipe_Tag;
     public:
         enum class ETags : unsigned char
         {
@@ -455,6 +595,9 @@ class Print;
 
             EMoveType move_type{ EMoveType::Noop };
             ExtrusionRole role{ erNone };
+            // SKIPPABLE tag classification stamped onto each time block. Feeds skippable_part_time
+            // and the injector's SKIPPABLE relocation. stNone unless inside a SKIPPABLE_* region.
+            SkipType skippable_type{ SkipType::stNone };
             unsigned int move_id{ 0 };
             unsigned int g1_line_id{ 0 };
             unsigned int remaining_internal_g1_lines{ 0 };
@@ -624,6 +767,25 @@ class Print;
 
         struct TimeProcessor
         {
+            // Orca: the insert-line taxonomy + the ordered map of lines the pre-heat/pre-cool injector
+            // splices into the finished g-code, keyed by output-line id. Orca keeps its single-pass
+            // run_post_process (M73 / filament stats / ActualSpeedMove / Backtrace /
+            // machine_tool_change_time) intact and applies this map in a separate, gated ADDITIVE
+            // second file-rewrite pass (run_second_pass_injection); with an empty map that pass is a
+            // byte-for-byte identity rewrite. The map is populated by the PreCoolingInjector.
+            enum InsertLineType
+            {
+                PlaceholderReplace,
+                TimePredict,
+                FilamentChangePredict,
+                ExtruderChangePredict,
+                PreCooling,
+                PreHeating,
+            };
+
+            // first key is line id, second key is content
+            using InsertedLinesMap = std::map<unsigned int, std::vector<std::pair<std::string, InsertLineType>>>;
+
             struct Planner
             {
                 // Size of the firmware planner queue. The old 8-bit Marlins usually just managed 16 trapezoidal blocks.
@@ -650,6 +812,117 @@ class Print;
             std::array<TimeMachine, static_cast<size_t>(PrintEstimatedStatistics::ETimeMode::Count)> machines;
 
             void reset();
+        };
+
+        // The pre-cool / pre-heat injection engine. It consumes the already-computed per-move time
+        // substrate (moves[i].time[valid_machine_id] / .gcode_id) and the first-pass usage blocks to
+        // locate idle-hotend windows, then emits M632/M400/M104/M633 lines into a
+        // TimeProcessor::InsertedLinesMap that the additive second file-rewrite pass
+        // (run_second_pass_injection) splices into the finished g-code. It is constructed and run ONLY
+        // when m_enable_pre_heating — single-nozzle printers (X1/P1/A1/H2S, flag false) never reach it.
+        // Every input is a const reference bundled from GCodeProcessor members; the injector never
+        // mutates GCodeProcessor state.
+        class PreCoolingInjector {
+        public:
+            struct ExtruderFreeBlock {
+                unsigned int free_lower_gcode_id;
+                unsigned int free_upper_gcode_id;
+                unsigned int partial_free_lower_id; // range of extrusion in wipe tower; without a wipe tower
+                unsigned int partial_free_upper_id; // partial_free lower/upper equal free_lower_gcode_id
+                int last_filament_id;
+                int next_filament_id;
+                int last_nozzle_id;
+                int next_nozzle_id;
+                int extruder_id; // partition key for the pre-heat/pre-cool region (extruder or hotend), not
+                                 // necessarily a real extruder id
+                bool ignore_cooling_before_tower = false;
+            };
+
+            void process_pre_cooling_and_heating(TimeProcessor::InsertedLinesMap& inserted_operation_lines);
+            void build_extruder_free_blocks(const std::vector<ExtruderPreHeating::FilamentUsageBlock>& filament_usage_blocks, const std::vector<ExtruderPreHeating::ExtruderUsageBlcok>& extruder_usage_blocks);
+
+            PreCoolingInjector(
+                const std::vector<GCodeProcessorResult::MoveVertex>& moves_,
+                const std::vector<std::string>& filament_types_,
+                const MultiNozzleUtils::LayeredNozzleGroupResult& nozzle_group_result_,
+                const std::vector<int>& filament_nozzle_temps_,
+                const std::vector<int>& filament_nozzle_temps_initial_layer_,
+                const std::vector<int>& physical_extruder_map_,
+                int valid_machine_id_,
+                float inject_time_threshold_,
+                bool handle_hotend_as_extruder_,
+                bool has_filament_switcher_,
+                const std::vector<int>& pre_cooling_temp_,
+                const std::vector<double>& cooling_rate_,
+                const std::vector<double>& heating_rate_,
+                const std::vector<std::pair<unsigned int, unsigned int>>& skippable_blocks_,
+                const std::vector<int>& extruder_max_nozzle_count_,
+                const std::vector<double>& filament_preheat_temperature_delta_,
+                const std::vector<double>& filament_max_temperature_drop_when_ec_,
+                unsigned int machine_start_gcode_end_id_,
+                unsigned int machine_end_gcode_start_id_,
+                const std::vector<ExtruderType>& extruder_types_,
+                const std::vector<double>& nozzle_diameter_
+            ) :
+                moves(moves_),
+                filament_types(filament_types_),
+                nozzle_group_result(nozzle_group_result_),
+                filament_nozzle_temps(filament_nozzle_temps_),
+                filament_nozzle_temps_initial_layer(filament_nozzle_temps_initial_layer_),
+                physical_extruder_map(physical_extruder_map_),
+                valid_machine_id(valid_machine_id_),
+                inject_time_threshold(inject_time_threshold_),
+                handle_hotend_as_extruder(handle_hotend_as_extruder_),
+                has_filament_switcher(has_filament_switcher_),
+                filament_pre_cooling_temps(pre_cooling_temp_),
+                cooling_rate(cooling_rate_),
+                heating_rate(heating_rate_),
+                skippable_blocks(skippable_blocks_),
+                extruder_max_nozzle_count(extruder_max_nozzle_count_),
+                filament_preheat_temperature_delta(filament_preheat_temperature_delta_),
+                filament_max_temperature_drop_when_ec(filament_max_temperature_drop_when_ec_),
+                machine_start_gcode_end_id(machine_start_gcode_end_id_),
+                machine_end_gcode_start_id(machine_end_gcode_start_id_),
+                extruder_types(extruder_types_),
+                nozzle_diameter(nozzle_diameter_)
+            {
+            }
+
+        private:
+            std::vector<ExtruderFreeBlock> m_extruder_free_blocks;
+            const std::vector<GCodeProcessorResult::MoveVertex>& moves;
+            const std::vector<std::string>& filament_types;
+            const MultiNozzleUtils::LayeredNozzleGroupResult& nozzle_group_result;
+            const std::vector<int>& filament_nozzle_temps;
+            const std::vector<int>& filament_nozzle_temps_initial_layer;
+            const std::vector<int>& physical_extruder_map;
+            const int valid_machine_id;
+            const float inject_time_threshold;
+            const bool handle_hotend_as_extruder;
+            const bool has_filament_switcher;
+            const std::vector<double>& cooling_rate;
+            const std::vector<double>& heating_rate;
+            const std::vector<int>& filament_pre_cooling_temps; // target cooling temp during post extrusion
+            const std::vector<std::pair<unsigned int, unsigned int>>& skippable_blocks;
+            const std::vector<int>& extruder_max_nozzle_count;
+            const std::vector<double>& filament_preheat_temperature_delta;
+            const std::vector<double>& filament_max_temperature_drop_when_ec;
+            const unsigned int machine_start_gcode_end_id;
+            const unsigned int machine_end_gcode_start_id;
+            const std::vector<ExtruderType>& extruder_types;
+            const std::vector<double>& nozzle_diameter;
+
+            void inject_cooling_heating_command(
+                TimeProcessor::InsertedLinesMap& inserted_operation_lines,
+                const ExtruderFreeBlock& free_block,
+                float curr_temp,
+                float target_temp,
+                bool pre_cooling,
+                bool pre_heating
+            );
+
+            void build_by_filament_blocks(const std::vector<ExtruderPreHeating::FilamentUsageBlock>& filament_usage_blocks);
+            void build_by_extruder_blocks(const std::vector<ExtruderPreHeating::ExtruderUsageBlcok>& extruder_usage_blocks);
         };
     public:
         class SeamsDetector
@@ -795,12 +1068,57 @@ class Print;
         bool m_flushing; // mark a section with real flush
         bool m_virtual_flushing; // mark a section with virtual flush, only for statistics
         bool m_wipe_tower;
+        // Current-section SKIPPABLE state. Set by process_tags when inside a SKIPPABLE_* region;
+        // stamped onto each TimeBlock. The shipping time_lapse_gcode template emits SKIPPABLE_*
+        // widely, so these commonly go active (true / stTimelapse) and stamp blocks on most slices.
+        bool m_skippable{false};
+        SkipType m_skippable_type{SkipType::stNone};
         int m_object_label_id{-1};
         float m_print_z{0.0f};
         std::vector<float> m_remaining_volume;
         ExtruderTemps m_filament_nozzle_temp;
         ExtruderTemps m_filament_nozzle_temp_first_layer;
         std::vector<int> m_physical_extruder_map;
+        // Multi-nozzle context state. Per-extruder max (sub-)nozzle count; >1 marks a multi-nozzle
+        // extruder. Input for the pre-heat/filament-change-time injection model; not yet consumed by
+        // Orca's time estimator, so it is inert for existing printers.
+        std::vector<int> m_extruder_max_nozzle_count{1};
+        // Pre-heat / pre-cool injector estimator inputs. Populated from the config in apply_config
+        // (both overloads) and cleared in reset(), so the PreCoolingInjector has its inputs in place.
+        // Consumed only by the injector two-pass side-pass, gated on m_enable_pre_heating.
+        std::vector<std::string> m_filament_types;
+        std::vector<double> m_nozzle_diameter;
+        std::vector<double> m_hotend_cooling_rate{ 2.f };
+        std::vector<double> m_hotend_heating_rate{ 2.f };
+        std::vector<int> m_filament_pre_cooling_temp{ 0 };
+        std::vector<double> m_filament_preheat_temperature_delta;
+        bool m_enable_pre_heating{ false };
+        bool m_handle_hotend_as_extruder{ false };
+        bool m_has_filament_switcher{ false };
+        // [start,end] output-line-id ranges of each SKIPPABLE region, collected during
+        // run_post_process. The injector relocates pre-heat M104s out of these ranges. The shipping
+        // time_lapse_gcode template emits SKIPPABLE_* widely, so on a timelapse-on slice this is
+        // populated with many timelapse ranges (not empty) — the consumer must expect the common
+        // timelapse case, not only H2C/A2L wipe-tower ranges.
+        std::vector<std::pair<unsigned int, unsigned int>> m_skippable_blocks;
+        // First-pass usage blocks, built in run_post_process and stored on the member so the
+        // injector side-pass can consume them. Filled only when m_enable_pre_heating — single-nozzle
+        // printers (X1/P1/A1/H2S) never build them. They depend on the MACHINE_*_GCODE_* /
+        // NOZZLE_CHANGE_* emission the builder keys off.
+        std::vector<ExtruderPreHeating::FilamentUsageBlock> m_filament_blocks;
+        std::vector<ExtruderPreHeating::ExtruderUsageBlcok>  m_extruder_blocks;
+        unsigned int m_machine_start_gcode_end_line_id{ (unsigned int) (-1) };
+        unsigned int m_machine_end_gcode_start_line_id{ (unsigned int) (-1) };
+        // Tracks, during the stream, which filament sits in each physical nozzle and which nozzle each
+        // extruder currently carries. Written by both branches of the two-arg process_filament_change
+        // (the fallback branch does occupancy bookkeeping only); read by the richer change-time model
+        // and by the per-slot machine-limit resolution. Single-nozzle printers never populate it.
+        MultiNozzleUtils::NozzleStatusRecorder m_nozzle_status_recorder;
+        // Nozzle grouping context for slot resolution during the streaming pass. Set before the
+        // replay begins (see initialize_from_context); deliberately separate from
+        // m_result.nozzle_group_result, which is handed over only after the stream for the
+        // pre-heat injector's second pass and gates the richer change-time model.
+        std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> m_nozzle_group_result;
         bool m_manual_filament_change;
 
         //BBS: x, y offset for gcode generated
@@ -825,6 +1143,9 @@ class Print;
         std::vector<unsigned char> m_last_filament_id;
         std::vector<unsigned char> m_filament_id;
         unsigned char m_extruder_id;
+        // Cached get_machine_config_idx() value; its inputs (active extruder + recorder occupancy)
+        // change only on filament-change events, where it is recomputed.
+        int m_machine_config_idx{0};
         ExtruderColors m_extruder_colors;
         ExtruderTemps m_extruder_temps;
         bool  m_is_XL_printer = false;
@@ -876,6 +1197,11 @@ class Print;
     public:
         GCodeProcessor();
         void init_filament_maps_and_nozzle_type_when_import_only_gcode();
+        // Reprocessing an already-generated g-code (from-previous / imported g-code) does not rebuild
+        // the per-filament nozzle grouping the multi-nozzle device GUI needs. Surface it onto the
+        // result: keep an already-seeded grouping (from initialize_from_context), otherwise synthesize
+        // a default one from the filament map so the result is never left without it.
+        void ensure_nozzle_group_result(int min_filament_count);
         // check whether the gcode path meets the filament_map grouping requirements
         bool check_multi_extruder_gcode_valid(const int                         extruder_size,
                                               const Pointfs                     plate_printable_area,
@@ -887,6 +1213,11 @@ class Print;
                                               const std::vector<std::set<int>>& unprintable_filament_types );
         void apply_config(const PrintConfig& config);
         void set_print(Print* print) { m_print = print; }
+        // Hand the nozzle grouping context to the estimator BEFORE the streaming replay, so the
+        // per-slot machine-limit resolution can follow the active nozzle. Null is fine (slot 0).
+        void initialize_from_context(const std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase>& nozzle_group_result) {
+            m_nozzle_group_result = nozzle_group_result;
+        }
 
         DynamicConfig export_config_for_render() const;
 
@@ -1094,30 +1425,63 @@ class Print;
         // Processes T line (Select Tool)
         void process_T(const GCodeReader::GCodeLine& line);
         void process_T(const std::string_view command);
+        // T variant carrying the H<nozzle> logical-nozzle id parsed off the command line. -1 = absent.
+        void process_T(const std::string_view command, int nozzle_id);
         void process_M1020(const GCodeReader::GCodeLine &line);
 
         void process_M622(const GCodeReader::GCodeLine &line);
         void process_M623(const GCodeReader::GCodeLine &line);
 
         void process_filament_change(int id);
+        // Richer hotend-change time model distinguishing extruder-switch / nozzle-in-extruder change /
+        // filament-in-nozzle change. Self-gated: for single-nozzle printers it delegates to
+        // process_filament_change(int) so their time estimate — hence exported g-code — is unchanged.
+        void process_filament_change(int id, int nozzle_id);
+        // Destination nozzle of a filament change: the explicit H<nozzle> id when given, else the
+        // filament's first nozzle in the grouping. Shared by the change-time model and the
+        // fallback-path occupancy bookkeeping.
+        std::optional<MultiNozzleUtils::NozzleInfo> resolve_target_nozzle(
+            const MultiNozzleUtils::NozzleGroupResultBase &group, int id, int nozzle_id) const;
+        // Machine slot of the nozzle currently mounted in the active extruder (0 when no grouping
+        // context / unknown extruder — the single-slot layout). Cached in m_machine_config_idx,
+        // recomputed on filament-change events.
+        int  get_machine_config_idx() const;
+        // True only for multi-nozzle-capable printers (H2C cluster, or a dual/multi-extruder machine
+        // like H2D/X2D): the gate that admits the richer two-arg hotend-change time model. False for
+        // every single-extruder single-nozzle printer (X1/P1/A1/H2S/A2L).
+        bool use_multi_nozzle_change_time_model() const;
 
         // post process the file with the given filename to:
         // 1) add remaining time lines M73 and update moves' gcode ids accordingly
         // 2) update used filament data
         void run_post_process();
 
+        // Additive second file-rewrite pass. Splices the pre-heat/pre-cool injector's InsertedLinesMap
+        // into the finished g-code and re-shifts every move's gcode_id by the number of inserted lines
+        // before it. Runs only when m_enable_pre_heating, AFTER run_post_process, so single-nozzle
+        // printers (X1/P1/A1/H2S) never enter it; with an empty map it is a byte-for-byte identity rewrite.
+        void run_second_pass_injection();
+        // Shift each move's gcode_id by the count of injector lines inserted before it. No-op when the
+        // map is empty.
+        void handle_offsets_of_second_process(const TimeProcessor::InsertedLinesMap& inserted_operation_lines);
+
         //BBS: different path_type is only used for arc move
         void store_move_vertex(EMoveType type, EMovePathType path_type = EMovePathType::Noop_move, bool internal_only = false);
 
         void set_extrusion_role(ExtrusionRole role);
+        // Resolve the SKIPPABLE_TYPE payload to a SkipType.
+        void set_skippable_type(const std::string_view type);
 
         float minimum_feedrate(PrintEstimatedStatistics::ETimeMode mode, float feedrate) const;
         float minimum_travel_feedrate(PrintEstimatedStatistics::ETimeMode mode, float feedrate) const;
-        // Machine limit arrays are indexed by time mode only: [0]=Normal, [1]=Stealth.
-        // Do NOT add an extruder_id parameter — OrcaSlicer does not use BambuStudio's
-        // per-nozzle machine limits (filament_map_2 / get_config_idx_for_filament).
+        // Speed/acceleration limit arrays are slot-major with two mode entries per machine slot:
+        // [slot*2 + mode], slot from get_machine_config_idx() (0 = the only slot on single-variant
+        // printers, whose arrays hold just [Normal, Stealth]). The 2-arg forms read slot 0 and stay
+        // exactly the historical mode-only lookup; jerk and the accelerations below are mode-only.
         float get_axis_max_feedrate(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
+        float get_axis_max_feedrate(PrintEstimatedStatistics::ETimeMode mode, Axis axis, int machine_idx) const;
         float get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
+        float get_axis_max_acceleration(PrintEstimatedStatistics::ETimeMode mode, Axis axis, int machine_idx) const;
         float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis, float acceleration) const;
         float get_axis_max_jerk_with_jd(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
         float get_axis_max_jerk(PrintEstimatedStatistics::ETimeMode mode, Axis axis) const;
