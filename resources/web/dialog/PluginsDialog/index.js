@@ -1377,6 +1377,8 @@ function StatusDescription(plugin) {
       return "This plugin is still loading.";
     case "Error":
       return "This plugin is blocked until its error is fixed.";
+    case "RuntimeError":
+      return "This plugin is loaded but a capability reported an error.";
     case "Inactive":
     default:
       return "This plugin is inactive. Activate it to install or load it.";

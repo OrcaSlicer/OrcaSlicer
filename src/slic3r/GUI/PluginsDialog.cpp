@@ -366,14 +366,7 @@ PluginDialogItem build_plugin_dialog_item(const PluginDescriptor& descriptor)
     item.sharing_token = descriptor.sharing_token;
     item.thumbnail_url = descriptor.thumbnail_url;
 
-    if (item.loading)
-        item.status = PluginStatus::Loading;
-    else if (item.has_error)
-        item.status = PluginStatus::Error;
-    else if (item.is_loaded)
-        item.status = PluginStatus::Activated;
-    else
-        item.status = PluginStatus::Inactive;
+    item.status = resolve_plugin_status(item.loading, item.has_error, item.is_loaded);
 
     item.available_actions        = evaluate_action_policy(item);
     const bool has_enabled_script = std::any_of(item.capabilities.begin(), item.capabilities.end(),
@@ -621,6 +614,9 @@ void PluginsDialog::toggle_plugin(const std::string& plugin_key, bool enabled)
         }
 
         BOOST_LOG_TRIVIAL(info) << "Plugin unloaded from Plugins dialog: " << plugin_key;
+        // A user-disabled plugin has no meaningful error state.
+        if (!manager.clear_plugin_error(plugin_key))
+            BOOST_LOG_TRIVIAL(warning) << "Failed to clear plugin error for " << plugin_key << " (failed to find)";
         // A prior activation of this plugin is moot now; drop it so no stale "Activated" arrives later.
         if (m_activating_plugin_key == plugin_key)
             m_activating_plugin_key.clear();
