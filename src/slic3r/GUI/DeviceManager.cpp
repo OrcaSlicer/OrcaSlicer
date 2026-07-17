@@ -2582,7 +2582,10 @@ std::string MachineObject::setting_id_to_type(std::string setting_id, std::strin
     // why: the printer already reported the material type, so trust it. setting_id is a
     //      filament_id, which is not unique across vendors - the scan below can match a
     //      preset of a different material and mislabel the tray (issue #14365).
-    if (!tray_type.empty())
+    // note: "Support" is a generic label the firmware sends for any support filament,
+    //       not a material - fall through to the preset lookup below so ABS/PLA/PA
+    //       support trays keep their real (or Sup.*-normalized) type.
+    if (!tray_type.empty() && tray_type != "Support")
         return tray_type;
 
     // why: fallback only - the printer told us nothing, so a first match by filament_id
