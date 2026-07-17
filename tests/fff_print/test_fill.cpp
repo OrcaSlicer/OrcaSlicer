@@ -403,6 +403,46 @@ TEST_CASE("Normalize bridge lines option selects which Fill class handles a brid
     REQUIRE(normalized_paths > default_paths * 3);
 }
 
+TEST_CASE("Normalize bridge lines falls back to the default fill angle on a flat bridge", "[Fill]") {
+    // Regression test: when a bridge has no favorable curvature to follow,
+    // normalize_bridge_lines must fall back to the exact same fill angle the
+    // default (disabled) path would use - not one rotated 90 degrees from it,
+    // which an earlier bug caused by re-deriving the fill angle a second time
+    // (Fill::_infill_direction() unconditionally adds a fixed 90 degree
+    // offset, so doing that twice compounds into an extra 90 degree rotation).
+    auto first_bridge_line_angle = [](const Print &print) {
+        for (const Layer *layer : print.objects().front()->layers())
+            for (const LayerRegion *region : layer->regions())
+                for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                    if (entity->role() == erBridgeInfill || entity->role() == erInternalBridgeInfill) {
+                        Polyline pl = entity->as_polyline();
+                        REQUIRE(pl.points.size() >= 2);
+                        Vec2d dir = (pl.points[1] - pl.points[0]).cast<double>();
+                        // Normalize to [0, PI) - a fill line's orientation is
+                        // undirected, so angle and angle+PI are the same line.
+                        double angle = std::fmod(std::atan2(dir.y(), dir.x()) + 100. * M_PI, M_PI);
+                        return angle;
+                    }
+        throw std::runtime_error("no bridge line found");
+    };
+
+    Print print_default;
+    Slic3r::Test::init_and_process_print({ Slic3r::Test::TestMesh::bridge }, print_default, {
+        { "normalize_bridge_lines", "0" }
+    });
+    Print print_normalized;
+    Slic3r::Test::init_and_process_print({ Slic3r::Test::TestMesh::bridge }, print_normalized, {
+        { "normalize_bridge_lines", "1" }
+    });
+
+    double angle_default    = first_bridge_line_angle(print_default);
+    double angle_normalized = first_bridge_line_angle(print_normalized);
+
+    double diff = std::fabs(angle_default - angle_normalized);
+    diff        = std::min(diff, M_PI - diff);
+    REQUIRE(diff < 0.05);
+}
+
 /*
 {
     my $collection = Slic3r::Polyline::Collection->new(

@@ -24,12 +24,23 @@ static void fill_surface_fallback(
     const ExPolygon                 &expolygon,
     Polylines                       &polylines_out)
 {
+    // fallback.fill_surface() re-derives its own fill angle via
+    // Fill::_infill_direction(), which unconditionally adds another 90
+    // degrees on top of whatever angle it's given - but `direction` here is
+    // already the result of one such call, made by our own caller. Pre-
+    // subtract that same 90 degrees so the two additions cancel out and this
+    // ends up using the same angle every other pattern would for this
+    // bridge, instead of coming out rotated an extra 90 degrees.
+    float compensated_angle = direction.first - float(M_PI / 2.);
+    if (compensated_angle < 0.f)
+        compensated_angle += float(2. * M_PI);
+
     FillRectilinear fallback;
     fallback.layer_id                = self.layer_id;
     fallback.z                       = self.z;
     fallback.spacing                 = self.spacing;
     fallback.overlap                 = self.overlap;
-    fallback.angle                   = direction.first;
+    fallback.angle                   = compensated_angle;
     fallback.fixed_angle             = self.fixed_angle;
     fallback.link_max_length         = self.link_max_length;
     fallback.loop_clipping           = self.loop_clipping;
@@ -40,7 +51,7 @@ static void fill_surface_fallback(
     fallback.dont_alternate_fill_direction = self.dont_alternate_fill_direction;
 
     Surface surface(stBottomBridge, expolygon);
-    surface.bridge_angle = direction.first;
+    surface.bridge_angle = compensated_angle;
     append(polylines_out, fallback.fill_surface(&surface, params));
 }
 

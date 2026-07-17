@@ -1428,10 +1428,13 @@ void PrintConfigDef::init_fff_params()
     def = this->add("normalize_bridge_lines", coBool);
     def->label = L("Normalize bridge lines");
     def->category = L("Strength");
-    def->tooltip = L("Wherever a bridge's boundary curves toward the filled area (for example around a hole, or an "
-                      "inward notch of the outer contour), draw bridge lines along the local normal instead of a "
-                      "single straight-line direction across the whole bridge, so no span is much longer than "
-                      "necessary. Has no effect on stretches of the boundary that are straight.");
+    def->tooltip = L("Wherever a bridge's boundary curves toward the filled area (for example around a hole, a "
+                      "rounded corner, or an inward notch of the outer contour), draw bridge lines along the local "
+                      "normal instead of a single straight-line direction across the whole bridge, so no span is "
+                      "much longer than necessary. Because this angle is derived independently from whatever "
+                      "curvature is found, the resulting line direction can differ from the bridge angle settings "
+                      "even on a bridge without an obvious hole, as long as some part of its boundary curves toward "
+                      "the fill area. Only falls back to the usual bridge angle where the boundary is straight.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
