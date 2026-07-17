@@ -571,7 +571,7 @@ int OrcaCloudServiceAgent::init_log() { return BAMBU_NETWORK_SUCCESS; }
 int OrcaCloudServiceAgent::set_config_dir(std::string cfg_dir)
 {
     config_dir = cfg_dir;
-    wxFileName fallback(wxString::FromUTF8(cfg_dir.c_str()), "orca_refresh_token.sec");
+    wxFileName fallback(wxString::FromUTF8(cfg_dir.c_str()), secret_constants::USER_SECRET_FILENAME);
     fallback.Normalize();
     secret_fallback_path = fallback.GetFullPath().ToStdString();
     return BAMBU_NETWORK_SUCCESS;

@@ -12,6 +12,7 @@ add_executable(${_TEST_NAME}_tests
     test_slicing_pipeline_config.cpp
     test_plugin_sort.cpp
     test_plugin_cloud_metadata.cpp
+    test_plugin_audit.cpp
     ../fff_print/test_helpers.cpp
     )
 

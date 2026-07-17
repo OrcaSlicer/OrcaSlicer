@@ -55,6 +55,15 @@ namespace auth_constants {
     constexpr const char* LOGOUT_PATH = "/auth/v1/logout";
 } // namespace auth_constants
 
+// Names of the on-disk credential files inside the config dir.
+namespace secret_constants {
+    // Encrypted refresh-token fallback file, written when wxSecretStore is unavailable.
+    // Also seeded into PluginAuditManager's denied-filename registry (install_hook), which
+    // additionally covers the ".tmp" staging file the token is written to before its atomic
+    // rename, so plugins can read neither.
+    constexpr const char* USER_SECRET_FILENAME = "orca_refresh_token.sec";
+} // namespace secret_constants
+
 // ============================================================================
 // Sync Protocol Data Structures (per Orca Cloud Sync Protocol Specification)
 // ============================================================================
