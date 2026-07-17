@@ -190,30 +190,44 @@ static void collect_chains(const Polygon &ring, size_t ring_index, std::vector<C
     for (size_t i = 0; i < n; ++i)
         concave[i] = turns_toward_fill(ring.points[(i + n - 1) % n], ring.points[i], ring.points[(i + 1) % n]);
 
+    std::vector<double> edge_len(n);
+    double total_edge_len = 0.;
+    for (size_t i = 0; i < n; ++i) {
+        edge_len[i] = (ring.points[(i + 1) % n] - ring.points[i]).cast<double>().norm();
+        total_edge_len += edge_len[i];
+    }
+
     // A real STL mesh's polygon approximation of a curve often has a seam
-    // vertex (where the mesh wraps around) that isn't quite convex, which
-    // would otherwise break an almost-fully-curved ring (e.g. a circular
-    // hole) into a short, isolated run and leave a gap near the break where
-    // that run's own padding keeps sampling clear of its end points. Bridge
-    // over gaps of only a vertex or two so that kind of mesh noise doesn't
-    // get treated as if the boundary were genuinely straight there.
-    static const size_t kMaxGapFill = 2;
+    // (where the mesh wraps around) spanning a few vertices that aren't quite
+    // convex, which would otherwise break an almost-fully-curved ring (e.g. a
+    // circular hole) into a separate, short run - and an open run's endpoints
+    // sit right next to this one's, since the seam it's stepping around is
+    // narrow, producing two independent, crowded lines instead of one. Bridge
+    // over any non-concave run that's a small fraction of the ring's whole
+    // perimeter, so this scales with the ring's own size instead of an
+    // unrelated setting like the print's line spacing; a real flat or
+    // convex-away *feature* (as opposed to seam noise) is expected to make up
+    // a much larger share of the boundary than that.
+    const double kMaxSeamFraction = 0.15;
+    const double max_seam_len     = total_edge_len * kMaxSeamFraction;
     bool any_concave = std::any_of(concave.begin(), concave.end(), [](bool b) { return b; });
     bool all_concave  = std::all_of(concave.begin(), concave.end(), [](bool b) { return b; });
     if (any_concave && !all_concave) {
         std::vector<bool> bridged = concave;
         for (size_t i = 0; i < n; ++i) {
-            if (concave[i] || concave[(i + n - 1) % n])
+            if (concave[i] || !concave[(i + n - 1) % n])
                 continue; // not the start of a false-run
-            size_t gap_len = 0;
-            size_t j        = i;
-            while (gap_len < n && !concave[j]) {
-                ++gap_len;
+            double gap_len = 0.;
+            size_t j       = i;
+            size_t steps   = 0;
+            while (steps < n && !concave[j]) {
+                gap_len += edge_len[j];
+                ++steps;
                 j = (j + 1) % n;
             }
-            if (gap_len <= kMaxGapFill) {
+            if (gap_len <= max_seam_len) {
                 size_t k = i;
-                for (size_t s = 0; s < gap_len; ++s) {
+                for (size_t s = 0; s < steps; ++s) {
                     bridged[k] = true;
                     k          = (k + 1) % n;
                 }
@@ -344,8 +358,9 @@ void FillNormalizedLines::_fill_surface_single(
     ExPolygon                        expolygon,
     Polylines                       &polylines_out)
 {
-    coord_t min_spacing = scale_(this->spacing);
-    coord_t distance    = coord_t(min_spacing / params.density);
+    coord_t min_spacing          = scale_(this->spacing);
+    coord_t distance             = coord_t(min_spacing / params.density);
+    const double target_spacing = double(distance);
 
     std::vector<const Polygon *> rings;
     rings.push_back(&expolygon.contour);
@@ -363,7 +378,6 @@ void FillNormalizedLines::_fill_surface_single(
 
     const double ray_len          = 2. * this->bounding_box.radius() + double(min_spacing);
     const double min_hit_distance = double(SCALED_EPSILON) * 10.;
-    const double target_spacing   = double(distance);
 
     for (const Chain &chain : chains) {
         if (chain.total_len < SCALED_EPSILON)
@@ -381,6 +395,20 @@ void FillNormalizedLines::_fill_surface_single(
             ds.push_back(chain.total_len);
         if (ds.empty())
             ds.push_back(chain.closed ? 0. : chain.total_len * 0.5);
+
+        // An open chain's own two end points can still end up close together
+        // in real space (e.g. a wide mesh seam that wasn't merged into a
+        // closed loop above): drop trailing samples that crowd the first one
+        // rather than emitting two nearly-coincident lines there.
+        if (!chain.closed) {
+            Point first_origin = sample_at(chain, ds.front()).point;
+            while (ds.size() > 1) {
+                Point last_origin = sample_at(chain, ds.back()).point;
+                if ((last_origin - first_origin).cast<double>().norm() >= target_spacing * 0.5)
+                    break;
+                ds.pop_back();
+            }
+        }
 
         std::vector<Point> hits(ds.size());
         std::vector<bool>  valids(ds.size());

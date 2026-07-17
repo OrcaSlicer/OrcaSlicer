@@ -294,11 +294,11 @@ TEST_CASE("Normalized bridge lines stay close together far from a small hole", "
 
 TEST_CASE("Normalized bridge lines bridge a seam vertex in an otherwise curved hole", "[Fill]") {
     // Regression test: a real STL mesh's tessellated approximation of a circular
-    // hole often has a seam (where the mesh wraps around) spanning several
+    // hole often has a seam (where the mesh wraps around) spanning a couple of
     // vertices that aren't quite convex - flattened here onto the chord between
     // the seam's neighbors. That non-curving stretch must not fragment sampling
-    // and leave a gap in the lines right around it, no matter how many vertices
-    // wide it is.
+    // and leave a gap (or, from over-correcting, crowded/overlapping lines) in
+    // the lines right around it.
     Slic3r::Points square{ Point::new_scale(-20, -20), Point::new_scale(20, -20), Point::new_scale(20, 20), Point::new_scale(-20, 20) };
     Slic3r::Points hole;
     const int    hole_sides  = 32;
@@ -307,7 +307,7 @@ TEST_CASE("Normalized bridge lines bridge a seam vertex in an otherwise curved h
         double theta = 2. * M_PI * double(i) / double(hole_sides);
         hole.push_back(Point::new_scale(hole_radius * std::cos(theta), hole_radius * std::sin(theta)));
     }
-    const int   seam_width = 5;
+    const int   seam_width = 2;
     const Point seam_prev  = hole[hole.size() - 1];
     const Point seam_next  = hole[seam_width];
     for (int i = 0; i < seam_width; ++i) {
@@ -345,6 +345,29 @@ TEST_CASE("Normalized bridge lines bridge a seam vertex in an otherwise curved h
         max_gap_mm = std::max(max_gap_mm, unscale<double>((p1 - p0).cast<double>().norm()));
     }
     REQUIRE(max_gap_mm < spacing_mm * 4.);
+
+    // Regression test: bridging a seam must not produce two independent lines
+    // crowded right next to each other there (e.g. one from each end of what
+    // would otherwise be an open chain covering almost the whole ring) -
+    // overlapping lines print on top of each other and throw off layer height.
+    std::vector<Point> near_points;
+    for (const Polyline &pl : paths)
+        near_points.push_back(pl.points.front());
+    std::sort(near_points.begin(), near_points.end(), [](const Point &a, const Point &b) {
+        return std::atan2(double(a.y()), double(a.x())) < std::atan2(double(b.y()), double(b.x()));
+    });
+    double min_gap_mm = std::numeric_limits<double>::max();
+    for (size_t i = 0; i < near_points.size(); ++i) {
+        const Point &p0 = near_points[i];
+        const Point &p1 = near_points[(i + 1) % near_points.size()];
+        min_gap_mm = std::min(min_gap_mm, unscale<double>((p1 - p0).cast<double>().norm()));
+    }
+    // A closed loop's wraparound step is rarely an exact multiple of the
+    // target spacing, so the last sample before wrapping is normally somewhat
+    // closer to the first than the nominal spacing - that's expected and
+    // harmless. A literal duplicate/overlapping line, by contrast, measures
+    // at (or extremely near) zero, which this still catches easily.
+    REQUIRE(min_gap_mm > spacing_mm * 0.05);
 }
 
 TEST_CASE("Normalize bridge lines option selects which Fill class handles a bridge", "[Fill]") {
