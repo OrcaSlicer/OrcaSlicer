@@ -72,54 +72,115 @@ static bool turns_toward_fill(const Point &prev, const Point &cur, const Point &
     return cross2(v1, v2) < -kMinTurnAngle * l1 * l2;
 }
 
-// Samples points roughly `spacing` apart along `points`, each with the local
-// left-hand normal (pointing into the fill area). When `closed` the chain
-// wraps back to its first point (used for a ring that curves toward the
-// fill area along its entire length); otherwise the two end points are
-// treated as context only, so sampling stays clear of them.
-static void sample_chain(const Points &points, double spacing, bool closed, size_t ring_index, std::vector<NormalOrigin> &out)
+// A boundary stretch that curves toward the fill area, pre-processed for
+// fast interpolation of the point and left-hand normal at any arc-length
+// position along it. When `closed` the chain wraps back to its first point
+// (a ring that curves toward the fill area along its entire length);
+// otherwise its first and last points are padding, kept only for the
+// tangent they give neighboring samples.
+struct Chain
 {
-    size_t n = points.size();
-    if (n < 2 || spacing <= 0.)
-        return;
-    size_t segment_count = closed ? n : n - 1;
+    Points               points;
+    bool                 closed = false;
+    size_t               ring_index = 0;
+    std::vector<double>  seg_len;
+    std::vector<Vec2d>   seg_dir;    // per-edge direction, used to place the sampled point
+    std::vector<Vec2d>   vertex_dir; // smoothed per-vertex direction, used for the ray itself
+    double               total_len = 0.;
+};
 
-    std::vector<double> seg_len(segment_count);
-    std::vector<Vec2d>  seg_dir(segment_count);
-    double total_len = 0.;
+static Chain make_chain(Points points, bool closed, size_t ring_index)
+{
+    Chain c;
+    c.points     = std::move(points);
+    c.closed     = closed;
+    c.ring_index = ring_index;
+    size_t n = c.points.size();
+    size_t segment_count = closed ? n : (n == 0 ? 0 : n - 1);
+    c.seg_len.resize(segment_count);
+    c.seg_dir.resize(segment_count);
     for (size_t seg = 0; seg < segment_count; ++seg) {
-        Vec2d d = (points[(seg + 1) % n] - points[seg]).cast<double>();
+        Vec2d d = (c.points[(seg + 1) % n] - c.points[seg]).cast<double>();
         double len = d.norm();
-        seg_len[seg] = len;
-        seg_dir[seg] = len > SCALED_EPSILON ? Vec2d(d / len) : Vec2d(0., 0.);
-        total_len += len;
+        c.seg_len[seg] = len;
+        c.seg_dir[seg] = len > SCALED_EPSILON ? Vec2d(d / len) : Vec2d(0., 0.);
+        c.total_len += len;
     }
-    if (total_len < SCALED_EPSILON)
-        return;
 
-    // Stay clear of the padding vertices at the ends of an open chain.
-    double start = closed ? 0. : spacing * 0.5;
-    double end   = closed ? total_len : total_len - spacing * 0.5;
+    // A polygon's per-edge direction is constant along each edge, with a hard
+    // jump at every vertex - fine for placing points, but a real problem for
+    // the ray direction: on a coarsely-tessellated curve that jump, magnified
+    // by a long ray, produces a fixed gap between neighboring lines that no
+    // amount of bisection between the same two constant directions can close.
+    // Smooth it into a per-vertex tangent (averaging the two adjacent edges)
+    // and interpolate that instead, approximating the true smooth curve.
+    c.vertex_dir.resize(n);
+    for (size_t i = 0; i < n; ++i) {
+        Vec2d dir(0., 0.);
+        if (closed) {
+            dir = c.seg_dir[(i + segment_count - 1) % segment_count] + c.seg_dir[i % segment_count];
+        } else if (i == 0) {
+            dir = c.seg_dir[0];
+        } else if (i + 1 == n) {
+            dir = c.seg_dir[segment_count - 1];
+        } else {
+            dir = c.seg_dir[i - 1] + c.seg_dir[i];
+        }
+        // dir is a sum of up to two unit vectors, so its own magnitude lives
+        // in roughly (0, 2] - compare against a plain small epsilon, not
+        // SCALED_EPSILON (which is sized for scaled coordinate distances).
+        double len = dir.norm();
+        c.vertex_dir[i] = len > EPSILON ? Vec2d(dir / len) : Vec2d(0., 0.);
+    }
+    return c;
+}
 
+// Interpolates the point at arc-length `d` along `chain`, together with the
+// left-hand normal (pointing into the fill area) of the smoothed tangent
+// there, so the ray direction varies continuously instead of jumping at
+// every polygon vertex.
+static NormalOrigin sample_at(const Chain &chain, double d)
+{
+    size_t segment_count = chain.seg_len.size();
     double acc = 0.;
     size_t seg = 0;
-    for (double d = start; d < end; d += spacing) {
-        while (seg + 1 < segment_count && acc + seg_len[seg] < d) {
-            acc += seg_len[seg];
-            ++seg;
-        }
-        double local = d - acc;
-        const Point &a   = points[seg];
-        const Vec2d &dir = seg_dir[seg];
-        Point p(a.x() + coord_t(dir.x() * local), a.y() + coord_t(dir.y() * local));
-        out.push_back({ p, Vec2d(-dir.y(), dir.x()), ring_index });
+    while (seg + 1 < segment_count && acc + chain.seg_len[seg] < d) {
+        acc += chain.seg_len[seg];
+        ++seg;
     }
+    double       local = d - acc;
+    const Point &a     = chain.points[seg];
+    const Vec2d &dir   = chain.seg_dir[seg];
+    Point p(a.x() + coord_t(dir.x() * local), a.y() + coord_t(dir.y() * local));
+
+    double t = chain.seg_len[seg] > SCALED_EPSILON ? local / chain.seg_len[seg] : 0.;
+    size_t next_vertex = (seg + 1) % chain.vertex_dir.size();
+    Vec2d  smooth_dir  = (1. - t) * chain.vertex_dir[seg] + t * chain.vertex_dir[next_vertex];
+    double smooth_len  = smooth_dir.norm();
+    if (smooth_len > EPSILON)
+        smooth_dir /= smooth_len;
+    else
+        smooth_dir = dir;
+
+    return { p, Vec2d(-smooth_dir.y(), smooth_dir.x()), chain.ring_index };
+}
+
+// The arc-length midpoint between `d0` and `d1` along `chain`, wrapping
+// through the closing segment of a closed chain when `d1` lies before `d0`.
+static double chain_midpoint(const Chain &chain, double d0, double d1)
+{
+    if (chain.closed && d1 < d0)
+        d1 += chain.total_len;
+    double dm = 0.5 * (d0 + d1);
+    if (chain.closed && dm >= chain.total_len)
+        dm -= chain.total_len;
+    return dm;
 }
 
 // Walks `ring` once, grouping vertices that curve toward the fill area into
-// maximal runs, and samples normal origins along each run (padded with one
-// straight neighbor on either side for tangent continuity).
-static void collect_normal_origins(const Polygon &ring, double spacing, size_t ring_index, std::vector<NormalOrigin> &out)
+// maximal runs, and builds a Chain for each run (padded with one straight
+// neighbor on either side for tangent continuity).
+static void collect_chains(const Polygon &ring, size_t ring_index, std::vector<Chain> &out)
 {
     size_t n = ring.points.size();
     if (n < 3)
@@ -130,9 +191,8 @@ static void collect_normal_origins(const Polygon &ring, double spacing, size_t r
         concave[i] = turns_toward_fill(ring.points[(i + n - 1) % n], ring.points[i], ring.points[(i + 1) % n]);
 
     if (std::all_of(concave.begin(), concave.end(), [](bool b) { return b; })) {
-        // The whole ring curves toward the fill area (e.g. a circular hole) -
-        // sample around the full loop.
-        sample_chain(ring.points, spacing, true, ring_index, out);
+        // The whole ring curves toward the fill area (e.g. a circular hole).
+        out.push_back(make_chain(ring.points, true, ring_index));
         return;
     }
 
@@ -152,12 +212,12 @@ static void collect_normal_origins(const Polygon &ring, double spacing, size_t r
         while (run_end + 1 < n && concave[(zero + run_end + 1) % n])
             ++run_end;
 
-        Points chain;
-        chain.push_back(ring.points[(zero + run_start + n - 1) % n]);
+        Points chain_points;
+        chain_points.push_back(ring.points[(zero + run_start + n - 1) % n]);
         for (size_t k = run_start; k <= run_end; ++k)
-            chain.push_back(ring.points[(zero + k) % n]);
-        chain.push_back(ring.points[(zero + run_end + 1) % n]);
-        sample_chain(chain, spacing, false, ring_index, out);
+            chain_points.push_back(ring.points[(zero + k) % n]);
+        chain_points.push_back(ring.points[(zero + run_end + 1) % n]);
+        out.push_back(make_chain(std::move(chain_points), false, ring_index));
 
         idx = run_end + 1;
     }
@@ -201,6 +261,49 @@ static bool nearest_ray_intersection(
     return found;
 }
 
+// Casts a line from arc-length position `d` along `chain` and, if it hits
+// the opposite boundary, appends it to `polylines_out`. Reports the far
+// endpoint back to the caller so adjacent lines can be checked for gaps.
+static bool emit_line(
+    const Chain &chain, double d, const std::vector<const Polygon *> &rings,
+    double ray_len, double min_hit_distance, Polylines &polylines_out, Point *hit_out)
+{
+    NormalOrigin o = sample_at(chain, d);
+    Point        hit;
+    if (!nearest_ray_intersection(o.point, o.normal, ray_len, min_hit_distance, rings, chain.ring_index, &hit))
+        return false;
+    Polyline pl;
+    pl.points = { o.point, hit };
+    polylines_out.emplace_back(std::move(pl));
+    *hit_out = hit;
+    return true;
+}
+
+// Lines cast from evenly-spaced origins on a curved boundary diverge as they
+// travel toward the opposite side (an outer contour far from a small hole,
+// for instance), so evenly spacing the origins is not enough to keep the far
+// ends within `target_spacing` of each other. This adds extra lines,
+// bisecting the gap between (d0, hit0) and (d1, hit1) until their far ends
+// are close enough, or a recursion depth limit is hit.
+static void refine_gap(
+    const Chain &chain, double d0, const Point &hit0, bool valid0, double d1, const Point &hit1, bool valid1,
+    int depth, const std::vector<const Polygon *> &rings, double ray_len, double min_hit_distance,
+    double target_spacing, Polylines &polylines_out)
+{
+    static const int kMaxDepth = 6;
+    if (depth >= kMaxDepth || !valid0 || !valid1)
+        return;
+    if ((hit1 - hit0).cast<double>().norm() <= target_spacing * 1.5)
+        return;
+
+    double dm = chain_midpoint(chain, d0, d1);
+    Point  hitm;
+    bool   validm = emit_line(chain, dm, rings, ray_len, min_hit_distance, polylines_out, &hitm);
+
+    refine_gap(chain, d0, hit0, valid0, dm, hitm, validm, depth + 1, rings, ray_len, min_hit_distance, target_spacing, polylines_out);
+    refine_gap(chain, dm, hitm, validm, d1, hit1, valid1, depth + 1, rings, ray_len, min_hit_distance, target_spacing, polylines_out);
+}
+
 void FillNormalizedLines::_fill_surface_single(
     const FillParams                &params,
     unsigned int                     thickness_layers,
@@ -216,25 +319,46 @@ void FillNormalizedLines::_fill_surface_single(
     for (const Polygon &h : expolygon.holes)
         rings.push_back(&h);
 
-    std::vector<NormalOrigin> origins;
+    std::vector<Chain> chains;
     for (size_t ri = 0; ri < rings.size(); ++ri)
-        collect_normal_origins(*rings[ri], double(distance), ri, origins);
+        collect_chains(*rings[ri], ri, chains);
 
-    if (origins.empty()) {
+    if (chains.empty()) {
         fill_surface_fallback(*this, params, direction, expolygon, polylines_out);
         return;
     }
 
     const double ray_len          = 2. * this->bounding_box.radius() + double(min_spacing);
     const double min_hit_distance = double(SCALED_EPSILON) * 10.;
+    const double target_spacing   = double(distance);
 
-    for (const NormalOrigin &o : origins) {
-        Point hit;
-        if (!nearest_ray_intersection(o.point, o.normal, ray_len, min_hit_distance, rings, o.ring_index, &hit))
+    for (const Chain &chain : chains) {
+        if (chain.total_len < SCALED_EPSILON)
             continue;
-        Polyline pl;
-        pl.points = { o.point, hit };
-        polylines_out.emplace_back(std::move(pl));
+
+        // Initial, evenly-spaced samples along the chain; an open chain stays
+        // clear of its padding end points.
+        std::vector<double> ds;
+        double start = chain.closed ? 0. : target_spacing * 0.5;
+        double end   = chain.closed ? chain.total_len : chain.total_len - target_spacing * 0.5;
+        for (double d = start; d < end; d += target_spacing)
+            ds.push_back(d);
+        if (ds.empty())
+            ds.push_back(chain.closed ? 0. : chain.total_len * 0.5);
+
+        std::vector<Point> hits(ds.size());
+        std::vector<bool>  valids(ds.size());
+        for (size_t i = 0; i < ds.size(); ++i)
+            valids[i] = emit_line(chain, ds[i], rings, ray_len, min_hit_distance, polylines_out, &hits[i]);
+
+        if (ds.size() < 2)
+            continue;
+        size_t pair_count = chain.closed ? ds.size() : ds.size() - 1;
+        for (size_t i = 0; i < pair_count; ++i) {
+            size_t j = (i + 1) % ds.size();
+            refine_gap(chain, ds[i], hits[i], valids[i], ds[j], hits[j], valids[j], 0,
+                       rings, ray_len, min_hit_distance, target_spacing, polylines_out);
+        }
     }
 
     if (polylines_out.empty())

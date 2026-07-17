@@ -242,6 +242,56 @@ TEST_CASE("Normalized bridge line fill", "[Fill]") {
     }
 }
 
+TEST_CASE("Normalized bridge lines stay close together far from a small hole", "[Fill]") {
+    // Regression test: lines cast from evenly-spaced origins on a small hole
+    // diverge as they travel out to a much larger outer contour, so evenly
+    // spacing the origins alone leaves growing gaps between the far ends -
+    // exactly the visible gaps reported on a circular bridge. A small hole in
+    // a large square exaggerates that divergence.
+    Slic3r::Points square{ Point::new_scale(-100, -100), Point::new_scale(100, -100), Point::new_scale(100, 100), Point::new_scale(-100, 100) };
+    Slic3r::Points hole;
+    const int    hole_sides  = 32;
+    const double hole_radius = 3.;
+    for (int i = 0; i < hole_sides; ++i) {
+        double theta = 2. * M_PI * double(i) / double(hole_sides);
+        hole.push_back(Point::new_scale(hole_radius * std::cos(theta), hole_radius * std::sin(theta)));
+    }
+    std::reverse(hole.begin(), hole.end());
+
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("bridgenormalized"));
+    filler->bounding_box = get_extents(Polygon(square));
+    filler->spacing = 0.4;
+    FillParams fill_params;
+    fill_params.density = 1.0;
+    fill_params.dont_adjust = true;
+
+    Slic3r::ExPolygon annulus(square, hole);
+    Surface surface(stBottomBridge, annulus);
+    Slic3r::Polylines paths = filler->fill_surface(&surface, fill_params);
+    REQUIRE(paths.size() > 4);
+
+    // Sort the far (outer) endpoints by angle around the hole, then measure the
+    // actual distance between each consecutive pair - this is exactly what
+    // should stay bounded regardless of the outer contour's shape.
+    std::vector<Point> far_points;
+    for (const Polyline &pl : paths)
+        far_points.push_back(pl.points.back());
+    std::sort(far_points.begin(), far_points.end(), [](const Point &a, const Point &b) {
+        return std::atan2(double(a.y()), double(a.x())) < std::atan2(double(b.y()), double(b.x()));
+    });
+
+    double spacing_mm = 0.4;
+    double max_gap_mm = 0.;
+    for (size_t i = 0; i < far_points.size(); ++i) {
+        const Point &p0 = far_points[i];
+        const Point &p1 = far_points[(i + 1) % far_points.size()];
+        max_gap_mm = std::max(max_gap_mm, unscale<double>((p1 - p0).cast<double>().norm()));
+    }
+    // Adjacent far endpoints should stay within a small multiple of the
+    // target line spacing - not diverge unbounded with distance from the hole.
+    REQUIRE(max_gap_mm < spacing_mm * 4.);
+}
+
 TEST_CASE("Normalize bridge lines option selects which Fill class handles a bridge", "[Fill]") {
     // Regression test: normalize_bridge_lines must actually control the pattern used
     // for a bridge - leaving it disabled must not silently keep producing the
