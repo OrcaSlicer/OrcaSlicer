@@ -190,7 +190,40 @@ static void collect_chains(const Polygon &ring, size_t ring_index, std::vector<C
     for (size_t i = 0; i < n; ++i)
         concave[i] = turns_toward_fill(ring.points[(i + n - 1) % n], ring.points[i], ring.points[(i + 1) % n]);
 
-    if (std::all_of(concave.begin(), concave.end(), [](bool b) { return b; })) {
+    // A real STL mesh's polygon approximation of a curve often has a seam
+    // vertex (where the mesh wraps around) that isn't quite convex, which
+    // would otherwise break an almost-fully-curved ring (e.g. a circular
+    // hole) into a short, isolated run and leave a gap near the break where
+    // that run's own padding keeps sampling clear of its end points. Bridge
+    // over gaps of only a vertex or two so that kind of mesh noise doesn't
+    // get treated as if the boundary were genuinely straight there.
+    static const size_t kMaxGapFill = 2;
+    bool any_concave = std::any_of(concave.begin(), concave.end(), [](bool b) { return b; });
+    bool all_concave  = std::all_of(concave.begin(), concave.end(), [](bool b) { return b; });
+    if (any_concave && !all_concave) {
+        std::vector<bool> bridged = concave;
+        for (size_t i = 0; i < n; ++i) {
+            if (concave[i] || concave[(i + n - 1) % n])
+                continue; // not the start of a false-run
+            size_t gap_len = 0;
+            size_t j        = i;
+            while (gap_len < n && !concave[j]) {
+                ++gap_len;
+                j = (j + 1) % n;
+            }
+            if (gap_len <= kMaxGapFill) {
+                size_t k = i;
+                for (size_t s = 0; s < gap_len; ++s) {
+                    bridged[k] = true;
+                    k          = (k + 1) % n;
+                }
+            }
+        }
+        concave    = std::move(bridged);
+        all_concave = std::all_of(concave.begin(), concave.end(), [](bool b) { return b; });
+    }
+
+    if (all_concave) {
         // The whole ring curves toward the fill area (e.g. a circular hole).
         out.push_back(make_chain(ring.points, true, ring_index));
         return;
