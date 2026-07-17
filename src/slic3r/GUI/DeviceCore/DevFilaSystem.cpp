@@ -651,8 +651,14 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
                                 curr_tray->tag_uid = "0";
                             if (tray_it->contains("tray_info_idx") && tray_it->contains("tray_type"))
                             {
+                                // note: despite the names, `tray_info_idx` is a filament_id and
+                                // DevAmsTray::setting_id is where we keep it (the real setting_id
+                                // lives in filament_setting_id). So this reads
+                                // setting_id_to_type(setting_id, ...) but is really
+                                // filament_id -> type.
                                 curr_tray->setting_id = (*tray_it)["tray_info_idx"].get<std::string>();
-                                //std::string type            = (*tray_it)["tray_type"].get<std::string>();
+                                // note: tray_type wins here; the lookup only resolves a type when the
+                                //       printer reported none.
                                 std::string type = MachineObject::setting_id_to_type(curr_tray->setting_id, (*tray_it)["tray_type"].get<std::string>());
                                 if (curr_tray->setting_id == "GFS00")
                                 {

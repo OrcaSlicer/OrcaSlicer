@@ -2579,7 +2579,14 @@ int MachineObject::local_publish_json(std::string json_str, int qos, int flag)
 
 std::string MachineObject::setting_id_to_type(std::string setting_id, std::string tray_type)
 {
-    std::string type;
+    // why: the printer already reported the material type, so trust it. setting_id is a
+    //      filament_id, which is not unique across vendors - the scan below can match a
+    //      preset of a different material and mislabel the tray (issue #14365).
+    if (!tray_type.empty())
+        return tray_type;
+
+    // why: fallback only - the printer told us nothing, so a first match by filament_id
+    //      beats showing an empty type.
     PresetBundle* preset_bundle = GUI::wxGetApp().preset_bundle;
     if (preset_bundle) {
         for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
@@ -2587,17 +2594,12 @@ std::string MachineObject::setting_id_to_type(std::string setting_id, std::strin
             if (it->filament_id.compare(setting_id) == 0 && it->is_system) {
                 std::string display_filament_type;
                 it->config.get_filament_type(display_filament_type);
-                type = display_filament_type;
-                break;
+                return display_filament_type;
             }
         }
     }
 
-    if (tray_type != type || type.empty()) {
-        if (type.empty()) { type = tray_type; }
-        BOOST_LOG_TRIVIAL(info) << "The values of tray_info_idx and tray_type do not match tray_info_idx " << setting_id << " tray_type " << tray_type << " system_type" << type;
-    }
-    return type;
+    return tray_type;
 }
 
 template <class ENUM>
