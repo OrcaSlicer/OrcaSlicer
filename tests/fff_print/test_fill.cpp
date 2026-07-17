@@ -4,9 +4,12 @@
 #include <sstream>
 
 #include "libslic3r/ClipperUtils.hpp"
+#include "libslic3r/ExtrusionEntity.hpp"
+#include "libslic3r/ExtrusionEntityCollection.hpp"
 #include "libslic3r/Fill/Fill.hpp"
 #include "libslic3r/Flow.hpp"
 #include "libslic3r/Geometry.hpp"
+#include "libslic3r/Layer.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/SVG.hpp"
 #include "libslic3r/libslic3r.h"
@@ -188,6 +191,70 @@ TEST_CASE("Pattern path length", "[Fill]") {
          
         REQUIRE(test_if_solid_surface_filled(expolygon, 0.5, 45.0, 0.99) == true);
     }
+}
+
+TEST_CASE("Radial fill", "[Fill]") {
+    // A 40x40mm square with a 10x10mm square hole in the middle stands in for an
+    // annular bridge: an outer contour with an inner hole to radiate spokes from.
+    Slic3r::Points square{ Point::new_scale(-20, -20), Point::new_scale(20, -20), Point::new_scale(20, 20), Point::new_scale(-20, 20) };
+    Slic3r::Points hole{ Point::new_scale(-5, -5), Point::new_scale(5, -5), Point::new_scale(5, 5), Point::new_scale(-5, 5) };
+    std::reverse(hole.begin(), hole.end());
+
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("radial"));
+    filler->bounding_box = get_extents(Polygon(square));
+    filler->spacing = 0.4;
+    FillParams fill_params;
+    fill_params.density = 1.0;
+    fill_params.dont_adjust = true;
+
+    SECTION("Spokes stay within the annular region") {
+        Slic3r::ExPolygon annulus(square, hole);
+        Surface surface(stBottomBridge, annulus);
+        Slic3r::Polylines paths = filler->fill_surface(&surface, fill_params);
+
+        REQUIRE(paths.size() > 4);
+        // Every spoke must lie inside the annulus, not cross into the hole or past the contour.
+        REQUIRE(diff_pl(paths, offset(annulus, float(SCALED_EPSILON * 10))).empty());
+    }
+
+    SECTION("Falls back to full coverage when there is no hole to radiate from") {
+        Slic3r::ExPolygon plain(square);
+        Surface surface(stBottomBridge, plain);
+        Slic3r::Polylines paths = filler->fill_surface(&surface, fill_params);
+        REQUIRE(!paths.empty());
+    }
+}
+
+TEST_CASE("Bridge infill pattern selects which Fill class handles a bridge", "[Fill]") {
+    // Regression test: bridge_fill_pattern must actually control the pattern used
+    // for a bridge - selecting Rectilinear/Monotonic must not silently keep
+    // producing Radial's spoke pattern (or vice versa).
+    auto bridge_path_count = [](const Print &print) {
+        size_t count = 0;
+        for (const Layer *layer : print.objects().front()->layers())
+            for (const LayerRegion *region : layer->regions())
+                for (const ExtrusionEntity *entity : region->fills.flatten().entities)
+                    if (entity->role() == erBridgeInfill || entity->role() == erInternalBridgeInfill)
+                        ++count;
+        return count;
+    };
+
+    Print print_rectilinear;
+    Slic3r::Test::init_and_process_print({ Slic3r::Test::TestMesh::bridge_with_hole }, print_rectilinear, {
+        { "bridge_fill_pattern", "rectilinear" }
+    });
+    Print print_radial;
+    Slic3r::Test::init_and_process_print({ Slic3r::Test::TestMesh::bridge_with_hole }, print_radial, {
+        { "bridge_fill_pattern", "radial" }
+    });
+
+    size_t rectilinear_paths = bridge_path_count(print_rectilinear);
+    size_t radial_paths = bridge_path_count(print_radial);
+
+    REQUIRE(rectilinear_paths > 0);
+    // Radial draws one disconnected spoke per ray, so it produces far more separate
+    // extrusion paths than a connected rectilinear sweep over the same bridge-over-a-hole.
+    REQUIRE(radial_paths > rectilinear_paths * 3);
 }
 
 /*
