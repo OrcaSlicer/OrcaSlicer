@@ -445,7 +445,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             add_row(_u8L("Flow rate"), buff);
             sprintf(buff, "%.0f %%", vertex.fan_speed);
             add_row(_u8L("Fan speed"), buff);
-            sprintf(buff, ("%.0f " + _u8L("°C")).c_str(), vertex.temperature);
+            sprintf(buff, ("%.0f " + _u8L("\u2103" /* °C */)).c_str(), vertex.temperature);
             add_row(_u8L("Temperature"), buff);
             sprintf(buff, "%.4f", vertex.pressure_advance);
             add_row(_u8L("Pressure Advance"), buff);
@@ -3711,7 +3711,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         break;
     }
     case libvgcode::EViewType::FanSpeed:       { imgui.title(_u8L("Fan speed (%)")); break; }
-    case libvgcode::EViewType::Temperature:    { imgui.title(_u8L("Temperature (°C)")); break; }
+    case libvgcode::EViewType::Temperature:    { imgui.title(_u8L("Temperature (℃)")); break; }
 // ORCA: Add Pressure Advance visualization support
     case libvgcode::EViewType::PressureAdvance:{ imgui.title(_u8L("Pressure Advance")); break; }
     case libvgcode::EViewType::VolumetricFlowRate:

@@ -5222,8 +5222,8 @@ msgstr "Trūktelėjimas (mm/s)"
 msgid "Fan speed (%)"
 msgstr ""
 
-msgid "Temperature (°C)"
-msgstr "Temperatūra (°C)"
+msgid "Temperature (℃)"
+msgstr "Temperatūra (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
 msgstr "Tūrinis srautas (mm³/s)"

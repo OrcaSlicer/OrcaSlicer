@@ -5417,7 +5417,7 @@ msgstr "Jerk (mm/s)"
 msgid "Fan speed (%)"
 msgstr "Скорость вентилятора (%)"
 
-msgid "Temperature (°C)"
+msgid "Temperature (℃)"
 msgstr "Температура (°C)"
 
 msgid "Volumetric flow rate (mm³/s)"
@@ -16781,7 +16781,7 @@ msgstr ""
 "Это особенно полезно, если принтер не поддерживает команды M141/M191, или если управление температурой термокамеры реализовано через макросы (например, при отсутствии активного нагревателя камеры)."
 
 msgid ""
-"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
 "It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
 "\n"
