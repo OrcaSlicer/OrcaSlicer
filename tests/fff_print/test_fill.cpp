@@ -193,31 +193,32 @@ TEST_CASE("Pattern path length", "[Fill]") {
     }
 }
 
-TEST_CASE("Radial fill", "[Fill]") {
+TEST_CASE("Normalized bridge line fill", "[Fill]") {
     // A 40x40mm square with a 10x10mm square hole in the middle stands in for an
-    // annular bridge: an outer contour with an inner hole to radiate spokes from.
+    // annular bridge: an outer contour with an inner hole that curves toward the
+    // fill area along its whole length.
     Slic3r::Points square{ Point::new_scale(-20, -20), Point::new_scale(20, -20), Point::new_scale(20, 20), Point::new_scale(-20, 20) };
     Slic3r::Points hole{ Point::new_scale(-5, -5), Point::new_scale(5, -5), Point::new_scale(5, 5), Point::new_scale(-5, 5) };
     std::reverse(hole.begin(), hole.end());
 
-    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("radial"));
+    std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("bridgenormalized"));
     filler->bounding_box = get_extents(Polygon(square));
     filler->spacing = 0.4;
     FillParams fill_params;
     fill_params.density = 1.0;
     fill_params.dont_adjust = true;
 
-    SECTION("Spokes stay within the annular region") {
+    SECTION("Lines cast from the hole stay within the annular region") {
         Slic3r::ExPolygon annulus(square, hole);
         Surface surface(stBottomBridge, annulus);
         Slic3r::Polylines paths = filler->fill_surface(&surface, fill_params);
 
         REQUIRE(paths.size() > 4);
-        // Every spoke must lie inside the annulus, not cross into the hole or past the contour.
+        // Every line must lie inside the annulus, not cross into the hole or past the contour.
         REQUIRE(diff_pl(paths, offset(annulus, float(SCALED_EPSILON * 10))).empty());
     }
 
-    SECTION("Falls back to full coverage when there is no hole to radiate from") {
+    SECTION("Falls back to full coverage when the boundary has no favorable curvature") {
         Slic3r::ExPolygon plain(square);
         Surface surface(stBottomBridge, plain);
         Slic3r::Polylines paths = filler->fill_surface(&surface, fill_params);
@@ -225,10 +226,10 @@ TEST_CASE("Radial fill", "[Fill]") {
     }
 }
 
-TEST_CASE("Bridge infill pattern selects which Fill class handles a bridge", "[Fill]") {
-    // Regression test: bridge_fill_pattern must actually control the pattern used
-    // for a bridge - selecting Rectilinear/Monotonic must not silently keep
-    // producing Radial's spoke pattern (or vice versa).
+TEST_CASE("Normalize bridge lines option selects which Fill class handles a bridge", "[Fill]") {
+    // Regression test: normalize_bridge_lines must actually control the pattern used
+    // for a bridge - leaving it disabled must not silently keep producing the
+    // curvature-following line pattern (or vice versa).
     auto bridge_path_count = [](const Print &print) {
         size_t count = 0;
         for (const Layer *layer : print.objects().front()->layers())
@@ -239,22 +240,23 @@ TEST_CASE("Bridge infill pattern selects which Fill class handles a bridge", "[F
         return count;
     };
 
-    Print print_rectilinear;
-    Slic3r::Test::init_and_process_print({ Slic3r::Test::TestMesh::bridge_with_hole }, print_rectilinear, {
-        { "bridge_fill_pattern", "rectilinear" }
+    Print print_default;
+    Slic3r::Test::init_and_process_print({ Slic3r::Test::TestMesh::bridge_with_hole }, print_default, {
+        { "normalize_bridge_lines", "0" }
     });
-    Print print_radial;
-    Slic3r::Test::init_and_process_print({ Slic3r::Test::TestMesh::bridge_with_hole }, print_radial, {
-        { "bridge_fill_pattern", "radial" }
+    Print print_normalized;
+    Slic3r::Test::init_and_process_print({ Slic3r::Test::TestMesh::bridge_with_hole }, print_normalized, {
+        { "normalize_bridge_lines", "1" }
     });
 
-    size_t rectilinear_paths = bridge_path_count(print_rectilinear);
-    size_t radial_paths = bridge_path_count(print_radial);
+    size_t default_paths = bridge_path_count(print_default);
+    size_t normalized_paths = bridge_path_count(print_normalized);
 
-    REQUIRE(rectilinear_paths > 0);
-    // Radial draws one disconnected spoke per ray, so it produces far more separate
-    // extrusion paths than a connected rectilinear sweep over the same bridge-over-a-hole.
-    REQUIRE(radial_paths > rectilinear_paths * 3);
+    REQUIRE(default_paths > 0);
+    // The curvature-following pattern draws one disconnected line per sampled origin
+    // around the hole, so it produces far more separate extrusion paths than a
+    // connected rectilinear/monotonic sweep over the same bridge-over-a-hole.
+    REQUIRE(normalized_paths > default_paths * 3);
 }
 
 /*

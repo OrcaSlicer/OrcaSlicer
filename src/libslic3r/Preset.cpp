@@ -1212,7 +1212,7 @@ static std::vector<std::string> s_Preset_print_options{
     "bridge_angle",
     "internal_bridge_angle",
     "relative_bridge_angle",
-    "bridge_fill_pattern",
+    "normalize_bridge_lines",
     "filter_out_gap_fill",
     "travel_acceleration",
     "inner_wall_acceleration",

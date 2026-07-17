@@ -160,10 +160,10 @@ set(lisbslic3r_sources
     Fill/FillLightning.hpp
     Fill/FillLine.cpp
     Fill/FillLine.hpp
+    Fill/FillNormalizedLines.cpp
+    Fill/FillNormalizedLines.hpp
     Fill/FillPlanePath.cpp
     Fill/FillPlanePath.hpp
-    Fill/FillRadial.cpp
-    Fill/FillRadial.hpp
     Fill/FillRectilinear.cpp
     Fill/FillRectilinear.hpp
     Fill/FillTpmsD.cpp

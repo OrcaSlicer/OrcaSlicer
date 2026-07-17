@@ -28,7 +28,7 @@
 // BBS: new infill pattern header
 #include "FillConcentricInternal.hpp"
 #include "FillCrossHatch.hpp"
-#include "FillRadial.hpp"
+#include "FillNormalizedLines.hpp"
 // #define INFILL_DEBUG_OUTPUT
 
 namespace Slic3r {
@@ -62,7 +62,7 @@ Fill* Fill::new_from_type(const InfillPattern type)
     case ipArchimedeanChords:   return new FillArchimedeanChords();
     case ipHilbertCurve:        return new FillHilbertCurve();
     case ipOctagramSpiral:      return new FillOctagramSpiral();
-    case ipRadial:              return new FillRadial();
+    case ipBridgeNormalized:    return new FillNormalizedLines();
     case ipAdaptiveCubic:       return new FillAdaptive::Filler();
     case ipSupportCubic:        return new FillAdaptive::Filler();
     case ipSupportBase:         return new FillSupportBase();  // simply line fill

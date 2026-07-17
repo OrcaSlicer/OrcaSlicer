@@ -275,7 +275,7 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "hilbertcurve", ipHilbertCurve },
     { "archimedeanchords", ipArchimedeanChords },
     { "octagramspiral", ipOctagramSpiral },
-    { "radial", ipRadial }
+    { "bridgenormalized", ipBridgeNormalized }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillPattern)
 
@@ -1423,23 +1423,17 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
-    // Orca: Bridge fill pattern, independent of top_surface_pattern/bottom_surface_pattern
-    // (those two options explicitly exclude bridge infill - see their tooltips).
-    def = this->add("bridge_fill_pattern", coEnum);
-    def->label = L("Bridge infill pattern");
+    // Orca: follow local boundary curvature for bridge infill lines instead of a single
+    // straight-line direction across the whole bridge (both external and internal bridges).
+    def = this->add("normalize_bridge_lines", coBool);
+    def->label = L("Normalize bridge lines");
     def->category = L("Strength");
-    def->tooltip = L("This is the line pattern used for bridge infill (both external and internal bridges).");
-    def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
-    def->enum_values.push_back("rectilinear");
-    def->enum_values.push_back("monotonic");
-    def->enum_values.push_back("monotonicline");
-    def->enum_values.push_back("radial");
-    def->enum_labels.push_back(L("Rectilinear"));
-    def->enum_labels.push_back(L("Monotonic"));
-    def->enum_labels.push_back(L("Monotonic line"));
-    def->enum_labels.push_back(L("Radial"));
+    def->tooltip = L("Wherever a bridge's boundary curves toward the filled area (for example around a hole, or an "
+                      "inward notch of the outer contour), draw bridge lines along the local normal instead of a "
+                      "single straight-line direction across the whole bridge, so no span is much longer than "
+                      "necessary. Has no effect on stretches of the boundary that are straight.");
     def->mode = comAdvanced;
-    def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonic));
+    def->set_default_value(new ConfigOptionBool(false));
 
     def = this->add("bridge_density", coPercent);
     def->label = L("External bridge density");

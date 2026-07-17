@@ -907,9 +907,14 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         params.pattern = region_config.internal_solid_infill_pattern.value;
                         params.density = 100.f;
                     } else {
-                        // Orca: bridge fill pattern is independent of top_surface_pattern/
-                        // bottom_surface_pattern (those explicitly exclude bridge infill).
-                        params.pattern = region_config.bridge_fill_pattern.value;
+                        if (region_config.top_surface_pattern == ipMonotonic || region_config.top_surface_pattern == ipMonotonicLine)
+                            params.pattern = ipMonotonic;
+                        else
+                            params.pattern = ipRectilinear;
+                        // Orca: follow local boundary curvature instead, wherever the bridge
+                        // surface has any to follow (see FillNormalizedLines' fallback).
+                        if (region_config.normalize_bridge_lines)
+                            params.pattern = ipBridgeNormalized;
                         params.density = 100.f;
                     }
                 } else if (params.density <= 0)
