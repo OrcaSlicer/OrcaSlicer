@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-16 22:32+0800\n"
-"PO-Revision-Date: 2026-07-16 11:47+0200\n"
+"PO-Revision-Date: 2026-07-17 19:04+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
 "Language: eu\n"
@@ -899,7 +899,7 @@ msgstr ""
 "Hautatu beste letra-tipo bat."
 
 msgid "Revert using of model surface."
-msgstr "Modeloaren azalerak erabiltzeari utzi."
+msgstr "Modeloaren gainazalak erabiltzeari utzi."
 
 msgid "Revert Transformation per glyph."
 msgstr "Glifo bidezko transformazioa desegin."
@@ -4769,7 +4769,7 @@ msgid "Initializing..."
 msgstr "Hasieratzen..."
 
 msgid "Connection Failed. Please check the network and try again"
-msgstr "Konexioak huts egin du. Egiaztatu sarea eta saiatu berriro."
+msgstr "Konexioak huts egin du. Egiaztatu sarea eta saiatu berriro"
 
 msgid "Please check the network and try again. You can restart or update the printer if the issue persists."
 msgstr "Egiaztatu sarea eta saiatu berriro. Arazoak jarraitzen badu, inprimagailua berrabiarazi edo eguneratu dezakezu."
@@ -7062,8 +7062,8 @@ msgid ""
 "When recording timelapse without toolhead, it is recommended to add a \"Timelapse Wipe Tower\" \n"
 "by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
-"Tresna-bururik gabeko timelapsea grabatzean, \"Timelapse garbiketa-dorrea\" gehitzea gomendatzen da \n"
-"eraikitze-plakako posizio hutsaren gainean eskuin-klika eginez eta \"Gehitu primitiboa\"->\"Timelapse garbiketa-dorrea\" aukeratuz."
+"Tresna-bururik gabeko timelapsea grabatzean, \"Timelapse purgatze-dorrea\" gehitzea gomendatzen da \n"
+"eraikitze-plakako posizio hutsaren gainean eskuin-klika eginez eta \"Gehitu primitiboa\"->\"Timelapse purgatze-dorrea\" aukeratuz."
 
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "Uneko sistemako aurrezarpenaren kopia bat sortuko da, sistemako aurrezarpenetik bereizita."
@@ -7351,7 +7351,7 @@ msgid "Filament end G-code"
 msgstr "Filamentuaren amaierako G-codea"
 
 msgid "Wipe tower parameters"
-msgstr "Garbiketa-dorrearen parametroak"
+msgstr "Purgatze-dorrearen parametroak"
 
 msgid "Tool change parameters with single extruder MM printers"
 msgstr "Estrusore bakarreko MM inprimagailuetarako tresna-aldaketaren parametroak"
@@ -7461,7 +7461,7 @@ msgid "Nozzle diameter"
 msgstr "Pitaren diametroa"
 
 msgid "Wipe tower"
-msgstr "Garbiketa-dorrea"
+msgstr "Purgatze-dorrea"
 
 msgid "Single extruder multi-material parameters"
 msgstr "Estrusore bakarreko material anitzeko parametroak"
@@ -7483,7 +7483,7 @@ msgid ""
 "\n"
 "Shall I disable it in order to enable Firmware Retraction?"
 msgstr ""
-"Garbiketa aukera ez dago erabilgarri Firmware bidezko atzera-egite modua erabiltzean.\n"
+"Purgatzeko aukera ez dago erabilgarri Firmware bidezko atzera-egite modua erabiltzean.\n"
 "\n"
 "Desgaitu dezadan Firmware bidezko atzera-egitea gaitzeko?"
 
@@ -7674,10 +7674,10 @@ msgid "Add File"
 msgstr "Gehitu fitxategia"
 
 msgid "Set as cover"
-msgstr "Ezarri azal gisa"
+msgstr "Ezarri estalki gisa"
 
 msgid "Cover"
-msgstr "Azala"
+msgstr "Estalki"
 
 #, boost-format
 msgid "The name \"%1%\" already exists."
@@ -8636,10 +8636,10 @@ msgid "Different nozzle diameters and different filament diameters may not work 
 msgstr "Pita-diametro eta filamentu-diametro desberdinek agian ez dute ondo funtzionatuko purgatze-dorrea gaituta dagoenean. Oso esperimentala da; jarraitu kontuz."
 
 msgid "The Wipe Tower is currently only supported with the relative extruder addressing (use_relative_e_distances=1)."
-msgstr "Garbiketa-dorrea oraingoz estrusorearen helbideratze erlatiboarekin soilik onartzen da (use_relative_e_distances=1)."
+msgstr "Purgatze-dorrea oraingoz estrusorearen helbideratze erlatiboarekin soilik onartzen da (use_relative_e_distances=1)."
 
 msgid "Ooze prevention is only supported with the wipe tower when 'single_extruder_multi_material' is off."
-msgstr "Jarioaren prebentzioa garbiketa-dorrearekin soilik onartzen da 'single_extruder_multi_material' desaktibatuta dagoenean."
+msgstr "Jarioaren prebentzioa purgatze-dorrearekin soilik onartzen da 'single_extruder_multi_material' desaktibatuta dagoenean."
 
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
 msgstr "Purgatze-dorrea oraingoz Marlin, RepRap/Sprinter, RepRapFirmware eta Repetier G-code aldaeretarako soilik onartzen da."
@@ -9911,7 +9911,7 @@ msgid "Loading speed"
 msgstr "Kargatze-abiadura"
 
 msgid "Speed used for loading the filament on the wipe tower."
-msgstr "Filamentua garbiketa-dorrean kargatzeko erabilitako abiadura."
+msgstr "Filamentua purgatze-dorrean kargatzeko erabilitako abiadura."
 
 msgid "Loading speed at the start"
 msgstr "Hasierako kargatze-abiadura"
@@ -9923,7 +9923,7 @@ msgid "Unloading speed"
 msgstr "Deskargatze-abiadura"
 
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
-msgstr "Filamentua garbiketa-dorrean deskargatzeko erabilitako abiadura (ez dio eragiten rammingaren ondorengo deskargaren hasierako zatiari)."
+msgstr "Filamentua purgatze-dorrean deskargatzeko erabilitako abiadura (ez dio eragiten rammingaren ondorengo deskargaren hasierako zatiari)."
 
 msgid "Unloading speed at the start"
 msgstr "Hasierako deskargatze-abiadura"
@@ -9962,10 +9962,10 @@ msgid "Cooling moves are gradually accelerating beginning at this speed."
 msgstr "Hozte-mugimenduak pixkanaka azeleratzen dira abiadura honetatik hasita."
 
 msgid "Minimal purge on wipe tower"
-msgstr "Gutxieneko purga garbiketa-dorrean"
+msgstr "Gutxieneko purga purgatze-dorrean"
 
 msgid "After a tool change, the exact position of the newly loaded filament inside the nozzle may not be known, and the filament pressure is likely not yet stable. Before purging the print head into an infill or a sacrificial object, Orca Slicer will always prime this amount of material into the wipe tower to produce successive infill or sacrificial object extrusions reliably."
-msgstr "Tresna-aldaketa baten ondoren, pitaren barruan kargatu berri den filamentuak duen posizio zehatza ezezaguna izan daiteke, eta filamentuko presioa ziurrenik oraindik ez da egonkorra izango. Orca Slicerrek material kopuru hau garbiketa-dorrean prestatuko du, ondorengo estrusioak fidagarri sortzeko."
+msgstr "Tresna-aldaketa baten ondoren, pitaren barruan kargatu berri den filamentuak duen posizio zehatza ezezaguna izan daiteke, eta filamentuko presioa ziurrenik oraindik ez da egonkorra izango. Orca Slicerrek material kopuru hau purgatze-dorrean prestatuko du, ondorengo estrusioak fidagarri sortzeko."
 
 msgid "Speed of the last cooling move"
 msgstr "Azken hozte-mugimenduaren abiadura"
@@ -9983,7 +9983,7 @@ msgid "Enable ramming for multi-tool setups"
 msgstr "Gaitu ramminga tresna anitzeko konfigurazioetan"
 
 msgid "Perform ramming when using multi-tool printer (i.e. when the 'Single Extruder Multimaterial' in Printer Settings is unchecked). When checked, a small amount of filament is rapidly extruded on the wipe tower just before the tool change. This option is only used when the wipe tower is enabled."
-msgstr "Egin ramming tresna anitzeko inprimagailua erabiltzean. Markatuta dagoenean, filamentu-kopuru txiki bat azkar estruitzen da garbiketa-dorrean tresna-aldaketaren aurretik. Aukera hau garbiketa-dorrea gaituta dagoenean bakarrik erabiltzen da."
+msgstr "Egin ramming-a tresna anitzeko inprimagailua erabiltzean. Markatuta dagoenean, filamentu-kopuru txiki bat azkar estruitzen da purgatze-dorrean tresna-aldaketaren aurretik. Aukera hau purgatze-dorrea gaituta dagoenean bakarrik erabiltzen da."
 
 msgid "Multi-tool ramming volume"
 msgstr "Tresna anitzeko ramming-bolumena"
@@ -10064,7 +10064,7 @@ msgid "Rotate the solid infill direction by 90° for each layer."
 msgstr "Biratu betegarri solidoaren norabidea 90° geruza bakoitzean."
 
 msgid "Sparse infill density"
-msgstr "Dentsitate baxuko betegarria dentsitatea"
+msgstr "Dentsitate baxuko betegarriaren dentsitatea"
 
 #, no-c-format, no-boost-format
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
@@ -10305,7 +10305,7 @@ msgid "The width within which to jitter. It's advised to be below outer wall lin
 msgstr "Dardara egiteko zabalera. Kanpoko hormaren lerro-zabaleratik behera egotea gomendatzen da."
 
 msgid "Fuzzy skin point distance"
-msgstr "Azal zimurreko puntuen distantzia"
+msgstr "Gainazal zimurreko puntuen distantzia"
 
 msgid "The average distance between the random points introduced on each line segment."
 msgstr "Lerro-segmentu bakoitzean sartzen diren ausazko puntuen batez besteko distantzia."
@@ -10502,7 +10502,7 @@ msgid "money/h"
 msgstr "dirua/h"
 
 msgid "Support control chamber temperature"
-msgstr "ganberako tenperatura kontrolatzeko euskarria"
+msgstr "Ganberaren tenperatura kontrolatzea onartu"
 
 msgid ""
 "This option is enabled if machine support controlling chamber temperature\n"
@@ -10512,7 +10512,7 @@ msgstr ""
 "G-code komandoa: M141 S(0-255)"
 
 msgid "Support air filtration"
-msgstr "Aire-iragazketarako euskarria"
+msgstr "Aire-iragazketa onartu"
 
 msgid ""
 "Enable this if printer support air filtration\n"
@@ -10537,7 +10537,7 @@ msgid "Enable this option if your printer uses pellets instead of filaments."
 msgstr "Gaitu aukera hau zure inprimagailuak filamentuen ordez pelletak erabiltzen baditu."
 
 msgid "Support multi bed types"
-msgstr "Ohe mota anitzetarako euskarria"
+msgstr "Ohe mota anitz onartu"
 
 msgid "Enable this option if you want to use multiple bed types."
 msgstr "Gaitu aukera hau ohe mota bat baino gehiago erabili nahi baduzu."
@@ -10673,7 +10673,7 @@ msgid "Ironing Type"
 msgstr "Lisatze mota"
 
 msgid "Ironing is using small flow to print on same height of surface again to make flat surface more smooth. This setting controls which layer being ironed"
-msgstr "Lisatzeak fluxu txikia erabiltzen du gainazalaren altuera berean berriro inprimatzeko, gainazal laua leunago egiteko. Ezarpen honek zein geruza lisatuko den kontrolatzen du."
+msgstr "Lisatzeak fluxu txikia erabiltzen du gainazalaren altuera berean berriro inprimatzeko, gainazal laua leunago egiteko. Ezarpen honek zein geruza lisatuko den kontrolatzen du"
 
 msgid "No ironing"
 msgstr "Lisatzerik ez"
@@ -11041,7 +11041,7 @@ msgid "Make overhangs printable - Hole area"
 msgstr "Egin gainegituren inprimaketa posible - Zulo-eremua"
 
 msgid "Maximum area of a hole in the base of the model before it's filled by conical material. A value of 0 will fill all the holes in the model base."
-msgstr "Modeloren oinarrian dagoen zulo baten gehieneko azalera, materialkonikoarekin bete aurretik. 0 balioak modeloaren oinarriko zulo guztiakbeteko ditu."
+msgstr "Modeloren oinarrian dagoen zulo baten gehieneko azalera, material konikoarekin bete aurretik. 0 balioak modeloaren oinarriko zulo guztiak beteko ditu."
 
 msgid "mm²"
 msgstr "mm³"
@@ -11082,7 +11082,7 @@ msgstr ""
 "Aukera honekin batera tximista-betegarria erabiltzea ez da gomendagarria, izan ere, betegarri-kantitate mugatu bat baitago perimetro gehigarriak ainguratzeko."
 
 msgid "If you want to process the output G-code through custom scripts, just list their absolute paths here. Separate multiple scripts with a semicolon. Scripts will be passed the absolute path to the G-code file as the first argument, and they can access the Orca Slicer config settings by reading environment variables."
-msgstr "Irteerako G-codea script pertsonalizatuen bidez prozesatu nahi baduzu,zerrendatu hemen haien bide absolutuak. Bereizi script bat baino gehiagopuntu eta komaz. Script-ek G-code fitxategiaren bide absolutua jasoko dutelehen argumentu gisa, eta Orca Slicerren konfigurazio-ezarpenetara sardaitezke ingurune-aldagaiak irakurrita."
+msgstr "Irteerako G-codea script pertsonalizatuen bidez prozesatu nahi baduzu, zerrendatu hemen haien bide absolutuak. Bereizi script bat baino gehiago puntu eta komaz. Script-ek G-code fitxategiaren bide absolutua jasoko dute lehen argumentu gisa, eta Orca Slicerren konfigurazio-ezarpenetara sar daitezke ingurune-aldagaiak irakurrita."
 
 msgid "Printer type"
 msgstr "Inprimagailu mota"
@@ -11326,7 +11326,7 @@ msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
 "If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
 msgstr ""
-" Aukera honek baldintzapeko bufanda junturako jostura aplikatzeko angelu-atalasea ezartzen du.\n"
+"Aukera honek baldintzapeko bufanda junturako jostura aplikatzeko angelu-atalasea ezartzen du.\n"
 "Perimetro-begiztaren barruko gehieneko angelua balio hau baino handiagoa bada (izkina zorrotzik ez dagoela adieraziz), juntura zeiharreko jostura erabiliko da. Balio lehenetsia 155° da."
 
 msgid "Conditional overhang threshold"
@@ -11383,10 +11383,10 @@ msgid "Use scarf joint for inner walls as well."
 msgstr "Erabili bufanda juntura barruko hormetan ere."
 
 msgid "Role base wipe speed"
-msgstr "Eginkizunaren araberako garbiketa-abiadura"
+msgstr "Eginkizunaren araberako purgatze-abiadura"
 
 msgid "The wipe speed is determined by the speed of the current extrusion role. e.g. if a wipe action is executed immediately following an outer wall extrusion, the speed of the outer wall extrusion will be utilized for the wipe action."
-msgstr "Garbiketa-abiadura uneko estrusio-eginkizunaren abiadurak zehazten du. Adibidez, garbiketa-ekintza bat kanpoko hormaren estrusioaren ondoren berehala egiten bada, kanpoko hormaren estrusio-abiadura erabiliko da garbiketa-ekintzarako."
+msgstr "Purgatze-abiadura uneko estrusio-eginkizunaren abiadurak zehazten du. Adibidez, purgatze-ekintza bat kanpoko hormaren estrusioaren ondoren berehala egiten bada, kanpoko hormaren estrusio-abiadura erabiliko da purgatze-ekintzarako."
 
 msgid "Wipe on loops"
 msgstr "Garbitu begiztetan"
@@ -11407,10 +11407,10 @@ msgstr ""
 "Hau erabilgarria da Kanpoko/Barruko edo Barruko/Kanpoko/Barruko horma inprimatze ordenarekin inprimatzean; izan ere, modu horietan litekeena da kanpoko perimetro bat atzera-egitea lehengoratzeko mugimendu baten ondoren berehala inprimatzea."
 
 msgid "Wipe speed"
-msgstr "Garbiketa-abiadura"
+msgstr "Purgatze-abiadura"
 
 msgid "The wipe speed is determined by the speed setting specified in this configuration. If the value is expressed as a percentage (e.g. 80%), it will be calculated based on the travel speed setting above. The default value for this parameter is 80%."
-msgstr "Garbiketa-abiadura konfigurazio honetan zehaztutako abiadura-ezarpenakzehazten du. Balioa ehuneko gisa adierazten bada (adibidez, %80), goikomugimendu-abiaduraren ezarpenaren arabera kalkulatuko da. Parametro honenbalio lehenetsia %80 da."
+msgstr "Purgatze-abiadura konfigurazio honetan zehaztutako abiadura-ezarpenak zehazten du. Balioa ehuneko gisa adierazten bada (adibidez, %80), goiko mugimendu-abiaduraren ezarpenaren arabera kalkulatuko da. Parametro honen balio lehenetsia %80 da."
 
 msgid "Skirt distance"
 msgstr "Gonaren distantzia"
@@ -11601,7 +11601,7 @@ msgid "No sparse layers (beta)"
 msgstr "Geruza bakandurik ez (beta)"
 
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
-msgstr "Gaituta badago, garbiketa-dorrea ez da inprimatuko tresna-aldaketarik ezduten geruzetan. Tresna-aldaketa duten geruzetan, estrusorea beherantz mugituko da garbiketa-dorrea inprimatzeko. Erabiltzailearen ardura dainprimaketarekin talkarik ez dagoela ziurtatzea."
+msgstr "Gaituta badago, purgatze-dorrea ez da inprimatuko tresna-aldaketarik ez duten geruzetan. Tresna-aldaketa duten geruzetan, estrusorea beherantz mugituko da purgatze-dorrea inprimatzeko. Erabiltzailearen ardura da inprimaketarekin talkarik ez dagoela ziurtatzea."
 
 msgid "Prime all printing extruders"
 msgstr "Primatu inprimatzeko estrusore guztiak"
@@ -11724,7 +11724,7 @@ msgid "Interface use loop pattern"
 msgstr "Interfazeak begizta-patroia erabiltzen du"
 
 msgid "Cover the top contact layer of the supports with loops. Disabled by default."
-msgstr "Estali euskarrien goiko kontaktu-geruza begiztekin. Lehenespenez desgaitutadago."
+msgstr "Estali euskarrien goiko kontaktu-geruza begiztekin. Lehenespenez desgaituta dago."
 
 msgid "Support/raft interface"
 msgstr "Euskarriaren/baltsaren interfazea"
@@ -11927,13 +11927,13 @@ msgid ""
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"Gaitu aukera hau ganberako tenperatura automatikoki kontrolatzeko. Aukerahonek M191 komandoa igortzea aktibatzen du \"machine_start_gcode\" bainolehen;\n"
-"komando horrek ganberako tenperatura ezartzen du eta lortu arte itxarotendu. Gainera, inprimaketaren amaieran M141 komandoa igortzen du ganberarenberogailua itzaltzeko, halakorik badago.\n"
+"Gaitu aukera hau ganberako tenperatura automatikoki kontrolatzeko. Aukera honek M191 komandoa igortzea aktibatzen du \"machine_start_gcode\" baino lehen;\n"
+"komando horrek ganberako tenperatura ezartzen du eta lortu arte itxaroten du. Gainera, inprimaketaren amaieran M141 komandoa igortzen du ganberaren berogailua itzaltzeko, halakorik badago.\n"
 "\n"
-"Aukera honek firmwareak M191 eta M141 komandoak onartzea eskatzen du,makroen bidez edo jatorriz, eta normalean ganberaren berogailu aktiboainstalatuta dagoenean erabiltzen da."
+"Aukera honek firmwareak M191 eta M141 komandoak onartzea eskatzen du, makroen bidez edo jatorriz, eta normalean ganberaren berogailu aktiboa instalatuta dagoenean erabiltzen da."
 
 msgid "Chamber temperature"
-msgstr "ganberako tenperatura"
+msgstr "Ganberako tenperatura"
 
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
@@ -11994,7 +11994,7 @@ msgid "Move nozzle along the last extrusion path when retracting to clean any le
 msgstr "Atzera egitean, mugitu pita azken estrusio-bidean zehar, pitatik isuritako materiala garbitzeko. Horrela, mugimenduaren ondoren pieza berri bat inprimatzean sortzen diren pikorrak murriztu daitezke."
 
 msgid "Wipe Distance"
-msgstr "Garbiketa-distantzia"
+msgstr "Purgatze-distantzia"
 
 msgid ""
 "Describe how long the nozzle will move along the last path when retracting.\n"
@@ -12005,12 +12005,12 @@ msgid ""
 msgstr ""
 "Atzera egitean pitak azken bidean zehar zenbat mugituko den zehazten du.\n"
 "\n"
-"Garbiketa-eragiketak zenbat irauten duen eta estrusorearen/filamentuaren atzera-egite ezarpenak zein azkar eta luzeak diren kontuan hartuta, baliteke atzera-egite mugimendu bat behar izatea geratzen den filamentua atzera eramateko.\n"
+"Purgatze-eragiketak zenbat irauten duen eta estrusorearen/filamentuaren atzera-egite ezarpenak zein azkar eta luzeak diren kontuan hartuta, baliteke atzera-egite mugimendu bat behar izatea geratzen den filamentua atzera eramateko.\n"
 "\n"
 "Beheko garbitu aurreko atzera-egite kantitatearen ezarpenean balio batezarriz gero, gehiegizko atzera-egitea garbiketa baino lehen egingo da; bestela, ondoren egingo da."
 
 msgid "The wiping tower can be used to clean up the residue on the nozzle and stabilize the chamber pressure inside the nozzle, in order to avoid appearance defects when printing objects."
-msgstr "Garbiketa-dorrea erabil daiteke pitaren hondarrak garbitzeko eta pitaren barruko ganbera-presioa egonkortzeko, objektuak inprimatzean itxura-akatsak saihesteko."
+msgstr "Purgatze-dorrea erabil daiteke pitaren hondarrak garbitzeko eta pitaren barruko ganbera-presioa egonkortzeko, objektuak inprimatzean itxura-akatsak saihesteko."
 
 msgid "Purging volumes"
 msgstr "Purga-bolumenak"
@@ -12031,19 +12031,19 @@ msgid "Width of the prime tower."
 msgstr "Purgatze-dorrearen zabalera."
 
 msgid "Wipe tower rotation angle"
-msgstr "Garbiketa-dorrearen biraketa-angelua"
+msgstr "Purgatze-dorrearen biraketa-angelua"
 
 msgid "Wipe tower rotation angle with respect to x-axis."
-msgstr "Garbiketa-dorrearen biraketa-angelua X ardatzarekiko."
+msgstr "Purgatze-dorrearen biraketa-angelua X ardatzarekiko."
 
 msgid "Stabilization cone apex angle"
 msgstr "Egonkortze-konoaren erpin-angelua"
 
 msgid "Angle at the apex of the cone that is used to stabilize the wipe tower. Larger angle means wider base."
-msgstr "Garbiketa-dorrea egonkortzeko erabiltzen den konoaren erpineko angelua. Angelu handiagoak oinarri zabalagoa esan nahi du."
+msgstr "Purgatze-dorrea egonkortzeko erabiltzen den konoaren erpineko angelua. Angelu handiagoak oinarri zabalagoa esan nahi du."
 
 msgid "Maximum wipe tower print speed"
-msgstr "Garbiketa-dorrearen gehieneko inprimatze-abiadura"
+msgstr "Purgatze-dorrearen gehieneko inprimatze-abiadura"
 
 msgid ""
 "The maximum print speed when purging in the wipe tower and printing the wipe tower sparse layers. When purging, if the sparse infill speed or calculated speed from the filament max volumetric speed is lower, the lowest will be used instead.\n"
@@ -12056,24 +12056,24 @@ msgid ""
 "\n"
 "For the wipe tower external perimeters the internal perimeter speed is used regardless of this setting."
 msgstr ""
-"Garbiketa-dorrean purgatzean eta garbiketa-dorrearen geruza bakanduak inprimatzean erabiliko den gehieneko inprimatze-abiadura. Purgatzean, dentsitate baxuko betegarriaren abiadura edo filamentuaren gehieneko abiadura bolumetrikotik kalkulatutako abiadura txikiagoa bada, txikiena erabiliko da.\n"
+"Purgatze-dorrean purgatzean eta purgatze-dorrearen geruza bakanduak inprimatzean erabiliko den gehieneko inprimatze-abiadura. Purgatzean, dentsitate baxuko betegarriaren abiadura edo filamentuaren gehieneko abiadura bolumetrikotik kalkulatutako abiadura txikiagoa bada, txikiena erabiliko da.\n"
 "\n"
 "Geruza bakanduak inprimatzean, barne-perimetroaren abiadura edo filamentuaren gehieneko abiadura bolumetrikotik kalkulatutako abiadura txikiagoa bada, txikiena erabiliko da.\n"
 "\n"
-"Abiadura hau handitzeak dorrearen egonkortasunean eragina izan dezake, eta pitak garbiketa-dorrean sortu diren pikorrekin talka egitean duen indarra handitu dezake.\n"
+"Abiadura hau handitzeak dorrearen egonkortasunean eragina izan dezake, eta pitak purgatze-dorrean sortu diren pikorrekin talka egitean duen indarra handitu dezake.\n"
 "\n"
 "Parametro hau 90 mm/s-ko balio lehenetsitik gora handitu aurretik, ziurtatu zure inprimagailuak abiadura handiagoetan zubiak modu fidagarrian inprima ditzakeela eta tresna-aldaketan jarioa ondo kontrolatuta dagoela.\n"
 "\n"
-"Garbiketa-dorrearen kanpoko perimetroetarako barne-perimetroaren abiadura erabiltzen da, ezarpen hau kontuan hartu gabe."
+"Purgatze-dorrearen kanpoko perimetroetarako barne-perimetroaren abiadura erabiltzen da, ezarpen hau kontuan hartu gabe."
 
 msgid "The extruder to use when printing perimeter of the wipe tower. Set to 0 to use the one that is available (non-soluble would be preferred)."
-msgstr "Garbiketa-dorrearen perimetroa inprimatzean erabiliko den estrusorea. Ezarri 0 erabilgarri dagoena erabiltzeko (disolbagarria ez dena lehenetsiko da)."
+msgstr "Purgatze-dorrearen perimetroa inprimatzean erabiliko den estrusorea. Ezarri 0 erabilgarri dagoena erabiltzeko (disolbagarria ez dena lehenetsiko da)."
 
 msgid "Purging volumes - load/unload volumes"
 msgstr "Purga-bolumenak - kargatzeko/deskargatzeko bolumenak"
 
 msgid "This vector saves required volumes to change from/to each tool used on the wipe tower. These values are used to simplify creation of the full purging volumes below."
-msgstr "Bektore honek garbiketa-dorrean erabiltzen den tresna bakoitzetik/bakoitzeraaldatzeko behar diren bolumenak gordetzen ditu. Balio hauek behekopurga-bolumen osoen sorrera sinplifikatzeko erabiltzen dira."
+msgstr "Bektore honek purgatze-dorrean erabiltzen den tresna bakoitzetik/bakoitzera aldatzeko behar diren bolumenak gordetzen ditu. Balio hauek beheko purga-bolumen osoen sorrera sinplifikatzeko erabiltzen dira."
 
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be seen outside. It will not take effect, unless the prime tower is enabled."
 msgstr "Filamentu-aldaketaren ondorengo purga objektuen betegarriaren barruan egingo da. Horrek hondakin kopurua murriztu eta inprimatze-denbora laburtu dezake. Hormak filamentu gardenarekin inprimatzen badira, kolore nahasiko betegarria kanpotik ikusiko da. Ez du eraginik izango purgatze-dorrea gaituta ez badago."
@@ -12091,16 +12091,16 @@ msgid "Maximal distance between supports on sparse infill sections."
 msgstr "Dentsitate baxuko betegarriko sekzioetan euskarrien arteko gehieneko distantzia."
 
 msgid "Wipe tower purge lines spacing"
-msgstr "Garbiketa-dorreko purga-lerroen tartea"
+msgstr "Purgatze-dorreko purga-lerroen tartea"
 
 msgid "Spacing of purge lines on the wipe tower."
-msgstr "Garbiketa-dorreko purga-lerroen arteko tartea."
+msgstr "Purgatze-dorreko purga-lerroen arteko tartea."
 
 msgid "Extra flow for purging"
 msgstr "Purgatzeko fluxu gehigarria"
 
 msgid "Extra flow used for the purging lines on the wipe tower. This makes the purging lines thicker or narrower than they normally would be. The spacing is adjusted automatically."
-msgstr "Garbiketa-dorreko purga-lerroetarako erabiltzen den fluxu gehigarria. Horrek purga-lerroak normalean baino lodiagoak edo meheagoak egiten ditu. Tartea automatikoki doitzen da."
+msgstr "Purgatze-dorreko purga-lerroetarako erabiltzen den fluxu gehigarria. Horrek purga-lerroak normalean baino lodiagoak edo meheagoak egiten ditu. Tartea automatikoki doitzen da."
 
 msgid "Idle temperature"
 msgstr "Inaktibo dagoeneko tenperatura"
@@ -12165,7 +12165,7 @@ msgid "Use relative E distances"
 msgstr "Erabili E distantzia erlatiboak"
 
 msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
-msgstr "Estrusio erlatiboa gomendatzen da \"label_objects\" aukera erabiltzean. Estrusore batzuek hobeto funtzionatzen dute aukera hau desmarkatuta dagoenean (estrusio absolutuaren modua). Garbiketa-dorrea modu erlatiboarekin bakarrik da bateragarria. Inprimagailu gehienetan gomendatzen da. Lehenespenez markatuta dago."
+msgstr "Estrusio erlatiboa gomendatzen da \"label_objects\" aukera erabiltzean. Estrusore batzuek hobeto funtzionatzen dute aukera hau desmarkatuta dagoenean (estrusio absolutuaren modua). Purgatze-dorrea modu erlatiboarekin bakarrik da bateragarria. Inprimagailu gehienetan gomendatzen da. Lehenespenez markatuta dago."
 
 msgid "Classic wall generator produces walls with constant extrusion width and for very thin areas is used gap-fill. Arachne engine produces walls with variable extrusion width."
 msgstr "Horma-sortzaile klasikoak estrusio-zabalera konstanteko hormak sortzen ditu, eta eremu oso meheetan hutsune-betetzea erabiltzen da. Arachne motorrak estrusio-zabalera aldakorreko hormak sortzen ditu."
@@ -12570,10 +12570,10 @@ msgid "Specific for sequential printing. Zero-based index of currently printed o
 msgstr "Inprimatze sekuentzialerako espezifikoa. Unean inprimatzen ari den objektuaren zeroan oinarritutako indizea."
 
 msgid "Has wipe tower"
-msgstr "Garbiketa-dorrea du"
+msgstr "Purgatze-dorrea du"
 
 msgid "Whether or not wipe tower is being generated in the print."
-msgstr "Inprimaketan garbiketa-dorrea sortzen ari den ala ez."
+msgstr "Inprimaketan purgatze-dorrea sortzen ari den ala ez."
 
 msgid "Initial extruder"
 msgstr "Hasierako estrusorea"
@@ -12991,7 +12991,7 @@ msgid "Max volumetric speed calibration result has been saved to preset."
 msgstr "Gehieneko abiadura bolumetrikoaren kalibrazioaren emaitza aurrezarpenean gorde da."
 
 msgid "When do you need Flow Dynamics Calibration"
-msgstr "Noiz behar duzu fluxu-dinamikaren kalibrazioa?"
+msgstr "Fluxu-Dinamikak kalibratu behar dituzunean"
 
 msgid ""
 "We now have added the auto-calibration for different filaments, which is fully automated and the result will be saved into the printer for future use. You only need to do the calibration in the following limited cases:\n"
@@ -13060,7 +13060,7 @@ msgstr ""
 "Kontuz: fluxuaren kalibrazioa prozesu aurreratua da, haren helburua eta ondorioak guztiz ulertzen dituztenek bakarrik saiatu beharrekoa. Erabilera okerrak kalitate eskasagoko inprimaketak edo inprimagailuaren kalteak eragin ditzake. Ziurtatu prozesua arretaz irakurri eta ulertu duzula egin aurretik."
 
 msgid "When you need Max Volumetric Speed Calibration"
-msgstr "Noiz behar duzu gehieneko abiadura bolumetrikoaren kalibrazioa?"
+msgstr "Abiadura bolumetriko maximoa kalibratu behar duzunean"
 
 msgid "Over-extrusion or under extrusion"
 msgstr "Gain-estrusioa edo azpi-estrusioa"
@@ -14436,7 +14436,7 @@ msgid ""
 "Air filtration/Exhaust Fan\n"
 "Did you know that OrcaSlicer can support Air filtration/Exhaust Fan?"
 msgstr ""
-"Aire-iragazketa/erauzte-haizagailua\n"
+"Aire-iragazketa/Erauzte-haizagailua\n"
 "Ba al zenekien OrcaSlicerrek aire-iragazketa/erauzte-haizagailua onar dezakeela?"
 
 #: resources/data/hints.ini: [hint:G-code window]
@@ -14671,7 +14671,7 @@ msgid ""
 "Did you know that you can use more wall loops and higher sparse infill density to improve the strength of the model?"
 msgstr ""
 "Hobetu erresistentzia\n"
-"Ba al zenekien horma-begizta gehiago eta betegarri urriko dentsitate handiagoa erabil ditzakezula modeloaren erresistentzia hobetzeko?"
+"Ba al zenekien horma-begizta gehiago eta dentsitate baxuko betegarriaren dentsitate handiagoa erabil ditzakezula modeloaren erresistentzia hobetzeko?"
 
 #: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
 msgid ""
