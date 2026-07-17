@@ -8,6 +8,7 @@
 #include "GUI_App.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
+#include "OutputToolMapping.hpp"
 #include "format.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include "Widgets/RoundedRectangle.hpp"
@@ -2748,6 +2749,13 @@ void SelectMachineDialog::on_send_print()
     assert(obj_->get_dev_id() == m_printer_last_select);
     if (obj_ == nullptr) { return; }
 
+    std::map<int, int> output_tool_mapping;
+    if (m_print_type == PrintFromType::FROM_NORMAL &&
+        !show_output_tool_mapping_dialog(this, m_plater, m_print_plate_idx, output_tool_mapping)) {
+        Enable_Send_Button(true);
+        return;
+    }
+
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", print_job: for send task, current printer id =  " << m_printer_last_select << std::endl;
     show_status(PrintDialogStatus::PrintStatusSending);
 
@@ -2785,7 +2793,7 @@ void SelectMachineDialog::on_send_print()
             wxString msg = _L("Preparing print job");
             m_status_bar->update_status(msg, cancelled, 10, true);
             m_export_3mf_cancel = cancel = cancelled;
-            });
+            }, output_tool_mapping);
 
         if (m_is_canceled || m_export_3mf_cancel) {
             BOOST_LOG_TRIVIAL(info) << "print_job: m_export_3mf_cancel or m_is_canceled";

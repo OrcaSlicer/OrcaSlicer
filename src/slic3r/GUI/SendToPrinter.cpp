@@ -7,6 +7,7 @@
 #include "GUI_App.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
+#include "OutputToolMapping.hpp"
 #include "format.hpp"
 #include "Widgets/ProgressDialog.hpp"
 #include "ReleaseNote.hpp"
@@ -831,6 +832,12 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
     }
     assert(obj_->get_dev_id() == m_printer_last_select);
 
+    std::map<int, int> output_tool_mapping;
+    if (!show_output_tool_mapping_dialog(this, m_plater, m_print_plate_idx, output_tool_mapping)) {
+        Enable_Send_Button(true);
+        return;
+    }
+
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ", print_job: for send task, current printer id =  " << m_printer_last_select << std::endl;
     show_status(PrintDialogStatus::PrintStatusSending);
 
@@ -876,7 +883,7 @@ void SendToPrinterDialog::on_ok(wxCommandEvent &event)
              wxString msg       = _L("Preparing print job");
              m_status_bar->update_status(msg, cancelled, 10, true);
              m_export_3mf_cancel = cancel = cancelled;
-         });
+         }, output_tool_mapping);
      }
 
     if (m_is_canceled || m_export_3mf_cancel) {

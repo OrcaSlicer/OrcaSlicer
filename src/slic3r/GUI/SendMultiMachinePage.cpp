@@ -1,4 +1,5 @@
 #include "SendMultiMachinePage.hpp"
+#include "OutputToolMapping.hpp"
 #include "TaskManager.hpp"
 #include "I18N.hpp"
 
@@ -696,13 +697,17 @@ void SendMultiMachinePage::on_send(wxCommandEvent& event)
     event.Skip();
     BOOST_LOG_TRIVIAL(info) << "SendMultiMachinePage: on_send";
 
+    std::map<int, int> output_tool_mapping;
+    if (!show_output_tool_mapping_dialog(this, m_plater, m_print_plate_idx, output_tool_mapping))
+        return;
+
     int result = m_plater->send_gcode(m_print_plate_idx, [this](int export_stage, int current, int total, bool& cancel) {
         if (m_is_canceled) return;
         bool     cancelled = false;
         wxString msg = _L("Preparing print job");
         //m_status_bar->update_status(msg, cancelled, 10, true);
         //m_export_3mf_cancel = cancel = cancelled;
-        });
+        }, output_tool_mapping);
 
     if (m_is_canceled || m_export_3mf_cancel) {
         BOOST_LOG_TRIVIAL(info) << "print_job: m_export_3mf_cancel or m_is_canceled";
