@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-13 16:24-0300\n"
+"POT-Creation-Date: 2026-07-17 15:13-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -1980,6 +1980,17 @@ msgstr "已经是最新版本。"
 msgid "Info"
 msgstr "信息"
 
+msgid "Loading Plugins"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Plugin %s is no longer available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Plugin %s access is unauthorized."
+msgstr ""
+
 msgid "Loading printer & filament profiles"
 msgstr "正在加载打印机和耗材配置文件"
 
@@ -2098,6 +2109,18 @@ msgstr ""
 
 msgid "Resolve cloud sync conflict"
 msgstr "解决云同步冲突"
+
+msgid "Syncing your account…"
+msgstr ""
+
+msgid "Migrating presets…"
+msgstr ""
+
+msgid "Fetching plugins…"
+msgstr ""
+
+msgid "Loading user presets…"
+msgstr ""
 
 msgid "Retrieving printer information, please try again later."
 msgstr "正在获取打印机信息，请稍后重试。"
@@ -2228,6 +2251,21 @@ msgstr ""
 
 msgid "*"
 msgstr "*"
+
+msgid "Plugins"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Failed to open the Plugins dialog:\n"
+"%s"
+msgstr ""
+
+msgid "Failed to open the Plugins dialog (unknown error)."
+msgstr ""
+
+msgid "Plugin Terminal"
+msgstr ""
 
 msgid "Changing application language"
 msgstr "正在为应用程序切换语言"
@@ -5036,6 +5074,28 @@ msgstr "无效格式，应该是\"%1%\"这种数组格式"
 msgid "N/A"
 msgstr "不适用"
 
+msgid "System agents"
+msgstr ""
+
+msgid "No plugin selected"
+msgstr ""
+
+msgid "Add plugin"
+msgstr ""
+
+msgid "Select plugin"
+msgstr ""
+
+msgid "Remove plugin"
+msgstr ""
+
+msgid "Configure"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Configure (%d)"
+msgstr ""
+
 msgid "Pick"
 msgstr "选择"
 
@@ -5200,9 +5260,6 @@ msgstr "流量"
 
 msgid "Fan speed"
 msgstr "风扇速度"
-
-msgid "°C"
-msgstr "°C"
 
 msgid "Time"
 msgstr "时间"
@@ -7225,6 +7282,14 @@ msgctxt "Layers"
 msgid "Bottom"
 msgstr "底部"
 
+msgid "Plugin Selection"
+msgstr ""
+
+msgid ""
+"No plugins capabilities available for this type.\n"
+"Enable or install some to use."
+msgstr ""
+
 msgid "Enable detection of build plate position"
 msgstr "启用打印板位置检测"
 
@@ -8122,6 +8187,40 @@ msgstr "设备页面"
 
 msgid "Synchronize AMS Filament Information"
 msgstr "同步 AMS 耗材丝信息"
+
+msgid "OrcaCloud plugins required by the current preset are not installed:"
+msgstr ""
+
+msgid "Install Plugins"
+msgstr ""
+
+msgid "Local plugins required by the current preset are missing:"
+msgstr ""
+
+msgid "Find on OrcaCloud"
+msgstr ""
+
+msgid "Plugins required by the current preset are not activated:"
+msgstr ""
+
+msgid "Activate Now"
+msgstr ""
+
+msgid "The installed plugin does not provide the required capability — it may be outdated:"
+msgstr ""
+
+msgid "Preparing to install plugins..."
+msgstr ""
+
+msgid "Installing plugins"
+msgstr ""
+
+msgid "Cancelling — finishing the current plugin..."
+msgstr ""
+
+#, boost-format
+msgid "Installing %1%..."
+msgstr ""
 
 msgid "Plate Settings"
 msgstr "盘参数设置"
@@ -9190,6 +9289,9 @@ msgstr "多色外置"
 msgid "Your filament grouping method in the sliced file is not optimal."
 msgstr "您在切片文件中的耗材丝分组方法不是最佳的。"
 
+msgid "To ensure print quality, the drying temperature will be lowered during printing."
+msgstr ""
+
 msgid "Auto Bed Leveling"
 msgstr "自动床调平"
 
@@ -9919,6 +10021,12 @@ msgstr "挤出类型更换G-code"
 
 msgid "Post-processing Scripts"
 msgstr "后处理脚本"
+
+msgid "Slicing Pipeline Plugin"
+msgstr ""
+
+msgid "Plugin Configuration"
+msgstr ""
 
 msgid "Notes"
 msgstr "注释"
@@ -11070,6 +11178,9 @@ msgstr "切换对象/零件的可打印状态"
 msgid "Switch between Prepare/Preview"
 msgstr "准备/预览之间的切换"
 
+msgid "Open actions speed dial"
+msgstr ""
+
 msgid "Plater"
 msgstr "准备"
 
@@ -11936,6 +12047,9 @@ msgstr "API秘钥"
 
 msgid "HTTP digest"
 msgstr "HTTP摘要"
+
+msgid "Configuration for the plugin capabilities this preset uses, overriding the global Capabilities configuration. Stored as a raw JSON array and edited through the dialog behind the button, never typed in directly."
+msgstr ""
 
 msgid "Avoid crossing walls"
 msgstr "避免跨越外墙"
@@ -12939,6 +13053,24 @@ msgstr ""
 "底层表面的密度\n"
 "此功能是为了美观或功能性目的，而是为了解决过量挤出等问题。\n"
 "警告：降低此值会对热床粘接力产生负面影响。"
+
+msgid "Top surface fill order"
+msgstr ""
+
+msgid ""
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+"Default uses shortest-path ordering, which may run in either direction."
+msgstr ""
+
+msgid "Bottom surface fill order"
+msgstr ""
+
+msgid ""
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+"Default uses shortest-path ordering, which may run in either direction."
+msgstr ""
 
 msgid "Internal solid infill pattern"
 msgstr "内部实心填充图案"
@@ -14204,9 +14336,6 @@ msgstr ""
 "如果您的固件已经在低于某阈值时禁用风扇（例如 Klipper 的 [fan] off_below: 0.10 会在指令占空比低于 10% 时关闭风扇），那么此选项与固件阈值最好设置为相同的值。使二者匹配（例如 Klipper 中 off_below: 0.10、此处为 10%）可确保切片软件绝不会发出会被固件悄然丢弃的非零值，且风扇绝不会收到低于其实际可启动转速的值。\n"
 "设置为 0 以停用。"
 
-msgid "%"
-msgstr "%"
-
 msgid "Time cost"
 msgstr "耗时"
 
@@ -14905,6 +15034,9 @@ msgstr ""
 "要禁用输入整形，请使用“禁用”类型。\n"
 "RRF：X 和 Y 的值相等。"
 
+msgid "Hz"
+msgstr "赫兹"
+
 msgid "Y"
 msgstr "Y"
 
@@ -15188,6 +15320,15 @@ msgstr "挤出类型更换 G-code（工艺）"
 msgid "This G-code is inserted when the extrusion role is changed. It runs after the machine and filament extrusion role G-code."
 msgstr "当挤出类型发生变化时插入此 G-code。它在机器和耗材的挤出类型更换 G-code 之后运行。"
 
+msgid "Plugins Used"
+msgstr ""
+
+msgid "Plugin capabilities referenced by this preset, stored as name;uuid;capability."
+msgstr ""
+
+msgid "Python plugin(s) invoked at each slicing pipeline step to read and modify intermediate slicing data, including a final G-code post-processing step. Research/experimental."
+msgstr ""
+
 msgid "Printer type"
 msgstr "打印机类型"
 
@@ -15255,6 +15396,15 @@ msgstr "擦拭前的回抽量"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "擦拭之前的回抽长度，用总回抽长度的百分比表示。"
+
+msgid "Retract amount after wipe"
+msgstr ""
+
+#, c-format
+msgid ""
+"The length of fast retraction after wipe, relative to retraction length.\n"
+"The value will be clamped by 100% minus the retract amount before the wipe value."
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Retract on layer change"
@@ -16268,16 +16418,6 @@ msgstr "顶部壳体厚度"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "如果由顶部壳体层数算出的厚度小于这个数值，那么切片时将自动增加顶部壳体层数。这能够避免当层高很小时，顶部壳体过薄。0 表示关闭这个设置，同时顶部壳体的厚度完全由顶部壳体层数决定"
-
-msgid "Anisotropic surfaces"
-msgstr ""
-
-msgid ""
-"Anisotropic patterns on the top and bottom surfaces.\n"
-"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
-"This option disable the gap fill.\n"
-"This option can increase a printing time."
-msgstr ""
 
 msgid "Separated infills"
 msgstr ""
@@ -18111,9 +18251,6 @@ msgstr "开始 / 结束"
 
 msgid "Frequency settings"
 msgstr "频率设置"
-
-msgid "Hz"
-msgstr "赫兹"
 
 msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr "RepRap 固件将对两个轴使用相同的频率范围。"
@@ -20103,6 +20240,145 @@ msgstr "存档预览"
 msgid "Open File"
 msgstr "打开文件"
 
+msgid "AMS Dryness Control"
+msgstr ""
+
+msgid "Filament Drying Settings"
+msgstr ""
+
+msgid "Stopping"
+msgstr ""
+
+msgid "Unable to dry temporarily due to ..."
+msgstr ""
+
+msgid "Drying Error"
+msgstr ""
+
+msgid "Please check the Assistant for troubleshooting"
+msgstr ""
+
+msgid "Please remove and store the filament (as shown)."
+msgstr ""
+
+msgid "The AMS can rotate the filament which is properly stored, providing better drying results."
+msgstr ""
+
+msgid "Rotate spool when drying"
+msgstr ""
+
+msgctxt "amsdrying"
+msgid "Back"
+msgstr ""
+
+msgid "Drying-Heating"
+msgstr ""
+
+msgid "Drying-Dehumidifying"
+msgstr ""
+
+msgid " maximum drying temperature is "
+msgstr ""
+
+msgid " minimum drying temperature is "
+msgstr ""
+
+msgid "This filament may not be completely dried."
+msgstr ""
+
+msgid "This AMS is currently printing. To ensure print quality, the drying temperature cannot exceed the recommended drying temperature."
+msgstr ""
+
+msgid "The temperature shall not exceed the filament's heat distortion temperature"
+msgstr ""
+
+msgid "Minimum time value cannot be less than 1."
+msgstr ""
+
+msgid "Maximum time value cannot be greater than 24."
+msgstr ""
+
+msgid "Insufficient power"
+msgstr ""
+
+msgid "  Too many AMS drying simultaneously. Please plug in the power or stop other drying processes before starting."
+msgstr ""
+
+msgid "AMS is busy"
+msgstr ""
+
+msgid "  AMS is calibrating | reading RFID | loading/unloading material, please wait."
+msgstr ""
+
+msgid "Filament in AMS outlet"
+msgstr ""
+
+msgid "  The high drying temperature may cause AMS blockage, please unload first."
+msgstr ""
+
+msgid "Initiating AMS drying"
+msgstr ""
+
+msgid "Not supported in 2D mode"
+msgstr ""
+
+msgid "Task in progress"
+msgstr ""
+
+msgid "  The AMS might be in use during Task."
+msgstr ""
+
+msgid "  Firmware update in progress, please wait..."
+msgstr ""
+
+msgid "  Please plug in the power and then use the drying function."
+msgstr ""
+
+msgid "  The high drying temperature may cause AMS blockage. Please unload the filament manually before proceeding."
+msgstr ""
+
+msgid "System is busy"
+msgstr ""
+
+msgid "  Initiating other drying processes, please wait a few seconds..."
+msgstr ""
+
+msgid "For better drying results, remove the filament and allow it to rotate."
+msgstr ""
+
+msgid "The AMS will automatically rotate the stored filament slots to enhance the drying performance."
+msgstr ""
+
+msgid "Alternatively, you can dry the filament without removing it."
+msgstr ""
+
+msgid "Unknown filaments will be treated as PLA."
+msgstr ""
+
+msgid "Please store the filament marked with an exclamation mark."
+msgstr ""
+
+msgid "Filament left in the feeder during drying may soften because the drying temperature exceeds the softening point of materials like PLA and TPU."
+msgstr ""
+
+msgid "Starting: Checking adapter connection"
+msgstr ""
+
+msgid "Starting: Checking filament status"
+msgstr ""
+
+msgid "Starting: Checking drying presets"
+msgstr ""
+
+msgid "Starting: Checking filament location"
+msgstr ""
+
+msgid "Starting: Checking air intake"
+msgstr ""
+
+msgid "Starting: Checking air vent"
+msgstr ""
+
 msgid "The filament may not be compatible with the current machine settings. Generic filament presets will be used."
 msgstr "此耗材可能于当前设备设置不兼容，将使用通用耗材预设。"
 
@@ -20426,6 +20702,12 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#~ msgid "°C"
+#~ msgstr "°C"
+
+#~ msgid "%"
+#~ msgstr "%"
 
 #~ msgid "Renders cast shadows on the plate in realistic view."
 #~ msgstr "在写实渲染中渲染投射到打印板上的阴影。"

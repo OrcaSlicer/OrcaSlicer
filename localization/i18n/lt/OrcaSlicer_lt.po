@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-13 16:24-0300\n"
+"POT-Creation-Date: 2026-07-17 15:13-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -1971,6 +1971,17 @@ msgstr "Čia yra naujausia versija."
 msgid "Info"
 msgstr "Informacija"
 
+msgid "Loading Plugins"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Plugin %s is no longer available."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Plugin %s access is unauthorized."
+msgstr ""
+
 msgid "Loading printer & filament profiles"
 msgstr "Įkeliami spausdintuvo ir gijų profiliai"
 
@@ -2089,6 +2100,18 @@ msgstr ""
 
 msgid "Resolve cloud sync conflict"
 msgstr "Išspręsti debesų sinchronizavimo konfliktą"
+
+msgid "Syncing your account…"
+msgstr ""
+
+msgid "Migrating presets…"
+msgstr ""
+
+msgid "Fetching plugins…"
+msgstr ""
+
+msgid "Loading user presets…"
+msgstr ""
 
 msgid "Retrieving printer information, please try again later."
 msgstr "Gaunama spausdintuvo informacija, bandykite vėliau."
@@ -2219,6 +2242,21 @@ msgstr ""
 
 msgid "*"
 msgstr "*"
+
+msgid "Plugins"
+msgstr ""
+
+#, c-format, boost-format
+msgid ""
+"Failed to open the Plugins dialog:\n"
+"%s"
+msgstr ""
+
+msgid "Failed to open the Plugins dialog (unknown error)."
+msgstr ""
+
+msgid "Plugin Terminal"
+msgstr ""
 
 msgid "Changing application language"
 msgstr "Keičiama programos kalba"
@@ -4934,6 +4972,28 @@ msgstr "Netinkamas formatas. Tinkamas vektorinis formatas: \"%1%\""
 msgid "N/A"
 msgstr "N/A"
 
+msgid "System agents"
+msgstr ""
+
+msgid "No plugin selected"
+msgstr ""
+
+msgid "Add plugin"
+msgstr ""
+
+msgid "Select plugin"
+msgstr ""
+
+msgid "Remove plugin"
+msgstr ""
+
+msgid "Configure"
+msgstr ""
+
+#, c-format, boost-format
+msgid "Configure (%d)"
+msgstr ""
+
 msgid "Pick"
 msgstr "Paimti"
 
@@ -5098,9 +5158,6 @@ msgstr "Tūrinis srautas (Flow rate)"
 
 msgid "Fan speed"
 msgstr "Ventiliatoriaus greitis"
-
-msgid "°C"
-msgstr "°C"
 
 msgid "Time"
 msgstr "Laikas"
@@ -7115,6 +7172,14 @@ msgctxt "Layers"
 msgid "Bottom"
 msgstr "Apatinis"
 
+msgid "Plugin Selection"
+msgstr ""
+
+msgid ""
+"No plugins capabilities available for this type.\n"
+"Enable or install some to use."
+msgstr ""
+
 msgid "Enable detection of build plate position"
 msgstr "Įjungti spausdinimo pagrindo pozicijos atpažinimą"
 
@@ -7987,6 +8052,40 @@ msgstr "Įrenginio puslapis"
 
 msgid "Synchronize AMS Filament Information"
 msgstr "Sinchronizuoti AMS gijų informaciją"
+
+msgid "OrcaCloud plugins required by the current preset are not installed:"
+msgstr ""
+
+msgid "Install Plugins"
+msgstr ""
+
+msgid "Local plugins required by the current preset are missing:"
+msgstr ""
+
+msgid "Find on OrcaCloud"
+msgstr ""
+
+msgid "Plugins required by the current preset are not activated:"
+msgstr ""
+
+msgid "Activate Now"
+msgstr ""
+
+msgid "The installed plugin does not provide the required capability — it may be outdated:"
+msgstr ""
+
+msgid "Preparing to install plugins..."
+msgstr ""
+
+msgid "Installing plugins"
+msgstr ""
+
+msgid "Cancelling — finishing the current plugin..."
+msgstr ""
+
+#, boost-format
+msgid "Installing %1%..."
+msgstr ""
 
 msgid "Plate Settings"
 msgstr "Spausdinimo pagrindo nustatymai"
@@ -9044,6 +9143,9 @@ msgstr "Daugiaspalvis spausdinimas su išorine rite"
 msgid "Your filament grouping method in the sliced file is not optimal."
 msgstr "Jūsų pasirinktas gijų grupavimo būdas susluoksniuotame faile nėra optimalus."
 
+msgid "To ensure print quality, the drying temperature will be lowered during printing."
+msgstr ""
+
 msgid "Auto Bed Leveling"
 msgstr "Automatinis pagrindo lygiavimas"
 
@@ -9759,6 +9861,12 @@ msgstr "Ekstruzijos vaidmens keitimo G-kodas"
 
 msgid "Post-processing Scripts"
 msgstr "Scenarijai po apdorojimo"
+
+msgid "Slicing Pipeline Plugin"
+msgstr ""
+
+msgid "Plugin Configuration"
+msgstr ""
 
 msgid "Notes"
 msgstr "Pastabos"
@@ -10893,6 +11001,9 @@ msgstr "Perjungti objekto / dalies spausdinimą"
 msgid "Switch between Prepare/Preview"
 msgstr "Perjungimas tarp Paruošti / Peržiūrėti"
 
+msgid "Open actions speed dial"
+msgstr ""
+
 msgid "Plater"
 msgstr "Plokštė"
 
@@ -11727,6 +11838,9 @@ msgstr "API raktas"
 
 msgid "HTTP digest"
 msgstr "HTTP Digest autentifikacija"
+
+msgid "Configuration for the plugin capabilities this preset uses, overriding the global Capabilities configuration. Stored as a raw JSON array and edited through the dialog behind the button, never typed in directly."
+msgstr ""
 
 msgid "Avoid crossing walls"
 msgstr "Vengti sienelių kirtimo"
@@ -12729,6 +12843,24 @@ msgid ""
 msgstr ""
 "Apatinio paviršiaus sluoksnio tankis. Skirtas estetiniais arba funkciniais tikslais, o ne perteklinei ekstruzijai (over-extrusion) taisyti.\n"
 "ĮSPĖJIMAS: sumažinus šią reikšmę, gali suprastėti pirmojo sluoksnio sukibimas su spausdinimo pagrindu."
+
+msgid "Top surface fill order"
+msgstr ""
+
+msgid ""
+"Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
+"Default uses shortest-path ordering, which may run in either direction."
+msgstr ""
+
+msgid "Bottom surface fill order"
+msgstr ""
+
+msgid ""
+"Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
+"Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
+"Default uses shortest-path ordering, which may run in either direction."
+msgstr ""
 
 msgid "Internal solid infill pattern"
 msgstr "Vidinio tvirto užpildo raštas"
@@ -13952,9 +14084,6 @@ msgstr ""
 "Jei jūsų programinė įranga jau išjungia ventiliatorių žemiau tam tikros ribos (pavyzdžiui, „Klipper“ nustatymas [fan] off_below: 0.10 išjungia ventiliatorių, kai nurodytas užpildymo koeficientas yra mažesnis nei 10%), ši parinktis ir programinės įrangos riba idealiai turėtų būti nustatytos į tą pačią vertę. Jas suderinus (pvz., off_below: 0.10 „Klipper“ programoje ir 10% čia), užtikrinama, kad pjaustytuvas niekada neišsiųs ne nulinės vertės, kurią programinė įranga tyliai atmestų, o ventiliatorius niekada negaus vertės, mažesnės už tą, kuria jis realiai sugeba pradėti suktis.\n"
 "Nustatykite 0, kad išjungtumėte."
 
-msgid "%"
-msgstr "%"
-
 msgid "Time cost"
 msgstr "Laiko kaina"
 
@@ -14637,6 +14766,9 @@ msgstr ""
 "Norėdami išjungti įvesties formavimą, pasirinkite tipą „Išjungta“.\n"
 " RRF: X ir Y reikšmės yra lygios."
 
+msgid "Hz"
+msgstr "Hz"
+
 msgid "Y"
 msgstr "Y"
 
@@ -14914,6 +15046,15 @@ msgstr "Išstūmimo tipo keitimo G-kodas (procesas)"
 msgid "This G-code is inserted when the extrusion role is changed. It runs after the machine and filament extrusion role G-code."
 msgstr "Šis G-kodas įterpiamas pasikeitus išstūmimo tipui. Jis vykdomas po spausdintuvo ir gijos išstūmimo tipo G-kodo."
 
+msgid "Plugins Used"
+msgstr ""
+
+msgid "Plugin capabilities referenced by this preset, stored as name;uuid;capability."
+msgstr ""
+
+msgid "Python plugin(s) invoked at each slicing pipeline step to read and modify intermediate slicing data, including a final G-code post-processing step. Research/experimental."
+msgstr ""
+
 msgid "Printer type"
 msgstr "Spausdintuvo tipas"
 
@@ -14972,6 +15113,15 @@ msgid "Retract amount before wipe"
 msgstr "Gijos įtraukimo kiekis prieš valymą (Wipe)"
 
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
+msgstr ""
+
+msgid "Retract amount after wipe"
+msgstr ""
+
+#, c-format
+msgid ""
+"The length of fast retraction after wipe, relative to retraction length.\n"
+"The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
 
 msgid "Retract on layer change"
@@ -15904,7 +16054,7 @@ msgstr ""
 "Jei įjungta, šis parametras taip pat nustato G-kodo kintamąjį „chamber_temperature“, kurį galima naudoti norimai kameros temperatūrai perduoti į spausdinimo pradžios ar pirminio įšildymo (heat soak) makrokomandą, pavyzdžiui: PRINT_START (kiti kintamieji) CHAMBER_TEMP=[chamber_temperature]. Tai naudinga, jei spausdintuvas nepalaiko M141/M191 komandų arba jei norite pradinį įšildymą valdyti pačioje pradžios makrokomandoje, kai nėra įdiegto aktyvaus kameros šildytuvo."
 
 msgid ""
-"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
 "It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
 "\n"
@@ -15951,16 +16101,6 @@ msgid "Top shell thickness"
 msgstr "Viršutinio apvalkalo storis"
 
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
-msgstr ""
-
-msgid "Anisotropic surfaces"
-msgstr ""
-
-msgid ""
-"Anisotropic patterns on the top and bottom surfaces.\n"
-"Co-directional printing mode will be applied. For certain patterns, omni-directional filling provides color dispersion when using multi-colored or silk plastics.\n"
-"This option disable the gap fill.\n"
-"This option can increase a printing time."
 msgstr ""
 
 msgid "Separated infills"
@@ -17755,9 +17895,6 @@ msgstr "Pradžia / Pabaiga"
 
 msgid "Frequency settings"
 msgstr "Dažnio nustatymai"
-
-msgid "Hz"
-msgstr "Hz"
 
 msgid "RepRap firmware uses the same frequency range for both axes."
 msgstr "RepRap programinė aparatinė įranga naudoja tą patį dažnių diapazoną abiem ašims."
@@ -19731,6 +19868,145 @@ msgstr "Archyvo peržiūra"
 msgid "Open File"
 msgstr "Atverti failą"
 
+msgid "AMS Dryness Control"
+msgstr ""
+
+msgid "Filament Drying Settings"
+msgstr ""
+
+msgid "Stopping"
+msgstr ""
+
+msgid "Unable to dry temporarily due to ..."
+msgstr ""
+
+msgid "Drying Error"
+msgstr ""
+
+msgid "Please check the Assistant for troubleshooting"
+msgstr ""
+
+msgid "Please remove and store the filament (as shown)."
+msgstr ""
+
+msgid "The AMS can rotate the filament which is properly stored, providing better drying results."
+msgstr ""
+
+msgid "Rotate spool when drying"
+msgstr ""
+
+msgctxt "amsdrying"
+msgid "Back"
+msgstr ""
+
+msgid "Drying-Heating"
+msgstr ""
+
+msgid "Drying-Dehumidifying"
+msgstr ""
+
+msgid " maximum drying temperature is "
+msgstr ""
+
+msgid " minimum drying temperature is "
+msgstr ""
+
+msgid "This filament may not be completely dried."
+msgstr ""
+
+msgid "This AMS is currently printing. To ensure print quality, the drying temperature cannot exceed the recommended drying temperature."
+msgstr ""
+
+msgid "The temperature shall not exceed the filament's heat distortion temperature"
+msgstr ""
+
+msgid "Minimum time value cannot be less than 1."
+msgstr ""
+
+msgid "Maximum time value cannot be greater than 24."
+msgstr ""
+
+msgid "Insufficient power"
+msgstr ""
+
+msgid "  Too many AMS drying simultaneously. Please plug in the power or stop other drying processes before starting."
+msgstr ""
+
+msgid "AMS is busy"
+msgstr ""
+
+msgid "  AMS is calibrating | reading RFID | loading/unloading material, please wait."
+msgstr ""
+
+msgid "Filament in AMS outlet"
+msgstr ""
+
+msgid "  The high drying temperature may cause AMS blockage, please unload first."
+msgstr ""
+
+msgid "Initiating AMS drying"
+msgstr ""
+
+msgid "Not supported in 2D mode"
+msgstr ""
+
+msgid "Task in progress"
+msgstr ""
+
+msgid "  The AMS might be in use during Task."
+msgstr ""
+
+msgid "  Firmware update in progress, please wait..."
+msgstr ""
+
+msgid "  Please plug in the power and then use the drying function."
+msgstr ""
+
+msgid "  The high drying temperature may cause AMS blockage. Please unload the filament manually before proceeding."
+msgstr ""
+
+msgid "System is busy"
+msgstr ""
+
+msgid "  Initiating other drying processes, please wait a few seconds..."
+msgstr ""
+
+msgid "For better drying results, remove the filament and allow it to rotate."
+msgstr ""
+
+msgid "The AMS will automatically rotate the stored filament slots to enhance the drying performance."
+msgstr ""
+
+msgid "Alternatively, you can dry the filament without removing it."
+msgstr ""
+
+msgid "Unknown filaments will be treated as PLA."
+msgstr ""
+
+msgid "Please store the filament marked with an exclamation mark."
+msgstr ""
+
+msgid "Filament left in the feeder during drying may soften because the drying temperature exceeds the softening point of materials like PLA and TPU."
+msgstr ""
+
+msgid "Starting: Checking adapter connection"
+msgstr ""
+
+msgid "Starting: Checking filament status"
+msgstr ""
+
+msgid "Starting: Checking drying presets"
+msgstr ""
+
+msgid "Starting: Checking filament location"
+msgstr ""
+
+msgid "Starting: Checking air intake"
+msgstr ""
+
+msgid "Starting: Checking air vent"
+msgstr ""
+
 msgid "The filament may not be compatible with the current machine settings. Generic filament presets will be used."
 msgstr "Gija gali būti nesuderinama su dabartiniais įrenginio nustatymais. Bus naudojami bendrieji gijos profiliai."
 
@@ -20035,6 +20311,12 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+#~ msgid "°C"
+#~ msgstr "°C"
+
+#~ msgid "%"
+#~ msgstr "%"
 
 #~ msgid "Renders cast shadows on the plate in realistic view."
 #~ msgstr "Realistiniame vaizde atvaizduoja krentančius šešėlius ant spausdinimo pagrindo."
