@@ -294,10 +294,11 @@ TEST_CASE("Normalized bridge lines stay close together far from a small hole", "
 
 TEST_CASE("Normalized bridge lines bridge a seam vertex in an otherwise curved hole", "[Fill]") {
     // Regression test: a real STL mesh's tessellated approximation of a circular
-    // hole often has one seam vertex (where the mesh wraps around) that isn't
-    // quite convex - flattened here onto the chord between its neighbors. That
-    // single non-curving vertex must not fragment sampling and leave a gap in
-    // the lines right around it.
+    // hole often has a seam (where the mesh wraps around) spanning several
+    // vertices that aren't quite convex - flattened here onto the chord between
+    // the seam's neighbors. That non-curving stretch must not fragment sampling
+    // and leave a gap in the lines right around it, no matter how many vertices
+    // wide it is.
     Slic3r::Points square{ Point::new_scale(-20, -20), Point::new_scale(20, -20), Point::new_scale(20, 20), Point::new_scale(-20, 20) };
     Slic3r::Points hole;
     const int    hole_sides  = 32;
@@ -306,9 +307,15 @@ TEST_CASE("Normalized bridge lines bridge a seam vertex in an otherwise curved h
         double theta = 2. * M_PI * double(i) / double(hole_sides);
         hole.push_back(Point::new_scale(hole_radius * std::cos(theta), hole_radius * std::sin(theta)));
     }
-    Point prev = hole[hole.size() - 1];
-    Point next = hole[1];
-    hole[0]    = Point((prev.x() + next.x()) / 2, (prev.y() + next.y()) / 2);
+    const int   seam_width = 5;
+    const Point seam_prev  = hole[hole.size() - 1];
+    const Point seam_next  = hole[seam_width];
+    for (int i = 0; i < seam_width; ++i) {
+        double t = double(i + 1) / double(seam_width + 1);
+        hole[i]  = Point(
+            coord_t(seam_prev.x() + t * (seam_next.x() - seam_prev.x())),
+            coord_t(seam_prev.y() + t * (seam_next.y() - seam_prev.y())));
+    }
     std::reverse(hole.begin(), hole.end());
 
     std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("bridgenormalized"));

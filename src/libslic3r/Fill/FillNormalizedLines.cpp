@@ -369,13 +369,16 @@ void FillNormalizedLines::_fill_surface_single(
         if (chain.total_len < SCALED_EPSILON)
             continue;
 
-        // Initial, evenly-spaced samples along the chain; an open chain stays
-        // clear of its padding end points.
+        // Initial, evenly-spaced samples along the chain, right out to its end
+        // points: the tangent there is a smoothed average of neighboring
+        // edges (see make_chain), so it stays well-defined even exactly on a
+        // padding vertex - leaving any clearance here would just reopen the
+        // gap this chain's own padding was meant to prevent.
         std::vector<double> ds;
-        double start = chain.closed ? 0. : target_spacing * 0.5;
-        double end   = chain.closed ? chain.total_len : chain.total_len - target_spacing * 0.5;
-        for (double d = start; d < end; d += target_spacing)
+        for (double d = 0.; d < chain.total_len; d += target_spacing)
             ds.push_back(d);
+        if (!chain.closed)
+            ds.push_back(chain.total_len);
         if (ds.empty())
             ds.push_back(chain.closed ? 0. : chain.total_len * 0.5);
 
