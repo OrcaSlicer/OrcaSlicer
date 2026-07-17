@@ -5370,7 +5370,7 @@ msgstr "急衝速度 (mm/s)"
 msgid "Fan speed (%)"
 msgstr "風扇速度（%）"
 
-msgid "Temperature (°C)"
+msgid "Temperature (℃)"
 msgstr "溫度（℃）"
 
 msgid "Volumetric flow rate (mm³/s)"
@@ -16263,7 +16263,7 @@ msgid ""
 msgstr "對於 ABS、ASA、PC 和 PA 等高溫材料，較高的機箱溫度能有效抑制或減少翹曲，並可能提升層間結合強度。然而，較高的機箱溫度也會降低 ABS 和 ASA 的空氣過濾效率。對於 PLA、PETG、TPU、PVA 和其他低溫材料，建議將此選項停用（設為 0），因機箱溫度應保持較低，以避免因材料在熱端軟化而導致擠出機堵塞。啟用此選項後，會設置一個名為 chamber_temperature 的 G-code 變數，可用於將所需的機箱溫度傳遞給列印開始宏，或像以下的熱浸泡宏（預熱）：PRINT_START (其他變數) CHAMBER_TEMP=[chamber_temperature]。這對於不支援 M141/M191 指令的列印設備，或者希望在列印開始宏中處理熱浸泡（預熱）但未安裝主動機箱加熱器的情況下非常實用。"
 
 msgid ""
-"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
 "It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
 "\n"

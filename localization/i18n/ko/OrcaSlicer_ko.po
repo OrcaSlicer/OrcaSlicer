@@ -5340,7 +5340,7 @@ msgstr "Jerk (mm/s)"
 msgid "Fan speed (%)"
 msgstr "팬 속도 (%)"
 
-msgid "Temperature (°C)"
+msgid "Temperature (℃)"
 msgstr "온도 (℃)"
 
 msgid "Volumetric flow rate (mm³/s)"
@@ -16052,7 +16052,7 @@ msgstr ""
 "활성화된 경우 이 매개변수는 원하는 챔버 온도를 출력 시작 매크로 또는 PRINT_START(기타 변수) CHAMBER_TEMP=[chamber_temp]와 같은 열 흡수 매크로에 전달하는 데 사용할 수 있는 Chamber_temp라는 Gcode 변수도 설정합니다. 이는 프린터가 M141/M191 명령을 지원하지 않거나 활성 챔버 히터가 설치되지 않은 경우 출력 시작 매크로에서 열 흡수를 처리하려는 경우 유용할 수 있습니다."
 
 msgid ""
-"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50°C, without waiting for the full 60°C.\n"
+"This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
 "It sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
 "\n"
