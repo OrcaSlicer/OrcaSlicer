@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "Printalot ABS Cobalto Metalizado",
+	"inherits": "Printalot ABS @base",
+	"from": "system",
+	"setting_id": "gpwE9ftoGVlIOxi2",
+	"filament_id": "PRTABS14",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Printalot"
+	],
+	"default_filament_colour": [
+		"#0047AB"
+	]
+}

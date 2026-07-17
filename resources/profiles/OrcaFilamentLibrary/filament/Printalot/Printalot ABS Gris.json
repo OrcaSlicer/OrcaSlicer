@@ -1,0 +1,15 @@
+{
+	"type": "filament",
+	"name": "Printalot ABS Gris",
+	"inherits": "Printalot ABS @base",
+	"from": "system",
+	"setting_id": "Uuj13ABBRxW4KCgC",
+	"filament_id": "PRTABS03",
+	"instantiation": "true",
+	"filament_vendor": [
+		"Printalot"
+	],
+	"default_filament_colour": [
+		"#808080"
+	]
+}

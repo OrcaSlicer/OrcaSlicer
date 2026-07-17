@@ -881,6 +881,14 @@
 			"sub_path": "filament/Numakers/Numakers PLA+ @base.json"
 		},
 		{
+			"name": "PlastAR PLA @base",
+			"sub_path": "filament/PlastAR/PlastAR PLA @base.json"
+		},
+		{
+			"name": "Printalot ABS @base",
+			"sub_path": "filament/Printalot/Printalot ABS @base.json"
+		},
+		{
 			"name": "Overture Air PLA @base",
 			"sub_path": "filament/Overture/Overture Air PLA @base.json"
 		},
@@ -1663,6 +1671,118 @@
 		{
 			"name": "Numakers PLA+ @System",
 			"sub_path": "filament/Numakers/Numakers PLA+ @System.json"
+		},
+		{
+			"name": "PlastAR PLA Blanco",
+			"sub_path": "filament/PlastAR/PlastAR PLA Blanco.json"
+		},
+		{
+			"name": "PlastAR PLA Negro",
+			"sub_path": "filament/PlastAR/PlastAR PLA Negro.json"
+		},
+		{
+			"name": "PlastAR PLA Gris",
+			"sub_path": "filament/PlastAR/PlastAR PLA Gris.json"
+		},
+		{
+			"name": "PlastAR PLA Rojo",
+			"sub_path": "filament/PlastAR/PlastAR PLA Rojo.json"
+		},
+		{
+			"name": "PlastAR PLA Azul",
+			"sub_path": "filament/PlastAR/PlastAR PLA Azul.json"
+		},
+		{
+			"name": "PlastAR PLA Celeste",
+			"sub_path": "filament/PlastAR/PlastAR PLA Celeste.json"
+		},
+		{
+			"name": "PlastAR PLA Verde",
+			"sub_path": "filament/PlastAR/PlastAR PLA Verde.json"
+		},
+		{
+			"name": "PlastAR PLA Amarillo",
+			"sub_path": "filament/PlastAR/PlastAR PLA Amarillo.json"
+		},
+		{
+			"name": "PlastAR PLA Naranja",
+			"sub_path": "filament/PlastAR/PlastAR PLA Naranja.json"
+		},
+		{
+			"name": "PlastAR PLA Rosa chicle",
+			"sub_path": "filament/PlastAR/PlastAR PLA Rosa chicle.json"
+		},
+		{
+			"name": "PlastAR PLA Natural Translúcido",
+			"sub_path": "filament/PlastAR/PlastAR PLA Natural Translúcido.json"
+		},
+		{
+			"name": "PlastAR PLA Cobre Metalizado",
+			"sub_path": "filament/PlastAR/PlastAR PLA Cobre Metalizado.json"
+		},
+		{
+			"name": "PlastAR PLA Marrón Metalizado",
+			"sub_path": "filament/PlastAR/PlastAR PLA Marrón Metalizado.json"
+		},
+		{
+			"name": "PlastAR PLA Plata Metalizado",
+			"sub_path": "filament/PlastAR/PlastAR PLA Plata Metalizado.json"
+		},
+		{
+			"name": "Printalot ABS Blanco",
+			"sub_path": "filament/Printalot/Printalot ABS Blanco.json"
+		},
+		{
+			"name": "Printalot ABS Negro",
+			"sub_path": "filament/Printalot/Printalot ABS Negro.json"
+		},
+		{
+			"name": "Printalot ABS Gris",
+			"sub_path": "filament/Printalot/Printalot ABS Gris.json"
+		},
+		{
+			"name": "Printalot ABS Rojo",
+			"sub_path": "filament/Printalot/Printalot ABS Rojo.json"
+		},
+		{
+			"name": "Printalot ABS Azul",
+			"sub_path": "filament/Printalot/Printalot ABS Azul.json"
+		},
+		{
+			"name": "Printalot ABS Verde",
+			"sub_path": "filament/Printalot/Printalot ABS Verde.json"
+		},
+		{
+			"name": "Printalot ABS Amarillo",
+			"sub_path": "filament/Printalot/Printalot ABS Amarillo.json"
+		},
+		{
+			"name": "Printalot ABS Naranja",
+			"sub_path": "filament/Printalot/Printalot ABS Naranja.json"
+		},
+		{
+			"name": "Printalot ABS Fucsia",
+			"sub_path": "filament/Printalot/Printalot ABS Fucsia.json"
+		},
+		{
+			"name": "Printalot ABS Violeta",
+			"sub_path": "filament/Printalot/Printalot ABS Violeta.json"
+		},
+		{
+			"name": "Printalot ABS Piel",
+			"sub_path": "filament/Printalot/Printalot ABS Piel.json"
+		},
+		{
+			"name": "Printalot ABS Natural",
+			"sub_path": "filament/Printalot/Printalot ABS Natural.json"
+		},
+		{
+			"name": "Printalot ABS Plata Metalizado",
+			"sub_path": "filament/Printalot/Printalot ABS Plata Metalizado.json"
+		},
+		{
+			"name": "Printalot ABS Cobalto Metalizado",
+			"sub_path": "filament/Printalot/Printalot ABS Cobalto Metalizado.json"
 		},
 		{
 			"name": "Overture Air PLA @System",
