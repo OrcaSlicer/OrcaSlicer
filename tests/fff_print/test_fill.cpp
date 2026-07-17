@@ -194,11 +194,19 @@ TEST_CASE("Pattern path length", "[Fill]") {
 }
 
 TEST_CASE("Normalized bridge line fill", "[Fill]") {
-    // A 40x40mm square with a 10x10mm square hole in the middle stands in for an
-    // annular bridge: an outer contour with an inner hole that curves toward the
-    // fill area along its whole length.
+    // A 40x40mm square with a finely-tessellated 10mm-diameter circular hole in
+    // the middle stands in for an annular bridge: an outer contour with an inner
+    // hole that curves toward the fill area along its whole length. A many-sided
+    // polygon (rather than a perfect square hole) exercises the same per-segment
+    // normal approximation a real, mesh-tessellated circular hole would produce.
     Slic3r::Points square{ Point::new_scale(-20, -20), Point::new_scale(20, -20), Point::new_scale(20, 20), Point::new_scale(-20, 20) };
-    Slic3r::Points hole{ Point::new_scale(-5, -5), Point::new_scale(5, -5), Point::new_scale(5, 5), Point::new_scale(-5, 5) };
+    Slic3r::Points hole;
+    const int    hole_sides  = 32;
+    const double hole_radius = 5.;
+    for (int i = 0; i < hole_sides; ++i) {
+        double theta = 2. * M_PI * double(i) / double(hole_sides);
+        hole.push_back(Point::new_scale(hole_radius * std::cos(theta), hole_radius * std::sin(theta)));
+    }
     std::reverse(hole.begin(), hole.end());
 
     std::unique_ptr<Slic3r::Fill> filler(Slic3r::Fill::new_from_type("bridgenormalized"));
@@ -208,7 +216,7 @@ TEST_CASE("Normalized bridge line fill", "[Fill]") {
     fill_params.density = 1.0;
     fill_params.dont_adjust = true;
 
-    SECTION("Lines cast from the hole stay within the annular region") {
+    SECTION("Lines cast from the hole reach the outer contour without gaps") {
         Slic3r::ExPolygon annulus(square, hole);
         Surface surface(stBottomBridge, annulus);
         Slic3r::Polylines paths = filler->fill_surface(&surface, fill_params);
@@ -216,6 +224,14 @@ TEST_CASE("Normalized bridge line fill", "[Fill]") {
         REQUIRE(paths.size() > 4);
         // Every line must lie inside the annulus, not cross into the hole or past the contour.
         REQUIRE(diff_pl(paths, offset(annulus, float(SCALED_EPSILON * 10))).empty());
+
+        // Regression test: a locally-computed normal that isn't perfectly radial
+        // must not clip back into the hole it started from, producing a short stub
+        // instead of a line spanning the full annular gap (minimum 15mm here).
+        double min_len = std::numeric_limits<double>::max();
+        for (const Polyline &pl : paths)
+            min_len = std::min(min_len, unscale<double>(pl.length()));
+        REQUIRE(min_len > 10.);
     }
 
     SECTION("Falls back to full coverage when the boundary has no favorable curvature") {

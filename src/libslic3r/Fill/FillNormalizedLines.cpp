@@ -48,8 +48,9 @@ static void fill_surface_fallback(
 // together with the direction the fill area lies in at that point.
 struct NormalOrigin
 {
-    Point point;
-    Vec2d normal;
+    Point  point;
+    Vec2d  normal;
+    size_t ring_index;
 };
 
 // Minimum turn angle (radians, expressed via sin) for a vertex to count as
@@ -76,7 +77,7 @@ static bool turns_toward_fill(const Point &prev, const Point &cur, const Point &
 // wraps back to its first point (used for a ring that curves toward the
 // fill area along its entire length); otherwise the two end points are
 // treated as context only, so sampling stays clear of them.
-static void sample_chain(const Points &points, double spacing, bool closed, std::vector<NormalOrigin> &out)
+static void sample_chain(const Points &points, double spacing, bool closed, size_t ring_index, std::vector<NormalOrigin> &out)
 {
     size_t n = points.size();
     if (n < 2 || spacing <= 0.)
@@ -111,14 +112,14 @@ static void sample_chain(const Points &points, double spacing, bool closed, std:
         const Point &a   = points[seg];
         const Vec2d &dir = seg_dir[seg];
         Point p(a.x() + coord_t(dir.x() * local), a.y() + coord_t(dir.y() * local));
-        out.push_back({ p, Vec2d(-dir.y(), dir.x()) });
+        out.push_back({ p, Vec2d(-dir.y(), dir.x()), ring_index });
     }
 }
 
 // Walks `ring` once, grouping vertices that curve toward the fill area into
 // maximal runs, and samples normal origins along each run (padded with one
 // straight neighbor on either side for tangent continuity).
-static void collect_normal_origins(const Polygon &ring, double spacing, std::vector<NormalOrigin> &out)
+static void collect_normal_origins(const Polygon &ring, double spacing, size_t ring_index, std::vector<NormalOrigin> &out)
 {
     size_t n = ring.points.size();
     if (n < 3)
@@ -131,7 +132,7 @@ static void collect_normal_origins(const Polygon &ring, double spacing, std::vec
     if (std::all_of(concave.begin(), concave.end(), [](bool b) { return b; })) {
         // The whole ring curves toward the fill area (e.g. a circular hole) -
         // sample around the full loop.
-        sample_chain(ring.points, spacing, true, out);
+        sample_chain(ring.points, spacing, true, ring_index, out);
         return;
     }
 
@@ -156,19 +157,21 @@ static void collect_normal_origins(const Polygon &ring, double spacing, std::vec
         for (size_t k = run_start; k <= run_end; ++k)
             chain.push_back(ring.points[(zero + k) % n]);
         chain.push_back(ring.points[(zero + run_end + 1) % n]);
-        sample_chain(chain, spacing, false, out);
+        sample_chain(chain, spacing, false, ring_index, out);
 
         idx = run_end + 1;
     }
 }
 
 // Finds the nearest crossing of a ray cast from `origin` along `direction`
-// against any edge of any ring in `rings`, at least `min_distance` away
-// (used to skip the ray's own trivial intersection with the ring it started
-// from).
+// against any edge of any ring in `rings` other than `skip_ring_index` (the
+// ring the ray started from). The local normal is only an approximation of
+// the true radial direction on a coarsely-tessellated curve, so without this
+// exclusion the ray can clip back into its own ring at a moderate distance
+// instead of reaching the opposite boundary, producing short stub lines.
 static bool nearest_ray_intersection(
     const Point &origin, const Vec2d &direction, double ray_len, double min_distance,
-    const std::vector<const Polygon *> &rings, Point *out)
+    const std::vector<const Polygon *> &rings, size_t skip_ring_index, Point *out)
 {
     Point far_point(
         origin.x() + coord_t(direction.x() * ray_len),
@@ -178,8 +181,10 @@ static bool nearest_ray_intersection(
     bool   found     = false;
     double best_dist = std::numeric_limits<double>::max();
     Point  best_pt;
-    for (const Polygon *ring : rings) {
-        for (const Line &edge : ring->lines()) {
+    for (size_t ri = 0; ri < rings.size(); ++ri) {
+        if (ri == skip_ring_index)
+            continue;
+        for (const Line &edge : rings[ri]->lines()) {
             Point hit;
             if (ray.intersection(edge, &hit)) {
                 double dist = (hit - origin).cast<double>().norm();
@@ -212,8 +217,8 @@ void FillNormalizedLines::_fill_surface_single(
         rings.push_back(&h);
 
     std::vector<NormalOrigin> origins;
-    for (const Polygon *ring : rings)
-        collect_normal_origins(*ring, double(distance), origins);
+    for (size_t ri = 0; ri < rings.size(); ++ri)
+        collect_normal_origins(*rings[ri], double(distance), ri, origins);
 
     if (origins.empty()) {
         fill_surface_fallback(*this, params, direction, expolygon, polylines_out);
@@ -221,11 +226,11 @@ void FillNormalizedLines::_fill_surface_single(
     }
 
     const double ray_len          = 2. * this->bounding_box.radius() + double(min_spacing);
-    const double min_hit_distance = double(min_spacing) * 0.1;
+    const double min_hit_distance = double(SCALED_EPSILON) * 10.;
 
     for (const NormalOrigin &o : origins) {
         Point hit;
-        if (!nearest_ray_intersection(o.point, o.normal, ray_len, min_hit_distance, rings, &hit))
+        if (!nearest_ray_intersection(o.point, o.normal, ray_len, min_hit_distance, rings, o.ring_index, &hit))
             continue;
         Polyline pl;
         pl.points = { o.point, hit };
