@@ -5229,7 +5229,7 @@ msgstr "Потік"
 msgid "Fan speed"
 msgstr "Швидкість вентилятора"
 
-msgid "℃"
+msgid "°C"
 msgstr "℃"
 
 msgid "Time"
