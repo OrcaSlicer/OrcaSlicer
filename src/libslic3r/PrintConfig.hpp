@@ -114,6 +114,7 @@ enum InfillPattern : int {
     ipHoneycomb, ip3DHoneycomb, ipLateralHoneycomb, ipLateralLattice,
     ipCrossHatch, ipTpmsD, ipTpmsFK, ipGyroid,
     ipConcentric, ipHilbertCurve, ipArchimedeanChords, ipOctagramSpiral,
+    ipRadial,
     ipSupportBase, ipConcentricInternal,
     ipCount,
 };
@@ -1237,6 +1238,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                bridge_angle))
     ((ConfigOptionFloat,                internal_bridge_angle)) // ORCA: Internal bridge angle override
     ((ConfigOptionBool,                 relative_bridge_angle)) // ORCA: Relative bridge angle flag
+    ((ConfigOptionEnum<InfillPattern>,  bridge_fill_pattern)) // ORCA: Bridge fill pattern, independent of top/bottom surface pattern
     ((ConfigOptionFloat,                bridge_flow))
     ((ConfigOptionFloatOrPercent,       bridge_line_width))
     ((ConfigOptionFloat,                internal_bridge_flow))

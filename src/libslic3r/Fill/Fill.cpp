@@ -907,10 +907,9 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                         params.pattern = region_config.internal_solid_infill_pattern.value;
                         params.density = 100.f;
                     } else {
-                        if (region_config.top_surface_pattern == ipMonotonic || region_config.top_surface_pattern == ipMonotonicLine)
-                            params.pattern = ipMonotonic;
-                        else
-                            params.pattern = ipRectilinear;
+                        // Orca: bridge fill pattern is independent of top_surface_pattern/
+                        // bottom_surface_pattern (those explicitly exclude bridge infill).
+                        params.pattern = region_config.bridge_fill_pattern.value;
                         params.density = 100.f;
                     }
                 } else if (params.density <= 0)

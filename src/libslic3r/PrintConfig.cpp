@@ -274,7 +274,8 @@ static t_config_enum_values s_keys_map_InfillPattern {
     { "concentric", ipConcentric },
     { "hilbertcurve", ipHilbertCurve },
     { "archimedeanchords", ipArchimedeanChords },
-    { "octagramspiral", ipOctagramSpiral }
+    { "octagramspiral", ipOctagramSpiral },
+    { "radial", ipRadial }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(InfillPattern)
 
@@ -1421,6 +1422,24 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("When enabled, the bridge angle values are added to the automatically calculated bridge direction instead of overriding it.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
+
+    // Orca: Bridge fill pattern, independent of top_surface_pattern/bottom_surface_pattern
+    // (those two options explicitly exclude bridge infill - see their tooltips).
+    def = this->add("bridge_fill_pattern", coEnum);
+    def->label = L("Bridge infill pattern");
+    def->category = L("Strength");
+    def->tooltip = L("This is the line pattern used for bridge infill (both external and internal bridges).");
+    def->enum_keys_map = &ConfigOptionEnum<InfillPattern>::get_enum_values();
+    def->enum_values.push_back("rectilinear");
+    def->enum_values.push_back("monotonic");
+    def->enum_values.push_back("monotonicline");
+    def->enum_values.push_back("radial");
+    def->enum_labels.push_back(L("Rectilinear"));
+    def->enum_labels.push_back(L("Monotonic"));
+    def->enum_labels.push_back(L("Monotonic line"));
+    def->enum_labels.push_back(L("Radial"));
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipMonotonic));
 
     def = this->add("bridge_density", coPercent);
     def->label = L("External bridge density");

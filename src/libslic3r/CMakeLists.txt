@@ -162,6 +162,8 @@ set(lisbslic3r_sources
     Fill/FillLine.hpp
     Fill/FillPlanePath.cpp
     Fill/FillPlanePath.hpp
+    Fill/FillRadial.cpp
+    Fill/FillRadial.hpp
     Fill/FillRectilinear.cpp
     Fill/FillRectilinear.hpp
     Fill/FillTpmsD.cpp
