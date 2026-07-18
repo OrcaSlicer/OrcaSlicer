@@ -518,6 +518,25 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     glsafe(::glStencilMask(0xFF));
     glsafe(::glDisable(GL_STENCIL_TEST));
     // render the outline using depth buffer and discard the pixels that are not on the outline
+    // The outline silhouette is defined by a per-fragment discard mask derived from this depth
+    const bool  use_msaa_outline = GUI::wxGetApp().is_gl_version_greater_or_equal_to(3, 1);
+    const GLenum depth_tex_target = use_msaa_outline ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+    int aa_samples = 1;
+    if (use_msaa_outline) {
+        if (const AppConfig* app_config = GUI::wxGetApp().app_config; app_config != nullptr) {
+            const std::string value = app_config->get(SETTING_OPENGL_AA_SAMPLES);
+            if (value == "2" || value == "4" || value == "8" || value == "16")
+                aa_samples = ::atoi(value.c_str());
+        }
+        // Never request more samples than the driver supports for depth textures (a 1-sample texture
+        // is used when MSAA is disabled, keeping a single code path for the sampler2DMS shader).
+        GLint max_samples = 1;
+        glsafe(::glGetIntegerv(GL_MAX_DEPTH_TEXTURE_SAMPLES, &max_samples));
+        if (aa_samples > max_samples)
+            aa_samples = max_samples < 1 ? 1 : max_samples;
+        if (aa_samples < 1)
+            aa_samples = 1;
+    }
     // 1st. render pass, render the model into a separate render target that has only depth buffer
     GLuint depth_fbo   = 0;
     GLuint depth_tex = 0;
@@ -527,14 +546,19 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
 
         glActiveTexture(GL_TEXTURE0);
         glsafe(::glGenTextures(1, &depth_tex));
-        glsafe(::glBindTexture(GL_TEXTURE_2D, depth_tex));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-        glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
-        glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
+        glsafe(::glBindTexture(depth_tex_target, depth_tex));
+        if (use_msaa_outline) {
+            // Multisample textures do not take filter/wrap parameters.
+            glsafe(::glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, aa_samples, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), GL_TRUE));
+        } else {
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE));
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+            glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+            glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
+        }
 
-        glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_tex, 0));
+        glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_tex_target, depth_tex, 0));
     } else {
         glsafe(::glGenFramebuffersEXT(1, &depth_fbo));
         glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, depth_fbo));
@@ -555,7 +579,7 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
         model.render(shader);
     else
         model.render(this->tverts_range, shader);
-    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    glsafe(::glBindTexture(depth_tex_target, 0));
 
     // 2nd. render pass, just a normal render with the depth buffer passed as a texture
     if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
@@ -565,13 +589,14 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     }
     shader->set_uniform("is_outline", true);
     shader->set_uniform("screen_size", Vec2f{cnv_size.get_width(), cnv_size.get_height()});
+    shader->set_uniform("msaa_samples", aa_samples);
     glActiveTexture(GL_TEXTURE0);
-    glsafe(::glBindTexture(GL_TEXTURE_2D, depth_tex));
+    glsafe(::glBindTexture(depth_tex_target, depth_tex));
     shader->set_uniform("depth_tex", 0);
     simple_render(shader, model_objects, colors);
 
     // Some clean up to do
-    glsafe(::glBindTexture(GL_TEXTURE_2D, 0));
+    glsafe(::glBindTexture(depth_tex_target, 0));
     shader->set_uniform("is_outline", false);
     if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
         glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, 0));

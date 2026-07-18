@@ -1,4 +1,7 @@
 #version 140
+// Multisample depth texture for the anti-aliased outline (see 3DScene.cpp render_with_outline).
+// Core in GLSL 150 / OpenGL 3.2; required as an extension on the 3.1 path this shader targets.
+#extension GL_ARB_texture_multisample : require
 
 const vec3 ZERO = vec3(0.0, 0.0, 0.0);
 //BBS: add grey and orange
@@ -36,7 +39,11 @@ uniform SlopeDetection slope;
 
 //BBS: add outline_color
 uniform bool is_outline;
-uniform sampler2D depth_tex;
+// Multisample depth buffer of the outlined model. The outline shape is a per-fragment discard mask
+// (below), which the framebuffer MSAA cannot smooth, so the silhouette is resolved per sample here.
+uniform sampler2DMS depth_tex;
+// Number of samples in depth_tex (== SETTING_OPENGL_AA_SAMPLES, or 1 when MSAA is disabled).
+uniform int msaa_samples;
 uniform vec2 screen_size;
 
 #ifdef ENABLE_ENVIRONMENT_MAP
@@ -99,7 +106,8 @@ float GetTolerance(float d, float k)
     return -k*(d+A)*(d+A)/B;   
 }
 
-float DetectSilho(vec2 fragCoord, vec2 dir)
+// Silhouette response for a single MSAA sample of the depth texture.
+float DetectSilhoSample(ivec2 coord, ivec2 dir, int s, ivec2 sz)
 {
     // -------------------------------------------
     //   x0 ___ x1----o 
@@ -112,22 +120,35 @@ float DetectSilho(vec2 fragCoord, vec2 dir)
     // and expected (as if x0..3 where on the same
     // plane) depth values.
     // -------------------------------------------
-    
-    float x0 = abs(texture(depth_tex, (fragCoord + dir*-2.0) / screen_size).r);
-    float x1 = abs(texture(depth_tex, (fragCoord + dir*-1.0) / screen_size).r);
-    float x2 = abs(texture(depth_tex, (fragCoord + dir* 0.0) / screen_size).r);
-    float x3 = abs(texture(depth_tex, (fragCoord + dir* 1.0) / screen_size).r);
-    
+    // texelFetch has no wrap mode, so clamp to the edge texel (the previous sampler2D used CLAMP_TO_EDGE).
+    float x0 = abs(texelFetch(depth_tex, clamp(coord + dir*-2, ivec2(0), sz - 1), s).r);
+    float x1 = abs(texelFetch(depth_tex, clamp(coord + dir*-1, ivec2(0), sz - 1), s).r);
+    float x2 = abs(texelFetch(depth_tex, clamp(coord,          ivec2(0), sz - 1), s).r);
+    float x3 = abs(texelFetch(depth_tex, clamp(coord + dir* 1, ivec2(0), sz - 1), s).r);
+
     float d0 = (x1-x0);
     float d1 = (x2-x3);
-    
+
     float r0 = x1 + d0 - x2;
     float r1 = x2 + d1 - x1;
-    
-    float tol = GetTolerance(x2, 0.04);
-    
-    return smoothstep(0.0, tol*tol, max( - r0*r1, 0.0));
 
+    float tol = GetTolerance(x2, 0.04);
+
+    return smoothstep(0.0, tol*tol, max( - r0*r1, 0.0));
+}
+
+float DetectSilho(vec2 fragCoord, vec2 dir)
+{
+    // Average the silhouette response across all depth samples. Samples that fall inside vs outside
+    // the model produce fractional coverage at the edge, giving the outline sub-pixel MSAA.
+    ivec2 sz    = textureSize(depth_tex);
+    ivec2 coord = ivec2(fragCoord);
+    ivec2 idir  = ivec2(dir);
+    int   n     = max(msaa_samples, 1);
+    float acc   = 0.0;
+    for (int s = 0; s < n; ++s)
+        acc += DetectSilhoSample(coord, idir, s, sz);
+    return acc / float(n);
 }
 
 float DetectSilho(vec2 fragCoord)
