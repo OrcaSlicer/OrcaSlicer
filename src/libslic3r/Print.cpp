@@ -51,6 +51,8 @@ using namespace nlohmann;
 
 namespace Slic3r {
 
+Print::SlicingPipelineHookFn Print::s_slicing_pipeline_hook_fn = nullptr;
+
 template class PrintState<PrintStep, psCount>;
 template class PrintState<PrintObjectStep, posCount>;
 
@@ -124,6 +126,9 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "printing_by_object_gcode",
         "filament_end_gcode",
         "post_process",
+        // "plugins" is the derived manifest backing the plugin-picker options; on its own it only
+        // affects G-code export. The specific option (e.g. slicing_pipeline_plugin) drives any re-slice.
+        "plugins",
         "extruder_clearance_height_to_rod",
         "extruder_clearance_height_to_lid",
         "extruder_clearance_radius",
@@ -177,6 +182,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "filename_format",
         "retraction_minimum_travel",
         "retract_before_wipe",
+        // Orca:
+        "retract_after_wipe",
         "retract_when_changing_layer",
         "retraction_length",
         "retract_length_toolchange",
@@ -210,7 +217,6 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
         "chamber_minimal_temperature",
         "thumbnails",
         "thumbnails_format",
-        "anisotropic_surfaces",
         "center_of_surface_pattern",
         "separated_infills",
         "seam_gap",
@@ -278,7 +284,8 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
             || opt_key == "wipe_tower_rotation_angle") {
             steps.emplace_back(psSkirtBrim);
         } else if (
-               opt_key == "initial_layer_print_height"
+               opt_key == "slicing_pipeline_plugin"
+            || opt_key == "initial_layer_print_height"
             || opt_key == "nozzle_diameter"
             || opt_key == "filament_shrink"
             || opt_key == "filament_shrinkage_compensation_z"
@@ -2206,6 +2213,11 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
     if (time_cost_with_cache)
         *time_cost_with_cache = 0;
 
+    {
+        const auto* sp = this->config().option<ConfigOptionStrings>("slicing_pipeline_plugin");
+        m_pipeline_plugin_active = s_slicing_pipeline_hook_fn && sp && !sp->values.empty();
+    }
+
     name_tbb_thread_pool_threads_set_locale();
 
     //compute the PrintObject with the same geometries
@@ -2315,20 +2327,47 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": total object counts %1% in current print, need to slice %2%")%m_objects.size()%need_slicing_objects.size();
     BOOST_LOG_TRIVIAL(info) << "Starting the slicing process." << log_memory_info();
     if (!use_cache) {
+        // Fire the SlicingPipeline hook for `obj` iff it just (re)computed `pstep` this pass.
+        auto hook_after = [this](PrintObject* obj, bool was_done, PrintObjectStep pstep, SlicingPipelineStepPlugin sstep) {
+            if (m_pipeline_plugin_active && !was_done && obj->is_step_done(pstep))
+                run_pipeline_hook(sstep, obj);
+        };
+
+        // SlicingPipeline: dedicated slice loop so the Slice boundary is hookable before perimeters.
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
-                obj->make_perimeters();
-            }
-            else {
-                if (obj->set_started(posSlice))
-                    obj->set_done(posSlice);
-                if (obj->set_started(posPerimeters))
-                    obj->set_done(posPerimeters);
+                const bool was_done = obj->is_step_done(posSlice);
+                obj->slice();
+                hook_after(obj, was_done, posSlice, SlicingPipelineStepPlugin::posSlice);
+                // re-snapshot each layer's raw_slices AFTER the Slice hook ran, so the
+                // plugin's mutation becomes the untyped baseline. Without this, a later
+                // perimeter-only re-run (make_perimeters -> restore_untyped_slices) reverts
+                // slices to the PRE-hook geometry while posSlice stays cached (the hook does
+                // not re-fire), silently un-applying the mutation; raw_slices consumers
+                // (sharp-tail support, ToolOrdering) also read this backup directly. Gated on
+                // an active plugin AND a genuine (re)slice, so the inactive path is untouched
+                // and re-backing-up an unmutated layer is a harmless identical copy.
+                if (m_pipeline_plugin_active && !was_done && obj->is_step_done(posSlice))
+                    for (Layer *layer : obj->layers())
+                        layer->backup_untyped_slices();
+            } else {
+                if (obj->set_started(posSlice)) obj->set_done(posSlice);   // shared/duplicate — no hook
             }
         }
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
+                const bool was_done = obj->is_step_done(posPerimeters);
+                obj->make_perimeters();   // slice() inside is a no-op: posSlice already DONE
+                hook_after(obj, was_done, posPerimeters, SlicingPipelineStepPlugin::posPerimeters);
+            } else {
+                if (obj->set_started(posPerimeters)) obj->set_done(posPerimeters);
+            }
+        }
+        for (PrintObject *obj : m_objects) {
+            if (need_slicing_objects.count(obj) != 0) {
+                const bool was_done = obj->is_step_done(posEstimateCurledExtrusions);
                 obj->estimate_curled_extrusions();
+                hook_after(obj, was_done, posEstimateCurledExtrusions, SlicingPipelineStepPlugin::posEstimateCurledExtrusions);
             }
             else {
                 if (obj->set_started(posEstimateCurledExtrusions))
@@ -2337,7 +2376,17 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
+                // split prepare_infill (fill-surface prep) from infill (make_fills) so a
+                // plugin can mutate fill surfaces at the PrepareInfill seam and have make_fills
+                // consume them (unlike the Infill seam, which fires after the fills are already
+                // built). infill() re-invokes prepare_infill() as a no-op once posPrepareInfill
+                // is DONE, so this is a mechanical split mirroring the slice/perimeters loop.
+                const bool prepare_was_done = obj->is_step_done(posPrepareInfill);
+                obj->prepare_infill();
+                hook_after(obj, prepare_was_done, posPrepareInfill, SlicingPipelineStepPlugin::posPrepareInfill);
+                const bool was_done = obj->is_step_done(posInfill);
                 obj->infill();
+                hook_after(obj, was_done, posInfill, SlicingPipelineStepPlugin::posInfill);
             }
             else {
                 if (obj->set_started(posPrepareInfill))
@@ -2348,7 +2397,9 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         }
         for (PrintObject *obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
+                const bool was_done = obj->is_step_done(posIroning);
                 obj->ironing();
+                hook_after(obj, was_done, posIroning, SlicingPipelineStepPlugin::posIroning);
             }
             else {
                 if (obj->set_started(posIroning))
@@ -2360,12 +2411,21 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         for (PrintObject *obj : m_objects) {
             bool need_contouring = need_slicing_objects.count(obj) != 0 && obj->need_z_contouring();
             if (need_contouring) {
+                const bool was_done = obj->is_step_done(posContouring);
                 obj->contour_z();
+                hook_after(obj, was_done, posContouring, SlicingPipelineStepPlugin::posContouring);
             } else {
                 if (obj->set_started(posContouring))
                     obj->set_done(posContouring);
             }
         }
+
+        // SlicingPipeline: support runs in the parallel block below; the hook must fire in a
+        // sequential loop afterward. Snapshot per-object done-state just before the parallel_for.
+        std::vector<char> sup_was_done(m_objects.size(), 1);
+        if (m_pipeline_plugin_active)
+            for (size_t i = 0; i < m_objects.size(); ++i)
+                sup_was_done[i] = m_objects[i]->is_step_done(posSupportMaterial) ? 1 : 0;
 
         tbb::parallel_for(tbb::blocked_range<int>(0, int(m_objects.size())),
             [this, need_slicing_objects](const tbb::blocked_range<int>& range) {
@@ -2382,9 +2442,17 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             }
         );
 
+        if (m_pipeline_plugin_active)
+            for (size_t i = 0; i < m_objects.size(); ++i)
+                if (need_slicing_objects.count(m_objects[i]) != 0 && !sup_was_done[i]
+                    && m_objects[i]->is_step_done(posSupportMaterial))
+                    run_pipeline_hook(SlicingPipelineStepPlugin::posSupportMaterial, m_objects[i]);
+
         for (PrintObject* obj : m_objects) {
             if (need_slicing_objects.count(obj) != 0) {
+                const bool was_done = obj->is_step_done(posDetectOverhangsForLift);
                 obj->detect_overhangs_for_lift();
+                hook_after(obj, was_done, posDetectOverhangsForLift, SlicingPipelineStepPlugin::posDetectOverhangsForLift);
             }
             else {
                 if (obj->set_started(posDetectOverhangsForLift))
@@ -2461,6 +2529,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
         }
         this->set_done(psWipeTower);
+        if (m_pipeline_plugin_active) run_pipeline_hook(SlicingPipelineStepPlugin::psWipeTower, nullptr);
     }
 
     if (this->has_wipe_tower()) {
@@ -2663,6 +2732,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
 
         this->finalize_first_layer_convex_hull();
         this->set_done(psSkirtBrim);
+        if (m_pipeline_plugin_active) run_pipeline_hook(SlicingPipelineStepPlugin::psSkirtBrim, nullptr);
 
         if (time_cost_with_cache) {
             end_time = (long long)Slic3r::Utils::get_current_time_utc();
@@ -2673,7 +2743,13 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
     for (PrintObject *obj : m_objects) {
         if (((!use_cache)&&(need_slicing_objects.count(obj) != 0))
             || (use_cache &&(re_slicing_objects.count(obj) != 0))){
+            const bool was_done = obj->is_step_done(posSimplifyPath);
             obj->simplify_extrusion_path();
+            // Unlike every other seam (all inside the `if (!use_cache)` block above), this loop is
+            // shared with the use_cache path (re_slicing_objects), so `!use_cache` must be checked
+            // explicitly here to keep hooks from ever firing on cache-loaded (plugin-final) objects.
+            if (!use_cache && m_pipeline_plugin_active && !was_done && obj->is_step_done(posSimplifyPath))
+                run_pipeline_hook(SlicingPipelineStepPlugin::posSimplifyPath, obj);
         }
         else {
             if (obj->set_started(posSimplifyPath))
@@ -3676,6 +3752,8 @@ int Print::get_filament_config_indx(int filament_id, int layer_id)
 
 void Print::update_filament_self_index_cache()
 {
+    m_missing_nozzle_group_logged.clear();   // reset the per-slice get_config_index log dedupe
+
     std::vector<int> values;
     if (m_full_print_config.has("filament_self_index")) {
         values = m_full_print_config.option<ConfigOptionInts>("filament_self_index")->values;
@@ -3721,9 +3799,12 @@ int Print::get_config_index(int filament_id, int layer_id, const std::vector<std
         return filament_id;
     auto nozzle_info  = group_result->get_nozzle_for_filament(filament_id, layer_id);
     if (!nozzle_info.has_value()) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__
-                                 << boost::format(", Line %1%: could not found group_nozzle_info corresponding to filament_id %2%, layer_id %3%") % __LINE__ % filament_id %
-                                        layer_id;
+        // Orca: this fallback runs per-filament/per-layer in the g-code hot path — log once per filament
+        // (reset each slice) instead of flooding thousands of identical lines that bury the real error.
+        if (m_missing_nozzle_group_logged.insert(filament_id).second)
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__
+                                     << boost::format(", Line %1%: could not found group_nozzle_info corresponding to filament_id %2%, layer_id %3% (further occurrences for this filament suppressed)") % __LINE__ % filament_id %
+                                            layer_id;
         return 0;
     }
 
@@ -3750,9 +3831,12 @@ int Print::get_config_index(int filament_id, int layer_id, const std::vector<std
         return (int)get_extruder_id(filament_id);
     auto nozzle_info  = group_result->get_nozzle_for_filament(filament_id, layer_id);
     if (!nozzle_info.has_value()) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__
-                                 << boost::format(", Line %1%: could not found group_nozzle_info corresponding to filament_id %2%, layer_id %3%") % __LINE__ % filament_id %
-                                        layer_id;
+        // Orca: this fallback runs per-filament/per-layer in the g-code hot path — log once per filament
+        // (reset each slice) instead of flooding thousands of identical lines that bury the real error.
+        if (m_missing_nozzle_group_logged.insert(filament_id).second)
+            BOOST_LOG_TRIVIAL(error) << __FUNCTION__
+                                     << boost::format(", Line %1%: could not found group_nozzle_info corresponding to filament_id %2%, layer_id %3% (further occurrences for this filament suppressed)") % __LINE__ % filament_id %
+                                            layer_id;
         return 0;
     }
 

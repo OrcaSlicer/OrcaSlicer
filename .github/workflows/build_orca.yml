@@ -222,9 +222,14 @@ jobs:
           security list-keychain -d user -s $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $P12_PASSWORD $KEYCHAIN_PATH
           codesign --deep --force --verbose --options runtime --timestamp --entitlements ${{ github.workspace }}/scripts/disable_validation.entitlements --sign "$CERTIFICATE_ID" ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app
+          # --deep is deprecated and signing/sealing can fail or skip files in
+          # non-standard layouts (python/bin, python/lib/**, tools/uv). Verify
+          # here so coverage gaps fail at CI time rather than at notarization.
+          codesign --verify --deep --strict --verbose=2 ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app
           # Sign OrcaSlicer_profile_validator.app if it exists
           if [ -f "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then
             codesign --deep --force --verbose --options runtime --timestamp --entitlements ${{ github.workspace }}/scripts/disable_validation.entitlements --sign "$CERTIFICATE_ID" ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app
+            codesign --verify --deep --strict --verbose=2 ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app
           fi
           
           # Create main OrcaSlicer DMG without the profile validator helper
@@ -505,6 +510,20 @@ jobs:
           name: ${{ github.sha }}-tests-linux-${{ inputs.arch == 'aarch64' && 'aarch64' || 'x86_64' }}
           overwrite: true
           path: build_tests.tar
+          retention-days: 5
+          if-no-files-found: error
+
+        # Ship the freshly-built validator so slice_check_linux (build_all.yml)
+        # can slice-sweep the shipped profiles with this PR's engine. Taken from
+        # the aarch64 leg so the sweep also exercises the arm build; x86_64 on
+        # SELF_HOSTED, which skips arm64.
+      - name: Upload profile validator (for slice check)
+        if: ${{ runner.os == 'Linux' && (vars.SELF_HOSTED && inputs.arch != 'aarch64' || !vars.SELF_HOSTED && inputs.arch == 'aarch64') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.sha }}-profile-validator-linux-${{ inputs.arch == 'aarch64' && 'aarch64' || 'x86_64' }}
+          overwrite: true
+          path: ./build/src/Release/OrcaSlicer_profile_validator
           retention-days: 5
           if-no-files-found: error
 

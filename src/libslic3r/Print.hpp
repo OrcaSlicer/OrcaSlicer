@@ -101,6 +101,14 @@ enum PrintObjectStep {
     posCount,
 };
 
+enum class SlicingPipelineStepPlugin {
+    posSlice, posPerimeters, posEstimateCurledExtrusions, posPrepareInfill, posInfill, posIroning, posContouring,
+    posSupportMaterial, posDetectOverhangsForLift, posSimplifyPath, psWipeTower, psSkirtBrim,
+    // Fires from the GUI G-code export/post-process seam (PostProcessor.cpp), NOT from Print::process().
+    // At this step the plugin edits the exported G-code file in place; see SlicingPipelinePluginCapability for the full contract.
+    psGCodePostProcess
+};
+
 // A PrintRegion object represents a group of volumes to print
 // sharing the same config (including the same assigned extruder(s))
 class PrintRegion
@@ -894,6 +902,11 @@ private: // Prevents erroneous use by other classes.
     typedef std::pair<PrintObject *, bool>         PrintObjectInfo;
 
 public:
+    using SlicingPipelineHookFn = std::function<void(Print&, const PrintObject*, SlicingPipelineStepPlugin)>;
+    // Cross-layer injection (mirrors ConfigBase::set_resolve_capability_fn): the GUI/plugin
+    // layer registers a dispatcher; libslic3r stays free of any plugin/Python dependency.
+    static void set_slicing_pipeline_hook_fn(SlicingPipelineHookFn fn) { s_slicing_pipeline_hook_fn = std::move(fn); }
+
     Print() = default;
 	virtual ~Print() { this->clear(); }
 
@@ -1263,6 +1276,13 @@ private:
     // Islands of objects and their supports extruded at the 1st layer.
     Polygons            first_layer_islands() const;
 
+    static SlicingPipelineHookFn s_slicing_pipeline_hook_fn;
+    bool m_pipeline_plugin_active { false };
+    void run_pipeline_hook(SlicingPipelineStepPlugin step, const PrintObject* object) {
+        if (m_pipeline_plugin_active && s_slicing_pipeline_hook_fn)
+            s_slicing_pipeline_hook_fn(*this, object, step);
+    }
+
     PrintConfig                             m_config;
     PrintObjectConfig                       m_default_object_config;
     PrintRegionConfig                       m_default_region_config;
@@ -1303,6 +1323,10 @@ private:
     FilamentIndexMap m_filament_index_map;
     // Used to cache printer and process parameter information
     PrintIndexMap m_nozzle_index_map;
+    // Orca: filament ids already reported as missing a nozzle-group entry this slice. get_config_index()
+    // falls back per-filament/per-layer in the g-code hot path, so this dedupes its log to once per
+    // filament instead of flooding thousands of identical error lines. Cleared with the caches each slice.
+    std::set<int> m_missing_nozzle_group_logged;
     // save the config value of "filament_self_index"
     std::vector<int> m_filament_self_index;
 

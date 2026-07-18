@@ -2462,6 +2462,93 @@ void NotificationManager::push_orca_sync_conflict_notification(const std::string
 		data, m_id_provider, m_evt_handler, std::move(pull_callback), std::move(force_push_callback), conflict_code), 0);
 }
 
+void NotificationManager::PluginMissingNotification::init()
+{
+	PopNotification::init();
+	// Reserve body rows, an optional spacer, and a dedicated action row for the two links.
+	m_lines_count = m_lines_count + m_body.size() + (m_body.empty() ? 0 : 1) + 1;
+}
+
+void NotificationManager::PluginMissingNotification::render_text(ImGuiWrapper& imgui,
+	const float win_size_x, const float win_size_y,
+	const float win_pos_x, const float win_pos_y)
+{
+	float x_offset   = m_left_indentation;
+	float shift_y    = m_line_height;
+	float starting_y = m_line_height / 2;
+
+	int last_end = 0;
+	std::string line;
+	for (size_t i = 0; i < m_endlines.size(); i++) {
+		if (m_text1.size() >= m_endlines[i]) {
+			line = m_text1.substr(last_end, m_endlines[i] - last_end);
+			last_end = m_endlines[i];
+			if (m_text1.size() > m_endlines[i])
+				last_end += (m_text1[m_endlines[i]] == '\n' || m_text1[m_endlines[i]] == ' ' ? 1 : 0);
+			ImGui::SetCursorPosX(x_offset);
+			ImGui::SetCursorPosY(starting_y + i * shift_y);
+			imgui.text(line.c_str());
+		}
+	}
+
+    const size_t body_start_row = m_endlines.size();
+    const std::string jump_text = _u8L("Jump to");
+    for (size_t i = 0; i < m_body.size(); ++i) {
+        const JumpTo& item          = m_body[i];
+        const std::string item_text = item.text.empty() ? item.opt : item.text;
+        const std::string prefix    = "- " + item_text + " ";
+        const float row_y           = starting_y + (body_start_row + i) * shift_y;
+
+        ImGui::SetCursorPosX(x_offset);
+        ImGui::SetCursorPosY(row_y);
+        imgui.text(prefix.c_str());
+
+        std::string button_id = "##plugin_missing_jump_" + std::to_string(i);
+        const float jump_x    = x_offset + ImGui::CalcTextSize(prefix.c_str()).x;
+        render_hyperlink_action(imgui, jump_x, row_y, jump_text, button_id.c_str(), [item] {
+            // Defer the jump: jump_to_option switches the settings tab/page, which must not run
+            // inside this notification's ImGui render pass. item is captured by value.
+            if (!item.opt.empty())
+                wxGetApp().CallAfter([item]() { wxGetApp().sidebar().jump_to_option(item.opt, item.opt_type, L""); });
+        });
+    }
+
+    const size_t action_row = body_start_row + m_body.size() + (m_body.empty() ? 0 : 1);
+	const float action_y = starting_y + action_row * shift_y;
+	render_hyperlink_action(imgui, x_offset, action_y, m_resolve_label, "##plugin_missing_resolve",
+		[this] { if (m_resolve_callback && m_resolve_callback(m_evt_handler)) close(); });
+}
+
+void NotificationManager::PluginMissingNotification::bbl_render_block_notif_text(ImGuiWrapper& imgui,
+	const float win_size_x, const float win_size_y,
+	const float win_pos_x, const float win_pos_y)
+{
+	const ImVec4 hyper_text_color       = m_HyperTextColor;
+	const ImVec4 hyper_text_color_hover = m_HyperTextColorHover;
+	m_HyperTextColor                    = ImVec4(1.f, 1.f, 1.f, 1.f);
+	m_HyperTextColorHover               = ImVec4(1.f, 1.f, 1.f, 0.75f);
+
+	render_text(imgui, win_size_x, win_size_y, win_pos_x, win_pos_y);
+
+	m_HyperTextColor      = hyper_text_color;
+	m_HyperTextColorHover = hyper_text_color_hover;
+}
+
+void NotificationManager::push_plugin_missing_notification(NotificationType type,
+                                                           const std::string& text,
+                                                           const std::string& resolve_label,
+                                                           std::vector<JumpTo> body,
+                                                           std::function<bool(wxEvtHandler*)> resolve_callback)
+{
+	m_pop_notifications.erase(std::remove_if(m_pop_notifications.begin(), m_pop_notifications.end(),
+		[type](const std::unique_ptr<PopNotification>& notification) {
+			return notification && notification->get_type() == type;
+		}), m_pop_notifications.end());
+	NotificationData data{ type, NotificationLevel::ErrorNotificationLevel, 0, text };
+	push_notification_data(std::make_unique<NotificationManager::PluginMissingNotification>(
+		data, m_id_provider, m_evt_handler, resolve_label, std::move(body), std::move(resolve_callback)), 0);
+}
+
 void NotificationManager::push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback)
 {
     // If already exists

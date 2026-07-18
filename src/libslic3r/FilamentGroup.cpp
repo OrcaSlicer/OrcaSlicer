@@ -352,8 +352,7 @@ namespace Slic3r
         int k,
         const std::vector<unsigned int>& used_filaments,
         const std::unordered_map<int, std::vector<int>>& unplaceable_limits,
-        int* cost,
-        int timeout_ms)
+        int* cost)
     {
         auto distance_evaluator = std::make_shared<FlushDistanceEvaluator>(ctx.model_info.flush_matrix, used_filaments, ctx.model_info.layer_filaments);
         KMediods PAM(k, (int)used_filaments.size(), distance_evaluator, ctx.machine_info.master_extruder_id);
@@ -369,7 +368,7 @@ namespace Slic3r
         }
         PAM.set_cluster_group_size(cluster_size_limit);
 
-        PAM.do_clustering(ctx, timeout_ms, 30);
+        PAM.do_clustering(ctx, m_clustering_budget);
 
         m_memoryed_heap = PAM.get_memoryed_groups();
 
@@ -793,7 +792,7 @@ namespace Slic3r
       2.1 In each cluster, make the point that minimizes the sum of distances within the cluster the medoid
       2.2 Reassign each point to the cluster defined by the closest medoid determined in the previous step
     */
-    void KMediods::do_clustering(const FilamentGroupContext &context, int timeout_ms, int retry)
+    void KMediods::do_clustering(const FilamentGroupContext& context, const ClusteringBudget& budget)
     {
         FlushTimeMachine T;
         T.time_machine_start();
@@ -817,7 +816,11 @@ namespace Slic3r
         double           best_cluster_cost    = std::numeric_limits<double>::max();
         int              retry_count          = 0;
 
-        while (retry_count < retry && T.time_machine_end() < timeout_ms) {
+        // Run at least one restart; otherwise every filament would stay in the default group.
+        const int retry = std::max(1, budget.max_restarts);
+        auto within_budget = [&]() { return budget.timeout_ms <= 0 || T.time_machine_end() < budget.timeout_ms; };
+
+        while (retry_count < retry && within_budget()) {
             std::vector<int> curr_cluster_centers = init_cluster_center(m_placeable_limits, m_unplaceable_limits, m_max_cluster_size, m_cluster_group_size, retry_count);
             std::vector<int> curr_cluster_labels = assign_cluster_label(curr_cluster_centers, m_placeable_limits, m_unplaceable_limits, m_max_cluster_size, m_cluster_group_size);
             double           curr_cluster_cost   = evaluate_labels(curr_cluster_labels);
@@ -826,7 +829,7 @@ namespace Slic3r
             update_memoryed_groups(g, memory_threshold, memoryed_groups);
 
             bool mediods_changed = true;
-            while (mediods_changed && T.time_machine_end() < timeout_ms) {
+            while (mediods_changed && within_budget()) {
                 mediods_changed        = false;
                 double best_swap_cost  = curr_cluster_cost;
                 int best_swap_cluster  = -1;
@@ -889,7 +892,7 @@ namespace Slic3r
         if (estimated < ENUM_THRESHOLD)
             result = calc_group_by_enum(k, used_filaments, unplaceable_limits, cost);
         else
-            result = calc_group_by_kmedoids(k, used_filaments, unplaceable_limits, cost, 3000);
+            result = calc_group_by_kmedoids(k, used_filaments, unplaceable_limits, cost);
 
         change_memoryed_heaps_to_arrays(m_memoryed_heap, ctx.group_info.total_filament_num, used_filaments, m_memoryed_groups);
 
