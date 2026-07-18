@@ -466,7 +466,7 @@ void Preset::normalize(DynamicPrintConfig &config)
         // Ensure that the filament preset vector options contain the correct number of values.
         const auto &defaults = FullPrintConfig::defaults();
         for (const std::string &key : Preset::filament_options()) {
-            if (key == "compatible_prints" || key == "compatible_printers")
+            if (key == "compatible_prints" || key == "compatible_printers" || key == "slicing_pipeline_plugin" || key == "plugins")
                 continue;
             if (filament_options_with_variant.find(key) != filament_options_with_variant.end())
                 continue;
@@ -1379,6 +1379,8 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "filament_change_length_nc", "filament_prime_volume_nc",
     "long_retractions_when_ec", "retraction_distances_when_ec",
     "plugin_config_overrides",
+    "slicing_pipeline_plugin",
+    "plugins",
     //ams chamber
     "filament_dev_ams_drying_ams_limitations", "filament_dev_ams_drying_temperature", "filament_dev_ams_drying_time", "filament_dev_ams_drying_heat_distortion_temperature",
     "filament_dev_chamber_drying_bed_temperature", "filament_dev_chamber_drying_time",
