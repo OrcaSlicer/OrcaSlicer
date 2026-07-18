@@ -28,6 +28,10 @@ public:
     static int get_flag_bits(std::string str, int start, int count = 1);
     static int get_flag_bits(int num, int start, int count = 1, int base = 10);
 
+    // Extract the hex digit at position `pos` (0 = least-significant).
+    // eg. get_hex_bits(16, 1, 10) = 1
+    static int get_hex_bits(int num, int pos, int input_num_base = 10) { return get_flag_bits(num, pos * 4, 4, input_num_base); }
+
     static float string_to_float(const std::string& str_value);
 
     static std::string convertToIp(long long ip);

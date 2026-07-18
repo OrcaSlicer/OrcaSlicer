@@ -55,3 +55,11 @@ ctest --test-dir ./tests/fff_print
 - Add helper functions or utilities only when existing code cannot reasonably be reused. Avoid duplication.
 - Keep code concise and clear. Manually simplify AI generated bloated codes before review.
 - Include targeted tests or documented verification for behavior changes, especially in slicing logic, profiles, formats, and GUI defaults.
+- For translation changes (`localization/i18n/**/*.po`), check that recurring terms match the [Localization glossary](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/guides/localization_glossary.md) for that language.
+
+## Localization & translations
+
+- Translation catalogs live in `localization/i18n/<lang>/OrcaSlicer_<lang>.po`.
+- When creating or reviewing translations, use the [Localization glossary](https://github.com/OrcaSlicer/OrcaSlicer_WIKI/blob/main/guides/localization_glossary.md) as the source of truth for recurring terms, so the same English term is always rendered the same way within a language and terms that must stay in English (brand/product names, acronyms, file formats, G-code, macros/variables) are not translated.
+- If a term's established translation changes, update both the affected `.po` files and the glossary so they stay in sync.
+- Only edit `msgstr` (never `msgid`); keep placeholders (`%s`, `%1%`, `\n`), context (`msgctxt`), and file encoding/line endings intact.

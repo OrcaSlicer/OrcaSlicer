@@ -12,6 +12,7 @@
 #include <wx/hyperlink.h>
 #include <wx/animate.h>
 #include <wx/dynarray.h>
+#include <optional>
 
 
 #define AMS_CONTROL_BRAND_COLOUR wxColour(0, 150, 136)
@@ -400,6 +401,26 @@ private:
 };
 
 
+// Orca: routing glyph shown on the AMS control when a Filament Track Switch is installed.
+class SwitcherImage: public wxWindow
+{
+public:
+    void setShowState(bool show_state) { m_show_state = show_state; };
+    // void msw_rescale();
+    void paintEvent(wxPaintEvent &evt);
+
+	void            render(wxDC &dc);
+    bool            m_show_state = {false};
+    wxColour        m_colour;
+    ScalableBitmap  m_switcher;
+    string m_file_name;
+    // bool            m_ams_loading{ false };
+    void            doRender(wxDC &dc);
+    SwitcherImage(wxWindow *parent, wxWindowID id, string file_name, const wxSize& size, const wxPoint &pos = wxDefaultPosition);
+    ~SwitcherImage();
+};
+
+
 class AMSextruder : public wxWindow
 {
 private:
@@ -771,6 +792,9 @@ public:
     void     PlayRridLoading(wxString canid);
     void     StopRridLoading(wxString canid);
     void     msw_rescale();
+    // Orca: hide/show the road segment below the item; used to drop the external-spool road
+    // when a Filament Track Switch is installed. Returns true if the visibility actually changed.
+    bool     ShowRoad(bool show);
     void     show_sn_value(bool show);
     void     SetAmsStepExtra(wxString canid, AMSPassRoadType type, AMSPassRoadSTEP step);
     void     SetAmsStep(std::string amsid, std::string canid, AMSPassRoadType type, AMSPassRoadSTEP step);
@@ -848,6 +872,111 @@ wxDECLARE_EVENT(EVT_AMS_UNSELETED_VAMS, wxCommandEvent);
 wxDECLARE_EVENT(EVT_AMS_UNSELETED_AMS, wxCommandEvent);
 wxDECLARE_EVENT(EVT_VAMS_ON_FILAMENT_EDIT, wxCommandEvent);
 wxDECLARE_EVENT(EVT_AMS_SWITCH, SimpleEvent);
+
+enum class DevExtruderState {
+    FILLED_LOAD,
+    FILLED_UNLOAD,
+    EMPTY_LOAD,
+    EMPTY_UNLOAD
+};
+
+class DevExtruderImage : public wxWindow
+{
+    ScalableBitmap *m_left_extruder_active_filled;
+    ScalableBitmap *m_left_extruder_active_empty;
+    ScalableBitmap *m_left_extruder_unactive_filled;
+    ScalableBitmap *m_left_extruder_unactive_empty;
+    ScalableBitmap *m_right_extruder_active_filled;
+    ScalableBitmap *m_right_extruder_active_empty;
+    ScalableBitmap *m_right_extruder_unactive_filled;
+    ScalableBitmap *m_right_extruder_unactive_empty;
+
+    ScalableBitmap *m_extruder_single_nozzle_empty_load;
+    ScalableBitmap *m_extruder_single_nozzle_empty_unload;
+    ScalableBitmap *m_extruder_single_nozzle_filled_load;
+    ScalableBitmap *m_extruder_single_nozzle_filled_unload;
+
+    DevExtruderState m_left_ext_state   = {DevExtruderState::EMPTY_LOAD};
+    DevExtruderState m_right_ext_state  = {DevExtruderState::EMPTY_LOAD};
+    DevExtruderState m_single_ext_state = {DevExtruderState::EMPTY_LOAD};
+
+public:
+    DevExtruderImage(wxWindow *parent, wxWindowID id,
+                     int extruder_num,
+                     const wxPoint &pos = wxDefaultPosition,
+                     const wxSize &size = wxDefaultSize);
+    ~DevExtruderImage()
+    {
+
+    }
+    void update(DevExtruderState single_state)
+    {
+        m_single_ext_state = single_state;
+    }
+    void update(DevExtruderState left_state, DevExtruderState right_state)
+    {
+        m_left_ext_state  = left_state;
+        m_right_ext_state = right_state;
+    }
+
+    void msw_rescale();
+    void setExtruderCount(int extruder_num)
+    {
+        m_extruder_num = extruder_num;
+    }
+    void setExtruderUsed(const std::string& loc)
+    {
+        if (current_extruder_loc == loc) { return; }
+        current_extruder_loc = loc;
+        Refresh();
+    }
+private:
+    void paintEvent(wxPaintEvent &evt)
+    {
+        wxPaintDC dc(this);
+        render(dc);
+    }
+    void render(wxDC &dc);
+    void   doRender(wxDC &dc);
+    int m_extruder_num = 1;
+    std::string current_extruder_loc = "";
+
+};
+
+// Filament Track Switch: when the switch is installed and calibrated a filament can be routed to
+// either extruder, so this dialog lets the user pick. GetExtruderID() returns the chosen extruder
+// (1 = deputy/left, 0 = main/right) or nullopt if none was picked; that value is passed to
+// MachineObject::command_ams_change_filament. Only constructed on the FTS-ready path.
+class FeedDirectionDialog : public wxDialog
+{
+public:
+    FeedDirectionDialog(wxWindow* parent, const int extruderNum, const std::string& printer_type = "");
+
+    std::optional<int> GetExtruderID();
+
+    void SetExtruderMapping(MachineObject* obj,
+                            const std::string& currAmsId,
+                            const std::string& currSlotId,
+                            const std::vector<std::pair<std::string, std::string>>& extruderSlots);
+
+private:
+    static wxString calcTrayName(MachineObject* obj, const std::string& amsID, const std::string& slotID);
+
+    int m_extruder_num{};
+    std::string m_printer_type;
+    wxString m_filament_id{};
+    wxRadioButton* m_radioHelper{nullptr};
+    wxRadioButton* m_leftRadio{nullptr};
+    wxRadioButton* m_rightRadio{nullptr};
+    wxRadioButton* m_lastChecked{nullptr};
+    DevExtruderImage* m_extruderImage{nullptr};
+    Button* m_confirmBtn{nullptr};
+    std::optional<int> m_load_extruder_id = std::nullopt;
+
+    void OnConfirm(wxCommandEvent& event);
+    void OnRadioClicked(wxCommandEvent& evt);
+
+};
 
 }} // namespace Slic3r::GUI
 
