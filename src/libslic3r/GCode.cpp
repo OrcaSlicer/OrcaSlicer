@@ -4920,7 +4920,7 @@ std::string GCode::generate_object_skirt_group(const Print &print,
         const Layer& layer,
         unsigned int extruder_id)
 {
-    if (print.config().skirt_type != stPerObject || print.skirt_brim_groups().empty())
+    if (print.config().skirt_type != stPerObject || !layer_tools.has_skirt || print.skirt_brim_groups().empty())
         return {};
 
     const size_t group_idx = find_skirt_brim_group_idx(print, object.id(), instance_id);
