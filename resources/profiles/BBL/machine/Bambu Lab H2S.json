@@ -14,5 +14,5 @@
 	"family": "BBL-3DP",
 	"machine_tech": "FFF",
 	"model_id": "O1S",
-	"default_materials": "Bambu PLA Basic @BBL H2S;Bambu PLA Matte @BBL H2S;Bambu PLA Tough @BBL H2S;Bambu PLA Marble @BBL H2S;Bambu PLA Metal @BBL H2S;Bambu PLA Silk @BBL H2S;Bambu TPU 95A HF @BBL H2S;Bambu PETG Basic @BBL H2S"
+	"default_materials": "Bambu PLA Basic @BBL H2S;Bambu PLA Matte @BBL H2S;Bambu PLA Tough @BBL H2S;Bambu PLA Marble @BBL H2S;Bambu PLA Metal @BBL H2S;Bambu PLA Silk @BBL H2S;Bambu TPU 95A HF @BBL H2S;Bambu PETG Basic @BBL H2S;Bambu PLA Pure @BBL H2S"
 }

@@ -5,9 +5,13 @@
 #include "libslic3r/LocalesUtils.hpp"
 
 #include <cereal/types/polymorphic.hpp>
-#include <cereal/types/string.hpp> 
-#include <cereal/types/vector.hpp> 
+#include <cereal/types/string.hpp>
+#include <cereal/types/vector.hpp>
 #include <cereal/archives/binary.hpp>
+
+#include <boost/filesystem.hpp>
+#include <boost/nowide/fstream.hpp>
+#include <nlohmann/json.hpp>
 
 using namespace Slic3r;
 
@@ -401,6 +405,171 @@ SCENARIO("update_diff_values_to_child_config tolerates legacy machine-limit vect
 //         }
 //     }
 // }
+
+TEST_CASE("save_to_json round-trips plugin capability references as strings", "[Config][plugins]") {
+    namespace fs = boost::filesystem;
+    const fs::path tmp = fs::temp_directory_path() / fs::unique_path("orca_plugins_%%%%-%%%%.json");
+    const std::vector<std::string> refs = {
+        "local_plugin;;inset",
+        "cloud_plugin;550e8400-e29b-41d4-a716-446655440000;inset"
+    };
+
+    std::unique_ptr<DynamicPrintConfig> config_ptr(
+        DynamicPrintConfig::new_from_defaults_keys({"slicing_pipeline_plugin"}));
+    DynamicPrintConfig config = std::move(*config_ptr);
+    config.option<ConfigOptionStrings>("slicing_pipeline_plugin", true)->values = refs;
+    config.save_to_json(tmp.string(), "test_preset", "User", "1.0.0.0");
+
+    nlohmann::json j;
+    {
+        boost::nowide::ifstream ifs(tmp.string());
+        ifs >> j;
+    }
+    REQUIRE(j["slicing_pipeline_plugin"] == nlohmann::json(refs));
+    CHECK_FALSE(j.contains("plugins"));
+
+    DynamicPrintConfig reloaded = DynamicPrintConfig::full_print_config();
+    ConfigSubstitutionContext substitutions(ForwardCompatibilitySubstitutionRule::Disable);
+    std::map<std::string, std::string> key_values;
+    std::string reason;
+    REQUIRE(reloaded.load_from_json(tmp.string(), substitutions, true, key_values, reason) == 0);
+    CHECK(reason.empty());
+    CHECK(reloaded.option<ConfigOptionStrings>("slicing_pipeline_plugin")->values == refs);
+
+    fs::remove(tmp);
+}
+
+TEST_CASE("plugin capability references survive string-map serialization", "[Config][plugins]") {
+    const std::vector<std::string> refs = {
+        "master_plugin;;header-stamp",
+        "Sample Plugin;1f998ea9-0183-4cc5-957f-4eef659ba4e6;G-code Benchmark (.py)"
+    };
+
+    DynamicPrintConfig original = DynamicPrintConfig::full_print_config();
+    original.option<ConfigOptionStrings>("slicing_pipeline_plugin", true)->values = refs;
+
+    std::map<std::string, std::string> serialized{
+        {"slicing_pipeline_plugin", original.option<ConfigOptionStrings>("slicing_pipeline_plugin")->serialize()}
+    };
+    CHECK(serialized["slicing_pipeline_plugin"].find("\"master_plugin;;header-stamp\"") != std::string::npos);
+
+    DynamicPrintConfig reloaded = DynamicPrintConfig::full_print_config();
+    reloaded.load_string_map(serialized, ForwardCompatibilitySubstitutionRule::Disable);
+
+    CHECK(reloaded.option<ConfigOptionStrings>("slicing_pipeline_plugin")->values == refs);
+}
+
+TEST_CASE("parse_capability_ref parses local and cloud references", "[Config][plugin]") {
+    const auto local = Slic3r::parse_capability_ref("local_plugin;;post_process");
+    REQUIRE(local.has_value());
+    CHECK(local->name == "local_plugin");
+    CHECK(local->capability_name == "post_process");
+    CHECK(local->uuid.empty());
+
+    const auto cloud = Slic3r::parse_capability_ref(
+        "cloud_plugin;550e8400-e29b-41d4-a716-446655440000;post_process");
+    REQUIRE(cloud.has_value());
+    CHECK(cloud->name == "cloud_plugin");
+    CHECK(cloud->capability_name == "post_process");
+    CHECK(cloud->uuid == "550e8400-e29b-41d4-a716-446655440000");
+}
+
+TEST_CASE("parse_capability_ref rejects malformed input", "[Config][plugin]") {
+    CHECK_FALSE(Slic3r::parse_capability_ref("").has_value());
+    CHECK_FALSE(Slic3r::parse_capability_ref("plugin").has_value());
+    CHECK_FALSE(Slic3r::parse_capability_ref("plugin;uuid").has_value());
+    CHECK_FALSE(Slic3r::parse_capability_ref(";;capability").has_value());
+    CHECK_FALSE(Slic3r::parse_capability_ref(";uuid;capability").has_value());
+    CHECK_FALSE(Slic3r::parse_capability_ref("plugin;;").has_value());
+    CHECK_FALSE(Slic3r::parse_capability_ref("plugin;uuid;").has_value());
+}
+
+namespace {
+// Installs a stub capability resolver that echoes the capability type into the reference, so tests
+// can assert each plugin-backed option resolved with its own ConfigOptionDef::plugin_type. Resets
+// the global resolver on teardown -- tests run in random order and other cases assert the
+// no-resolver behavior (an absent "plugins" manifest).
+struct PluginResolverFixture {
+    PluginResolverFixture() {
+        ConfigBase::set_resolve_capability_fn([](const std::string& name, const std::string& type) {
+            return name.empty() ? std::string() : name + ";;" + type;
+        });
+    }
+    ~PluginResolverFixture() { ConfigBase::set_resolve_capability_fn(nullptr); }
+};
+} // namespace
+
+TEST_CASE_METHOD(PluginResolverFixture,
+    "update_plugin_manifest derives references generically from plugin-backed options",
+    "[Config][plugins]") {
+    // Both scalar (printer_agent) and vector (slicing_pipeline_plugin) options opt in via a non-empty
+    // ConfigOptionDef::plugin_type (is_plugin_backed) and are resolved with it -- there is no hardcoded
+    // per-option switch. printer_agent in particular relies on its plugin_type metadata being wired up
+    // (it is edited via a dedicated widget, not the plugin_picker).
+    std::unique_ptr<DynamicPrintConfig> config_ptr(DynamicPrintConfig::new_from_defaults_keys(
+        {"slicing_pipeline_plugin", "printer_agent"}));
+    DynamicPrintConfig config = std::move(*config_ptr);
+    config.option<ConfigOptionStrings>("slicing_pipeline_plugin", true)->values = {"sp"};
+    config.option<ConfigOptionString>("printer_agent", true)->value            = "agent";
+
+    config.update_plugin_manifest();
+    const std::vector<std::string> manifest = config.option<ConfigOptionStrings>("plugins")->values;
+
+    using Catch::Matchers::VectorContains;
+    REQUIRE_THAT(manifest, VectorContains(std::string("sp;;slicing-pipeline")));
+    REQUIRE_THAT(manifest, VectorContains(std::string("agent;;printer-connection")));
+    CHECK(manifest.size() == 2);
+}
+
+TEST_CASE_METHOD(PluginResolverFixture,
+    "update_plugin_manifest de-duplicates references and skips unset options",
+    "[Config][plugins]") {
+    std::unique_ptr<DynamicPrintConfig> config_ptr(DynamicPrintConfig::new_from_defaults_keys(
+        {"slicing_pipeline_plugin", "printer_agent"}));
+    DynamicPrintConfig config = std::move(*config_ptr);
+    config.option<ConfigOptionStrings>("slicing_pipeline_plugin", true)->values = {"x", "x"};  // duplicate
+    // printer_agent stays at its default empty value -> contributes nothing to the manifest.
+
+    config.update_plugin_manifest();
+    const std::vector<std::string> manifest = config.option<ConfigOptionStrings>("plugins")->values;
+
+    CHECK(manifest == std::vector<std::string>{"x;;slicing-pipeline"});
+}
+
+TEST_CASE("H2C/A2L-era multi-nozzle and pre-heat config keys exist", "[config]") {
+    // Foundation keys backing H2C 6-nozzle cluster grouping, the pre-heat/pre-cool time
+    // model, and wipe-tower nozzle-change handling. Defaults must keep existing
+    // single-nozzle printers behaving identically.
+    Slic3r::DynamicPrintConfig config = Slic3r::DynamicPrintConfig::full_print_config();
+
+    // Printer / per-extruder options
+    REQUIRE(config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count") != nullptr);
+    REQUIRE(config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count")->values == std::vector<int>{1});
+    REQUIRE(config.option<ConfigOptionBool>("enable_pre_heating") != nullptr);
+    REQUIRE(config.option<ConfigOptionBool>("enable_pre_heating")->value == false);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("hotend_cooling_rate") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("hotend_heating_rate") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloat>("machine_hotend_change_time") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloat>("machine_prepare_compensation_time") != nullptr);
+
+    // Filament pre-cooling / ramming / nozzle-change (nc) options
+    REQUIRE(config.option<ConfigOptionIntsNullable>("filament_pre_cooling_temperature") != nullptr);
+    REQUIRE(config.option<ConfigOptionIntsNullable>("filament_pre_cooling_temperature_nc") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_preheat_temperature_delta") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_retract_length_nc") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloats>("filament_change_length_nc") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloats>("filament_prime_volume_nc") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_ramming_travel_time") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_ramming_travel_time_nc") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_ramming_volumetric_speed") != nullptr);
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_ramming_volumetric_speed_nc") != nullptr);
+
+    // Spot-check defaults that must not alter existing behavior.
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_retract_length_nc")->values == std::vector<double>{10.});
+    REQUIRE(config.option<ConfigOptionFloats>("filament_prime_volume_nc")->values == std::vector<double>{60.});
+    REQUIRE(config.option<ConfigOptionIntsNullable>("filament_pre_cooling_temperature_nc")->values == std::vector<int>{0});
+    REQUIRE(config.option<ConfigOptionFloatsNullable>("filament_ramming_volumetric_speed")->values == std::vector<double>{-1});
+}
 
 SCENARIO("ConfigOptionVector::set_to_index with stride=1 copies values correctly", "[Config][set_to_index]") {
     GIVEN("A destination vector and a source vector with 3 values") {

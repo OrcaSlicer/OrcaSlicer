@@ -23,6 +23,7 @@
 #include "fast_float/fast_float.h"
 
 #include "DeviceCore/DevFilaSystem.h"
+#include "DeviceCore/DevFilaSwitch.h"
 #include "DeviceCore/DevExtensionTool.h"
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevNozzleSystem.h"
@@ -39,6 +40,7 @@
 #include "DeviceCore/DevHMS.h"
 
 #include "DeviceCore/DevMapping.h"
+#include "DeviceCore/DevMappingNozzle.h"
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevUtil.h"
 
@@ -566,12 +568,15 @@ MachineObject::MachineObject(DeviceManager* manager, NetworkAgent* agent, std::s
         m_extder_system = new DevExtderSystem(this);
         m_extension_tool = DevExtensionTool::Create(this);
         m_nozzle_system = new DevNozzleSystem(this);
-        m_fila_system   = new DevFilaSystem(this);
+        m_fila_system = std::make_shared<DevFilaSystem>(this);
+        m_fila_switch   = new DevFilaSwitch(this);
         m_hms_system    = new DevHMS(this);
         m_config = new DevConfig(this);
 
         m_ctrl = new DevCtrl(this);
         m_print_options = new DevPrintOptions(this);
+
+        m_nozzle_mapping_ptr = std::make_shared<DevNozzleMappingCtrl>(this);
     }
 }
 
@@ -612,8 +617,9 @@ MachineObject::~MachineObject()
         delete m_ctrl;
         m_ctrl = nullptr;
 
-        delete m_fila_system;
-        m_fila_system = nullptr;
+
+        delete m_fila_switch;
+        m_fila_switch = nullptr;
 
         delete m_hms_system;
         m_hms_system = nullptr;
@@ -861,7 +867,11 @@ void MachineObject::clear_version_info()
     laser_version_info = DevFirmwareVersionInfo();
     cutting_module_version_info = DevFirmwareVersionInfo();
     extinguish_version_info = DevFirmwareVersionInfo();
+    filatrack_version_info = DevFirmwareVersionInfo();
     module_vers.clear();
+    // Drop cached rack-hotend (WTM) firmware alongside the module list.
+    // Inert for non-rack printers (rack firmware map is empty).
+    m_nozzle_system->ClearFirmwareInfoWTM();
 }
 
 void MachineObject::store_version_info(const DevFirmwareVersionInfo& info)
@@ -874,6 +884,13 @@ void MachineObject::store_version_info(const DevFirmwareVersionInfo& info)
         cutting_module_version_info = info;
     } else if (info.isExtinguishSystem()) {
         extinguish_version_info = info;
+    } else if (info.isWTM()) {
+        // Route rack-hotend / extruder-nozzle firmware into the nozzle system so
+        // the rack upgrade UI can read per-nozzle versions. isWTM() is false for every non-rack
+        // printer's modules, so this branch never fires outside H2C.
+        m_nozzle_system->AddFirmwareInfoWTM(info);
+    } else if (info.isFilaTrackSwitch()) {
+        filatrack_version_info = info;
     }
 
     module_vers.emplace(info.name, info);
@@ -1556,7 +1573,7 @@ int MachineObject::check_resume_condition()
     }
     return 0;
 }
-int MachineObject::command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp, int new_temp)
+int MachineObject::command_ams_change_filament(bool load, std::string ams_id, std::string slot_id, int old_temp, int new_temp, std::optional<int> extruder_id)
 {
     json j;
     try {
@@ -1586,6 +1603,13 @@ int MachineObject::command_ams_change_filament(bool load, std::string ams_id, st
             }
 
             j["print"]["slot_id"] = atoi(slot_id.c_str());
+        }
+
+        // Filament Track Switch: route the load to the chosen extruder. Only present when the
+        // caller supplied a value (FTS-installed+ready path), so every other caller is unchanged.
+        if (extruder_id.has_value())
+        {
+            j["print"]["extruder_id"] = *extruder_id;
         }
 
     } catch (const std::exception &) {}
@@ -1976,6 +2000,10 @@ int MachineObject::command_set_pa_calibration(const std::vector<PACalibResult> &
                 j["print"]["filaments"][i]["n_coef"] = std::to_string(pa_calib_values[i].n_coef);
             else
                 j["print"]["filaments"][i]["n_coef"]  = "0.0";
+            if (pa_calib_values[i].nozzle_pos_id >= 0) {
+                j["print"]["filaments"][i]["nozzle_pos"] = pa_calib_values[i].nozzle_pos_id;
+                j["print"]["filaments"][i]["nozzle_sn"]  = pa_calib_values[i].nozzle_sn;
+            }
         }
 
         BOOST_LOG_TRIVIAL(info) << "extrusion_cali_set: " << j.dump();
@@ -1994,6 +2022,10 @@ int MachineObject::command_delete_pa_calibration(const PACalibIndexInfo& pa_cali
     j["print"]["nozzle_id"]       = _generate_nozzle_id(pa_calib.nozzle_volume_type, to_string_nozzle_diameter(pa_calib.nozzle_diameter)).ToStdString();
     j["print"]["filament_id"]     = pa_calib.filament_id;
     j["print"]["cali_idx"]        = pa_calib.cali_idx;
+    if (pa_calib.nozzle_pos_id >= 0) {
+        j["print"]["nozzle_pos"] = pa_calib.nozzle_pos_id;
+        j["print"]["nozzle_sn"]  = pa_calib.nozzle_sn;
+    }
     j["print"]["nozzle_diameter"] = to_string_nozzle_diameter(pa_calib.nozzle_diameter);
 
     BOOST_LOG_TRIVIAL(info) << "extrusion_cali_del: " << j.dump();
@@ -2013,6 +2045,11 @@ int MachineObject::command_get_pa_calibration_tab(const PACalibExtruderInfo &cal
     if (calib_info.use_nozzle_volume_type)
         j["print"]["nozzle_id"] = _generate_nozzle_id(calib_info.nozzle_volume_type, to_string_nozzle_diameter(calib_info.nozzle_diameter)).ToStdString();
     j["print"]["nozzle_diameter"] = to_string_nozzle_diameter(calib_info.nozzle_diameter);
+
+    if (calib_info.nozzle_pos_id >= 0) {
+        j["print"]["nozzle_pos"] = calib_info.nozzle_pos_id;
+        j["print"]["nozzle_sn"]  = calib_info.nozzle_sn;
+    }
 
     BOOST_LOG_TRIVIAL(info) << "extrusion_cali_get: " << j.dump();
     request_tab_from_bbs = true;
@@ -2040,6 +2077,10 @@ int MachineObject::commnad_select_pa_calibration(const PACalibIndexInfo& pa_cali
     j["print"]["slot_id"]         = pa_calib_info.slot_id;
     j["print"]["cali_idx"]        = pa_calib_info.cali_idx;
     j["print"]["filament_id"]     = pa_calib_info.filament_id;
+    if (pa_calib_info.nozzle_pos_id >= 0) {
+        j["print"]["nozzle_pos"] = pa_calib_info.nozzle_pos_id;
+        j["print"]["nozzle_sn"]  = pa_calib_info.nozzle_sn;
+    }
     j["print"]["nozzle_diameter"] = to_string_nozzle_diameter(pa_calib_info.nozzle_diameter);
 
     BOOST_LOG_TRIVIAL(info) << "extrusion_cali_sel: " << j.dump();
@@ -2379,6 +2420,7 @@ void MachineObject::reset()
     jobState_ = 0;
     m_plate_index = -1;
     device_cert_installed = false;
+    clear_auto_nozzle_mapping();// reset nozzle mapping
 
     // reset print_json
     json empty_j;
@@ -2896,6 +2938,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                 }
 
               m_fan->ParseV2_0(jj);
+                m_fila_switch->ParseFilaSwitchInfo(jj);
 
                 if (jj.contains("support_filament_backup")) {
                     if (jj["support_filament_backup"].is_boolean()) {
@@ -3000,6 +3043,8 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
 
             if (jj.contains("command")) {
+                m_nozzle_mapping_ptr->ParseAutoNozzleMapping(jj);
+
                 if (jj["command"].get<std::string>() == "ams_change_filament") {
                     if (jj.contains("errno")) {
                         if (jj["errno"].is_number()) {
@@ -3723,7 +3768,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                     update_printer_preset_name();
                     update_filament_list();
                     if (jj.contains("ams")) {
-                        DevFilaSystemParser::ParseV1_0(jj, this, m_fila_system, key_field_only);
+                        DevFilaSystemParser::ParseV1_0(jj, this, m_fila_system.get(), key_field_only);
                     }
 
                     /* vitrual tray*/
@@ -4082,6 +4127,14 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                         pa_calib_result.nozzle_volume_type = convert_to_nozzle_type((*it)["nozzle_id"].get<std::string>());
                                     }
 
+                                    if ((*it).contains("nozzle_pos")) {
+                                        pa_calib_result.nozzle_pos_id = (*it)["nozzle_pos"].get<int>();
+                                    }
+
+                                    if ((*it).contains("nozzle_sn")) {
+                                        pa_calib_result.nozzle_sn = (*it)["nozzle_sn"].get<std::string>();
+                                    }
+
                                     if (jj["nozzle_diameter"].is_number_float()) {
                                         pa_calib_result.nozzle_diameter = jj["nozzle_diameter"].get<float>();
                                     } else if (jj["nozzle_diameter"].is_string()) {
@@ -4177,6 +4230,14 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                     pa_calib_result.nozzle_volume_type = convert_to_nozzle_type((*it)["nozzle_id"].get<std::string>());
                                 } else {
                                     pa_calib_result.nozzle_volume_type = NozzleVolumeType::nvtStandard;
+                                }
+
+                                if (it->contains("nozzle_pos")) {
+                                    pa_calib_result.nozzle_pos_id = (*it)["nozzle_pos"].get<int>();
+                                }
+
+                                if (it->contains("nozzle_sn")) {
+                                    pa_calib_result.nozzle_sn = (*it)["nozzle_sn"].get<std::string>();
                                 }
 
                                 if ((*it)["k_value"].is_number_float())
@@ -5004,6 +5065,7 @@ void MachineObject::parse_new_info(json print)
         is_support_user_preset = get_flag_bits(fun, 11);
         is_support_door_open_check = get_flag_bits(fun, 12);
         is_support_nozzle_blob_detection = get_flag_bits(fun, 13);
+        m_nozzle_system->SetSupportNozzleRack(get_flag_bits(fun, 60)); // H2C hotend rack support (device-side gate for the sync dialog)
         is_support_upgrade_kit = get_flag_bits(fun, 14);
         is_support_internal_timelapse = get_flag_bits(fun, 28);
         m_support_mqtt_homing = get_flag_bits(fun, 32);
@@ -5031,6 +5093,8 @@ void MachineObject::parse_new_info(json print)
     // fun2 may have infinite length, use get_flag_bits_no_border
     if (!fun2.empty()) {
         is_support_print_with_emmc = get_flag_bits_no_border(fun2, 0) == 1;
+        is_support_remote_dry = (get_flag_bits_no_border(fun2, 5) == 1);
+        is_support_check_track_switch_match_slice_printer = get_flag_bits_no_border(fun2, 19) == 1;
     }
 
     /*aux*/
@@ -5066,7 +5130,10 @@ void MachineObject::parse_new_info(json print)
 
         DevBed::ParseV2_0(device,m_bed);
 
-        if (device.contains("nozzle")) {  DevNozzleSystemParser::ParseV2_0(device["nozzle"], m_nozzle_system); }
+        // Pass the whole device json: ParseV2_0 reads ext/rack nozzles from device["nozzle"] and the
+        // hotend-rack state from device["holder"] (rack data lives outside device["nozzle"]). It is a
+        // no-op for devices that report neither key, so non-rack machines are unaffected.
+        DevNozzleSystemParser::ParseV2_0(device, m_nozzle_system);
         if (device.contains("extruder")) { ExtderSystemParser::ParseV2_0(device["extruder"], m_extder_system);}
         if (device.contains("ext_tool")) { DevExtensionToolParser::ParseV2_0(device["ext_tool"], m_extension_tool); }
 

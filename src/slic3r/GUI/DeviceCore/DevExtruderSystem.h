@@ -1,5 +1,6 @@
 #pragma once
 #include <optional>
+#include <unordered_map>
 #include "libslic3r/CommonDefs.hpp"
 
 #include "slic3r/Utils/json_diff.hpp"
@@ -65,6 +66,10 @@ public:
     bool             HasFilamentInBuffer() const = delete; //{ return m_buffer_has_filament; }  
     bool             HasFilamBackup() const { return !m_filam_bak.empty(); }
     std::vector<int> GetFilamBackup() const { return m_filam_bak; }
+
+    // Decode a filament-backup bit group into { tray_id -> valid }. Bits 0-15 map directly to tray ids,
+    // bits 16-23 to single-AMS tray ids 128+, bits 24-27 to AMS-Lite-mixed (N9) tray ids 24-27.
+    static std::unordered_map<int, bool> GetBackupStatus(unsigned int fila_back_group);
 
     // ams binding on current extruder
     const DevAmsSlotInfo& GetSlotPre() const { return m_spre; }
@@ -167,6 +172,11 @@ public:
     int  GetLoadingExtderId() const { return m_current_loading_extder_id; }
     bool HasFilamentBackup() const;
     bool HasFilamentInExt(int exter_id) { return GetExtderById(exter_id) ? GetExtderById(exter_id)->HasFilamentInExt() : false; }
+
+    // List the other AMS slots that back up the given slot within the same filament-backup group,
+    // across all extruders. Uses DevFilaSystem::GetTrayIndexMap() to translate backup bits (incl. the
+    // A2L/N9 AMS-Lite-mixed trays 24-27) into ams/slot ids.
+    std::vector<DevAmsSlotId> GetBackupAmsSlotInGroup(const DevAmsSlotId& ams_slot_id);
 
 protected:
     void  AddExtder(const DevExtder& ext) { m_extders[ext.GetExtId()] = ext; };

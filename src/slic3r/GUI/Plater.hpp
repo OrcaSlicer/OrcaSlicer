@@ -50,6 +50,7 @@ class SLAPrint;
 //BBS: add partplatelist and SlicingStatusEvent
 class PartPlateList;
 class SlicingStatusEvent;
+class BackgroundSlicingProcess;
 enum SLAPrintObjectStep : unsigned int;
 enum class ConversionType : int;
 class DevAms;
@@ -195,6 +196,8 @@ public:
     std::map<int, DynamicPrintConfig> build_filament_ams_list(MachineObject* obj);
     void sync_ams_list(bool is_from_big_sync_btn = false);
     bool sync_extruder_list();
+    bool is_fila_switch_ready();
+    void reset_fila_switch();
     bool need_auto_sync_extruder_list_after_connect_priner(const MachineObject* obj);
     void update_sync_status(const MachineObject* obj);
     int get_sidebar_pos_right_x();
@@ -205,6 +208,10 @@ public:
     // Orca
     static bool should_show_SEMM_buttons();
     void show_SEMM_buttons();
+    void enable_purge_mode_btn(bool enable);
+    // Sidebar nozzle-count badge on the extruder cards (multi-nozzle printers only).
+    void set_extruder_nozzle_count(int extruder_id, int nozzle_count);
+    void enable_nozzle_count_edit(bool enable);
     void update_dynamic_filament_list();
 
     PlaterPresetComboBox *  printer_combox();
@@ -519,6 +526,9 @@ public:
     void schedule_background_process(bool schedule = true);
     bool is_background_process_update_scheduled() const;
     void suppress_background_process(const bool stop_background_process) ;
+    // Expose the slicing process so the device GUI can read the current
+    // GCodeProcessorResult (e.g. the nozzle grouping for print-dispatch mapping).
+    BackgroundSlicingProcess& background_process();
     /* -1: send current gcode if not specified
      * -2: send all gcode to target machine */
     int send_gcode(int plate_idx = -1, Export3mfProgressFn proFn = nullptr);
@@ -576,7 +586,9 @@ public:
 
     void set_global_filament_map_mode(FilamentMapMode mode);
     void set_global_filament_map(const std::vector<int>& filament_map);
+    void set_global_filament_volume_map(const std::vector<int>& filament_volume_map);
     std::vector<int> get_global_filament_map() const;
+    std::vector<int> get_global_filament_volume_map() const;
     FilamentMapMode get_global_filament_map_mode() const;
 
     void update_menus();
@@ -707,6 +719,25 @@ public:
     //BBS: partplate list related functions
     PartPlateList& get_partplate_list();
     void validate_current_plate(bool& model_fits, bool& validate_error);
+    // Rebuild the missing-plugin sets from the active presets and (re)show/close their notifications.
+    // Returns true when slicing must be blocked (a referenced plugin is still missing); sets
+    // *block_toggled when the blocked state changed since the previous call (so the caller can refresh
+    // the Slice button). Helper for validate_current_plate and the reslice() gate.
+    bool refresh_missing_plugin_block(bool* block_toggled = nullptr);
+    // Re-run plate validation when a plugin finishes loading, but only while a missing-plugin
+    // notification is active, so it clears automatically once the required plugin is available.
+    void revalidate_current_plate_if_plugins_missing();
+    // Install the given missing cloud plugin refs, showing an app-modal pulsing progress dialog
+    // (Cancel stops before the next plugin). Runs the blocking install on a worker thread; the
+    // dialog is driven from the UI thread. Clears the missing-plugin notification once resolved.
+    void install_missing_cloud_plugins(const std::vector<std::string>& cloud_refs);
+    // Activate the given inactive plugin refs (load the plugin / enable the capability). No progress
+    // dialog; the loads run on a background worker that re-validates the plate once they settle, so
+    // the notification clears (or flips to broken if the plugin lacks the capability).
+    void enable_inactive_plugins(const std::vector<std::string>& refs);
+    // True when the active preset references plugins that are missing and not yet acknowledged, as
+    // of the last validate_current_plate. Other slice-ready writers consult this to stay consistent.
+    bool plugins_block_slicing() const;
     //BBS: select the plate by index
     int select_plate(int plate_index, bool need_slice = false);
     //BBS: update progress result
@@ -737,6 +768,11 @@ public:
     bool get_machine_sync_status();
 
     void update_machine_sync_status();
+
+    // Rewrite every plate's per-filament volume choice for the filaments grouped onto this
+    // extruder after its Flow type changed (Hybrid resets them to Standard so the user
+    // re-assigns concrete volumes in the grouping dialog).
+    void update_filament_volume_map(int extruder_id, int volume_type);
 
 #if ENABLE_ENVIRONMENT_MAP
     void init_environment_texture();
@@ -919,6 +955,10 @@ public:
 
     bool is_loading_project() const { return m_loading_project; }
 
+    void mark_plate_toolbar_image_dirty();
+    bool is_plate_toolbar_image_dirty() const;
+    void clear_plate_toolbar_image_dirty();
+
 private:
     struct priv;
     std::unique_ptr<priv> p;
@@ -939,6 +979,7 @@ private:
     std::string m_preview_only_filename;
     int m_valid_plates_count { 0 };
     int m_check_status = 0; // 0 not check, 1 check success, 2 check failed
+    bool m_b_plate_toolbar_image_dirty{ true };
 
     void suppress_snapshots();
     void allow_snapshots();

@@ -129,6 +129,23 @@ if (MINGW)
     set_target_properties(OrcaSlicer PROPERTIES PREFIX "")
 endif (MINGW)
 
+# The GUI embeds the bundled shared libpython (libslic3r_gui -> pybind11::embed);
+# the dep recipe stamps it with an @rpath id / plain SONAME, so the executable
+# needs an rpath entry for each layout in the "Bundled Python/uv layout" map
+# further down. Dead entries are skipped by the loader.
+# OrcaSlicer_profile_validator links libslic3r only (no Python).
+if (APPLE)
+    # A linker flag rather than the BUILD_RPATH property because the release
+    # flow uses the Xcode generator, which does not honor BUILD_RPATH.
+    target_link_options(OrcaSlicer PRIVATE "LINKER:-rpath,@executable_path/python/lib")
+elseif (UNIX AND NOT WIN32)
+    set_target_properties(OrcaSlicer PROPERTIES
+        # Build tree + AppImage, which packages the build-tree binary.
+        BUILD_RPATH "$ORIGIN/python/lib;$ORIGIN/../lib/python/lib"
+        # Flatpak (cmake --install).
+        INSTALL_RPATH "$ORIGIN/../libpython/lib")
+endif ()
+
 if (NOT WIN32 AND NOT APPLE)
     # Binary name on unix like systems (Linux, Unix)
     set_target_properties(OrcaSlicer PROPERTIES OUTPUT_NAME "orca-slicer")
@@ -197,6 +214,26 @@ endif ()
 set(output_dlls_Release "")
 set(output_dlls_Debug "")
 set(output_dlls_RelWithDebInfo "")
+# ---- Bundled Python/uv layout (canonical map) ---------------------------
+# The runtime and uv are staged three ways because packaging differs:
+#   install() rules          - Windows installer; on FHS/Flatpak they stage
+#                              only uv (Flatpak's runtime comes from the deps
+#                              build installing to /app/libpython; plain FHS
+#                              installs bundle no python runtime)
+#   POST_BUILD copies (here) - build-tree runs, and the macOS .app/AppImage
+#                              flows, which package the build tree and
+#                              never run install()
+#   packaging scripts        - build_release_macos.sh (copies the .app),
+#                              build_linux_image.sh.in (assembles $APPDIR)
+# Final locations relative to the executable:
+#   Windows:  <exe dir>/python            <resources>/tools/uv
+#   macOS:    Contents/MacOS/python       Contents/MacOS/tools/uv
+#   AppImage: $APPDIR/lib/python          $APPDIR/resources/tools/uv
+#   Flatpak:  /app/libpython (dep prefix) /app/share/OrcaSlicer/tools/uv
+# Runtime lookup: PythonInterpreter::initialize() / bundled_uv_path().
+# libpython resolution: rpath on the OrcaSlicer target (above); the dep
+# recipe gives the bundled interpreter a self-relative rpath.
+# --------------------------------------------------------------------------
 if (WIN32)
     # This has to be a separate target due to the windows command line length limits
     add_custom_target(COPY_DLLS ALL DEPENDS OrcaSlicer)
@@ -231,6 +268,12 @@ if (WIN32)
             VERBATIM
         )
     endif ()
+    # copy libpython to the bin folder for Windows
+    add_custom_command(TARGET OrcaSlicer POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:OrcaSlicer>/python"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_PREFIX_PATH}/libpython" "$<TARGET_FILE_DIR:OrcaSlicer>/python"
+        COMMENT "Copying Python runtime into the build tree"
+        VERBATIM)
 
 
 else ()
@@ -248,15 +291,19 @@ else ()
     if (XCODE)
         # Because of Debug/Release/etc. configurations (similar to MSVC) the slic3r binary is located in an extra level
         set(BIN_RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/resources")
+        set(BIN_DIR "${CMAKE_CURRENT_BINARY_DIR}")
         set(BIN_CONF_DIR "Debug")
     else ()
         set(BIN_RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/../resources")
+        set(BIN_DIR "$<TARGET_FILE_DIR:OrcaSlicer>")
     endif ()
     if (CMAKE_MACOSX_BUNDLE)
         if (CMAKE_CONFIGURATION_TYPES)
             set(BIN_RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/OrcaSlicer.app/Contents/Resources")
+            set(BIN_DIR "${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/OrcaSlicer.app/Contents/MacOS")
         else()
             set(BIN_RESOURCES_DIR "${CMAKE_CURRENT_BINARY_DIR}/OrcaSlicer.app/Contents/Resources")
+            set(BIN_DIR "${CMAKE_CURRENT_BINARY_DIR}/OrcaSlicer.app/Contents/MacOS")
         endif()
         set(MACOSX_BUNDLE_ICON_FILE Icon.icns)
         set(MACOSX_BUNDLE_BUNDLE_NAME "OrcaSlicer")
@@ -267,6 +314,21 @@ else ()
         COMMAND ln -sfn "${SLIC3R_RESOURCES_DIR}" "${BIN_RESOURCES_DIR}"
         COMMENT "Symlinking the resources directory into the build tree"
         VERBATIM)
+    add_custom_command(TARGET OrcaSlicer POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rm -rf "${BIN_DIR}/python"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_PREFIX_PATH}/libpython" "${BIN_DIR}/python"
+        COMMENT "Copying Python runtime into the build tree"
+        VERBATIM)
+    # Stage uv next to the binary for the build-tree/.app flows, which never
+    # run install() -- see the layout map above; lookup is bundled_uv_path().
+    if(ORCA_BUNDLED_UV_EXECUTABLE AND EXISTS "${ORCA_BUNDLED_UV_EXECUTABLE}")
+        add_custom_command(TARGET OrcaSlicer POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${BIN_DIR}/tools/uv"
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different "${ORCA_BUNDLED_UV_EXECUTABLE}" "${BIN_DIR}/tools/uv/${ORCA_BUNDLED_UV_FILENAME}"
+            COMMAND chmod +x "${BIN_DIR}/tools/uv/${ORCA_BUNDLED_UV_FILENAME}"
+            COMMENT "Copying bundled uv into the build tree"
+            VERBATIM)
+    endif()
 endif ()
 
 # Slic3r binary install target. Default build type is release in case no CMAKE_BUILD_TYPE is provided.
@@ -288,6 +350,7 @@ if (WIN32)
         install(TARGETS OrcaSlicer_app_gui RUNTIME DESTINATION ".")
     endif ()
     install(FILES ${output_dlls_${build_type}} DESTINATION ".")
+    install(DIRECTORY "${CMAKE_PREFIX_PATH}/libpython/" DESTINATION "python")
 else ()
     install(TARGETS OrcaSlicer RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" BUNDLE DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif ()

@@ -9,9 +9,11 @@
 
 #include "slic3r/GUI/DeviceCore/DevManager.h"
 #include "slic3r/GUI/DeviceCore/DevFilaSystem.h"
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h"
 
 #include <wx/simplebook.h>
 #include <wx/dcgraph.h>
+#include <wx/artprov.h>
 
 #include <boost/log/trivial.hpp>
 
@@ -29,6 +31,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     , m_Humidity_tip_popup(AmsHumidityTipPopup(this))
     , m_percent_humidity_dry_popup(new uiAmsPercentHumidityDryPopup(this))
     , m_ams_introduce_popup(AmsIntroducePopup(this))
+    , m_ams_dry_ctr_win(new AMSDryCtrWin(this))
 {
     Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (dev) {
@@ -39,7 +42,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     SetBackgroundColour(*wxWHITE);
     // normal mode
     //Freeze();
-    wxBoxSizer *m_sizer_body = new wxBoxSizer(wxVERTICAL);
+    m_sizer_body = new wxBoxSizer(wxVERTICAL);
     m_amswin                 = new wxWindow(this, wxID_ANY);
     m_amswin->SetBackgroundColour(*wxWHITE);
     m_amswin->SetSize(wxSize(FromDIP(578), -1));
@@ -151,6 +154,12 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     m_extruder = new AMSextruder(m_amswin, wxID_ANY, m_total_ext_count, wxDefaultPosition, AMS_EXTRUDER_SIZE);
     m_sizer_option_mid->Add( m_extruder, 0, wxALIGN_CENTER, 0 );
 
+    // Orca: filament-switch routing glyph; hidden by default so it stays inert (zero layout impact)
+    // on any printer without a Filament Track Switch. Shown from UpdateAms only when installed.
+    m_switcher = new SwitcherImage(m_amswin, wxID_ANY, "fila_switch", wxSize(FromDIP(29), FromDIP(16)), wxDefaultPosition);
+    m_switcher->Hide();
+    m_sizer_option_mid->Add(m_switcher, 0, wxALIGN_CENTER | wxLEFT, FromDIP(6));
+
 
     /*option right*/
     m_button_extruder_feed = new Button(m_panel_option_right, _L("Load"));
@@ -244,6 +253,12 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
         uiAmsHumidityInfo *info    = (uiAmsHumidityInfo *) evt.GetClientData();
         if (info)
         {
+            Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+            MachineObject *obj = nullptr;
+            if (dev) {
+                obj = dev->get_selected_machine();
+            }
+
             if (info->ams_type == AMSModel::GENERIC_AMS)
             {
                 wxPoint img_pos = ClientToScreen(wxPoint(0, 0));
@@ -253,9 +268,14 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
                 int humidity_value = info->humidity_display_idx;
                 if (humidity_value > 0 && humidity_value <= 5) { m_Humidity_tip_popup.set_humidity_level(humidity_value); }
                 m_Humidity_tip_popup.Popup();
-            }
-            else
-            {
+            } else if (obj && obj->is_support_remote_dry && (info->ams_type == AMSModel::N3F_AMS || info->ams_type == AMSModel::N3S_AMS)){
+                m_ams_dry_ctr_win->set_ams_id(info->ams_id);
+
+                wxPoint img_pos = ClientToScreen(wxPoint(0, 0));
+                wxPoint popup_pos(img_pos.x - m_ams_dry_ctr_win->GetSize().GetWidth() + FromDIP(150), img_pos.y - FromDIP(80));
+                m_ams_dry_ctr_win->Move(popup_pos);
+                m_ams_dry_ctr_win->ShowModal();
+            } else {
                 m_percent_humidity_dry_popup->Update(info);
 
                 wxPoint img_pos = ClientToScreen(wxPoint(0, 0));
@@ -275,7 +295,12 @@ void AMSControl::on_retry()
     post_event(wxCommandEvent(EVT_AMS_RETRY));
 }
 
-AMSControl::~AMSControl() {}
+AMSControl::~AMSControl()
+{
+    if (m_ams_dry_ctr_win) {
+        delete m_ams_dry_ctr_win;
+    }
+}
 
 std::string AMSControl::GetCurentAms() {
     return m_current_ams;
@@ -491,6 +516,10 @@ void AMSControl::msw_rescale()
 
     if (m_percent_humidity_dry_popup){
         m_percent_humidity_dry_popup->msw_rescale();
+    }
+
+    if (m_ams_dry_ctr_win) {
+        m_ams_dry_ctr_win->msw_rescale();
     }
 
     m_Humidity_tip_popup.msw_rescale();
@@ -816,6 +845,27 @@ void AMSControl::show_vams_kn_value(bool show)
     //m_vams_lib->show_kn_value(show);
 }
 
+void AMSControl::UpdateAmsDryControl(MachineObject* obj)
+{
+    if (!m_ams_dry_ctr_win->IsShown()) {
+        return;
+    }
+
+    if (!obj || !obj->GetFilaSystem()) {
+        m_ams_dry_ctr_win->Close();
+        return;
+    }
+
+    std::weak_ptr<DevFilaSystem> weak_fila_system = obj->GetFilaSystem();
+
+    if (auto locaked_fila_system = weak_fila_system.lock()) {
+        m_ams_dry_ctr_win->update(locaked_fila_system, obj);
+    } else {
+        m_ams_dry_ctr_win->Close();
+        return;
+    }
+}
+
 std::vector<AMSinfo> AMSControl::GenerateSimulateData() {
     auto caninfo0_0 = Caninfo{ "0", (""), *wxRED, AMSCanType::AMS_CAN_TYPE_VIRTUAL };
     auto caninfo0_1 = Caninfo{ "1", (""), *wxGREEN, AMSCanType::AMS_CAN_TYPE_VIRTUAL };
@@ -975,6 +1025,32 @@ void AMSControl::UpdateAms(const std::string   &series_name,
     {
         m_amswin->Layout();
     }
+
+    /*update switch status*/
+    // Orca: inert on any printer without a Filament Track Switch — install is false, so the banner is
+    // never materialized, the glyph stays hidden, and every ShowRoad(true) below is a no-op.
+    const auto [install, ready] = isFilaSwitchReady();
+    show_switcher_status(install && (!ready));
+    bool isShow = install && m_total_ext_count >= 2;
+    if (m_switcher->IsShown() != isShow)
+    {
+        m_switcher->Show(isShow);
+        m_sizer_body->Layout();
+        m_sizer_body->Fit(this);
+        this->Layout();
+        this->Refresh(true);
+        this->Update();
+    }
+
+    /*update ext road visibility when fila switch installed*/
+    bool road_visibility_changed = false;
+    for (auto& [ams_id, ams_item] : m_ams_item_list) {
+        if (!ams_item) continue;
+        // Orca: drop the external-spool road (AMSModel::EXT_AMS) while the switch routes all filament.
+        const bool should_show_road = !(install && ams_item->get_ams_model() == AMSModel::EXT_AMS);
+        if (ams_item->ShowRoad(should_show_road)) { road_visibility_changed = true; }
+    }
+    if (road_visibility_changed) { m_amswin->Layout(); }
 }
 
 void AMSControl::AddAmsPreview(AMSinfo info, AMSModel type)
@@ -1594,6 +1670,54 @@ void AMSControl::auto_refill(wxCommandEvent& event)
 void AMSControl::on_ams_setting_click(wxMouseEvent &event)
 {
     post_event(SimpleEvent(EVT_AMS_SETTINGS));
+}
+
+std::tuple<bool, bool> AMSControl::isFilaSwitchReady()
+{
+    DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+    if (!dev) return {false, false};
+    MachineObject* obj = dev->get_selected_machine();
+    if (!obj) return {false, false};
+    // Orca: GetFilaSwitch() is a raw non-null accessor (BBS returns a shared_ptr).
+    DevFilaSwitch* fila_switch = obj->GetFilaSwitch();
+    if (fila_switch)
+    {
+        return {fila_switch->IsInstalled(), fila_switch->IsReady()};
+    }
+    return {false, false};
+}
+
+void AMSControl::show_switcher_status(bool show)
+{
+    // Orca: never materialize the banner on printers that never request it, so the AMS control is
+    // byte-identical without a Filament Track Switch (UpdateAms calls this with show=false every refresh).
+    if (!show && tipPanel == nullptr) { return; }
+
+    if (tipPanel == nullptr)
+    {
+        m_sizer_body->Add(0, 0, 1, wxEXPAND | wxTOP, FromDIP(5));
+        tipPanel = new wxPanel(m_amswin);
+        tipPanel->SetBackgroundColour(wxColour(255, 153, 0));
+        tipSizer = new wxBoxSizer(wxHORIZONTAL);
+        tipPanel->SetSizer(tipSizer);
+        icon = new wxStaticBitmap(tipPanel, wxID_ANY,
+            wxArtProvider::GetBitmap(wxART_INFORMATION, wxART_MESSAGE_BOX, wxSize(FromDIP(16), FromDIP(16))));
+        tipSizer->Add(icon, 0, wxALL, FromDIP(8));
+        tipText = new wxStaticText(tipPanel, wxID_ANY, _L("AMS has not been initialized. Please initialize it before use."));
+        tipText->SetForegroundColour(wxColour(255, 255, 255));
+        tipText->SetFont(wxFont(10, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD));
+        tipText->Wrap(-1);
+        tipText->SetMinSize(wxSize(-1, -1));
+        tipSizer->Add(tipText, 0, wxALL | wxALIGN_CENTER_VERTICAL | wxEXPAND, FromDIP(8));
+        m_sizer_body->Add(tipPanel, 1, wxEXPAND, 0);
+    }
+    if (tipPanel->IsShown() == show)
+    {
+        return;
+    }
+    tipPanel->Show(show);
+    m_amswin->Layout();
+    m_amswin->Fit();
 }
 
 void AMSControl::parse_object(MachineObject* obj) {

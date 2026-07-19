@@ -4,11 +4,17 @@
 
 #include "DevDefs.h"
 #include "DevFilaAmsSetting.h"
+#include "DevFilaSwitch.h"
 #include "DevUtil.h"
 
 #include <map>
+#include <set>
+#include <vector>
 #include <optional>
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 #include <wx/string.h>
 #include <wx/colour.h>
 
@@ -17,6 +23,7 @@
 namespace Slic3r
 {
 class MachineObject;
+struct DevFilamentDryingPreset;
 
 /**
  * DevAmsTray - Represents a single filament tray/slot in an AMS unit or virtual tray.
@@ -103,6 +110,8 @@ public:
 
     // static
     static wxColour decode_color(const std::string& color);
+
+    std::optional<DevFilamentDryingPreset> get_ams_drying_preset() const;
 };
 
 /**
@@ -130,13 +139,67 @@ class DevAms
 {
     friend class DevFilaSystemParser;
 public:
-    enum AmsType : int
+    using AmsType = DevAmsType;
+    static constexpr AmsType EXT_SPOOL = DevAmsType::EXT_SPOOL;
+    static constexpr AmsType AMS = DevAmsType::AMS;
+    static constexpr AmsType AMS_LITE = DevAmsType::AMS_LITE;
+    static constexpr AmsType N3F = DevAmsType::N3F;
+    static constexpr AmsType N3S = DevAmsType::N3S;
+    static constexpr AmsType AMS_LITE_MIXED = DevAmsType::AMS_LITE_MIXED;
+
+public:
+
+    enum class DryCtrlMode : int
     {
-        DUMMY = 0,
-        AMS = 1,      // AMS
-        AMS_LITE = 2, // AMS-Lite
-        N3F = 3,      // N3F
-        N3S = 4,      // N3S
+        Off = 0,
+        OnTime = 1,
+        OnHumidity = 2,
+    };
+
+    enum class DryStatus : char
+    {
+        Off = 0,
+        Checking = 1,
+        Drying = 2,
+        Cooling = 3,
+        Stopping = 4,
+        Error = 5,
+        CannotStopHeatOutofControl = 6,
+        PrdTesting = 7,
+    };
+
+    enum class DrySubStatus
+    {
+        Off = 0,
+        Heating = 1,
+        Dehumidify = 2,
+    };
+
+    enum class DryFanStatus : char
+    {
+        Off = 0,
+        On = 1,
+    };
+
+    enum class CannotDryReason : int
+    {
+        TaskOccupied = 0,
+        InsufficientPower = 1,
+        AmsBusy = 2,
+        ConsumableAtAmsOutlet = 3,
+        InitiatingAmsDrying = 4,
+        NotSupportedIn2dMode = 5,
+        DryingInProgress = 6,
+        Upgrading = 7,
+        InsufficientPowerNeedPluginPower = 8,
+        FilamentAtAmsOutletManualUnload = 10,
+    };
+
+    struct DrySettings
+    {
+        std::string dry_filament;
+        int dry_temp = -1; // -1 means invalid
+        int dry_hour = -1; // -1 means invalid, hours
     };
 
 public:
@@ -150,10 +213,15 @@ public:
 
     void     SetAmsType(int type) { m_ams_type = (AmsType)type; }
     void     SetAmsType(AmsType type) { m_ams_type = type; }
-    AmsType  GetAmsType() const { return m_ams_type; }
+    // AMS-Lite-mixed (N9) is a variant of AMS-Lite: report AMS_LITE to generic callers so all
+    // existing AMS_LITE handling applies. Mixed-specific code uses IsAmsLiteMixed().
+    AmsType  GetAmsType() const { return m_ams_type == AMS_LITE_MIXED ? AMS_LITE : m_ams_type; }
 
     // exist or not
     bool  IsExist() const { return m_exist; }
+
+    // AMS-Lite-mixed for N9 (A2L)
+    bool  IsAmsLiteMixed() const { return m_ams_type == AMS_LITE_MIXED; }
 
     // slots
     int   GetSlotCount() const;
@@ -163,6 +231,20 @@ public:
     // installed on the extruder
     int   GetExtruderId() const { return m_ext_id; }
 
+    // Extruders this AMS can currently feed. Without a Filament Track Switch installed this
+    // is the single {m_ext_id}; with the switch installed the device binds it to both extruders.
+    const std::set<int>& GetBindedExtruderSet() const { return m_binded_extruder_set; }
+
+    // The bound extruder when exactly one is bound, empty otherwise. Used to attribute an AMS
+    // to a single extruder on printers without the switch.
+    std::optional<int> GetUniqueBindedExtruderId() const
+    {
+        return m_binded_extruder_set.size() == 1 ? std::optional<int>(*m_binded_extruder_set.begin()) : std::nullopt;
+    }
+
+    // Which switch input track (A/B) feeds this AMS, set only when a Filament Track Switch is installed.
+    std::optional<DevFilaSwitch::SwitchPos> GetSwitcherPos() const { return m_binded_switcher_pos; }
+
     // temperature and humidity
     float GetCurrentTemperature() const { return m_current_temperature; }
 
@@ -170,13 +252,30 @@ public:
     int   GetHumidityLevel() const { return m_humidity_level; }
     int   GetHumidityPercent() const { return m_humidity_percent; }
 
-    bool  SupportDrying() const { return m_ams_type > AMS_LITE; }
+    bool  SupportDrying() const { return m_ams_type == DevAmsType::N3F || m_ams_type == DevAmsType::N3S; }
     int   GetLeftDryTime() const { return m_left_dry_time; }
+
+    // remote drying control
+    bool IsSupportRemoteDry(const MachineObject* obj) const;
+    std::optional<DryStatus> GetDryStatus() const { return m_dry_status; };
+    std::optional<DrySubStatus> GetDrySubStatus() const { return m_dry_sub_status; }
+    std::optional<DryFanStatus> GetFan1Status() const { return m_dry_fan1_status; }
+    std::optional<DryFanStatus> GetFan2Status() const { return m_dry_fan2_status; }
+    std::optional<std::vector<CannotDryReason>> GetCannotDryReason() const { return m_dry_cannot_reasons; }
+    std::optional<DrySettings> GetDrySettings() const { return m_dry_settings; };
+
+    bool AmsIsDrying();
 
 private:
     AmsType       m_ams_type = AmsType::AMS;
     std::string   m_ams_id;
     int           m_ext_id;//extruder id
+    // Orca: keeps the legacy single m_ext_id for existing consumers and carries the
+    // switch-aware binding alongside it (BambuStudio stores only the set). Without a Filament
+    // Track Switch the set is {m_ext_id}; with one installed the device binds both extruders and
+    // records which input track (A/B) feeds this AMS.
+    std::set<int> m_binded_extruder_set;
+    std::optional<DevFilaSwitch::SwitchPos> m_binded_switcher_pos;
     bool          m_exist = false;
 
     // slots and trays
@@ -187,6 +286,14 @@ private:
     int    m_humidity_level = 5; // AmsType::AMS
     int    m_humidity_percent = -1; // N3F N3S, the percentage, -1 means invalid. eg. 100 means 100%
     int    m_left_dry_time = 0;
+
+    // see is_support_remote_dry
+    std::optional<DryStatus> m_dry_status;
+    std::optional<DrySubStatus> m_dry_sub_status;
+    std::optional<DryFanStatus> m_dry_fan1_status;
+    std::optional<DryFanStatus> m_dry_fan2_status;
+    std::optional<std::vector<CannotDryReason>> m_dry_cannot_reasons;
+    std::optional<DrySettings> m_dry_settings;
 };
 
 /**
@@ -241,8 +348,15 @@ public:
     DevAmsTray* GetAmsTray(const std::string& ams_id, const std::string& tray_id) const;
     void        CollectAmsColors(std::vector<wxColour>& ams_colors) const;
 
+    // Map a linear tray index -> {ams_id, slot_id}. Includes the two virtual (external-spool) trays,
+    // N3S single-slot units, and the A2L/N9 AMS-Lite-mixed layout (trays 24-27).
+    std::map<int, DevAmsSlotId> GetTrayIndexMap();
+
     // extruder
     int  GetExtruderIdByAmsId(const std::string& ams_id) const;
+
+    // nozzle: untranslated flow-type string of the extruder bound to this ams (for blacklist matching)
+    std::string GetNozzleFlowStringByAmsId(const std::string& ams_id) const;
 
     /* AMS settings*/
     DevAmsSystemSetting& GetAmsSystemSetting() { return m_ams_system_setting; }
@@ -253,10 +367,19 @@ public:
 
     std::weak_ptr<DevAmsSystemFirmwareSwitch> GetAmsFirmwareSwitch() const { return m_ams_firmware_switch;}
 
+    // filament change steps
+    // The exact change-step sequence reported by the AMS (ams.cfs). Empty on current firmware,
+    // which leaves the legacy hardcoded/ams_status_sub step handling in effect.
+    const std::vector<DevFilamentStep>& GetFilamentChangeSteps() const { return m_filament_change_steps; }
+
 public:
     // ctrls
     int  CtrlAmsReset() const;
-     
+
+    // crtl
+    int  CtrlAmsStartDryingHour(int ams_id, std::string filament_type, int tag_temp, int tag_duration_hour, bool rotate_tray, int cooling_temp, bool close_power_conflict = false) const;
+    int  CtrlAmsStopDrying(int ams_id) const;
+
 public:
     static bool IsBBL_Filament(std::string tag_uid);
 
@@ -265,6 +388,9 @@ private:
 
     /* ams properties */
     int  m_ams_cali_stat = 0;
+
+    // Change-step sequence reported by the AMS (ams.cfs); empty when firmware doesn't send it.
+    std::vector<DevFilamentStep> m_filament_change_steps;
 
     std::map<std::string, DevAms*, NumericStrCompare> amsList;// key: ams[id], start with 0
 
@@ -289,6 +415,22 @@ class DevFilaSystemParser
 {
 public:
     static void ParseV1_0(const json& print_json, MachineObject* obj, DevFilaSystem* system, bool key_field_only);
+
+    static void ParseAgentFilament(const json& data, MachineObject* obj, DevFilaSystem* system);
+};
+
+struct DevFilamentDryingPreset
+{
+    std::string filament_id;
+
+    std::unordered_set<DevAmsType> ams_limitations; // only use ams types in the set
+    std::unordered_map<DevAmsType, float> filament_dev_ams_drying_time_on_idle; // hour
+    std::unordered_map<DevAmsType, float> filament_dev_ams_drying_temperature_on_idle;
+    std::unordered_map<DevAmsType, float> filament_dev_ams_drying_time_on_print; // hour
+    std::unordered_map<DevAmsType, float> filament_dev_ams_drying_temperature_on_print;
+    float filament_dev_drying_cooling_temperature = 0.0f;
+    float filament_dev_drying_softening_temperature = 0.0f;
+    float filament_dev_ams_drying_heat_distortion_temperature = 0.0f;
 };
 
 }// namespace Slic3r
