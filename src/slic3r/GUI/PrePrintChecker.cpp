@@ -36,6 +36,9 @@ std::string PrePrintChecker::get_print_status_info(PrintDialogStatus status)
     case PrintStatusNotSupportedPrintAll: return "PrintStatusNotSupportedPrintAll";
     case PrintStatusBlankPlate: return "PrintStatusBlankPlate";
     case PrintStatusUnsupportedPrinter: return "PrintStatusUnsupportedPrinter";
+    case PrintStatusRackNozzleMappingWaiting: return "PrintStatusRackNozzleMappingWaiting";
+    case PrintStatusRackNozzleMappingError: return "PrintStatusRackNozzleMappingError";
+    case PrintStatusFilaSwitcherError: return "PrintStatusFilaSwitcherError";
     case PrintStatusColorQuantityExceed: return "PrintStatusColorQuantityExceed";
     // Handle filament errors
     case PrintStatusAmsOnSettingup: return "PrintStatusAmsOnSettingup";
@@ -47,13 +50,21 @@ std::string PrePrintChecker::get_print_status_info(PrintDialogStatus status)
     case PrintStatusTimelapseNoSdcard: return "PrintStatusTimelapseNoSdcard";
     case PrintStatusTimelapseWarning: return "PrintStatusTimelapseWarning";
     case PrintStatusMixAmsAndVtSlotWarning: return "PrintStatusMixAmsAndVtSlotWarning";
+    case PrintStatusRackNozzleMappingWarning: return "PrintStatusRackNozzleMappingWarning";
+    case PrintStatusFilaSwitcherSlicingNotMatch: return "PrintStatusFilaSwitcherSlicingNotMatch";
     case PrintStatusWarningKvalueNotUsed: return "PrintStatusWarningKvalueNotUsed";
     case PrintStatusHasFilamentInBlackListWarning: return "PrintStatusHasFilamentInBlackListWarning";
     case PrintStatusFilamentWarningHighChamberTemp: return "PrintStatusFilamentWarningHighChamberTemp";
     case PrintStatusFilamentWarningHighChamberTempCloseDoor: return "PrintStatusFilamentWarningHighChamberTempCloseDoor";
     case PrintStatusFilamentWarningHighChamberTempSoft: return "PrintStatusFilamentWarningHighChamberTempSoft";
     case PrintStatusFilamentWarningUnknownHighChamberTempSoft: return "PrintStatusFilamentWarningUnknownHighChamberTempSoft";
+    case PrintStatusNozzleNoMatchedHotends: return "PrintStatusNozzleNoMatchedHotends";
+    case PrintStatusNozzleRackMaximumInstalled: return "PrintStatusNozzleRackMaximumInstalled";
+    case PrintStatusRackReading: return "PrintStatusRackReading";
+    case PrintStatusRackNozzleNumUnmeetWarning: return "PrintStatusRackNozzleNumUnmeetWarning";
+    case PrintStatusHasUnreliableNozzleWarning: return "PrintStatusHasUnreliableNozzleWarning";
     case PrintStatusWarningExtFilamentNotMatch: return "PrintStatusWarningExtFilamentNotMatch";
+    case PrintStatusFilamentWarningNozzleHRC: return "PrintStatusFilamentWarningNozzleHRC";
     case PrintStatusReadingFinished: return "PrintStatusReadingFinished";
     case PrintStatusSendingCanceled: return "PrintStatusSendingCanceled";
     case PrintStatusAmsMappingSuccess: return "PrintStatusAmsMappingSuccess";

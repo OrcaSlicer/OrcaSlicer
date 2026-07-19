@@ -32,6 +32,9 @@
 	"filament_vendor": [
 		"Bambu Lab"
 	],
+    "filament_dev_drying_cooling_temperature": [
+        "95"
+    ],
 	"hot_plate_temp": [
 		"100"
 	],

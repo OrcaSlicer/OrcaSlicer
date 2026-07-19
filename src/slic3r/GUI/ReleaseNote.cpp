@@ -1524,7 +1524,7 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
     m_tip4->SetMaxSize(wxSize(FromDIP(355), -1));
 
     // ORCA standardized HyperLink
-    m_trouble_shoot = new HyperLink(this, "How to trouble shooting");
+    m_trouble_shoot = new HyperLink(this, _L("How to trouble shooting"));
 
     m_img_help = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("input_access_code_x1_en", this, 198), wxDefaultPosition, wxSize(FromDIP(355), -1), 0);
 

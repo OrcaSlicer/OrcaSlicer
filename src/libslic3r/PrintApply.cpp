@@ -224,7 +224,11 @@ static t_config_option_keys print_config_diffs(
     const DynamicPrintConfig &new_full_config,
     DynamicPrintConfig       &filament_overrides,
     int                      plate_index,
-    std::vector<int>&        filament_maps)
+    std::vector<int>&        filament_maps,
+    // Per-slot machine indices when the filament arrays hold the per-variant expansion of a
+    // selector result (one slot per variant a filament migrates through); the per-filament
+    // map cannot index the expanded override arrays. Null on the single-slot path.
+    const std::vector<int>*  dynamic_override_indices = nullptr)
 {
     const std::vector<std::string> &extruder_retract_keys = print_config_def.extruder_retract_keys();
     const std::string               filament_prefix       = "filament_";
@@ -240,7 +244,15 @@ static t_config_option_keys print_config_diffs(
         const ConfigOption *opt_new_filament = std::binary_search(extruder_retract_keys.begin(), extruder_retract_keys.end(), opt_key) ? new_full_config.option(filament_prefix + opt_key) : nullptr;
 
         if (opt_new_filament != nullptr) {
-            compute_filament_override_value(opt_key, opt_old, opt_new, opt_new_filament, new_full_config, print_diff, filament_overrides, filament_maps);
+            std::vector<int> filament_map_indices;
+            if (dynamic_override_indices)
+                filament_map_indices = *dynamic_override_indices;
+            else {
+                filament_map_indices.assign(filament_maps.size(), 0);
+                for (int i = 0; i < filament_maps.size(); i++)
+                    filament_map_indices[i] = filament_maps[i] - 1;
+            }
+            compute_filament_override_value(opt_key, opt_old, opt_new, opt_new_filament, new_full_config, print_diff, filament_overrides, filament_map_indices);
         } else if (*opt_new != *opt_old) {
             //BBS: add plate_index logic for wipe_tower_x/wipe_tower_y
             if (!opt_key.compare("wipe_tower_x") || !opt_key.compare("wipe_tower_y")) {
@@ -1165,25 +1177,57 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     //apply extruder related values
     std::vector<int> print_variant_index;
+    std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
+    int extruder_count = 1, extruder_volume_type_count = 1;
+    bool different_extruder = false;
+    // Filled only when the filament arrays are rebuilt from a persisted selector result below;
+    // print_config_diffs then keys the retract overrides per expanded slot.
+    std::vector<int> dynamic_slot_indices;
+
+    different_extruder = new_full_config.support_different_extruders(extruder_count);
+    extruder_volume_type_count = new_full_config.get_extruder_nozzle_volume_count(extruder_count, nozzle_volume_types);
     if (!extruder_applied) {
-        // variant_2 must be processed first, because variant_1 will make `printer_extruder_id` and `printer_extruder_variant` half of the size that makes `get_index_for_extruder` no longer work properly
-        new_full_config.update_values_to_printer_extruders(new_full_config, printer_options_with_variant_2, "printer_extruder_id", "printer_extruder_variant", 2);
-        new_full_config.update_values_to_printer_extruders(new_full_config, printer_options_with_variant_1, "printer_extruder_id", "printer_extruder_variant");
-        //update print config related with variants
-        print_variant_index = new_full_config.update_values_to_printer_extruders(new_full_config, print_options_with_variant, "print_extruder_id", "print_extruder_variant");
+        if ((extruder_count > 1) || different_extruder) {
+            // variant_2 must be processed first, because variant_1 will make `printer_extruder_id` and `printer_extruder_variant` half of the size that makes `get_index_for_extruder` no longer work properly
+            new_full_config.update_values_to_printer_extruders(new_full_config, extruder_count, extruder_volume_type_count, nozzle_volume_types, printer_options_with_variant_2, "printer_extruder_id", "printer_extruder_variant", 2);
+            new_full_config.update_values_to_printer_extruders(new_full_config, extruder_count, extruder_volume_type_count, nozzle_volume_types, printer_options_with_variant_1, "printer_extruder_id", "printer_extruder_variant");
+            //update print config related with variants
+            print_variant_index = new_full_config.update_values_to_printer_extruders(new_full_config, extruder_count, extruder_volume_type_count, nozzle_volume_types, print_options_with_variant, "print_extruder_id", "print_extruder_variant");
+        }
+        else
+            print_variant_index.resize(1, 0);
 
         m_ori_full_print_config = new_full_config;
-        new_full_config.update_values_to_printer_extruders_for_multiple_filaments(new_full_config, filament_options_with_variant,  "filament_self_index", "filament_extruder_variant");
+
+        std::set<std::string> filament_keys = filament_options_with_variant;
+        filament_keys.insert("filament_self_index");
+        // A persisted selector result with an actual migration means the last slice rebuilt the
+        // per-slot filament arrays from it (one slot per variant a filament prints through).
+        // Reproduce that exact expansion here so an unchanged config diffs empty — the expanded
+        // keys invalidate the wipe tower / g-code export, and the placeholder parser aliases
+        // the full config — instead of trimming back to one slot per filament.
+        auto group_result = std::dynamic_pointer_cast<MultiNozzleUtils::LayeredNozzleGroupResult>(this->get_nozzle_group_result());
+        std::unordered_map<int, std::vector<FilamentVariantUse>> filament_variant_uses;
+        if (group_result && group_result->is_support_dynamic_nozzle_map()
+            && collect_filament_variant_uses(*group_result, m_ori_full_print_config, filament_variant_uses))
+            new_full_config.update_filament_config_values_for_multiple_extruders(m_ori_full_print_config, filament_variant_uses,
+                                                                                 extruder_count, extruder_volume_type_count, filament_keys,
+                                                                                 "filament_self_index", "filament_extruder_variant",
+                                                                                 &dynamic_slot_indices);
+        else if ((extruder_count > 1) || different_extruder)
+            new_full_config.update_values_to_printer_extruders_for_multiple_filaments(m_ori_full_print_config, extruder_count, extruder_volume_type_count, filament_keys,
+                                                                                      "filament_self_index", "filament_extruder_variant");
     }
-    // else {
-    //     int extruder_count;
-    //     bool different_extruder = new_full_config.support_different_extruders(extruder_count);
-    //     print_variant_index.resize(extruder_count);
-    //     for (int e_index = 0; e_index < extruder_count; e_index++)
-    //     {
-    //         print_variant_index[e_index] = e_index;
-    //     }
-    // }
+    else {
+        //should not come here, we can not get the result of print_variant, for the values have been updated
+        //we just use the default values here
+        auto variant_opt = dynamic_cast<const ConfigOptionStrings *>(new_full_config.option("printer_extruder_variant"));
+        print_variant_index.resize(variant_opt->values.size());
+        for (int e_index = 0; e_index < variant_opt->values.size(); e_index++)
+        {
+            print_variant_index[e_index] = e_index;
+        }
+    }
 
     auto opt_filament_map = new_full_config.option<ConfigOptionInts>("filament_map");
     std::vector<int> filament_maps = opt_filament_map ? opt_filament_map->values : std::vector<int>();
@@ -1191,7 +1235,15 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
     // Find modified keys of the various configs. Resolve overrides extruder retract values by filament profiles.
     DynamicPrintConfig   filament_overrides;
     //BBS: add plate index
-    t_config_option_keys print_diff       = print_config_diffs(m_config, new_full_config, filament_overrides, this->m_plate_index, filament_maps);
+    t_config_option_keys print_diff       = print_config_diffs(m_config, new_full_config, filament_overrides, this->m_plate_index, filament_maps,
+                                                                dynamic_slot_indices.empty() ? nullptr : &dynamic_slot_indices);
+    // Orca: filament_map_2 is engine-derived state, never a user input: the rebuild below
+    // recomputes it from filament_map/filament_volume_map/the variant slots on every apply
+    // (all of which are diffed and invalidation-listed on their own), and the grouping
+    // write-back overwrites it during process(). The incoming full config only ever carries
+    // the ConfigDef default, so diffing it would invalidate every print step on each apply
+    // for any multi-extruder printer and permanently invalidate fresh slice results.
+    print_diff.erase(std::remove(print_diff.begin(), print_diff.end(), "filament_map_2"), print_diff.end());
     t_config_option_keys full_config_diff = full_print_config_diffs(m_full_print_config, new_full_config, this->m_plate_index);
     // Collect changes to object and region configs.
     t_config_option_keys object_diff      = m_default_object_config.diff(new_full_config);
@@ -1199,10 +1251,10 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 
     //BBS: process the filament_map related logic
     std::unordered_set<std::string> print_diff_set(print_diff.begin(), print_diff.end());
-    if (print_diff_set.find("filament_map_mode") == print_diff_set.end())
+    if (!print_diff_set.empty() && print_diff_set.find("filament_map_mode") == print_diff_set.end())
     {
         FilamentMapMode map_mode = new_full_config.option<ConfigOptionEnum<FilamentMapMode>>("filament_map_mode", true)->value;
-        if (map_mode < fmmManual) {
+        if (is_auto_filament_map_mode(map_mode)) {
             if (print_diff_set.find("filament_map") != print_diff_set.end()) {
                 print_diff_set.erase("filament_map");
                 //full_config_diff.erase("filament_map");
@@ -1211,9 +1263,29 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                 old_opt->set(new_opt);
                 m_config.filament_map = *new_opt;
             }
+            if (print_diff_set.find("filament_volume_map") != print_diff_set.end()) {
+                print_diff_set.erase("filament_volume_map");
+                //full_config_diff.erase("filament_volume_map");
+                ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_volume_map", true);
+                ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_volume_map", true);
+                old_opt->set(new_opt);
+                m_config.filament_volume_map = *new_opt;
+            }
+            if (print_diff_set.find("filament_nozzle_map") != print_diff_set.end()) {
+                print_diff_set.erase("filament_nozzle_map");
+                //full_config_diff.erase("filament_nozzle_map");
+                ConfigOptionInts* old_opt = m_full_print_config.option<ConfigOptionInts>("filament_nozzle_map", true);
+                ConfigOptionInts* new_opt = new_full_config.option<ConfigOptionInts>("filament_nozzle_map", true);
+                old_opt->set(new_opt);
+                m_config.filament_nozzle_map = *new_opt;
+            }
         }
         else {
             print_diff_set.erase("extruder_ams_count");
+            if (map_mode == fmmManual) {
+                // filament_nozzle_map is an engine output, not a GUI input, in manual mode
+                print_diff_set.erase("filament_nozzle_map");
+            }
             std::vector<int> old_filament_map = m_config.filament_map.values;
             std::vector<int> new_filament_map = new_full_config.option<ConfigOptionInts>("filament_map", true)->values;
 
@@ -1230,12 +1302,60 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
                         break;
                     }
                 }
-                if (same_map)
+                if (same_map) {
                     print_diff_set.erase("filament_map");
+
+                    // The extruder retract overrides are keyed by the (unchanged) filament map;
+                    // recompute them and drop diffs whose recomputed value matches the current
+                    // config, so a cosmetic reordering of unused filaments does not invalidate.
+                    const auto& retract_keys = print_config_def.extruder_retract_keys();
+                    const std::string filament_prefix = "filament_";
+                    std::vector<int> old_f_map_indices(old_filament_map.size(), 0);
+                    for (size_t i = 0; i < old_filament_map.size(); i++)
+                        old_f_map_indices[i] = old_filament_map[i] - 1;
+
+                    for (const auto& rk : retract_keys) {
+                        if (print_diff_set.find(rk) == print_diff_set.end())
+                            continue;
+                        const ConfigOption* opt_old   = m_config.option(rk);
+                        const ConfigOption* opt_new_m = new_full_config.option(rk);
+                        const ConfigOption* opt_new_f = new_full_config.option(filament_prefix + rk);
+                        if (opt_old && opt_new_m && opt_new_f) {
+                            std::unique_ptr<ConfigOption> opt_recomputed(opt_new_m->clone());
+                            opt_recomputed->apply_override(opt_new_f, old_f_map_indices);
+                            if (*opt_old == *opt_recomputed)
+                                print_diff_set.erase(rk);
+                        }
+                    }
+                }
             }
         }
         if (print_diff_set.size() != print_diff.size())
             print_diff.assign(print_diff_set.begin(), print_diff_set.end());
+    }
+
+    //filament_map_2
+    // Orca: seed with 0-based extruder indices so the copy stays a valid slot map even when the
+    // variant options are absent below and the rebuild loop is skipped (unit tests, degenerate
+    // presets); the loop overwrites every entry when it runs.
+    m_config.filament_map_2.values = filament_maps;
+    for (auto& v : m_config.filament_map_2.values)
+        --v;
+    auto opt_extruder_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(new_full_config.option("extruder_type"));
+    auto opt_filament_volume_maps = dynamic_cast<const ConfigOptionInts*>(new_full_config.option("filament_volume_map"));
+    auto opt_nozzle_volume_type = dynamic_cast<const ConfigOptionEnumsGeneric*>(new_full_config.option("nozzle_volume_type"));
+    for (int index = 0; opt_extruder_type && opt_nozzle_volume_type && index < filament_maps.size(); index++)
+    {
+        ExtruderType extruder_type = (ExtruderType)(opt_extruder_type->get_at(filament_maps[index] - 1));
+        NozzleVolumeType nozzle_volume_type = (NozzleVolumeType)(opt_nozzle_volume_type->get_at(filament_maps[index] - 1));
+        // Orca: honour the per-filament volume map only when a producer sized it to the filament
+        // count; mis-sized maps (stale project values, CLI runs until the per-filament synthesis
+        // lands there) must not be indexed per filament (see
+        // update_values_to_printer_extruders_for_multiple_filaments for the same guard).
+        if ((extruder_volume_type_count > extruder_count) && opt_filament_volume_maps
+            && opt_filament_volume_maps->values.size() == filament_maps.size())
+            nozzle_volume_type = (NozzleVolumeType)(opt_filament_volume_maps->values[index]);
+        m_config.filament_map_2.values[index] = new_full_config.get_index_for_extruder(filament_maps[index], "print_extruder_id", extruder_type, nozzle_volume_type, "print_extruder_variant");
     }
 
     // Do not use the ApplyStatus as we will use the max function when updating apply_status.
@@ -1285,6 +1405,7 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
 	    m_default_region_config.apply_only(new_full_config, region_diff, true);
         //m_full_print_config = std::move(new_full_config);
         m_full_print_config = new_full_config;
+        update_filament_self_index_cache();
         if (num_extruders  != m_config.filament_diameter.size()) {
             num_extruders  = m_config.filament_diameter.size();
             num_extruders_changed  = true;
@@ -1657,7 +1778,14 @@ Print::ApplyStatus Print::apply(const Model &model, DynamicPrintConfig new_full_
         m_default_object_config.apply_only(new_full_config, new_changed_keys, true);
         // Handle changes to regions config defaults
         m_default_region_config.apply_only(new_full_config, new_changed_keys, true);
+        // Orca: keep the pre-expansion snapshot in sync with this late normalization pass.
+        // The engine map write-back rebuilds m_full_print_config from m_ori_full_print_config
+        // after slicing; a stale snapshot would resurrect the un-normalized values (e.g.
+        // enable_prime_tower on a single-filament print) in the dumped config and spuriously
+        // re-invalidate the g-code on the next apply.
+        m_ori_full_print_config.apply_only(new_full_config, new_changed_keys, true);
         m_full_print_config = std::move(new_full_config);
+        update_filament_self_index_cache();
     }
 
     // All regions now have distinct settings.

@@ -272,9 +272,11 @@ struct SurfaceFillParams
     // For Gyroid: when true, use the parameterized "optimized" wave.
     bool gyroid_optimized = false;
 
-    bool                   anisotropic_surfaces{false};
     CenterOfSurfacePattern center_of_surface_pattern{CenterOfSurfacePattern::Each_Surface};
     bool                   separated_infills{false};
+
+    // Orca: forced print order of surface fill loops/fragments for center-based patterns.
+    SurfaceFillOrder fill_order = SurfaceFillOrder::Default;
 
 	bool operator<(const SurfaceFillParams &rhs) const {
 #define RETURN_COMPARE_NON_EQUAL(KEY) if (this->KEY < rhs.KEY) return true; if (this->KEY > rhs.KEY) return false;
@@ -308,9 +310,9 @@ struct SurfaceFillParams
 		RETURN_COMPARE_NON_EQUAL(skin_infill_depth);
         RETURN_COMPARE_NON_EQUAL(infill_overhang_angle);
 		RETURN_COMPARE_NON_EQUAL(gyroid_optimized);
-        RETURN_COMPARE_NON_EQUAL(anisotropic_surfaces);
         RETURN_COMPARE_NON_EQUAL(center_of_surface_pattern);
         RETURN_COMPARE_NON_EQUAL(separated_infills);
+		RETURN_COMPARE_NON_EQUAL_TYPED(unsigned, fill_order);
 
 		return false;
 	}
@@ -337,10 +339,10 @@ struct SurfaceFillParams
 				this->infill_lock_depth       == rhs.infill_lock_depth       &&
 				this->skin_infill_depth       == rhs.skin_infill_depth       &&
                 this->infill_overhang_angle   == rhs.infill_overhang_angle   &&
-                this->anisotropic_surfaces    == rhs.anisotropic_surfaces &&
                 this->center_of_surface_pattern == rhs.center_of_surface_pattern &&
                 this->separated_infills       == rhs.separated_infills &&
-                this->gyroid_optimized        == rhs.gyroid_optimized;
+                this->gyroid_optimized        == rhs.gyroid_optimized        &&
+                this->fill_order              == rhs.fill_order;
 	}
 };
 
@@ -879,7 +881,6 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                 params.lateral_lattice_angle_1 = region_config.lateral_lattice_angle_1;
                 params.lateral_lattice_angle_2 = region_config.lateral_lattice_angle_2;
                 params.infill_overhang_angle = region_config.infill_overhang_angle;
-                params.anisotropic_surfaces = region_config.anisotropic_surfaces;
                 params.center_of_surface_pattern = region_config.center_of_surface_pattern;
                 params.separated_infills = region_config.separated_infills;
                 if (params.pattern == ipLockedZag) {
@@ -936,6 +937,14 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                     params.extruder = region_config.bottom_surface_filament_id;
                 else if (params.extrusion_role == erSolidInfill)
                     params.extruder = region_config.internal_solid_filament_id;
+                // Orca: forced fill order applies only to top/bottom surfaces filled with a
+                // center-based pattern; everything else stays at Default to keep batching together.
+                if (params.pattern == ipConcentric || params.pattern == ipArchimedeanChords || params.pattern == ipOctagramSpiral) {
+                    if (params.extrusion_role == erTopSolidInfill)
+                        params.fill_order = region_config.top_surface_fill_order.value;
+                    else if (params.extrusion_role == erBottomSurface)
+                        params.fill_order = region_config.bottom_surface_fill_order.value;
+                }
                 // Orca: apply fill multiline only for sparse infill
                 params.multiline = params.extrusion_role == erInternalInfill ? int(region_config.fill_multiline) : 1;
 
@@ -1322,12 +1331,12 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         auto &region_config = layerm->region().config();
         params.config               = &region_config;
         params.pattern              = surface_fill.params.pattern;
+        params.fill_order           = surface_fill.params.fill_order;
 
         // Orca: Checking the filling of a centered surface by drawing for each model parts
         bool is_top_or_bottom = params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface;
         bool is_centered_infill = surface_fill.params.pattern == ipArchimedeanChords || surface_fill.params.pattern == ipOctagramSpiral;
         if (is_top_or_bottom) {
-            params.is_anisotropic            = surface_fill.params.anisotropic_surfaces;      // Orca: anisotropic surfaces
             params.center_of_surface_pattern = surface_fill.params.center_of_surface_pattern; // Orca: center of surface pattern
         }
         // Orca: Each_Model centers the pattern on each model part's bbox; Each_Surface / Each_Assembly
@@ -1335,7 +1344,7 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
         bool is_per_model_center = is_top_or_bottom && params.center_of_surface_pattern == CenterOfSurfacePattern::Each_Model && is_centered_infill;
         bool is_separate_infill = !is_top_or_bottom && surface_fill.params.separated_infills &&
                                   (
-                                  is_centered_infill ||
+                                  is_separable_infill_pattern(surface_fill.params.pattern) ||
                                   params.config->solid_infill_rotate_template != "" ||
                                   params.config->sparse_infill_rotate_template != "" );
 
@@ -1364,59 +1373,30 @@ void Layer::make_fills(FillAdaptive::Octree* adaptive_fill_octree, FillAdaptive:
 
             // Orca: separate infill / per-model pattern centering.
             //
-            // First assign this fill region to the model part whose slice at this layer overlaps it
-            // the most. A strict "contains" test is ambiguous for assemblies whose parts overlap (a
-            // region may sit inside several parts, or straddle a boundary and be inside none), so we
-            // pick by intersection area instead.
-            //
-            // The center must belong to an *overlap group*, not a single part: parts that
-            // touch/overlap form one connected physical body that shares a single center, while a
-            // part detached from the rest of the assembly gets its own. This holds for both
-            // separated infills and Each_Model surface centering (Each_Model == per connected body).
-            // firstLayerObjGroups() already holds these connected components, so we widen the chosen
-            // part's bbox to the whole group it belongs to.
+            // Center the pattern on each connected body of the object independently, so every piece
+            // is filled exactly as if it were sliced on its own: touching/overlapping parts merge
+            // into one body sharing a center, while separate parts and disconnected islands (even
+            // interleaved-but-not-touching ones, e.g. chain links) each get their own. The body each
+            // island belongs to, and its full bounding box, were resolved in 3D by PrintObject::
+            // infill() (lslices_separated_component_bboxes, aligned with this layer's lslices). We
+            // match this fill region to the island it overlaps most, then re-use the whole-object
+            // bounding box (origin-centered — identical extent to the default, so coverage and cost
+            // are unchanged) re-centered on that body.
             if (is_per_model_center || is_separate_infill) {
-                double               best_overlap  = 0.;
-                ObjectID             best_vol_id;
-                const PrintInstance* best_instance = nullptr;
-                for (const auto& instance : this->object()->instances()) {
-                    for (const auto& volume : instance.print_object->firstLayerObjSlice()) {
-                        if (f->layer_id >= volume.slices.size())
-                            continue;
-                        const double overlap = area(intersection_ex(volume.slices[f->layer_id], ExPolygons{expoly}));
-                        if (overlap > best_overlap) {
-                            best_overlap  = overlap;
-                            best_vol_id   = volume.volume_id;
-                            best_instance = &instance;
-                        }
+                double      best_overlap = 0.;
+                BoundingBox best_component;
+                for (size_t r = 0; r < this->lslices.size() && r < this->lslices_separated_component_bboxes.size(); ++ r) {
+                    const double overlap = area(intersection_ex(this->lslices[r], expoly));
+                    if (overlap > best_overlap) {
+                        best_overlap   = overlap;
+                        best_component = this->lslices_separated_component_bboxes[r];
                     }
                 }
-                if (best_instance) {
-                    const Transform3d matrix  = best_instance->model_instance->get_matrix();
-                    Point             shift   = best_instance->shift; // get_volume_bbox takes a non-const ref
-                    auto&             volumes = best_instance->model_instance->get_object()->volumes;
-
-                    // Volume ids to center on: the whole overlap group the winning part belongs to,
-                    // falling back to just that part if it isn't part of any group.
-                    std::vector<ObjectID> center_ids;
-                    for (const auto& group : best_instance->print_object->firstLayerObjGroups()) {
-                        bool in_group = false;
-                        for (const ObjectID& vid : group.volume_ids)
-                            if (vid == best_vol_id) { in_group = true; break; }
-                        if (in_group) { center_ids = group.volume_ids; break; }
-                    }
-                    if (center_ids.empty())
-                        center_ids.push_back(best_vol_id);
-
-                    BoundingBox bbox;
-                    for (const ObjectID& vid : center_ids)
-                        for (auto model_volume : volumes)
-                            if (vid.id == model_volume->id().id) {
-                                bbox.merge(model_volume->get_volume_bbox(matrix, shift, true));
-                                break;
-                            }
-                    if (bbox.defined)
-                        f->set_bounding_box(bbox);
+                if (best_component.defined) {
+                    const Point c         = best_component.center();
+                    BoundingBox part_bbox = bbox; // origin-centered, whole-object extent (from above)
+                    part_bbox.translate(c.x(), c.y()); // re-center on this body
+                    f->set_bounding_box(part_bbox);
                 }
             } // - End: separate infill / per-model pattern centering
 
