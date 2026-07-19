@@ -74,6 +74,18 @@ static constexpr double MESH_IMPORT_MERGE_ANGLE_DEG  = 5.0;
 // Above this, warn before converting: the build is one OCCT face per triangle.
 static constexpr size_t MESH_IMPORT_TRIANGLE_WARN    = 50000;
 
+// Two-column parameter form (label left, control right), matching Prepare's row idiom. The
+// control column grows, so every control lines up on the panel's right edge instead of sitting
+// at its natural width beside the label — the forms used a plain non-growable grid before, which
+// is why Design's rows looked nothing like Prepare's.
+static wxFlexGridSizer* two_col_form()
+{
+    auto* f = new wxFlexGridSizer(2, 6, 8);
+    f->AddGrowableCol(1, 1);
+    f->SetFlexibleDirection(wxHORIZONTAL);
+    return f;
+}
+
 // Format a value with the international ('.') decimal separator regardless of the
 // app's LC_NUMERIC locale (wx sets it to the user locale at startup). snprintf may
 // emit a comma, so normalise it.
@@ -947,14 +959,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
     };
 
     // --- Sketch dialog (shape definition only — no distance/mode) ---
-    auto* form = new wxFlexGridSizer(2, 6, 8);
+    auto* form = two_col_form();
 
     m_shape = new wxChoice(m_form, wxID_ANY);
     m_shape->Append(_L("Rectangle"));
     m_shape->Append(_L("Circle"));
     m_shape->SetSelection(0);
     form->Add(new wxStaticText(m_form, wxID_ANY, _L("Shape")), 0, wxALIGN_CENTER_VERTICAL);
-    form->Add(m_shape);
+    form->Add(m_shape, 0, wxEXPAND);
 
     m_plane = new wxChoice(m_form, wxID_ANY);
     m_plane->Append(_L("XY"));
@@ -962,24 +974,24 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_plane->Append(_L("YZ"));
     m_plane->SetSelection(0);
     form->Add(new wxStaticText(m_form, wxID_ANY, _L("Plane")), 0, wxALIGN_CENTER_VERTICAL);
-    form->Add(m_plane);
+    form->Add(m_plane, 0, wxEXPAND);
 
     m_width = make_spin(m_form, 20);
     form->Add(new wxStaticText(m_form, wxID_ANY, _L("Width / X")), 0, wxALIGN_CENTER_VERTICAL);
-    form->Add(m_width);
+    form->Add(m_width, 0, wxEXPAND);
 
     m_height = make_spin(m_form, 20);
     form->Add(new wxStaticText(m_form, wxID_ANY, _L("Height / Y")), 0, wxALIGN_CENTER_VERTICAL);
-    form->Add(m_height);
+    form->Add(m_height, 0, wxEXPAND);
 
     m_radius = make_spin(m_form, 10);
     form->Add(new wxStaticText(m_form, wxID_ANY, _L("Radius")), 0, wxALIGN_CENTER_VERTICAL);
-    form->Add(m_radius);
+    form->Add(m_radius, 0, wxEXPAND);
 
     m_box_sketch = new wxBoxSizer(wxVERTICAL);
     m_box_sketch->Add(card_header("design_sketch", _L("Sketch"), m_hdr_sketch), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_sketch->Add(new wxStaticLine(m_form), 0, wxEXPAND | wxALL, 8);
-    m_box_sketch->Add(form, 0, wxALL, 12);
+    m_box_sketch->Add(form, 0, wxEXPAND | wxALL, 12);
     root->Add(m_box_sketch, 0, wxEXPAND);
 
     // --- Extrude dialog (consumes the selected sketch) ---
@@ -989,11 +1001,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_extrude_sketch_label = new wxStaticText(m_form, wxID_ANY, _L("Sketch: —"));
     m_box_extrude->Add(m_extrude_sketch_label, 0, wxLEFT | wxRIGHT | wxTOP, 12);
     {
-        auto* eform = new wxFlexGridSizer(2, 6, 8);
+        auto* eform = two_col_form();
 
         m_distance = make_spin(m_form, 10);
         eform->Add(new wxStaticText(m_form, wxID_ANY, _L("Extrude dist")), 0, wxALIGN_CENTER_VERTICAL);
-        eform->Add(m_distance);
+        eform->Add(m_distance, 0, wxEXPAND);
 
         // End condition (order MUST match ExtrudeEnd: Blind/Symmetric/TwoSided/ThroughAll/
         // UpToFace/UpToVertex). Up-to-face uses the currently click-selected solid face.
@@ -1003,15 +1015,15 @@ DesignPanel::DesignPanel(wxWindow* parent)
             m_extrude_end->Append(s);
         m_extrude_end->SetSelection(0);
         eform->Add(new wxStaticText(m_form, wxID_ANY, _L("End")), 0, wxALIGN_CENTER_VERTICAL);
-        eform->Add(m_extrude_end);
+        eform->Add(m_extrude_end, 0, wxEXPAND);
 
         m_distance2 = make_spin(m_form, 5, 0.0, 100000.0);   // second-side depth (Two-sided)
         eform->Add(new wxStaticText(m_form, wxID_ANY, _L("2nd dist")), 0, wxALIGN_CENTER_VERTICAL);
-        eform->Add(m_distance2);
+        eform->Add(m_distance2, 0, wxEXPAND);
 
         m_taper = make_spin(m_form, 0.0, -89.0, 89.0);       // draft angle (deg)
         eform->Add(new wxStaticText(m_form, wxID_ANY, _L("Taper °")), 0, wxALIGN_CENTER_VERTICAL);
-        eform->Add(m_taper);
+        eform->Add(m_taper, 0, wxEXPAND);
 
         m_mode = new wxChoice(m_form, wxID_ANY);
         // Order is load-bearing: index maps to BooleanMode (New=0, Add=1, Cut=2, Intersect=3).
@@ -1022,25 +1034,25 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_mode->Append(_L("Intersect"));  // keep only the overlap
         m_mode->SetSelection(0);
         eform->Add(new wxStaticText(m_form, wxID_ANY, _L("Result")), 0, wxALIGN_CENTER_VERTICAL);
-        eform->Add(m_mode);
+        eform->Add(m_mode, 0, wxEXPAND);
 
         m_flip = new wxCheckBox(m_form, wxID_ANY, _L("Flip direction"));
         eform->Add(new wxStaticText(m_form, wxID_ANY, wxEmptyString));
-        eform->Add(m_flip);
+        eform->Add(m_flip, 0, wxEXPAND);
 
-        m_box_extrude->Add(eform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_extrude->Add(eform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
     root->Add(m_box_extrude, 0, wxEXPAND);
 
     // --- Dress-up (Fillet / Chamfer) ---
-    auto* dform = new wxFlexGridSizer(2, 6, 8);
+    auto* dform = two_col_form();
 
     m_dressup_type = new wxChoice(m_form, wxID_ANY);
     m_dressup_type->Append(_L("Fillet"));
     m_dressup_type->Append(_L("Chamfer"));
     m_dressup_type->SetSelection(0);
     dform->Add(new wxStaticText(m_form, wxID_ANY, _L("Dress-up")), 0, wxALIGN_CENTER_VERTICAL);
-    dform->Add(m_dressup_type);
+    dform->Add(m_dressup_type, 0, wxEXPAND);
 
     m_face_group = new wxChoice(m_form, wxID_ANY);
     m_face_group->Append(_L("Top"));      // index 0 -> FaceGroup::Top
@@ -1049,20 +1061,20 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_face_group->Append(_L("All"));      // 3 -> All
     m_face_group->SetSelection(3);
     dform->Add(new wxStaticText(m_form, wxID_ANY, _L("Edges")), 0, wxALIGN_CENTER_VERTICAL);
-    dform->Add(m_face_group);
+    dform->Add(m_face_group, 0, wxEXPAND);
 
     m_dressup_size = make_spin(m_form, 2.0);
     dform->Add(new wxStaticText(m_form, wxID_ANY, _L("Size (r/dist)")), 0, wxALIGN_CENTER_VERTICAL);
-    dform->Add(m_dressup_size);
+    dform->Add(m_dressup_size, 0, wxEXPAND);
 
     m_box_dressup = new wxBoxSizer(wxVERTICAL);
     m_box_dressup->Add(card_header("design_dressup", _L("Fillet / Chamfer"), m_hdr_dressup), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_dressup->Add(new wxStaticLine(m_form), 0, wxEXPAND | wxALL, 8);
-    m_box_dressup->Add(dform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_dressup->Add(dform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     root->Add(m_box_dressup, 0, wxEXPAND);
 
     // --- Hole (positioned circular cut) ---
-    auto* hform = new wxFlexGridSizer(2, 6, 8);
+    auto* hform = two_col_form();
 
     m_hole_plane = new wxChoice(m_form, wxID_ANY);
     m_hole_plane->Append(_L("XY"));
@@ -1080,37 +1092,37 @@ DesignPanel::DesignPanel(wxWindow* parent)
         e.Skip();
     });
     hform->Add(new wxStaticText(m_form, wxID_ANY, _L("Hole plane")), 0, wxALIGN_CENTER_VERTICAL);
-    hform->Add(m_hole_plane);
+    hform->Add(m_hole_plane, 0, wxEXPAND);
 
     m_hole_diameter = make_spin(m_form, 6.0);
     hform->Add(new wxStaticText(m_form, wxID_ANY, _L("Diameter")), 0, wxALIGN_CENTER_VERTICAL);
-    hform->Add(m_hole_diameter);
+    hform->Add(m_hole_diameter, 0, wxEXPAND);
 
     m_hole_depth = make_spin(m_form, 10.0);
     hform->Add(new wxStaticText(m_form, wxID_ANY, _L("Depth (blind)")), 0, wxALIGN_CENTER_VERTICAL);
-    hform->Add(m_hole_depth);
+    hform->Add(m_hole_depth, 0, wxEXPAND);
 
     m_hole_x = make_spin(m_form, 0.0, -1000.0, 1000.0);
     hform->Add(new wxStaticText(m_form, wxID_ANY, _L("Pos X")), 0, wxALIGN_CENTER_VERTICAL);
-    hform->Add(m_hole_x);
+    hform->Add(m_hole_x, 0, wxEXPAND);
 
     m_hole_y = make_spin(m_form, 0.0, -1000.0, 1000.0);
     hform->Add(new wxStaticText(m_form, wxID_ANY, _L("Pos Y")), 0, wxALIGN_CENTER_VERTICAL);
-    hform->Add(m_hole_y);
+    hform->Add(m_hole_y, 0, wxEXPAND);
 
     m_hole_through = new wxCheckBox(m_form, wxID_ANY, _L("Through"));
     m_hole_through->SetValue(true);
     hform->Add(new wxStaticText(m_form, wxID_ANY, _L("Mode")), 0, wxALIGN_CENTER_VERTICAL);
-    hform->Add(m_hole_through);
+    hform->Add(m_hole_through, 0, wxEXPAND);
 
     m_box_hole = new wxBoxSizer(wxVERTICAL);
     m_box_hole->Add(card_header("design_hole", _L("Hole"), m_hdr_hole), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_hole->Add(new wxStaticLine(m_form), 0, wxEXPAND | wxALL, 8);
-    m_box_hole->Add(hform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_hole->Add(hform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     root->Add(m_box_hole, 0, wxEXPAND);
 
     // --- Thread (helical) ---
-    auto* tform = new wxFlexGridSizer(2, 6, 8);
+    auto* tform = two_col_form();
 
     m_thread_plane = new wxChoice(m_form, wxID_ANY);
     m_thread_plane->Append(_L("XY"));
@@ -1118,7 +1130,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_thread_plane->Append(_L("YZ"));
     m_thread_plane->SetSelection(0);
     tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Thread plane")), 0, wxALIGN_CENTER_VERTICAL);
-    tform->Add(m_thread_plane);
+    tform->Add(m_thread_plane, 0, wxEXPAND);
 
     // Standard designation picker — fills pitch/depth (and nominal radius) from the
     // ISO metric / Unified imperial tables. "Custom" leaves the manual spins alone.
@@ -1129,33 +1141,33 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_thread_std->SetSelection(0);
     m_thread_std->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { apply_thread_standard(); });
     tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Standard")), 0, wxALIGN_CENTER_VERTICAL);
-    tform->Add(m_thread_std);
+    tform->Add(m_thread_std, 0, wxEXPAND);
 
     // Threads are specified by DIAMETER (M6 = Ø6); the value is derived from the picked cylindrical
     // surface / circular edge, so it's a readout users rarely type. Stored field holds the diameter.
     m_thread_radius = make_spin(m_form, 10.0);
     tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Diameter")), 0, wxALIGN_CENTER_VERTICAL);
-    tform->Add(m_thread_radius);
+    tform->Add(m_thread_radius, 0, wxEXPAND);
 
     m_thread_pitch = make_spin(m_form, 2.0);
     tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Pitch")), 0, wxALIGN_CENTER_VERTICAL);
-    tform->Add(m_thread_pitch);
+    tform->Add(m_thread_pitch, 0, wxEXPAND);
 
     m_thread_height = make_spin(m_form, 10.0);
     tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Length")), 0, wxALIGN_CENTER_VERTICAL);
-    tform->Add(m_thread_height);
+    tform->Add(m_thread_height, 0, wxEXPAND);
 
     m_thread_depth = make_spin(m_form, 1.0);
     tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Thread depth")), 0, wxALIGN_CENTER_VERTICAL);
-    tform->Add(m_thread_depth);
+    tform->Add(m_thread_depth, 0, wxEXPAND);
 
     m_thread_x = make_spin(m_form, 0.0, -1000.0, 1000.0);
     tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Pos X")), 0, wxALIGN_CENTER_VERTICAL);
-    tform->Add(m_thread_x);
+    tform->Add(m_thread_x, 0, wxEXPAND);
 
     m_thread_y = make_spin(m_form, 0.0, -1000.0, 1000.0);
     tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Pos Y")), 0, wxALIGN_CENTER_VERTICAL);
-    tform->Add(m_thread_y);
+    tform->Add(m_thread_y, 0, wxEXPAND);
 
     m_thread_internal = new wxCheckBox(m_form, wxID_ANY, _L("Internal (tapped bore)"));
     m_thread_internal->SetValue(false);
@@ -1166,12 +1178,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         e.Skip();
     });
     tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Internal")), 0, wxALIGN_CENTER_VERTICAL);
-    tform->Add(m_thread_internal);
+    tform->Add(m_thread_internal, 0, wxEXPAND);
 
     m_box_thread = new wxBoxSizer(wxVERTICAL);
     m_box_thread->Add(card_header("design_thread", _L("Thread"), m_hdr_thread), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_thread->Add(new wxStaticLine(m_form), 0, wxEXPAND | wxALL, 8);
-    m_box_thread->Add(tform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_thread->Add(tform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     root->Add(m_box_thread, 0, wxEXPAND);
 
     // --- Revolve (sweep a sketch profile about an in-plane axis) ---
@@ -1181,18 +1193,18 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_revolve_sketch_label = new wxStaticText(m_form, wxID_ANY, _L("Sketch: —"));
     m_box_revolve->Add(m_revolve_sketch_label, 0, wxLEFT | wxRIGHT | wxTOP, 12);
     {
-        auto* rform = new wxFlexGridSizer(2, 6, 8);
+        auto* rform = two_col_form();
 
         m_revolve_angle = make_spin(m_form, 360.0, 1.0, 360.0);
         rform->Add(new wxStaticText(m_form, wxID_ANY, _L("Angle °")), 0, wxALIGN_CENTER_VERTICAL);
-        rform->Add(m_revolve_angle);
+        rform->Add(m_revolve_angle, 0, wxEXPAND);
 
         m_revolve_axis = new wxChoice(m_form, wxID_ANY);
         m_revolve_axis->Append(_L("Plane X"));
         m_revolve_axis->Append(_L("Plane Y"));
         m_revolve_axis->SetSelection(0);
         rform->Add(new wxStaticText(m_form, wxID_ANY, _L("Axis")), 0, wxALIGN_CENTER_VERTICAL);
-        rform->Add(m_revolve_axis);
+        rform->Add(m_revolve_axis, 0, wxEXPAND);
 
         m_revolve_mode = new wxChoice(m_form, wxID_ANY);
         m_revolve_mode->Append(_L("New"));
@@ -1201,13 +1213,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_revolve_mode->Append(_L("Intersect"));
         m_revolve_mode->SetSelection(0);
         rform->Add(new wxStaticText(m_form, wxID_ANY, _L("Mode")), 0, wxALIGN_CENTER_VERTICAL);
-        rform->Add(m_revolve_mode);
+        rform->Add(m_revolve_mode, 0, wxEXPAND);
 
         m_revolve_flip = new wxCheckBox(m_form, wxID_ANY, _L("Flip direction"));
         rform->Add(new wxStaticText(m_form, wxID_ANY, wxEmptyString));
-        rform->Add(m_revolve_flip);
+        rform->Add(m_revolve_flip, 0, wxEXPAND);
 
-        m_box_revolve->Add(rform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_revolve->Add(rform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
     root->Add(m_box_revolve, 0, wxEXPAND);
 
@@ -1218,11 +1230,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_sweep_profile_label = new wxStaticText(m_form, wxID_ANY, _L("Profile: —"));
     m_box_sweep->Add(m_sweep_profile_label, 0, wxLEFT | wxRIGHT | wxTOP, 12);
     {
-        auto* sform = new wxFlexGridSizer(2, 6, 8);
+        auto* sform = two_col_form();
 
         m_sweep_path = new wxChoice(m_form, wxID_ANY);
         sform->Add(new wxStaticText(m_form, wxID_ANY, _L("Path")), 0, wxALIGN_CENTER_VERTICAL);
-        sform->Add(m_sweep_path);
+        sform->Add(m_sweep_path, 0, wxEXPAND);
 
         m_sweep_mode = new wxChoice(m_form, wxID_ANY);
         m_sweep_mode->Append(_L("New"));
@@ -1231,9 +1243,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_sweep_mode->Append(_L("Intersect"));
         m_sweep_mode->SetSelection(0);
         sform->Add(new wxStaticText(m_form, wxID_ANY, _L("Mode")), 0, wxALIGN_CENTER_VERTICAL);
-        sform->Add(m_sweep_mode);
+        sform->Add(m_sweep_mode, 0, wxEXPAND);
 
-        m_box_sweep->Add(sform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_sweep->Add(sform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
     root->Add(m_box_sweep, 0, wxEXPAND);
 
@@ -1242,35 +1254,35 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_box_pattern->Add(card_header("design_extrude", _L("Pattern"), m_hdr_pattern), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_pattern->Add(new wxStaticLine(m_form), 0, wxEXPAND | wxALL, 8);
     {
-        auto* pform = new wxFlexGridSizer(2, 6, 8);
+        auto* pform = two_col_form();
 
         m_pattern_type = new wxChoice(m_form, wxID_ANY);
         m_pattern_type->Append(_L("Linear"));
         m_pattern_type->Append(_L("Circular"));
         m_pattern_type->SetSelection(0);
         pform->Add(new wxStaticText(m_form, wxID_ANY, _L("Type")), 0, wxALIGN_CENTER_VERTICAL);
-        pform->Add(m_pattern_type);
+        pform->Add(m_pattern_type, 0, wxEXPAND);
 
         m_pattern_count = make_spin(m_form, 3, 1, 999);
         pform->Add(new wxStaticText(m_form, wxID_ANY, _L("Count")), 0, wxALIGN_CENTER_VERTICAL);
-        pform->Add(m_pattern_count);
+        pform->Add(m_pattern_count, 0, wxEXPAND);
 
         m_pattern_spacing = make_spin(m_form, 20.0, 0.01, 100000.0);
         pform->Add(new wxStaticText(m_form, wxID_ANY, _L("Spacing")), 0, wxALIGN_CENTER_VERTICAL);
-        pform->Add(m_pattern_spacing);
+        pform->Add(m_pattern_spacing, 0, wxEXPAND);
 
         m_pattern_dir = new wxChoice(m_form, wxID_ANY);
         m_pattern_dir->Append(_L("Plane X"));
         m_pattern_dir->Append(_L("Plane Y"));
         m_pattern_dir->SetSelection(0);
         pform->Add(new wxStaticText(m_form, wxID_ANY, _L("Direction")), 0, wxALIGN_CENTER_VERTICAL);
-        pform->Add(m_pattern_dir);
+        pform->Add(m_pattern_dir, 0, wxEXPAND);
 
         m_pattern_angle = make_spin(m_form, 360.0, 1.0, 360.0);
         pform->Add(new wxStaticText(m_form, wxID_ANY, _L("Total angle°")), 0, wxALIGN_CENTER_VERTICAL);
-        pform->Add(m_pattern_angle);
+        pform->Add(m_pattern_angle, 0, wxEXPAND);
 
-        m_box_pattern->Add(pform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_pattern->Add(pform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
     root->Add(m_box_pattern, 0, wxEXPAND);
 
@@ -1279,7 +1291,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_box_boolean->Add(card_header("design_boolean", _L("Boolean"), m_hdr_boolean), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_boolean->Add(new wxStaticLine(m_form), 0, wxEXPAND | wxALL, 8);
     {
-        auto* bform = new wxFlexGridSizer(2, 6, 8);
+        auto* bform = two_col_form();
 
         m_bool_op = new wxChoice(m_form, wxID_ANY);
         m_bool_op->Append(_L("Union (join)"));
@@ -1288,17 +1300,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_bool_op->SetSelection(0);
         m_bool_op->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { refresh_preview(); });
         bform->Add(new wxStaticText(m_form, wxID_ANY, _L("Operation")), 0, wxALIGN_CENTER_VERTICAL);
-        bform->Add(m_bool_op);
+        bform->Add(m_bool_op, 0, wxEXPAND);
 
         m_bool_target = new wxChoice(m_form, wxID_ANY);
         m_bool_target->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { refresh_preview(); });
         bform->Add(new wxStaticText(m_form, wxID_ANY, _L("Target (kept)")), 0, wxALIGN_CENTER_VERTICAL);
-        bform->Add(m_bool_target);
+        bform->Add(m_bool_target, 0, wxEXPAND);
 
         m_bool_tool = new wxChoice(m_form, wxID_ANY);
         m_bool_tool->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { refresh_preview(); });
         bform->Add(new wxStaticText(m_form, wxID_ANY, _L("Tool")), 0, wxALIGN_CENTER_VERTICAL);
-        bform->Add(m_bool_tool);
+        bform->Add(m_bool_tool, 0, wxEXPAND);
 
         // Fuzzy tolerance (mm): the main use is a tool body cutting a destination — a small
         // tolerance lets near-coincident mating faces resolve into a clean cut instead of a
@@ -1306,9 +1318,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_bool_tol = make_spin(m_form, 0.0, 0.0, 100.0);
         m_bool_tol->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         bform->Add(new wxStaticText(m_form, wxID_ANY, _L("Tolerance")), 0, wxALIGN_CENTER_VERTICAL);
-        bform->Add(m_bool_tol);
+        bform->Add(m_bool_tol, 0, wxEXPAND);
 
-        m_box_boolean->Add(bform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_boolean->Add(bform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
 
         m_bool_keep = new wxCheckBox(m_form, wxID_ANY, _L("Keep tool body"));
         m_bool_keep->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { refresh_preview(); });
@@ -1321,24 +1333,24 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_box_cut->Add(card_header("design_cut", _L("Cut"), m_hdr_cut), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_cut->Add(new wxStaticLine(m_form), 0, wxEXPAND | wxALL, 8);
     {
-        auto* cform = new wxFlexGridSizer(2, 6, 8);
+        auto* cform = two_col_form();
 
         m_cut_target = new wxChoice(m_form, wxID_ANY);
         m_cut_target->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { refresh_preview(); });
         cform->Add(new wxStaticText(m_form, wxID_ANY, _L("Body")), 0, wxALIGN_CENTER_VERTICAL);
-        cform->Add(m_cut_target);
+        cform->Add(m_cut_target, 0, wxEXPAND);
 
         m_cut_plane = new wxChoice(m_form, wxID_ANY);
         m_cut_plane->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { refresh_preview(); });
         cform->Add(new wxStaticText(m_form, wxID_ANY, _L("Plane")), 0, wxALIGN_CENTER_VERTICAL);
-        cform->Add(m_cut_plane);
+        cform->Add(m_cut_plane, 0, wxEXPAND);
 
         m_cut_offset = make_spin(m_form, 0.0, -10000.0, 10000.0);
         m_cut_offset->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
         cform->Add(new wxStaticText(m_form, wxID_ANY, _L("Offset")), 0, wxALIGN_CENTER_VERTICAL);
-        cform->Add(m_cut_offset);
+        cform->Add(m_cut_offset, 0, wxEXPAND);
 
-        m_box_cut->Add(cform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_cut->Add(cform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         // The cut always leaves BOTH pieces as separate bodies (a non-destructive split);
         // delete one from the tree afterwards if you only want a half.
     }
@@ -1373,27 +1385,27 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_box_plane->Add(new wxStaticText(m_form, wxID_ANY, _L("Plane type")), 0, wxLEFT | wxRIGHT | wxTOP, 12);
         m_box_plane->Add(m_plane_type, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
 
-        auto* plform = new wxFlexGridSizer(2, 6, 8);
+        auto* plform = two_col_form();
 
         m_plane_base = new wxChoice(m_form, wxID_ANY);
         populate_plane_choices(m_plane_base);   // XY/XZ/YZ + any existing datum planes
         plform->Add(new wxStaticText(m_form, wxID_ANY, _L("Base")), 0, wxALIGN_CENTER_VERTICAL);
-        plform->Add(m_plane_base);
+        plform->Add(m_plane_base, 0, wxEXPAND);
 
         m_plane_offset = make_spin(m_form, 20.0, -100000.0, 100000.0);
         plform->Add(new wxStaticText(m_form, wxID_ANY, _L("Offset")), 0, wxALIGN_CENTER_VERTICAL);
-        plform->Add(m_plane_offset);
+        plform->Add(m_plane_offset, 0, wxEXPAND);
 
         m_plane_tilt = make_spin(m_form, 0.0, -180.0, 180.0);
         plform->Add(new wxStaticText(m_form, wxID_ANY, _L("Angle°")), 0, wxALIGN_CENTER_VERTICAL);
-        plform->Add(m_plane_tilt);
+        plform->Add(m_plane_tilt, 0, wxEXPAND);
 
         m_plane_tilt_axis = new wxChoice(m_form, wxID_ANY);
         m_plane_tilt_axis->Append(_L("Base X"));
         m_plane_tilt_axis->Append(_L("Base Y"));
         m_plane_tilt_axis->SetSelection(0);
         plform->Add(new wxStaticText(m_form, wxID_ANY, _L("Tilt axis")), 0, wxALIGN_CENTER_VERTICAL);
-        plform->Add(m_plane_tilt_axis);
+        plform->Add(m_plane_tilt_axis, 0, wxEXPAND);
 
         // Contextual reference picks: arm a target, then click a solid face/edge in the canvas.
         auto pick_row = [&](const wxString& label, wxButton*& btn, wxStaticText*& lbl, PlanePick target) {
@@ -1410,12 +1422,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
         m_plane_usize = make_spin(m_form, 60.0, 1.0, 100000.0);
         plform->Add(new wxStaticText(m_form, wxID_ANY, _L("Size U")), 0, wxALIGN_CENTER_VERTICAL);
-        plform->Add(m_plane_usize);
+        plform->Add(m_plane_usize, 0, wxEXPAND);
         m_plane_vsize = make_spin(m_form, 60.0, 1.0, 100000.0);
         plform->Add(new wxStaticText(m_form, wxID_ANY, _L("Size V")), 0, wxALIGN_CENTER_VERTICAL);
-        plform->Add(m_plane_vsize);
+        plform->Add(m_plane_vsize, 0, wxEXPAND);
 
-        m_box_plane->Add(plform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_plane->Add(plform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
     root->Add(m_box_plane, 0, wxEXPAND);
 
@@ -1429,7 +1441,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_loft_list->Bind(wxEVT_CHECKLISTBOX, [this](wxCommandEvent&) { refresh_preview(); });
     m_box_loft->Add(m_loft_list, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     {
-        auto* lform = new wxFlexGridSizer(2, 6, 8);
+        auto* lform = two_col_form();
 
         m_loft_mode = new wxChoice(m_form, wxID_ANY);
         m_loft_mode->Append(_L("New"));
@@ -1438,19 +1450,19 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_loft_mode->Append(_L("Intersect"));
         m_loft_mode->SetSelection(0);
         lform->Add(new wxStaticText(m_form, wxID_ANY, _L("Mode")), 0, wxALIGN_CENTER_VERTICAL);
-        lform->Add(m_loft_mode);
+        lform->Add(m_loft_mode, 0, wxEXPAND);
 
-        m_box_loft->Add(lform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_loft->Add(lform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
     m_loft_ruled = new wxCheckBox(m_form, wxID_ANY, _L("Ruled (straight) sections"));
     m_box_loft->Add(m_loft_ruled, 0, wxLEFT | wxRIGHT | wxTOP, 12);
     root->Add(m_box_loft, 0, wxEXPAND);
 
     // --- Shell (hollow the current body to a wall thickness, removing one picked face) ---
-    auto* sform = new wxFlexGridSizer(2, 6, 8);
+    auto* sform = two_col_form();
     m_shell_thickness = make_spin(m_form, 2.0, 0.01, 100000.0);
     sform->Add(new wxStaticText(m_form, wxID_ANY, _L("Thickness")), 0, wxALIGN_CENTER_VERTICAL);
-    sform->Add(m_shell_thickness);
+    sform->Add(m_shell_thickness, 0, wxEXPAND);
     m_shell_face_label = new wxStaticText(m_form, wxID_ANY, _L("(all faces — closed hollow)"));
     sform->Add(new wxStaticText(m_form, wxID_ANY, _L("Open face")), 0, wxALIGN_CENTER_VERTICAL);
     sform->Add(m_shell_face_label, 0, wxALIGN_CENTER_VERTICAL);
@@ -1461,14 +1473,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_box_shell->Add(new wxStaticText(m_form, wxID_ANY,
                         _L("Pick a solid face to open it, then set the wall thickness.")),
                      0, wxLEFT | wxRIGHT, 12);
-    m_box_shell->Add(sform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_shell->Add(sform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     root->Add(m_box_shell, 0, wxEXPAND);
 
     // --- Draft (taper a single picked solid face about the body bottom) ---
-    auto* drform = new wxFlexGridSizer(2, 6, 8);
+    auto* drform = two_col_form();
     m_draft_angle = make_spin(m_form, 5.0, -89.0, 89.0);
     drform->Add(new wxStaticText(m_form, wxID_ANY, _L("Angle (°)")), 0, wxALIGN_CENTER_VERTICAL);
-    drform->Add(m_draft_angle);
+    drform->Add(m_draft_angle, 0, wxEXPAND);
     m_draft_face_label = new wxStaticText(m_form, wxID_ANY, _L("(pick a side face)"));
     drform->Add(new wxStaticText(m_form, wxID_ANY, _L("Face")), 0, wxALIGN_CENTER_VERTICAL);
     drform->Add(m_draft_face_label, 0, wxALIGN_CENTER_VERTICAL);
@@ -1479,7 +1491,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_box_draft->Add(new wxStaticText(m_form, wxID_ANY,
                         _L("Pick a side face, then set the draft angle. The face pivots about the body base.")),
                      0, wxLEFT | wxRIGHT, 12);
-    m_box_draft->Add(drform, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_draft->Add(drform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     root->Add(m_box_draft, 0, wxEXPAND);
 
     // --- Docked value-entry card (Onshape Button->Dialog->Confirm for dimensions) ---
@@ -1523,8 +1535,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
             if (m_viewport && m_viewport->is_sketching())
                 m_viewport->set_sketch_plane(plane_from_choice(m_draw_plane->GetSelection()));
         });
+        prow->AddStretchSpacer();   // label left, control right — same row idiom as the grids
         prow->Add(m_draw_plane, 0, wxALIGN_CENTER_VERTICAL);
-        m_box_sketch_session->Add(prow, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_sketch_session->Add(prow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
         auto* hint = new wxStaticText(m_form, wxID_ANY,
             _L("Pick a plane, then draw. Finish (✓) when done."));
         hint->SetForegroundColour(dp_sec_text());
@@ -1640,11 +1653,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_parts_rule = new wxStaticLine(m_form);
     root->Add(m_parts_rule, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP,
               FromDIP(SidebarProps::TitlebarMargin()));
+    m_parts_hdr->ShowItems(false);   // no bodies yet on a fresh document
+    m_parts_rule->Hide();
     m_parts = new wxTreeCtrl(m_form, wxID_ANY, wxDefaultPosition, wxSize(-1, 48),
                              wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES |
                              wxTR_FULL_ROW_HIGHLIGHT | wxBORDER_SIMPLE);
     if (!dp_dark()) m_parts->SetBackgroundColour(dp_panel_bg());
     root->Add(m_parts, 0, wxEXPAND | wxALL, 12);
+    // Start hidden: a fresh document has no bodies, and refresh_parts() only runs on the first
+    // tree rebuild — until then an empty box would sit under the header.
+    m_parts->Hide();
+    m_parts_label->Hide();
     m_parts->Bind(wxEVT_TREE_SEL_CHANGED, [this](wxTreeEvent&) {
         if (!m_viewport) return;
         const int b = tree_body_selection();
@@ -1825,18 +1844,18 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_viewport->set_on_solve_state([this](int dof, bool ok, bool has_constraints) {
         if (!m_dof_status) return;
         if (!has_constraints) {
-            m_dof_status->SetLabel(wxString());
+            m_dof_status->SetLabel(wxString()); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
         } else if (!ok) {
             m_dof_status->SetForegroundColour(wxColour(235, 80, 80));
-            m_dof_status->SetLabel(_L("✗ Conflicting constraints"));
+            m_dof_status->SetLabel(_L("✗ Conflicting constraints")); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
         } else if (dof == 0) {
             m_dof_status->SetForegroundColour(wxColour(80, 200, 110));
-            m_dof_status->SetLabel(_L("✓ Fully constrained"));
+            m_dof_status->SetLabel(_L("✓ Fully constrained")); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
         } else if (dof > 0) {
             m_dof_status->SetForegroundColour(dp_ctl_text());
-            m_dof_status->SetLabel(wxString::Format(_L("%d degrees of freedom"), dof));
+            m_dof_status->SetLabel(wxString::Format(_L("%d degrees of freedom"), dof)); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
         } else {
-            m_dof_status->SetLabel(wxString());
+            m_dof_status->SetLabel(wxString()); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
         }
         m_dof_status->Refresh();
         m_form->Layout();
@@ -4082,15 +4101,15 @@ void DesignPanel::refresh_constrain_dof()
     const SketchSolveResult r = sketch_solve(ents, feat.entity_constraints);
     if (!r.ok) {
         m_dof_status->SetForegroundColour(wxColour(235, 80, 80));
-        m_dof_status->SetLabel(_L("✗ Conflicting constraints"));
+        m_dof_status->SetLabel(_L("✗ Conflicting constraints")); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
     } else if (r.dof == 0) {
         m_dof_status->SetForegroundColour(wxColour(80, 200, 110));
-        m_dof_status->SetLabel(_L("✓ Fully constrained"));
+        m_dof_status->SetLabel(_L("✓ Fully constrained")); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
     } else if (r.dof > 0) {
         m_dof_status->SetForegroundColour(dp_ctl_text());
-        m_dof_status->SetLabel(wxString::Format(_L("%d degrees of freedom"), r.dof));
+        m_dof_status->SetLabel(wxString::Format(_L("%d degrees of freedom"), r.dof)); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
     } else {
-        m_dof_status->SetLabel(wxString());
+        m_dof_status->SetLabel(wxString()); m_dof_status->Show(!m_dof_status->GetLabel().IsEmpty());
     }
     m_dof_status->Refresh();
     m_form->Layout();
