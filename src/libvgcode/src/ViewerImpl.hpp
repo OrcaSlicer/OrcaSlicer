@@ -458,9 +458,52 @@ private:
     size_t m_colors_tex_size{ 0 };
     size_t m_enabled_segments_tex_size{ 0 };
     size_t m_enabled_options_tex_size{ 0 };
+    //
+    // GPU buffer capacities (bytes). The enabled-segments/options/colors texture buffers are
+    // streamed every frame; we grow them with glBufferData and otherwise update in place with
+    // glBufferSubData (see stream_texture_buffer() in ViewerImpl.cpp) to avoid reallocating
+    // multi-MB buffers on every slider step.
+    //
+    size_t m_colors_buf_capacity{ 0 };
+    size_t m_enabled_segments_buf_capacity{ 0 };
+    size_t m_enabled_options_buf_capacity{ 0 };
 #endif // ENABLE_OPENGL_ES
 
+    //
+    // Incremental view-range / enabled-entities state (avoids per-frame O(n) scans over the
+    // ~hundreds-of-MB vertex array while dragging the layers / moves sliders).
+    //
+    // The toolpath vertices are stored in non-decreasing layer_id order (emitted layer by layer);
+    // update_view_full_range() relies on this to binary-search the layer boundaries instead of
+    // scanning from begin() each frame. m_full_range_layers caches the layer range last used so a
+    // pure moves-slider drag (visible sub-range only) can skip the recompute entirely.
+    //
+    Interval m_full_range_layers{ 0, 0 };
+    //
+    // Range-independent "globally enabled" vertex indices (sorted ascending): the per-vertex
+    // visibility filter applied to the whole geometry. update_enabled_entities() binary-searches
+    // the visible sub-range out of these instead of re-filtering every vertex each frame. Rebuilt
+    // only when the geometry or the option/role visibility settings change.
+    //
+    std::vector<uint32_t> m_global_enabled_segments;
+    std::vector<uint32_t> m_global_enabled_options;
+    bool m_global_enabled_dirty{ true };
+    std::array<bool, size_t(EOptionType::COUNT)> m_global_enabled_options_visibility{};
+    std::array<bool, size_t(EGCodeExtrusionRole::COUNT)> m_global_enabled_roles_visibility{};
+    //
+    // Memoization of the colors texture (the greyed "below top layer" mask). The texture only
+    // needs rebuilding when the normal colors change (m_colors_tex_dirty, set by update_colors())
+    // or when one of the grey-mask inputs below changes; a plain drag with top-layer-only off is
+    // then a no-op.
+    //
+    bool   m_colors_tex_dirty{ true };
+    bool   m_colors_tex_grey_active{ false };
+    size_t m_colors_tex_top_layer_id{ 0 };
+    bool   m_colors_tex_spiral_vase{ false };
+    size_t m_colors_tex_spiral_start{ 0 };
+
     void update_view_full_range();
+    void rebuild_global_enabled();
     void update_color_ranges();
     void update_heights_widths();
     void render_segments(const Mat4x4& view_matrix, const Mat4x4& projection_matrix, const Vec3& camera_position);

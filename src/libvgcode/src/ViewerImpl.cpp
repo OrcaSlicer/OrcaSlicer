@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numeric>
+#include <limits>
 
 namespace libvgcode {
 
@@ -876,6 +877,13 @@ void ViewerImpl::reset()
     m_vertices.clear();
     m_vertices_colors.clear();
     m_valid_lines_bitset.clear();
+
+    // invalidate the incremental view-range / enabled-entities caches (geometry is gone)
+    m_global_enabled_segments.clear();
+    m_global_enabled_options.clear();
+    m_global_enabled_dirty = true;
+    m_full_range_layers = { std::numeric_limits<size_t>::max(), std::numeric_limits<size_t>::max() };
+    m_colors_tex_dirty = true;
 #if VGCODE_ENABLE_COG_AND_TOOL_MARKERS
     m_cog_marker.reset();
 #endif // VGCODE_ENABLE_COG_AND_TOOL_MARKERS
@@ -885,6 +893,9 @@ void ViewerImpl::reset()
 #else
     m_enabled_segments_count = 0;
     m_enabled_options_count = 0;
+    m_colors_buf_capacity = 0;
+    m_enabled_segments_buf_capacity = 0;
+    m_enabled_options_buf_capacity = 0;
 
     m_settings_used_for_ranges = std::nullopt;
 
@@ -1127,33 +1138,40 @@ void ViewerImpl::load(GCodeInputData&& gcode_data)
     update_colors();
 }
 
-void ViewerImpl::update_enabled_entities()
+#if !defined(ENABLE_OPENGL_ES)
+// Stream data into a texture buffer object in place. The buffer grows (reallocates via
+// glBufferData) only when the new size exceeds its current capacity; otherwise it is updated in
+// place with glBufferSubData, which avoids reallocating multi-MB buffers on every slider step.
+// No explicit orphaning/fencing is needed here: each per-frame update is separated from the GPU's
+// read of the previous frame by the (much longer) CPU-side update work, so glBufferSubData does
+// not stall. Very short frames would instead need a fenced/orphaned ring buffer.
+static void stream_texture_buffer(unsigned int buf_id, size_t& capacity, size_t size, const void* data)
 {
-    if (m_vertices.empty())
+    glsafe(glBindBuffer(GL_TEXTURE_BUFFER, buf_id));
+    if (size == 0) {
+        if (capacity == 0)
+            // give the buffer a defined (empty) data store; nothing is drawn from it (count == 0)
+            glsafe(glBufferData(GL_TEXTURE_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW));
         return;
-
-    std::vector<uint32_t> enabled_segments;
-    std::vector<uint32_t> enabled_options;
-    Interval range = m_view_range.get_visible();
-
-    // when top layer only visualization is enabled, we need to render
-    // all the toolpaths in the other layers as grayed, so extend the range
-    // to contain them
-    if (m_settings.top_layer_only_view_range)
-        range[0] = m_view_range.get_full()[0];
-
-    // to show the options at the current tool marker position we need to extend the range by one extra step
-    if (m_vertices[range[1]].is_option() && range[1] < static_cast<uint32_t>(m_vertices.size()) - 1)
-        ++range[1];
-
-    if (m_settings.spiral_vase_mode) {
-        // when spiral vase mode is enabled and only one layer is shown, extend the range by one step
-        const Interval& layers_range = m_layers.get_view_range();
-        if (layers_range[0] > 0 && layers_range[0] == layers_range[1])
-            --range[0];
     }
+    if (size > capacity) {
+        glsafe(glBufferData(GL_TEXTURE_BUFFER, size, data, GL_DYNAMIC_DRAW));
+        capacity = size;
+    }
+    else
+        glsafe(glBufferSubData(GL_TEXTURE_BUFFER, 0, size, data));
+}
+#endif // !ENABLE_OPENGL_ES
 
-    for (size_t i = range[0]; i < range[1]; ++i) {
+// Rebuild the range-independent "globally enabled" segment/option index lists by applying the
+// per-vertex visibility filter to the whole geometry. The lists are sorted ascending (we iterate
+// vertices in order), so update_enabled_entities() can later slice any view sub-range out of them
+// with a binary search instead of re-filtering every vertex on each frame.
+void ViewerImpl::rebuild_global_enabled()
+{
+    m_global_enabled_segments.clear();
+    m_global_enabled_options.clear();
+    for (size_t i = 0; i < m_vertices.size(); ++i) {
         const PathVertex& v = m_vertices[i];
 
         if (!m_valid_lines_bitset[i] && !v.is_option())
@@ -1178,37 +1196,75 @@ void ViewerImpl::update_enabled_entities()
             continue;
 
         if (v.is_option())
-            enabled_options.push_back(static_cast<uint32_t>(i));
+            m_global_enabled_options.push_back(static_cast<uint32_t>(i));
         else
-            enabled_segments.push_back(static_cast<uint32_t>(i));
+            m_global_enabled_segments.push_back(static_cast<uint32_t>(i));
     }
 
+    m_global_enabled_options_visibility = m_settings.options_visibility;
+    m_global_enabled_roles_visibility   = m_settings.extrusion_roles_visibility;
+    m_global_enabled_dirty = false;
+}
+
+void ViewerImpl::update_enabled_entities()
+{
+    if (m_vertices.empty())
+        return;
+
+    // (Re)build the global enabled-index lists only when the geometry or the option/role
+    // visibility settings changed; a plain slider drag reuses the cached lists.
+    if (m_global_enabled_dirty ||
+        m_global_enabled_options_visibility != m_settings.options_visibility ||
+        m_global_enabled_roles_visibility != m_settings.extrusion_roles_visibility)
+        rebuild_global_enabled();
+
+    Interval range = m_view_range.get_visible();
+
+    // when top layer only visualization is enabled, we need to render
+    // all the toolpaths in the other layers as grayed, so extend the range
+    // to contain them
+    if (m_settings.top_layer_only_view_range)
+        range[0] = m_view_range.get_full()[0];
+
+    // to show the options at the current tool marker position we need to extend the range by one extra step
+    if (range[1] < m_vertices.size() && m_vertices[range[1]].is_option() &&
+        range[1] < static_cast<uint32_t>(m_vertices.size()) - 1)
+        ++range[1];
+
+    if (m_settings.spiral_vase_mode) {
+        // when spiral vase mode is enabled and only one layer is shown, extend the range by one step
+        const Interval& layers_range = m_layers.get_view_range();
+        if (layers_range[0] > 0 && layers_range[0] == layers_range[1])
+            --range[0];
+    }
+
+    // The enabled entities for [range[0], range[1]) are exactly the globally-enabled indices that
+    // fall in that half-open interval. Since the global lists are sorted, find that sub-range with
+    // two binary searches per list (the sub-range is contiguous in memory, so it can be uploaded
+    // directly with no intermediate copy).
+    const uint32_t lo = static_cast<uint32_t>(range[0]);
+    const uint32_t hi = static_cast<uint32_t>(range[1]);
+    const auto seg_lo = std::lower_bound(m_global_enabled_segments.begin(), m_global_enabled_segments.end(), lo);
+    const auto seg_hi = std::lower_bound(seg_lo, m_global_enabled_segments.end(), hi);
+    const auto opt_lo = std::lower_bound(m_global_enabled_options.begin(), m_global_enabled_options.end(), lo);
+    const auto opt_hi = std::lower_bound(opt_lo, m_global_enabled_options.end(), hi);
+
 #ifdef ENABLE_OPENGL_ES
-    m_texture_data.set_enabled_segments(enabled_segments);
-    m_texture_data.set_enabled_options(enabled_options);
+    m_texture_data.set_enabled_segments(std::vector<uint32_t>(seg_lo, seg_hi));
+    m_texture_data.set_enabled_options(std::vector<uint32_t>(opt_lo, opt_hi));
 #else
-    m_enabled_segments_count = enabled_segments.size();
-    m_enabled_options_count = enabled_options.size();
+    m_enabled_segments_count = static_cast<size_t>(seg_hi - seg_lo);
+    m_enabled_options_count  = static_cast<size_t>(opt_hi - opt_lo);
 
-    m_enabled_segments_tex_size = enabled_segments.size() * sizeof(uint32_t);
-    m_enabled_options_tex_size = enabled_options.size() * sizeof(uint32_t);
+    m_enabled_segments_tex_size = m_enabled_segments_count * sizeof(uint32_t);
+    m_enabled_options_tex_size  = m_enabled_options_count * sizeof(uint32_t);
 
-    // update gpu buffer for enabled segments
-    assert(m_enabled_segments_buf_id > 0);
-    glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_segments_buf_id));
-    if (!enabled_segments.empty())
-        glsafe(glBufferData(GL_TEXTURE_BUFFER, enabled_segments.size() * sizeof(uint32_t), enabled_segments.data(), GL_STATIC_DRAW));
-    else
-        glsafe(glBufferData(GL_TEXTURE_BUFFER, 0, nullptr, GL_STATIC_DRAW));
-
-    // update gpu buffer for enabled options
-    assert(m_enabled_options_buf_id > 0);
-    glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_enabled_options_buf_id));
-    if (!enabled_options.empty())
-        glsafe(glBufferData(GL_TEXTURE_BUFFER, enabled_options.size() * sizeof(uint32_t), enabled_options.data(), GL_STATIC_DRAW));
-    else
-        glsafe(glBufferData(GL_TEXTURE_BUFFER, 0, nullptr, GL_STATIC_DRAW));
-
+    // stream the enabled-index buffers in place (grow-only); see stream_texture_buffer
+    assert(m_enabled_segments_buf_id > 0 && m_enabled_options_buf_id > 0);
+    stream_texture_buffer(m_enabled_segments_buf_id, m_enabled_segments_buf_capacity,
+        m_enabled_segments_tex_size, m_enabled_segments_count ? &(*seg_lo) : nullptr);
+    stream_texture_buffer(m_enabled_options_buf_id, m_enabled_options_buf_capacity,
+        m_enabled_options_tex_size, m_enabled_options_count ? &(*opt_lo) : nullptr);
     glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
 #endif // ENABLE_OPENGL_ES
 
@@ -1233,28 +1289,62 @@ void ViewerImpl::update_colors_texture()
 
     const size_t top_layer_id = m_settings.top_layer_only_view_range ? m_layers.get_view_range()[1] : 0;
     const bool color_top_layer_only = m_view_range.get_full()[1] != m_view_range.get_visible()[1];
+    // Some vertices are rendered dark grey ("below the top layer"). This only happens when
+    // color_top_layer_only is set AND there is a non-empty below-top set, i.e. top_layer_id > 0;
+    // otherwise the texture is just a verbatim copy of the cached normal colors.
+    const bool grey_active = color_top_layer_only && top_layer_id > 0;
+    const size_t spiral_start = m_view_range.get_enabled()[0];
 
-    // Based on current settings and slider position, we might want to render some
-    // vertices as dark grey. Use either that or the normal color (from the cache).
-    std::vector<float> colors(m_vertices_colors.size());
-    assert(colors.size() == m_vertices.size() && m_vertices_colors.size() == m_vertices.size());
-    for (size_t i=0; i<m_vertices.size(); ++i)
-        colors[i] = (color_top_layer_only && m_vertices[i].layer_id < top_layer_id &&
-                    (!m_settings.spiral_vase_mode || i != m_view_range.get_enabled()[0])) ?
-                    encode_color(DUMMY_COLOR) : m_vertices_colors[i];
+    // Skip the O(n) rebuild + upload when neither the normal colors nor the grey-mask inputs
+    // changed (e.g. dragging a slider with top-layer-only off, the common case).
+    if (!m_colors_tex_dirty &&
+        m_colors_tex_grey_active == grey_active &&
+        (!grey_active ||
+         (m_colors_tex_top_layer_id == top_layer_id &&
+          m_colors_tex_spiral_vase == m_settings.spiral_vase_mode &&
+          m_colors_tex_spiral_start == spiral_start)))
+        return;
 
-    #ifdef ENABLE_OPENGL_ES
+    assert(m_vertices_colors.size() == m_vertices.size());
+
+#ifdef ENABLE_OPENGL_ES
+    if (!grey_active) {
+        if (!m_vertices_colors.empty())
+            m_texture_data.set_colors(m_vertices_colors);
+    }
+    else {
+        std::vector<float> colors(m_vertices_colors.size());
+        for (size_t i = 0; i < m_vertices.size(); ++i)
+            colors[i] = (m_vertices[i].layer_id < top_layer_id &&
+                        (!m_settings.spiral_vase_mode || i != spiral_start)) ?
+                        encode_color(DUMMY_COLOR) : m_vertices_colors[i];
         if (!colors.empty())
-            // update gpu buffer for colors
             m_texture_data.set_colors(colors);
-    #else
-        m_colors_tex_size = colors.size() * sizeof(float);
+    }
+#else
+    // when no greying is needed the cached normal colors are uploaded directly (no per-vertex copy)
+    const float* data = m_vertices_colors.data();
+    size_t count = m_vertices_colors.size();
+    std::vector<float> colors;
+    if (grey_active) {
+        colors.resize(m_vertices_colors.size());
+        for (size_t i = 0; i < m_vertices.size(); ++i)
+            colors[i] = (m_vertices[i].layer_id < top_layer_id &&
+                        (!m_settings.spiral_vase_mode || i != spiral_start)) ?
+                        encode_color(DUMMY_COLOR) : m_vertices_colors[i];
+        data  = colors.data();
+        count = colors.size();
+    }
+    m_colors_tex_size = count * sizeof(float);
+    stream_texture_buffer(m_colors_buf_id, m_colors_buf_capacity, m_colors_tex_size, data);
+    glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
+#endif // ENABLE_OPENGL_ES
 
-        // update gpu buffer for colors
-        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, m_colors_buf_id));
-        glsafe(glBufferData(GL_TEXTURE_BUFFER, colors.size() * sizeof(float), colors.data(), GL_STATIC_DRAW));
-        glsafe(glBindBuffer(GL_TEXTURE_BUFFER, 0));
-    #endif // ENABLE_OPENGL_ES
+    m_colors_tex_dirty       = false;
+    m_colors_tex_grey_active = grey_active;
+    m_colors_tex_top_layer_id = top_layer_id;
+    m_colors_tex_spiral_vase  = m_settings.spiral_vase_mode;
+    m_colors_tex_spiral_start = spiral_start;
 }
 
 
@@ -1281,7 +1371,9 @@ void ViewerImpl::update_colors()
     // the "normal" color on every slider move.
     for (size_t i = 0; i < m_vertices.size(); ++i)
         m_vertices_colors[i] = encode_color(get_vertex_color(m_vertices[i]));
-    
+
+    // the cached normal colors changed, so the colors texture must be rebuilt
+    m_colors_tex_dirty = true;
     update_colors_texture();
     m_settings.update_colors = false;
 }
@@ -1342,6 +1434,8 @@ void ViewerImpl::set_layers_view_range(Interval::value_type min, Interval::value
 void ViewerImpl::toggle_top_layer_only_view_range()
 {
     m_settings.top_layer_only_view_range = !m_settings.top_layer_only_view_range;
+    // the enabled range depends on top-layer-only, so force the full-range recompute below
+    m_settings.update_view_full_range = true;
     update_view_full_range();
     m_view_range.set_visible(m_view_range.get_enabled());
     m_settings.update_enabled_entities = true;
@@ -1421,6 +1515,8 @@ void ViewerImpl::toggle_option_visibility(EOptionType type)
 {
     m_settings.options_visibility[size_t(type)] = ! m_settings.options_visibility[size_t(type)];
     const Interval old_enabled_range = m_view_range.get_enabled();
+    // visibility affects the full range, so force the recompute below (layer range is unchanged)
+    m_settings.update_view_full_range = true;
     update_view_full_range();
     const Interval& new_enabled_range = m_view_range.get_enabled();
     if (old_enabled_range != new_enabled_range) {
@@ -1442,6 +1538,8 @@ bool ViewerImpl::is_extrusion_role_visible(EGCodeExtrusionRole role) const
 void ViewerImpl::toggle_extrusion_role_visibility(EGCodeExtrusionRole role)
 {
     m_settings.extrusion_roles_visibility[size_t(role)] = ! m_settings.extrusion_roles_visibility[size_t(role)];
+    // visibility affects the full range, so force the recompute below (layer range is unchanged)
+    m_settings.update_view_full_range = true;
     update_view_full_range();
     m_settings.update_enabled_entities = true;
     m_settings.update_colors = true;
@@ -1728,14 +1826,27 @@ static bool is_visible(const PathVertex& v, const Settings& settings)
 void ViewerImpl::update_view_full_range()
 {
     const Interval& layers_range = m_layers.get_view_range();
+    // The full range depends only on the visible layer range, role/option visibility and the
+    // loaded geometry — NOT on the moves-slider visible sub-range. Skip the rescan when none of
+    // those changed (e.g. while dragging the moves slider): visibility/geometry changes set the
+    // m_settings.update_view_full_range flag, while layer-range changes are caught by comparison.
+    if (!m_settings.update_view_full_range && layers_range == m_full_range_layers)
+        return;
+
     const bool travels_visible = m_settings.options_visibility[size_t(EOptionType::Travels)];
     const bool wipes_visible   = m_settings.options_visibility[size_t(EOptionType::Wipes)];
 
-    auto first_it = m_vertices.begin();
-    while (first_it != m_vertices.end() &&
-           (first_it->layer_id < layers_range[0] || !is_visible(*first_it, m_settings))) {
+    // Vertices are stored in non-decreasing layer_id order, so the first vertex of a layer can be
+    // located by binary search instead of scanning from begin() every frame.
+    const auto layer_lower_bound = [this](size_t layer) {
+        return std::lower_bound(m_vertices.begin(), m_vertices.end(), layer,
+            [](const PathVertex& v, size_t l) { return v.layer_id < l; });
+    };
+
+    auto first_it = layer_lower_bound(layers_range[0]);
+    // first_it now has layer_id >= layers_range[0]; skip any leading invisible vertices
+    while (first_it != m_vertices.end() && !is_visible(*first_it, m_settings))
         ++first_it;
-    }
 
     // If the first vertex is an extrusion, add an extra step to properly detect the first segment
     if (first_it != m_vertices.begin() && first_it != m_vertices.end() && first_it->type == EMoveType::Extrude)
@@ -1753,10 +1864,11 @@ void ViewerImpl::update_view_full_range()
             }
         }
 
-        auto last_it = first_it;
-        while (last_it != m_vertices.end() && last_it->layer_id <= layers_range[1]) {
-            ++last_it;
-        }
+        // last vertex whose layer_id <= layers_range[1]: binary-search the upper boundary and clamp
+        // to first_it (which may have been extended backwards across travels/wipes above)
+        auto last_it = layer_lower_bound(layers_range[1] + 1);
+        if (last_it < first_it)
+            last_it = first_it;
         if (last_it != first_it)
             --last_it;
 
@@ -1793,13 +1905,16 @@ void ViewerImpl::update_view_full_range()
 
         if (m_settings.top_layer_only_view_range) {
             const Interval& full_range = m_view_range.get_full();
-            auto top_first_it = m_vertices.begin() + full_range[0];
-            bool shortened = false;
-            while (top_first_it != m_vertices.end() && (top_first_it->layer_id < layers_range[1] || !is_visible(*top_first_it, m_settings))) {
+            const auto start = m_vertices.begin() + full_range[0];
+            // first vertex of the top layer (layer_id >= layers_range[1]) at/after full_range[0],
+            // located by binary search rather than scanning forward from full_range[0]
+            auto top_first_it = layer_lower_bound(layers_range[1]);
+            if (top_first_it < start)
+                top_first_it = start;
+            while (top_first_it != m_vertices.end() && !is_visible(*top_first_it, m_settings))
                 ++top_first_it;
-                shortened = true;
-            }
-            if (shortened)
+            // mirror the original behaviour: step back one when we advanced past full_range[0]
+            if (top_first_it != start)
                 --top_first_it;
 
             // when spiral vase mode is enabled and only one layer is shown, extend the range by one step
@@ -1811,6 +1926,7 @@ void ViewerImpl::update_view_full_range()
             m_view_range.set_enabled(m_view_range.get_full());
     }
 
+    m_full_range_layers = layers_range;
     m_settings.update_view_full_range = false;
 }
 
@@ -1879,6 +1995,9 @@ void ViewerImpl::update_color_ranges()
 
 void ViewerImpl::update_heights_widths()
 {
+    // a radius change can alter the valid-lines bitset (ES path re-extracts it), so the global
+    // enabled-index lists must be rebuilt on the next update_enabled_entities()
+    m_global_enabled_dirty = true;
 #ifdef ENABLE_OPENGL_ES
     std::vector<Vec3> heights_widths_angles;
     heights_widths_angles.reserve(m_vertices.size());
