@@ -454,7 +454,7 @@ wxBoxSizer* AMSDryCtrWin::create_normal_state_panel(wxPanel* parent)
     m_temperature_input->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_temperature_input->SetForegroundColour(StateColor::darkModeColorFor(*wxBLACK));
 
-    Label* temp_unit_label = new Label(parent, wxString::FromUTF8("℃"));
+    Label* temp_unit_label = new Label(parent, wxString::FromUTF8(u8"\u2103" /* °C */));
     temp_unit_label->SetForegroundColour(*wxBLACK);
     temp_sizer->Add(m_temperature_input, 1, wxRIGHT, FromDIP(1));
     temp_sizer->Add(temp_unit_label, 0, wxALIGN_CENTER_VERTICAL);
@@ -1444,9 +1444,9 @@ int AMSDryCtrWin::update_ams_change(DevAms* dev_ams)
 
     m_ams_info.m_ams_id = dev_ams->GetAmsId();
     if (dev_ams->GetAmsType() == DevAmsType::N3F) {
-        m_temperature_input->SetHint("45-65" + wxString::FromUTF8("°C"));
+        m_temperature_input->SetHint("45-65" + wxString::FromUTF8(u8"\u2103" /* °C */));
     } else if (dev_ams->GetAmsType() == DevAmsType::N3S) {
-        m_temperature_input->SetHint("45-85" + wxString::FromUTF8("°C"));
+        m_temperature_input->SetHint("45-85" + wxString::FromUTF8(u8"\u2103" /* °C */));
     }
 
     m_time_input->SetHint("1-24 h");
@@ -1467,7 +1467,7 @@ int AMSDryCtrWin::update_dryness_status(DevAms* dev_ams)
     if (m_ams_info.m_temperature != dev_ams->GetCurrentTemperature()) {
         updated += 1;
         m_ams_info.m_temperature = dev_ams->GetCurrentTemperature();
-        m_temperature_data_label->SetLabel(std::to_string(m_ams_info.m_temperature) + wxString::FromUTF8("°C"));
+        m_temperature_data_label->SetLabel(std::to_string(m_ams_info.m_temperature) + wxString::FromUTF8(u8"\u2103" /* °C */));
     }
 
     if (is_dry_ctr_idle(dev_ams)) {
