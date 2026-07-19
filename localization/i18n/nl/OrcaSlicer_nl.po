@@ -7463,10 +7463,10 @@ msgstr ""
 msgid "Configuration incompatible"
 msgstr "De configuratie is niet geschikt"
 
-msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing. "
+msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing."
 msgstr ""
 
-msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use. "
+msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use."
 msgstr ""
 
 msgid "Tips"
@@ -9377,7 +9377,7 @@ msgstr ""
 msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
 msgstr ""
 
-msgid "Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."
+msgid "Tips: If you changed your nozzle of your printer lately, please go to 'Device -> Printer parts' to change your nozzle setting."
 msgstr ""
 
 #, c-format, boost-format
@@ -11392,10 +11392,10 @@ msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
-msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
+msgid "Failed to calculate line width of %1%. Cannot get value of “%2%”."
 msgstr "Kan de lijndikte van %1% niet berekenen omdat de waarde van \"%2%\" niet opgehaald kan worden"
 
-msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width"
+msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 msgstr ""
 
 msgid "undefined error"
@@ -12733,7 +12733,7 @@ msgstr ""
 
 msgid ""
 "Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
-"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane. Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top. The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
 msgstr ""
 
 msgid "Top expansion wall margin"
@@ -18613,7 +18613,7 @@ msgstr ""
 msgid "Pack"
 msgstr ""
 
-msgid "Cleans and rebuilds system profiles cache on next launch"
+msgid "Cleans and rebuilds system profiles cache on next launch."
 msgstr ""
 
 msgid "Clean system profiles cache"
@@ -18625,16 +18625,16 @@ msgstr ""
 msgid "Loaded profiles overview"
 msgstr ""
 
-msgid "This section shows information for loaded profiles"
+msgid "This section shows information for loaded profiles."
 msgstr ""
 
-msgid "Exports detailed overview of loaded profiles in json format"
+msgid "Exports detailed overview of loaded profiles in json format."
 msgstr ""
 
 msgid "Configurations folder"
 msgstr ""
 
-msgid "Opens configurations folder"
+msgid "Opens configurations folder."
 msgstr ""
 
 msgid "Log level"
@@ -18647,9 +18647,6 @@ msgid "Packs all stored logs onto a zip file."
 msgstr ""
 
 msgid "Profiles"
-msgstr ""
-
-msgid "Select NO to close dialog and review project"
 msgstr ""
 
 msgid "No project file on current session. Only logs will be included to package"
@@ -19313,7 +19310,7 @@ msgstr ""
 msgid "Error code not found"
 msgstr ""
 
-msgid "The printer is busy, Please check the device page for the file and try to start printing again."
+msgid "The printer is busy, please check the device page for the file and try to start printing again."
 msgstr ""
 
 msgid "The file is lost, please check and try again."

@@ -2287,8 +2287,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top surface expansion");
     def->category = L("Strength");
     def->tooltip = L("Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
-                     "Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane."
-                     "Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top."
+                     "Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane. "
+                     "Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top. "
                      "The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection.");
     def->sidetext = L("mm");
     def->min = 0;

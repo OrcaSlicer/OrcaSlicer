@@ -1825,9 +1825,9 @@ bool Sidebar::priv::is_fila_switch_ready()
 void Sidebar::priv::show_fila_switch_msg(bool ready)
 {
     wxString msg = ready ? _L("Filament switcher detected. All AMS filaments are now available for both extruders. "
-                              "The slicer will auto-assign for optimal printing. ") :
+                              "The slicer will auto-assign for optimal printing.") :
                            _L("A filament switcher is detected but not calibrated and thus currently unavailable. "
-                              "Please calibrate it on the printer and synchronize before use. ");
+                              "Please calibrate it on the printer and synchronize before use.");
 
     long style = ready ? (wxICON_INFORMATION | wxOK) : (wxICON_WARNING | wxOK);
     // Orca: drop the vendor "Learn more" tracking link; there is no Orca help page for the switch yet.

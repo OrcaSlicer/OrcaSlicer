@@ -7546,10 +7546,10 @@ msgstr "Zmiana średnicy"
 msgid "Configuration incompatible"
 msgstr "Niekompatybilna konfiguracja"
 
-msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing. "
+msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing."
 msgstr ""
 
-msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use. "
+msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use."
 msgstr ""
 
 msgid "Tips"
@@ -9476,7 +9476,7 @@ msgstr ""
 msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
 msgstr "Ustawienie przepływu %s (%s) nie pasuje do dyszy w pliku cięcia (%s). Upewnij się, że zainstalowana dysza jest zgodna z ustawieniami drukarki, a następnie ustaw odpowiednią konfigurację drukarki podczas cięcia."
 
-msgid "Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."
+msgid "Tips: If you changed your nozzle of your printer lately, please go to 'Device -> Printer parts' to change your nozzle setting."
 msgstr "Wskazówka: Jeśli ostatnio zmieniłeś dyszę , przejdź do opcji \"Urządzenie ->; Części drukarki\", aby zmienić ustawienia dyszy."
 
 #, c-format, boost-format
@@ -11513,10 +11513,10 @@ msgstr "Wewnętrzny most"
 
 # TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
-msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
+msgid "Failed to calculate line width of %1%. Cannot get value of “%2%”."
 msgstr "Nie udało się obliczyć szerokości linii %1%. Nie można uzyskać wartości „%2%” "
 
-msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width"
+msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 msgstr "Nieprawidłowy odstęp podany do Flow::with_spacing(), sprawdź wysokość warstwy i szerokość ekstruzji."
 
 msgid "undefined error"
@@ -12943,7 +12943,7 @@ msgstr ""
 
 msgid ""
 "Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
-"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane. Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top. The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
 msgstr ""
 
 msgid "Top expansion wall margin"
@@ -19037,7 +19037,7 @@ msgstr ""
 msgid "Pack"
 msgstr ""
 
-msgid "Cleans and rebuilds system profiles cache on next launch"
+msgid "Cleans and rebuilds system profiles cache on next launch."
 msgstr ""
 
 msgid "Clean system profiles cache"
@@ -19049,16 +19049,16 @@ msgstr ""
 msgid "Loaded profiles overview"
 msgstr ""
 
-msgid "This section shows information for loaded profiles"
+msgid "This section shows information for loaded profiles."
 msgstr ""
 
-msgid "Exports detailed overview of loaded profiles in json format"
+msgid "Exports detailed overview of loaded profiles in json format."
 msgstr ""
 
 msgid "Configurations folder"
 msgstr ""
 
-msgid "Opens configurations folder"
+msgid "Opens configurations folder."
 msgstr ""
 
 msgid "Log level"
@@ -19071,9 +19071,6 @@ msgid "Packs all stored logs onto a zip file."
 msgstr ""
 
 msgid "Profiles"
-msgstr ""
-
-msgid "Select NO to close dialog and review project"
 msgstr ""
 
 msgid "No project file on current session. Only logs will be included to package"
@@ -19737,7 +19734,7 @@ msgstr ""
 msgid "Error code not found"
 msgstr ""
 
-msgid "The printer is busy, Please check the device page for the file and try to start printing again."
+msgid "The printer is busy, please check the device page for the file and try to start printing again."
 msgstr ""
 
 msgid "The file is lost, please check and try again."
@@ -22199,7 +22196,7 @@ msgstr ""
 #~ "Włącz tę opcję dla kontroli temperatury komory. Komenda M191 zostanie dodana przed \"początkowy G-code drukarki\"\n"
 #~ "Komendy G-code: M141/M191 S(0-255)"
 
-#~ msgid "Higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength for high temperature materials like ABS, ASA, PC, PA and so on. At the same time, the air filtration of ABS and ASA will get worse. While for PLA, PETG, TPU, PVA and other low temperature materials,the actual chamber temperature should not be high to avoid cloggings, so 0 which stands for turning off is highly recommended"
+#~ msgid "Higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength for high temperature materials like ABS, ASA, PC, PA and so on. At the same time, the air filtration of ABS and ASA will get worse. While for PLA, PETG, TPU, PVA and other low temperature materials, the actual chamber temperature should not be high to avoid cloggings, so 0 which stands for turning off is highly recommended"
 #~ msgstr "Wyższa temperatura komory może pomóc w redukcji wypaczania i potencjalnie prowadzić do większej siły wiązania międzywarstwowego w przypadku materiałów wysokotemperaturowych, takich jak ABS, ASA, PC, PA itp. Dla filametów PLA, PETG, TPU, PVA i innych materiałów niskotemperaturowych temperatura komory nie powinna być wysoka. Aby uniknąć zatykania sie dyszy zaleca się ustawienia na wartość 0 (wyłączone)."
 
 #~ msgid "Interlocking depth of a segmented region. Zero disables this feature."

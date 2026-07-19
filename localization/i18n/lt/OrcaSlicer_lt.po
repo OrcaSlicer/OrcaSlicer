@@ -7452,10 +7452,10 @@ msgstr "Pakeisti skersmenį"
 msgid "Configuration incompatible"
 msgstr "Nesuderinama konfigūracija"
 
-msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing. "
+msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing."
 msgstr ""
 
-msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use. "
+msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use."
 msgstr ""
 
 msgid "Tips"
@@ -9377,7 +9377,7 @@ msgstr ""
 msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
 msgstr "%s (%s) purkštuko srauto nustatymas nesutampa su sluoksniavimo failu (%s). Įsitikinkite, kad įstatytas purkštukas atitinka spausdintuvo nustatymus, o tada sluoksniuodami pasirinkite atitinkamą spausdintuvo profilį."
 
-msgid "Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."
+msgid "Tips: If you changed your nozzle of your printer lately, please go to 'Device -> Printer parts' to change your nozzle setting."
 msgstr "Patarimas: jei neseniai pakeitėte spausdintuvo purkštuką, eikite į „Įrenginys -> Spausdintuvo dalys“, kad pakeistumėte purkštuko nustatymą."
 
 #, c-format, boost-format
@@ -11402,10 +11402,10 @@ msgid "Internal Bridge"
 msgstr "Vidinis tiltas"
 
 #, boost-format
-msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
+msgid "Failed to calculate line width of %1%. Cannot get value of “%2%”."
 msgstr "Nepavyko apskaičiuoti %1% linijos pločio. Nepavyksta gauti „%2%“ reikšmės."
 
-msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width"
+msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 msgstr "Srautui Flow::with_spacing() pateiktas neteisingas tarpas, patikrinkite sluoksnio aukštį ir išspaudimo plotį"
 
 msgid "undefined error"
@@ -12867,7 +12867,7 @@ msgstr ""
 
 msgid ""
 "Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
-"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane. Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top. The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
 msgstr ""
 
 msgid "Top expansion wall margin"
@@ -18948,7 +18948,7 @@ msgstr "Pranešti apie problemą"
 msgid "Pack"
 msgstr "Supakuoti"
 
-msgid "Cleans and rebuilds system profiles cache on next launch"
+msgid "Cleans and rebuilds system profiles cache on next launch."
 msgstr "Išvalo ir iš naujo sukuria sistemos profilių talpyklą kito paleidimo metu."
 
 msgid "Clean system profiles cache"
@@ -18960,16 +18960,16 @@ msgstr "Išvalyti"
 msgid "Loaded profiles overview"
 msgstr "Įkeltų profilių apžvalga"
 
-msgid "This section shows information for loaded profiles"
+msgid "This section shows information for loaded profiles."
 msgstr "Šiame skyriuje pateikiama informacija apie įkeltus profilius."
 
-msgid "Exports detailed overview of loaded profiles in json format"
+msgid "Exports detailed overview of loaded profiles in json format."
 msgstr "Eksportuoja išsamią įkeltų profilių apžvalgą JSON formatu."
 
 msgid "Configurations folder"
 msgstr "Konfigūracijų aplankas"
 
-msgid "Opens configurations folder"
+msgid "Opens configurations folder."
 msgstr "Atidaro konfigūracijų aplanką"
 
 msgid "Log level"
@@ -18983,9 +18983,6 @@ msgstr "Supakuoja visus saugomus žurnalus į ZIP failą."
 
 msgid "Profiles"
 msgstr "Profiliai"
-
-msgid "Select NO to close dialog and review project"
-msgstr "Pasirinkite „NE“, norėdami uždaryti dialogo langą ir peržiūrėti projektą."
 
 msgid "No project file on current session. Only logs will be included to package"
 msgstr "Dabartinėje sesijoje nėra projekto failo. Į paketą bus įtraukti tik žurnalai."
@@ -19649,7 +19646,7 @@ msgstr "Nepavyko apskaičiuoti failo kontrolinės sumos."
 msgid "Error code not found"
 msgstr "Klaidos kodas nerastas"
 
-msgid "The printer is busy, Please check the device page for the file and try to start printing again."
+msgid "The printer is busy, please check the device page for the file and try to start printing again."
 msgstr "Spausdintuvas užimtas. Patikrinkite failą įrenginio puslapyje ir bandykite paleisti spausdinimą iš naujo."
 
 msgid "The file is lost, please check and try again."
