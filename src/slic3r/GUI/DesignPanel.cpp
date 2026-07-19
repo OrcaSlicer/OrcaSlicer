@@ -42,6 +42,7 @@
 #include "slic3r/GUI/wxExtensions.hpp"   // ScalableButton, create_scaled_bitmap
 #include "Widgets/Label.hpp"             // HarmonyOS Sans fonts (Head_*/Body_*) shared with the rest of Orca
 #include "Widgets/DropDown.hpp"          // Orca-themed combo dropdown (white/teal selector) for the tool flyouts
+#include "Widgets/Button.hpp"            // Orca-styled Button (ButtonStyle/ButtonType) — same look as Prepare
 #include "libslic3r/SketchImport.hpp"    // text_to_regions / svg_to_regions
 #include "libslic3r/ThreadStandards.hpp" // ISO metric / Unified imperial thread tables
 #include "libslic3r/Model.hpp"
@@ -1542,7 +1543,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_box_constraints->Add(m_constraint_rows, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 12);
     root->Add(m_box_constraints, 0, wxEXPAND);
 
-    root->Add(new wxStaticText(m_form, wxID_ANY, _L("Feature tree")), 0, wxLEFT | wxTOP, 12);
+    // Feature tree card. Same idiom as Prepare's sections (icon + Head_14 title + rule) via the
+    // shared card_header helper, instead of the bare micro-label this used to be; the row-edit
+    // actions live in the header, as Prepare puts its section actions.
+    m_hdr_tree_row = new wxBoxSizer(wxHORIZONTAL);
+    m_hdr_tree_row->Add(card_header("design_sketch", _L("Feature tree"), m_hdr_tree), 0,
+                        wxALIGN_CENTER_VERTICAL);
+    m_hdr_tree_row->AddStretchSpacer();
+    root->Add(m_hdr_tree_row, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP,
+              FromDIP(SidebarProps::ContentMargin()));
+    root->Add(new wxStaticLine(m_form), 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP,
+              FromDIP(SidebarProps::TitlebarMargin()));
     m_tree = new wxTreeCtrl(m_form, wxID_ANY, wxDefaultPosition, wxSize(-1, 64),
                             wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES |
                             wxTR_FULL_ROW_HIGHLIGHT | wxBORDER_SIMPLE);
@@ -1573,14 +1584,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_viewport->set_body_highlight(body);
     });
 
-    // Feature-tree edit row: act on the selected feature (delete / reorder).
+    // Feature-tree edit actions: act on the selected feature (delete / reorder). These sit in the
+    // card header (Prepare puts its section actions there too) rather than on a loose row below.
     {
-        auto* trow = new wxBoxSizer(wxHORIZONTAL);
+        wxBoxSizer* trow = m_hdr_tree_row;
         auto edit_btn = [this](const char* icon, const wxString& tip) {
-            // Enlarged to match the main ribbon's weight (largest that fits 6
-            // across the ~264px form column).
-            auto* b = new ScalableButton(m_form, wxID_ANY, icon, "", wxSize(36, 36),
-                                         wxDefaultPosition, wxBU_EXACTFIT | wxBORDER_NONE, false, 30);
+            // Header-sized: reads as a section action, not a primary control.
+            auto* b = new ScalableButton(m_form, wxID_ANY, icon, "", wxSize(24, 24),
+                                         wxDefaultPosition, wxBU_EXACTFIT | wxBORDER_NONE, false, 20);
             b->SetToolTip(tip);
             return b;
         };
@@ -1608,20 +1619,27 @@ DesignPanel::DesignPanel(wxWindow* parent)
         up->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_move_feature(-1); });
         auto* down = edit_btn("design_movedown", _L("Move down"));
         down->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_move_feature(+1); });
-        trow->Add(edit, 0, wxRIGHT, 4);
-        trow->Add(move, 0, wxRIGHT, 4);
-        trow->Add(vis,  0, wxRIGHT, 4);
-        trow->Add(del,  0, wxRIGHT, 4);
-        trow->Add(up,   0, wxRIGHT, 4);
-        trow->Add(down, 0);
-        root->Add(trow, 0, wxLEFT | wxRIGHT | wxBOTTOM, 12);
+        const int gap = FromDIP(SidebarProps::ElementSpacing());
+        trow->Add(edit, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
+        trow->Add(move, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
+        trow->Add(vis,  0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
+        trow->Add(del,  0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
+        trow->Add(up,   0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
+        trow->Add(down, 0, wxALIGN_CENTER_VERTICAL);
+        // trow IS the header sizer — already added to root above the tree.
     }
 
     // Parts list (Onshape's Features + Parts split). Bodies used to be appended after the
     // features INSIDE the feature tree, so they were pushed out of view as the history grew —
     // with no way to select a body at all. Their own list keeps them reachable regardless.
-    m_parts_label = new wxStaticText(m_form, wxID_ANY, _L("Bodies"));
-    root->Add(m_parts_label, 0, wxLEFT | wxTOP, 12);
+    m_parts_hdr = new wxBoxSizer(wxHORIZONTAL);
+    m_parts_hdr->Add(card_header("design_extrude", _L("Bodies"), m_parts_label), 0,
+                     wxALIGN_CENTER_VERTICAL);
+    root->Add(m_parts_hdr, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP,
+              FromDIP(SidebarProps::ContentMargin()));
+    m_parts_rule = new wxStaticLine(m_form);
+    root->Add(m_parts_rule, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP,
+              FromDIP(SidebarProps::TitlebarMargin()));
     m_parts = new wxTreeCtrl(m_form, wxID_ANY, wxDefaultPosition, wxSize(-1, 48),
                              wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES |
                              wxTR_FULL_ROW_HIGHLIGHT | wxBORDER_SIMPLE);
@@ -1643,11 +1661,20 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_status->Refresh();
     });
 
+    // Orca-styled full-width buttons (ButtonType::Expanded), so the Design sidebar reads like
+    // Prepare's instead of showing raw OS-default wxButtons.
+    const int cm = FromDIP(SidebarProps::ContentMargin());
+    auto styled_btn = [this](const wxString& label, ButtonStyle style = ButtonStyle::Regular) {
+        auto* b = new Button(m_form, label);
+        b->SetStyle(style, ButtonType::Expanded);
+        return b;
+    };
+
     // Prepare's "Place on Face (F)" for the selected body: pick a face, lay it flat on the bed.
-    auto* place = new wxButton(m_form, wxID_ANY, _L("Place on Face (F)"));
+    auto* place = styled_btn(_L("Place on Face (F)"));
     place->SetToolTip(_L("Select a body face (click a solid, click again to a face), then lay that face on the bed"));
     place->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { place_on_face(); });
-    root->Add(place, 0, wxLEFT | wxRIGHT | wxBOTTOM, 12);
+    root->Add(place, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, cm);
 
     m_status = new wxStaticText(m_form, wxID_ANY, "");
     root->Add(m_status, 0, wxLEFT | wxRIGHT | wxBOTTOM, 12);
@@ -1664,30 +1691,32 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // Section View — clear text button (non-destructive: hides part of the model to inspect
     // inside; adds a named "Section View N", never a body). Distinct from the Cut tool.
-    auto* section_btn = new wxButton(m_form, wxID_ANY, _L("Section View"));
+    auto* section_btn = styled_btn(_L("Section View"));
     section_btn->SetToolTip(_L("Hide part of the model to see inside (non-destructive). "
                                "PageUp/PageDown move the plane; Delete removes it."));
     section_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { toggle_section_view(); });
-    root->Add(section_btn, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    root->Add(section_btn, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, cm);
 
     // Flip the active section to the opposite half — only usable while a section view is active.
-    m_section_flip_btn = new wxButton(m_form, wxID_ANY, _L("Flip Section"));
+    m_section_flip_btn = styled_btn(_L("Flip Section"));
     m_section_flip_btn->SetToolTip(_L("Show the opposite half of the active section view"));
     m_section_flip_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { flip_section_view(); });
     m_section_flip_btn->Enable(false);
-    root->Add(m_section_flip_btn, 0, wxLEFT | wxRIGHT | wxTOP, 6);
+    root->Add(m_section_flip_btn, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP,
+              FromDIP(SidebarProps::ElementSpacing()));   // related to the button above it
 
-    auto* new_design = new wxButton(m_form, wxID_ANY, _L("New Design"));
+    auto* new_design = styled_btn(_L("New Design"));
     new_design->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_new_design(); });
-    root->Add(new_design, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    root->Add(new_design, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, cm);
 
-    auto* commit = new wxButton(m_form, wxID_ANY, _L("Commit to Plate"));
+    // Commit is the primary action of the tab — Confirm style, as Prepare accents its primary.
+    auto* commit = styled_btn(_L("Commit to Plate"), ButtonStyle::Confirm);
     commit->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_commit(); });
-    root->Add(commit, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    root->Add(commit, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, cm);
 
-    auto* export_step = new wxButton(m_form, wxID_ANY, _L("Export STEP…"));
+    auto* export_step = styled_btn(_L("Export STEP…"));
     export_step->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_export_step(); });
-    root->Add(export_step, 0, wxALL, 12);
+    root->Add(export_step, 0, wxEXPAND | wxALL, cm);
 
     m_shape->Bind(wxEVT_CHOICE, [this](wxCommandEvent& e) { on_shape_changed(); e.Skip(); });
     on_shape_changed();
@@ -3292,7 +3321,23 @@ void DesignPanel::on_tab_shown()
         }
     }
     update_reference_planes();   // entering the Design tab: show the XY/XZ/YZ planes if no object yet
+    sync_sidebar_width();        // keep the panel as wide as Prepare's so the canvas edge doesn't jump
     if (m_viewport) m_viewport->force_repaint();   // the page was just re-shown: paint it for real
+}
+
+// Match Prepare's sidebar width instead of hardcoding one. Design used a fixed 264 px against
+// Prepare's ~467, so the canvas edge jumped sideways on every tab switch; reading the live width
+// also means the two stay aligned if Orca ever changes its sidebar.
+void DesignPanel::sync_sidebar_width()
+{
+    if (m_form == nullptr) return;
+    Plater* pl = wxGetApp().plater();
+    if (pl == nullptr) return;
+    const int w = pl->sidebar().GetSize().GetWidth();
+    if (w < 200) return;                       // sidebar not laid out yet — keep what we have
+    if (m_form->GetMinSize().GetWidth() == w) return;
+    m_form->SetMinSize(wxSize(w, -1));
+    Layout();
 }
 
 void DesignPanel::load_recipe(const std::string& blob)
@@ -3373,6 +3418,8 @@ void DesignPanel::refresh_parts()
     const bool any = !m_tree_body_items.empty();
     m_parts->Show(any);
     if (m_parts_label) m_parts_label->Show(any);
+    if (m_parts_hdr)   m_parts_hdr->ShowItems(any);   // icon + title live in this sizer
+    if (m_parts_rule)  m_parts_rule->Show(any);
 
     if (any) {
         const int rowH  = std::max(m_parts->GetCharHeight() + 8, 20);

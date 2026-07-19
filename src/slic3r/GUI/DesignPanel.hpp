@@ -20,6 +20,8 @@ class wxSpinCtrlDouble;
 class wxTreeCtrl;
 class wxImageList;
 class wxStaticText;
+class wxStaticLine;
+class Button;      // Orca-styled button (Widgets/Button.hpp)
 class wxSizer;
 class wxButton;
 class wxPanel;
@@ -427,6 +429,10 @@ private:
     wxTreeCtrl*               m_tree{nullptr};
     wxTreeCtrl*               m_parts{nullptr};        // Bodies list under the feature tree
     wxStaticText*             m_parts_label{nullptr};  // its "Bodies" caption (hidden when empty)
+    wxBoxSizer*               m_parts_hdr{nullptr};    // Bodies card header (icon + title)
+    wxStaticLine*             m_parts_rule{nullptr};   // rule under that header
+    wxBoxSizer*               m_hdr_tree_row{nullptr}; // Feature tree header: title + row actions
+    wxStaticText*             m_hdr_tree{nullptr};     // its title label
     wxImageList*              m_tree_images{nullptr};
     std::vector<wxTreeItemId> m_tree_items;
     // Parts list: tree rows for each body (parallel to m_doc.bodies). Selecting one
@@ -442,7 +448,7 @@ private:
     bool      m_section_on{false};
     double    m_section_cut_z{0.0};
     bool      m_section_upper{false};             // false = keep lower half, true = upper
-    wxButton* m_section_flip_btn{nullptr};        // enabled only while the section is on
+    Button*   m_section_flip_btn{nullptr};        // enabled only while the section is on
     void toggle_section_view();                   // Section View button / X: on <-> off
     void flip_section_view();                     // Flip button / F: opposite half
     void update_section_flip_btn();               // enable the Flip button iff the section is on
@@ -464,6 +470,7 @@ private:
     int  tree_selection() const;          // selected feature row, or wxNOT_FOUND
     int  tree_body_selection() const;     // selected Parts-list body index, or -1
     void refresh_parts();                 // rebuild the Bodies list under the feature tree
+    void sync_sidebar_width();            // keep the panel as wide as Prepare's sidebar
     void set_tree_selection(int row);
     static int tree_icon_for(CadFeatureType t);
 
