@@ -41,7 +41,14 @@
 
 #include "slic3r/GUI/DeviceCore/DevUtil.h"
 
+#include <optional>
+
 #define MAPPING_ITEM_INVALID_REMAIN -1
+
+namespace Slic3r {
+class DevNozzleRack;
+namespace GUI { class wgtDeviceNozzleRackSelect; }
+}
 
 namespace Slic3r { namespace GUI {
 
@@ -93,6 +100,9 @@ public:
     //info
     wxColour m_ams_coloul;
     wxString m_ams_name;
+    // Physical nozzle(s) the print-dispatch mapping assigned to this filament (e.g. "R1", "L R").
+    // Empty on printers without a nozzle rack or filament switcher; when set, the card grows a row.
+    wxString m_mapped_nozzle_str;
     int      m_ams_ctype = 0;
     std::vector<wxColour> m_ams_cols = std::vector<wxColour>();
     //reset
@@ -107,6 +117,7 @@ public:
     ScalableBitmap m_filament_wheel_transparent;
     ScalableBitmap m_ams_wheel_mitem;
     ScalableBitmap m_ams_not_match;
+    ScalableBitmap m_rack_nozzle_bitmap;
 
     bool m_selected {false};
     bool m_warning{false};
@@ -117,6 +128,10 @@ public:
     void allow_paint_dropdown(bool flag);
     void set_ams_info(wxColour col, wxString txt, int ctype=0, std::vector<wxColour> cols= std::vector<wxColour>(),bool record_back_info = false);
     void reset_ams_info();
+    // Set the mapped-nozzle label ("R1", "L R", ...); grows/shrinks the card as the row appears/clears.
+    void set_nozzle_info(const wxString& mapped_nozzle_str);
+    // Size the card: base swatch height, plus one row when a nozzle label is present.
+    void messure_size();
 
     void disable();
     void enable();
@@ -229,6 +244,9 @@ public:
     bool        m_has_unmatch_filament {false};
     int         m_current_filament_id;
     ShowType    m_show_type{ShowType::RIGHT};
+    // Orca: set from update() — true when a Filament Track Switch is installed, which makes the
+    // external-spool slots un-pickable (false on any printer without a switch, so behavior is unchanged).
+    bool        m_fila_switch_installed{false};
     std::string m_tag_material;
     wxBoxSizer *m_sizer_main{nullptr};
     wxBoxSizer *m_sizer_ams{nullptr};
@@ -259,12 +277,19 @@ public:
     wxBoxSizer* m_sizer_split_ams_right;
     bool        m_mapping_from_multi_machines {false};
 
+    // Rack nozzle manual-pick (rack printers only; hidden by default via Show(false)).
+    wgtDeviceNozzleRackSelect* m_rack_nozzle_select{nullptr};
+    Label*                     m_flush_warning_panel{nullptr}; // Orca: uses a plain Label for the flush warning
+    std::weak_ptr<DevNozzleRack> m_rack;
+
     void         set_sizer_title(wxBoxSizer *sizer, wxString text);
     wxBoxSizer*  create_split_sizer(wxWindow* parent, wxString text);
     void         set_send_win(wxWindow* win) {send_win = win;};
     void         update_materials_list(std::vector<std::string> list);
     void         set_tag_texture(std::string texture);
-    void         update(MachineObject* obj, const std::vector<FilamentInfo>& ams_mapping_result);
+    void         update(MachineObject* obj, const std::vector<FilamentInfo>& ams_mapping_result, bool use_dynamic_switch = false, std::optional<PrintFromType> print_type = std::nullopt);
+    void         update_rack_select(MachineObject* obj, bool use_dynamic_switch, std::optional<PrintFromType> print_type);
+    void         update_flush_waste(MachineObject* obj);
     void         update_title(MachineObject* obj);
     void         update_items_check_state(const std::vector<FilamentInfo>& ams_mapping_result);
     void         update_ams_data_multi_machines();
@@ -295,6 +320,8 @@ public:
     void EnableExtMappingFilaTypeCheck(bool to_check = true) { m_ext_mapping_filatype_check = to_check;} ;
 
 private:
+    void OnNozzleMappingSelected(wxCommandEvent& evt);
+
     ResetCallback m_reset_callback{nullptr};
     std::string m_material_index;
     bool m_only_show_ext_spool{false};

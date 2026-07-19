@@ -1,0 +1,175 @@
+//**********************************************************/
+/* File: wgtDeviceNozzleRackUpdate.h
+*  Description: The dialog for reading/upgrading the H2C induction-hotend-rack firmware.
+*
+*  \n class wgtDeviceNozzleRackUpgradeDlg;   // modal "Hotends Info" dialog
+*  \n class wgtDeviceNozzleRackUprade;       // the dialog's content panel (per-nozzle rows)
+*  \n class wgtDeviceNozzleRackHotendUpdate;  // one hotend row (toolhead "R" + rack 1..6)
+*
+*  Opened from the Device-tab rack panel's "Hotends Info" button (wgtDeviceNozzleRack.cpp) and
+*  reused by the Device->Upgrade page "Hotends on Rack" section
+*  (UpgradePanel::createNozzleRackWidgets). All device data + MQTT commands live in
+*  DevNozzleRack / DevNozzleSystem, so this is additive GUI gated behind
+*  DevNozzleRack::IsSupported() — dormant for every non-rack printer.
+//**********************************************************/
+
+#pragma once
+#include "slic3r/GUI/DeviceCore/DevNozzleRack.h"
+
+#include "slic3r/GUI/GUI_Utils.hpp"
+#include "slic3r/GUI/Widgets/StaticBox.hpp"
+#include "slic3r/GUI/Widgets/AnimaController.hpp"
+
+#include <wx/panel.h>
+#include <memory>
+#include <unordered_map>
+#include <vector>
+
+// Previous definitions
+class Button;
+class Label;
+class ScalableBitmap;
+class ScalableButton;
+namespace Slic3r
+{
+    struct DevNozzle;
+    class DevNozzleRack;
+namespace GUI
+{
+    class wgtDeviceNozzleRackUprade;
+    class wgtDeviceNozzleRackHotendUpdate;
+}
+};
+
+namespace Slic3r::GUI
+{
+class wgtDeviceNozzleRackUpgradeDlg : public DPIDialog
+{
+public:
+    wgtDeviceNozzleRackUpgradeDlg(wxWindow* parent, const std::shared_ptr<DevNozzleRack> rack);
+
+public:
+    void UpdateRackInfo(const std::shared_ptr<DevNozzleRack> rack);
+
+public:
+    void on_dpi_changed(const wxRect& suggested_rect) override;
+
+private:
+    wgtDeviceNozzleRackUprade* m_rack_upgrade_panel;
+};
+
+
+class wgtDeviceNozzleRackUprade : public wxPanel
+{
+public:
+    wgtDeviceNozzleRackUprade(wxWindow* parent,
+        wxWindowID id = wxID_ANY,
+        const wxPoint& pos = wxDefaultPosition,
+        const wxSize& size = wxDefaultSize,
+        long style = wxTAB_TRAVERSAL);
+    ~wgtDeviceNozzleRackUprade() = default;
+
+public:
+    void UpdateRackInfo(const std::shared_ptr<DevNozzleRack> rack);
+    void Rescale();
+
+private:
+    void CreateGui();
+
+    void OnBtnReadAll(wxCommandEvent& e);
+
+private:
+    std::weak_ptr<DevNozzleRack> m_nozzle_rack;
+
+    // GUI
+    wgtDeviceNozzleRackHotendUpdate* m_extruder_nozzle_item;
+    std::unordered_map<int, wgtDeviceNozzleRackHotendUpdate*> m_nozzle_items;
+};
+
+// Using for rack nozzle id or extruder nozzle id
+class wgtDeviceNozzleRackHotendUpdate : public StaticBox
+{
+public:
+    wgtDeviceNozzleRackHotendUpdate(wxWindow* parent, const wxString& idx_text);
+
+public:
+    // Color
+    void UpdateColourStyle(const wxColour& clr);
+
+    // extruder nozzle
+    int GetExtruderNozzleId() const { return m_ext_nozzle_id; }
+    void SetExtruderNozzleId(int ext_nozzle_id) { m_ext_nozzle_id = ext_nozzle_id; }
+    void UpdateExtruderNozzleInfo(const std::shared_ptr<DevNozzleRack> rack);
+
+    // rack nozzle
+    void SetRackNozzleId(int rack_nozzle_id) { m_rack_nozzle_id = rack_nozzle_id; }
+    int GetRackNozzleId() const { return m_rack_nozzle_id; }
+    void UpdateRackNozzleInfo(const std::shared_ptr<DevNozzleRack> rack);
+
+    // gui
+    void Rescale();
+
+private:
+    void CreateGui();
+
+    void UpdateInfo(const DevNozzle& nozzle);
+
+    void OnBitmapHoverEnter(wxMouseEvent& event);
+    void OnBitmapHoverLeave(wxMouseEvent& event);
+    void OnStatusIconClick(wxMouseEvent& event);
+    void updateNozzleImage(const DevNozzle& nozzle);
+
+private:
+    enum NozzleStatus : int
+    {
+        NOZZLE_STATUS_DC = -1,
+        NOZZLE_STATUS_EMPTY,
+        NOZZLE_STATUS_NORMAL,
+        NOZZLE_STATUS_ABNORMAL,
+        NOZZLE_STATUS_UNKNOWN,
+    };
+
+private:
+    int m_ext_nozzle_id = -1;
+    int m_rack_nozzle_id = -1;
+    bool m_isRefreshFinish = false;
+    bool findNozzleImage = false;
+
+    NozzleStatus m_nozzle_status = NOZZLE_STATUS_DC;
+    std::weak_ptr<DevNozzleRack> m_nozzle_rack;
+
+    std::vector<std::vector<ScalableBitmap*>> nozzle_hs;
+    std::vector<std::vector<ScalableBitmap*>> nozzle_hh;
+    // GUI
+    ScalableBitmap* m_nozzle_image = nullptr;
+    ScalableBitmap* m_nozzle_empty_image = nullptr;
+    ScalableBitmap* m_scaled_nozzle_image = nullptr;
+    ScalableBitmap* m_scaled_nozzle_empty_image = nullptr;
+    ScalableBitmap* m_refresh_icon = nullptr;
+    AnimaIcon* m_refreshing_icon = nullptr;
+    ScalableBitmap* m_error_icon = nullptr;
+
+    Label* m_idx_label;
+    wxStaticBitmap* m_icon_bitmap{ nullptr };
+    wxStaticBitmap* m_status_bitmap{ nullptr };
+
+    Label* m_material_label{ nullptr };
+    StaticBox* m_colour_box{ nullptr };
+    wxFrame* m_hoverFrame{ nullptr };
+
+    Label* m_status_label{ nullptr };
+    Label* m_used_time{ nullptr };
+
+    Label* m_diameter_label;
+    Label* m_flowtype_label;
+    Label* m_type_label;
+    ScalableButton* m_error_button{ nullptr };
+
+    Label* m_sn_label;
+    Label* m_version_label;
+    Label* m_version_new_label;
+};
+
+wxDECLARE_EVENT(wxEVT_NOZZLE_JUMP_UPGRADE, wxCommandEvent);
+
+};// end of namespace Slic3r::GUI

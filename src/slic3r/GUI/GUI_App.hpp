@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include "ActionRegistry.hpp"
 #include "ImGuiWrapper.hpp"
 #include "ConfigWizard.hpp"
 #include "OpenGLManager.hpp"
@@ -85,6 +86,9 @@ class HMSQuery;
 class ModelMallDialog;
 class PingCodeBindDialog;
 class NetworkErrorDialog;
+class PluginsDialog;
+class SpeedDialWebDialog;
+class TerminalDialog;
 
 
 enum FileType
@@ -550,6 +554,11 @@ public:
     void            update_single_bundle(wxCommandEvent& evt);
 
     PresetBundleDialog* m_preset_bundle_dlg{nullptr};
+    PluginsDialog* m_plugins_dlg{nullptr};
+    SpeedDialWebDialog* m_speed_dial_dialog{nullptr};
+    TerminalDialog* m_terminal_dlg{nullptr};
+    ActionRegistry  m_action_registry;
+
 
     void            start_http_server(const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            start_http_server(int port, const std::string& provider = ORCA_CLOUD_PROVIDER);
@@ -617,6 +626,10 @@ public:
 
     void            open_preferences(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     void            open_presetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    void            open_plugins_dialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    void            open_terminal_dialog();
+    void            open_speed_dial();
+    ActionRegistry& action_registry() { return m_action_registry; }
     void            open_exportpresetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     virtual bool OnExceptionInMainLoop() override;
     // Calls wxLaunchDefaultBrowser if user confirms in dialog.
@@ -765,6 +778,9 @@ private:
     bool            on_init_network(bool try_backup = false);
     void            init_networking_callbacks();
     void            init_app_config();
+    // GUI-side subscriptions to plugin loader events (dialog refresh,
+    // network-agent registration, plate revalidation).
+    void            init_plugin_gui_wiring();
     void            remove_old_networking_plugins();
     void            drain_pending_events(int timeout_ms);
     bool            wait_for_network_idle(int timeout_ms);

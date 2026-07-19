@@ -4,6 +4,7 @@
 #include "LocalesUtils.hpp"
 #include "Preset.hpp"
 
+#include <algorithm>
 #include <assert.h>
 #include <fstream>
 #include <iostream>
@@ -35,6 +36,8 @@ using namespace nlohmann;
 #include "PrintConfig.hpp"
 
 namespace Slic3r {
+
+std::function<std::string(std::string, std::string)> ConfigBase::resolve_capability_fn = nullptr;
 
 //BBS: add json support
 //static const std::string CONFIG_VERSION_KEY = "version";
@@ -84,12 +87,12 @@ std::string escape_strings_cstyle(const std::vector<std::string> &strs)
             // Separate the strings.
             (*outptr ++) = ';';
         const std::string &str = strs[j];
-        // Is the string simple or complex? Complex string contains spaces, tabs, new lines and other
-        // escapable characters. Empty string shall be quoted as well, if it is the only string in strs.
+        // Is the string simple or complex? Complex string contains spaces, tabs, semicolons, new lines
+        // and other escapable characters. Empty string shall be quoted as well, if it is the only string in strs.
         bool should_quote = strs.size() == 1 && str.empty();
         for (size_t i = 0; i < str.size(); ++ i) {
             char c = str[i];
-            if (c == ' ' || c == '\t' || c == '\\' || c == '"' || c == '\r' || c == '\n') {
+            if (c == ' ' || c == '\t' || c == ';' || c == '\\' || c == '"' || c == '\r' || c == '\n') {
                 should_quote = true;
                 break;
             }
@@ -1486,6 +1489,29 @@ ConfigSubstitutions ConfigBase::load_from_gcode_file(const std::string &file, Fo
     return std::move(substitutions_ctxt.substitutions);
 }
 
+std::optional<PluginCapabilityRef> parse_capability_ref(const std::string& value)
+{
+    // Capability references are stored as "<plugin_name>;<cloud_uuid>;<capability_name>".
+    // The cloud UUID is empty for local plugins (two consecutive semicolons).
+    if (value.empty())
+        return std::nullopt;
+
+    const size_t first = value.find(';');
+    if (first == std::string::npos)
+        return std::nullopt;
+    const size_t second = value.find(';', first + 1);
+    if (second == std::string::npos)
+        return std::nullopt;
+
+    std::string name            = value.substr(0, first);
+    std::string uuid            = value.substr(first + 1, second - first - 1);
+    std::string capability_name = value.substr(second + 1);
+    if (name.empty() || capability_name.empty())
+        return std::nullopt;
+
+    return PluginCapabilityRef{ std::move(name), std::move(capability_name), std::move(uuid) };
+}
+
 //BBS: add json support
 void ConfigBase::save_to_json(const std::string &file, const std::string &name, const std::string &from, const std::string &version) const
 {
@@ -1522,6 +1548,18 @@ void ConfigBase::save_to_json(const std::string &file, const std::string &name, 
         }
     }
 
+    // Serialize the top-level "plugins" manifest: the individual plugin-backed options keep bare
+    // capability names; the full "name;uuid;capability" references are derived here (same helper as
+    // update_plugin_manifest). Only with a resolver (GUI); without one (CLI/headless) leave whatever
+    // the "plugins" option already serialized above, so a round-trip never drops the manifest.
+    if (resolve_capability_fn) {
+        std::vector<std::string> unique_refs = this->collect_plugin_manifest();
+        if (unique_refs.empty())
+            j.erase("plugins");
+        else
+            j["plugins"] = unique_refs;
+    }
+
     boost::nowide::ofstream c;
     c.open(file, std::ios::out | std::ios::trunc);
     c << j.dump(1, '\t') << std::endl;
@@ -1551,6 +1589,69 @@ void ConfigBase::null_nullables()
         if (opt->nullable())
         	opt->deserialize("nil", ForwardCompatibilitySubstitutionRule::Disable);
     }
+}
+
+void ConfigBase::save_plugin_collection(const std::string& opt_key, const ConfigOption* opt, std::vector<std::string>& plugin_refs) const {
+    // Full plugin capability references ("name;uuid;capability") can only be derived through the
+    // resolver registered by the GUI once plugins are loaded. In non-GUI/headless contexts (e.g.
+    // the CLI) it stays null, so skip silently rather than calling an empty std::function.
+    if (!resolve_capability_fn)
+        return;
+
+    // A plugin-backed option declares its capability type via ConfigOptionDef::plugin_type (the same
+    // metadata PluginResolver::find_option_for_capability scans). Deriving off the def rather than a
+    // per-key branch keeps this generic across every plugin-backed option.
+    const ConfigDef*       def     = this->def();
+    const ConfigOptionDef* opt_def = def ? def->get(opt_key) : nullptr;
+    if (opt_def == nullptr || !opt_def->is_plugin_backed())
+        return;
+    const std::string& type = opt_def->plugin_type;
+
+    // Resolve a single bare capability value into its full reference and append it, skipping unset
+    // values, capabilities that could not be resolved (resolver returns ""), and duplicates already
+    // collected (preserving insertion order).
+    const auto append_ref = [&plugin_refs, &type](const std::string& capability_value) {
+        if (capability_value.empty())
+            return;
+        std::string ref = resolve_capability_fn(capability_value, type);
+        if (!ref.empty() && std::find(plugin_refs.begin(), plugin_refs.end(), ref) == plugin_refs.end())
+            plugin_refs.emplace_back(std::move(ref));
+    };
+
+    // Scalar options carry a single capability name; vector options carry a list. Same scalar/vector
+    // dispatch as PluginResolver::find_option_for_capability.
+    if (const auto* string_option = dynamic_cast<const ConfigOptionString*>(opt))
+        append_ref(string_option->value);
+    else if (const auto* vector_option = dynamic_cast<const ConfigOptionVectorBase*>(opt))
+        for (const std::string& val : vector_option->vserialize())
+            append_ref(val);
+}
+
+std::vector<std::string> ConfigBase::collect_plugin_manifest() const
+{
+    std::vector<std::string> refs;
+    if (!resolve_capability_fn)
+        return refs;
+
+    // Each plugin-backed option (ConfigOptionDef::is_plugin_backed) contributes its resolved
+    // reference(s) via save_plugin_collection, which appends in order and skips duplicates, so no
+    // second de-duplication pass is needed here.
+    for (const std::string& opt_key : this->keys())
+        if (const ConfigOption* opt = this->option(opt_key))
+            this->save_plugin_collection(opt_key, opt, refs);
+    return refs;
+}
+
+void ConfigBase::update_plugin_manifest()
+{
+    // Writes the derived manifest back into this config's "plugins" option (save_to_json writes the
+    // same manifest into a JSON document instead), so an in-memory backend config carries a resolved
+    // manifest even when the source preset was never serialized (picked-but-unsaved). Without a
+    // resolver (CLI/headless) leave whatever manifest was loaded from disk untouched.
+    if (!resolve_capability_fn)
+        return;
+    if (auto* manifest = this->option<ConfigOptionStrings>("plugins", true))
+        manifest->values = this->collect_plugin_manifest();
 }
 
 DynamicConfig::DynamicConfig(const ConfigBase& rhs, const t_config_option_keys& keys)

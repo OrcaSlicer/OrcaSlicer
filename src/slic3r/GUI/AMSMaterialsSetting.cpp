@@ -16,6 +16,9 @@
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevFilaBlackList.h"
 #include "DeviceCore/DevFilaSystem.h"
+#include "DeviceCore/DevFilaSwitch.h"
+#include "DeviceCore/DevNozzleSystem.h" // DevNozzle / GetNozzleByPosId / GetNozzleRack
+#include "DeviceCore/DevNozzleRack.h"   // DevNozzleRack::IsSupported (rack gating)
 
 #define FILAMENT_MAX_TEMP       300
 #define FILAMENT_MIN_TEMP       120
@@ -298,7 +301,7 @@ void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
     if (language.find("zh") == 0)
         region = "zh";
     wxString link_url = wxString::Format("https://wiki.bambulab.com/%s/software/bambu-studio/calibration_pa", region);
-    m_wiki_ctrl = new HyperLink(parent, "Wiki Guide", link_url);
+    m_wiki_ctrl = new HyperLink(parent, _L("Wiki Guide"), link_url);
     cali_title_sizer->Add(m_ratio_text, 0, wxALIGN_CENTER_VERTICAL);
     cali_title_sizer->Add(m_wiki_ctrl, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -531,56 +534,121 @@ void AMSMaterialsSetting::on_select_reset(wxCommandEvent& event) {
     Close();
 }
 
+// Nozzle-context builder for the AMS-edit blacklist check. Factors the blacklist evaluation out of
+// on_select_ok and threads rack-gated per-nozzle context (extruder id + nozzle flow + nozzle diameter)
+// into CheckFilamentInfo, returning the accumulate-all CheckResult. As a side effect it resolves
+// ams_filament_id/ams_setting_id from the matched preset. fila_name is kept as the preset name (not
+// the short alias) so the name / name_suffix rules match on the non-rack fleet (no unintended
+// activation of e.g. the PLA Glow rule).
+static DevFilaBlacklist::CheckResult
+sCheckFilamentInfo(PresetBundle*      preset_bundle,
+                   MachineObject*     obj,
+                   int                ams_id,
+                   int                slot_id,
+                   const std::string& filament_id,
+                   std::string&       ams_filament_id,
+                   std::string&       ams_setting_id)
+{
+    DevFilaBlacklist::CheckResult result;
+    if (!preset_bundle || !obj)
+        return result;
+
+    // Orca: there is no lookup struct that also carries setting_id, so resolve the (root) preset by
+    // scanning the filaments collection for a matching filament_id.
+    Preset* fila_preset = nullptr;
+    for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); ++it) {
+        if (it->filament_id == filament_id) {
+            fila_preset = &(*it);
+            break;
+        }
+    }
+    if (!fila_preset)
+        return result;
+
+    if (wxGetApp().app_config->get("skip_ams_blacklist_check") != "true") {
+        std::string filamnt_type;
+        fila_preset->get_filament_type(filamnt_type);
+
+        DevFilaBlacklist::CheckFilamentInfo check_info;
+        check_info.dev_id              = obj->get_dev_id();
+        check_info.model_id            = obj->printer_type;
+        check_info.fila_id             = fila_preset->filament_id;
+        check_info.fila_type           = filamnt_type;
+        check_info.fila_name           = fila_preset->name;
+        check_info.has_filament_switch = obj->GetFilaSwitch()->IsInstalled();
+        check_info.ams_id              = ams_id;
+        check_info.slot_id             = slot_id;
+
+        if (auto vendor = dynamic_cast<ConfigOptionStrings*>(fila_preset->config.option("filament_vendor"));
+            vendor && !vendor->values.empty()) {
+            check_info.fila_vendor = vendor->values[0];
+        }
+
+        check_info.extruder_id = obj->GetFilaSystem()->GetExtruderIdByAmsId(std::to_string(ams_id));
+
+        // Rack-gated per-nozzle context. For a multi-nozzle main extruder on a rack printer (H2C) the
+        // specific nozzle is resolved later by the print-dispatch rack mapping, so leave
+        // nozzle_flow/nozzle_diameter unset here to keep the high-flow nozzle rules dormant. Every
+        // non-rack printer takes the else branch, threading the reported nozzle flow + diameter and
+        // thereby activating the high-flow blacklist warnings in the AMS-edit dialog for H2D/H2S/X2D/P2S
+        // (and the E3D-kit X1C/P1x).
+        DevNozzleSystem* nozzle_system = obj->GetNozzleSystem();
+        const bool       rack_supported = nozzle_system && nozzle_system->GetNozzleRack() &&
+                                    nozzle_system->GetNozzleRack()->IsSupported();
+        if (check_info.extruder_id == MAIN_EXTRUDER_ID && rack_supported) {
+            ; // multi-nozzle main extruder on a rack printer — nozzle resolved later by print dispatch
+        } else {
+            check_info.nozzle_flow = obj->GetFilaSystem()->GetNozzleFlowStringByAmsId(std::to_string(ams_id));
+            if (nozzle_system) {
+                DevNozzle nozzle = nozzle_system->GetNozzleByPosId(check_info.extruder_id.value_or(-1));
+                if (!nozzle.IsEmpty())
+                    check_info.nozzle_diameter = nozzle.GetNozzleDiameter();
+            }
+        }
+
+        result = DevFilaBlacklist::check_filaments_in_blacklist(check_info);
+    }
+
+    ams_filament_id = fila_preset->filament_id;
+    ams_setting_id  = fila_preset->setting_id;
+    return result;
+}
+
 void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
 {
+    if (!obj)
+        return;
+
     //get filament id
     ams_filament_id = "";
     ams_setting_id = "";
 
+    // the combobox item
+    auto filament_item = map_filament_items[m_comboBox_filament->GetValue().ToStdString()];
+
+    // check filament info (rack-gated per-nozzle blacklist evaluation)
     PresetBundle* preset_bundle = wxGetApp().preset_bundle;
-    if (preset_bundle) {
-        for (auto it = preset_bundle->filaments.begin(); it != preset_bundle->filaments.end(); it++) {
+    const auto& fila_check_res = sCheckFilamentInfo(preset_bundle, obj, ams_id, slot_id,
+                                                    filament_item.filament_id, ams_filament_id, ams_setting_id);
 
-            auto filament_item = map_filament_items[m_comboBox_filament->GetValue().ToStdString()];
-            std::string filament_id = filament_item.filament_id;
-            if (it->filament_id.compare(filament_id) == 0) {
+    if (const auto& prohibit_items = fila_check_res.get_items_by_action("prohibition"); !prohibit_items.empty()) {
+        wxString info_msg;
+        for (const auto& item : prohibit_items) { info_msg += item.info_msg + "\n"; }
+        MessageDialog msg_wingow(nullptr, info_msg, _L("Error"), wxICON_WARNING | wxOK);
+        msg_wingow.ShowModal();
+        return;
+    }
 
-
-                //check is it in the filament blacklist
-                if (wxGetApp().app_config->get("skip_ams_blacklist_check") != "true") {
-                    bool in_blacklist = false;
-                    std::string action;
-                    wxString info;
-                    std::string filamnt_type;
-                    std::string filamnt_name;
-                    it->get_filament_type(filamnt_type);
-
-                    auto vendor = dynamic_cast<ConfigOptionStrings *>(it->config.option("filament_vendor"));
-
-                    if (vendor && (vendor->values.size() > 0)) {
-                        std::string vendor_name = vendor->values[0];
-                        DevFilaBlacklist::check_filaments_in_blacklist(obj->printer_type, vendor_name, filamnt_type, it->filament_id, ams_id, slot_id, it->name, in_blacklist, action, info);
-                    }
-
-                    if (in_blacklist) {
-                        if (action == "prohibition") {
-                            MessageDialog msg_wingow(nullptr, info, _L("Error"), wxICON_WARNING | wxOK);
-                            msg_wingow.ShowModal();
-                            //m_comboBox_filament->SetSelection(m_filament_selection);
-                            return;
-                        }
-                        else if (action == "warning") {
-                            MessageDialog msg_wingow(nullptr, info, _L("Warning"), wxICON_INFORMATION | wxOK);
-                            msg_wingow.ShowModal();
-                        }
-                    }
-                }
-
-                ams_filament_id = it->filament_id;
-                ams_setting_id = it->setting_id;
-                break;
-            }
+    if (const auto& warning_items = fila_check_res.get_items_by_action("warning"); !warning_items.empty()) {
+        std::vector<FilamentWarningInfo> infos;
+        for (const auto& item : warning_items) {
+            FilamentWarningInfo winfo;
+            winfo.info_msg = item.info_msg;
+            winfo.wiki_url = item.wiki_url;
+            infos.emplace_back(winfo);
         }
+        FilamentWarningDialog msg_window(nullptr, _L("Warning"), infos);
+        msg_window.ShowModal();
     }
 
     wxString nozzle_temp_min = m_input_nozzle_min->GetTextCtrl()->GetValue();
