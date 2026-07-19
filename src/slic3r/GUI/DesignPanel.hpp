@@ -425,6 +425,8 @@ private:
     // integer row indices via tree_selection()/set_tree_selection(); m_tree_items
     // maps feature order -> tree node, rebuilt by refresh_tree().
     wxTreeCtrl*               m_tree{nullptr};
+    wxTreeCtrl*               m_parts{nullptr};        // Bodies list under the feature tree
+    wxStaticText*             m_parts_label{nullptr};  // its "Bodies" caption (hidden when empty)
     wxImageList*              m_tree_images{nullptr};
     std::vector<wxTreeItemId> m_tree_items;
     // Parts list: tree rows for each body (parallel to m_doc.bodies). Selecting one
@@ -461,6 +463,7 @@ private:
     void on_set_body_color();             // Color tool: pick a per-body display colour override
     int  tree_selection() const;          // selected feature row, or wxNOT_FOUND
     int  tree_body_selection() const;     // selected Parts-list body index, or -1
+    void refresh_parts();                 // rebuild the Bodies list under the feature tree
     void set_tree_selection(int row);
     static int tree_icon_for(CadFeatureType t);
 

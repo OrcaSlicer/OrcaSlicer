@@ -1563,18 +1563,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // (its face is already shown via the persistent sketch overlay).
     m_tree->Bind(wxEVT_TREE_SEL_CHANGED, [this](wxTreeEvent&) {
         if (!m_viewport) return;
-        // A Parts-list body row: highlight that body and make it the op target.
-        const int bsel = tree_body_selection();
-        if (bsel >= 0) {
-            m_viewport->set_body_highlight(false);   // the per-body overlay does the tint
-            m_viewport->select_body(bsel);
-            m_sel_solid_body = bsel;
-            m_sel_solid_face = m_sel_solid_edge = -1;
-            m_status->SetForegroundColour(wxNullColour);
-            m_status->SetLabel(wxString::Format(_L("Body %d selected — next Extrude / Fillet acts on it"), bsel + 1));
-            m_status->Refresh();
-            return;
-        }
+        // Bodies live in the Parts list now; picking a feature here drops any body selection
+        // so the two lists can't both claim to be "the target".
+        if (m_parts) m_parts->UnselectAll();
         const int sel = tree_selection();
         const bool body = (sel >= 0 && sel < int(m_doc.features.size()) &&
                            m_doc.features[sel].type != CadFeatureType::Sketch &&
@@ -1625,6 +1616,32 @@ DesignPanel::DesignPanel(wxWindow* parent)
         trow->Add(down, 0);
         root->Add(trow, 0, wxLEFT | wxRIGHT | wxBOTTOM, 12);
     }
+
+    // Parts list (Onshape's Features + Parts split). Bodies used to be appended after the
+    // features INSIDE the feature tree, so they were pushed out of view as the history grew —
+    // with no way to select a body at all. Their own list keeps them reachable regardless.
+    m_parts_label = new wxStaticText(m_form, wxID_ANY, _L("Bodies"));
+    root->Add(m_parts_label, 0, wxLEFT | wxTOP, 12);
+    m_parts = new wxTreeCtrl(m_form, wxID_ANY, wxDefaultPosition, wxSize(-1, 48),
+                             wxTR_HIDE_ROOT | wxTR_SINGLE | wxTR_NO_LINES |
+                             wxTR_FULL_ROW_HIGHLIGHT | wxBORDER_SIMPLE);
+    if (!dp_dark()) m_parts->SetBackgroundColour(dp_panel_bg());
+    root->Add(m_parts, 0, wxEXPAND | wxALL, 12);
+    m_parts->Bind(wxEVT_TREE_SEL_CHANGED, [this](wxTreeEvent&) {
+        if (!m_viewport) return;
+        const int b = tree_body_selection();
+        if (b < 0) return;
+        // One selection at a time: a body row and a feature row mean different things to the
+        // op bar, so clear the feature tree's highlight when a body takes over.
+        if (m_tree) m_tree->UnselectAll();
+        m_viewport->set_body_highlight(false);   // the per-body overlay does the tint
+        m_viewport->select_body(b);
+        m_sel_solid_body = b;
+        m_sel_solid_face = m_sel_solid_edge = -1;
+        m_status->SetForegroundColour(wxNullColour);
+        m_status->SetLabel(wxString::Format(_L("Body %d selected — next Extrude / Fillet acts on it"), b + 1));
+        m_status->Refresh();
+    });
 
     // Prepare's "Place on Face (F)" for the selected body: pick a face, lay it flat on the bed.
     auto* place = new wxButton(m_form, wxID_ANY, _L("Place on Face (F)"));
@@ -3314,30 +3331,13 @@ void DesignPanel::refresh_tree()
                                                 : dp_item_dim());
         m_tree_items.push_back(id);
     }
-    // Parts list: a Bodies group listing each independent solid. Shown only with >1 body
-    // (a single body is just "the solid"); selecting a row highlights it + targets it.
-    if (m_doc.bodies.size() > 1) {
-        sync_body_visible();   // keep flags parallel before reading them for the row colour
-        wxTreeItemId grp = m_tree->AppendItem(root, _L("Bodies"));
-        m_tree->SetItemTextColour(grp, dp_sec_text());
-        for (size_t b = 0; b < m_doc.bodies.size(); ++b) {
-            // Label "Body N" (matches the viewport/status); the originating feature name is
-            // kept on the CadBody for tooltips/debug but isn't shown as the row label.
-            const bool vis = b >= m_body_visible.size() || m_body_visible[b];
-            wxTreeItemId id = m_tree->AppendItem(grp, wxString::Format(_L("Body %zu"), b + 1));
-            // Hidden bodies are greyed so the show/hide state reads at a glance (eye toggle).
-            m_tree->SetItemTextColour(id, vis ? dp_item_text() : dp_item_dim());
-            m_tree_body_items.push_back(id);
-        }
-        m_tree->Expand(grp);
-    }
+    refresh_parts();   // bodies live in their own list below the tree, never clipped by history
     if (keep >= 0 && keep < int(m_tree_items.size()))
         m_tree->SelectItem(m_tree_items[keep]);
 
     // Size the tree to its content (clamped) so it doesn't waste a fixed-height block when
     // there are few features, and scrolls internally past ~9 rows instead of growing forever.
-    int rows = int(m_tree_items.size());
-    if (m_doc.bodies.size() > 1) rows += 1 + int(m_doc.bodies.size());   // "Bodies" header + rows
+    const int rows  = int(m_tree_items.size());   // bodies are in their own list now
     const int rowH  = std::max(m_tree->GetCharHeight() + 8, 20);
     const int shown = std::min(std::max(rows, 1), 9);
     const wxSize ts(-1, shown * rowH + 8);
@@ -3346,9 +3346,50 @@ void DesignPanel::refresh_tree()
     if (m_form && m_form->GetSizer()) { m_form->Layout(); m_form->FitInside(); }
 }
 
+// Rebuild the Parts list from the document's bodies, preserving the selected row so a
+// recompute (fillet, hole, ...) doesn't drop the user's body selection under them.
+void DesignPanel::refresh_parts()
+{
+    if (m_parts == nullptr) return;
+    const int keep = tree_body_selection();
+
+    m_parts->DeleteAllItems();
+    m_tree_body_items.clear();
+    wxTreeItemId proot = m_parts->AddRoot("root");
+
+    sync_body_visible();   // keep flags parallel before reading them for the row colour
+    for (size_t b = 0; b < m_doc.bodies.size(); ++b) {
+        // Label "Body N" (matches the viewport/status); the originating feature name is kept
+        // on the CadBody for tooltips/debug but isn't shown as the row label.
+        const bool vis = b >= m_body_visible.size() || m_body_visible[b];
+        wxTreeItemId id = m_parts->AppendItem(proot, wxString::Format(_L("Body %zu"), b + 1));
+        // Hidden bodies are greyed so the show/hide state reads at a glance (eye toggle).
+        m_parts->SetItemTextColour(id, vis ? dp_item_text() : dp_item_dim());
+        m_tree_body_items.push_back(id);
+    }
+
+    // Hide the whole block until there is something to list, so an empty document doesn't
+    // show a stray empty box.
+    const bool any = !m_tree_body_items.empty();
+    m_parts->Show(any);
+    if (m_parts_label) m_parts_label->Show(any);
+
+    if (any) {
+        const int rowH  = std::max(m_parts->GetCharHeight() + 8, 20);
+        const int shown = std::min(int(m_tree_body_items.size()), 6);   // scrolls past 6
+        const wxSize ps(-1, shown * rowH + 8);
+        m_parts->SetMinSize(ps);
+        m_parts->SetMaxSize(ps);
+        if (keep >= 0 && keep < int(m_tree_body_items.size()))
+            m_parts->SelectItem(m_tree_body_items[keep]);
+    }
+    if (m_form && m_form->GetSizer()) { m_form->Layout(); m_form->FitInside(); }
+}
+
 int DesignPanel::tree_body_selection() const
 {
-    const wxTreeItemId sel = m_tree->GetSelection();
+    if (m_parts == nullptr) return -1;
+    const wxTreeItemId sel = m_parts->GetSelection();
     if (!sel.IsOk()) return -1;
     for (size_t i = 0; i < m_tree_body_items.size(); ++i)
         if (m_tree_body_items[i] == sel) return int(i);
