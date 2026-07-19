@@ -43,6 +43,7 @@
 #include "Widgets/Label.hpp"             // HarmonyOS Sans fonts (Head_*/Body_*) shared with the rest of Orca
 #include "Widgets/DropDown.hpp"          // Orca-themed combo dropdown (white/teal selector) for the tool flyouts
 #include "Widgets/Button.hpp"            // Orca-styled Button (ButtonStyle/ButtonType) — same look as Prepare
+#include "Widgets/CheckBox.hpp"          // Orca teal check (label lives in the row's left column)
 #include "libslic3r/SketchImport.hpp"    // text_to_regions / svg_to_regions
 #include "libslic3r/ThreadStandards.hpp" // ISO metric / Unified imperial thread tables
 #include "libslic3r/Model.hpp"
@@ -1036,9 +1037,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         eform->Add(new wxStaticText(m_form, wxID_ANY, _L("Result")), 0, wxALIGN_CENTER_VERTICAL);
         eform->Add(m_mode, 0, wxEXPAND);
 
-        m_flip = new wxCheckBox(m_form, wxID_ANY, _L("Flip direction"));
-        eform->Add(new wxStaticText(m_form, wxID_ANY, wxEmptyString));
-        eform->Add(m_flip, 0, wxEXPAND);
+        m_flip = new CheckBox(m_form);
+        eform->Add(new wxStaticText(m_form, wxID_ANY, _L("Flip direction")), 0, wxALIGN_CENTER_VERTICAL);
+        eform->Add(m_flip, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
 
         m_box_extrude->Add(eform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
@@ -1110,10 +1111,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
     hform->Add(new wxStaticText(m_form, wxID_ANY, _L("Pos Y")), 0, wxALIGN_CENTER_VERTICAL);
     hform->Add(m_hole_y, 0, wxEXPAND);
 
-    m_hole_through = new wxCheckBox(m_form, wxID_ANY, _L("Through"));
+    m_hole_through = new CheckBox(m_form);
     m_hole_through->SetValue(true);
-    hform->Add(new wxStaticText(m_form, wxID_ANY, _L("Mode")), 0, wxALIGN_CENTER_VERTICAL);
-    hform->Add(m_hole_through, 0, wxEXPAND);
+    hform->Add(new wxStaticText(m_form, wxID_ANY, _L("Through")), 0, wxALIGN_CENTER_VERTICAL);
+    hform->Add(m_hole_through, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
 
     m_box_hole = new wxBoxSizer(wxVERTICAL);
     m_box_hole->Add(card_header("design_hole", _L("Hole"), m_hdr_hole), 0, wxLEFT | wxRIGHT | wxTOP, 12);
@@ -1169,16 +1170,16 @@ DesignPanel::DesignPanel(wxWindow* parent)
     tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Pos Y")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(m_thread_y, 0, wxEXPAND);
 
-    m_thread_internal = new wxCheckBox(m_form, wxID_ANY, _L("Internal (tapped bore)"));
+    m_thread_internal = new CheckBox(m_form);
     m_thread_internal->SetValue(false);
     // External rod uses the major radius; an internal tapped bore uses the minor
     // (tap-drill) radius — re-derive the nominal radius when the role flips.
-    m_thread_internal->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
+    m_thread_internal->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
         apply_thread_standard();
         e.Skip();
     });
     tform->Add(new wxStaticText(m_form, wxID_ANY, _L("Internal")), 0, wxALIGN_CENTER_VERTICAL);
-    tform->Add(m_thread_internal, 0, wxEXPAND);
+    tform->Add(m_thread_internal, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
 
     m_box_thread = new wxBoxSizer(wxVERTICAL);
     m_box_thread->Add(card_header("design_thread", _L("Thread"), m_hdr_thread), 0, wxLEFT | wxRIGHT | wxTOP, 12);
@@ -1215,9 +1216,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         rform->Add(new wxStaticText(m_form, wxID_ANY, _L("Mode")), 0, wxALIGN_CENTER_VERTICAL);
         rform->Add(m_revolve_mode, 0, wxEXPAND);
 
-        m_revolve_flip = new wxCheckBox(m_form, wxID_ANY, _L("Flip direction"));
-        rform->Add(new wxStaticText(m_form, wxID_ANY, wxEmptyString));
-        rform->Add(m_revolve_flip, 0, wxEXPAND);
+        m_revolve_flip = new CheckBox(m_form);
+        rform->Add(new wxStaticText(m_form, wxID_ANY, _L("Flip direction")), 0, wxALIGN_CENTER_VERTICAL);
+        rform->Add(m_revolve_flip, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
 
         m_box_revolve->Add(rform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
@@ -1322,9 +1323,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
         m_box_boolean->Add(bform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
 
-        m_bool_keep = new wxCheckBox(m_form, wxID_ANY, _L("Keep tool body"));
-        m_bool_keep->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { refresh_preview(); });
-        m_box_boolean->Add(m_bool_keep, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_bool_keep = new CheckBox(m_form);
+        m_bool_keep->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { refresh_preview(); });
+        auto* keeprow = new wxBoxSizer(wxHORIZONTAL);
+        keeprow->Add(new wxStaticText(m_form, wxID_ANY, _L("Keep tool body")), 0, wxALIGN_CENTER_VERTICAL);
+        keeprow->AddStretchSpacer();
+        keeprow->Add(m_bool_keep, 0, wxALIGN_CENTER_VERTICAL);
+        m_box_boolean->Add(keeprow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
     root->Add(m_box_boolean, 0, wxEXPAND);
 
@@ -1454,8 +1459,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
         m_box_loft->Add(lform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     }
-    m_loft_ruled = new wxCheckBox(m_form, wxID_ANY, _L("Ruled (straight) sections"));
-    m_box_loft->Add(m_loft_ruled, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_loft_ruled = new CheckBox(m_form);
+    {
+        auto* lrow = new wxBoxSizer(wxHORIZONTAL);
+        lrow->Add(new wxStaticText(m_form, wxID_ANY, _L("Ruled (straight) sections")), 0, wxALIGN_CENTER_VERTICAL);
+        lrow->AddStretchSpacer();
+        lrow->Add(m_loft_ruled, 0, wxALIGN_CENTER_VERTICAL);
+        m_box_loft->Add(lrow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+    }
     root->Add(m_box_loft, 0, wxEXPAND);
 
     // --- Shell (hollow the current body to a wall thickness, removing one picked face) ---
@@ -1745,6 +1756,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_form->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent& e) { refresh_preview(); e.Skip(); });
     m_form->Bind(wxEVT_CHOICE,         [this](wxCommandEvent& e)    { refresh_preview(); e.Skip(); });
     m_form->Bind(wxEVT_CHECKBOX,       [this](wxCommandEvent& e)    { refresh_preview(); e.Skip(); });
+    m_form->Bind(wxEVT_TOGGLEBUTTON,   [this](wxCommandEvent& e)    { refresh_preview(); e.Skip(); });
 
     m_form->SetSizer(root);
 

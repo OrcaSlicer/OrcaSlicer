@@ -22,6 +22,7 @@ class wxImageList;
 class wxStaticText;
 class wxStaticLine;
 class Button;      // Orca-styled button (Widgets/Button.hpp)
+class CheckBox;    // Orca teal checkbox (Widgets/CheckBox.hpp)
 class wxSizer;
 class wxButton;
 class wxPanel;
@@ -294,7 +295,7 @@ private:
     wxChoice*         m_extrude_end{nullptr};   // Blind/Symmetric/TwoSided/ThroughAll/UpTo*
     wxSpinCtrlDouble* m_distance2{nullptr};     // second-side depth (Two-sided)
     wxSpinCtrlDouble* m_taper{nullptr};         // draft angle (deg)
-    wxCheckBox*       m_flip{nullptr};          // reverse extrude direction
+    CheckBox*         m_flip{nullptr};          // reverse extrude direction
 
     wxStaticText*     m_extrude_sketch_label{nullptr};
     int               m_extrude_sketch_ref{-1};
@@ -304,7 +305,7 @@ private:
     wxSpinCtrlDouble* m_revolve_angle{nullptr};
     wxChoice*         m_revolve_axis{nullptr};   // 0 = plane X, 1 = plane Y
     wxChoice*         m_revolve_mode{nullptr};   // New/Add/Cut/Intersect
-    wxCheckBox*       m_revolve_flip{nullptr};
+    CheckBox*         m_revolve_flip{nullptr};
     int               m_revolve_sketch_ref{-1};
 
     // Sweep controls (sweep a profile sketch along a path sketch).
@@ -316,7 +317,7 @@ private:
 
     // Loft controls (skin a solid through 2+ ordered profile Sketches).
     wxCheckListBox*   m_loft_list{nullptr};        // every Sketch; check 2+ in list order = profiles
-    wxCheckBox*       m_loft_ruled{nullptr};       // ruled (straight) vs smooth sections
+    CheckBox*         m_loft_ruled{nullptr};       // ruled (straight) vs smooth sections
     wxChoice*         m_loft_mode{nullptr};        // New/Add/Cut/Intersect
     std::vector<int>  m_loft_sketch_idx;           // feature index for each row in m_loft_list
     std::vector<int>  m_loft_refs;                 // chosen profile refs (for re-edit pre-check)
@@ -331,7 +332,7 @@ private:
     wxChoice*         m_bool_op{nullptr};            // 0 = Union, 1 = Subtract, 2 = Intersect
     wxChoice*         m_bool_target{nullptr};        // body that survives (selection == body index)
     wxChoice*         m_bool_tool{nullptr};          // body consumed (selection == body index)
-    wxCheckBox*       m_bool_keep{nullptr};          // keep the tool body after the op
+    CheckBox*         m_bool_keep{nullptr};          // keep the tool body after the op
     wxSpinCtrlDouble* m_bool_tol{nullptr};           // OCCT fuzzy tolerance (mm); robust cut on near-coincident faces
 
     // Plane Cut (split-by-plane): a reference plane + offset splits the target body into
@@ -378,7 +379,7 @@ private:
     wxChoice*         m_hole_plane{nullptr};
     wxSpinCtrlDouble* m_hole_diameter{nullptr};
     wxSpinCtrlDouble* m_hole_depth{nullptr};
-    wxCheckBox*       m_hole_through{nullptr};
+    CheckBox*         m_hole_through{nullptr};
     wxSpinCtrlDouble* m_hole_x{nullptr};
     wxSpinCtrlDouble* m_hole_y{nullptr};
     // #2: when the Hole tool is opened on a picked solid face, drill on that face centred
@@ -398,7 +399,7 @@ private:
     wxSpinCtrlDouble* m_thread_pitch{nullptr};
     wxSpinCtrlDouble* m_thread_height{nullptr};
     wxSpinCtrlDouble* m_thread_depth{nullptr};
-    wxCheckBox*       m_thread_internal{nullptr};
+    CheckBox*         m_thread_internal{nullptr};
     wxSpinCtrlDouble* m_thread_x{nullptr};
     wxSpinCtrlDouble* m_thread_y{nullptr};
     // #3: when the Thread tool is opened on a picked cylindrical face (a hole bore or a
