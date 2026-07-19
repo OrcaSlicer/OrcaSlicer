@@ -76,11 +76,24 @@ static const std::set<std::string> custom_keys = {
     "wipe_tower_y",
     "small_area_infill_flow_compensation_model",
 
+    // Plugin name/capability lists (print options, not one-per-N).
+    "plugins",
+    "slicing_pipeline_plugin",
+
     // --- LATENT per-N: currently Custom to preserve behavior, but each is really per-N. Promote in a follow-up. ---
     "extruder_variant_list",        // per-extruder
     "physical_extruder_map",        // per-extruder
     "nozzle_volume_type",           // per-extruder
+    "extruder_nozzle_count",        // per-extruder
+    "extruder_nozzle_volume_type",  // per-extruder
+    "extruder_nozzle_stats",        // per-extruder
+    "deretract_speed_extruder_change", // per-extruder (printer field, not in printer_extruder_options)
     "filament_self_index",          // per-filament
+    "filament_map_2",               // per-filament (sibling of filament_map)
+    "filament_nozzle_map",          // per-filament
+    "filament_volume_map",          // per-filament
+    "filament_max_temperature_drop_when_ec", // per-filament
+    "flush_multiplier_fast",        // flush multiplier, not one-per-N (sibling of flush_multiplier)
     "machine_min_extruding_rate",   // sibling of the PerExtruderVariantDual machine_max_*
     "machine_min_travel_rate",      // sibling of the PerExtruderVariantDual machine_max_*
 
@@ -98,7 +111,7 @@ static const std::set<std::string> &plain_per_filament_options()
     static const std::set<std::string> keys = [] {
         std::set<std::string> k;
         for (const std::string &key : Preset::filament_options()) {
-            if (filament_options_with_variant.count(key) || custom_keys.count(key))
+            if (filament_options_with_variant.count(key) || custom_keys.count(key) || filament_dev_options.count(key))
                 continue;
             const ConfigOptionDef *def = print_config_def.get(key);
             if (def && def->default_value && def->default_value->is_vector())
@@ -131,6 +144,7 @@ static std::map<std::string, ConfigCardinality> build_cardinality_map()
     classify_all(filament_options_with_variant,  ConfigCardinality::PerFilamentVariant);     // borrowed: variant expansion
     classify_all(print_options_with_variant,     ConfigCardinality::PerProcessVariant);      // borrowed: variant expansion
     classify_all(custom_keys,                    ConfigCardinality::Custom);                 // cardinality-owned
+    classify_all(filament_dev_options,           ConfigCardinality::Custom);                 // borrowed: dev/AMS drying, excluded from filament sizing upstream
     return m;
 }
 

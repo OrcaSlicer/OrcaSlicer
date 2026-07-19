@@ -1,18 +1,15 @@
 /**
  * @file DevUtilBackend.h
- * @brief Static helpers bridging the backend (slicer/preset) to the device GUI.
- *
- * Scope (H2C nozzle rack): exposes only GetNozzleGroupResult — the accessor the print-dispatch
- * nozzle-mapping V1 request and result-resolve helpers read. Related helpers (per-nozzle info
- * collection via the ExtruderNozzleInfos/NozzleDef type pair, and the drying-preset lookup) are
- * not implemented here and left to the consuming code.
+ * @brief Provides common static utility methods for backend (preset/slicing).
  */
 
 #pragma once
+#include "DevDefs.h"
+#include "DevFilaSystem.h"
 
 #include "libslic3r/MultiNozzleUtils.hpp"
-
-#include <memory>
+#include <optional>
+#include <string>
 
 namespace Slic3r
 {
@@ -23,10 +20,15 @@ class DevUtilBackend
 public:
     DevUtilBackend() = delete;
 
+public:
+
     // for rack: the slicer's per-filament -> logical-nozzle grouping for the current plate, read off
     // the post-slice GCodeProcessorResult (plater->background_process().get_current_gcode_result()).
     // Returns nullptr when there is no plater / no current result.
     static std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> GetNozzleGroupResult(Slic3r::GUI::Plater* plater);
+
+    // for filament preset
+    static std::optional<DevFilamentDryingPreset> GetFilamentDryingPreset(const std::string& fila_id);
 };
 
 }; // namespace Slic3r

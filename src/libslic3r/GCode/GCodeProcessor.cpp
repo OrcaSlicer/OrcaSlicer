@@ -6551,8 +6551,11 @@ void GCodeProcessor::process_T(const std::string_view command, int nozzle_id)
     if (command.length() > 1) {
         if (eid < 0 || eid > 254) {
             //BBS: T255, T1000 and T1100 is used as special command for BBL machine and does not cost time. return directly
+            // Orca: T1001 (hotend-type detection) and T65535/T65279 (AMS unload virtual-tool selects, paired with
+            // M620/M621 S65535/S65279) are firmware opcodes emitted verbatim by BBL machine start/end g-code, not
+            // real tool changes - whitelist them so the time estimator stops flagging these valid lines.
             if ((m_flavor == gcfMarlinLegacy || m_flavor == gcfMarlinFirmware) && (command == "Tx" || command == "Tc" || command == "T?" ||
-                 eid == 1000 || eid == 1100 || eid == 255))
+                 eid == 1000 || eid == 1100 || eid == 255 || eid == 1001 || eid == 65279 || eid == 65535))
                 return;
 
             // T-1 is a valid gcode line for RepRap Firmwares (used to deselects all tools)

@@ -48,6 +48,8 @@ enum class FilamentSyncMode {
  *
  * Implementations:
  * - OrcaPrinterAgent: Stub implementation (printer ops not yet supported)
+ * - PrinterAgentPluginCapability: Python printer-agent plugin capability that
+ *   implements IPrinterAgent directly and is handed out as the live agent
  * - BBLPrinterAgent: Wrapper around Bambu Lab's proprietary DLL
  *
  * Token Access:

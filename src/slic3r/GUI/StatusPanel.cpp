@@ -3392,6 +3392,7 @@ void StatusPanel::update_ams(MachineObject *obj)
 
     // must select a current can
     m_ams_control->UpdateAms(obj->get_printer_series_str(), obj->printer_type, ams_info, ext_info, *obj->GetExtderSystem(), obj->get_dev_id(), false);
+    m_ams_control->UpdateAmsDryControl(obj);
 
     last_tray_exist_bits  = obj->tray_exist_bits;
     last_ams_exist_bits   = obj->ams_exist_bits;

@@ -31,6 +31,7 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
     , m_Humidity_tip_popup(AmsHumidityTipPopup(this))
     , m_percent_humidity_dry_popup(new uiAmsPercentHumidityDryPopup(this))
     , m_ams_introduce_popup(AmsIntroducePopup(this))
+    , m_ams_dry_ctr_win(new AMSDryCtrWin(this))
 {
     Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
     if (dev) {
@@ -252,6 +253,12 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
         uiAmsHumidityInfo *info    = (uiAmsHumidityInfo *) evt.GetClientData();
         if (info)
         {
+            Slic3r::DeviceManager* dev = Slic3r::GUI::wxGetApp().getDeviceManager();
+            MachineObject *obj = nullptr;
+            if (dev) {
+                obj = dev->get_selected_machine();
+            }
+
             if (info->ams_type == AMSModel::GENERIC_AMS)
             {
                 wxPoint img_pos = ClientToScreen(wxPoint(0, 0));
@@ -261,9 +268,14 @@ AMSControl::AMSControl(wxWindow *parent, wxWindowID id, const wxPoint &pos, cons
                 int humidity_value = info->humidity_display_idx;
                 if (humidity_value > 0 && humidity_value <= 5) { m_Humidity_tip_popup.set_humidity_level(humidity_value); }
                 m_Humidity_tip_popup.Popup();
-            }
-            else
-            {
+            } else if (obj && obj->is_support_remote_dry && (info->ams_type == AMSModel::N3F_AMS || info->ams_type == AMSModel::N3S_AMS)){
+                m_ams_dry_ctr_win->set_ams_id(info->ams_id);
+
+                wxPoint img_pos = ClientToScreen(wxPoint(0, 0));
+                wxPoint popup_pos(img_pos.x - m_ams_dry_ctr_win->GetSize().GetWidth() + FromDIP(150), img_pos.y - FromDIP(80));
+                m_ams_dry_ctr_win->Move(popup_pos);
+                m_ams_dry_ctr_win->ShowModal();
+            } else {
                 m_percent_humidity_dry_popup->Update(info);
 
                 wxPoint img_pos = ClientToScreen(wxPoint(0, 0));
@@ -283,7 +295,12 @@ void AMSControl::on_retry()
     post_event(wxCommandEvent(EVT_AMS_RETRY));
 }
 
-AMSControl::~AMSControl() {}
+AMSControl::~AMSControl()
+{
+    if (m_ams_dry_ctr_win) {
+        delete m_ams_dry_ctr_win;
+    }
+}
 
 std::string AMSControl::GetCurentAms() {
     return m_current_ams;
@@ -499,6 +516,10 @@ void AMSControl::msw_rescale()
 
     if (m_percent_humidity_dry_popup){
         m_percent_humidity_dry_popup->msw_rescale();
+    }
+
+    if (m_ams_dry_ctr_win) {
+        m_ams_dry_ctr_win->msw_rescale();
     }
 
     m_Humidity_tip_popup.msw_rescale();
@@ -822,6 +843,27 @@ void AMSControl::enable_ams_setting(bool en)
 void AMSControl::show_vams_kn_value(bool show)
 {
     //m_vams_lib->show_kn_value(show);
+}
+
+void AMSControl::UpdateAmsDryControl(MachineObject* obj)
+{
+    if (!m_ams_dry_ctr_win->IsShown()) {
+        return;
+    }
+
+    if (!obj || !obj->GetFilaSystem()) {
+        m_ams_dry_ctr_win->Close();
+        return;
+    }
+
+    std::weak_ptr<DevFilaSystem> weak_fila_system = obj->GetFilaSystem();
+
+    if (auto locaked_fila_system = weak_fila_system.lock()) {
+        m_ams_dry_ctr_win->update(locaked_fila_system, obj);
+    } else {
+        m_ams_dry_ctr_win->Close();
+        return;
+    }
 }
 
 std::vector<AMSinfo> AMSControl::GenerateSimulateData() {

@@ -193,6 +193,15 @@ enum class WallDirection
     Count,
 };
 
+// Orca: print order of surface fill loops/fragments for center-based fill patterns
+// (Concentric, Archimedean Chords, Octagram Spiral).
+enum class SurfaceFillOrder {
+    Default,
+    Outward,
+    Inward,
+    Count,
+};
+
 //BBS
 enum class PrintSequence {
     ByLayer,
@@ -660,6 +669,7 @@ CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(WipeTowerWallType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PerimeterGeneratorType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(ToolChangeOrderingType)
 CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(PowerLossRecoveryMode)
+CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS(SurfaceFillOrder)
 
 #undef CONFIG_OPTION_ENUM_DECLARE_STATIC_MAPS
 
@@ -824,6 +834,8 @@ extern std::set<std::string> filament_options_with_variant;
 extern std::set<std::string> printer_options_with_variant_1;
 extern std::set<std::string> printer_options_with_variant_2;
 extern std::set<std::string> empty_options;
+
+extern std::set<std::string> filament_dev_options;
 
 extern void update_static_print_config_from_dynamic(ConfigBase& config, const DynamicPrintConfig& dest_config, std::vector<int> variant_index, std::set<std::string>& key_set1, int stride = 1);
 extern void compute_filament_override_value(const std::string& opt_key, const ConfigOption *opt_old_machine, const ConfigOption *opt_new_machine, const ConfigOption *opt_new_filament, const DynamicPrintConfig& new_full_config,
@@ -1230,6 +1242,8 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionPercent,               bottom_surface_density))
     ((ConfigOptionEnum<InfillPattern>,  top_surface_pattern))
     ((ConfigOptionEnum<InfillPattern>,  bottom_surface_pattern))
+    ((ConfigOptionEnum<SurfaceFillOrder>, top_surface_fill_order))
+    ((ConfigOptionEnum<SurfaceFillOrder>, bottom_surface_fill_order))
     ((ConfigOptionEnum<InfillPattern>, internal_solid_infill_pattern))
     ((ConfigOptionFloatOrPercent,       outer_wall_line_width))
     ((ConfigOptionFloatsNullable,       outer_wall_speed))
@@ -1250,7 +1264,6 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                lightning_prune_angle))
     ((ConfigOptionFloat,                lightning_straightening_angle))
     ((ConfigOptionBool,                 align_infill_direction_to_model))
-    ((ConfigOptionBool,                 anisotropic_surfaces))
     ((ConfigOptionEnum<CenterOfSurfacePattern>, center_of_surface_pattern))
     ((ConfigOptionBool,                 separated_infills))
     ((ConfigOptionString,               extra_solid_infills))
@@ -1537,6 +1550,9 @@ PRINT_CONFIG_CLASS_DEFINE(
 
     
     ((ConfigOptionPercents,            retract_before_wipe))
+    // Orca
+    ((ConfigOptionPercents,            retract_after_wipe))
+
     ((ConfigOptionFloats,              retraction_length))
     ((ConfigOptionFloats,              retract_length_toolchange))
     ((ConfigOptionInt,                 enable_long_retraction_when_cut))
@@ -1662,6 +1678,16 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Printer flag: whether the printer offers the fast-purge mode selector.
     // Default false; no shipping profile sets it, so the fast-purge UI stays hidden.
     ((ConfigOptionBool,                support_fast_purge_mode))
+
+    //ams chamber
+    ((ConfigOptionStrings,  filament_dev_ams_drying_ams_limitations))
+    ((ConfigOptionFloats,   filament_dev_ams_drying_temperature))
+    ((ConfigOptionFloats,   filament_dev_ams_drying_time))
+    ((ConfigOptionFloats,   filament_dev_ams_drying_heat_distortion_temperature))
+    ((ConfigOptionFloats,   filament_dev_chamber_drying_bed_temperature))
+    ((ConfigOptionFloats,   filament_dev_chamber_drying_time))
+    ((ConfigOptionFloats,   filament_dev_drying_softening_temperature))
+    ((ConfigOptionFloats,   filament_dev_drying_cooling_temperature))
 )
 
 // This object is mapped to Perl as Slic3r::Config::Print.
@@ -1748,6 +1774,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionBool,               ooze_prevention))
     ((ConfigOptionString,             filename_format))
     ((ConfigOptionStrings,            post_process))
+    ((ConfigOptionStrings,            slicing_pipeline_plugin))
     ((ConfigOptionString,             printer_model))
     ((ConfigOptionFloat,              resolution))
     ((ConfigOptionFloats,             retraction_minimum_travel))
