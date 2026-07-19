@@ -60,15 +60,20 @@ class Wipe {
 public:
     bool enable;
     Polyline path;
+
+    // Orca:
     struct RetractionValues{
-        double retractLengthBeforeWipe;
-        double retractLengthDuringWipe;
+        double retraction_length_before_wipe = 0.;
+        double retraction_length_during_wipe = 0.;
+        double retraction_length_after_wipe  = 0.;
     };
 
     Wipe() : enable(false) {}
     bool has_path() const { return !this->path.points.empty(); }
     void reset_path() { this->path = Polyline(); }
     std::string wipe(GCode &gcodegen, double length, bool toolchange = false, bool is_last = false);
+
+    // Orca:
     RetractionValues calculateWipeRetractionLengths(GCode& gcodegen, bool toolchange);
 };
 
@@ -354,11 +359,13 @@ private:
         std::vector<coordf_t> &skirt_done);
     std::string generate_object_skirt_group(const Print &print,
         const PrintObject &object,
+        size_t instance_id,
         const LayerTools &layer_tools,
         const Layer& layer,
         unsigned int extruder_id);
     std::string generate_object_brim(const Print &print,
         const PrintObject &object,
+        size_t instance_id,
         bool first_layer);
 
     LayerResult process_layer(
@@ -528,8 +535,7 @@ private:
     // BBS
     LiftType to_lift_type(ZHopType z_hop_types);
 
-    std::set<ObjectID>              m_objsWithBrim; // indicates the objs with brim
-    std::set<ObjectID>              m_objSupportsWithBrim; // indicates the objs' supports with brim
+    std::set<ObjectInstanceID>      m_objsWithBrim; // indicates the object instances with brim
     // Cache for custom seam enforcers/blockers for each layer.
     SeamPlacer                          m_seam_placer;
 

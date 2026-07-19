@@ -210,13 +210,15 @@ inline FullEvalResult full_evaluate_map(const FilamentGroupContext& ctx,
     return result;
 }
 
-inline TestResult run_and_evaluate(const FilamentGroupContext& ctx) {
+inline TestResult run_and_evaluate(const FilamentGroupContext& ctx,
+                                   const ClusteringBudget& budget = {}) {
     TestResult result;
 
     auto start = std::chrono::high_resolution_clock::now();
     int algo_cost = 0;
 
     FilamentGroup fg(ctx);
+    fg.set_clustering_budget(budget);
     result.filament_map = fg.calc_filament_group(&algo_cost);
 
     auto end = std::chrono::high_resolution_clock::now();
