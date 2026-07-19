@@ -2281,7 +2281,7 @@ void DiffPresetDialog::update_tree()
         const Preset* left_preset  = presets->find_preset(get_selection(preset_combos.presets_left));
         const Preset* right_preset = presets->find_preset(get_selection(preset_combos.presets_right));
         if (!left_preset || !right_preset) {
-            bottom_info = "One of the presets does not exist";
+            bottom_info = _L("One of the presets does not exist");
             preset_combos.equal_bmp->SetBitmap_(ScalableBitmap(this, "question"));
             preset_combos.equal_bmp->SetToolTip(bottom_info);
             continue;
@@ -2292,7 +2292,7 @@ void DiffPresetDialog::update_tree()
         const DynamicPrintConfig& right_congig  = right_preset->config;
 
         if (left_pt != right_preset->printer_technology()) {
-            bottom_info = "Compared presets has different printer technology";
+            bottom_info = _L("Compared presets has different printer technology");
             preset_combos.equal_bmp->SetBitmap_(ScalableBitmap(this, "question"));
             preset_combos.equal_bmp->SetToolTip(bottom_info);
             continue;
@@ -2336,7 +2336,7 @@ void DiffPresetDialog::update_tree()
             wxString left_val = from_u8((boost::format("%1%") % left_config.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
             wxString right_val = from_u8((boost::format("%1%") % right_congig.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
 
-            m_tree->Append("extruders_count", type, "General", "Capabilities", local_label, left_val, right_val,
+            m_tree->Append("extruders_count", type, _L("General"), _L("Capabilities"), local_label, left_val, right_val,
                 get_category_icon("Basic information"));
         }
 

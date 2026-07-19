@@ -1,6 +1,7 @@
 #include <nlohmann/json.hpp>
 #include "DevExtruderSystem.h"
 #include "DevNozzleSystem.h"
+#include "DevFilaSystem.h" // complete type for GetFilaSystem()->GetTrayIndexMap() in GetBackupAmsSlotInGroup
 
 // TODO: remove this include
 #include "slic3r/GUI/DeviceManager.hpp"
@@ -48,17 +49,43 @@ namespace Slic3r
 
     NozzleType DevExtder::GetNozzleType() const
     {
-        return system->Owner()->GetNozzleSystem()->GetNozzle(m_current_nozzle_id).m_nozzle_type;
+        return system->Owner()->GetNozzleSystem()->GetExtNozzle(m_current_nozzle_id).m_nozzle_type;
     }
 
     NozzleFlowType DevExtder::GetNozzleFlowType() const
     {
-        return system->Owner()->GetNozzleSystem()->GetNozzle(m_current_nozzle_id).m_nozzle_flow;
+        return system->Owner()->GetNozzleSystem()->GetExtNozzle(m_current_nozzle_id).m_nozzle_flow;
     }
 
     float DevExtder::GetNozzleDiameter() const
     {
-        return system->Owner()->GetNozzleSystem()->GetNozzle(m_current_nozzle_id).m_diameter;
+        return system->Owner()->GetNozzleSystem()->GetExtNozzle(m_current_nozzle_id).m_diameter;
+    }
+
+    std::unordered_map<int, bool> DevExtder::GetBackupStatus(unsigned int fila_back_group)
+    {
+        std::unordered_map<int, bool> trayid_group;
+        for (int i = 0; i < 16; i++)
+        {
+            if (fila_back_group & (1 << i))
+            {
+                trayid_group[i] = true;
+            }
+        }
+
+        for (int j = 16; j <= 23; j++)/* single ams is from 128*/
+        {
+            if (fila_back_group & (1 << j)) {
+                trayid_group[128 + j - 16] = true;
+            }
+        }
+
+        for (int i = 24; i <= 27; i++) /* ams lite for N9*/
+        {
+            if (fila_back_group & (1 << i)) { trayid_group[i] = true; }
+        }
+
+        return trayid_group;
     }
 
     DevExtderSystem::DevExtderSystem(MachineObject* obj)
@@ -141,6 +168,24 @@ namespace Slic3r
         }
 
         return false;
+    }
+
+    std::vector<DevAmsSlotId> DevExtderSystem::GetBackupAmsSlotInGroup(const DevAmsSlotId& ams_slot_id)
+    {
+        std::map<int, DevAmsSlotId> tray_map = Owner()->GetFilaSystem()->GetTrayIndexMap();
+
+        std::vector<DevAmsSlotId> backup_group;
+        for (const auto& extruder : m_extders) {
+            for (int fila_backup : extruder.GetFilamBackup()) {
+                for (auto [tray_id,  is_valid] : DevExtder::GetBackupStatus(fila_backup)) {
+                    if (is_valid && tray_map.find(tray_id) != tray_map.end() && tray_map[tray_id] != ams_slot_id) {
+                        backup_group.emplace_back(tray_map[tray_id]);
+                    }
+                }
+            }
+        }
+
+        return backup_group;
     }
 
     void ExtderSystemParser::ParseV1_0(const nlohmann::json& print_json, DevExtderSystem* system)

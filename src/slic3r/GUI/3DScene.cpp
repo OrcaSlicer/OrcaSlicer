@@ -495,7 +495,29 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
         simple_render(shader, model_objects, colors);
         return;
     }
-
+    // 0th. render pass, render the model using stencil buffer
+    glsafe(::glEnable(GL_STENCIL_TEST));
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE));
+    glsafe(::glClearStencil(0));
+    glsafe(::glClear(GL_STENCIL_BUFFER_BIT));
+    glsafe(::glStencilFunc(GL_ALWAYS, 0xFF, 0xFF));
+    if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
+        model.render(shader);
+    else
+        model.render(this->tverts_range, shader);
+    glsafe(::glStencilFunc(GL_NOTEQUAL, 0xFF, 0xFF));
+    glsafe(::glStencilMask(0x00));
+    shader->set_uniform("is_outline", true);
+    shader->set_uniform("screen_size", Vec2f{cnv_size.get_width(), cnv_size.get_height()});
+    if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
+        model.render(shader);
+    else
+        model.render(this->tverts_range, shader);
+    shader->set_uniform("is_outline", false);
+    glsafe(::glStencilMask(0xFF));
+    glsafe(::glDisable(GL_STENCIL_TEST));
+    // render the outline using depth buffer and discard the pixels that are not on the outline
     // 1st. render pass, render the model into a separate render target that has only depth buffer
     GLuint depth_fbo   = 0;
     GLuint depth_tex = 0;
@@ -1024,7 +1046,8 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
                                 const Transform3d&                    projection_matrix,
                                 const GUI::Size&                      cnv_size,
                                 std::function<bool(const GLVolume &)> filter_func,
-                                bool                                  partly_inside_enable) const
+                                bool                                  partly_inside_enable,
+                                std::vector<double> *                 printable_heights) const
 {
     GLVolumeWithIdAndZList to_render = volumes_to_render(volumes, type, view_matrix, filter_func);
     if (to_render.empty())
@@ -1108,7 +1131,24 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
             //use -1 ad a invalid type
             shader->set_uniform("print_volume.type", -1);
         }
-  
+
+        // Per-extruder printable-height shading. The flag is set to
+        // 2.0 only for multi-extruder printers (two per-extruder heights); otherwise it is forced to 0.0
+        // on every render so no stale flag survives a multi->single-extruder plate switch, keeping the
+        // shared gouraud shader pixel-identical for single-extruder printers. When active the height
+        // branch reads print_volume.xy_data (the bed rect), so set it explicitly here.
+        std::array<float, 3> extruder_printable_heights = {0.0f, 0.0f, 0.0f};
+        if (printable_heights != nullptr && printable_heights->size() > 1) {
+            extruder_printable_heights[0] = 2.0f;
+            extruder_printable_heights[1] = static_cast<float>((*printable_heights)[0]);
+            extruder_printable_heights[2] = static_cast<float>((*printable_heights)[1]);
+            shader->set_uniform("extruder_printable_heights", extruder_printable_heights);
+            shader->set_uniform("print_volume.xy_data", m_print_volume.data);
+        }
+        else {
+            shader->set_uniform("extruder_printable_heights", extruder_printable_heights);
+        }
+
         shader->set_uniform("volume_world_matrix", volume.first->world_matrix());
         shader->set_uniform("slope.actived", m_slope.isGlobalActive && !volume.first->is_modifier && !volume.first->is_wipe_tower);
         shader->set_uniform("slope.volume_world_normal_matrix", static_cast<Matrix3f>(volume.first->world_matrix().matrix().block(0, 0, 3, 3).inverse().transpose().cast<float>()));

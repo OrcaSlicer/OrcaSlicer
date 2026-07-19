@@ -225,8 +225,6 @@ set(lisbslic3r_sources
     GCode.hpp
     GCode/PchipInterpolatorHelper.cpp
     GCode/PchipInterpolatorHelper.hpp
-    GCode/PostProcessor.cpp
-    GCode/PostProcessor.hpp
     GCode/PressureEqualizer.cpp
     GCode/PressureEqualizer.hpp
     GCode/PrintExtents.cpp
@@ -471,6 +469,8 @@ set(lisbslic3r_sources
     FilamentGroup.cpp
     FilamentGroupUtils.hpp
     FilamentGroupUtils.cpp
+    MultiNozzleUtils.hpp
+    MultiNozzleUtils.cpp
     GCode/ToolOrderUtils.hpp
     GCode/ToolOrderUtils.cpp
     FlushVolPredictor.hpp

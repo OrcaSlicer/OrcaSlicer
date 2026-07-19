@@ -445,7 +445,7 @@ void GCodeViewer::SequentialView::Marker::render_position_window(const libvgcode
             add_row(_u8L("Flow rate"), buff);
             sprintf(buff, "%.0f %%", vertex.fan_speed);
             add_row(_u8L("Fan speed"), buff);
-            sprintf(buff, ("%.0f " + _u8L("°C")).c_str(), vertex.temperature);
+            sprintf(buff, ("%.0f " + _u8L("\u2103" /* °C */)).c_str(), vertex.temperature);
             add_row(_u8L("Temperature"), buff);
             sprintf(buff, "%.4f", vertex.pressure_advance);
             add_row(_u8L("Pressure Advance"), buff);
@@ -2915,8 +2915,11 @@ void GCodeViewer::render_legend_color_arr_recommen(float window_padding)
 
     float delta_weight_to_single_ext = stats_by_extruder.stats_by_single_extruder.filament_flush_weight - stats_by_extruder.stats_by_multi_extruder_curr.filament_flush_weight;
     float delta_weight_to_best = stats_by_extruder.stats_by_multi_extruder_curr.filament_flush_weight - stats_by_extruder.stats_by_multi_extruder_best.filament_flush_weight;
-    int   delta_change_to_single_ext = stats_by_extruder.stats_by_single_extruder.filament_change_count - stats_by_extruder.stats_by_multi_extruder_curr.filament_change_count;
-    int   delta_change_to_best = stats_by_extruder.stats_by_multi_extruder_curr.filament_change_count - stats_by_extruder.stats_by_multi_extruder_best.filament_change_count;
+    // The displayed "hand changes" delta uses the per-nozzle flush_filament_change_count.
+    // For single-nozzle-per-extruder printers it equals the per-extruder filament_change_count,
+    // so the shown value is unchanged.
+    int   delta_change_to_single_ext = stats_by_extruder.stats_by_single_extruder.flush_filament_change_count - stats_by_extruder.stats_by_multi_extruder_curr.flush_filament_change_count;
+    int   delta_change_to_best = stats_by_extruder.stats_by_multi_extruder_curr.flush_filament_change_count - stats_by_extruder.stats_by_multi_extruder_best.flush_filament_change_count;
 
     bool any_less_to_single_ext = delta_weight_to_single_ext > EPSILON || delta_change_to_single_ext > 0;
     bool any_more_to_best = delta_weight_to_best > EPSILON || delta_change_to_best > 0;
@@ -3708,7 +3711,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         break;
     }
     case libvgcode::EViewType::FanSpeed:       { imgui.title(_u8L("Fan speed (%)")); break; }
-    case libvgcode::EViewType::Temperature:    { imgui.title(_u8L("Temperature (°C)")); break; }
+    case libvgcode::EViewType::Temperature:    { imgui.title(_u8L("Temperature (℃)")); break; }
 // ORCA: Add Pressure Advance visualization support
     case libvgcode::EViewType::PressureAdvance:{ imgui.title(_u8L("Pressure Advance")); break; }
     case libvgcode::EViewType::VolumetricFlowRate:

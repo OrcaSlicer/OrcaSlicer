@@ -1,0 +1,47 @@
+{
+	"type": "filament",
+	"name": "Bambu PLA Dynamic @BBL A2L 0.8 nozzle",
+	"inherits": "Bambu PLA Dynamic @base",
+	"from": "system",
+	"setting_id": "GFSA13_40",
+	"instantiation": "true",
+	"eng_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"fan_cooling_layer_time": [
+		"80"
+	],
+	"fan_max_speed": [
+		"80"
+	],
+	"fan_min_speed": [
+		"60"
+	],
+	"filament_flow_ratio": [
+		"0.98"
+	],
+	"filament_flush_temp_fast": [
+		"220"
+	],
+	"filament_max_volumetric_speed": [
+		"21"
+	],
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"pre_start_fan_time": [
+		"2"
+	],
+	"slow_down_layer_time": [
+		"6"
+	],
+	"compatible_printers": [
+		"Bambu Lab A2L 0.8 nozzle"
+	],
+	"filament_start_gcode": [
+		""
+	]
+}

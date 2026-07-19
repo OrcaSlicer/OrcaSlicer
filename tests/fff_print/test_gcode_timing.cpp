@@ -2,12 +2,14 @@
 
 #include "libslic3r/libslic3r.h"
 #include "libslic3r/GCode/GCodeProcessor.hpp"
+#include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #include "test_utils.hpp"
 
 #include <fstream>
 #include <map>
+#include <memory>
 
 using namespace Slic3r;
 using Catch::Matchers::WithinAbs;
@@ -321,5 +323,98 @@ TEST_CASE("Carried-forward tool-change delay reaches the total without polluting
         INFO("extrusion role index = " << static_cast<int>(role));
         REQUIRE(rd.count(role) == 1);
         REQUIRE_THAT(rd.at(role), WithinAbs(zero_time, 1e-2));
+    }
+}
+
+TEST_CASE("Per-slot machine limits follow the active nozzle", "[GCodeTiming][MultiNozzle]")
+{
+    // Single physical extruder carrying two nozzle variants: machine slot 0 (Standard) caps X/Y
+    // speed at 200 mm/s, slot 1 (High Flow) at 50 mm/s. The estimator must clamp each move by the
+    // slot of the nozzle the active filament occupies -- resolved from the grouping context handed
+    // over before the replay plus the occupancy recorder, i.e. the exact in-slicer streaming path.
+    FullPrintConfig config = make_config(0.0, 0.0, 0.0);
+    config.extruder_type.values            = {static_cast<int>(etDirectDrive)};
+    config.printer_extruder_id.values      = {1, 1};
+    config.printer_extruder_variant.values = {"Direct Drive Standard", "Direct Drive High Flow"};
+    // Slot-major layout: [slot0-Normal, slot0-Stealth, slot1-Normal, slot1-Stealth].
+    config.machine_max_speed_x.values = {200., 200., 50., 50.};
+    config.machine_max_speed_y.values = {200., 200., 50., 50.};
+    config.machine_max_speed_z.values = {200., 200., 50., 50.};
+    config.machine_max_speed_e.values = {200., 200., 50., 50.};
+    // Keep acceleration and jerk far from limiting so move times are speed-dominated.
+    for (auto *accel : {&config.machine_max_acceleration_x, &config.machine_max_acceleration_y,
+                        &config.machine_max_acceleration_z, &config.machine_max_acceleration_e})
+        accel->values = {100000., 100000., 100000., 100000.};
+    config.machine_max_acceleration_travel.values    = {100000., 100000.};
+    config.machine_max_acceleration_extruding.values = {100000., 100000.};
+    config.machine_max_jerk_x.values = {10000., 10000.};
+    config.machine_max_jerk_y.values = {10000., 10000.};
+    config.machine_max_jerk_z.values = {10000., 10000.};
+    config.machine_max_jerk_e.values = {10000., 10000.};
+
+    // Grouping stub: filament 0 lives on the Standard nozzle (slot 0), filament 1 on the
+    // High Flow nozzle (slot 1), both mounted on extruder 0.
+    std::vector<MultiNozzleUtils::NozzleInfo> nozzles;
+    {
+        MultiNozzleUtils::NozzleInfo n;
+        n.diameter = "0.4";
+        n.volume_type = nvtStandard; n.extruder_id = 0; n.group_id = 0; nozzles.push_back(n);
+        n.volume_type = nvtHighFlow; n.extruder_id = 0; n.group_id = 1; nozzles.push_back(n);
+    }
+    std::vector<int>          filament_nozzle_map = {0, 1};
+    std::vector<unsigned int> used_filaments      = {0, 1};
+    auto group = MultiNozzleUtils::LayeredNozzleGroupResult::create(filament_nozzle_map, nozzles, used_filaments);
+    REQUIRE(group.has_value());
+    auto context = std::make_shared<MultiNozzleUtils::LayeredNozzleGroupResult>(*group);
+
+    // Two identical 100 mm X travels, one per filament; T..H.. carries the target nozzle id.
+    // The trailing 1 mm move keeps two blocks queued at finalize, so the measured move's time is
+    // flushed (a lone final block is never attributed); it adds 1 mm to the second bucket.
+    const char* gcode =
+        "M83\n"
+        "T0 H0\n"
+        "G1 X100 F30000\n"
+        "T1 H1\n"
+        "G1 X0 F30000\n"
+        "G1 X1 F30000\n";
+
+    // Travel time accumulated after each tool-change move (bucket 0 = before any T).
+    auto travel_times_by_tool = [](const GCodeProcessorResult& r) {
+        std::vector<double> out(1, 0.0);
+        for (const auto& mv : r.moves) {
+            if (mv.type == EMoveType::Tool_change)
+                out.push_back(0.0);
+            else if (mv.type == EMoveType::Travel)
+                out.back() += mv.time[NORMAL];
+        }
+        return out;
+    };
+
+    SECTION("the move on the High Flow nozzle is clamped by its own slot") {
+        GCodeProcessor proc;
+        proc.initialize_from_context(context);
+        run_processor(proc, config, gcode);
+        auto times = travel_times_by_tool(proc.get_result());
+        REQUIRE(times.size() == 3);
+        REQUIRE_THAT(times[1], Catch::Matchers::WithinRel(100.0 / 200.0, 0.10));
+        REQUIRE_THAT(times[2], Catch::Matchers::WithinRel(101.0 / 50.0, 0.10));
+    }
+    SECTION("an emitted envelope line reaches every slot") {
+        const std::string enveloped = std::string("M201 X20000\nM203 X80\n") + gcode;
+        GCodeProcessor proc;
+        proc.initialize_from_context(context);
+        run_processor(proc, config, enveloped.c_str());
+        auto times = travel_times_by_tool(proc.get_result());
+        REQUIRE(times.size() == 3);
+        REQUIRE_THAT(times[1], Catch::Matchers::WithinRel(100.0 / 80.0, 0.10));
+        REQUIRE_THAT(times[2], Catch::Matchers::WithinRel(101.0 / 80.0, 0.10));
+    }
+    SECTION("no grouping context degrades to slot 0") {
+        GCodeProcessor proc;
+        run_processor(proc, config, gcode);
+        auto times = travel_times_by_tool(proc.get_result());
+        REQUIRE(times.size() == 3);
+        REQUIRE_THAT(times[1], Catch::Matchers::WithinRel(100.0 / 200.0, 0.10));
+        REQUIRE_THAT(times[2], Catch::Matchers::WithinRel(101.0 / 200.0, 0.10));
     }
 }
