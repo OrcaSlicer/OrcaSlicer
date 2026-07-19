@@ -75,6 +75,30 @@
 		{
 			"name": "0.20mm Standard @iQ TiQ8 P1 - ABS Natur Material4Print (0.4 Nozzle)",
 			"sub_path": "process/0.20mm Standard @iQ TiQ8 P1 - ABS Natur Material4Print (0.4 Nozzle).json"
+		},
+		{
+			"name": "0.15mm Standard @iQ TiQ2 (0.25 Nozzle)",
+			"sub_path": "process/0.15mm Standard @iQ TiQ2 (0.25 Nozzle).json"
+		},
+		{
+			"name": "0.30mm Standard @iQ TiQ2 (0.6 Nozzle)",
+			"sub_path": "process/0.30mm Standard @iQ TiQ2 (0.6 Nozzle).json"
+		},
+		{
+			"name": "0.40mm Standard @iQ TiQ2 (0.8 Nozzle)",
+			"sub_path": "process/0.40mm Standard @iQ TiQ2 (0.8 Nozzle).json"
+		},
+		{
+			"name": "0.15mm Standard @iQ TiQ8 (0.25 Nozzle)",
+			"sub_path": "process/0.15mm Standard @iQ TiQ8 (0.25 Nozzle).json"
+		},
+		{
+			"name": "0.30mm Standard @iQ TiQ8 (0.6 Nozzle)",
+			"sub_path": "process/0.30mm Standard @iQ TiQ8 (0.6 Nozzle).json"
+		},
+		{
+			"name": "0.40mm Standard @iQ TiQ8 (0.8 Nozzle)",
+			"sub_path": "process/0.40mm Standard @iQ TiQ8 (0.8 Nozzle).json"
 		}
 	],
 	"filament_list": [

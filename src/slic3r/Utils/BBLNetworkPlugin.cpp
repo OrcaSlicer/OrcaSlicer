@@ -46,8 +46,7 @@ BBLNetworkPlugin::BBLNetworkPlugin() = default;
 
 BBLNetworkPlugin::~BBLNetworkPlugin()
 {
-    destroy_agent();
-    unload();
+    unload(); // unload() destroys the agent first (see the note there)
 }
 
 // ============================================================================
@@ -101,17 +100,18 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
         }
     }
 
-    // Load versioned library
+    // Load versioned library. In the normal plugins folder a bare series (02.08.01) resolves to
+    // whatever same-series build is actually on disk (see resolve_library_path); the backup
+    // folder keeps the exact versioned name.
 #if defined(_MSC_VER) || defined(_WIN32)
-    library = plugin_folder.string() + "\\" + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".dll";
+    std::string versioned_name = std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".dll";
+#elif defined(__WXMAC__)
+    std::string versioned_name = std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".dylib";
 #else
-    #if defined(__WXMAC__)
-    std::string lib_ext = ".dylib";
-    #else
-    std::string lib_ext = ".so";
-    #endif
-    library = plugin_folder.string() + "/" + std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + lib_ext;
+    std::string versioned_name = std::string("lib") + std::string(BAMBU_NETWORK_LIBRARY) + "_" + version + ".so";
 #endif
+    library = using_backup ? (plugin_folder / versioned_name).string()
+                           : resolve_library_path(version);
 
 #if defined(_MSC_VER) || defined(_WIN32)
     wchar_t lib_wstr[256];
@@ -187,6 +187,12 @@ int BBLNetworkPlugin::initialize(bool using_backup, const std::string& version)
 
 int BBLNetworkPlugin::unload()
 {
+    // Orca: destroy the plugin agent while its creating DLL is still loaded, so the void* handle
+    // never dangles into freed memory. A stale m_agent surviving the unload makes create_agent()
+    // short-circuit on has_agent() after a hot reload, and the next call into the freshly loaded
+    // DLL dereferences the old-DLL handle -> access violation.
+    destroy_agent();
+
     UnloadFTModule();
 
 #if defined(_MSC_VER) || defined(_WIN32)
@@ -250,6 +256,7 @@ std::string BBLNetworkPlugin::get_version() const
 void* BBLNetworkPlugin::create_agent(const std::string& log_dir)
 {
     if (m_agent) {
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": reusing existing agent " << m_agent;
         return m_agent;
     }
 
@@ -257,6 +264,7 @@ void* BBLNetworkPlugin::create_agent(const std::string& log_dir)
         m_agent = m_create_agent(log_dir);
     }
 
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": created agent " << m_agent;
     return m_agent;
 }
 
@@ -375,12 +383,33 @@ std::string BBLNetworkPlugin::get_versioned_library_path(const std::string& vers
 #endif
 }
 
+std::string BBLNetworkPlugin::resolve_library_path(const std::string& version)
+{
+    std::string exact = get_versioned_library_path(version);
+    if (boost::filesystem::exists(exact))
+        return exact;
+
+    // A bare series (02.08.01) is physically present only as a specific build (02.08.01.53) when
+    // the startup file-rename was skipped or failed. Resolve to the newest same-series build
+    // actually on disk. Custom and legacy names are exact and never resolved.
+    if (is_series_managed_version(version)) {
+        const std::string series = network_plugin_series(version);
+        std::string best;
+        for (const auto& v : scan_plugin_versions())
+            if (is_series_managed_version(v) && network_plugin_series(v) == series && (best.empty() || v > best))
+                best = v;
+        if (!best.empty())
+            return get_versioned_library_path(best);
+    }
+
+    return exact; // nonexistent -> caller downloads
+}
+
 bool BBLNetworkPlugin::versioned_library_exists(const std::string& version)
 {
     if (version.empty()) return false;
-    std::string path = get_versioned_library_path(version);
 
-    if (boost::filesystem::exists(path)) return true;
+    if (boost::filesystem::exists(resolve_library_path(version))) return true;
 
     if (is_legacy_version(version)) {
         return legacy_library_exists();
@@ -639,6 +668,19 @@ void BBLNetworkPlugin::load_all_function_pointers()
     m_get_model_mall_rating_result = reinterpret_cast<func_get_model_mall_rating_result>(get_function("bambu_network_get_model_mall_rating"));
     m_get_mw_user_preference = reinterpret_cast<func_get_mw_user_preference>(get_function("bambu_network_get_mw_user_preference"));
     m_get_mw_user_4ulist = reinterpret_cast<func_get_mw_user_4ulist>(get_function("bambu_network_get_mw_user_4ulist"));
+
+    // Added by the 02.08.01.52 plugin ABI; resolve to null on older plugins so callers no-op.
+    m_set_on_user_login_fn = reinterpret_cast<func_set_on_user_login_fn>(get_function("bambu_network_set_on_user_login_fn"));
+    m_get_studio_info_url = reinterpret_cast<func_get_studio_info_url>(get_function("bambu_network_get_studio_info_url"));
+    m_report_consent = reinterpret_cast<func_report_consent>(get_function("bambu_network_report_consent"));
+    m_get_camera_url_for_golive = reinterpret_cast<func_get_camera_url_for_golive>(get_function("bambu_network_get_camera_url_for_golive"));
+    m_get_hms_snapshot = reinterpret_cast<func_get_hms_snapshot>(get_function("bambu_network_get_hms_snapshot"));
+    m_get_filament_spools = reinterpret_cast<func_get_filament_spools>(get_function("bambu_network_get_filament_spools"));
+    m_create_filament_spool = reinterpret_cast<func_create_filament_spool>(get_function("bambu_network_create_filament_spool"));
+    m_update_filament_spool = reinterpret_cast<func_update_filament_spool>(get_function("bambu_network_update_filament_spool"));
+    m_delete_filament_spools = reinterpret_cast<func_delete_filament_spools>(get_function("bambu_network_delete_filament_spools"));
+    m_get_filament_config = reinterpret_cast<func_get_filament_config>(get_function("bambu_network_get_filament_config"));
+    m_sync_ams_filaments = reinterpret_cast<func_sync_ams_filaments>(get_function("bambu_network_sync_ams_filaments"));
 }
 
 void BBLNetworkPlugin::clear_all_function_pointers()
@@ -741,64 +783,88 @@ void BBLNetworkPlugin::clear_all_function_pointers()
     m_get_model_mall_rating_result = nullptr;
     m_get_mw_user_preference = nullptr;
     m_get_mw_user_4ulist = nullptr;
+
+    m_set_on_user_login_fn = nullptr;
+    m_get_studio_info_url = nullptr;
+    m_report_consent = nullptr;
+    m_get_camera_url_for_golive = nullptr;
+    m_get_hms_snapshot = nullptr;
+    m_get_filament_spools = nullptr;
+    m_create_filament_spool = nullptr;
+    m_update_filament_spool = nullptr;
+    m_delete_filament_spools = nullptr;
+    m_get_filament_config = nullptr;
+    m_sync_ams_filaments = nullptr;
 }
 
 std::vector<NetworkLibraryVersionInfo> get_all_available_versions()
 {
+    // get_version() reports the "00.00.00.00" sentinel when nothing is loaded; resolve
+    // that here so the list builder only ever sees a real version or an empty string.
+    const BBLNetworkPlugin& plugin = BBLNetworkPlugin::instance();
+    return get_all_available_versions(plugin.is_loaded() ? plugin.get_version() : std::string());
+}
+
+std::vector<NetworkLibraryVersionInfo> get_all_available_versions(const std::string& loaded_version)
+{
     std::vector<NetworkLibraryVersionInfo> result;
-    std::set<std::string> known_base_versions;
     std::set<std::string> all_known_versions;
 
     for (size_t i = 0; i < AVAILABLE_NETWORK_VERSIONS_COUNT; ++i) {
         result.push_back(NetworkLibraryVersionInfo::from_static(AVAILABLE_NETWORK_VERSIONS[i]));
-        known_base_versions.insert(AVAILABLE_NETWORK_VERSIONS[i].version);
         all_known_versions.insert(AVAILABLE_NETWORK_VERSIONS[i].version);
     }
 
     std::vector<std::string> discovered = BBLNetworkPlugin::scan_plugin_versions();
 
-    std::vector<std::pair<std::string, std::string>> suffixed_versions;
-
+    // A managed build (pure dotted-numeric AA.BB.CC[.DD]) is represented by its series entry
+    // above - the OTA-installed 02.08.01.53 and a bare 02.08.01 both collapse into the single
+    // 02.08.01 row. Only a custom-named build a user dropped in (02.08.01_custom, ..-dev) earns
+    // its own row, and only when its series is one this build can actually load. The part past
+    // the series is stored as the "suffix" so the entry sorts and renders nested under it.
     for (const auto& version : discovered) {
         if (all_known_versions.count(version) > 0)
             continue;
-
-        std::string base = extract_base_version(version);
-        std::string suffix = extract_suffix(version);
-
-        if (suffix.empty())
+        if (is_series_managed_version(version))
             continue;
-
-        if (known_base_versions.count(base) == 0)
+        if (!is_supported_network_version(version))
             continue;
-
-        suffixed_versions.emplace_back(base, version);
+        const std::string series = network_plugin_series(version);
+        const std::string sfx    = version.size() > series.size() ? version.substr(series.size()) : version;
+        result.push_back(NetworkLibraryVersionInfo::from_discovered(version, series, sfx));
         all_known_versions.insert(version);
     }
 
-    std::sort(suffixed_versions.begin(), suffixed_versions.end(),
-              [](const auto& a, const auto& b) {
-                  if (a.first != b.first) return a.first > b.first;
-                  return a.second < b.second;
+    // Newest first. Version components are fixed-width and zero-padded, so a plain
+    // string compare orders them numerically, and the legacy series sorts last on its
+    // own. Suffixed dev builds sort directly under the base version they build on.
+    std::sort(result.begin(), result.end(),
+              [](const NetworkLibraryVersionInfo& a, const NetworkLibraryVersionInfo& b) {
+                  if (a.base_version != b.base_version) return a.base_version > b.base_version;
+                  return a.suffix < b.suffix;
               });
 
-    for (const auto& [base, full] : suffixed_versions) {
-        size_t insert_pos = 0;
-        for (size_t i = 0; i < result.size(); ++i) {
-            if (result[i].base_version == base) {
-                insert_pos = i + 1;
-                while (insert_pos < result.size() &&
-                       result[insert_pos].base_version == base) {
-                    ++insert_pos;
-                }
-                break;
-            }
-        }
-
-        std::string sfx = extract_suffix(full);
-        result.insert(result.begin() + insert_pos,
-                      NetworkLibraryVersionInfo::from_discovered(full, base, sfx));
+    const std::string loaded_series = network_plugin_series(loaded_version);
+    for (auto& info : result) {
+        // A managed (series) entry matches when a managed build of the same series is loaded -
+        // the loaded plug-in reports its full build (02.08.01.53) but the row is the series.
+        // Custom and legacy entries match their exact reported version.
+        info.is_loaded = !loaded_version.empty() &&
+            (info.version == loaded_version ||
+             (is_series_managed_version(info.version) && is_series_managed_version(loaded_version) &&
+              network_plugin_series(info.version) == loaded_series));
+        info.is_latest = false;
     }
+
+    // "(Latest)" goes on the highest full version in the list, which after the sort is
+    // simply the first entry without a dev suffix - an OTA-installed build can be newer
+    // than the newest whitelisted entry. get_latest_network_version() intentionally
+    // keeps returning the static whitelist default, which drives the download and
+    // update-check decisions.
+    auto latest = std::find_if(result.begin(), result.end(),
+                               [](const NetworkLibraryVersionInfo& info) { return info.suffix.empty(); });
+    if (latest != result.end())
+        latest->is_latest = true;
 
     return result;
 }

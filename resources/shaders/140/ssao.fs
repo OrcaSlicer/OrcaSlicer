@@ -10,6 +10,7 @@ uniform sampler2D depth_texture;
 uniform sampler2D normal_texture;   
 uniform float z_near;
 uniform float z_far;
+uniform bool is_outline;
 
 in vec2 tex_coord;
 out vec4 frag_color;
@@ -22,6 +23,10 @@ float linearize_depth(float depth)
 
 void main()
 {
+    if (is_outline) {
+        frag_color = vec4(texture(color_texture, tex_coord).rgb, 1.0);
+        return;
+    }
     ivec2 pixel = ivec2(gl_FragCoord.xy);
     float center_depth = linearize_depth(texelFetch(depth_texture, pixel, 0).r);
     

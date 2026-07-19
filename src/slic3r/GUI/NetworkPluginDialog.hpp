@@ -11,6 +11,12 @@
 namespace Slic3r {
 namespace GUI {
 
+// Dropdown label for one network plug-in version: tree glyph for a dev build, then
+// "(Latest)" for the highest listed version and "(installed)" for the build currently
+// loaded. Shared by the Preferences selector and the download dialog so both stay
+// consistent.
+wxString network_version_label(const NetworkLibraryVersionInfo& ver);
+
 class NetworkPluginDownloadDialog : public DPIDialog
 {
 public:

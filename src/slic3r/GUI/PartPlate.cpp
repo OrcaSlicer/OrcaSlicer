@@ -3524,6 +3524,9 @@ void PartPlate::set_pos_and_size(Vec3d& origin, int width, int depth, int height
 	m_depth = depth;
 	m_height = height;
 
+	if (with_instance_move && m_plater)
+		m_plater->mark_plate_toolbar_image_dirty();
+
 	return;
 }
 
@@ -3900,6 +3903,8 @@ int PartPlate::add_instance(int obj_id, int instance_id, bool move_position, Bou
 	}
 
 	BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": plate %1% , m_ready_for_slice changes to %2%") % m_plate_index %m_ready_for_slice;
+	if (m_plater)
+		m_plater->mark_plate_toolbar_image_dirty();
 	return 0;
 }
 
@@ -6537,6 +6542,9 @@ int PartPlateList::notify_instance_removed(int obj_id, int instance_id)
 		unprintable_plate.update_object_index(obj_id, m_model->objects.size());
 	}
 
+	if (m_plater)
+		m_plater->mark_plate_toolbar_image_dirty();
+
 	return 0;
 }
 
@@ -7457,6 +7465,9 @@ int PartPlateList::rebuild_plates_after_arrangement(bool recycle_plates, bool ex
 		wxGetApp().obj_list()->reload_all_plates();
 	}
 #endif
+
+	if (m_plater)
+		m_plater->mark_plate_toolbar_image_dirty();
 
 	BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(":after rebuild, plates count %1%") % m_plate_list.size();
 	return ret;

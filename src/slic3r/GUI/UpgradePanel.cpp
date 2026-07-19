@@ -219,6 +219,9 @@ MachineInfoPanel::MachineInfoPanel(wxWindow* parent, wxWindowID id, const wxPoin
     createAirPumpWidgets(m_main_left_sizer);
     createExtinguishWidgets(m_main_left_sizer);
     createFilaTrackSwitchWidgets(m_main_left_sizer);
+    createRotaryWidgets(m_main_left_sizer);   // Orca: accessory firmware version display
+    createExhaustFan(m_main_left_sizer);      // Orca: accessory firmware version display
+    createAmshubWidgets(m_main_left_sizer);   // Orca: accessory firmware version display
 
     // nozzle rack widgets (H2C induction hotend rack; hidden unless GetNozzleRack()->IsSupported())
     createNozzleRackWidgets(m_main_left_sizer);
@@ -429,6 +432,69 @@ void MachineInfoPanel::createFilaTrackSwitchWidgets(wxBoxSizer* main_left_sizer)
     main_left_sizer->Add(m_filatrack_sizer, 0, wxEXPAND, 0);
 }
 
+// Orca: accessory firmware version display (device photo asset not shipped, so no left icon)
+void MachineInfoPanel::createRotaryWidgets(wxBoxSizer* main_left_sizer)
+{
+    m_rotary_line_above = new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL);
+    m_rotary_line_above->SetBackgroundColour(wxColour(206, 206, 206));
+    main_left_sizer->Add(m_rotary_line_above, 0, wxEXPAND | wxLEFT, FromDIP(40));
+
+    m_rotary_img = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize(FromDIP(200), FromDIP(200)));
+
+    wxBoxSizer* content_sizer = new wxBoxSizer(wxVERTICAL);
+    content_sizer->Add(0, 40, 0, wxEXPAND, FromDIP(5));
+    m_rotary_version = new uiDeviceUpdateVersion(this, wxID_ANY);
+    content_sizer->Add(m_rotary_version, 0, wxEXPAND, 0);
+
+    m_rotary_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_rotary_sizer->Add(m_rotary_img, 0, wxALIGN_TOP | wxALL, FromDIP(5));
+    m_rotary_sizer->Add(content_sizer, 1, wxEXPAND, 0);
+
+    main_left_sizer->Add(m_rotary_sizer, 0, wxEXPAND, 0);
+}
+
+// Orca: accessory firmware version display (device photo asset not shipped, so no left icon)
+void MachineInfoPanel::createExhaustFan(wxBoxSizer* main_left_sizer)
+{
+    m_exhaustfan_line_above = new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL);
+    m_exhaustfan_line_above->SetBackgroundColour(wxColour(206, 206, 206));
+    main_left_sizer->Add(m_exhaustfan_line_above, 0, wxEXPAND | wxLEFT, FromDIP(40));
+
+    m_exhaustfan_img = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize(FromDIP(200), FromDIP(200)));
+
+    wxBoxSizer* content_sizer = new wxBoxSizer(wxVERTICAL);
+    content_sizer->Add(0, 40, 0, wxEXPAND, FromDIP(5));
+    m_exhaustfan_version = new uiDeviceUpdateVersion(this, wxID_ANY);
+    content_sizer->Add(m_exhaustfan_version, 0, wxEXPAND, 0);
+
+    m_exhaustfan_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_exhaustfan_sizer->Add(m_exhaustfan_img, 0, wxALIGN_TOP | wxALL, FromDIP(5));
+    m_exhaustfan_sizer->Add(content_sizer, 1, wxEXPAND, 0);
+
+    main_left_sizer->Add(m_exhaustfan_sizer, 0, wxEXPAND, 0);
+}
+
+// Orca: accessory firmware version display (device photo asset not shipped, so no left icon)
+void MachineInfoPanel::createAmshubWidgets(wxBoxSizer* main_left_sizer)
+{
+    m_amshub_line_above = new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLI_HORIZONTAL);
+    m_amshub_line_above->SetBackgroundColour(wxColour(206, 206, 206));
+    main_left_sizer->Add(m_amshub_line_above, 0, wxEXPAND | wxLEFT, FromDIP(40));
+
+    m_amshub_img = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap, wxDefaultPosition, wxSize(FromDIP(200), FromDIP(200)));
+
+    wxBoxSizer* content_sizer = new wxBoxSizer(wxVERTICAL);
+    content_sizer->Add(0, 40, 0, wxEXPAND, FromDIP(5));
+    m_amshub_version = new uiDeviceUpdateVersion(this, wxID_ANY);
+    content_sizer->Add(m_amshub_version, 0, wxEXPAND, 0);
+
+    m_amshub_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_amshub_sizer->Add(m_amshub_img, 0, wxALIGN_TOP | wxALL, FromDIP(5));
+    m_amshub_sizer->Add(content_sizer, 1, wxEXPAND, 0);
+
+    main_left_sizer->Add(m_amshub_sizer, 0, wxEXPAND, 0);
+}
+
 void MachineInfoPanel::msw_rescale()
 {
     rescale_bitmaps();
@@ -569,6 +635,9 @@ void MachineInfoPanel::update(MachineObject* obj)
         update_laszer(obj);
         update_extinguish(obj);
         update_filatrack(obj);
+        update_rotary(obj);       // Orca: accessory firmware version display
+        update_exhaustfan(obj);   // Orca: accessory firmware version display
+        update_amshub(obj);       // Orca: accessory firmware version display
         update_nozzle_rack(obj);
 
         //update progress
@@ -1167,6 +1236,49 @@ void MachineInfoPanel::update_filatrack(MachineObject* obj)
     }
 }
 
+void MachineInfoPanel::update_rotary(MachineObject* obj)
+{
+    if (obj && obj->rotary_version_info.isValid())
+    {
+        m_rotary_version->UpdateInfo(obj->rotary_version_info);
+        show_rotary(true);
+    }
+    else
+    {
+        show_rotary(false);
+    }
+}
+
+void MachineInfoPanel::update_exhaustfan(MachineObject* obj)
+{
+    if (obj && obj->exhaustfan_version_info.isValid())
+    {
+        m_exhaustfan_version->UpdateInfo(obj->exhaustfan_version_info);
+        show_exhaustfan(true);
+    }
+    else
+    {
+        show_exhaustfan(false);
+    }
+}
+
+// Shown only when the m_ahb_panel path (module_vers["ahb"]) does NOT fire, so no printer gets a
+// double AMS-hub row. X2D/P2S report the buffer via amshub_version_info.product_name instead of module_vers.
+void MachineInfoPanel::update_amshub(MachineObject* obj)
+{
+    bool ahb_panel_fires = obj && obj->online_ahb
+        && obj->module_vers.find("ahb") != obj->module_vers.end() && !obj->is_series_o();
+    if (obj && !ahb_panel_fires && obj->amshub_version_info.isValid())
+    {
+        m_amshub_version->UpdateInfo(obj->amshub_version_info);
+        show_amshub(true);
+    }
+    else
+    {
+        show_amshub(false);
+    }
+}
+
 void MachineInfoPanel::show_status(int status, std::string upgrade_status_str)
 {
     if (last_status == status && last_status_str == upgrade_status_str) return;
@@ -1308,6 +1420,39 @@ void MachineInfoPanel::show_filatrack(bool show)
         m_filatrack_img->Show(show);
         m_filatrack_line_above->Show(show);
         m_filatrack_version->Show(show);
+    }
+}
+
+// Orca: accessory firmware version display
+void MachineInfoPanel::show_rotary(bool show)
+{
+    if (m_rotary_version->IsShown() != show)
+    {
+        m_rotary_img->Show(show);
+        m_rotary_line_above->Show(show);
+        m_rotary_version->Show(show);
+    }
+}
+
+// Orca: accessory firmware version display
+void MachineInfoPanel::show_exhaustfan(bool show)
+{
+    if (m_exhaustfan_version->IsShown() != show)
+    {
+        m_exhaustfan_img->Show(show);
+        m_exhaustfan_line_above->Show(show);
+        m_exhaustfan_version->Show(show);
+    }
+}
+
+// Orca: accessory firmware version display
+void MachineInfoPanel::show_amshub(bool show)
+{
+    if (m_amshub_version->IsShown() != show)
+    {
+        m_amshub_img->Show(show);
+        m_amshub_line_above->Show(show);
+        m_amshub_version->Show(show);
     }
 }
 
@@ -1651,6 +1796,8 @@ bool UpgradePanel::Show(bool show)
                    const wxString &name /*= wxEmptyString*/)
     : wxPanel(parent,id,pos,size,style)
 {
+     SetBackgroundColour(*wxWHITE);
+
      upgrade_green_icon = ScalableBitmap(this, "monitor_upgrade_online", 5);
 
      auto ams_sizer = new wxFlexGridSizer(0, 2, 0, 0);
@@ -1734,6 +1881,7 @@ bool UpgradePanel::Show(bool show)
      const wxString& name /*= wxEmptyString*/)
      : wxPanel(parent, id, pos, size, style)
  {
+     SetBackgroundColour(*wxWHITE);
 
      upgrade_green_icon = ScalableBitmap(this, "monitor_upgrade_online", 5);
 

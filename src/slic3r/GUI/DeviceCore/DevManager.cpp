@@ -24,27 +24,37 @@ namespace Slic3r
 
         DevPrinterConfigUtil::InitFilePath(resources_dir());
 
-        // Load saved local machines
+        // Load saved local machines (needs an agent; when built without one the load is
+        // deferred to set_agent()).
         if (agent) {
-            AppConfig*  config         = GUI::wxGetApp().app_config;
-            const auto local_machines = config->get_local_machines();
-            for (auto& it : local_machines) {
-                const auto&    m         = it.second;
-                MachineObject* obj       = new MachineObject(this, m_agent, m.dev_name, m.dev_id, m.dev_ip);
-                obj->printer_type        = m.printer_type;
-                obj->dev_connection_type = "lan";
-                obj->bind_state          = "free";
-                obj->bind_sec_link       = "secure";
-                obj->m_is_online         = true;
-                obj->last_alive          = Slic3r::Utils::get_current_time_utc();
-                obj->set_access_code(config->get("access_code", m.dev_id), false);
-                obj->set_user_access_code(config->get("user_access_code", m.dev_id), false);
-                if (obj->has_access_right()) {
-                    localMachineList.insert(std::make_pair(m.dev_id, obj));
-                } else {
-                    config->erase_local_machine(m.dev_id);
-                    delete obj;
-                }
+            load_local_machines_from_config();
+        }
+    }
+
+    void DeviceManager::load_local_machines_from_config()
+    {
+        AppConfig* config = GUI::wxGetApp().app_config;
+        if (!config)
+            return;
+        const auto& local_machines = config->get_local_machines();
+        for (auto& it : local_machines) {
+            const auto& m = it.second;
+            if (localMachineList.count(m.dev_id))
+                continue;
+            MachineObject* obj       = new MachineObject(this, m_agent, m.dev_name, m.dev_id, m.dev_ip);
+            obj->printer_type        = m.printer_type;
+            obj->dev_connection_type = "lan";
+            obj->bind_state          = "free";
+            obj->bind_sec_link       = "secure";
+            obj->m_is_online         = true;
+            obj->last_alive          = Slic3r::Utils::get_current_time_utc();
+            obj->set_access_code(config->get("access_code", m.dev_id), false);
+            obj->set_user_access_code(config->get("user_access_code", m.dev_id), false);
+            if (obj->has_access_right()) {
+                localMachineList.insert(std::make_pair(m.dev_id, obj));
+            } else {
+                config->erase_local_machine(m.dev_id);
+                delete obj;
             }
         }
     }
@@ -98,6 +108,11 @@ namespace Slic3r
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": updating agent for "
                                 << localMachineList.size() << " local and "
                                 << userMachineList.size() << " user machines";
+
+        // First real agent after an agent-less construction (network plugin wasn't ready at
+        // startup): run the persisted-LAN-printer load the constructor had to skip. See
+        // load_local_machines_from_config().
+        const bool first_real_agent = (m_agent == nullptr && agent != nullptr);
         m_agent = agent;
 
         std::lock_guard<std::mutex> lock(listMutex);
@@ -110,6 +125,10 @@ namespace Slic3r
             if (it.second) {
                 it.second->set_agent(agent);
             }
+        }
+
+        if (first_real_agent) {
+            load_local_machines_from_config();
         }
     }
 

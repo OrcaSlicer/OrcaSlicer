@@ -21,7 +21,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "slic3r/GUI/DeviceCore/DevNozzleRack.h"
-#include "slic3r/GUI/DeviceTab/wgtDeviceNozzleRackNozzleItem.h"
+#include "slic3r/GUI/DeviceTab/wgtDeviceNozzleRack.h"
 
 #include <wx/panel.h>
 #include <wx/webview.h>
