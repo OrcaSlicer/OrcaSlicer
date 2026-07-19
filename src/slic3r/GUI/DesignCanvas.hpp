@@ -94,7 +94,10 @@ public:
     ColorRGBA body_color(int body) const;
     // Move-body gizmo (M5): three world-axis drag arrows on a body; drag fires the move
     // callback with the body index + accumulated translation (display-only, host applies it).
-    void begin_move_body(int body, const Vec3d& pivot, const Transform3d& base_xform);
+    // body_radius = bounding-sphere radius of the body in world mm; the gizmo scales with it so
+    // the rotation rings sit OUTSIDE the solid (Orca's Prepare gizmos do the same).
+    void begin_move_body(int body, const Vec3d& pivot, const Transform3d& base_xform,
+                         double body_radius);
     void clear_move_gizmo();
     bool moving_body() const;
     void set_on_body_move_changed(std::function<void(int, const Transform3d&)> cb);

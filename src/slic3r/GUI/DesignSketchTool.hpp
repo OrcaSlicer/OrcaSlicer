@@ -22,6 +22,7 @@ class TriangleMesh;   // fwd (libslic3r) — solid-pick mesh, non-owning pointer
 namespace GUI {
 
 class GLCanvas3D;
+class Camera;     // fwd — move_gizmo_arm() sizes the gizmo from the current zoom
 
 // Onshape-style sketch session. `begin` enters a session on a plane; the active
 // drawing tool (Mode) can be switched mid-session via `set_tool` while entities
@@ -131,7 +132,8 @@ public:
     // keeps a per-body Transform3d and re-feeds the moved display/pick meshes; the OCCT
     // shape (and thus face/edge global ids) is never touched. Drag fires on_body_move_changed
     // live; a stationary click on an arrow opens the inline offset editor for that axis.
-    void set_move_gizmo(int body, const Vec3d& pivot, const Transform3d& base_xform);
+    void set_move_gizmo(int body, const Vec3d& pivot, const Transform3d& base_xform,
+                        double body_radius = 0.0);
     void clear_move_gizmo();
     bool moving_body() const { return m_mv_active; }
     int  move_body_index() const { return m_mv_body; }
@@ -960,10 +962,13 @@ private:
     Eigen::Matrix3d m_mv_rot_start{Eigen::Matrix3d::Identity()}; // rot snapshot at arc-drag start
     double      m_mv_arc_a0{0.0};              // mouse angle on the ring at drag start
     int         m_mv_drag{-1};                 // 0..2 = X/Y/Z arrow, 3..5 = X/Y/Z ring, -1 none
+    double      m_mv_radius{0.0};              // body bounding-sphere radius (mm); 0 = unknown
     int         m_mv_press_x{0}, m_mv_press_y{0};
     Transform3d compose_move_xform() const;    // T(offset)*T(pivot)*rot*T(-pivot)*base_xform
     void  ring_basis(int axis, Vec3d& e, Vec3d& u, Vec3d& v) const;  // world axis + in-plane basis
     void  render_move_gizmo();
+    // Gizmo arm length (world mm): scales with the body so the rings clear its surface.
+    double move_gizmo_arm(const Camera& cam) const;
     bool  hit_test_move_arrow(GLCanvas3D& canvas, const wxMouseEvent& evt, int& axis) const;
     bool  hit_test_move_arc(GLCanvas3D& canvas, const wxMouseEvent& evt, int& axis) const;
     void  drag_move_arrow(GLCanvas3D& canvas, const wxMouseEvent& evt, int axis);

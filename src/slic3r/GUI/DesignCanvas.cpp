@@ -512,9 +512,10 @@ ColorRGBA DesignCanvas::body_color(int body) const
     return body_palette(body);
 }
 
-void DesignCanvas::begin_move_body(int body, const Vec3d& pivot, const Transform3d& base_xform)
+void DesignCanvas::begin_move_body(int body, const Vec3d& pivot, const Transform3d& base_xform,
+                                   double body_radius)
 {
-    m_sketch_tool.set_move_gizmo(body, pivot, base_xform);
+    m_sketch_tool.set_move_gizmo(body, pivot, base_xform, body_radius);
     request_repaint();
 }
 

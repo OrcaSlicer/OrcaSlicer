@@ -3453,8 +3453,13 @@ void DesignPanel::on_move_body()
     // Delta gizmo: pivot at the body's CURRENT world centroid; the tool composes the drag deltas
     // onto its current pose, so move + rotate both work (incl. on an already place-on-face'd body).
     const Transform3d base = m_body_xform[b];
-    const Vec3d pivot = base * m_doc.display_body_meshes[b].bounding_box().center();
-    m_viewport->begin_move_body(b, pivot, base);
+    const BoundingBoxf3 bb = m_doc.display_body_meshes[b].bounding_box();
+    const Vec3d pivot = base * bb.center();
+    // Bounding-sphere radius (world): the gizmo scales with it so the rotation rings sit clear of
+    // the body instead of collapsing into a tangle inside it — same sizing rule as Orca's Prepare
+    // gizmos. The scale part of `base` is applied so a scaled body still gets a correct radius.
+    const double radius = (base.linear() * (bb.size() * 0.5)).norm();
+    m_viewport->begin_move_body(b, pivot, base, radius);
     m_move_body = b;          // for the action bar: Cancel reverts to this pose
     m_move_prev = base;
     update_action_bar();      // surface the unified ✓/✗ while moving

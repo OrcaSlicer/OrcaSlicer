@@ -3390,7 +3390,8 @@ int DesignSketchTool::hit_test_base_pick(GLCanvas3D& canvas, const wxMouseEvent&
 }
 
 // ---- Move-body gizmo (M5) -------------------------------------------------------------
-void DesignSketchTool::set_move_gizmo(int body, const Vec3d& pivot, const Transform3d& base_xform)
+void DesignSketchTool::set_move_gizmo(int body, const Vec3d& pivot, const Transform3d& base_xform,
+                                      double body_radius)
 {
     m_mv_active     = true;
     m_mv_body       = body;
@@ -3399,6 +3400,19 @@ void DesignSketchTool::set_move_gizmo(int body, const Vec3d& pivot, const Transf
     m_mv_offset     = Vec3d::Zero();
     m_mv_rot        = Eigen::Matrix3d::Identity();
     m_mv_drag       = -1;
+    m_mv_radius     = std::max(body_radius, 0.0);
+}
+
+// Gizmo arm length in world mm. Orca's Prepare gizmos size themselves from the selection's
+// bounding sphere (GLGizmoRotate3D: m_radius = Offset + sphere radius) so the handles always sit
+// clear of the object; a fixed screen-size arm instead collapsed into a tangle buried inside a
+// large solid, which is why the rotation rings read as "missing". Same idea here, with a
+// screen-space floor so the gizmo stays grabbable on a tiny body or when zoomed far out.
+double DesignSketchTool::move_gizmo_arm(const Camera& cam) const
+{
+    const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
+    const double screen_min = 70.0 * upp;              // never smaller than the old fixed size
+    return std::max(screen_min, m_mv_radius * 1.25);   // 25% clear of the body surface
 }
 
 void DesignSketchTool::clear_move_gizmo()
@@ -3443,7 +3457,7 @@ void DesignSketchTool::render_move_gizmo()
     const Vec3d anchor = m_mv_base + m_mv_offset;
     const double upp  = 1.0 / std::max(cam.get_zoom(), 1e-6);
     const double th   = std::max(15.0 * upp, 1e-4);
-    const double L    = 70.0 * upp;                 // fixed screen-size arrow length
+    const double L    = move_gizmo_arm(cam);        // scales with the body (see move_gizmo_arm)
 
     const SketchPlane saved = m_plane;
     SketchPlane bb; bb.origin = anchor; bb.x_axis = right; bb.y_axis = up; bb.normal = fwd;
@@ -3478,7 +3492,7 @@ void DesignSketchTool::render_move_gizmo()
 
     // Three world-axis rotation rings (X/Y/Z), each a circle in the plane perpendicular to
     // its axis through the gizmo anchor — drag a ring to rotate the body about that axis.
-    const double R = 58.0 * upp;
+    const double R = 0.83 * move_gizmo_arm(cam);   // rings just inside the arrow tips
     for (int a = 0; a < 3; ++a) {
         Vec3d e, u, v; ring_basis(a, e, u, v);
         SketchPlane rp; rp.origin = anchor; rp.x_axis = u; rp.y_axis = v; rp.normal = e;
@@ -3504,7 +3518,7 @@ bool DesignSketchTool::hit_test_move_arrow(GLCanvas3D& canvas, const wxMouseEven
     const Vec3d ro = r.a, rd = r.b - r.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
     const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
-    const double L   = 70.0 * upp;
+    const double L   = move_gizmo_arm(cam);         // must match render_move_gizmo
     const Vec3d anchor = m_mv_base + m_mv_offset;
     const Vec3d axes[3] = { Vec3d::UnitX(), Vec3d::UnitY(), Vec3d::UnitZ() };
     int best = -1; double bestd = 7.0 * upp;        // ~7 px tolerance
@@ -3552,7 +3566,7 @@ bool DesignSketchTool::hit_test_move_arc(GLCanvas3D& canvas, const wxMouseEvent&
     const Vec3d ro = r.a, rd = r.b - r.a;
     const Camera& cam = wxGetApp().plater()->get_camera();
     const double upp = 1.0 / std::max(cam.get_zoom(), 1e-6);
-    const double R = 58.0 * upp;
+    const double R = 0.83 * move_gizmo_arm(cam);   // rings just inside the arrow tips
     const Vec3d anchor = m_mv_base + m_mv_offset;
     int best = -1; double bestd = 7.0 * upp;
     const int N = 48;
