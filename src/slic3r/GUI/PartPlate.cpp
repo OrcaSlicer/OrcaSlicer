@@ -4608,12 +4608,19 @@ void PartPlate::update_states()
 void PartPlate::update_slice_result_valid_state(bool valid)
 {
     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": plate %1% , update slice result from %2% to %3%") % m_plate_index %m_slice_result_valid %valid;
+    const bool changed = (m_slice_result_valid != valid);
     m_slice_result_valid = valid;
     if (valid)
         m_slice_percent = 100.0f;
     else {
         m_slice_percent = -1.0f;
     }
+    // This flips the plate's slice-ready / IMEX blocked-plate state without a geometry change,
+    // so the plate-selector thumbnail/warning badge must be repainted explicitly. Upstream
+    // replaced the old per-idle unconditional toolbar refresh with this dirty flag, so nothing
+    // else repaints the naughty-plate icon otherwise.
+    if (changed && m_plater)
+        m_plater->mark_plate_toolbar_image_dirty();
 }
 
 // IMEX firmware-managed zones: compute the plate-local primary-zone center and push it
