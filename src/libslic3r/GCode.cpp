@@ -1845,7 +1845,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
     std::string WipeTowerIntegration::finalize(GCode &gcodegen)
     {
         std::string gcode;
-        if (gcodegen.wipe_tower_type() == WipeTowerType::Type2) {
+        if (gcodegen.wipe_tower_type() == WipeTowerType::Type2 && !m_final_purge.gcode.empty()) {
             if (std::abs(gcodegen.writer().get_position().z() - m_final_purge.print_z) > EPSILON)
                 gcode += gcodegen.change_layer(m_final_purge.print_z);
             gcode += append_tcr2(gcodegen, m_final_purge, -1);
@@ -3591,19 +3591,19 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     }
 
     this->m_objsWithBrim.clear();
-    this->m_objSupportsWithBrim.clear();
     m_brim_done = false;
 
-    // BBS: set that indicates objs with brim
-    for (auto iter = print.m_brimMap.begin(); iter != print.m_brimMap.end(); ++iter) {
-        if (!iter->second.empty())
-            this->m_objsWithBrim.insert(iter->first);
+    // Orca: Track brims by instance. When a combined brim is printed, all of
+    // its instances are marked done together.
+    for (const Print::SkirtBrimGroup& group : print.skirt_brim_groups()) {
+        for (const Print::SkirtBrimGroup::Brim& brim : group.brims) {
+            if (brim.brim.empty())
+                continue;
+            for (const ObjectInstanceID& instance : brim.instances)
+                this->m_objsWithBrim.insert(instance);
+        }
     }
-    for (auto iter = print.m_supportBrimMap.begin(); iter != print.m_supportBrimMap.end(); ++iter) {
-        if (!iter->second.empty())
-            this->m_objSupportsWithBrim.insert(iter->first);
-    }
-    if (this->m_objsWithBrim.empty() && this->m_objSupportsWithBrim.empty()) m_brim_done = true;
+    if (this->m_objsWithBrim.empty()) m_brim_done = true;
 
     // SoftFever: calib
     if (print.calib_params().mode == CalibMode::Calib_PA_Line) {
@@ -4900,25 +4900,30 @@ std::string GCode::generate_skirt(const Print &print,
     return gcode;
 }
 
-static size_t find_skirt_brim_group_idx(const Print& print, ObjectID object_id)
+static size_t find_skirt_brim_group_idx(const Print& print, ObjectID object_id, size_t instance_id)
 {
     const std::vector<Print::SkirtBrimGroup>& groups = print.skirt_brim_groups();
-    for (size_t idx = 0; idx < groups.size(); ++idx)
-        if (std::find(groups[idx].object_ids.begin(), groups[idx].object_ids.end(), object_id) != groups[idx].object_ids.end())
+    for (size_t idx = 0; idx < groups.size(); ++idx) {
+        const std::vector<ObjectInstanceID>& instances = groups[idx].instances;
+        if (std::any_of(instances.begin(), instances.end(), [object_id, instance_id](const ObjectInstanceID& instance) {
+                return instance.object_id == object_id && instance.instance_id == instance_id;
+            }))
             return idx;
+    }
     return size_t(-1);
 }
 
 std::string GCode::generate_object_skirt_group(const Print &print,
         const PrintObject &object,
+        size_t instance_id,
         const LayerTools &layer_tools,
         const Layer& layer,
         unsigned int extruder_id)
 {
-    if (print.config().skirt_type != stPerObject || print.skirt_brim_groups().empty())
+    if (print.config().skirt_type != stPerObject || !layer_tools.has_skirt || print.skirt_brim_groups().empty())
         return {};
 
-    const size_t group_idx = find_skirt_brim_group_idx(print, object.id());
+    const size_t group_idx = find_skirt_brim_group_idx(print, object.id(), instance_id);
     if (group_idx == size_t(-1) || print.skirt_brim_groups()[group_idx].skirt.empty())
         return {};
 
@@ -4930,15 +4935,15 @@ std::string GCode::generate_object_skirt_group(const Print &print,
                           object_skirt_tools, layer, extruder_id, m_skirt_group_done[group_idx]);
 }
 
-std::string GCode::generate_object_brim(const Print &print, const PrintObject &object, bool first_layer)
+std::string GCode::generate_object_brim(const Print &print, const PrintObject &object, size_t instance_id, bool first_layer)
 {
     if (!first_layer)
         return {};
 
-    auto emit_brim = [this](const ExtrusionEntityCollection& brim, const std::vector<ObjectID>& object_ids) {
+    auto emit_brim = [this](const ExtrusionEntityCollection& brim, const std::vector<ObjectInstanceID>& instances) {
         std::string gcode;
-        const bool already_emitted = std::none_of(object_ids.begin(), object_ids.end(), [this](ObjectID object_id) {
-            return m_objsWithBrim.find(object_id) != m_objsWithBrim.end();
+        const bool already_emitted = std::none_of(instances.begin(), instances.end(), [this](const ObjectInstanceID& instance) {
+            return m_objsWithBrim.find(instance) != m_objsWithBrim.end();
         });
         if (already_emitted || brim.empty())
             return gcode;
@@ -4950,32 +4955,22 @@ std::string GCode::generate_object_brim(const Print &print, const PrintObject &o
                 gcode += this->extrude_entity(*ee, "brim", NOZZLE_CONFIG(support_speed));
         m_avoid_crossing_perimeters.use_external_mp(false);
         m_avoid_crossing_perimeters.disable_once();
-        for (ObjectID object_id : object_ids)
-            m_objsWithBrim.erase(object_id);
+        for (const ObjectInstanceID& instance : instances)
+            m_objsWithBrim.erase(instance);
         return gcode;
     };
 
-    const bool has_per_object_skirt_or_shield = print.config().skirt_type == stPerObject &&
-                                                (print.has_skirt() || print.has_infinite_skirt());
-    if (print.config().combine_brims && !has_per_object_skirt_or_shield &&
-        print.config().print_sequence != PrintSequence::ByObject && print.m_brimMap.size() == 1) {
-        const auto brim_it = print.m_brimMap.begin();
-        return emit_brim(brim_it->second, { brim_it->first });
-    }
-
-    const size_t group_idx = find_skirt_brim_group_idx(print, object.id());
+    const ObjectInstanceID object_instance_id{ object.id(), instance_id };
+    const size_t group_idx = find_skirt_brim_group_idx(print, object.id(), instance_id);
     if (group_idx != size_t(-1)) {
         std::string gcode;
         for (const Print::SkirtBrimGroup::Brim& brim : print.skirt_brim_groups()[group_idx].brims)
-            if (std::find(brim.object_ids.begin(), brim.object_ids.end(), object.id()) != brim.object_ids.end())
-                gcode += emit_brim(brim.brim, brim.object_ids);
+            if (std::find(brim.instances.begin(), brim.instances.end(), object_instance_id) != brim.instances.end())
+                gcode += emit_brim(brim.brim, brim.instances);
         return gcode;
     }
 
-    const auto brim_it = print.m_brimMap.find(object.id());
-    if (brim_it == print.m_brimMap.end())
-        return {};
-    return emit_brim(brim_it->second, { object.id() });
+    return {};
 }
 
 // Bedslinger model. The heavier the bed load, the lower the achievable Y acceleration for a given
@@ -6096,8 +6091,8 @@ LayerResult GCode::process_layer(
                 const auto& inst = instance_to_print.print_object.instances()[instance_to_print.instance_id];
                 const LayerToPrint &layer_to_print = layers[instance_to_print.layer_id];
                 if (print_wipe_extrusions == (is_anything_overridden ? 1 : 0)) {
-                    gcode += generate_object_skirt_group(print, instance_to_print.print_object, layer_tools, layer, extruder_id);
-                    gcode += generate_object_brim(print, instance_to_print.print_object, first_layer);
+                    gcode += generate_object_skirt_group(print, instance_to_print.print_object, instance_to_print.instance_id, layer_tools, layer, extruder_id);
+                    gcode += generate_object_brim(print, instance_to_print.print_object, instance_to_print.instance_id, first_layer);
                 }
 
                 // To control print speed of the 1st object layer printed over raft interface.
@@ -6152,18 +6147,6 @@ LayerResult GCode::process_layer(
                     m_layer = layers[instance_to_print.layer_id].support_layer;
                     m_object_layer_over_raft = false;
 
-                    //BBS: print supports' brims first
-                    if (this->m_objSupportsWithBrim.find(instance_to_print.print_object.id()) != this->m_objSupportsWithBrim.end() && !print_wipe_extrusions) {
-                        this->set_origin(0., 0.);
-                        m_avoid_crossing_perimeters.use_external_mp();
-                        for (const ExtrusionEntity* ee : print.m_supportBrimMap.at(instance_to_print.print_object.id()).entities) {
-                            gcode += this->extrude_entity(*ee, "brim", NOZZLE_CONFIG(support_speed));
-                        }
-                        m_avoid_crossing_perimeters.use_external_mp(false);
-                        // Allow a straight travel move to the first object point.
-                        m_avoid_crossing_perimeters.disable_once();
-                        this->m_objSupportsWithBrim.erase(instance_to_print.print_object.id());
-                    }
                     // When starting a new object, use the external motion planner for the first travel move.
                     const Point& offset = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
                     std::pair<const PrintObject*, Point> this_object_copy(&instance_to_print.print_object, offset);

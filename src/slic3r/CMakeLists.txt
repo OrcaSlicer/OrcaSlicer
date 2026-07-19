@@ -842,6 +842,14 @@ endif()
 
 target_link_libraries(libslic3r_gui libslic3r cereal::cereal imgui imguizmo minilzo libvgcode md4c-html glad ${_opengl_link_lib} hidapi mdns ${wxWidgets_LIBRARIES} glfw libcurl OpenSSL::SSL OpenSSL::Crypto noise::noise pybind11::embed)
 
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    # Linux finds wxWidgets in module mode, whose include dirs and definitions
+    # only apply at src/ directory scope; export them from the target so wx
+    # headers reach GUI-header consumers outside src/ (tests). The CONFIG-mode
+    # wx::* imported targets used on Windows/macOS already propagate these.
+    target_include_directories(libslic3r_gui SYSTEM PUBLIC ${wxWidgets_INCLUDE_DIRS})
+    target_compile_definitions(libslic3r_gui PUBLIC ${wxWidgets_DEFINITIONS} $<$<CONFIG:Debug>:${wxWidgets_DEFINITIONS_DEBUG}>)
+endif ()
 
 if (MSVC)
     target_link_libraries(libslic3r_gui Setupapi.lib)

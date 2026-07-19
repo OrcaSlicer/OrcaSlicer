@@ -2546,8 +2546,7 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         m_skirt_brim_groups.clear();
         m_has_shared_per_object_skirt = false;
         m_skirt_convex_hull.clear();
-        m_objectBrimAreas.clear();
-        m_supportBrimAreas.clear();
+        m_objectBrimAreasByInstance.clear();
         m_first_layer_convex_hull.points.clear();
         for (PrintObject *object : m_objects)  object->m_skirt.clear();
 
@@ -2703,14 +2702,16 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
             if (!existObject && objectExtruderMap.find(print_object_ID) != objectExtruderMap.end())
                 objPrintVec.push_back(std::make_pair(print_object_ID, objectExtruderMap.at(print_object_ID)));
         }
-        // BBS: m_brimMap and m_supportBrimMap are used instead of m_brim to generate brim of objs and supports seperately
+        // Orca: Build both the old object-keyed brim map and the per-instance
+        // maps used by skirt/brim groups.
         m_brimMap.clear();
-        m_supportBrimMap.clear();
+        m_brimMapByInstance.clear();
         m_first_layer_convex_hull.points.clear();
         if (this->has_brim()) {
             Polygons islands_area;
             make_brim(*this, this->make_try_cancel(), islands_area, m_brimMap,
-                m_supportBrimMap, objPrintVec, printExtruders, &m_objectBrimAreas, &m_supportBrimAreas);
+                m_brimMapByInstance, objPrintVec, printExtruders,
+                &m_objectBrimAreasByInstance);
             for (Polygon& poly_ex : islands_area)
                 poly_ex.douglas_peucker(SCALED_RESOLUTION);
             for (Polygon &poly : union_(this->first_layer_islands(), islands_area))
@@ -2859,7 +2860,8 @@ void Print::_make_skirt()
         Polygon      hull;
     };
 
-    // Orca: build one local occupied hull per object from object and support geometry up to skirt height.
+    // Orca: Build one local occupied hull per object from object/support
+    // geometry up to skirt height. Instances translate this hull later.
     std::vector<ObjectSkirtHull> object_convex_hulls;
     for (PrintObject *object : m_objects) {
         Points object_points;
@@ -2969,49 +2971,49 @@ void Print::_make_skirt()
         object_hull.object->m_skirt.clear();
 
     if (m_config.skirt_type == stCombined || m_config.skirt_type == stPerObject) {
-        struct SkirtGroupItem {
+        struct SkirtBrimGroupItem {
             Points       occupied_points;
             ObjectID     object_id;
+            size_t       instance_id;
             bool         emits_skirt;
         };
 
-        // Orca: group items represent occupied first-layer areas. Object items emit skirts;
-        // obstacle-only items, such as wipe tower, only force nearby object groups to merge.
-        std::vector<SkirtGroupItem> group_items;
+        // Orca: Each object instance can emit skirt/brim. Wipe tower is only an
+        // obstacle here; it may merge nearby items, but does not emit anything.
+        std::vector<SkirtBrimGroupItem> group_items;
         const coord_t grouping_offset = scale_(m_config.skirt_distance.value + m_config.skirt_loops.value * spacing);
         for (const ObjectSkirtHull& object_hull : object_convex_hulls) {
             PrintObject* object = object_hull.object;
-            Points occupied_points;
-            for (const PrintInstance &instance : object->instances()) {
+            std::vector<size_t> object_item_indices;
+            object_item_indices.reserve(object->instances().size());
+            for (size_t instance_idx = 0; instance_idx < object->instances().size(); ++instance_idx) {
+                const PrintInstance &instance = object->instances()[instance_idx];
                 Points copy_points = object_hull.hull.points;
                 for (Point &pt : copy_points)
                     pt += instance.shift;
-                append(occupied_points, copy_points);
+                if (copy_points.size() < 3)
+                    continue;
+
+                object_item_indices.push_back(group_items.size());
+                group_items.push_back({ std::move(copy_points), object->id(), instance_idx, true });
             }
 
-            auto append_brim_points = [&occupied_points](const ExPolygons& areas) {
-                for (const ExPolygon& area : areas)
-                    append(occupied_points, area.contour.points);
-            };
-            if (auto it = m_objectBrimAreas.find(object->id()); it != m_objectBrimAreas.end())
-                append_brim_points(it->second);
-            if (auto it = m_supportBrimAreas.find(object->id()); it != m_supportBrimAreas.end())
-                append_brim_points(it->second);
-            if (occupied_points.size() < 3)
-                continue;
-
-            // Orca: include the object's brim/support-brim footprint before checking skirt collisions.
-            group_items.push_back({ std::move(occupied_points), object->id(), true });
+            for (size_t item_idx : object_item_indices) {
+                const ObjectInstanceID key{ object->id(), group_items[item_idx].instance_id };
+                if (auto instance_brim_it = m_objectBrimAreasByInstance.find(key); instance_brim_it != m_objectBrimAreasByInstance.end())
+                    for (const ExPolygon& area : instance_brim_it->second)
+                        append(group_items[item_idx].occupied_points, area.contour.points);
+            }
         }
 
         // Orca: the wipe tower contributes occupied area, but does not emit a skirt by itself.
         Points wipe_tower_points = this->first_layer_wipe_tower_corners();
         if (wipe_tower_points.size() >= 3)
-            group_items.push_back({ std::move(wipe_tower_points), ObjectID(), false });
+            group_items.push_back({ std::move(wipe_tower_points), ObjectID(), size_t(-1), false });
 
         std::vector<size_t> parent(group_items.size());
         std::iota(parent.begin(), parent.end(), 0);
-        // Orca: union-find keeps collision merging local without repeatedly rebuilding item lists.
+        // Orca: Use union-find so touching items can be merged while scanning.
         auto find_parent = [&parent](size_t idx) {
             while (parent[idx] != idx) {
                 parent[idx] = parent[parent[idx]];
@@ -3026,24 +3028,24 @@ void Print::_make_skirt()
                 parent[b] = a;
         };
 
-        // Orca: combined skirt is the same grouping model with all items forced into one group.
+        // Orca: Combined skirt starts with all items in the same group.
         if (m_config.skirt_type == stCombined && !group_items.empty())
             for (size_t i = 1; i < group_items.size(); ++i)
                 unite(0, i);
 
-        auto build_grouped_points = [&]() {
-            struct GroupData {
-                Points                points;
-                std::vector<ObjectID> object_ids;
-                bool                  emits_skirt = false;
+        auto build_skirt_brim_groups = [&]() {
+            struct SkirtBrimGroupData {
+                Points                                           points;
+                std::vector<ObjectInstanceID>                    instances;
+                bool                                             emits_skirt = false;
             };
 
-            std::map<size_t, GroupData> grouped;
+            std::map<size_t, SkirtBrimGroupData> grouped;
             for (size_t i = 0; i < group_items.size(); ++i) {
-                GroupData& group = grouped[find_parent(i)];
+                SkirtBrimGroupData& group = grouped[find_parent(i)];
                 append(group.points, group_items[i].occupied_points);
                 if (group_items[i].object_id.valid())
-                    group.object_ids.push_back(group_items[i].object_id);
+                    group.instances.push_back({ group_items[i].object_id, group_items[i].instance_id });
                 group.emits_skirt = group.emits_skirt || group_items[i].emits_skirt;
             }
             return grouped;
@@ -3052,16 +3054,18 @@ void Print::_make_skirt()
         bool groups_changed = m_config.skirt_type == stPerObject;
         while (groups_changed) {
             groups_changed = false;
-            auto grouped_points = build_grouped_points();
+            auto grouped_points = build_skirt_brim_groups();
             std::vector<std::pair<size_t, Polygon>> group_envelopes;
             for (const auto& [root, group] : grouped_points) {
                 if (group.points.size() < 3)
                     continue;
 
-                // Orca: emitting groups are expanded to their final skirt reach; obstacle groups are not.
+                // Orca: Only skirt-emitting groups are expanded by skirt distance;
+                // obstacle-only groups stay at their occupied outline.
                 Polygon envelope = Geometry::convex_hull(group.points);
                 if (group.emits_skirt) {
-                    // Orca: merge groups when a skirt envelope intersects another group or obstacle.
+                    // Orca: If the expanded skirt outline touches another group
+                    // or obstacle, merge them and run the pass again.
                     Polygons envelopes = offset(envelope, grouping_offset, ClipperLib::jtRound, float(scale_(0.1)));
                     if (envelopes.empty())
                         continue;
@@ -3082,28 +3086,23 @@ void Print::_make_skirt()
             }
         }
 
-        auto make_group_brims = [this](const std::vector<ObjectID>& group_object_ids) {
+        auto make_brims_for_skirt_brim_group = [this](const std::vector<ObjectInstanceID>& group_instances) {
             std::vector<SkirtBrimGroup::Brim> brims;
-            std::vector<ObjectID> brim_object_ids;
-            for (ObjectID object_id : group_object_ids) {
-                const auto brim_it = m_brimMap.find(object_id);
-                if (brim_it != m_brimMap.end() && !brim_it->second.empty())
-                    brim_object_ids.push_back(object_id);
+            std::vector<ObjectInstanceID> brim_instances;
+            for (const ObjectInstanceID& instance : group_instances) {
+                const auto brim_it = m_brimMapByInstance.find(instance);
+                if (brim_it != m_brimMapByInstance.end() && !brim_it->second.empty())
+                    brim_instances.push_back(instance);
             }
 
-            const bool global_combined_brim = m_config.combine_brims && m_config.skirt_type != stPerObject && m_brimMap.size() == 1;
-            auto brim_owner_ids = [&group_object_ids, global_combined_brim](const std::vector<ObjectID>& object_ids) {
-                return global_combined_brim ? group_object_ids : object_ids;
-            };
-
-            const bool combine_group_brims = m_config.combine_brims && brim_object_ids.size() > 1;
+            const bool combine_group_brims = m_config.combine_brims && brim_instances.size() > 1;
             if (!combine_group_brims) {
-                for (ObjectID object_id : brim_object_ids)
-                    brims.push_back({ m_brimMap.at(object_id), brim_owner_ids({ object_id }) });
+                for (const ObjectInstanceID& instance : brim_instances)
+                    brims.push_back({ m_brimMapByInstance.at(instance), { instance } });
                 return brims;
             }
 
-            std::vector<size_t> brim_parent(brim_object_ids.size());
+            std::vector<size_t> brim_parent(brim_instances.size());
             std::iota(brim_parent.begin(), brim_parent.end(), 0);
             auto find_brim_parent = [&brim_parent](size_t idx) {
                 while (brim_parent[idx] != idx) {
@@ -3120,61 +3119,64 @@ void Print::_make_skirt()
             };
 
             const coord_t brim_contact_distance = coord_t(brim_flow().scaled_spacing() * 2.);
-            for (size_t i = 0; i < brim_object_ids.size(); ++i) {
-                const auto area_i = m_objectBrimAreas.find(brim_object_ids[i]);
-                if (area_i == m_objectBrimAreas.end())
+            for (size_t i = 0; i < brim_instances.size(); ++i) {
+                const auto area_i = m_objectBrimAreasByInstance.find(brim_instances[i]);
+                if (area_i == m_objectBrimAreasByInstance.end())
                     continue;
-                for (size_t j = i + 1; j < brim_object_ids.size(); ++j) {
-                    const auto area_j = m_objectBrimAreas.find(brim_object_ids[j]);
-                    if (area_j != m_objectBrimAreas.end() &&
+                for (size_t j = i + 1; j < brim_instances.size(); ++j) {
+                    const auto area_j = m_objectBrimAreasByInstance.find(brim_instances[j]);
+                    if (area_j != m_objectBrimAreasByInstance.end() &&
                         !intersection_ex(offset_ex(area_i->second, brim_contact_distance, jtRound, SCALED_RESOLUTION), area_j->second).empty())
                         unite_brims(i, j);
                 }
             }
 
-            std::map<size_t, std::vector<ObjectID>> combined_brim_ids;
-            for (size_t i = 0; i < brim_object_ids.size(); ++i)
-                combined_brim_ids[find_brim_parent(i)].push_back(brim_object_ids[i]);
+            std::map<size_t, std::vector<ObjectInstanceID>> combined_brim_ids;
+            for (size_t i = 0; i < brim_instances.size(); ++i)
+                combined_brim_ids[find_brim_parent(i)].push_back(brim_instances[i]);
 
-            for (const auto& [_, object_ids] : combined_brim_ids) {
-                if (object_ids.size() == 1) {
-                    brims.push_back({ m_brimMap.at(object_ids.front()), brim_owner_ids(object_ids) });
+            for (const auto& [_, instances] : combined_brim_ids) {
+                if (instances.size() == 1) {
+                    const ObjectInstanceID& instance = instances.front();
+                    brims.push_back({ m_brimMapByInstance.at(instance), { instance } });
                     continue;
                 }
 
                 ExPolygons combined_area;
-                for (ObjectID object_id : object_ids)
-                    expolygons_append(combined_area, m_objectBrimAreas.at(object_id));
+                for (const ObjectInstanceID& instance : instances)
+                    expolygons_append(combined_area, m_objectBrimAreasByInstance.at(instance));
                 combined_area = union_ex(combined_area);
                 const float scaled_resolution  = float(scaled(m_config.resolution.value));
                 const float brim_cleanup_delta = std::max(scaled_resolution, float(SCALED_EPSILON));
                 combined_area = offset2_ex(combined_area, brim_cleanup_delta, -brim_cleanup_delta, jtRound, scaled_resolution);
 
                 Polygons islands_area;
-                brims.push_back({ makeBrimInfillFromPlateCoordinates(combined_area, *this, islands_area), object_ids });
+                brims.push_back({ makeBrimInfillFromPlateCoordinates(combined_area, *this, islands_area), instances });
             }
 
             return brims;
         };
 
-        auto grouped_points = build_grouped_points();
+        auto grouped_points = build_skirt_brim_groups();
         for (auto& [_, group] : grouped_points) {
             if (!group.emits_skirt || group.points.size() < 3)
                 continue;
-            if (generate_skirt && m_config.skirt_type == stPerObject && group.object_ids.size() > 1)
+            if (generate_skirt && m_config.skirt_type == stPerObject && group.instances.size() > 1)
                 m_has_shared_per_object_skirt = true;
-            // Orca: after merging, use the occupied outline directly; do not add skirt distance twice.
+            // Orca: Group points already include the occupied outline, so don't
+            // add skirt distance here again.
             ExtrusionEntityCollection group_skirt;
             if (generate_skirt)
                 append_skirt_loops_for_hull(Geometry::convex_hull(group.points), group_skirt, true);
-            std::vector<SkirtBrimGroup::Brim> group_brims = make_group_brims(group.object_ids);
+            std::vector<SkirtBrimGroup::Brim> group_brims = make_brims_for_skirt_brim_group(group.instances);
             if (!group_skirt.empty()) {
                 group_skirt.reverse();
-                // Orca: keep m_skirt as a flattened compatibility mirror for preview/extents.
+                // Orca: Keep m_skirt filled for code that still reads a flat
+                // skirt collection.
                 m_skirt.append(group_skirt.entities);
             }
             if (!group_skirt.empty() || !group_brims.empty())
-                m_skirt_brim_groups.push_back({ std::move(group_skirt), std::move(group.object_ids), std::move(group_brims) });
+                m_skirt_brim_groups.push_back({ std::move(group_skirt), std::move(group.instances), std::move(group_brims) });
         }
     }
 }
@@ -4124,6 +4126,7 @@ void Print::_make_wipe_tower()
 
         // Unload the current filament over the purge tower.
         coordf_t layer_height = m_objects.front()->config().layer_height.value;
+        bool generate_final_purge = true;
         if (m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions > 0) {
             // The wipe tower goes up to the last layer of the print.
             if (wipe_tower.layer_finished()) {
@@ -4135,11 +4138,14 @@ void Print::_make_wipe_tower()
                 // There is yet enough space at this layer of the wipe tower for the final purge.
             }
         } else {
-            // The wipe tower does not reach the last print layer, perform the pruge at the last print layer.
+            // The wipe tower does not reach the last print layer.
+            // Skip final purge to avoid generating purge lines in mid-air.
             assert(m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions == 0);
-            wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z), float(layer_height), 0, false, true);
+            generate_final_purge = false;
         }
-        m_wipe_tower_data.final_purge = Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int) (-1)));
+        m_wipe_tower_data.final_purge = generate_final_purge
+            ? Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int)(-1)))
+            : Slic3r::make_unique<WipeTower::ToolChangeResult>();
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
@@ -4235,6 +4241,7 @@ void Print::_make_wipe_tower()
 
         // Unload the current filament over the purge tower.
         coordf_t layer_height = m_objects.front()->config().layer_height.value;
+        bool generate_final_purge = true;
         if (m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions > 0) {
             // The wipe tower goes up to the last layer of the print.
             if (wipe_tower.layer_finished()) {
@@ -4246,11 +4253,14 @@ void Print::_make_wipe_tower()
                 // There is yet enough space at this layer of the wipe tower for the final purge.
             }
         } else {
-            // The wipe tower does not reach the last print layer, perform the pruge at the last print layer.
+            // The wipe tower does not reach the last print layer.
+            // Skip final purge to avoid generating purge lines in mid-air.
             assert(m_wipe_tower_data.tool_ordering.back().wipe_tower_partitions == 0);
-            wipe_tower.set_layer(float(m_wipe_tower_data.tool_ordering.back().print_z), float(layer_height), 0, false, true);
+            generate_final_purge = false;
         }
-        m_wipe_tower_data.final_purge = Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int) (-1)));
+        m_wipe_tower_data.final_purge = generate_final_purge
+            ? Slic3r::make_unique<WipeTower::ToolChangeResult>(wipe_tower.tool_change((unsigned int)(-1)))
+            : Slic3r::make_unique<WipeTower::ToolChangeResult>();
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();

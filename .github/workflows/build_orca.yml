@@ -221,15 +221,41 @@ jobs:
           security import $CERTIFICATE_PATH -P $P12_PASSWORD -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $P12_PASSWORD $KEYCHAIN_PATH
-          codesign --deep --force --verbose --options runtime --timestamp --entitlements ${{ github.workspace }}/scripts/disable_validation.entitlements --sign "$CERTIFICATE_ID" ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app
-          # --deep is deprecated and signing/sealing can fail or skip files in
-          # non-standard layouts (python/bin, python/lib/**, tools/uv). Verify
-          # here so coverage gaps fail at CI time rather than at notarization.
-          codesign --verify --deep --strict --verbose=2 ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app
+          # codesign --deep is deprecated and cannot sign the bundled Python
+          # runtime (see relocate_python_runtime in build_release_macos.sh).
+          # Sign every nested Mach-O in the bundle explicitly -- notarization
+          # requires the hardened-runtime signature on each -- then seal the
+          # bundle itself last, and verify so coverage gaps fail at CI time
+          # rather than at notarization.
+          ENTITLEMENTS=${{ github.workspace }}/scripts/disable_validation.entitlements
+          sign() {
+            codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$CERTIFICATE_ID" "$@"
+          }
+          sign_app() {
+            local app="$1"
+            local machos=()
+            # file is batched via xargs (per-file it costs minutes); universal
+            # binaries also print per-architecture lines, dropped by grep -v.
+            while IFS= read -r f; do machos+=("$f"); done < <(
+              find "$app" -type f -print0 |
+                xargs -0 file --no-pad --mime-type -- |
+                grep -v ' (for architecture ' |
+                grep ': application/x-mach-binary$' |
+                sed 's|: application/x-mach-binary$||'
+            )
+            if [ "${#machos[@]}" -eq 0 ]; then
+              echo "ERROR: no Mach-O files found in $app -- detection is broken" >&2
+              exit 1
+            fi
+            echo "signing ${#machos[@]} Mach-O files in $app"
+            sign "${machos[@]}"
+            sign --verbose "$app"
+            codesign --verify --deep --strict --verbose=2 "$app"
+          }
+          sign_app "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app"
           # Sign OrcaSlicer_profile_validator.app if it exists
           if [ -f "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then
-            codesign --deep --force --verbose --options runtime --timestamp --entitlements ${{ github.workspace }}/scripts/disable_validation.entitlements --sign "$CERTIFICATE_ID" ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app
-            codesign --verify --deep --strict --verbose=2 ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app
+            sign_app "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app"
           fi
           
           # Create main OrcaSlicer DMG without the profile validator helper
@@ -238,7 +264,7 @@ jobs:
           cp -R ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/
           ln -sfn /Applications ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/Applications
           retry hdiutil create -volname "OrcaSlicer" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_dmg -ov -format UDZO OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
-          codesign --deep --force --verbose --options runtime --timestamp --entitlements ${{ github.workspace }}/scripts/disable_validation.entitlements --sign "$CERTIFICATE_ID" OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
+          codesign --deep --force --verbose --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$CERTIFICATE_ID" OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
           
           # Create separate OrcaSlicer_profile_validator DMG if the app exists
           if [ -f "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then
@@ -247,7 +273,7 @@ jobs:
             cp -R ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg/
             ln -sfn /Applications ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg/Applications
             retry hdiutil create -volname "OrcaSlicer Profile Validator" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg -ov -format UDZO OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
-            codesign --deep --force --verbose --options runtime --timestamp --entitlements ${{ github.workspace }}/scripts/disable_validation.entitlements --sign "$CERTIFICATE_ID" OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
+            codesign --deep --force --verbose --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$CERTIFICATE_ID" OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
           fi
           
           # Notarize main DMG
