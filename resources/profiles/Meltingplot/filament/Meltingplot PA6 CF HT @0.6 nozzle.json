@@ -8,6 +8,9 @@
 	"filament_max_volumetric_speed": [
 		"11"
 	],
+	"slow_down_layer_time": [
+		"8"
+	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.6 nozzle",
 		"Meltingplot MBL 136 0.6 nozzle",
