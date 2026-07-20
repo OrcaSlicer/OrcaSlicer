@@ -1,5 +1,7 @@
 #include "SketchInlineEditor.hpp"
 
+#include <wx/display.h>
+
 #include <wx/frame.h>
 #include <wx/textctrl.h>
 #include <wx/stattext.h>
@@ -83,7 +85,15 @@ void SketchInlineEditor::open(const wxPoint& screen_px, double value,
     wxPoint pos(screen_px.x - sz.GetWidth() / 2, screen_px.y - sz.GetHeight() / 2);
     // Keep the frame fully on-screen: an anchor that maps off the display makes GTK drop
     // the window at a default corner (top-left) instead of the requested point.
-    const wxRect area = wxGetClientDisplayRect();
+    // Clamp to the display the anchor is ON, not the primary one: wxGetClientDisplayRect()
+    // only ever describes the primary monitor, so on a multi-head desktop it shoved this
+    // field onto a different screen than the app. It then sat invisible while
+    // m_awaiting_length made the sketch tool eat every mouse event, which read as the
+    // viewport freezing after a sketch with only Enter able to release it.
+    int disp = wxDisplay::GetFromPoint(screen_px);
+    if (disp == wxNOT_FOUND) disp = wxDisplay::GetFromWindow(m_frame);
+    const wxRect area = (disp != wxNOT_FOUND) ? wxDisplay(unsigned(disp)).GetClientArea()
+                                              : wxGetClientDisplayRect();
     pos.x = std::max(area.GetLeft(), std::min(pos.x, area.GetRight()  - sz.GetWidth()));
     pos.y = std::max(area.GetTop(),  std::min(pos.y, area.GetBottom() - sz.GetHeight()));
     // Show() BEFORE Move(): GTK ignores a Move() issued before the window is mapped (the

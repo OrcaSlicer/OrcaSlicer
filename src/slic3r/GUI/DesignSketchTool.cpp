@@ -7403,6 +7403,11 @@ bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
         // so the Polyline handler ends the chain. Without this the freeze ate every terminator.
         if (m_mode == Mode::Polyline && (evt.RightDown() || evt.LeftDClick()) && on_inline_dismiss)
             on_inline_dismiss();              // -> set_inline_busy(false), m_awaiting_length=false
+        // The freeze exists so a stray click can't draw under the floating field — it was
+        // never meant to trap the camera. Let drags and the wheel through, so a field that
+        // opens somewhere unexpected can't leave the viewport unusable.
+        else if (evt.Dragging() || evt.GetWheelRotation() != 0)
+            return false;
         else
             return true;
     }
