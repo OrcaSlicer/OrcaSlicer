@@ -2732,6 +2732,25 @@ void ToolOrdering::enforce_mixed_component_order()
     }
 }
 
+// Parse the user defined cyclic sequence ("3,2 , 1 , 4") into 0-based filament indices.
+// Out of range entries, duplicates and malformed tokens are dropped, so a partially valid string
+// still orders the filaments it does name.
+static std::vector<unsigned int> parse_cyclic_order(const std::string& str, unsigned int number_of_extruders)
+{
+    std::vector<unsigned int> order;
+    for (const std::string& token : split_string(str, ',')) {
+        try {
+            int filament = std::stoi(token); // stoi skips leading whitespace by itself
+            if (filament >= 1 && (unsigned int)filament <= number_of_extruders
+                && std::find(order.begin(), order.end(), (unsigned int)(filament - 1)) == order.end())
+                order.emplace_back((unsigned int)(filament - 1));
+        } catch (const std::exception&) {
+            // Not a number, ignore it.
+        }
+    }
+    return order;
+}
+
 void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first_layer)
 {
     const PrintConfig* print_config = m_print_config_ptr;
@@ -2829,8 +2848,15 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
     const bool use_cyclic_ordering =
         (print_config->toolchange_ordering == ToolChangeOrderingType::Cyclic);
 
+    // Optional user defined cyclic sequence, given as 1-based filament numbers ("3,2,1,4"). Filaments
+    // missing from it keep their ascending order after the listed ones, so a partial or bogus entry
+    // still yields the default cyclic order.
+    const std::vector<unsigned int> cyclic_order =
+        use_cyclic_ordering ? parse_cyclic_order(print_config->toolchange_cyclic_order.value, number_of_extruders)
+                            : std::vector<unsigned int>();
+
     // other_layers_seq: the layer_idx and extruder_idx are base on 1
-    auto get_custom_seq = [&other_layers_seqs, &reorder_first_layer, &first_layer_filaments, &layer_filaments, use_cyclic_ordering](int layer_idx, std::vector<int>& out_seq) -> bool {
+    auto get_custom_seq = [&other_layers_seqs, &reorder_first_layer, &first_layer_filaments, &layer_filaments, use_cyclic_ordering, &cyclic_order](int layer_idx, std::vector<int>& out_seq) -> bool {
         if (!reorder_first_layer && layer_idx == 0) {
             out_seq.resize(first_layer_filaments.size());
             std::transform(first_layer_filaments.begin(), first_layer_filaments.end(), out_seq.begin(), [](auto item) {return item + 1; });
@@ -2847,6 +2873,14 @@ void ToolOrdering::reorder_extruders_for_minimum_flush_volume(bool reorder_first
         if (use_cyclic_ordering && layer_idx >= 0 && size_t(layer_idx) < layer_filaments.size()) {
             std::vector<unsigned int> ordered = layer_filaments[size_t(layer_idx)];
             std::sort(ordered.begin(), ordered.end());
+            if (!cyclic_order.empty())
+                std::stable_sort(ordered.begin(), ordered.end(), [&cyclic_order](unsigned int lhs, unsigned int rhs) {
+                    auto rank = [&cyclic_order](unsigned int filament) {
+                        auto it = std::find(cyclic_order.begin(), cyclic_order.end(), filament);
+                        return size_t(it - cyclic_order.begin());
+                    };
+                    return rank(lhs) < rank(rhs);
+                });
             out_seq.resize(ordered.size());
             std::transform(ordered.begin(), ordered.end(), out_seq.begin(), [](auto item) { return int(item) + 1; });
             return true;
