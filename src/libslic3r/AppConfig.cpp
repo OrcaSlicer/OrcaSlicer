@@ -204,7 +204,7 @@ void AppConfig::set_defaults()
 
     // ORCA: darken layers below the current one while scrubbing the preview (ported from preFlight)
     if (get("preview_dim_previous_layers").empty())
-        set_bool("preview_dim_previous_layers", true);
+        set_bool("preview_dim_previous_layers", false);
 
     if (get("filaments_area_preferred_count").empty())
         set("filaments_area_preferred_count", "10");
