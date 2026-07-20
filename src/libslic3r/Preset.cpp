@@ -1300,6 +1300,7 @@ static std::vector<std::string> s_Preset_print_options{
     "wipe_tower_extra_flow",
     "single_extruder_multi_material_priming",
     "toolchange_ordering",
+    "toolchange_cyclic_order",
     "wipe_tower_rotation_angle",
     "tree_support_branch_distance_organic",
     "tree_support_branch_diameter_organic",
