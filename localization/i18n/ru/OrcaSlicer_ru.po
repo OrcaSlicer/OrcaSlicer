@@ -157,19 +157,19 @@ msgid "Warning"
 msgstr "Предупреждение"
 
 msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
-msgstr ""
+msgstr "Информация о хотэнде может быть неточной (например, из-за отключения питания). Обновить сведения о нём?"
 
 msgid "I confirm all"
-msgstr ""
+msgstr "Продолжить"
 
 msgid "Re-read all"
-msgstr ""
+msgstr "Обновить сведения"
 
 msgid "Reading the hotends, please wait."
-msgstr ""
+msgstr "Чтение сведений, подождите."
 
 msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
-msgstr ""
+msgstr "В процессе обновления печатающая голова будет перемещаться. Не вмешивайтесь в процесс."
 
 msgid "Update"
 msgstr "Обновление"
@@ -223,16 +223,16 @@ msgid "Induction Hotend Rack"
 msgstr ""
 
 msgid "Hotends Info"
-msgstr ""
+msgstr "Информация о хотэндах"
 
 msgid "Read All"
-msgstr ""
+msgstr "Прочитать"
 
 msgid "Reading "
-msgstr ""
+msgstr "Чтение "
 
 msgid "Please wait"
-msgstr ""
+msgstr "Подождите"
 
 msgid "Running..."
 msgstr ""
@@ -269,7 +269,7 @@ msgstr "Версия"
 
 #, c-format, boost-format
 msgid "Used Time: %s"
-msgstr ""
+msgstr "Время использования: %s"
 
 msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
 msgstr ""
@@ -835,7 +835,8 @@ msgstr "Верхняя часть"
 msgid "Lower part"
 msgstr "Нижняя часть"
 
-# ?????8 к чему относится?
+# Andy: к чему относится?
+# Felix: это галочки, какие из частей сохранять в инструменте резки
 msgid "Keep"
 msgstr "Сохранить"
 
@@ -851,8 +852,9 @@ msgstr "Объединить в сборку"
 msgid "Reset cutting plane and remove connectors"
 msgstr "Сброс позиции секущей плоскости и удаление всех соединений"
 
+# Запись в истории действий при нажатии кнопки сброса резки (TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Reset Cut"), UndoRedo::SnapshotType::GizmoAction)
 msgid "Reset Cut"
-msgstr ""
+msgstr "Сброс плоскости резки"
 
 msgid "Perform cut"
 msgstr "Разрезать"
@@ -889,12 +891,16 @@ msgstr "текущее положение секущей плоскости с �
 msgid "Connector"
 msgstr "Соединение"
 
+# Подставляется список моделей, через запятую
 #, boost-format
 msgid ""
 "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
 "Please report to PrusaSlicer team in which scenario this issue happened.\n"
 "Thank you."
 msgstr ""
+"У моделей (%1%) образовались дубликаты соединений, что может привести к их пропуску при нарезке.\n"
+"Пожалуйста, сообщите команде разработчиков условия, при которых это произошло.\n"
+"Заранее спасибо."
 
 msgid "Cut by Plane"
 msgstr "Разрез по плоскости"
@@ -2179,16 +2185,16 @@ msgid "Resolve cloud sync conflict"
 msgstr "Решение проблем синхронизации"
 
 msgid "Syncing your account…"
-msgstr ""
+msgstr "Синхронизация учётной записи…"
 
 msgid "Migrating presets…"
-msgstr ""
+msgstr "Перенос профилей…"
 
 msgid "Fetching plugins…"
-msgstr ""
+msgstr "Запрос плагинов…"
 
 msgid "Loading user presets…"
-msgstr ""
+msgstr "Загрузка пользовательских профилей…"
 
 msgid "Retrieving printer information, please try again later."
 msgstr "Получение информации о принтере, попробуйте позднее."
@@ -2291,7 +2297,7 @@ msgid "Loading user preset"
 msgstr "Загрузка пользовательского профиля"
 
 msgid "There is an update available. Open the preset bundle dialog to update it."
-msgstr ""
+msgstr "Доступно обновление. Проверьте меню пакета профилей для его загрузки."
 
 #, c-format, boost-format
 msgid "%s has been removed."
@@ -2308,33 +2314,36 @@ msgstr "Язык"
 
 #, c-format, boost-format
 msgid "Switching Orca Slicer to language %s failed."
-msgstr ""
+msgstr "Не удалось переключить язык на %s."
 
 msgid ""
 "\n"
 "You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
 msgstr ""
+"\n"
+"Возможно, потребуется восстановить отсутствующие файлы локализации (например, при помощи команд \"locale-gen\" и \"dpkg-reconfigure locales\")."
 
 msgid "Orca Slicer - Switching language failed"
-msgstr ""
+msgstr "Orca Slicer – ошибка смены языка"
 
 msgid "*"
 msgstr "*"
 
 msgid "Plugins"
-msgstr ""
+msgstr "Плагины"
 
 #, c-format, boost-format
 msgid ""
 "Failed to open the Plugins dialog:\n"
 "%s"
 msgstr ""
+"Не удалось открыть меню плагинов:\n"
 
 msgid "Failed to open the Plugins dialog (unknown error)."
-msgstr ""
+msgstr "Не удалось открыть меню плагинов (неизвестная ошибка)."
 
 msgid "Plugin Terminal"
-msgstr ""
+msgstr "Терминал плагинов"
 
 msgid "Changing application language"
 msgstr "Изменение языка приложения"
@@ -2723,7 +2732,7 @@ msgid "Invalidate cut info"
 msgstr "Удалить информацию о разрезе"
 
 msgid "Add Primitive"
-msgstr "Добавить примитив"
+msgstr "Добавить фигуру"
 
 msgid "Add Handy models"
 msgstr "Добавить тестовую модель"
@@ -2940,44 +2949,57 @@ msgstr "Перекрасить модель"
 msgid "Click the icon to shift this object to the bed"
 msgstr "Вытолкнуть на стол"
 
+# Запись в истории действий
 msgid "Rename Object"
-msgstr ""
+msgstr "Переименование модели"
 
+# Запись в истории действий
 msgid "Rename Part"
-msgstr ""
+msgstr "Переименование части"
 
+# Запись в истории действий
 msgid "Paste settings"
-msgstr ""
+msgstr "Вставка настроек"
 
+# Запись в истории действий
 msgid "Shift objects to bed"
-msgstr ""
+msgstr "Смещение моделей к столу"
 
+# Запись в истории действий
 msgid "Object order changed"
-msgstr ""
+msgstr "Смена порядка моделей"
 
+# Запись в истории действий
 msgid "Layer setting added"
-msgstr ""
+msgstr "Добавление настройки слоя"
 
+# Запись в истории действий
 msgid "Part setting added"
-msgstr ""
+msgstr "Добавление настройки части"
 
+# Запись в истории действий
 msgid "Object setting added"
-msgstr ""
+msgstr "Добавление настройки модели"
 
+# Запись в истории действий
 msgid "Height range settings added"
-msgstr ""
+msgstr "Добавление настроек диапазона слоёв"
 
+# Запись в истории действий
 msgid "Part settings added"
-msgstr ""
+msgstr "Добавление настроек части"
 
+# Запись в истории действий
 msgid "Object settings added"
-msgstr ""
+msgstr "Добавление настроек модели"
 
+# Запись в истории действий
 msgid "Load Part"
-msgstr ""
+msgstr "Загрузка части"
 
+# Запись в истории действий
 msgid "Load Modifier"
-msgstr ""
+msgstr "Загрузка модификатора"
 
 msgid "Loading file"
 msgstr "Загрузка файла"
@@ -2989,7 +3011,7 @@ msgid "Failed to get the model data in the current file."
 msgstr "Не удалось получить данные модели из текущего файла."
 
 msgid "Add primitive"
-msgstr ""
+msgstr "Добавить фигуру"
 
 # Базовый примитив – опасно оставлять узкоспециализированный перевод (чисто
 # для фигур), т.к. Generic уже сейчас используется в названии начала профилей.
@@ -3010,8 +3032,9 @@ msgstr ""
 msgid "Remove paint-on fuzzy skin"
 msgstr "Удалить покраску нечеткой оболочки"
 
+# Запись в истории действий
 msgid "Delete Settings"
-msgstr ""
+msgstr "Удаление настроек"
 
 msgid "Remove height range"
 msgstr "Удаление диапазона высот слоёв"
@@ -3045,8 +3068,9 @@ msgstr "Удалить все соединения"
 msgid "Deleting the last solid part is not allowed."
 msgstr "Удаление последней твердотельной части не допускается."
 
+# Запись в истории действий
 msgid "Delete part"
-msgstr ""
+msgstr "Удаление части"
 
 msgid "The target object contains only one part and can not be split."
 msgstr "Заданная модель состоит только из одной части и не может быть разделена."
@@ -3058,10 +3082,11 @@ msgid "Assembly"
 msgstr "Сборка"
 
 msgid "Merge parts to an object"
-msgstr ""
+msgstr "Сборка моделей"
 
+# Запись в истории действий
 msgid "Add layers"
-msgstr ""
+msgstr "Добавление слоёв"
 
 msgid "Cut Connectors information"
 msgstr "Информация о вырезанных соединениях"
@@ -3085,7 +3110,7 @@ msgid "Part manipulation"
 msgstr "Манипуляция с частями"
 
 msgid "Instance manipulation"
-msgstr "Манипуляция с копиями"
+msgstr "Манипуляция с экземплярами"
 
 msgid "Height ranges"
 msgstr "Диапазон высот слоёв"
@@ -3094,7 +3119,7 @@ msgid "Settings for height range"
 msgstr "Настройки для диапазона высот слоёв"
 
 msgid "Delete selected"
-msgstr ""
+msgstr "Удалить выбранное"
 
 msgid "Layer"
 msgstr "Слой"
@@ -3118,7 +3143,7 @@ msgid "Choose part type"
 msgstr "Выберите тип элемента"
 
 msgid "Instances to Separated Objects"
-msgstr ""
+msgstr "Отделение экземпляра"
 
 msgid "Enter new name"
 msgstr "Введите новое имя"
@@ -3152,8 +3177,9 @@ msgstr "«%s» после сглаживания будет иметь боле�
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "Сетка модели «%s» содержит ошибки. Выполните её восстановление."
 
+# Запись в истории действий
 msgid "Change Filaments"
-msgstr ""
+msgstr "Смена материала"
 
 msgid "Additional process preset"
 msgstr "Доп. профиль настроек"
@@ -3374,7 +3400,7 @@ msgid "Filament type is unknown which is required to perform this action. Please
 msgstr "Для выполнения этого действия требуется указать тип материала. Пожалуйста, дополните информацию об этом материале."
 
 msgid "AMS has not been initialized. Please initialize it before use."
-msgstr ""
+msgstr "AMS не проинициализирована. Перед использованием требуется инициализация."
 
 msgid "Changing fan speed during printing may affect print quality, please choose carefully."
 msgstr "Будьте осторожны, изменение охлаждения в процессе печати может повлиять на её качество."
@@ -3584,7 +3610,7 @@ msgid "Please set nozzle count"
 msgstr ""
 
 msgid "Error: Can not set both nozzle count to zero."
-msgstr ""
+msgstr "Ошибка: оба значения не могут быть нулевыми."
 
 #, c-format, boost-format
 msgid "Error: Nozzle count can not exceed %d."
@@ -3631,7 +3657,7 @@ msgid "Ignore"
 msgstr "Игнорировать"
 
 msgid "Done."
-msgstr ""
+msgstr "Готово."
 
 msgid ""
 "All the selected objects are on a locked plate.\n"
@@ -4168,7 +4194,7 @@ msgstr "Выбрать филамент"
 
 #, c-format, boost-format
 msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
-msgstr ""
+msgstr "Печать текущим соплом может привести к дополнительным затратам %0.2f г материала."
 
 msgid "External spools is not supported since Filament Track Switch has been installed. If you want to use external spool, please uninstall it."
 msgstr ""
@@ -5144,26 +5170,26 @@ msgid "N/A"
 msgstr "–"
 
 msgid "System agents"
-msgstr ""
+msgstr "Системные агенты"
 
 msgid "No plugin selected"
-msgstr ""
+msgstr "Плагины не выбраны"
 
 msgid "Add plugin"
-msgstr ""
+msgstr "Добавить плагин"
 
 msgid "Select plugin"
-msgstr ""
+msgstr "Выбрать плагин"
 
 msgid "Remove plugin"
-msgstr ""
+msgstr "Удалить плагин"
 
 msgid "Configure"
-msgstr ""
+msgstr "Настроить"
 
 #, c-format, boost-format
 msgid "Configure (%d)"
-msgstr ""
+msgstr "Настроить (%d)"
 
 msgid "Pick"
 msgstr "Выбрать"
@@ -5280,7 +5306,7 @@ msgstr "Нижняя поверхность"
 msgid "Internal bridge"
 msgstr "Внутренний мост"
 
-# Подложка связующего слоя
+# Подложка интерфейса
 msgid "Support transition"
 msgstr "Переходный слой"
 
@@ -5314,10 +5340,10 @@ msgid "Color: "
 msgstr "Материал: "
 
 msgid "Acceleration: "
-msgstr ""
+msgstr "Ускорение: "
 
 msgid "Jerk: "
-msgstr "Jerk: "
+msgstr "Рывок: "
 
 msgid "PA: "
 msgstr "PA: "
@@ -6462,7 +6488,7 @@ msgid "Select profile to load:"
 msgstr "Выберите профиль для загрузки:"
 
 msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
-msgstr ""
+msgstr "Файлы настроек (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
 
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
@@ -6494,6 +6520,11 @@ msgid ""
 "2. The Filament presets\n"
 "3. The Printer presets"
 msgstr ""
+"Загрузить личные сведения из Orca Cloud?"
+"Содержимое сведений:\n"
+"1. Профили настроек печати\n"
+"2. Профили настроек материала\n"
+"3. Профили настроек принтеров\n"
 
 msgid "Synchronization"
 msgstr "Синхронизация"
@@ -6799,16 +6830,16 @@ msgid "Invert Z axis"
 msgstr "Инвертировать ось Z"
 
 msgid "Invert Yaw axis"
-msgstr "Инвертировать ось рыскания (Y)"
+msgstr "Инвертировать ось вращения (Y)"
 
 msgid "Invert Pitch axis"
-msgstr "Инвертировать ось тангажа (X)"
+msgstr "Инвертировать ось наклона (X)"
 
 msgid "Invert Roll axis"
-msgstr "Инвертировать ось крена (Z)"
+msgstr "Инвертировать ось поворота (Z)"
 
 msgid "(LAN)"
-msgstr ""
+msgstr "(локальная сеть)"
 
 msgid "Search"
 msgstr "Поиск"
@@ -7069,10 +7100,10 @@ msgid "Delete Photo"
 msgstr "Удалить фото"
 
 msgid "Select Images"
-msgstr ""
+msgstr "Выбор изображений"
 
 msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
-msgstr ""
+msgstr "Файлы изображений (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
 
 msgid "Submit"
 msgstr "Отправить"
@@ -7788,7 +7819,7 @@ msgstr "Свернуть боковую панель"
 # Название кнопки на клавиатуре, на момент 2.3.2 используется в 5 местах в
 # значении названия кнопки
 msgid "Tab"
-msgstr ""
+msgstr "Tab"
 
 #, c-format, boost-format
 msgid "Loading file: %s"
@@ -7798,7 +7829,7 @@ msgid "Load 3MF"
 msgstr "Загрузка 3mf"
 
 msgid "BambuStudio Project"
-msgstr ""
+msgstr "Проект BambuStudio"
 
 msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
 msgstr "Этот 3MF не поддерживается OrcaSlicer, поэтому загрузятся только данные геометрии."
@@ -7807,10 +7838,10 @@ msgid "The 3MF file was generated by an old OrcaSlicer version, loading geometry
 msgstr "Этот файл 3MF был сохранён в старой версии OrcaSlicer, будут загружены только данные геометрии."
 
 msgid "The 3MF file was generated by an older version, loading geometry data only."
-msgstr ""
+msgstr "Файл 3MF был создан в старой версии, будут загружены только данные геометрии."
 
 msgid "The 3MF file was generated by BambuStudio, loading geometry data only."
-msgstr ""
+msgstr "Файл 3MF был создан в BambuStudio, будут загружены только данные геометрии."
 
 msgid "This project was created with an OrcaSlicer 2.3.1-alpha and uses infill rotation template settings that may not work properly with your current infill pattern. This could result in weak support or print quality issues."
 msgstr "Этот проект был создан в OrcaSlicer 2.3.1-alpha и использует шаблон поворота заполнения, который может некорректно работать с вашим текущим шаблоном заполнения. Это может привести к снижению прочности или проблемам с качеством печати."
@@ -7832,14 +7863,14 @@ msgstr "Этот файл 3MF был сохранён в более новой �
 
 #, c-format, boost-format
 msgid "The 3MF was created by BambuStudio (version %s), which is newer than the compatible version %s. Found unrecognized settings:"
-msgstr ""
+msgstr "Этот файл 3MF был создан в BambuStudio (версии %s), которая новее совместимой с ней версией OrcaSlicer %s. Обнаружены следующие нераспознанные настройки:"
 
 #, c-format, boost-format
 msgid "The 3MF was created by BambuStudio (version %s), which is newer than the compatible version %s. Some settings may not be fully compatible."
-msgstr ""
+msgstr "Этот файл 3MF был создан в BambuStudio (версии %s), которая новее совместимой с ней версией OrcaSlicer %s. Некоторые настройки могут не поддерживаться."
 
 msgid "The 3MF was created by BambuStudio. Some settings may differ from OrcaSlicer."
-msgstr ""
+msgstr "Этот файл 3MF был создан в BambuStudio. Некоторые настройки могут отличаться от OrcaSlicer.s"
 
 msgid "Invalid values found in the 3MF:"
 msgstr "В файле 3MF найдены недопустимые значения:"
@@ -7917,8 +7948,9 @@ msgstr "Загрузить эти файлы как единую модель, �
 msgid "An object with multiple parts was detected"
 msgstr "Обнаружена модель, состоящая из нескольких частей"
 
+# Настройка – Притягивать к столу, но тут это галочка при импорте нескольких файлов разом
 msgid "Auto-Drop"
-msgstr ""
+msgstr "Опустить на стол"
 
 #, c-format, boost-format
 msgid "Connected printer is %s. It must match the project preset for printing.\n"
@@ -10059,7 +10091,7 @@ msgid ""
 "by right-click the empty position of build plate and choose \"Add Primitive\"->\"Timelapse Wipe Tower\"."
 msgstr ""
 "При записи таймлапса со скрытием головы рекомендуется добавить черновую башню таймлапса.\n"
-"Нажмите по столу правой кнопкой мыши и выберите «Добавить примитив» → «Черновая башня таймлапса»."
+"Нажмите по столу правой кнопкой мыши и выберите «Добавить фигуру» → «Черновая башня таймлапса»."
 
 msgid "A copy of the current system preset will be created, which will be detached from the system preset."
 msgstr "Будет создана независимая копия текущего системного профиля."
