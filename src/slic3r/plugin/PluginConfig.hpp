@@ -60,8 +60,9 @@ std::string serialize_plugin_overrides(const CapabilityConfigDocument& document)
 // option's current value in `config` (e.g. slicing_pipeline_plugin cleared or switched to a
 // different capability), and writes the result back if anything changed. Called wherever a
 // plugin-backed option's value changes, so a saved preset never carries configuration for a
-// capability it no longer references.
-void prune_stale_plugin_overrides(DynamicConfig& config);
+// capability it no longer references. Returns true if `config` was modified, so a caller holding a
+// GUI field over PLUGIN_OVERRIDES_OPTION_KEY knows it must refresh that field's displayed value.
+bool prune_stale_plugin_overrides(DynamicConfig& config);
 
 struct EffectiveCapabilityConfig
 {

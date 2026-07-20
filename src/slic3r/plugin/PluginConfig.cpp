@@ -357,11 +357,11 @@ std::string serialize_plugin_overrides(const CapabilityConfigDocument& document)
     return document.empty() ? std::string() : document.serialize_entries().dump();
 }
 
-void prune_stale_plugin_overrides(DynamicConfig& config)
+bool prune_stale_plugin_overrides(DynamicConfig& config)
 {
     const auto* overrides_opt = dynamic_cast<const ConfigOptionString*>(config.option(PLUGIN_OVERRIDES_OPTION_KEY));
     if (overrides_opt == nullptr || overrides_opt->value.empty())
-        return;
+        return false;
 
     CapabilityConfigDocument overrides;
     std::string              error;
@@ -369,7 +369,7 @@ void prune_stale_plugin_overrides(DynamicConfig& config)
         // Malformed text is not ours to fix up here: leave it untouched rather than risk
         // discarding data the user might still be able to recover.
         BOOST_LOG_TRIVIAL(error) << "prune_stale_plugin_overrides: " << error;
-        return;
+        return false;
     }
 
     // Capability names currently referenced by a plugin-backed option's value(s) — e.g.
@@ -394,8 +394,11 @@ void prune_stale_plugin_overrides(DynamicConfig& config)
         }
     }
 
-    if (overrides.prune_unreferenced(referenced))
-        config.set_key_value(PLUGIN_OVERRIDES_OPTION_KEY, new ConfigOptionString(serialize_plugin_overrides(overrides)));
+    if (!overrides.prune_unreferenced(referenced))
+        return false;
+
+    config.set_key_value(PLUGIN_OVERRIDES_OPTION_KEY, new ConfigOptionString(serialize_plugin_overrides(overrides)));
+    return true;
 }
 
 EffectiveCapabilityConfig PresetPluginConfigService::get_effective_config(const CapabilityConfigDocument&   overrides,
