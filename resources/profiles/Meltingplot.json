@@ -285,14 +285,6 @@
 			"sub_path": "filament/Meltingplot PA6 CF HT @0.4 nozzle.json"
 		},
 		{
-			"name": "Meltingplot STYX 12",
-			"sub_path": "filament/Meltingplot STYX 12.json"
-		},
-		{
-			"name": "Meltingplot PP 9-2",
-			"sub_path": "filament/Meltingplot PP 9-2.json"
-		},
-		{
 			"name": "Meltingplot PET-CF15",
 			"sub_path": "filament/Meltingplot PET-CF15.json"
 		},
@@ -315,10 +307,6 @@
 		{
 			"name": "Extrudr PLA NX2 Matt @0.8 nozzle",
 			"sub_path": "filament/Extrudr PLA NX2 Matt @0.8 nozzle.json"
-		},
-		{
-			"name": "Igus iglidur J260",
-			"sub_path": "filament/Igus iglidur J260.json"
 		}
 	],
 	"machine_list": [
