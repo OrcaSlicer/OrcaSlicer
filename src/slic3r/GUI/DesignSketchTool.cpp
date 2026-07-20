@@ -7641,7 +7641,21 @@ bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
                 return true;
             }
         }
-        if (!evt.LeftDown()) return false;
+        // Click vs drag. Consuming the LeftDown here killed camera orbit/pan the moment a
+        // solid was on screen: Orca starts a rotate drag on the press, so swallowing it meant
+        // the canvas never began one. (A SpaceMouse kept working — it never goes through
+        // wxMouseEvent.) Remember the press, let it fall through so the canvas can orbit, and
+        // resolve the pick on release only if the pointer stayed put.
+        if (evt.LeftDown()) {
+            m_pick_press_x = evt.GetX();
+            m_pick_press_y = evt.GetY();
+            m_pick_pending = true;
+            return false;
+        }
+        if (!(evt.LeftUp() && m_pick_pending)) return false;
+        m_pick_pending = false;
+        if (std::abs(evt.GetX() - m_pick_press_x) + std::abs(evt.GetY() - m_pick_press_y) > 4)
+            return false;   // it was a drag: the canvas already orbited, don't also select
         // Committed-sketch loop pick is computed FIRST. A click that lands on a loop's
         // STROKE (edge) selects that loop even when it lies on a solid face — so a sketch
         // drawn ON a face can be selected and extruded/cut (Onshape engraving workflow).

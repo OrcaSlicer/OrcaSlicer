@@ -96,6 +96,11 @@ public:
     struct DisplaySketch { std::vector<SketchEntity> entities; SketchPlane plane; int feature{-1}; };
     void set_display_sketches(std::vector<DisplaySketch> ds) { m_display_sketches = std::move(ds); }
     void set_highlight_sketches(std::vector<std::pair<int, ColorRGBA>> hl) { m_hl_sketches = std::move(hl); }
+    // Solid pick is resolved on LeftUp (see on_mouse): consuming the press broke orbit/pan.
+    int  m_pick_press_x = 0;
+    int  m_pick_press_y = 0;
+    bool m_pick_pending = false;
+
     bool has_display() const { return m_active || !m_display_sketches.empty()
                                       || (m_solid_bodies != nullptr && !m_solid_bodies->empty())
                                       || !m_datum_planes.empty()

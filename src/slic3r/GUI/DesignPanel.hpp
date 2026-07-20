@@ -12,7 +12,8 @@
 
 #include "libslic3r/CadDocument.hpp"
 
-class wxChoice;
+class ComboBox;    // Orca dropdown (Widgets/ComboBox.hpp) — replaces wxChoice everywhere here
+class StaticBox;   // Orca rounded card frame (Widgets/StaticBox.hpp)
 class wxCheckBox;
 class wxCheckListBox;
 class wxSpinCtrl;
@@ -178,7 +179,7 @@ private:
     int        resolve_extrude_sketch() const;
     // Plane pickers: fill a choice with XY/XZ/YZ + the document's datum planes, and
     // map a choice row back to the actual SketchPlane (rows 0-2 base, 3+ datum).
-    void        populate_plane_choices(wxChoice* c) const;
+    void        populate_plane_choices(ComboBox* c) const;
     SketchPlane plane_from_choice(int row) const;
     // True when Extrude should build only the click-selected loop (a region of the
     // resolved sketch is selected and it carries entities).
@@ -212,6 +213,18 @@ private:
     std::map<int, std::function<void()>> m_keys_sketch;
     std::map<int, std::function<void()>> m_keys_feature;
 
+    StaticBox* m_tree_box{nullptr};   // framed feature-tree section
+    StaticBox* m_parts_box{nullptr};  // framed bodies section (hidden while empty)
+    StaticBox* m_cards{nullptr};      // one framed panel holding every tool dialog (one visible at a time)
+    void      update_cards_frame();     // show that frame iff some card inside it is visible
+    void      show_polygon_card(bool show);
+    void      show_move_card(bool show);
+    void      apply_move_card();       // numeric move/rotate -> same xform the gizmo builds
+    void      push_polygon_params();
+    wxSizer*  m_tb_commit{nullptr};   // far-right Commit to Plate, beside Confirm/Cancel
+    wxSizer*  m_tb_doc{nullptr};      // toolbar document/view actions (new, commit, export, section, place)
+    wxSizer*  m_box_move{nullptr};      // Move/Rotate numeric options (distance, axis, angle)
+    wxSizer*  m_box_polygon{nullptr};   // Polygon tool options (sides / circumscribed)
     wxSizer*  m_box_sketch{nullptr};
     wxSizer*  m_box_extrude{nullptr};
     wxSizer*  m_box_dressup{nullptr};
@@ -235,6 +248,8 @@ private:
 
     // Onshape-style dialog-card title rows (icon + bold feature name), retitled
     // per tool in open_tool() (edit-mode shows the feature's actual name).
+    wxStaticText* m_hdr_polygon{nullptr};
+    wxStaticText* m_hdr_move{nullptr};
     wxStaticText* m_hdr_sketch{nullptr};
     // Onshape sketch-entry card (plane/orientation) that opens on "New sketch" and
     // persists until Finish (Phase 3).
@@ -281,18 +296,23 @@ private:
     // Owns the themed DropDown flyouts (and the item vectors they hold by ref).
     std::vector<std::shared_ptr<void>> m_flyout_keepalive;
     wxCheckBox*       m_construction{nullptr};   // sketch-mode construction toggle
+    wxSpinCtrlDouble* m_move_dx{nullptr};        // Move/Rotate card: world translation
+    wxSpinCtrlDouble* m_move_dy{nullptr};
+    wxSpinCtrlDouble* m_move_dz{nullptr};
+    ComboBox*         m_move_axis{nullptr};      // rotation axis: X/Y/Z
+    wxSpinCtrlDouble* m_move_angle{nullptr};     // rotation angle (deg)
     wxSpinCtrl*       m_sides{nullptr};          // polygon sides
-    wxCheckBox*       m_poly_circ{nullptr};      // polygon circumscribed toggle
+    CheckBox*         m_poly_circ{nullptr};      // polygon circumscribed toggle (Orca teal check)
 
-    wxChoice*         m_draw_plane{nullptr};
-    wxChoice*         m_shape{nullptr};
-    wxChoice*         m_plane{nullptr};
-    wxChoice*         m_mode{nullptr};
+    ComboBox*         m_draw_plane{nullptr};
+    ComboBox*         m_shape{nullptr};
+    ComboBox*         m_plane{nullptr};
+    ComboBox*         m_mode{nullptr};
     wxSpinCtrlDouble* m_width{nullptr};
     wxSpinCtrlDouble* m_height{nullptr};
     wxSpinCtrlDouble* m_radius{nullptr};
     wxSpinCtrlDouble* m_distance{nullptr};
-    wxChoice*         m_extrude_end{nullptr};   // Blind/Symmetric/TwoSided/ThroughAll/UpTo*
+    ComboBox*         m_extrude_end{nullptr};   // Blind/Symmetric/TwoSided/ThroughAll/UpTo*
     wxSpinCtrlDouble* m_distance2{nullptr};     // second-side depth (Two-sided)
     wxSpinCtrlDouble* m_taper{nullptr};         // draft angle (deg)
     CheckBox*         m_flip{nullptr};          // reverse extrude direction
@@ -303,50 +323,50 @@ private:
     // Revolve controls (sweep a sketch profile about an in-plane axis).
     wxStaticText*     m_revolve_sketch_label{nullptr};
     wxSpinCtrlDouble* m_revolve_angle{nullptr};
-    wxChoice*         m_revolve_axis{nullptr};   // 0 = plane X, 1 = plane Y
-    wxChoice*         m_revolve_mode{nullptr};   // New/Add/Cut/Intersect
+    ComboBox*         m_revolve_axis{nullptr};   // 0 = plane X, 1 = plane Y
+    ComboBox*         m_revolve_mode{nullptr};   // New/Add/Cut/Intersect
     CheckBox*         m_revolve_flip{nullptr};
     int               m_revolve_sketch_ref{-1};
 
     // Sweep controls (sweep a profile sketch along a path sketch).
     wxStaticText*     m_sweep_profile_label{nullptr};
-    wxChoice*         m_sweep_path{nullptr};       // path Sketch picker (feature index in client data)
-    wxChoice*         m_sweep_mode{nullptr};       // New/Add/Cut/Intersect
+    ComboBox*         m_sweep_path{nullptr};       // path Sketch picker (feature index in client data)
+    ComboBox*         m_sweep_mode{nullptr};       // New/Add/Cut/Intersect
     int               m_sweep_profile_ref{-1};
     int               m_sweep_path_ref{-1};        // path Sketch feature index (for re-edit pre-select)
 
     // Loft controls (skin a solid through 2+ ordered profile Sketches).
     wxCheckListBox*   m_loft_list{nullptr};        // every Sketch; check 2+ in list order = profiles
     CheckBox*         m_loft_ruled{nullptr};       // ruled (straight) vs smooth sections
-    wxChoice*         m_loft_mode{nullptr};        // New/Add/Cut/Intersect
+    ComboBox*         m_loft_mode{nullptr};        // New/Add/Cut/Intersect
     std::vector<int>  m_loft_sketch_idx;           // feature index for each row in m_loft_list
     std::vector<int>  m_loft_refs;                 // chosen profile refs (for re-edit pre-check)
 
     // Pattern controls (replicate the target body: linear or circular).
-    wxChoice*         m_pattern_type{nullptr};      // 0 = Linear, 1 = Circular
+    ComboBox*         m_pattern_type{nullptr};      // 0 = Linear, 1 = Circular
     wxSpinCtrlDouble* m_pattern_count{nullptr};     // total instances incl. seed
     wxSpinCtrlDouble* m_pattern_spacing{nullptr};   // linear step (mm)
-    wxChoice*         m_pattern_dir{nullptr};        // linear direction: 0 = plane X, 1 = plane Y
+    ComboBox*         m_pattern_dir{nullptr};        // linear direction: 0 = plane X, 1 = plane Y
     wxSpinCtrlDouble* m_pattern_angle{nullptr};     // circular total angle (deg)
     // Boolean controls (combine two existing bodies).
-    wxChoice*         m_bool_op{nullptr};            // 0 = Union, 1 = Subtract, 2 = Intersect
-    wxChoice*         m_bool_target{nullptr};        // body that survives (selection == body index)
-    wxChoice*         m_bool_tool{nullptr};          // body consumed (selection == body index)
+    ComboBox*         m_bool_op{nullptr};            // 0 = Union, 1 = Subtract, 2 = Intersect
+    ComboBox*         m_bool_target{nullptr};        // body that survives (selection == body index)
+    ComboBox*         m_bool_tool{nullptr};          // body consumed (selection == body index)
     CheckBox*         m_bool_keep{nullptr};          // keep the tool body after the op
     wxSpinCtrlDouble* m_bool_tol{nullptr};           // OCCT fuzzy tolerance (mm); robust cut on near-coincident faces
 
     // Plane Cut (split-by-plane): a reference plane + offset splits the target body into
     // two separate bodies (both pieces kept).
-    wxChoice*         m_cut_plane{nullptr};          // XY/XZ/YZ + datum planes (cut plane)
-    wxChoice*         m_cut_target{nullptr};         // body to cut (selection == body index)
+    ComboBox*         m_cut_plane{nullptr};          // XY/XZ/YZ + datum planes (cut plane)
+    ComboBox*         m_cut_target{nullptr};         // body to cut (selection == body index)
     wxSpinCtrlDouble* m_cut_offset{nullptr};         // offset along the plane normal (mm)
     // Datum plane controls (derive a selectable sketch plane: offset + tilt from a base).
-    wxChoice*         m_plane_base{nullptr};         // 0=XY,1=XZ,2=YZ, 3+N = Nth datum plane
+    ComboBox*         m_plane_base{nullptr};         // 0=XY,1=XZ,2=YZ, 3+N = Nth datum plane
     wxSpinCtrlDouble* m_plane_offset{nullptr};       // offset along base normal (mm)
     wxSpinCtrlDouble* m_plane_tilt{nullptr};         // tilt about a base axis (deg) / Angle / Tangent angle
-    wxChoice*         m_plane_tilt_axis{nullptr};    // 0 = base X, 1 = base Y
+    ComboBox*         m_plane_tilt_axis{nullptr};    // 0 = base X, 1 = base Y
     // Plane construction method + contextual face/edge reference picks (Onshape/Fusion parity).
-    wxChoice*         m_plane_type{nullptr};         // PlaneType: Offset/Angle/Midplane/Tangent/TwoEdges/Coincident
+    ComboBox*         m_plane_type{nullptr};         // PlaneType: Offset/Angle/Midplane/Tangent/TwoEdges/Coincident
     wxButton*         m_plane_pick_faceA{nullptr};   wxStaticText* m_plane_faceA_lbl{nullptr};
     wxButton*         m_plane_pick_faceB{nullptr};   wxStaticText* m_plane_faceB_lbl{nullptr};
     wxButton*         m_plane_pick_edgeA{nullptr};   wxStaticText* m_plane_edgeA_lbl{nullptr};
@@ -372,11 +392,11 @@ private:
     // -1 = ordinary sketch/loop extrude. Set when opening the Extrude card, consumed on add.
     int               m_extrude_face_src{-1};
 
-    wxChoice*         m_dressup_type{nullptr};
-    wxChoice*         m_face_group{nullptr};
+    ComboBox*         m_dressup_type{nullptr};
+    ComboBox*         m_face_group{nullptr};
     wxSpinCtrlDouble* m_dressup_size{nullptr};
 
-    wxChoice*         m_hole_plane{nullptr};
+    ComboBox*         m_hole_plane{nullptr};
     wxSpinCtrlDouble* m_hole_diameter{nullptr};
     wxSpinCtrlDouble* m_hole_depth{nullptr};
     CheckBox*         m_hole_through{nullptr};
@@ -393,8 +413,8 @@ private:
     bool              m_hole_has_bounds{false};
     double            m_hole_umin{0}, m_hole_umax{0}, m_hole_vmin{0}, m_hole_vmax{0};
 
-    wxChoice*         m_thread_plane{nullptr};
-    wxChoice*         m_thread_std{nullptr};   // standard designation (M6, 1/4-20 UNC, ...)
+    ComboBox*         m_thread_plane{nullptr};
+    ComboBox*         m_thread_std{nullptr};   // standard designation (M6, 1/4-20 UNC, ...)
     wxSpinCtrlDouble* m_thread_radius{nullptr};
     wxSpinCtrlDouble* m_thread_pitch{nullptr};
     wxSpinCtrlDouble* m_thread_height{nullptr};
@@ -449,7 +469,7 @@ private:
     bool      m_section_on{false};
     double    m_section_cut_z{0.0};
     bool      m_section_upper{false};             // false = keep lower half, true = upper
-    Button*   m_section_flip_btn{nullptr};        // enabled only while the section is on
+    ScalableButton* m_section_flip_btn{nullptr};  // toolbar action; enabled only while the section is on
     void toggle_section_view();                   // Section View button / X: on <-> off
     void flip_section_view();                     // Flip button / F: opposite half
     void update_section_flip_btn();               // enable the Flip button iff the section is on
