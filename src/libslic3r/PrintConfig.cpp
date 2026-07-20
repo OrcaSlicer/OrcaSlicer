@@ -2001,7 +2001,21 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("print_order", coEnum);
     def->label = L("Intra-layer order");
-    def->tooltip = L("Print order within a single layer.");
+    def->tooltip = L("Order in which object instances are visited within a single layer, which controls how much "
+                     "travel is spent moving between them.\n\n"
+                     "Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general "
+                     "choice.\n"
+                     "As object list: instances are printed in the same order as the object list, without any path "
+                     "optimization. Use it when you need a predictable, manually controlled order.\n"
+                     "Best of all (shortest path): every strategy is evaluated and the shortest one is used. The "
+                     "object instance order is decided once for the whole print, while the ordering of individual "
+                     "islands is decided per layer, so different layers may end up using different strategies. "
+                     "Slightly slower to slice.\n"
+                     "Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of "
+                     "many small parts.\n\n"
+                     "With multiple filaments or tools in the same layer, minimizing tool changes takes priority: "
+                     "objects are grouped by filament first and this setting only orders the instances within each "
+                     "filament group, so the overall sequence may not look like the shortest path across the plate.");
     def->enum_keys_map = &ConfigOptionEnum<PrintOrder>::get_enum_values();
     def->enum_values.push_back("default");
     def->enum_values.push_back("as_obj_list");
