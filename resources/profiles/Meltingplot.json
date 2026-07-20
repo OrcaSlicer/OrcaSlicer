@@ -237,10 +237,6 @@
 			"sub_path": "filament/Meltingplot PLA @0.4 nozzle.json"
 		},
 		{
-			"name": "Meltingplot StoneFil",
-			"sub_path": "filament/Meltingplot StoneFil.json"
-		},
-		{
 			"name": "Meltingplot ABS",
 			"sub_path": "filament/Meltingplot ABS.json"
 		},
