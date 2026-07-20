@@ -42,22 +42,24 @@ msgid "AMS does not support 'Bambu Lab PET-CF'."
 msgstr "AMS не поддерживает Bambu Lab PET-CF."
 
 msgid "The current filament doesn't support the E3D high-flow nozzle and can't be used."
-msgstr ""
+msgstr "Невозможно использовать материал, несовместимый с высокопроизводительным соплом E3D."
 
 msgid "The current filament doesn't support the TPU high-flow nozzle and can't be used."
-msgstr ""
+msgstr "Невозможно использовать материал, несовместимый с высокопроизводительным соплом для TPU."
 
+# Пока не трогаю из-за несовместимости терминологии с "Динамикой потока".
 msgid "Auto dynamic flow calibration is not supported for TPU filament."
 msgstr ""
 
+# Опустил бы "High Flow", но у бамбуков же есть какие-то узкоспециализированные сопла
 msgid "Bambu TPU 85A is not supported for printing with 0.4 mm Standard or High Flow nozzles."
-msgstr ""
+msgstr "Bambu TPU 85A не предназначен для печати через высокопроизводительные сопла диаметром 0,4 мм."
 
 msgid "How to feed TPU filament."
-msgstr ""
+msgstr "Заправка TPU."
 
 msgid "How to feed TPU filament on X2D."
-msgstr ""
+msgstr "Заправка TPU в X2D."
 
 msgid "Please cold pull before printing TPU to avoid clogging. You may use cold pull maintenance on the printer."
 msgstr "Перед печатью TPU выполните холодную протяжку, чтобы избежать засорения. Вы можете воспользоваться функцией холодной протяжки на принтере."
@@ -71,8 +73,9 @@ msgstr "Влажный PVA становится гибким и может за�
 msgid "The rough surface of PLA Glow can accelerate wear on the AMS system, particularly on the internal components of the AMS Lite."
 msgstr "Шероховатая поверхность PLA Glow может ускорить износ системы AMS, особенно внутренних компонентов AMS Lite."
 
+# Без понятия, почему они называют фидер (механизм подачи) приводом, но так написано в материалах Bambu
 msgid "PLA Glow may wear the AMS first stage feeder. Use an external spool instead."
-msgstr ""
+msgstr "Использование PLA Glow может привести к износу привода первой ступени AMS. Воспользуйтесь внешним держателем."
 
 msgid "CF/GF filaments are hard and brittle, it's easy to break or get stuck in AMS, please use with caution."
 msgstr "Стекло-/угленаполненные материалы твёрдые и хрупкие, легко ломаются и застревают в AMS, поэтому используйте их с осторожностью."
@@ -84,23 +87,24 @@ msgid "PPA-CF is brittle and could break in bended PTFE tube above Toolhead."
 msgstr "PPA-CF – это хрупкий материал, который может сломаться в изогнутом тефлоновом канале подачи."
 
 msgid "Default settings may affect print quality. Adjust as needed for best results."
-msgstr ""
+msgstr "Стандартные настройки могут повлиять на качество печати. Для улучшения результата рекомендуется тонкая настройка параметров."
 
 #, c-format, boost-format
 msgid "%s has a risk of nozzle clogging when using 0.4mm high-flow nozzles. Use with caution."
-msgstr ""
+msgstr "%s может привести к затору в высокопроизводительном сопле диаметром 0,4 мм. Используйте с осторожностью."
 
 #, c-format, boost-format
 msgid "%s filaments are hard and brittle and could break in AMS, and there is also a risk of nozzle clogging when using 0.4mm high-flow nozzles. Use with caution."
-msgstr ""
+msgstr "Материалы %s жёсткие и ломкие, их использование может привести к поломке внутри AMS и затору в высокопроизводительном сопле диаметром 0,4 мм. Используйте с осторожностью."
 
 #, c-format, boost-format
 msgid "%s has a risk of nozzle clogging when using 0.4, 0.6, 0.8mm high-flow nozzles. Use with caution."
-msgstr ""
+msgstr "%s может привести к затору в высокопроизводительных соплах диаметром 0,4, 0,6 или 0,8 мм. Используйте с осторожностью."
 
+# Ошибка во втором предложении; вероятно, подразумевался вопрос. В таком случае в окне будет кнопка подтверждения, и его можно опустить. Сам Filament Track Switch можно перевести общим "переключатель AMS".
 #, c-format, boost-format
 msgid "%s may fail to load or unload due to the Filament Track Switch. If you wish to continue."
-msgstr ""
+msgstr "Filament Track Switch может не справиться с загрузкой/выгрузкой %s."
 
 # подставляется tag_type и extruder_name
 #, c-format, boost-format
@@ -109,19 +113,19 @@ msgstr "%s не подходит для печати через %s экстру�
 
 #, c-format, boost-format
 msgid "There may be critical print quality issues when printing '%s' with %s Bowden extruder. Use with caution!"
-msgstr ""
+msgstr "При печати %s через %s экструдер с внешней подачей могут возникнуть серьёзные проблемы с качеством. Действуйте с осторожностью."
 
 #, c-format, boost-format
 msgid "There may be critical print quality issues when printing '%s' with %s extruder. Use with caution!"
-msgstr ""
+msgstr "При печати %s через %s экструдер могут возникнуть серьёзные проблемы с качеством. Действуйте с осторожностью."
 
 #, c-format, boost-format
 msgid "There may be print quality issues when printing '%s' with %s Bowden extruder. Use with caution."
-msgstr ""
+msgstr "При печати %s через %s экструдер с внешней подачей могут возникнуть проблемы с качеством. Действуйте с осторожностью."
 
 #, c-format, boost-format
 msgid "There may be print quality issues when printing '%s' with %s extruder. Use with caution."
-msgstr ""
+msgstr "При печати %s через %s экструдер могут возникнуть проблемы с качеством. Действуйте с осторожностью."
 
 msgid "High Flow"
 msgstr "Высокий расход"
@@ -2031,11 +2035,11 @@ msgid "Info"
 msgstr "Информация"
 
 msgid "Loading Plugins"
-msgstr ""
+msgstr "Загрузка плагинов"
 
 #, c-format, boost-format
 msgid "Plugin %s is no longer available."
-msgstr ""
+msgstr "Плагин «%s» больше недоступен."
 
 #, c-format, boost-format
 msgid "Plugin %s access is unauthorized."
@@ -2656,7 +2660,7 @@ msgid "Flush into objects' support"
 msgstr "Прочистка в поддержку"
 
 msgid "Edit in Parameter Table"
-msgstr "Редактировать таблицу параметров"
+msgstr "Просмотр сводки настроек"
 
 msgid "Convert from Inches"
 msgstr "Преобразовать дюймы в миллиметры"
@@ -4516,23 +4520,23 @@ msgid "A maximum temperature below %d℃ is recommended for %s.\n"
 msgstr "Рекомендуется температура не более %d℃ для %s.\n"
 
 msgid "The recommended minimum temperature cannot be higher than the recommended maximum temperature.\n"
-msgstr "Минимально рекомендуемая температура не может быть выше максимально рекомендуемой.\n"
+msgstr "Минимально допустимая температура сопла не может быть выше максимально допустимой.\n"
 
 msgid "Please check.\n"
-msgstr "Пожалуйста, проверьте.\n"
+msgstr "Провертре введённые значения.\n"
 
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
 "\n"
 msgstr ""
-"Сопло может забиться, если температура превышает рекомендуемый диапазон.\n"
-"Пожалуйста, убедитесь, что вы задали нужную температуру для печати.\n"
+"Сопло может забиться, если температура превышает допустимый диапазон.\n"
+"Убедитесь в корректности указанных значений температуры для печати.\n"
 "\n"
 
 #, c-format, boost-format
 msgid "The recommended nozzle temperature for this filament type is [%d, %d] degrees Celsius."
-msgstr "Диапазон рекомендуемых температур печати данным типом материала составляет [%d, %d] градусов Цельсия."
+msgstr "Диапазон допустимых температур печати данным типом материала составляет [%d, %d] градусов Цельсия."
 
 msgid "Adaptive Pressure Advance model validation failed:\n"
 msgstr "Обнаружена ошибка в настройке адаптивного PA:\n"
@@ -5185,8 +5189,9 @@ msgstr "Рывки"
 msgid "Fan Speed"
 msgstr "Охлаждение"
 
+# В интерфейсе бамбуков не вмещается оба слова
 msgid "Flow"
-msgstr "Объёмный расход"
+msgstr "Расход"
 
 msgid "Actual Flow"
 msgstr "Действительный расход"
@@ -5466,10 +5471,10 @@ msgid "Actual Speed (mm/s)"
 msgstr "Фактическая скорость (мм/с)"
 
 msgid "Acceleration (mm/s²)"
-msgstr ""
+msgstr "Ускорение (мм/с²)"
 
 msgid "Jerk (mm/s)"
-msgstr "Jerk (mm/s)"
+msgstr "Рывок (мм/s)"
 
 msgid "Fan speed (%)"
 msgstr "Скорость вентилятора (%)"
@@ -5724,8 +5729,9 @@ msgstr "Статистика"
 msgid "Slice"
 msgstr "Нарезать"
 
+# Отображается на превьюшке стола при неудачной нарезке
 msgid "Review"
-msgstr ""
+msgstr "Исправить"
 
 msgid "Assembly Return"
 msgstr "Выйти из сборки"
@@ -5863,8 +5869,9 @@ msgstr "Другие модели скрыты на время редактир�
 msgid "Filaments %s cannot be printed directly on the surface of this plate."
 msgstr "Для печати %s требуется подложка или основание из другого материала."
 
+# В конце подставляется "руководством."
 msgid "PLA and PETG filaments detected in the mixture. Adjust parameters according to the Wiki to ensure print quality."
-msgstr "Обнаружено совместное использование PLA и PETG. Для повышения качества рекомендуется настроить параметры в соответствии с руководством."
+msgstr "Обнаружено совместное использование PLA и PETG. Для повышения качества рекомендуется настроить печать в соответствии с"
 
 msgid "The prime tower extends beyond the plate boundary."
 msgstr "Башня очистки выходит за пределы области печати."
@@ -5874,7 +5881,7 @@ msgid "Partial flushing volume set to 0. Multi-color printing may cause color mi
 msgstr "Обнаружен нулевой объём прочистки сопла, что может вызвать смешивание цветов в цветной модели. Рекомендуется изменить настройки прочистки:"
 
 msgid "Click Wiki for help."
-msgstr "Открыть руководство"
+msgstr "руководством."
 
 msgid "Click here to regroup"
 msgstr "Перегруппировать"
@@ -8479,6 +8486,7 @@ msgstr "Интервал резервного копирования в секу
 msgid "Bed Temperature Difference Warning"
 msgstr "Предупреждение о разнице температур"
 
+# В конце подставляется "руководством."
 msgid ""
 "Using filaments with significantly different temperatures may cause:\n"
 "• Extruder clogging\n"
@@ -8487,12 +8495,11 @@ msgid ""
 "\n"
 "Continue with enabling this feature?"
 msgstr ""
-"Печать материалами со значительно отличающимися температурами может вызвать:\n"
+"Печать материалами с большим перепадом температур может вызвать:\n"
 "• засорение сопла;\n"
 "• повреждение сопла;\n"
 "• проблемы с адгезией.\n"
-"Включить эту функцию и продолжить?\n"
-" "
+"Включить эту функцию и продолжить? Рекомендуется ознакомиться с "
 
 # Сканирование IP принтеров в сети и поиск файла сертификата в файловом
 # менеджере
@@ -8659,7 +8666,7 @@ msgid "If enabled, a parameter settings dialog will appear during STEP file impo
 msgstr "Отображать диалоговое окно с настройками импорта при открытии файлов STEP."
 
 msgid "STEP importing: linear deflection"
-msgstr "Линейное отклонение при импорте STEP"
+msgstr "Импорт STEP: линейное отклонение"
 
 msgid ""
 "Linear deflection used when meshing imported STEP files.\n"
@@ -8675,7 +8682,7 @@ msgstr ""
 "Значение по умолчанию: 0.003 мм."
 
 msgid "STEP importing: angle deflection"
-msgstr "Угловое отклонение при импорте STEP"
+msgstr "Импорт STEP: угловое отклонение"
 
 msgid ""
 "Angle deflection used when meshing imported STEP files.\n"
@@ -8795,7 +8802,7 @@ msgid "Delay in seconds before auto slicing starts, allowing multiple edits to b
 msgstr "Ожидание перед запуском нарезки, позволяет вносить несколько изменений подряд. 0 – запускать без ожидания."
 
 msgid "Remove mixed temperature restriction"
-msgstr "Снять ограничение перепада температур"
+msgstr "Игнорировать перепад температур"
 
 msgid "With this option enabled, you can print materials with a large temperature difference together."
 msgstr "Активировать возможность совместной печати разными материалами с большим перепадом температур."
@@ -10033,7 +10040,7 @@ msgstr ""
 "Будет установлено значение min_layer_height\n"
 
 msgid "Layer height exceeds the limit in Printer Settings -> Extruder -> Layer height limits, this may cause printing quality issues."
-msgstr "Высота слоя не может превышать ограничения, установленные в настройках принтера -> Экструдер -> Ограничение высоты слоя. Это может вызвать проблемы с качеством печати."
+msgstr "Высота слоя не может превышать ограничения, установленные в настройках принтера → Экструдер → Ограничение высоты слоя. Это может вызвать проблемы с качеством печати."
 
 msgid "Adjust to the set range automatically?\n"
 msgstr "Автоматически подстроиться под заданный в настройках диапазон?\n"
@@ -11848,13 +11855,14 @@ msgid " is too close to clumping detection area, and collisions will be caused.\
 msgstr " находится слишком близко к зоне обнаружения налипаний, столкновения неизбежны.\n"
 
 msgid "Selected nozzle temperatures are incompatible. Each filament's nozzle temperature must fall within the recommended nozzle temperature range of the other filaments. Otherwise, nozzle clogging or printer damage may occur."
-msgstr ""
+msgstr "Обнаружен недопустимый перепад температур. Каждый из используемых материалов должен иметь в профиле температуру печати в пределах допустимого диапазона других материалов. В противном случае сопло может забиться и повредить принтер."
 
 msgid "Invalid recommended nozzle temperature range. The lower bound must be lower than the upper bound."
-msgstr ""
+msgstr "Диапазон допустимых температур сопла задан некорректно. Минимально допустимая температура сопла не может быть выше максимально допустимой."
 
+# В подсказках стрелочки "→" не работают
 msgid "If you still want to print, you can enable the option in Preferences / Control / Slicing / Remove mixed temperature restriction."
-msgstr ""
+msgstr "Если вас это не пугает, эту проверку можно отключить настройкой слайсера «Игнорировать перепад температур» (Настройки > Управление > Нарезка)."
 
 msgid "No extrusions under current settings."
 msgstr "При текущих настройках экструзия отсутствует."
@@ -13672,7 +13680,7 @@ msgid "Filament map to extruder."
 msgstr "Назначение филамента на экструдер."
 
 msgid "Auto For Flush"
-msgstr "Авто для промывки"
+msgstr "Авто для прочистки"
 
 msgid "Auto For Match"
 msgstr "Авто для сопоставления"
@@ -13684,7 +13692,7 @@ msgid "Flush temperature"
 msgstr "Температура прочистки"
 
 msgid "Temperature when flushing filament. 0 indicates the upper bound of the recommended nozzle temperature range."
-msgstr "Температура при прочистке. 0 – использовать верхний предел рекомендуемой температуры."
+msgstr "Температура при прочистке. 0 – использовать максимально допустимую температуру."
 
 msgid "Flush temperature used in fast purge mode."
 msgstr ""
@@ -13884,10 +13892,10 @@ msgid "mm²"
 msgstr "мм²"
 
 msgid "Interface layer purge length"
-msgstr "Длина промывки слоя интерфейса"
+msgstr "Прочистка на слое интерфейса"
 
 msgid "Purge length for prime tower interface layer (where different materials meet)."
-msgstr "Длина промывки слоя интерфейса башни очистки (где соприкасаются разные материалы)."
+msgstr "Длина прочистки на слое интерфейса башни (где соприкасаются разные материалы)."
 
 msgid "Interface layer print temperature"
 msgstr "Температура при прочистке"
@@ -13896,7 +13904,7 @@ msgid "Print temperature for prime tower interface layer (where different materi
 msgstr ""
 "Целевая температура при печати слоёв прочистки в черновой башне (место контакта разных материалов).\n"
 "\n"
-"При значении -1 используется максимальная рекомендуемая температура."
+"При значении -1 используется максимально допустимая температура."
 
 msgid "Speed of the last cooling move"
 msgstr "Скорость последнего охлаждающего движения"
@@ -14583,9 +14591,9 @@ msgid ""
 "\n"
 "Note: For Klipper machines, this option is recommended to be disabled. Klipper does not benefit from arc commands as these are split again into line segments by the firmware. This results in a reduction in surface quality as line segments are converted to arcs by the slicer and then back to line segments by the firmware."
 msgstr ""
-"Включите, если хотите чтобы программа пыталась заменить последовательности из коротких прямолинейных участков дугами (используя команды G2 и G3). Функция должна поддерживаться прошивкой принтера. Значение допуска траектории такое же как разрешение G-кода.\n"
+"Распознавать движение по дуге окружности и кодировать траекторию командами G2/G3. Позволяет значительно сократить размер файла при печати некоторых моделей. Отклонения от дуги меньше указанного выше разрешения игнорируются.\n"
 "\n"
-"Примечание: для устройств с прошивкой Klipper рекомендуется отключить эту опцию. Klipper не получает преимуществ от этой опции, поскольку прошивка снова разбивает дуги на линейные сегменты. Это приводит к снижению качества поверхности, поскольку линейные сегменты сначала преобразуются в дуги с помощью слайсера, а затем снова в линейные сегменты с помощью прошивки."
+"Примечание: не рекомендуется для устройств с прошивкой Klipper. Klipper не поддерживает G2/G3 нативно и разбивает дуги обратно на линейные сегменты, что приводит к снижению качества поверхности из-за двойной потери точности. Также G2/G3 может не поддерживаться некоторыми старыми или проприетарными прошивками."
 
 msgid "Add line number"
 msgstr "Нумеровать строки"
@@ -15153,6 +15161,7 @@ msgid ""
 "A reasonable value is 35. Set to 0 to disable."
 msgstr ""
 "Прижимать периметры к предыдущему слою на поверхностях с наклоном менее заданного значения.\n"
+"\n"
 "Внимание: в настоящий момент действие настройки инвертировано (затрагивается всё, кроме верхних периметров с указанным углом), что делает её вредоносной."
 
 msgid "Don't alternate fill direction"
@@ -16835,7 +16844,7 @@ msgstr "Плотность ветвей"
 
 #. TRN PrintSettings: "Organic supports" > "Branch Density"
 msgid "Adjusts the density of the support structure used to generate the tips of the branches. A higher value results in better overhangs but the supports are harder to remove, thus it is recommended to enable top support interfaces instead of a high branch density value if dense interfaces are needed."
-msgstr "Регулирует плотность создания ветвей в месте контакта с моделью. Большее значение приводит к улучшению качества печати нависаний, но такие поддержки сложнее удалять, поэтому рекомендуется вместо высокого значения плотности ветвей включать связующие слои поддержки."
+msgstr "Регулирует плотность создания ветвей в месте контакта с моделью. Бóльшие значения приводят к улучшению качества печати нависаний. Однако такие поддержки сложнее удалять, поэтому рекомендуется вместо высокого значения плотности ветвей включать связующие слои поддержки."
 
 msgid "Auto brim width"
 msgstr "Автоширина каймы"
@@ -18469,7 +18478,7 @@ msgid "Part of the calibration failed! You may clean the plate and retry. The fa
 msgstr "Часть калибровки выполнена неудачно! Вы можете очистить стол и повторить попытку. Результат неудачного теста будет удалён."
 
 msgid "*We recommend you to add brand, materia, type, and even humidity level in the Name"
-msgstr "*Мы рекомендуем добавить к названию материала, производителя, тип и даже уровень влажности"
+msgstr "*Рекомендуется указывать в названии производителя, тип материала и даже уровень влажности"
 
 msgid "Please enter the name you want to save to printer."
 msgstr "Введите имя, которое хотите сохранить на принтере."
