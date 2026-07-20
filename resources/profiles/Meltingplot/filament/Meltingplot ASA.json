@@ -27,9 +27,6 @@
 	"default_filament_colour": [
 		"#123123"
 	],
-	"fan_max_speed": [
-		"50"
-	],
 	"slow_down_layer_time": [
 		"10"
 	],
