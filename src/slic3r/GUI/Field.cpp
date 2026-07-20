@@ -1043,14 +1043,14 @@ void TextCtrl::propagate_value()
 
 void TextCtrl::set_value(const boost::any& value, bool change_event/* = false*/) {
     m_disable_change_event = !change_event;
+
     if (m_opt.nullable) {
         const bool m_is_na_val = value.empty() || (boost::any_cast<wxString>(value) == _(L("N/A")));
         if (!m_is_na_val)
             m_last_meaningful_value = value;
-        text_ctrl()->SetValue(boost::any_cast<wxString>(value)); // BBS
     }
-    else
-        text_ctrl()->SetValue(value.empty() ? "" : boost::any_cast<wxString>(value)); // BBS // BBS: null value
+
+    text_ctrl()->SetValue(value.empty() ? wxString() : boost::any_cast<wxString>(value));
     m_disable_change_event = false;
 
     if (!change_event) {
@@ -1187,18 +1187,24 @@ void CheckBox::set_value(const boost::any& value, bool change_event)
     m_disable_change_event = !change_event;
     if (m_opt.nullable) {
         const bool is_value_unsigned_char = value.type() == typeid(unsigned char);
+        bool bool_value = false;
+
         m_is_na_val = value.empty() || (is_value_unsigned_char &&
                       boost::any_cast<unsigned char>(value) == ConfigOptionBoolsNullable::nil_value());
-        if (!m_is_na_val)
-            m_last_meaningful_value = is_value_unsigned_char ? value : static_cast<unsigned char>(boost::any_cast<bool>(value));
 
-        const auto bool_value = is_value_unsigned_char ?
-                                    boost::any_cast<unsigned char>(value) != 0 :
-                                    boost::any_cast<bool>(value);
-        dynamic_cast<::CheckBox*>(window)->SetValue(m_is_na_val ? false : bool_value); // BBS
+        if (!m_is_na_val) {
+            bool_value = is_value_unsigned_char ?
+                            boost::any_cast<unsigned char>(value) != 0 :
+                            boost::any_cast<bool>(value);
+            m_last_meaningful_value = is_value_unsigned_char ? value : static_cast<unsigned char>(bool_value);
+        }
+
+        dynamic_cast<::CheckBox*>(window)->SetValue(bool_value);
     }
-    else if (!value.empty()) // BBS: null value
+    else if (!value.empty()){ // BBS: null value
         dynamic_cast<::CheckBox*>(window)->SetValue(boost::any_cast<bool>(value)); // BBS
+    }
+
     dynamic_cast<::CheckBox*>(window)->SetHalfChecked(value.empty());
     m_disable_change_event = false;
 }
