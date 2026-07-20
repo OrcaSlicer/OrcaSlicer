@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Meltingplot PET-CF15",
-	"inherits": "fdm_filament_petg",
+	"inherits": "Generic PETG-CF @System",
 	"from": "system",
 	"setting_id": "IdqfEh7xRXKTYmV3",
 	"filament_id": "MPFPETC",
@@ -74,6 +74,12 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"90"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"close_fan_the_first_x_layers": [
+		"1"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.6 nozzle",

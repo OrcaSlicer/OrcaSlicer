@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Meltingplot PETG",
-	"inherits": "fdm_filament_petg",
+	"inherits": "Generic PETG @System",
 	"from": "system",
 	"setting_id": "dsW7JrzWhKAY1fey",
 	"filament_id": "MPFPTG0",
@@ -18,9 +18,6 @@
 	"filament_max_volumetric_speed": [
 		"20"
 	],
-	"filament_density": [
-		"1.27"
-	],
 	"filament_cost": [
 		"35"
 	],
@@ -29,9 +26,6 @@
 	],
 	"fan_min_speed": [
 		"50"
-	],
-	"fan_max_speed": [
-		"100"
 	],
 	"fan_cooling_layer_time": [
 		"60"
@@ -62,6 +56,9 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"90"
+	],
+	"filament_diameter": [
+		"2.85"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.6 nozzle",

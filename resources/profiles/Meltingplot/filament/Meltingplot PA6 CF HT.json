@@ -1,16 +1,13 @@
 {
 	"type": "filament",
 	"name": "Meltingplot PA6 CF HT",
-	"inherits": "fdm_filament_pa",
+	"inherits": "Generic PA-CF @System",
 	"from": "system",
 	"setting_id": "kzlYLTM6H5CgpQ8y",
 	"filament_id": "MPFPA6C",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Meltingplot"
-	],
-	"filament_type": [
-		"PA-CF"
 	],
 	"nozzle_temperature": [
 		"275"
@@ -74,6 +71,9 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"80"
+	],
+	"filament_diameter": [
+		"2.85"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.6 nozzle",

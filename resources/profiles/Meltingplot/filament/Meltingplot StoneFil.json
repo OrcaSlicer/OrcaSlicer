@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Meltingplot StoneFil",
-	"inherits": "fdm_filament_pla",
+	"inherits": "Generic PLA @System",
 	"from": "system",
 	"setting_id": "8zQd7CZbkAlGa7Xh",
 	"filament_id": "MPFSTF0",
@@ -62,6 +62,9 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"65"
+	],
+	"filament_diameter": [
+		"2.85"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.4 nozzle",

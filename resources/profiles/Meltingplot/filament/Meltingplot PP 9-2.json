@@ -1,16 +1,13 @@
 {
 	"type": "filament",
 	"name": "Meltingplot PP 9-2",
-	"inherits": "fdm_filament_common",
+	"inherits": "Generic PP @System",
 	"from": "system",
 	"setting_id": "4QiGCRB27RIw6ak4",
 	"filament_id": "MPFPP92",
 	"instantiation": "true",
 	"filament_vendor": [
 		"Meltingplot"
-	],
-	"filament_type": [
-		"PP"
 	],
 	"nozzle_temperature": [
 		"210"
@@ -56,6 +53,9 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"110"
+	],
+	"filament_diameter": [
+		"2.85"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.4 nozzle",

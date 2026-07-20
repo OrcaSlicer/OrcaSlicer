@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Meltingplot STYX 12",
-	"inherits": "fdm_filament_pa",
+	"inherits": "Generic PA @System",
 	"from": "system",
 	"setting_id": "z5zIFNr2WrzsC1M2",
 	"filament_id": "MPFSTX0",
@@ -56,6 +56,12 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"110"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"required_nozzle_HRC": [
+		"0"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.4 nozzle",

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Igus iglidur J260",
-	"inherits": "fdm_filament_pc",
+	"inherits": "Generic PC @System",
 	"from": "system",
 	"setting_id": "RtG6RPDLtYzhITc0",
 	"filament_id": "IGSJ260",
@@ -36,18 +36,6 @@
 	"filament_shrink": [
 		"99.2%"
 	],
-	"temperature_vitrification": [
-		"120"
-	],
-	"fan_min_speed": [
-		"10"
-	],
-	"fan_max_speed": [
-		"60"
-	],
-	"fan_cooling_layer_time": [
-		"30"
-	],
 	"slow_down_layer_time": [
 		"12"
 	],
@@ -57,26 +45,11 @@
 	"cool_plate_temp": [
 		"110"
 	],
-	"eng_plate_temp": [
-		"110"
-	],
-	"hot_plate_temp": [
-		"110"
-	],
-	"textured_plate_temp": [
-		"110"
-	],
 	"cool_plate_temp_initial_layer": [
 		"110"
 	],
-	"eng_plate_temp_initial_layer": [
-		"110"
-	],
-	"hot_plate_temp_initial_layer": [
-		"110"
-	],
-	"textured_plate_temp_initial_layer": [
-		"110"
+	"filament_diameter": [
+		"2.85"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.4 nozzle",

@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Meltingplot TitanX",
-	"inherits": "fdm_filament_abs",
+	"inherits": "Generic ABS @System",
 	"from": "system",
 	"setting_id": "LDPRmxlvX97NXF0F",
 	"filament_id": "MPFTIX0",
@@ -59,6 +59,12 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"110"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.6 nozzle",

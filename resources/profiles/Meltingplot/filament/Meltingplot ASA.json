@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Meltingplot ASA",
-	"inherits": "fdm_filament_asa",
+	"inherits": "Generic ASA @System",
 	"from": "system",
 	"setting_id": "5VuPxdOXfTIidM4X",
 	"filament_id": "MPFASA0",
@@ -26,9 +26,6 @@
 	],
 	"default_filament_colour": [
 		"#123123"
-	],
-	"fan_min_speed": [
-		"10"
 	],
 	"fan_max_speed": [
 		"50"
@@ -62,6 +59,9 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"90"
+	],
+	"filament_diameter": [
+		"2.85"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 1.0 nozzle",

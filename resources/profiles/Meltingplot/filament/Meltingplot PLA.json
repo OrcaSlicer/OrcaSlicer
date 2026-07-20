@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Meltingplot PLA",
-	"inherits": "fdm_filament_pla",
+	"inherits": "Generic PLA @System",
 	"from": "system",
 	"setting_id": "ONpaHlfJVJyh7Shb",
 	"filament_id": "MPFPLA0",
@@ -50,6 +50,12 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"65"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.6 nozzle",

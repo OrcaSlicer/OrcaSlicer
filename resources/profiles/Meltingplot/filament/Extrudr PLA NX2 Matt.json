@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Extrudr PLA NX2 Matt",
-	"inherits": "fdm_filament_pla",
+	"inherits": "Generic PLA Matte @System",
 	"from": "system",
 	"setting_id": "qmPRaTcPlmtk6zB2",
 	"filament_id": "EXTNX2M",
@@ -65,6 +65,9 @@
 	],
 	"textured_plate_temp_initial_layer": [
 		"60"
+	],
+	"filament_diameter": [
+		"2.85"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 1.0 nozzle",
