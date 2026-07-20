@@ -2107,6 +2107,22 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // makes Extrude build a DETACHED new body from the last sketch instead of push/pulling
         // the face the user just clicked.
         if (level >= 1) { m_sel_sketch_region = -1; m_sel_sketch_feat = -1; }
+        // Say what got picked. Without this the ONLY feedback is the viewport highlight, so a
+        // pick that registers but draws faintly is indistinguishable from one that never
+        // happened — which is precisely how this failure was reported and why it resisted
+        // diagnosis. Cards that show their own labels still do.
+        if (m_status != nullptr) {
+            m_status->SetForegroundColour(wxNullColour);
+            if (level <= 0)
+                m_status->SetLabel(_L("Selection cleared"));
+            else if (level == 1)
+                m_status->SetLabel(wxString::Format(_L("Body %d selected — click again for a face"), body + 1));
+            else if (level == 2)
+                m_status->SetLabel(wxString::Format(_L("Body %d, face %d — click again for an edge"), body + 1, face));
+            else
+                m_status->SetLabel(wxString::Format(_L("Body %d, edge %d selected"), body + 1, edge));
+            m_status->Refresh();
+        }
         // If the Fillet/Chamfer card is open, re-anchor (or drop) the radius arrow on the new pick
         // and rebuild the ghost — once an edge is picked the preview-only mode hides the base body.
         if (m_active == Tool::Dressup) { update_fillet_gizmo(); refresh_preview(); }

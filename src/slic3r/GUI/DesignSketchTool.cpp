@@ -7659,7 +7659,12 @@ bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
         }
         if (!(evt.LeftUp() && m_pick_pending)) return false;
         m_pick_pending = false;
-        if (std::abs(evt.GetX() - m_pick_press_x) + std::abs(evt.GetY() - m_pick_press_y) > 4)
+        // Threshold per axis, at GTK's own drag threshold. A hand-held mouse drifts several
+        // pixels during an ordinary click — a tight budget silently swallowed real clicks and
+        // looked exactly like "selection does not work". Synthetic clicks never drift, which
+        // is why the headless rig could not show this.
+        if (std::max(std::abs(evt.GetX() - m_pick_press_x),
+                     std::abs(evt.GetY() - m_pick_press_y)) > 8)
             return false;   // it was a drag: the canvas already orbited, don't also select
         // Committed-sketch loop pick is computed FIRST. A click that lands on a loop's
         // STROKE (edge) selects that loop even when it lies on a solid face — so a sketch
