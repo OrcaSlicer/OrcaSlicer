@@ -9,12 +9,6 @@
 	"filament_vendor": [
 		"Meltingplot"
 	],
-	"nozzle_temperature": [
-		"245"
-	],
-	"nozzle_temperature_initial_layer": [
-		"245"
-	],
 	"filament_flow_ratio": [
 		"0.93"
 	],
@@ -23,15 +17,6 @@
 	],
 	"filament_density": [
 		"1.07"
-	],
-	"fan_min_speed": [
-		"30"
-	],
-	"fan_max_speed": [
-		"65"
-	],
-	"overhang_fan_speed": [
-		"65"
 	],
 	"slow_down_layer_time": [
 		"15"
