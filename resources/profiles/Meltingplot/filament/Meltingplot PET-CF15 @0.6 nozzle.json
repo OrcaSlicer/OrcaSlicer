@@ -1,9 +1,9 @@
 {
 	"type": "filament",
-	"name": "Meltingplot ASA @0.6 nozzle",
-	"inherits": "Meltingplot ASA",
+	"name": "Meltingplot PET-CF15 @0.6 nozzle",
+	"inherits": "Meltingplot PET-CF15",
 	"from": "system",
-	"setting_id": "2UdzXwYGT5nqtcdK",
+	"setting_id": "PcNAj2kwuUNBAjQE",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"16"

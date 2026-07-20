@@ -16,7 +16,7 @@
 		"255"
 	],
 	"filament_max_volumetric_speed": [
-		"28"
+		"33"
 	],
 	"filament_density": [
 		"1.11"
@@ -61,15 +61,10 @@
 		"2.85"
 	],
 	"compatible_printers": [
-		"Meltingplot MBL 133 1.0 nozzle",
 		"Meltingplot MBL 133 1.2 nozzle",
-		"Meltingplot MBL 136 1.0 nozzle",
 		"Meltingplot MBL 136 1.2 nozzle",
-		"Meltingplot MBL 308 1.0 nozzle",
 		"Meltingplot MBL 308 1.2 nozzle",
-		"Meltingplot MBL 480 1.0 nozzle",
 		"Meltingplot MBL 480 1.2 nozzle",
-		"Meltingplot CHX 350 1.0 nozzle",
 		"Meltingplot CHX 350 1.2 nozzle"
 	]
 }

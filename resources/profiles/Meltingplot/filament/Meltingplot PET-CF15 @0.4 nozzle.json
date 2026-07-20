@@ -6,7 +6,7 @@
 	"setting_id": "2fkQa1BwTGZbSi2z",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
-		"14"
+		"10"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.4 nozzle",

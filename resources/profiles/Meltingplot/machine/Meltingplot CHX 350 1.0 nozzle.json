@@ -25,7 +25,7 @@
 	"printable_height": "943",
 	"default_print_profile": "0.52mm Standard 1.0 nozzle @Meltingplot CHX 350",
 	"default_filament_profile": [
-		"Meltingplot PLA"
+		"Meltingplot PLA @1.0 nozzle"
 	],
 	"nozzle_type": [
 		"hardened_steel"

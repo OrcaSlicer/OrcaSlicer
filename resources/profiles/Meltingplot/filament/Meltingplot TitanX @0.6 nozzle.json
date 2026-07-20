@@ -1,9 +1,9 @@
 {
 	"type": "filament",
-	"name": "Meltingplot ASA @0.6 nozzle",
-	"inherits": "Meltingplot ASA",
+	"name": "Meltingplot TitanX @0.6 nozzle",
+	"inherits": "Meltingplot TitanX",
 	"from": "system",
-	"setting_id": "2UdzXwYGT5nqtcdK",
+	"setting_id": "Vbm6NJb4il6QAU6v",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"16"

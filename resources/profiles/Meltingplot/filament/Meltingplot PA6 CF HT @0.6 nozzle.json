@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"name": "Meltingplot ASA @0.6 nozzle",
-	"inherits": "Meltingplot ASA",
+	"name": "Meltingplot PA6 CF HT @0.6 nozzle",
+	"inherits": "Meltingplot PA6 CF HT",
 	"from": "system",
-	"setting_id": "2UdzXwYGT5nqtcdK",
+	"setting_id": "9XzYyYbJ4jnO4nhJ",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
-		"16"
+		"11"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.6 nozzle",

@@ -1,12 +1,12 @@
 {
 	"type": "filament",
-	"name": "Extrudr PLA NX2 Matt @0.8 nozzle",
-	"inherits": "Extrudr PLA NX2 Matt",
+	"name": "Meltingplot ABS @0.8 nozzle",
+	"inherits": "Meltingplot ABS",
 	"from": "system",
-	"setting_id": "HO2NCV1i1l21mokh",
+	"setting_id": "Y2LYeWL7Zxel3m0c",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
-		"20"
+		"22"
 	],
 	"compatible_printers": [
 		"Meltingplot MBL 133 0.8 nozzle",

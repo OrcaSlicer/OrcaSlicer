@@ -25,7 +25,7 @@
 	"printable_height": "943",
 	"default_print_profile": "0.44mm Standard 0.8 nozzle @Meltingplot CHX 350",
 	"default_filament_profile": [
-		"Meltingplot PLA"
+		"Meltingplot PLA @0.8 nozzle"
 	],
 	"min_resonance_avoidance_speed": "55",
 	"max_resonance_avoidance_speed": "115"
