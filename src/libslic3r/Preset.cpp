@@ -252,7 +252,7 @@ void extend_default_config_length(DynamicPrintConfig& config, const bool set_nil
     auto replace_nil_and_resize = [&](const std::string & key, int length){
         ConfigOption* raw_ptr = config.option(key);
         ConfigOptionVectorBase* opt_vec = static_cast<ConfigOptionVectorBase *>(raw_ptr);
-        if(set_nil_to_default && raw_ptr->is_nil() && defaults.has(key) && std::find(filament_extruder_override_keys.begin(), filament_extruder_override_keys.end(), key) == filament_extruder_override_keys.end()){
+        if(set_nil_to_default && raw_ptr->is_nil() && defaults.has(key) && !is_filament_extruder_override_key(key)){
             opt_vec->clear();
             opt_vec->resize(length, defaults.option(key));
         }
@@ -469,6 +469,8 @@ void Preset::normalize(DynamicPrintConfig &config)
             if (key == "compatible_prints" || key == "compatible_printers")
                 continue;
             if (filament_options_with_variant.find(key) != filament_options_with_variant.end())
+                continue;
+            if (filament_dev_options.find(key) != filament_dev_options.end())
                 continue;
             auto *opt = config.option(key, false);
             /*assert(opt != nullptr);
@@ -1046,6 +1048,8 @@ static std::vector<std::string> s_Preset_print_options{
     "top_surface_expansion_margin",
     "top_surface_expansion_direction",
     "bottom_surface_pattern",
+    "top_surface_fill_order",
+    "bottom_surface_fill_order",
     "infill_direction",
     "solid_infill_direction",
     "top_layer_direction",
@@ -1061,7 +1065,6 @@ static std::vector<std::string> s_Preset_print_options{
     "skin_infill_density",
     "align_infill_direction_to_model",
     "extra_solid_infills",
-    "anisotropic_surfaces",
     "center_of_surface_pattern",
     "separated_infills",
     "minimum_sparse_infill_area",
@@ -1317,7 +1320,7 @@ static std::vector<std::string> s_Preset_print_options{
 };
 
 static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", */ "default_filament_colour", "required_nozzle_HRC", "filament_diameter", "pellet_flow_coefficient", "volumetric_speed_coefficients", "filament_type",
-                                                          "filament_soluble", "filament_is_support", "filament_printable",
+                                                          "filament_soluble", "filament_is_support", "filament_printable", "filament_extruder_compatibility",
     "filament_max_volumetric_speed", "filament_adaptive_volumetric_speed",
     "filament_flow_ratio", "filament_density", "filament_adhesiveness_category", "filament_cost", "filament_minimal_purge_on_wipe_tower",
     "filament_tower_interface_pre_extrusion_dist", "filament_tower_interface_pre_extrusion_length", "filament_tower_ironing_area", "filament_tower_interface_purge_volume",
@@ -1333,8 +1336,20 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     //exhaust fan control
     "activate_air_filtration","activate_air_filtration_during_print","activate_air_filtration_on_completion","during_print_exhaust_fan_speed","complete_print_exhaust_fan_speed",
     // Retract overrides
-    "filament_retraction_length", "filament_z_hop", "filament_z_hop_types", "filament_retract_lift_above", "filament_retract_lift_below", "filament_retract_lift_enforce", "filament_retraction_speed", "filament_deretraction_speed", "filament_retract_restart_extra", "filament_retraction_minimum_travel",
-    "filament_retract_when_changing_layer", "filament_wipe", "filament_retract_before_wipe",
+    "filament_deretraction_speed",
+    "filament_retract_after_wipe", // Orca
+    "filament_retract_before_wipe",
+    "filament_retract_lift_above",
+    "filament_retract_lift_below",
+    "filament_retract_lift_enforce",
+    "filament_retract_restart_extra",
+    "filament_retract_when_changing_layer",
+    "filament_retraction_length",
+    "filament_retraction_minimum_travel",
+    "filament_retraction_speed",
+    "filament_wipe",
+    "filament_z_hop",
+    "filament_z_hop_types",
     // Profile compatibility
     "filament_vendor", "compatible_prints", "compatible_prints_condition", "compatible_printers", "compatible_printers_condition", "inherits",
     //BBS
@@ -1352,8 +1367,18 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "filament_multitool_ramming", "filament_multitool_ramming_volume", "filament_multitool_ramming_flow", "activate_chamber_temp_control", "chamber_minimal_temperature",
     "filament_long_retractions_when_cut","filament_retraction_distances_when_cut", "idle_temperature",
     //BBS filament change length while the extruder color
-    "filament_change_length","filament_flush_volumetric_speed","filament_flush_temp", "filament_cooling_before_tower",
-    "long_retractions_when_ec", "retraction_distances_when_ec"
+    "filament_change_length","filament_flush_volumetric_speed","filament_flush_temp","filament_flush_temp_fast", "filament_cooling_before_tower",
+    // Multi-nozzle pre-cooling / ramming / nozzle-change (nc) filament overrides
+    "filament_ramming_volumetric_speed", "filament_ramming_volumetric_speed_nc",
+    "filament_ramming_travel_time", "filament_ramming_travel_time_nc",
+    "filament_pre_cooling_temperature", "filament_pre_cooling_temperature_nc",
+    "filament_preheat_temperature_delta", "filament_retract_length_nc",
+    "filament_change_length_nc", "filament_prime_volume_nc",
+    "long_retractions_when_ec", "retraction_distances_when_ec",
+    //ams chamber
+    "filament_dev_ams_drying_ams_limitations", "filament_dev_ams_drying_temperature", "filament_dev_ams_drying_time", "filament_dev_ams_drying_heat_distortion_temperature",
+    "filament_dev_chamber_drying_bed_temperature", "filament_dev_chamber_drying_time",
+    "filament_dev_drying_softening_temperature", "filament_dev_drying_cooling_temperature"
     };
 
 static std::vector<std::string> s_Preset_machine_limits_options {
@@ -1363,6 +1388,8 @@ static std::vector<std::string> s_Preset_machine_limits_options {
     "machine_min_extruding_rate", "machine_min_travel_rate",
     "machine_max_jerk_x", "machine_max_jerk_y", "machine_max_jerk_z", "machine_max_jerk_e",
     "machine_max_junction_deviation",
+    // Bedslinger mass/force limits
+    "machine_max_force_Y", "machine_bed_mass_Y", "machine_max_printed_mass",
     //resonance avoidance ported from qidi slicer
     "resonance_avoidance", "min_resonance_avoidance_speed", "max_resonance_avoidance_speed",
     // Orca: input shaping
@@ -1380,7 +1407,7 @@ static std::vector<std::string> s_Preset_printer_options {
     "default_print_profile", "inherits",
     "silent_mode",
     "scan_first_layer", "enable_power_loss_recovery", "wrapping_detection_layers", "wrapping_exclude_area", "machine_load_filament_time", "machine_unload_filament_time", "machine_tool_change_time", "time_cost", "machine_pause_gcode", "template_custom_gcode",
-    "nozzle_type", "nozzle_hrc","auxiliary_fan", "nozzle_volume","upward_compatible_machine", "z_hop_types", "travel_slope", "retract_lift_enforce","support_chamber_temp_control","support_air_filtration","printer_structure",
+    "nozzle_type", "nozzle_hrc","auxiliary_fan", "fan_direction", "nozzle_volume","upward_compatible_machine", "z_hop_types", "travel_slope", "retract_lift_enforce","support_chamber_temp_control","support_air_filtration","support_cooling_filter","cooling_filter_enabled","printer_structure","farthest_point_timelapse",
     "best_object_pos", "head_wrap_detect_zone",
     "host_type", "print_host", "printhost_apikey", "flashforge_serial_number", "bbl_use_printhost", "printer_agent",
     "print_host_webui",
@@ -1392,7 +1419,13 @@ static std::vector<std::string> s_Preset_printer_options {
     "cooling_tube_length", "high_current_on_filament_swap", "parking_pos_retraction", "extra_loading_move", "wipe_tower_type", "purge_in_prime_tower", "enable_filament_ramming", "tool_change_on_wipe_tower",
     "z_offset",
     "disable_m73", "preferred_orientation", "emit_machine_limits_to_gcode", "pellet_modded_printer", "support_multi_bed_types", "use_3mf", "default_bed_type", "bed_mesh_min","bed_mesh_max","bed_mesh_probe_distance", "adaptive_bed_mesh_margin", "enable_long_retraction_when_cut","long_retractions_when_cut","retraction_distances_when_cut",
-    "bed_temperature_formula", "nozzle_flush_dataset"
+    "bed_temperature_formula", "nozzle_flush_dataset",
+    // Multi-nozzle count + pre-heat model printer options
+    "extruder_max_nozzle_count", "group_algo_with_time", "enable_pre_heating", "hotend_heating_rate", "hotend_cooling_rate",
+    "machine_hotend_change_time", "machine_prepare_compensation_time",
+    // Fast-purge printer flag + device/firmware-facing per-variant extruder-change
+    // deretraction speed (unconsumed by the slicer; carried by H2D/A2L/X2D/P2S machine profiles).
+    "support_fast_purge_mode", "deretract_speed_extruder_change"
     };
 
 static std::vector<std::string> s_Preset_sla_print_options {
@@ -3784,6 +3817,26 @@ void PresetCollection::set_custom_preset_alias(Preset &preset)
     preset.alias = std::move(alias_name);
     m_map_alias_to_profile_name[preset.alias].push_back(preset.name);
     set_printer_hold_alias(preset.alias, preset);
+}
+
+std::string PresetCollection::get_preset_alias(Preset &preset, bool force)
+{
+    if (!preset.alias.empty())
+        return preset.alias;
+    else
+        set_custom_preset_alias(preset);
+
+    if (!preset.alias.empty() || !force)
+        return preset.alias;
+
+    std::string alias_name;
+    std::string preset_name = preset.name;
+    size_t      end_pos     = preset_name.find_first_of("@");
+    if (end_pos != std::string::npos) {
+        alias_name = preset_name.substr(0, end_pos);
+        boost::trim_right(alias_name);
+    }
+    return alias_name;
 }
 
 void PresetCollection::set_printer_hold_alias(const std::string &alias, Preset &preset, bool remove)

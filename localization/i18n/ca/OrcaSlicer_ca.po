@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-12 12:27-0300\n"
+"POT-Creation-Date: 2026-07-13 16:24-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -40,6 +40,24 @@ msgstr "El TPU no és compatible amb AMS."
 msgid "AMS does not support 'Bambu Lab PET-CF'."
 msgstr "L'AMS no és compatible amb 'Bambu Lab PET-CF'."
 
+msgid "The current filament doesn't support the E3D high-flow nozzle and can't be used."
+msgstr ""
+
+msgid "The current filament doesn't support the TPU high-flow nozzle and can't be used."
+msgstr ""
+
+msgid "Auto dynamic flow calibration is not supported for TPU filament."
+msgstr ""
+
+msgid "Bambu TPU 85A is not supported for printing with 0.4 mm Standard or High Flow nozzles."
+msgstr ""
+
+msgid "How to feed TPU filament."
+msgstr ""
+
+msgid "How to feed TPU filament on X2D."
+msgstr ""
+
 msgid "Please cold pull before printing TPU to avoid clogging. You may use cold pull maintenance on the printer."
 msgstr "Feu un cold pull abans d'imprimir TPU per evitar obstruccions. Podeu fer servir el manteniment de cold pull a la impressora."
 
@@ -52,6 +70,9 @@ msgstr "El PVA humit és flexible i es pot encallar a l'extrusor. Assequeu-lo ab
 msgid "The rough surface of PLA Glow can accelerate wear on the AMS system, particularly on the internal components of the AMS Lite."
 msgstr "La superfície rugosa del PLA Glow pot accelerar el desgast del sistema AMS, especialment dels components interns de l'AMS Lite."
 
+msgid "PLA Glow may wear the AMS first stage feeder. Use an external spool instead."
+msgstr ""
+
 msgid "CF/GF filaments are hard and brittle, it's easy to break or get stuck in AMS, please use with caution."
 msgstr "Els filaments CF / GF són durs i trencadissos, És fàcil trencar-se o quedar-se atrapat en AMS, si us plau, utilitzeu amb precaució."
 
@@ -61,9 +82,89 @@ msgstr "El PPS-CF és fràgil i es podria trencar al tub PTFE corbat sobre el ca
 msgid "PPA-CF is brittle and could break in bended PTFE tube above Toolhead."
 msgstr "El PPA-CF és fràgil i es podria trencar al tub PTFE corbat sobre el capçal d'impressió."
 
+msgid "Default settings may affect print quality. Adjust as needed for best results."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has a risk of nozzle clogging when using 0.4mm high-flow nozzles. Use with caution."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s filaments are hard and brittle and could break in AMS, and there is also a risk of nozzle clogging when using 0.4mm high-flow nozzles. Use with caution."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s has a risk of nozzle clogging when using 0.4, 0.6, 0.8mm high-flow nozzles. Use with caution."
+msgstr ""
+
+#, c-format, boost-format
+msgid "%s may fail to load or unload due to the Filament Track Switch. If you wish to continue."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s is not supported by %s extruder."
 msgstr "%s no és compatible amb l'extrusor %s."
+
+#, c-format, boost-format
+msgid "There may be critical print quality issues when printing '%s' with %s Bowden extruder. Use with caution!"
+msgstr ""
+
+#, c-format, boost-format
+msgid "There may be critical print quality issues when printing '%s' with %s extruder. Use with caution!"
+msgstr ""
+
+#, c-format, boost-format
+msgid "There may be print quality issues when printing '%s' with %s Bowden extruder. Use with caution."
+msgstr ""
+
+#, c-format, boost-format
+msgid "There may be print quality issues when printing '%s' with %s extruder. Use with caution."
+msgstr ""
+
+msgid "High Flow"
+msgstr "Alt flux"
+
+msgid "Standard"
+msgstr "Estàndard"
+
+msgid "TPU High Flow"
+msgstr ""
+
+msgid "Unknown"
+msgstr "Desconegut"
+
+msgid "Hardened Steel"
+msgstr "Acer Endurit"
+
+msgid "Stainless Steel"
+msgstr "Acer Inoxidable"
+
+msgid "Tungsten Carbide"
+msgstr "Carbur de tungstè"
+
+msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
+msgstr ""
+
+msgid "Warning"
+msgstr "Advertència"
+
+msgid "Hotend information may be inaccurate. Would you like to re-read the hotend? (Hotend information may change during power-off)."
+msgstr ""
+
+msgid "I confirm all"
+msgstr ""
+
+msgid "Re-read all"
+msgstr ""
+
+msgid "Reading the hotends, please wait."
+msgstr ""
+
+msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
+msgstr ""
+
+msgid "Update"
+msgstr "Actualitzar"
 
 msgid "Current AMS humidity"
 msgstr "Humitat actual de l'AMS"
@@ -94,6 +195,85 @@ msgstr "Versió:"
 
 msgid "Latest version"
 msgstr "Última versió"
+
+msgid "Row A"
+msgstr ""
+
+msgid "Row B"
+msgstr ""
+
+msgid "Toolhead"
+msgstr ""
+
+msgid "Empty"
+msgstr "Buit"
+
+msgid "Error"
+msgstr ""
+
+msgid "Induction Hotend Rack"
+msgstr ""
+
+msgid "Hotends Info"
+msgstr ""
+
+msgid "Read All"
+msgstr ""
+
+msgid "Reading "
+msgstr ""
+
+msgid "Please wait"
+msgstr ""
+
+msgid "Running..."
+msgstr ""
+
+msgid "Raised"
+msgstr ""
+
+msgid "The hotend is in an abnormal state and currently unavailable. Please go to 'Device -> Upgrade' to upgrade firmware."
+msgstr ""
+
+msgid "Abnormal Hotend"
+msgstr ""
+
+msgid "Refresh"
+msgstr "Actualitzar"
+
+msgid "Refreshing"
+msgstr "Actualitzant"
+
+msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
+msgstr ""
+
+msgid "Cancel"
+msgstr "Cancel·lar"
+
+msgid "Jump to the upgrade page"
+msgstr ""
+
+msgid "SN"
+msgstr ""
+
+msgid "Version"
+msgstr "Versió"
+
+#, c-format, boost-format
+msgid "Used Time: %s"
+msgstr ""
+
+msgid "Dynamic nozzles are allocated on the current plate. Picking hotend is not supported."
+msgstr ""
+
+msgid "Hotend Rack"
+msgstr ""
+
+msgid "ToolHead"
+msgstr ""
+
+msgid "Nozzle information needs to be read"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Support Painting"
@@ -617,9 +797,6 @@ msgstr "Proporció espacial en relació al radi"
 msgid "Confirm connectors"
 msgstr "Confirmar connectors"
 
-msgid "Cancel"
-msgstr "Cancel·lar"
-
 msgid "Flip cut plane"
 msgstr "Capgira el pla de tall"
 
@@ -660,11 +837,11 @@ msgstr "Separa en parts"
 msgid "Reset cutting plane and remove connectors"
 msgstr "Restableix el pla de tall i elimina els connectors"
 
+msgid "Reset Cut"
+msgstr ""
+
 msgid "Perform cut"
 msgstr "Realitzar tall"
-
-msgid "Warning"
-msgstr "Advertència"
 
 msgid "Invalid connectors detected"
 msgstr "S'han detectat connectors no vàlids"
@@ -694,6 +871,13 @@ msgid "Cut plane with groove is invalid"
 msgstr "El pla de tall amb solc no és vàlid"
 
 msgid "Connector"
+msgstr ""
+
+#, boost-format
+msgid ""
+"Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Thank you."
 msgstr ""
 
 msgid "Cut by Plane"
@@ -742,9 +926,6 @@ msgstr "Simplificar"
 
 msgid "Simplification is currently only allowed when a single part is selected"
 msgstr "La simplificació de moment només es permet quan se selecciona una sola peça"
-
-msgid "Error"
-msgstr ""
 
 msgid "Extra high"
 msgstr "Extra alt"
@@ -2020,6 +2201,9 @@ msgstr ""
 msgid "Loading user preset"
 msgstr "Carregant perfil d'usuari"
 
+msgid "There is an update available. Open the preset bundle dialog to update it."
+msgstr ""
+
 #, c-format, boost-format
 msgid "%s has been removed."
 msgstr ""
@@ -2032,6 +2216,18 @@ msgstr "Seleccioneu l'idioma"
 
 msgid "Language"
 msgstr "Idioma"
+
+#, c-format, boost-format
+msgid "Switching Orca Slicer to language %s failed."
+msgstr ""
+
+msgid ""
+"\n"
+"You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
+msgstr ""
+
+msgid "Orca Slicer - Switching language failed"
+msgstr ""
 
 msgid "*"
 msgstr "*"
@@ -2666,6 +2862,45 @@ msgstr "Feu clic a la icona per editar la pintura en color de l'objecte"
 msgid "Click the icon to shift this object to the bed"
 msgstr "Feu clic a la icona per situar aquest objecte al llit"
 
+msgid "Rename Object"
+msgstr ""
+
+msgid "Rename Part"
+msgstr ""
+
+msgid "Paste settings"
+msgstr ""
+
+msgid "Shift objects to bed"
+msgstr ""
+
+msgid "Object order changed"
+msgstr ""
+
+msgid "Layer setting added"
+msgstr ""
+
+msgid "Part setting added"
+msgstr ""
+
+msgid "Object setting added"
+msgstr ""
+
+msgid "Height range settings added"
+msgstr ""
+
+msgid "Part settings added"
+msgstr ""
+
+msgid "Object settings added"
+msgstr ""
+
+msgid "Load Part"
+msgstr ""
+
+msgid "Load Modifier"
+msgstr ""
+
 msgid "Loading file"
 msgstr "S'està carregant el fitxer"
 
@@ -2674,6 +2909,9 @@ msgstr ""
 
 msgid "Failed to get the model data in the current file."
 msgstr "No s'han pogut obtenir les dades del model al fitxer actual."
+
+msgid "Add primitive"
+msgstr ""
 
 msgid "Generic"
 msgstr "Genèric"
@@ -2686,6 +2924,12 @@ msgstr "Canvar al mode de configuració per objecte per editar la configuració 
 
 msgid "Remove paint-on fuzzy skin"
 msgstr "Elimina la pell difusa pintada"
+
+msgid "Delete Settings"
+msgstr ""
+
+msgid "Remove height range"
+msgstr "Suprimir interval d'alçada"
 
 msgid "Delete connector from object which is a part of cut"
 msgstr "Suprimir el connector de l'objecte que forma part del tall"
@@ -2717,11 +2961,23 @@ msgstr "Suprimir tots els connectors"
 msgid "Deleting the last solid part is not allowed."
 msgstr "No es permet suprimir l'última part sòlida."
 
+msgid "Delete part"
+msgstr ""
+
 msgid "The target object contains only one part and can not be split."
 msgstr "L'objecte de destinació conté només una part i no es pot dividir."
 
+msgid "Split to parts"
+msgstr "Separar en peces"
+
 msgid "Assembly"
 msgstr "Muntatge"
+
+msgid "Merge parts to an object"
+msgstr ""
+
+msgid "Add layers"
+msgstr ""
 
 msgid "Cut Connectors information"
 msgstr "Informació dels connectors de tall"
@@ -2756,6 +3012,9 @@ msgstr "Intervals d'alçada"
 msgid "Settings for height range"
 msgstr "Configuració de l'interval d'alçada"
 
+msgid "Delete selected"
+msgstr ""
+
 msgid "Layer"
 msgstr "Capa"
 
@@ -2777,6 +3036,9 @@ msgstr "Tipus:"
 
 msgid "Choose part type"
 msgstr "Tria el tipus de peça"
+
+msgid "Instances to Separated Objects"
+msgstr ""
 
 msgid "Enter new name"
 msgstr "Introduïu un nom nou"
@@ -2805,6 +3067,9 @@ msgstr "\"%s\" superarà 1 milió de cares després d'aquesta subdivisió, cosa 
 msgid "\"%s\" part's mesh contains errors. Please repair it first."
 msgstr "La malla de la part \"%s\" conté errors. Repareu-la primer."
 
+msgid "Change Filaments"
+msgstr ""
+
 msgid "Additional process preset"
 msgstr "Perfil de processament addicional"
 
@@ -2813,9 +3078,6 @@ msgstr "Suprimeix el paràmetre"
 
 msgid "to"
 msgstr "a"
-
-msgid "Remove height range"
-msgstr "Suprimir interval d'alçada"
 
 msgid "Add height range"
 msgstr "Afegir un interval d'alçada"
@@ -3028,6 +3290,9 @@ msgstr "Trieu una ranura AMS i premeu el botó \"Carregar\" o \"Descarregar\" pe
 msgid "Filament type is unknown which is required to perform this action. Please set target filament's informations."
 msgstr "El tipus de filament és desconegut, però és necessari per realitzar aquesta acció. Establiu la informació del filament de destinació."
 
+msgid "AMS has not been initialized. Please initialize it before use."
+msgstr ""
+
 msgid "Changing fan speed during printing may affect print quality, please choose carefully."
 msgstr "Canviar la velocitat del ventilador durant la impressió pot afectar la qualitat d'impressió, trieu amb cura."
 
@@ -3150,6 +3415,24 @@ msgstr "Confirmació d'extrussió"
 msgid "Check filament location"
 msgstr "Comprovar la localització del filament"
 
+msgid "Switch"
+msgstr ""
+
+msgid "hotend"
+msgstr ""
+
+msgid "Wait for AMS cooling"
+msgstr ""
+
+msgid "Switch current filament at Filament Track Switch"
+msgstr ""
+
+msgid "Pull back current filament at Filament Track Switch"
+msgstr ""
+
+msgid "Switch track at Filament Track Switch"
+msgstr ""
+
 msgid "The maximum temperature cannot exceed "
 msgstr "La temperatura màxima no pot superar "
 
@@ -3201,6 +3484,62 @@ msgid "Developer mode"
 msgstr "Mode de desenvolupament"
 
 msgid "Launch troubleshoot center"
+msgstr ""
+
+msgid "Set nozzle count"
+msgstr ""
+
+msgid "Please set nozzle count"
+msgstr ""
+
+msgid "Error: Can not set both nozzle count to zero."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Error: Nozzle count can not exceed %d."
+msgstr ""
+
+msgid "Confirm"
+msgstr "Confirmar"
+
+msgid "Extruder"
+msgstr "Extrusor"
+
+msgid "Nozzle Selection"
+msgstr ""
+
+msgid "Available Nozzles"
+msgstr ""
+
+msgid "Nozzle Info"
+msgstr "Informació del broquet"
+
+msgid "Sync Nozzle status"
+msgstr ""
+
+msgid "Caution: Mixing nozzle diameters in one print is not supported. If the selected size is only on one extruder, single-extruder printing will be enforced."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Refresh %d/%d..."
+msgstr ""
+
+msgid "Unknown nozzle detected. Refresh to update info (unrefreshed nozzles will be excluded during slicing). Verify nozzle diameter & flow rate against displayed values."
+msgstr ""
+
+msgid "Unknown nozzle detected. Refresh to update (unrefreshed nozzles will be skipped in slicing)."
+msgstr ""
+
+msgid "Please confirm whether the required nozzle diameter and flow rate match the currently displayed values."
+msgstr ""
+
+msgid "Your printer has different nozzles installed. Please select a nozzle for this print."
+msgstr ""
+
+msgid "Ignore"
+msgstr "Ignorar"
+
+msgid "Done."
 msgstr ""
 
 msgid ""
@@ -3537,14 +3876,8 @@ msgstr ""
 msgid "Today, OrcaSlicer is the most widely used and actively developed open-source slicer in the 3D printing community. Many of its innovations have been adopted by other slicers, making it a driving force for the entire industry."
 msgstr ""
 
-msgid "Version"
-msgstr "Versió"
-
 msgid "AMS Materials Setting"
 msgstr "Configuració de materials AMS"
-
-msgid "Confirm"
-msgstr "Confirmar"
 
 msgid "Close"
 msgstr "Tancar"
@@ -3564,11 +3897,11 @@ msgstr "mín"
 msgid "The input value should be greater than %1% and less than %2%"
 msgstr "El valor d'entrada ha de ser superior a %1% i inferior a %2%"
 
-msgid "SN"
-msgstr ""
-
 msgid "Factors of Flow Dynamics Calibration"
 msgstr "Factors de Calibratge de les Dinàmiques de Flux"
+
+msgid "Wiki Guide"
+msgstr "Guia Wiki"
 
 msgid "PA Profile"
 msgstr "Perfil PA( Pressure Advance )"
@@ -3743,6 +4076,19 @@ msgstr "Broquet dret"
 
 msgid "Nozzle"
 msgstr "Broquet( nozzle )"
+
+msgid "Select Filament && Hotends"
+msgstr ""
+
+msgid "Select Filament"
+msgstr "Seleccioneu filament"
+
+#, c-format, boost-format
+msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
+msgstr ""
+
+msgid "External spools is not supported since Filament Track Switch has been installed. If you want to use external spool, please uninstall it."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Note: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
@@ -4456,9 +4802,6 @@ msgstr "Mesurant superfície"
 msgid "Calibrating the detection position of nozzle clumping"
 msgstr "Calibrant la posició de detecció d'acumulació al broquet"
 
-msgid "Unknown"
-msgstr "Desconegut"
-
 msgid "Update successful."
 msgstr "L'actualització s'ha realitzat correctament."
 
@@ -4970,9 +5313,6 @@ msgstr "Estableix a l'òptim"
 msgid "Regroup filament"
 msgstr "Reagrupa filaments"
 
-msgid "Wiki Guide"
-msgstr "Guia Wiki"
-
 msgid "up to"
 msgstr "fins a"
 
@@ -5027,9 +5367,6 @@ msgstr "Canvis de filaments"
 
 msgid "Options"
 msgstr "Opcions"
-
-msgid "Extruder"
-msgstr "Extrusor"
 
 msgid "Cost"
 msgstr ""
@@ -5239,9 +5576,6 @@ msgstr "Ordenar els objectes en plaques seleccionades"
 
 msgid "Split to objects"
 msgstr "Separar en objectes"
-
-msgid "Split to parts"
-msgstr "Separar en peces"
 
 msgid "Assembly View"
 msgstr "Vista de muntatge"
@@ -5966,6 +6300,9 @@ msgstr "Resultat de l'exportació"
 msgid "Select profile to load:"
 msgstr "Seleccioneu el perfil que voleu carregar:"
 
+msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
+msgstr ""
+
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
 msgid_plural "There are %d configs imported. (Only non-system and compatible configs)"
@@ -6129,9 +6466,6 @@ msgstr "Baixeu els fitxers seleccionats de la impressora."
 
 msgid "Batch manage files."
 msgstr "Gestió per lots de fitxers."
-
-msgid "Refresh"
-msgstr "Actualitzar"
 
 msgid "Reload file list from printer."
 msgstr "Tornar a carregar la llista de fitxers des de la impressora."
@@ -6445,6 +6779,9 @@ msgstr "Opcions d'impressió"
 msgid "Safety Options"
 msgstr "Opcions de seguretat"
 
+msgid "Hotends"
+msgstr ""
+
 msgid "Lamp"
 msgstr "Llum"
 
@@ -6477,6 +6814,12 @@ msgstr "Quan la impressió està en pausa, la càrrega i descàrrega de filament
 
 msgid "Current extruder is busy changing filament."
 msgstr "L'extrusor actual està ocupat canviant el filament."
+
+msgid "\"Load\" or \"Unload\" is not supported for external spool while using Filament Track Switch."
+msgstr ""
+
+msgid "The Filament Track Switch has not been setup. Please setup on printer."
+msgstr ""
 
 msgid "Current slot has already been loaded."
 msgstr "La ranura actual ja s'ha carregat."
@@ -6528,9 +6871,6 @@ msgstr "Això només té efecte durant la impressió"
 msgid "Silent"
 msgstr "Silenciós"
 
-msgid "Standard"
-msgstr "Estàndard"
-
 msgid "Sport"
 msgstr "Esportiu"
 
@@ -6563,6 +6903,12 @@ msgstr "Afegir una foto"
 
 msgid "Delete Photo"
 msgstr "Eliminar Foto"
+
+msgid "Select Images"
+msgstr ""
+
+msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
+msgstr ""
 
 msgid "Submit"
 msgstr "Enviar"
@@ -6746,6 +7092,9 @@ msgstr "Com utilitzar el mode només LAN"
 
 msgid "Don't show this dialog again"
 msgstr "No tornis a mostrar aquest diàleg"
+
+msgid "Please refer to Wiki before use->"
+msgstr "Consulteu la Wiki abans d'usar ->"
 
 msgid "3D Mouse disconnected."
 msgstr "S'ha desconnectat el ratolí 3D."
@@ -7001,26 +7350,17 @@ msgstr "Flux"
 msgid "Please change the nozzle settings on the printer."
 msgstr "Canvieu la configuració del broquet a la impressora."
 
-msgid "Hardened Steel"
-msgstr "Acer Endurit"
-
-msgid "Stainless Steel"
-msgstr "Acer Inoxidable"
-
-msgid "Tungsten Carbide"
-msgstr "Carbur de tungstè"
-
 msgid "Brass"
 msgstr "Llautó"
 
 msgid "High flow"
 msgstr "Alt flux"
 
+msgid "TPU High flow"
+msgstr ""
+
 msgid "No wiki link available for this printer."
 msgstr "No hi ha cap enllaç wiki disponible per a aquesta impressora."
-
-msgid "Refreshing"
-msgstr "Actualitzant"
 
 msgid "Unavailable while heating maintenance function is on."
 msgstr "No disponible mentre la funció de manteniment d'escalfament està activada."
@@ -7144,6 +7484,15 @@ msgstr "Canvia el diàmetre"
 msgid "Configuration incompatible"
 msgstr "Configuració incompatible"
 
+msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing. "
+msgstr ""
+
+msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use. "
+msgstr ""
+
+msgid "Tips"
+msgstr "Consells"
+
 msgid "Sync printer information"
 msgstr "Sincronitza la informació de la impressora"
 
@@ -7171,6 +7520,9 @@ msgstr "Feu clic per editar el perfil"
 
 msgid "Project Filaments"
 msgstr "Filaments del projecte"
+
+msgid "Purge mode"
+msgstr ""
 
 msgid "Flushing volumes"
 msgstr "Volums de purga"
@@ -7401,9 +7753,6 @@ msgstr "La impressora connectada és %s. Ha de coincidir amb el perfil del proje
 msgid "Do you want to sync the printer information and automatically switch the preset?"
 msgstr "Voleu sincronitzar la informació de la impressora i canviar automàticament el perfil?"
 
-msgid "Tips"
-msgstr "Consells"
-
 msgid "The file does not contain any geometry data."
 msgstr "El fitxer no conté cap dada de geometria."
 
@@ -7454,8 +7803,20 @@ msgstr ""
 "Aquesta acció trencarà una correspondència de tall.\n"
 "Després d'això, no es podrà garantir la coherència del model."
 
+msgid "Delete Object"
+msgstr ""
+
+msgid "Delete All Objects"
+msgstr ""
+
+msgid "Reset Project"
+msgstr ""
+
 msgid "The selected object couldn't be split."
 msgstr "L'objecte seleccionat no s'ha pogut partir."
+
+msgid "Split to Objects"
+msgstr ""
 
 msgid "Disable Auto-Drop to preserve Z positioning?\n"
 msgstr ""
@@ -7482,6 +7843,9 @@ msgstr "Seleccioneu un fitxer nou"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "No s'ha seleccionat el fitxer per a la substitució"
+
+msgid "Replace with 3D file"
+msgstr ""
 
 msgid "Select folder to replace from"
 msgstr "Seleccioneu la carpeta des d'on substituir"
@@ -7528,6 +7892,9 @@ msgstr "No es pot tornar a carregar:"
 
 msgid "Error during reload"
 msgstr "S'ha produït un error durant la recàrrega"
+
+msgid "Reload all"
+msgstr ""
 
 msgid "There are warnings after slicing models:"
 msgstr "Hi ha advertències després de laminar els models:"
@@ -8301,6 +8668,15 @@ msgstr "Esborra la meva elecció per sincronitzar el perfil de la impressora des
 msgid "Graphics"
 msgstr ""
 
+msgid "Smooth normals"
+msgstr ""
+
+msgid ""
+"Applies smooth normals to the model.\n"
+"\n"
+"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgstr ""
+
 msgid "Phong shading"
 msgstr ""
 
@@ -8316,16 +8692,7 @@ msgstr ""
 msgid "Shadows"
 msgstr ""
 
-msgid "Renders cast shadows on the plate in realistic view."
-msgstr ""
-
-msgid "Smooth normals"
-msgstr ""
-
-msgid ""
-"Applies smooth normals to the realistic view.\n"
-"\n"
-"Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
+msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
 msgstr ""
 
 msgid "Anti-aliasing"
@@ -8609,6 +8976,9 @@ msgstr "Perfils incompatibles"
 msgid "My Printer"
 msgstr "La meva impressora"
 
+msgid "AMS filaments"
+msgstr ""
+
 msgid "Left filaments"
 msgstr "Filaments esquerres"
 
@@ -8627,6 +8997,9 @@ msgstr "Afegir o Suprimir perfils"
 
 msgid "Edit preset"
 msgstr "Editar el perfil"
+
+msgid "Change extruder color"
+msgstr ""
 
 msgid "Unspecified"
 msgstr "No especificat"
@@ -8658,9 +9031,6 @@ msgstr "Seleccionar/eliminar impressores ( perfils del sistema )"
 
 msgid "Create printer"
 msgstr "Crear impressora"
-
-msgid "Empty"
-msgstr "Buit"
 
 msgid "Incompatible"
 msgstr ""
@@ -8893,12 +9263,42 @@ msgstr "enviament completat"
 msgid "Error code"
 msgstr "Codi d'error"
 
-msgid "High Flow"
-msgstr "Alt flux"
+msgid "Error desc"
+msgstr "Descripció de l'error"
+
+msgid "Extra info"
+msgstr "Informació addicional"
+
+msgid "The Filament Track Switch installed on the printer does not match the slicing file. Please re-slice to avoid print quality issues."
+msgstr ""
+
+msgid "This print requires a Filament Track Switch. Please install it first."
+msgstr ""
+
+msgid "The Filament Track Switch has not been setup. Please setup it first."
+msgstr ""
 
 #, c-format, boost-format
-msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
-msgstr "La configuració del flux del broquet de %s(%s) no coincideix amb el fitxer de tall (%s). Assegureu-vos que el broquet instal·lat coincideixi amb la configuració de la impressora i establiu el perfil d'impressora corresponent durant el tall."
+msgid "Failed to send nozzle auto-mapping request to printer { code: %d }. Please try to refresh the printer information. If it still does not recover, you can try to rebind the printer and check the network connection."
+msgstr ""
+
+msgid "The printer is calculating nozzle mapping."
+msgstr ""
+
+msgid "Please wait a moment..."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Failed to receive nozzle auto-mapping table from printer { msg: %s }. Please refresh the printer information."
+msgstr ""
+
+#, c-format, boost-format
+msgid "The printer failed to build the nozzle auto-mapping table { code: %d }. Please refresh nozzle information."
+msgstr ""
+
+#, c-format, boost-format
+msgid "The current nozzle mapping may produce an extra %0.2f g of waste."
+msgstr ""
 
 #, c-format, boost-format
 msgid "Filament %s does not match the filament in AMS slot %s. Please update the printer firmware to support AMS slot assignment."
@@ -8962,8 +9362,38 @@ msgstr "Costa %dg de filament i %d canvis més que l'agrupació òptima."
 msgid "nozzle"
 msgstr "broquet"
 
-msgid "both extruders"
-msgstr "ambdós extrusors"
+#, c-format, boost-format
+msgid "Refreshing information of hotends(%d/%d)."
+msgstr ""
+
+msgid "There are not enough available hotends currently."
+msgstr ""
+
+msgid "Please complete the hotend rack setup and try again."
+msgstr ""
+
+msgid "Please refresh the nozzle information and try again."
+msgstr ""
+
+msgid "Please re-slice to avoid filament waste."
+msgstr ""
+
+msgid "The reported hotend information may be unreliable."
+msgstr ""
+
+#, c-format, boost-format
+msgid "The printer has no nozzle matching the slicing file (%s)."
+msgstr ""
+
+msgid "Please install a matching nozzle in the hotend rack, or set the corresponding printer preset while slicing."
+msgstr ""
+
+msgid "The toolhead and hotend rack are full. Please remove at least one hotend before printing."
+msgstr ""
+
+#, c-format, boost-format
+msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
+msgstr "La configuració del flux del broquet de %s(%s) no coincideix amb el fitxer de tall (%s). Assegureu-vos que el broquet instal·lat coincideixi amb la configuració de la impressora i establiu el perfil d'impressora corresponent durant el tall."
 
 msgid "Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."
 msgstr "Consell: si heu canviat el broquet de la vostra impressora recentment, aneu a 'Dispositiu -> Parts de la impressora' per canviar la configuració del broquet."
@@ -8976,9 +9406,16 @@ msgstr "El diàmetre %s (%.1fmm) de la impressora actual no coincideix amb el fi
 msgid "The current nozzle diameter (%.1fmm) doesn't match with the slicing file (%.1fmm). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset when slicing."
 msgstr "El diàmetre del broquet actual (%.1fmm) no coincideix amb el fitxer de tall (%.1fmm). Assegureu-vos que el broquet instal·lat coincideixi amb la configuració de la impressora i establiu el perfil d'impressora corresponent durant el tall."
 
+msgid "both extruders"
+msgstr "ambdós extrusors"
+
 #, c-format, boost-format
 msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). Please verify the nozzle or material settings and try again."
 msgstr "La duresa del material actual (%s) supera la duresa de %s(%s). Verifiqueu la configuració del broquet o del material i torneu-ho a provar."
+
+#, c-format, boost-format
+msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). It may cause nozzle wear, leading to material leakage and unstable flow. Please exercise caution when using it."
+msgstr ""
 
 #, c-format, boost-format
 msgid "[ %s ] requires printing in a high-temperature environment. Please close the door."
@@ -9089,9 +9526,6 @@ msgstr "El firmware actual admet un màxim de 16 materials. Podeu reduir el nomb
 
 msgid "The type of external filament is unknown or does not match with the filament type in the slicing file. Please make sure you have installed the correct filament in the external spool."
 msgstr ""
-
-msgid "Please refer to Wiki before use->"
-msgstr "Consulteu la Wiki abans d'usar ->"
 
 msgid "Current firmware does not support file transfer to internal storage."
 msgstr "El firmware actual no admet la transferència de fitxers a l'emmagatzematge intern."
@@ -9276,6 +9710,9 @@ msgstr ""
 msgid "Click to reset all settings to the last saved preset."
 msgstr "Feu clic per restablir tots els paràmetres a l'última configuració desada."
 
+msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "La Torre de Purga és necessària per a un timelapse suau. Pot haver-hi defectes en el model sense Torre de Purga. Esteu segur que voleu desactivar la Torre de Purga?"
@@ -9357,9 +9794,6 @@ msgstr "Voleu ajustar el rang automàticament?\n"
 
 msgid "Adjust"
 msgstr "Ajustar"
-
-msgid "Ignore"
-msgstr "Ignorar"
 
 msgid "Experimental feature: Retracting and cutting off the filament at a greater distance during filament changes to minimize flush. Although it can notably reduce flush, it may also elevate the risk of nozzle clogs or other printing complications."
 msgstr "Característica experimental: Retreure i tallar el filament a major distància durant els canvis de filaments per minimitzar el flux. Tot i que pot reduir notablement el flux, també pot elevar el risc d'esclops de broquets o altres complicacions d'impressió."
@@ -9864,6 +10298,12 @@ msgstr ""
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Segur que voleu %1% el perfil seleccionat?"
 
+msgid "Select printers"
+msgstr "Seleccioneu impressores"
+
+msgid "Select profiles"
+msgstr "Seleccioneu perfils"
+
 #, c-format, boost-format
 msgid ""
 " - %s:\n"
@@ -10090,6 +10530,12 @@ msgstr "Transfereix valors d'esquerra a dreta"
 
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "Si està habilitat, aquest diàleg es pot utilitzar per transferir els valors seleccionats del perfil esquerra cap a la dreta."
+
+msgid "One of the presets does not exist"
+msgstr ""
+
+msgid "Compared presets has different printer technology"
+msgstr ""
 
 msgid "Add File"
 msgstr "Afegir arxiu"
@@ -10455,6 +10901,9 @@ msgstr "Iniciar sessió"
 msgid "Login failed. Please try again."
 msgstr ""
 
+msgid "parse json failed"
+msgstr ""
+
 msgid "[Action Required] "
 msgstr "[Acció necessària] "
 
@@ -10769,6 +11218,9 @@ msgstr "Nom de la impressora"
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "On podeu trobar la IP i el Codi d'Accés de la impressora?"
 
+msgid "How to trouble shooting"
+msgstr ""
+
 msgid "Connect"
 msgstr "Connecta"
 
@@ -10833,6 +11285,9 @@ msgstr "Mòdul de tall"
 msgid "Auto Fire Extinguishing System"
 msgstr "Sistema d'extinció automàtica d'incendis"
 
+msgid "Filament Track Switch"
+msgstr ""
+
 msgid "Beta"
 msgstr "Beta"
 
@@ -10850,6 +11305,9 @@ msgstr "S'ha produït un error en l'actualització"
 
 msgid "Update successful"
 msgstr "Actualització correcta"
+
+msgid "Hotends on Rack"
+msgstr ""
 
 msgid "Are you sure you want to update? This will take about 10 minutes. Do not turn off the power while the printer is updating."
 msgstr "Segur que vols actualitzar? Trigarà uns 10 minuts. No l'apagueu mentre la impressora s'actualitza."
@@ -10958,6 +11416,9 @@ msgstr "Error d'agrupació: "
 
 msgid " can not be placed in the "
 msgstr " no es pot col·locar al "
+
+msgid "Group error in manual mode. Please check nozzle count or regroup."
+msgstr ""
 
 msgid "Internal Bridge"
 msgstr "Pont Interior"
@@ -12130,9 +12591,6 @@ msgstr ""
 "La geometria es simplificarà abans de detectar angles pronunciats. Aquest paràmetre indica la longitud mínima de la desviació per a la simplificació.\n"
 "0 per desactivar"
 
-msgid "Select printers"
-msgstr "Seleccioneu impressores"
-
 msgid "upward compatible machine"
 msgstr "màquina compatible ascendent"
 
@@ -12142,9 +12600,6 @@ msgstr "Condició"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Una expressió booleana fent servir valors de configuració d'un perfil existent. Si aquesta expressió és certa, el perfil es considera compatible amb el perfil d'impressió actiu."
-
-msgid "Select profiles"
-msgstr "Seleccioneu perfils"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
@@ -12784,11 +13239,17 @@ msgstr "Automàtic per a purga"
 msgid "Auto For Match"
 msgstr "Automàtic per a coincidència"
 
+msgid "Nozzle Manual"
+msgstr ""
+
 msgid "Flush temperature"
 msgstr "Temperatura de purga"
 
 msgid "Temperature when flushing filament. 0 indicates the upper bound of the recommended nozzle temperature range."
 msgstr "Temperatura durant la purga del filament. 0 indica el límit superior del rang de temperatura del broquet recomanat."
+
+msgid "Flush temperature used in fast purge mode."
+msgstr ""
 
 msgid "Flush volumetric speed"
 msgstr "Velocitat volumètrica de purga"
@@ -13056,6 +13517,12 @@ msgstr "Filament imprimible"
 
 msgid "The filament is printable in extruder."
 msgstr "El filament és imprimible a l'extrusor."
+
+msgid "Filament-extruder compatibility"
+msgstr ""
+
+msgid "A single 32-bit int encoding the compatibility level of a filament across all extruders (up to 10). Every 3 bits represent one extruder (bits [3*i, 3*i+2] for extruder i). 0: printable, 1: error, 2: critical warning, 3: warning, 4-7: reserved."
+msgstr ""
 
 msgid "Softening temperature"
 msgstr "Temperatura d'estovament"
@@ -13643,6 +14110,15 @@ msgstr "Millor auto posicionament dels objectes a l'interval [0,1] respecte a la
 msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
 msgstr "Activeu aquesta opció si la màquina té ventilador auxiliar de refrigeració de peces. Comanda de Codi-G: M106 P2 S ( 0-255 )."
 
+msgid "Fan direction"
+msgstr ""
+
+msgid "Cooling fan direction of the printer"
+msgstr ""
+
+msgid "Both"
+msgstr ""
+
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Start the fan this number of seconds earlier than its target start time (you can use fractional seconds). It assumes infinite acceleration for this time estimation, and will only take into account G1 and G0 moves (arc fitting is unsupported).\n"
@@ -13714,6 +14190,12 @@ msgid ""
 msgstr ""
 "Habiliteu-lo si la impressora admet la filtració d'aire\n"
 "Comanda de Codi-G: M106 P3 S ( 0-255 )"
+
+msgid "Use cooling filter"
+msgstr ""
+
+msgid "Enable this if printer support cooling filter"
+msgstr ""
 
 msgid "G-code flavor"
 msgstr "Tipus de Codi-G"
@@ -14241,6 +14723,30 @@ msgstr "Velocitat mínima de desplaçament"
 
 msgid "Minimum travel speed (M205 T)"
 msgstr "Velocitat mínima de desplaçament ( M205 T )"
+
+msgid "Maximum force of the Y axis"
+msgstr ""
+
+msgid "The allowed maximum output force of Y axis"
+msgstr ""
+
+msgid "N"
+msgstr ""
+
+msgid "Bed mass of the Y axis"
+msgstr ""
+
+msgid "The machine bed mass load of Y axis"
+msgstr ""
+
+msgid "g"
+msgstr ""
+
+msgid "The allowed max printed mass"
+msgstr ""
+
+msgid "The allowed max printed mass on a plate"
+msgstr ""
 
 msgid "Maximum acceleration for extruding"
 msgstr "Màxima acceleració d'extrusió"
@@ -14791,6 +15297,9 @@ msgstr "Direct Drive"
 msgid "Bowden"
 msgstr "Bowden"
 
+msgid "Hybrid"
+msgstr ""
+
 msgid "Enable filament dynamic map"
 msgstr ""
 
@@ -14825,6 +15334,12 @@ msgstr "Velocitat de detracció"
 
 msgid "Speed for reloading filament into the nozzle. Zero means same speed of retraction."
 msgstr "Velocitat per recarregar el filament al broquet. Zero significa la mateixa velocitat de retracció."
+
+msgid "Deretraction speed (extruder change)"
+msgstr ""
+
+msgid "Speed for reloading filament into the nozzle when switching extruder."
+msgstr ""
 
 msgid "Use firmware retraction"
 msgstr "Utilitza la retracció del firmware"
@@ -15131,6 +15646,12 @@ msgstr "Si se selecciona el mode suau o tradicional, es generarà un vídeo time
 
 msgid "Traditional"
 msgstr "Tradicional"
+
+msgid "Farthest point timelapse"
+msgstr ""
+
+msgid "When enabled, the timelapse snapshot is taken at the farthest point from camera instead of traveling to the wipe tower or excess chute. Only effective in traditional timelapse mode on non-I3 printers."
+msgstr ""
 
 msgid "Temperature variation"
 msgstr "Variació de temperatura"
@@ -15764,12 +16285,30 @@ msgstr "Multiplicador de neteja"
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "El volum de neteja real és igual al valor del multiplicador de neteja multiplicat pels volums de neteja especificats a la taula."
 
+msgid "Flush multiplier (Fast mode)"
+msgstr ""
+
+msgid "The flush multiplier used in fast purge mode."
+msgstr ""
+
 msgid "Prime volume"
 msgstr "Volum de purga"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "El volum de material que l'extrusora ha de descarregar a la Torre de Purga."
+
+msgid "Prime volume mode"
+msgstr ""
+
+msgid "Selects how the wipe-tower prime and flush volumes are computed on multi-extruder printers."
+msgstr ""
+
+msgid "Saving"
+msgstr ""
+
+msgid "Fast"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the width of prime towers."
@@ -16063,6 +16602,57 @@ msgstr "Amplada mínima del perímetre"
 
 msgid "Width of the wall that will replace thin features (according to the Minimum feature size) of the model. If the Minimum wall width is thinner than the thickness of the feature, the wall will become as thick as the feature itself. It's expressed as a percentage over nozzle diameter."
 msgstr "Amplada del perímetre que substituirà als elements prims ( segons la mida mínima de l'element ) del model. Si l'amplada mínima del perímetre és més fina que el gruix de l'element el perímetre esdevindrà tan gruixut com el propi element. S'expressa en percentatge sobre el diàmetre del broquet"
+
+msgid "Hotend change time"
+msgstr ""
+
+msgid "Time to change hotend."
+msgstr ""
+
+msgid "Hotend change"
+msgstr ""
+
+msgid "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing."
+msgstr ""
+
+msgid "Extruder change"
+msgstr ""
+
+msgid "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time."
+msgstr ""
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled."
+msgstr ""
+
+msgid "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed."
+msgstr ""
+
+msgid "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled."
+msgstr ""
+
+msgid "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed."
+msgstr ""
+
+msgid "length when change hotend"
+msgstr ""
+
+msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
+msgstr ""
+
+msgid "Support fast purge mode"
+msgstr ""
+
+msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
+
+msgid "The volume of material required to prime the extruder for a hotend change on the tower."
+msgstr ""
+
+msgid "Preheat temperature delta"
+msgstr ""
+
+msgid "Temperature delta applied during pre-heating before tool change."
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect narrow internal solid infills"
@@ -16818,12 +17408,6 @@ msgstr ""
 msgid "Calibration not supported"
 msgstr "No s'admet calibratge"
 
-msgid "Error desc"
-msgstr "Descripció de l'error"
-
-msgid "Extra info"
-msgstr "Informació addicional"
-
 msgid "Flow Dynamics"
 msgstr "Dinàmiques de Flux"
 
@@ -17030,6 +17614,12 @@ msgstr "Introduïu el nom que voleu assignar a la impressora."
 msgid "The name cannot exceed 40 characters."
 msgstr "El nom no pot superar els 40 caràcters."
 
+msgid "Nozzle ID"
+msgstr ""
+
+msgid "Standard Flow"
+msgstr ""
+
 msgid "Please find the best line on your plate"
 msgstr "Busqueu la millor línia a la placa"
 
@@ -17120,9 +17710,6 @@ msgstr "La informació de l'AMS i del broquet estan sincronitzades"
 msgid "Nozzle Flow"
 msgstr "Flux del broquet"
 
-msgid "Nozzle Info"
-msgstr "Informació del broquet"
-
 msgid "Filament position"
 msgstr "posició del filament"
 
@@ -17196,6 +17783,10 @@ msgstr "Èxit per obtenir resultats històrics"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "Actualitzar els registres històrics de Calibratge de Dinàmiques de Flux"
+
+#, c-format, boost-format
+msgid "Note: The hotend number on the %s is tied to the holder. When the hotend is moved to a new holder, its number will update automatically."
+msgstr ""
 
 msgid "Action"
 msgstr "Acció"
@@ -18959,6 +19550,12 @@ msgstr "Impressió Fallida"
 msgid "Removed"
 msgstr "Eliminat"
 
+msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
+msgstr ""
+
+msgid "Fila Saving"
+msgstr ""
+
 msgid "Don't remind me again"
 msgstr "No m'ho recordis més"
 
@@ -18992,11 +19589,24 @@ msgstr ""
 msgid "(Sync with printer)"
 msgstr "(Sincronitza amb la impressora)"
 
+#, c-format, boost-format
+msgid "Error: %s extruder has no available %s nozzle, current group result is invalid."
+msgstr ""
+
 msgid "We will slice according to this grouping method:"
 msgstr "Tallarem segons aquest mètode d'agrupació:"
 
 msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr "Consell: podeu arrossegar els filaments per reassignar-los a broquets diferents."
+
+msgid "Please adjust your grouping or click "
+msgstr ""
+
+msgid " to set nozzle count"
+msgstr ""
+
+msgid "Set the physical nozzle count..."
+msgstr ""
 
 msgid "The filament grouping method for current plate is determined by the dropdown option at the slicing plate button."
 msgstr "El mètode d'agrupació de filaments per a la placa actual està determinat per l'opció desplegable al botó de la placa de tall."
@@ -19229,9 +19839,6 @@ msgstr "Aquesta acció no es pot desfer. Continuar?"
 
 msgid "Skipping objects."
 msgstr "Ometent objectes."
-
-msgid "Select Filament"
-msgstr "Seleccioneu filament"
 
 msgid "Null Color"
 msgstr "Sense color"
@@ -20539,9 +21146,6 @@ msgstr ""
 
 #~ msgid "Can't start this without SD card."
 #~ msgstr "No es pot iniciar sense la targeta SD."
-
-#~ msgid "Update"
-#~ msgstr "Actualitzar"
 
 #~ msgid "Sensitivity of pausing is"
 #~ msgstr "La sensibilitat de la pausa és"

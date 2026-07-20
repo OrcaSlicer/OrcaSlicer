@@ -253,6 +253,7 @@ public:
     PrintSequence get_real_print_seq(bool* plate_same_as_global=nullptr) const;
 
     std::vector<int> get_real_filament_maps(const DynamicConfig& g_config, bool* use_global_param = nullptr)const;
+    std::vector<int> get_real_filament_volume_maps(const DynamicConfig& g_config, bool* use_global_param = nullptr) const;
     FilamentMapMode  get_real_filament_map_mode(const DynamicConfig& g_config,bool * use_global_param = nullptr) const;
 
     FilamentMapMode get_filament_map_mode() const;
@@ -261,6 +262,15 @@ public:
     // get filament map, 0 based filament ids, 1 based extruder ids
     std::vector<int> get_filament_maps() const;
     void set_filament_maps(const std::vector<int>& f_maps);
+
+    // per-filament nozzle-volume choice (NozzleVolumeType values, 0 based filament ids)
+    std::vector<int> get_filament_volume_maps() const;
+    void set_filament_volume_maps(const std::vector<int>& f_maps);
+    void clear_filament_volume_map();
+
+    // per-filament nozzle-group choice (0 based filament and nozzle ids)
+    std::vector<int> get_filament_nozzle_maps() const;
+    void set_filament_nozzle_maps(const std::vector<int>& f_maps);
 
     void clear_filament_map();
     void clear_filament_map_mode();
@@ -340,6 +350,7 @@ public:
     std::vector<int> get_used_filaments();
     const std::vector<FilamentInfo>& get_slice_filaments_info() const { return slice_filaments_info; }
     int  get_physical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const;
+    int  get_logical_extruder_by_filament_id(const DynamicConfig& g_config, int idx) const;
     bool check_filament_printable(const DynamicPrintConfig & config, wxString& error_message);
     bool check_tpu_printable_status(const DynamicPrintConfig & config, const std::vector<int> &tpu_filaments);
     bool check_mixture_of_pla_and_petg(const DynamicPrintConfig & config);
@@ -667,6 +678,12 @@ public:
                 this->buffer    = part.buffer;
                 this->filename  = part.filename;
                 this->texture   = part.texture;
+            }
+            void update_pos(float xx, float yy, float ww, float hh) {
+                x = xx;
+                y = yy;
+                w = ww;
+                h = hh;
             }
             void update_file(std::string file) {
                 filename = file;
