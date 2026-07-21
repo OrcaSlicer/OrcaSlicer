@@ -550,6 +550,9 @@ public:
     // Compare the slicing file's nozzle requirements (validity, flow, diameter) against the
     // printer; the rack extruder is checked against its whole inventory (mounted + rack).
     bool CheckErrorExtruderNozzleWithSlicing(MachineObject* obj_);//return true if no errors
+    // Orca: message of the last non-blocking nozzle diameter mismatch (empty when there is none),
+    // re-raised as a warning that has to be confirmed in on_ok_btn().
+    wxString m_nozzle_diameter_mismatch_msg;
     // Warn (without blocking) when a mapped filament would be printed from both extruders on a
     // dual-extruder printer, so per-nozzle manual K-value can't follow it across the whole print.
     bool CheckWarningFilamentCrossExtruder(MachineObject* obj_);
