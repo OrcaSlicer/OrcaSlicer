@@ -266,6 +266,9 @@ public:
     void rescale();
     void on_dpi_changed(const wxRect& suggested_rect);
     void show_update_nozzle_button(bool show = false);
+    // Orca: gate "Confirm" behind an explicit acknowledgement checkbox, for warnings the user may
+    // legitimately override (a nozzle diameter differing from the one the printer remembers).
+    void require_acknowledgement(const wxString& label);
     void hide_button_ok();
     void edit_cancel_button_txt(const wxString& txt, bool switch_green = false);
     void disable_button_ok();
@@ -281,6 +284,8 @@ protected:
     Button* m_button_ok;
     Button* m_button_cancel;
     Button* m_button_update_nozzle;
+    wxBoxSizer* m_bottom_sizer{ nullptr };   // holds the checkbox row and the buttons
+    wxCheckBox* m_ack_checkbox{ nullptr };   // Orca: see require_acknowledgement()
     wxCheckBox* m_show_again_checkbox;
     bool not_show_again = false;
     std::string show_again_config_text = "";

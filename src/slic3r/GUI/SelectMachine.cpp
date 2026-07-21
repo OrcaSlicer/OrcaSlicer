@@ -2833,6 +2833,12 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
             confirm_dlg.hide_button_ok();
             confirm_dlg.edit_cancel_button_txt(_L("Close"), true);
         }
+        else if (!m_nozzle_diameter_mismatch_msg.empty())
+        {
+            // Orca: overriding the nozzle diameter is allowed, but not by reflex-clicking Confirm.
+            // A short label on purpose: wxCheckBox does not wrap, and translations run longer.
+            confirm_dlg.require_acknowledgement(_L("I have checked the installed nozzle"));
+        }
         confirm_dlg.Bind(EVT_SECONDARY_CHECK_CONFIRM, [this, &confirm_dlg](wxCommandEvent& e)
             {
                 confirm_dlg.on_hide();

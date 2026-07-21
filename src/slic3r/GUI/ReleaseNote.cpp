@@ -1129,6 +1129,7 @@ ConfirmBeforeSendDialog::ConfirmBeforeSendDialog(wxWindow* parent, wxWindowID id
 
 
     auto bottom_sizer = new wxBoxSizer(wxVERTICAL);
+    m_bottom_sizer    = bottom_sizer;
     auto sizer_button = new wxBoxSizer(wxHORIZONTAL);
 
     if (not_show_again_check) {
@@ -1339,6 +1340,32 @@ void ConfirmBeforeSendDialog::show_update_nozzle_button(bool show)
 {
     m_button_update_nozzle->Show(show);
     Layout();
+}
+
+// Orca: keep "Confirm" disabled until the user ticks the checkbox, so an overridable warning
+// cannot be dismissed by reflex. Calling it twice only updates the label.
+void ConfirmBeforeSendDialog::require_acknowledgement(const wxString& label)
+{
+    if (m_ack_checkbox) {
+        m_ack_checkbox->SetLabel(label);
+        return;
+    }
+
+    m_ack_checkbox = new wxCheckBox(this, wxID_ANY, label, wxDefaultPosition, wxDefaultSize, 0);
+    m_ack_checkbox->Bind(wxEVT_COMMAND_CHECKBOX_CLICKED, [this](wxCommandEvent& e) {
+        m_ack_checkbox->GetValue() ? enable_button_ok() : disable_button_ok();
+        e.Skip();
+    });
+
+    auto checkbox_sizer = new wxBoxSizer(wxHORIZONTAL);
+    checkbox_sizer->Add(FromDIP(15), 0, 0, 0);
+    checkbox_sizer->Add(m_ack_checkbox, 1, wxALL, FromDIP(5));
+    // above the button row, below any "Don't show again" row
+    m_bottom_sizer->Insert(m_bottom_sizer->GetItemCount() - 1, checkbox_sizer, 0, wxBOTTOM | wxEXPAND, 0);
+
+    disable_button_ok();
+    Layout();
+    m_sizer_main->Fit(this);
 }
 
 void ConfirmBeforeSendDialog::hide_button_ok()
