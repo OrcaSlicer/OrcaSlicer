@@ -10,9 +10,11 @@
 		"8000",
 		"8000",
 		"8000",
+		"8000",
 		"8000"
 	],
 	"initial_layer_speed": [
+		"50",
 		"50",
 		"50",
 		"50",
@@ -22,18 +24,21 @@
 		"250",
 		"600",
 		"250",
+		"600",
 		"600"
 	],
 	"inner_wall_speed": [
 		"300",
 		"600",
 		"300",
+		"600",
 		"600"
 	],
 	"outer_wall_speed": [
 		"200",
 		"500",
 		"200",
+		"500",
 		"500"
 	],
 	"prime_tower_brim_width": "-1",
@@ -42,9 +47,11 @@
 		"350",
 		"600",
 		"350",
+		"600",
 		"600"
 	],
 	"travel_speed": [
+		"1000",
 		"1000",
 		"1000",
 		"1000",
@@ -52,5 +59,166 @@
 	],
 	"compatible_printers": [
 		"Bambu Lab H2D 0.4 nozzle"
+	],
+	"bridge_speed": [
+		"50",
+		"50",
+		"50",
+		"50",
+		"50"
+	],
+	"enable_overhang_speed": [
+		"1",
+		"1",
+		"1",
+		"1",
+		"1"
+	],
+	"gap_infill_speed": [
+		"250",
+		"250",
+		"250",
+		"250",
+		"250"
+	],
+	"initial_layer_acceleration": [
+		"500",
+		"500",
+		"500",
+		"500",
+		"500"
+	],
+	"initial_layer_infill_speed": [
+		"105",
+		"105",
+		"105",
+		"105",
+		"105"
+	],
+	"initial_layer_travel_acceleration": [
+		"6000",
+		"6000",
+		"6000",
+		"6000",
+		"6000"
+	],
+	"inner_wall_acceleration": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"outer_wall_acceleration": [
+		"5000",
+		"5000",
+		"5000",
+		"5000",
+		"5000"
+	],
+	"overhang_1_4_speed": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"overhang_2_4_speed": [
+		"50",
+		"50",
+		"50",
+		"50",
+		"50"
+	],
+	"overhang_3_4_speed": [
+		"30",
+		"30",
+		"30",
+		"30",
+		"30"
+	],
+	"overhang_4_4_speed": [
+		"10",
+		"10",
+		"10",
+		"10",
+		"10"
+	],
+	"print_extruder_id": [
+		"1",
+		"1",
+		"2",
+		"2",
+		"2"
+	],
+	"print_extruder_variant": [
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive Standard",
+		"Direct Drive High Flow",
+		"Direct Drive TPU High Flow"
+	],
+	"small_perimeter_speed": [
+		"50%",
+		"50%",
+		"50%",
+		"50%",
+		"50%"
+	],
+	"small_perimeter_threshold": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
+	],
+	"sparse_infill_acceleration": [
+		"100%",
+		"100%",
+		"100%",
+		"100%",
+		"100%"
+	],
+	"support_interface_speed": [
+		"80",
+		"80",
+		"80",
+		"80",
+		"80"
+	],
+	"support_speed": [
+		"150",
+		"150",
+		"150",
+		"150",
+		"150"
+	],
+	"top_surface_acceleration": [
+		"2000",
+		"2000",
+		"2000",
+		"2000",
+		"2000"
+	],
+	"top_surface_speed": [
+		"200",
+		"200",
+		"200",
+		"200",
+		"200"
+	],
+	"travel_acceleration": [
+		"10000",
+		"10000",
+		"10000",
+		"10000",
+		"10000"
+	],
+	"travel_speed_z": [
+		"0",
+		"0",
+		"0",
+		"0",
+		"0"
 	]
 }

@@ -418,3 +418,25 @@ TEST_CASE("Sequential printing follows model order", "[Print]")
 
     REQUIRE_THAT(first_object_peak_z, Catch::Matchers::WithinAbs(20.0, 0.3));
 }
+
+// A sequential (by-object) print must publish the print-level nozzle group result just
+// like a by-layer print, so custom g-code can index the per-nozzle placeholder tables
+// (e.g. nozzle_diameter_at_nozzle_id[]) instead of failing on an empty vector.
+TEST_CASE("Sequential printing publishes the nozzle group result", "[Print][MultiNozzle]")
+{
+    SECTION("process() publishes the result") {
+        Print print;
+        Model model;
+        place_two_cubes_apart(60.0, { { "print_sequence", "by object" } }, print, model);
+        print.process();
+        REQUIRE(print.get_layered_nozzle_group_result() != nullptr);
+    }
+
+    SECTION("start g-code can index the per-nozzle diameter table") {
+        const std::string gcode = slice_two_cubes_arranged({
+            { "print_sequence",      "by object" },
+            { "machine_start_gcode", "{if nozzle_diameter_at_nozzle_id[0] > 0}; SEQ-ND-OK\n{endif}" },
+        });
+        CHECK(gcode.find("; SEQ-ND-OK") != std::string::npos);
+    }
+}

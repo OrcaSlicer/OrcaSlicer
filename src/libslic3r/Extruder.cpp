@@ -13,7 +13,16 @@ Extruder::Extruder(unsigned int id, GCodeConfig *config, bool share_extruder) :
 {
     reset();
 
+    m_config_index = int(m_id);
     // cache values that are going to be called often
+    m_e_per_mm3 = this->filament_flow_ratio();
+    m_e_per_mm3 /= this->filament_crossection();
+}
+
+void Extruder::set_config_index(int idx)
+{
+    m_config_index = idx < 0 ? int(m_id) : idx;
+    // keep the cached flow term reading the same column as the getters
     m_e_per_mm3 = this->filament_flow_ratio();
     m_e_per_mm3 /= this->filament_crossection();
 }
@@ -162,28 +171,35 @@ double Extruder::filament_cost() const
 
 double Extruder::filament_flow_ratio() const
 {
-    return m_config->filament_flow_ratio.get_at(m_id);
+    return m_config->filament_flow_ratio.get_at(m_config_index);
 }
 
 // Return a "retract_before_wipe" percentage as a factor clamped to <0, 1>
 double Extruder::retract_before_wipe() const
 {
-    return std::min(1., std::max(0., m_config->retract_before_wipe.get_at(m_id) * 0.01));
+    return std::clamp(m_config->retract_before_wipe.get_at(m_config_index) * 0.01, 0., 1.);
+}
+
+// Orca:
+// Return a "retract_after_wipe" percentage as a factor clamped to <0, 1>
+double Extruder::retract_after_wipe() const
+{
+    return std::min(std::clamp(m_config->retract_after_wipe.get_at(m_config_index) * 0.01, 0., 1.), 1. - retract_before_wipe());
 }
 
 double Extruder::retraction_length() const
 {
-    return m_config->retraction_length.get_at(m_id);
+    return m_config->retraction_length.get_at(m_config_index);
 }
 
 double Extruder::retract_lift() const
 {
-    return m_config->z_hop.get_at(m_id);
+    return m_config->z_hop.get_at(m_config_index);
 }
 
 int Extruder::retract_speed() const
 {
-    return int(floor(m_config->retraction_speed.get_at(m_id)+0.5));
+    return int(floor(m_config->retraction_speed.get_at(m_config_index)+0.5));
 }
 
 bool Extruder::use_firmware_retraction() const
@@ -193,13 +209,13 @@ bool Extruder::use_firmware_retraction() const
 
 int Extruder::deretract_speed() const
 {
-    int speed = int(floor(m_config->deretraction_speed.get_at(m_id)+0.5));
+    int speed = int(floor(m_config->deretraction_speed.get_at(m_config_index)+0.5));
     return (speed > 0) ? speed : this->retract_speed();
 }
 
 double Extruder::retract_restart_extra() const
 {
-    return m_config->retract_restart_extra.get_at(m_id);
+    return m_config->retract_restart_extra.get_at(m_config_index);
 }
 
 double Extruder::retract_length_toolchange() const
@@ -214,6 +230,8 @@ double Extruder::retract_restart_extra_toolchange() const
 
 double Extruder::travel_slope() const
 {
+    // Orca: deliberately keyed by the physical extruder, not the filament column — this read
+    // predates the per-variant merge and switching it would change existing multi-extruder output.
     return m_config->travel_slope.get_at(extruder_id()) * PI / 180;
 }
 

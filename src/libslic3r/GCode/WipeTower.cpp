@@ -3,6 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <vector>
+#include <array>
 #include <numeric>
 #include <sstream>
 #include <iomanip>
@@ -1493,6 +1494,21 @@ WipeTower::WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origi
     m_enable_tower_interface_cooldown_during_tower(config.enable_tower_interface_cooldown_during_tower.value)
 {
     m_flat_ironing = (m_flat_ironing && m_use_gap_wall);
+
+    // Prime-tower heating during wipe. m_is_multiple_nozzle mirrors the gate used in ToolOrdering/GCode
+    // (std::any_of extruder_max_nozzle_count > 1); it is false for every current printer, so the
+    // heating-during-wipe logic in toolchange_wipe_new is inert.
+    m_hotend_heating_rate    = config.hotend_heating_rate.values;
+    m_physical_extruder_map  = config.physical_extruder_map.values;
+    m_is_multiple_nozzle     = std::any_of(config.extruder_max_nozzle_count.values.begin(),
+                                           config.extruder_max_nozzle_count.values.end(),
+                                           [](int v) { return v > 1; });
+
+    // Per-extruder printable-height clamp. Empty for single-extruder printers
+    // (extruder_printable_height = []), so is_valid_last_layer is inert there.
+    m_printable_height = config.extruder_printable_height.values;
+    m_last_layer_id.assign(config.nozzle_diameter.size(), -1);
+
     // Read absolute value of first layer speed, if given as percentage,
     // it is taken over following default. Speeds from config are not
     // easily accessible here.
@@ -1543,6 +1559,10 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
     //while (m_filpar.size() < idx+1)   // makes sure the required element is in the vector
     m_filpar.push_back(FilamentParameters());
 
+    // Orca: one row per filament, indexed by the raw filament id. Under a per-layer nozzle
+    // grouping the per-variant arrays may hold several columns per filament; the tower has no
+    // layer dimension here, so it keeps the filament's first column (tower x per-layer
+    // grouping is a documented follow-up).
     m_filpar[idx].material = config.filament_type.get_at(idx);
     m_filpar[idx].is_soluble = config.wipe_tower_filament == 0 ? config.filament_soluble.get_at(idx) : (idx != size_t(config.wipe_tower_filament - 1));
     // BBS
@@ -1558,8 +1578,12 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
     }
     m_filpar[idx].tower_interface_pre_extrusion_dist = config.filament_tower_interface_pre_extrusion_dist.get_at(idx);
     m_filpar[idx].tower_interface_pre_extrusion_length = config.filament_tower_interface_pre_extrusion_length.get_at(idx);
+    // PETG pre-extrusion offset reuses the tower-interface pre-extrusion distance. Only read by the
+    // has_filament_switcher-gated PETG branch in get_next_pos (inert fleet-wide).
+    m_filpar[idx].petg_pre_extrusion_offset_dist = config.filament_tower_interface_pre_extrusion_dist.get_at(idx);
     m_filpar[idx].tower_ironing_area = config.filament_tower_ironing_area.get_at(idx);
     m_filpar[idx].tower_interface_purge_length = config.filament_tower_interface_purge_volume.get_at(idx);
+    m_filpar[idx].filament_cooling_before_tower = config.filament_cooling_before_tower.get_at(idx);
 
     // If this is a single extruder MM printer, we will use all the SE-specific config values.
     // Otherwise, the defaults will be used to turn off the SE stuff.
@@ -1650,6 +1674,27 @@ Vec2f WipeTower::get_next_pos(const WipeTower::box_coordinates &cleaning_box, fl
         res = offset+cleaning_box.ld + pos_offset + Vec2f(0, y_offset);
         break;
     default: break;
+    }
+    // Shift the wipe start outward for a PETG pre-extrusion on filament-switcher devices, clamped to the
+    // shared printable bed. Gated on m_has_filament_switcher, which is false for the whole shipping fleet
+    // (no profile sets the key), so is_petg_pre_extrusion is always false and res is returned unchanged.
+    // The tower-interface contact branch is deliberately NOT applied here (enable_tower_interface_features
+    // DOES ship on H2C/X2D; applying it would change their g-code); is_contact_pre_extrusion is computed
+    // only as the guard that gives the contact path priority over PETG.
+    bool is_contact_pre_extrusion = interface_layer && m_enable_tower_interface_features;
+    bool is_petg_pre_extrusion    = !is_contact_pre_extrusion && is_petg_filament(m_current_tool) && m_has_filament_switcher;
+    if (is_petg_pre_extrusion) {
+        Vec2f stop_pos    = res;
+        float offset_dist = m_filpar[m_current_tool].petg_pre_extrusion_offset_dist;
+        auto  printer_bbx = unscaled(get_extents(m_shared_print_bed)); // BoundingBoxBase<Vec2d>
+        printer_bbx.translate((-m_wipe_tower_pos - m_rib_offset).cast<double>());
+        if (stop_pos.x() < m_wipe_tower_width / 2.f)
+            stop_pos = Vec2f(stop_pos.x() - offset_dist, stop_pos.y());
+        else
+            stop_pos = Vec2f(stop_pos.x() + offset_dist, stop_pos.y());
+        if (stop_pos.x() < printer_bbx.min[0]) stop_pos.x() = printer_bbx.min[0];
+        if (stop_pos.x() > printer_bbx.max[0]) stop_pos.x() = printer_bbx.max[0];
+        res = stop_pos;
     }
     return res;
 }
@@ -2645,6 +2690,11 @@ bool WipeTower::is_tpu_filament(int filament_id) const
     return m_filpar[filament_id].material == "TPU";
 }
 
+bool WipeTower::is_petg_filament(int filament_id) const
+{
+    return m_filpar[filament_id].material == "PETG";
+}
+
 // BBS: consider both soluable and support properties
 // Return index of first toolchange that switches to non-soluble and non-support extruder
 // ot -1 if there is no such toolchange.
@@ -2717,6 +2767,9 @@ void WipeTower::get_wall_skip_points(const WipeTowerInfo &layer)
         float                            spacing             = m_layer_info->extra_spacing;
         if (has_tpu_filament() && m_layer_info->extra_spacing < m_tpu_fixed_spacing) spacing = 1;
         float nozzle_change_depth = tool_change.nozzle_change_depth * spacing;
+        // Drop the nozzle-change depth on an extruder's final layer above its printable height
+        // (inert unless is_valid_last_layer clamps, i.e. multi-extruder near Z-max).
+        if (!is_valid_last_layer(old_filament, m_cur_layer_id, layer.z)) nozzle_change_depth = 0.f;
         //float                            nozzle_change_depth = tool_change.nozzle_change_depth * (has_tpu_filament() ? m_tpu_fixed_spacing : layer.extra_spacing);
         auto* block = get_block_by_category(m_filpar[new_filament].category, false);
         if (!block)
@@ -2760,7 +2813,10 @@ void WipeTower::get_wall_skip_points(const WipeTowerInfo &layer)
 WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool solid_toolchange,bool solid_nozzlechange)
 {
     m_nozzle_change_result.gcode.clear();
-    if (!m_filament_map.empty() && new_tool < m_filament_map.size() && m_filament_map[m_current_tool] != m_filament_map[new_tool]) {
+    // Skip the cross-extruder nozzle change (ramming) on an extruder's final layer above its printable
+    // height. is_valid_last_layer is inert unless multi-extruder near Z-max.
+    if (!m_filament_map.empty() && new_tool < m_filament_map.size() && m_filament_map[m_current_tool] != m_filament_map[new_tool]
+        && is_valid_last_layer(m_current_tool, m_cur_layer_id, m_z_pos)) {
         m_nozzle_change_result = nozzle_change_new(m_current_tool, new_tool, solid_nozzlechange);
     }
 
@@ -3411,23 +3467,103 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
     x_to_wipe                = solid_tool_toolchange ? std::numeric_limits<float>::max(): x_to_wipe;
     float target_speed = is_first_layer() ? std::min(m_first_layer_speed * 60.f, 4800.f) : 4800.f;
     target_speed             = solid_tool_toolchange ? 20.f * 60.f : target_speed;
-    float       wipe_speed   = 0.33f * target_speed;
+    // Nominal wipe-speed schedule. The applied wipe_speed is nominal_speed * speed_factor; speed_factor
+    // stays 1.0 unless the H2C prime-tower heating-during-wipe model below slows the wipe so the hotend
+    // can reach temperature (nominal_speed == wipe_speed when speed_factor == 1, i.e. single-nozzle).
+    float       nominal_speed = 0.33f * target_speed;
 
     m_left_to_right = ((m_cur_layer_id + 3) % 4 >= 2);
 
     bool is_from_up = (m_cur_layer_id % 2 == 1);
 
+    // Prime-tower heating during wipe. Everything here is gated on m_is_multiple_nozzle (false for every
+    // current printer); the lambdas emit nothing until add_M104_by_requirement's gate opens, so the
+    // single-nozzle wipe is untouched.
+    // WipeSpeedMap mirrors the nominal schedule above and is read only by estimate_wipe_time. It is a
+    // std::array (stack, no per-call heap allocation); values depend on runtime target_speed so it
+    // cannot be static const.
+    const std::array<float, 5> WipeSpeedMap{0.33f * target_speed, 0.375f * target_speed, 0.458f * target_speed,
+                                            0.875f * target_speed, std::min(target_speed, 0.875f * target_speed + 50.f)};
+    auto estimate_wipe_time = [&cleaning_box, &x_to_wipe, &xr, &xl, &dy, &WipeSpeedMap, &solid_tool_toolchange]() -> float {
+        int   n = std::ceil(x_to_wipe / (xr - xl));
+        if (solid_tool_toolchange) n = (cleaning_box.lu[1] - cleaning_box.ld[1]) / dy;
+        float one_line_len = xr - xl;
+        float time         = std::numeric_limits<float>::max();
+        if (n <= 1)
+            time = one_line_len / WipeSpeedMap[0];
+        else if (n <= 2)
+            time = one_line_len / WipeSpeedMap[0] + one_line_len / WipeSpeedMap[1];
+        else if (n <= 3)
+            time = one_line_len / WipeSpeedMap[0] + one_line_len / WipeSpeedMap[1] + one_line_len / WipeSpeedMap[2];
+        else if (n <= 4)
+            time = one_line_len / WipeSpeedMap[0] + one_line_len / WipeSpeedMap[1] + one_line_len / WipeSpeedMap[2] + one_line_len / WipeSpeedMap[3];
+        else {
+            time = one_line_len / WipeSpeedMap[0] + one_line_len / WipeSpeedMap[1] + one_line_len / WipeSpeedMap[2] + one_line_len / WipeSpeedMap[3];
+            time += (n - 4) * one_line_len / WipeSpeedMap[4];
+        }
+        return time * 60.f;
+    };
+    // Emit the arriving-hotend pre-heat inside the M632/M633 nozzle-change barrier. `M632 S<tool>[ H<nozzle>]
+    // M N` opens the barrier (M = firmware nozzle-change flag, N = slicer generated), the M104 sets the
+    // arriving hotend temp, and `M633` closes it. H2C's grouping is static (no dynamic nozzle map), so the
+    // H<nozzle> field is omitted (a dynamic nozzle map would supply a real nozzle id, a static map -1 => no
+    // H). The counterproductive fan-on (M106 S255) used for departing-tool cooldown is intentionally
+    // omitted, since this is a pre-HEAT of the arriving tool. The whole helper is only ever called from
+    // add_M104_by_requirement, which is gated on m_is_multiple_nozzle (extruder_max_nozzle_count>1) => H2C
+    // only; every other printer's wipe tower is untouched. The M632 M-flag is itself a firmware barrier, so
+    // a preceding M400 wait is subsumed.
+    auto format_line_M104 = [this](int target_temp, int target_extruder = -1, bool wait_for_moves = true, const std::string &comment = "") {
+        std::string buffer;
+        buffer += "M632 S" + std::to_string(m_current_tool) + " M N\n";
+        buffer += "M104";
+        if (target_extruder != -1 && target_extruder < (int) m_physical_extruder_map.size())
+            buffer += (" T" + std::to_string(m_physical_extruder_map[target_extruder]));
+        buffer += " S" + std::to_string(target_temp) + " N0"; // N0 means the gcode is generated by the slicer
+        if (!comment.empty()) buffer += " ;" + comment;
+        buffer += '\n';
+        buffer += "M633\n";
+        (void) wait_for_moves; // the M632 M-flag barrier replaces the former M400 wait
+        return buffer;
+    };
+    // Suppress the pre-heat M104 on the first layer and on solid (contact) toolchanges (should_heating).
+    // m_is_multiple_nozzle folds in the H2C gate so single-nozzle output is untouched.
+    // Orca: the arriving extruder id is resolved as m_filament_map[tool]-1 (layer-static) because Orca's
+    // wipe tower is extruder-level rather than tracking a per-layer nozzle map.
+    bool should_heating = m_is_multiple_nozzle && m_filpar[m_current_tool].filament_cooling_before_tower > EPSILON &&
+                          !solid_tool_toolchange && !is_first_layer();
+    auto add_M104_by_requirement = [&writer, &format_line_M104, &should_heating, this]() {
+        if (m_filpar[m_current_tool].filament_cooling_before_tower < EPSILON) return;
+        if (!should_heating) return;
+        float target_temp = is_first_layer() ? m_filpar[m_current_tool].nozzle_temperature_initial_layer : m_filpar[m_current_tool].nozzle_temperature;
+        writer.append(format_line_M104(target_temp, m_filament_map[m_current_tool] - 1));
+    };
+    float speed_factor = 1.f;
+    if (should_heating) {
+        // The heating-slowdown scaling is disabled — no additional heating time is required, so
+        // speed_factor stays 1.0. The structure and estimate_wipe_time/WipeSpeedMap are retained for
+        // future H2C tuning; the divide-by-zero/bounds guard is preserved in the commented body below.
+        //   int extruder_id = m_filament_map[m_current_tool] - 1;
+        //   if (extruder_id >= 0 && extruder_id < (int) m_hotend_heating_rate.size() && m_hotend_heating_rate[extruder_id] > 0.) {
+        //       float estimate_time = estimate_wipe_time();
+        //       float heat_time     = m_filpar[m_current_tool].filament_cooling_before_tower / m_hotend_heating_rate[extruder_id];
+        //       if (estimate_time < heat_time) speed_factor = estimate_time / heat_time;
+        //   }
+        (void) estimate_wipe_time; // retain scaffolding above without an unused-lambda warning
+    }
+    float wipe_speed = nominal_speed * speed_factor;
+
     // now the wiping itself:
     for (int i = 0; true; ++i) {
         if (i != 0) {
-            if (wipe_speed < 0.34f * target_speed)
-                wipe_speed = 0.375f * target_speed;
-            else if (wipe_speed < 0.377 * target_speed)
-                wipe_speed = 0.458f * target_speed;
-            else if (wipe_speed < 0.46f * target_speed)
-                wipe_speed = 0.875f * target_speed;
+            if (nominal_speed < 0.34f * target_speed)
+                nominal_speed = 0.375f * target_speed;
+            else if (nominal_speed < 0.377 * target_speed)
+                nominal_speed = 0.458f * target_speed;
+            else if (nominal_speed < 0.46f * target_speed)
+                nominal_speed = 0.875f * target_speed;
             else
-                wipe_speed = std::min(target_speed, wipe_speed + 50.f);
+                nominal_speed = std::min(target_speed, nominal_speed + 50.f);
+            wipe_speed = nominal_speed * speed_factor;
         }
 
         bool need_change_flow = need_thick_bridge_flow(writer.y());
@@ -3453,6 +3589,7 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
                 } else
                     writer.travel(writer.x() + 1.5 * ironing_length, writer.y(), 240.);
                 writer.retract(-retract_length, retract_speed);
+                add_M104_by_requirement(); // Pre-heat the arriving hotend during the wipe
                 writer.extrude(xr + wipe_tower_wall_infill_overlap * m_perimeter_width, writer.y(), wipe_speed);
             } else {
                 float dx = xl - wipe_tower_wall_infill_overlap * m_perimeter_width - writer.pos().x();
@@ -3468,9 +3605,11 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
                 }else
                     writer.travel(writer.x() - 1.5 * ironing_length, writer.y(), 240.);
                 writer.retract(-retract_length, retract_speed);
+                add_M104_by_requirement(); // Pre-heat the arriving hotend during the wipe
                 writer.extrude(xl - wipe_tower_wall_infill_overlap * m_perimeter_width, writer.y(), wipe_speed);
             }
         } else {
+            if (i == 0) add_M104_by_requirement(); // Pre-heat the arriving hotend during the wipe
             if (m_left_to_right)
                 writer.extrude(xr + wipe_tower_wall_infill_overlap * m_perimeter_width, writer.y(), wipe_speed);
             else
@@ -3569,6 +3708,47 @@ bool WipeTower::is_in_same_extruder(int filament_id_1, int filament_id_2)
         return true;
 
     return m_filament_map[filament_id_1] == m_filament_map[filament_id_2];
+}
+
+// Per-extruder printable-height clamp: is an extruder still allowed to print on this wipe-tower layer,
+// or is it its final layer above the extruder's printable height?
+// Orca: the arriving extruder id is resolved as m_filament_map[tool]-1 (1-based map, layer-static),
+// because Orca's wipe tower is extruder-level rather than tracking a per-layer nozzle map (the same
+// idiom the pre-heat path uses in toolchange_wipe_new). Gated on m_is_multi_extruder so that
+// single-extruder printers (including ones whose extruder_printable_height defaults to {0}) always
+// return true and leave wipe-tower g-code unchanged.
+bool WipeTower::is_valid_last_layer(int tool, int layer_id, double layer_z) const
+{
+    if (!m_is_multi_extruder)
+        return true;
+    int extruder_id = (tool >= 0 && tool < (int) m_filament_map.size()) ? m_filament_map[tool] - 1 : -1;
+    if (extruder_id < 0 || extruder_id >= (int) m_printable_height.size() || extruder_id >= (int) m_last_layer_id.size())
+        return true;
+    if (m_last_layer_id[extruder_id] == layer_id && layer_z > m_printable_height[extruder_id])
+        return false;
+    return true;
+}
+
+// Records, per extruder, the last wipe-tower layer index that uses it, so is_valid_last_layer can
+// recognise the extruder's final layer. Inert for single-extruder printers (early return);
+// bounds-checked because m_filament_map may be empty/short.
+void WipeTower::set_nozzle_last_layer_id()
+{
+    if (!m_is_multi_extruder)
+        return;
+    for (int idx = 0; idx < (int) m_plan.size(); ++idx) {
+        const auto &info = m_plan[idx];
+        for (const auto &tc : info.tool_changes) {
+            int old_tool = (int) tc.old_tool;
+            int new_tool = (int) tc.new_tool;
+            int old_ext  = (old_tool >= 0 && old_tool < (int) m_filament_map.size()) ? m_filament_map[old_tool] - 1 : -1;
+            int new_ext  = (new_tool >= 0 && new_tool < (int) m_filament_map.size()) ? m_filament_map[new_tool] - 1 : -1;
+            if (old_ext >= 0 && old_ext < (int) m_last_layer_id.size())
+                m_last_layer_id[old_ext] = idx;
+            if (new_ext >= 0 && new_ext < (int) m_last_layer_id.size())
+                m_last_layer_id[new_ext] = idx;
+        }
+    }
 }
 
 void WipeTower::reset_block_status()
@@ -3797,6 +3977,7 @@ void WipeTower::plan_tower_new()
     }
 
     update_all_layer_depth(max_depth);
+    set_nozzle_last_layer_id(); // record per-extruder last layer for is_valid_last_layer
     float diagonal = sqrt(m_wipe_tower_depth * m_wipe_tower_depth + m_wipe_tower_width * m_wipe_tower_width);
     m_rib_length    = std::max({m_rib_length, diagonal});
     m_rib_length += m_extra_rib_length;
@@ -3916,9 +4097,12 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
             int candidate_id = -1;
             for (size_t idx = 0; idx < layer.tool_changes.size(); ++idx) {
                 if (idx == 0) {
-                    if (layer.tool_changes[idx].old_tool == wall_filament_id)
+                    // An extruder's last-layer filament above its printable height cannot supply the
+                    // outer wall. is_valid_last_layer is inert unless it clamps.
+                    if (layer.tool_changes[idx].old_tool == wall_filament_id && is_valid_last_layer(layer.tool_changes[idx].old_tool, m_cur_layer_id, layer.z))
                         return wall_filament_id;
-                    else if (m_filpar[layer.tool_changes[idx].old_tool].category == m_filpar[wall_filament_id].category) {
+                    else if (m_filpar[layer.tool_changes[idx].old_tool].category == m_filpar[wall_filament_id].category &&
+                             is_valid_last_layer(layer.tool_changes[idx].old_tool, m_cur_layer_id, layer.z)) {
                         candidate_id = layer.tool_changes[idx].old_tool;
                     }
                 }
@@ -4016,6 +4200,10 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
                 if (finish_layer_filament == -1) {
                     finish_layer_filament = wall_idx;
                 }
+
+                // Cancel a block on the last layer above its extruder's printable height.
+                // is_valid_last_layer is inert unless multi-extruder near Z-max.
+                if (!is_valid_last_layer(finish_layer_filament, m_cur_layer_id, layer.z)) continue;
 
                 ToolChangeResult finish_block_tcr;
                 if (interface_solid || (block.solid_infill[m_cur_layer_id] && block.filament_adhesiveness_category != m_filament_categories[finish_layer_filament])) {
