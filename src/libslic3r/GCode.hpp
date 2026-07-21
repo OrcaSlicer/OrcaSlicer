@@ -461,8 +461,11 @@ private:
     {
         ObjectByExtruder() : support(nullptr), support_extrusion_role(erNone) {}
         const ExtrusionEntityCollection  *support;
-        // erSupportMaterial / erSupportMaterialInterface / erSupportTransition or erMixed.
+        // erSupportMaterial / erSupportMaterialInterface / erSupportTransition, erIroning or erMixed.
         ExtrusionRole                     support_extrusion_role;
+        // Whether this group must additionally extrude the support ironing pass (erIroning). Used when
+        // support ironing shares this group's extruder; a dedicated erIroning group prints it via its role.
+        bool                              prints_ironing = false;
 
         struct Island
         {

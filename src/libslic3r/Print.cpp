@@ -535,6 +535,12 @@ std::vector<unsigned int> Print::support_material_extruders() const
             	unsigned int i = (unsigned int)object->config().support_interface_filament - 1;
                 extruders.emplace_back((i >= num_extruders) ? 0 : i);
             }
+            // Support ironing may print with its own filament; "Default" (0) follows the interface filament,
+            // which is already accounted for above.
+            if (object->config().support_ironing && object->config().support_ironing_filament > 0) {
+                unsigned int i = (unsigned int)object->config().support_ironing_filament - 1;
+                extruders.emplace_back((i >= num_extruders) ? 0 : i);
+            }
         }
     }
 
@@ -1273,6 +1279,8 @@ StringObjectException Print::check_multi_filament_valid(const Print& print)
                 assert(print_object->config().support_interface_filament >= 0);
                 if (print_object->config().support_interface_filament >= 1 && (unsigned int)print_object->config().support_interface_filament < num_extruders + 1)
                     obj_used_extruder_ids.insert((unsigned int) print_object->config().support_interface_filament - 1);
+                if (print_object->config().support_ironing && print_object->config().support_ironing_filament >= 1 && (unsigned int)print_object->config().support_ironing_filament < num_extruders + 1)
+                    obj_used_extruder_ids.insert((unsigned int) print_object->config().support_ironing_filament - 1);
             }
             std::vector<std::string> filament_types;
             std::vector<int> nozzle_temperatures;

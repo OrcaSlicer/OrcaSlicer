@@ -881,14 +881,18 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
         ExtrusionRole role          = support_layer->support_fills.role();
         bool          has_support   = false;
         bool          has_interface = false;
+        bool          has_ironing   = false;
         for (const ExtrusionEntity *ee : support_layer->support_fills.entities) {
             ExtrusionRole er = ee->role();
             if (er == erSupportMaterial || er == erSupportTransition) has_support = true;
             if (er == erSupportMaterialInterface) has_interface = true;
-            if (has_support && has_interface) break;
+            if (er == erIroning) has_ironing = true;
+            if (has_support && has_interface && has_ironing) break;
         }
         unsigned int extruder_support   = object.config().support_filament.value;
         unsigned int extruder_interface = object.config().support_interface_filament.value;
+        // Support ironing extruder; "Default" (0) follows the interface filament.
+        unsigned int extruder_ironing   = object.config().support_ironing_filament.value;
         if (has_support) {
             if (extruder_support > 0 || !has_interface || extruder_interface == 0 || layer_tools.has_object)
                 layer_tools.extruders.push_back(extruder_support);
@@ -918,6 +922,7 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             }
         }
         if (has_interface) layer_tools.extruders.push_back(extruder_interface);
+        if (has_ironing) layer_tools.extruders.push_back(extruder_ironing > 0 ? extruder_ironing : extruder_interface);
         if (has_support || has_interface) {
             layer_tools.has_support = true;
             layer_tools.wiping_extrusions().is_support_overriddable_and_mark(role, object);
