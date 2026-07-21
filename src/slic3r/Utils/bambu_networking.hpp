@@ -435,7 +435,6 @@ static const NetworkLibraryVersion AVAILABLE_NETWORK_VERSIONS[] = {
      "An older plug-in series. Features that need newer plug-in support, such as print-failure "
      "snapshots in the device error dialog, are unavailable.", NetworkAbi::V0203},
     {BAMBU_NETWORK_AGENT_VERSION_LEGACY, BAMBU_NETWORK_AGENT_VERSION_LEGACY " (legacy)", nullptr, false, nullptr, NetworkAbi::Legacy},
->>>>>>> 3e634b2dd (Enable printing to Bambu cloud printers (Windows))
 };
 
 static const size_t AVAILABLE_NETWORK_VERSIONS_COUNT = sizeof(AVAILABLE_NETWORK_VERSIONS) / sizeof(AVAILABLE_NETWORK_VERSIONS[0]);
