@@ -3246,10 +3246,27 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
         BoundingBoxf bbox;
         auto pts = std::make_unique<ConfigOptionPoints>();
-        if (print.calib_mode() == CalibMode::Calib_PA_Line || print.calib_mode() == CalibMode::Calib_PA_Pattern) {
+        if (print.calib_mode() == CalibMode::Calib_PA_Pattern) {
+            //PA_Pattern can have any size or arrangement - not dependent on 3mf model size
             bbox = bbox_bed;
             bbox.offset(-25.0);
             // add 4 corner points of bbox into pts
+            pts->values.reserve(4);
+            pts->values.emplace_back(bbox.min.x(), bbox.min.y());
+            pts->values.emplace_back(bbox.max.x(), bbox.min.y());
+            pts->values.emplace_back(bbox.max.x(), bbox.max.y());
+            pts->values.emplace_back(bbox.min.x(), bbox.max.y());
+
+        } else if (print.calib_mode() == CalibMode::Calib_PA_Line) {
+            // Derive X bounds from the actual calibration geometry.
+            CalibPressureAdvanceLine temp_pa_line_forsize(this);
+            BoundingBoxf pattern_extents = temp_pa_line_forsize.print_extents(bbox_bed);
+
+            bbox = bbox_bed;
+            bbox.offset(-25.0);
+            bbox.min.x() = std::max(pattern_extents.min.x(), bbox.min.x());
+            bbox.max.x() = std::min(pattern_extents.max.x(), bbox.max.x());
+            
             pts->values.reserve(4);
             pts->values.emplace_back(bbox.min.x(), bbox.min.y());
             pts->values.emplace_back(bbox.max.x(), bbox.min.y());
@@ -7532,7 +7549,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     // If adaptive PA is enabled, by default evaluate PA on all extrusion moves
     bool is_pa_calib = m_curr_print->calib_mode() == CalibMode::Calib_PA_Line ||
                        m_curr_print->calib_mode() == CalibMode::Calib_PA_Pattern ||
-                       m_curr_print->calib_mode() == CalibMode::Calib_PA_Tower; 
+                       m_curr_print->calib_mode() == CalibMode::Calib_PA_Tower;
     bool evaluate_adaptive_pa = false;
     bool role_change = (m_last_extrusion_role != path.role());
     if (!is_pa_calib && FILAMENT_CONFIG(adaptive_pressure_advance) && FILAMENT_CONFIG(enable_pressure_advance)) {
@@ -9087,7 +9104,7 @@ std::string GCode::set_object_info(Print *print) {
     std::ostringstream gcode;
     size_t object_id = 0;
     // Orca: check if we are in pa calib mode
-    if (print->calib_mode() == CalibMode::Calib_PA_Line || print->calib_mode() == CalibMode::Calib_PA_Pattern) {
+    if (print->calib_mode() == CalibMode::Calib_PA_Pattern) {
         BoundingBoxf bbox_bed(print->config().printable_area.values);
         bbox_bed.offset(-25.0);
         Polygon polygon_bed;
@@ -9098,6 +9115,8 @@ std::string GCode::set_object_info(Print *print) {
         gcode << "EXCLUDE_OBJECT_DEFINE NAME="
               << "Orca-PA-Calibration-Test"
               << " CENTER=" << 0 << "," << 0 << " POLYGON=" << polygon_to_string(polygon_bed, print, true) << "\n";
+    } else if (print->calib_mode() == CalibMode::Calib_PA_Line) {
+        // PA_Line has only one object, no EXCLUDE_OBJECT_DEFINE needed
     } else {
         size_t unique_id = 0;
         for (PrintObject* object : print->objects()) {

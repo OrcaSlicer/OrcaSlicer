@@ -2327,7 +2327,7 @@ void SyncAmsInfoDialog::update_show_status()
          wxString error_message;
         if (!is_nozzle_type_match(*obj_->GetExtderSystem(), error_message)) {
             std::vector<wxString> params{error_message};
-            params.emplace_back(_L("Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."));
+            params.emplace_back(_L("Tips: If you changed your nozzle of your printer lately, please go to 'Device -> Printer parts' to change your nozzle setting."));
             show_status(PrintDialogStatus::PrintStatusNozzleMatchInvalid, params);
             return;
         }
