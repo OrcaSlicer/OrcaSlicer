@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include "ActionRegistry.hpp"
 #include "ImGuiWrapper.hpp"
 #include "ConfigWizard.hpp"
 #include "OpenGLManager.hpp"
@@ -85,6 +86,9 @@ class HMSQuery;
 class ModelMallDialog;
 class PingCodeBindDialog;
 class NetworkErrorDialog;
+class PluginsDialog;
+class SpeedDialWebDialog;
+class TerminalDialog;
 
 
 enum FileType
@@ -550,6 +554,11 @@ public:
     void            update_single_bundle(wxCommandEvent& evt);
 
     PresetBundleDialog* m_preset_bundle_dlg{nullptr};
+    PluginsDialog* m_plugins_dlg{nullptr};
+    SpeedDialWebDialog* m_speed_dial_dialog{nullptr};
+    TerminalDialog* m_terminal_dlg{nullptr};
+    ActionRegistry  m_action_registry;
+
 
     void            start_http_server(const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            start_http_server(int port, const std::string& provider = ORCA_CLOUD_PROVIDER);
@@ -617,6 +626,10 @@ public:
 
     void            open_preferences(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     void            open_presetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    void            open_plugins_dialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    void            open_terminal_dialog();
+    void            open_speed_dial();
+    ActionRegistry& action_registry() { return m_action_registry; }
     void            open_exportpresetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     virtual bool OnExceptionInMainLoop() override;
     // Calls wxLaunchDefaultBrowser if user confirms in dialog.
@@ -750,7 +763,12 @@ public:
     void            check_config_updates_from_updater() { check_updates(false); }
 
     void            show_network_plugin_download_dialog(bool is_update = false);
+    // One-time normalization of an older full-version identity (config 02.08.01.53 + file
+    // ..._02.08.01.53.dylib) to the AA.BB.CC series form, with no re-download. Runs at startup
+    // before the plug-in is loaded.
+    void            migrate_network_plugin_config();
     bool            hot_reload_network_plugin();
+    bool            install_network_plugin_from_ota(bool& had_cache);
     std::string     get_latest_network_version() const;
     bool            has_network_update_available() const;
     // Orca: return the client version to report to Bambu servers. Pinned to
@@ -765,6 +783,9 @@ private:
     bool            on_init_network(bool try_backup = false);
     void            init_networking_callbacks();
     void            init_app_config();
+    // GUI-side subscriptions to plugin loader events (dialog refresh,
+    // network-agent registration, plate revalidation).
+    void            init_plugin_gui_wiring();
     void            remove_old_networking_plugins();
     void            drain_pending_events(int timeout_ms);
     bool            wait_for_network_idle(int timeout_ms);

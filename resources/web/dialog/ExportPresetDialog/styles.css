@@ -1,23 +1,11 @@
 :root {
-    --cbr-border-color: #d2d2d7;
-    --cbr-header-bg: #f6f7f9;
-    --cbr-panel-bg: #ffffff;
-    --cbr-input-bg: #ffffff;
-    --cbr-input-focus-bg: #f2f8f7;
-    --cbr-label-color: #7b7b84;
-    --cbr-icon-color: #75757f;
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --cbr-border-color: #4a4a51;
-        --cbr-header-bg: #2f2f34;
-        --cbr-panel-bg: #2d2d31;
-        --cbr-input-bg: #2d2d31;
-        --cbr-input-focus-bg: #3b3b41;
-        --cbr-label-color: #b9b9bc;
-        --cbr-icon-color: #b9b9bc;
-    }
+    --cbr-border-color: var(--border);
+    --cbr-header-bg: var(--panel);
+    --cbr-panel-bg: var(--bg);
+    --cbr-input-bg: var(--bg);
+    --cbr-input-focus-bg: var(--row-hover);
+    --cbr-label-color: var(--muted);
+    --cbr-icon-color: var(--muted);
 }
 
 .cbr-browser-container {

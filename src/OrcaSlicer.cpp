@@ -51,7 +51,6 @@ using namespace nlohmann;
 #include "libslic3r/Config.hpp"
 #include "libslic3r/Geometry.hpp"
 #include "libslic3r/GCode.hpp"
-#include "libslic3r/GCode/PostProcessor.hpp"
 #include "libslic3r/Model.hpp"
 #include "libslic3r/ModelArrange.hpp"
 #include "libslic3r/Platform.hpp"
@@ -1325,6 +1324,14 @@ int CLI::run(int argc, char **argv)
         BOOST_LOG_TRIVIAL(warning) << "failed to create per-user temp dir " << temp_path << ": " << ex.what();
     }
     set_temporary_dir(temp_path);
+
+    // The Filament Track Switch flags are live-device state with no meaning in headless slicing;
+    // default both off unless explicitly provided on the command line, so an old 3MF that had
+    // them enabled still slices without the switch behavior.
+    if (!m_extra_config.has("has_filament_switcher"))
+        m_extra_config.set_key_value("has_filament_switcher", new ConfigOptionBool(false));
+    if (!m_extra_config.has("enable_filament_dynamic_map"))
+        m_extra_config.set_key_value("enable_filament_dynamic_map", new ConfigOptionBool(false));
 
     m_extra_config.apply(m_config, true);
     m_extra_config.normalize_fdm();
@@ -5939,6 +5946,72 @@ int CLI::run(int argc, char **argv)
                                     else
                                         filament_maps = part_plate->get_real_filament_maps(m_print_config);
 
+                                    // Multi-nozzle printers need the per-filament volume assignment as a grouping
+                                    // input in the manual modes: synthesize it from the per-extruder flow types when
+                                    // the caller did not provide one (an extruder whose nozzle stats span several
+                                    // volume types keeps the per-filament choice), and require explicit maps in
+                                    // nozzle-manual mode.
+                                    auto max_nozzle_counts_opt = m_print_config.option<ConfigOptionIntsNullable>("extruder_max_nozzle_count");
+                                    // Skip nil entries: a nullable-int nil is INT_MAX (> 1) and would otherwise falsely pass the gate.
+                                    bool support_multi_nozzle =
+                                        max_nozzle_counts_opt &&
+                                        std::any_of(max_nozzle_counts_opt->values.begin(), max_nozzle_counts_opt->values.end(),
+                                                    [](int v) { return v > 1 && v != ConfigOptionIntsNullable::nil_value(); });
+                                    if (support_multi_nozzle && (mode == fmmManual || mode == fmmNozzleManual) && (plate_to_slice != 0)) {
+                                        // Orca: the grouping result is reconstructed purely from the passed maps in
+                                        // nozzle-manual mode, so all of them must be present (there are no separate
+                                        // per-nozzle CLI parameters to rebuild them from).
+                                        if (mode == FilamentMapMode::fmmNozzleManual &&
+                                            (!m_extra_config.has("filament_volume_map") || !m_extra_config.has("filament_nozzle_map") ||
+                                             !m_extra_config.has("filament_map"))) {
+                                            BOOST_LOG_TRIVIAL(error)
+                                                << boost::format("%1%, can not find filament_volume_map/filament_nozzle_map/filament_map under Nozzle Manual mode") % __LINE__;
+                                            record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, index + 1, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                                            flush_and_exit(CLI_INVALID_PARAMS);
+                                        }
+
+                                        if (mode == fmmManual) {
+                                            // Build the volume map when absent: filaments on a single-volume extruder
+                                            // print with that extruder's volume; a mixed-volume extruder keeps the
+                                            // per-filament choice (default Standard).
+                                            std::vector<NozzleVolumeType> using_nozzle_volume_type = new_nozzle_volume_type;
+                                            using_nozzle_volume_type.resize(new_extruder_count, nvtStandard);
+                                            if (auto extruder_nozzle_stats_opt = m_print_config.option<ConfigOptionStrings>("extruder_nozzle_stats")) {
+                                                auto nozzle_stats = get_extruder_nozzle_stats(extruder_nozzle_stats_opt->values);
+                                                for (int e_index = 0; e_index < new_extruder_count && e_index < (int) nozzle_stats.size(); e_index++) {
+                                                    if (nozzle_stats[e_index].size() > 1) {
+                                                        using_nozzle_volume_type[e_index] = nvtHybrid;
+                                                        BOOST_LOG_TRIVIAL(info) << boost::format("%1% : extruder %2%, set nozzle_volume_type to hybrid ") % __LINE__ % (e_index + 1);
+                                                    }
+                                                }
+                                            }
+                                            std::vector<int> &manual_volume_maps = m_extra_config.option<ConfigOptionInts>("filament_volume_map", true)->values;
+                                            // default to standard flow
+                                            manual_volume_maps.resize(filament_count, (int) (nvtStandard));
+                                            for (int f_index = 0; f_index < filament_count && f_index < (int) filament_maps.size(); f_index++) {
+                                                int f_extruder_index = filament_maps[f_index] - 1;
+                                                if (f_extruder_index >= 0 && f_extruder_index < new_extruder_count &&
+                                                    using_nozzle_volume_type[f_extruder_index] != nvtHybrid) {
+                                                    manual_volume_maps[f_index] = int(using_nozzle_volume_type[f_extruder_index]);
+                                                    BOOST_LOG_TRIVIAL(info) << boost::format("%1% : filament %2% extruder %3%, set filament_volume_map to %4% ") % __LINE__ % (f_index + 1) % (f_extruder_index + 1) % manual_volume_maps[f_index];
+                                                }
+                                            }
+                                        }
+
+                                        if (m_extra_config.has("filament_volume_map")) {
+                                            part_plate->set_filament_volume_maps(m_extra_config.option<ConfigOptionInts>("filament_volume_map")->values);
+                                        }
+                                        if (m_extra_config.has("filament_nozzle_map")) {
+                                            part_plate->set_filament_nozzle_maps(m_extra_config.option<ConfigOptionInts>("filament_nozzle_map")->values);
+                                        }
+                                    }
+                                    else if (!support_multi_nozzle && (mode == fmmNozzleManual)) {
+                                        BOOST_LOG_TRIVIAL(error)
+                                            << boost::format("%1%, Nozzle Manual mode not supported for %2%") % __LINE__ % new_printer_name;
+                                        record_exit_reson(outfile_dir, CLI_INVALID_PARAMS, index + 1, cli_errors[CLI_INVALID_PARAMS], sliced_info);
+                                        flush_and_exit(CLI_INVALID_PARAMS);
+                                    }
+
                                     for (int index = 0; index < filament_maps.size(); index++)
                                     {
                                         int filament_extruder = filament_maps[index];
@@ -6177,6 +6250,22 @@ int CLI::run(int argc, char **argv)
                                     BOOST_LOG_TRIVIAL(info) << "print::process: first time_using_cache is " << time_using_cache << " secs.";
                                 }
                                 if (printer_technology == ptFFF) {
+                                    // Read the engine's final grouping back onto the plate so an exported
+                                    // project (--export-3mf / gcode.3mf) carries the concrete maps in its
+                                    // plate settings, matching what a GUI slice persists.
+                                    // Orca: deliberately gated to multi-extruder printers so single-extruder
+                                    // exports keep their plate settings unchanged.
+                                    if (new_extruder_count > 1) {
+                                        FilamentMapMode current_map_mode = print_fff->config().filament_map_mode.value;
+                                        if (is_auto_filament_map_mode(current_map_mode)) {
+                                            part_plate->set_filament_maps(print_fff->get_filament_maps());
+                                            part_plate->set_filament_volume_maps(print_fff->get_filament_volume_maps());
+                                        }
+                                        if (current_map_mode != FilamentMapMode::fmmNozzleManual) {
+                                            part_plate->set_filament_nozzle_maps(print_fff->get_filament_nozzle_maps());
+                                        }
+                                    }
+
                                     std::string conflict_result = print_fff->get_conflict_string();
                                     if (!conflict_result.empty()) {
                                        BOOST_LOG_TRIVIAL(error) << "plate "<< index+1<< ": found slicing result conflict!"<< std::endl;

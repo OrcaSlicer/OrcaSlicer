@@ -45,6 +45,11 @@ uniform vec2 screen_size;
 #endif // ENABLE_ENVIRONMENT_MAP
 
 uniform PrintVolumeDetection print_volume;
+// BBS H2D/H2C per-extruder printable height (3DScene.cpp): .x = flag (>=1 active), .y/.z = the two
+// extruders' Z limits. Inert unless the CPU sets .x >= 1.0 (multi-extruder printers only), so the
+// shared object shader stays pixel-identical for single-extruder printers. See 3DScene.cpp.
+uniform vec3 extruder_printable_heights;
+const float ONE_OVER_EPSILON = 1e4;
 
 uniform float z_far;
 uniform float z_near;
@@ -205,6 +210,15 @@ void main()
 	}
 	color.rgb = (any(lessThan(pv_check_min, ZERO)) || any(greaterThan(pv_check_max, ZERO))) ? mix(color.rgb, ZERO, 0.3333) : color.rgb;
 
+    // BBS per-extruder printable-height shading (H2D/H2C). Gated on the flag so it is inert for
+    // single-extruder printers. Darkens the band between the two extruders' Z limits inside the bed
+    // rect (the zone only the taller extruder can reach). Math kept byte-identical to BBS gouraud.fs.
+    if (extruder_printable_heights.x >= 1.0) {
+        vec3 eph_check_min = (world_pos.xyz - vec3(print_volume.xy_data.x, print_volume.xy_data.y, extruder_printable_heights.y)) * ONE_OVER_EPSILON;
+        vec3 eph_check_max = (world_pos.xyz - vec3(print_volume.xy_data.z, print_volume.xy_data.w, extruder_printable_heights.z)) * ONE_OVER_EPSILON;
+        bool is_out_printable_height = (all(greaterThan(eph_check_min, vec3(1.0))) && all(lessThan(eph_check_max, vec3(1.0))));
+        color.rgb = is_out_printable_height ? mix(color.rgb, ZERO, 0.7) : color.rgb;
+    }
     float shade = shadow_shade();
 
     //BBS: add outline_color
@@ -218,6 +232,8 @@ void main()
            s = max(s, DetectSilho(fragCoord.xy + vec2(i, 0)));
            s = max(s, DetectSilho(fragCoord.xy + vec2(0, i)));
         }
+        if (s < 0.01)
+            discard;
         out_color = vec4(mix(color.rgb, getBackfaceColor(color.rgb), s), color.a);
     }
 #ifdef ENABLE_ENVIRONMENT_MAP

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Speed Dial</title>
+  <link rel="stylesheet" href="./style.css" />
+  <link rel="stylesheet" type="text/css" href="../css/theme.css" />
+  <script type="text/javascript" src="../../include/globalapi.js"></script>
+  <script src="../../js/fuzzy-search.js"></script>
+  <script src="./speeddial.js"></script>
+</head>
+<body onload="OnInit()">
+  <div class="launcher">
+    <div class="row-eyebrow fav-eyebrow" id="favEyebrow" hidden></div>
+    <div class="fav-bar" id="favBar"></div>
+    <div class="dial-head">
+      <div class="plugin-search">
+        <span class="plugin-search-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+        </span>
+        <input class="plugin-search-input" id="q" type="text" placeholder="Search actions" spellcheck="false" autocomplete="off" aria-label="Search actions" />
+        <button class="plugin-search-clear" id="clear" type="button" title="Clear" aria-label="Clear search" hidden>
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><line x1="5" y1="5" x2="11" y2="11"/><line x1="11" y1="5" x2="5" y2="11"/></svg>
+        </button>
+      </div>
+      <div class="dial-count" id="count" hidden></div>
+    </div>
+    <div class="dial-list" id="list"></div>
+  </div>
+</body>
+</html>

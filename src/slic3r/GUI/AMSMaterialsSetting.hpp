@@ -124,6 +124,9 @@ public:
     std::string    ams_setting_id;
 
     bool           m_is_third;
+    // Orca: view-only mode (laser/cut). When set, the dialog is inspectable but every
+    // editing control is disabled and no command is sent.
+    bool           m_view_only = false;
     wxString       m_brand_filament;
     wxString       m_brand_sn;
     wxString       m_brand_tmp;
@@ -183,6 +186,7 @@ protected:
 
     int m_pa_cali_select_id = 0;
 
+// Orca: native wxComboBox on macOS (the custom ComboBox mis-renders the filament dropdown there)
 #ifdef __APPLE__
     wxComboBox *m_comboBox_filament;
 #else

@@ -19,6 +19,7 @@
 #include "I18N.hpp"
 //#include "ConfigWizard.hpp"
 #include "wxExtensions.hpp"
+#include "Widgets/Label.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "GUI_App.hpp"
 #define MSG_DLG_MAX_SIZE wxSize(-1, FromDIP(464))//notice:ban setting the maximum width value
@@ -748,6 +749,47 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
     Layout();
     sizer_main->Fit(this);
     Centre(wxBOTH);
+}
+
+
+FilamentWarningDialog::FilamentWarningDialog(wxWindow *parent, const wxString &title, std::vector<FilamentWarningInfo> infos)
+    : MsgDialog(parent, title.IsEmpty() ? wxString::Format(_L("%s warning"), SLIC3R_APP_FULL_NAME) : title, wxEmptyString, wxOK | wxICON_WARNING), m_messages(infos)
+{
+    BuildContent();
+    finalize();
+}
+
+void FilamentWarningDialog::BuildContent()
+{
+    wxBoxSizer *messages_sizer = new wxBoxSizer(wxVERTICAL);
+
+    int message_count = 0;
+    for (int i = 0; i < m_messages.size(); i++)
+    {
+        const wxString &message  = m_messages[i].info_msg;
+        const wxString &wiki_url = m_messages[i].wiki_url;
+        if (message_count > 0) { messages_sizer->AddSpacer(FromDIP(10)); }
+
+        if (wiki_url.IsEmpty()) {
+            // No wiki link - just display as regular text
+            Label *text = new Label(this, message);
+            text->SetFont(::Label::Body_12);
+            text->Wrap(FromDIP(400));
+            messages_sizer->Add(text, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
+        } else {
+            Label *link = new Label(this, message + " " + _L("Please refer to Wiki before use->"));
+            link->SetForegroundColour(wxColour(8, 153, 46));
+            link->SetFont(::Label::Body_12);
+            link->Wrap(FromDIP(400));
+            link->Bind(wxEVT_ENTER_WINDOW, [this](auto &e) { SetCursor(wxCURSOR_HAND); });
+            link->Bind(wxEVT_LEAVE_WINDOW, [this](auto &e) { SetCursor(wxCURSOR_ARROW); });
+            link->Bind(wxEVT_LEFT_DOWN, [wiki_url](auto &event) { wxLaunchDefaultBrowser(wiki_url); });
+            messages_sizer->Add(link, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
+        }
+        message_count++;
+    }
+
+    content_sizer->Add(messages_sizer, 1, wxEXPAND | wxALL, FromDIP(5));
 }
 
 } // namespace GUI

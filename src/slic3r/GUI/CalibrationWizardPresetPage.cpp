@@ -9,7 +9,9 @@
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevFilaBlackList.h"
 #include "DeviceCore/DevFilaSystem.h"
+#include "DeviceCore/DevFilaSwitch.h"
 #include "DeviceCore/DevManager.h"
+#include "DeviceCore/DevNozzleSystem.h"
 #include "DeviceCore/DevStorage.h"
 
 #define CALIBRATION_LABEL_SIZE wxSize(FromDIP(150), FromDIP(24))
@@ -1457,31 +1459,40 @@ bool CalibrationPresetPage::is_filament_in_blacklist(int tray_id, Preset* preset
     get_tray_ams_and_slot_id(curr_obj, tray_id, ams_id, slot_id, out_tray_id);
 
     if (wxGetApp().app_config->get("skip_ams_blacklist_check") != "true") {
-        bool in_blacklist = false;
-        std::string action;
-        wxString info;
-        std::string filamnt_type;
-        preset->get_filament_type(filamnt_type);
+        DevFilaBlacklist::CheckFilamentInfo check_info;
+        check_info.dev_id   = curr_obj->get_dev_id();
+        check_info.model_id = curr_obj->printer_type;
+        check_info.fila_id  = preset->filament_id;
+        preset->get_filament_type(check_info.fila_type);
+        check_info.ams_id   = ams_id;
+        check_info.slot_id  = slot_id;
+        check_info.has_filament_switch = curr_obj->GetFilaSwitch()->IsInstalled();
+        // fila_name intentionally left empty: the engine recovers it from the selected AMS slot,
+        // preserving the name-match behavior.
 
         auto vendor = dynamic_cast<ConfigOptionStrings*> (preset->config.option("filament_vendor"));
         if (vendor && (vendor->values.size() > 0)) {
-            std::string vendor_name = vendor->values[0];
-            DevFilaBlacklist::check_filaments_in_blacklist(curr_obj->printer_type, vendor_name, filamnt_type, preset->filament_id, ams_id, slot_id, "", in_blacklist, action, info);
+            check_info.fila_vendor = vendor->values[0];
         }
 
-        if (in_blacklist) {
-            error_tips = info.ToUTF8().data();
-            if (action == "prohibition") {
-                return false;
-            }
-            else if (action == "warning") {
-                return true;
-            }
+        const auto &result = DevFilaBlacklist::check_filaments_in_blacklist(check_info);
+
+        if (const auto &prohibition_items = result.get_items_by_action("prohibition"); !prohibition_items.empty()) {
+            wxString combined_msg;
+            for (const auto &item : prohibition_items) { combined_msg += item.info_msg + "\n"; }
+            error_tips = combined_msg.ToUTF8().data();
+            return false;
         }
-        else {
-            error_tips = "";
+
+        if (const auto &warning_items = result.get_items_by_action("warning"); !warning_items.empty()) {
+            wxString combined_msg;
+            for (const auto &item : warning_items) { combined_msg += item.info_msg + "\n"; }
+            error_tips = combined_msg.ToUTF8().data();
             return true;
         }
+
+        error_tips = "";
+        return true;
     }
     if (devPrinterUtil::IsVirtualSlot(ams_id)) {
         if (m_cali_mode == CalibMode::Calib_PA_Line && (m_cali_method == CalibrationMethod::CALI_METHOD_AUTO || m_cali_method == CalibrationMethod::CALI_METHOD_NEW_AUTO)) {
@@ -1663,7 +1674,9 @@ bool CalibrationPresetPage::is_nozzle_info_synced() const
         if (curr_obj->is_nozzle_flow_type_supported()) {
             if (extruder.GetNozzleFlowType() == NozzleFlowType::NONE_FLOWTYPE)
                 return false;
-            if (int(extruder.GetNozzleFlowType()) - 1 != int(get_nozzle_volume_type(extruder_id)))
+            // Map device flow -> volume type via DevNozzle::ToNozzleVolumeType so U_FLOW resolves to
+            // nvtTPUHighFlow(3); the naive flow-1 would yield nvtHybrid(2). Identical to flow-1 for S/H flow.
+            if (int(DevNozzle::ToNozzleVolumeType(extruder.GetNozzleFlowType())) != int(get_nozzle_volume_type(extruder_id)))
                 return false;
         }
     }
@@ -2124,7 +2137,7 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
                 }
 
                 if (obj->GetExtderSystem()->GetNozzleFlowType(i) != NozzleFlowType::NONE_FLOWTYPE) {
-                    m_left_comboBox_nozzle_volume->SetSelection(obj->GetExtderSystem()->GetNozzleFlowType(i) - 1);
+                    m_left_comboBox_nozzle_volume->SetSelection(int(DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(i))));
                 } else {
                     m_left_comboBox_nozzle_volume->SetSelection(0);
                 }
@@ -2144,7 +2157,7 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
                 }
 
                 if (obj->GetExtderSystem()->GetNozzleFlowType(i) != NozzleFlowType::NONE_FLOWTYPE) {
-                    m_right_comboBox_nozzle_volume->SetSelection(obj->GetExtderSystem()->GetNozzleFlowType(i) - 1);
+                    m_right_comboBox_nozzle_volume->SetSelection(int(DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(i))));
                 } else {
                     m_right_comboBox_nozzle_volume->SetSelection(0);
                 }
@@ -2182,7 +2195,7 @@ void CalibrationPresetPage::init_with_machine(MachineObject* obj)
     else {
         if ((obj->GetExtderSystem()->GetTotalExtderCount() > 0) && (obj->GetExtderSystem()->GetNozzleFlowType(0) != NozzleFlowType::NONE_FLOWTYPE))
         {
-            m_comboBox_nozzle_volume->SetSelection(obj->GetExtderSystem()->GetNozzleFlowType(0) - 1);
+            m_comboBox_nozzle_volume->SetSelection(int(DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(0))));
         } else {
             m_comboBox_nozzle_volume->SetSelection(0);
         }
