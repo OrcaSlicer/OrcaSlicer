@@ -1791,6 +1791,8 @@ namespace client
             // from UTF8 to UTF16 don't bail out.
             msg += boost::nowide::narrow(boost::nowide::widen(error_line));
             msg += '\n';
+            // The error dialog (MsgDialog.cpp) renders this excerpt monospaced. It recognizes a source
+            // line directly above a caret line of spaces and a single '^'.
             for (size_t i = 0; i < error_pos; ++ i)
                 msg += ' ';
             msg += "^\n";
