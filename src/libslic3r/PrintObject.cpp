@@ -1555,7 +1555,10 @@ bool PrintObject::invalidate_state_by_config_options(
         } else if (
                opt_key == "flush_into_infill"
             || opt_key == "flush_into_objects"
-            || opt_key == "flush_into_support") {
+            || opt_key == "flush_into_support"
+            // Support ironing filament only changes which extruder prints the ironing pass, not the
+            // support geometry, so re-run tool ordering and G-code export without regenerating supports.
+            || opt_key == "support_ironing_filament") {
             invalidated |= m_print->invalidate_step(psWipeTower);
             invalidated |= m_print->invalidate_step(psGCodeExport);
         } else {
@@ -3839,9 +3842,12 @@ PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObject
         config.support_filament.value = print_config ? resolve_auto_support_filament(config, object, num_extruders, *print_config) : 0;
     if (config.support_interface_filament.value == SUPPORT_FILAMENT_AUTO)
         config.support_interface_filament.value = print_config ? resolve_auto_support_filament(config, object, num_extruders, *print_config) : 0;
+    if (config.support_ironing_filament.value == SUPPORT_FILAMENT_AUTO)
+        config.support_ironing_filament.value = print_config ? resolve_auto_support_filament(config, object, num_extruders, *print_config) : 0;
     // Clamp invalid extruders to the default extruder (with index 1).
     clamp_exturder_to_default(config.support_filament,           num_extruders);
     clamp_exturder_to_default(config.support_interface_filament, num_extruders);
+    clamp_exturder_to_default(config.support_ironing_filament,   num_extruders);
     return config;
 }
 

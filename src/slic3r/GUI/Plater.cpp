@@ -2452,6 +2452,7 @@ Sidebar::Sidebar(Plater *parent)
 {
     Choice::register_dynamic_list("support_filament", &dynamic_support_filament_list);
     Choice::register_dynamic_list("support_interface_filament", &dynamic_support_filament_list);
+    Choice::register_dynamic_list("support_ironing_filament", &dynamic_support_filament_list);
     Choice::register_dynamic_list("outer_wall_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("inner_wall_filament_id", &dynamic_filament_list);
     Choice::register_dynamic_list("sparse_infill_filament_id", &dynamic_filament_list);
@@ -7359,23 +7360,77 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
     , main_frame(main_frame)
     //BBS: add bed_exclude_area
     , config(Slic3r::DynamicPrintConfig::new_from_defaults_keys({
-        "printable_area", "bed_exclude_area", "wrapping_exclude_area", "extruder_printable_area", "bed_custom_texture", "bed_custom_model", "print_sequence",
+        "printable_area",
+        "bed_exclude_area",
+        "wrapping_exclude_area",
+        "extruder_printable_area",
+        "bed_custom_texture",
+        "bed_custom_model",
+        "print_sequence",
         "extruder_clearance_radius",
-        "extruder_clearance_height_to_lid", "extruder_clearance_height_to_rod",
-		"nozzle_height", "skirt_type", "skirt_loops", "skirt_speed","min_skirt_length", "skirt_distance", "skirt_start_angle",
-        "brim_width", "brim_object_gap", "brim_flow_ratio", "brim_use_efc_outline", "combine_brims", "brim_type", "nozzle_diameter", "single_extruder_multi_material", "preferred_orientation",
-        "enable_prime_tower", "wipe_tower_x", "wipe_tower_y", "prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "prime_tower_enable_framework",
-        "prime_tower_infill_gap", "prime_volume",
-        "extruder_colour", "filament_colour", "filament_type", "filament_is_support", "material_colour", "printable_height", "extruder_printable_height", "printer_model", "printer_technology",
+        "extruder_clearance_height_to_lid",
+        "extruder_clearance_height_to_rod",
+        "nozzle_height",
+        "skirt_type",
+        "skirt_loops",
+        "skirt_speed","min_skirt_length",
+        "skirt_distance",
+        "skirt_start_angle",
+        "brim_width",
+        "brim_object_gap",
+        "brim_flow_ratio",
+        "brim_use_efc_outline",
+        "combine_brims",
+        "brim_type",
+        "nozzle_diameter",
+        "single_extruder_multi_material",
+        "preferred_orientation",
+        "enable_prime_tower",
+        "wipe_tower_x",
+        "wipe_tower_y",
+        "prime_tower_width",
+        "prime_tower_brim_width",
+        "prime_tower_skip_points",
+        "prime_tower_enable_framework",
+        "prime_tower_infill_gap",
+        "prime_volume",
+        "extruder_colour",
+        "filament_colour",
+        "filament_type",
+        "filament_is_support",
+        "material_colour",
+        "printable_height",
+        "extruder_printable_height",
+        "printer_model",
+        "printer_technology",
         // These values are necessary to construct SlicingParameters by the Canvas3D variable layer height editor.
-        "layer_height", "initial_layer_print_height", "min_layer_height", "max_layer_height",
-        "wall_loops", "outer_wall_filament_id", "inner_wall_filament_id", "sparse_infill_density", "sparse_infill_filament_id", "top_shell_layers",
-        "enable_support", "support_filament", "support_interface_filament",
-        "support_top_z_distance", "support_bottom_z_distance", "raft_layers",
-        "wipe_tower_rotation_angle", "wipe_tower_cone_angle", "wipe_tower_extra_spacing", "wipe_tower_extra_flow", "wipe_tower_max_purge_speed",
-        "wipe_tower_wall_type", "wipe_tower_extra_rib_length","wipe_tower_rib_width","wipe_tower_fillet_wall",
+        "layer_height",
+        "initial_layer_print_height",
+        "min_layer_height",
+        "max_layer_height",
+        "wall_loops",
+        "outer_wall_filament_id",
+        "inner_wall_filament_id",
+        "sparse_infill_density",
+        "sparse_infill_filament_id",
+        "top_shell_layers",
+        "enable_support",
+        "support_filament",
+        "support_interface_filament",
+        "support_ironing_filament",
+        "support_top_z_distance",
+        "support_bottom_z_distance",
+        "raft_layers",
+        "wipe_tower_rotation_angle",
+        "wipe_tower_cone_angle",
+        "wipe_tower_extra_spacing",
+        "wipe_tower_extra_flow",
+        "wipe_tower_max_purge_speed",
+        "wipe_tower_wall_type",
+        "wipe_tower_extra_rib_length","wipe_tower_rib_width","wipe_tower_fillet_wall",
         "wipe_tower_filament",
-        "best_object_pos",  "master_extruder_id"
+        "best_object_pos",
+        "master_extruder_id"
         }))
     , sidebar(new Sidebar(q))
     , notification_manager(std::make_unique<NotificationManager>(q))
@@ -19603,7 +19658,7 @@ void Plater::on_filaments_delete(size_t num_filaments, size_t filament_id, int r
     sidebar().obj_list()->update_objects_list_filament_column_when_delete_filament(filament_id, num_filaments, replace_filament_id);
 
     // update global support filament
-    static const char *keys[] = {"support_filament", "support_interface_filament"};
+    static const char *keys[] = {"support_filament", "support_interface_filament", "support_ironing_filament"};
     for (auto key : keys)
         if (p->config->has(key)) {
             if(p->config->opt_int(key) == filament_id + 1)
@@ -19790,7 +19845,7 @@ void Plater::on_config_change(const DynamicPrintConfig &config)
             update_scheduled = true;
         }
         // Orca: update when *_filament changed
-        else if (opt_key == "support_interface_filament" || opt_key == "support_filament" ||
+        else if (opt_key == "support_interface_filament" || opt_key == "support_filament" || opt_key == "support_ironing_filament" ||
                  opt_key == "outer_wall_filament_id" || opt_key == "inner_wall_filament_id" ||
                  opt_key == "sparse_infill_filament_id" || opt_key == "internal_solid_filament_id" ||
                  opt_key == "top_surface_filament_id" || opt_key == "bottom_surface_filament_id") {

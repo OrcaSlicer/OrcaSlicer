@@ -7206,7 +7206,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("This setting specifies whether to add infill inside large hollows of tree support.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
-    
+
     def = this->add("support_ironing", coBool);
     def->label = L("Ironing Support Interface");
     def->category = L("Support");
@@ -7226,7 +7226,7 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Concentric"));
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipRectilinear));
-    
+
     def = this->add("support_ironing_flow", coPercent);
     def->label = L("Support Ironing flow");
     def->category = L("Support");
@@ -7248,6 +7248,19 @@ void PrintConfigDef::init_fff_params()
     def->max = 1;
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0.1));
+
+    def = this->add("support_ironing_filament", coInt);
+    def->gui_type = ConfigOptionDef::GUIType::i_enum_open;
+    def->label    = L("Support ironing filament");
+    def->category = L("Support");
+    def->tooltip = L("Filament to iron the support interface with.\n\"Default\" uses the same filament as the support interface.\n"
+                     "\"Auto\" picks, per object, a filament that does not bond to the supported material so the ironed surface detaches cleanly, "
+                     "preferring soluble filaments and, among equal candidates, the colour closest to the object. If every filament bonds to the object, the object's own filament is used.\n"
+                     "Selecting a specific filament lets the ironing pass use a different material than the interface, "
+                     "for example a smoother or non-bonding filament for a cleaner support-facing surface.");
+    def->min = SUPPORT_FILAMENT_AUTO;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(0));
 
     def = this->add("activate_chamber_temp_control",coBools);
     def->label = L("Activate temperature control");

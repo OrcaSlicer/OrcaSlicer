@@ -962,7 +962,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool can_ironing_support = have_raft || (have_support_material && config->opt_int("support_interface_top_layers") > 0);
     toggle_field("support_ironing", can_ironing_support);
     bool has_support_ironing = can_ironing_support && config->opt_bool("support_ironing");
-    for (auto el : {"support_ironing_pattern", "support_ironing_flow", "support_ironing_spacing" })
+    for (auto el : {"support_ironing_pattern", "support_ironing_flow", "support_ironing_spacing", "support_ironing_filament" })
         toggle_line(el, has_support_ironing);
     // Orca: Force solid support interface when using support ironing
     toggle_field("support_interface_spacing", have_support_material && have_support_interface && !has_support_ironing);
