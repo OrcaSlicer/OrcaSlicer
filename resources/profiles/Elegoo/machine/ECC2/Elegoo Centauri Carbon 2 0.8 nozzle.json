@@ -31,5 +31,6 @@
 	],
 	"retract_length_toolchange": [
 		"3"
-	]
+	],
+	"printer_agent": "elegoo"
 }
