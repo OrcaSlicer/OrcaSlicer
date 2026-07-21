@@ -326,7 +326,7 @@ void NetworkAgentFactory::register_python_printer_agent(const std::string& plugi
             manager.set_plugin_error(plugin_key, error_message);
             // note: the unload callback triggered by disabling will call deregister,
             // which will be a no-op since the printer agent is never registered
-            manager.set_capability_enabled(plugin_key, capability_name, false);
+            manager.set_capability_enabled({PluginCapabilityType::PrinterConnection, capability_name, plugin_key}, false);
             wxMessageBox(wxString::FromUTF8(error_message.c_str()), _L("Plugins"), wxOK | wxICON_WARNING, GUI::wxGetApp().GetTopWindow());
         });
     };

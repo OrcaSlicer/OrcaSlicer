@@ -141,6 +141,11 @@ int MoonrakerPrinterAgent::connect_printer(std::string dev_id, std::string dev_i
         return BAMBU_NETWORK_ERR_INVALID_HANDLE;
     }
 
+    // why: Moonraker/print-host serves plain HTTP (nginx :80 or Moonraker :7125), never
+    // https:443; MachineObject::connect defaults use_ssl=true -> forced https -> refused.
+    // Pin http. (matches feature/printer-agent-port-pristine)
+    use_ssl = false;
+
     std::string base_url;
     std::string api_key;
     uint64_t gen;
@@ -220,11 +225,20 @@ int MoonrakerPrinterAgent::bind_detect(std::string dev_ip, std::string sec_link,
 {
     (void) sec_link;
 
+    // why: bind_detect runs BEFORE any connect (from the "Bind with Access Code" IP
+    // dialog that creates the new MachineObject), so device_info is unpopulated. Hydrate
+    // it from the edited preset first - init_device_info sets dev_name = dev_id = dev_ip,
+    // so the name falls back to the IP instead of blank. (matches
+    // feature/printer-agent-port-pristine; the IP is what shipped before the port)
+    // note: dummy id/creds; use_ssl false because Moonraker/print-host is http.
+    init_device_info(dev_ip, dev_ip, "", "", false);
+
     detect.dev_id   = device_info.dev_id.empty() ? dev_ip : device_info.dev_id;
     detect.model_id = device_info.model_id.empty() ? device_info.model_name : device_info.model_id;
-    // Prefer fetched hostname, then preset model name, then generic fallback
-    detect.dev_name     = device_info.dev_name;
-    detect.model_id     = device_info.model_id;
+    // Name priority: known device name, then preset model name, then the address (never empty).
+    detect.dev_name = !device_info.dev_name.empty()   ? device_info.dev_name
+                    : !device_info.model_name.empty() ? device_info.model_name
+                                                      : dev_ip;
     detect.version      = device_info.version;
     detect.connect_type = "lan";
     detect.bind_state   = "free";
@@ -1082,6 +1096,8 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
             }
         }
 
+        // why: no current OrcaSlicer sender emits the "home" discriminator;
+        // GUI homing uses gcode_line with G28 instead.
         if (cmd == "home") {
             return send_gcode(dev_id, "G28") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
         }
