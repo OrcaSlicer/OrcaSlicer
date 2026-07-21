@@ -186,7 +186,7 @@ TroubleshootDialog::TroubleshootDialog()
         Fit();
     });
 
-    auto link_wiki = new HyperLink(this, _L("Wiki Guide"));
+    auto link_wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/troubleshoot_center");
 
     // RIGHT SIZER //////////////////////
 
