@@ -2822,7 +2822,7 @@ void SelectMachineDialog::on_ok_btn(wxCommandEvent &event)
     // block Send (a non-standard nozzle is a valid reason to differ), but it must be acknowledged.
     if (!m_nozzle_diameter_mismatch_msg.empty()) {
         has_slice_warnings = true;
-        confirm_text.push_back(ConfirmBeforeSendInfo(m_nozzle_diameter_mismatch_msg, ConfirmBeforeSendInfo::InfoLevel::Warning));
+        confirm_text.push_back(ConfirmBeforeSendInfo(m_nozzle_diameter_mismatch_msg, wxEmptyString, ConfirmBeforeSendInfo::InfoLevel::Warning));
     }
 
     if (has_slice_warnings)
