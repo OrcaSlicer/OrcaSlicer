@@ -254,6 +254,8 @@ class CalibPressureAdvanceLine : public CalibPressureAdvance
 public:
     CalibPressureAdvanceLine(GCode* gcodegen);
     ~CalibPressureAdvanceLine(){};
+    // Return the X‑bounds of the pattern on the given bed.
+    BoundingBoxf print_extents(const BoundingBoxf &bed_ext) const;
 
     std::string generate_test(double start_pa = 0, double step_pa = 0.002, int count = 50);
 

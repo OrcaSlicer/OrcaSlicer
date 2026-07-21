@@ -56,7 +56,6 @@ private:
 
     Mode m_mode;
     ComboBox* m_version_combo{nullptr};
-    wxCollapsiblePane* m_details_pane{nullptr};
     std::string m_error_message;
     std::string m_error_details;
     std::vector<NetworkLibraryVersionInfo> m_available_versions;

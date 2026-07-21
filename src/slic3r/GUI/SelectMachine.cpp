@@ -4539,7 +4539,7 @@ bool SelectMachineDialog::CheckErrorExtruderNozzleWithSlicing(MachineObject* obj
                         pos, installed_nozzle_str, slicing_nozzle_str);
 
                     std::vector<wxString> params{ error_message };
-                    params.emplace_back(_L("Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."));
+                    params.emplace_back(_L("Tips: If you changed your nozzle of your printer lately, please go to 'Device -> Printer parts' to change your nozzle setting."));
                     show_status(PrintDialogStatus::PrintStatusNozzleMatchInvalid, params);
                     return false;
                 }
@@ -4564,7 +4564,7 @@ bool SelectMachineDialog::CheckErrorExtruderNozzleWithSlicing(MachineObject* obj
                         msg_params.emplace_back(nozzle_message);
                     }
 
-                    msg_params.emplace_back(_L("Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."));
+                    msg_params.emplace_back(_L("Tips: If you changed your nozzle of your printer lately, please go to 'Device -> Printer parts' to change your nozzle setting."));
                     show_status(PrintDialogStatus::PrintStatusNozzleDiameterMismatch, msg_params);
                     return false;
                 }

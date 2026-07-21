@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-17 15:13-0300\n"
+"POT-Creation-Date: 2026-07-20 10:39-0300\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -19,17 +19,137 @@ msgstr ""
 "X-Crowdin-Project-ID: 748805\n"
 "X-Generator: Poedit 3.5\n"
 
-msgid "right"
-msgstr "правий"
+msgid "Main Extruder"
+msgstr ""
 
-msgid "left"
-msgstr "лівий"
+msgid "Main extruder"
+msgstr ""
+
+msgid "main extruder"
+msgstr ""
+
+msgid "Auxiliary Extruder"
+msgstr ""
+
+msgid "Auxiliary extruder"
+msgstr ""
+
+msgid "auxiliary extruder"
+msgstr ""
+
+msgid "Left Extruder"
+msgstr "Лівий екструдер"
+
+msgid "Left extruder"
+msgstr "Лівий екструдер"
+
+msgid "left extruder"
+msgstr "лівий екструдер"
+
+msgid "Right Extruder"
+msgstr "Правий екструдер"
+
+msgid "Right extruder"
+msgstr "Правий екструдер"
 
 msgid "right extruder"
 msgstr "правий екструдер"
 
-msgid "left extruder"
-msgstr "лівий екструдер"
+msgid "Main Nozzle"
+msgstr ""
+
+msgid "Main nozzle"
+msgstr ""
+
+msgid "main nozzle"
+msgstr ""
+
+msgid "Auxiliary Nozzle"
+msgstr ""
+
+msgid "Auxiliary nozzle"
+msgstr ""
+
+msgid "auxiliary nozzle"
+msgstr ""
+
+msgid "Left Nozzle"
+msgstr "Ліве сопло"
+
+msgid "Left nozzle"
+msgstr "Ліве сопло"
+
+msgid "left nozzle"
+msgstr "ліве сопло"
+
+msgid "Right Nozzle"
+msgstr "Праве сопло"
+
+msgid "Right nozzle"
+msgstr "Праве сопло"
+
+msgid "right nozzle"
+msgstr "праве сопло"
+
+msgid "Main Hotend"
+msgstr ""
+
+msgid "Main hotend"
+msgstr ""
+
+msgid "main hotend"
+msgstr ""
+
+msgid "Auxiliary Hotend"
+msgstr ""
+
+msgid "Auxiliary hotend"
+msgstr ""
+
+msgid "auxiliary hotend"
+msgstr ""
+
+msgid "Left Hotend"
+msgstr ""
+
+msgid "Left hotend"
+msgstr ""
+
+msgid "left hotend"
+msgstr ""
+
+msgid "Right Hotend"
+msgstr ""
+
+msgid "Right hotend"
+msgstr ""
+
+msgid "right hotend"
+msgstr ""
+
+msgid "main"
+msgstr ""
+
+msgid "auxiliary"
+msgstr ""
+
+msgid "Main"
+msgstr ""
+
+msgid "Auxiliary"
+msgstr ""
+
+msgid "left"
+msgstr "лівий"
+
+msgid "right"
+msgstr "правий"
+
+msgid "Left"
+msgstr "Ліво"
+
+msgid "Right"
+msgstr "Право"
 
 msgid "extruder"
 msgstr "екструдер"
@@ -226,6 +346,9 @@ msgstr "Читання "
 msgid "Please wait"
 msgstr "Будь ласка, зачекайте"
 
+msgid "Reading"
+msgstr ""
+
 msgid "Running..."
 msgstr "Запуск..."
 
@@ -238,6 +361,12 @@ msgstr "Хотенд в незвичному стані і тимчасово н
 msgid "Abnormal Hotend"
 msgstr "Ненормальний хотенд"
 
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgid "Jump to the upgrade page"
+msgstr "Перейти до сторінки оновлення"
+
 msgid "Refresh"
 msgstr "Оновити"
 
@@ -246,12 +375,6 @@ msgstr "Оновлення"
 
 msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
 msgstr ""
-
-msgid "Cancel"
-msgstr "Скасувати"
-
-msgid "Jump to the upgrade page"
-msgstr "Перейти до сторінки оновлення"
 
 msgid "SN"
 msgstr "СН"
@@ -4101,11 +4224,9 @@ msgstr "Слоти AMS"
 msgid "Please select from the following filaments"
 msgstr "Будь ласка, виберіть з наведених філаментів"
 
-msgid "Select filament that installed to the left nozzle"
-msgstr "Вибрати філамент, що встановлений на ліве сопло"
-
-msgid "Select filament that installed to the right nozzle"
-msgstr "Вибрати філамент, що встановлений на праве сопло"
+#, c-format, boost-format
+msgid "Select filament that installed to the %s"
+msgstr ""
 
 msgid "Left AMS"
 msgstr "Лівий AMS"
@@ -4119,38 +4240,24 @@ msgstr "Скинути поточну організацію філаменту"
 msgid "Right AMS"
 msgstr "Правий AMS"
 
-msgid "Left Nozzle"
-msgstr "Ліве сопло"
-
-msgid "Right Nozzle"
-msgstr "Праве сопло"
-
-msgid "Nozzle"
-msgstr "Сопло"
-
-msgid "Select Filament && Hotends"
-msgstr "Вибрати філамент і хотенди"
-
-msgid "Select Filament"
-msgstr "Вибрати філамент"
-
 #, c-format, boost-format
 msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
 msgstr "Друк поточним соплом може продукувати надлишкових %0.2f г."
 
-msgid "External spools is not supported since Filament Track Switch has been installed. If you want to use external spool, please uninstall it."
+#, c-format, boost-format
+msgid "Tips: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
 msgstr ""
 
 #, c-format, boost-format
-msgid "Note: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
+msgid "Cannot select: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
 msgstr ""
 
 #, c-format, boost-format
-msgid "Note: the slot is empty or undefined. If you want to use this slot, you can install %s and change slot information on the 'Device' page."
+msgid "Cannot select: the slot is empty or undefined. If you want to use this slot, you can install %s and change slot information on the 'Device' page."
 msgstr ""
 
-msgid "Note: Only filament-loaded slots can be selected."
-msgstr "Примітка: Можна вибрати лише слоти із загруженим філаментом."
+msgid "Cannot select: No filament loaded in current slot."
+msgstr ""
 
 msgid "Enable AMS"
 msgstr "Дозволити AMS"
@@ -4192,12 +4299,6 @@ msgstr "Друк із використанням матеріалів, закр�
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "Друк філаментами в ams"
-
-msgid "Left"
-msgstr "Ліво"
-
-msgid "Right"
-msgstr "Право"
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Коли поточний матеріал закінчується, принтер буде продовжувати друк у наступному порядку."
@@ -4911,6 +5012,9 @@ msgstr "Не вдалося згенерувати калібрувальний 
 msgid "Calibration error"
 msgstr "Помилка калібрування"
 
+msgid "Network unavailable"
+msgstr ""
+
 msgid "Resume Printing"
 msgstr "Відновити друк"
 
@@ -4944,6 +5048,9 @@ msgstr "Перегляд в реальному часі"
 msgid "No Reminder Next Time"
 msgstr "Не нагадувати наступного разу"
 
+msgid "Recheck"
+msgstr ""
+
 msgid "Ignore. Don't Remind Next Time"
 msgstr "Ігнорувати. Не нагадувати наступного разу"
 
@@ -4965,6 +5072,15 @@ msgstr "Зупинити сушіння"
 msgid "Proceed"
 msgstr ""
 
+msgid "Abort"
+msgstr ""
+
+msgid "Disable Purification for This Print"
+msgstr ""
+
+msgid "Don't Remind Me"
+msgstr ""
+
 msgid "Retry"
 msgstr "Повторити спробу"
 
@@ -4973,6 +5089,9 @@ msgstr "Продовжити"
 
 msgid "Unknown error."
 msgstr "Невідома помилка"
+
+msgid "Loading ..."
+msgstr ""
 
 msgid "default"
 msgstr "типово"
@@ -5334,12 +5453,6 @@ msgstr "Групування філаменту"
 msgid "Why this grouping"
 msgstr "Чому це згруповано"
 
-msgid "Left nozzle"
-msgstr "Ліве сопло"
-
-msgid "Right nozzle"
-msgstr "Праве сопло"
-
 msgid "Please place filaments on the printer based on grouping result."
 msgstr ""
 
@@ -5540,12 +5653,6 @@ msgstr "Наступні обʼєкти перекривають межі пла
 
 msgid "Please solve the problem by moving it totally on or off the plate, and confirming that the height is within the build volume.\n"
 msgstr "Будь ласка, передвиньте це повністю на чи з пластини, та переконайтеся, що висота знаходиться у межах області друку.\n"
-
-msgid "left nozzle"
-msgstr "ліве сопло"
-
-msgid "right nozzle"
-msgstr "праве сопло"
 
 #, c-format, boost-format
 msgid "The position or size of some models exceeds the %s's printable range."
@@ -7354,6 +7461,18 @@ msgid ""
 "Enable or install some to use."
 msgstr ""
 
+msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
+msgstr ""
+
+msgid "Enable Nozzle Clumping Detection"
+msgstr ""
+
+msgid "When enabled, the printer will automatically capture photos of printed parts and upload them to the cloud. Would you like to enable this option?"
+msgstr ""
+
+msgid "Confirm Enable Print Status Snapshot"
+msgstr ""
+
 msgid "Enable detection of build plate position"
 msgstr "Увімкнути визначення положення робочої пластини"
 
@@ -7365,6 +7484,21 @@ msgid "Build Plate Detection"
 msgstr "Виявлення робочої пластини"
 
 msgid "Identifies the type and position of the build plate on the heatbed. Pausing printing if a mismatch is detected."
+msgstr ""
+
+msgid "Purifies the chamber air as the print finishes, based on the selected mode."
+msgstr ""
+
+msgid "Purifies the chamber air through internal circulation as each print finishes."
+msgstr ""
+
+msgid "Automatically match the corresponding switch strategy for leak-prone filaments (disable blob detection) and regular filaments (enable blob detection)."
+msgstr ""
+
+msgid "Detect whether the nozzle is wrapped by filament or other foreign matter."
+msgstr ""
+
+msgid "After disabling, nozzle wrapping cannot be detected, which may lead to print failure or nozzle damage."
 msgstr ""
 
 msgid "AI Detections"
@@ -7410,7 +7544,7 @@ msgstr "Автоматичне відновлення після втрати к
 msgid "Store Sent Files on External Storage"
 msgstr ""
 
-msgid "Save the printing files initiated from Bambu Studio, Bambu Handy and MakerWorld on External Storage"
+msgid "Save the printing files sent from the slicer and other apps on External Storage"
 msgstr ""
 
 msgid "Allow Prompt Sound"
@@ -7423,6 +7557,36 @@ msgstr "Виявлення заплутування філаменту"
 msgid "Check if the nozzle is clumping by filament or other foreign objects."
 msgstr "Перевірте, чи сопло не затверділо від філаменту або інших чужорідних предметів."
 
+msgid "Purify Air at Print End"
+msgstr ""
+
+msgid "Internal Circulation"
+msgstr ""
+
+msgid "Alignment Detection"
+msgstr ""
+
+msgid "Pauses printing when build plate misalignment is detected."
+msgstr ""
+
+msgid "Foreign Object Detection"
+msgstr ""
+
+msgid "Checks for any objects on the build plate at the start of a print to avoid collisions."
+msgstr ""
+
+msgid "Printed Part Displacement Detection"
+msgstr ""
+
+msgid "Monitors the printed part during printing and alerts immediately if it shifts or collapses."
+msgstr ""
+
+msgid "Checks if the nozzle is clumping by filament or other foreign objects."
+msgstr ""
+
+msgid "On"
+msgstr "Увімк."
+
 msgid "Open Door Detection"
 msgstr "Виявлення відкритих дверей"
 
@@ -7431,6 +7595,12 @@ msgstr "Сповіщення"
 
 msgid "Pause printing"
 msgstr "Призупинити друк"
+
+msgid "Print Status Snapshot"
+msgstr ""
+
+msgid "Automatically capture and upload print photos, showing defects during printing and the final result for remote viewing."
+msgstr ""
 
 msgctxt "Nozzle Type"
 msgid "Type"
@@ -7581,10 +7751,10 @@ msgstr "Змінити діаметр"
 msgid "Configuration incompatible"
 msgstr "Несумісність конфігурації"
 
-msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing. "
+msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing."
 msgstr ""
 
-msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use. "
+msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use."
 msgstr ""
 
 msgid "Tips"
@@ -7612,6 +7782,9 @@ msgstr "Синхронізувати інформацію про сопла та
 
 msgid "Click to edit preset"
 msgstr "Натисніть, щоб редагувати профіль"
+
+msgid "Nozzle"
+msgstr "Сопло"
 
 msgid "Project Filaments"
 msgstr "Філаменти проєкта"
@@ -8012,6 +8185,15 @@ msgstr "Пластина для нарізки %d"
 
 msgid "Please resolve the slicing errors and publish again."
 msgstr "Виправте помилки нарізки та опублікуйте знову."
+
+msgid "Network plug-in switched successfully."
+msgstr "Мережевий плагін змінено успішно."
+
+msgid "Success"
+msgstr "Успішно"
+
+msgid "Failed to load network plug-in. Please restart the application."
+msgstr "Не вдалося завантажити мережевий плагін. Будь ласка, перезапустіть програму."
 
 msgid "The network plug-in was not detected. Network related features are unavailable."
 msgstr "Мережевий плагін не виявлено. Функції, повʼязані з мережею, недоступні."
@@ -8426,18 +8608,6 @@ msgstr "Оберіть теку для завантажених елементі
 
 msgid "Choose Download Directory"
 msgstr "Оберіть каталог для завантаження"
-
-msgid "(Latest)"
-msgstr "(Останній)"
-
-msgid "Network plug-in switched successfully."
-msgstr "Мережевий плагін змінено успішно."
-
-msgid "Success"
-msgstr "Успішно"
-
-msgid "Failed to load network plug-in. Please restart the application."
-msgstr "Не вдалося завантажити мережевий плагін. Будь ласка, перезапустіть програму."
 
 #, c-format, boost-format
 msgid ""
@@ -9324,9 +9494,6 @@ msgstr "Bambu Cool Plate SuperTack"
 msgid "Send print job"
 msgstr "Надіслати завдання друку"
 
-msgid "On"
-msgstr "Увімк."
-
 msgid "Not satisfied with the grouping of filaments? Regroup and slice ->"
 msgstr ""
 
@@ -9340,6 +9507,9 @@ msgid "Your filament grouping method in the sliced file is not optimal."
 msgstr ""
 
 msgid "To ensure print quality, the drying temperature will be lowered during printing."
+msgstr ""
+
+msgid "Select timelapse storage location"
 msgstr ""
 
 msgid "Auto Bed Leveling"
@@ -9364,6 +9534,12 @@ msgstr ""
 msgid ""
 "Calibrate nozzle offsets to enhance print quality.\n"
 "*Automatic mode: Check for calibration before printing. Skip if unnecessary."
+msgstr ""
+
+msgid "Shared PA Profile"
+msgstr ""
+
+msgid "Nozzles and filaments of the same type share the same PA profile."
 msgstr ""
 
 msgid "Send complete"
@@ -9407,6 +9583,10 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "The current nozzle mapping may produce an extra %0.2f g of waste."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Recommended filament arrangement saves %s->"
 msgstr ""
 
 #, c-format, boost-format
@@ -9458,6 +9638,37 @@ msgstr ""
 msgid "This process determines the dynamic flow values to improve overall print quality."
 msgstr ""
 
+msgid "Internal"
+msgstr "Внутрішні"
+
+#, c-format, boost-format
+msgid "%s space less than 20MB. Timelapse may not save properly. You can turn it off or"
+msgstr ""
+
+msgid "Clean up files"
+msgstr ""
+
+msgid "Low internal storage. This timelapse will overwrite the oldest video files."
+msgstr ""
+
+msgid "Low external storage. This timelapse will overwrite the oldest video files."
+msgstr ""
+
+msgid "Insufficient external storage for time-lapse photography. Connect to computer to delete files, or use a larger memory card."
+msgstr ""
+
+msgid "Storage Space Not Enough"
+msgstr ""
+
+msgid "Confirm & Print"
+msgstr ""
+
+msgid "Cancel Timelapse & Print"
+msgstr ""
+
+msgid "Clean Up"
+msgstr ""
+
 msgid "Preparing print job"
 msgstr "Підготовка завдання для друку"
 
@@ -9504,7 +9715,7 @@ msgstr ""
 msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
 msgstr ""
 
-msgid "Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."
+msgid "Tips: If you changed your nozzle of your printer lately, please go to 'Device -> Printer parts' to change your nozzle setting."
 msgstr ""
 
 #, c-format, boost-format
@@ -9522,8 +9733,20 @@ msgstr "обидва екструдери"
 msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). Please verify the nozzle or material settings and try again."
 msgstr ""
 
+msgid "Your current firmware version cannot start this print job. Please update to the latest version and try again."
+msgstr ""
+
 #, c-format, boost-format
 msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). It may cause nozzle wear, leading to material leakage and unstable flow. Please exercise caution when using it."
+msgstr ""
+
+msgid "Some filaments may switch between extruders during printing. Manual K-value calibration cannot be applied throughout the entire print, which may affect print quality. Enabling Flow Dynamics Calibration is recommended."
+msgstr ""
+
+msgid "There is stringing-prone filament in this file. For best print quality, we recommend switching nozzle clumping detection to Auto mode."
+msgstr ""
+
+msgid "If 'Dynamic Flow Calibration' is set to Auto/On, the system will use the manual calibration value or the default value and skip the flow calibration process. You can perform a manual flow calibration for TPU filament on the 'Calibration' page."
 msgstr ""
 
 #, c-format, boost-format
@@ -9630,10 +9853,17 @@ msgstr ""
 msgid "This printer does not support printing all plates."
 msgstr "Цей принтер не підтримує друк усіх форм"
 
-msgid "The current firmware supports a maximum of 16 materials. You can either reduce the number of materials to 16 or fewer on the Preparation Page, or try updating the firmware. If you are still restricted after the update, please wait for subsequent firmware support."
+#, c-format, boost-format
+msgid "The current firmware supports a maximum of %s materials. You can either reduce the number of materials to %s or fewer on the Preparation Page, or try updating the firmware. If you are still restricted after the update, please wait for subsequent firmware support."
 msgstr ""
 
 msgid "The type of external filament is unknown or does not match with the filament type in the slicing file. Please make sure you have installed the correct filament in the external spool."
+msgstr ""
+
+msgid "TPU 90A/TPU 85A are too soft. It is recommended to perform manual flow calibration on the 'Calibration' page. If 'Dynamic Flow Calibration' is set to auto/on, the system will use the previous calibration value and skip the flow calibration process."
+msgstr ""
+
+msgid "The filament in the AMS may be insufficient for this print. Please refill or replace it."
 msgstr ""
 
 msgid "Current firmware does not support file transfer to internal storage."
@@ -10823,14 +11053,8 @@ msgstr "Перезапис"
 msgid "Reset all filament mapping"
 msgstr "Скинути всю організацію філаменту"
 
-msgid "Left Extruder"
-msgstr "Лівий екструдер"
-
 msgid "(Recommended filament)"
 msgstr "[Рекомендований філамент]"
-
-msgid "Right Extruder"
-msgstr "Правий екструдер"
 
 msgid "Advanced Options"
 msgstr "Розширені параметри"
@@ -10966,12 +11190,6 @@ msgstr "Множина повинна знаходитися в діапазон
 
 msgid "Re-calculate"
 msgstr "Переобчислити"
-
-msgid "Left extruder"
-msgstr "Лівий екструдер"
-
-msgid "Right extruder"
-msgstr "Правий екструдер"
 
 msgid "Multiplier"
 msgstr "Множина"
@@ -11278,9 +11496,11 @@ msgstr "версія %s інформація про оновлення:"
 msgid "Network plug-in update"
 msgstr "Оновлення мережевого плагіна"
 
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
-msgstr "Натисніть OK, щоб оновити мережевий плагін під час наступного запуску Orca Slicer."
+msgid "Click OK to update the Network plug-in now. If a file is in use, the update will be applied the next time Orca Slicer launches."
+msgstr ""
+
+msgid "A new Network plug-in is available. Do you want to install it?"
+msgstr ""
 
 #, c-format, boost-format
 msgid "A new Network plug-in (%s) is available. Do you want to install it?"
@@ -11544,14 +11764,6 @@ msgstr "Помилка групування в ручному режимі. Пе
 
 msgid "Internal Bridge"
 msgstr "Внутрішній міст"
-
-# TODO: Review, changed by lang refactor. PR 14254
-#, boost-format
-msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
-msgstr "Не вдалося обчислити ширину лінії %1%. Неможливо отримати значення \"%2%\" "
-
-msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width"
-msgstr "Неправильний інтервал, переданий до Flow::with_spacing(), перевірте висоту шару та ширину екструзії"
 
 msgid "undefined error"
 msgstr "невизначена помилка"
@@ -12602,9 +12814,6 @@ msgstr ""
 "\n"
 "Крім того, якщо параметр 'Уповільнення для закручених периметрів' вимкнено або увімкнено 'Класичний режим нависань', ця швидкість буде використовуватися для друку стінок з нависанням, які підтримуються менш ніж на 13%, незалежно від того, чи є вони частиною мосту або звичайного нависання."
 
-msgid "Internal"
-msgstr "Внутрішні"
-
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "Швидкість внутрішніх мостів. Якщо значення вказано у відсотках, воно буде розраховане на основі bridge_speed. Значення за замовчуванням: 150%."
 
@@ -12972,7 +13181,7 @@ msgstr ""
 
 msgid ""
 "Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
-"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane. Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top. The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
 msgstr ""
 
 msgid "Top expansion wall margin"
@@ -19089,7 +19298,7 @@ msgstr "Повідомити про проблему"
 msgid "Pack"
 msgstr ""
 
-msgid "Cleans and rebuilds system profiles cache on next launch"
+msgid "Cleans and rebuilds system profiles cache on next launch."
 msgstr "Очищає і перебудовує кеш системних профілів під час наступного запуску"
 
 msgid "Clean system profiles cache"
@@ -19101,16 +19310,16 @@ msgstr "Очистити"
 msgid "Loaded profiles overview"
 msgstr "Перегляд завантажених профілів"
 
-msgid "This section shows information for loaded profiles"
+msgid "This section shows information for loaded profiles."
 msgstr "Цей розділ показує інформацію про завантажені профілі"
 
-msgid "Exports detailed overview of loaded profiles in json format"
+msgid "Exports detailed overview of loaded profiles in json format."
 msgstr "Експортує детальний огляд завантажених профілів у фаормат json"
 
 msgid "Configurations folder"
 msgstr "Тека конфігурації"
 
-msgid "Opens configurations folder"
+msgid "Opens configurations folder."
 msgstr "Відкриває теку конфігурації"
 
 msgid "Log level"
@@ -19125,14 +19334,11 @@ msgstr "Запаковує всі збережені логи у файл zip."
 msgid "Profiles"
 msgstr "Профілі"
 
-msgid "Select NO to close dialog and review project"
-msgstr "Виберіть НІ, щоб закрити вікно і переглянути проєкт"
+msgid "Select NO to close dialog and review project."
+msgstr "Виберіть НІ, щоб закрити вікно і переглянути проєкт."
 
 msgid "No project file on current session. Only logs will be included to package"
 msgstr "Нема файла проєкту в поточному сеансі. Лише логи будуть включені до пакунку."
-
-msgid "Select NO to close dialog and review project."
-msgstr "Виберіть НІ, щоб закрити вікно і переглянути проєкт."
 
 msgid "Please make sure any instances of OrcaSlicer are not running"
 msgstr "Будь ласка, перевірте чи не запущено інші екземпляри OrcaSlicer"
@@ -19791,7 +19997,7 @@ msgstr "Не вдалося обрахувати контрольну суму �
 msgid "Error code not found"
 msgstr "Код помилки не знайдено"
 
-msgid "The printer is busy, Please check the device page for the file and try to start printing again."
+msgid "The printer is busy, please check the device page for the file and try to start printing again."
 msgstr ""
 
 msgid "The file is lost, please check and try again."
@@ -19923,6 +20129,9 @@ msgstr "Дію не можливо завершити. Продовжити?"
 msgid "Skipping objects."
 msgstr "Пропускання обʼєктів."
 
+msgid "Select Filament"
+msgstr "Вибрати філамент"
+
 msgid "Null Color"
 msgstr "Без кольору"
 
@@ -19984,6 +20193,12 @@ msgstr "Пропустити версію"
 
 msgid "Don't Ask Again"
 msgstr "Не запитувати знову"
+
+msgid "(Latest)"
+msgstr "(Останній)"
+
+msgid "(installed)"
+msgstr ""
 
 msgid "The Bambu Network Plug-in has been installed successfully."
 msgstr "Мережевий плагін Bambu встановлено успішно."
@@ -20579,6 +20794,30 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури гарячого ліжка може зменшити ймовірність деформації?"
+
+#~ msgid "Select filament that installed to the left nozzle"
+#~ msgstr "Вибрати філамент, що встановлений на ліве сопло"
+
+#~ msgid "Select filament that installed to the right nozzle"
+#~ msgstr "Вибрати філамент, що встановлений на праве сопло"
+
+#~ msgid "Select Filament && Hotends"
+#~ msgstr "Вибрати філамент і хотенди"
+
+#~ msgid "Note: Only filament-loaded slots can be selected."
+#~ msgstr "Примітка: Можна вибрати лише слоти із загруженим філаментом."
+
+# TODO: Review, changed by lang refactor. PR 14254
+#~ msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
+#~ msgstr "Натисніть OK, щоб оновити мережевий плагін під час наступного запуску Orca Slicer."
+
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
+#~ msgid "Failed to calculate line width of %1%. Cannot get value of “%2%”."
+#~ msgstr "Не вдалося обчислити ширину лінії %1%. Неможливо отримати значення \"%2%\" "
+
+#~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
+#~ msgstr "Неправильний інтервал, переданий до Flow::with_spacing(), перевірте висоту шару та ширину екструзії"
 
 #~ msgid "°C"
 #~ msgstr "℃"

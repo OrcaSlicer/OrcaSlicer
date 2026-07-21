@@ -111,14 +111,25 @@ wxString get_formatted_tooltip_text(const ConfigOptionDef& opt, const t_config_o
 {
     wxString tooltip = _(opt.tooltip);
 
-    std::string opt_id = id;
-    auto hash_pos = opt_id.find("#");
+    std::string parameter_name = id;
+    std::string opt_key = id;
+    int opt_idx = 0;
+
+    const size_t hash_pos = static_cast<std::string>(id).find("#");
+
     if (hash_pos != std::string::npos) {
-        opt_id.replace(hash_pos, 1,"[");
-        opt_id += "]";
+        parameter_name.replace(hash_pos, 1, "[");
+        parameter_name += "]";
+
+        std::string temp_str = id;
+        boost::erase_head(temp_str, hash_pos + 1);
+        size_t orig_opt_idx = atoi(temp_str.c_str());
+        opt_idx = orig_opt_idx >= 0 ? orig_opt_idx : 0;
+
+        boost::erase_tail(opt_key, opt_key.size() - hash_pos);
     }
 
-    tooltip += (tooltip.empty() ? "" : "\n\n") + _(L("parameter name")) + ": " + opt_id;
+    tooltip += (tooltip.empty() ? "" : "\n\n") + _(L("parameter name")) + ": " + parameter_name;
 
     // Orca:
     // We can't use Orca's default values as-is because they sometimes depend on other values.
@@ -126,7 +137,7 @@ wxString get_formatted_tooltip_text(const ConfigOptionDef& opt, const t_config_o
     if (const Preset* print_parent_preset = wxGetApp().preset_bundle->prints.get_selected_preset_parent()) {
         const DynamicPrintConfig& parent_config = print_parent_preset->config;
 
-        if (!parent_config.has(opt_id))
+        if (!parent_config.has(opt_key))
             return tooltip;
 
         wxString side_text = from_u8(opt.sidetext);
@@ -135,18 +146,71 @@ wxString get_formatted_tooltip_text(const ConfigOptionDef& opt, const t_config_o
         if (opt.sidetext == L("layers"))
             side_text = " " + _(side_text);
 
-        if (opt.type == coFloat || opt.type == coInt || opt.type == coPercent || opt.type == coFloatOrPercent) {
-            double default_value = 0.;
+        if (opt.type == coFloat || opt.type == coInt || opt.type == coPercent || opt.type == coFloatOrPercent || 
+            opt.type == coFloats || opt.type == coInts || opt.type == coPercents || opt.type == coFloatsOrPercents) {
+            double default_value = std::numeric_limits<double>::quiet_NaN();
 
             if (opt.type == coFloat)
-                default_value = parent_config.option<ConfigOptionFloat>(opt_id)->value;
+                default_value = parent_config.option<ConfigOptionFloat>(opt_key)->value;
+            else if (opt.type == coFloats) {
+                if (opt.nullable) {
+                    auto opt_floats_nullable = parent_config.option<ConfigOptionFloatsNullable>(opt_key);
+                    if (!opt_floats_nullable->values.empty())
+                        default_value = opt_floats_nullable->get_at(opt_idx);
+                } else {
+                    auto opt_floats = parent_config.option<ConfigOptionFloats>(opt_key);
+                    if (!opt_floats->values.empty())
+                        default_value = opt_floats->get_at(opt_idx);
+                }
+            }
             else if (opt.type == coInt)
-                default_value = parent_config.option<ConfigOptionInt>(opt_id)->value;
+                default_value = parent_config.option<ConfigOptionInt>(opt_key)->value;
+            else if(opt.type == coInts) {
+                if (opt.nullable) {
+                    auto opt_ints_nullable = parent_config.option<ConfigOptionIntsNullable>(opt_key);
+                    if (!opt_ints_nullable->values.empty())
+                        default_value = opt_ints_nullable->get_at(opt_idx);
+                } else {
+                    auto opt_ints = parent_config.option<ConfigOptionInts>(opt_key);
+                    if (!opt_ints->values.empty())
+                        default_value = opt_ints->get_at(opt_idx);
+                }
+            }
             else if (opt.type == coPercent)
-                default_value = parent_config.option<ConfigOptionPercent>(opt_id)->value;
-            else if (opt.type == coFloatOrPercent) {
-                default_value = parent_config.option<ConfigOptionFloatOrPercent>(opt_id)->value;
-                if (parent_config.option<ConfigOptionFloatOrPercent>(opt_id)->percent)
+                default_value = parent_config.option<ConfigOptionPercent>(opt_key)->value;
+            else if (opt.type == coPercents) {
+                if (opt.nullable) {
+                    auto opt_percents_nullable = parent_config.option<ConfigOptionPercentsNullable>(opt_key);
+                    if (!opt_percents_nullable->values.empty())
+                        default_value = opt_percents_nullable->get_at(opt_idx);
+                } else {
+                    auto opt_percents = parent_config.option<ConfigOptionPercents>(opt_key);
+                    if (!opt_percents->values.empty())
+                        default_value = opt_percents->get_at(opt_idx);
+                }
+            }
+            else if (opt.type == coFloatOrPercent || opt.type == coFloatsOrPercents) {
+                bool is_percent = false;
+                if (opt.type == coFloatOrPercent) {
+                    default_value = parent_config.option<ConfigOptionFloatOrPercent>(opt_key)->value;
+                    is_percent = parent_config.option<ConfigOptionFloatOrPercent>(opt_key)->percent;
+                } else if (opt.type == coFloatsOrPercents) {
+                    if (opt.nullable) {
+                        auto opt_floats_or_percents_nullable = parent_config.option<ConfigOptionFloatsOrPercentsNullable>(opt_key);
+                        if (!opt_floats_or_percents_nullable->values.empty()) {
+                            default_value = opt_floats_or_percents_nullable->get_at(opt_idx).value;
+                            is_percent    = opt_floats_or_percents_nullable->get_at(opt_idx).percent;
+                        }
+                    } else {
+                        auto opt_floats_or_percents = parent_config.option<ConfigOptionFloatsOrPercents>(opt_key);
+                        if (!opt_floats_or_percents->values.empty()) {
+                            default_value = opt_floats_or_percents->get_at(opt_idx).value;
+                            is_percent    = opt_floats_or_percents->get_at(opt_idx).percent;
+                        }
+                    }
+                }
+                
+                if (is_percent)
                     side_text = "%";
                 else if (!side_text.empty()) {
                     static std::string postfix = " or %";
@@ -156,20 +220,38 @@ wxString get_formatted_tooltip_text(const ConfigOptionDef& opt, const t_config_o
                 }
             }
 
-            tooltip += "\n\n" + _(L("Default")) + ": " + _(double_to_string(default_value)) + _(side_text);
+            if (!std::isnan(default_value))
+                tooltip += "\n\n" + _(L("Default")) + ": " + _(double_to_string(default_value)) + _(side_text);
 
             if (opt.min > -FLT_MAX && opt.max < FLT_MAX) {
                 tooltip += "\n" + _(L("Range")) + ": [" +
                     _(double_to_string(opt.min)) + _(side_text) + ", " +
                     _(double_to_string(opt.max)) + _(side_text) + "]";
             }
-        } else if (opt.type == coBool || opt.type == coString) {
+        } else if (opt.type == coBool || opt.type == coBools || opt.type == coString || opt.type == coStrings) {
             std::string default_value = "";
 
             if (opt.type == coString)
-                default_value = parent_config.option<ConfigOptionString>(opt_id)->value;
+                default_value = parent_config.option<ConfigOptionString>(opt_key)->value;
+            else if (opt.type == coStrings) {
+                auto opt_strings = parent_config.option<ConfigOptionStrings>(opt_key);
+
+                if (!opt_strings->values.empty())
+                    default_value = opt_strings->get_at(opt_idx);
+            }
             else if (opt.type == coBool)
-                default_value = parent_config.option<ConfigOptionBool>(opt_id)->value ? "true" : "false";
+                default_value = parent_config.option<ConfigOptionBool>(opt_key)->value != 0 ? "true" : "false";
+            else if (opt.type == coBools) {
+                if (opt.nullable) {
+                    auto opt_bools_nullable = parent_config.option<ConfigOptionBoolsNullable>(opt_key);
+                    if (!opt_bools_nullable->values.empty())
+                        default_value = opt_bools_nullable->get_at(opt_idx) != 0 ? "true" : "false";
+                } else {
+                    auto opt_bools = parent_config.option<ConfigOptionBools>(opt_key);
+                    if (!opt_bools->values.empty())
+                        default_value = opt_bools->get_at(opt_idx) != 0 ? "true" : "false";
+                }
+            }
 
             tooltip += "\n\n" + _(L("Default")) + ": " +
                 (default_value.empty() ? _(L("Empty string")) : _(default_value) + _(side_text));
