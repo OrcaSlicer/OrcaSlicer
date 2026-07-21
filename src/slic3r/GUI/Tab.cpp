@@ -34,6 +34,7 @@
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"
 #include "slic3r/Utils/PresetUpdater.hpp"
+#include "slic3r/plugin/PluginConfig.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
@@ -1795,9 +1796,19 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
     // Keep this preset's "plugins" manifest in sync when a plugin picker changes, so full_config() and
     // save_to_json() always find resolved "name;uuid;capability" references and rebuild it nowhere else.
+    // Also drop any plugin_config_overrides entries for a capability the change just stopped
+    // referencing (e.g. a plugin removed from slicing_pipeline_plugin), so a saved preset never
+    // carries configuration for a capability it no longer names. The Configure button is a separate
+    // field holding its own cached copy of that value, so it needs to be told explicitly, or it
+    // keeps showing the stale count until something else happens to refresh it.
     if (const ConfigOptionDef* opt_def = m_config->def()->get(opt_key);
-        opt_def && opt_def->is_plugin_backed())
+        opt_def && opt_def->is_plugin_backed()) {
         m_config->update_plugin_manifest();
+        if (prune_stale_plugin_overrides(*m_config)) {
+            if (Field* overrides_field = get_field(PLUGIN_OVERRIDES_OPTION_KEY))
+                overrides_field->set_value(boost::any(m_config->opt_string(PLUGIN_OVERRIDES_OPTION_KEY)), false);
+        }
+    }
 
     if (opt_key == "gcode_flavor" && m_type == Preset::TYPE_PRINTER) {
         if (auto printer_tab = dynamic_cast<TabPrinter*>(this))

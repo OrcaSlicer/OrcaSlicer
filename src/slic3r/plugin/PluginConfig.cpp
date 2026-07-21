@@ -5,6 +5,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 
+#include <libslic3r/Config.hpp>
 #include <libslic3r/PresetBundle.hpp>
 #include <libslic3r/PrintConfig.hpp>
 #include <slic3r/GUI/GUI.hpp>
@@ -162,6 +163,20 @@ bool CapabilityConfigDocument::erase(const PluginCapabilityId& id)
     if (id.type != PluginCapabilityType::Unknown)
         erased = m_entries.erase({PluginCapabilityType::Unknown, id.name, id.plugin_key}) != 0 || erased;
     return erased;
+}
+
+bool CapabilityConfigDocument::prune_unreferenced(const std::set<std::pair<PluginCapabilityType, std::string>>& referenced)
+{
+    bool changed = false;
+    for (auto it = m_entries.begin(); it != m_entries.end();) {
+        if (referenced.count({it->first.type, it->first.name}) != 0) {
+            ++it;
+        } else {
+            it      = m_entries.erase(it);
+            changed = true;
+        }
+    }
+    return changed;
 }
 
 bool CapabilityConfigDocument::empty() const
@@ -340,6 +355,50 @@ bool parse_plugin_overrides(const std::string& raw, CapabilityConfigDocument& do
 std::string serialize_plugin_overrides(const CapabilityConfigDocument& document)
 {
     return document.empty() ? std::string() : document.serialize_entries().dump();
+}
+
+bool prune_stale_plugin_overrides(DynamicConfig& config)
+{
+    const auto* overrides_opt = dynamic_cast<const ConfigOptionString*>(config.option(PLUGIN_OVERRIDES_OPTION_KEY));
+    if (overrides_opt == nullptr || overrides_opt->value.empty())
+        return false;
+
+    CapabilityConfigDocument overrides;
+    std::string              error;
+    if (!parse_plugin_overrides(overrides_opt->value, overrides, error)) {
+        // Malformed text is not ours to fix up here: leave it untouched rather than risk
+        // discarding data the user might still be able to recover.
+        BOOST_LOG_TRIVIAL(error) << "prune_stale_plugin_overrides: " << error;
+        return false;
+    }
+
+    // Capability names currently referenced by a plugin-backed option's value(s) — e.g.
+    // slicing_pipeline_plugin's ConfigOptionStrings entries name SlicingPipeline capabilities
+    // directly, the same raw values save_plugin_collection() resolves into the "plugins" manifest.
+    std::set<std::pair<PluginCapabilityType, std::string>> referenced;
+    const ConfigDef* def = config.def();
+    for (const std::string& opt_key : config.keys()) {
+        const ConfigOptionDef* opt_def = def != nullptr ? def->get(opt_key) : nullptr;
+        if (opt_def == nullptr || !opt_def->is_plugin_backed())
+            continue;
+
+        const ConfigOption*        opt  = config.option(opt_key);
+        const PluginCapabilityType type = plugin_capability_type_from_string(opt_def->plugin_type);
+        if (const auto* string_opt = dynamic_cast<const ConfigOptionString*>(opt)) {
+            if (!string_opt->value.empty())
+                referenced.emplace(type, string_opt->value);
+        } else if (const auto* vector_opt = dynamic_cast<const ConfigOptionVectorBase*>(opt)) {
+            for (const std::string& value : vector_opt->vserialize())
+                if (!value.empty())
+                    referenced.emplace(type, value);
+        }
+    }
+
+    if (!overrides.prune_unreferenced(referenced))
+        return false;
+
+    config.set_key_value(PLUGIN_OVERRIDES_OPTION_KEY, new ConfigOptionString(serialize_plugin_overrides(overrides)));
+    return true;
 }
 
 EffectiveCapabilityConfig PresetPluginConfigService::get_effective_config(const CapabilityConfigDocument&   overrides,
