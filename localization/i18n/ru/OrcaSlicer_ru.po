@@ -13486,13 +13486,13 @@ msgid "Density of top surface layer. A value of 100% creates a fully solid, smoo
 msgstr "Плотность верхней поверхности. Если установить 100%, поверхность будет сплошной и гладкой. Уменьшение этого параметра создаст текстурированную поверхность в соответствии с выбранным шаблоном заполнения верхней поверхности. При значении 0% останутся только стенки верхнего слоя. Эта функция предназначена для улучшения внешнего вида или функциональности объекта, но не для решения проблем, таких как чрезмерная экструзия."
 
 msgid "Top surface expansion"
-msgstr "Расширение поверхности"
+msgstr "Расширение поверхностей"
 
 msgid ""
 "Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
 "Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane. Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top. The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
 msgstr ""
-"Позволяет сместить границу заполнения плоских поверхностей относительно опирающихся на него периметров, чтобы закрыть небольшие разрывы в шаблоне.\n"
+"Позволяет сместить границу заполнения плоских поверхностей относительно опирающихся на них периметров, чтобы закрыть небольшие разрывы в шаблоне.\n"
 "Полезно в случаях, когда на поверхности расположен текст или иные выступы."
 
 msgid "Top expansion wall margin"
