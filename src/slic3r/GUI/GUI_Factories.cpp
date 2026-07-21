@@ -132,6 +132,9 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"infill_anchor", "", 1},
        {"infill_anchor_max", "", 1},
        {"top_surface_pattern", "", 1},
+       {"top_surface_expansion", "", 1},
+       {"top_surface_expansion_margin", "", 1},
+       {"top_surface_expansion_direction", "", 1},
        {"bottom_surface_pattern", "", 1},
        {"internal_solid_infill_pattern", "", 1},
        {"align_infill_direction_to_model", "", 1},
@@ -141,6 +144,8 @@ std::map<std::string, std::vector<SimpleSettingData>> SettingsFactory::PART_CATE
        {"infill_wall_overlap", "", 1},
        {"top_bottom_infill_wall_overlap", "", 1},
        {"solid_infill_direction", "", 1},
+       {"top_layer_direction", "", 1},
+       {"bottom_layer_direction", "", 1},
        {"infill_direction", "", 1},
        {"bridge_angle", "", 1},
        {"internal_bridge_angle", "", 1},
@@ -185,7 +190,7 @@ std::vector<SimpleSettingData> SettingsFactory::get_visible_options(const std::s
         //Quality
         "wall_infill_order", "ironing_type", "inner_wall_line_width", "outer_wall_line_width", "top_surface_line_width",
         //Shell
-        "wall_loops", "top_shell_layers", "bottom_shell_layers", "top_shell_thickness", "bottom_shell_thickness",
+        "wall_loops", "top_shell_layers", "bottom_shell_layers", "top_shell_thickness", "bottom_shell_thickness", "top_surface_expansion", "top_surface_expansion_margin", "top_surface_expansion_direction",
         //Infill
         "sparse_infill_density", "sparse_infill_pattern", "top_surface_pattern", "bottom_surface_pattern", "infill_combination", "infill_direction", "infill_wall_overlap",
         //speed
@@ -590,6 +595,7 @@ wxMenu* MenuFactory::append_submenu_add_handy_model(wxMenu* menu, ModelVolumeTyp
     static const std::vector<HandyModel> handy_models = {
         {L("Orca Cube"),           {"OrcaCube_v2.drc", "OrcaPlug_v2.drc"},                    true},
         {L("OrcaSliced Combo"),    {"OrcaSliced.3mf", "OrcaCube_v2.drc", "OrcaPlug_v2.drc"},  true},
+        {L("Orca Badge"),          {"OrcaBadge.3mf"}},
         {L("Orca Tolerance Test"), {"OrcaToleranceTest.drc"}},
         {L("3DBenchy"),            {"3DBenchy.drc"}},
         {L("Cali Cat"),            {"calicat.drc"}},

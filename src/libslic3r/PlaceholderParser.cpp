@@ -712,6 +712,26 @@ namespace client
         static void regex_matches     (expr &lhs, IteratorRange &rhs) { return regex_op(lhs, rhs, '=', lhs); }
         static void regex_doesnt_match(expr &lhs, IteratorRange &rhs) { return regex_op(lhs, rhs, '!', lhs); }
 
+        // Replace every match of the regular expression 'pattern' in the string 'subject' with 'replacement'.
+        // The replacement may reference capture groups ($1, $2, ...). Store the result into subject.
+        static void regex_replace(expr &subject, IteratorRange &pattern, expr &replacement)
+        {
+            if (subject.type() == TYPE_EMPTY)
+                // Inside an if / else block to be skipped
+                return;
+            if (subject.type() != TYPE_STRING)
+                subject.throw_exception("regex_replace() first parameter must be a string.");
+            try {
+                std::string re(++ pattern.begin(), -- pattern.end());
+                std::string result = SLIC3R_REGEX_NAMESPACE::regex_replace(subject.s(), SLIC3R_REGEX_NAMESPACE::regex(re), replacement.to_string());
+                subject.set_s(std::move(result));
+            } catch (SLIC3R_REGEX_NAMESPACE::regex_error &ex) {
+                // Syntax error in the regular expression
+                boost::throw_exception(qi::expectation_failure<Iterator>(
+                    pattern.begin(), pattern.end(), spirit::info(std::string("*Regular expression compilation failed: ") + ex.what())));
+            }
+        }
+
         static void one_of_test_init(expr &out) {
             out.set_b(false);
         }
@@ -836,9 +856,11 @@ namespace client
         static std::map<std::string, std::string> tag_to_error_message;
 
         size_t get_extruder_id() const {
-            const ConfigOptionInts * filament_map_opt = external_config->option<ConfigOptionInts>("filament_map");
-            if (filament_map_opt && current_extruder_id < filament_map_opt->values.size()) {
-                return filament_map_opt->values[current_extruder_id];
+            if (external_config != nullptr) {
+                const ConfigOptionInts * filament_map_opt = external_config->option<ConfigOptionInts>("filament_map");
+                if (filament_map_opt && current_extruder_id < filament_map_opt->values.size()) {
+                    return filament_map_opt->values[current_extruder_id];
+                }
             }
             return 0;
         }
@@ -1096,24 +1118,106 @@ namespace client
             const ConfigOptionVectorBase* vec = static_cast<const ConfigOptionVectorBase*>(opt.opt);
             if (vec->empty())
                 ctx->throw_exception("Indexing an empty vector variable", opt.it_range);
+
+            // Helper to resolve a FloatOrPercent value (handles ratio_over chain for percent values).
+            // elem_index: the element index used to access this vector element, so that
+            // parent vectors (via ratio_over) use the same index rather than the current extruder.
+            auto resolve_float_or_percent = [ctx, &opt, &output](const FloatOrPercent &fop, size_t elem_index) {
+                std::string opt_key(opt.it_range.begin(), opt.it_range.end());
+                if (boost::ends_with(opt_key, "line_width")) {
+                    // Line width supports defaults and a complex graph of dependencies.
+                    output.set_d(Flow::extrusion_width(opt_key, *ctx, static_cast<unsigned int>(ctx->current_extruder_id)));
+                } else if (! fop.percent) {
+                    // Not a percent, just return the value.
+                    output.set_d(fop.value);
+                } else {
+                    // Resolve dependencies using the "ratio_over" link to a parent value.
+                    const ConfigOptionDef *opt_def = print_config_def.get(opt_key);
+                    assert(opt_def != nullptr);
+                    double v = fop.value * 0.01; // percent to ratio
+                    for (;;) {
+                        const ConfigOption *opt_parent = opt_def->ratio_over.empty() ? nullptr : ctx->resolve_symbol(opt_def->ratio_over);
+                        if (opt_parent == nullptr)
+                            ctx->throw_exception("FloatOrPercent variable failed to resolve the \"ratio_over\" dependencies", opt.it_range);
+                        if (boost::ends_with(opt_def->ratio_over, "line_width")) {
+                            // Line width supports defaults and a complex graph of dependencies.
+                            assert(opt_parent->type() == coFloatOrPercent);
+                            v *= Flow::extrusion_width(opt_def->ratio_over, static_cast<const ConfigOptionFloatOrPercent*>(opt_parent), *ctx, static_cast<unsigned int>(ctx->current_extruder_id));
+                            break;
+                        }
+                        if (opt_parent->type() == coFloat || opt_parent->type() == coFloatOrPercent) {
+                            v *= opt_parent->getFloat();
+                            if (opt_parent->type() == coFloat || ! static_cast<const ConfigOptionFloatOrPercent*>(opt_parent)->percent)
+                                break;
+                            v *= 0.01; // percent to ratio
+                        } else if (opt_parent->type() == coFloats) {
+                            // Vector parent: extract the value for the current extruder.
+                            const ConfigOptionFloatsNullable *parent_nullable = dynamic_cast<const ConfigOptionFloatsNullable *>(opt_parent);
+                            if (parent_nullable) {
+                                v *= (parent_nullable->size() == 1) ? parent_nullable->get_at(0) : parent_nullable->get_at(elem_index);
+                            } else {
+                                const ConfigOptionFloats *parent_vec = static_cast<const ConfigOptionFloats *>(opt_parent);
+                                v *= (parent_vec->size() == 1) ? parent_vec->get_at(0) : parent_vec->get_at(elem_index);
+                            }
+                            break;
+                        } else if (opt_parent->type() == coFloatsOrPercents) {
+                            // Vector parent with percent support: extract the FloatOrPercent for the current extruder.
+                            const ConfigOptionFloatsOrPercentsNullable *parent_nullable = dynamic_cast<const ConfigOptionFloatsOrPercentsNullable *>(opt_parent);
+                            if (parent_nullable) {
+                                const FloatOrPercent &parent_fop = (parent_nullable->size() == 1) ? parent_nullable->get_at(0) : parent_nullable->get_at(elem_index);
+                                if (! parent_fop.percent) {
+                                    v *= parent_fop.value;
+                                    break;
+                                }
+                                v *= parent_fop.value * 0.01; // percent to ratio
+                            } else {
+                                const ConfigOptionFloatsOrPercents *parent_vec = static_cast<const ConfigOptionFloatsOrPercents *>(opt_parent);
+                                const FloatOrPercent &parent_fop = (parent_vec->size() == 1) ? parent_vec->get_at(0) : parent_vec->get_at(elem_index);
+                                if (! parent_fop.percent) {
+                                    v *= parent_fop.value;
+                                    break;
+                                }
+                                v *= parent_fop.value * 0.01; // percent to ratio
+                            }
+                        }
+                        // Continue one level up in the "ratio_over" hierarchy.
+                        opt_def = print_config_def.get(opt_def->ratio_over);
+                        assert(opt_def != nullptr);
+                    }
+                    output.set_d(v);
+                }
+            };
+
             if (!opt.has_index()) {
                 // Allow omitting extruder id when referencing vectors
                 switch (opt.opt->type()) {
                 case coFloats: {
-                    const ConfigOptionFloatsNullable* opt_floatsnullable = static_cast<const ConfigOptionFloatsNullable *>(opt.opt);
+                    const ConfigOptionFloatsNullable* opt_floatsnullable = dynamic_cast<const ConfigOptionFloatsNullable *>(opt.opt);
                     if (opt_floatsnullable) {
                         if (opt_floatsnullable->size() == 1) { // old version
-                            output.set_d(static_cast<const ConfigOptionFloatsNullable*>(opt.opt)->get_at(0));
+                            output.set_d(opt_floatsnullable->get_at(0));
                         } else {
-                            output.set_d(static_cast<const ConfigOptionFloatsNullable*>(opt.opt)->get_at(ctx->get_extruder_id()));
+                            output.set_d(opt_floatsnullable->get_at(ctx->get_extruder_id()));
                         }
                     } else {
                         const ConfigOptionFloats* opt_floats = static_cast<const ConfigOptionFloats*>(opt.opt);
                         if (opt_floats->size() == 1) { // old version
-                            output.set_d(static_cast<const ConfigOptionFloats*>(opt.opt)->get_at(0));
+                            output.set_d(opt_floats->get_at(0));
                         } else {
-                            output.set_d(static_cast<const ConfigOptionFloats*>(opt.opt)->get_at(ctx->get_extruder_id()));
+                            output.set_d(opt_floats->get_at(ctx->get_extruder_id()));
                         }
+                    }
+                    break;
+                }
+                case coFloatsOrPercents: {
+                    const ConfigOptionFloatsOrPercentsNullable *opt_vec_nullable = dynamic_cast<const ConfigOptionFloatsOrPercentsNullable *>(opt.opt);
+                    if (opt_vec_nullable) {
+                        size_t elem_index = (opt_vec_nullable->size() == 1) ? 0 : ctx->get_extruder_id();
+                        resolve_float_or_percent(opt_vec_nullable->get_at(elem_index), elem_index);
+                    } else {
+                        const ConfigOptionFloatsOrPercents *opt_vec = static_cast<const ConfigOptionFloatsOrPercents *>(opt.opt);
+                        size_t elem_index = (opt_vec->size() == 1) ? 0 : ctx->get_extruder_id();
+                        resolve_float_or_percent(opt_vec->get_at(elem_index), elem_index);
                     }
                     break;
                 }
@@ -1131,6 +1235,15 @@ namespace client
                 case coPoints:   output.set_s(to_string(static_cast<const ConfigOptionPoints*>(opt.opt)->values[idx])); break;
                 case coBools:    output.set_b(static_cast<const ConfigOptionBools*>(opt.opt)->values[idx] != 0); break;
                 case coEnums:    output.set_i(static_cast<const ConfigOptionInts    *>(opt.opt)->values[idx]); break;
+                case coFloatsOrPercents: {
+                    const ConfigOptionFloatsOrPercentsNullable *opt_vec_nullable = dynamic_cast<const ConfigOptionFloatsOrPercentsNullable *>(opt.opt);
+                    if (opt_vec_nullable) {
+                        resolve_float_or_percent(opt_vec_nullable->values[idx], idx);
+                    } else {
+                        resolve_float_or_percent(static_cast<const ConfigOptionFloatsOrPercents *>(opt.opt)->values[idx], idx);
+                    }
+                    break;
+                }
                 default:
                     ctx->throw_exception("Unsupported vector variable type", opt.it_range);
                 }
@@ -2230,6 +2343,8 @@ namespace client
                                                                     [ px::bind(&expr::digits<false>, _val, _2, _3) ]
                 |   (kw["zdigits"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > conditional_expression(_r1) > optional_parameter(_r1))
                                                                     [ px::bind(&expr::digits<true>, _val, _2, _3) ]
+                |   (kw["regex_replace"] > '(' > conditional_expression(_r1) [_val = _1] > ',' > regular_expression > ',' > conditional_expression(_r1) > ')')
+                                                                    [ px::bind(&expr::regex_replace, _val, _2, _3) ]
                 |   (kw["int"]   > '(' > conditional_expression(_r1) > ')') [ px::bind(&FactorActions::to_int,  _1, _val) ]
                 |   (kw["round"] > '(' > conditional_expression(_r1) > ')') [ px::bind(&FactorActions::round,   _1, _val) ]
                 |   (kw["ceil"]  > '(' > conditional_expression(_r1) > ')') [ px::bind(&FactorActions::ceil,    _1, _val) ]
@@ -2311,6 +2426,7 @@ namespace client
                 ("min")
                 ("max")
                 ("random")
+                ("regex_replace")
                 ("filament_change")
                 ("repeat")
                 ("round")

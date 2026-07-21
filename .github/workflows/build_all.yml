@@ -57,17 +57,13 @@ jobs:
   build_linux:
     strategy:
       fail-fast: false
-      # Build both arches on every event (PRs included), through the same
-      # build_check_cache -> build_deps -> build_orca chain (the AppImage).
-      # aarch64 always uses the GitHub-hosted arm runner (there is no arm
-      # self-hosted server). amd64's empty arch is load-bearing: it keeps the
-      # historical 'linux-clang' deps cache key and the unsuffixed asset names.
+      # SELF_HOSTED skips arm64 (no arm self-hosted server). amd64's empty arch
+      # is load-bearing: it keeps the historical 'linux-clang' deps cache key and
+      # the unsuffixed asset names.
       matrix:
-        include:
-          - arch: ""
-            os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
-          - arch: "aarch64"
-            os: ubuntu-24.04-arm
+        include: ${{ fromJSON(vars.SELF_HOSTED
+          && '[{"arch":"","os":"orca-lnx-server"}]'
+          || '[{"arch":"","os":"ubuntu-24.04"},{"arch":"aarch64","os":"ubuntu-24.04-arm"}]') }}
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
@@ -80,18 +76,16 @@ jobs:
     name: Build Windows ${{ matrix.arch }}
     strategy:
       fail-fast: false
+      # SELF_HOSTED skips arm64 (the self-hosted Windows server is x64-only).
       matrix:
-        include:
-          - arch: x64
-            os: windows-latest
-          - arch: arm64
-            os: windows-11-arm
+        include: ${{ fromJSON(vars.SELF_HOSTED
+          && '[{"arch":"x64","os":"orca-win-server"}]'
+          || '[{"arch":"x64","os":"windows-latest"},{"arch":"arm64","os":"windows-11-arm"}]') }}
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      # Self-hosted runner is x64-only; ARM64 always uses the GitHub-hosted runner.
-      os: ${{ (matrix.arch == 'x64' && vars.SELF_HOSTED) && 'orca-win-server' || matrix.os }}
+      os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
@@ -122,54 +116,97 @@ jobs:
       arch: universal
       macos-combine-only: true
     secrets: inherit
-  unit_tests:
-    name: Unit Tests
-    # Tests are built on the aarch64 leg by default (faster GitHub arm runner),
-    # so run them there; self-hosted builds them on the amd64 server instead.
-    runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04-arm' }}
+  # One test job per built arch, on the runner that built it.
+  unit_tests_linux_x86_64:
+    name: Linux x86_64
     needs: build_linux
     if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
+      artifact: ${{ github.sha }}-tests-linux-x86_64
+  unit_tests_linux_aarch64:
+    name: Linux aarch64
+    needs: build_linux
+    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ubuntu-24.04-arm
+      artifact: ${{ github.sha }}-tests-linux-aarch64
+  unit_tests_windows_x64:
+    name: Windows x64
+    needs: build_windows
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-win-server' || 'windows-latest' }}
+      artifact: ${{ github.sha }}-tests-windows-x64
+  unit_tests_windows_arm64:
+    name: Windows arm64
+    needs: build_windows
+    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: windows-11-arm
+      artifact: ${{ github.sha }}-tests-windows-arm64
+      test-dir: build-arm64/tests
+  unit_tests_macos_arm64:
+    name: macOS arm64
+    needs: build_macos_arch
+    if: ${{ !cancelled() && success() }}
+    uses: ./.github/workflows/unit_tests.yml
+    with:
+      os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
+      artifact: ${{ github.sha }}-tests-macos-arm64
+      test-dir: build/arm64/tests
+  # Slice a two-colour cube through every shipped printer so all custom g-code
+  # (change_filament_gcode, machine start/end, etc.) is expanded - catches
+  # slicing regressions the static profile checks and unit tests can't see.
+  # Profile-only PRs are covered by check_profiles.yml's nightly binary; this
+  # covers src/engine PRs with the PR-built binary.
+  slice_check_linux:
+    name: Slice check (Linux ${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }})
+    needs: build_linux
+    if: ${{ !cancelled() && success() }}
+    # Follows whichever Linux leg built the validator.
+    runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04-arm' }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          sparse-checkout: |
-            .github
-            scripts
-            tests
-      - name: Apt-Install Dependencies
-        if: ${{ !vars.SELF_HOSTED }}
-        uses: ./.github/actions/apt-install-deps
-      - name: Restore Test Artifact
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Download profile validator
         uses: actions/download-artifact@v8
         with:
-          name: ${{ github.sha }}-tests
-      - uses: lukka/get-cmake@latest
-        with:
-          cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
-          useLocalCache: true         # <--= Use the local cache (default is 'false').
-          useCloudCache: true
-      - name: Unpackage and Run Unit Tests
-        timeout-minutes: 20
+          name: ${{ github.sha }}-profile-validator-linux-${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }}
+          path: validator-bin
+      - name: Validate slice (expand custom g-code)
+        timeout-minutes: 60
         run: |
-          tar -xvf build_tests.tar
-          scripts/run_unit_tests.sh
-      - name: Upload Test Logs
-        uses: actions/upload-artifact@v7
-        if: ${{ failure() }}
+          chmod +x validator-bin/OrcaSlicer_profile_validator
+          ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
+  publish_test_results:
+    name: Publish Test Results
+    needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Test Results
+        uses: actions/download-artifact@v8
         with:
-          name: unit-test-logs
-          path: build/tests/**/*.log
+          pattern: test-results-*
+          path: test-results
+      # Best-effort: a read-only token (e.g. fork PRs) can't write the check, so
+      # don't let a publish failure fail the run. The test jobs gate correctness.
       - name: Publish Test Results
-        if: always()
+        continue-on-error: true
         uses: EnricoMi/publish-unit-test-result-action@v2
         with:
-          files: "ctest_results.xml"
-      - name: Delete Test Artifact
+          files: "test-results/**/*.xml"
+      - name: Delete Test Results
         if: success()
         uses: geekyeggo/delete-artifact@v6
         with:
-          name: ${{ github.sha }}-tests
+          name: test-results-*
+          failOnError: false
   flatpak:
     name: "Flatpak"
     container:
@@ -204,7 +241,7 @@ jobs:
     - name: "Remove unneeded stuff to free disk space"
       run:
         rm -rf /usr/local/lib/android/* /usr/share/dotnet/* /opt/ghc1/* "/usr/local/share/boost1/*" /opt/hostedtoolcache1/*
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Get the version and date
       run: |
         ver_pure=$(grep 'set(SoftFever_VERSION' version.inc | cut -d '"' -f2)
@@ -223,14 +260,14 @@ jobs:
     # Manage flatpak-builder cache externally so PRs restore but never upload
     - name: Restore flatpak-builder cache
       if: github.event_name == 'pull_request'
-      uses: actions/cache/restore@v5
+      uses: actions/cache/restore@v6
       with:
         path: .flatpak-builder
         key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.event.pull_request.base.sha }}
         restore-keys: flatpak-builder-${{ matrix.variant.arch }}-
     - name: Save/restore flatpak-builder cache
       if: github.event_name != 'pull_request'
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: .flatpak-builder
         key: flatpak-builder-${{ matrix.variant.arch }}-${{ github.sha }}

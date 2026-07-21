@@ -37,13 +37,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           lfs: 'false'
 
       - name: load cached deps
         if: ${{ !(runner.os == 'macOS' && inputs.macos-combine-only) }}
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
@@ -141,8 +141,26 @@ jobs:
       - name: Build slicer mac
         if: runner.os == 'macOS' && !inputs.macos-combine-only
         working-directory: ${{ github.workspace }}
+        # arm64 only: build the tests here; the unit_tests_macos job runs them.
+        env:
+          ORCA_TESTS_BUILD_ONLY: ${{ inputs.arch == 'arm64' && '1' || '' }}
         run: |
-          ./build_release_macos.sh -s -n -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
+          ./build_release_macos.sh -s -n -x ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15 ${{ inputs.arch == 'arm64' && '-T' || '' }}
+
+      - name: Pack unit tests mac
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && inputs.arch == 'arm64'
+        working-directory: ${{ github.workspace }}
+        run: tar -cvf build_tests.tar build/arm64/tests
+
+      - name: Upload Test Artifact mac
+        if: runner.os == 'macOS' && !inputs.macos-combine-only && inputs.arch == 'arm64'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.sha }}-tests-macos-arm64
+          overwrite: true
+          path: build_tests.tar
+          retention-days: 5
+          if-no-files-found: error
 
       - name: Pack macOS app bundle ${{ inputs.arch }}
         if: runner.os == 'macOS' && !inputs.macos-combine-only
@@ -203,10 +221,41 @@ jobs:
           security import $CERTIFICATE_PATH -P $P12_PASSWORD -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
           security list-keychain -d user -s $KEYCHAIN_PATH
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $P12_PASSWORD $KEYCHAIN_PATH
-          codesign --deep --force --verbose --options runtime --timestamp --entitlements ${{ github.workspace }}/scripts/disable_validation.entitlements --sign "$CERTIFICATE_ID" ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app
+          # codesign --deep is deprecated and cannot sign the bundled Python
+          # runtime (see relocate_python_runtime in build_release_macos.sh).
+          # Sign every nested Mach-O in the bundle explicitly -- notarization
+          # requires the hardened-runtime signature on each -- then seal the
+          # bundle itself last, and verify so coverage gaps fail at CI time
+          # rather than at notarization.
+          ENTITLEMENTS=${{ github.workspace }}/scripts/disable_validation.entitlements
+          sign() {
+            codesign --force --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$CERTIFICATE_ID" "$@"
+          }
+          sign_app() {
+            local app="$1"
+            local machos=()
+            # file is batched via xargs (per-file it costs minutes); universal
+            # binaries also print per-architecture lines, dropped by grep -v.
+            while IFS= read -r f; do machos+=("$f"); done < <(
+              find "$app" -type f -print0 |
+                xargs -0 file --no-pad --mime-type -- |
+                grep -v ' (for architecture ' |
+                grep ': application/x-mach-binary$' |
+                sed 's|: application/x-mach-binary$||'
+            )
+            if [ "${#machos[@]}" -eq 0 ]; then
+              echo "ERROR: no Mach-O files found in $app -- detection is broken" >&2
+              exit 1
+            fi
+            echo "signing ${#machos[@]} Mach-O files in $app"
+            sign "${machos[@]}"
+            sign --verbose "$app"
+            codesign --verify --deep --strict --verbose=2 "$app"
+          }
+          sign_app "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app"
           # Sign OrcaSlicer_profile_validator.app if it exists
           if [ -f "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then
-            codesign --deep --force --verbose --options runtime --timestamp --entitlements ${{ github.workspace }}/scripts/disable_validation.entitlements --sign "$CERTIFICATE_ID" ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app
+            sign_app "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app"
           fi
           
           # Create main OrcaSlicer DMG without the profile validator helper
@@ -215,7 +264,7 @@ jobs:
           cp -R ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer.app ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/
           ln -sfn /Applications ${{ github.workspace }}/build/universal/OrcaSlicer_dmg/Applications
           retry hdiutil create -volname "OrcaSlicer" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_dmg -ov -format UDZO OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
-          codesign --deep --force --verbose --options runtime --timestamp --entitlements ${{ github.workspace }}/scripts/disable_validation.entitlements --sign "$CERTIFICATE_ID" OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
+          codesign --deep --force --verbose --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$CERTIFICATE_ID" OrcaSlicer_Mac_universal_${{ env.ver }}.dmg
           
           # Create separate OrcaSlicer_profile_validator DMG if the app exists
           if [ -f "${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then
@@ -224,7 +273,7 @@ jobs:
             cp -R ${{ github.workspace }}/build/universal/OrcaSlicer/OrcaSlicer_profile_validator.app ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg/
             ln -sfn /Applications ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg/Applications
             retry hdiutil create -volname "OrcaSlicer Profile Validator" -srcfolder ${{ github.workspace }}/build/universal/OrcaSlicer_profile_validator_dmg -ov -format UDZO OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
-            codesign --deep --force --verbose --options runtime --timestamp --entitlements ${{ github.workspace }}/scripts/disable_validation.entitlements --sign "$CERTIFICATE_ID" OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
+            codesign --deep --force --verbose --options runtime --timestamp --entitlements "$ENTITLEMENTS" --sign "$CERTIFICATE_ID" OrcaSlicer_profile_validator_Mac_universal_${{ env.ver }}.dmg
           fi
           
           # Notarize main DMG
@@ -335,10 +384,27 @@ jobs:
         # env:
         #   WindowsSdkDir: 'C:\Program Files (x86)\Windows Kits\10\'
         #   WindowsSDKVersion: '10.0.26100.0\'
+        # "tests" builds the unit tests too; the unit_tests_windows_* jobs run them.
         run: |
           $arch = "${{ inputs.arch }}"
-          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 } else { .\build_release_vs.bat slicer }
+          if ($arch -eq "arm64") { .\build_release_vs.bat slicer arm64 tests } else { .\build_release_vs.bat slicer tests }
         shell: pwsh
+
+      - name: Pack unit tests Win
+        if: runner.os == 'Windows'
+        working-directory: ${{ github.workspace }}
+        shell: pwsh
+        run: tar -cvf build_tests.tar ${{ env.BUILD_DIR }}/tests
+
+      - name: Upload Test Artifact Win
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.sha }}-tests-windows-${{ inputs.arch }}
+          overwrite: true
+          path: build_tests.tar
+          retention-days: 5
+          if-no-files-found: error
 
       # NSIS is x86-only; it runs (and the installer it emits runs) under ARM64's
       # x86 emulation, packaging the native arm64 payload from build-arm64.
@@ -452,28 +518,38 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          # Build + tar the unit tests (-t) only on the leg that runs them: the
-          # aarch64 leg by default (faster GitHub arm runner), or amd64 when using
-          # self-hosted runners (no arm self-hosted server). unit_tests downloads
-          # this tarball. The profile validator is built with -s, so amd64 keeps it.
-          tests=${{ (!vars.SELF_HOSTED && inputs.arch == 'aarch64') || (vars.SELF_HOSTED && inputs.arch != 'aarch64') }}
-          if $tests; then flags=-istrlL; else flags=-isrlL; fi
-          ./build_linux.sh "$flags"
+          # Build + tar the unit tests (-t) on both Linux legs so each arch
+          # (x86_64 + aarch64) gets tested by its own unit_tests_linux_* job.
+          ./build_linux.sh -istrlL
           ./scripts/check_appimage_libs.sh ./build/package ./build/package/bin/orca-slicer
           appimage=./build/OrcaSlicer_Linux_AppImage${{ env.ubuntu-ver-str }}${{ env.arch_suffix }}_${{ env.ver }}.AppImage
           mv -n ./build/OrcaSlicer_Linux_V${{ env.ver_pure }}.AppImage "$appimage"
           chmod +x "$appimage"
-          if $tests; then tar -cvpf build_tests.tar build/tests; fi
+          tar -cvf build_tests.tar build/tests
 
         # Use tar because upload-artifacts won't always preserve directory structure
         # and doesn't preserve file permissions
       - name: Upload Test Artifact
-        if: runner.os == 'Linux' && ((!vars.SELF_HOSTED && inputs.arch == 'aarch64') || (vars.SELF_HOSTED && inputs.arch != 'aarch64'))
+        if: runner.os == 'Linux'
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ github.sha }}-tests
+          name: ${{ github.sha }}-tests-linux-${{ inputs.arch == 'aarch64' && 'aarch64' || 'x86_64' }}
           overwrite: true
           path: build_tests.tar
+          retention-days: 5
+          if-no-files-found: error
+
+        # Ship the freshly-built validator so slice_check_linux (build_all.yml)
+        # can slice-sweep the shipped profiles with this PR's engine. Taken from
+        # the aarch64 leg so the sweep also exercises the arm build; x86_64 on
+        # SELF_HOSTED, which skips arm64.
+      - name: Upload profile validator (for slice check)
+        if: ${{ runner.os == 'Linux' && (vars.SELF_HOSTED && inputs.arch != 'aarch64' || !vars.SELF_HOSTED && inputs.arch == 'aarch64') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ github.sha }}-profile-validator-linux-${{ inputs.arch == 'aarch64' && 'aarch64' || 'x86_64' }}
+          overwrite: true
+          path: ./build/src/Release/OrcaSlicer_profile_validator
           retention-days: 5
           if-no-files-found: error
 

@@ -710,6 +710,38 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_field("bottom_surface_pattern", has_bottom_shell);
     toggle_field("top_surface_density", has_top_shell);
     toggle_field("bottom_surface_density", has_bottom_shell);
+    toggle_field("top_layer_direction", has_top_shell);
+    toggle_field("bottom_layer_direction", has_bottom_shell);
+
+    toggle_line("top_surface_expansion", has_top_shell);
+    toggle_line("top_surface_expansion_margin", has_top_shell);
+    bool has_top_surface_expansion = config->opt_float("top_surface_expansion") > 0;
+    toggle_field("top_surface_expansion_margin", has_top_surface_expansion);
+    toggle_line("top_surface_expansion_direction", has_top_shell);
+    toggle_field("top_surface_expansion_direction", has_top_surface_expansion);
+
+    // Orca: Archimedean Chords and Octagram Spiral are the centered surface patterns that the
+    // pattern-centering feature acts on.
+    auto is_centered_pattern = [](InfillPattern p) {
+        return p == InfillPattern::ipArchimedeanChords || p == InfillPattern::ipOctagramSpiral;
+    };
+    bool is_top_centered    = is_centered_pattern(config->option<ConfigOptionEnum<InfillPattern>>("top_surface_pattern")->value);
+    bool is_bottom_centered = is_centered_pattern(config->option<ConfigOptionEnum<InfillPattern>>("bottom_surface_pattern")->value);
+    bool has_centered_surface = (has_top_shell && is_top_centered) || (has_bottom_shell && is_bottom_centered);
+
+    // Orca: center of surface pattern
+    toggle_line("center_of_surface_pattern", has_centered_surface);
+
+    // Orca: separate infills
+    bool is_internal_infill_separable = is_separable_infill_pattern(config->option<ConfigOptionEnum<InfillPattern>>("sparse_infill_pattern")->value) ||
+                                        config->opt_string("sparse_infill_rotate_template") != "" ||
+                                        config->opt_string("solid_infill_rotate_template") != "";
+    toggle_line("separated_infills", is_internal_infill_separable);
+
+    // Fill order is only meaningful for the center-based surface fill patterns; hide it otherwise.
+    auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipArchimedeanChords || p == ipOctagramSpiral; };
+    toggle_line("top_surface_fill_order", has_top_shell && is_centered_fill(config->opt_enum<InfillPattern>("top_surface_pattern")));
+    toggle_line("bottom_surface_fill_order", has_bottom_shell && is_centered_fill(config->opt_enum<InfillPattern>("bottom_surface_pattern")));
 
     for (auto el : { "infill_direction", "sparse_infill_line_width", "gap_fill_target","filter_out_gap_fill","infill_wall_overlap",
         "bridge_angle", "internal_bridge_angle", "relative_bridge_angle",
@@ -844,6 +876,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 //    toggle_line("support_speed", have_support_material || have_skirt_height);
 //    toggle_line("support_interface_speed", have_support_material && have_support_interface);
 
+    // Orca:
+    for (auto el : {"small_support_perimeter_speed", "small_support_perimeter_threshold"})
+        toggle_field(el, config->opt_bool("enable_support"));
+
     // BBS
     //toggle_field("support_material_synchronize_layers", have_support_soluble);
 
@@ -910,7 +946,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("wipe_tower_extra_rib_length", have_rib_wall);
     toggle_line("wipe_tower_rib_width", have_rib_wall);
     toggle_line("wipe_tower_fillet_wall", have_rib_wall);
-    toggle_field("prime_tower_width", have_prime_tower && (supports_wipe_tower_2 || have_rib_wall));
+    toggle_field("prime_tower_width", have_prime_tower && !have_rib_wall);
 
     toggle_line("single_extruder_multi_material_priming", !bSEMM && have_prime_tower && supports_wipe_tower_2);
 
@@ -974,7 +1010,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     toggle_line("min_width_top_surface", config->opt_bool("only_one_wall_top") || ((config->opt_float("min_length_factor") > 0.5f) && have_arachne)); // 0.5 is default value
 
-    for (auto el : { "hole_to_polyhole_threshold", "hole_to_polyhole_twisted" })
+    for (auto el : { "hole_to_polyhole_threshold", "hole_to_polyhole_twisted", "hole_to_polyhole_max_edges" })
         toggle_line(el, config->opt_bool("hole_to_polyhole"));
 
     bool has_detect_overhang_wall = config->opt_bool("detect_overhang_wall");

@@ -21,6 +21,8 @@
 #include <deque>
 #include <unordered_set>
 
+#include <libslic3r/Preset.hpp>
+
 namespace Slic3r {
 namespace GUI {
 
@@ -43,6 +45,13 @@ enum class InfoItemType;
 #define BBL_NOTICE_OBJECTS_OBJID        1024+2
 
 #define BBL_NOTICE_MAX_INTERVAL         86400 * 10
+
+struct JumpTo
+{
+	std::string text;
+	std::string opt;
+	Preset::Type opt_type;
+};
 
 enum class NotificationType
 {
@@ -166,6 +175,16 @@ enum class NotificationType
     OrcaSharedProfilesAvailable,
 	OrcaCloudAPIError,
     OrcaSyncConflict,
+    // Active preset requires plugin capabilities that are not installed/loadable. Persistent,
+    // non-modal; offers install (cloud) / OrcaCloud search (local) and blocks slicing.
+    OrcaLocalPluginMissingError,
+    OrcaCloudPluginMissingError,
+    // Active preset references capabilities that are installed but not active (plugin not loaded, or
+    // capability disabled). Resolved locally by activating them; persistent, blocks slicing.
+    OrcaPluginInactiveError,
+    // Active preset references a capability the installed+loaded plugin does not provide (outdated
+    // plugin). Informational; cannot be auto-resolved; persistent, blocks slicing.
+    OrcaPluginCapabilityUnavailableError,
     NotificationTypeCount
 
 };
@@ -282,6 +301,13 @@ public:
 		int conflict_code,
 		std::function<bool(wxEvtHandler*)> pull_callback,
 		std::function<bool(wxEvtHandler*)> force_push_callback);
+	// Non-closable, persistent missing-plugin notification with a single resolve action (install /
+	// open OrcaCloud). The callback returns true to close the notification, or false to keep it
+	// visible while resolution continues.
+	void push_plugin_missing_notification(NotificationType type, const std::string& text,
+		const std::string& resolve_label,
+		std::vector<JumpTo> body,
+		std::function<bool(wxEvtHandler*)> resolve_callback);
 
     // Download URL progress notif
     void push_download_URL_progress_notification(size_t id, const std::string& text, std::function<bool(DownloaderUserAction, int)> user_action_callback);
@@ -925,6 +951,46 @@ private:
 		std::function<bool(wxEvtHandler*)> m_force_push_callback;
 		int conflict_code;
 	};
+
+	// Persistent, non-closable notification for preset plugin capabilities that are required but
+	// unavailable. Offers per-capability "Jump to" links and a single resolve action; it stays up
+	// until every missing plugin is resolved.
+	class PluginMissingNotification : public PopNotification
+	{
+	public:
+		PluginMissingNotification(const NotificationData& n, NotificationIDProvider& id_provider, wxEvtHandler* evt_handler,
+			std::string resolve_label,
+			std::vector<JumpTo> body,
+			std::function<bool(wxEvtHandler*)> resolve_callback)
+			: PopNotification(n, id_provider, evt_handler)
+			, m_resolve_label(std::move(resolve_label))
+			, m_body(std::move(body))
+			, m_resolve_callback(std::move(resolve_callback))
+		{
+			m_multiline = true;
+		}
+    protected:
+		void init() override;
+		void render_text(ImGuiWrapper& imgui,
+			const float win_size_x, const float win_size_y,
+			const float win_pos_x, const float win_pos_y) override;
+		// Non-closable: the notification stays up until the missing plugins are resolved.
+		void render_close_button(ImGuiWrapper& /*imgui*/,
+			const float /*win_size_x*/, const float /*win_size_y*/,
+			const float /*win_pos_x*/, const float /*win_pos_y*/) override {}
+		void render_minimize_button(ImGuiWrapper& /*imgui*/,
+			const float /*win_pos_x*/, const float /*win_pos_y*/) override { m_minimize_b_visible = false; }
+		void bbl_render_block_notif_text(ImGuiWrapper& imgui,
+			const float win_size_x, const float win_size_y,
+			const float win_pos_x, const float win_pos_y) override;
+		void bbl_render_block_notif_buttons(ImGuiWrapper& /*imgui*/,
+			ImVec2 /*win_size*/, ImVec2 /*win_pos*/) override {}
+
+		std::string m_resolve_label;
+		std::vector<JumpTo> m_body;
+		std::function<bool(wxEvtHandler*)> m_resolve_callback;
+	};
+
 	class SlicingProgressNotification;
 
 	// in HintNotification.hpp

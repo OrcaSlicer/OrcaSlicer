@@ -72,6 +72,25 @@ struct FilamentBaseInfo
     bool is_support{ false };
     bool is_system{ true };
     int  filament_printable = 3;
+
+    // filament_extruder_compatibility packs one compatibility level per extruder into a single
+    // 32-bit int, 3 bits per extruder (up to 10 extruders). Levels: 0 = printable, 1 = error,
+    // 2 = critical warning, 3 = warning (4-7 reserved). extruder_id is 0-based.
+    int get_extruder_compatibility(int extruder_id) const {
+        constexpr int bits_per_extruder  = 3;
+        constexpr int extruder_mask      = (1 << bits_per_extruder) - 1; // 0x7
+        constexpr int max_extruder_count = 32 / bits_per_extruder;       // 10
+
+        if (extruder_id < 0 || extruder_id >= max_extruder_count)
+            return 0;
+        return (m_filament_extruder_compatibility >> (bits_per_extruder * extruder_id)) & extruder_mask;
+    }
+
+    void set_filament_extruder_compatibility(int value) { m_filament_extruder_compatibility = value; }
+    int  get_filament_extruder_compatibility() const    { return m_filament_extruder_compatibility; }
+
+private:
+    int  m_filament_extruder_compatibility = 0;
 };
 
 enum BundleType{
@@ -156,7 +175,8 @@ public:
                                                     const DynamicPrintConfig       &project_config,
                                                     std::vector<Preset>            &in_filament_presets,
                                                     bool                            apply_extruder,
-                                                    std::optional<std::vector<int>> filament_maps_new);
+                                                    std::optional<std::vector<int>> filament_maps_new,
+                                                    std::optional<std::vector<int>> filament_volume_maps_new = std::nullopt);
 
     // ORCA: utility function to find the vendor for a given preset name
     static std::string find_preset_vendor(const std::string& preset_name, Preset::Type type);
@@ -364,9 +384,18 @@ public:
     bool                        has_defauls_only() const
         { return prints.has_defaults_only() && filaments.has_defaults_only() && printers.has_defaults_only(); }
 
-    DynamicPrintConfig          full_config(bool apply_extruder = true, std::optional<std::vector<int>>filament_maps = std::nullopt) const;
+    DynamicPrintConfig          full_config(bool apply_extruder = true, std::optional<std::vector<int>>filament_maps = std::nullopt, std::optional<std::vector<int>> filament_volume_maps = std::nullopt) const;
     // full_config() with the some "useless" config removed.
     DynamicPrintConfig          full_config_secure(std::optional<std::vector<int>>filament_maps = std::nullopt) const;
+
+    // Default per-filament nozzle-volume types: each filament inherits the volume type of the
+    // extruder it maps to (1-based f_maps), Standard when unknown.
+    std::vector<int> get_default_nozzle_volume_types_for_filaments(std::vector<int>& f_maps);
+
+    // Per-extruder flush matrix [extruder_id][from_filament][to_filament] in mm^3, optionally scaled
+    // by the per-extruder flush_multiplier (or flush_multiplier_fast when prime_volume_mode==Fast).
+    // Used by the print-dispatch nozzle-mapping flush-weight estimate.
+    std::vector<std::vector<std::vector<float>>> get_full_flush_matrix(bool with_multiplier = true) const;
 
     //BBS: add some functions for multiple extruders
     int get_printer_extruder_count() const;
@@ -448,6 +477,11 @@ public:
     void                        update_compatible(PresetSelectCompatibleType select_other_print_if_incompatible, PresetSelectCompatibleType select_other_filament_if_incompatible);
     void                        update_compatible(PresetSelectCompatibleType select_other_if_incompatible) { this->update_compatible(select_other_if_incompatible, select_other_if_incompatible); }
 
+    // Rewrite compatible_printers / compatible_prints references that point at a renamed system
+    // preset to the current name, mirroring Preset::normalize_inherits for the "inherits" field.
+    // Call after loading presets and before selection; requires update_system_maps() to have run.
+    void                        normalize_compatible_presets();
+
     // Set the is_visible flag for printer vendors, printer models and printer variants
     // based on the user configuration.
     // If the "vendor" section is missing, enable all models and variants of the particular vendor.
@@ -480,8 +514,12 @@ public:
         return      { Preset::TYPE_PRINTER, Preset::TYPE_SLA_PRINT, Preset::TYPE_SLA_MATERIAL };
     }
 
-    // Orca: for validation only. The duplicate filament subtype check is opt-in for now
+    // Orca: for validation only.
     bool has_errors(bool check_duplicate_filament_subtypes = false) const;
+
+    // Orca: for validation only. Flag any system preset whose inherits / compatible_printers /
+    // compatible_prints references a deleted (unknown) or renamed (old) preset name.
+    bool check_preset_references() const;
 
 private:
     // Orca: validation only - flag any printer with two or more compatible
@@ -510,7 +548,7 @@ private:
     /*ConfigSubstitutions         load_config_file_config_bundle(
         const std::string &path, const boost::property_tree::ptree &tree, ForwardCompatibilitySubstitutionRule compatibility_rule);*/
 
-    DynamicPrintConfig          full_fff_config(bool apply_extruder, std::optional<std::vector<int>> filament_maps=std::nullopt) const;
+    DynamicPrintConfig          full_fff_config(bool apply_extruder, std::optional<std::vector<int>> filament_maps=std::nullopt, std::optional<std::vector<int>> filament_volume_maps=std::nullopt) const;
     DynamicPrintConfig          full_sla_config() const;
 
     // Orca: used for validation only

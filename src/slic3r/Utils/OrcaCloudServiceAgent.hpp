@@ -2,14 +2,17 @@
 #define __ORCA_CLOUD_SERVICE_AGENT_HPP__
 
 #include "ICloudServiceAgent.hpp"
+#include <cstdlib>
 #include <string>
 #include <map>
 #include <mutex>
-#include <memory>
 #include <atomic>
 #include <chrono>
 #include <functional>
+#include <memory>
 #include <thread>
+#include <unordered_map>
+#include <vector>
 #include <nlohmann/json.hpp>
 
 class wxSecretStore;
@@ -19,6 +22,22 @@ namespace Slic3r {
 // Forward declarations
 class AppConfig;
 struct BundleMetadata;
+struct PluginDescriptor;
+struct PluginChangelog;
+
+struct PluginDownloadData
+{
+    std::string plugin_id;
+    std::string download_link;
+    std::string requested_os;
+    std::string returned_os;
+};
+
+struct PluginDownloadNotFound
+{
+    std::string id;
+    std::string reason;
+};
 
 // Outcome of a token-refresh attempt: decides whether a 401 should log the user
 // out (AuthRejected) or be treated as a recoverable condition (Transient).
@@ -35,6 +54,15 @@ namespace auth_constants {
     constexpr const char* TOKEN_PATH = "/auth/v1/token";
     constexpr const char* LOGOUT_PATH = "/auth/v1/logout";
 } // namespace auth_constants
+
+// Names of the on-disk credential files inside the config dir.
+namespace secret_constants {
+    // Encrypted refresh-token fallback file, written when wxSecretStore is unavailable.
+    // Also seeded into PluginAuditManager's denied-filename registry (install_hook), which
+    // additionally covers the ".tmp" staging file the token is written to before its atomic
+    // rename, so plugins can read neither.
+    constexpr const char* USER_SECRET_FILENAME = "orca_refresh_token.sec";
+} // namespace secret_constants
 
 // ============================================================================
 // Sync Protocol Data Structures (per Orca Cloud Sync Protocol Specification)
@@ -271,6 +299,22 @@ public:
     int get_shared_bundle(const std::string& bundle_id, std::map<std::string, std::map<std::string, std::string>>* presets, BundleMetadata* bundle_metadata);
 
     // ========================================================================
+    // Plugins API
+    // ========================================================================
+    int fetch_subscribed_manifests_into_descriptors(std::vector<PluginDescriptor>& descriptors, std::vector<std::string>& not_found, std::vector<std::string>& unauthorized);
+    int fetch_mine_manifests_into_descriptors(std::vector<PluginDescriptor>& descriptors);
+    int get_plugin_download_url(const std::string& uuid,
+                                const std::string& requested_version,
+                                std::vector<PluginDownloadData>& data,
+                                std::vector<PluginDownloadNotFound>& not_found,
+                                std::vector<std::string>& unauthorized);
+    std::string get_plugin_url(const std::string& sharing_token) const;
+    int subscribe_plugin(const std::string& plugin_uuid);
+    int unsubscribe_plugins(const std::vector<std::string>& plugin_uuids);
+    int delete_my_plugin(const std::string& plugin_uuid);
+    int fetch_plugin_changelogs(const std::vector<std::string>& uuids, std::unordered_map<std::string, std::vector<PluginChangelog>>& changelog);
+
+    // ========================================================================
     // Additional Public Methods - Auth
     // ========================================================================
     void set_session_handler(SessionHandler handler);
@@ -287,7 +331,7 @@ public:
     bool          refresh_if_expiring(std::chrono::seconds skew, const std::string& reason);
     RefreshResult refresh_from_storage(const std::string& reason, bool async = false);
     RefreshResult refresh_now(const std::string& refresh_token, const std::string& reason, bool async = false);
-    RefreshResult refresh_session_with_token(const std::string& refresh_token);
+    RefreshResult refresh_session_with_token(const std::string& refresh_token, const std::string& reason = "");
 
     // Session state helpers. nickname is the human-facing UI label after provider fallback resolution.
     bool set_user_session(const std::string& token,
@@ -350,6 +394,9 @@ private:
     std::string map_to_json(const std::map<std::string, std::string>& map);
     void json_to_map(const std::string& json, std::map<std::string, std::string>& map);
 
+    // Refresh token lock
+    std::string token_lock_path() const;
+
     // Member variables - configuration
     std::string log_dir;
     std::string config_dir;
@@ -369,6 +416,12 @@ private:
     OnLoginCompleteHandler on_login_complete_handler;
     SessionInfo session;
     mutable std::mutex session_mutex;
+
+    // Refresh diagnostics (see docs/analysis/refresh_token_already_used.md). Epoch seconds so the
+    // refresh-failure log can report token staleness without holding a lock or logging any token.
+    std::atomic<long long> last_refresh_success_epoch{0};                 // 0 = no success yet this process
+    const long long        agent_start_epoch{std::chrono::duration_cast<std::chrono::seconds>(
+                               std::chrono::system_clock::now().time_since_epoch()).count()};
 
     // Member variables - connection state
     bool is_connected{false};
