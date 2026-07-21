@@ -3993,6 +3993,87 @@ void TabFilament::set_custom_gcode(const t_config_option_key& opt_key, const std
     load_config(new_conf);
 }
 
+// Orca: Options gated by filament_set_other_flow_ratios (mirror the process-level
+// gating in ConfigManipulation.cpp). These are hidden unless the override
+// for filament_set_other_flow_ratios is both enabled and checked.
+// Order matters — the sequence below is the display order within the group.
+namespace {
+const std::array<std::string_view, 9> gated_by_set_other_flow_ratios = {
+    "filament_first_layer_flow_ratio",
+    "filament_outer_wall_flow_ratio",
+    "filament_inner_wall_flow_ratio",
+    "filament_overhang_flow_ratio",
+    "filament_sparse_infill_flow_ratio",
+    "filament_internal_solid_infill_flow_ratio",
+    "filament_gap_fill_flow_ratio",
+    "filament_support_flow_ratio",
+    "filament_support_interface_flow_ratio"
+};
+
+// Orca: Build the ordered list of all filament flow-ratio override keys.
+// The 4 ungated options come first (top/bottom/brim + the gate toggle),
+// then the 9 gated options are appended from gated_by_set_other_flow_ratios.
+std::vector<std::string> build_flow_opt_keys()
+{
+    std::vector<std::string> keys = {
+        "filament_top_solid_infill_flow_ratio",
+        "filament_bottom_solid_infill_flow_ratio",
+        "filament_brim_flow_ratio",
+        "filament_set_other_flow_ratios"
+    };
+
+    keys.reserve(keys.size() + gated_by_set_other_flow_ratios.size());
+    for (const auto opt_key : gated_by_set_other_flow_ratios)
+        keys.emplace_back(opt_key);
+
+    return keys;
+}
+
+// Orca: Filament override option keys, grouped by their optgroup title.
+// Shared between add_filament_overrides_page (UI build) and
+// update_filament_overrides_page (state refresh) so both functions
+// iterate the same keys in the same order.
+const std::vector<std::string> retraction_opt_keys = {
+    "filament_retraction_length",
+    "filament_z_hop",
+    "filament_z_hop_types",
+    "filament_retract_lift_above",
+    "filament_retract_lift_below",
+    "filament_retract_lift_enforce",
+    "filament_retraction_speed",
+    "filament_deretraction_speed",
+    "filament_retract_restart_extra",
+    "filament_retraction_minimum_travel",
+    "filament_retract_when_changing_layer",
+    "filament_wipe",
+    // BBS
+    "filament_wipe_distance",
+    "filament_retract_before_wipe",
+    // Orca
+    "filament_retract_after_wipe",
+    // BBS
+    "filament_long_retractions_when_cut",
+    "filament_retraction_distances_when_cut"
+    //SoftFever
+    // "filament_seam_gap"
+};
+
+const std::vector<std::string> ironing_opt_keys = {
+    "filament_ironing_flow",
+    "filament_ironing_spacing",
+    "filament_ironing_inset",
+    "filament_ironing_speed"
+};
+
+const std::vector<std::string> toolchange_opt_keys = {
+    "filament_retract_length_toolchange",
+    "filament_retract_restart_extra_toolchange"
+};
+
+// Orca: Shared key lists for flow ratios (built once, reused).
+const std::vector<std::string> flow_opt_keys = build_flow_opt_keys();
+} // namespace
+
 void TabFilament::add_filament_overrides_page()
 {
     //BBS
@@ -4036,44 +4117,19 @@ void TabFilament::add_filament_overrides_page()
     };
 
     ConfigOptionsGroupShp retraction_optgroup = page->new_optgroup(L("Retraction"), L"param_retraction");
-    for (const std::string opt_key : {  "filament_retraction_length",
-                                        "filament_z_hop",
-                                        "filament_z_hop_types",
-                                        "filament_retract_lift_above",
-                                        "filament_retract_lift_below",
-                                        "filament_retract_lift_enforce",
-                                        "filament_retraction_speed",
-                                        "filament_deretraction_speed",
-                                        "filament_retract_restart_extra",
-                                        "filament_retraction_minimum_travel",
-                                        "filament_retract_when_changing_layer",
-                                        "filament_wipe",
-                                        // BBS
-                                        "filament_wipe_distance",
-                                        "filament_retract_before_wipe",
-                                        // Orca
-                                        "filament_retract_after_wipe",
-                                        // BBS
-                                        "filament_long_retractions_when_cut",
-                                        "filament_retraction_distances_when_cut"
-                                        //SoftFever
-                                        // "filament_seam_gap"
-                                     })
+    for (const std::string& opt_key : retraction_opt_keys)
         append_retraction_option(retraction_optgroup, opt_key, extruder_idx);
 
     ConfigOptionsGroupShp toolchange_optgroup = page->new_optgroup(L("Retraction when switching material"), L"param_retraction_material_change");
-    for (const std::string opt_key : {  "filament_retract_length_toolchange",
-                                        "filament_retract_restart_extra_toolchange"
-                                     })
+    for (const std::string opt_key : toolchange_opt_keys)
         append_retraction_option(toolchange_optgroup, opt_key, extruder_idx);
 
-    ConfigOptionsGroupShp ironing_optgroup = page->new_optgroup(L("Ironing"), L"param_ironing");
-    auto append_ironing_option = [this, ironing_optgroup](const std::string& opt_key, int opt_index)
+    auto append_option = [&](ConfigOptionsGroupShp& optgroup, const std::string& opt_key, int opt_index)
     {
         Line line {"",""};
-        line = ironing_optgroup->create_single_option_line(ironing_optgroup->get_option(opt_key, opt_index));
+        line = optgroup->create_single_option_line(optgroup->get_option(opt_key, opt_index));
 
-        line.near_label_widget = [this, optgroup_wk = ConfigOptionsGroupWkp(ironing_optgroup), opt_key, opt_index](wxWindow* parent) {
+        line.near_label_widget = [this, optgroup_wk = ConfigOptionsGroupWkp(optgroup), opt_key, opt_index](wxWindow* parent) {
             auto check_box = new ::CheckBox(parent); // ORCA modernize checkboxes
             check_box->Bind(wxEVT_TOGGLEBUTTON, [this, optgroup_wk, opt_key, opt_index](wxCommandEvent& evt) {
                 const bool is_checked = evt.IsChecked();
@@ -4144,15 +4200,28 @@ void TabFilament::add_filament_overrides_page()
             return check_box;
         };
 
-        ironing_optgroup->append_line(line);
+        optgroup->append_line(line);
     };
 
-    for (const std::string opt_key : {  "filament_ironing_flow",
-                                        "filament_ironing_spacing",
-                                        "filament_ironing_inset",
-                                        "filament_ironing_speed"
-                                     })
-        append_ironing_option(opt_key, extruder_idx);
+    ConfigOptionsGroupShp ironing_optgroup = page->new_optgroup(L("Ironing"), L"param_ironing");
+    for (const std::string& opt_key : ironing_opt_keys) {
+        append_option(ironing_optgroup, opt_key, extruder_idx);
+    }
+
+    ConfigOptionsGroupShp flow_ratios_optgroup = page->new_optgroup(L("Flow ratios"), L"param_wall_surface");
+    for (const std::string& opt_key : flow_opt_keys) {
+        append_option(flow_ratios_optgroup, opt_key, extruder_idx);
+    }
+
+    // Orca: Apply initial visibility for flow-ratio options gated by filament_set_other_flow_ratios.
+    // The gate is resolved the same way as in update_filament_overrides_page: if the
+    // filament override is nil, fall back to the process-level setting.
+    bool set_other_flow_ratios = !dynamic_cast<ConfigOptionVectorBase*>(
+        m_config->option("filament_set_other_flow_ratios"))->is_nil(extruder_idx);
+
+    for (const auto opt_key : gated_by_set_other_flow_ratios) {
+        toggle_line(std::string(opt_key), set_other_flow_ratios, extruder_idx + 256);
+    }
 }
 
 void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* printers_config)
@@ -4171,31 +4240,11 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
         return;
     ConfigOptionsGroupShp optgroup = *og_it;
 
-    std::vector<std::string> opt_keys = {   "filament_retraction_length",
-                                            "filament_z_hop",
-                                            "filament_z_hop_types",
-                                            "filament_retract_lift_above",
-                                            "filament_retract_lift_below",
-                                            "filament_retract_lift_enforce",
-                                            "filament_retraction_speed",
-                                            "filament_deretraction_speed",
-                                            "filament_retract_restart_extra",
-                                            "filament_retract_length_toolchange",
-                                            "filament_retract_restart_extra_toolchange",
-                                            "filament_retraction_minimum_travel",
-                                            "filament_retract_when_changing_layer",
-                                            "filament_wipe",
-                                            // BBS
-                                            "filament_wipe_distance",
-                                            "filament_retract_before_wipe",
-                                            // Orca
-                                            "filament_retract_after_wipe",
-                                            // BBS
-                                            "filament_long_retractions_when_cut",
-                                            "filament_retraction_distances_when_cut"
-                                            //SoftFever
-                                            // "filament_seam_gap"
-                                        };
+    std::vector<std::string> opt_keys = retraction_opt_keys;
+
+    opt_keys.reserve(opt_keys.size() + toolchange_opt_keys.size());
+    for (const auto opt_key : toolchange_opt_keys)
+        opt_keys.emplace_back(opt_key);
 
     const int selection = m_variant_combo ? m_variant_combo->GetSelection() : 0;
     auto opt = dynamic_cast<ConfigOptionVectorBase *>(m_config->option("filament_retraction_length"));
@@ -4247,13 +4296,6 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
     {
         ConfigOptionsGroupShp ironing_optgroup = *og_ironing_it;
 
-        std::vector<std::string> ironing_opt_keys = {
-            "filament_ironing_flow",
-            "filament_ironing_spacing",
-            "filament_ironing_inset",
-            "filament_ironing_speed"
-        };
-
         for (const std::string& opt_key : ironing_opt_keys)
         {
             if (m_overrides_options.find(opt_key) == m_overrides_options.end())
@@ -4276,6 +4318,48 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
             }
 
             field->toggle(is_checked);
+        }
+    }
+
+    // Orca: Handle flow ratio overrides
+    const auto og_flow_it = std::find_if(page->m_optgroups.begin(), page->m_optgroups.end(), [](const ConfigOptionsGroupShp og) { return og->title == "Flow ratios"; });
+    if (og_flow_it != page->m_optgroups.end())
+    {
+        ConfigOptionsGroupShp flow_optgroup = *og_flow_it;
+
+        // Orca: Resolve the effective "set other flow ratios" gate: the filament override
+        // applies only when its checkbox is checked; otherwise fall back to the
+        // process-level setting so the UI matches the GCode path (RESOLVE_OPTION).
+        bool set_other_flow_ratios = !dynamic_cast<ConfigOptionVectorBase*>(
+            m_config->option("filament_set_other_flow_ratios"))->is_nil(extruder_idx);
+
+        for (const std::string& opt_key : flow_opt_keys)
+        {
+            if (m_overrides_options.find(opt_key) == m_overrides_options.end())
+                continue;
+
+            const bool is_gated = std::find(gated_by_set_other_flow_ratios.begin(), gated_by_set_other_flow_ratios.end(), opt_key) != gated_by_set_other_flow_ratios.end();
+            // Orca: Hide gated lines entirely when the gate is off (mirrors ConfigManipulation).
+            if (is_gated)
+                toggle_line(opt_key, set_other_flow_ratios, extruder_idx + 256);
+
+            bool is_checked = !dynamic_cast<ConfigOptionVectorBase*>(m_config->option(opt_key))->is_nil(extruder_idx);
+            m_overrides_options[opt_key]->Enable(is_gated ? set_other_flow_ratios : true);
+            m_overrides_options[opt_key]->SetValue(is_checked);
+
+            Field* field = flow_optgroup->get_fieldc(opt_key, 0);
+            if (field == nullptr) continue;
+
+            if (!is_checked) {
+                // Orca: Get the default value from the process config (flow_* without filament_ prefix)
+                const std::string process_opt_key = opt_key.substr(strlen("filament_"));
+                const auto process_config = m_preset_bundle->prints.get_edited_preset().config;
+                const boost::any process_config_value = flow_optgroup->get_config_value(process_config, process_opt_key, 0);
+                field->update_na_value(process_config_value);
+                field->set_value(process_config_value, false);
+            }
+
+            field->toggle(is_checked && (!is_gated || set_other_flow_ratios));
         }
     }
 }

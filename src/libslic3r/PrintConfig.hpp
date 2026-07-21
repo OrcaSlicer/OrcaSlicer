@@ -1170,6 +1170,12 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,    support_flow_ratio))
     ((ConfigOptionFloat,    support_interface_flow_ratio))
 
+    // Orca: Filament flow ratios
+    ((ConfigOptionFloatsNullable,      filament_brim_flow_ratio))
+    ((ConfigOptionBoolsNullable,       filament_set_other_flow_ratios))
+    ((ConfigOptionFloatsNullable,      filament_support_flow_ratio))
+    ((ConfigOptionFloatsNullable,      filament_support_interface_flow_ratio))
+
     // BBS
     //((ConfigOptionBool,                independent_support_layer_height))
     // Orca internal thick bridge
@@ -1433,6 +1439,17 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,                sparse_infill_flow_ratio))
     ((ConfigOptionFloat,                internal_solid_infill_flow_ratio))
     ((ConfigOptionFloat,                gap_fill_flow_ratio))
+
+    // Orca: Filament flow ratios
+    ((ConfigOptionFloatsNullable,       filament_first_layer_flow_ratio))
+    ((ConfigOptionFloatsNullable,       filament_top_solid_infill_flow_ratio))
+    ((ConfigOptionFloatsNullable,       filament_bottom_solid_infill_flow_ratio))
+    ((ConfigOptionFloatsNullable,       filament_outer_wall_flow_ratio))
+    ((ConfigOptionFloatsNullable,       filament_inner_wall_flow_ratio))
+    ((ConfigOptionFloatsNullable,       filament_overhang_flow_ratio))
+    ((ConfigOptionFloatsNullable,       filament_sparse_infill_flow_ratio))
+    ((ConfigOptionFloatsNullable,       filament_internal_solid_infill_flow_ratio))
+    ((ConfigOptionFloatsNullable,       filament_gap_fill_flow_ratio))
 
     // Orca: seam slopes
     ((ConfigOptionEnum<SeamScarfType>,  seam_slope_type))
