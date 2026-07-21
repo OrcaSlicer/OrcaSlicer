@@ -1,5 +1,6 @@
 #include "libslic3r/libslic3r.h"
 #include "DeviceManager.hpp"
+#include "libslic3r/MaterialType.hpp"
 #include "libslic3r/Time.hpp"
 #include "libslic3r/Thread.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
@@ -2585,8 +2586,16 @@ std::string MachineObject::setting_id_to_type(std::string setting_id, std::strin
     // note: "Support" is a generic label the firmware sends for any support filament,
     //       not a material - fall through to the preset lookup below so ABS/PLA/PA
     //       support trays keep their real (or Sup.*-normalized) type.
-    if (!tray_type.empty() && tray_type != "Support")
+    if (!tray_type.empty() && tray_type != "Support") {
+        // why: tray_type flows unvalidated into filament_type (an open enum), then into AMS
+        //      mapping and the slice config. A name the firmware knows and MaterialType
+        //      does not is survivable but silently wrong downstream - log it rather than
+        //      assert, since new Bambu materials are expected, not a programming error.
+        if (!MaterialType::find(tray_type))
+            BOOST_LOG_TRIVIAL(warning) << "setting_id_to_type: printer reported unknown material type "
+                                       << tray_type << " (tray_info_idx " << setting_id << ")";
         return tray_type;
+    }
 
     // why: fallback only - the printer told us nothing, so a first match by filament_id
     //      beats showing an empty type.
