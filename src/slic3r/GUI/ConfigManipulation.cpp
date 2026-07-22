@@ -1245,7 +1245,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     toggle_line("flush_into_objects", !is_global_config, -1, _L("This setting is available in object settings rather than global print settings."));
 
-    toggle_line("support_interface_not_for_body",config->opt_int("support_interface_filament")&&!config->opt_int("support_filament"), -1,
+    // Meaningful when an interface filament is chosen (Auto or specific) and the base is auto-selected
+    // (Auto = -1, or Default = 0) - the flag keeps that auto-picked base off the interface filament.
+    toggle_line("support_interface_not_for_body",config->opt_int("support_interface_filament")&&config->opt_int("support_filament")<=0, -1,
                 _L("Select a specific support interface filament and use the default support filament to show this setting."));
 
     // Get the current fuzzy skin state
