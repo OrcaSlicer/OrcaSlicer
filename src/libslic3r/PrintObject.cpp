@@ -3743,7 +3743,9 @@ static void clamp_feature_filament_to_valid(ConfigOptionInt &opt, size_t num_ext
 // is available (only same-type filaments), it uses the object's own material - the exact same filament, not just
 // the same type - to avoid color mixing. Falls back to "Default" (0) only when support is disabled, on
 // single-extruder-multi-material printers, or with a single filament.
-static int resolve_auto_support_filament(const PrintObjectConfig &config, const ModelObject &object, size_t num_extruders, const PrintConfig &print_config)
+// exclude_extruder (1-based, 0 = none) drops a filament from the candidate set - used to keep the support base
+// off the interface filament when "Avoid interface filament for base" is enabled.
+static int resolve_auto_support_filament(const PrintObjectConfig &config, const ModelObject &object, size_t num_extruders, const PrintConfig &print_config, int exclude_extruder = 0)
 {
     if (!config.enable_support.value || print_config.single_extruder_multi_material.value || num_extruders <= 1)
         return 0;
@@ -3796,6 +3798,8 @@ static int resolve_auto_support_filament(const PrintObjectConfig &config, const 
     int   best_soluble = 0, best_incompatible = 0, best_unknown = 0;
     float dist_soluble = 0.f, dist_incompatible = 0.f, dist_unknown = 0.f;
     for (int cand = 1; cand <= (int)num_extruders; ++cand) {
+        if (cand == exclude_extruder)
+            continue;
         const std::string cand_type = type_of(cand);
         // First requisite: a different material, i.e. it must not bond to any of the object's materials.
         bool bonds_with_any = false;
@@ -3838,12 +3842,16 @@ PrintObjectConfig PrintObject::object_config_from_model_object(const PrintObject
         update_static_print_config_from_dynamic(config, src_normalized, variant_index, print_options_with_variant, 1);
     }
     // Resolve the "Auto" support filaments to concrete extruders before anything downstream reads them.
-    if (config.support_filament.value == SUPPORT_FILAMENT_AUTO)
-        config.support_filament.value = print_config ? resolve_auto_support_filament(config, object, num_extruders, *print_config) : 0;
+    // Interface and ironing resolve first and unconstrained; the base resolves last so that, when
+    // "Avoid interface filament for base" is enabled, it can be kept off the interface's chosen filament.
     if (config.support_interface_filament.value == SUPPORT_FILAMENT_AUTO)
         config.support_interface_filament.value = print_config ? resolve_auto_support_filament(config, object, num_extruders, *print_config) : 0;
     if (config.support_ironing_filament.value == SUPPORT_FILAMENT_AUTO)
         config.support_ironing_filament.value = print_config ? resolve_auto_support_filament(config, object, num_extruders, *print_config) : 0;
+    if (config.support_filament.value == SUPPORT_FILAMENT_AUTO) {
+        const int exclude = config.support_interface_not_for_body.value ? config.support_interface_filament.value : 0;
+        config.support_filament.value = print_config ? resolve_auto_support_filament(config, object, num_extruders, *print_config, exclude) : 0;
+    }
     // Clamp invalid extruders to the default extruder (with index 1).
     clamp_exturder_to_default(config.support_filament,           num_extruders);
     clamp_exturder_to_default(config.support_interface_filament, num_extruders);
