@@ -1,7 +1,12 @@
 #include <catch2/catch_all.hpp>
 
+#include <algorithm>
+#include <cmath>
+#include <map>
 #include <numeric>
 #include <sstream>
+#include <string>
+#include <vector>
 
 #include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/Fill/Fill.hpp"
