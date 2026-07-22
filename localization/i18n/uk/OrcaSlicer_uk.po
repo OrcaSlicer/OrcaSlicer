@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-22 19:11-0300\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -3545,8 +3545,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Лівий(Вент)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Хотенд"
+msgstr ""
 
 msgid "Parts"
 msgstr "Частини"
@@ -9027,6 +9028,15 @@ msgstr ""
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr ""
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Регіон входу"
 
@@ -9605,6 +9615,9 @@ msgid "When spiral vase mode is enabled, machines with I3 structure will not gen
 msgstr "При увімкненні режиму спіралі для вази машини з I3 структурою не будуть створювати відео в режимі таймлапсу."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
+msgstr ""
+
+msgid "I have checked the installed nozzle and want to print anyway."
 msgstr ""
 
 msgid "Errors"
@@ -16956,6 +16969,12 @@ msgstr "Підтримка режиму швидкого очищення"
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr ""
 
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr ""
+
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr ""
 
@@ -20163,14 +20182,14 @@ msgstr "Помилка: %s"
 msgid "Show details"
 msgstr "Показати подробиці"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Версія для встановлення:"
 
 msgid "Download and Install"
 msgstr "Завантажити і встановити"
-
-msgid "Skip for Now"
-msgstr "Пропустити поки що"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Доступна нова версія мережевого плагіна Bambu."
@@ -20182,17 +20201,11 @@ msgstr "Поточна версія: %s"
 msgid "Update to version:"
 msgstr "Оновити до версії:"
 
-msgid "Update Now"
-msgstr "Оновити зараз"
-
-msgid "Remind Later"
-msgstr "Нагадати пізніше"
-
-msgid "Skip Version"
-msgstr "Пропустити версію"
-
 msgid "Don't Ask Again"
 msgstr "Не запитувати знову"
+
+msgid "Update Now"
+msgstr "Оновити зараз"
 
 msgid "(Latest)"
 msgstr "(Останній)"
@@ -20208,9 +20221,6 @@ msgstr "Для завантаження нового плагіна потріб
 
 msgid "Restart Now"
 msgstr "Перезапустити зараз"
-
-msgid "Restart Later"
-msgstr "Перезапустити пізніше"
 
 msgid "NO RAMMING AT ALL"
 msgstr "ВЗАГАЛІ БЕЗ УТРАМБУВАННЯ"
@@ -20794,6 +20804,21 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури гарячого ліжка може зменшити ймовірність деформації?"
+
+#~ msgid "Hotend"
+#~ msgstr "Хотенд"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Пропустити поки що"
+
+#~ msgid "Remind Later"
+#~ msgstr "Нагадати пізніше"
+
+#~ msgid "Skip Version"
+#~ msgstr "Пропустити версію"
+
+#~ msgid "Restart Later"
+#~ msgstr "Перезапустити пізніше"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Вибрати філамент, що встановлений на ліве сопло"

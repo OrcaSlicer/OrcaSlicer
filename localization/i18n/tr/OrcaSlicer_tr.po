@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-22 19:11-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -3518,8 +3518,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Sol (Yardımcı)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Hotend"
+msgstr ""
 
 msgid "Parts"
 msgstr "Parçalar"
@@ -8995,6 +8996,15 @@ msgstr ""
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr ""
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Giriş bölgesi"
 
@@ -9579,6 +9589,9 @@ msgstr "Spiral vazo modu etkinleştirildiğinde, I3 yapısına sahip makineler z
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "Geçerli yazıcı, Nesneye Göre yazdırırken Geleneksel Modda hızlandırılmış geçişi desteklememektedir."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "Hatalar"
@@ -16962,6 +16975,12 @@ msgstr ""
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr ""
 
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr ""
+
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr ""
 
@@ -20180,14 +20199,14 @@ msgstr "Hata: %s"
 msgid "Show details"
 msgstr "Ayrıntıları göster"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Yüklenecek sürüm:"
 
 msgid "Download and Install"
 msgstr "İndirin ve Yükleyin"
-
-msgid "Skip for Now"
-msgstr "Şimdilik Atla"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Bambu Ağ Eklentisinin yeni bir sürümü mevcut."
@@ -20199,17 +20218,11 @@ msgstr "Güncel sürüm: %s"
 msgid "Update to version:"
 msgstr "Sürüme güncelleme:"
 
-msgid "Update Now"
-msgstr "Şimdi Güncelle"
-
-msgid "Remind Later"
-msgstr "Daha Sonra Hatırlat"
-
-msgid "Skip Version"
-msgstr "Sürümü Atla"
-
 msgid "Don't Ask Again"
 msgstr "Bir daha sorma"
+
+msgid "Update Now"
+msgstr "Şimdi Güncelle"
 
 msgid "(Latest)"
 msgstr "(En sonuncu)"
@@ -20225,9 +20238,6 @@ msgstr "Yeni eklentiyi yüklemek için yeniden başlatma gerekiyor. Şimdi yenid
 
 msgid "Restart Now"
 msgstr "Şimdi Yeniden Başlat"
-
-msgid "Restart Later"
-msgstr "Daha Sonra Yeniden Başlat"
 
 msgid "NO RAMMING AT ALL"
 msgstr "HİÇBİR ŞEKİLDE ÇARPMA YOK"
@@ -20811,6 +20821,21 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+#~ msgid "Hotend"
+#~ msgstr "Hotend"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Şimdilik Atla"
+
+#~ msgid "Remind Later"
+#~ msgstr "Daha Sonra Hatırlat"
+
+#~ msgid "Skip Version"
+#~ msgstr "Sürümü Atla"
+
+#~ msgid "Restart Later"
+#~ msgstr "Daha Sonra Yeniden Başlat"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Sol nozüle takılan filamanı seçin"

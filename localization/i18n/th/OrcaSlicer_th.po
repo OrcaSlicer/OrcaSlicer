@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-22 19:11-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -3449,8 +3449,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "ซ้าย(เสริม)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "ฮอตเอนด์"
+msgstr ""
 
 msgid "Parts"
 msgstr "ชิ้นส่วน"
@@ -8823,6 +8824,15 @@ msgstr "แสดงการซ้อนทับ FPS"
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr "แสดงวิวพอร์ต FPS ปัจจุบันที่มุมขวาบน"
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "เข้าสู่ระบบภูมิภาค"
 
@@ -9399,6 +9409,9 @@ msgstr "เมื่อเปิดใช้งานโหมดแจกัน
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "เครื่องพิมพ์ปัจจุบันไม่รองรับไทม์แลปส์ในโหมดดั้งเดิมเมื่อพิมพ์ By-Object"
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "ข้อผิดพลาด"
@@ -16720,6 +16733,12 @@ msgstr ""
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr ""
 
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr ""
+
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr ""
 
@@ -19900,14 +19919,14 @@ msgstr "ข้อผิดพลาด: %s"
 msgid "Show details"
 msgstr "แสดงรายละเอียด"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "เวอร์ชันที่จะติดตั้ง:"
 
 msgid "Download and Install"
 msgstr "ดาวน์โหลดและติดตั้ง"
-
-msgid "Skip for Now"
-msgstr "ข้ามไปก่อน"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "ปลั๊กอิน Bambu Network Plug-in เวอร์ชันใหม่พร้อมใช้งานแล้ว"
@@ -19919,17 +19938,11 @@ msgstr "เวอร์ชันปัจจุบัน: %s"
 msgid "Update to version:"
 msgstr "อัปเดตเป็นเวอร์ชัน:"
 
-msgid "Update Now"
-msgstr "อัปเดตตอนนี้"
-
-msgid "Remind Later"
-msgstr "เตือนทีหลัง"
-
-msgid "Skip Version"
-msgstr "ข้ามเวอร์ชัน"
-
 msgid "Don't Ask Again"
 msgstr "อย่าถามอีก"
+
+msgid "Update Now"
+msgstr "อัปเดตตอนนี้"
 
 msgid "(Latest)"
 msgstr "(ล่าสุด)"
@@ -19945,9 +19958,6 @@ msgstr "จำเป็นต้องรีสตาร์ทเพื่อโ
 
 msgid "Restart Now"
 msgstr "เริ่มใหม่ตอนนี้"
-
-msgid "Restart Later"
-msgstr "เริ่มใหม่ภายหลัง"
 
 msgid "NO RAMMING AT ALL"
 msgstr "ไม่มีการกระแทกเลย"
@@ -20527,6 +20537,21 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "Hotend"
+#~ msgstr "ฮอตเอนด์"
+
+#~ msgid "Skip for Now"
+#~ msgstr "ข้ามไปก่อน"
+
+#~ msgid "Remind Later"
+#~ msgstr "เตือนทีหลัง"
+
+#~ msgid "Skip Version"
+#~ msgstr "ข้ามเวอร์ชัน"
+
+#~ msgid "Restart Later"
+#~ msgstr "เริ่มใหม่ภายหลัง"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "เลือกเส้นพลาสติกที่ติดตั้งไว้ที่หัวฉีดด้านซ้าย"

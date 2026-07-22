@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-22 19:11-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -3606,9 +3606,10 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Левый (вспом.)"
 
-# FAN_HEAT_BREAK_0_IDX - охлаждение термобарьера в первом хотэнде 
+# FAN_HEAT_BREAK_0_IDX - охлаждение термобарьера в первом хотэнде
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Термобарьер"
+msgstr ""
 
 msgid "Parts"
 msgstr "Основной"
@@ -9190,6 +9191,15 @@ msgstr "Отображать частоту кадров"
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr "Выводить частоту кадров рабочего пространства в правом верхнем углу."
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Регион входа"
 
@@ -9778,6 +9788,9 @@ msgstr "При включении режима вазы принтеры с ки
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "Принтер не поддерживает таймлапс в режиме по умолчанию при печати моделей по очереди."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "Ошибок"
@@ -17764,6 +17777,12 @@ msgstr ""
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr ""
 
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr ""
+
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr ""
 
@@ -21047,16 +21066,14 @@ msgstr "Ошибка: %s"
 msgid "Show details"
 msgstr "Подробнее"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Версия для установки:"
 
 msgid "Download and Install"
 msgstr "Загрузить и установить"
-
-# Делает то же самое, что и Remind Later, просто выводится при обнаружении
-# повреждения, а не при обновлении
-msgid "Skip for Now"
-msgstr "Напомнить позже"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Доступна новая версия сетевого плагина Bambu."
@@ -21068,17 +21085,11 @@ msgstr "Текущая версия: %s"
 msgid "Update to version:"
 msgstr "Обновление до версии:"
 
-msgid "Update Now"
-msgstr "Установить обновление"
-
-msgid "Remind Later"
-msgstr "Напомнить позже"
-
-msgid "Skip Version"
-msgstr "Пропустить версию"
-
 msgid "Don't Ask Again"
 msgstr "Не напоминать"
+
+msgid "Update Now"
+msgstr "Установить обновление"
 
 msgid "(Latest)"
 msgstr "(новейшая)"
@@ -21095,9 +21106,6 @@ msgstr "Для загрузки плагина требуется перезап
 
 msgid "Restart Now"
 msgstr "Перезапустить сейчас"
-
-msgid "Restart Later"
-msgstr "Перезапустить позже"
 
 msgid "NO RAMMING AT ALL"
 msgstr "Рэмминг отключён"
@@ -21694,6 +21702,24 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+# FAN_HEAT_BREAK_0_IDX
+#~ msgid "Hotend"
+#~ msgstr "Термобарьер"
+
+# Делает то же самое, что и Remind Later, просто выводится при обнаружении
+# повреждения, а не при обновлении
+#~ msgid "Skip for Now"
+#~ msgstr "Напомнить позже"
+
+#~ msgid "Remind Later"
+#~ msgstr "Напомнить позже"
+
+#~ msgid "Skip Version"
+#~ msgstr "Пропустить версию"
+
+#~ msgid "Restart Later"
+#~ msgstr "Перезапустить позже"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Выберите филамент, установленный в левое сопло"

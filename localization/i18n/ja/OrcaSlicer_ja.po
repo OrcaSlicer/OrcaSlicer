@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-22 19:11-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3511,8 +3511,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "左（補助）"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "ホットエンド"
+msgstr ""
 
 msgid "Parts"
 msgstr "パーツ"
@@ -8960,6 +8961,15 @@ msgstr ""
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr ""
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "地域"
 
@@ -9547,6 +9557,9 @@ msgstr "スパイラル花瓶モードを有効にすると、I3構造のマシ�
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "現在のプリンターはオブジェクト別印刷時のトラディショナルモードでのタイムラプスをサポートしていません。"
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "エラー"
@@ -16625,6 +16638,12 @@ msgstr ""
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr ""
 
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr ""
+
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr "ホットエンド変更を伴う場合に、プライムタワー上で押出機を初期化するために必要な材料量です。"
 
@@ -19753,14 +19772,14 @@ msgstr "エラー: %s"
 msgid "Show details"
 msgstr "詳細を表示"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "インストールするバージョン:"
 
 msgid "Download and Install"
 msgstr "ダウンロードしてインストール"
-
-msgid "Skip for Now"
-msgstr "今はスキップ"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Bambuネットワークプラグインの新しいバージョンが利用可能です。"
@@ -19772,17 +19791,11 @@ msgstr "現在のバージョン: %s"
 msgid "Update to version:"
 msgstr "アップデートするバージョン:"
 
-msgid "Update Now"
-msgstr "今すぐアップデート"
-
-msgid "Remind Later"
-msgstr "後で通知"
-
-msgid "Skip Version"
-msgstr "バージョンをスキップ"
-
 msgid "Don't Ask Again"
 msgstr "今後は確認しない"
+
+msgid "Update Now"
+msgstr "今すぐアップデート"
 
 msgid "(Latest)"
 msgstr "（最新）"
@@ -19798,9 +19811,6 @@ msgstr "新しいプラグインをロードするには再起動が必要です
 
 msgid "Restart Now"
 msgstr "今すぐ再起動"
-
-msgid "Restart Later"
-msgstr "後で再起動"
 
 msgid "NO RAMMING AT ALL"
 msgstr "ラミングなし"
@@ -20361,6 +20371,21 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+#~ msgid "Hotend"
+#~ msgstr "ホットエンド"
+
+#~ msgid "Skip for Now"
+#~ msgstr "今はスキップ"
+
+#~ msgid "Remind Later"
+#~ msgstr "後で通知"
+
+#~ msgid "Skip Version"
+#~ msgstr "バージョンをスキップ"
+
+#~ msgid "Restart Later"
+#~ msgstr "後で再起動"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "左ノズルに取り付けたフィラメントを選択"

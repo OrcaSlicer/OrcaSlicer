@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-22 19:11-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -3483,8 +3483,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Kairysis (papildomas)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Kaitinimo blokas (Hotend)"
+msgstr ""
 
 msgid "Parts"
 msgstr "Detalės"
@@ -8904,6 +8905,15 @@ msgstr "Rodyti KPS (FPS) indikatorių"
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr "Viršutiniame dešiniajame kampe rodo esamą vaizdo srities kadrų dažnį."
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Prisijungimo regionas"
 
@@ -9480,6 +9490,9 @@ msgstr "Įjungus spiralinės vazos režimą, I3 struktūros įrenginiai negeneru
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "Dabartinis spausdintuvas nepalaiko laiko tarpų (timelapse) vaizdo įrašų tradiciniu režimu, kai spausdinama pagal objektą."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "Klaidos"
@@ -16830,6 +16843,12 @@ msgstr ""
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr ""
 
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr ""
+
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr ""
 
@@ -20022,14 +20041,14 @@ msgstr "Klaida: %s"
 msgid "Show details"
 msgstr "Rodyti išsamiau"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Diegiama versija:"
 
 msgid "Download and Install"
 msgstr "Atsisiųsti ir įdiegti"
-
-msgid "Skip for Now"
-msgstr "Kol kas praleisti"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Išleista nauja „Bambu“ tinklo papildinio versija."
@@ -20041,17 +20060,11 @@ msgstr "Dabartinė versija: %s"
 msgid "Update to version:"
 msgstr "Atnaujinti iki versijos:"
 
-msgid "Update Now"
-msgstr "Atnaujinti dabar"
-
-msgid "Remind Later"
-msgstr "Priminti vėliau"
-
-msgid "Skip Version"
-msgstr "Praleisti šią versiją"
-
 msgid "Don't Ask Again"
 msgstr "Daugiau neklausti"
+
+msgid "Update Now"
+msgstr "Atnaujinti dabar"
 
 msgid "(Latest)"
 msgstr "(Naujausia)"
@@ -20067,9 +20080,6 @@ msgstr "Norint įkelti naują papildinį, programą reikia paleisti iš naujo. A
 
 msgid "Restart Now"
 msgstr "Paleisti iš naujo dabar"
-
-msgid "Restart Later"
-msgstr "Paleisti iš naujo vėliau"
 
 msgid "NO RAMMING AT ALL"
 msgstr "VISIŠKAI NENAUDOTI SUTANKINIMO"
@@ -20649,6 +20659,21 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+#~ msgid "Hotend"
+#~ msgstr "Kaitinimo blokas (Hotend)"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Kol kas praleisti"
+
+#~ msgid "Remind Later"
+#~ msgstr "Priminti vėliau"
+
+#~ msgid "Skip Version"
+#~ msgstr "Praleisti šią versiją"
+
+#~ msgid "Restart Later"
+#~ msgstr "Paleisti iš naujo vėliau"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Pasirinkite giją, įstatytą į kairįjį purkštuką"

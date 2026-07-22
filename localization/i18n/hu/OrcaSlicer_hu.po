@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-22 19:11-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3520,8 +3520,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Bal(Aux)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Fejegység"
+msgstr ""
 
 msgid "Parts"
 msgstr "Alkatrészek"
@@ -9007,6 +9008,15 @@ msgstr "FPS fedvény megjelenítése"
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr "Megjeleníti az aktuális nézetablak FPS-t a jobb felső sarokban."
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Régió"
 
@@ -9595,6 +9605,9 @@ msgstr ""
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "Az aktuális nyomtató nem támogatja az időfelvételt hagyományos módban, ha a nyomtatás objektumonként történik."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "Hibák"
@@ -17073,6 +17086,12 @@ msgstr ""
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr ""
 
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr ""
+
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr "Az extruder átöblítéséhez szükséges anyagmennyiség a hotend cseréjekor."
 
@@ -20279,14 +20298,14 @@ msgstr "Hiba: %s"
 msgid "Show details"
 msgstr "Részletek megjelenítése"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Telepítendő verzió:"
 
 msgid "Download and Install"
 msgstr "Letöltés és telepítés"
-
-msgid "Skip for Now"
-msgstr "Kihagyás most"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Létezik új verzió a Bambu hálózati bővítményre."
@@ -20298,17 +20317,11 @@ msgstr "Jelenlegi verzió: %s"
 msgid "Update to version:"
 msgstr "Frissítés erre a verzióra:"
 
-msgid "Update Now"
-msgstr "Frissítés most"
-
-msgid "Remind Later"
-msgstr "Emlékeztessen később"
-
-msgid "Skip Version"
-msgstr "Verzió kihagyása"
-
 msgid "Don't Ask Again"
 msgstr "Ne kérdezz újra"
+
+msgid "Update Now"
+msgstr "Frissítés most"
 
 msgid "(Latest)"
 msgstr "(Legfrissebb)"
@@ -20324,9 +20337,6 @@ msgstr "Az új plug-in betöltéséhez újraindítás szükséges. Szeretnéd mo
 
 msgid "Restart Now"
 msgstr "Újraindítás most"
-
-msgid "Restart Later"
-msgstr "Újraindítás később"
 
 msgid "NO RAMMING AT ALL"
 msgstr "EGYÁLTALÁN NINCS TÖMÖRÍTÉS"
@@ -20913,6 +20923,21 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor a tárgyasztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#~ msgid "Hotend"
+#~ msgstr "Fejegység"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Kihagyás most"
+
+#~ msgid "Remind Later"
+#~ msgstr "Emlékeztessen később"
+
+#~ msgid "Skip Version"
+#~ msgstr "Verzió kihagyása"
+
+#~ msgid "Restart Later"
+#~ msgstr "Újraindítás később"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Válaszd ki a bal fúvókába betöltött filamentet"

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-22 19:11-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -3532,8 +3532,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "左（辅助）"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "热端"
+msgstr ""
 
 msgid "Parts"
 msgstr "打印件"
@@ -8986,6 +8987,15 @@ msgstr "显示 FPS 叠加层"
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr "在右上角显示当前视口的 FPS。"
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "登录区域"
 
@@ -9574,6 +9584,9 @@ msgstr "当启用旋转花瓶模式时，I3结构的机器将不会生成延时�
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "当前打印机在按对象打印时不支持传统模式下的延时拍摄。"
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "错误"
@@ -17080,6 +17093,12 @@ msgstr ""
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr ""
 
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr ""
+
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr "换热端所需的擦料塔上的清理量。"
 
@@ -20293,14 +20312,14 @@ msgstr "错误：%s"
 msgid "Show details"
 msgstr "显示详情"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "将安装的版本："
 
 msgid "Download and Install"
 msgstr "下载并安装"
-
-msgid "Skip for Now"
-msgstr "暂时跳过"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Bambu 网络插件有新版本可用。"
@@ -20312,17 +20331,11 @@ msgstr "当前版本：%s"
 msgid "Update to version:"
 msgstr "更新到版本："
 
-msgid "Update Now"
-msgstr "立即更新"
-
-msgid "Remind Later"
-msgstr "稍后提醒"
-
-msgid "Skip Version"
-msgstr "跳过此版本"
-
 msgid "Don't Ask Again"
 msgstr "不再询问"
+
+msgid "Update Now"
+msgstr "立即更新"
 
 msgid "(Latest)"
 msgstr "（最新的）"
@@ -20338,9 +20351,6 @@ msgstr "需要重新启动以加载新插件。您要立即重启吗？"
 
 msgid "Restart Now"
 msgstr "立即重启"
-
-msgid "Restart Later"
-msgstr "稍后重启"
 
 msgid "NO RAMMING AT ALL"
 msgstr "完全不挤压"
@@ -20929,6 +20939,21 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#~ msgid "Hotend"
+#~ msgstr "热端"
+
+#~ msgid "Skip for Now"
+#~ msgstr "暂时跳过"
+
+#~ msgid "Remind Later"
+#~ msgstr "稍后提醒"
+
+#~ msgid "Skip Version"
+#~ msgstr "跳过此版本"
+
+#~ msgid "Restart Later"
+#~ msgstr "稍后重启"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "选择安装在左侧喷嘴的耗材"

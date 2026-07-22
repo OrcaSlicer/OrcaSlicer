@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-22 19:11-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3521,8 +3521,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Sinistra (Aux)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Hotend"
+msgstr ""
 
 msgid "Parts"
 msgstr "Parti"
@@ -9002,6 +9003,15 @@ msgstr ""
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr ""
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Regione di accesso"
 
@@ -9586,6 +9596,9 @@ msgstr "Quando si abilita la modalità vaso a spirale, le macchine con struttura
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "La stampante corrente non supporta il timelapse in modalità tradizionale quando si stampa per oggetto."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "Errori"
@@ -17040,6 +17053,12 @@ msgstr ""
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr ""
 
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr ""
+
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr "Volume di materiale necessario per innescare l'estrusore in vista di una sostituzione dell'hotend sulla torre."
 
@@ -20262,14 +20281,14 @@ msgstr "Errore: %s"
 msgid "Show details"
 msgstr "Mostra dettagli"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Versione da installare:"
 
 msgid "Download and Install"
 msgstr "Scarica e installa"
-
-msgid "Skip for Now"
-msgstr "Salta per ora"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "È disponibile una nuova versione del modulo di rete Bambu."
@@ -20281,17 +20300,11 @@ msgstr "Versione corrente: %s"
 msgid "Update to version:"
 msgstr "Aggiorna alla versione:"
 
-msgid "Update Now"
-msgstr "Aggiorna ora"
-
-msgid "Remind Later"
-msgstr "Ricorda più tardi"
-
-msgid "Skip Version"
-msgstr "Salta versione"
-
 msgid "Don't Ask Again"
 msgstr "Non chiedere più"
+
+msgid "Update Now"
+msgstr "Aggiorna ora"
 
 msgid "(Latest)"
 msgstr "(Ultima)"
@@ -20307,9 +20320,6 @@ msgstr "È necessario un riavvio per caricare il nuovo modulo. Vuoi riavviare or
 
 msgid "Restart Now"
 msgstr "Riavvia ora"
-
-msgid "Restart Later"
-msgstr "Riavvia più tardi"
 
 msgid "NO RAMMING AT ALL"
 msgstr "NESSUNA SPINTA"
@@ -20893,6 +20903,21 @@ msgid ""
 msgstr ""
 "Evita le deformazioni\n"
 "Sapevi che quando si stampano materiali soggetti a deformazioni come l'ABS, aumentare in modo appropriato la temperatura del piano riscaldato può ridurre la probabilità di deformazione?"
+
+#~ msgid "Hotend"
+#~ msgstr "Hotend"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Salta per ora"
+
+#~ msgid "Remind Later"
+#~ msgstr "Ricorda più tardi"
+
+#~ msgid "Skip Version"
+#~ msgstr "Salta versione"
+
+#~ msgid "Restart Later"
+#~ msgstr "Riavvia più tardi"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Selezionare il filamento installato nell'ugello sinistro"

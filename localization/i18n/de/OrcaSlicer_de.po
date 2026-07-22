@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-22 19:11-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -3530,8 +3530,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Links(Aux)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Hotend"
+msgstr ""
 
 msgid "Parts"
 msgstr "Teile"
@@ -9028,6 +9029,15 @@ msgstr "FPS-Overlay anzeigen"
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr "Zeigt die aktuelle FPS des Viewports in der oberen rechten Ecke an."
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Anmeldungsregion"
 
@@ -9618,6 +9628,9 @@ msgstr "Wenn der Spiral-Vase-Modus aktiviert ist, werden bei Maschinen mit I3-St
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "Der aktuelle Drucker unterstützt im traditionellen Modus keinen Zeitraffer beim Drucken nach Objekt."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "Fehler"
@@ -17151,6 +17164,12 @@ msgstr ""
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr ""
 
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr ""
+
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr "Das Materialvolumen, das erforderlich ist, um den Extruder für einen Hotend-Wechsel am Turm vorzubereiten."
 
@@ -20378,14 +20397,14 @@ msgstr "Fehler: %s"
 msgid "Show details"
 msgstr "Zeige Details"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Version zum Installieren:"
 
 msgid "Download and Install"
 msgstr "Herunterladen und installieren"
-
-msgid "Skip for Now"
-msgstr "Jetzt überspringen"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Eine neue Version des Bambu Network Plug-ins ist verfügbar."
@@ -20397,17 +20416,11 @@ msgstr "Aktuelle Version: %s"
 msgid "Update to version:"
 msgstr "Auf Version aktualisieren:"
 
-msgid "Update Now"
-msgstr "Jetzt aktualisieren"
-
-msgid "Remind Later"
-msgstr "Später erinnern"
-
-msgid "Skip Version"
-msgstr "Version überspringen"
-
 msgid "Don't Ask Again"
 msgstr "Nicht mehr fragen"
+
+msgid "Update Now"
+msgstr "Jetzt aktualisieren"
 
 msgid "(Latest)"
 msgstr "(Neueste)"
@@ -20423,9 +20436,6 @@ msgstr "Ein Neustart ist erforderlich, um das neue Plug-in zu laden. Möchten Si
 
 msgid "Restart Now"
 msgstr "Jetzt neu starten"
-
-msgid "Restart Later"
-msgstr "Später neu starten"
 
 msgid "NO RAMMING AT ALL"
 msgstr "KEIN RAMMING ÜBERALL"
@@ -21014,6 +21024,21 @@ msgid ""
 msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
+
+#~ msgid "Hotend"
+#~ msgstr "Hotend"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Jetzt überspringen"
+
+#~ msgid "Remind Later"
+#~ msgstr "Später erinnern"
+
+#~ msgid "Skip Version"
+#~ msgstr "Version überspringen"
+
+#~ msgid "Restart Later"
+#~ msgstr "Später neu starten"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "wählen Sie das Filament aus, das in die linke Düse eingesetzt ist"

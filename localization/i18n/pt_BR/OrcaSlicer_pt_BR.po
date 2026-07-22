@@ -3472,6 +3472,7 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Esquerda(Aux)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
 msgstr "Hotend"
 
@@ -8919,6 +8920,15 @@ msgstr "Mostrar painel de FPS"
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr "Exibe o FPS atual da janela de visualização no canto superior direito."
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Região de login"
 
@@ -9502,6 +9512,9 @@ msgstr "Quando o modo vaso espiral está ativado, máquinas com estrutura I3 nã
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "A impressora atual não suporta timelapse no Modo Tradicional ao imprimir Por Objeto."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "Erros"
@@ -16897,6 +16910,12 @@ msgstr "Quando este valor de retração for modificado, ele será usado como a q
 msgid "Support fast purge mode"
 msgstr "Suporte ao modo de purga rápida"
 
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr ""
+
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr "O volume de material necessário para preparar o extrusor para uma troca do hotend na torre."
 
@@ -20083,14 +20102,14 @@ msgstr "Erro: %s"
 msgid "Show details"
 msgstr "Mostrar detalhes"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Versão para instalar:"
 
 msgid "Download and Install"
 msgstr "Baixar e Instalar"
-
-msgid "Skip for Now"
-msgstr "Pular por Enquanto"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Uma nova versão do Plug-in de Rede Bambu está disponível."
@@ -20102,17 +20121,11 @@ msgstr "Versão atual: %s"
 msgid "Update to version:"
 msgstr "Atualizar para versão:"
 
-msgid "Update Now"
-msgstr "Atualizar Agora"
-
-msgid "Remind Later"
-msgstr "Lembre-me Depois"
-
-msgid "Skip Version"
-msgstr "Pular Versão"
-
 msgid "Don't Ask Again"
 msgstr "Não Perguntar Novamente"
+
+msgid "Update Now"
+msgstr "Atualizar Agora"
 
 msgid "(Latest)"
 msgstr "(Mais recente)"
@@ -20128,9 +20141,6 @@ msgstr "É necessário reiniciar para carregar o novo plug-in. Deseja reiniciar 
 
 msgid "Restart Now"
 msgstr "Reiniciar Agora"
-
-msgid "Restart Later"
-msgstr "Reiniciar Depois"
 
 msgid "NO RAMMING AT ALL"
 msgstr "SEM NENHUM MOLDEAMENTO"
@@ -20705,6 +20715,21 @@ msgid ""
 msgstr ""
 "Evitar empenamento\n"
 "Você sabia que ao imprimir materiais propensos ao empenamento como ABS, aumentar adequadamente a temperatura da mesa aquecida pode reduzir a probabilidade de empenamento?"
+
+#~ msgid "Hotend"
+#~ msgstr "Extrusora"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Pular por Enquanto"
+
+#~ msgid "Remind Later"
+#~ msgstr "Lembre-me Depois"
+
+#~ msgid "Skip Version"
+#~ msgstr "Pular Versão"
+
+#~ msgid "Restart Later"
+#~ msgstr "Reiniciar Depois"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Selecione o filamento instalado no bico esquerdo"
