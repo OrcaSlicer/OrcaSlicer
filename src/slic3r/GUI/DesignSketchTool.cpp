@@ -19,6 +19,8 @@
 #include <array>
 #include <cmath>
 #include <cstdio>
+#include <cstdarg>
+#include <cstdlib>
 
 namespace Slic3r {
 namespace GUI {
@@ -2748,11 +2750,31 @@ void DesignSketchTool::select_body(int body)
     m_solid_sel = SolidSel::Whole;   // render_solid_highlight tints just this body
 }
 
+// Pick tracing. Selection failures on a real desktop have repeatedly turned out to be an
+// event that never arrived rather than a ray that missed, and the two look identical from
+// the UI. Set SNAPORCA_PICK_TRACE=1 and the whole press->release->ray path narrates itself
+// on stderr. Off by default: no cost, no noise.
+static void dp_pick_trace(const char* fmt, ...)
+{
+    static const bool on = ::getenv("SNAPORCA_PICK_TRACE") != nullptr;
+    if (!on) return;
+    va_list ap; va_start(ap, fmt);
+    std::fputs("[pick] ", stderr);
+    std::vfprintf(stderr, fmt, ap);
+    std::fputc('\n', stderr);
+    va_end(ap);
+    std::fflush(stderr);
+}
+
 // LeftDown on the solid cycles whole->face->edge. Returns true if the click hit the solid
 // (consumed); false otherwise so the caller can try committed-sketch loop picking.
 bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent& evt)
 {
-    if (m_solid_bodies == nullptr || m_solid_mesh == nullptr) return false;
+    if (m_solid_bodies == nullptr || m_solid_mesh == nullptr) {
+        dp_pick_trace("no solid data (bodies=%p mesh=%p)",
+                      (const void*) m_solid_bodies, (const void*) m_solid_mesh);
+        return false;
+    }
     const Linef3 r = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
     const Vec3d ro = r.a, rd = r.b - r.a;
 
@@ -2774,6 +2796,8 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
             best_body = cand_body;
         }
     }
+    dp_pick_trace("ray tris=%zu -> body=%d face=%d t=%.3f", its.indices.size(),
+                  best_body, best_face, best_t);
     if (best_face < 0 || best_body < 0 || best_body >= int(m_solid_bodies->size()))
         return false;   // missed the solid
 
@@ -7655,17 +7679,26 @@ bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
             m_pick_press_x = evt.GetX();
             m_pick_press_y = evt.GetY();
             m_pick_pending = true;
+            dp_pick_trace("down x=%d y=%d", evt.GetX(), evt.GetY());
             return false;
         }
-        if (!(evt.LeftUp() && m_pick_pending)) return false;
+        if (!(evt.LeftUp() && m_pick_pending)) {
+            if (evt.LeftUp()) dp_pick_trace("up with no pending press (press was eaten upstream)");
+            return false;
+        }
         m_pick_pending = false;
+        dp_pick_trace("up x=%d y=%d drift=%d", evt.GetX(), evt.GetY(),
+                      std::max(std::abs(evt.GetX() - m_pick_press_x),
+                               std::abs(evt.GetY() - m_pick_press_y)));
         // Threshold per axis, at GTK's own drag threshold. A hand-held mouse drifts several
         // pixels during an ordinary click — a tight budget silently swallowed real clicks and
         // looked exactly like "selection does not work". Synthetic clicks never drift, which
         // is why the headless rig could not show this.
         if (std::max(std::abs(evt.GetX() - m_pick_press_x),
-                     std::abs(evt.GetY() - m_pick_press_y)) > 8)
+                     std::abs(evt.GetY() - m_pick_press_y)) > 8) {
+            dp_pick_trace("rejected as drag");
             return false;   // it was a drag: the canvas already orbited, don't also select
+        }
         // Committed-sketch loop pick is computed FIRST. A click that lands on a loop's
         // STROKE (edge) selects that loop even when it lies on a solid face — so a sketch
         // drawn ON a face can be selected and extruded/cut (Onshape engraving workflow).
