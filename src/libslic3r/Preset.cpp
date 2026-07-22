@@ -1376,7 +1376,7 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "filament_ramming_travel_time", "filament_ramming_travel_time_nc",
     "filament_pre_cooling_temperature", "filament_pre_cooling_temperature_nc",
     "filament_preheat_temperature_delta", "filament_retract_length_nc",
-    "filament_change_length_nc", "filament_prime_volume_nc",
+    "filament_change_length_nc", "filament_prime_volume", "filament_prime_volume_nc",
     "long_retractions_when_ec", "retraction_distances_when_ec",
     "plugin_config_overrides",
     //ams chamber
@@ -3504,7 +3504,7 @@ inline t_config_option_keys deep_diff(const ConfigBase &config_this, const Confi
         if (this_opt != nullptr && other_opt != nullptr && *this_opt != *other_opt)
         {
             //BBS: add bed_exclude_area
-            if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" || opt_key == "compatible_printers" || opt_key == "thumbnails" ||  opt_key == "wrapping_exclude_area") {
+            if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" || opt_key == "compatible_printers" || opt_key == "thumbnails" ||  opt_key == "wrapping_exclude_area" || opt_key == "slicing_pipeline_plugin") {
                 // Scalar variable, or a vector variable, which is independent from number of extruders,
                 // thus the vector is presented to the user as a single input.
                 diff.emplace_back(opt_key);

@@ -3,6 +3,7 @@
 #include "GUI_App.hpp"
 #include "MainFrame.hpp"
 #include "Plater.hpp"
+#include "GLCanvas3D.hpp" // ORCA: for live preview refresh when toggling "Dim lower layers"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -17,6 +18,7 @@
 #include "Widgets/RadioGroup.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
 #include "slic3r/Utils/NetworkAgent.hpp"
+#include "NetworkPluginDialog.hpp"
 #include "DownloadProgressDialog.hpp"
 
 #ifdef __WINDOWS__
@@ -1048,6 +1050,16 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 wxGetApp().mainframe->m_webview->SendCloudProvidersInfo();
             }
         }
+        // ORCA: apply the preview dimming change immediately to the currently loaded preview (ported from preFlight)
+        else if (param == "preview_dim_previous_layers") {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_dim_previous_layers(app_config->get_bool(param));
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
 
 #ifdef __WXMSW__
         if (param == "associate_3mf") {
@@ -1262,18 +1274,7 @@ wxBoxSizer *PreferencesDialog::create_item_network_plugin_version(wxString title
 
     for (size_t i = 0; i < m_available_versions.size(); i++) {
         const auto& ver = m_available_versions[i];
-        wxString label;
-
-        if (!ver.suffix.empty()) {
-            label = wxString::FromUTF8("\xE2\x94\x94 ") + wxString::FromUTF8(ver.display_name);
-        } else {
-            label = wxString::FromUTF8(ver.display_name);
-        }
-
-        if (ver.is_latest) {
-            label += " " + _L("(Latest)");
-        }
-        m_network_version_combo->Append(label);
+        m_network_version_combo->Append(network_version_label(ver));
         if (current_version == ver.version) {
             current_selection = i;
         }
@@ -1283,55 +1284,79 @@ wxBoxSizer *PreferencesDialog::create_item_network_plugin_version(wxString title
     m_sizer->Add(m_network_version_combo, 0, wxALIGN_CENTER);
 
     m_network_version_combo->GetDropDown().Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
+        e.Skip(); // order-independent flag read after this handler returns; every path just returns
         int selection = e.GetSelection();
-        if (selection >= 0 && selection < (int)m_available_versions.size()) {
-            const auto& selected_ver = m_available_versions[selection];
-            std::string new_version = selected_ver.version;
-            std::string old_version = app_config->get_network_plugin_version();
-            if (old_version.empty()) {
-                old_version = get_latest_network_version();
-            }
+        if (selection < 0 || selection >= (int) m_available_versions.size())
+            return;
 
-            app_config->set_network_plugin_version(new_version);
-            app_config->save();
+        const auto& selected_ver = m_available_versions[selection];
+        const std::string new_version = selected_ver.version;
+        std::string old_version = app_config->get_network_plugin_version();
+        if (old_version.empty())
+            old_version = get_latest_network_version();
 
-            if (new_version != old_version) {
-                BOOST_LOG_TRIVIAL(info) << "Network plugin version changed from " << old_version << " to " << new_version;
-
-                if (!selected_ver.warning.empty()) {
-                    MessageDialog warn_dlg(this, wxString::FromUTF8(selected_ver.warning), _L("Warning"), wxOK | wxCANCEL | wxICON_WARNING);
-                    if (warn_dlg.ShowModal() != wxID_OK) {
-                        app_config->set_network_plugin_version(old_version);
-                        app_config->save();
-                        e.Skip();
-                        return;
-                    }
+        // Move the combo back to the row for `version`, so the UI never shows a build other
+        // than the one actually configured/loaded (e.g. after a declined or refused switch).
+        auto reselect = [this](const std::string& version) {
+            for (size_t i = 0; i < m_available_versions.size(); ++i)
+                if (m_available_versions[i].version == version) {
+                    m_network_version_combo->SetSelection((int) i);
+                    break;
                 }
+        };
 
-                // Check if the selected version already exists on disk
-                if (Slic3r::NetworkAgent::versioned_library_exists(new_version)) {
-                    BOOST_LOG_TRIVIAL(info) << "Version " << new_version << " already exists on disk, triggering hot reload";
-                    if (wxGetApp().hot_reload_network_plugin()) {
-                        MessageDialog dlg(this, _L("Network plug-in switched successfully."), _L("Success"), wxOK | wxICON_INFORMATION);
-                        dlg.ShowModal();
-                    } else {
-                        MessageDialog dlg(this, _L("Failed to load network plug-in. Please restart the application."), _L("Restart Required"), wxOK | wxICON_WARNING);
-                        dlg.ShowModal();
-                    }
-                } else {
-                    wxString msg = wxString::Format(
-                        _L("You've selected network plug-in version %s.\n\nWould you like to download and install this version now?\n\nNote: The application may need to restart after installation."),
-                        wxString::FromUTF8(new_version));
+        if (new_version == old_version)
+            return;
 
-                    MessageDialog dlg(this, msg, _L("Download Network Plug-in"), wxYES_NO | wxICON_QUESTION);
-                    if (dlg.ShowModal() == wxID_YES) {
-                        DownloadProgressDialog progress_dlg(_L("Downloading Network Plug-in"));
-                        progress_dlg.ShowModal();
-                    }
-                }
+        BOOST_LOG_TRIVIAL(info) << "Network plugin version selection changed from " << old_version << " to " << new_version;
+
+        if (!selected_ver.warning.empty()) {
+            MessageDialog warn_dlg(this, wxString::FromUTF8(selected_ver.warning), _L("Warning"), wxOK | wxCANCEL | wxICON_WARNING);
+            if (warn_dlg.ShowModal() != wxID_OK) {
+                reselect(old_version);
+                return;
             }
         }
-        e.Skip();
+
+        // A build already present on disk loads directly with a hot reload - on any platform
+        // and across series (legacy <-> modern). Only claim success once the build that
+        // actually loaded is the one that was requested.
+        if (Slic3r::NetworkAgent::versioned_library_exists(new_version)) {
+            app_config->set_network_plugin_version(new_version);
+            app_config->save();
+            BOOST_LOG_TRIVIAL(info) << "Version " << new_version << " already exists on disk, triggering hot reload";
+            // Claim success only once the series that actually loaded is the one requested - the
+            // loaded plug-in reports its full build (02.08.01.53) while the requested identity is
+            // the series (02.08.01), so compare series, not the raw string.
+            if (wxGetApp().hot_reload_network_plugin() &&
+                network_plugin_series(Slic3r::NetworkAgent::get_version()) == network_plugin_series(new_version)) {
+                MessageDialog dlg(this, _L("Network plug-in switched successfully."), _L("Success"), wxOK | wxICON_INFORMATION);
+                dlg.ShowModal();
+            } else {
+                MessageDialog dlg(this, _L("Failed to load network plug-in. Please restart the application."), _L("Restart Required"), wxOK | wxICON_WARNING);
+                dlg.ShowModal();
+                reselect(app_config->get_network_plugin_version());
+            }
+            return;
+        }
+
+        // Not on disk: offer to download it. The endpoint is series-keyed and serves that series'
+        // newest build. (A same-series custom build is only ever listed when its file is on disk,
+        // so it takes the hot-reload branch above; the only not-on-disk selectable is a series or
+        // legacy entry that genuinely needs fetching.)
+        wxString msg = wxString::Format(
+            _L("You've selected network plug-in version %s.\n\nWould you like to download and install this version now?\n\nNote: The application may need to restart after installation."),
+            wxString::FromUTF8(new_version));
+        MessageDialog dlg(this, msg, _L("Download Network Plug-in"), wxYES_NO | wxICON_QUESTION);
+        if (dlg.ShowModal() == wxID_YES) {
+            app_config->set_network_plugin_version(new_version);
+            app_config->save();
+            DownloadProgressDialog progress_dlg(_L("Downloading Network Plug-in"));
+            progress_dlg.ShowModal();
+            reselect(app_config->get_network_plugin_version());
+        } else {
+            reselect(old_version);
+        }
     });
 
     auto reload_btn = new Button(m_parent, wxEmptyString, "refresh", 0, 16);
@@ -1879,11 +1904,21 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_fps_overlay);
 
+    //// GRAPHICS > G-code Preview
+    g_sizer->Add(create_item_title(_L("G-code Preview")), 1, wxEXPAND);
+
+    auto item_dim_previous_layers = create_item_checkbox(
+        _L("Dim lower layers"),
+        _L("When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."),
+        "preview_dim_previous_layers"
+    );
+    g_sizer->Add(item_dim_previous_layers);
+
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
     //////////////////////////
-    //// ONLINE TAB 
+    //// ONLINE TAB
     /////////////////////////////////////
     m_pref_tabs->AppendItem(_L("Online"));
     f_sizers.push_back(new wxFlexGridSizer(1, 1, v_gap, 0));

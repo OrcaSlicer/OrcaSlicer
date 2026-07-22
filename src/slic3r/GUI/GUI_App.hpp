@@ -343,6 +343,7 @@ private:
 public:
     //try again when subscription fails
     void            on_start_subscribe_again(std::string dev_id);
+    void            reset_unsigned_plugin_warning() { m_unsigned_plugin_warning_shown = false; }
     std::string     get_local_models_path();
     bool            OnInit() override;
     int             OnExit() override;
@@ -763,7 +764,12 @@ public:
     void            check_config_updates_from_updater() { check_updates(false); }
 
     void            show_network_plugin_download_dialog(bool is_update = false);
+    // One-time normalization of an older full-version identity (config 02.08.01.53 + file
+    // ..._02.08.01.53.dylib) to the AA.BB.CC series form, with no re-download. Runs at startup
+    // before the plug-in is loaded.
+    void            migrate_network_plugin_config();
     bool            hot_reload_network_plugin();
+    bool            install_network_plugin_from_ota(bool& had_cache);
     std::string     get_latest_network_version() const;
     bool            has_network_update_available() const;
     // Orca: return the client version to report to Bambu servers. Pinned to

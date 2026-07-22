@@ -614,6 +614,8 @@ void GCodeProcessor::TimeMachine::calculate_time(GCodeProcessorResult& result, P
             float leftover = 0.0f;
             for (size_t i = additional_buffer_idx; i < additional_buffer.size(); ++i)
                 leftover += additional_buffer[i].second;
+            BOOST_LOG_TRIVIAL(debug) << "calculate_time(is_final): leftover=" << leftover
+                << "s from " << (additional_buffer.size() - additional_buffer_idx) << " items";
             time += double(leftover);
             gcode_time.cache += leftover;
         } else {
@@ -3492,6 +3494,7 @@ void GCodeProcessor::reset()
     m_extruder_blocks.clear();
     m_machine_start_gcode_end_line_id = (unsigned int) (-1);
     m_machine_end_gcode_start_line_id = (unsigned int) (-1);
+    m_skip_end_gcode_delays = false;
     m_remaining_volume = std::vector<float>(MAXIMUM_EXTRUDER_NUMBER, 0.f);
 
     m_line_id = 0;
@@ -4216,6 +4219,14 @@ void GCodeProcessor::process_tags(const std::string_view comment, bool producers
 
     if (boost::starts_with(comment, GCodeProcessor::VFlush_End_Tag)) {
         m_virtual_flushing = false;
+        return;
+    }
+
+    // End gcode marker: skip post-print M400 S/P dwells after this point so the M73 estimate reports
+    // print-completion time, not post-print filtration/cooldown. BBS drops the same remainder in
+    // calculate_time(is_final).
+    if (comment == Machine_End_GCode_Start_Tag) {
+        m_skip_end_gcode_delays = true;
         return;
     }
 
@@ -6401,6 +6412,10 @@ void GCodeProcessor::process_M400(const GCodeReader::GCodeLine& line)
     float value_p = 0.0;
     if (line.has_value('S', value_s) || line.has_value('P', value_p)) {
         value_s += value_p * 0.001;
+        // Skip post-print end-gcode dwells so they don't inflate the M73 estimate (see
+        // m_skip_end_gcode_delays). Only omits dwell time — no state is updated here.
+        if (m_skip_end_gcode_delays)
+            return;
         simulate_st_synchronize(value_s);
     }
 }
