@@ -121,11 +121,11 @@ public:
             ::Slic3r::PluginAuditManager::AuditMode::Loading, [] {}, PYBIND11_OVERRIDE_PURE, int, PrinterAgentPluginCapability, ping_bind, ping_code);
     }
 
-    int bind(std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn) override
+    int bind(std::string dev_ip, std::string dev_id, std::string dev_model, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn) override
     {
         ORCA_PY_OVERRIDE_AUDITED(
             ::Slic3r::PluginAuditManager::AuditMode::Loading, [] {}, PYBIND11_OVERRIDE_PURE, int, PrinterAgentPluginCapability, bind, dev_ip, dev_id,
-            sec_link, timezone, improved, update_fn);
+            dev_model, sec_link, timezone, improved, update_fn);
     }
 
     int unbind(std::string dev_id) override
@@ -153,6 +153,13 @@ public:
         ORCA_PY_OVERRIDE_AUDITED(
             ::Slic3r::PluginAuditManager::AuditMode::Loading, [] {}, PYBIND11_OVERRIDE_PURE, int, PrinterAgentPluginCapability, start_sdcard_print, params,
             update_fn, cancel_fn);
+    }
+
+    int get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback) override
+    {
+        ORCA_PY_OVERRIDE_AUDITED(
+            ::Slic3r::PluginAuditManager::AuditMode::Loading, [] {}, PYBIND11_OVERRIDE_PURE, int, PrinterAgentPluginCapability, get_hms_snapshot, dev_id,
+            file_name, callback);
     }
 
     int set_server_callback(OnServerErrFn fn) override

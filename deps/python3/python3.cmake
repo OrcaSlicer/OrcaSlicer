@@ -7,7 +7,16 @@ string(REGEX REPLACE "^([0-9]+\\.[0-9]+)\\..*" "\\1" _python_version_short "${_p
 set(_python_url "https://www.python.org/ftp/python/${_python_version}/Python-${_python_version}.tar.xz")
 set(_python_sha256 "c08bc65a81971c1dd5783182826503369466c7e67374d1646519adf05207b684")
 
+
+set(_patch_cmd "")
 if(WIN32)
+
+    # Fix python build failure on Windows if python is not available, due to wrong nuget download URL
+    # See https://github.com/python/cpython/issues/153438
+    # Patch from https://github.com/python/cpython/pull/153608
+    # This patch has not been merged to 3.12 yet so we need to apply it manually
+    set(_patch_cmd git init && ${PATCH_CMD} ${CMAKE_CURRENT_LIST_DIR}/01-windows-nuget.patch)
+
     if(MSVC_VERSION EQUAL 1800)
         set(_python_platform_toolset v120)
     elseif(MSVC_VERSION EQUAL 1900)
@@ -253,6 +262,7 @@ endif()
 ExternalProject_Add(dep_python3
     URL "${_python_url}"
     URL_HASH SHA256=${_python_sha256}
+    PATCH_COMMAND ${_patch_cmd}
     DOWNLOAD_DIR ${DEP_DOWNLOAD_DIR}/python3
     BUILD_IN_SOURCE ON
     CONFIGURE_COMMAND ${_conf_cmd}

@@ -3609,7 +3609,8 @@ std::vector<std::set<int>> Print::get_physical_unprintable_filaments(const std::
         return physical_unprintables;
 
     auto get_unprintable_extruder_id = [&](unsigned int filament_idx) -> int {
-        int status = m_config.filament_printable.values[filament_idx];
+        // filament_printable may be shorter than the filament count; get_at() clamps.
+        int status = m_config.filament_printable.get_at(filament_idx);
         for (int i = 0; i < extruder_num; ++i) {
             if (!(status >> i & 1)) {
                 return i;
