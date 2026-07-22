@@ -328,7 +328,8 @@ public:
     bool open_3mf_file(const fs::path &file_path);
     int  get_3mf_file_count(std::vector<fs::path> paths);
     void add_file();
-    void add_model(bool imperial_units = false, std::string fname = "");
+    // Returns false when no object was added (e.g. the user cancelled the load dialog).
+    bool add_model(bool imperial_units = false, std::string fname = "");
     void import_zip_archive();
     void import_sl1_archive();
     void extract_config_from_project();
@@ -719,6 +720,25 @@ public:
     //BBS: partplate list related functions
     PartPlateList& get_partplate_list();
     void validate_current_plate(bool& model_fits, bool& validate_error);
+    // Rebuild the missing-plugin sets from the active presets and (re)show/close their notifications.
+    // Returns true when slicing must be blocked (a referenced plugin is still missing); sets
+    // *block_toggled when the blocked state changed since the previous call (so the caller can refresh
+    // the Slice button). Helper for validate_current_plate and the reslice() gate.
+    bool refresh_missing_plugin_block(bool* block_toggled = nullptr);
+    // Re-run plate validation when a plugin finishes loading, but only while a missing-plugin
+    // notification is active, so it clears automatically once the required plugin is available.
+    void revalidate_current_plate_if_plugins_missing();
+    // Install the given missing cloud plugin refs, showing an app-modal pulsing progress dialog
+    // (Cancel stops before the next plugin). Runs the blocking install on a worker thread; the
+    // dialog is driven from the UI thread. Clears the missing-plugin notification once resolved.
+    void install_missing_cloud_plugins(const std::vector<std::string>& cloud_refs);
+    // Activate the given inactive plugin refs (load the plugin / enable the capability). No progress
+    // dialog; the loads run on a background worker that re-validates the plate once they settle, so
+    // the notification clears (or flips to broken if the plugin lacks the capability).
+    void enable_inactive_plugins(const std::vector<std::string>& refs);
+    // True when the active preset references plugins that are missing and not yet acknowledged, as
+    // of the last validate_current_plate. Other slice-ready writers consult this to stay consistent.
+    bool plugins_block_slicing() const;
     //BBS: select the plate by index
     int select_plate(int plate_index, bool need_slice = false);
     //BBS: update progress result

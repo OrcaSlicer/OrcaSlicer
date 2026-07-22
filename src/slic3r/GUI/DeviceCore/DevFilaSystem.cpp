@@ -839,4 +839,154 @@ void DevFilaSystemParser::ParseV1_0(const json& jj, MachineObject* obj, DevFilaS
     }
 }
 
+static DevAms::AmsType ams_type_from_string(const std::string& s)
+{
+    if (s == "ams_lite" || s == "ams-lite") return DevAms::AMS_LITE;
+    if (s == "n3f")                          return DevAms::N3F;
+    if (s == "n3s")                          return DevAms::N3S;
+    return DevAms::AMS; // default
+}
+
+void DevFilaSystemParser::ParseAgentFilament(const json& data, MachineObject* obj, DevFilaSystem* system)
+{
+    if (!system || !data.is_object())
+        return;
+
+    // --- AMS units ---
+    if (data.contains("units") && data["units"].is_array())
+    {
+        std::set<std::string> seen_units;
+
+        for (const auto& u : data["units"])
+        {
+            if (!u.is_object() || !u.contains("id"))
+                continue;
+            const std::string ams_id = u.value("id", std::string());
+            if (ams_id.empty())
+                continue;
+            seen_units.insert(ams_id);
+
+            const int             ext_id = u.value("extruder", MAIN_EXTRUDER_ID);
+            const DevAms::AmsType type   = ams_type_from_string(u.value("type", std::string("ams")));
+
+            DevAms* ams = nullptr;
+            auto    it  = system->amsList.find(ams_id);
+            if (it == system->amsList.end())
+            {
+                ams = new DevAms(ams_id, ext_id, type);
+                system->amsList.insert(std::make_pair(ams_id, ams));
+            }
+            else
+            {
+                ams           = it->second;
+                ams->m_ext_id = ext_id;
+                ams->SetAmsType(type);
+            }
+
+            ams->m_exist               = true;
+            ams->m_current_temperature = u.value("temperature", (float) INVALID_AMS_TEMPERATURE);
+            ams->m_humidity_percent    = u.value("humidity_percent", -1);
+            ams->m_left_dry_time       = u.value("dry_time_min", 0);
+
+            // --- slots / trays ---
+            std::set<std::string> seen_slots;
+            if (u.contains("slots") && u["slots"].is_array())
+            {
+                for (const auto& s : u["slots"])
+                {
+                    if (!s.is_object())
+                        continue;
+                    const std::string tray_id = std::to_string(s.value("index", -1));
+                    seen_slots.insert(tray_id);
+
+                    DevAmsTray* tray = nullptr;
+                    auto        tit  = ams->m_trays.find(tray_id);
+                    if (tit == ams->m_trays.end())
+                    {
+                        tray = new DevAmsTray(tray_id);
+                        ams->m_trays.insert(std::make_pair(tray_id, tray));
+                    }
+                    else
+                    {
+                        tray = tit->second;
+                    }
+
+                    tray->is_exists       = s.value("loaded", false);
+                    tray->m_fila_type     = s.value("material", std::string());
+                    tray->setting_id      = s.value("preset_id", std::string());
+                    tray->UpdateColorFromStr(s.value("color", std::string()));
+                    tray->nozzle_temp_min = std::to_string(s.value("nozzle_temp_min", 0));
+                    tray->nozzle_temp_max = std::to_string(s.value("nozzle_temp_max", 0));
+                    tray->remain          = s.value("remain_percent", -1);
+                    tray->k               = s.value("k", 0.0f);
+                    if (s.contains("diameter_mm") && s["diameter_mm"].is_number())
+                        tray->diameter = std::to_string(s["diameter_mm"].get<double>());
+                    if (s.contains("weight_g") && s["weight_g"].is_number())
+                        tray->weight = std::to_string(s["weight_g"].get<int>());
+
+                    tray->cols.clear();
+                    if (s.contains("colors") && s["colors"].is_array())
+                    {
+                        for (const auto& c : s["colors"])
+                            if (c.is_string())
+                                tray->cols.push_back(c.get<std::string>());
+                    }
+                    tray->ctype = tray->cols.size() > 1 ? 1 : 0;
+                }
+            }
+
+            // prune trays no longer reported
+            for (auto tit = ams->m_trays.begin(); tit != ams->m_trays.end();)
+            {
+                if (seen_slots.count(tit->first) == 0)
+                {
+                    delete tit->second;
+                    tit = ams->m_trays.erase(tit);
+                }
+                else
+                {
+                    ++tit;
+                }
+            }
+        }
+
+        // prune units no longer reported
+        for (auto it = system->amsList.begin(); it != system->amsList.end();)
+        {
+            if (seen_units.count(it->first) == 0)
+            {
+                delete it->second;
+                it = system->amsList.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+
+    // --- external / direct spools -> obj->vt_slot ---
+    // extruder 0 -> main virtual slot, extruder >0 -> deputy.
+    if (obj && data.contains("external") && data["external"].is_array())
+    {
+        obj->vt_slot.clear();
+        for (const auto& e : data["external"])
+        {
+            if (!e.is_object())
+                continue;
+            const int  ext   = e.value("extruder", MAIN_EXTRUDER_ID);
+            const int  vt_id = (ext == MAIN_EXTRUDER_ID) ? VIRTUAL_TRAY_MAIN_ID : VIRTUAL_TRAY_DEPUTY_ID;
+            DevAmsTray tray(std::to_string(vt_id));
+            tray.is_exists       = e.value("loaded", false);
+            tray.m_fila_type     = e.value("material", std::string());
+            tray.setting_id      = e.value("preset_id", std::string());
+            tray.UpdateColorFromStr(e.value("color", std::string()));
+            tray.nozzle_temp_min = std::to_string(e.value("nozzle_temp_min", 0));
+            tray.nozzle_temp_max = std::to_string(e.value("nozzle_temp_max", 0));
+            tray.remain          = e.value("remain_percent", -1);
+            obj->vt_slot.push_back(tray);
+        }
+    }
+}
+
 }

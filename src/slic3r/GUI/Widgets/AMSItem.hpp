@@ -14,6 +14,7 @@
 #include <wx/dynarray.h>
 #include <optional>
 
+#include "slic3r/GUI/DeviceCore/DevFilaSwitch.h" // Orca: DevFilaSwitch::SwitchPos for inlet-aware AMS placement
 
 #define AMS_CONTROL_BRAND_COLOUR wxColour(0, 150, 136)
 #define AMS_CONTROL_GRAY700 wxColour(107, 107, 107)
@@ -33,6 +34,9 @@
 
 namespace Slic3r { namespace GUI {
 
+// Orca: GUI-layer AMS-type enum used across the whole AMSItem/AMSControl widget family in place of the
+// device-layer DevAmsType. Kept as an Orca divergence so out-of-cluster consumers (calibration wizard,
+// StatusPanel, humidity popup) that assign/compare AMSModel keep compiling; see ledger cluster-4.
 enum AMSModel {
     EXT_AMS             = 0,    //ext
     GENERIC_AMS         = 1,
@@ -214,17 +218,21 @@ struct AMSinfo
 public:
     std::string             ams_id;
     std::vector<Caninfo>    cans;
-    int                     nozzle_id = 0;
+    int                     nozzle_id = 0;         // Orca: pull-mode AMS->extruder binding (DevAms::GetExtruderId), pinned to MAIN for switch-routed AMS
     std::string             current_can_id;
     AMSPassRoadSTEP         current_step = AMSPassRoadSTEP::AMS_ROAD_STEP_NONE;
     AMSAction               current_action;
     int                     curreent_filamentstep;
     int                     ams_humidity = 0;
-    int                     humidity_raw = -1;
+    int                     humidity_raw = -1;     // Orca: raw humidity percent (replaces REF ams_humidity_percent)
     int                     left_dray_time = 0;
     float                   current_temperature = INVALID_AMS_TEMPERATURE;
     AMSModel                ams_type = AMSModel::GENERIC_AMS;
     AMSModelOriginType      ext_type = AMSModelOriginType::GENERIC_EXT;
+
+    // Orca: switch inlet (POS_IN_A/POS_IN_B) carried from the AMS-level DevAms::GetSwitcherPos(); empty on
+    // printers without a Filament Track Switch. Drives inlet-aware panel placement (routes_to_main_extruder).
+    std::optional<DevFilaSwitch::SwitchPos> switch_pos;
 
 public:
     bool operator== (const AMSinfo& other) const
@@ -240,7 +248,8 @@ public:
             left_dray_time == other.left_dray_time &&
             current_temperature == other.current_temperature &&
             ams_type == other.ams_type &&
-            ext_type == other.ext_type)
+            ext_type == other.ext_type &&
+            switch_pos == other.switch_pos) // Orca: refresh placement when the switch inlet changes
         {
             return true;
         }
@@ -266,6 +275,11 @@ public:
     Caninfo get_caninfo(const std::string& can_id, bool& found) const;
 
     int  get_humidity_display_idx() const;
+
+    // Orca: true when this AMS belongs in the main-extruder (right) panel. Follows the switch inlet
+    // (POS_IN_B -> main/right, POS_IN_A -> deputy/left) when a Filament Track Switch is installed, else
+    // falls back to the pinned nozzle_id so switch-less machines behave exactly as before.
+    bool routes_to_main_extruder() const;
 };
 
 /*************************************************
@@ -489,6 +503,9 @@ public:
     void         support_cali(bool sup) { m_support_cali = sup; Refresh(); };
     virtual bool Enable(bool enable = true);
     void         set_disable_mode(bool disable) { m_disable_mode = disable; }
+    // View-only mode (2D laser/cut): show the read-only (eye) icon for every editable spool
+    // while keeping it clickable to open the read-only filament dialog.
+    void         set_view_only(bool view_only) { if (m_view_only != view_only) { m_view_only = view_only; Refresh(); } }
     void         msw_rescale();
     void         on_pass_road(bool pass);
 
@@ -528,6 +545,7 @@ protected:
     wxColour m_road_def_color;
     wxColour m_lib_color;
     bool m_disable_mode{ false };
+    bool m_view_only{ false };
     bool m_pass_road{false};
 
     void on_enter_window(wxMouseEvent &evt);
@@ -823,6 +841,8 @@ public:
 
     AMSPanelPos get_panel_pos() const { return m_panel_pos; };
     int         get_nozzle_id() const { return m_info.nozzle_id; };
+    // Orca: inlet-aware panel routing (delegates to AMSinfo::routes_to_main_extruder)
+    bool        routes_to_main_extruder() const { return m_info.routes_to_main_extruder(); };
 
 private:
     ScalableBitmap  m_bitmap_extra_framework;

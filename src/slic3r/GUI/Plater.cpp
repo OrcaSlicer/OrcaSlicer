@@ -1,15 +1,25 @@
 #include "Plater.hpp"
+#include "../Utils/NetworkAgent.hpp"
+#include "../Utils/NetworkAgentFactory.hpp"
 #include "libslic3r/Config.hpp"
 #include "libslic3r_version.h"
 
 #include <cstddef>
 #include <algorithm>
+#include <chrono>
 #include <numeric>
 #include <limits>
+#include <optional>
+#include <slic3r/plugin/PluginDescriptor.hpp>
+#include <slic3r/plugin/PluginManager.hpp>
+#include <slic3r/plugin/PluginResolver.hpp>
 #include <vector>
 #include <string>
 #include <regex>
 #include <future>
+#include <thread>
+#include <atomic>
+#include <mutex>
 #include <boost/algorithm/string.hpp>
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/optional.hpp>
@@ -21,6 +31,7 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include <wx/msgdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/button.h>
@@ -37,6 +48,8 @@
 #include <wx/debug.h>
 #include <wx/busyinfo.h>
 #include <wx/event.h>
+#include <wx/evtloop.h>
+#include <wx/timer.h>
 #include <wx/wrapsizer.h>
 #ifdef _WIN32
 #include <wx/richtooltip.h>
@@ -447,6 +460,17 @@ enum class ActionButtonType : int {
     abSendGCode
 };
 
+// Background for the extruder-group title chip and its edit buttons, matching the StaticGroup
+// interior. macOS keeps a lighter #F7F7F7 tint in light mode; dark mode uses the mapped colour.
+static wxColour extruder_group_chip_bg()
+{
+#ifdef __WXOSX__
+    if (!wxGetApp().dark_mode())
+        return wxColour("#F7F7F7");
+#endif
+    return StateColor::darkModeColorFor(*wxWHITE);
+}
+
 // Interactive title row for the sidebar extruder cards: "<title> ( <count> ) [edit]". The count shows the
 // extruder's physical nozzle count on multi-nozzle printers (hidden elsewhere, SetCount(-1)), and the
 // trailing button opens the manual nozzle-count editor when enabled (a plain dot otherwise).
@@ -455,11 +479,7 @@ class HoverLabel : public wxPanel
 public:
     HoverLabel(wxWindow *parent, const wxString &label) : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
     {
-#ifdef __WXOSX__
-        SetBackgroundColour("#F7F7F7");
-#else
-        SetBackgroundColour(*wxWHITE);
-#endif
+        SetBackgroundColour(extruder_group_chip_bg());
         auto sizer = new wxBoxSizer(wxHORIZONTAL);
 
         m_label = new wxStaticText(this, wxID_ANY, label, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
@@ -483,11 +503,7 @@ public:
 
         m_hover_btn = new ScalableButton(this, wxID_ANY, "dot");
         m_hover_btn->SetMinSize(wxSize(FromDIP(25), -1));
-#ifdef __WXOSX__
-        m_hover_btn->SetBackgroundColour("#F7F7F7");
-#else
-        m_hover_btn->SetBackgroundColour(*wxWHITE);
-#endif
+        m_hover_btn->SetBackgroundColour(extruder_group_chip_bg());
         m_hover_btn->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](auto &evt) {
             if (m_enabled && m_hover_on_click)
                 m_hover_on_click();
@@ -536,6 +552,17 @@ public:
     }
 
     void Rescale() { m_hover_btn->msw_rescale(); }
+
+    // Re-apply the chip colours on a live light/dark switch (they are set once at construction).
+    void sys_color_changed()
+    {
+        SetBackgroundColour(extruder_group_chip_bg());
+        m_label->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#6B6B6B")));
+        for (wxStaticText *t : {m_brace_left, m_count, m_brace_right})
+            t->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+        m_hover_btn->SetBackgroundColour(extruder_group_chip_bg());
+        Refresh();
+    }
 
 private:
     // Content changed: the cached best size (ours and, transitively, our ancestors') is stale,
@@ -611,6 +638,15 @@ struct ExtruderGroup : StaticGroup
         combo_flow->Rescale();
         for (int i = 0; i < 4; ++i)
             ams[i]->msw_rescale();
+    }
+
+    void sys_color_changed()
+    {
+        if (hover_label)
+            hover_label->sys_color_changed();
+        if (btn_edit)
+            btn_edit->SetBackgroundColour(extruder_group_chip_bg());
+        Refresh();
     }
 };
 
@@ -1262,11 +1298,7 @@ ExtruderGroup::ExtruderGroup(wxWindow * parent, int index, wxString const &title
     //label_ams->SetMinSize({FromDIP(70), -1});
     if (index >= 0) {
         btn_edit = new ScalableButton(this, wxID_ANY, "dot");
-#ifdef __WXOSX__
-        btn_edit->SetBackgroundColour("#F7F7F7");
-#else
-        btn_edit->SetBackgroundColour(*wxWHITE);
-#endif
+        btn_edit->SetBackgroundColour(extruder_group_chip_bg());
         btn_edit->Hide();
         btn_edit->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this, index](auto &evt) {
             PopupWindow *window = new AMSCountPopupWindow(this, index);
@@ -1812,9 +1844,9 @@ bool Sidebar::priv::is_fila_switch_ready()
 void Sidebar::priv::show_fila_switch_msg(bool ready)
 {
     wxString msg = ready ? _L("Filament switcher detected. All AMS filaments are now available for both extruders. "
-                              "The slicer will auto-assign for optimal printing. ") :
+                              "The slicer will auto-assign for optimal printing.") :
                            _L("A filament switcher is detected but not calibrated and thus currently unavailable. "
-                              "Please calibrate it on the printer and synchronize before use. ");
+                              "Please calibrate it on the printer and synchronize before use.");
 
     long style = ready ? (wxICON_INFORMATION | wxOK) : (wxICON_WARNING | wxOK);
     // Orca: drop the vendor "Learn more" tracking link; there is no Orca help page for the switch yet.
@@ -3214,6 +3246,7 @@ void Sidebar::update_all_preset_comboboxes()
 
     auto p_mainframe = wxGetApp().mainframe;
     auto cfg = preset_bundle.printers.get_edited_preset().config;
+    const bool use_native_device_tab = preset_bundle.use_bbl_device_tab() || NetworkAgentFactory::is_current_printer_agent_plugin();
 
     if (preset_bundle.use_bbl_network()) {
         //only show connection button for not-BBL printer
@@ -3250,7 +3283,8 @@ void Sidebar::update_all_preset_comboboxes()
             print_btn_type = preset_bundle.is_bbl_vendor() ? MainFrame::PrintSelectType::ePrintPlate : MainFrame::PrintSelectType::eSendGcode;
         }
 
-        p_mainframe->load_printer_url(url, apikey);
+        if (!use_native_device_tab)
+            p_mainframe->load_printer_url(url, apikey);
 
 
         p_mainframe->set_print_button_to_default(print_btn_type);
@@ -3320,8 +3354,7 @@ void Sidebar::update_all_preset_comboboxes()
         update_printer_thumbnail();
     }
 
-    // Orca:: show device tab based on vendor type
-    p_mainframe->show_device(preset_bundle.use_bbl_device_tab());
+    p_mainframe->show_device(use_native_device_tab);
     p_mainframe->m_tabpanel->SetSelection(p_mainframe->m_tabpanel->GetSelection());
 }
 
@@ -3851,6 +3884,10 @@ void Sidebar::sys_color_changed()
     p->btn_edit_printer->msw_rescale();
     p->image_printer->SetSize(FromDIP(PRINTER_THUMBNAIL_SIZE));
     p->image_printer_bed->SetSize(FromDIP(PRINTER_THUMBNAIL_SIZE));
+
+    for (ExtruderGroup *ext : {p->left_extruder, p->right_extruder, p->single_extruder})
+        if (ext)
+            ext->sys_color_changed();
 
     // call a kill focus event to ensure new colors applied
     for (ComboBox* combo : std::vector<ComboBox*>{p->combo_printer, p->combo_nozzle_dia, p->combo_printer_bed}){
@@ -5216,6 +5253,14 @@ struct Plater::priv
     bool m_ignore_event{false};
     bool m_slice_all{false};
     bool m_is_slicing {false};
+    // Missing-plugin set signatures (sorted full refs joined by '\n'), one per notification. They
+    // gate plugin-load re-validation and avoid needlessly recreating the notification when the set
+    // is unchanged. Whether missing plugins block slicing is derived directly from PluginResolver
+    // (has_missing_plugins()), not cached here.
+    std::string m_local_missing_shown_sig;
+    std::string m_cloud_missing_shown_sig;
+    std::string m_inactive_shown_sig;
+    std::string m_broken_shown_sig;
     bool auto_reslice_pending {false};
     bool auto_reslice_after_cancel {false};
     bool m_is_publishing {false};
@@ -6007,6 +6052,10 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
 
         view3D_canvas->Bind(EVT_GLCANVAS_SELECT_ALL, [this](SimpleEvent&) { this->q->select_all(); });
         view3D_canvas->Bind(EVT_GLCANVAS_QUESTION_MARK, [](SimpleEvent&) { wxGetApp().keyboard_shortcuts(); });
+        view3D_canvas->Bind(EVT_GLCANVAS_OPEN_SPEED_DIAL, [this](SimpleEvent&) {
+            if (this->q->is_view3D_shown())
+                wxGetApp().open_speed_dial();
+        });
         view3D_canvas->Bind(EVT_GLCANVAS_INCREASE_INSTANCES, [this](Event<int>& evt)
             { if (evt.data == 1) this->q->increase_instances(); else if (this->can_decrease_instances()) this->q->decrease_instances(); });
         view3D_canvas->Bind(EVT_GLCANVAS_INSTANCE_MOVED, [this](SimpleEvent&) { update(); });
@@ -11162,8 +11211,13 @@ void Plater::priv::on_tab_selection_changing(wxBookCtrlEvent& e)
     sidebar_layout.show = new_sel == MainFrame::tp3DEditor || new_sel == MainFrame::tpPreview;
     update_sidebar();
     int old_sel = e.GetOldSelection();
-    if (wxGetApp().preset_bundle && wxGetApp().preset_bundle->use_bbl_device_tab() && new_sel == MainFrame::tpMonitor) {
-        if (!Slic3r::NetworkAgent::is_network_module_loaded()) {
+    const bool is_printer_agent_plugin = NetworkAgentFactory::is_current_printer_agent_plugin();
+    const bool use_native_device_tab = wxGetApp().preset_bundle &&
+        (wxGetApp().preset_bundle->use_bbl_device_tab() || is_printer_agent_plugin);
+    if (use_native_device_tab && new_sel == MainFrame::tpMonitor) {
+        // BBL network module is only required for BBL-vendor printers.
+        // Non-BBL Python plugins (e.g. moonraker) drive the Device tab without it.
+        if (!is_printer_agent_plugin && wxGetApp().preset_bundle->is_bbl_vendor() && !Slic3r::NetworkAgent::is_network_module_loaded()) {
             e.Veto();
             BOOST_LOG_TRIVIAL(info) << boost::format("skipped tab switch from %1% to %2%, lack of network plugins") % old_sel % new_sel;
             if (q) {
@@ -11371,7 +11425,23 @@ void Plater::priv::update_plugin_when_launch(wxCommandEvent &event)
     if (!app_config) return;
 
     if (result == wxID_OK) {
-        app_config->set("update_network_plugin", "true");
+        // Apply the downloaded update right away and hot-reload the plug-in, the same
+        // way a manual version switch in Preferences behaves. When a file is still in
+        // use and cannot be replaced, fall back to installing on the next launch.
+        bool had_cache = false;
+        if (wxGetApp().install_network_plugin_from_ota(had_cache)) {
+            notification_manager->close_notification_of_type(NotificationType::BBLPluginUpdateAvailable);
+            app_config->set("update_network_plugin", "false");
+            if (wxGetApp().hot_reload_network_plugin()) {
+                MessageDialog dlg_ok(wxGetApp().mainframe, _L("Network plug-in switched successfully."), _L("Success"), wxOK | wxICON_INFORMATION);
+                dlg_ok.ShowModal();
+            } else {
+                MessageDialog dlg_fail(wxGetApp().mainframe, _L("Failed to load network plug-in. Please restart the application."), _L("Restart Required"), wxOK | wxICON_WARNING);
+                dlg_fail.ShowModal();
+            }
+        } else {
+            app_config->set("update_network_plugin", had_cache ? "true" : "false");
+        }
     }
     else if (result == wxID_NO) {
         app_config->set("update_network_plugin", "false");
@@ -13443,7 +13513,7 @@ bool Plater::up_to_date(bool saved, bool backup)
                                         !Slic3r::has_other_changes(backup));
 }
 
-void Plater::add_model(bool imperial_units, std::string fname)
+bool Plater::add_model(bool imperial_units, std::string fname)
 {
     wxArrayString input_files;
 
@@ -13451,7 +13521,7 @@ void Plater::add_model(bool imperial_units, std::string fname)
     if (fname.empty()) {
         wxGetApp().import_model(this, input_files);
         if (input_files.empty())
-            return;
+            return false;
 
         for (const auto& file : input_files)
             paths.emplace_back(into_path(file));
@@ -13495,7 +13565,8 @@ void Plater::add_model(bool imperial_units, std::string fname)
 
     auto strategy = LoadStrategy::LoadModel;
     if (imperial_units) strategy = strategy | LoadStrategy::ImperialUnits;
-    if (!load_files(paths, strategy, ask_multi).empty()) {
+    const bool loaded = !load_files(paths, strategy, ask_multi).empty();
+    if (loaded) {
 
         if (get_project_name() == _L("Untitled") && paths.size() > 0) {
             boost::filesystem::path full_path(paths[0].string());
@@ -13504,6 +13575,7 @@ void Plater::add_model(bool imperial_units, std::string fname)
 
         wxGetApp().mainframe->update_title();
     }
+    return loaded;
 }
 
 void Plater::calib_pa(const Calib_Params& params)
@@ -13790,7 +13862,8 @@ void Plater::cut_horizontal(size_t obj_idx, size_t instance_idx, double z, Model
 }
 
 void Plater::_calib_pa_tower(const Calib_Params& params) {
-    add_model(false, Slic3r::resources_dir() + "/calib/pressure_advance/tower_with_seam.drc");
+    if (!add_model(false, Slic3r::resources_dir() + "/calib/pressure_advance/tower_with_seam.drc"))
+        return;
 
     auto& print_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -14030,7 +14103,8 @@ void Plater::calib_temp(const Calib_Params& params) {
     wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
     if (params.mode != CalibMode::Calib_Temp_Tower) return;
     
-    add_model(false, Slic3r::resources_dir() + "/calib/temperature_tower/temperature_tower.drc");
+    if (!add_model(false, Slic3r::resources_dir() + "/calib/temperature_tower/temperature_tower.drc"))
+        return;
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto start_temp = lround(params.start);
@@ -14106,7 +14180,8 @@ void Plater::calib_max_vol_speed(const Calib_Params& params)
     wxGetApp().mainframe->select_tab(size_t(MainFrame::tp3DEditor));
     if (params.mode != CalibMode::Calib_Vol_speed_Tower)
         return;
-    add_model(false, Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.drc");
+    if (!add_model(false, Slic3r::resources_dir() + "/calib/volumetric_speed/SpeedTestStructure.drc"))
+        return;
 
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
@@ -14185,7 +14260,8 @@ void Plater::calib_retraction(const Calib_Params& params)
     if (params.mode != CalibMode::Calib_Retraction_tower)
         return;
 
-    add_model(false, Slic3r::resources_dir() + "/calib/retraction/retraction_tower.drc");
+    if (!add_model(false, Slic3r::resources_dir() + "/calib/retraction/retraction_tower.drc"))
+        return;
 
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
@@ -14244,7 +14320,8 @@ void Plater::calib_VFA(const Calib_Params& params)
     if (params.mode != CalibMode::Calib_VFA_Tower)
         return;
 
-    add_model(false, Slic3r::resources_dir() + "/calib/vfa/vfa.drc");
+    if (!add_model(false, Slic3r::resources_dir() + "/calib/vfa/vfa.drc"))
+        return;
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -14289,7 +14366,8 @@ void Plater::calib_input_shaping_freq(const Calib_Params& params)
     if (params.mode != CalibMode::Calib_Input_shaping_freq)
         return;
 
-    add_model(false, Slic3r::resources_dir() + (params.test_model < 1 ? "/calib/input_shaping/ringing_tower.drc" : "/calib/input_shaping/fast_tower_test.drc"));
+    if (!add_model(false, Slic3r::resources_dir() + (params.test_model < 1 ? "/calib/input_shaping/ringing_tower.drc" : "/calib/input_shaping/fast_tower_test.drc")))
+        return;
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -14354,7 +14432,8 @@ void Plater::calib_input_shaping_damp(const Calib_Params& params)
     if (params.mode != CalibMode::Calib_Input_shaping_damp)
         return;
 
-    add_model(false, Slic3r::resources_dir() + (params.test_model < 1 ? "/calib/input_shaping/ringing_tower.drc" : "/calib/input_shaping/fast_tower_test.drc"));
+    if (!add_model(false, Slic3r::resources_dir() + (params.test_model < 1 ? "/calib/input_shaping/ringing_tower.drc" : "/calib/input_shaping/fast_tower_test.drc")))
+        return;
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -14421,7 +14500,8 @@ void Plater::Calib_Cornering(const Calib_Params& params)
     const std::string cornering_model_path = params.test_model == 0
         ? "/calib/input_shaping/ringing_tower.drc"
         : (params.test_model == 1 ? "/calib/input_shaping/fast_tower_test.drc" : "/calib/cornering/SCV-V2.drc");
-    add_model(false, Slic3r::resources_dir() + cornering_model_path);
+    if (!add_model(false, Slic3r::resources_dir() + cornering_model_path))
+        return;
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto filament_config = &wxGetApp().preset_bundle->filaments.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -16754,7 +16834,19 @@ void Plater::reslice()
     // and notify user that he should leave it first.
     if (get_view3D_canvas3D()->get_gizmos_manager().is_in_editing_mode(true))
         return;
-    
+
+    // Enforce the missing-plugin block at the slicing choke point: menu/keyboard/queued triggers can
+    // carry a stale enabled state while plugins load asynchronously. refresh_missing_plugin_block
+    // rebuilds the missing sets and notifications from the active presets without running
+    // Print::validate; all other validation keeps upstream behavior and is surfaced by
+    // update_background_process() below.
+    if (refresh_missing_plugin_block()) {
+        p->partplate_list.get_curr_plate()->update_slice_ready_status(false);
+        p->main_frame->update_slice_print_status(MainFrame::eEventPlateUpdate, false);
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": required plugins missing; slicing blocked.";
+        return;
+    }
+
     // Stop the running (and queued) UI jobs and only proceed if they actually
     // get stopped.
     unsigned timeout_ms = 10000;
@@ -18685,10 +18777,210 @@ void Plater::validate_current_plate(bool& model_fits, bool& validate_error)
         }*/
     }
 
+    // Missing-plugin validation (both technologies): block slicing while the active preset(s)
+    // reference plugin capabilities that are not installed/loadable here. The helper rebuilds the
+    // missing sets, manages the notifications, and reports whether slicing is blocked. plugins_block_changed
+    // is set when the block toggled, so the Slice button can be refreshed below.
+    bool plugins_block_changed = false;
+    if (refresh_missing_plugin_block(&plugins_block_changed)) {
+        model_fits     = false;
+        validate_error = true;
+    }
+
     PartPlate* part_plate = p->partplate_list.get_curr_plate();
     part_plate->update_slice_ready_status(model_fits);
 
+    // The toolbar Slice button is normally refreshed only by the canvas
+    // (EVT_GLCANVAS_ENABLE_ACTION_BUTTONS) on geometry updates. When the missing-plugin block toggles
+    // without a geometry change (e.g. a plugin finishing loading, or a setting edit that drops the
+    // last missing plugin), refresh it here — AFTER update_slice_ready_status set the plate's
+    // can_slice() flag that get_enable_slice_status() reads — so the button doesn't lag until the
+    // next bed click.
+    if (plugins_block_changed && !p->background_process.running())
+        p->main_frame->update_slice_print_status(MainFrame::eEventObjectUpdate, model_fits);
+
     return;
+}
+
+bool Plater::refresh_missing_plugin_block(bool* block_toggled)
+{
+    // PluginResolver owns the per-preset-type missing sets; rebuild them from each preset's own
+    // "plugins" manifest so the state is always fresh. A plugin is resolved when it is
+    // installed/loaded, or when no active setting references it any more (refresh drops it then).
+    // The block is derived solely from PluginResolver; snapshot it before the refresh to detect a
+    // toggle (so the caller can refresh the Slice button).
+    const bool was_blocked = has_missing_plugins() || has_inactive_plugins() || has_broken_plugins();
+    refresh_missing_plugins(*wxGetApp().preset_bundle);
+
+    const auto missing_refs = [](const std::vector<MissingPlugin>& missing) {
+        std::vector<std::string> refs;
+        refs.reserve(missing.size());
+        for (const MissingPlugin& m : missing)
+            refs.emplace_back(create_full_ref(m.ref));
+        return refs;
+    };
+
+    const auto signature = [&missing_refs](const std::vector<MissingPlugin>& missing) {
+        std::vector<std::string> refs = missing_refs(missing);
+        std::sort(refs.begin(), refs.end());
+        std::string sig;
+        for (const std::string& r : refs) { sig += r; sig += '\n'; }
+        return sig;
+    };
+
+    // Show/refresh the non-closable notification for one missing set. Only (re)create it when the
+    // set changes; pushing every validate would close+recreate it (flicker, reset hover) since
+    // validate runs on many triggers. shown_sig also gates plugin-load re-validation.
+    const auto update = [&](NotificationType type, const std::vector<MissingPlugin>& missing,
+                            std::string* shown_sig, const std::string& header,
+                            const std::string& resolve_label,
+                            std::function<bool(wxEvtHandler*)> resolve_action) {
+        if (missing.empty()) {
+            if (!shown_sig->empty()) {
+                p->notification_manager->close_notification_of_type(type);
+                shown_sig->clear();
+            }
+            return;
+        }
+        const std::string sig = signature(missing);
+        if (*shown_sig != sig) {
+            std::vector<JumpTo> body;
+            for (const auto& m : missing)
+                body.emplace_back(JumpTo{m.ref.capability_name, m.opt, m.opt_type});
+
+            p->notification_manager->push_plugin_missing_notification(
+                type, header, resolve_label, std::move(body), std::move(resolve_action));
+            *shown_sig = sig;
+        }
+    };
+
+    const std::vector<MissingPlugin> missing_cloud = get_missing_cloud_plugins();
+    const std::vector<MissingPlugin> missing_local = get_missing_local_plugins();
+    const std::vector<std::string> missing_cloud_refs = missing_refs(missing_cloud);
+    const std::vector<std::string> missing_local_refs = missing_refs(missing_local);
+
+    update(NotificationType::OrcaCloudPluginMissingError, missing_cloud,
+           &p->m_cloud_missing_shown_sig,
+           _u8L("OrcaCloud plugins required by the current preset are not installed:"),
+           _u8L("Install Plugins"),
+           [this, missing_cloud_refs](wxEvtHandler*) { install_missing_cloud_plugins(missing_cloud_refs); return false; });
+    // "Find on OrcaCloud" is only a suggestion: it opens the browser but cannot resolve the missing
+    // plugin in-session, so it never closes the notification or unblocks slicing. The user resolves a
+    // local plugin by installing it or by changing the setting that needs it.
+    update(NotificationType::OrcaLocalPluginMissingError, missing_local,
+           &p->m_local_missing_shown_sig,
+           _u8L("Local plugins required by the current preset are missing:"),
+           _u8L("Find on OrcaCloud"),
+           [missing_local_refs](wxEvtHandler*) { open_missing_plugins_on_cloud(missing_local_refs); return false; });
+
+    const std::vector<MissingPlugin> inactive      = get_inactive_plugins();
+    const std::vector<MissingPlugin> broken        = get_broken_plugins();
+    const std::vector<std::string>   inactive_refs = missing_refs(inactive);
+    const std::vector<std::string>   broken_refs   = missing_refs(broken);
+
+    update(NotificationType::OrcaPluginInactiveError, inactive,
+           &p->m_inactive_shown_sig,
+           _u8L("Plugins required by the current preset are not activated:"),
+           _u8L("Activate Now"),
+           [this, inactive_refs](wxEvtHandler*) { enable_inactive_plugins(inactive_refs); return false; });
+    update(NotificationType::OrcaPluginCapabilityUnavailableError, broken,
+           &p->m_broken_shown_sig,
+           _u8L("The installed plugin does not provide the required capability — it may be outdated:"),
+           _u8L("Find on OrcaCloud"),
+           [broken_refs](wxEvtHandler*) { open_missing_plugins_on_cloud(broken_refs); return false; });
+
+    const bool blocked = has_missing_plugins() || has_inactive_plugins() || has_broken_plugins();
+    if (block_toggled)
+        *block_toggled = (was_blocked != blocked);
+    return blocked;
+}
+
+void Plater::revalidate_current_plate_if_plugins_missing()
+{
+    // Only do work while a missing-plugin notification is up, so the plugin-load hook does not
+    // trigger a full validation for every plugin that loads during normal startup/use.
+    if (p->m_local_missing_shown_sig.empty() && p->m_cloud_missing_shown_sig.empty() &&
+        p->m_inactive_shown_sig.empty() && p->m_broken_shown_sig.empty())
+        return;
+    bool model_fits = true, validate_error = false;
+    validate_current_plate(model_fits, validate_error);
+}
+
+void Plater::install_missing_cloud_plugins(const std::vector<std::string>& cloud_refs)
+{
+    if (cloud_refs.empty())
+        return;
+
+    // Shared between the UI-thread dialog/timer and the resolver's worker thread.
+    struct InstallProgressState
+    {
+        std::atomic<bool> cancel{false};
+        std::atomic<bool> finished{false};
+        std::atomic<bool> torn_down{false};
+        std::mutex        mtx;
+        std::string       message;
+    };
+    auto state     = std::make_shared<InstallProgressState>();
+    state->message = _u8L("Preparing to install plugins...");
+
+    wxWindow* parent = wxGetApp().mainframe;
+    auto*     dialog = new wxProgressDialog(_L("Installing plugins"), from_u8(state->message), 100,
+                                            parent, wxPD_APP_MODAL | wxPD_CAN_ABORT);
+    dialog->Pulse();
+
+    // UI-thread timer: animate the pulse, observe the Cancel button, and tear down when the worker
+    // signals completion. The timer is deleted via CallAfter so it is never freed inside its own
+    // handler.
+    auto* timer = new wxTimer();
+    timer->Bind(wxEVT_TIMER, [this, dialog, timer, state](wxTimerEvent&) {
+        std::string msg;
+        {
+            std::lock_guard<std::mutex> lock(state->mtx);
+            msg = state->message;
+        }
+        // Once cancellation is requested, the in-flight plugin still has to finish; reflect that.
+        if (state->cancel)
+            msg = _u8L("Cancelling — finishing the current plugin...");
+
+        if (!dialog->Pulse(from_u8(msg)))
+            state->cancel = true;
+
+        // Tear down exactly once: Stop() prevents further ticks, but guard so a stale queued tick
+        // can never double-Destroy the dialog or double-delete the timer.
+        if (state->finished && !state->torn_down.exchange(true)) {
+            timer->Stop();
+            dialog->Destroy();
+            wxGetApp().CallAfter([timer]() { delete timer; });
+            revalidate_current_plate_if_plugins_missing();
+        }
+    });
+    timer->Start(100);
+
+    PluginInstallProgress progress;
+    progress.on_plugin_begin = [state](const std::string& name, std::size_t /*index*/, std::size_t /*total*/) {
+        std::lock_guard<std::mutex> lock(state->mtx);
+        state->message = (boost::format(_u8L("Installing %1%...")) % name).str();
+    };
+    progress.is_cancelled = [state]() { return state->cancel.load(); };
+    progress.on_finished  = [state]() { state->finished = true; };
+
+    resolve_missing_plugins(cloud_refs, std::move(progress));
+}
+
+void Plater::enable_inactive_plugins(const std::vector<std::string>& refs)
+{
+    if (refs.empty())
+        return;
+    // Local and instant — load the plugin and/or enable the capability. The plugin-load callback
+    // re-validates the plate and clears (or reclassifies) the notification; no progress dialog needed.
+    resolve_inactive_plugins(refs);
+}
+
+bool Plater::plugins_block_slicing() const
+{
+    // Single source of truth: slicing is blocked while PluginResolver still has unresolved plugin
+    // references — missing (download), inactive (activate), or broken (capability unavailable).
+    return has_missing_plugins() || has_inactive_plugins() || has_broken_plugins();
 }
 
 void Plater::open_platesettings_dialog(wxCommandEvent& evt) {

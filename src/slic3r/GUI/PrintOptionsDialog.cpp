@@ -1,4 +1,5 @@
 #include "PrintOptionsDialog.hpp"
+#include <initializer_list>
 #include "I18N.hpp"
 #include "GUI_App.hpp"
 #include "libslic3r/Utils.hpp"
@@ -8,6 +9,8 @@
 #include "DeviceCore/DevConfig.h"
 #include "DeviceCore/DevExtruderSystem.h"
 #include "DeviceCore/DevNozzleSystem.h"
+#include "DeviceCore/DevFan.h"
+#include "DeviceCore/DevPrintOptions.h"
 
 static const wxColour STATIC_BOX_LINE_COL = wxColour(238, 238, 238);
 static const wxColour STATIC_TEXT_CAPTION_COL = wxColour(100, 100, 100);
@@ -179,6 +182,92 @@ PrintOptionsDialog::PrintOptionsDialog(wxWindow* parent)
         else if (evt.GetInt() == 1)
         {
             if (obj) { obj->command_set_door_open_check(MachineObject::DOOR_OPEN_CHECK_ENABLE_WARNING); }
+        }
+        evt.Skip();
+    });
+
+    // Firmware print-option toggles (each gated on a fun2 capability bit, published via DevPrintOptions).
+    m_cb_plate_align->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& evt) {
+        if (obj) { obj->GetPrintOptions()->command_xcam_control_build_plate_align_detector(m_cb_plate_align->GetValue()); }
+        evt.Skip();
+    });
+
+    m_cb_fod_check->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& evt) {
+        if (obj) { obj->GetPrintOptions()->command_xcam_control_fod_check(m_cb_fod_check->GetValue()); }
+        evt.Skip();
+    });
+
+    m_cb_displacement_detection->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& evt) {
+        if (obj) { obj->GetPrintOptions()->command_xcam_control_displacement_detection(m_cb_displacement_detection->GetValue()); }
+        evt.Skip();
+    });
+
+    m_cb_purify_air_at_print_end->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& evt) {
+        if (obj) { obj->GetPrintOptions()->command_xcam_control_purify_air_at_print_end(m_cb_purify_air_at_print_end->GetValue()); }
+        evt.Skip();
+    });
+
+    purify_air_switch_board->Bind(wxCUSTOMEVT_SWITCH_POS, [this](wxCommandEvent& evt) {
+        if (evt.GetInt() == 0) {
+            if (obj) { obj->GetPrintOptions()->command_xcam_control_purify_air_at_print_end((int) DevPrintOptions::PurifyAirAtPrintEndState::PurifyAirByOutside); }
+        } else if (evt.GetInt() == 1) {
+            if (obj) { obj->GetPrintOptions()->command_xcam_control_purify_air_at_print_end((int) DevPrintOptions::PurifyAirAtPrintEndState::PurifyAirByInside); }
+        }
+        evt.Skip();
+    });
+
+    m_smart_nozzle_blob_mode_switch->Bind(wxCUSTOMEVT_MULTISWITCH_SELECTION, [this](wxCommandEvent& evt) {
+        if (!obj || !obj->GetPrintOptions()) { evt.Skip(); return; }
+        int sel = m_smart_nozzle_blob_mode_switch->GetSelection();
+        // UI: 0=Auto, 1=On, 2=Off -> protocol: 0=off, 1=on, 2=auto
+        int mode_map[] = {2, 1, 0};
+        if (sel < 0 || sel > 2) { evt.Skip(); return; }
+
+        // If currently in Auto (current_detect_value == 2), a print is running, and a loaded
+        // filament is stringing-prone, confirm before enabling — turning blob detection on
+        // mid-print with such filament can degrade quality.
+        const auto* blob_opt = obj->GetPrintOptions()->GetDetectionOption(PrintOptionEnum::Smart_Nozzle_Blob_Detection);
+        const bool was_auto = blob_opt && blob_opt->current_detect_value == 2;
+        if (sel == 1 /*On*/ && was_auto && obj->is_in_printing()
+            && obj->any_loaded_filament_is_stringing_prone()) {
+            wxString message = _L("There is stringing-prone filament in the current print job. "
+                                  "Enabling nozzle clumping detection now may degrade print quality. "
+                                  "Are you sure you want to enable it?");
+            wxString caption = _L("Enable Nozzle Clumping Detection");
+            // Themed warning dialog with Cancel as the highlighted default, so the safe choice (leave
+            // detection off) is the default and Confirm must be actively picked.
+            MessageDialog dialog(this, message, caption, wxICON_WARNING);
+            dialog.AddButton(wxID_CANCEL, _L("Cancel"),  true);
+            dialog.AddButton(wxID_OK,     _L("Confirm"), false);
+            if (dialog.ShowModal() != wxID_OK) {
+                // User cancelled: roll the switch back to Auto without sending the command.
+                m_smart_nozzle_blob_mode_switch->SetSelection(0);
+                update_smart_nozzle_blob_mode_desc(0);
+                evt.Skip();
+                return;
+            }
+        }
+
+        obj->GetPrintOptions()->command_smart_nozzle_blob_detect_mode(mode_map[sel]);
+        update_smart_nozzle_blob_mode_desc(sel);
+        evt.Skip();
+    });
+
+    m_cb_snapshot_enable->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& evt) {
+        if (!obj || !obj->GetPrintOptions()) { evt.Skip(); return; }
+        if (m_cb_snapshot_enable->GetValue()) {
+            wxString message = _L("When enabled, the printer will automatically capture photos of printed parts and upload them to the cloud. Would you like to enable this option?");
+            wxString caption = _L("Confirm Enable Print Status Snapshot");
+            wxMessageDialog dialog(this, message, caption, wxYES_NO | wxICON_QUESTION);
+            dialog.SetYesNoLabels(_L("Confirm"), _L("Cancel"));
+            if (dialog.ShowModal() == wxID_YES) {
+                obj->GetPrintOptions()->command_snapshot_control(true);
+                m_cb_snapshot_enable->SetValue(true);
+            } else {
+                m_cb_snapshot_enable->SetValue(false);
+            }
+        } else {
+            obj->GetPrintOptions()->command_snapshot_control(false);
         }
         evt.Skip();
     });
@@ -437,10 +526,43 @@ void PrintOptionsDialog::update_options(MachineObject* obj_)
         line7->Hide();
     }
 
+    // Orca: firmware print-option toggles, each shown only when its fun2 capability bit is
+    //       reported. A printer reporting none of these bits renders the dialog as before.
+    auto* print_opts = obj_->GetPrintOptions();
+    auto  show_row = [](bool support, std::initializer_list<wxWindow*> widgets, wxSizerItem* bottom_space) {
+        for (auto* w : widgets) { if (w) w->Show(support); }
+        if (bottom_space) bottom_space->Show(support);
+    };
+
+    auto* plate_align_opt = print_opts ? print_opts->GetDetectionOption(PrintOptionEnum::Buildplate_Align_Detection) : nullptr;
+    show_row(plate_align_opt && plate_align_opt->is_support_detect, {m_cb_plate_align, text_plate_align, text_plate_align_caption}, plate_align_bottom_space);
+
+    auto* fod_opt = print_opts ? print_opts->GetDetectionOption(PrintOptionEnum::FOD_Check_Detection) : nullptr;
+    show_row(fod_opt && fod_opt->is_support_detect, {m_cb_fod_check, text_fod_check, text_fod_check_caption}, fod_check_bottom_space);
+
+    auto* displacement_opt = print_opts ? print_opts->GetDetectionOption(PrintOptionEnum::Displacement_Detection) : nullptr;
+    show_row(displacement_opt && displacement_opt->is_support_detect, {m_cb_displacement_detection, text_displacement_detection, text_displacement_detection_caption}, displacement_bottom_space);
+
+    auto* smart_blob_opt = print_opts ? print_opts->GetDetectionOption(PrintOptionEnum::Smart_Nozzle_Blob_Detection) : nullptr;
+    show_row(smart_blob_opt && smart_blob_opt->is_support_detect, {m_smart_nozzle_blob_mode_switch, text_smart_nozzle_blob, text_smart_nozzle_blob_mode_desc}, smart_nozzle_blob_bottom_space);
+
     UpdateOptionSavePrintFileToStorage(obj_);
     UpdateOptionOpenDoorCheck(obj_);
+    UpdateOptionSnapshot(obj_);
 
     this->Freeze();
+
+    if (plate_align_opt)   m_cb_plate_align->SetValue(plate_align_opt->current_detect_value == 1);
+    if (fod_opt)           m_cb_fod_check->SetValue(fod_opt->current_detect_value == 1);
+    if (displacement_opt)  m_cb_displacement_detection->SetValue(displacement_opt->current_detect_value == 1);
+    if (smart_blob_opt && smart_blob_opt->is_support_detect) {
+        // Protocol: 0=off, 1=on, 2=auto -> UI: 0=Auto, 1=On, 2=Off
+        int mode   = smart_blob_opt->current_detect_value;
+        int ui_map[] = {2, 1, 0};
+        int ui_sel = (mode >= 0 && mode <= 2) ? ui_map[mode] : 0;
+        m_smart_nozzle_blob_mode_switch->SetSelection(ui_sel);
+        update_smart_nozzle_blob_mode_desc(ui_sel);
+    }
 
     m_cb_first_layer->SetValue(obj_->xcam_first_layer_inspector);
     m_cb_plate_mark->SetValue(obj_->xcam_buildplate_marker_detector);
@@ -497,6 +619,7 @@ void PrintOptionsDialog::update_options(MachineObject* obj_)
     update_purgechutepileup_detection_status();
     update_nozzleclumping_detection_status();
     update_airprinting_detection_status();
+    update_purify_air_at_print_end(obj_);
 
 
     this->Thaw();
@@ -560,6 +683,109 @@ void PrintOptionsDialog::UpdateOptionOpenDoorCheck(MachineObject *obj)
     m_cb_open_door->Show();
     text_open_door->Show();
     open_door_switch_board->Show();
+}
+
+void PrintOptionsDialog::update_purify_air_at_print_end(MachineObject *obj_)
+{
+    if (!obj_ || !obj_->GetPrintOptions()) return;
+
+    auto* opt = obj_->GetPrintOptions()->GetDetectionOption(PrintOptionEnum::Purify_Air_At_Print_End);
+    if (!opt || !opt->is_support_detect) {
+        purify_air_switch_board->Disable();
+        m_cb_purify_air_at_print_end->Hide();
+        text_purify_air->Hide();
+        text_purify_air_context->Hide();
+        purify_air_switch_board->Hide();
+        if (purify_air_bottom_space) purify_air_bottom_space->Show(false);
+        return;
+    }
+
+    if (purify_air_bottom_space) purify_air_bottom_space->Show(true);
+    m_cb_purify_air_at_print_end->Show();
+    text_purify_air->Show();
+    m_cb_purify_air_at_print_end->Enable();
+    purify_air_switch_board->Enable();
+    text_purify_air_context->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
+    text_purify_air->SetForegroundColour(StateColor::darkModeColorFor(wxColour("#262E30")));
+
+    // Orca: this codebase's AirDuctData has no IsExaustFanExit() helper, so the exhaust/chamber
+    //       fan is detected inline by scanning the air-duct parts for the chamber-fan id.
+    bool has_exhaust_fan = false;
+    for (const auto& part : obj_->GetFan()->GetAirDuctData().parts) {
+        if (part.id == int(AIR_FUN::FAN_CHAMBER_0_IDX)) { has_exhaust_fan = true; break; }
+    }
+
+    if (has_exhaust_fan) {
+        text_purify_air_context->SetLabel(_L("Purifies the chamber air as the print finishes, based on the selected mode."));
+        purify_air_switch_board->Show();
+        if (opt->current_detect_value != 0) {
+            m_cb_purify_air_at_print_end->SetValue(true);
+            purify_air_switch_board->updateState(opt->current_detect_value == 1 ? "left" : "right");
+            purify_air_switch_board->Refresh();
+        } else {
+            purify_air_switch_board->Disable();
+            m_cb_purify_air_at_print_end->SetValue(false);
+        }
+    } else {
+        text_purify_air_context->SetLabel(_L("Purifies the chamber air through internal circulation as each print finishes."));
+        purify_air_switch_board->Hide();
+        m_cb_purify_air_at_print_end->SetValue(opt->current_detect_value != 0);
+    }
+    text_purify_air_context->Show();
+    text_purify_air_context->Wrap(FromDIP(400));
+
+    // Orca: disabled while a print is running (matches the reference); the reference's
+    //       "unavailable during the task" toast is not ported.
+    if (obj_->is_in_printing()) {
+        m_cb_purify_air_at_print_end->Disable();
+        purify_air_switch_board->Disable();
+        text_purify_air_context->SetForegroundColour(wxColour(170, 170, 170));
+        text_purify_air->SetForegroundColour(wxColour(170, 170, 170));
+    }
+}
+
+void PrintOptionsDialog::update_smart_nozzle_blob_mode_desc(int selection)
+{
+    wxString desc;
+    switch (selection) {
+    case 0: // Auto
+        desc = _L("Automatically match the corresponding switch strategy for leak-prone filaments (disable blob detection) and regular filaments (enable blob detection).");
+        break;
+    case 1: // On
+        desc = _L("Detect whether the nozzle is wrapped by filament or other foreign matter.");
+        break;
+    case 2: // Off
+        desc = _L("After disabling, nozzle wrapping cannot be detected, which may lead to print failure or nozzle damage.");
+        break;
+    default:
+        desc = _L("Detect whether the nozzle is wrapped by filament or other foreign matter.");
+        break;
+    }
+    text_smart_nozzle_blob_mode_desc->SetLabel(desc);
+    text_smart_nozzle_blob_mode_desc->Wrap(FromDIP(400));
+}
+
+void PrintOptionsDialog::UpdateOptionSnapshot(MachineObject *obj)
+{
+    if (!IsShown()) { return; }
+
+    auto* opt = (obj && obj->GetPrintOptions()) ? obj->GetPrintOptions()->GetDetectionOption(PrintOptionEnum::Snapshot_Detection) : nullptr;
+    if (!opt || !opt->is_support_detect) {
+        m_cb_snapshot_enable->Show(false);
+        m_snapshot_sizer->Show(false);
+        Layout();
+        return;
+    }
+
+    if (!m_cb_snapshot_enable->IsShown()) {
+        m_cb_snapshot_enable->Show(true);
+        m_snapshot_sizer->Show(true);
+        Layout();
+    }
+
+    if (time(nullptr) - opt->detect_hold_start > HOLD_TIME_6SEC) {
+        m_cb_snapshot_enable->SetValue(opt->current_detect_value == 2);
+    }
 }
 
 wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
@@ -875,7 +1101,7 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     line_sizer->Add(FromDIP(5), 0, 0, 0);
     line_sizer->Add(m_cb_save_remote_print_file_to_storage, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
     line_sizer->Add(text_save_remote_print_file_to_storage, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
-    text_save_remote_print_file_to_storage_explain = new Label(parent, _L("Save the printing files initiated from Bambu Studio, Bambu Handy and MakerWorld on External Storage"));
+    text_save_remote_print_file_to_storage_explain = new Label(parent, _L("Save the printing files sent from the slicer and other apps on External Storage")); // Orca: neutral wording (vendor app names removed)
     text_save_remote_print_file_to_storage_explain->SetForegroundColour(STATIC_TEXT_EXPLAIN_COL);
     text_save_remote_print_file_to_storage_explain->SetFont(Label::Body_12);
     text_save_remote_print_file_to_storage_explain->Wrap(FromDIP(400));
@@ -951,6 +1177,125 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     text_nozzle_blob_caption->Hide();
     line7->Hide();
 
+    // ---- Firmware print-option toggles (hidden until their fun2 capability bit is reported) ----
+
+    // Purify Air at Print End (tri-state: internal circulation / exhaust)
+    line_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_cb_purify_air_at_print_end = new CheckBox(parent);
+    text_purify_air = new Label(parent, _L("Purify Air at Print End"));
+    text_purify_air->SetFont(Label::Body_14);
+    text_purify_air_context = new Label(parent, wxEmptyString);
+    text_purify_air_context->SetFont(Label::Body_12);
+    text_purify_air_context->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
+    purify_air_switch_board = new SwitchBoard(parent, _L("Internal Circulation"), _L("Exhaust"), wxSize(FromDIP(300), FromDIP(26)));
+    purify_air_switch_board->Disable();
+    line_sizer->Add(FromDIP(5), 0, 0, 0);
+    line_sizer->Add(m_cb_purify_air_at_print_end, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    line_sizer->Add(text_purify_air, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
+    sizer->Add(text_purify_air_context, 0, wxLEFT, FromDIP(58));
+    sizer->Add(purify_air_switch_board, 0, wxLEFT, FromDIP(58));
+    purify_air_bottom_space = sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
+    m_cb_purify_air_at_print_end->Hide();
+    text_purify_air->Hide();
+    text_purify_air_context->Hide();
+    purify_air_switch_board->Hide();
+    purify_air_bottom_space->Show(false);
+
+    // Build plate alignment detection
+    line_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_cb_plate_align = new CheckBox(parent);
+    text_plate_align = new Label(parent, _L("Alignment Detection"));
+    text_plate_align->SetFont(Label::Body_14);
+    line_sizer->Add(FromDIP(5), 0, 0, 0);
+    line_sizer->Add(m_cb_plate_align, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    line_sizer->Add(text_plate_align, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
+    line_sizer = new wxBoxSizer(wxHORIZONTAL);
+    text_plate_align_caption = new Label(parent, _L("Pauses printing when build plate misalignment is detected."));
+    text_plate_align_caption->Wrap(FromDIP(400));
+    text_plate_align_caption->SetFont(Label::Body_12);
+    text_plate_align_caption->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
+    line_sizer->Add(FromDIP(38), 0, 0, 0);
+    line_sizer->Add(text_plate_align_caption, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(0));
+    sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
+    plate_align_bottom_space = sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
+    m_cb_plate_align->Hide();
+    text_plate_align->Hide();
+    text_plate_align_caption->Hide();
+    plate_align_bottom_space->Show(false);
+
+    // Foreign Object Detection
+    line_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_cb_fod_check = new CheckBox(parent);
+    text_fod_check = new Label(parent, _L("Foreign Object Detection"));
+    text_fod_check->SetFont(Label::Body_14);
+    line_sizer->Add(FromDIP(5), 0, 0, 0);
+    line_sizer->Add(m_cb_fod_check, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    line_sizer->Add(text_fod_check, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
+    line_sizer = new wxBoxSizer(wxHORIZONTAL);
+    text_fod_check_caption = new Label(parent, _L("Checks for any objects on the build plate at the start of a print to avoid collisions."));
+    text_fod_check_caption->Wrap(FromDIP(400));
+    text_fod_check_caption->SetFont(Label::Body_12);
+    text_fod_check_caption->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
+    line_sizer->Add(FromDIP(38), 0, 0, 0);
+    line_sizer->Add(text_fod_check_caption, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(0));
+    sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
+    fod_check_bottom_space = sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
+    m_cb_fod_check->Hide();
+    text_fod_check->Hide();
+    text_fod_check_caption->Hide();
+    fod_check_bottom_space->Show(false);
+
+    // Printed Part Displacement Detection
+    line_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_cb_displacement_detection = new CheckBox(parent);
+    text_displacement_detection = new Label(parent, _L("Printed Part Displacement Detection"));
+    text_displacement_detection->SetFont(Label::Body_14);
+    line_sizer->Add(FromDIP(5), 0, 0, 0);
+    line_sizer->Add(m_cb_displacement_detection, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    line_sizer->Add(text_displacement_detection, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
+    line_sizer = new wxBoxSizer(wxHORIZONTAL);
+    text_displacement_detection_caption = new Label(parent, _L("Monitors the printed part during printing and alerts immediately if it shifts or collapses."));
+    text_displacement_detection_caption->Wrap(FromDIP(400));
+    text_displacement_detection_caption->SetFont(Label::Body_12);
+    text_displacement_detection_caption->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
+    line_sizer->Add(FromDIP(38), 0, 0, 0);
+    line_sizer->Add(text_displacement_detection_caption, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(0));
+    sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
+    displacement_bottom_space = sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
+    m_cb_displacement_detection->Hide();
+    text_displacement_detection->Hide();
+    text_displacement_detection_caption->Hide();
+    displacement_bottom_space->Show(false);
+
+    // Smart nozzle clumping detection (tri-mode: Auto / On / Off)
+    line_sizer = new wxBoxSizer(wxHORIZONTAL);
+    text_smart_nozzle_blob = new Label(parent, _L("Nozzle Clumping Detection"));
+    text_smart_nozzle_blob->SetFont(Label::Body_14);
+    line_sizer->Add(FromDIP(5), 0, 0, 0);
+    line_sizer->Add(text_smart_nozzle_blob, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
+    line_sizer = new wxBoxSizer(wxHORIZONTAL);
+    text_smart_nozzle_blob_mode_desc = new Label(parent, _L("Checks if the nozzle is clumping by filament or other foreign objects."));
+    text_smart_nozzle_blob_mode_desc->SetFont(Label::Body_12);
+    text_smart_nozzle_blob_mode_desc->Wrap(FromDIP(400));
+    text_smart_nozzle_blob_mode_desc->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
+    line_sizer->Add(FromDIP(5), 0, 0, 0);
+    line_sizer->Add(text_smart_nozzle_blob_mode_desc, 1, wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
+    m_smart_nozzle_blob_mode_switch = new MultiSwitchButton(parent);
+    m_smart_nozzle_blob_mode_switch->SetOptions({_L("Auto"), _L("On"), _L("Off")});
+    m_smart_nozzle_blob_mode_switch->SetSelection(0);
+    sizer->Add(m_smart_nozzle_blob_mode_switch, 0, wxLEFT, FromDIP(30));
+    smart_nozzle_blob_bottom_space = sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
+    text_smart_nozzle_blob->Hide();
+    m_smart_nozzle_blob_mode_switch->Hide();
+    text_smart_nozzle_blob_mode_desc->Hide();
+    smart_nozzle_blob_bottom_space->Show(false);
+
     //Open Door Detection
     line_sizer = new wxBoxSizer(wxHORIZONTAL);
     m_cb_open_door = new CheckBox(parent);
@@ -965,6 +1310,28 @@ wxBoxSizer* PrintOptionsDialog::create_settings_group(wxWindow* parent)
     sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
     sizer->Add(open_door_switch_board, 0, wxLEFT, FromDIP(58));
     sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
+
+    // Print status snapshot (enable path shows a confirm prompt; hidden until supported)
+    m_snapshot_sizer = new wxBoxSizer(wxVERTICAL);
+    line_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_cb_snapshot_enable = new CheckBox(parent);
+    Label* text_snapshot = new Label(parent, _L("Print Status Snapshot"));
+    text_snapshot->SetFont(Label::Body_14);
+    line_sizer->Add(FromDIP(5), 0, 0, 0);
+    line_sizer->Add(m_cb_snapshot_enable, 0, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    line_sizer->Add(text_snapshot, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(5));
+    m_snapshot_sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
+    line_sizer = new wxBoxSizer(wxHORIZONTAL);
+    Label* text_snapshot_caption = new Label(parent, _L("Automatically capture and upload print photos, showing defects during printing and the final result for remote viewing."));
+    text_snapshot_caption->Wrap(FromDIP(400));
+    text_snapshot_caption->SetFont(Label::Body_12);
+    text_snapshot_caption->SetForegroundColour(STATIC_TEXT_CAPTION_COL);
+    line_sizer->Add(FromDIP(38), 0, 0, 0);
+    line_sizer->Add(text_snapshot_caption, 1, wxALL | wxALIGN_CENTER_VERTICAL, FromDIP(0));
+    m_snapshot_sizer->Add(line_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(18));
+    sizer->Add(m_snapshot_sizer, 0, wxEXPAND | wxRIGHT, FromDIP(18));
+    m_cb_snapshot_enable->Hide();
+    m_snapshot_sizer->Show(false);
 
       ai_monitoring_level_list->Connect(wxEVT_COMBOBOX, wxCommandEventHandler(PrintOptionsDialog::set_ai_monitor_sensitivity), NULL, this);
 

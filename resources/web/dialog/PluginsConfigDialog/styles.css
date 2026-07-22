@@ -1,0 +1,251 @@
+/* Buttons (ButtonStyleRegular/ButtonStyleConfirm/ButtonTypeChoice), scrollbars (.thin-scroll) and
+   the host-injected theme contract (--bg, --text, --border, --panel, --muted, --plugin-status-*,
+   ...) all come from the shared sheets linked in index.html (global.css, common.css, theme.css —
+   the same three every resources/web/dialog/* page links). This file only carries what is unique
+   to this page: the fixed-size reset those shared sheets assume, the new page chrome, and the
+   config-related rules ported from PluginsDialog/styles.css (its Config tab uses the same classes).
+*/
+
+/* common.css hardcodes body to the PluginsDialog-era fixed 820x660 with overflow:hidden; this
+   dialog is resizable/maximizable, so neutralize that the same way PluginsDialog/styles.css does. */
+html,
+body {
+  width: 100% !important;
+  height: 100%;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 16px;
+  box-sizing: border-box;
+  gap: 12px;
+}
+
+.page-header { flex: 0 0 auto; }
+
+.page-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ---- Ported from resources/web/dialog/PluginsDialog/styles.css (Config tab) ---- */
+
+.detail-empty {
+  padding: 18px 8px;
+  color: var(--muted);
+}
+
+.detail-empty[hidden] {
+  display: none;
+}
+
+.config-layout {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 10px;
+  height: 100%;
+  min-height: 0;
+  padding: 6px;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+}
+
+.config-layout[hidden] {
+  display: none;
+}
+
+.config-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  border-right: 1px solid var(--border-soft);
+}
+
+.config-cap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.config-cap:hover {
+  background: var(--row-hover);
+}
+
+.config-cap.selected {
+  background: var(--row-selected);
+  border-color: var(--row-selected-outline);
+}
+
+.config-cap-name {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-cap-type {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.config-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  min-width: 0;
+}
+
+.config-error {
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: var(--plugin-status-warn-bg);
+  color: var(--plugin-status-warn);
+  font-size: 12px;
+}
+
+.config-error[hidden] {
+  display: none;
+}
+
+.config-editor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.config-editor[hidden] {
+  display: none;
+}
+
+.config-textarea {
+  flex: 1;
+  min-height: 0;
+  padding: 8px;
+  box-sizing: border-box;
+  /* common.css applies `user-select: none` to *, so without this the user could type into the
+     editor but not select, drag or copy what they had typed. */
+  -webkit-user-select: text;
+  user-select: text;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  resize: none;
+  white-space: pre;
+  overflow: auto;
+}
+
+.config-textarea:focus {
+  outline: none;
+  border-color: var(--main-color);
+}
+
+.config-custom {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+}
+
+.config-custom[hidden] {
+  display: none;
+}
+
+.config-view-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.config-view-footer[hidden] {
+  display: none;
+}
+
+.config-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.config-actions > button[hidden] {
+  display: none;
+}
+
+.config-validation {
+  color: var(--muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-validation.invalid {
+  color: var(--plugin-status-danger);
+}
+
+/* Footer status bar: single-line, fixed-height strip mirroring PluginsDialog's. */
+.status-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 6px 14px;
+  box-sizing: border-box;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.status-text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.status-bar.level-success .status-text {
+  color: var(--plugin-status-ok);
+}
+
+.status-bar.level-error .status-text {
+  color: var(--plugin-status-danger);
+}
+
+.status-bar.level-warn .status-text {
+  color: var(--plugin-status-warn);
+}

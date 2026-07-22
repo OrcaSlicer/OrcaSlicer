@@ -42,7 +42,7 @@ static std::string get_humidity_level_img_path(int humidity_percent)
     }
 
     if (wxGetApp().dark_mode()) {
-        return "hum_level" + std::to_string(hum_level) + "_no_num_dark";
+        return "hum_level" + std::to_string(hum_level) + "_no_num_dark"; // Orca: use the dark-mode humidity glyph in dark mode
     } else {
         return "hum_level" + std::to_string(hum_level) + "_no_num_light";
     }
@@ -86,7 +86,7 @@ FilamentItemPanel::FilamentItemPanel(wxWindow* parent, const wxString& text, con
     : wxPanel(parent, id)
     , m_icon_name(icon_name)
 {
-    SetBackgroundColour(wxColour("#F0F0F1")); // Light gray background
+    SetBackgroundColour(wxColour("#F0F0F1")); // Orca: light-gray panel scheme (#F0F0F1 replaces REF #F7F7F7)
     SetMinSize(wxSize(FromDIP(64), FromDIP(106))); // Width: 64, Height: 106
     SetSize(wxSize(FromDIP(64), FromDIP(106)));    // Fixed size
 
@@ -454,7 +454,7 @@ wxBoxSizer* AMSDryCtrWin::create_normal_state_panel(wxPanel* parent)
     m_temperature_input->SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     m_temperature_input->SetForegroundColour(StateColor::darkModeColorFor(*wxBLACK));
 
-    Label* temp_unit_label = new Label(parent, wxString::FromUTF8("℃"));
+    Label* temp_unit_label = new Label(parent, wxString::FromUTF8(u8"\u2103" /* °C */));
     temp_unit_label->SetForegroundColour(*wxBLACK);
     temp_sizer->Add(m_temperature_input, 1, wxRIGHT, FromDIP(1));
     temp_sizer->Add(temp_unit_label, 0, wxALIGN_CENTER_VERTICAL);
@@ -977,7 +977,7 @@ void AMSDryCtrWin::create()
     // set title icon
     SetBackgroundColour(StateColor::darkModeColorFor(*wxWHITE));
     this->SetDoubleBuffered(true);
-    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % resources_dir()).str();
+    std::string icon_path = (boost::format("%1%/images/OrcaSlicerTitle.ico") % resources_dir()).str(); // Orca: app title icon
     SetIcon(wxIcon(encode_path(icon_path.c_str()), wxBITMAP_TYPE_ICO));
 
     SetSize(wxSize(FromDIP(700), FromDIP(500)));
@@ -1444,9 +1444,9 @@ int AMSDryCtrWin::update_ams_change(DevAms* dev_ams)
 
     m_ams_info.m_ams_id = dev_ams->GetAmsId();
     if (dev_ams->GetAmsType() == DevAmsType::N3F) {
-        m_temperature_input->SetHint("45-65" + wxString::FromUTF8("°C"));
+        m_temperature_input->SetHint("45-65" + wxString::FromUTF8(u8"\u2103" /* °C */));
     } else if (dev_ams->GetAmsType() == DevAmsType::N3S) {
-        m_temperature_input->SetHint("45-85" + wxString::FromUTF8("°C"));
+        m_temperature_input->SetHint("45-85" + wxString::FromUTF8(u8"\u2103" /* °C */));
     }
 
     m_time_input->SetHint("1-24 h");
@@ -1467,7 +1467,7 @@ int AMSDryCtrWin::update_dryness_status(DevAms* dev_ams)
     if (m_ams_info.m_temperature != dev_ams->GetCurrentTemperature()) {
         updated += 1;
         m_ams_info.m_temperature = dev_ams->GetCurrentTemperature();
-        m_temperature_data_label->SetLabel(std::to_string(m_ams_info.m_temperature) + wxString::FromUTF8("°C"));
+        m_temperature_data_label->SetLabel(std::to_string(m_ams_info.m_temperature) + wxString::FromUTF8(u8"\u2103" /* °C */));
     }
 
     if (is_dry_ctr_idle(dev_ams)) {

@@ -1201,6 +1201,9 @@ static std::vector<std::string> s_Preset_print_options{
     "min_feature_size",
     "min_bead_width",
     "post_process",
+    "slicing_pipeline_plugin",
+    "plugins",
+    "plugin_config_overrides",
     "process_change_extrusion_role_gcode",
     "min_length_factor",
     "wall_maximum_resolution",
@@ -1375,6 +1378,7 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "filament_preheat_temperature_delta", "filament_retract_length_nc",
     "filament_change_length_nc", "filament_prime_volume_nc",
     "long_retractions_when_ec", "retraction_distances_when_ec",
+    "plugin_config_overrides",
     //ams chamber
     "filament_dev_ams_drying_ams_limitations", "filament_dev_ams_drying_temperature", "filament_dev_ams_drying_time", "filament_dev_ams_drying_heat_distortion_temperature",
     "filament_dev_chamber_drying_bed_temperature", "filament_dev_chamber_drying_time",
@@ -1425,7 +1429,8 @@ static std::vector<std::string> s_Preset_printer_options {
     "machine_hotend_change_time", "machine_prepare_compensation_time",
     // Fast-purge printer flag + device/firmware-facing per-variant extruder-change
     // deretraction speed (unconsumed by the slicer; carried by H2D/A2L/X2D/P2S machine profiles).
-    "support_fast_purge_mode", "deretract_speed_extruder_change"
+    "support_fast_purge_mode", "deretract_speed_extruder_change",
+    "plugin_config_overrides"
     };
 
 static std::vector<std::string> s_Preset_sla_print_options {
@@ -3453,7 +3458,18 @@ void add_correct_opts_to_diff(const std::string &opt_key, t_config_option_keys& 
 
     for (int i = 0; i < int(opt_cur->values.size()); i++)
     {
-        int init_id = i <= opt_init_max_id ? i : 0;
+        const bool is_new_index = i > opt_init_max_id;
+        int init_id = is_new_index ? 0 : i;
+        if (is_new_index) {
+            // Orca: intentional divergence from upstream. Any new vector index (at or
+            // beyond the reference vector's length) is flagged dirty unconditionally --
+            // independent of its value and nil-state -- so preset dirty-detection notices
+            // per-extruder/filament entries added by growth (e.g. extruder count). This
+            // applies to every vector option type routed through deep_diff().
+            // Covered by tests/libslic3r/test_preset_diff.cpp.
+            vec.emplace_back(opt_key + "#" + std::to_string(i));
+            continue;
+        }
         if (opt_cur->values[i] != opt_init->values[init_id]) {
             if (opt_cur->nullable()) {
                 if (opt_cur->is_nil(i)) {
@@ -3488,7 +3504,7 @@ inline t_config_option_keys deep_diff(const ConfigBase &config_this, const Confi
         if (this_opt != nullptr && other_opt != nullptr && *this_opt != *other_opt)
         {
             //BBS: add bed_exclude_area
-            if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" || opt_key == "compatible_printers" || opt_key == "thumbnails" ||  opt_key == "wrapping_exclude_area") {
+            if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" || opt_key == "compatible_printers" || opt_key == "thumbnails" ||  opt_key == "wrapping_exclude_area" || opt_key == "slicing_pipeline_plugin") {
                 // Scalar variable, or a vector variable, which is independent from number of extruders,
                 // thus the vector is presented to the user as a single input.
                 diff.emplace_back(opt_key);
