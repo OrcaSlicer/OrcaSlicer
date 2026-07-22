@@ -258,7 +258,7 @@ msgid "Tungsten Carbide"
 msgstr "Carburo de tungsteno"
 
 msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
-msgstr "Es posible que el cabezal y el rack del hotend se muevan. Mantenga las manos alejadas de la cámara."
+msgstr "Es posible que el cabezal y el rack del hotend se muevan. Mantenga las manos alejadas de la recámara."
 
 msgid "Warning"
 msgstr "Advertencia"
@@ -276,7 +276,7 @@ msgid "Reading the hotends, please wait."
 msgstr "Leyendo los hotends, por favor espere."
 
 msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
-msgstr "Durante la actualización del hotend, el cabezal se moverá. No meta la mano en la cámara."
+msgstr "Durante la actualización del hotend, el cabezal se moverá. No meta la mano en la recámara."
 
 msgid "Update"
 msgstr "Actualizar"
@@ -3454,7 +3454,7 @@ msgid "The fan controls the temperature during printing to improve print quality
 msgstr "El ventilador controla la temperatura durante la impresión para mejorar la calidad de impresión. El sistema ajusta automáticamente el encendido y la velocidad del ventilador según los diferentes materiales de impresión."
 
 msgid "Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the chamber air."
-msgstr "El modo de refrigeración es adecuado para imprimir materiales PLA/PETG/TPU y filtra el aire de la cámara."
+msgstr "El modo de refrigeración es adecuado para imprimir materiales PLA/PETG/TPU y filtra el aire de la recámara."
 
 msgid "Heating mode is suitable for printing ABS/ASA/PC/PA materials and circulates filters the chamber air."
 msgstr "El modo de calefacción es adecuado para imprimir materiales ABS/ASA/PC/PA y hace circular y filtra el aire de la recámara."
@@ -4534,11 +4534,11 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
-msgstr "La temperatura actual de la cámara es superior a la temperatura de seguridad del material, puede provocar que el material se ablande y se atasque. La temperatura máxima de seguridad para el material es %d"
+msgstr "La temperatura actual de la recámara es superior a la temperatura de seguridad del material, puede provocar que el material se ablande y se atasque. La temperatura máxima de seguridad para el material es %d"
 
 #, c-format, boost-format
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
-msgstr "La temperatura mínima de la cámara (%d℃) es superior a la temperatura objetivo de la cámara (%d℃). El valor mínimo es el umbral en el que comienza la impresión mientras la cámara continúa calentándose hacia el objetivo, por lo que no debería superarlo. Se ajustará al valor objetivo."
+msgstr "La temperatura mínima de la recámara (%d℃) es superior a la temperatura objetivo de la recámara (%d℃). El valor mínimo es el umbral en el que comienza la impresión mientras la recámara continúa calentándose hacia el objetivo, por lo que no debería superarlo. Se ajustará al valor objetivo."
 
 msgid ""
 "Layer height too small\n"
@@ -4763,7 +4763,7 @@ msgid "Pause (chamber temperature control problem)"
 msgstr "Pausa (problema con el control de temperatura de la recámara)"
 
 msgid "Cooling chamber"
-msgstr "Enfriando cámara"
+msgstr "Enfriando recámara"
 
 msgid "Pause (G-code inserted by user)"
 msgstr "Pausa (código G insertado por el usuario)"
@@ -4881,20 +4881,20 @@ msgstr "Para garantizar su seguridad, ciertas tareas de procesamiento (como el l
 
 #, c-format, boost-format
 msgid "The chamber temperature is too high, which may cause the filament to soften. Please wait until the chamber temperature drops below %d℃. You may open the front door or enable fans to cool down."
-msgstr "La temperatura de la cámara es demasiado alta, lo que puede hacer que el filamento se ablande. Espere hasta que la temperatura de la cámara baje por debajo de %d℃. Puede abrir la puerta frontal o activar los ventiladores para enfriar."
+msgstr "La temperatura de la recámara es demasiado alta, lo que puede hacer que el filamento se ablande. Espere hasta que la temperatura de la recámara baje por debajo de %d℃. Puede abrir la puerta frontal o activar los ventiladores para enfriar."
 
 #, c-format, boost-format
 msgid "AMS temperature is too high, which may cause the filament to soften. Please wait until the AMS temperature drops below %d℃."
 msgstr "La temperatura del AMS es demasiado alta, lo que puede hacer que el filamento se ablande. Espere hasta que la temperatura del AMS baje por debajo de %d℃."
 
 msgid "The current chamber temperature or the target chamber temperature exceeds 45℃. In order to avoid extruder clogging, low temperature filament(PLA/PETG/TPU) is not allowed to be loaded."
-msgstr "La temperatura actual de la cámara o la temperatura objetivo de la cámara supera los 45℃. Para evitar atascos del extrusor, no está permitido cargar filamento de baja temperatura (PLA/PETG/TPU)."
+msgstr "La temperatura actual de la recámara o la temperatura objetivo de la recámara supera los 45℃. Para evitar atascos del extrusor, no está permitido cargar filamento de baja temperatura (PLA/PETG/TPU)."
 
 msgid "Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order to avoid extruder clogging, it is not allowed to set the chamber temperature."
-msgstr "Se ha cargado filamento de baja temperatura (PLA/PETG/TPU) en el extrusor. Para evitar atascos del extrusor, no está permitido ajustar la temperatura de la cámara."
+msgstr "Se ha cargado filamento de baja temperatura (PLA/PETG/TPU) en el extrusor. Para evitar atascos del extrusor, no está permitido ajustar la temperatura de la recámara."
 
 msgid "When you set the chamber temperature below 40℃, the chamber temperature control will not be activated, and the target chamber temperature will automatically be set to 0℃."
-msgstr "Cuando se ajusta la temperatura de la cámara por debajo de 40℃, el control de la temperatura de la cámara no será activado. La temperatura objetivo de la cámara se ajustará automáticamente a 0℃."
+msgstr "Cuando se ajusta la temperatura de la recámara por debajo de 40℃, el control de la temperatura de la recámara no será activado. La temperatura objetivo de la recámara se ajustará automáticamente a 0℃."
 
 msgid "Failed to start print job"
 msgstr "Fallo iniciando el trabajo de impresión"
@@ -6901,10 +6901,10 @@ msgid "Please heat the nozzle to above 170℃ before loading or unloading filame
 msgstr "Por favor, caliente la boquilla por encima de 170℃ antes de cargar o descargar filamento."
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
-msgstr "No se puede cambiar la temperatura de la cámara en modo de refrigeración mientras se imprime."
+msgstr "No se puede cambiar la temperatura de la recámara en modo de refrigeración mientras se imprime."
 
 msgid "If the chamber temperature exceeds 40℃, the system will automatically switch to heating mode. Please confirm whether to switch."
-msgstr "Si la temperatura de la cámara excede los 40℃, el sistema cambiará automáticamente al modo de calefacción. Confirme si desea cambiar."
+msgstr "Si la temperatura de la recámara excede los 40℃, el sistema cambiará automáticamente al modo de calefacción. Confirme si desea cambiar."
 
 msgid "Please select an AMS slot before calibration"
 msgstr "Seleccione una ranura AMS antes de la calibración"
@@ -7335,10 +7335,10 @@ msgid "Identifies the type and position of the build plate on the heatbed. Pausi
 msgstr "Identifica el tipo y la posición de la placa de construcción sobre la cama calefactada. Pausa la impresión si se detecta una discrepancia."
 
 msgid "Purifies the chamber air as the print finishes, based on the selected mode."
-msgstr "Purifica el aire de la cámara al finalizar la impresión, según el modo seleccionado."
+msgstr "Purifica el aire de la recámara al finalizar la impresión, según el modo seleccionado."
 
 msgid "Purifies the chamber air through internal circulation as each print finishes."
-msgstr "Purifica el aire de la cámara mediante circulación interna al finalizar cada impresión."
+msgstr "Purifica el aire de la recámara mediante circulación interna al finalizar cada impresión."
 
 msgid "Automatically match the corresponding switch strategy for leak-prone filaments (disable blob detection) and regular filaments (enable blob detection)."
 msgstr "Aplica automáticamente la estrategia de conmutación correspondiente para filamentos propensos a fugas (desactiva la detección de acumulación) y filamentos normales (activa la detección de acumulación)."
@@ -10191,13 +10191,13 @@ msgid "Flow ratio and Pressure Advance"
 msgstr "Factor de flujo y Pressure advance"
 
 msgid "Print chamber temperature"
-msgstr "Temperatura de la cámara"
+msgstr "Temperatura de la recámara"
 
 msgid "Chamber temperature"
-msgstr "Temperatura de cámara"
+msgstr "Temperatura de recámara"
 
 msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
-msgstr "Temperatura objetivo de la cámara y temperatura mínima de la cámara a la que debe comenzar la impresión"
+msgstr "Temperatura objetivo de la recámara y temperatura mínima de la recámara a la que debe comenzar la impresión"
 
 msgid "Target"
 msgstr "Objetivo"
@@ -14407,12 +14407,12 @@ msgid "money/h"
 msgstr "dinero/hora"
 
 msgid "Support controlling chamber temperature"
-msgstr "Función de control de temperatura de cámara"
+msgstr "Función de control de temperatura de recámara"
 
 msgid ""
 "This option is enabled if machine support controlling chamber temperature\n"
 "G-code command: M141 S(0-255)"
-msgstr "Esta opción se activa si la máquina admite el control de la temperatura de la cámara"
+msgstr "Esta opción se activa si la máquina admite el control de la temperatura de la recámara"
 
 msgid "Support air filtration"
 msgstr "Función de filtración de aire"
@@ -16362,10 +16362,10 @@ msgid ""
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"Habilite esta función para usar un control automático de la temperatura de la cámara. Cuando está habilitada, se emitirá un comando M191 antes de \"machine_start_gcode\".\n"
-"Este comando especifica la temperatura objetivo de la cámara y mantendrá la impresora en espera hasta que se alcance dicha temperatura. Adicionalmente, se emite un comando M141 al finalizar la impresión para apagar el sistema de calentamiento de cámara, en caso de existir.\n"
+"Habilite esta función para usar un control automático de la temperatura de la recámara. Cuando está habilitada, se emitirá un comando M191 antes de \"machine_start_gcode\".\n"
+"Este comando especifica la temperatura objetivo de la recámara y mantendrá la impresora en espera hasta que se alcance dicha temperatura. Adicionalmente, se emite un comando M141 al finalizar la impresión para apagar el sistema de calentamiento de recámara, en caso de existir.\n"
 "\n"
-"Esta función requiere de que el firmware de la impresora sea compatible con los comandos M191 y M141, ya sea nativamente o mediante el uso de macros. Esta función se usa generalmente con impresoras con sistema de calentamiento de cámara activo."
+"Esta función requiere de que el firmware de la impresora sea compatible con los comandos M191 y M141, ya sea nativamente o mediante el uso de macros. Esta función se usa generalmente con impresoras con sistema de calentamiento de recámara activo."
 
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
@@ -16374,13 +16374,13 @@ msgid ""
 "\n"
 "If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
-"Una mayor temperatura de la cámara puede ayudar a suprimir o reducir la deformación y potencialmente conducir a una mayor resistencia de unión entre capas para materiales de alta temperatura como ABS, ASA, PC, PA, etc. Al mismo tiempo, la filtración de aire de ABS y ASA empeorará.\n"
+"Una mayor temperatura de la recámara puede ayudar a suprimir o reducir la deformación y potencialmente conducir a una mayor resistencia de unión entre capas para materiales de alta temperatura como ABS, ASA, PC, PA, etc. Al mismo tiempo, la filtración de aire de ABS y ASA empeorará.\n"
 "\n"
-"Por otro lado, materiales como PLA, PETG, TPU, PVA y otros materiales de baja temperatura, la temperatura real de la cámara no debe ser alta para evitar obstrucciones causadas por reblandecimiento del filamento en el disipador.\n"
+"Por otro lado, materiales como PLA, PETG, TPU, PVA y otros materiales de baja temperatura, la temperatura real de la recámara no debe ser alta para evitar obstrucciones causadas por reblandecimiento del filamento en el disipador.\n"
 "\n"
-"Cuando se activa, este parámetro crea una variable de G-Code llamada chamber_temperature, que puede ser utilizada en macros personalizados, por ejemplo el macro de PRINT_START, para controlar el precalentamiento en impresoras encapsuladas que cuenten con un sensor de temperatura de cámara. Ejemplo de uso: \n"
+"Cuando se activa, este parámetro crea una variable de G-Code llamada chamber_temperature, que puede ser utilizada en macros personalizados, por ejemplo el macro de PRINT_START, para controlar el precalentamiento en impresoras encapsuladas que cuenten con un sensor de temperatura de recámara. Ejemplo de uso: \n"
 "PRINT_START (otras variables) CHAMBER_TEMP=[chamber_temperature] \n"
-"Esta funciuón es útil para imrpesoras no compatibles con los comandos M141 o M191, o si prefiere realizar un precalentamiento usando un macro si no dispone de un sistema de calentamiento activo de cámara."
+"Esta funciuón es útil para imrpesoras no compatibles con los comandos M141 o M191, o si prefiere realizar un precalentamiento usando un macro si no dispone de un sistema de calentamiento activo de recámara."
 
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
@@ -16389,14 +16389,14 @@ msgid ""
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
-"Esta es la temperatura de la cámara a la que debe comenzar la impresión, mientras la cámara continúa calentándose hacia la temperatura objetivo (\"Objetivo\") de la cámara. Por ejemplo, ajuste «Objetivo» a 60 y «Mínima» a 50 para empezar a imprimir cuando la cámara alcance los 50 °C, sin esperar a los 60 °C completos.\n"
+"Esta es la temperatura de la recámara a la que debe comenzar la impresión, mientras la recámara continúa calentándose hacia la temperatura objetivo (\"Objetivo\") de la recámara. Por ejemplo, ajuste «Objetivo» a 60 y «Mínima» a 50 para empezar a imprimir cuando la recámara alcance los 50 °C, sin esperar a los 60 °C completos.\n"
 "\n"
 "Crea una variable de G-code llamada chamber_minimal_temperature, que puede pasarse a su macro de inicio de impresión o a una macro de precalentamiento, de esta forma: PRINT_START (otras variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
 "\n"
-"A diferencia de la temperatura objetivo (\"Objetivo\") de la cámara, esta opción no emite ningún comando M141/M191; solo expone el valor a su G-code personalizado. No debería superar la temperatura objetivo (\"Objetivo\") de la cámara."
+"A diferencia de la temperatura objetivo (\"Objetivo\") de la recámara, esta opción no emite ningún comando M141/M191; solo expone el valor a su G-code personalizado. No debería superar la temperatura objetivo (\"Objetivo\") de la recámara."
 
 msgid "Chamber minimal temperature"
-msgstr "Temperatura mínima de cámara"
+msgstr "Temperatura mínima de recámara"
 
 msgid "Nozzle temperature after the first layer"
 msgstr "Temperatura de la boquilla después de la primera capa"
@@ -16500,7 +16500,7 @@ msgstr ""
 "Fijando un valor en la cantidad de retracción antes del purgado se realizará cualquier exceso de retracción antes del purgado, de lo contrario se realizará después."
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
-msgstr "La torre de purga puede utilizarse para limpiar los residuos de la boquilla y estabilizar la presión de la cámara en el interior de la boquilla, con el fin de evitar defectos visuales al imprimir objetos."
+msgstr "La torre de purga puede utilizarse para limpiar los residuos de la boquilla y estabilizar la presión de la recámara en el interior de la boquilla, con el fin de evitar defectos visuales al imprimir objetos."
 
 msgid "Internal ribs"
 msgstr "Refuerzos internos"
@@ -20401,8 +20401,8 @@ msgid ""
 "Chamber temperature\n"
 "Did you know that OrcaSlicer supports chamber temperature?"
 msgstr ""
-"Temperatura de la cámara \n"
-"¿Sabías que OrcaSlicer tiene la función de control de temperatura de cámara?"
+"Temperatura de la recámara \n"
+"¿Sabías que OrcaSlicer tiene la función de control de temperatura de recámara?"
 
 #: resources/data/hints.ini: [hint:Calibration]
 msgid ""
