@@ -509,8 +509,13 @@ private:
 		// For sequential print, the instance of the object to be printing has to be defined.
 		const size_t                     				 single_object_instance_idx);
 
-    std::string     extrude_perimeters(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool is_first_layer, bool is_infill_first);
-    std::string     extrude_infill(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool ironing);
+    // Orca: `region_mask`, if non-null, must be sized to `by_region.size()`; region `i` is skipped
+    // whenever `(*region_mask)[i]` is false. Used to defer "group together" modifier regions to a
+    // separate contiguous pass instead of interleaving them in native region-index order.
+    std::string     extrude_perimeters(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool is_first_layer, bool is_infill_first,
+                                        const std::vector<bool> *region_mask = nullptr);
+    std::string     extrude_infill(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool ironing,
+                                    const std::vector<bool> *region_mask = nullptr);
     std::string     extrude_support(const ExtrusionEntityCollection& support_fills, const ExtrusionRole support_extrusion_role);
     // Renders a modifier_enter_gcode/modifier_exit_gcode template with the layer_num/layer_z
     // placeholders these hooks expose; empty string if `templ` is empty.
@@ -531,6 +536,10 @@ private:
         bool            on_infill;
         bool            on_support;
         bool            on_skirt_brim;
+        // Orca: mirrors modifier_group_together. When set, infill is handled entirely by the
+        // deferred-block mechanism in process_layer instead of crossing detection (walls stay
+        // merged with the parent region regardless, so they keep using crossing detection here).
+        bool            group_together;
         // Whether this modifier's G-code applies to `role`, per the toggles above. Roles that fit
         // none of the four categories (wipe tower, custom/mixed/none) are never covered.
         bool applies_to(ExtrusionRole role) const;
@@ -545,6 +554,12 @@ private:
     // m_inside_modifiers, and updates that state. Shared by resync, mid-segment crossings, and the
     // trailing flush.
     std::string     set_inside_modifier(int region_id, bool inside, const std::string &enter_gcode, const std::string &exit_gcode);
+    // Emits exit G-code for every modifier region still marked "inside" in m_inside_modifiers.
+    // Crossing detection only fires exits where the toolpath geometrically leaves a region; a wall
+    // loop can legitimately finish its last segment still inside one (nothing further crosses out
+    // before the next, physically distant thing prints), so callers must flush explicitly before
+    // jumping elsewhere — the deferred grouped-infill block, and the end of every layer.
+    std::string     flush_open_modifiers();
     // Called once before a candidate path's first segment: if `at`'s containment in a candidate
     // boundary disagrees with the persisted state (an intervening travel move silently crossed
     // it), emits the appropriate enter/exit G-code to resync before any move is written.

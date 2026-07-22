@@ -1413,6 +1413,11 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool,                 modifier_gcode_on_infill))
     ((ConfigOptionBool,                 modifier_gcode_on_support))
     ((ConfigOptionBool,                 modifier_gcode_on_skirt_brim))
+    // Orca: forces this modifier's infill to print as one contiguous block at the end of each
+    // layer's other printing, instead of interleaved wherever infill lines cross its boundary,
+    // trading infill print order for a single enter/exit G-code transition per layer. Walls are
+    // unaffected (stay merged with the parent region, no new seam). Default off (explicit opt-in).
+    ((ConfigOptionBool,                 modifier_group_together))
     )
 
 PRINT_CONFIG_CLASS_DEFINE(

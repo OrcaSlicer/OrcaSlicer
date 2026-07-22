@@ -72,6 +72,17 @@ ModifierGCodeDialog::ModifierGCodeDialog(wxWindow *parent, const std::string &en
     m_skirt_brim_checkbox = add_feature_checkbox(_L("Skirt/Brim"), feature_toggles.skirt_brim);
     topSizer->Add(feature_sizer, 0, wxEXPAND | wxLEFT | wxTOP | wxRIGHT, border);
 
+    m_group_together_checkbox = new wxCheckBox(this, wxID_ANY, _L("Group modifier infill together"));
+    m_group_together_checkbox->SetValue(feature_toggles.group_together);
+    m_group_together_checkbox->SetToolTip(_L("Print all of this modifier's infill as one contiguous "
+        "block at the end of each layer's other printing, instead of interleaved wherever infill lines "
+        "happen to cross its boundary. Useful when the G-code above changes something slow to react "
+        "(e.g. nozzle temperature) that shouldn't be toggled many times per layer. Walls are unaffected: "
+        "they stay merged with the surrounding perimeter (no extra seam) and continue firing G-code "
+        "wherever they cross the modifier's boundary."));
+    wxGetApp().UpdateDarkUI(m_group_together_checkbox);
+    topSizer->Add(m_group_together_checkbox, 0, wxEXPAND | wxLEFT | wxTOP | wxRIGHT, border);
+
     topSizer->AddSpacer(border);
 
     auto dlg_btns = new DialogButtons(this, {"OK", "Cancel"});
@@ -99,10 +110,11 @@ std::string ModifierGCodeDialog::get_exit_gcode() const
 ModifierGCodeFeatureToggles ModifierGCodeDialog::get_feature_toggles() const
 {
     ModifierGCodeFeatureToggles toggles;
-    toggles.walls      = m_walls_checkbox->GetValue();
-    toggles.infill     = m_infill_checkbox->GetValue();
-    toggles.support    = m_support_checkbox->GetValue();
-    toggles.skirt_brim = m_skirt_brim_checkbox->GetValue();
+    toggles.walls          = m_walls_checkbox->GetValue();
+    toggles.infill         = m_infill_checkbox->GetValue();
+    toggles.support        = m_support_checkbox->GetValue();
+    toggles.skirt_brim     = m_skirt_brim_checkbox->GetValue();
+    toggles.group_together = m_group_together_checkbox->GetValue();
     return toggles;
 }
 

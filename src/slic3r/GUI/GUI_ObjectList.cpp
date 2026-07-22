@@ -6687,10 +6687,12 @@ void ObjectList::edit_selected_modifier_gcode()
         return !config.has(key) || config.get().opt_bool(key);
     };
     ModifierGCodeFeatureToggles toggles;
-    toggles.walls      = get_toggle("modifier_gcode_on_walls");
-    toggles.infill     = get_toggle("modifier_gcode_on_infill");
-    toggles.support    = get_toggle("modifier_gcode_on_support");
-    toggles.skirt_brim = get_toggle("modifier_gcode_on_skirt_brim");
+    toggles.walls          = get_toggle("modifier_gcode_on_walls");
+    toggles.infill         = get_toggle("modifier_gcode_on_infill");
+    toggles.support        = get_toggle("modifier_gcode_on_support");
+    toggles.skirt_brim     = get_toggle("modifier_gcode_on_skirt_brim");
+    // Orca: group_together defaults to false (opt-in), unlike the four toggles above.
+    toggles.group_together = config.has("modifier_group_together") && config.get().opt_bool("modifier_group_together");
 
     ModifierGCodeDialog dlg(wxGetApp().mainframe, enter_gcode, exit_gcode, toggles);
     if (dlg.ShowModal() != wxID_OK)
@@ -6723,6 +6725,13 @@ void ObjectList::edit_selected_modifier_gcode()
     set_toggle("modifier_gcode_on_infill", new_toggles.infill);
     set_toggle("modifier_gcode_on_support", new_toggles.support);
     set_toggle("modifier_gcode_on_skirt_brim", new_toggles.skirt_brim);
+
+    // Orca: group_together defaults to false, so the sparse-storage direction is inverted versus
+    // the four toggles above: only store the key when it's checked.
+    if (new_toggles.group_together)
+        config.set_key_value("modifier_group_together", new ConfigOptionBool(true));
+    else
+        config.erase("modifier_group_together");
 
     // update scene / trigger reslice
     wxGetApp().plater()->update();

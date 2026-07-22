@@ -15,10 +15,14 @@ namespace GUI {
 // modifier_gcode_on_walls/infill/support/skirt_brim PrintRegionConfig options.
 struct ModifierGCodeFeatureToggles
 {
-    bool walls      = true;
-    bool infill     = true;
-    bool support    = true;
-    bool skirt_brim = true;
+    bool walls          = true;
+    bool infill         = true;
+    bool support        = true;
+    bool skirt_brim     = true;
+    // Orca: mirrors modifier_group_together. Unlike the four toggles above, this defaults to
+    // false — it changes infill print order (all of it deferred to one block per layer) and
+    // should be an explicit opt-in; walls are unaffected.
+    bool group_together = false;
 };
 
 // Dialog for editing a modifier volume's "enter"/"exit" custom G-code, fired whenever
@@ -31,6 +35,7 @@ class ModifierGCodeDialog : public DPIDialog
     wxCheckBox *m_infill_checkbox{ nullptr };
     wxCheckBox *m_support_checkbox{ nullptr };
     wxCheckBox *m_skirt_brim_checkbox{ nullptr };
+    wxCheckBox *m_group_together_checkbox{ nullptr };
 
 public:
     ModifierGCodeDialog(wxWindow *parent, const std::string &enter_gcode, const std::string &exit_gcode,

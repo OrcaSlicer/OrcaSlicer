@@ -4784,6 +4784,18 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(true));
 
+    def = this->add("modifier_group_together", coBool);
+    def->label = L("Group modifier infill together");
+    def->tooltip = L("Print all of this modifier's infill as one contiguous block at the end of "
+                      "each layer's other printing, instead of interleaved wherever infill lines "
+                      "happen to cross its boundary. Useful when the modifier's G-code changes "
+                      "something slow to react (e.g. nozzle temperature) that shouldn't be toggled "
+                      "many times per layer. Walls are unaffected: they stay merged with the "
+                      "surrounding perimeter (no extra seam) and continue firing G-code wherever "
+                      "they cross the modifier's boundary.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("layer_change_gcode", coString);
     def->label = L("Layer change G-code");
     def->tooltip = L("This G-code is inserted at every layer change after the Z lift.");

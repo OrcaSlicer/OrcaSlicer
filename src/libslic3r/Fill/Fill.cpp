@@ -276,6 +276,16 @@ struct SurfaceFillParams
     CenterOfSurfacePattern center_of_surface_pattern{CenterOfSurfacePattern::Each_Surface};
     bool                   separated_infills{false};
 
+    // Orca: a modifier with "group together" enabled must never have its infill bucketed with
+    // *any* other region's — not the ungrouped parent, and not another grouped modifier either,
+    // even when every other infill-relevant param happens to match (e.g. two modifiers with no
+    // settings of their own besides G-code). -1 means "not grouped" (free to merge with the parent
+    // or other ungrouped regions, as before); a grouped region stores its own region_id, which is
+    // unique, so it can never compare equal to any other region's params. Otherwise group_fills()
+    // (below) would silently attribute its extrusions to another region's LayerRegion::fills — the
+    // same failure mode is_perimeter_compatible() guards against for walls.
+    int                    modifier_group_region_id{-1};
+
 	bool operator<(const SurfaceFillParams &rhs) const {
 #define RETURN_COMPARE_NON_EQUAL(KEY) if (this->KEY < rhs.KEY) return true; if (this->KEY > rhs.KEY) return false;
 #define RETURN_COMPARE_NON_EQUAL_TYPED(TYPE, KEY) if (TYPE(this->KEY) < TYPE(rhs.KEY)) return true; if (TYPE(this->KEY) > TYPE(rhs.KEY)) return false;
@@ -311,6 +321,7 @@ struct SurfaceFillParams
         RETURN_COMPARE_NON_EQUAL(anisotropic_surfaces);
         RETURN_COMPARE_NON_EQUAL(center_of_surface_pattern);
         RETURN_COMPARE_NON_EQUAL(separated_infills);
+        RETURN_COMPARE_NON_EQUAL(modifier_group_region_id);
 
 		return false;
 	}
@@ -340,7 +351,8 @@ struct SurfaceFillParams
                 this->anisotropic_surfaces    == rhs.anisotropic_surfaces &&
                 this->center_of_surface_pattern == rhs.center_of_surface_pattern &&
                 this->separated_infills       == rhs.separated_infills &&
-                this->gyroid_optimized        == rhs.gyroid_optimized;
+                this->gyroid_optimized        == rhs.gyroid_optimized &&
+                this->modifier_group_region_id == rhs.modifier_group_region_id;
 	}
 };
 
@@ -876,6 +888,8 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
 		        params.extruder 	 = layerm.region().extruder(extrusion_role);
 		        params.pattern 		 = region_config.sparse_infill_pattern.value;
 		        params.density       = float(region_config.sparse_infill_density);
+                // Orca: see the field's comment on SurfaceFillParams above.
+                params.modifier_group_region_id = region_config.modifier_group_together.value ? int(region_id) : -1;
                 params.lateral_lattice_angle_1 = region_config.lateral_lattice_angle_1;
                 params.lateral_lattice_angle_2 = region_config.lateral_lattice_angle_2;
                 params.infill_overhang_angle = region_config.infill_overhang_angle;
