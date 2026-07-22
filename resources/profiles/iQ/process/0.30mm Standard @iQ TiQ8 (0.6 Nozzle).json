@@ -3,6 +3,7 @@
 	"name": "0.30mm Standard @iQ TiQ8 (0.6 Nozzle)",
 	"inherits": "fdm_process_tiq_common",
 	"from": "system",
+	"setting_id": "QEODQzrO9UZEgrtB",
 	"instantiation": "true",
 	"compatible_printers": [
 		"iQ TiQ8 0.6 Nozzle"

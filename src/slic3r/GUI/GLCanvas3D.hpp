@@ -166,6 +166,7 @@ wxDECLARE_EVENT(EVT_GLCANVAS_ORIENT_PARTPLATE, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_SELECT_CURR_PLATE_ALL, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_SELECT_ALL, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_QUESTION_MARK, SimpleEvent);
+wxDECLARE_EVENT(EVT_GLCANVAS_OPEN_SPEED_DIAL, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_INCREASE_INSTANCES, Event<int>); // data: +1 => increase, -1 => decrease
 wxDECLARE_EVENT(EVT_GLCANVAS_INSTANCE_MOVED, SimpleEvent);
 wxDECLARE_EVENT(EVT_GLCANVAS_FORCE_UPDATE, SimpleEvent);
@@ -997,7 +998,6 @@ public:
     void select_curr_plate_all();
     void select_object_from_idx(std::vector<int>& object_idxs);
     void remove_curr_plate_all();
-    void update_plate_thumbnails();
 
     void select_all();
     void deselect_all();

@@ -22,6 +22,7 @@ struct DevAmsSlotInfo
     std::string slot_id;
 
 public:
+    bool operator!=(const DevAmsSlotInfo& other) const { return !(*this == other); }
     bool operator==(const DevAmsSlotInfo& other) const { return ams_id == other.ams_id && slot_id == other.slot_id;}
 };
 

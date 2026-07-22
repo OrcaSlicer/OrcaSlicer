@@ -2,6 +2,9 @@
 #define slic3r_GUI_WebView_hpp_
 
 #include <wx/webview.h>
+#include <wx/event.h>
+
+wxDECLARE_EVENT(EVT_WEBVIEW_RECREATED, wxCommandEvent);
 
 class WebView
 {

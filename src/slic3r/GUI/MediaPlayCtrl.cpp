@@ -88,10 +88,7 @@ MediaPlayCtrl::MediaPlayCtrl(wxWindow *parent, wxMediaCtrl2 *media_ctrl, const w
 
     m_button_play->Bind(wxEVT_COMMAND_BUTTON_CLICKED, [this](auto &e) { TogglePlay(); });
     m_button_play->Bind(wxEVT_RIGHT_UP, [this](auto & e) { m_media_ctrl->Play(); });
-    // m_label_status->Bind(wxEVT_LEFT_UP, [this](auto &e) {
-    //     auto url = wxString::Format(L"https://wiki.bambulab.com/%s/software/bambu-studio/faq/live-view", L"en");
-    //     wxLaunchDefaultBrowser(url);
-    // });
+    // Orca: live-view FAQ link binding removed (vendor URL)
 
     Bind(wxEVT_RIGHT_UP, [this](auto & e) {
         wxClipboard & c = *wxTheClipboard;

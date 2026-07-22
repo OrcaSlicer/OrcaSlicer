@@ -28,6 +28,7 @@
 
 #include "boost/bimap/bimap.hpp"
 #include "AmsMappingPopup.hpp"
+#include "GUI_ObjectLayers.hpp"
 #include "ReleaseNote.hpp"
 #include "GUI_Utils.hpp"
 #include "wxExtensions.hpp"
@@ -44,6 +45,9 @@
 #include "Widgets/ScrolledWindow.hpp"
 #include "Widgets/PopupWindow.hpp"
 #include "Widgets/HyperLink.hpp" // ORCA
+#include "DeviceTab/uiAMSBestPositionPopup.hpp"  // AMS best-position popup
+#include "DeviceCore/DevFilaSwitch.h"            // Orca: DevFilaSwitch::SwitchPos for best-position helpers
+#include <optional>
 #include <wx/simplebook.h>
 #include <wx/hashmap.h>
 
@@ -227,6 +231,7 @@ public:
     void        update_options(std::vector<POItem> ops, const wxString &tips);
     void        update_tooltip(const wxString &tips);
     void        update_title_display();
+    void        insert_extra_widget(wxWindow* widget);
 
     void  msw_rescale();
 
@@ -334,6 +339,17 @@ private:
     std::string                         m_required_data_file_name;
     std::string                         m_required_data_file_path;
 
+    // timelapse internal storage selection
+    std::string                         m_timelapse_storage;   // "internal" or "external"; empty = unsupported
+    ScalableButton*                     m_timelapse_folder_btn { nullptr };
+    PopupWindow*                        m_timelapse_storage_popup { nullptr };
+    // timelapse storage-low send-time gate (async ipcam MQTT round-trip)
+    wxTimer*                            m_timelapse_check_timer { nullptr };
+    int                                 m_timelapse_check_timeout_ms { 5000 };
+    int                                 m_timelapse_check_elapsed_ms { 0 };
+    int                                 m_timelapse_check_interval_ms { 100 };
+    int                                 m_timelapse_total_layer { 0 };
+
     std::vector<POItem> ops_auto;
     std::vector<POItem> ops_no_auto;
 
@@ -354,6 +370,7 @@ protected:
     wxBoxSizer*                         m_sizer_autorefill{ nullptr };
     wxBoxSizer*                         m_mapping_sugs_sizer{ nullptr };
     wxBoxSizer*                         m_change_filament_times_sizer{ nullptr };
+    wxBoxSizer*                         m_warn_when_drying_sizer{ nullptr };
     Button*                             m_button_ensure{ nullptr };
     wxStaticBitmap *                    m_rename_button{nullptr};
     wxStaticBitmap*                     m_staticbitmap{ nullptr };
@@ -382,10 +399,13 @@ protected:
     wxStaticText*                       m_rename_text{nullptr};
     Label*                              m_stext_time{ nullptr };
     Label*                              m_stext_weight{ nullptr };
+    Label*                              m_saveTimeText{ nullptr }; // best-position "saves X" clickable tip
     PrinterMsgPanel *                   m_statictext_ams_msg{nullptr};
     Label*                              m_txt_change_filament_times{ nullptr };
     CheckBox*                           m_check_ext_change_assist{ nullptr };
     Label*                              m_label_ext_change_assist{ nullptr };
+
+    Label*                              m_txt_warn_when_drying{ nullptr };
 
     PrinterInfoBox*                     m_printer_box { nullptr};
     PrinterMsgPanel *                   m_text_printer_msg{nullptr};
@@ -426,6 +446,7 @@ protected:
     wxGridSizer*                        m_sizer_ams_mapping_right{ nullptr };
 
     PrePrintChecker                     m_pre_print_checker;
+    ReselectMachineDialog*              m_best_pos_dialog{ nullptr }; // AMS best-position popup
 
 public:
     static std::vector<wxString> MACHINE_BED_TYPE_STRING;
@@ -506,7 +527,9 @@ public:
     bool do_ams_mapping(MachineObject *obj_,bool use_ams);
     bool get_ams_mapping_result(std::string& mapping_array_str, std::string& mapping_array_str2, std::string& ams_mapping_info) const;
     bool build_nozzles_info(std::string& nozzles_info);
-    bool can_hybrid_mapping(DevExtderSystem data);
+    bool can_hybrid_mapping(MachineObject* obj_) const;
+    ShowType get_filament_mapping_show_type(MachineObject* obj_, int fila_logic_id) const;
+    void update_material_item_pos(MachineObject* obj_);
     void auto_supply_with_ext(std::vector<DevAmsTray> slots);
     int  convert_filament_map_nozzle_id_to_task_nozzle_id(int nozzle_id) const;
 
@@ -527,6 +550,24 @@ public:
     // Compare the slicing file's nozzle requirements (validity, flow, diameter) against the
     // printer; the rack extruder is checked against its whole inventory (mounted + rack).
     bool CheckErrorExtruderNozzleWithSlicing(MachineObject* obj_);//return true if no errors
+    // Warn (without blocking) when a mapped filament would be printed from both extruders on a
+    // dual-extruder printer, so per-nozzle manual K-value can't follow it across the whole print.
+    bool CheckWarningFilamentCrossExtruder(MachineObject* obj_);
+    // Recommends switching nozzle clumping detection to Auto when the file has stringing-prone
+    // filament and the printer isn't in Auto.
+    bool CheckWarningSmartNozzleBlobAuto(MachineObject* obj_);
+    // AMS best-switch-position popup: suggests the filament arrangement that minimizes
+    // filament-change time on filament-switcher printers; no-op for printers without a switcher.
+    void on_reselect_dialog_btn_clicked(wxMouseEvent&);
+    void update_best_pos_dialog(wxCommandEvent& evt);
+    void refresh_save_time(MachineObject* obj);
+    std::optional<float> get_filament_change_gap_time(MachineObject* obj_) const;
+    std::map<int, DevFilaSwitch::SwitchPos> get_filament_suggest_pos(MachineObject* obj_) const;
+    std::optional<DevFilaSwitch::SwitchPos> get_filament_suggest_pos(MachineObject* obj_, int fila_logic_id) const;
+    bool is_at_suggested_pos(MachineObject* obj_, int fila_logic_id) const;
+    wxString FormatTime(float totalSeconds);
+    std::optional<FilamentInfo> get_mapped_filament_info(int fila_logic_id) const;
+    bool is_used_filament(int fila_logic_id) const;
 
     // Rack print-dispatch nozzle mapping (H2C): request the printer's auto-mapping and consume the
     // result, gating the Send button while the printer computes. Both are no-ops for non-rack printers.
@@ -541,6 +582,13 @@ public:
     bool slicing_with_fila_switch() const;
     bool CheckErrorDynamicSwitchNozzle(MachineObject* obj_);
     void on_flow_cali_option_changed();
+    // PA-profile sharing (extrude_cali_manual_mode): device-side toggle shown only for pa_mode
+    // printers when Flow Dynamics Calibration is off. See on_flow_cali_option_changed / send flow.
+    void on_pa_value_option_changed();
+    void update_pa_value_option(MachineObject *obj);
+
+    bool is_ams_drying(MachineObject* obj);
+    bool is_selected_ams_drying(MachineObject* obj);
 
     PrintFromType get_print_type() {return m_print_type;};
     wxString    format_steel_name(NozzleType type);
@@ -555,6 +603,16 @@ private:
     /* update option area*/
     void update_option_opts(MachineObject *obj);
     void update_options_layout();
+
+    /* timelapse storage-location selector */
+    void update_timelapse_folder_btn_icon();
+    void show_timelapse_folder_popup();
+    void check_timelapse_storage_warning(MachineObject* obj);
+    void start_timelapse_storage_check(MachineObject* obj);
+    void on_timelapse_storage_check_timer(wxTimerEvent& event);
+    void on_timelapse_storage_check_result();
+    void show_timelapse_storage_dialog(MachineObject* obj);
+    void navigate_to_timelapse_page();
 
     // save and restore from config
     void load_option_vals(MachineObject* obj);

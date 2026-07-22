@@ -60,6 +60,19 @@ list(APPEND SLIC3R_GUI_SOURCES
     GUI/DeviceCore/DevUtil.cpp
     GUI/DeviceCore/DevUtilBackend.h
     GUI/DeviceCore/DevUtilBackend.cpp
+    GUI/DeviceCore/DevAxis.h
+    GUI/DeviceCore/DevAxis.cpp
+    GUI/DeviceCore/DevAxisCtrl.cpp
+    GUI/DeviceCore/DevCalib.h
+    GUI/DeviceCore/DevCalib.cpp
+    GUI/DeviceCore/DevChamber.h
+    GUI/DeviceCore/DevChamber.cpp
+    GUI/DeviceCore/DevChamberCtrl.cpp
+    GUI/DeviceCore/DevStatus.h
+    GUI/DeviceCore/DevStatus.cpp
+    GUI/DeviceCore/DevUpgrade.h
+    GUI/DeviceCore/DevUpgrade.cpp
+    GUI/DeviceCore/DevUpgradeCtrl.cpp
 
 )
 set(SLIC3R_GUI_SOURCES ${SLIC3R_GUI_SOURCES} PARENT_SCOPE)

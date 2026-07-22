@@ -34,14 +34,14 @@ static void append_and_translate(ExPolygons &dst, const ExPolygons &src, const P
 }
 // BBS: generate brim area by objs
 static void append_and_translate(ExPolygons& dst, const ExPolygons& src,
-    const PrintInstance& instance, const Print& print, std::map<ObjectID, ExPolygons>& brimAreaMap) {
+    const PrintInstance& instance, size_t instance_idx, std::map<ObjectInstanceID, ExPolygons>& brimAreaMap) {
     ExPolygons srcShifted = src;
     Point instance_shift = instance.shift_without_plate_offset();
     for (size_t src_idx = 0; src_idx < srcShifted.size(); ++src_idx)
         srcShifted[src_idx].translate(instance_shift);
     srcShifted = diff_ex(srcShifted, dst);
     //expolygons_append(dst, temp2);
-    expolygons_append(brimAreaMap[instance.print_object->id()], std::move(srcShifted));
+    expolygons_append(brimAreaMap[{ instance.print_object->id(), instance_idx }], std::move(srcShifted));
 }
 
 static void append_and_translate(Polygons &dst, const Polygons &src, const PrintInstance &instance) {
@@ -420,8 +420,7 @@ static ExPolygons make_brim_ears(const PrintObject* object, const double& flowWi
 
 //BBS: create all brims
 static ExPolygons outer_inner_brim_area(const Print& print,
-    const float no_brim_offset, std::map<ObjectID, ExPolygons>& brimAreaMap,
-    std::map<ObjectID, ExPolygons>& supportBrimAreaMap,
+    const float no_brim_offset, std::map<ObjectInstanceID, ExPolygons>& brimAreaMap,
     std::vector<std::pair<ObjectID, unsigned int>>& objPrintVec,
     std::vector<unsigned int>& printExtruders)
 {
@@ -470,7 +469,6 @@ static ExPolygons outer_inner_brim_area(const Print& print,
 
             ExPolygons         brim_area_object;
             ExPolygons         no_brim_area_object;
-            ExPolygons         brim_area_support;
             ExPolygons         no_brim_area_support;
             Polygons           holes_object;
             Polygons           holes_support;
@@ -571,16 +569,18 @@ static ExPolygons outer_inner_brim_area(const Print& print,
                 append(no_brim_area_object, objectIsland);
 
                 brimToWrite.at(object->id()).obj = false;
-                for (const PrintInstance& instance : object->instances()) {
+                for (size_t instance_idx = 0; instance_idx < object->instances().size(); ++instance_idx) {
+                    const PrintInstance& instance = object->instances()[instance_idx];
                     if (!brim_area_object.empty())
-                        append_and_translate(brim_area, brim_area_object, instance, print, brimAreaMap);
+                        append_and_translate(brim_area, brim_area_object, instance, instance_idx, brimAreaMap);
                     append_and_translate(no_brim_area, no_brim_area_object, instance);
                     append_and_translate(holes, holes_object, instance);
                     append_and_translate(objectIslands, objectIsland, instance);
 
                 }
-                if (brimAreaMap.find(object->id()) != brimAreaMap.end())
-                    expolygons_append(brim_area, brimAreaMap[object->id()]);
+                for (const auto& [key, areas] : brimAreaMap)
+                    if (key.object_id == object->id())
+                        expolygons_append(brim_area, areas);
             }
             support_material_extruder = object->config().support_filament;
             if (support_material_extruder == 0 && object->has_support_material()) {
@@ -592,32 +592,12 @@ static ExPolygons outer_inner_brim_area(const Print& print,
             if (support_material_extruder == extruderNo && brimToWrite.at(object->id()).sup) {
                 if (!object->support_layers().empty() && object->support_layers().front()->support_type==stInnerNormal) {
                     for (const Polygon& support_contour : object->support_layers().front()->support_fills.polygons_covered_by_spacing()) {
-                        // Brim will not be generated for supports
-                        /*
-                        if (has_outer_brim) {
-                            append(brim_area_support, diff_ex(offset_ex(support_contour, brim_width + brim_offset, jtRound, SCALED_RESOLUTION), offset_ex(support_contour, brim_offset)));
-                        }
-                        if (has_inner_brim || has_outer_brim)
-                            append(no_brim_area_support, offset_ex(support_contour, 0));
-                        */
                         no_brim_area_support.emplace_back(support_contour);
                     }
                 }
                 // BBS
                 if (!object->support_layers().empty() && object->support_layers().front()->support_type == stInnerTree) {
                     for (const ExPolygon &ex_poly : object->support_layers().front()->lslices) {
-                        // BBS: additional brim width will be added if adhesion area is too small without brim
-                        float brim_width_mod = ex_poly.area() / ex_poly.contour.length() < scaled_half_min_adh_length
-                            && brim_width < scaled_flow_width ? brim_width + scaled_additional_brim_width : brim_width;
-                        brim_width_mod = floor(brim_width_mod / scaled_flow_width / 2) * scaled_flow_width * 2;
-                        // Brim will not be generated for supports
-                        /*
-                        if (has_outer_brim) {
-                            append(brim_area_support, diff_ex(offset_ex(ex_poly.contour, brim_width_mod + brim_offset, jtRound, SCALED_RESOLUTION), offset_ex(ex_poly.contour, brim_offset)));
-                        }
-                        if (has_inner_brim)
-                            append(brim_area_support, diff_ex(offset_ex(ex_poly.holes, -brim_offset), offset_ex(ex_poly.holes, -brim_width - brim_offset)));
-                        */
                         if (!has_outer_brim)
                             append(no_brim_area_support, diff_ex(offset(ex_poly.contour, no_brim_offset), ex_poly.holes));
                         if (!has_inner_brim && !has_outer_brim)
@@ -630,13 +610,9 @@ static ExPolygons outer_inner_brim_area(const Print& print,
                 }
                 brimToWrite.at(object->id()).sup = false;
                 for (const PrintInstance& instance : object->instances()) {
-                    if (!brim_area_support.empty())
-                        append_and_translate(brim_area, brim_area_support, instance, print, supportBrimAreaMap);
                     append_and_translate(no_brim_area, no_brim_area_support, instance);
                     append_and_translate(holes, holes_support, instance);
                 }
-                if (supportBrimAreaMap.find(object->id()) != supportBrimAreaMap.end())
-                    expolygons_append(brim_area, supportBrimAreaMap[object->id()]);
             }
         }
     }
@@ -676,28 +652,27 @@ static ExPolygons outer_inner_brim_area(const Print& print,
 
         }
 
-        if (brimAreaMap.find(object->id()) != brimAreaMap.end()) {
-            brimAreaMap[object->id()] = diff_ex(brimAreaMap[object->id()], extruder_no_brim_area);
-        }
+        for (auto& [key, areas] : brimAreaMap)
+            if (key.object_id == object->id())
+                areas = diff_ex(areas, extruder_no_brim_area);
 
-        if (supportBrimAreaMap.find(object->id()) != supportBrimAreaMap.end())
-            supportBrimAreaMap[object->id()] = diff_ex(supportBrimAreaMap[object->id()], extruder_no_brim_area);
     }
 
     brim_area.clear();
     for (const PrintObject* object : print.objects()) {
         // BBS: brim should be contacted to at least one object's island or brim area
-        if (brimAreaMap.find(object->id()) != brimAreaMap.end()) {
+        for (auto map_it = brimAreaMap.begin(); map_it != brimAreaMap.end(); ++map_it) {
+            if (map_it->first.object_id != object->id())
+                continue;
+
             // find other objects' brim area
             ExPolygons otherExPolys;
-            for (const PrintObject* otherObject : print.objects()) {
-                if ((otherObject->id() != object->id()) && (brimAreaMap.find(otherObject->id()) != brimAreaMap.end())) {
-                    expolygons_append(otherExPolys, brimAreaMap[otherObject->id()]);
-                }
-            }
+            for (const auto& [other_key, other_areas] : brimAreaMap)
+                if (other_key != map_it->first)
+                    expolygons_append(otherExPolys, other_areas);
 
-            auto tempArea = brimAreaMap[object->id()];
-            brimAreaMap[object->id()].clear();
+            auto tempArea = map_it->second;
+            map_it->second.clear();
 
             for (int ia = 0; ia != tempArea.size(); ++ia) {
                 // find this object's other brim area
@@ -709,9 +684,9 @@ static ExPolygons outer_inner_brim_area(const Print& print,
                 if (!intersection_ex(offsetedTa, objectIslands).empty() ||
                     !intersection_ex(offsetedTa, otherExPoly).empty() ||
                     !intersection_ex(offsetedTa, otherExPolys).empty())
-                    brimAreaMap[object->id()].push_back(tempArea[ia]);
+                    map_it->second.push_back(tempArea[ia]);
             }
-            expolygons_append(brim_area, brimAreaMap[object->id()]);
+            expolygons_append(brim_area, map_it->second);
         }
     }
     return brim_area;
@@ -890,19 +865,15 @@ ExtrusionEntityCollection makeBrimInfillFromPlateCoordinates(const ExPolygons& s
 //BBS: an overload of the orignal brim generator that generates the brim by obj and by extruders
 void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_area,
     std::map<ObjectID, ExtrusionEntityCollection>& brimMap,
-    std::map<ObjectID, ExtrusionEntityCollection>& supportBrimMap,
+    std::map<ObjectInstanceID, ExtrusionEntityCollection>& brimMapByInstance,
     std::vector<std::pair<ObjectID, unsigned int>> &objPrintVec,
     std::vector<unsigned int>& printExtruders,
-    std::map<ObjectID, ExPolygons>* objectBrimAreasOut,
-    std::map<ObjectID, ExPolygons>* supportBrimAreasOut)
+    std::map<ObjectInstanceID, ExPolygons>* objectBrimAreasByInstanceOut)
 {
-    std::map<ObjectID, double> brim_width_map;
-    std::map<ObjectID, ExPolygons> brimAreaMap;
-    std::map<ObjectID, ExPolygons> supportBrimAreaMap;
+    std::map<ObjectInstanceID, ExPolygons> brimAreaMap;
     Flow                 flow = print.brim_flow();
-    const auto           scaled_resolution = scaled<double>(print.config().resolution.value);
     ExPolygons           islands_area_ex = outer_inner_brim_area(print,
-        float(flow.scaled_spacing()), brimAreaMap, supportBrimAreaMap, objPrintVec, printExtruders);
+        float(flow.scaled_spacing()), brimAreaMap, objPrintVec, printExtruders);
 
     // BBS: Find boundingbox of the first layer
     for (const ObjectID printObjID : print.print_object_ids()) {
@@ -924,14 +895,10 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
                 ex_poly_translated.translate(instance.shift_without_plate_offset());
                 bbx.merge(get_extents(ex_poly_translated));
             }
-        if (supportBrimAreaMap.find(printObjID) != supportBrimAreaMap.end()) {
-            for (const ExPolygon& ex_poly : supportBrimAreaMap.at(printObjID))
-                bbx.merge(get_extents(ex_poly.contour));
-        }
-        if (brimAreaMap.find(printObjID) != brimAreaMap.end()) {
-            for (const ExPolygon& ex_poly : brimAreaMap.at(printObjID))
-                bbx.merge(get_extents(ex_poly.contour));
-        }
+        for (const auto& [key, areas] : brimAreaMap)
+            if (key.object_id == printObjID)
+                for (const ExPolygon& ex_poly : areas)
+                    bbx.merge(get_extents(ex_poly.contour));
         object->firstLayerObjectBrimBoundingBox = bbx;
     }
 
@@ -944,77 +911,24 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
         islands_area[iia].translate(plate_shift);
 
     // Orca: keep translated brim footprints for skirt grouping.
-    auto translate_area_map = [plate_shift](const std::map<ObjectID, ExPolygons>& src) {
-        std::map<ObjectID, ExPolygons> dst = src;
+    auto translate_area_map = [plate_shift](const auto& src) {
+        auto dst = src;
         for (auto& [_, areas] : dst)
             for (ExPolygon& area : areas)
                 area.translate(plate_shift);
         return dst;
     };
-    if (objectBrimAreasOut != nullptr)
-        *objectBrimAreasOut = translate_area_map(brimAreaMap);
-    if (supportBrimAreasOut != nullptr)
-        *supportBrimAreasOut = translate_area_map(supportBrimAreaMap);
+    if (objectBrimAreasByInstanceOut != nullptr)
+        *objectBrimAreasByInstanceOut = translate_area_map(brimAreaMap);
 
-    const bool has_per_object_skirt_or_shield = print.config().skirt_type == stPerObject &&
-                                                (print.has_skirt() || print.has_infinite_skirt());
-    const bool combine_brims = print.config().combine_brims.value &&
-                               !has_per_object_skirt_or_shield &&
-                               print.config().print_sequence != PrintSequence::ByObject;
-
-    if (!combine_brims) {
-        // Orca: Generate brims separately when brims cannot be combined.
-        for (auto iter = brimAreaMap.begin(); iter != brimAreaMap.end(); ++iter) {
-            if (!iter->second.empty()) {
-                brimMap.insert(std::make_pair(iter->first, makeBrimInfill(iter->second, print, islands_area)));
-            };
-        }
-        for (auto iter = supportBrimAreaMap.begin(); iter != supportBrimAreaMap.end(); ++iter) {
-            if (!iter->second.empty()) {
-                supportBrimMap.insert(std::make_pair(iter->first, makeBrimInfill(iter->second, print, islands_area)));
-            };
-        }
-    } else {
-        // Orca: Unified brim mode.
-        ExPolygons            all_brims_merged;
-        std::vector<ObjectID> brim_object_ids;
-
-        // Add all object brims
-        for (auto& [obj_id, brims] : brimAreaMap) {
-            if (!brims.empty()) {
-                expolygons_append(all_brims_merged, brims);
-                brim_object_ids.push_back(obj_id);
-            }
-        }
-
-        if (!all_brims_merged.empty()) {
-            // Merge all brims into a single continuous area
-            all_brims_merged = union_ex(all_brims_merged);
-
-            // Apply a tiny morphological cleanup to reduce boolean-union micro-artifacts.
-            const float brim_cleanup_delta = std::max(float(scaled_resolution), float(SCALED_EPSILON));
-            all_brims_merged = offset2_ex(all_brims_merged, brim_cleanup_delta, -brim_cleanup_delta, jtRound, scaled_resolution);
-
-            // Generate infill once for the merged brim area.
-            ExtrusionEntityCollection merged_brim = makeBrimInfill(all_brims_merged, print, islands_area);
-
-            // In unified mode, assign the merged brim to a deterministic carrier object.
-            // Pick the first object in print order that actually contributed brim area.
-            ObjectID carrier_id;
-            bool     carrier_found = false;
-            for (const auto& [obj_id, _extruder] : objPrintVec) {
-                if (std::find(brim_object_ids.begin(), brim_object_ids.end(), obj_id) != brim_object_ids.end()) {
-                    carrier_id    = obj_id;
-                    carrier_found = true;
-                    break;
-                }
-            }
-
-            if (!carrier_found)
-                carrier_id = brim_object_ids.front();
-
-            brimMap[carrier_id] = std::move(merged_brim);
-        }
+    // Orca: Generate brims per object instance. If Combine brims is enabled,
+    // Print::_make_skirt() will join the touching ones.
+    for (auto iter = brimAreaMap.begin(); iter != brimAreaMap.end(); ++iter) {
+        if (!iter->second.empty()) {
+            ExtrusionEntityCollection brim = makeBrimInfill(iter->second, print, islands_area);
+            brimMap[iter->first.object_id].append(brim.entities);
+            brimMapByInstance.emplace(iter->first, std::move(brim));
+        };
     }
 }
 } // namespace Slic3r

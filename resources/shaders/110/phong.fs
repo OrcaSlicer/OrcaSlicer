@@ -273,6 +273,8 @@ void main()
            s = max(s, DetectSilho(fragCoord.xy + vec2(i, 0)));
            s = max(s, DetectSilho(fragCoord.xy + vec2(0, i)));
         }
+        if (s < 0.01)
+            discard;
         gl_FragColor = vec4(mix(shaded_color.rgb, getBackfaceColor(shaded_color.rgb), s), shaded_color.a);
     }
 #ifdef ENABLE_ENVIRONMENT_MAP

@@ -1,0 +1,113 @@
+/* Shared theme for resources/web/dialog/* pages.
+ *
+ * App-matched roles are pulled from the host theme "contract" (:root{--orca-*}),
+ * injected from live C++ app colors by WebViewHostDialog. Web-only semantics (row
+ * selection, status/source badges, footer/button/context surfaces) have no native
+ * equivalent, so they are curated here for light and selected for dark by the
+ * [data-orca-theme="dark"] attribute the host sets — the single authoritative theme
+ * signal on all platforms (prefers-color-scheme is intentionally not used).
+ *
+ * This file is linked AFTER common.css so its element rules re-theme the shared chrome
+ * via variables (replacing the retired dark.css). It replaces each page's own :root
+ * palette and the dark.css <link>. */
+
+:root {
+  /* --- app-matched roles (from the injected contract) --- */
+  --bg: var(--orca-bg);
+  --panel: var(--orca-bg);
+  --text: var(--orca-fg);
+  --muted: var(--orca-muted);
+  --border: var(--orca-border);
+  --border-strong: var(--orca-border);
+  --border-soft: var(--orca-border);
+  --col-sep: var(--orca-border);
+  --row-selected-outline: var(--orca-accent);
+  --main-color: var(--orca-accent);
+  --main-color-hover: var(--orca-accent);
+  --plugin-link-text: var(--orca-accent);
+
+  /* --- web-only semantics: LIGHT --- */
+  --row-hover: #f7f9fb;
+  --row-selected: #eaf2ff;
+  --plugin-status-danger: #b42318;
+  --plugin-status-ok: #137333;
+  --plugin-status-warn: #a15c00;
+  --plugin-status-inactive: var(--muted);
+  --plugin-status-danger-bg: rgba(180, 35, 24, 0.12);
+  --plugin-status-ok-bg: rgba(19, 115, 51, 0.12);
+  --plugin-status-warn-bg: rgba(199, 122, 22, 0.12);
+  --plugin-status-inactive-bg: #edf1f5;
+  --plugin-status-inactive-text: #44505c;
+  --plugin-source-mine-bg: rgba(0, 137, 123, 0.12);
+  --plugin-source-mine-text: #00897b;
+  --plugin-source-neutral-bg: #edf1f5;
+  --plugin-source-neutral-text: #44505c;
+  --plugin-source-subscribed-bg: rgba(37, 99, 170, 0.12);
+  --plugin-source-subscribed-text: #2563aa;
+  --footer-bg: #fafafa;
+  --btn-bg: #ffffff;
+  --btn-border: #cccccc;
+  --btn-hover: #f0f0f0;
+  --ctx-bg: #ffffff;
+  --ctx-border: #cccccc;
+  --ctx-hover: #efefef;
+
+  /* Speed dial icon tile treatment */
+  --speed-tile-bg: #efefef;
+  --speed-tile-border: #d8d8d8;
+  --speed-tile-text-s: 74%;
+  --speed-tile-text-l: 34%;
+}
+
+:root[data-orca-theme="dark"] {
+  /* The app-injected border (var(--orca-border) ≈ #36363B in dark) sits almost on top of
+     the dark panels; lift the border roles a touch so dividers/outlines stay visible. */
+  --border: #4a4a51;
+  --border-strong: #4a4a51;
+  --border-soft: #4a4a51;
+  --col-sep: #4a4a51;
+  --row-hover: #2b3340;
+  --row-selected: #244945;
+  --plugin-link-text: #5eead4;
+  --plugin-status-danger: #ff7b72;
+  --plugin-status-ok: #37c871;
+  --plugin-status-warn: #f0b45a;
+  --plugin-status-inactive: #b9c0c8;
+  --plugin-status-danger-bg: rgba(255, 123, 114, 0.16);
+  --plugin-status-ok-bg: rgba(55, 200, 113, 0.16);
+  --plugin-status-warn-bg: rgba(240, 180, 90, 0.18);
+  --plugin-status-inactive-bg: #36363b;
+  --plugin-status-inactive-text: #c7ccd2;
+  --plugin-source-mine-bg: rgba(0, 150, 136, 0.18);
+  --plugin-source-mine-text: #8de5d6;
+  --plugin-source-neutral-bg: #36363b;
+  --plugin-source-neutral-text: #c7ccd2;
+  --plugin-source-subscribed-bg: rgba(88, 166, 255, 0.18);
+  --plugin-source-subscribed-text: #8fc0f0;
+  --footer-bg: #20262d;
+  --btn-bg: #2a313a;
+  --btn-border: #4b5664;
+  --btn-hover: #333c47;
+  --ctx-bg: #2a313a;
+  --ctx-border: #4b5664;
+  --ctx-hover: #3a4451;
+
+  /* Speed dial icon tile treatment */
+  --speed-tile-bg: #34343b;
+  --speed-tile-border: #50505a;
+  --speed-tile-text-s: 82%;
+  --speed-tile-text-l: 84%;
+}
+
+/* Re-theme the shared common.css chrome through variables (replaces dark.css's
+ * hardcoded element overrides). Placed after common.css in every page's <head>. */
+html { background: var(--bg); }
+body { background: var(--bg); color: var(--text); }
+#Content { color: var(--text); }
+#Title div, #Title div.TitleUnselected { color: var(--orca-accent); }
+.HyperLink { color: var(--orca-accent); }
+.ZScrol::-webkit-scrollbar-thumb { background-color: var(--border); }
+.ZScrol::-webkit-scrollbar-track { background: var(--bg); }
+input[type="checkbox"] { background-color: var(--bg); border-color: var(--border); }
+input[type="checkbox"]:checked { background-color: var(--orca-accent); border-color: var(--orca-accent); }
+input[type="checkbox"]::before { box-shadow: inset 1em 1em var(--orca-accent-fg); }
