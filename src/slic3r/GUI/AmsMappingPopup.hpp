@@ -34,23 +34,28 @@
 #include "Widgets/CheckBox.hpp"
 #include "Widgets/ComboBox.hpp"
 #include "Widgets/ScrolledWindow.hpp"
-#include "Widgets/SwitchButton.hpp"
+#include "Widgets/SwitchButton.hpp" // Orca: SwitchBoard (m_nozzle_btn_panel); not transitively available here
 #include "Widgets/PopupWindow.hpp"
 #include <wx/simplebook.h>
 #include <wx/hashmap.h>
 
 #include "slic3r/GUI/DeviceCore/DevUtil.h"
 
-#include <optional>
-
 #define MAPPING_ITEM_INVALID_REMAIN -1
 
-namespace Slic3r {
+// Previous definitions
+namespace Slic3r
+{
 class DevNozzleRack;
-namespace GUI { class wgtDeviceNozzleRackSelect; }
-}
+namespace GUI
+{
+class wgtDeviceNozzleRackSelect;
+class wgtMsgPanel;
+};
+};
 
-namespace Slic3r { namespace GUI {
+namespace Slic3r {
+namespace GUI {
 
 
 #define AMS_TOTAL_COUNT 4
@@ -64,7 +69,8 @@ enum TrayType {
 enum ShowType {
     LEFT,   //  only show left ams and left ext
     RIGHT,  //only show right ams and right ext
-    LEFT_AND_RIGHT  //show left and right ams at the same time
+    LEFT_AND_RIGHT,  //show left and right ams at the same time
+    LEFT_AND_RIGHT_DYNAMIC  //show all left and right at one panel when use_dynamic_switch
 };
 
 struct TrayData
@@ -85,26 +91,59 @@ struct TrayData
 class MaterialItem: public wxPanel
 {
 protected:
-    int m_text_pos_x =  0;
     int m_text_pos_y = -1;
     bool m_dropdown_allow_painted = true;
+    wxString m_mapping_text;
 
 public:
-    MaterialItem(wxWindow *parent, wxColour mcolour, wxString mname);
+    // Orca: filament_id defaults to empty so the existing 3-arg callers keep compiling;
+    // m_filament_id is otherwise unused here.
+    MaterialItem(wxWindow *parent, wxColour mcolour, wxString mname, std::string filament_id = std::string());
     ~MaterialItem();
 
-    wxPanel*    m_main_panel;
+    void allow_paint_dropdown(bool flag);
+
+    void set_ams_text(const wxString& txt);
+    void set_ams_info(wxColour col, wxString txt,
+                      int ctype = 0, std::vector<wxColour> cols = std::vector<wxColour>(),
+                      bool record_back_info = false);
+
+    void set_material_cols(int ctype, const std::vector<wxColour>& cols);
+
+    void reset_ams_info();
+    virtual void reset_valid_info();
+
+    void set_nozzle_info(const wxString& mapped_nozzle_str);
+
+    void disable();
+    void enable();
+    void on_normal();
+    void on_selected();
+    void on_warning();
+
+    bool is_selected() const { return m_selected;}
+    bool is_warning() const { return m_warning;}
+
+    void msw_rescale();
+
+protected:
+    void messure_size();
+
+public:
+    std::string m_filament_id;
+
     wxColour    m_material_coloul;
+    int         m_material_ctype = 0;
+    std::vector<wxColour> m_material_cols;
     wxString    m_material_name;
+    wxString    m_mapped_nozzle_str;
 
     //info
     wxColour m_ams_coloul;
     wxString m_ams_name;
-    // Physical nozzle(s) the print-dispatch mapping assigned to this filament (e.g. "R1", "L R").
-    // Empty on printers without a nozzle rack or filament switcher; when set, the card grows a row.
-    wxString m_mapped_nozzle_str;
     int      m_ams_ctype = 0;
     std::vector<wxColour> m_ams_cols = std::vector<wxColour>();
+
     //reset
     wxColour              m_back_ams_coloul;
     wxString              m_back_ams_name;
@@ -124,32 +163,17 @@ public:
     bool m_match {true};
     bool m_enable {true};
 
-    void msw_rescale();
-    void allow_paint_dropdown(bool flag);
-    void set_ams_info(wxColour col, wxString txt, int ctype=0, std::vector<wxColour> cols= std::vector<wxColour>(),bool record_back_info = false);
-    void reset_ams_info();
-    // Set the mapped-nozzle label ("R1", "L R", ...); grows/shrinks the card as the row appears/clears.
-    void set_nozzle_info(const wxString& mapped_nozzle_str);
-    // Size the card: base swatch height, plus one row when a nozzle label is present.
-    void messure_size();
-
-    void disable();
-    void enable();
-    void on_normal();
-    void on_selected();
-    void on_warning();
-
     void paintEvent(wxPaintEvent &evt);
     virtual void render(wxDC &dc);
     void match(bool mat);
     virtual void doRender(wxDC &dc);
-    virtual void reset_valid_info();
 };
 
 class MaterialSyncItem : public MaterialItem
 {
 public:
-    MaterialSyncItem(wxWindow *parent, wxColour mcolour, wxString mname);
+    // Orca: filament_id defaults to empty for existing 3-arg callers (see MaterialItem).
+    MaterialSyncItem(wxWindow *parent, wxColour mcolour, wxString mname, std::string filament_id = std::string());
     ~MaterialSyncItem();
     int  get_real_offset();
     void render(wxDC &dc) override;
@@ -181,7 +205,7 @@ public:
 public:
     void update_data(TrayData data);
     void send_event(int fliament_id);
-    void set_data(const wxString& tag_name, wxColour colour, wxString name, bool remain_detect, TrayData data, bool unmatch = false);
+    void set_data(const wxString& tag_name, wxColour colour, wxString name, bool remain_detect, TrayData data, bool unmatch = false, std::optional<wxString> tooltip_opt = std::nullopt);
     void set_checked(bool checked);
     void set_tray_index(wxString t_index) { m_tray_index = t_index; };
 
@@ -222,12 +246,37 @@ protected:
     void doRender(wxDC& dc);
 };
 
+class DevIconLabel : public wxPanel
+{
+public:
+    DevIconLabel(wxWindow* parent, const wxString& icon, const wxString& label);
+
+public:
+    void SetAllBackgroundColor(const wxColour& color);
+
+    Label* GetLabelItem() const { return m_label; }
+    void SetLabel(const wxString& label);
+    void SetIcon(const wxString& icon);
+
+    void Rescale();
+
+private:
+    void CreateGui();
+
+private:
+    Label*          m_label{ nullptr };
+    wxString        m_icon_str;
+    wxStaticBitmap* m_icon{ nullptr };
+};
+
 class AmsMapingPopup : public PopupWindow
 {
     bool m_use_in_sync_dialog = false;
-    bool m_ams_remain_detect_flag = false;
     bool m_ext_mapping_filatype_check = true;
     wxStaticText* m_title_text{ nullptr };
+
+    wgtDeviceNozzleRackSelect *m_rack_nozzle_select{nullptr};
+    DevIconLabel* m_flush_warning_panel;
 
 public:
     AmsMapingPopup(wxWindow *parent,bool use_in_sync_dialog = false);
@@ -244,11 +293,11 @@ public:
     bool        m_has_unmatch_filament {false};
     int         m_current_filament_id;
     ShowType    m_show_type{ShowType::RIGHT};
-    // Orca: set from update() — true when a Filament Track Switch is installed, which makes the
-    // external-spool slots un-pickable (false on any printer without a switch, so behavior is unchanged).
-    bool        m_fila_switch_installed{false};
     std::string m_tag_material;
+    wxScrolledWindow *m_scrolled_window{nullptr};
     wxBoxSizer *m_sizer_main{nullptr};
+    wxBoxSizer *m_sizer_main_h{nullptr};
+    wxBoxSizer *m_sizer_ams_v{nullptr};
     wxBoxSizer *m_sizer_ams{nullptr};
     wxBoxSizer *m_sizer_ams_left{nullptr};
     wxBoxSizer *m_sizer_ams_right{nullptr};
@@ -262,26 +311,27 @@ public:
     MappingItem* m_right_extra_slot{nullptr};
 
     wxPanel *    m_left_marea_panel{nullptr};
-    wxPanel *    m_right_marea_panel{nullptr};
+    wxPanel*     m_right_marea_panel{ nullptr }; // used as right if both left and right sides shown. used as single panel if only one side shown.
     wxPanel *    m_left_first_text_panel{nullptr};
     wxPanel *    m_right_first_text_panel{nullptr};
+    wgtMsgPanel* m_ams_tips_msg_panel{nullptr};
+    wxPanel *    m_split_line_panel{nullptr};
     wxBoxSizer * m_left_split_ams_sizer{nullptr};
     wxBoxSizer * m_right_split_ams_sizer{nullptr};
+    wxBoxSizer * m_right_split_ext_sizer{ nullptr };
     Label *      m_left_tips{nullptr};
     Label *      m_right_tips{nullptr};
+
     ScalableButton* m_reset_btn{nullptr};
     wxString     m_single_tip_text;
     wxString     m_left_tip_text;
     wxString     m_right_tip_text;
+    wxString     m_ams_tips_panel_text;
     wxBoxSizer* m_sizer_split_ams_left;
     wxBoxSizer* m_sizer_split_ams_right;
     bool        m_mapping_from_multi_machines {false};
 
-    // Rack nozzle manual-pick (rack printers only; hidden by default via Show(false)).
-    wgtDeviceNozzleRackSelect* m_rack_nozzle_select{nullptr};
-    Label*                     m_flush_warning_panel{nullptr}; // Orca: uses a plain Label for the flush warning
-    std::weak_ptr<DevNozzleRack> m_rack;
-
+    bool         get_use_in_sync_dialog() { return m_use_in_sync_dialog; }
     void         set_sizer_title(wxBoxSizer *sizer, wxString text);
     wxBoxSizer*  create_split_sizer(wxWindow* parent, wxString text);
     void         set_send_win(wxWindow* win) {send_win = win;};
@@ -289,8 +339,6 @@ public:
     void         set_tag_texture(std::string texture);
     void         update(MachineObject* obj, const std::vector<FilamentInfo>& ams_mapping_result, bool use_dynamic_switch = false, std::optional<PrintFromType> print_type = std::nullopt);
     void         update_rack_select(MachineObject* obj, bool use_dynamic_switch, std::optional<PrintFromType> print_type);
-    void         update_flush_waste(MachineObject* obj);
-    void         update_title(MachineObject* obj);
     void         update_items_check_state(const std::vector<FilamentInfo>& ams_mapping_result);
     void         update_ams_data_multi_machines();
     void         add_ams_mapping(std::vector<TrayData> tray_data, bool remain_detect_flag, wxWindow *container, wxBoxSizer *sizer);
@@ -304,7 +352,17 @@ public:
     void         paintEvent(wxPaintEvent &evt);
     void         set_parent_item(MaterialItem* item) {m_parent_item = item;};
     void         set_show_type(ShowType type) { m_show_type = type; };
+    // Orca: kept as a no-op for SelectMachine — its only caller passes false, which
+    // equals the update path's default (all slots shown).
+    void         set_only_show_ext_spool(bool /*flag*/) {}
+    // Orca: dropped by the reference but still consumed by SelectMachine.
     std::vector<TrayData> parse_ams_mapping(const std::map<std::string, DevAms*, NumericStrCompare>& amsList);
+
+#ifdef __APPLE__
+    void on_mouse_move(wxMouseEvent &evt);
+    wxPopupWindow * m_tip_popup{nullptr};
+    Label* m_tip_label{nullptr};
+#endif
 
     using ResetCallback = std::function<void(const std::string&)>;
     void reset_ams_info();
@@ -312,7 +370,6 @@ public:
     void  show_reset_button();
     void  set_material_index_str(std::string str) { m_material_index = str; }
     const std::string &get_material_index_str() { return m_material_index; }
-    void  set_only_show_ext_spool(bool flag);
 
 public:
     void msw_rescale();
@@ -320,11 +377,20 @@ public:
     void EnableExtMappingFilaTypeCheck(bool to_check = true) { m_ext_mapping_filatype_check = to_check;} ;
 
 private:
+    // update
+    void update_title(MachineObject* obj);
+    void update_ams_tips(MachineObject* obj);
+    void update_mapping_items(MachineObject* obj, const std::vector<FilamentInfo>& ams_mapping_result, bool use_dynamic_switch);
+
+    // events
     void OnNozzleMappingSelected(wxCommandEvent& evt);
+    void update_flush_waste(MachineObject* obj);
+
+private:
+    std::weak_ptr<DevNozzleRack> m_rack;
 
     ResetCallback m_reset_callback{nullptr};
     std::string m_material_index;
-    bool m_only_show_ext_spool{false};
 };
 
 class AmsMapingTipPopup : public PopupWindow

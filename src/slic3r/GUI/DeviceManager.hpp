@@ -3,6 +3,7 @@
 
 #include <map>
 #include <mutex>
+#include <atomic>
 #include <vector>
 #include <string>
 #include <memory>
@@ -21,6 +22,7 @@
 #include "DeviceCore/DevDefs.h"
 #include "DeviceCore/DevConfigUtil.h"
 #include "DeviceCore/DevFirmware.h"
+#include "DeviceCore/DevCalib.h" // Orca: adopt DeviceCore split (defines DevCalib, CalibStatus, ManualPaCaliMethod)
 #include "DeviceErrorDialog.hpp"
 
 #include <wx/object.h>
@@ -62,11 +64,7 @@ class DeviceErrorDialog; // Previous definitions
 }
 
 class NetworkAgent;
-enum ManualPaCaliMethod {
-    PA_LINE = 0,
-    PA_PATTERN,
-};
-
+// Orca: ManualPaCaliMethod now provided by DeviceCore/DevCalib.h (enum class)
 
 #define UpgradeNoError          0
 #define UpgradeDownloadFailed   -1
@@ -77,7 +75,9 @@ enum ManualPaCaliMethod {
 // Previous definitions
 class DevAms;
 class DevAmsTray;
+class DevAxis;      // Orca: adopt DeviceCore split
 class DevBed;
+class DevChamber;   // Orca: adopt DeviceCore split
 class DevConfig;
 class DevCtrl;
 class DevExtensionTool;
@@ -91,8 +91,14 @@ class DevLamp;
 class DevNozzleSystem;
 class DevNozzleMappingCtrl;
 class DeviceManager;
+class DevStatus;    // Orca: adopt DeviceCore split
 class DevStorage;
+class DevUpgrade;   // Orca: adopt DeviceCore split
 struct DevPrintTaskRatingInfo;
+
+// Returns true when filament_id (e.g. "GFA11", "GFU00") is on the stringing-prone list for the
+// given nozzle diameter (mm), bucketed per nozzle size to mirror the printer firmware.
+bool is_stringing_prone_filament(const std::string& filament_id, float nozzle_diameter);
 
 
 class MachineObject
@@ -123,6 +129,15 @@ private:
     DevBed *          m_bed;
     DevStorage*       m_storage;
 
+    /* Orca: adopt DeviceCore split — axis/calib/chamber/status/upgrade modules alongside
+       MachineObject's inline handling of these concerns, which stays authoritative here (Orca keeps
+       the inline model permanently; the split modules coexist with it via accessors). */
+    std::shared_ptr<DevAxis>    m_axis;
+    std::shared_ptr<DevChamber> m_chamber;
+    DevCalib*                   m_calib{ nullptr };
+    DevStatus*                  m_status{ nullptr };
+    std::shared_ptr<DevUpgrade> m_upgrade;
+
     /*Ctrl*/
     DevCtrl* m_ctrl;
 
@@ -145,6 +160,18 @@ public:
     ~MachineObject();
 
     void set_agent(NetworkAgent* agent) { m_agent = agent; }
+    NetworkAgent* get_agent() const { return m_agent; } // Orca: needed by DeviceCore modules (DevAxisCtrl)
+
+    // Orca: these DeviceCore module accessors are unwired on the read side — axis/chamber/status
+    // are fed every MQTT push but no GUI consumer reads them yet, and for calib/upgrade the inline
+    // parse in DeviceManager.cpp remains authoritative. Do not wire DevUpgrade naively: its
+    // ParseUpgradeDisplayState would duplicate the inline block's dis_state==3 ->
+    // command_get_version CallAfter side effect.
+    std::shared_ptr<DevAxis>    GetAxis() const { return m_axis; }
+    std::shared_ptr<DevChamber> GetChamber() const { return m_chamber; }
+    DevCalib*                   GetCalib() const { return m_calib; }
+    DevStatus*                  GetStatus() const { return m_status; }
+    std::weak_ptr<DevUpgrade>   GetUpgrade() const { return m_upgrade; }
 
 public:
     enum ActiveState {
@@ -379,6 +406,9 @@ public:
     DevFirmwareVersionInfo laser_version_info;
     DevFirmwareVersionInfo cutting_module_version_info;
     DevFirmwareVersionInfo extinguish_version_info;
+    DevFirmwareVersionInfo rotary_version_info;
+    DevFirmwareVersionInfo exhaustfan_version_info;
+    DevFirmwareVersionInfo amshub_version_info;
     DevFirmwareVersionInfo filatrack_version_info;
     std::map<std::string, DevFirmwareVersionInfo> module_vers;
     std::map<std::string, DevFirmwareVersionInfo> new_ver_list;
@@ -417,6 +447,7 @@ public:
     bool    is_system_printing();
 
     int     print_error;
+    std::string m_print_error_img_id;
     static std::string get_error_code_str(int error_code);
     std::string get_print_error_str() const { return MachineObject::get_error_code_str(this->print_error); }
 
@@ -557,6 +588,7 @@ public:
 
     bool        file_model_download{false};
     bool        virtual_camera{false};
+    bool        m_has_timelapse_kit{false};
 
     bool xcam_ai_monitoring{ false };
     bool xcam_disable_ai_detection_display{false};
@@ -633,10 +665,18 @@ public:
     bool is_support_airprinting_detection{false};
     bool is_support_idelheadingprotect_detection{false};
 
+    // timelapse storage check result (temp state from MQTT response)
+    std::atomic<bool> timelapse_storage_check_done { false };
+    int timelapse_storage_check_result { -1 };
+    bool timelapse_storage_is_enough { true };
+    int timelapse_storage_file_count { 0 };
+
     // fun2
     bool is_support_print_with_emmc{false};
     bool is_support_remote_dry = false;
     bool is_support_check_track_switch_match_slice_printer{false};
+    bool is_support_pa_mode{false};
+    std::optional<bool> m_firmware_support_print_tpu_left;
 
     bool installed_upgrade_kit{false};
     int  bed_temperature_limit = -1;
@@ -665,6 +705,11 @@ public:
     BBLSliceInfo* slice_info {nullptr};
     boost::thread* get_slice_info_thread { nullptr };
     boost::thread* get_model_task_thread { nullptr };
+
+    // Per-filament-index AMS slot mapping reported by the printer in print.mapping. Up to
+    // 32 entries, each value packs (ams_id << 8) | slot_id; 0xFFFF means unused.
+    std::vector<uint16_t> print_job_filament_mapping;
+    bool any_loaded_filament_is_stringing_prone() const;
 
     /* job attr */
     int jobState_ = 0;
@@ -703,6 +748,7 @@ public:
 
     /* quick check*/
     bool canEnableTimelapse(wxString& error_message) const;
+    bool is_timelapse_storage_low(const std::string& storage) const;
 
     /* command commands */
     int command_get_version(bool with_retry = true);
@@ -714,6 +760,8 @@ public:
     int command_set_printer_nozzle2(int id, std::string nozzle_type, float diameter);
     int command_get_access_code();
     int command_ack_proceed(json& proceed);
+    int command_purification_disable();
+    int command_dont_remind_next_time(json& mqtt_guard_json);
 
     /* command upgrade */
     int command_upgrade_confirm();
@@ -805,6 +853,8 @@ public:
     int command_ipcam_record(bool on_off);
     int command_ipcam_timelapse(bool on_off);
     int command_ipcam_resolution_set(std::string resolution);
+    int command_ipcam_check_timelapse_storage(const std::string& storage, int total_layer);
+    int command_ipcam_delete_oldest_timelapse(const std::string& storage, int total_layer);
     int command_xcam_control(std::string module_name, bool on_off, std::string lvl = "");
 
     //refine printer
@@ -878,6 +928,12 @@ public:
     /*for more extruder*/
     bool                        is_enable_np{ false };
     bool                        is_enable_ams_np{ false };
+    bool                        is_support_filament_32_colors{ false };
+    bool                        is_support_fila_change_abort{ false }; // filament-change Stop button
+    bool                        is_support_ext_change_assist_old{ false }; // A/P-series multi-color external change assist
+
+    // Max filament color count for the send gate; returns 0 when there is no explicit upper bound.
+    int get_max_filament_color_count() const;
 
     /**
      * Virtual Tray (vt_slot) - External/manual filament loading slots.

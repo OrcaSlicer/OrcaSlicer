@@ -538,6 +538,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     wxBoxSizer *bSizer_task_name = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *bSizer_task_name_hor = new wxBoxSizer(wxHORIZONTAL);
     wxPanel*    task_name_panel      = new wxPanel(parent);
+    task_name_panel->SetBackgroundColour(*wxWHITE);
 
     m_staticText_subtask_value = new wxStaticText(task_name_panel, wxID_ANY, _L("N/A"), wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT | wxST_ELLIPSIZE_END);
     m_staticText_subtask_value->SetMaxSize(wxSize(FromDIP(600), -1));
@@ -705,6 +706,7 @@ void PrintingTaskPanel::create_panel(wxWindow* parent)
     bSizer_text->Add(m_staticText_progress_left, 0, wxALIGN_CENTER_VERTICAL | wxALL, 0);
 
     m_printing_stage_panel = new wxPanel(penel_finish_time);
+    m_printing_stage_panel->SetBackgroundColour(*wxWHITE);
     wxBoxSizer *printingstage_vertical_sizer = new wxBoxSizer(wxVERTICAL);
     wxBoxSizer *printingstage_horizontal_sizer = new wxBoxSizer(wxHORIZONTAL);
 
@@ -2136,9 +2138,21 @@ wxBoxSizer* StatusBasePanel::create_filament_group(wxWindow* parent)
         if (obj) { obj->command_ams_control("resume"); }
     });
 
+    // Orca: filament-change Stop button (aborts an in-progress filament change)
+    m_fila_change_abort = new Button(m_filament_load_box, _L("Stop"));
+    m_fila_change_abort->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
+    m_fila_change_abort->Hide();
+    m_fila_change_abort->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) {
+        BOOST_LOG_TRIVIAL(info) << "on_ams_abort";
+        if (obj) { obj->command_ams_control("abort"); }
+    });
+
+    wxBoxSizer *fila_change_sizer = new wxBoxSizer(wxHORIZONTAL);
+    fila_change_sizer->Add(m_button_retry, 0, wxRIGHT, FromDIP(7));
+    fila_change_sizer->Add(m_fila_change_abort, 0, wxLEFT, FromDIP(7));
 
     sizer_box->Add(steps_sizer, 0, wxEXPAND | wxTOP, FromDIP(5));
-    sizer_box->Add(m_button_retry, 0, wxLEFT, FromDIP(28));
+    sizer_box->Add(fila_change_sizer, 0, wxLEFT, FromDIP(28));
     sizer_box->Add(0, 0, 0, wxTOP, FromDIP(5));
     m_filament_load_box->SetBackgroundColour(*wxWHITE);
     m_filament_load_box->Layout();
@@ -3391,7 +3405,7 @@ void StatusPanel::update_ams(MachineObject *obj)
     }
 
     // must select a current can
-    m_ams_control->UpdateAms(obj->get_printer_series_str(), obj->printer_type, ams_info, ext_info, *obj->GetExtderSystem(), obj->get_dev_id(), false);
+    m_ams_control->UpdateAms(obj->get_printer_series_str(), obj->printer_type, ams_info, ext_info, *obj->GetExtderSystem(), obj->get_dev_id(), obj, false);
     m_ams_control->UpdateAmsDryControl(obj);
 
     last_tray_exist_bits  = obj->tray_exist_bits;
@@ -4503,6 +4517,8 @@ void StatusPanel::on_filament_edit(wxCommandEvent &event)
 
     if (obj) {
         m_filament_setting_dlg->obj = obj;
+        // Orca: 2D mode (laser/cut) only allows viewing filament info, not editing
+        m_filament_setting_dlg->m_view_only = !obj->is_fdm_type();
 
         int ams_id = event.GetInt();
         int slot_id = event.GetString().IsEmpty() ? 0 : std::stoi(event.GetString().ToStdString());
@@ -4571,6 +4587,8 @@ void StatusPanel::on_ext_spool_edit(wxCommandEvent &event)
 
     if (obj) {
         m_filament_setting_dlg->obj = obj;
+        // Orca: 2D mode (laser/cut) only allows viewing filament info, not editing
+        m_filament_setting_dlg->m_view_only = !obj->is_fdm_type();
 
         int ams_id                     = event.GetInt();
         int slot_id                    = event.GetString().IsEmpty() ? 0 : std::stoi(event.GetString().ToStdString());
@@ -4716,16 +4734,8 @@ void StatusPanel::on_ams_selected(wxCommandEvent &event)
 
 void StatusPanel::on_ams_guide(wxCommandEvent& event)
 {
-    wxString ams_wiki_url;
-    if (m_ams_control && m_ams_control->m_is_none_ams_mode == AMSModel::GENERIC_AMS) {
-        ams_wiki_url = "https://wiki.bambulab.com/en/software/bambu-studio/use-ams-on-bambu-studio";
-    }
-    else if (m_ams_control && m_ams_control->m_is_none_ams_mode == AMSModel::AMS_LITE) {
-        ams_wiki_url = "https://wiki.bambulab.com/en/ams-lite";
-    }
-    else {
-        ams_wiki_url = "https://wiki.bambulab.com/en/software/bambu-studio/use-ams-on-bambu-studio";
-    }
+    // Orca: neutral wiki link (vendor URLs removed)
+    wxString ams_wiki_url = "https://www.orcaslicer.com/wiki/";
 
     wxLaunchDefaultBrowser(ams_wiki_url);
 }
@@ -5424,7 +5434,8 @@ void StatusPanel::update_filament_loading_panel(MachineObject* obj)
     bool ams_loading_state = false;
     auto ams_status_sub = obj->ams_status_sub;
 
-    if (obj->is_enable_np) {
+    // Skip busy-loading detection during a cold pull.
+    if (obj->is_enable_np && obj->ams_status_main != AMS_STATUS_MAIN_COLD_PULL) {
         ams_loading_state = obj->GetExtderSystem()->IsBusyLoading();
     } else if (obj->ams_status_main == AMS_STATUS_MAIN_FILAMENT_CHANGE) {
         ams_loading_state = true;
@@ -5530,6 +5541,9 @@ void StatusPanel::update_filament_loading_panel(MachineObject* obj)
         ams_loading_state = false;
     }
 
+    // Orca: show the Stop button when the printer supports aborting a filament change (flag3 bit-13 or printer config)
+    m_fila_change_abort->Show(ams_loading_state &&
+        (obj->is_support_fila_change_abort || DevPrinterConfigUtil::support_ams_fila_change_abort(obj->printer_type)));
     show_filament_load_group(ams_loading_state);
 }
 

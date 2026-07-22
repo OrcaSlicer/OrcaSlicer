@@ -34,6 +34,7 @@
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"
 #include "slic3r/Utils/PresetUpdater.hpp"
+#include "slic3r/plugin/PluginConfig.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
@@ -1074,6 +1075,28 @@ void add_correct_opts_to_options_list(const std::string &opt_key, std::map<std::
     map.emplace(opt_key + "#0", value);
 }
 
+std::string Tab::options_list_storage_key(const std::string& opt_key) const
+{
+    if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" ||
+        opt_key == "compatible_printers" || opt_key == "thumbnails" || opt_key == "wrapping_exclude_area")
+        return opt_key;
+
+    if (m_config == nullptr || !m_config->has(opt_key))
+        return opt_key;
+
+    const ConfigOption* option = m_config->option(opt_key);
+    if (option == nullptr || !option->is_vector())
+        return opt_key;
+
+    const ConfigOptionDef* def = m_config->def()->get(opt_key);
+    if (def == nullptr)
+        return opt_key;
+
+    const bool serialized = def->gui_flags == "serialized";
+    const bool is_plugin_field = def->gui_type == ConfigOptionDef::GUIType::plugin_picker;
+    return (serialized || is_plugin_field) ? opt_key : opt_key + "#0";
+}
+
 void Tab::update_all_extruder_options_status()
 {
     if (!m_extruder_switch && !m_variant_combo) {
@@ -1242,23 +1265,14 @@ void Tab::check_extruder_options_status(int index, bool &sys_extruder, bool &mod
         }
     }
 }
+
 void Tab::init_options_list()
 {
     if (!m_options_list.empty())
         m_options_list.clear();
 
     for (const std::string& opt_key : m_config->keys())
-    {
-        if (opt_key == "printable_area" || opt_key == "bed_exclude_area" || opt_key == "compatible_prints" || opt_key == "compatible_printers" || opt_key == "thumbnails" || opt_key == "wrapping_exclude_area") {
-            m_options_list.emplace(opt_key, m_opt_status_value);
-            continue;
-        }
-        const ConfigOptionDef* opt_def = m_config->def()->get(opt_key);
-        if (m_config->option(opt_key)->is_vector() && !(opt_def && opt_def->gui_flags == "serialized"))
-            m_options_list.emplace(opt_key + "#0", m_opt_status_value);
-        else
-            m_options_list.emplace(opt_key, m_opt_status_value);
-    }
+        m_options_list.emplace(options_list_storage_key(opt_key), m_opt_status_value);
 }
 
 void TabPrinter::init_options_list()
@@ -1780,6 +1794,22 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         return;
     }
 
+    // Keep this preset's "plugins" manifest in sync when a plugin picker changes, so full_config() and
+    // save_to_json() always find resolved "name;uuid;capability" references and rebuild it nowhere else.
+    // Also drop any plugin_config_overrides entries for a capability the change just stopped
+    // referencing (e.g. a plugin removed from slicing_pipeline_plugin), so a saved preset never
+    // carries configuration for a capability it no longer names. The Configure button is a separate
+    // field holding its own cached copy of that value, so it needs to be told explicitly, or it
+    // keeps showing the stale count until something else happens to refresh it.
+    if (const ConfigOptionDef* opt_def = m_config->def()->get(opt_key);
+        opt_def && opt_def->is_plugin_backed()) {
+        m_config->update_plugin_manifest();
+        if (prune_stale_plugin_overrides(*m_config)) {
+            if (Field* overrides_field = get_field(PLUGIN_OVERRIDES_OPTION_KEY))
+                overrides_field->set_value(boost::any(m_config->opt_string(PLUGIN_OVERRIDES_OPTION_KEY)), false);
+        }
+    }
+
     if (opt_key == "gcode_flavor" && m_type == Preset::TYPE_PRINTER) {
         if (auto printer_tab = dynamic_cast<TabPrinter*>(this))
             printer_tab->on_gcode_flavor_changed();
@@ -2071,7 +2101,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         bool       is_safe_to_rotate      = _sparse_infill_pattern == ipRectilinear || _sparse_infill_pattern == ipLine ||
                                  _sparse_infill_pattern == ipZigZag || _sparse_infill_pattern == ipCrossZag ||
                                  _sparse_infill_pattern == ipLockedZag;
-        
+
         auto new_value = boost::any_cast<std::string>(value);
         is_safe_to_rotate = is_safe_to_rotate || new_value.empty();
         const bool had_previous_value = !m_last_sparse_infill_rotate_template_value.empty();
@@ -3097,6 +3127,17 @@ void TabPrint::build()
         option.opt.height = 15;
         optgroup->append_single_option_line(option, "others_settings_post_processing_scripts");
 
+        optgroup = page->new_optgroup(L("Slicing Pipeline Plugin"), L"param_gcode", 0);
+        optgroup->hide_labels();
+        option = optgroup->get_option("slicing_pipeline_plugin");
+        option.opt.full_width = true;
+        optgroup->append_single_option_line(option, "others_settings_plugin_picker");
+
+        // Its own group: the one above hides its labels, and this row needs its label — and the revert
+        // arrow beside it — to show. No label-width override either, as a 0 there means "no label column".
+        optgroup = page->new_optgroup(L("Plugin Configuration"), L"param_gcode");
+        optgroup->append_single_option_line("plugin_config_overrides");
+
         optgroup = page->new_optgroup(L("Notes"), "note", 0);
         option = optgroup->get_option("notes");
         option.opt.full_width = true;
@@ -3258,7 +3299,19 @@ static std::vector<std::string> intersect(std::vector<std::string> const& l, std
 static std::vector<std::string> concat(std::vector<std::string> const& l, std::vector<std::string> const& r)
 {
     std::vector<std::string> t;
-    std::set_union(l.begin(), l.end(), r.begin(), r.end(), std::back_inserter(t));
+    bool l_is_sorted = std::is_sorted(l.begin(), l.end());
+    bool r_is_sorted = std::is_sorted(r.begin(), r.end());
+
+    if (l_is_sorted && r_is_sorted) {
+        std::set_union(l.begin(), l.end(), r.begin(), r.end(), std::back_inserter(t));
+        return t;
+    }
+
+    std::vector<std::string> l_sorted = l;
+    std::vector<std::string> r_sorted = r;
+    std::sort(l_sorted.begin(), l_sorted.end());
+    std::sort(r_sorted.begin(), r_sorted.end());
+    std::set_union(l_sorted.begin(), l_sorted.end(), r_sorted.begin(), r_sorted.end(), std::back_inserter(t));
     return t;
 }
 
@@ -4180,7 +4233,7 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
     if (og_ironing_it != page->m_optgroups.end())
     {
         ConfigOptionsGroupShp ironing_optgroup = *og_ironing_it;
-        
+
         std::vector<std::string> ironing_opt_keys = {
             "filament_ironing_flow",
             "filament_ironing_spacing",
@@ -4192,7 +4245,7 @@ void TabFilament::update_filament_overrides_page(const DynamicPrintConfig* print
         {
             if (m_overrides_options.find(opt_key) == m_overrides_options.end())
                 continue;
-                
+
             bool is_checked = !dynamic_cast<ConfigOptionVectorBase*>(m_config->option(opt_key))->is_nil(extruder_idx);
             m_overrides_options[opt_key]->Enable(true);
             m_overrides_options[opt_key]->SetValue(is_checked);
@@ -4498,6 +4551,9 @@ void TabFilament::build()
         option.opt.height = gcode_field_height;// 150;
         optgroup->append_single_option_line(option);
 
+        optgroup = page->new_optgroup(L("Plugin Configuration"), L"param_gcode");
+        optgroup->append_single_option_line("plugin_config_overrides");
+
     page = add_options_page(L("Multimaterial"), "custom-gcode_multi_material"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Wipe tower parameters"), "param_tower");
         optgroup->append_single_option_line("filament_minimal_purge_on_wipe_tower", "material_multimaterial#multimaterial-wipe-tower-parameters");
@@ -4506,7 +4562,7 @@ void TabFilament::build()
         optgroup->append_single_option_line("filament_tower_ironing_area", "material_multimaterial#multimaterial-wipe-tower-parameters");
         optgroup->append_single_option_line("filament_tower_interface_purge_volume", "material_multimaterial#multimaterial-wipe-tower-parameters");
         optgroup->append_single_option_line("filament_tower_interface_print_temp", "material_multimaterial#multimaterial-wipe-tower-parameters");
-        
+
         optgroup = page->new_optgroup(L("Multi Filament"));
         // optgroup->append_single_option_line("filament_flush_temp", "", 0);
         // optgroup->append_single_option_line("filament_flush_volumetric_speed", "", 0);
@@ -5003,6 +5059,9 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("use_firmware_retraction", "printer_basic_information_advanced#use-firmware-retraction");
         // optgroup->append_single_option_line("spaghetti_detector");
         optgroup->append_single_option_line("time_cost", "printer_basic_information_advanced#time-cost");
+
+        optgroup = page->new_optgroup(L("Plugin Configuration"), L"param_gcode");
+        optgroup->append_single_option_line("plugin_config_overrides");
 
         optgroup  = page->new_optgroup(L("Cooling Fan"), "param_cooling_fan");
         Line line = Line{ L("Fan speed-up time"), optgroup->get_option("fan_speedup_time").opt.tooltip };
@@ -5989,7 +6048,7 @@ void TabPrinter::toggle_options()
         toggle_line("support_air_filtration", !m_config->opt_bool("support_cooling_filter"));
         toggle_line("cooling_filter_enabled", m_config->opt_bool("support_cooling_filter"));
     }
-    
+
 
     if (m_active_page->title() == L("Machine G-code")) {
         PresetBundle *preset_bundle = wxGetApp().preset_bundle;
@@ -7881,7 +7940,7 @@ bool Tab::validate_filament_temperature_pairs()
         if (delta <= rule.max_delta)
             continue;
 
-        const wxString deg_c   = wxString::FromUTF8("°C");
+        const wxString deg_c   = wxString::FromUTF8(u8"\u2103" /* °C */);
         const wxString bullet  = wxString::FromUTF8("•");
         invalid_pairs += wxString::Format(_L(" - %s:\n    %s first layer %d %s, other layers %d %s\n    %s max delta %d %s, current delta %d %s\n"),
                                           rule.label, bullet, first_temp, deg_c, other_temp, deg_c, bullet, rule.max_delta, deg_c, delta, deg_c);

@@ -44,6 +44,12 @@
 #include "DeviceCore/DevManager.h"
 #include "DeviceCore/DevUtil.h"
 
+// Orca: adopt DeviceCore split — axis/calib/chamber/status/upgrade modules
+#include "DeviceCore/DevAxis.h"
+#include "DeviceCore/DevChamber.h"
+#include "DeviceCore/DevStatus.h"
+#include "DeviceCore/DevUpgrade.h"
+
 
 #define CALI_DEBUG
 #define MINUTE_30 1800000    //ms
@@ -66,6 +72,44 @@ int get_tray_id_by_ams_id_and_slot_id(int ams_id, int slot_id)
     } else {
         return ams_id * 4 + slot_id;
     }
+}
+
+namespace {
+
+// Stringing-prone filament IDs per nozzle-diameter bucket.
+// Mirrors the printer firmware tables (see g_leak_pron_idx_for_0_4 / _0_6_0_8).
+// Keep these in sync with firmware when new stringing-prone filaments are added.
+const std::unordered_set<std::string> g_stringing_prone_for_0_4 = {
+    "GFA11", // PLA Aero
+    "GFU90", // TPU 90A
+    "GFU00", // TPU 95A HF
+    "GFU02", // Generic TPU for AMS
+    "GFU98", // TPU for AMS
+};
+
+const std::unordered_set<std::string> g_stringing_prone_for_0_6_0_8 = {
+    "GFA11", // PLA Aero
+    "GFU00", // TPU 95A HF
+};
+
+// Pick the right table for the given nozzle diameter; returns nullptr if the
+// nozzle bucket has no entries (e.g. 0.2 mm) or the diameter is invalid.
+const std::unordered_set<std::string>* pick_stringing_set(float nozzle_diameter)
+{
+    if (!(nozzle_diameter > 0.f)) return nullptr;
+    if (nozzle_diameter < 0.3f) return nullptr;            // 0.2 nozzle: empty
+    if (nozzle_diameter < 0.5f) return &g_stringing_prone_for_0_4;
+    return &g_stringing_prone_for_0_6_0_8;                 // 0.6 / 0.8 nozzles
+}
+
+} // namespace
+
+bool Slic3r::is_stringing_prone_filament(const std::string& filament_id, float nozzle_diameter)
+{
+    if (filament_id.empty()) return false;
+    const auto* set = pick_stringing_set(nozzle_diameter);
+    if (!set) return false;
+    return set->count(filament_id) > 0;
 }
 
 wxString Slic3r::get_stage_string(int stage)
@@ -553,6 +597,7 @@ MachineObject::MachineObject(DeviceManager* manager, NetworkAgent* agent, std::s
     mc_print_sub_stage = 0;
     mc_left_time = 0;
     hw_switch_state = 0;
+    m_print_error_img_id = "";
 
     has_ipcam = true; // default true
 
@@ -577,6 +622,13 @@ MachineObject::MachineObject(DeviceManager* manager, NetworkAgent* agent, std::s
         m_print_options = new DevPrintOptions(this);
 
         m_nozzle_mapping_ptr = std::make_shared<DevNozzleMappingCtrl>(this);
+
+        // Orca: adopt DeviceCore split — axis/calib/chamber/status/upgrade modules
+        m_axis    = DevAxis::Create(this);
+        m_chamber = DevChamber::Create(this);
+        m_upgrade = DevUpgrade::Create(this);
+        m_status  = new DevStatus(this);
+        m_calib   = new DevCalib(this);
     }
 }
 
@@ -629,6 +681,13 @@ MachineObject::~MachineObject()
 
         delete m_print_options;
         m_print_options = nullptr;
+
+        // Orca: adopt DeviceCore split
+        delete m_calib;
+        m_calib = nullptr;
+
+        delete m_status;
+        m_status = nullptr;
     }
 }
 
@@ -698,6 +757,33 @@ std::string MachineObject::get_filament_display_type(const std::string& ams_id, 
     return this->get_tray(ams_id, tray_id).get_display_filament_type();
 }
 
+bool MachineObject::any_loaded_filament_is_stringing_prone() const
+{
+    if (print_job_filament_mapping.empty()) return false;
+
+    std::vector<float> nozzle_diameters;
+    if (m_extder_system) {
+        for (const auto& ext : m_extder_system->GetExtruders()) {
+            const float d = ext.GetNozzleDiameter();
+            if (d > 0.f) nozzle_diameters.push_back(d);
+        }
+    }
+    if (nozzle_diameters.empty()) return false;
+
+    for (uint16_t v : print_job_filament_mapping) {
+        if (v == 0xFFFF) continue;
+        const int ams_id  = (v >> 8) & 0xFF;
+        const int slot_id = v & 0xFF;
+        const std::string fid = this->get_filament_id(std::to_string(ams_id), std::to_string(slot_id));
+        if (fid.empty()) continue;
+        for (float d : nozzle_diameters) {
+            if (Slic3r::is_stringing_prone_filament(fid, d))
+                return true;
+        }
+    }
+    return false;
+}
+
 void MachineObject::_parse_ams_status(int ams_status)
 {
     ams_status_sub = ams_status & 0xFF;
@@ -716,6 +802,8 @@ void MachineObject::_parse_ams_status(int ams_status)
         ams_status_main = AmsStatusMain::AMS_STATUS_MAIN_SELF_CHECK;
     } else if (ams_status_main_int == (int) AmsStatusMain::AMS_STATUS_MAIN_DEBUG) {
         ams_status_main = AmsStatusMain::AMS_STATUS_MAIN_DEBUG;
+    } else if (ams_status_main_int == (int) AmsStatusMain::AMS_STATUS_MAIN_COLD_PULL) {
+        ams_status_main = AmsStatusMain::AMS_STATUS_MAIN_COLD_PULL;
     } else {
         ams_status_main = AmsStatusMain::AMS_STATUS_MAIN_UNKNOWN;
     }
@@ -867,6 +955,9 @@ void MachineObject::clear_version_info()
     laser_version_info = DevFirmwareVersionInfo();
     cutting_module_version_info = DevFirmwareVersionInfo();
     extinguish_version_info = DevFirmwareVersionInfo();
+    rotary_version_info = DevFirmwareVersionInfo();
+    exhaustfan_version_info = DevFirmwareVersionInfo();
+    amshub_version_info = DevFirmwareVersionInfo();
     filatrack_version_info = DevFirmwareVersionInfo();
     module_vers.clear();
     // Drop cached rack-hotend (WTM) firmware alongside the module list.
@@ -884,11 +975,17 @@ void MachineObject::store_version_info(const DevFirmwareVersionInfo& info)
         cutting_module_version_info = info;
     } else if (info.isExtinguishSystem()) {
         extinguish_version_info = info;
+    } else if (info.isRotary()) {
+        rotary_version_info = info;
     } else if (info.isWTM()) {
         // Route rack-hotend / extruder-nozzle firmware into the nozzle system so
         // the rack upgrade UI can read per-nozzle versions. isWTM() is false for every non-rack
         // printer's modules, so this branch never fires outside H2C.
         m_nozzle_system->AddFirmwareInfoWTM(info);
+    } else if (info.isExhaustFan()) {
+        exhaustfan_version_info = info;
+    } else if (info.isHmshub()) {
+        amshub_version_info = info;
     } else if (info.isFilaTrackSwitch()) {
         filatrack_version_info = info;
     }
@@ -1207,7 +1304,7 @@ bool MachineObject::canEnableTimelapse(wxString &error_message) const
         return true;
     }
 
-    if (m_storage->get_sdcard_state() != DevStorage::SdcardState::HAS_SDCARD_NORMAL) {
+    if (m_storage->get_sdcard_state() != DevStorage::SdcardState::HAS_SDCARD_NORMAL && !m_has_timelapse_kit) {
         if (m_storage->get_sdcard_state() == DevStorage::SdcardState::NO_SDCARD) {
             error_message = _L("Timelapse is not supported while the storage does not exist.");
         } else if (m_storage->get_sdcard_state() == DevStorage::SdcardState::HAS_SDCARD_ABNORMAL) {
@@ -1857,10 +1954,17 @@ int MachineObject::command_axis_control(std::string axis, double unit, double in
 {
     if (m_support_mqtt_axis_control)
     {
+        int dir = input_val > 0 ? 1 : -1;
+        // i3-arch printers move the bed for Y/Z, so the on-screen direction is
+        // reversed — same negation the g-code fallback below applies.
+        if (!is_core_xy() && (axis.compare("Y") == 0 || axis.compare("Z") == 0)) {
+            dir = -dir;
+        }
+
         json j;
         j["print"]["command"] = "xyz_ctrl";
         j["print"]["axis"] = axis;
-        j["print"]["dir"] = input_val > 0 ? 1 : -1;
+        j["print"]["dir"] = dir;
         j["print"]["mode"] = (std::abs(input_val) >= 10) ? 1 : 0;
         j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
         return this->publish_json(j);
@@ -2199,11 +2303,91 @@ int MachineObject::command_ack_proceed(json& proceed) {
     } else {
         proceed["err_ignored"] = std::vector<int>{proceed["err_index"]};
     }
+
+    for (auto& item : proceed["err_ignored"]) {
+        json error_item;
+        error_item["idx"] = item.get<int>();
+        error_item["mode"] = 0;
+        proceed["rm_idx"].push_back(error_item);
+    }
+
     proceed["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
 
     json j;
     j["print"] = proceed;
     return this->publish_json(j);
+}
+
+bool MachineObject::is_timelapse_storage_low(const std::string& storage) const
+{
+    return m_storage && m_storage->is_timelapse_storage_low(storage);
+}
+
+int MachineObject::command_ipcam_check_timelapse_storage(const std::string& storage, int total_layer)
+{
+    json j;
+    j["camera"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    j["camera"]["command"] = "ipcam_get_media_info";
+    j["camera"]["sub_command"] = "is_timelapse_storage_enough";
+    j["camera"]["storage"] = storage;
+    j["camera"]["total_layer"] = total_layer;
+    return this->publish_json(j);
+}
+
+int MachineObject::command_ipcam_delete_oldest_timelapse(const std::string& storage, int total_layer)
+{
+    json j;
+    j["camera"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+    j["camera"]["command"] = "ipcam_delete_oldest_timelapse";
+    j["camera"]["storage"] = storage;
+    j["camera"]["total_layer"] = total_layer;
+    return this->publish_json(j);
+}
+
+int MachineObject::command_purification_disable()
+{
+    json j;
+    j["print"]["command"] = "close_air_filt";
+    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+
+    return this->publish_json(j, 1);
+}
+
+int MachineObject::command_dont_remind_next_time(json& mqtt_guard_json)
+{
+    if (!mqtt_guard_json.contains("command") ||
+        !mqtt_guard_json.contains("err_index") ||
+        mqtt_guard_json["err_index"].empty()) return -1;
+
+    json j;
+    j["print"]["sequence_id"] = std::to_string(MachineObject::m_sequence_id++);
+
+    try {
+        j["print"]["command"] = mqtt_guard_json["command"].get<std::string>();
+        int err_index = mqtt_guard_json["err_index"].get<int>();
+
+        if (mqtt_guard_json.contains("err_ignored") &&
+            mqtt_guard_json["err_ignored"].is_array()) {
+            j["print"]["err_ignored"] = mqtt_guard_json["err_ignored"];
+            j["print"]["err_ignored"].push_back(err_index);
+        } else {
+            j["print"]["err_ignored"] = std::vector<int>{err_index};
+        }
+
+        for (auto& item : j["print"]["err_ignored"]) {
+            if (!item.is_number_integer()) continue;
+
+            json item_json;
+            item_json["idx"] = item.get<int>();
+            item_json["mode"] = 1; // 1-next time ignore, 2-always ignore
+            j["print"]["rm_idx"].push_back(item_json);
+        }
+    } catch (const json::exception& e) {
+        BOOST_LOG_TRIVIAL(error) << "JSON parsing error in command_dont_remind_next_time: " << e.what();
+        return -1;
+    }
+
+    return this->publish_json(j, 1);
 }
 
 int MachineObject::command_xcam_control_ai_monitoring(bool on_off, std::string lvl)
@@ -2915,6 +3099,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 
                 //supported function
                 m_config->ParseConfig(jj);
+                m_status->ParseStatus(jj); // Orca: adopt DeviceCore split — populate DevStatus module
 
                 if (jj.contains("support_build_plate_marker_detect")) {
                     if (jj["support_build_plate_marker_detect"].is_boolean()) {
@@ -3142,6 +3327,17 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         if (jj["print_error"].is_number())
                             print_error = jj["print_error"].get<int>();
                     }
+                    // Orca: keep the failure-snapshot id only while an error is active, so a stale
+                    // id can't leak into a later unrelated error dialog once the failure clears.
+                    if (print_error <= 0) {
+                        m_print_error_img_id.clear();
+                    }
+                    else if (jj.contains("err2") && jj["err2"].is_object()) {
+                        json err2 = jj["err2"];
+                        if (err2.contains("img_id") && err2["img_id"].is_string()) {
+                            m_print_error_img_id = err2["img_id"].get<std::string>();
+                        }
+                    }
 
                      DevStorage::ParseV1_0(jj, m_storage);
 
@@ -3163,6 +3359,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             int flag3 = jj["flag3"].get<int>();
                             is_support_filament_setting_inprinting =  get_flag_bits(flag3, 3);
                             is_enable_ams_np =  get_flag_bits(flag3, 9);
+                            is_support_fila_change_abort = get_flag_bits(flag3, 13); // filament-change Stop button
+                            is_support_ext_change_assist_old = get_flag_bits(flag3, 16); // A/P-series multi-color external change assist
+                            is_support_filament_32_colors = get_flag_bits(flag3, 17);
                         }
                     }
                     if (!key_field_only) {
@@ -3327,6 +3526,16 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
 #pragma region status
                     if (!key_field_only) {
                         /* temperature */
+
+                        // Orca: adopt DeviceCore split — populate DevAxis/DevChamber modules
+                        // alongside the inline handling (side-effect-free; inline stays authoritative).
+                        // Contained locally so a malformed field cannot abort the whole status parse.
+                        try {
+                            m_axis->ParseAxis(jj);
+                            m_chamber->ParseChamber(jj);
+                        } catch (...) {
+                            BOOST_LOG_TRIVIAL(warning) << "parse_json: DevAxis/DevChamber parse failed";
+                        }
 
                         DevBed::ParseV1_0(jj,m_bed);
 
@@ -4336,6 +4545,17 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                                 this->camera_resolution = j["camera"]["resolution"].get<std::string>();
                                 BOOST_LOG_TRIVIAL(info) << "ack of resolution = " << camera_resolution;
                             }
+                        } else if (j["camera"]["command"].get<std::string>() == "ipcam_get_media_info") {
+                            if (j["camera"].contains("sub_command") &&
+                                j["camera"]["sub_command"].get<std::string>() == "is_timelapse_storage_enough") {
+                                timelapse_storage_check_result = j["camera"].value("result", -1);
+                                timelapse_storage_is_enough = j["camera"].value("is_enough", true);
+                                timelapse_storage_file_count = j["camera"].value("file_count", 0);
+                                timelapse_storage_check_done = true;
+                                BOOST_LOG_TRIVIAL(info) << "timelapse storage check: result=" << timelapse_storage_check_result
+                                    << " is_enough=" << timelapse_storage_is_enough
+                                    << " file_count=" << timelapse_storage_file_count;
+                            }
                         }
                     }
                 }
@@ -4940,6 +5160,15 @@ bool MachineObject::check_enable_np(const json& print) const
     return false;
 }
 
+// Max filament color count for the send gate; 0 = no explicit upper bound.
+int MachineObject::get_max_filament_color_count() const
+{
+    if (is_support_filament_32_colors) return 32;
+    if (is_enable_ams_np && !is_series_x())              return 20;
+    if (!is_series_x() && !is_series_o()) return 16;
+    return 0;
+}
+
 void MachineObject::parse_new_info(json print)
 {
     is_enable_np = check_enable_np(print);
@@ -5093,8 +5322,23 @@ void MachineObject::parse_new_info(json print)
     // fun2 may have infinite length, use get_flag_bits_no_border
     if (!fun2.empty()) {
         is_support_print_with_emmc = get_flag_bits_no_border(fun2, 0) == 1;
+        is_support_pa_mode = (get_flag_bits_no_border(fun2, 3) == 1);
         is_support_remote_dry = (get_flag_bits_no_border(fun2, 5) == 1);
         is_support_check_track_switch_match_slice_printer = get_flag_bits_no_border(fun2, 19) == 1;
+
+        if (DevPrinterConfigUtil::support_print_check_firmware_for_tpu_left(printer_type)) {
+            m_firmware_support_print_tpu_left = get_flag_bits_no_border(fun2, 7) == 1;
+        }
+    }
+
+    /* Per-filament-index AMS slot mapping reported by the printer (task-level state) */
+    if (print.contains("mapping") && print["mapping"].is_array()) {
+        std::vector<uint16_t> new_mapping;
+        new_mapping.reserve(print["mapping"].size());
+        for (const auto& v : print["mapping"]) {
+            new_mapping.push_back(static_cast<uint16_t>(v.get<unsigned>()));
+        }
+        print_job_filament_mapping = std::move(new_mapping);
     }
 
     /*aux*/
@@ -5104,6 +5348,7 @@ void MachineObject::parse_new_info(json print)
 
     if (!aux.empty()) {
         m_storage->set_sdcard_state(get_flag_bits(aux, 12, 2));
+        m_has_timelapse_kit = (get_flag_bits(aux, 26, 1) == 1);
     }
 
     /*stat*/
@@ -5564,7 +5809,9 @@ wxString MachineObject::get_nozzle_replace_url() const
         return link_map["en"].get<wxString>();
     }/*retry with en*/
 
-    return "https://wiki.bambulab.com/en/h2/maintenance/replace-hotend";
+    // Orca: no neutral wiki equivalent for this fallback — return empty so the caller hides the link
+    // (PrinterPartsDialog::OnWikiClicked reports "No wiki link available" instead of opening a browser)
+    return wxEmptyString;
 }
 
 std::string MachineObject::get_error_code_str(int error_code)

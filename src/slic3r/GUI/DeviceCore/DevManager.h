@@ -96,6 +96,13 @@ public:
     std::map<std::string, std::vector<std::string>> device_subseries;
 
 private:
+    // Load the LAN printers persisted in AppConfig into localMachineList. Runs from the
+    // constructor when an agent is available and, for the case where the DeviceManager was
+    // first built without one (network plugin not yet installed at startup), from set_agent()
+    // once a real agent finally arrives - so paired printers survive a plugin install/hot
+    // reload without an app restart.
+    void load_local_machines_from_config();
+
     void keep_alive();
     void check_pushing();
 

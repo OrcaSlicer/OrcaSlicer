@@ -1,5 +1,4 @@
 #include "ExportPresetBundleDialog.hpp"
-#include <slic3r/GUI/Widgets/WebView.hpp>
 #include "GUI_App.hpp"
 #include "ConfigWizard.hpp"
 #include "I18N.hpp"
@@ -12,17 +11,14 @@
 #include <wx/sizer.h>
 #include <libslic3r/PresetBundle.hpp>
 #include <wx/string.h>
-#include <slic3r/GUI/Widgets/WebView.hpp>
 #include <miniz.h>
 #include <slic3r/GUI/MsgDialog.hpp>
 namespace Slic3r { namespace GUI {
 
 ExportPresetBundleDialog::ExportPresetBundleDialog(
     wxWindow* parent, wxWindowID id, const wxString& title, const wxPoint& pos, const wxSize& size, long style)
-    : DPIDialog(parent, id, _L("ExportPresetBundle"), pos, size, style)
+    : WebViewHostDialog(parent, id, _L("ExportPresetBundle"), pos, size, style)
 {
-    SetBackgroundColour(*wxWHITE);
-    SetMinSize(DESIGN_WINDOW_SIZE);
     Init();
     wxGetApp().UpdateDlgDarkUI(this);
 }
@@ -38,97 +34,36 @@ ExportPresetBundleDialog::~ExportPresetBundleDialog()
     }
 }
 
-void ExportPresetBundleDialog::LoadUrl(wxString& url)
-{
-    if (!m_browser)
-        return;
-    BOOST_LOG_TRIVIAL(trace) << __FUNCTION__ << " enter, url=" << url.ToStdString();
-    WebView::LoadUrl(m_browser, url);
-    m_browser->SetFocus();
-
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " exit";
-}
-
-void ExportPresetBundleDialog::on_dpi_changed(const wxRect& suggested_rect) { this->Refresh(); }
-
 void ExportPresetBundleDialog::Init()
 {
-    wxString TargetUrl = from_u8(
-        (boost::filesystem::path(resources_dir()) / "web/dialog/ExportPresetDialog/index.html").make_preferred().string());
-    wxString strlang = wxGetApp().current_language_code_safe();
-    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(", strlang=%1%") % into_u8(strlang);
-    if (strlang != "")
-        TargetUrl = wxString::Format("%s?lang=%s", std::string(TargetUrl.mb_str()), strlang);
-    TargetUrl = "file://" + TargetUrl;
-
-    // Create the webview
-    m_browser = WebView::CreateWebView(this, TargetUrl);
-    if (m_browser == nullptr) {
-        wxLogError("Could not init m_browser");
-        return;
-    }
-
-    wxBoxSizer* topsizer = new wxBoxSizer(wxVERTICAL);
-    SetTitle(_L("Export Preset Bundle"));
-    SetSizer(topsizer);
-    topsizer->Add(m_browser, wxSizerFlags().Expand().Proportion(1));
-
-    // Set a more sensible size for web browsing
-    wxSize pSize = FromDIP(wxSize(820, 660));
-    SetSize(pSize);
-    int screenheight = wxSystemSettings::GetMetric(wxSYS_SCREEN_Y, NULL);
-    int screenwidth  = wxSystemSettings::GetMetric(wxSYS_SCREEN_X, NULL);
-    int MaxY         = (screenheight - pSize.y) > 0 ? (screenheight - pSize.y) / 2 : 0;
-    wxPoint tmpPT((screenwidth - pSize.x) / 2, MaxY);
-    Move(tmpPT);
-
-    Bind(wxEVT_WEBVIEW_SCRIPT_MESSAGE_RECEIVED, &ExportPresetBundleDialog::OnScriptMessage, this, m_browser->GetId());
-
-    LoadUrl(TargetUrl);
+    create_webview("web/dialog/ExportPresetDialog/index.html", _L("Export Preset Bundle"),
+                   wxSize(820, 660), wxSize(640, 640));
 }
 
-void ExportPresetBundleDialog::RunScript(const wxString& s)
+void ExportPresetBundleDialog::on_script_message(const nlohmann::json& j)
 {
-    if (!m_browser)
+    if (handle_common_script_command(j))
         return;
 
-    WebView::RunScript(m_browser, s);
-}
-
-void ExportPresetBundleDialog::OnScriptMessage(wxWebViewEvent& e)
-{
-    try {
-        wxString strInput = e.GetString();
-        BOOST_LOG_TRIVIAL(trace) << "ExportPresetBundleDialog::OnScriptMessage;OnRecv:" << strInput.c_str();
-        json j = json::parse(strInput.utf8_string());
-
-        wxString strCmd = j["command"];
-        BOOST_LOG_TRIVIAL(trace) << "ExportPresetBundleDialog::OnScriptMessage;Command:" << strCmd;
-
-        if (strCmd == "close_page") {
-            this->EndModal(wxID_CANCEL);
-        } else if (strCmd == "request_export_preset_profile") {
-            InitExportData();
-            OnRequestPresets();
-        } else if (strCmd == "export_local") {
-            wxFileDialog dlg(this, _L("Save preset bundle"), "", "export.orca_bundle", "Orca Preset Bundle (*.orca_bundle)|*.orca_bundle",
-                             wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-            wxString path;
-            wxString name;
-            if (dlg.ShowModal() == wxID_OK) {
-                path = dlg.GetPath();
-                wxFileName file_name(path);
-                name = file_name.GetName();
-                if (file_name.GetExt().empty()) {
-                    file_name.SetExt("orca_bundle");
-                    path = file_name.GetFullPath();
-                }
+    const std::string strCmd = j.value("command", "");
+    if (strCmd == "request_export_preset_profile") {
+        InitExportData();
+        OnRequestPresets();
+    } else if (strCmd == "export_local") {
+        wxFileDialog dlg(this, _L("Save preset bundle"), "", "export.orca_bundle",
+                         "Orca Preset Bundle (*.orca_bundle)|*.orca_bundle", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+        wxString path;
+        wxString name;
+        if (dlg.ShowModal() == wxID_OK) {
+            path = dlg.GetPath();
+            wxFileName file_name(path);
+            name = file_name.GetName();
+            if (file_name.GetExt().empty()) {
+                file_name.SetExt("orca_bundle");
+                path = file_name.GetFullPath();
             }
-            OnExportData(path, name, j["data"]);
         }
-
-    } catch (std::exception& e) {
-        BOOST_LOG_TRIVIAL(trace) << "ExportPresetBundleDialog::OnScriptMessage;Error:" << e.what();
+        OnExportData(path, name, j.value("data", json()));
     }
 }
 
@@ -331,8 +266,7 @@ void ExportPresetBundleDialog::OnRequestPresets()
         }
     }
 
-    wxString strJS = wxString::Format("HandleStudio(%s)", wxString::FromUTF8(res.dump(-1, ' ', false, json::error_handler_t::ignore)));
-    wxGetApp().CallAfter([this, strJS] { RunScript(strJS); });
+    call_web_handler(res);
 }
 
 void ExportPresetBundleDialog::OnExportData(const wxString& path, const wxString& filename, json data)

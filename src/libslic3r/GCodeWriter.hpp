@@ -6,6 +6,7 @@
 #include <charconv>
 #include "Extruder.hpp"
 #include "Point.hpp"
+#include "Polygon.hpp"
 #include "PrintConfig.hpp"
 #include "GCode/CoolingBuffer.hpp"
 
@@ -181,6 +182,14 @@ public:
 
     // Orca: slicing resolution in mm
     double          m_resolution = 0.01;
+    // Orca: printable area polygons (scaled, bed coordinates) used to keep spiral lifts
+    // from colliding with the print boundary. m_extruder_printable_areas holds the
+    // per-extruder reachable area (intersected with the bed) when a printer defines
+    // different boundaries per extruder; m_bed_printable_area is the global fallback.
+    // Storing full polygons (rather than a bounding box) keeps the check correct for
+    // non-rectangular beds such as delta/circular printers.
+    Polygon              m_bed_printable_area;
+    std::vector<Polygon> m_extruder_printable_areas;
     
     std::string m_gcode_label_objects_start;
     std::string m_gcode_label_objects_end;
@@ -197,6 +206,10 @@ public:
 
     std::string _travel_to_z(double z, const std::string &comment);
     std::string _spiral_travel_to_z(double z, const Vec2d &ij_offset, const std::string &comment);
+    // Orca: printable area of the active extruder (per-extruder when configured, otherwise the bed). Null when unknown.
+    const Polygon *active_printable_area() const;
+    // Orca: true if a full spiral-lift circle (center in bed coordinates, mm) fits inside the active printable area.
+    bool spiral_lift_fits_printable_area(const Vec2d &center, double radius) const;
     std::string _retract(double length, double restart_extra, const std::string &comment);
     std::string set_acceleration_internal(Acceleration type, unsigned int acceleration);
 
