@@ -4018,6 +4018,8 @@ void Print::_make_wipe_tower()
                              m_wipe_tower_data.tool_ordering.empty() ? 0.f : m_wipe_tower_data.tool_ordering.back().print_z, m_wipe_tower_data.tool_ordering.all_extruders());
         wipe_tower.set_has_tpu_filament(this->has_tpu_filament());
         wipe_tower.set_filament_map(this->get_filament_maps());
+        // Vortek H2C: pass nozzle-level map for carousel rotation detection in tool_change_new()
+        wipe_tower.set_filament_nozzle_map(this->get_filament_nozzle_maps());
         // Feed the has_filament_switcher device flag (develop-only dynamic key, read defensively from
         // the full config — no shipping profile sets it) and the shared printable bed used by the PETG
         // pre-extrusion offset clamp. Both are inert unless has_filament_switcher is set.
@@ -4053,14 +4055,32 @@ void Print::_make_wipe_tower()
             multi_extruder_flush.emplace_back(wipe_volumes);
         }
 
-        std::vector<int>filament_maps = get_filament_maps();
+        // Use NozzleStatusRecorder for per-carousel-slot tracking (BBS pattern).
+        // The original Orca code tracked per-extruder (2 slots), which collapsed all
+        // carousel filaments into one slot and caused massive redundant AMS flushing.
+        auto group_result = get_layered_nozzle_group_result();
+        MultiNozzleUtils::NozzleStatusRecorder nozzle_recorder;
+        // Fallback (group_result == null) per-physical-nozzle tracking, matching the original
+        // pre-port behavior: remembers the last filament loaded in each physical nozzle slot.
+        std::vector<unsigned int> nozzle_cur_filament_ids(nozzle_nums, (unsigned int) -1);
 
-        std::vector<unsigned int> nozzle_cur_filament_ids(nozzle_nums, -1);
+        std::vector<int>filament_maps = get_filament_maps();
+        int layer_idx = -1;
+
         unsigned int current_filament_id = m_wipe_tower_data.tool_ordering.first_extruder();
-        size_t cur_nozzle_id = filament_maps[current_filament_id] - 1;
-        nozzle_cur_filament_ids[cur_nozzle_id] = current_filament_id;
+        // Initialize NozzleStatusRecorder with the first filament's carousel slot
+        if (group_result) {
+            auto nozzle = group_result->get_nozzle_for_filament(current_filament_id, layer_idx);
+            if (nozzle)
+                nozzle_recorder.set_nozzle_status(nozzle->group_id, current_filament_id, nozzle->extruder_id);
+        } else {
+            size_t cur_nozzle_id = filament_maps[current_filament_id] - 1;
+            nozzle_cur_filament_ids[cur_nozzle_id] = current_filament_id;
+        }
 
         for (auto& layer_tools : m_wipe_tower_data.tool_ordering.layer_tools()) { // for all layers
+            ++layer_idx;
+
             if (!layer_tools.has_wipe_tower) continue;
             bool first_layer = &layer_tools == &m_wipe_tower_data.tool_ordering.front();
             wipe_tower.plan_toolchange((float)layer_tools.print_z, (float)layer_tools.wipe_tower_layer_height, current_filament_id, current_filament_id);
@@ -4071,30 +4091,76 @@ void Print::_make_wipe_tower()
                 if (filament_id == current_filament_id)
                     continue;
 
-                int          nozzle_id = filament_maps[filament_id] - 1;
-                unsigned int pre_filament_id = nozzle_cur_filament_ids[nozzle_id];
-
                 float volume_to_purge = 0;
-                if (pre_filament_id != (unsigned int)(-1) && pre_filament_id != filament_id) {
-                    volume_to_purge = multi_extruder_flush[nozzle_id][pre_filament_id][filament_id];
-                    // Fast purge mode uses flush_multiplier_fast; Default is inert.
-                    float flush_multiplier = (m_config.prime_volume_mode == PrimeVolumeMode::pvmFast) ? m_config.flush_multiplier_fast.get_at(nozzle_id)
-                                                                                                      : m_config.flush_multiplier.get_at(nozzle_id);
-                    volume_to_purge *= flush_multiplier;
-                    volume_to_purge = pre_filament_id == -1 ? 0 :
-                        layer_tools.wiping_extrusions().mark_wiping_extrusions(*this, current_filament_id, filament_id, volume_to_purge);
+
+                // Per-carousel-slot purge tracking via NozzleStatusRecorder
+                if (group_result) {
+                    auto nozzle_info = group_result->get_nozzle_for_filament(filament_id, layer_idx);
+                    if (nozzle_info) {
+                        int extruder_id = nozzle_info->extruder_id;
+                        int nozzle_id   = nozzle_info->group_id;
+                        int prev_nozzle_filament = nozzle_recorder.get_filament_in_nozzle(nozzle_id);
+
+                        if (!nozzle_recorder.is_nozzle_empty(nozzle_id) &&
+                            static_cast<int>(filament_id) != prev_nozzle_filament) {
+                            volume_to_purge = multi_extruder_flush[extruder_id][prev_nozzle_filament][filament_id];
+                            // Fast purge mode uses flush_multiplier_fast; Default is inert.
+                            float flush_multiplier = (m_config.prime_volume_mode == PrimeVolumeMode::pvmFast)
+                                ? m_config.flush_multiplier_fast.get_at(extruder_id)
+                                : m_config.flush_multiplier.get_at(extruder_id);
+                            volume_to_purge *= flush_multiplier;
+                            volume_to_purge = layer_tools.wiping_extrusions().mark_wiping_extrusions(
+                                *this, current_filament_id, filament_id, volume_to_purge);
+                        }
+                        nozzle_recorder.set_nozzle_status(nozzle_id, filament_id, extruder_id);
+                    }
+                } else {
+                    // Fallback: original Orca per-physical-nozzle path (non-carousel printers).
+                    // Flush source is the last filament that occupied THIS nozzle, guarded so the
+                    // first use of a nozzle incurs no flush.
+                    int nozzle_id = filament_maps[filament_id] - 1;
+                    unsigned int pre_filament_id = nozzle_cur_filament_ids[nozzle_id];
+                    if (pre_filament_id != (unsigned int) -1 && pre_filament_id != filament_id) {
+                        volume_to_purge = multi_extruder_flush[nozzle_id][pre_filament_id][filament_id];
+                        float flush_multiplier = (m_config.prime_volume_mode == PrimeVolumeMode::pvmFast)
+                            ? m_config.flush_multiplier_fast.get_at(nozzle_id)
+                            : m_config.flush_multiplier.get_at(nozzle_id);
+                        volume_to_purge *= flush_multiplier;
+                        volume_to_purge = layer_tools.wiping_extrusions().mark_wiping_extrusions(
+                            *this, current_filament_id, filament_id, volume_to_purge);
+                    }
+                    nozzle_cur_filament_ids[nozzle_id] = filament_id;
                 }
 
                 //During the filament change, the extruder will extrude an extra length of grab_length for the corresponding detection, so the purge can reduce this length.
-                float grab_purge_volume = m_config.grab_length.get_at(nozzle_id) * 2.4; //(diameter/2)^2*PI=2.4
+                int grab_extruder_id = filament_maps[filament_id] - 1;
+                float grab_purge_volume = m_config.grab_length.get_at(grab_extruder_id) * 2.4; //(diameter/2)^2*PI=2.4
                 volume_to_purge = std::max(0.f, volume_to_purge - grab_purge_volume);
 
-                // Saving mode reduces the prime volume to 15 mm3; Default is inert.
-                float prime_volume = (m_config.prime_volume_mode == PrimeVolumeMode::pvmSaving) ? 15.f : (float) m_config.prime_volume;
+                // Select prime volume per-filament: nozzle change (carousel rotation) uses
+                // filament_prime_volume_nc, filament change (same nozzle slot) uses filament_prime_volume.
+                float wipe_volume_ec = filament_id < m_config.filament_prime_volume.values.size()
+                    ? m_config.filament_prime_volume.values[filament_id]
+                    : (float) m_config.prime_volume;
+                float wipe_volume_nc = filament_id < m_config.filament_prime_volume_nc.values.size()
+                    ? m_config.filament_prime_volume_nc.values[filament_id]
+                    : (float) m_config.prime_volume;
+
+                float prime_volume = wipe_volume_ec;
+                if (group_result) {
+                    bool is_nozzle_change = group_result->are_filaments_same_extruder(current_filament_id, filament_id, layer_idx) &&
+                                           !group_result->are_filaments_same_nozzle(current_filament_id, filament_id, layer_idx);
+                    if (is_nozzle_change) {
+                        prime_volume = wipe_volume_nc;
+                    }
+                }
+                if (m_config.prime_volume_mode == PrimeVolumeMode::pvmSaving) {
+                    prime_volume = 15.f;
+                }
+
                 wipe_tower.plan_toolchange((float)layer_tools.print_z, (float)layer_tools.wipe_tower_layer_height, current_filament_id, filament_id,
                     prime_volume, volume_to_purge);
                 current_filament_id = filament_id;
-                nozzle_cur_filament_ids[nozzle_id] = filament_id;
             }
             layer_tools.wiping_extrusions().ensure_perimeters_infills_order(*this);
 

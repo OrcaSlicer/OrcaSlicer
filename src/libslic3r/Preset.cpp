@@ -1376,7 +1376,7 @@ static std::vector<std::string> s_Preset_filament_options {/*"filament_colour", 
     "filament_ramming_travel_time", "filament_ramming_travel_time_nc",
     "filament_pre_cooling_temperature", "filament_pre_cooling_temperature_nc",
     "filament_preheat_temperature_delta", "filament_retract_length_nc",
-    "filament_change_length_nc", "filament_prime_volume_nc",
+    "filament_change_length_nc", "filament_prime_volume", "filament_prime_volume_nc",
     "long_retractions_when_ec", "retraction_distances_when_ec",
     "plugin_config_overrides",
     //ams chamber
