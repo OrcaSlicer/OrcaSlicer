@@ -1,32 +1,47 @@
 /**
  * @file DevUtilBackend.h
- * @brief Static helpers bridging the backend (slicer/preset) to the device GUI.
+ * @brief Provides common static utility methods for backend (preset/slicing).
  *
- * Scope (H2C nozzle rack): exposes only GetNozzleGroupResult — the accessor the print-dispatch
- * nozzle-mapping V1 request and result-resolve helpers read. Related helpers (per-nozzle info
- * collection via the ExtruderNozzleInfos/NozzleDef type pair, and the drying-preset lookup) are
- * not implemented here and left to the consuming code.
+ * This class offers a collection of static helper functions such as string manipulation,
+ * file operations, and other frequently used utilities.
  */
 
 #pragma once
+#include "DevDefs.h"
+#include "DevNozzleSystem.h"
+#include "DevFilaSystem.h"
 
 #include "libslic3r/MultiNozzleUtils.hpp"
+#include <unordered_map>
 
-#include <memory>
+ // Forward declarations
+namespace Slic3r
+{
+class MachineObject;
+
+namespace GUI
+{
+class Plater;
+}
+}; // namespace Slic3r::GUI
 
 namespace Slic3r
 {
-namespace GUI { class Plater; }
 
 class DevUtilBackend
 {
 public:
     DevUtilBackend() = delete;
 
-    // for rack: the slicer's per-filament -> logical-nozzle grouping for the current plate, read off
-    // the post-slice GCodeProcessorResult (plater->background_process().get_current_gcode_result()).
-    // Returns nullptr when there is no plater / no current result.
-    static std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> GetNozzleGroupResult(Slic3r::GUI::Plater* plater);
+public:
+    static MultiNozzleUtils::NozzleInfo GetNozzleInfo(const DevNozzle& dev_nozzle);
+
+    // for rack
+    static std::shared_ptr<MultiNozzleUtils::NozzleGroupResultBase> GetNozzleGroupResult(Slic3r::GUI::Plater *plater);
+    static std::unordered_map<NozzleDef, int> CollectNozzleInfo(MultiNozzleUtils::NozzleGroupResultBase *nozzle_group_res, int logic_ext_id);
+
+    // for filament preset
+    static std::optional<DevFilamentDryingPreset> GetFilamentDryingPreset(const std::string& fila_id);
 };
 
 }; // namespace Slic3r

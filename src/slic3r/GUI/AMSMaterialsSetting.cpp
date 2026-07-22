@@ -296,11 +296,8 @@ void AMSMaterialsSetting::create_panel_kn(wxWindow* parent)
     m_ratio_text->SetForegroundColour(wxColour(50, 58, 61));
     m_ratio_text->SetFont(Label::Head_14);
 
-    std::string language = wxGetApp().app_config->get("language");
-    wxString    region   = "en";
-    if (language.find("zh") == 0)
-        region = "zh";
-    wxString link_url = wxString::Format("https://wiki.bambulab.com/%s/software/bambu-studio/calibration_pa", region);
+    // Orca: link to the Orca Slicer pressure-advance wiki (region-agnostic).
+    wxString link_url = "https://www.orcaslicer.com/wiki/pressure_advance_calib";
     m_wiki_ctrl = new HyperLink(parent, _L("Wiki Guide"), link_url);
     cali_title_sizer->Add(m_ratio_text, 0, wxALIGN_CENTER_VERTICAL);
     cali_title_sizer->Add(m_wiki_ctrl, 0, wxALIGN_CENTER_VERTICAL);
@@ -449,9 +446,19 @@ void AMSMaterialsSetting::update_filament_editing(bool is_printing)
         m_tip_readonly->Wrap(FromDIP(380));
         m_tip_readonly->Show(is_printing);
     }
+
+    if (m_view_only) { // Orca: view-only (2D laser/cut) — lock every edit control and hide apply/reset
+        m_comboBox_filament->Enable(false);
+        m_comboBox_cali_result->Enable(false);
+        m_input_k_val->Enable(false);
+        m_input_n_val->Enable(false);
+        m_button_confirm->Hide();
+        m_button_reset->Hide();
+    }
 }
 
 void AMSMaterialsSetting::on_select_reset(wxCommandEvent& event) {
+    if (m_view_only) return; // Orca: view-only never commits
     MessageDialog msg_dlg(nullptr, _L("Are you sure you want to clear the filament information?"), wxEmptyString, wxICON_WARNING | wxOK | wxCANCEL);
     auto result = msg_dlg.ShowModal();
     if (result != wxID_OK)
@@ -618,6 +625,8 @@ void AMSMaterialsSetting::on_select_ok(wxCommandEvent &event)
 {
     if (!obj)
         return;
+
+    if (m_view_only) return; // Orca: view-only never commits
 
     //get filament id
     ams_filament_id = "";
@@ -830,6 +839,7 @@ void AMSMaterialsSetting::on_picker_color(wxCommandEvent& event)
 
 void AMSMaterialsSetting::on_clr_picker(wxMouseEvent &event)
 {
+    if (m_view_only) return; // Orca: view-only disables color editing
     if(!m_is_third)
         return;
 

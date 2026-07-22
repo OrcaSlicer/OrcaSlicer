@@ -125,7 +125,7 @@ public:
     template<class It, class = IteratorOnly<It> > BoundingBox3Base(It from, It to)
     {
         if (from == to)
-            throw Slic3r::InvalidArgument("Empty point set supplied to BoundingBox3Base constructor");
+            throw Slic3r::InvalidArgument("Empty point set supplied to BoundingBox3Base constructor.");
 
         auto it = from;
         this->min = it->template cast<typename PointType::Scalar>();

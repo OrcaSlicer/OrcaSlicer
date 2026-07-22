@@ -2,14 +2,17 @@
 #define __ORCA_CLOUD_SERVICE_AGENT_HPP__
 
 #include "ICloudServiceAgent.hpp"
+#include <cstdlib>
 #include <string>
 #include <map>
 #include <mutex>
-#include <memory>
 #include <atomic>
 #include <chrono>
 #include <functional>
+#include <memory>
 #include <thread>
+#include <unordered_map>
+#include <vector>
 #include <nlohmann/json.hpp>
 
 class wxSecretStore;
@@ -19,6 +22,22 @@ namespace Slic3r {
 // Forward declarations
 class AppConfig;
 struct BundleMetadata;
+struct PluginDescriptor;
+struct PluginChangelog;
+
+struct PluginDownloadData
+{
+    std::string plugin_id;
+    std::string download_link;
+    std::string requested_os;
+    std::string returned_os;
+};
+
+struct PluginDownloadNotFound
+{
+    std::string id;
+    std::string reason;
+};
 
 // Outcome of a token-refresh attempt: decides whether a 401 should log the user
 // out (AuthRejected) or be treated as a recoverable condition (Transient).
@@ -35,6 +54,15 @@ namespace auth_constants {
     constexpr const char* TOKEN_PATH = "/auth/v1/token";
     constexpr const char* LOGOUT_PATH = "/auth/v1/logout";
 } // namespace auth_constants
+
+// Names of the on-disk credential files inside the config dir.
+namespace secret_constants {
+    // Encrypted refresh-token fallback file, written when wxSecretStore is unavailable.
+    // Also seeded into PluginAuditManager's denied-filename registry (install_hook), which
+    // additionally covers the ".tmp" staging file the token is written to before its atomic
+    // rename, so plugins can read neither.
+    constexpr const char* USER_SECRET_FILENAME = "orca_refresh_token.sec";
+} // namespace secret_constants
 
 // ============================================================================
 // Sync Protocol Data Structures (per Orca Cloud Sync Protocol Specification)
@@ -269,6 +297,22 @@ public:
     std::string get_bundle_url(const std::string& bundle_id) const;
     int get_subscribed_bundles(std::vector<std::pair<std::string, std::string>>* bundles,std::vector<std::string>& notfound, std::vector<std::string>& unauthorized);
     int get_shared_bundle(const std::string& bundle_id, std::map<std::string, std::map<std::string, std::string>>* presets, BundleMetadata* bundle_metadata);
+
+    // ========================================================================
+    // Plugins API
+    // ========================================================================
+    int fetch_subscribed_manifests_into_descriptors(std::vector<PluginDescriptor>& descriptors, std::vector<std::string>& not_found, std::vector<std::string>& unauthorized);
+    int fetch_mine_manifests_into_descriptors(std::vector<PluginDescriptor>& descriptors);
+    int get_plugin_download_url(const std::string& uuid,
+                                const std::string& requested_version,
+                                std::vector<PluginDownloadData>& data,
+                                std::vector<PluginDownloadNotFound>& not_found,
+                                std::vector<std::string>& unauthorized);
+    std::string get_plugin_url(const std::string& sharing_token) const;
+    int subscribe_plugin(const std::string& plugin_uuid);
+    int unsubscribe_plugins(const std::vector<std::string>& plugin_uuids);
+    int delete_my_plugin(const std::string& plugin_uuid);
+    int fetch_plugin_changelogs(const std::vector<std::string>& uuids, std::unordered_map<std::string, std::vector<PluginChangelog>>& changelog);
 
     // ========================================================================
     // Additional Public Methods - Auth
