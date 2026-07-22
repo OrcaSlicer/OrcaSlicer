@@ -93,7 +93,7 @@ Explore the latest developments in OrcaSlicer with our nightly builds. Feedback 
 
 ## Windows
 
-Download the **Windows Installer exe**  for your preferred version from the [releases page](https://github.com/OrcaSlicer/OrcaSlicer/releases).
+Download the **Windows Installer exe** for your preferred version from the [releases page](https://github.com/OrcaSlicer/OrcaSlicer/releases). Both `x64` and `arm64` installers are published — pick the one matching your CPU.
 
 - *For convenience there is also a portable build available.*
     <details>
@@ -108,7 +108,7 @@ Download the **Windows Installer exe**  for your preferred version from the [rel
     - This file may already be available on your computer if you've installed visual studio.  Check the following location: `%VCINSTALLDIR%Redist\MSVC\v142`
     </details>
 
-Windows Package Manager
+### Windows Package Manager
 
 ```shell
 winget install --id=SoftFever.OrcaSlicer -e
@@ -141,7 +141,7 @@ winget install --id=SoftFever.OrcaSlicer -e
             ![mac_security_setting](./SoftFever_doc/mac_security_setting.png)
     </details>
 
-Homebrew Cask
+### Homebrew Cask
 
 ```shell
 brew install --cask orcaslicer
@@ -197,8 +197,8 @@ resolution: 0.1
 
 # Supports
 
-**OrcaSlicer** is an open-source project and I'm deeply grateful to all my sponsors and backers.  
-Their generous support enables me to purchase filaments and other essential 3D printing materials for the project.  
+**OrcaSlicer** is an open-source project, and we're deeply grateful to all our sponsors and backers.  
+Their generous support helps fund filaments and other essential 3D printing materials for the project.  
 Thank you! :)
 
 ## Sponsors
@@ -222,7 +222,7 @@ Thank you! :)
 
 **Ko-fi supporters** ☕: [Backers list](https://github.com/user-attachments/files/16147016/Supporters_638561417699952499.csv)
 
-## Support me
+## Support the project
 
 <a href="https://github.com/sponsors/SoftFever"><img src="https://img.shields.io/badge/GitHub%20Sponsors-30363D?style=flat&logo=GitHub-Sponsors&logoColor=EA4AAA" height="50"></a>  
 <a href="https://ko-fi.com/G2G5IP3CP"><img src="https://img.shields.io/badge/Support_me_on_Ko--fi-FF5E5B?style=flat&logo=ko-fi&logoColor=white" height="50"></a>  
