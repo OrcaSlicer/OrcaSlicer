@@ -54,22 +54,22 @@ msgid "right extruder"
 msgstr "右侧挤出机"
 
 msgid "Main Nozzle"
-msgstr "主喷头"
+msgstr "主喷嘴"
 
 msgid "Main nozzle"
-msgstr "主喷头"
+msgstr "主喷嘴"
 
 msgid "main nozzle"
-msgstr "主喷头"
+msgstr "主喷嘴"
 
 msgid "Auxiliary Nozzle"
-msgstr "辅助喷头"
+msgstr "辅助喷嘴"
 
 msgid "Auxiliary nozzle"
-msgstr "辅助喷头"
+msgstr "辅助喷嘴"
 
 msgid "auxiliary nozzle"
-msgstr "辅助喷头"
+msgstr "辅助喷嘴"
 
 msgid "Left Nozzle"
 msgstr "左喷嘴"
@@ -2806,13 +2806,13 @@ msgid "Edit text"
 msgstr "编辑文字"
 
 msgid "Ability to change text, font, size, ..."
-msgstr "能够更改文本，字体，大小， ..."
+msgstr "能够更改文本、字体、大小 ..."
 
 msgid "Edit SVG"
 msgstr "编辑SVG"
 
 msgid "Change SVG source file, projection, size, ..."
-msgstr "改变SVG源文件，投影，大小，..."
+msgstr "改变SVG源文件、投影、大小 ..."
 
 msgid "Invalidate cut info"
 msgstr "解除切割关系"
@@ -3652,10 +3652,10 @@ msgid "Launch troubleshoot center"
 msgstr "启动故障排查中心"
 
 msgid "Set nozzle count"
-msgstr "设置喷头数量"
+msgstr "设置喷嘴数量"
 
 msgid "Please set nozzle count"
-msgstr "请设置喷头数量"
+msgstr "请设置喷嘴数量"
 
 msgid "Error: Can not set both nozzle count to zero."
 msgstr "错误：无法将两个喷嘴数量都设置为零。"
@@ -7691,7 +7691,7 @@ msgid "Not installed"
 msgstr "未安装"
 
 msgid "The software does not support using different diameter of nozzles for one print. If the left and right nozzles are inconsistent, we can only proceed with single-head printing. Please confirm which nozzle you would like to use for this project."
-msgstr "该软件不支持在一次打印中使用不同直径的喷嘴。如果左右喷头不一致，就只能进行单头打印。请确认您想在该项目中使用哪种喷嘴。"
+msgstr "该软件不支持在一次打印中使用不同直径的喷嘴。如果左右喷嘴不一致，就只能进行单头打印。请确认您想在该项目中使用哪种喷嘴。"
 
 msgid "Switch diameter"
 msgstr "开关直径"
@@ -9536,7 +9536,7 @@ msgid "Failed to send nozzle auto-mapping request to printer { code: %d }. Pleas
 msgstr "向打印机发送喷嘴自动映射请求失败 {错误代码：%d}。请尝试刷新打印机信息。若问题仍未解决，可尝试重新绑定打印机并检查网络连接。"
 
 msgid "The printer is calculating nozzle mapping."
-msgstr "打印机正在计算喷头映射。"
+msgstr "打印机正在计算喷嘴映射。"
 
 msgid "Please wait a moment..."
 msgstr "请稍等片刻..."
@@ -9674,7 +9674,7 @@ msgid "The printer has no nozzle matching the slicing file (%s)."
 msgstr "打印机没有与切片文件匹配的喷嘴（%s）"
 
 msgid "Please install a matching nozzle in the hotend rack, or set the corresponding printer preset while slicing."
-msgstr "请在热端架上安装匹配的喷头，或在切片时设置相应的打印机预设。"
+msgstr "请在热端架上安装匹配的喷嘴，或在切片时设置相应的打印机预设。"
 
 msgid "The toolhead and hotend rack are full. Please remove at least one hotend before printing."
 msgstr "工具头和热端挂架已满，请卸下至少一个热端后再打印。"
@@ -11094,7 +11094,7 @@ msgid "Ext spool"
 msgstr "外置耗材盘"
 
 msgid "Please check whether the nozzle type of the device is the same as the preset nozzle type."
-msgstr "请检查设备的喷头类型是否与预设的喷头类型相同。"
+msgstr "请检查设备的喷嘴类型是否与预设的喷嘴类型相同。"
 
 msgid "Storage is not available or is in read-only mode."
 msgstr "存储不可用或处于只读模式。"
@@ -20937,7 +20937,7 @@ msgstr ""
 #~ msgstr "选择安装到正确喷嘴的耗材"
 
 #~ msgid "Select Filament && Hotends"
-#~ msgstr "选择材料预设和喷头"
+#~ msgstr "选择材料预设和喷嘴"
 
 #, c-format, boost-format
 #~ msgid "Note: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
@@ -21461,7 +21461,7 @@ msgstr ""
 #~ msgstr "删除一个耳状Brim"
 
 #~ msgid "Adjust head diameter"
-#~ msgstr "调整喷头直径"
+#~ msgstr "调整喷嘴直径"
 
 #~ msgid "Adjust section view"
 #~ msgstr "调整剖面视图"
