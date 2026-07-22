@@ -2609,7 +2609,7 @@ void WipeTower::plan_toolchange(float z_par, float layer_height_par, unsigned in
         && old_tool < m_filament_nozzle_map.size() && new_tool < m_filament_nozzle_map.size()
         && m_filament_nozzle_map[old_tool] != m_filament_nozzle_map[new_tool]) {
         double e_flow                   = nozzle_change_extrusion_flow(layer_height_par);
-        double length                   = m_filaments_change_length[old_tool] / e_flow;
+        double length                   = filament_change_length_at(old_tool) / e_flow;
         int    nozzle_change_line_count = length / (m_wipe_tower_width - 2*m_nozzle_change_perimeter_width) + 1;
         if (has_tpu_filament())
             nozzle_change_depth = m_tpu_fixed_spacing * nozzle_change_line_count * m_nozzle_change_perimeter_width;
@@ -4087,7 +4087,7 @@ void WipeTower::plan_tower_new()
                     && toolchange.old_tool < (int)m_filament_nozzle_map.size() && toolchange.new_tool < (int)m_filament_nozzle_map.size()
                     && m_filament_nozzle_map[toolchange.old_tool] != m_filament_nozzle_map[toolchange.new_tool]) {
                     double e_flow                   = nozzle_change_extrusion_flow(m_plan[idx].height);
-                    double length                   = m_filaments_change_length[toolchange.old_tool] / e_flow;
+                    double length                   = filament_change_length_at(toolchange.old_tool) / e_flow;
                     int    nozzle_change_line_count = length / (m_wipe_tower_width - 2*m_nozzle_change_perimeter_width) + 1;
                     if (has_tpu_filament())
                         nozzle_change_depth = m_tpu_fixed_spacing * nozzle_change_line_count * m_nozzle_change_perimeter_width;
