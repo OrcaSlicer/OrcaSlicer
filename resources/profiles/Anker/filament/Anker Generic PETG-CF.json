@@ -3,7 +3,7 @@
 	"name": "Anker Generic PETG-CF",
 	"inherits": "Anker Generic PETG-CF @base",
 	"from": "system",
-	"setting_id": "GFSG98",
+	"setting_id": "j8PLF6AZD0R0oVs8",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Anker M5 0.4 nozzle",

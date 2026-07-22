@@ -3,7 +3,7 @@
 	"name": "Generic PE-CF @System",
 	"inherits": "fdm_filament_pe",
 	"from": "system",
-	"setting_id": "OGFSP98_00",
+	"setting_id": "prroSXONXxaahNkq",
 	"instantiation": "true",
 	"compatible_printers": []
 }

@@ -3,7 +3,7 @@
 	"name": "Creality Generic PLA @Ender-5Max-all",
 	"inherits": "fdm_filament_common",
 	"from": "system",
-	"setting_id": "GFSA04_CREALITY_00",
+	"setting_id": "zQiwnlxGlX4pFOHR",
 	"filament_id": "04001",
 	"instantiation": "true",
 	"activate_air_filtration": "0",

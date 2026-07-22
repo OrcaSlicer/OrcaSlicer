@@ -348,6 +348,9 @@ public:
     static const ImVec4 COL_SEPARATOR;
     static const ImVec4 COL_SEPARATOR_DARK;
     static const ImVec4 COL_ORCA;
+    static const ImVec4 COL_ORCA_DARK;
+    static const ImVec4 COL_ORCA_HOVER;
+    static const ImVec4 COL_ORCA_HOVER_DARK;
     static const ImVec4 COL_MODIFIED;
     static const ImVec4 COL_WARNING;
 

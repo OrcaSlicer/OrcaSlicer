@@ -77,13 +77,16 @@ DWORD DownloadAndInstallWV2RT() {
   if (downloaded) {
     // Either Package the WebView2 Bootstrapper with your app or download it using fwlink
     // Then invoke install at Runtime.
+    // Keep the path string alive for the duration of the ShellExecuteExW call;
+    // assigning .c_str() of a temporary directly would leave lpFile dangling.
+    const std::wstring installer_path = target_file_path.generic_wstring();
     SHELLEXECUTEINFOW shExInfo = {0};
     shExInfo.cbSize = sizeof(shExInfo);
     shExInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
     shExInfo.hwnd = 0;
     shExInfo.lpVerb = L"runas";
-    shExInfo.lpFile = target_file_path.generic_wstring().c_str();
-    shExInfo.lpParameters = L" /install";
+    shExInfo.lpFile = installer_path.c_str();
+    shExInfo.lpParameters = L" /silent /install";
     shExInfo.lpDirectory = 0;
     shExInfo.nShow = 0;
     shExInfo.hInstApp = 0;
@@ -338,7 +341,11 @@ bool WebView::CheckWebViewRuntime()
 {
     wxWebViewFactoryEdge factory;
     auto wxVersion = factory.GetVersionInfo(wxVersionContext::RunTime);
-    return wxVersion.GetMajor() != 0;
+    bool present = wxVersion.GetMajor() != 0;
+    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": WebView2 runtime "
+                            << (present ? "found, version " : "not found (")
+                            << wxVersion.ToString().ToUTF8().data() << (present ? "" : ")");
+    return present;
 }
 
 bool WebView::DownloadAndInstallWebViewRuntime()
@@ -400,6 +407,12 @@ void WebView::RecreateAll()
     for (auto webView : g_webviews) {
         webView->SetUserAgent(wxString::Format("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) BBL-Slicer/v%s (%s) BBL-Language/%s",
                                                Slic3r::GUI::wxGetApp().get_bbl_client_version(), dark ? "dark" : "light", language_code.mb_str()));
-        webView->Reload();
+        // A host-themed WebViewHostDialog re-themes in place (no reload). If it handles
+        // the event, skip the reload; legacy pages fall through and reload as before
+        // (their own dark.css swap re-themes them on reload).
+        wxCommandEvent evt(EVT_WEBVIEW_RECREATED);
+        evt.SetEventObject(webView);
+        if (!webView->GetEventHandler()->ProcessEvent(evt))
+            webView->Reload();
     }
 }

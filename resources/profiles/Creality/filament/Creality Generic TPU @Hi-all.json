@@ -3,7 +3,7 @@
 	"name": "Creality Generic TPU @Hi-all",
 	"inherits": "Creality Generic TPU",
 	"from": "system",
-	"setting_id": "GFU99_CREALITY_00",
+	"setting_id": "aF2isnhJKc3hoq8r",
 	"instantiation": "true",
 	"hot_plate_temp": [
 		"30"

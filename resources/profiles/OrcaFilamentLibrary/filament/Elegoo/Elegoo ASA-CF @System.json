@@ -3,7 +3,7 @@
 	"name": "Elegoo ASA-CF @System",
 	"inherits": "Elegoo ASA @base",
 	"from": "system",
-	"setting_id": "OEASACFS00",
+	"setting_id": "XT1aUl4pe9t0Ijwg",
 	"instantiation": "true",
 	"renamed_from": "Elegoo ASA-CF",
 	"pressure_advance": [

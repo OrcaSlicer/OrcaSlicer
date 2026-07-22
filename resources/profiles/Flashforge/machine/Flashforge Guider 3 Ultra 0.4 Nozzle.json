@@ -3,7 +3,7 @@
 	"name": "Flashforge Guider 3 Ultra 0.4 Nozzle",
 	"inherits": "fdm_guider3_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "g6wtELHjZ8Gr9YPg",
 	"instantiation": "true",
 	"auxiliary_fan": "1",
 	"bed_custom_model": "",

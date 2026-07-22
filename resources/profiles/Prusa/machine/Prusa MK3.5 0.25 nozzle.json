@@ -3,7 +3,7 @@
 	"name": "Prusa MK3.5 0.25 nozzle",
 	"inherits": "Prusa MK3.5 0.4 nozzle",
 	"from": "system",
-	"setting_id": "GM004",
+	"setting_id": "pguGJWMHNXK6WqnB",
 	"instantiation": "true",
 	"gcode_flavor": "marlin2",
 	"printer_model": "Prusa MK3.5",

@@ -3,7 +3,7 @@
 	"name": "Anycubic Kobra 2 Neo 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM005",
+	"setting_id": "LIsjlFTwoNWK2WyU",
 	"instantiation": "true",
 	"printer_technology": "FFF",
 	"printer_settings_id": "Anycubic Kobra 2 Neo 0.4 nozzle",

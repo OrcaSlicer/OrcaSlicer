@@ -106,6 +106,7 @@ public:
     wxWindow *     stb;
     const wxString  icon;
     const wxString  title;
+    bool            m_labels_hidden{false};
     size_t			label_width = 20 ;// {200};
     wxSizer*		sizer {nullptr};
 	OG_CustomCtrl*  custom_ctrl{ nullptr };
@@ -128,6 +129,7 @@ public:
     wxFont			label_font {wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT) };
 	int				sidetext_width{ -1 };
 	int				sublabel_width{ -1 };
+	bool			draw_multi_extruder { false };
 
     /// Returns a copy of the pointer of the parent wxWindow.
     /// Accessor function is because users are not allowed to change the parent
@@ -184,7 +186,7 @@ public:
 
     void            clear_fields_except_of(const std::vector<std::string> left_fields);
 
-    void            hide_labels() { label_width = 0; }
+    void            hide_labels() { label_width = 0; m_labels_hidden = true; }
 
 	OptionsGroup(wxWindow *_parent, const wxString &title, const wxString &icon, bool is_tab_opt = false,
                     column_t extra_clmn = nullptr);
@@ -242,6 +244,9 @@ protected:
 public:
 	static wxString		get_url(const std::string& path_end);
 	static bool			launch_browser(const std::string& path_end);
+
+protected:
+    std::string         pick_plugin(const ConfigOptionDef& opt);
 };
 
 class ConfigOptionsGroup: public OptionsGroup {

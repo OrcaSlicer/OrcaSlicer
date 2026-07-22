@@ -3,7 +3,7 @@
 	"name": "Fiberon PA12-CF @System",
 	"inherits": "Fiberon PA12-CF @base",
 	"from": "system",
-	"setting_id": "OGFSL52_00",
+	"setting_id": "DfSR5s7vw3ybFiVc",
 	"instantiation": "true",
 	"compatible_printers": []
 }

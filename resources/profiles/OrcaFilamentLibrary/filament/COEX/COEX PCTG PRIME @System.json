@@ -3,7 +3,7 @@
 	"name": "COEX PCTG PRIME @System",
 	"inherits": "COEX PCTG PRIME @base",
 	"from": "system",
-	"setting_id": "CXPCTG15",
+	"setting_id": "tacudYmqOs7dg3if",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"12"

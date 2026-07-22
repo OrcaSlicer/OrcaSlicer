@@ -3,7 +3,7 @@
     "name": "Generic PET-CF @K1_CFS-C-all",
     "inherits": "fdm_filament_pet",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "2a9xvwlw1X0qsA26",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

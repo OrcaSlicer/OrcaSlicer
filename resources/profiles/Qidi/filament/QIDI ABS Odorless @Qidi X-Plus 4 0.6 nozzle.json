@@ -3,7 +3,7 @@
 	"name": "QIDI ABS Odorless @Qidi X-Plus 4 0.6 nozzle",
 	"inherits": "QIDI ABS Odorless",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "wOJOXhIjWFMUvDsB",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

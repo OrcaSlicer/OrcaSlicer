@@ -3,7 +3,7 @@
     "name": "Soleyin Ultra PLA @Ender-3 V4-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "lMmOE3j5nMNIukQN",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

@@ -3,16 +3,13 @@
 	"name": "QIDI PETG Rapido @0.8 nozzle",
 	"inherits": "QIDI PETG Rapido",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "6rVVNiYVHxsxqk0M",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
 	],
 	"compatible_printers": [
-		"Qidi X-Plus 0.8 nozzle",
-		"Qidi X-Max 0.8 nozzle",
-		"Qidi X-CF Pro 0.8 nozzle",
 		"Qidi X-Smart 3 0.8 nozzle",
 		"Qidi X-Plus 3 0.8 nozzle",
 		"Qidi X-Max 3 0.8 nozzle"

@@ -19,6 +19,9 @@ struct Settings
 		EViewType view_type{ EViewType::FeatureType };
 		ETimeMode time_mode{ ETimeMode::Normal };
 		bool top_layer_only_view_range{ false };
+		// ORCA: when enabled, all layers below the current top layer are rendered
+		// darkened (keeping their color) while scrubbing below the full print (ported from preFlight)
+		bool dim_previous_layers{ false };
 		bool spiral_vase_mode{ false };
 		//
 		// Required update flags

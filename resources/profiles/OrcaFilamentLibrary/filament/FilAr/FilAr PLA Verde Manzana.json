@@ -3,6 +3,7 @@
     "name": "FilAr PLA Verde Manzana",
     "inherits": "FilAr PLA @base",
     "from": "system",
+    "setting_id": "FlPRrQEcKnVKwJDM",
     "filament_id": "FILAR0014",
     "instantiation": "true",
     "filament_vendor": [

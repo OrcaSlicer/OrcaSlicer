@@ -174,6 +174,16 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 				config.option<ConfigOptionStrings>(opt_key)->values =
 					boost::any_cast<std::vector<std::string>>(value);
 			}
+			else if (config.def()->get(opt_key)->gui_type == ConfigOptionDef::GUIType::plugin_picker) {
+				if (value.type() == typeid(std::vector<std::string>)) {
+					config.option<ConfigOptionStrings>(opt_key)->values =
+						boost::any_cast<std::vector<std::string>>(value);
+				} else {
+					std::string str = boost::any_cast<std::string>(value);
+					config.option<ConfigOptionStrings>(opt_key)->values = str.empty() ?
+						std::vector<std::string>() : std::vector<std::string>{str};
+				}
+			}
 			else if (config.def()->get(opt_key)->gui_flags.compare("serialized") == 0) {
 				std::string str = boost::any_cast<std::string>(value);
                 std::vector<std::string> values {};
@@ -403,7 +413,7 @@ void show_substitutions_info(const PresetsConfigSubstitutions& presets_config_su
 		add_config_substitutions(substitution.substitutions, changes);
 	}
 
-	InfoDialog msg(nullptr, _L("Configuration package was loaded, but some values were not recognized."), substitution_message(changes), true);
+	InfoDialog msg(nullptr, _L("The configuration package was loaded, but some values were not recognized."), substitution_message(changes), true);
 	msg.ShowModal();
 }
 
@@ -413,7 +423,7 @@ void show_substitutions_info(const ConfigSubstitutions& config_substitutions, co
 	add_config_substitutions(config_substitutions, changes);
 
 	InfoDialog msg(nullptr,
-		format_wxstr(_L("Configuration file \"%1%\" was loaded, but some values were not recognized."), from_u8(filename)),
+		format_wxstr(_L("The configuration file \u201c%1%\u201d was loaded, but some values were not recognized."), from_u8(filename)),
 		substitution_message(changes), true);
 	msg.ShowModal();
 }

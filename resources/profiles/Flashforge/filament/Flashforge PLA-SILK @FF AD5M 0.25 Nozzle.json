@@ -3,7 +3,6 @@
 	"name": "Flashforge PLA-SILK @FF AD5M 0.25 Nozzle",
 	"inherits": "Flashforge Generic PLA-Silk",
 	"from": "system",
-	"setting_id": "GFSA04_25",
 	"filament_id": "GFL99",
 	"instantiation": "false",
 	"compatible_printers": [

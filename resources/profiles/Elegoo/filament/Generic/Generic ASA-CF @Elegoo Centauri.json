@@ -3,7 +3,7 @@
 	"name": "Generic ASA-CF @Elegoo Centauri",
 	"inherits": "Generic ASA @base",
 	"from": "system",
-	"setting_id": "GASACF00",
+	"setting_id": "S5kHIMcORjlPRnVs",
 	"instantiation": "true",
 	"filament_type": [
 		"ASA-CF"

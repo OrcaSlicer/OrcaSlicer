@@ -3,7 +3,7 @@
 	"name": "QIDI ASA @Qidi X-Smart 3 0.2 nozzle",
 	"inherits": "QIDI ASA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "4NUwEIv3156HKgev",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

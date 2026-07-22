@@ -3,6 +3,7 @@
 	"name": "Tiertime ASA@300HS",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
+	"setting_id": "FreBeBZ1r1VF4ouQ",
 	"filament_id": "GFB01_01",
 	"instantiation": "true",
 	"fan_max_speed": [

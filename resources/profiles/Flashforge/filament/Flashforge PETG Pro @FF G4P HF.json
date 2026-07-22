@@ -3,6 +3,7 @@
 	"name": "Flashforge PETG Pro @FF G4P HF",
 	"inherits": "Flashforge Generic ABS @G3U",
 	"from": "system",
+	"setting_id": "m7oJx47UMlFctMkX",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"
