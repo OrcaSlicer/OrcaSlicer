@@ -142,6 +142,14 @@ winget install --id=SoftFever.OrcaSlicer -e
             ![mac_security_setting](./SoftFever_doc/mac_security_setting.png)
     </details>
 
+Homebrew Cask
+
+```shell
+brew install --cask orcaslicer
+```
+
+The [Homebrew cask](https://formulae.brew.sh/cask/orcaslicer) installs the official macOS DMG published on [GitHub Releases](https://github.com/OrcaSlicer/OrcaSlicer/releases) (community-maintained formula; not a third-party binary fork).
+
 ## Linux
 
 ### Flathub (Recommended)
