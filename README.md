@@ -116,7 +116,7 @@ winget install --id=SoftFever.OrcaSlicer -e
 
 ## Mac
 
-1. Download the DMG for your computer: `arm64` version for Apple Silicon and `x86_64` for Intel CPU.
+1. Download the universal DMG, which runs on both Apple Silicon and Intel Macs.
 2. Drag OrcaSlicer.app to Application folder.
 3. *If you want to run a build from a PR, you also need to follow the instructions below:*
 
@@ -147,7 +147,7 @@ Homebrew Cask
 brew install --cask orcaslicer
 ```
 
-The [Homebrew cask](https://formulae.brew.sh/cask/orcaslicer) installs the official macOS DMG published on [GitHub Releases](https://github.com/OrcaSlicer/OrcaSlicer/releases) (community-maintained formula; not a third-party binary fork).
+The [Homebrew cask](https://formulae.brew.sh/cask/orcaslicer) installs the official macOS DMG from [GitHub Releases](https://github.com/OrcaSlicer/OrcaSlicer/releases).
 
 ## Linux
 
