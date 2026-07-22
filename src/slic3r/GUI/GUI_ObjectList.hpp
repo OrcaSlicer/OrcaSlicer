@@ -463,6 +463,8 @@ public:
 
     //BBS: remove const qualifier
     void set_extruder_for_selected_items(const int extruder);
+    // Orca: opens ModifierGCodeDialog for the currently selected modifier volume and applies the result.
+    void edit_selected_modifier_gcode();
     wxDataViewItemArray reorder_volumes_and_get_selection(int obj_idx, std::function<bool(const ModelVolume*)> add_to_selection = nullptr);
     void apply_volumes_order();
 

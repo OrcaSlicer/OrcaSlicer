@@ -4739,6 +4739,51 @@ void PrintConfigDef::init_fff_params()
     def->mode     = comExpert;
     def->set_default_value(new ConfigOptionFloat(0.05));
 
+    def = this->add("modifier_enter_gcode", coString);
+    def->label = L("Modifier enter G-code");
+    def->tooltip = L("This G-code is inserted whenever the toolpath starts printing extrusions "
+                      "that belong to this modifier's region.");
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 5;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString());
+
+    def = this->add("modifier_exit_gcode", coString);
+    def->label = L("Modifier exit G-code");
+    def->tooltip = L("This G-code is inserted whenever the toolpath stops printing extrusions "
+                      "that belong to this modifier's region.");
+    def->multiline = true;
+    def->full_width = true;
+    def->height = 5;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionString());
+
+    def = this->add("modifier_gcode_on_walls", coBool);
+    def->label = L("Apply modifier G-code to walls");
+    def->tooltip = L("Whether the modifier's enter/exit G-code fires for wall (perimeter) extrusions.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("modifier_gcode_on_infill", coBool);
+    def->label = L("Apply modifier G-code to infill");
+    def->tooltip = L("Whether the modifier's enter/exit G-code fires for infill extrusions "
+                      "(including top/bottom surfaces, ironing, and gap fill).");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("modifier_gcode_on_support", coBool);
+    def->label = L("Apply modifier G-code to support");
+    def->tooltip = L("Whether the modifier's enter/exit G-code fires for support material extrusions.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
+    def = this->add("modifier_gcode_on_skirt_brim", coBool);
+    def->label = L("Apply modifier G-code to skirt/brim");
+    def->tooltip = L("Whether the modifier's enter/exit G-code fires for skirt and brim extrusions.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(true));
+
     def = this->add("layer_change_gcode", coString);
     def->label = L("Layer change G-code");
     def->tooltip = L("This G-code is inserted at every layer change after the Z lift.");
@@ -12278,6 +12323,8 @@ static std::map<t_custom_gcode_key, t_config_option_keys> s_CustomGcodeSpecificP
     {"change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
     {"filament_change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
     {"process_change_extrusion_role_gcode", {"layer_num", "layer_z", "extrusion_role", "last_extrusion_role"}},
+    {"modifier_enter_gcode",        {"layer_num", "layer_z"}},
+    {"modifier_exit_gcode",         {"layer_num", "layer_z"}},
     {"printing_by_object_gcode",    {}},
     {"machine_pause_gcode",         {}},
     {"template_custom_gcode",       {}},

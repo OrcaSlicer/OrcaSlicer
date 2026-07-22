@@ -1402,6 +1402,17 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionBool, zaa_dont_alternate_fill_direction))
     ((ConfigOptionFloat, zaa_min_z))
     ((ConfigOptionFloat, zaa_minimize_perimeter_height))
+
+    // Orca: per-modifier custom G-code, emitted when the toolpath enters/exits
+    // extrusions belonging to a modifier volume's region.
+    ((ConfigOptionString,               modifier_enter_gcode))
+    ((ConfigOptionString,               modifier_exit_gcode))
+    // Orca: which feature types the above G-code applies to. All default to true (apply
+    // everywhere); exposed as checkboxes in the modifier G-code dialog.
+    ((ConfigOptionBool,                 modifier_gcode_on_walls))
+    ((ConfigOptionBool,                 modifier_gcode_on_infill))
+    ((ConfigOptionBool,                 modifier_gcode_on_support))
+    ((ConfigOptionBool,                 modifier_gcode_on_skirt_brim))
     )
 
 PRINT_CONFIG_CLASS_DEFINE(

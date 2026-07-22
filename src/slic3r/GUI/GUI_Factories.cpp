@@ -18,6 +18,7 @@
 #include "PartPlate.hpp"
 #include "Gizmos/GLGizmoEmboss.hpp"
 #include "Gizmos/GLGizmoSVG.hpp"
+#include "ModifierGCodeDialog.hpp"
 
 #include <boost/algorithm/string.hpp>
 #include "slic3r/GUI/Tab.hpp"
@@ -1364,6 +1365,25 @@ void MenuFactory::append_menu_item_edit_svg(wxMenu *menu)
     append_menu_item(menu, wxID_ANY, name, description, open_svg, icon, nullptr, can_edit_svg, m_parent);
 }
 
+void MenuFactory::append_menu_item_modifier_gcode(wxMenu *menu)
+{
+    const wxString name = _L("Custom G-code");
+
+    // Selection-dependent visibility: rebuilt each time this menu is shown, same pattern as
+    // append_menu_item_change_filament.
+    const int menu_item_id = menu->FindItem(name);
+    if (menu_item_id != wxNOT_FOUND)
+        menu->Destroy(menu_item_id);
+
+    const ModelVolume *sel_vol = obj_list()->get_selected_model_volume();
+    if (sel_vol == nullptr || !sel_vol->is_modifier())
+        return;
+
+    append_menu_item(menu, wxID_ANY, name, _L("Insert G-code fired when the toolpath enters/exits this modifier's region"),
+        [](wxCommandEvent &) { obj_list()->edit_selected_modifier_gcode(); }, "cog", nullptr,
+        []() { return true; }, m_parent);
+}
+
 void MenuFactory::append_menu_item_invalidate_cut_info(wxMenu *menu)
 {
     const wxString menu_name = _L("Invalidate cut info");
@@ -1869,6 +1889,7 @@ wxMenu* MenuFactory::part_menu()
 {
     append_menu_items_convert_unit(&m_part_menu);
     append_menu_item_change_filament(&m_part_menu);
+    append_menu_item_modifier_gcode(&m_part_menu);
     append_menu_item_per_object_settings(&m_part_menu);
     return &m_part_menu;
 }

@@ -23,6 +23,7 @@
 #include "Widgets/ProgressDialog.hpp"
 #include "SingleChoiceDialog.hpp"
 #include "StepMeshDialog.hpp"
+#include "ModifierGCodeDialog.hpp"
 
 
 #include <vector>
@@ -6666,6 +6667,65 @@ void ObjectList::set_extruder_for_selected_items(const int extruder)
 
     // BBS: update extruder/filament column
     Refresh();
+}
+
+void ObjectList::edit_selected_modifier_gcode()
+{
+    wxDataViewItem item = GetSelection();
+    if (!item)
+        return;
+
+    ModelVolume *volume = get_selected_model_volume();
+    if (volume == nullptr || !volume->is_modifier())
+        return;
+
+    ModelConfig &config = get_item_config(item);
+    const std::string enter_gcode = config.has("modifier_enter_gcode") ? config.get().opt_string("modifier_enter_gcode") : std::string();
+    const std::string exit_gcode  = config.has("modifier_exit_gcode")  ? config.get().opt_string("modifier_exit_gcode")  : std::string();
+
+    auto get_toggle = [&config](const char *key) {
+        return !config.has(key) || config.get().opt_bool(key);
+    };
+    ModifierGCodeFeatureToggles toggles;
+    toggles.walls      = get_toggle("modifier_gcode_on_walls");
+    toggles.infill     = get_toggle("modifier_gcode_on_infill");
+    toggles.support    = get_toggle("modifier_gcode_on_support");
+    toggles.skirt_brim = get_toggle("modifier_gcode_on_skirt_brim");
+
+    ModifierGCodeDialog dlg(wxGetApp().mainframe, enter_gcode, exit_gcode, toggles);
+    if (dlg.ShowModal() != wxID_OK)
+        return;
+
+    take_snapshot(_u8L("Modifier custom G-code edited"));
+
+    const std::string new_enter_gcode = dlg.get_enter_gcode();
+    const std::string new_exit_gcode  = dlg.get_exit_gcode();
+
+    if (new_enter_gcode.empty())
+        config.erase("modifier_enter_gcode");
+    else
+        config.set_key_value("modifier_enter_gcode", new ConfigOptionString(new_enter_gcode));
+
+    if (new_exit_gcode.empty())
+        config.erase("modifier_exit_gcode");
+    else
+        config.set_key_value("modifier_exit_gcode", new ConfigOptionString(new_exit_gcode));
+
+    // Sparse config: only store a toggle when it differs from the (checked/true) default.
+    auto set_toggle = [&config](const char *key, bool value) {
+        if (value)
+            config.erase(key);
+        else
+            config.set_key_value(key, new ConfigOptionBool(false));
+    };
+    const ModifierGCodeFeatureToggles new_toggles = dlg.get_feature_toggles();
+    set_toggle("modifier_gcode_on_walls", new_toggles.walls);
+    set_toggle("modifier_gcode_on_infill", new_toggles.infill);
+    set_toggle("modifier_gcode_on_support", new_toggles.support);
+    set_toggle("modifier_gcode_on_skirt_brim", new_toggles.skirt_brim);
+
+    // update scene / trigger reslice
+    wxGetApp().plater()->update();
 }
 
 void ObjectList::on_plate_added(PartPlate* part_plate)

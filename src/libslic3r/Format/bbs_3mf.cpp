@@ -7979,7 +7979,14 @@ void PlateData::parse_filament_info(GCodeProcessorResult *result)
 
                             // stores volume's config data
                             for (const std::string& key : volume->config.keys()) {
-                                stream << "      <" << METADATA_TAG << " "<< KEY_ATTR << "=\"" << key << "\" " << VALUE_ATTR << "=\"" << volume->config.opt_serialize(key) << "\"/>\n";
+                                // Orca: modifier_enter_gcode/modifier_exit_gcode are multiline free-text G-code.
+                                // XML attribute-value normalization silently collapses raw newlines/tabs to spaces
+                                // on reload, so escape them (and quotes/ampersands/angle brackets) before storing,
+                                // same as embossed text volumes do for their TEXT_DATA_ATTR.
+                                const std::string value = (key == "modifier_enter_gcode" || key == "modifier_exit_gcode")
+                                    ? xml_escape_double_quotes_attribute_value(volume->config.opt_serialize(key))
+                                    : volume->config.opt_serialize(key);
+                                stream << "      <" << METADATA_TAG << " "<< KEY_ATTR << "=\"" << key << "\" " << VALUE_ATTR << "=\"" << value << "\"/>\n";
                             }
 
                             if (const std::optional<EmbossShape> &es = volume->emboss_shape; es.has_value()) {

@@ -512,6 +512,49 @@ private:
     std::string     extrude_perimeters(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool is_first_layer, bool is_infill_first);
     std::string     extrude_infill(const Print& print, const std::vector<ObjectByExtruder::Island::Region>& by_region, bool ironing);
     std::string     extrude_support(const ExtrusionEntityCollection& support_fills, const ExtrusionRole support_extrusion_role);
+    // Renders a modifier_enter_gcode/modifier_exit_gcode template with the layer_num/layer_z
+    // placeholders these hooks expose; empty string if `templ` is empty.
+    std::string     render_modifier_gcode_template(const char *key, const std::string &templ);
+
+    // Orca: modifier-boundary crossing detection. Keeps an extrusion path's geometry/shape
+    // untouched (no wall seam, no infill boundary split) while injecting enter/exit G-code exactly
+    // where its G-code moves cross a modifier's boundary. Applies to every extrusion role/feature
+    // type by default.
+    struct ModifierGCodeBoundary {
+        int             region_id;
+        ExPolygons      boundary;
+        const std::string *enter_gcode;
+        const std::string *exit_gcode;
+        // Orca: per-feature-type toggles, set via checkboxes in the modifier G-code dialog and
+        // backed by modifier_gcode_on_walls/infill/support/skirt_brim. All default to true.
+        bool            on_walls;
+        bool            on_infill;
+        bool            on_support;
+        bool            on_skirt_brim;
+        // Whether this modifier's G-code applies to `role`, per the toggles above. Roles that fit
+        // none of the four categories (wipe tower, custom/mixed/none) are never covered.
+        bool applies_to(ExtrusionRole role) const;
+    };
+    // Rebuilds (lazily, cached per m_layer) the list of this layer's modifier regions that carry
+    // enter/exit G-code, for the current object (m_layer->object()).
+    const std::vector<ModifierGCodeBoundary>& layer_modifier_boundaries();
+    // Candidate boundaries for `path`: only those that apply to its role (see
+    // ModifierGCodeBoundary::applies_to) and whose bounding box comes near the path.
+    std::vector<const ModifierGCodeBoundary*> modifier_crossing_candidates(const ExtrusionPath &path);
+    // Emits enter/exit G-code for `region_id` when `inside` differs from the persisted state in
+    // m_inside_modifiers, and updates that state. Shared by resync, mid-segment crossings, and the
+    // trailing flush.
+    std::string     set_inside_modifier(int region_id, bool inside, const std::string &enter_gcode, const std::string &exit_gcode);
+    // Called once before a candidate path's first segment: if `at`'s containment in a candidate
+    // boundary disagrees with the persisted state (an intervening travel move silently crossed
+    // it), emits the appropriate enter/exit G-code to resync before any move is written.
+    std::string     resync_modifier_state(const Point &at, const std::vector<const ModifierGCodeBoundary*> &candidates);
+    // Emits the G1 move(s) for a single polyline segment (from -> to, total extrusion `dE`),
+    // splitting it at every point it crosses one of `candidates`, injecting enter/exit G-code at
+    // each crossing with proportionally interpolated extrusion.
+    std::string     extrude_line_with_modifier_crossings(const Point &from, const Point &to, double dE,
+                                                           const std::vector<const ModifierGCodeBoundary*> &candidates,
+                                                           const std::string &description, bool no_extrusion);
 
     // Farthest-point timelapse: find the extrusion point farthest from camera (0,0)
     void compute_farthest_point(const std::vector<LayerToPrint> &layers, int most_used_extruder,
@@ -641,6 +684,16 @@ private:
     ExtrusionRole                       m_last_extrusion_role;
     // To ignore gapfill role for retract_lift_enforce
     ExtrusionRole                       m_last_notgapfill_extrusion_role;
+    // Orca: per-layer cache of modifier regions carrying enter/exit G-code, used to bracket G1
+    // moves of any feature type at the exact point they cross a modifier's boundary, without
+    // splitting the extrusion's geometry into a separate region (which would e.g. introduce a wall
+    // seam). See the ModifierGCodeBoundary struct declared above with the crossing-detection methods.
+    std::vector<ModifierGCodeBoundary>  m_layer_modifier_boundaries;
+    // Which Layer the above cache was built for; rebuilt lazily whenever m_layer changes.
+    const Layer*                        m_layer_modifier_boundaries_layer = nullptr;
+    // Per-modifier-region "is the toolpath currently inside this boundary" state, persisted across
+    // extrusion paths (and travel moves) so a crossing is never double-counted or missed.
+    std::map<int, bool>                 m_inside_modifiers;
     // Support for G-Code Processor
     float                               m_last_height{ 0.0f };
     float                               m_last_layer_z{ 0.0f };

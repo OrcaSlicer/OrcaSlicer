@@ -130,6 +130,23 @@ if [ ${OPTIND} -eq 1 ] ; then
     exit 1
 fi
 
+if [[ -z "${CMAKE_BUILD_PARALLEL_LEVEL}" ]] ; then
+    detected_cores=""
+    if command -v nproc >/dev/null 2>&1 ; then
+        detected_cores=$(nproc)
+    elif command -v getconf >/dev/null 2>&1 ; then
+        detected_cores=$(getconf _NPROCESSORS_ONLN 2>/dev/null || true)
+    fi
+
+    if [[ "${detected_cores}" =~ ^[0-9]+$ ]] && [[ "${detected_cores}" -gt 1 ]] ; then
+        export CMAKE_BUILD_PARALLEL_LEVEL=$(((detected_cores + 1) / 2))
+    else
+        export CMAKE_BUILD_PARALLEL_LEVEL=1
+    fi
+
+    echo "Defaulting to CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL} (half of detected CPU cores)."
+fi
+
 if [[ -n "${CLEAN_DOCKER_IMAGE}" ]] && [[ -z "${USE_DOCKER}" ]] ; then
     echo "Error: -F requires -g."
     exit 1

@@ -319,6 +319,8 @@ set(SLIC3R_GUI_SOURCES
     GUI/MeshUtils.hpp
     GUI/ModelMall.cpp
     GUI/ModelMall.hpp
+    GUI/ModifierGCodeDialog.cpp
+    GUI/ModifierGCodeDialog.hpp
     GUI/MonitorBasePanel.cpp
     GUI/BBLStatusBarPrint.hpp
     GUI/BBLStatusBarPrint.cpp

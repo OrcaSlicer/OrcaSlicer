@@ -159,6 +159,7 @@ private:
     void        append_menu_item_invalidate_cut_info(wxMenu *menu);
     void        append_menu_item_edit_text(wxMenu *menu);
     void        append_menu_item_edit_svg(wxMenu *menu);
+    void        append_menu_item_modifier_gcode(wxMenu *menu);
 
     void        append_menu_items_instance_manipulation(wxMenu *menu);
     //void        update_menu_items_instance_manipulation(MenuType type);

@@ -6215,7 +6215,7 @@ LayerResult GCode::process_layer(
                         gcode += this->extrude_perimeters(print, by_region_specific, first_layer, true);
                     }
                     // ironing
-                    gcode += this->extrude_infill(print,by_region_specific, true);
+                    gcode += this->extrude_infill(print, by_region_specific, true);
                 }
 
                 if (this->config().gcode_label_objects) {
@@ -6310,6 +6310,21 @@ LayerResult GCode::process_layer(
         m_writer.add_object_change_labels(gcode);
 
         gcode += insert_timelapse_gcode();
+    }
+
+    // Orca: flush a lingering modifier's exit G-code so it isn't dropped when the print
+    // (or, in sequential/by-object mode, this object) ends while still "inside" a modifier boundary.
+    if (last_layer) {
+        std::vector<int> still_inside;
+        for (const auto &[region_id, inside] : m_inside_modifiers)
+            if (inside)
+                still_inside.push_back(region_id);
+        for (int region_id : still_inside)
+            for (const ModifierGCodeBoundary &b : this->layer_modifier_boundaries())
+                if (b.region_id == region_id) {
+                    gcode += this->set_inside_modifier(region_id, false, *b.enter_gcode, *b.exit_gcode);
+                    break;
+                }
     }
 
     result.gcode = std::move(gcode);
@@ -6925,12 +6940,16 @@ std::string GCode::extrude_path(const ExtrusionPath& path, const std::string& de
 }
 
 // Extrude perimeters: Decide where to put seams (hide or align seams).
+// Orca: modifier enter/exit G-code is injected by the geometric crossing-detection mechanism
+// inside GCode::_extrude, not here, so an extrusion's geometry stays untouched regardless of
+// whether its region was merged with its parent (see modifier_crossing_candidates).
 std::string GCode::extrude_perimeters(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region, bool is_first_layer, bool is_infill_first)
 {
     std::string gcode;
     for (const ObjectByExtruder::Island::Region &region : by_region)
         if (! region.perimeters.empty()) {
-            m_config.apply(print.get_print_region(&region - &by_region.front()).config());
+            int region_id = int(&region - &by_region.front());
+            m_config.apply(print.get_print_region(region_id).config());
             // BBS: for first layer, we always print wall firstly to get better bed adhesive force
             // This behaviour is same with cura
             const bool should_print = is_first_layer ? !is_infill_first
@@ -6944,6 +6963,8 @@ std::string GCode::extrude_perimeters(const Print &print, const std::vector<Obje
 }
 
 // Chain the paths hierarchically by a greedy algorithm to minimize a travel distance.
+// Orca: modifier enter/exit G-code is injected by the geometric crossing-detection mechanism
+// inside GCode::_extrude, not here (see extrude_perimeters above).
 std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectByExtruder::Island::Region> &by_region, bool ironing)
 {
     std::string 		 gcode;
@@ -6957,7 +6978,8 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
                 if ((ee->role() == erIroning) == ironing)
                     extrusions.emplace_back(ee);
             if (! extrusions.empty()) {
-                m_config.apply(print.get_print_region(&region - &by_region.front()).config());
+                int region_id = int(&region - &by_region.front());
+                m_config.apply(print.get_print_region(region_id).config());
                 chain_and_reorder_extrusion_entities(extrusions, m_last_pos.to_point());
                 for (const ExtrusionEntity *fill : extrusions) {
                     auto *eec = dynamic_cast<const ExtrusionEntityCollection*>(fill);
@@ -6969,6 +6991,155 @@ std::string GCode::extrude_infill(const Print &print, const std::vector<ObjectBy
                 }
             }
         }
+    return gcode;
+}
+
+// Orca: renders a modifier_enter_gcode/modifier_exit_gcode template; see GCode.hpp.
+std::string GCode::render_modifier_gcode_template(const char *key, const std::string &templ)
+{
+    if (templ.empty())
+        return {};
+    DynamicConfig config;
+    config.set_key_value("layer_num", new ConfigOptionInt(m_layer_index + 1));
+    config.set_key_value("layer_z", new ConfigOptionFloat(m_layer == nullptr ? m_last_height : m_layer->print_z));
+    return this->placeholder_parser_process(key, templ, m_writer.filament()->id(), &config) + "\n";
+}
+
+// Orca: rebuilds (lazily, cached per m_layer) the list of this layer's modifier regions carrying
+// enter/exit G-code, for the current object. Even though Layer::make_perimeters() may merge a
+// gcode-only modifier's perimeter *generation* into its parent's for efficiency, its own
+// LayerRegion::slices (the boundary polygon(s) we need here) stay populated regardless.
+const std::vector<GCode::ModifierGCodeBoundary>& GCode::layer_modifier_boundaries()
+{
+    if (m_layer_modifier_boundaries_layer != m_layer) {
+        m_layer_modifier_boundaries_layer = m_layer;
+        m_layer_modifier_boundaries.clear();
+        if (m_layer != nullptr && m_layer->object() != nullptr) {
+            const PrintObject &print_object = *m_layer->object();
+            for (size_t region_id = 0; region_id < print_object.num_printing_regions(); ++region_id) {
+                const PrintRegionConfig &cfg = print_object.printing_region(region_id).config();
+                if (cfg.modifier_enter_gcode.value.empty() && cfg.modifier_exit_gcode.value.empty())
+                    continue;
+                const LayerRegion *layerm = m_layer->get_region(int(region_id));
+                if (layerm == nullptr || layerm->slices.empty())
+                    continue;
+                ExPolygons boundary = to_expolygons(layerm->slices.surfaces);
+                if (boundary.empty())
+                    continue;
+                m_layer_modifier_boundaries.push_back({int(region_id), std::move(boundary), &cfg.modifier_enter_gcode.value, &cfg.modifier_exit_gcode.value,
+                                                        cfg.modifier_gcode_on_walls.value, cfg.modifier_gcode_on_infill.value,
+                                                        cfg.modifier_gcode_on_support.value, cfg.modifier_gcode_on_skirt_brim.value});
+            }
+        }
+    }
+    return m_layer_modifier_boundaries;
+}
+
+// Orca: see GCode.hpp.
+bool GCode::ModifierGCodeBoundary::applies_to(ExtrusionRole role) const
+{
+    if (is_perimeter(role))
+        return on_walls;
+    if (is_infill(role) || role == erGapFill)
+        return on_infill;
+    if (is_support(role))
+        return on_support;
+    if (role == erSkirt || role == erBrim)
+        return on_skirt_brim;
+    return false;
+}
+
+// Orca: candidate boundaries for `path` — those whose per-feature-type toggles cover its role
+// (see ModifierGCodeBoundary::applies_to) and whose bounding box comes near the path (cheap
+// common-case reject; empty for the vast majority of prints, which use no modifier G-code at all).
+std::vector<const GCode::ModifierGCodeBoundary*> GCode::modifier_crossing_candidates(const ExtrusionPath &path)
+{
+    std::vector<const ModifierGCodeBoundary*> candidates;
+    const auto &boundaries = this->layer_modifier_boundaries();
+    if (boundaries.empty())
+        return candidates;
+    const BoundingBox path_bbox = get_extents(path.polyline.to_polyline());
+    for (const ModifierGCodeBoundary &b : boundaries)
+        if (b.applies_to(path.role()) && path_bbox.overlap(get_extents(b.boundary)))
+            candidates.push_back(&b);
+    return candidates;
+}
+
+// Orca: see GCode.hpp.
+std::string GCode::set_inside_modifier(int region_id, bool inside, const std::string &enter_gcode, const std::string &exit_gcode)
+{
+    bool &state = m_inside_modifiers[region_id];
+    if (state == inside)
+        return {};
+    std::string gcode = inside ? this->render_modifier_gcode_template("modifier_enter_gcode", enter_gcode)
+                                : this->render_modifier_gcode_template("modifier_exit_gcode", exit_gcode);
+    state = inside;
+    return gcode;
+}
+
+// Orca: see GCode.hpp.
+std::string GCode::resync_modifier_state(const Point &at, const std::vector<const ModifierGCodeBoundary*> &candidates)
+{
+    std::string gcode;
+    for (const ModifierGCodeBoundary *b : candidates) {
+        bool inside = std::any_of(b->boundary.begin(), b->boundary.end(), [&at](const ExPolygon &ex) { return ex.contains(at); });
+        gcode += this->set_inside_modifier(b->region_id, inside, *b->enter_gcode, *b->exit_gcode);
+    }
+    return gcode;
+}
+
+// Orca: see GCode.hpp. Splits (from -> to) at every point it crosses one of `candidates`,
+// injecting enter/exit G-code at each crossing with proportionally interpolated extrusion.
+std::string GCode::extrude_line_with_modifier_crossings(const Point &from, const Point &to, double dE,
+                                                          const std::vector<const ModifierGCodeBoundary*> &candidates,
+                                                          const std::string &description, bool no_extrusion)
+{
+    const Line   segment(from, to);
+    const double seg_len = segment.length();
+    // (parametric t along the segment, region_id) for every boundary crossing, sorted below.
+    std::vector<std::pair<double, int>> crossings;
+    for (const ModifierGCodeBoundary *b : candidates) {
+        for (const ExPolygon &ex : b->boundary) {
+            auto test_ring = [&](const Polygon &ring) {
+                Lines lines = ring.lines();
+                for (const Line &edge : lines) {
+                    Point pt;
+                    if (line_alg::intersection(segment, edge, &pt)) {
+                        double t = seg_len > 0 ? (pt - from).cast<double>().norm() / seg_len : 0.;
+                        crossings.emplace_back(t, b->region_id);
+                    }
+                }
+            };
+            test_ring(ex.contour);
+            for (const Polygon &hole : ex.holes)
+                test_ring(hole);
+        }
+    }
+    std::sort(crossings.begin(), crossings.end());
+
+    std::string gcode;
+    if (crossings.empty()) {
+        gcode += m_writer.extrude_to_xy(this->point_to_gcode(to), dE, GCodeWriter::full_gcode_comment ? description : "", no_extrusion);
+        return gcode;
+    }
+
+    double prev_t = 0.;
+    for (const auto &[t, region_id] : crossings) {
+        Point cross_point = from + ((to - from).cast<double>() * t).cast<coord_t>();
+        double sub_dE = dE * (t - prev_t);
+        gcode += m_writer.extrude_to_xy(this->point_to_gcode(cross_point), sub_dE, GCodeWriter::full_gcode_comment ? description : "", no_extrusion);
+        // Flip this modifier's persisted state at the exact crossing point.
+        bool &state = m_inside_modifiers[region_id];
+        state = !state;
+        for (const ModifierGCodeBoundary *b : candidates)
+            if (b->region_id == region_id) {
+                gcode += state ? this->render_modifier_gcode_template("modifier_enter_gcode", *b->enter_gcode)
+                                : this->render_modifier_gcode_template("modifier_exit_gcode", *b->exit_gcode);
+                break;
+            }
+        prev_t = t;
+    }
+    gcode += m_writer.extrude_to_xy(this->point_to_gcode(to), dE * (1. - prev_t), GCodeWriter::full_gcode_comment ? description : "", no_extrusion);
     return gcode;
 }
 
@@ -7464,10 +7635,17 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     }
 }
     
+    // Orca: modifier-boundary crossing detection (every feature type) — computed once per path,
+    // used both to skip the overhang-speed re-segmentation below (the two don't combine in v1) and
+    // to bracket G1 moves with enter/exit G-code further down, without altering the path's geometry.
+    std::vector<const ModifierGCodeBoundary*> modifier_crossings = this->modifier_crossing_candidates(path);
+    if (!modifier_crossings.empty())
+        gcode += this->resync_modifier_state(path.first_point(), modifier_crossings);
+
     bool variable_speed = false;
     std::vector<ProcessedPoint> new_points {};
 
-    if (NOZZLE_CONFIG(enable_overhang_speed) && !this->on_first_layer() && !object_layer_over_raft() &&
+    if (modifier_crossings.empty() && NOZZLE_CONFIG(enable_overhang_speed) && !this->on_first_layer() && !object_layer_over_raft() &&
         (is_bridge(path.role()) || is_perimeter(path.role()))) {
             bool is_external = is_external_perimeter(path.role());
             double ref_speed   = is_external ? NOZZLE_CONFIG(outer_wall_speed) : NOZZLE_CONFIG(inner_wall_speed);
@@ -7871,10 +8049,17 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
                     } else if (sloped == nullptr) {
                         // Normal extrusion
-                        gcode += m_writer.extrude_to_xy(
-                            this->point_to_gcode(line.b.to_point()),
-                            dE,
-                            GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                        if (modifier_crossings.empty())
+                            gcode += m_writer.extrude_to_xy(
+                                this->point_to_gcode(line.b.to_point()),
+                                dE,
+                                GCodeWriter::full_gcode_comment ? tempDescription : "", path.is_force_no_extrusion());
+                        else
+                            // Orca: split this segment at every point it crosses a modifier boundary,
+                            // injecting enter/exit G-code there without altering the path's geometry.
+                            gcode += this->extrude_line_with_modifier_crossings(
+                                line.a.to_point(), line.b.to_point(), dE,
+                                modifier_crossings, tempDescription, path.is_force_no_extrusion());
                     } else {
                         // Sloped extrusion
                         const auto [z_ratio, e_ratio] = sloped->interpolate(path_length / total_length);
