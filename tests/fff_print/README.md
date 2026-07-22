@@ -22,6 +22,7 @@ If you touched code in a subsystem, its test file is where your test goes. If a 
 | `test_flow` | `Flow.{c,h}pp` | extrusion width / area math |
 | `test_extrusion_entity` | `ExtrusionEntity.{c,h}pp` | extrusion-collection geometry |
 | `test_gcodewriter` | `GCodeWriter.{c,h}pp`, `GCode.cpp` | low-level G-code emit primitives, origin |
+| `test_gcodeprocessor` | `GCode/GCodeProcessor.{c,h}pp` | reserved-keyword detection per printer kind |
 | `test_model` | `Model.{c,h}pp` | object / volume / instance construction |
 
 ### Slicing pipeline (build a `Print`, then assert state or G-code)
