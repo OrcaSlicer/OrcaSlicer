@@ -2338,7 +2338,7 @@ void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& 
 	{
         float hyper_y     = starting_y + m_endlines.size() * shift_y + m_line_height * .5f;
 		float dont_show_y = hyper_y    + ImGui::CalcTextSize((m_hypertext + "  ").c_str()).y + m_line_height * .5f;
-		std::string dont_show_text = _u8L("Don't show again") + std::to_string(m_endlines.size());
+		std::string dont_show_text = _u8L("Don't show again");
 		ImVec2 part_size = ImGui::CalcTextSize(dont_show_text.c_str());
 
         if (!m_multiline && m_lines_count > 2) {

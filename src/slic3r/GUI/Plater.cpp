@@ -11988,12 +11988,53 @@ bool Plater::priv::check_ams_status_impl(bool is_slice_all)
         auto nozzle_volumes_values = preset_bundle->project_config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type")->values;
         assert(obj->GetExtderSystem()->GetTotalExtderCount() == 2 && nozzle_volumes_values.size() == 2);
         if (obj->GetExtderSystem()->GetTotalExtderCount() == 2 && nozzle_volumes_values.size() == 2) {
-            // Map device flow->volume via the table, not `flowtype - 1` (which mis-maps U_FLOW to nvtHybrid).
-            NozzleVolumeType right_nozzle_type = DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(0));
-            NozzleVolumeType left_nozzle_type = DevNozzle::ToNozzleVolumeType(obj->GetExtderSystem()->GetNozzleFlowType(1));
-            NozzleVolumeType preset_left_type  = NozzleVolumeType(nozzle_volumes_values[0]);
-            NozzleVolumeType preset_right_type  = NozzleVolumeType(nozzle_volumes_values[1]);
-            is_same_as_printer = (left_nozzle_type == preset_left_type && right_nozzle_type == preset_right_type);
+            // [Vortek] H2C: Use BBS-style NozzleGroupInfo comparison instead of direct nozzle type match.
+            // This correctly handles Hybrid presets (which expand into per-type counts) and detects
+            // never-synced state (nozzle_count==0) so the first sync dialog appears.
+            // After device sync, extruder_nozzle_stats matches printer → dialog suppressed.
+            // Reference to BBS: BambuStudio/src/slic3r/GUI/Plater.cpp is_extruder_stat_synced()
+            using namespace MultiNozzleUtils;
+            auto nozzle_diameter_values = preset_bundle->printers.get_edited_preset().config.option<ConfigOptionFloatsNullable>("nozzle_diameter")->values;
+
+            // Build preset nozzle groups from extruder_nozzle_stats config
+            std::vector<std::vector<NozzleGroupInfo>> preset_nozzle_infos(nozzle_diameter_values.size());
+            for (size_t extruder_id = 0; extruder_id < nozzle_diameter_values.size(); ++extruder_id) {
+                NozzleVolumeType preset_volume_type = NozzleVolumeType(nozzle_volumes_values[extruder_id]);
+                std::string      preset_diameter    = format_diameter_to_str(nozzle_diameter_values[extruder_id]);
+
+                if (preset_volume_type == nvtHybrid) {
+                    // Hybrid: expand into separate groups for each nozzle type from stats
+                    int std_count = getExtruderNozzleCount(preset_bundle, extruder_id, nvtStandard);
+                    int hf_count  = getExtruderNozzleCount(preset_bundle, extruder_id, nvtHighFlow);
+                    if (std_count > 0)
+                        preset_nozzle_infos[extruder_id].emplace_back(preset_diameter, nvtStandard, extruder_id, std_count);
+                    if (hf_count > 0)
+                        preset_nozzle_infos[extruder_id].emplace_back(preset_diameter, nvtHighFlow, extruder_id, hf_count);
+                    // If both are 0 → never synced → empty group → will mismatch
+                } else {
+                    int count = getExtruderNozzleCount(preset_bundle, extruder_id, preset_volume_type);
+                    preset_nozzle_infos[extruder_id].emplace_back(preset_diameter, preset_volume_type, extruder_id, count);
+                }
+            }
+
+            // Compare with printer nozzle groups
+            auto printer_groups = obj->GetNozzleSystem()->GetNozzleGroups();
+            for (const auto& preset_groups : preset_nozzle_infos) {
+                for (const auto& preset_group : preset_groups) {
+                    if (preset_group.nozzle_count == 0) {
+                        // Never synced: if printer has nozzles of this type → needs sync
+                        if (std::find_if(printer_groups.begin(), printer_groups.end(),
+                                [&preset_group](const NozzleGroupInfo& elem) { return preset_group.is_same_type(elem); })
+                            != printer_groups.end()) {
+                            is_same_as_printer = false;
+                            break;
+                        }
+                    } else if (std::find(printer_groups.begin(), printer_groups.end(), preset_group) == printer_groups.end()) {
+                        is_same_as_printer = false;
+                        break;
+                    }
+                }
+            }
         }
 
         std::vector<std::map<int, int>> ams_count_info;
