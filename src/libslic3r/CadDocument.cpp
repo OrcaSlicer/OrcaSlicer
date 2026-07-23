@@ -1775,18 +1775,35 @@ std::string CadDocument::serialize_recipe() const
 
 bool CadDocument::deserialize_recipe(const std::string& blob)
 {
+    error.clear();
     try {
         std::istringstream iss(blob);
         cereal::BinaryInputArchive ar(iss);
         uint32_t v;
         ar(v);
-        if (v > SNAPORCA_CAD_RECIPE_VERSION)
+        if (v > SNAPORCA_CAD_RECIPE_VERSION) {
+            error = "saved with a newer version of SnapOrca CAD (format v"
+                  + std::to_string(v) + ", this build reads up to v"
+                  + std::to_string(SNAPORCA_CAD_RECIPE_VERSION) + ")";
             return false;
+        }
+        if (v < SNAPORCA_CAD_RECIPE_VERSION) {
+            error = "saved with an older version of SnapOrca CAD (format v"
+                  + std::to_string(v) + "); this project cannot be opened by this build";
+            return false;
+        }
         ar(features);
         return recompute();
-    } catch (const Standard_Failure&) {
+    } catch (const Standard_Failure& e) {
+        const char* what = e.GetMessageString();
+        error = std::string("CAD data could not be read")
+              + (what && *what ? ": " + std::string(what) : "");
+        return false;
+    } catch (const std::exception& e) {
+        error = std::string("CAD data could not be read: ") + e.what();
         return false;
     } catch (...) {
+        error = "CAD data could not be read";
         return false;
     }
 }

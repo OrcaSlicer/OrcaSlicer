@@ -356,7 +356,11 @@ public:
     void clear();
     bool recompute();   // replay features -> body + display_mesh; false on error
 
-    static constexpr uint32_t SNAPORCA_CAD_RECIPE_VERSION = 1;
+    // CadRecipe serialization contract:
+    // - bump this whenever CadFeature::save/load gains or loses a field
+    // - v1 blobs are deliberately not loadable; there is no migration path by design
+    // - append fields ONLY at the end of save/load, never reorder (golden fixture enforces this)
+    static constexpr uint32_t SNAPORCA_CAD_RECIPE_VERSION = 2;
     std::string serialize_recipe() const;
     bool deserialize_recipe(const std::string& blob);
 
