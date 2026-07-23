@@ -16,21 +16,10 @@
 .vs/*
 /.cache/
 /.vscode/
-/deps/cmakefiles/
-/deps/DL_CACHE/
-deps/build*
-deps_src/build/
+
 /flatpak-repo/
 /src/TAGS
-blib
-Build
-build-linux/
-Build.bat
-build_*/
-_build
-/build*/
 CMakeLists.txt.user
-install_*
 internal_docs/
 local-lib
 MANIFEST.bak
@@ -40,7 +29,22 @@ resources/profiles/user/default
 src/OrcaSlicer-doc/
 SVG
 test.js
+
+# Build artefacts
+_build
+blib
+Build
+build-linux/
+Build.bat
+build_*/
+/build*/
+deps/build*
+deps_src/build/
+install_*
+/deps/cmakefiles/
+/deps/DL_CACHE/
 xs/
+
 # Python bytecode
 __pycache__/
 *.pyc
