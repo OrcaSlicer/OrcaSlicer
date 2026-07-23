@@ -384,9 +384,16 @@ static t_config_enum_values s_keys_map_SeamPosition {
     { "aligned",        spAligned },
     { "aligned_back",   spAlignedBack },
     { "back",           spRear },
-    { "random",         spRandom }
+    { "random",         spRandom },
+    { "custom",         spCustom }
 };
 CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SeamPosition)
+
+static t_config_enum_values s_keys_map_SeamRelativeReference {
+    { "closest",  srrClosest },
+    { "farthest", srrFarthest }
+};
+CONFIG_OPTION_ENUM_DEFINE_STATIC_MAPS(SeamRelativeReference)
 
 // Orca
 static t_config_enum_values s_keys_map_SeamScarfType{
@@ -5997,20 +6004,74 @@ void PrintConfigDef::init_fff_params()
     def = this->add("seam_position", coEnum);
     def->label = L("Seam position");
     def->category = L("Quality");
-    def->tooltip = L("This is the starting position for each part of the outer wall.");
+    def->tooltip = L("This is the starting position for each part of the outer wall. "
+                     "\"Center/custom point\" places the seam on the side facing the part's center; "
+                     "the reference point and behavior can be customized in Expert mode.");
     def->enum_keys_map = &ConfigOptionEnum<SeamPosition>::get_enum_values();
     def->enum_values.push_back("nearest");
     def->enum_values.push_back("aligned");
     def->enum_values.push_back("aligned_back");
     def->enum_values.push_back("back");
     def->enum_values.push_back("random");
+    def->enum_values.push_back("custom");
     def->enum_labels.push_back(L("Nearest"));
     def->enum_labels.push_back(L("Aligned"));
     def->enum_labels.push_back(L("Aligned back"));
     def->enum_labels.push_back(L("Back"));
     def->enum_labels.push_back(L("Random"));
+    def->enum_labels.push_back(L("Center/custom point"));
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionEnum<SeamPosition>(spAligned));
+
+    def = this->add("seam_position_x", coFloat);
+    def->label = L("Relative seam x-position");
+    def->category = L("Quality");
+    def->tooltip = L("When the seam position is set to \"Center/custom point\", the seam of each perimeter loop "
+                     "is placed at the point closest to this coordinate. The coordinate is expressed in the "
+                     "part's own frame, where (0,0) is the part center. For example x=50 biases the seam "
+                     "towards the right of the part. For a rotationally symmetric part centered on (0,0) the "
+                     "position is ambiguous, so set a non-center point to pick a side.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("seam_position_y", coFloat);
+    def->label = L("Relative seam y-position");
+    def->category = L("Quality");
+    def->tooltip = L("When the seam position is set to \"Center/custom point\", the seam of each perimeter loop "
+                     "is placed at the point closest to this coordinate. The coordinate is expressed in the "
+                     "part's own frame, where (0,0) is the part center. For example y=-50 biases the seam "
+                     "towards the front of the part. For a rotationally symmetric part centered on (0,0) the "
+                     "position is ambiguous, so set a non-center point to pick a side.");
+    def->sidetext = L("mm");	// millimeters, CIS languages need translation
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionFloat(0));
+
+    def = this->add("seam_position_ref", coEnum);
+    def->label = L("Relative seam position");
+    def->category = L("Quality");
+    def->tooltip = L("When the seam position is set to \"Center/custom point\", choose whether the seam is placed "
+                     "on the perimeter point closest to the reference point, or farthest from it. With the "
+                     "reference point at the part center (0,0), \"Closest to point\" pulls the seam to the "
+                     "inner-facing side while \"Farthest from point\" pushes it to the outer-facing side.");
+    def->enum_keys_map = &ConfigOptionEnum<SeamRelativeReference>::get_enum_values();
+    def->enum_values.push_back("closest");
+    def->enum_values.push_back("farthest");
+    def->enum_labels.push_back(L("Closest to point"));
+    def->enum_labels.push_back(L("Farthest from point"));
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionEnum<SeamRelativeReference>(srrClosest));
+
+    def = this->add("seam_position_align", coBool);
+    def->label = L("Align relative seam across layers");
+    def->category = L("Quality");
+    def->tooltip = L("When the seam position is set to \"Center/custom point\", align the per-layer seam points "
+                     "into a smooth vertical line (as the other seam modes do). Turn this off for thin or "
+                     "intricate parts (e.g. lattices) where the alignment's tolerance is wider than the feature "
+                     "and would pull the seam off the chosen edge; then each layer keeps its own closest/"
+                     "farthest point.");
+    def->mode = comExpert;
+    def->set_default_value(new ConfigOptionBool(true));
 
     def = this->add("staggered_inner_seams", coBool);
     def->label = L("Staggered inner seams");

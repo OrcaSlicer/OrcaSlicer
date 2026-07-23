@@ -648,6 +648,13 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : { "inner_wall_speed", "outer_wall_speed", "small_perimeter_speed", "small_perimeter_threshold" })
         toggle_field(el, have_perimeters, variant_index);
 
+    // The relative seam reference point is only relevant when seam position is "Center/custom point".
+    bool is_custom_seam = have_perimeters && config->opt_enum<SeamPosition>("seam_position") == spCustom;
+    toggle_line("seam_position_x", is_custom_seam);
+    toggle_line("seam_position_y", is_custom_seam);
+    toggle_line("seam_position_ref", is_custom_seam);
+    toggle_line("seam_position_align", is_custom_seam);
+
     bool have_infill = config->option<ConfigOptionPercent>("sparse_infill_density")->value > 0;
     // sparse_infill_filament_id uses the same logic as in Print::extruders()
     for (auto el : { "sparse_infill_pattern", "infill_combination", "fill_multiline","infill_direction",
