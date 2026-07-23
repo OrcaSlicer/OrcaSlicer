@@ -2466,7 +2466,7 @@ msgid "Failed to open the Plugins dialog (unknown error)."
 msgstr "Не удалось открыть меню плагинов (неизвестная ошибка)."
 
 msgid "Plugin Terminal"
-msgstr "Терминал плагинов"
+msgstr "Консоль плагина"
 
 msgid "Changing application language"
 msgstr "Изменение языка приложения"
@@ -10289,13 +10289,14 @@ msgstr ""
 msgid "Enabling this option will modify the model's shape. If your print requires precise dimensions or is part of an assembly, it's important to double-check whether this change in geometry impacts the functionality of your print."
 msgstr "Включение этой настройки приведёт к изменению формы модели. Если модель требует соблюдения точности размеров или является частью сборки, убедитесь, что изменение геометрии не повлияет на функциональность напечатанного."
 
+# Дописывается в диалоговых окнах (sparse_infill_rotate_template и make_overhang_printable).
 msgid "Are you sure you want to enable this option?"
-msgstr "Вы действительно хотите включить эту опцию?"
+msgstr "Вы действительно хотите задействовать эту функцию?"
 
 # Слайсер дописывает "Вы действительно хотите включить эту опцию?" в следующей
 # строчке. Т.е. последнее предложение переводить не нужно, оно дублируется.
 msgid "Infill patterns are typically designed to handle rotation automatically to ensure proper printing and achieve their intended effects (e.g., Gyroid, Cubic). Rotating the current sparse infill pattern may lead to insufficient support. Please proceed with caution and thoroughly check for any potential printing issues. Are you sure you want to enable this option?"
-msgstr "Шаблоны заполнения обычно разработаны так, чтобы автоматически обрабатывать поворот для обеспечения правильной печати и достижения желаемого эффекта (например, «гироид», «куб»). Поворот текущего узора заполнения может привести к недостаточной поддержке. Будьте осторожны и тщательно проверьте наличие возможных проблем с печатью."
+msgstr "Многие шаблоны заполнения разработаны на основе автоматического поворота по определённым правилам для поддержания правильной печати и желаемого эффекта (например, «Гироид» или «Куб»). Изменение правила поворота текущего шаблона может привести к его провисанию. Будьте осторожны и внимательно проверяйте результат на наличие потенциальных проблем с печатью."
 
 msgid ""
 "Layer height is too small.\n"
