@@ -632,7 +632,7 @@ wxBoxSizer *Newer3mfVersionDialog::get_btn_sizer()
 
     bool       file_version_newer = (*m_file_version) > (*m_cloud_version);
     if (!file_version_newer) {
-        m_update_btn = new Button(this, _CTX(L_CONTEXT("Update", "Software"), "Software"));
+        m_update_btn = new Button(this, _L_CONTEXT(L_CONTEXT("Update", "Software"), "Software"));
         m_update_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         horizontal_sizer->Add(m_update_btn, 0, wxRIGHT, FromDIP(ButtonProps::ChoiceButtonGap()));
 

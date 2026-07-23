@@ -344,7 +344,7 @@ wxPanel* KBShortcutsDialog::create_page(wxWindow* parent, const ShortcutsItem& s
         // Keyboard keys carry a "Keyboard Shortcut" context so translators keep them in English;
         // mouse-input labels are ordinary phrases and use the plain lookup.
         const bool is_mouse = shortcut.find("Mouse") != std::string::npos || shortcut.find("mouse") != std::string::npos;
-        auto key = new wxStaticText(scrollable_panel, wxID_ANY, is_mouse ? _(shortcut) : _CTX(shortcut, "Keyboard Shortcut"));
+        auto key = new wxStaticText(scrollable_panel, wxID_ANY, is_mouse ? _(shortcut) : _L_CONTEXT(shortcut, "Keyboard Shortcut"));
         key->SetForegroundColour(wxColour(50, 58, 61));
         key->SetFont(bold_font);
         grid_sizer->Add(key, 0, wxALIGN_CENTRE_VERTICAL);

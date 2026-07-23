@@ -736,7 +736,7 @@ wxBoxSizer* AMSDryCtrWin::create_guide_right_section(wxPanel* parent)
 
     m_back_button = create_button(
         parent,
-        wxString::FromUTF8(_CTX_utf8(L_CONTEXT("Back", "amsdrying"), "amsdrying")),
+        wxString::FromUTF8(_u8L_CONTEXT(L_CONTEXT("Back", "amsdrying"), "amsdrying")),
         wxColour("#F8F8F8"),       // Background color - light gray
         wxColour("#D0D0D0"),       // Border color - gray
         *wxBLACK                   // Text color - black

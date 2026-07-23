@@ -432,7 +432,7 @@ void OptionsGroup::activate_line(Line& line)
         if ((is_multioption_line || line.label.IsEmpty()) && !option.label.empty() && !custom_ctrl) {
             //!			To correct translation by context have to use wxGETTEXT_IN_CONTEXT macro from wxWidget 3.1.1
             wxString str_label = (option.label == L_CONTEXT("Top", "Layers") || option.label == L_CONTEXT("Bottom", "Layers")) ?
-                                     _CTX(option.label, "Layers") :
+                                     _L_CONTEXT(option.label, "Layers") :
                                      _(option.label);
             label = new wxStaticText(this->ctrl_parent(), wxID_ANY, str_label + ": ", wxDefaultPosition, // wxDefaultSize);
                                      wxSize(sublabel_width != -1 ? sublabel_width * wxGetApp().em_unit() : -1, -1), wxALIGN_RIGHT);
