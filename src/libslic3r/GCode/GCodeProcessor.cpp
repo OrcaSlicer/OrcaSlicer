@@ -1263,7 +1263,7 @@ void GCodeProcessor::run_post_process()
                 used_filament_volume += filament_mm[id] * static_cast<double>(M_PI) * sqr(0.5 * diameter);
             }
             char buf[64];
-            sprintf(buf, "%.2f", used_filament_volume);
+            snprintf(buf, sizeof(buf), "%.2f", used_filament_volume);
             gcode_line.replace(pos, used_filament_volume_placeholder.length(), buf);
             processed = true;
             pos = gcode_line.find(used_filament_volume_placeholder, pos + strlen(buf));
