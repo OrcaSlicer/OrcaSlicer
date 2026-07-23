@@ -15736,16 +15736,16 @@ msgstr ""
 "Bu miktar milimetre cinsinden veya mevcut ekstruder çapının yüzdesi olarak belirtilebilir. Bu parametrenin varsayılan değeri %10'dur."
 
 msgid "Scarf joint seam (beta)"
-msgstr "Atkı birleşim dikişi (beta)"
+msgstr "Eğik birleşim dikişi (beta)"
 
 msgid "Use scarf joint to minimize seam visibility and increase seam strength."
-msgstr "Dikiş görünürlüğünü en aza indirmek ve dikiş mukavemetini arttırmak için atkı birleşimini kullanın."
+msgstr "Dikiş görünürlüğünü en aza indirmek ve dikiş mukavemetini arttırmak için eğik birleşimini kullanın."
 
 msgid "Conditional scarf joint"
-msgstr "Koşullu atkı birleşimi"
+msgstr "Koşullu eğik birleşimi"
 
 msgid "Apply scarf joints only to smooth perimeters where traditional seams do not conceal the seams at sharp corners effectively."
-msgstr "Atkı bağlantılarını yalnızca geleneksel dikişlerin keskin köşelerdeki dikişleri etkili bir şekilde gizleyemediği düzgün kenarlara uygulayın."
+msgstr "Eğik bağlantılarını yalnızca geleneksel dikişlerin keskin köşelerdeki dikişleri etkili bir şekilde gizleyemediği düzgün kenarlara uygulayın."
 
 msgid "Conditional angle threshold"
 msgstr "Koşullu açı eşiği"
@@ -15754,61 +15754,61 @@ msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
 "If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
 msgstr ""
-"Bu seçenek, koşullu bir atkı eklem dikişi uygulamak için eşik açısını ayarlar.\n"
-"Çevre halkası içindeki maksimum açı bu değeri aşarsa (keskin köşelerin bulunmadığını gösterir), bir atkı birleştirme dikişi kullanılacaktır. Varsayılan değer 155°'dir."
+"Bu seçenek, koşullu bir eğik eklem dikişi uygulamak için eşik açısını ayarlar.\n"
+"Çevre halkası içindeki maksimum açı bu değeri aşarsa (keskin köşelerin bulunmadığını gösterir), bir eğik birleştirme dikişi kullanılacaktır. Varsayılan değer 155°'dir."
 
 msgid "Conditional overhang threshold"
 msgstr "Koşullu çıkıntı eşiği"
 
 #, no-c-format, no-boost-format
 msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Bu seçenek, atkı bağlantı dikişlerinin uygulanması için sarkma eşiğini belirler. Çevrenin desteklenmeyen kısmı bu eşikten az ise atkı birleştirme dikişleri uygulanacaktır. Varsayılan eşik, dış duvar genişliğinin %40'ına ayarlanmıştır. Performans değerlendirmeleri nedeniyle çıkıntının derecesi tahmin edilir."
+msgstr "Bu seçenek, eğik bağlantı dikişlerinin uygulanması için sarkma eşiğini belirler. Çevrenin desteklenmeyen kısmı bu eşikten az ise eğik birleştirme dikişleri uygulanacaktır. Varsayılan eşik, dış duvar genişliğinin %40'ına ayarlanmıştır. Performans değerlendirmeleri nedeniyle çıkıntının derecesi tahmin edilir."
 
 msgid "Scarf joint speed"
-msgstr "Atkı birleşim hızı"
+msgstr "Eğik birleşim hızı"
 
 msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Bu seçenek, atkı bağlantılarının yazdırma hızını ayarlar. Atkı bağlantılarının yavaş bir hızda (100 mm/s'den az) yazdırılması tavsiye edilir. Ayarlanan hızın dış veya iç duvarların hızından önemli ölçüde farklı olması durumunda 'Ekstrüzyon hızı yumuşatma' seçeneğinin etkinleştirilmesi de tavsiye edilir. Burada belirtilen hız, dış veya iç duvarların hızından daha yüksekse, yazıcı varsayılan olarak iki hızdan daha yavaş olanı seçecektir. Yüzde olarak belirtildiğinde (örn. %80), hız, ilgili dış veya iç duvar hızına göre hesaplanır. Varsayılan değer %100 olarak ayarlanmıştır."
+msgstr "Bu seçenek, eğik bağlantılarının yazdırma hızını ayarlar. Eğik bağlantılarının yavaş bir hızda (100 mm/s'den az) yazdırılması tavsiye edilir. Ayarlanan hızın dış veya iç duvarların hızından önemli ölçüde farklı olması durumunda 'Ekstrüzyon hızı yumuşatma' seçeneğinin etkinleştirilmesi de tavsiye edilir. Burada belirtilen hız, dış veya iç duvarların hızından daha yüksekse, yazıcı varsayılan olarak iki hızdan daha yavaş olanı seçecektir. Yüzde olarak belirtildiğinde (örn. %80), hız, ilgili dış veya iç duvar hızına göre hesaplanır. Varsayılan değer %100 olarak ayarlanmıştır."
 
 msgid "Scarf joint flow ratio"
-msgstr "Atkı birleşimi akış oranı"
+msgstr "Eğik birleşimi akış oranı"
 
 msgid "This factor affects the amount of material for scarf joints."
-msgstr "Bu faktör atkı birleşimlerinde kullanılacak materyal miktarını değiştirir."
+msgstr "Bu faktör eğik birleşimlerinde kullanılacak materyal miktarını değiştirir."
 
 msgid "Scarf start height"
-msgstr "Atkı başlangıç yüksekliği"
+msgstr "Eğik başlangıç yüksekliği"
 
 msgid ""
 "Start height of the scarf.\n"
 "This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
 msgstr ""
-"Atkı başlangıç yüksekliği.\n"
+"Eğik başlangıç yüksekliği.\n"
 "Bu miktar milimetre cinsinden veya geçerli katman yüksekliğinin yüzdesi olarak belirtilebilir. Bu parametrenin varsayılan değeri 0'dır."
 
 msgid "Scarf around entire wall"
 msgstr "Tüm duvarın etrafına atkıla"
 
 msgid "The scarf extends to the entire length of the wall."
-msgstr "Atkı duvarın tüm uzunluğu boyunca uzanır."
+msgstr "Eğik duvarın tüm uzunluğu boyunca uzanır."
 
 msgid "Scarf length"
-msgstr "Atkı uzunluğu"
+msgstr "Eğik uzunluğu"
 
 msgid "Length of the scarf. Setting this parameter to zero effectively disables the scarf."
 msgstr "Atkının uzunluğu. Bu parametrenin 0 a ayarlanması atkıyı dolaylı yoldan devre dışı bırakır."
 
 msgid "Scarf steps"
-msgstr "Atkı kademesi"
+msgstr "Eğik kademesi"
 
 msgid "Minimum number of segments of each scarf."
 msgstr "Her atkının minimum segment sayısı."
 
 msgid "Scarf joint for inner walls"
-msgstr "İç duvarlar için atkı birleşimi"
+msgstr "İç duvarlar için eğik birleşimi"
 
 msgid "Use scarf joint for inner walls as well."
-msgstr "İç duvarlar için de atkı birleşimini kullanın."
+msgstr "İç duvarlar için de eğik birleşimini kullanın."
 
 msgid "Role base wipe speed"
 msgstr "Otomatik temizleme hızı"

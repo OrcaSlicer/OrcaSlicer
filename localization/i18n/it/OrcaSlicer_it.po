@@ -15814,16 +15814,16 @@ msgstr ""
 "Questa quantità può essere specificata in millimetri o come percentuale del diametro corrente dell'estrusore. Il valore predefinito per questo parametro è 10%."
 
 msgid "Scarf joint seam (beta)"
-msgstr "Cucitura a sciarpa (beta)"
+msgstr "Cucitura obliqua (beta)"
 
 msgid "Use scarf joint to minimize seam visibility and increase seam strength."
-msgstr "Utilizza il giunto a sciarpa per ridurre al minimo la visibilità della cucitura e aumentarne la resistenza."
+msgstr "Utilizza il giunto obliquo per ridurre al minimo la visibilità della cucitura e aumentarne la resistenza."
 
 msgid "Conditional scarf joint"
-msgstr "Cucitura a sciarpa condizionale"
+msgstr "Cucitura obliqua condizionale"
 
 msgid "Apply scarf joints only to smooth perimeters where traditional seams do not conceal the seams at sharp corners effectively."
-msgstr "Applica le cuciture a sciarpa solo sui perimetri lisci e curvi, dove le cuciture tradizionali risulterebbero molto evidenti. Gli angoli netti continueranno a utilizzare le cuciture normali per mantenere la precisione dimensionale."
+msgstr "Applica le cuciture oblique solo sui perimetri lisci e curvi, dove le cuciture tradizionali risulterebbero molto evidenti. Gli angoli netti continueranno a utilizzare le cuciture normali per mantenere la precisione dimensionale."
 
 msgid "Conditional angle threshold"
 msgstr "Soglia angolo condizionale"
@@ -15832,61 +15832,61 @@ msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
 "If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
 msgstr ""
-"Questa opzione imposta la soglia dell'angolo per l'applicazione di una cucitura a sciarpa condizionale.\n"
-"Se l'angolo massimo all'interno dell'anello perimetrale supera questo valore (che indica l'assenza di spigoli vivi), si utilizzerà una cucitura a sciarpa. Il valore predefinito è 155°."
+"Questa opzione imposta la soglia dell'angolo per l'applicazione di una cucitura obliqua condizionale.\n"
+"Se l'angolo massimo all'interno dell'anello perimetrale supera questo valore (che indica l'assenza di spigoli vivi), si utilizzerà una cucitura obliqua. Il valore predefinito è 155°."
 
 msgid "Conditional overhang threshold"
 msgstr "Soglia di sporgenza condizionale"
 
 #, no-c-format, no-boost-format
 msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Questa opzione determina la soglia di sporgenza per l'applicazione di cuciture a sciarpa. Se la porzione non supportata del perimetro è inferiore a questa soglia, verranno applicate cuciture a sciarpa. La soglia predefinita è impostata al 40% della larghezza della parete esterna. Per motivi di prestazioni, il grado di sporgenza viene stimato."
+msgstr "Questa opzione determina la soglia di sporgenza per l'applicazione di cuciture oblique. Se la porzione non supportata del perimetro è inferiore a questa soglia, verranno applicate cuciture oblique. La soglia predefinita è impostata al 40% della larghezza della parete esterna. Per motivi di prestazioni, il grado di sporgenza viene stimato."
 
 msgid "Scarf joint speed"
-msgstr "Velocità cucitura a sciarpa"
+msgstr "Velocità cucitura obliqua"
 
 msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Questa opzione imposta la velocità di stampa per le cuciture a sciarpa. È consigliabile stampare le cuciture a a sciarpa a una velocità bassa (inferiore a 100 mm/s). È anche opportuno attivare l'opzione 'Livellamento velocità di estrusione' se la velocità impostata varia in modo significativo rispetto alla velocità delle pareti esterne o interne. Se la velocità specificata qui è superiore alla velocità delle pareti esterne o interne, la stampante utilizzerà per impostazione predefinita la velocità più lenta delle due. Se specificata come percentuale (ad esempio 80%), la velocità viene calcolata in base alla velocità della parete esterna o interna. Il valore predefinito è impostato su 100%."
+msgstr "Questa opzione imposta la velocità di stampa per le cuciture oblique. È consigliabile stampare le cuciture oblique a una velocità bassa (inferiore a 100 mm/s). È anche opportuno attivare l'opzione 'Livellamento velocità di estrusione' se la velocità impostata varia in modo significativo rispetto alla velocità delle pareti esterne o interne. Se la velocità specificata qui è superiore alla velocità delle pareti esterne o interne, la stampante utilizzerà per impostazione predefinita la velocità più lenta delle due. Se specificata come percentuale (ad esempio 80%), la velocità viene calcolata in base alla velocità della parete esterna o interna. Il valore predefinito è impostato su 100%."
 
 msgid "Scarf joint flow ratio"
-msgstr "Flusso di stampa cucitura a sciarpa"
+msgstr "Flusso di stampa cucitura obliqua"
 
 msgid "This factor affects the amount of material for scarf joints."
-msgstr "Questo fattore influisce sulla quantità di materiale utilizzata per le cucitura a sciarpa."
+msgstr "Questo fattore influisce sulla quantità di materiale utilizzata per le cucitura obliqua."
 
 msgid "Scarf start height"
-msgstr "Altezza iniziale cucitura a sciarpa"
+msgstr "Altezza iniziale cucitura obliqua"
 
 msgid ""
 "Start height of the scarf.\n"
 "This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
 msgstr ""
-"Altezza iniziale della cucitura a sciarpa.\n"
+"Altezza iniziale della cucitura obliqua.\n"
 "Questo valore può essere specificato in millimetri o come percentuale dell'altezza dello strato corrente. Il valore predefinito per questo parametro è 0."
 
 msgid "Scarf around entire wall"
-msgstr "Cucitura a sciarpa su intera parete"
+msgstr "Cucitura obliqua su intera parete"
 
 msgid "The scarf extends to the entire length of the wall."
-msgstr "La cucitura a sciarpa si estende lungo tutto il perimetro della parete."
+msgstr "La cucitura obliqua si estende lungo tutto il perimetro della parete."
 
 msgid "Scarf length"
-msgstr "Lunghezza cucitura a sciarpa"
+msgstr "Lunghezza cucitura obliqua"
 
 msgid "Length of the scarf. Setting this parameter to zero effectively disables the scarf."
-msgstr "Lunghezza della cucitura a sciarpa. Impostando questo parametro su zero, la cucitura a sciarpa viene disabilitata."
+msgstr "Lunghezza della cucitura obliqua. Impostando questo parametro su zero, la cucitura obliqua viene disabilitata."
 
 msgid "Scarf steps"
-msgstr "Incrementi cucitura a sciarpa"
+msgstr "Incrementi cucitura obliqua"
 
 msgid "Minimum number of segments of each scarf."
-msgstr "Numero minimo di segmenti utilizzati per la creazione della sfumatura della cucitura a sciarpa."
+msgstr "Numero minimo di segmenti utilizzati per la creazione della sfumatura della cucitura obliqua."
 
 msgid "Scarf joint for inner walls"
-msgstr "Cucitura a sciarpa per pareti interne"
+msgstr "Cucitura obliqua per pareti interne"
 
 msgid "Use scarf joint for inner walls as well."
-msgstr "Utilizza la cucitura a sciarpa anche per le pareti interne."
+msgstr "Utilizza la cucitura obliqua anche per le pareti interne."
 
 msgid "Role base wipe speed"
 msgstr "Velocità di spurgo basata su ruolo"

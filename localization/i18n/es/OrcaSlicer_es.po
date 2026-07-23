@@ -15645,77 +15645,77 @@ msgstr ""
 "Esta cantidad puede especificarse en milímetros o como porcentaje del diámetro actual del extrusor. El valor por defecto de este parámetro es 10%."
 
 msgid "Scarf joint seam (beta)"
-msgstr "Unión de bufanda en costuras (beta)"
+msgstr "Costura en bisel en costuras (beta)"
 
 msgid "Use scarf joint to minimize seam visibility and increase seam strength."
-msgstr "Utilice la unión de bufanda para minimizar la visibilidad de la costura y aumentar su resistencia."
+msgstr "Utilice la costura en bisel para minimizar la visibilidad de la costura y aumentar su resistencia."
 
 msgid "Conditional scarf joint"
-msgstr "Unión de bufanda condicional"
+msgstr "Costura en bisel condicional"
 
 msgid "Apply scarf joints only to smooth perimeters where traditional seams do not conceal the seams at sharp corners effectively."
-msgstr "Aplique juntas de bufanda sólo en perímetros lisos en los que las juntas tradicionales no oculten eficazmente las juntas en vértices pronunciados."
+msgstr "Aplique costuras en bisel sólo en perímetros lisos en los que las juntas tradicionales no oculten eficazmente las juntas en vértices pronunciados."
 
 msgid "Conditional angle threshold"
-msgstr "Umbral angular para union de bufanda condicional"
+msgstr "Umbral angular para costura en bisel condicional"
 
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
 "If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
 msgstr ""
-"Esta opción establece el ángulo umbral para aplicar una costura de junta de bufanda condicional.\n"
-"Si el ángulo máximo dentro del bucle perimetral supera este valor (indicando la ausencia de esquinas afiladas), se utilizará una costura de junta de bufanda. El valor por defecto es 155°."
+"Esta opción establece el ángulo umbral para aplicar una costura en bisel condicional.\n"
+"Si el ángulo máximo dentro del bucle perimetral supera este valor (indicando la ausencia de esquinas afiladas), se utilizará una costura en bisel. El valor por defecto es 155°."
 
 msgid "Conditional overhang threshold"
-msgstr "Umbral de voladizo para unión de bufanda condicional"
+msgstr "Umbral de voladizo para costura en bisel condicional"
 
 #, no-c-format, no-boost-format
 msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Esta opción establece el umbral de voladizo para aplicar una costura de unión de bufanda condicional. Si el área sin soporte del perémetro es menor a este valor se utilizará una costura de unión de bufanda. El valor por defecto está configurado como un 40% del grosor del perímetro exterior. El ángulo de voladizo es estimado automáticamente por razones de optimización."
+msgstr "Esta opción establece el umbral de voladizo para aplicar una costura en bisel condicional. Si el área sin soporte del perémetro es menor a este valor se utilizará una costura en bisel. El valor por defecto está configurado como un 40% del grosor del perímetro exterior. El ángulo de voladizo es estimado automáticamente por razones de optimización."
 
 msgid "Scarf joint speed"
-msgstr "Velocidad de unión de bufanda"
+msgstr "Velocidad de costura en bisel"
 
 msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Esta opción ajusta la velocidad de impresión para las uniones de bufanda. Se recomienda imprimir las uniones de bufanda a una velocidad lenta (inferior a 100 mm/s). También es aconsejable activar la opción \"Suavizado de la velocidad de extrusión\" si la velocidad configurada varía significativamente de la velocidad de los perímetros exteriores o interiores. Si la velocidad especificada aquí es superior a la velocidad de los perímetros exteriores o interiores, la impresora utilizará por defecto la velocidad más lenta de las dos. Si se especifica como porcentaje (por ejemplo, 80%), la velocidad se calcula en función de la velocidad del perímetro exterior o interior. El valor predeterminado es 100%."
+msgstr "Esta opción ajusta la velocidad de impresión para las costuras en bisel. Se recomienda imprimir las costuras en bisel a una velocidad lenta (inferior a 100 mm/s). También es aconsejable activar la opción \"Suavizado de la velocidad de extrusión\" si la velocidad configurada varía significativamente de la velocidad de los perímetros exteriores o interiores. Si la velocidad especificada aquí es superior a la velocidad de los perímetros exteriores o interiores, la impresora utilizará por defecto la velocidad más lenta de las dos. Si se especifica como porcentaje (por ejemplo, 80%), la velocidad se calcula en función de la velocidad del perímetro exterior o interior. El valor predeterminado es 100%."
 
 msgid "Scarf joint flow ratio"
-msgstr "Factor de flujo de la unión de bufanda"
+msgstr "Factor de flujo de la costura en bisel"
 
 msgid "This factor affects the amount of material for scarf joints."
-msgstr "Este factor afecta a la cantidad de material para las uniones de bufanda."
+msgstr "Este factor afecta a la cantidad de material para las costuras en bisel."
 
 msgid "Scarf start height"
-msgstr "Altura de inicio de la bufanda"
+msgstr "Altura de inicio del bisel"
 
 msgid ""
 "Start height of the scarf.\n"
 "This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
-msgstr "Altura inicial de la bufanda . Esta cantidad puede especificarse en milímetros o como porcentaje de la altura de la capa actual. El valor por defecto de este parámetro es 0."
+msgstr "Altura inicial del bisel . Esta cantidad puede especificarse en milímetros o como porcentaje de la altura de la capa actual. El valor por defecto de este parámetro es 0."
 
 msgid "Scarf around entire wall"
-msgstr "Bufanda en todo el perímetro"
+msgstr "Bisel en todo el perímetro"
 
 msgid "The scarf extends to the entire length of the wall."
-msgstr "La bufanda se extiende a lo largo de todo el perímetro."
+msgstr "El bisel se extiende a lo largo de todo el perímetro."
 
 msgid "Scarf length"
-msgstr "Largo de la bufanda"
+msgstr "Largo del bisel"
 
 msgid "Length of the scarf. Setting this parameter to zero effectively disables the scarf."
-msgstr "Longitud de la bufanda. Si este parámetro se pone a cero, se desactiva la bufanda."
+msgstr "Longitud del bisel. Si este parámetro se pone a cero, se desactiva el bisel."
 
 msgid "Scarf steps"
-msgstr "Pasos de la bufanda"
+msgstr "Pasos del bisel"
 
 msgid "Minimum number of segments of each scarf."
-msgstr "Número mínimo de segmentos de cada bufanda."
+msgstr "Número mínimo de segmentos de cada bisel."
 
 msgid "Scarf joint for inner walls"
-msgstr "Unión de bufanda para perímetros interiores"
+msgstr "Costura en bisel para perímetros interiores"
 
 msgid "Use scarf joint for inner walls as well."
-msgstr "Utilice también una unión de bufanda para perímetros internos."
+msgstr "Utilice también una costura en bisel para perímetros internos."
 
 msgid "Role base wipe speed"
 msgstr "Velocidad de purga según tipo de línea"

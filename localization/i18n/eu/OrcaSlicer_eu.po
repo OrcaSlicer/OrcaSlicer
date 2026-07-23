@@ -15636,16 +15636,16 @@ msgstr ""
 "Kantitate hau milimetrotan edo uneko estrusorearen diametroaren ehuneko gisa zehaztu daiteke. Parametro honen balio lehenetsia %10 da."
 
 msgid "Scarf joint seam (beta)"
-msgstr "Bufanda junturako jostura (beta)"
+msgstr "Alaka junturako jostura (beta)"
 
 msgid "Use scarf joint to minimize seam visibility and increase seam strength."
-msgstr "Erabili bufanda junturako josturaren ikusgarritasuna minimizatzeko etajosturaren sendotasuna handitzeko."
+msgstr "Erabili alaka junturako josturaren ikusgarritasuna minimizatzeko etajosturaren sendotasuna handitzeko."
 
 msgid "Conditional scarf joint"
-msgstr "Baldintzapeko bufanda-juntura"
+msgstr "Baldintzapeko alaka-juntura"
 
 msgid "Apply scarf joints only to smooth perimeters where traditional seams do not conceal the seams at sharp corners effectively."
-msgstr "Aplikatu bufanda junturak perimetro leunetan bakarrik, jostura tradizionalek izkina zorrotzetako josturak ondo ezkutatzen ez dituztenean."
+msgstr "Aplikatu alaka junturak perimetro leunetan bakarrik, jostura tradizionalek izkina zorrotzetako josturak ondo ezkutatzen ez dituztenean."
 
 msgid "Conditional angle threshold"
 msgstr "Baldintzapeko angeluaren atalasea"
@@ -15654,7 +15654,7 @@ msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
 "If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
 msgstr ""
-"Aukera honek baldintzapeko bufanda junturako jostura aplikatzeko angelu-atalasea ezartzen du.\n"
+"Aukera honek baldintzapeko alaka junturako jostura aplikatzeko angelu-atalasea ezartzen du.\n"
 "Perimetro-begiztaren barruko gehieneko angelua balio hau baino handiagoa bada (izkina zorrotzik ez dagoela adieraziz), juntura zeiharreko jostura erabiliko da. Balio lehenetsia 155° da."
 
 msgid "Conditional overhang threshold"
@@ -15665,19 +15665,19 @@ msgid "This option determines the overhang threshold for the application of scar
 msgstr "Aukera honek juntura zeiharreko josturak aplikatzeko irtenguneen atalasea zehazten du. Perimetroaren euskarririk gabeko zatia atalase hau baino txikiagoa bada, juntura zeiharreko josturak aplikatuko dira. Atalase lehenetsia kanpoko hormaren zabaleraren %40 da. Errendimendu-arrazoiengatik, irtengunearen maila estimatu egiten da."
 
 msgid "Scarf joint speed"
-msgstr "Bufanda junturako abiadura"
+msgstr "Alaka junturako abiadura"
 
 msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Aukera honek bufanda junturako inprimatze-abiadura ezartzen du. Gomendagarria da juntura zeiharrak abiadura motelean inprimatzea (100 mm/s baino gutxiago). 'Estrusio-tasaren leuntzea' gaitzea ere komeni da ezarritako abiadura kanpoko edo barruko hormen abiaduratik nabarmen aldentzen bada. Hemen zehaztutako abiadura kanpoko edo barruko hormen abiadura baino handiagoa bada, inprimagailuak bietako motelena erabiliko du. Ehuneko gisa zehazten bada (adibidez, %80), abiadura dagokion kanpoko edo barruko hormaren abiaduraren arabera kalkulatuko da. Balio lehenetsia %100 da."
+msgstr "Aukera honek alaka junturako inprimatze-abiadura ezartzen du. Gomendagarria da juntura zeiharrak abiadura motelean inprimatzea (100 mm/s baino gutxiago). 'Estrusio-tasaren leuntzea' gaitzea ere komeni da ezarritako abiadura kanpoko edo barruko hormen abiaduratik nabarmen aldentzen bada. Hemen zehaztutako abiadura kanpoko edo barruko hormen abiadura baino handiagoa bada, inprimagailuak bietako motelena erabiliko du. Ehuneko gisa zehazten bada (adibidez, %80), abiadura dagokion kanpoko edo barruko hormaren abiaduraren arabera kalkulatuko da. Balio lehenetsia %100 da."
 
 msgid "Scarf joint flow ratio"
-msgstr "Bufanda junturako fluxu-erlazioa"
+msgstr "Alaka junturako fluxu-erlazioa"
 
 msgid "This factor affects the amount of material for scarf joints."
-msgstr "Faktore honek bufanda junturako material kantitateari eragiten dio."
+msgstr "Faktore honek alaka junturako material kantitateari eragiten dio."
 
 msgid "Scarf start height"
-msgstr "Bufandaren hasierako altuera"
+msgstr "Alakaren hasierako altuera"
 
 msgid ""
 "Start height of the scarf.\n"
@@ -15687,7 +15687,7 @@ msgstr ""
 "Kantitate hau milimetrotan edo uneko geruza-altueraren ehuneko gisa zehaztu daiteke. Parametro honen balio lehenetsia 0 da."
 
 msgid "Scarf around entire wall"
-msgstr "Bufanda horma osoan zehar"
+msgstr "Alaka horma osoan zehar"
 
 msgid "The scarf extends to the entire length of the wall."
 msgstr "Juntura hormaren luzera osora hedatzen da."
@@ -15705,10 +15705,10 @@ msgid "Minimum number of segments of each scarf."
 msgstr "Juntura bakoitzaren gutxieneko segmentu kopurua."
 
 msgid "Scarf joint for inner walls"
-msgstr "Barruko hormetarako bufanda juntura"
+msgstr "Barruko hormetarako alaka juntura"
 
 msgid "Use scarf joint for inner walls as well."
-msgstr "Erabili bufanda juntura barruko hormetan ere."
+msgstr "Erabili alaka juntura barruko hormetan ere."
 
 msgid "Role base wipe speed"
 msgstr "Eginkizunaren araberako purgatze-abiadura"

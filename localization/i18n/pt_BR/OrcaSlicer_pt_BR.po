@@ -15693,16 +15693,16 @@ msgstr ""
 "Esta quantidade pode ser especificada em milímetros ou como uma porcentagem do diâmetro atual da extrusora. O valor padrão para este parâmetro é 10%."
 
 msgid "Scarf joint seam (beta)"
-msgstr "Costura junta cachecol (beta)"
+msgstr "Costura em bisel (beta)"
 
 msgid "Use scarf joint to minimize seam visibility and increase seam strength."
-msgstr "Usar a junta cachecol para minimizar a visibilidade da costura e aumentar a resistência da costura."
+msgstr "Use a junta em bisel para minimizar a visibilidade da costura e aumentar a resistência da costura."
 
 msgid "Conditional scarf joint"
-msgstr "Junta cachecol condicional"
+msgstr "Junta em bisel condicional"
 
 msgid "Apply scarf joints only to smooth perimeters where traditional seams do not conceal the seams at sharp corners effectively."
-msgstr "Aplique juntas cachecol apenas em perímetros suaves onde costuras tradicionais não escondem as costuras em cantos agudos de forma eficaz."
+msgstr "Aplique juntas em bisel apenas em perímetros suaves onde costuras tradicionais não escondem as costuras em cantos agudos de forma eficaz."
 
 msgid "Conditional angle threshold"
 msgstr "Limiar de ângulo condicional"
@@ -15711,61 +15711,61 @@ msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
 "If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
 msgstr ""
-"Esta opção define o ângulo limiar para aplicar uma costura junta cachecol condicional.\n"
-"Se o ângulo máximo dentro da volta do perímetro exceder esse valor (indicando a ausência de cantos afiados), será usada uma costura junta cachecol. O valor padrão é 155°."
+"Esta opção define o ângulo limiar para aplicar uma costura em bisel condicional.\n"
+"Se o ângulo máximo dentro da volta do perímetro exceder esse valor (indicando a ausência de cantos afiados), será usada uma costura em bisel. O valor padrão é 155°."
 
 msgid "Conditional overhang threshold"
 msgstr "Limiar de saliência condicional"
 
 #, no-c-format, no-boost-format
 msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Esta opção determina o limiar de saliência para a aplicação de juntas cachecol. Se a parte sem suporte do perímetro for inferior a esse limiar, as costuras junta cachecol serão aplicadas. O limiar padrão é definido em 40% da largura da parede externa. Devido a considerações de desempenho, o grau de saliência é estimado."
+msgstr "Esta opção determina o limiar de saliência para a aplicação de juntas em bisel. Se a parte sem suporte do perímetro for inferior a esse limiar, as costuras junta em bisel serão aplicadas. O limiar padrão é definido em 40% da largura da parede externa. Devido a considerações de desempenho, o grau de saliência é estimado."
 
 msgid "Scarf joint speed"
-msgstr "Velocidade da junta cachecol"
+msgstr "Velocidade da junta em bisel"
 
 msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Esta opção define a velocidade de impressão para as juntas cachecol. É recomendável imprimir as juntas cachecol em uma velocidade baixa (menor que 100 mm/s). Também é aconselhável habilitar 'Suavização da taxa de extrusão' se a velocidade definida variar significativamente da velocidade das paredes externas ou internas. Se a velocidade especificada aqui for maior que a velocidade das paredes externas ou internas, a impressora utilizará a mais lenta das duas velocidades. Quando especificado como uma porcentagem (por exemplo, 80%), a velocidade é calculada com base na velocidade do perímetro externo ou interna respectiva. O valor padrão é definido como 100%."
+msgstr "Esta opção define a velocidade de impressão para as juntas em bisel. É recomendável imprimir as juntas em bisel em uma velocidade baixa (menor que 100 mm/s). Também é aconselhável habilitar 'Suavização da taxa de extrusão' se a velocidade definida variar significativamente da velocidade das paredes externas ou internas. Se a velocidade especificada aqui for maior que a velocidade das paredes externas ou internas, a impressora utilizará a mais lenta das duas velocidades. Quando especificado como uma porcentagem (por exemplo, 80%), a velocidade é calculada com base na velocidade do perímetro externo ou interna respectiva. O valor padrão é definido como 100%."
 
 msgid "Scarf joint flow ratio"
-msgstr "Taxa de fluxo em junta cachecol"
+msgstr "Taxa de fluxo da junta em bisel"
 
 msgid "This factor affects the amount of material for scarf joints."
-msgstr "Este fator afeta a quantidade de material para as juntas cachecol."
+msgstr "Este fator afeta a quantidade de material para as juntas em bisel."
 
 msgid "Scarf start height"
-msgstr "Altura inicial do cachecol"
+msgstr "Altura inicial do bisel"
 
 msgid ""
 "Start height of the scarf.\n"
 "This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
 msgstr ""
-"Altura inicial do cachecol.\n"
+"Altura inicial do bisel.\n"
 "Esta quantidade pode ser especificada em milímetros ou como uma porcentagem da altura atual da camada. O valor padrão para este parâmetro é 0."
 
 msgid "Scarf around entire wall"
-msgstr "Cachecol em torno de toda a parede"
+msgstr "Bisel em torno de toda a parede"
 
 msgid "The scarf extends to the entire length of the wall."
-msgstr "O cachecol se estende por todo o comprimento da parede."
+msgstr "O bisel se estende por todo o comprimento da parede."
 
 msgid "Scarf length"
-msgstr "Comprimento do cachecol"
+msgstr "Comprimento do bisel"
 
 msgid "Length of the scarf. Setting this parameter to zero effectively disables the scarf."
-msgstr "Comprimento do cachecol. Definir este parâmetro como zero efetivamente desabilita o cachecol."
+msgstr "Comprimento do bisel. Definir este parâmetro como zero efetivamente desabilita o bisel."
 
 msgid "Scarf steps"
-msgstr "Degraus do cachecol"
+msgstr "Degraus do bisel"
 
 msgid "Minimum number of segments of each scarf."
-msgstr "Número mínimo de segmentos de cada cachecol."
+msgstr "Número mínimo de segmentos de cada bisel."
 
 msgid "Scarf joint for inner walls"
-msgstr "Junta cachecol em paredes internas"
+msgstr "Junta em bisel em paredes internas"
 
 msgid "Use scarf joint for inner walls as well."
-msgstr "Usar junta cachecol em paredes internas também."
+msgstr "Usar junta em bisel em paredes internas também."
 
 msgid "Role base wipe speed"
 msgstr "Velocidade de limpeza baseada na função"

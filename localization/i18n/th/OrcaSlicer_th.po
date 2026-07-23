@@ -15532,16 +15532,16 @@ msgstr ""
 "ปริมาณนี้สามารถระบุได้ในหน่วยมิลลิเมตรหรือเป็นเปอร์เซ็นต์ของเส้นผ่านศูนย์กลางของชุดดันเส้นในปัจจุบัน ค่าเริ่มต้นสำหรับพารามิเตอร์นี้คือ 10%"
 
 msgid "Scarf joint seam (beta)"
-msgstr "รอยต่อผ้าพันคอ (เบต้า)"
+msgstr "รอยต่อเฉียง (เบต้า)"
 
 msgid "Use scarf joint to minimize seam visibility and increase seam strength."
-msgstr "ใช้ข้อต่อผ้าพันคอเพื่อลดการมองเห็นรอยตะเข็บและเพิ่มความแข็งแรงของรอยตะเข็บ"
+msgstr "ใช้ข้อต่อเฉียงเพื่อลดการมองเห็นรอยตะเข็บและเพิ่มความแข็งแรงของรอยตะเข็บ"
 
 msgid "Conditional scarf joint"
-msgstr "ข้อต่อผ้าพันคอแบบมีเงื่อนไข"
+msgstr "ข้อต่อเฉียงแบบมีเงื่อนไข"
 
 msgid "Apply scarf joints only to smooth perimeters where traditional seams do not conceal the seams at sharp corners effectively."
-msgstr "ใช้ข้อต่อผ้าพันคอกับขอบเรียบเท่านั้น โดยที่รอยตะเข็บแบบเดิมไม่สามารถปกปิดรอยตะเข็บที่มุมแหลมคมได้อย่างมีประสิทธิภาพ"
+msgstr "ใช้ข้อต่อเฉียงกับขอบเรียบเท่านั้น โดยที่รอยตะเข็บแบบเดิมไม่สามารถปกปิดรอยตะเข็บที่มุมแหลมคมได้อย่างมีประสิทธิภาพ"
 
 msgid "Conditional angle threshold"
 msgstr "เกณฑ์มุมแบบมีเงื่อนไข"
@@ -15550,61 +15550,61 @@ msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
 "If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
 msgstr ""
-"ตัวเลือกนี้จะกำหนดมุมเกณฑ์สำหรับการใช้รอยตะเข็บข้อต่อผ้าพันคอแบบมีเงื่อนไข\n"
-"หากมุมสูงสุดภายในวงรอบปริมณฑลเกินค่านี้ (แสดงว่าไม่มีมุมแหลมคม) จะใช้รอยตะเข็บข้อต่อผ้าพันคอ ค่าเริ่มต้นคือ 155°"
+"ตัวเลือกนี้จะกำหนดมุมเกณฑ์สำหรับการใช้รอยตะเข็บข้อต่อเฉียงแบบมีเงื่อนไข\n"
+"หากมุมสูงสุดภายในวงรอบปริมณฑลเกินค่านี้ (แสดงว่าไม่มีมุมแหลมคม) จะใช้รอยตะเข็บข้อต่อเฉียง ค่าเริ่มต้นคือ 155°"
 
 msgid "Conditional overhang threshold"
 msgstr "เกณฑ์ระยะยื่นแบบมีเงื่อนไข"
 
 #, no-c-format, no-boost-format
 msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "ตัวเลือกนี้จะกำหนดเกณฑ์ส่วนยื่นสำหรับการใช้รอยตะเข็บข้อต่อผ้าพันคอ หากส่วนที่ไม่ได้รับส่วนรองรับของเส้นรอบวงน้อยกว่าเกณฑ์นี้ จะมีการเย็บรอยตะเข็บผ้าพันคอ เกณฑ์เริ่มต้นตั้งไว้ที่ 40% ของความกว้างของผนังภายนอก เมื่อพิจารณาถึงประสิทธิภาพแล้ว ระดับของระยะยื่นจึงถูกประมาณไว้"
+msgstr "ตัวเลือกนี้จะกำหนดเกณฑ์ส่วนยื่นสำหรับการใช้รอยตะเข็บข้อต่อเฉียง หากส่วนที่ไม่ได้รับส่วนรองรับของเส้นรอบวงน้อยกว่าเกณฑ์นี้ จะมีการเย็บรอยตะเข็บเฉียง เกณฑ์เริ่มต้นตั้งไว้ที่ 40% ของความกว้างของผนังภายนอก เมื่อพิจารณาถึงประสิทธิภาพแล้ว ระดับของระยะยื่นจึงถูกประมาณไว้"
 
 msgid "Scarf joint speed"
-msgstr "ความเร็วของข้อต่อผ้าพันคอ"
+msgstr "ความเร็วของข้อต่อเฉียง"
 
 msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "ตัวเลือกนี้จะตั้งค่าความเร็วในการพิมพ์สำหรับข้อต่อผ้าพันคอ ขอแนะนำให้พิมพ์ข้อต่อผ้าพันคอด้วยความเร็วต่ำ (น้อยกว่า 100 มม./วินาที) ขอแนะนำให้เปิดใช้งาน 'การปรับอัตราการอัดรีดให้เรียบ' หากความเร็วที่ตั้งไว้แตกต่างอย่างมากจากความเร็วของผนังด้านนอกหรือด้านใน หากความเร็วที่ระบุที่นี่สูงกว่าความเร็วของผนังด้านนอกหรือด้านใน เครื่องพิมพ์จะตั้งค่าเริ่มต้นไว้ที่ความเร็วที่ช้ากว่าทั้งสอง เมื่อระบุเป็นเปอร์เซ็นต์ (เช่น 80%) ความเร็วจะคำนวณตามความเร็วผนังด้านนอกหรือด้านในตามลำดับ ค่าเริ่มต้นตั้งไว้ที่ 100%"
+msgstr "ตัวเลือกนี้จะตั้งค่าความเร็วในการพิมพ์สำหรับข้อต่อเฉียง ขอแนะนำให้พิมพ์ข้อต่อเฉียงด้วยความเร็วต่ำ (น้อยกว่า 100 มม./วินาที) ขอแนะนำให้เปิดใช้งาน 'การปรับอัตราการอัดรีดให้เรียบ' หากความเร็วที่ตั้งไว้แตกต่างอย่างมากจากความเร็วของผนังด้านนอกหรือด้านใน หากความเร็วที่ระบุที่นี่สูงกว่าความเร็วของผนังด้านนอกหรือด้านใน เครื่องพิมพ์จะตั้งค่าเริ่มต้นไว้ที่ความเร็วที่ช้ากว่าทั้งสอง เมื่อระบุเป็นเปอร์เซ็นต์ (เช่น 80%) ความเร็วจะคำนวณตามความเร็วผนังด้านนอกหรือด้านในตามลำดับ ค่าเริ่มต้นตั้งไว้ที่ 100%"
 
 msgid "Scarf joint flow ratio"
-msgstr "อัตราการไหลของข้อต่อผ้าพันคอ"
+msgstr "อัตราการไหลของข้อต่อเฉียง"
 
 msgid "This factor affects the amount of material for scarf joints."
-msgstr "ปัจจัยนี้ส่งผลต่อปริมาณวัสดุสำหรับข้อต่อผ้าพันคอ"
+msgstr "ปัจจัยนี้ส่งผลต่อปริมาณวัสดุสำหรับข้อต่อเฉียง"
 
 msgid "Scarf start height"
-msgstr "ความสูงเริ่มต้นของผ้าพันคอ"
+msgstr "ความสูงเริ่มต้นของเฉียง"
 
 msgid ""
 "Start height of the scarf.\n"
 "This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
 msgstr ""
-"เริ่มต้นความสูงของผ้าพันคอ\n"
+"เริ่มต้นความสูงของเฉียง\n"
 "จำนวนนี้สามารถระบุได้ในหน่วยมิลลิเมตรหรือเป็นเปอร์เซ็นต์ของความสูงของเลเยอร์ปัจจุบัน ค่าเริ่มต้นสำหรับพารามิเตอร์นี้คือ 0"
 
 msgid "Scarf around entire wall"
-msgstr "ผ้าพันคอพันรอบผนังทั้งหมด"
+msgstr "เฉียงพันรอบผนังทั้งหมด"
 
 msgid "The scarf extends to the entire length of the wall."
-msgstr "ผ้าพันคอยาวตลอดความยาวของผนัง"
+msgstr "เฉียงยาวตลอดความยาวของผนัง"
 
 msgid "Scarf length"
-msgstr "ความยาวผ้าพันคอ"
+msgstr "ความยาวเฉียง"
 
 msgid "Length of the scarf. Setting this parameter to zero effectively disables the scarf."
-msgstr "ความยาวของผ้าพันคอ. การตั้งค่าพารามิเตอร์นี้เป็นศูนย์จะปิดใช้ผ้าพันคออย่างมีประสิทธิภาพ"
+msgstr "ความยาวของเฉียง. การตั้งค่าพารามิเตอร์นี้เป็นศูนย์จะปิดใช้เฉียงอย่างมีประสิทธิภาพ"
 
 msgid "Scarf steps"
-msgstr "ขั้นตอนผ้าพันคอ"
+msgstr "ขั้นตอนเฉียง"
 
 msgid "Minimum number of segments of each scarf."
-msgstr "จำนวนขั้นต่ำของส่วนผ้าพันคอแต่ละอัน"
+msgstr "จำนวนขั้นต่ำของส่วนเฉียงแต่ละอัน"
 
 msgid "Scarf joint for inner walls"
-msgstr "ข้อต่อผ้าพันคอสำหรับผนังด้านใน"
+msgstr "ข้อต่อเฉียงสำหรับผนังด้านใน"
 
 msgid "Use scarf joint for inner walls as well."
-msgstr "ใช้ข้อต่อผ้าพันคอสำหรับผนังด้านในด้วย"
+msgstr "ใช้ข้อต่อเฉียงสำหรับผนังด้านในด้วย"
 
 msgid "Role base wipe speed"
 msgstr "ความเร็วในการล้างฐานบทบาท"
