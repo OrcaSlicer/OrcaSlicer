@@ -11,6 +11,7 @@ struct VulkanDeviceInfo {
     uint32_t    vendor_id { 0 };
     uint32_t    device_id { 0 };
     bool        discrete { false };
+    bool        compute_queue { false };
     bool        shader_int64 { false };
     bool        subgroup_operations { false };
 };
@@ -31,7 +32,7 @@ public:
 
     static bool supports_deterministic_geometry(const VulkanDeviceInfo& device)
     {
-        return device.shader_int64;
+        return device.compute_queue && device.shader_int64;
     }
 };
 

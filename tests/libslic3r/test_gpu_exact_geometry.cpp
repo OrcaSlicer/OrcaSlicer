@@ -1,6 +1,7 @@
 #include <catch2/catch_all.hpp>
 
 #include "libslic3r/Gpu/GpuExactGeometry.hpp"
+#include "libslic3r/Gpu/VulkanSlicer.hpp"
 
 #include <limits>
 
@@ -34,4 +35,15 @@ TEST_CASE("GPU exact geometry enforces the tile dispatch range", "[Gpu][Geometry
 
     REQUIRE(fits_in_tile(eligible, origin));
     REQUIRE_FALSE(fits_in_tile(out_of_range, origin));
+}
+
+TEST_CASE("GPU deterministic geometry requires a compute queue and int64 shaders", "[Gpu][Vulkan]")
+{
+    VulkanDeviceInfo device;
+
+    REQUIRE_FALSE(VulkanSlicerBackend::supports_deterministic_geometry(device));
+    device.compute_queue = true;
+    REQUIRE_FALSE(VulkanSlicerBackend::supports_deterministic_geometry(device));
+    device.shader_int64 = true;
+    REQUIRE(VulkanSlicerBackend::supports_deterministic_geometry(device));
 }

@@ -41,4 +41,5 @@ Every GPU-enabled stage must run a differential test over the same model,
 profile, layer range and seed. It is accepted only when its fixed-point wall
 and infill IR exactly matches the reference, or when an explicitly reviewed
 semantic change has its own golden output. Unsupported geometry, a tile-range
-overflow, or a missing `shaderInt64` feature causes a stage-local CPU fallback.
+overflow, a missing compute queue, or a missing `shaderInt64` feature causes a
+stage-local CPU fallback.

@@ -65,6 +65,16 @@ VulkanSlicerCapabilities VulkanSlicerBackend::query_capabilities()
         info.discrete = properties2.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
         info.shader_int64 = features.shaderInt64 == VK_TRUE;
         info.subgroup_operations = subgroup_properties.supportedStages != 0;
+
+        uint32_t queue_family_count = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, nullptr);
+        std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
+        if (queue_family_count != 0) {
+            vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, queue_families.data());
+            info.compute_queue = std::any_of(queue_families.begin(), queue_families.end(), [](const VkQueueFamilyProperties& family) {
+                return (family.queueFlags & VK_QUEUE_COMPUTE_BIT) != 0 && family.queueCount != 0;
+            });
+        }
         capabilities.devices.emplace_back(std::move(info));
     }
     vkDestroyInstance(instance, nullptr);
@@ -81,7 +91,7 @@ VulkanSlicerCapabilities VulkanSlicerBackend::query_capabilities()
 
     std::ostringstream diagnostic;
     diagnostic << "Detected " << capabilities.devices.size() << " Vulkan device(s); "
-               << "only shaderInt64 devices are eligible for exact tiled geometry.";
+               << "only compute-queue and shaderInt64 devices are eligible for exact tiled geometry.";
     capabilities.diagnostic = diagnostic.str();
 #else
     capabilities.diagnostic = "Vulkan slicer was not compiled; configure with -DSLIC3R_ENABLE_VULKAN_SLICER=ON.";
