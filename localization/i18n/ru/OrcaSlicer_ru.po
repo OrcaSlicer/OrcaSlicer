@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 14:21-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -570,7 +570,7 @@ msgstr "Применить"
 msgid "Reset"
 msgstr "Сброс"
 
-# Пока только в двух местах в значении названия клавиши
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
 msgstr "Enter"
 
@@ -1796,12 +1796,14 @@ msgstr "Выбрать"
 msgid "Select point"
 msgstr "Выбрать точку"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
 msgstr "Удалить"
 
 msgid "Restart selection"
 msgstr "Выбрать заново"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr "Esc"
 
@@ -2488,6 +2490,9 @@ msgstr "Не удалось запустить загрузку по URL-адр�
 msgid "Import File"
 msgstr "Импорт файла"
 
+msgid "Delete"
+msgstr "Удалить"
+
 msgid "Choose files"
 msgstr "Выберите файлы"
 
@@ -2606,12 +2611,14 @@ msgstr "Скрыть"
 msgid "Show"
 msgstr "Показать"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
 msgstr "Del"
 
 msgid "Delete the selected object"
 msgstr "Удаление выбранных моделей"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr "Backspace"
 
@@ -11571,24 +11578,28 @@ msgstr "Выбор нескольких моделей"
 msgid "Select objects by rectangle"
 msgstr "Выбор прямоугольником"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
 msgstr "Стрелка вверх"
 
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Перемещение выбранного на +10 мм по оси Y"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
 msgstr "Стрелка вниз"
 
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Перемещение выбранного на -10 мм по оси Y"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
 msgstr "Стрелка влево"
 
 msgid "Move selection 10mm in negative X direction"
 msgstr "Перемещение выбранного на -10 мм по оси X"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
 msgstr "Стрелка вправо"
 
@@ -11674,8 +11685,16 @@ msgstr "Отдалить"
 msgid "Toggle printable for object/part"
 msgstr "Переключить печать модели"
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr "Tab"
+
 msgid "Switch between Prepare/Preview"
 msgstr "Переключение между подготовкой и просмотром нарезки"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Пробел"
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11735,12 +11754,16 @@ msgstr "Показать/скрыть окно отображения G-кода
 msgid "Move slider 5x faster"
 msgstr "Перемещение ползунка быстрее в 5 раз"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr "Home"
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Горизонтальный ползунок - перемещение в начальную позицию"
 
-# ?????? не переводим, пока #6970 не исправят
+msgctxt "Keyboard Shortcut"
 msgid "End"
-msgstr ""
+msgstr "End"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Горизонтальный ползунок - перемещение в конечную позицию"
@@ -21730,6 +21753,16 @@ msgid ""
 msgstr ""
 "Предотвращение коробления материала\n"
 "Знаете ли вы, что при печати материалами, склонными к короблению, таких как ABS, повышение температуры подогреваемого стола может снизить эту вероятность?"
+
+# Пока только в двух местах в значении названия клавиши
+#~ msgid "Enter"
+#~ msgstr "Enter"
+
+#~ msgid "Esc"
+#~ msgstr "Esc"
+
+#~ msgid "Backspace"
+#~ msgstr "Backspace"
 
 # FAN_HEAT_BREAK_0_IDX
 #~ msgid "Hotend"

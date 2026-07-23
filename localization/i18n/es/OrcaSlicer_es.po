@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 14:21-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -548,8 +548,9 @@ msgstr "Remapear"
 msgid "Reset"
 msgstr "Reiniciar"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
-msgstr "Enter"
+msgstr "Intro"
 
 msgid "Shortcut Key "
 msgstr "Tecla de acceso directo "
@@ -880,7 +881,7 @@ msgstr "Seleccionar todos los conectores"
 
 msgctxt "Cut tool"
 msgid "Cut"
-msgstr ""
+msgstr "Cortar"
 
 msgid "Rotate cut plane"
 msgstr "Rotar plano de corte"
@@ -1746,12 +1747,14 @@ msgstr "Seleccionar"
 msgid "Select point"
 msgstr "Seleccionar punto"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Borrar"
+msgstr "Supr"
 
 msgid "Restart selection"
 msgstr "Reiniciar selección"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr "Esc"
 
@@ -1860,7 +1863,7 @@ msgstr "Saliendo del mecanismo de medición"
 
 msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr ""
+msgstr "Ensamblar"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Confirme que la relación de explosión es 1 y seleccione al menos dos volúmenes."
@@ -2417,6 +2420,9 @@ msgstr "No se pudo iniciar la descarga del URL. La carpeta de destino no se sele
 msgid "Import File"
 msgstr "Importar archivo"
 
+msgid "Delete"
+msgstr "Borrar"
+
 msgid "Choose files"
 msgstr "Elija los archivos"
 
@@ -2535,12 +2541,14 @@ msgstr "Ocultar"
 msgid "Show"
 msgstr "Mostrar"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Borrar"
+msgstr "Supr"
 
 msgid "Delete the selected object"
 msgstr "Eliminar el objeto seleccionado"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr "Retroceso"
 
@@ -4225,11 +4233,11 @@ msgstr "Imprimir usando filamentos en AMS"
 
 msgctxt "Nozzle position"
 msgid "Left"
-msgstr ""
+msgstr "Izquierda"
 
 msgctxt "Nozzle position"
 msgid "Right"
-msgstr ""
+msgstr "Derecha"
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Cuando se termine el filamento actual, la impresora continuará imprimiendo en el siguiente orden."
@@ -5523,7 +5531,7 @@ msgstr "Calidad / Velocidad"
 
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr ""
+msgstr "Suavizar"
 
 msgid "Radius"
 msgstr "Radio"
@@ -6240,7 +6248,7 @@ msgstr "Preferencias"
 
 msgctxt "Menu"
 msgid "Edit"
-msgstr ""
+msgstr "Edición"
 
 msgid "View"
 msgstr "Vista"
@@ -9202,7 +9210,7 @@ msgstr "¡El ajuste seleccionado es nulo!"
 
 msgctxt "Layer range"
 msgid "End"
-msgstr ""
+msgstr "Fin"
 
 msgid "Customize"
 msgstr "Personalizar"
@@ -11188,26 +11196,30 @@ msgstr "Seleccionar varios objetos"
 msgid "Select objects by rectangle"
 msgstr "Seleccionar objetos por rectángulo"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Flecha hacia arriba"
+msgstr "Flecha arriba"
 
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Mover la selección 10 mm en dirección Y positiva"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Flecha hacia abajo"
+msgstr "Flecha abajo"
 
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Mover la selección 10 mm en dirección Y negativa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Flecha hacia izquierda"
+msgstr "Flecha izquierda"
 
 msgid "Move selection 10mm in negative X direction"
 msgstr "Mover la selección 10 mm en dirección X negativa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Flecha hacia derecha"
+msgstr "Flecha derecha"
 
 msgid "Move selection 10mm in positive X direction"
 msgstr "Mover la selección 10 mm en dirección X positiva"
@@ -11290,8 +11302,16 @@ msgstr "Alejar"
 msgid "Toggle printable for object/part"
 msgstr "Activar/desactivar la impresión para el objeto/pieza"
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr "Tab"
+
 msgid "Switch between Prepare/Preview"
 msgstr "Cambiar entre Preparar/Previsualizar"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Espacio"
 
 msgid "Open actions speed dial"
 msgstr "Abrir el menú rápido de acciones"
@@ -11350,11 +11370,16 @@ msgstr "Activar/Desactivar ventana de G-Code"
 msgid "Move slider 5x faster"
 msgstr "Mover el deslizador 5 veces más rápido"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr "Inicio"
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Deslizador horizontal - Desplazarse a la posición inicial"
 
+msgctxt "Keyboard Shortcut"
 msgid "End"
-msgstr "Final"
+msgstr "Fin"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Deslizador horizontal - Desplazarse a la última posición"
@@ -20707,6 +20732,33 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+#~ msgid "Enter"
+#~ msgstr "Enter"
+
+#~ msgid "Esc"
+#~ msgstr "Esc"
+
+#~ msgid "Del"
+#~ msgstr "Borrar"
+
+#~ msgid "Backspace"
+#~ msgstr "Retroceso"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Flecha hacia arriba"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Flecha hacia abajo"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Flecha hacia izquierda"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Flecha hacia derecha"
+
+#~ msgid "End"
+#~ msgstr "Final"
 
 #~ msgid "Hotend"
 #~ msgstr "Hotend"

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 14:21-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -555,6 +555,7 @@ msgstr "Ánh xạ lại"
 msgid "Reset"
 msgstr "Đặt lại"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
 msgstr ""
 
@@ -1761,12 +1762,14 @@ msgstr "Chọn"
 msgid "Select point"
 msgstr "Chọn điểm"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Xóa"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Khởi động lại lựa chọn"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -2401,6 +2404,9 @@ msgstr "Không thể bắt đầu tải URL. Thư mục đích chưa được đ
 msgid "Import File"
 msgstr "Nhập file"
 
+msgid "Delete"
+msgstr "Xóa"
+
 msgid "Choose files"
 msgstr "Chọn file"
 
@@ -2530,12 +2536,14 @@ msgstr "Ẩn"
 msgid "Show"
 msgstr "Hiện"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
 msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Xóa vật thể đã chọn"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr ""
 
@@ -11239,29 +11247,33 @@ msgstr "Chọn nhiều đối tượng"
 msgid "Select objects by rectangle"
 msgstr "Chọn đối tượng bằng hình chữ nhật"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Mũi tên lên"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Di chuyển lựa chọn 10 mm theo hướng Y dương"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Mũi tên xuống"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Di chuyển lựa chọn 10 mm theo hướng Y âm"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Mũi tên trái"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Di chuyển lựa chọn 10 mm theo hướng X âm"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Mũi tên phải"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11347,8 +11359,16 @@ msgstr "Thu nhỏ"
 msgid "Toggle printable for object/part"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Chuyển đổi giữa Chuẩn bị/Xem trước"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11408,11 +11428,16 @@ msgstr "Bật/Tắt cửa sổ G-code"
 msgid "Move slider 5x faster"
 msgstr "Di chuyển thanh trượt nhanh hơn 5 lần"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Thanh trượt ngang - Di chuyển đến vị trí bắt đầu"
 
+msgctxt "Keyboard Shortcut"
 msgid "End"
-msgstr "Kết thúc"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Thanh trượt ngang - Di chuyển đến vị trí cuối cùng"
@@ -20714,6 +20739,21 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Mũi tên lên"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Mũi tên xuống"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Mũi tên trái"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Mũi tên phải"
+
+#~ msgid "End"
+#~ msgstr "Kết thúc"
 
 #~ msgid "Hotend"
 #~ msgstr "Hotend"

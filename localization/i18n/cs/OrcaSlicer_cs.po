@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 14:21-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -554,6 +554,7 @@ msgstr "Přemapovat"
 msgid "Reset"
 msgstr "Obnovit"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
 msgstr ""
 
@@ -1762,12 +1763,14 @@ msgstr "Vybrat"
 msgid "Select point"
 msgstr "Vyberte bod"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Smazat"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Restartovat výběr"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -2414,6 +2417,9 @@ msgstr "Nelze zahájit stahování URL. Cílová složka není nastavena. Vybert
 msgid "Import File"
 msgstr "Importovat soubor"
 
+msgid "Delete"
+msgstr "Smazat"
+
 msgid "Choose files"
 msgstr "Vyberte soubory"
 
@@ -2543,12 +2549,14 @@ msgstr "Skrýt"
 msgid "Show"
 msgstr "Zobrazit"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
 msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Smazat vybraný objekt"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr ""
 
@@ -11339,29 +11347,33 @@ msgstr "Vyberte více objektů"
 msgid "Select objects by rectangle"
 msgstr "Vyberte objekty obdélníkem"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Šipka nahoru"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Přesuňte výběr o 10 mm v kladném směru osy Y"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Šipka dolů"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Přesuňte výběr o 10 mm v záporném směru osy Y"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Šipka vlevo"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Přesuňte výběr o 10 mm v záporném směru osy X"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Šipka vpravo"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11447,8 +11459,16 @@ msgstr "Oddálit"
 msgid "Toggle printable for object/part"
 msgstr "Přepnout tisknutelnost objektu/části"
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Přepnout mezi Přípravou/Náhledem"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11508,11 +11528,16 @@ msgstr "Zapnout/vypnout okno G-code"
 msgid "Move slider 5x faster"
 msgstr "Posouvejte posuvník 5× rychleji"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Vodorovný posuvník – přesunout na začátek"
 
+msgctxt "Keyboard Shortcut"
 msgid "End"
-msgstr "Konec"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Vodorovný posuvník – přesunout na poslední pozici"
@@ -20920,6 +20945,21 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Šipka nahoru"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Šipka dolů"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Šipka vlevo"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Šipka vpravo"
+
+#~ msgid "End"
+#~ msgstr "Konec"
 
 #~ msgid "Hotend"
 #~ msgstr "Hotend"

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 14:21-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -559,8 +559,9 @@ msgstr "Remapa"
 msgid "Reset"
 msgstr "Restablir"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
-msgstr "Retorn"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Tecla de drecera "
@@ -1766,12 +1767,14 @@ msgstr "Seleccionar"
 msgid "Select point"
 msgstr "Seleccionar el punt"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Esborrar"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Reinicia la selecció"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -2416,6 +2419,9 @@ msgstr "No s'ha pogut iniciar la descàrrega d'URL. La carpeta de destinació no
 msgid "Import File"
 msgstr "Importar arxiu"
 
+msgid "Delete"
+msgstr "Esborrar"
+
 msgid "Choose files"
 msgstr "Trieu fitxers"
 
@@ -2546,14 +2552,16 @@ msgstr "Amagar"
 msgid "Show"
 msgstr "Mostrar"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Esborrar"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Eliminar l'objecte seleccionat"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
-msgstr "Retrocés"
+msgstr ""
 
 msgid "Load..."
 msgstr "Carregar..."
@@ -11337,29 +11345,33 @@ msgstr "Seleccionar múltiples objectes"
 msgid "Select objects by rectangle"
 msgstr "Seleccionar objectes per rectangle"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Fletxa cap amunt"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Moure la selecció 10 mm en direcció Y positiva"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Fletxa cap avall"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Moure la selecció 10 mm en direcció Y negativa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Fletxa cap a l’esquerra"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Moure la selecció 10 mm en direcció X negativa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Fletxa cap a la dreta"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11445,8 +11457,16 @@ msgstr "Reduir zoom"
 msgid "Toggle printable for object/part"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Canviar entre Preparar/Previsualitzar"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11506,11 +11526,16 @@ msgstr "Activar/Desactivar finestra de Codi-G"
 msgid "Move slider 5x faster"
 msgstr "Moure la barra de desplaçament 5 vegades més ràpid"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Control lliscant horitzontal - Mou fins a la posició inicial"
 
+msgctxt "Keyboard Shortcut"
 msgid "End"
-msgstr "Final"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Control lliscant horitzontal - Mou a l'última posició"
@@ -20886,6 +20911,30 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+#~ msgid "Enter"
+#~ msgstr "Retorn"
+
+#~ msgid "Del"
+#~ msgstr "Esborrar"
+
+#~ msgid "Backspace"
+#~ msgstr "Retrocés"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Fletxa cap amunt"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Fletxa cap avall"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Fletxa cap a l’esquerra"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Fletxa cap a la dreta"
+
+#~ msgid "End"
+#~ msgstr "Final"
 
 #~ msgid "Hotend"
 #~ msgstr "Hotend"

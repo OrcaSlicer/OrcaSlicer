@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 14:21-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -559,8 +559,9 @@ msgstr "Переорганізувати"
 msgid "Reset"
 msgstr "Скинути"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
-msgstr "Ввести"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Комбінація клавіш "
@@ -1770,14 +1771,16 @@ msgstr "Вибір"
 msgid "Select point"
 msgstr "Виберіть точку"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Видалити"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Вибрати заново"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Скасувати функцію до виходу"
@@ -2422,6 +2425,9 @@ msgstr "Не вдалося розпочати завантаження URL-ад
 msgid "Import File"
 msgstr "Імпортувати файл"
 
+msgid "Delete"
+msgstr "Видалити"
+
 msgid "Choose files"
 msgstr "Вибрати файли"
 
@@ -2552,14 +2558,16 @@ msgstr "Приховати"
 msgid "Show"
 msgstr "Показати"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Видалити"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Видалення вибраних моделей"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
-msgstr "Назад"
+msgstr ""
 
 msgid "Load..."
 msgstr "Завантажити..."
@@ -11346,29 +11354,33 @@ msgstr "Вибрати кілька обʼєктів"
 msgid "Select objects by rectangle"
 msgstr "Виділити обʼєкти прямокутником"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Стрілка вгору"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Перемістити виділення на 10 мм у позитивному напрямку Y"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Стрілка вниз"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Перемістити виділення на 10 мм у негативному напрямку Y"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Стрілка вліво"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Перемістити виділення на 10 мм у негативному напрямку по осі X"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Стрілка праворуч"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11454,8 +11466,16 @@ msgstr "Віддалити"
 msgid "Toggle printable for object/part"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Переключення між Підготовка/Попередній перегляд"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11515,11 +11535,16 @@ msgstr "Увімкнення/вимкнення вікна G-коду"
 msgid "Move slider 5x faster"
 msgstr "Переміщення повзунка в 5 разів швидше"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Горизонтальний повзунок - Перемістити в початкове положення"
 
+msgctxt "Keyboard Shortcut"
 msgid "End"
-msgstr "Кінець"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Горизонтальний повзунок - Перемістити в останню позицію"
@@ -20832,6 +20857,33 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури гарячого ліжка може зменшити ймовірність деформації?"
+
+#~ msgid "Enter"
+#~ msgstr "Ввести"
+
+#~ msgid "Esc"
+#~ msgstr "Esc"
+
+#~ msgid "Del"
+#~ msgstr "Видалити"
+
+#~ msgid "Backspace"
+#~ msgstr "Назад"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Стрілка вгору"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Стрілка вниз"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Стрілка вліво"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Стрілка праворуч"
+
+#~ msgid "End"
+#~ msgstr "Кінець"
 
 #~ msgid "Hotend"
 #~ msgstr "Хотенд"

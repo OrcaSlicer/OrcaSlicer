@@ -455,8 +455,8 @@ bool GLGizmoMeasure::on_init()
     m_shortcuts = {
         {_L("Left mouse button"),           _L("Select")},
         {shift + _L("Left mouse button"),   _L("Select point")},
-        {_L("Delete"),                      _L("Restart selection")},
-        {_L("Esc"),                         _L("Cancel a feature until exit")},
+        {_CTX("Delete", "Keyboard Shortcut"),                      _L("Restart selection")},
+        {_CTX("Esc", "Keyboard Shortcut"),                         _L("Cancel a feature until exit")},
     };
 
     return true;

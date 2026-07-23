@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 14:21-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -553,8 +553,9 @@ msgstr "Berriro esleitu"
 msgid "Reset"
 msgstr "Berrezarri"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
-msgstr "Sartu"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Lasterbideko tekla "
@@ -1749,14 +1750,16 @@ msgstr "Hautatu"
 msgid "Select point"
 msgstr "Hautatu puntua"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Ezabatu"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Berrabiarazi hautaketa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Ezaugarri bat bertan behera utzi irten arte"
@@ -2418,6 +2421,9 @@ msgstr "Ezin izan da URLa deskargatzen hasi. Helburuko karpeta ez dago ezarrita.
 msgid "Import File"
 msgstr "Inportatu fitxategia"
 
+msgid "Delete"
+msgstr "Ezabatu"
+
 msgid "Choose files"
 msgstr "Hautatu fitxategiak"
 
@@ -2536,14 +2542,16 @@ msgstr "Eskutatu"
 msgid "Show"
 msgstr "Erakutsi"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Ezabatu"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Ezabatu hautatutako elementuak"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
-msgstr "Atzera-tekla"
+msgstr ""
 
 msgid "Load..."
 msgstr "Kargatu..."
@@ -11178,26 +11186,30 @@ msgstr "Hautatu objektu bat baino gehiago"
 msgid "Select objects by rectangle"
 msgstr "Hautatu objektuak laukizuzen bidez"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Gora gezia"
+msgstr ""
 
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Mugitu hautapena 10 mm Y noranzko positiboan"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Behera gezia"
+msgstr ""
 
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Mugitu hautapena 10 mm Y noranzko negatiboan"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Ezker gezia"
+msgstr ""
 
 msgid "Move selection 10mm in negative X direction"
 msgstr "Mugitu hautapena 10 mm X noranzko negatiboan"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Eskuin gezia"
+msgstr ""
 
 msgid "Move selection 10mm in positive X direction"
 msgstr "Mugitu hautapena 10 mm X noranzko positiboan"
@@ -11280,8 +11292,16 @@ msgstr "Txikiagotu zooma"
 msgid "Toggle printable for object/part"
 msgstr "Txandakatu objektuaren/piezaren inprimagarritasuna"
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Aldatu Prestatu/Aurrebista artean"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr "Ekintzen markatze azkarra ireki"
@@ -11340,11 +11360,16 @@ msgstr "G-code leihoa aktibatu/desaktibatu"
 msgid "Move slider 5x faster"
 msgstr "Mugitu graduatzailea 5 aldiz azkarrago"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Graduatzaile horizontala - Mugitu hasierako posiziora"
 
+msgctxt "Keyboard Shortcut"
 msgid "End"
-msgstr "Amaiera"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Graduatzaile horizontala - Mugitu azken posiziora"
@@ -20694,6 +20719,33 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+#~ msgid "Enter"
+#~ msgstr "Sartu"
+
+#~ msgid "Esc"
+#~ msgstr "Esc"
+
+#~ msgid "Del"
+#~ msgstr "Ezabatu"
+
+#~ msgid "Backspace"
+#~ msgstr "Atzera-tekla"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Gora gezia"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Behera gezia"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Ezker gezia"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Eskuin gezia"
+
+#~ msgid "End"
+#~ msgstr "Amaiera"
 
 #~ msgid "Hotend"
 #~ msgstr "Hotend-a"

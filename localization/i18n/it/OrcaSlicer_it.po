@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 14:21-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -554,8 +554,9 @@ msgstr "Rimappa"
 msgid "Reset"
 msgstr "Reimposta"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
-msgstr "Invio"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Tasto di scelta rapida "
@@ -1760,12 +1761,14 @@ msgstr "Seleziona"
 msgid "Select point"
 msgstr "Seleziona punto"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Elimina"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Riavvio della selezione"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -2411,6 +2414,9 @@ msgstr "Impossibile avviare il download dell'URL. La cartella di destinazione no
 msgid "Import File"
 msgstr "Importa File"
 
+msgid "Delete"
+msgstr "Elimina"
+
 msgid "Choose files"
 msgstr "Scegli file"
 
@@ -2541,12 +2547,14 @@ msgstr "Nascondi"
 msgid "Show"
 msgstr "Mostra"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Elimina"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Elimina l'oggetto selezionato"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr ""
 
@@ -11333,29 +11341,33 @@ msgstr "Seleziona più oggetti"
 msgid "Select objects by rectangle"
 msgstr "Seleziona oggetti per rettangolo"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Freccia Su"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Sposta selezione di 10 mm in direzione Y positiva"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Freccia Giù"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Sposta selezione di 10 mm in direzione Y negativa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Freccia Sinistra"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Sposta selezione di 10 mm in direzione X negativa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Freccia Destra"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11441,8 +11453,16 @@ msgstr "Rimpicciolisci"
 msgid "Toggle printable for object/part"
 msgstr "Attiva/disattiva stampa per oggetto/parte"
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Passa tra Prepara e Anteprima"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11502,11 +11522,16 @@ msgstr "Attiva/Disattiva finestra G-code"
 msgid "Move slider 5x faster"
 msgstr "Sposta il cursore 5 volte più velocemente"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Cursore di scorrimento orizzontale - Sposta alla posizione iniziale"
 
+msgctxt "Keyboard Shortcut"
 msgid "End"
-msgstr "Fine"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Cursore di scorrimento orizzontale - Sposta alla posizione finale"
@@ -20931,6 +20956,27 @@ msgid ""
 msgstr ""
 "Evita le deformazioni\n"
 "Sapevi che quando si stampano materiali soggetti a deformazioni come l'ABS, aumentare in modo appropriato la temperatura del piano riscaldato può ridurre la probabilità di deformazione?"
+
+#~ msgid "Enter"
+#~ msgstr "Invio"
+
+#~ msgid "Del"
+#~ msgstr "Elimina"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Freccia Su"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Freccia Giù"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Freccia Sinistra"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Freccia Destra"
+
+#~ msgid "End"
+#~ msgstr "Fine"
 
 #~ msgid "Hotend"
 #~ msgstr "Hotend"

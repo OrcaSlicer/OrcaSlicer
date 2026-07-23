@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 14:21-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -558,6 +558,7 @@ msgstr "재매핑"
 msgid "Reset"
 msgstr "초기화"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
 msgstr ""
 
@@ -1764,12 +1765,14 @@ msgstr "선택"
 msgid "Select point"
 msgstr "위치 선택"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "삭제"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "다시 선택"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -2411,6 +2414,9 @@ msgstr "URL 다운로드를 시작할 수 없습니다. 대상 폴더가 설정�
 msgid "Import File"
 msgstr "파일 가져오기"
 
+msgid "Delete"
+msgstr "삭제"
+
 msgid "Choose files"
 msgstr "파일 선택"
 
@@ -2541,13 +2547,14 @@ msgstr "숨기기"
 msgid "Show"
 msgstr "보이기"
 
-# 단축키
+msgctxt "Keyboard Shortcut"
 msgid "Del"
 msgstr ""
 
 msgid "Delete the selected object"
 msgstr "선택된 객체 삭제"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr ""
 
@@ -11299,29 +11306,33 @@ msgstr "여러 객체 선택"
 msgid "Select objects by rectangle"
 msgstr "사각형으로 객체 선택"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "화살표 위로"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "선택 항목을 +Y 방향으로 10mm 이동"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "화살표 아래로"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "선택 항목을 -Y 방향으로 10mm 이동"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "화살표 왼쪽으로"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "선택 항목을 -X 방향으로 10mm 이동"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "화살표 오른쪽으로"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11407,8 +11418,16 @@ msgstr "축소"
 msgid "Toggle printable for object/part"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "준비 하기/미리 보기 전환"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11468,11 +11487,16 @@ msgstr "Gcode 창 켜기/끄기"
 msgid "Move slider 5x faster"
 msgstr "슬라이더를 5배 빠르게 이동"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "수평 슬라이더 - 시작 위치로 이동"
 
+msgctxt "Keyboard Shortcut"
 msgid "End"
-msgstr "끝"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "수평 슬라이더 - 마지막 위치로 이동"
@@ -20767,6 +20791,21 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+#~ msgid "Arrow Up"
+#~ msgstr "화살표 위로"
+
+#~ msgid "Arrow Down"
+#~ msgstr "화살표 아래로"
+
+#~ msgid "Arrow Left"
+#~ msgstr "화살표 왼쪽으로"
+
+#~ msgid "Arrow Right"
+#~ msgstr "화살표 오른쪽으로"
+
+#~ msgid "End"
+#~ msgstr "끝"
 
 #~ msgid "Hotend"
 #~ msgstr "핫엔드"

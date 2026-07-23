@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 14:21-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -554,6 +554,7 @@ msgstr "Yeniden eşleştir"
 msgid "Reset"
 msgstr "Sıfırla"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
 msgstr ""
 
@@ -1760,12 +1761,14 @@ msgstr "Seç"
 msgid "Select point"
 msgstr "Nokta seç"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Sil"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Seçimi sıfırla"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -2408,6 +2411,9 @@ msgstr "URL indirme işlemi başlatılamadı. Hedef klasör ayarlanmamış. Lüt
 msgid "Import File"
 msgstr "Dosya İçe Aktar"
 
+msgid "Delete"
+msgstr "Sil"
+
 msgid "Choose files"
 msgstr "Dosyaları seç"
 
@@ -2538,12 +2544,14 @@ msgstr "Gizle"
 msgid "Show"
 msgstr "Göster"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Sil"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Seçilen nesneyi sil"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr ""
 
@@ -11316,29 +11324,33 @@ msgstr "Birden fazla nesne seç"
 msgid "Select objects by rectangle"
 msgstr "Nesneleri dikdörtgene göre seç"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Yukarı ok"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Seçimi pozitif Y yönünde 10 mm taşı"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Aşağı ok"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Seçimi negatif Y yönünde 10 mm taşı"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Sol Yön Tuşu"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Seçimi negatif X yönünde 10 mm taşı"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Sağ Yön Tuşu"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11424,8 +11436,16 @@ msgstr "Uzaklaştır"
 msgid "Toggle printable for object/part"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Hazırlama/Önizleme arasında geçiş yap"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11485,11 +11505,16 @@ msgstr "G-kodu penceresini aç/kapat"
 msgid "Move slider 5x faster"
 msgstr "Kaydırıcıyı 5 kat daha hızlı hareket ettirin"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Yatay kaydırıcı - Başlangıç konumuna taşıyın"
 
+msgctxt "Keyboard Shortcut"
 msgid "End"
-msgstr "Son"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Yatay kaydırıcı - Son konuma git"
@@ -20849,6 +20874,24 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+#~ msgid "Del"
+#~ msgstr "Sil"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Yukarı ok"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Aşağı ok"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Sol Yön Tuşu"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Sağ Yön Tuşu"
+
+#~ msgid "End"
+#~ msgstr "Son"
 
 #~ msgid "Hotend"
 #~ msgstr "Hotend"

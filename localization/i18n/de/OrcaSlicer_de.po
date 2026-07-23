@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 14:21-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -554,8 +554,9 @@ msgstr "Zuordnung"
 msgid "Reset"
 msgstr "Zurücksetzen"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
-msgstr "Eingabe"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Tastenkürzel"
@@ -1762,14 +1763,16 @@ msgstr "Auswählen"
 msgid "Select point"
 msgstr "Punkt auswählen"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Löschen"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Auswahl neu starten"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Abbrechen einer Funktion bis zum Verlassen"
@@ -2419,6 +2422,9 @@ msgstr "Der URL-Download konnte nicht gestartet werden. Der Zielordner ist nicht
 msgid "Import File"
 msgstr "Datei importieren"
 
+msgid "Delete"
+msgstr "Löschen"
+
 msgid "Choose files"
 msgstr "Dateien auswählen"
 
@@ -2548,14 +2554,16 @@ msgstr "Ausblenden"
 msgid "Show"
 msgstr "Anzeigen"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Entf"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Ausgewähltes Objekt löschen"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
-msgstr "Rücktaste"
+msgstr ""
 
 msgid "Load..."
 msgstr "Laden..."
@@ -11368,29 +11376,33 @@ msgstr "Mehrere Objekte auswählen"
 msgid "Select objects by rectangle"
 msgstr "Objekte per Rechteck auswählen"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Pfeil hoch"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Auswahl 10 mm in positiver Y-Richtung verschieben"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Pfeil runter"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Auswahl 10 mm in negativer Y-Richtung verschieben"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Pfeil links"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Auswahl 10 mm in negativer X-Richtung verschieben"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Pfeil rechts"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11476,8 +11488,16 @@ msgstr "Verkleinern"
 msgid "Toggle printable for object/part"
 msgstr "Druckbar für Objekt/Teil umschalten"
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Zwischen Vorbereiten/ Vorschau wechseln"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11537,11 +11557,16 @@ msgstr "Ein-/Ausblenden des G-Code-Fensters"
 msgid "Move slider 5x faster"
 msgstr "Schieberegler 5x schneller bewegen"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Horizontaler Schieberegler - Zur Startposition bewegen"
 
+msgctxt "Keyboard Shortcut"
 msgid "End"
-msgstr "Ende"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Horizontaler Schieberegler - Zur letzten Position bewegen"
@@ -21052,6 +21077,33 @@ msgid ""
 msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
+
+#~ msgid "Enter"
+#~ msgstr "Eingabe"
+
+#~ msgid "Esc"
+#~ msgstr "Esc"
+
+#~ msgid "Del"
+#~ msgstr "Entf"
+
+#~ msgid "Backspace"
+#~ msgstr "Rücktaste"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Pfeil hoch"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Pfeil runter"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Pfeil links"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Pfeil rechts"
+
+#~ msgid "End"
+#~ msgstr "Ende"
 
 #~ msgid "Hotend"
 #~ msgstr "Hotend"
