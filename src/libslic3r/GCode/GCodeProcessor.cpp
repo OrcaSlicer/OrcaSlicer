@@ -1254,8 +1254,8 @@ void GCodeProcessor::run_post_process()
         pos = gcode_line.find(used_filament_volume_placeholder);
         while (pos != std::string::npos) {
             // Volume of filament used, in mm^3, computed per filament as
-            // used_filament_length * 1000 * filament_diameter^2 * pi / 4
-            // i.e. length (mm) times the filament cross-section area.
+            // used_filament_length_mm * pi * (filament_diameter / 2)^2
+            // i.e. length in millimeters times the filament cross-section area.
             double used_filament_volume = 0.0; // mm^3
             for (size_t id = 0; id < filament_mm.size(); ++id) {
                 const double diameter = (id < m_result.filament_diameters.size()) ?
