@@ -981,3 +981,36 @@ TEST_CASE("Selector slicing keeps the result valid across re-apply", "[Print][H2
     REQUIRE(status != PrintBase::APPLY_STATUS_INVALIDATED);
     REQUIRE(print.is_step_done(psSlicingFinished));
 }
+
+TEST_CASE("parse_cyclic_order parses user cyclic toolchange sequences", "[ToolOrdering][Cyclic]")
+{
+    // Filament numbers are 1-based in the UI; the parser returns 0-based indices.
+    SECTION("well-formed sequence") {
+        REQUIRE(parse_cyclic_order("3,2,1,4", 4) == std::vector<unsigned int>({2, 1, 0, 3}));
+    }
+
+    SECTION("surrounding whitespace is tolerated") {
+        REQUIRE(parse_cyclic_order(" 3 , 2 ,1, 4 ", 4) == std::vector<unsigned int>({2, 1, 0, 3}));
+    }
+
+    SECTION("out-of-range and non-positive entries are dropped") {
+        // 0 is below the 1-based range, 5 is above it for a 4-filament setup, -1 is invalid.
+        REQUIRE(parse_cyclic_order("0,5,-1,2", 4) == std::vector<unsigned int>({1}));
+    }
+
+    SECTION("duplicates keep only the first occurrence") {
+        REQUIRE(parse_cyclic_order("2,2,1,2", 4) == std::vector<unsigned int>({1, 0}));
+    }
+
+    SECTION("garbage tokens are ignored") {
+        REQUIRE(parse_cyclic_order("3,abc,,2,x1", 4) == std::vector<unsigned int>({2, 1}));
+    }
+
+    SECTION("empty string yields an empty order") {
+        REQUIRE(parse_cyclic_order("", 4).empty());
+    }
+
+    SECTION("a partial sequence only names the filaments it lists") {
+        REQUIRE(parse_cyclic_order("3,1", 4) == std::vector<unsigned int>({2, 0}));
+    }
+}
