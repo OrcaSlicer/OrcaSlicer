@@ -2732,10 +2732,8 @@ void ToolOrdering::enforce_mixed_component_order()
     }
 }
 
-// Parse the user defined cyclic sequence ("3,2 , 1 , 4") into 0-based filament indices.
-// Out of range entries, duplicates and malformed tokens are dropped, so a partially valid string
-// still orders the filaments it does name.
-static std::vector<unsigned int> parse_cyclic_order(const std::string& str, unsigned int number_of_extruders)
+// Declared in ToolOrdering.hpp (exposed for unit testing).
+std::vector<unsigned int> parse_cyclic_order(const std::string& str, unsigned int number_of_extruders)
 {
     std::vector<unsigned int> order;
     for (const std::string& token : split_string(str, ',')) {
