@@ -96,7 +96,7 @@ private:
     void open_plugin_folder(const Slic3r::PluginDescriptor& plugin);
     void delete_local_plugin(const Slic3r::PluginDescriptor& plugin);
     void unsubscribe_cloud_plugin(const Slic3r::PluginDescriptor& plugin);
-    void reinstall_local_plugin(const std::string& plugin_key);
+    void reload_local_plugin(const std::string& plugin_key, bool clear_cache);
     void reinstall_cloud_plugin(const Slic3r::PluginDescriptor& plugin);
     void delete_mine_local_and_cloud_plugin(const std::string& plugin_key);
 

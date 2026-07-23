@@ -321,6 +321,8 @@ void PluginManager::merge_discovered_plugins(std::vector<PluginDescriptor> disco
 
             // A manifest-only rescan has nothing to say about capabilities, so the live module and
             // instances are left alone.
+            if (!descriptor.install_state_valid)
+                descriptor.enabled = existing->descriptor.enabled;
             existing->descriptor = std::move(descriptor);
         }
 

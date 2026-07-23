@@ -823,10 +823,10 @@ int NetworkAgent::bind_detect(std::string dev_ip, std::string sec_link, detectRe
 }
 
 int NetworkAgent::bind(
-    std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
+    std::string dev_ip, std::string dev_id, std::string dev_model, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn)
 {
     if (m_printer_agent)
-        return m_printer_agent->bind(dev_ip, dev_id, sec_link, timezone, improved, update_fn);
+        return m_printer_agent->bind(dev_ip, dev_id, dev_model, sec_link, timezone, improved, update_fn);
     return -1;
 }
 
@@ -933,6 +933,13 @@ int NetworkAgent::request_bind_ticket(std::string* ticket)
 {
     if (m_printer_agent)
         return m_printer_agent->request_bind_ticket(ticket);
+    return -1;
+}
+
+int NetworkAgent::get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback)
+{
+    if (m_printer_agent)
+        return m_printer_agent->get_hms_snapshot(dev_id, file_name, callback);
     return -1;
 }
 

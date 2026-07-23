@@ -23,6 +23,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/AboutDialog.cpp
     GUI/AboutDialog.hpp
     GUI/AmsMappingPopup.cpp
+    GUI/AmsMappingPopupUpdate.cpp
     GUI/AmsMappingPopup.hpp
     GUI/AMSMaterialsSetting.cpp
     GUI/AMSMaterialsSetting.hpp

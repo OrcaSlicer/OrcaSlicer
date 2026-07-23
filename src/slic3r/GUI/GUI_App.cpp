@@ -1198,7 +1198,11 @@ std::string GUI_App::get_plugin_url(std::string name, std::string country_code)
         curr_version = get_latest_network_version();
     }
 
-    std::string using_version = curr_version.substr(0, 9) + "00";
+    // The cloud endpoint is series-keyed and serves the series' newest build: AA.BB.CC.00.
+    // Build it from the series so an 8-char series string (02.08.01) works too.
+    std::string using_version = use_legacy_network_plugin()
+        ? curr_version.substr(0, 9) + "00"
+        : network_plugin_series(curr_version) + ".00";
     if (name == "cameratools")
         using_version = curr_version.substr(0, 6) + "00.00";
     url += (boost::format("?slicer/%1%/cloud=%2%") % name % using_version).str();
@@ -1272,6 +1276,7 @@ int GUI_App::download_plugin(std::string name, std::string package_name, Install
                     if (resource.is_array()) {
                         for (auto iter = resource.begin(); iter != resource.end(); iter++) {
                             Semver version;
+                            std::string version_str;
                             std::string url;
                             std::string type;
                             std::string vendor;
@@ -1282,7 +1287,8 @@ int GUI_App::download_plugin(std::string name, std::string package_name, Install
                                     BOOST_LOG_TRIVIAL(info) << "[download_plugin]: get version of settings's type, " << sub_iter.value();
                                 }
                                 else if (boost::iequals(sub_iter.key(), "version")) {
-                                    version = *(Semver::parse(sub_iter.value()));
+                                    version_str = sub_iter.value();
+                                    version = *(Semver::parse(version_str));
                                 }
                                 else if (boost::iequals(sub_iter.key(), "description")) {
                                     description = sub_iter.value();
@@ -1382,6 +1388,11 @@ int GUI_App::download_plugin(std::string name, std::string package_name, Install
             result = -1;
         });
     http.perform_sync();
+
+    // No version adoption: the stored identity is the AA.BB.CC series, so install_plugin() names
+    // the library after the configured series regardless of which build the series-keyed endpoint
+    // served (02.08.01.53). The series config never diverges from the file name, so there is
+    // nothing to adopt.
     j["result"] = result < 0 ? "failed" : "success";
     j["error_msg"] = err_msg;
     return result;
@@ -1653,7 +1664,13 @@ void GUI_App::restart_networking()
         m_agent->set_on_http_error_fn([this](CloudEvent event, unsigned int status, std::string body) {
             this->handle_http_error(status, body, event.provider);
         });
-        m_agent->start_discovery(true, false);
+        // on_init_network() rebuilt m_agent with a null printer agent, so calling
+        // m_agent->start_discovery() directly would no-op (NetworkAgent::start_discovery
+        // returns false when m_printer_agent is null). Re-establish the printer agent for the
+        // active preset first - switch_printer_agent() installs it and then starts discovery,
+        // mirroring startup - otherwise LAN discovery stays dead after a plugin hot reload
+        // until the user next changes a preset/tab.
+        switch_printer_agent();
         if (mainframe)
             mainframe->refresh_plugin_tips();
         if (plater_)
@@ -1738,6 +1755,53 @@ bool GUI_App::wait_for_network_idle(int timeout_ms)
     BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": timeout after " << timeout_ms
                                 << "ms, server_connected=" << (m_agent ? m_agent->is_server_connected() : false);
     return false;
+}
+
+void GUI_App::migrate_network_plugin_config()
+{
+    if (!app_config)
+        return;
+
+    const std::string cfg = app_config->get_network_plugin_version();
+    if (!is_series_managed_version(cfg) || !is_supported_network_version(cfg))
+        return; // empty / legacy / custom-named / unsupported old series -> nothing to migrate here
+                // (an unsupported old config is handled by the fallback in on_init_network)
+
+    const std::string series = network_plugin_series(cfg);
+    if (cfg != series) {
+        app_config->set_network_plugin_version(series);
+        app_config->save();
+        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": network_plugin_version " << cfg << " -> " << series;
+    }
+
+    // Consolidate the on-disk files onto the series name. Runs at startup before the plug-in is
+    // loaded, so the rename is safe even on Windows (nothing holds the file open yet). If it is
+    // skipped or fails, resolve_library_path() still loads the specific build for this series.
+    std::string newest;
+    for (const auto& v : BBLNetworkPlugin::scan_plugin_versions())
+        if (is_series_managed_version(v) && network_plugin_series(v) == series && (newest.empty() || v > newest))
+            newest = v;
+    if (newest.empty())
+        return;
+
+    boost::system::error_code ec;
+    const boost::filesystem::path series_path(BBLNetworkPlugin::get_versioned_library_path(series));
+    if (newest != series) {
+        // Make the newest same-series build the series file. Safe here (pre-load); if the rename
+        // fails, resolve_library_path() still loads the specific build for this series.
+        boost::filesystem::remove(series_path, ec);
+        boost::filesystem::rename(BBLNetworkPlugin::get_versioned_library_path(newest), series_path, ec);
+        if (ec)
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": rename " << newest << " -> " << series
+                                       << " failed (" << ec.message() << "), loader will resolve it";
+    }
+
+    // Tidy strictly-older same-series managed builds (best-effort; never touch custom/legacy).
+    for (const auto& v : BBLNetworkPlugin::scan_plugin_versions()) {
+        if (v == series || !is_series_managed_version(v) || network_plugin_series(v) != series)
+            continue;
+        boost::filesystem::remove(BBLNetworkPlugin::get_versioned_library_path(v), ec);
+    }
 }
 
 bool GUI_App::hot_reload_network_plugin()
@@ -1957,6 +2021,13 @@ bool GUI_App::check_networking_version()
     }
 
     BOOST_LOG_TRIVIAL(info) << "check_networking_version: network_ver=" << network_ver << ", expected=" << studio_ver;
+
+    // A configured version outside the whitelisted series must never pass as compatible,
+    // even if it matches the loaded library - its ABI does not match this build.
+    if (!use_legacy_network_plugin() && !is_supported_network_version(studio_ver)) {
+        m_networking_compatible = false;
+        return false;
+    }
 
     if (network_ver.length() >= 8 && studio_ver.length() >= 8) {
         if (network_ver.substr(0,8) == studio_ver.substr(0,8)) {
@@ -3396,10 +3467,26 @@ void GUI_App::copy_network_if_available()
     if (app_config->get("update_network_plugin") != "true")
         return;
 
+    bool had_cache = false;
+    bool installed = install_network_plugin_from_ota(had_cache);
+    // Success consumes the cache and a missing cache leaves nothing to do; only a
+    // failed copy keeps the flag so the install is retried on the next launch.
+    if (installed || !had_cache)
+        app_config->set("update_network_plugin", "false");
+}
+
+// Installs the OTA-downloaded plug-in files from ota/plugins into the plugins folder
+// (network library under its versioned name, and the configured version updated to
+// match). Returns true when everything was installed; had_cache reports whether a
+// usable download was present at all.
+bool GUI_App::install_network_plugin_from_ota(bool& had_cache)
+{
+    had_cache = false;
+
     std::string data_dir_str = data_dir();
     boost::filesystem::path data_dir_path(data_dir_str);
     auto plugin_folder = data_dir_path / "plugins";
-    auto cache_folder = data_dir_path / "ota";
+    auto cache_folder = data_dir_path / "ota" / "plugins";
     std::string changelog_file = cache_folder.string() + "/network_plugins.json";
 
     std::string cached_version;
@@ -3417,10 +3504,10 @@ void GUI_App::copy_network_if_available()
     }
 
     if (cached_version.empty()) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": no version found in changelog, aborting copy";
-        app_config->set("update_network_plugin", "false");
-        return;
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": no version found in changelog, nothing to install";
+        return false;
     }
+    had_cache = true;
 
     std::string network_library, player_library, live555_library, network_library_dst, player_library_dst, live555_library_dst;
 #if defined(_MSC_VER) || defined(_WIN32)
@@ -3451,17 +3538,41 @@ void GUI_App::copy_network_if_available()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": create directory " << plugin_folder.string();
         boost::filesystem::create_directory(plugin_folder);
     }
-    std::string error_message;
-    if (boost::filesystem::exists(network_library)) {
-        CopyFileResult cfr = copy_file(network_library, network_library_dst, error_message, false);
-        if (cfr != CopyFileResult::SUCCESS) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Copying failed(" << cfr << "): " << error_message;
-            return;
-        }
 
+    // Replace a destination even while the running process still maps it: an in-use
+    // file cannot be deleted or overwritten on Windows, but it can be renamed aside;
+    // the stale ".old" copy is swept on the next launch (see on_init_network).
+    auto install_file = [](const std::string& src, const std::string& dst) -> bool {
+        boost::system::error_code ec;
+        if (boost::filesystem::exists(dst, ec)) {
+            boost::filesystem::remove(dst, ec);
+            if (ec) {
+                boost::filesystem::path aside(dst);
+                aside += ".old";
+                boost::system::error_code ec2;
+                boost::filesystem::remove(aside, ec2);
+                boost::filesystem::rename(dst, aside, ec2);
+                if (ec2) {
+                    BOOST_LOG_TRIVIAL(error) << "install_network_plugin_from_ota: cannot replace in-use file " << dst << ": " << ec2.message();
+                    return false;
+                }
+            }
+        }
+        std::string error_message;
+        CopyFileResult cfr = copy_file(src, dst, error_message, false);
+        if (cfr != CopyFileResult::SUCCESS) {
+            BOOST_LOG_TRIVIAL(error) << "install_network_plugin_from_ota: copying " << src << " failed(" << cfr << "): " << error_message;
+            return false;
+        }
         static constexpr const auto perms = fs::owner_read | fs::owner_write | fs::group_read | fs::others_read;
-        fs::permissions(network_library_dst, perms);
-        fs::remove(network_library);
+        fs::permissions(dst, perms);
+        boost::filesystem::remove(src, ec);
+        return true;
+    };
+
+    if (boost::filesystem::exists(network_library)) {
+        if (!install_file(network_library, network_library_dst))
+            return false;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Copying network library from " << network_library << " to " << network_library_dst << " successfully.";
 
         app_config->set_network_plugin_version(cached_version);
@@ -3469,33 +3580,24 @@ void GUI_App::copy_network_if_available()
     }
 
     if (boost::filesystem::exists(player_library)) {
-        CopyFileResult cfr = copy_file(player_library, player_library_dst, error_message, false);
-        if (cfr != CopyFileResult::SUCCESS) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Copying failed(" << cfr << "): " << error_message;
-            return;
-        }
-
-        static constexpr const auto perms = fs::owner_read | fs::owner_write | fs::group_read | fs::others_read;
-        fs::permissions(player_library_dst, perms);
-        fs::remove(player_library);
+        if (!install_file(player_library, player_library_dst))
+            return false;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Copying player library from " << player_library << " to " << player_library_dst << " successfully.";
     }
 
     if (boost::filesystem::exists(live555_library)) {
-        CopyFileResult cfr = copy_file(live555_library, live555_library_dst, error_message, false);
-        if (cfr != CopyFileResult::SUCCESS) {
-            BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": Copying failed(" << cfr << "): " << error_message;
-            return;
-        }
-
-        static constexpr const auto perms = fs::owner_read | fs::owner_write | fs::group_read | fs::others_read;
-        fs::permissions(live555_library_dst, perms);
-        fs::remove(live555_library);
+        if (!install_file(live555_library, live555_library_dst))
+            return false;
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": Copying live555 library from " << live555_library << " to " << live555_library_dst << " successfully.";
     }
-    if (boost::filesystem::exists(changelog_file))
-        fs::remove(changelog_file);
-    app_config->set("update_network_plugin", "false");
+    // All cached files consumed - drop the whole ota/plugins cache folder.
+    try {
+        if (boost::filesystem::exists(cache_folder))
+            fs::remove_all(cache_folder);
+    } catch (...) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": failed to remove the plugin cache folder " << cache_folder.string();
+    }
+    return true;
 }
 
 bool GUI_App::on_init_network(bool try_backup)
@@ -3522,9 +3624,27 @@ bool GUI_App::on_init_network(bool try_backup)
 
     auto should_load_networking_plugin = app_config->get_bool("installed_networking");
 
+    // Normalize an older full-version identity to the AA.BB.CC series before it drives loading.
+    migrate_network_plugin_config();
+
     std::string config_version = app_config->get_network_plugin_version();
 
     if (should_load_networking_plugin) {
+        // A version outside the whitelisted series (e.g. 02.03.00.62 configured by an older
+        // Orca release) must not be loaded - its ABI no longer matches this build. Fall back
+        // to the latest supported build if it is already on disk; otherwise clear the
+        // configured version so the normal empty-version download flow takes over (the
+        // download URL and install adoption both derive from the configured version, so it
+        // must not keep pointing at the unsupported build).
+        if (!config_version.empty() && !is_supported_network_version(config_version)) {
+            std::string latest = get_latest_network_version();
+            BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": configured plugin version " << config_version
+                                       << " is no longer supported, falling back to " << latest;
+            config_version = BBLNetworkPlugin::versioned_library_exists(latest) ? latest : "";
+            app_config->set_network_plugin_version(config_version);
+            app_config->save();
+        }
+
         if (config_version.empty()) {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": no version configured, need to download";
             m_networking_need_update = true;
@@ -3544,12 +3664,18 @@ bool GUI_App::on_init_network(bool try_backup)
 
             std::string loaded_version = Slic3r::NetworkAgent::get_version();
             if (app_config && !loaded_version.empty() && loaded_version != "00.00.00.00") {
+                // Self-heal only when a genuinely different series loaded than configured (e.g. the
+                // configured build was unavailable and a fallback loaded). Within a series the
+                // loaded build (02.08.01.53) differs from the series config (02.08.01) by design, so
+                // compare series, not the raw string, and store the managed series form - a custom
+                // config (02.08.01_custom) keeps its own name.
                 std::string config_version = app_config->get_network_plugin_version();
-                std::string config_base    = extract_base_version(config_version);
-                if (config_base != loaded_version) {
-                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version << " to loaded "
-                                            << loaded_version;
-                    app_config->set_network_plugin_version(loaded_version);
+                std::string loaded_series  = network_plugin_series(loaded_version);
+                if (network_plugin_series(config_version) != loaded_series) {
+                    std::string synced = is_series_managed_version(loaded_version) ? loaded_series : loaded_version;
+                    BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": syncing config version from " << config_version
+                                            << " to loaded " << loaded_version << " (stored as " << synced << ")";
+                    app_config->set_network_plugin_version(synced);
                     app_config->save();
                 }
             }
@@ -3579,6 +3705,20 @@ bool GUI_App::on_init_network(bool try_backup)
             }
         } else {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll failed";
+            // A failed install can leave the config naming a build that never made it to
+            // disk (download_plugin() adopts the downloaded version up front so that
+            // install_plugin() can name the library after it). If the whitelisted latest
+            // is still installed, fall back to it instead of dropping the user into the
+            // re-download flow without networking.
+            std::string latest = get_latest_network_version();
+            if (config_version != latest && BBLNetworkPlugin::versioned_library_exists(latest)) {
+                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": falling back to installed " << latest;
+                config_version = latest;
+                app_config->set_network_plugin_version(latest);
+                app_config->save();
+                load_agent_dll = Slic3r::NetworkAgent::initialize_network_module(false, config_version);
+                goto __retry;
+            }
             if (should_load_networking_plugin) {
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, need upload network module";
                 m_networking_need_update = true;
@@ -5987,18 +6127,23 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
         }
         else if (msg == "unsigned_studio") {
             BOOST_LOG_TRIVIAL(info) << "process_network_msg, unsigned_studio";
-            MessageDialog
-                msg_dlg(nullptr,
-                        _L("To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and Developer mode on your printer.\n\n"
-                           "Please go to your printer's settings and:\n"
-                           "1. Turn on LAN mode\n"
-                           "2. Enable Developer mode\n\n"
-                           "Developer mode allows the printer to work exclusively through local network access, "
-                           "enabling full functionality with OrcaSlicer."),
-                        _L("Network Plug-in Restriction"), wxAPPLY | wxOK);
-            m_show_error_msgdlg = true;
-            msg_dlg.ShowModal();
-            m_show_error_msgdlg = false;
+            // Plugin re-emits this on every subscribe retry; latch it so it shows
+            // once per connection episode.
+            if (!m_show_error_msgdlg && !m_unsigned_plugin_warning_shown) {
+                m_unsigned_plugin_warning_shown = true;
+                MessageDialog
+                    msg_dlg(nullptr,
+                            _L("To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and Developer mode on your printer.\n\n"
+                               "Please go to your printer's settings and:\n"
+                               "1. Turn on LAN mode\n"
+                               "2. Enable Developer mode\n\n"
+                               "Developer mode allows the printer to work exclusively through local network access, "
+                               "enabling full functionality with OrcaSlicer."),
+                            _L("Network Plug-in Restriction"), wxAPPLY | wxOK);
+                m_show_error_msgdlg = true;
+                msg_dlg.ShowModal();
+                m_show_error_msgdlg = false;
+            }
             return true;
         }
     }

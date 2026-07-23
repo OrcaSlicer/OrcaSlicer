@@ -10,7 +10,6 @@
 
 OrcaSlicer: an open source Next-Gen Slicing Software for Precision 3D Prints.  
 Optimize your prints with ultra-fast slicing, intelligent support generation, and seamless printer compatibility—engineered for perfection.
-<h3>
 
 # Official links and community
 
@@ -90,11 +89,22 @@ Visit our GitHub Releases page for the latest stable version of OrcaSlicer, reco
 🌙 **[Download the Latest Nightly Build](https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/nightly-builds)**  
 Explore the latest developments in OrcaSlicer with our nightly builds. Feedback on these versions is highly appreciated.
 
+### Belt Printer Builds
+
+The [nightly release](https://github.com/OrcaSlicer/OrcaSlicer/releases/tag/nightly-builds) ships **two parallel builds**: the standard build and a belt-printer build. Both are attached to the same release — tell them apart by the filename suffix:
+
+- **Standard** — no suffix (e.g. `OrcaSlicer_Windows_Installer_x64_nightly.exe`)
+- **Belt** — `_belt` suffix (e.g. `OrcaSlicer_Windows_Installer_x64_nightly_belt.exe`)
+
+The `_belt` builds add **experimental support for belt / conveyor (infinite-Z) printers**, where the model is sliced against a tilted belt surface instead of a flat horizontal bed. They include ready-to-use belt printer profiles, the full belt slicing pipeline (mesh rotation and G-code transforms), belt-aware support generation, and a tilted-bed preview.
+
+> ⚠️ Belt printer support is under active development and is **not yet merged into `main`** — it currently ships only in these parallel `_belt` builds, produced from the [`belt-printer`](https://github.com/OrcaSlicer/OrcaSlicer/tree/belt-printer) branch. See tracking PR [#14394](https://github.com/OrcaSlicer/OrcaSlicer/pull/14394) and the original documentation in [#12998](https://github.com/OrcaSlicer/OrcaSlicer/pull/12998).
+
 # How to install
 
 ## Windows
 
-Download the **Windows Installer exe**  for your preferred version from the [releases page](https://github.com/OrcaSlicer/OrcaSlicer/releases).
+Download the **Windows Installer exe** for your preferred version from the [releases page](https://github.com/OrcaSlicer/OrcaSlicer/releases). Both `x64` and `arm64` installers are published — pick the one matching your CPU.
 
 - *For convenience there is also a portable build available.*
     <details>
@@ -109,7 +119,7 @@ Download the **Windows Installer exe**  for your preferred version from the [rel
     - This file may already be available on your computer if you've installed visual studio.  Check the following location: `%VCINSTALLDIR%Redist\MSVC\v142`
     </details>
 
-Windows Package Manager
+### Windows Package Manager
 
 ```shell
 winget install --id=SoftFever.OrcaSlicer -e
@@ -117,7 +127,7 @@ winget install --id=SoftFever.OrcaSlicer -e
 
 ## Mac
 
-1. Download the DMG for your computer: `arm64` version for Apple Silicon and `x86_64` for Intel CPU.
+1. Download the universal DMG, which runs on both Apple Silicon and Intel Macs.
 2. Drag OrcaSlicer.app to Application folder.
 3. *If you want to run a build from a PR, you also need to follow the instructions below:*
 
@@ -141,6 +151,14 @@ winget install --id=SoftFever.OrcaSlicer -e
         - Step 2: in `System Settings` -> `Privacy & Security`, click `Open Anyway`:  
             ![mac_security_setting](./SoftFever_doc/mac_security_setting.png)
     </details>
+
+### Homebrew Cask
+
+```shell
+brew install --cask orcaslicer
+```
+
+The [Homebrew cask](https://formulae.brew.sh/cask/orcaslicer) installs the official macOS DMG from [GitHub Releases](https://github.com/OrcaSlicer/OrcaSlicer/releases).
 
 ## Linux
 
@@ -190,8 +208,8 @@ resolution: 0.1
 
 # Supports
 
-**OrcaSlicer** is an open-source project and I'm deeply grateful to all my sponsors and backers.  
-Their generous support enables me to purchase filaments and other essential 3D printing materials for the project.  
+**OrcaSlicer** is an open-source project, and we're deeply grateful to all our sponsors and backers.  
+Their generous support helps fund filaments and other essential 3D printing materials for the project.  
 Thank you! :)
 
 ## Sponsors
@@ -215,7 +233,7 @@ Thank you! :)
 
 **Ko-fi supporters** ☕: [Backers list](https://github.com/user-attachments/files/16147016/Supporters_638561417699952499.csv)
 
-## Support me
+## Support the project
 
 <a href="https://github.com/sponsors/SoftFever"><img src="https://img.shields.io/badge/GitHub%20Sponsors-30363D?style=flat&logo=GitHub-Sponsors&logoColor=EA4AAA" height="50"></a>  
 <a href="https://ko-fi.com/G2G5IP3CP"><img src="https://img.shields.io/badge/Support_me_on_Ko--fi-FF5E5B?style=flat&logo=ko-fi&logoColor=white" height="50"></a>  
