@@ -260,8 +260,7 @@ bool ConfigManipulation::check_layer_height(DynamicPrintConfig* config)
     layer_height_limits(min_layer_height, max_layer_height);
     const double layer_height = config->opt_float("layer_height");
 
-    // Near-zero layer heights are always invalid, so reset without offering Ignore.
-    if (layer_height < EPSILON) {
+    if (min_layer_height > EPSILON && layer_height < EPSILON) {
         const wxString msg_text = wxString::Format(_L("Layer height is too small. It will be set to the minimum (%g mm)."), min_layer_height);
         MessageDialog dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxOK);
         dialog.SetButtonLabel(wxID_OK, _L("OK"));
@@ -273,9 +272,9 @@ bool ConfigManipulation::check_layer_height(DynamicPrintConfig* config)
         apply(config, &new_conf);
         return true;
     }
-    if (layer_height > max_layer_height + EPSILON)
+    if (max_layer_height > EPSILON && layer_height > max_layer_height + EPSILON)
         return layer_height_out_of_range_dialog(config, max_layer_height);
-    if (layer_height < min_layer_height - EPSILON)
+    if (min_layer_height > EPSILON && layer_height < min_layer_height - EPSILON)
         return layer_height_out_of_range_dialog(config, min_layer_height);
     return false;
 }
