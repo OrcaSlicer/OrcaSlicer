@@ -2682,6 +2682,10 @@ bool GUI_App::OnInit()
 
 int GUI_App::OnExit()
 {
+    // Join the async console sink here while stdout is still drained; doing it in
+    // ~GUI_App() is late enough to wedge under lldb-dap (feeding thread blocked mid-write).
+    shutdown_console_logging();
+
     stop_http_server();
     stop_sync_user_preset();
 

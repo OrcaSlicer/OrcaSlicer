@@ -366,6 +366,8 @@ void shutdown_console_logging()
 
 	auto console_sink = g_console_log_sink;
 	boost::log::core::get()->remove_sink(console_sink);
+	// Don't flush() here. It ties exit to the queue draining and can hang if the
+	// stdout reader stalled, and the file sink already holds the full log.
 	console_sink->stop();
 	g_console_log_sink.reset();
 }
