@@ -465,6 +465,33 @@ GeometryEngine::surface_deviation(const TopoDS_Shape& candidate,
     return d;
 }
 
+GeometryEngine::MassProps GeometryEngine::mass_properties(const TopoDS_Shape& shape)
+{
+    MassProps p;
+    if (shape.IsNull()) return p;
+    try {
+        GProp_GProps vprops;
+        BRepGProp::VolumeProperties(shape, vprops);
+        double mass = vprops.Mass();
+        if (std::abs(mass) < 1e-30) return p;
+        p.volume        = std::abs(mass);
+        p.center_of_mass = Vec3d(vprops.CentreOfMass().X(), vprops.CentreOfMass().Y(), vprops.CentreOfMass().Z());
+        gp_Mat mat = vprops.MatrixOfInertia();
+        p.inertia = {{
+            mat(1,1), mat(1,2), mat(1,3),
+            mat(2,1), mat(2,2), mat(2,3),
+            mat(3,1), mat(3,2), mat(3,3),
+        }};
+        GProp_GProps sprops;
+        BRepGProp::SurfaceProperties(shape, sprops);
+        p.surface_area = sprops.Mass();
+        p.valid = true;
+    } catch (const Standard_Failure&) {
+        // leave valid = false
+    }
+    return p;
+}
+
 std::string GeometryEngine::primitive_name(PrimitiveType type)
 {
     switch (type) {

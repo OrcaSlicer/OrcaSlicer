@@ -187,6 +187,10 @@ json describe_tools()
                      json{{"name", "a"}, {"type", "object"}},
                      json{{"name", "b"}, {"type", "object"}},
                  })}},
+            json{{"name", "mass_properties"}, {"summary", "Volume / surface area / centre of mass / inertia tensor of a body."},
+                 {"params", json::array({
+                     json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
+                 })}},
             json{{"name", "slice_body"}, {"summary", "Cross-section of a body by a base plane at an offset (sections-as-evidence); returns ordered world contours, each flagged closed/open."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
@@ -365,6 +369,20 @@ json measure(DesignPanel* panel, const json& params)
         r["angle_deg"] = std::acos(c) * 180.0 / M_PI;
     }
     return r;
+}
+
+json mass_properties(DesignPanel* panel, const json& params)
+{
+    const TopoDS_Shape& shape = body_shape(panel, params);
+    auto mp = GeometryEngine::mass_properties(shape);
+    if (!mp.valid) throw std::runtime_error("mass properties could not be computed (null/empty shape)");
+    return json{
+        {"volume", mp.volume},
+        {"surface_area", mp.surface_area},
+        {"center_of_mass", json::array({mp.center_of_mass.x(), mp.center_of_mass.y(), mp.center_of_mass.z()})},
+        {"inertia", mp.inertia},
+        {"valid", mp.valid},
+    };
 }
 
 // Chain raw section segments (each a sampled-edge polyline) into ordered contours by joining
@@ -785,6 +803,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "describe_scene") return rpc_result(id, describe_scene(panel));
         if (method == "query_topology") return rpc_result(id, query_topology(panel, params));
         if (method == "measure")        return rpc_result(id, measure(panel, params));
+        if (method == "mass_properties") return rpc_result(id, mass_properties(panel, params));
         if (method == "slice_body")     return rpc_result(id, slice_body(panel, params));
         if (method == "import_step")    return rpc_result(id, import_step(panel, params));
         if (method == "import_mesh")    return rpc_result(id, import_mesh(panel, params));

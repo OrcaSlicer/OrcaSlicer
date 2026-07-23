@@ -1379,6 +1379,112 @@ TEST_CASE("cut splits a body with a plane", "[cut]")
     }
 }
 
+TEST_CASE("mass properties: analytic cube", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Sketch");
+    doc.add_extrude(sk, 20.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    auto mp = doc.body_mass_properties(0);
+    REQUIRE(mp.valid);
+    // Cube 20x20x20 -> V = 8000 mm^3
+    REQUIRE_THAT(mp.volume, WithinRel(8000.0, 1e-6));
+    // Surface area = 6 * 20^2 = 2400 mm^2
+    REQUIRE_THAT(mp.surface_area, WithinRel(2400.0, 1e-6));
+    // COM at geometric centre: the box centred on origin is from z=0 to z=20,
+    // so centre at (0, 0, 10)
+    REQUIRE_THAT(mp.center_of_mass.x(), WithinAbs(0.0, 1e-6));
+    REQUIRE_THAT(mp.center_of_mass.y(), WithinAbs(0.0, 1e-6));
+    REQUIRE_THAT(mp.center_of_mass.z(), WithinAbs(10.0, 1e-6));
+    // Inertia sanity: symmetric cube -> diagonal terms equal, off-diagonal ~0
+    double Ixx = mp.inertia[0], Iyy = mp.inertia[4], Izz = mp.inertia[8];
+    REQUIRE_THAT(Ixx, WithinRel(8000.0 * (20*20 + 20*20) / 12.0, 1e-4)); // I = m/12*(b^2+h^2) about COM
+    REQUIRE_THAT(Iyy, WithinRel(Ixx, 1e-4));
+    REQUIRE_THAT(Izz, WithinRel(Ixx, 1e-4));
+    REQUIRE_THAT(mp.inertia[1], WithinAbs(0.0, 1e-6));
+    REQUIRE_THAT(mp.inertia[2], WithinAbs(0.0, 1e-6));
+    REQUIRE_THAT(mp.inertia[5], WithinAbs(0.0, 1e-6));
+}
+
+TEST_CASE("mass properties: analytic cylinder", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    // Circle r=10 on XY, extrude height=5 -> cylinder
+    SketchEntity c;
+    c.type   = SketchEntity::Type::Circle;
+    c.center = Vec2d(0, 0);
+    c.radius = 10.0;
+    int sk = doc.add_sketch_entities({c}, SketchPlane::XY(), "Circle");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    auto mp = doc.body_mass_properties(0);
+    REQUIRE(mp.valid);
+    double expected_vol = M_PI * 100.0 * 5.0;   // pi * r^2 * h
+    REQUIRE_THAT(mp.volume, WithinRel(expected_vol, 1e-4));
+    // Surface: 2*pi*r^2 + 2*pi*r*h = 2*pi*100 + 2*pi*10*5 = 200*pi + 100*pi = 300*pi
+    double expected_area = 2 * M_PI * 100.0 + 2 * M_PI * 10.0 * 5.0;
+    REQUIRE_THAT(mp.surface_area, WithinRel(expected_area, 1e-4));
+}
+
+TEST_CASE("mass properties: hollow body", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+
+    // Solid cube
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Sketch");
+    doc.add_extrude(sk, 20.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    auto mp_solid = doc.body_mass_properties(0);
+    REQUIRE(mp_solid.valid);
+    double solid_vol = mp_solid.volume;
+
+    // Hollow cube with a through hole
+    CadDocument doc2;
+    int sk2 = doc2.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Sketch");
+    doc2.add_extrude(sk2, 20.0, false, BooleanMode::New, "Extrude");
+    doc2.add_hole(10.0, 20.0, true, 0.0, 0.0, SketchPlane::XY(), "Hole");
+    REQUIRE(doc2.recompute());
+    auto mp_hollow = doc2.body_mass_properties(0);
+    REQUIRE(mp_hollow.valid);
+
+    // Hollow volume < solid volume
+    REQUIRE(mp_hollow.volume < solid_vol);
+    // Hollow = solid - cylinder: V_cyl = pi*5^2*20 = 500*pi
+    double expected_hollow = solid_vol - M_PI * 25.0 * 20.0;
+    REQUIRE_THAT(mp_hollow.volume, WithinRel(expected_hollow, 0.01));
+}
+
+TEST_CASE("mass properties: invalid body index", "[CadDocument]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Sketch");
+    doc.add_extrude(sk, 20.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+
+    // Out of range -> valid=false
+    auto mp = doc.body_mass_properties(99);
+    REQUIRE_FALSE(mp.valid);
+    REQUIRE(mp.volume == 0.0);
+    // Negative index
+    auto mp2 = doc.body_mass_properties(-1);
+    REQUIRE_FALSE(mp2.valid);
+
+    // Empty document (no recompute) -> all bodies empty, index 0 out of range
+    CadDocument empty;
+    auto mp3 = empty.body_mass_properties(0);
+    REQUIRE_FALSE(mp3.valid);
+}
+
 TEST_CASE("serialize_recipe roundtrip with two bodies", "[CadDocument]")
 {
     using Catch::Matchers::WithinRel;

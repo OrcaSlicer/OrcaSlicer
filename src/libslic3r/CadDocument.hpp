@@ -371,6 +371,8 @@ public:
                      const std::vector<Transform3d>& body_xforms,
                      std::string& err) const;
 
+    GeometryEngine::MassProps body_mass_properties(int body_index) const;
+
     // Undo/redo of the feature recipe (Onshape-style Ctrl+Z). The caller marks a
     // user-action boundary by calling checkpoint() BEFORE the mutation(s) for that
     // action (add/delete/move/replace, or a direct features edit). undo()/redo() then

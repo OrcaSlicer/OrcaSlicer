@@ -1852,4 +1852,10 @@ bool CadDocument::export_step(const std::string& path,
     return true;
 }
 
+GeometryEngine::MassProps CadDocument::body_mass_properties(int body_index) const
+{
+    if (body_index < 0 || body_index >= int(bodies.size())) return {};
+    return GeometryEngine::mass_properties(bodies[body_index].shape);
+}
+
 } // namespace Slic3r

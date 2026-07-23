@@ -94,6 +94,15 @@ public:
                                      double merge_angle_deg,
                                      MeshBrepStats& stats);
 
+    struct MassProps {
+        double volume{0.0};
+        double surface_area{0.0};
+        Vec3d  center_of_mass{Vec3d::Zero()};
+        std::array<double, 9> inertia{};
+        bool   valid{false};
+    };
+    static MassProps mass_properties(const TopoDS_Shape& shape);
+
     struct Deviation { double max_mm{0}; double mean_mm{0}; double rms_mm{0}; int sample_count{0}; };
     static Deviation surface_deviation(const TopoDS_Shape& candidate,
                                        const TopoDS_Shape& reference,
