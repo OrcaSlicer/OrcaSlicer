@@ -12,6 +12,7 @@
 #include "libslic3r/GCode/AdaptivePAProcessor.hpp"
 #include "Plater.hpp"
 
+#include <algorithm>
 #include <sstream>
 #include <wx/msgdlg.h>
 
@@ -244,14 +245,42 @@ void ConfigManipulation::check_chamber_minimal_temperature(DynamicPrintConfig* c
     }
 }
 
-void ConfigManipulation::check_object_layer_height(DynamicPrintConfig* config)
+void ConfigManipulation::layer_height_limits(double& min_layer_height, double& max_layer_height) const
 {
-    const double max_lh = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config.opt_float("max_layer_height", 0);
-    if (max_lh > 0.2 && config->opt_float("layer_height") > max_lh + EPSILON)
-        layer_height_out_of_range_dialog(config, max_lh);
+    const DynamicPrintConfig& printer_config = GUI::wxGetApp().preset_bundle->printers.get_edited_preset().config;
+    const std::vector<double>& min_limits = printer_config.option<ConfigOptionFloats>("min_layer_height")->values;
+    const std::vector<double>& max_limits = printer_config.option<ConfigOptionFloats>("max_layer_height")->values;
+    min_layer_height = *std::min_element(min_limits.begin(), min_limits.end());
+    max_layer_height = *std::max_element(max_limits.begin(), max_limits.end());
 }
 
-void ConfigManipulation::layer_height_out_of_range_dialog(DynamicPrintConfig* config, double clamp_to)
+bool ConfigManipulation::check_layer_height(DynamicPrintConfig* config)
+{
+    double min_layer_height = 0., max_layer_height = 0.;
+    layer_height_limits(min_layer_height, max_layer_height);
+    const double layer_height = config->opt_float("layer_height");
+
+    // Near-zero layer heights are always invalid, so reset without offering Ignore.
+    if (layer_height < EPSILON) {
+        const wxString msg_text = wxString::Format(_L("Layer height is too small. It will be set to the minimum (%g mm)."), min_layer_height);
+        MessageDialog dialog(wxGetApp().plater(), msg_text, "", wxICON_WARNING | wxOK);
+        dialog.SetButtonLabel(wxID_OK, _L("OK"));
+        is_msg_dlg_already_exist = true;
+        dialog.ShowModal();
+        is_msg_dlg_already_exist = false;
+        DynamicPrintConfig new_conf = *config;
+        new_conf.set_key_value("layer_height", new ConfigOptionFloat(min_layer_height));
+        apply(config, &new_conf);
+        return true;
+    }
+    if (layer_height > max_layer_height + EPSILON)
+        return layer_height_out_of_range_dialog(config, max_layer_height);
+    if (layer_height < min_layer_height - EPSILON)
+        return layer_height_out_of_range_dialog(config, min_layer_height);
+    return false;
+}
+
+bool ConfigManipulation::layer_height_out_of_range_dialog(DynamicPrintConfig* config, double clamp_to)
 {
     wxString msg_text = _(L("Layer height is outside the limits set in Printer Settings -> Extruder -> Layer height limits, "
                             "this may cause printing quality issues."));
@@ -260,12 +289,14 @@ void ConfigManipulation::layer_height_out_of_range_dialog(DynamicPrintConfig* co
     dialog.SetButtonLabel(wxID_YES, _L("Adjust"));
     dialog.SetButtonLabel(wxID_NO, _L("Ignore"));
     is_msg_dlg_already_exist = true;
-    if (dialog.ShowModal() == wxID_YES) {
+    const bool adjust = dialog.ShowModal() == wxID_YES;
+    if (adjust) {
         DynamicPrintConfig new_conf = *config;
         new_conf.set_key_value("layer_height", new ConfigOptionFloat(clamp_to));
         apply(config, &new_conf);
     }
     is_msg_dlg_already_exist = false;
+    return adjust;
 }
 
 void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, const bool is_global_config, const bool is_plate_config)
