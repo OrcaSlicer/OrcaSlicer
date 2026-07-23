@@ -16,7 +16,6 @@
 .vs/*
 /.cache/
 /.vscode/
-
 /flatpak-repo/
 /src/TAGS
 CMakeLists.txt.user

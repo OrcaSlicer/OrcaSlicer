@@ -787,24 +787,21 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
             toggle_field(el, have_default_jerk, variant_index);
         }
     }
-
+    //Collapse the skirt settings if the user does not want a skirt
     bool have_skirt = config->opt_int("skirt_loops") > 0;
+    toggle_line("skirt_height", have_skirt);
     toggle_field("skirt_height", have_skirt && config->opt_enum<DraftShield>("draft_shield") != dsEnabled);
     toggle_line("single_loop_draft_shield", have_skirt); // ORCA: Display one wall if skirt enabled
     for (auto el : {"skirt_type", "min_skirt_length", "skirt_distance", "skirt_start_angle", "skirt_speed", "draft_shield"})
-        toggle_field(el, have_skirt);
-
+        toggle_line(el, have_skirt);
+    
+    //Toggle the brim settings if the user disables the brim
     bool have_brim = (config->opt_enum<BrimType>("brim_type") != btNoBrim);
-    toggle_field("brim_object_gap", have_brim);
-    toggle_field("brim_use_efc_outline", have_brim);
-    toggle_field("combine_brims", have_brim);
-    bool have_brim_width = (config->opt_enum<BrimType>("brim_type") != btNoBrim) && config->opt_enum<BrimType>("brim_type") != btAutoBrim &&
+    for (auto el : {"brim_object_gap", "brim_use_efc_outline", "combine_brims", "brim_flow_ratio"})
+        toggle_line(el, have_brim);
+    bool have_brim_width = have_brim && config->opt_enum<BrimType>("brim_type") != btAutoBrim &&
                            config->opt_enum<BrimType>("brim_type") != btPainted;
-    toggle_field("brim_width", have_brim_width);
-    toggle_field("brim_flow_ratio", have_brim);
-    // Wall filament selectors use the same logic as in Print::extruders().
-    toggle_field("outer_wall_filament_id", have_perimeters || have_brim);
-    toggle_field("inner_wall_filament_id", have_perimeters || have_brim);
+    toggle_line("brim_width", have_brim_width);
 
     bool have_brim_ear = (config->opt_enum<BrimType>("brim_type") == btEar);
     const auto brim_width = config->opt_float("brim_width");
@@ -818,6 +815,14 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // Hide Elephant foot compensation layers if elefant_foot_compensation is not enabled
     toggle_line("elefant_foot_compensation_layers", config->opt_float("elefant_foot_compensation") > 0 || config->option<ConfigOptionPercent>("elefant_foot_layers_density")->get_abs_value(1.0f) < 1.0f);
 
+    // Toggle settings for outer and inner wall settings if perimeters and brims are disabled
+    // Wall filament selectors use the same logic as in Print::extruders().
+    toggle_field("outer_wall_filament_id", have_perimeters || have_brim);
+    toggle_field("inner_wall_filament_id", have_perimeters || have_brim);
+    
+    //
+    //Toggling support configurations section
+    //
     bool have_raft = config->opt_int("raft_layers") > 0;
     bool have_support_material = config->opt_bool("enable_support") || have_raft;
 
@@ -829,10 +834,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         "support_base_pattern_spacing", "support_expansion", "support_angle",
         "support_interface_pattern", "support_interface_top_layers", "support_interface_bottom_layers",
         "bridge_no_support", "max_bridge_length", "support_top_z_distance", "support_bottom_z_distance",
-        "support_type", "support_on_build_plate_only", "support_critical_regions_only", "support_interface_not_for_body",
+        "support_type", "support_on_build_plate_only", "support_critical_regions_only", "support_remove_small_overhang", "support_interface_not_for_body",
         "support_object_xy_distance", "support_object_first_layer_gap", "independent_support_layer_height"})
-        toggle_field(el, have_support_material);
-    toggle_field("support_threshold_angle", have_support_material && is_auto(support_type));
+        toggle_line(el, have_support_material);
+    toggle_line("support_threshold_angle", have_support_material && is_auto(support_type));
     toggle_field("support_threshold_overlap", config->opt_int("support_threshold_angle") == 0 && have_support_material && is_auto(support_type));
     //toggle_field("support_closing_radius", have_support_material && support_style == smsSnug);
 
@@ -870,7 +875,8 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // Orca: Force solid support interface when using support ironing
     toggle_field("support_interface_spacing", have_support_material && have_support_interface && !has_support_ironing);
 
-//    see issue #10915
+//    see issue #10915 - don't hide support speed settings based on settings in other tabs
+//    hiding settings based on other tabs makes it diffcult to find how to toggle them when creating profiles
 //    bool have_skirt_height = have_skirt &&
 //    (config->opt_int("skirt_height") > 1 || config->opt_enum<DraftShield>("draft_shield") != dsEnabled);
 //    toggle_line("support_speed", have_support_material || have_skirt_height);
