@@ -2269,8 +2269,11 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
     } else if (status == PrintStatusNozzleDiameterMismatch) {
+        // Orca: overridable — a non-standard nozzle is a valid reason to differ. Send is gated on
+        // the acknowledgement checkbox added to the message board below (add_with_checkbox), which
+        // is enabled only while the user's acknowledgement still matches the current mismatch.
         Enable_Refresh_Button(true);
-        Enable_Send_Button(false);
+        Enable_Send_Button(!m_nozzle_diameter_ack_msg.empty() && m_nozzle_diameter_ack_msg == m_nozzle_diameter_mismatch_msg);
     } else if (status == PrintStatusNozzleTypeMismatch) {
         Enable_Refresh_Button(true);
         Enable_Send_Button(false);
@@ -2470,7 +2473,19 @@ void SelectMachineDialog::show_status(PrintDialogStatus status, std::vector<wxSt
 
     /*enter perpare mode*/
     prepare_mode(false);
-    m_pre_print_checker.add(status, msg, tips, wiki_url);
+    if (status == PrintDialogStatus::PrintStatusNozzleDiameterMismatch) {
+        // Short label on purpose: the 420px message panel caps its width and a wxCheckBox label
+        // does not wrap; the full explanation is in the warning text above it.
+        m_pre_print_checker.add_with_checkbox(status, msg,
+            _L("I have checked the installed nozzle and want to print anyway."),
+            !m_nozzle_diameter_ack_msg.empty() && m_nozzle_diameter_ack_msg == m_nozzle_diameter_mismatch_msg,
+            [this](bool checked) {
+                m_nozzle_diameter_ack_msg = checked ? m_nozzle_diameter_mismatch_msg : wxString();
+                Enable_Send_Button(checked);
+            });
+    } else {
+        m_pre_print_checker.add(status, msg, tips, wiki_url);
+    }
 
 }
 
@@ -4565,8 +4580,14 @@ bool SelectMachineDialog::CheckErrorExtruderNozzleWithSlicing(MachineObject* obj
                     }
 
                     msg_params.emplace_back(_L("Tips: If you changed your nozzle of your printer lately, please go to 'Device -> Printer parts' to change your nozzle setting."));
+
+                    // Orca: non-blocking. A diameter that differs from the one the printer
+                    // remembers is legitimate with a non-standard nozzle, so the print is held back
+                    // only by the acknowledgement checkbox shown in the message board, not by a
+                    // disabled Send outright. Keep checking the remaining extruders.
+                    m_nozzle_diameter_mismatch_msg = msg_params.front();
                     show_status(PrintDialogStatus::PrintStatusNozzleDiameterMismatch, msg_params);
-                    return false;
+                    continue;
                 }
             }
         }
@@ -4608,6 +4629,9 @@ static wxString _get_ext_loc_str(const std::unordered_set<int>& extruders, int t
 void SelectMachineDialog::update_show_status(MachineObject* obj_)
 {
     m_pre_print_checker.clear();
+    // Orca: re-raised by CheckErrorExtruderNozzleWithSlicing() below if the mismatch is still there,
+    // so an early return from this pass cannot leave a stale warning behind.
+    m_nozzle_diameter_mismatch_msg.clear();
 
     /*agent check and printer valid check*/
     NetworkAgent* agent = Slic3r::GUI::wxGetApp().getAgent();

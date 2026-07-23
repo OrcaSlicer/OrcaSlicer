@@ -300,7 +300,12 @@ PluginAvailableActions evaluate_action_policy(const PluginDialogItem& item)
 
     add_action("open_folder", "Show in folder", has_local);
 
-    add_action("reinstall_plugin", "Reinstall");
+    if (is_cloud) {
+        add_action("reinstall_plugin", "Reinstall");
+    } else {
+        add_action("reload_plugin", "Reload");
+        add_action("clear_cache_reload_plugin", "Delete cache and reload");
+    }
 
     return available_actions;
 }
@@ -739,11 +744,13 @@ void PluginsDialog::handle_plugin_menu_action(const std::string& plugin_key, con
         unsubscribe_cloud_plugin(row_data);
     } else if (action == "delete_mine_plugin") {
         delete_mine_local_and_cloud_plugin(plugin_key);
+    } else if (action == "reload_plugin") {
+        reload_local_plugin(plugin_key, /*clear_cache=*/false);
+    } else if (action == "clear_cache_reload_plugin") {
+        reload_local_plugin(plugin_key, /*clear_cache=*/true);
     } else if (action == "reinstall_plugin") {
         if (row_data.is_cloud_plugin())
             reinstall_cloud_plugin(row_data);
-        else
-            reinstall_local_plugin(plugin_key);
     }
 }
 
@@ -1123,7 +1130,7 @@ void PluginsDialog::unsubscribe_cloud_plugin(const PluginDescriptor& plugin)
         _L("Unsubscribing plugin"), _L("Deleting local files and unsubscribing plugin..."));
 }
 
-void PluginsDialog::reinstall_local_plugin(const std::string& plugin_key)
+void PluginsDialog::reload_local_plugin(const std::string& plugin_key, bool clear_cache)
 {
     if (plugin_key.empty())
         return;
@@ -1132,10 +1139,33 @@ void PluginsDialog::reinstall_local_plugin(const std::string& plugin_key)
     std::pair<bool, std::string> reload_result{false, ""};
     try {
         reload_result = run_with_dialog_wait(
-            [plugin_key, was_loaded]() -> std::pair<bool, std::string> {
+            [plugin_key, was_loaded, clear_cache]() -> std::pair<bool, std::string> {
                 PluginManager& manager = PluginManager::instance();
+
+                boost::filesystem::path cache_dir;
+                if (clear_cache) {
+                    PluginDescriptor descriptor;
+                    if (!manager.try_get_plugin_descriptor(plugin_key, descriptor))
+                        return {false, "Plugin not found."};
+
+                    boost::filesystem::path resolved_root;
+                    std::string                  resolve_error;
+                    if (!resolve_allowed_plugin_root(descriptor, {get_orca_plugins_dir()},
+                                                     "Refusing to clear a plugin cache outside the local plugin directory.",
+                                                     resolved_root, resolve_error))
+                        return {false, resolve_error};
+                    cache_dir = resolved_root / "__whl_extracted__";
+                }
+
                 if (!manager.unload_plugin(plugin_key))
                     return {false, "Failed to unload plugin."};
+
+                if (clear_cache) {
+                    boost::system::error_code ec;
+                    boost::filesystem::remove_all(cache_dir, ec);
+                    if (ec)
+                        return {false, "Failed to clear plugin cache: " + ec.message()};
+                }
 
                 manager.load_plugin(plugin_key, false);
                 std::string error;
