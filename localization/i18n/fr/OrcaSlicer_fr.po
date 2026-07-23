@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -881,8 +881,9 @@ msgstr "Retirer le connecteur de la sélection"
 msgid "Select all connectors"
 msgstr "Sélectionner tous les connecteurs"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Couper"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Rotation du plan de coupe"
@@ -1858,8 +1859,9 @@ msgstr "Entrée dans l’outil Mesurer"
 msgid "Leaving Measure gizmo"
 msgstr "Quitter l’outil Mesurer"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Assembler"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Veuillez confirmer que le ratio d'explosion = 1 et sélectionner au moins deux volumes."
@@ -2725,6 +2727,9 @@ msgstr "Convertir en mètre"
 
 msgid "Restore to Meter"
 msgstr "Restaurer en mètres"
+
+msgid "Assemble"
+msgstr "Assembler"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Assembler les objets sélectionnés à un objet en plusieurs parties"
@@ -4216,6 +4221,14 @@ msgstr "Imprimez en utilisant le filament de la bobine externe"
 msgid "Print with filament in AMS"
 msgstr "Imprimer avec du filament de l'AMS"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Lorsque le filament actuel est épuisé, l’imprimante continue d’imprimer dans l’ordre suivant."
 
@@ -5503,8 +5516,9 @@ msgstr "Adaptatif"
 msgid "Quality / Speed"
 msgstr "Qualité / Vitesse"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Lisse"
+msgstr ""
 
 msgid "Radius"
 msgstr "Rayon"
@@ -6117,6 +6131,9 @@ msgstr "Annuler"
 msgid "Redo"
 msgstr "Recommencer"
 
+msgid "Cut"
+msgstr "Couper"
+
 msgid "Cut selection to clipboard"
 msgstr "Couper la sélection dans le presse-papiers"
 
@@ -6215,6 +6232,10 @@ msgstr "Afficher le tracé contour de l’objet sélectionné dans la scène 3D.
 
 msgid "Preferences"
 msgstr "Préférences"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Affichage"
@@ -9167,8 +9188,9 @@ msgstr "Incompatible"
 msgid "The selected preset is null!"
 msgstr "Le préréglage sélectionné est invalide !"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Fin"
+msgstr ""
 
 msgid "Customize"
 msgstr "Personnaliser"
@@ -11323,6 +11345,9 @@ msgstr "Déplacez le curseur 5 fois plus vite"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Curseur horizontal - Déplacement vers la position de départ"
+
+msgid "End"
+msgstr "Fin"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Curseur horizontal - Déplacer vers la dernière position"
@@ -15860,6 +15885,9 @@ msgstr "Si le mode fluide ou traditionnel est sélectionné, une vidéo en timel
 
 msgid "Traditional"
 msgstr "Traditionnel"
+
+msgid "Smooth"
+msgstr "Lisse"
 
 msgid "Farthest point timelapse"
 msgstr ""

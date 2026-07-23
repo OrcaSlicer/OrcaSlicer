@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -881,8 +881,9 @@ msgstr "ลบตัวเชื่อมต่อออกจากการเ
 msgid "Select all connectors"
 msgstr "เลือกตัวเชื่อมต่อทั้งหมด"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "ตัด"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "หมุนระนาบการตัด"
@@ -1853,8 +1854,9 @@ msgstr "เข้าสู่กิซโมวัด"
 msgid "Leaving Measure gizmo"
 msgstr "ออกจากกิซโมวัด"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "ประกอบ"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "โปรดยืนยันอัตราส่วนการระเบิด = 1 และเลือกอย่างน้อยสองวอลุ่ม"
@@ -2705,6 +2707,9 @@ msgstr "แปลงจากเมตร"
 
 msgid "Restore to Meter"
 msgstr "คืนค่าเป็นเมตร"
+
+msgid "Assemble"
+msgstr "ประกอบ"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "ประกอบวัตถุที่เลือกให้เป็นวัตถุที่มีหลายส่วน"
@@ -4190,6 +4195,14 @@ msgstr "พิมพ์โดยใช้เส้นพลาสติกจา
 msgid "Print with filament in AMS"
 msgstr "พิมพ์ด้วยเส้นพลาสติกในระบบ AMS"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "เมื่อวัสดุปัจจุบันหมด เครื่องพิมพ์จะพิมพ์ต่อตามลำดับต่อไปนี้"
 
@@ -5478,8 +5491,9 @@ msgstr "ปรับตัวได้"
 msgid "Quality / Speed"
 msgstr "คุณภาพ/ความเร็ว"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "เรียบ"
+msgstr ""
 
 msgid "Radius"
 msgstr "รัศมี"
@@ -6092,6 +6106,9 @@ msgstr "เลิกทำ"
 msgid "Redo"
 msgstr "ทำซ้ำ"
 
+msgid "Cut"
+msgstr "ตัด"
+
 msgid "Cut selection to clipboard"
 msgstr "ตัดส่วนที่เลือกไปที่คลิปบอร์ด"
 
@@ -6190,6 +6207,10 @@ msgstr "แสดงเค้าร่างรอบๆ วัตถุที�
 
 msgid "Preferences"
 msgstr "การตั้งค่า"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "มุมมอง"
@@ -9121,8 +9142,9 @@ msgstr "เข้ากันไม่ได้"
 msgid "The selected preset is null!"
 msgstr "ค่าที่ตั้งล่วงหน้าที่เลือกเป็นโมฆะ!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "จบ"
+msgstr ""
 
 msgid "Customize"
 msgstr "ปรับแต่ง"
@@ -11271,6 +11293,9 @@ msgstr "เลื่อนตัวเลื่อนเร็วขึ้น 5 
 
 msgid "Horizontal slider - Move to start position"
 msgstr "แถบเลื่อนแนวนอน - เลื่อนไปยังตำแหน่งเริ่มต้น"
+
+msgid "End"
+msgstr "จบ"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "แถบเลื่อนแนวนอน - เลื่อนไปยังตำแหน่งสุดท้าย"
@@ -15783,6 +15808,9 @@ msgstr "หากเลือกโหมดเรียบหรือโหม
 
 msgid "Traditional"
 msgstr "แบบดั้งเดิม"
+
+msgid "Smooth"
+msgstr "เรียบ"
 
 msgid "Farthest point timelapse"
 msgstr ""

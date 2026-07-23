@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -895,8 +895,9 @@ msgstr "선택 항목에서 커넥터 제거"
 msgid "Select all connectors"
 msgstr "모든 커넥터 선택"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "잘라내기"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "절단면 회전"
@@ -1875,8 +1876,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "병합"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "분해 비율이 1인지 확인하고 최소 두 개의 볼륨을 선택하세요."
@@ -2745,6 +2747,9 @@ msgstr "미터에서 변환"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "미터로 복원"
+
+msgid "Assemble"
+msgstr "병합"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "선택한 객체를 여러 부품이 있는 객체로 조립"
@@ -4280,6 +4285,14 @@ msgstr "케이스 뒷면에 장착된 재료를 사용하여 출력"
 msgid "Print with filament in AMS"
 msgstr "AMS의 필라멘트로 출력"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "현재 재료가 소진되면 프린터는 다음 순서로 계속 출력합니다."
 
@@ -5597,8 +5610,9 @@ msgstr "적응형"
 msgid "Quality / Speed"
 msgstr "품질 / 속도"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "유연"
+msgstr ""
 
 msgid "Radius"
 msgstr "반경"
@@ -6215,6 +6229,9 @@ msgstr "실행 취소"
 msgid "Redo"
 msgstr "다시 실행"
 
+msgid "Cut"
+msgstr "잘라내기"
+
 msgid "Cut selection to clipboard"
 msgstr "잘라낸 항목을 클립보드에 복사"
 
@@ -6315,6 +6332,10 @@ msgstr "3D 장면에서 선택한 객체 주변에 윤곽선 표시"
 
 msgid "Preferences"
 msgstr "기본 설정"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "시점"
@@ -9287,8 +9308,9 @@ msgstr "호환되지 않음"
 msgid "The selected preset is null!"
 msgstr "선택한 사전 설정의 값이 존재하지 않습니다!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "끝"
+msgstr ""
 
 msgid "Customize"
 msgstr "사용자 정의"
@@ -11448,6 +11470,9 @@ msgstr "슬라이더를 5배 빠르게 이동"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "수평 슬라이더 - 시작 위치로 이동"
+
+msgid "End"
+msgstr "끝"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "수평 슬라이더 - 마지막 위치로 이동"
@@ -15933,6 +15958,9 @@ msgstr "유연 또는 기존 모드를 선택한 경우 각 출력에 대해 타
 
 msgid "Traditional"
 msgstr "기존"
+
+msgid "Smooth"
+msgstr "유연"
 
 msgid "Farthest point timelapse"
 msgstr ""

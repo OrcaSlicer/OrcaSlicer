@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -891,8 +891,9 @@ msgstr "Bağlayıcıyı seçimden kaldır"
 msgid "Select all connectors"
 msgstr "Tüm bağlayıcıları seç"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Kes"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Kesim düzlemini döndür"
@@ -1871,8 +1872,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Birleştir"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Lütfen patlama oranının = 1 olduğunu doğrulayın ve en az iki cilt seçin."
@@ -2741,6 +2743,9 @@ msgstr "Metreden dönüştür"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Metreye geri çevir"
+
+msgid "Assemble"
+msgstr "Birleştir"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Seçilen nesneleri birden çok parçalı bir nesneyle birleştirin"
@@ -4280,6 +4285,14 @@ msgstr "Kasanın arkasına monte edilen malzemeleri kullanarak yazdırma"
 msgid "Print with filament in AMS"
 msgstr "AMS içerisindeki filamentlerle yazdırma"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Mevcut malzeme bittiğinde yazıcı aşağıdaki sırayla yazdırmaya devam edecektir."
 
@@ -5598,8 +5611,9 @@ msgstr "Uyarlanabilir"
 msgid "Quality / Speed"
 msgstr "Kalite / Hız"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Pürüzsüz"
+msgstr ""
 
 msgid "Radius"
 msgstr "Yarıçap"
@@ -6220,6 +6234,9 @@ msgstr "Geri al"
 msgid "Redo"
 msgstr "İleri Al"
 
+msgid "Cut"
+msgstr "Kes"
+
 msgid "Cut selection to clipboard"
 msgstr "Seçimi panoya kes"
 
@@ -6320,6 +6337,10 @@ msgstr "3D sahnede seçilen nesnenin etrafındaki ana hatları göster."
 
 msgid "Preferences"
 msgstr "Tercihler"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Görünüm"
@@ -9297,8 +9318,9 @@ msgstr "Uyumsuz"
 msgid "The selected preset is null!"
 msgstr "Seçilen ön ayar boş!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Son"
+msgstr ""
 
 msgid "Customize"
 msgstr "Özelleştir"
@@ -11465,6 +11487,9 @@ msgstr "Kaydırıcıyı 5 kat daha hızlı hareket ettirin"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Yatay kaydırıcı - Başlangıç konumuna taşıyın"
+
+msgid "End"
+msgstr "Son"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Yatay kaydırıcı - Son konuma git"
@@ -15988,6 +16013,9 @@ msgstr "Düzgün veya geleneksel mod seçilirse her baskı için bir hızlandır
 
 msgid "Traditional"
 msgstr "Geleneksel"
+
+msgid "Smooth"
+msgstr "Pürüzsüz"
 
 msgid "Farthest point timelapse"
 msgstr ""

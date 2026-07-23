@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -886,8 +886,9 @@ msgstr "Verbinding verwijderen uit selectie"
 msgid "Select all connectors"
 msgstr "Selecteer alle verbindingen"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Knippen"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr ""
@@ -1856,8 +1857,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Monteren"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr ""
@@ -2712,6 +2714,9 @@ msgstr "Omzetten vanuit meter"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Terugzetten naar meter"
+
+msgid "Assemble"
+msgstr "Monteren"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Monteer de geselecteerde objecten tot een object bestaande uit meerdere delen"
@@ -4238,6 +4243,14 @@ msgstr "Print met filament op een externe spoel."
 msgid "Print with filament in AMS"
 msgstr "Printen met filament in AMS"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Als het huidige materiaal op is, gaat de printer verder met afdrukken in de volgende volgorde."
 
@@ -5537,8 +5550,9 @@ msgstr "Adaptief"
 msgid "Quality / Speed"
 msgstr "Kwaliteit/snelheid"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Vloeiend"
+msgstr ""
 
 msgid "Radius"
 msgstr "Straal"
@@ -6155,6 +6169,9 @@ msgstr "Ongedaan maken"
 msgid "Redo"
 msgstr "Opnieuw doen"
 
+msgid "Cut"
+msgstr "Knippen"
+
 msgid "Cut selection to clipboard"
 msgstr "Selectie naar klembord knippen"
 
@@ -6255,6 +6272,10 @@ msgstr ""
 
 msgid "Preferences"
 msgstr "Voorkeuren"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Weergave"
@@ -9204,8 +9225,9 @@ msgstr "Incompatibel"
 msgid "The selected preset is null!"
 msgstr "De geselecteerde preset is nul!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Einde"
+msgstr ""
 
 msgid "Customize"
 msgstr "Aanpassen"
@@ -11342,6 +11364,9 @@ msgstr "Schuifregelaar 5x sneller verplaatsen"
 
 msgid "Horizontal slider - Move to start position"
 msgstr ""
+
+msgid "End"
+msgstr "Einde"
 
 msgid "Horizontal slider - Move to last position"
 msgstr ""
@@ -15622,6 +15647,9 @@ msgstr "Als de vloeiende of traditionele modus is geselecteerd, wordt voor elke 
 
 msgid "Traditional"
 msgstr "Traditioneel"
+
+msgid "Smooth"
+msgstr "Vloeiend"
 
 msgid "Farthest point timelapse"
 msgstr ""

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -891,8 +891,9 @@ msgstr "Rimuovi connettore dalla selezione"
 msgid "Select all connectors"
 msgstr "Seleziona tutti i connettori"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Taglia"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Ruota il piano di taglio"
@@ -1871,8 +1872,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Assembla"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Confermare il rapporto di esplosione = 1 e selezionare almeno due volumi."
@@ -2744,6 +2746,9 @@ msgstr "Converti da metri"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Ripristina in metri"
+
+msgid "Assemble"
+msgstr "Assembla"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Assembla gli oggetti selezionati in un oggetto composto da più parti"
@@ -4282,6 +4287,14 @@ msgstr "Stampa filamento con bobina esterna"
 msgid "Print with filament in AMS"
 msgstr "Stampa con filamento nell'AMS"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Quando si esaurisce il materiale corrente, la stampante continuerà a stampare nel seguente ordine."
 
@@ -5598,8 +5611,9 @@ msgstr "Adattiva"
 msgid "Quality / Speed"
 msgstr "Qualità / Velocità"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Leviga"
+msgstr ""
 
 msgid "Radius"
 msgstr "Raggio"
@@ -6220,6 +6234,9 @@ msgstr "Annulla"
 msgid "Redo"
 msgstr "Ripeti"
 
+msgid "Cut"
+msgstr "Taglia"
+
 msgid "Cut selection to clipboard"
 msgstr "Taglia la selezione negli appunti"
 
@@ -6320,6 +6337,10 @@ msgstr "Mostra il contorno attorno all'oggetto selezionato nella scena 3D."
 
 msgid "Preferences"
 msgstr "Preferenze"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Vista"
@@ -9304,8 +9325,9 @@ msgstr "Non compatibile"
 msgid "The selected preset is null!"
 msgstr "Il profilo selezionato è nullo!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Fine"
+msgstr ""
 
 msgid "Customize"
 msgstr "Personalizza"
@@ -11482,6 +11504,9 @@ msgstr "Sposta il cursore 5 volte più velocemente"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Cursore di scorrimento orizzontale - Sposta alla posizione iniziale"
+
+msgid "End"
+msgstr "Fine"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Cursore di scorrimento orizzontale - Sposta alla posizione finale"
@@ -16066,6 +16091,9 @@ msgstr "Se si seleziona la modalità fluida o tradizionale, per ogni stampa verr
 
 msgid "Traditional"
 msgstr "Tradizionale"
+
+msgid "Smooth"
+msgstr "Leviga"
 
 msgid "Farthest point timelapse"
 msgstr ""

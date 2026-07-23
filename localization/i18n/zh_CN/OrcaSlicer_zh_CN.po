@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -894,8 +894,9 @@ msgstr "取消选择连接件"
 msgid "Select all connectors"
 msgstr "选择所有连接件"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "剪切"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "旋转剖切面"
@@ -1867,8 +1868,9 @@ msgstr "进入测量小工具"
 msgid "Leaving Measure gizmo"
 msgstr "离开测量小工具"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "组合"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "请确认爆炸比例 = 1 并选择至少两个部件。"
@@ -2761,6 +2763,9 @@ msgstr "从米转换"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "恢复到米"
+
+msgid "Assemble"
+msgstr "组合"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "组合所选对象为一个多零件对象"
@@ -4287,6 +4292,14 @@ msgstr "使用安装在机箱背面的材料进行打印"
 msgid "Print with filament in AMS"
 msgstr "采用AMS里的材料打印"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "当前材料耗尽时，打印机将按照以下顺序继续打印。"
 
@@ -5597,8 +5610,9 @@ msgstr "自适应"
 msgid "Quality / Speed"
 msgstr "细节/速度"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "平滑模式"
+msgstr ""
 
 msgid "Radius"
 msgstr "半径"
@@ -6220,6 +6234,9 @@ msgstr "撤销"
 msgid "Redo"
 msgstr "重做"
 
+msgid "Cut"
+msgstr "剪切"
+
 msgid "Cut selection to clipboard"
 msgstr "剪切所选项到剪贴板"
 
@@ -6320,6 +6337,10 @@ msgstr "在3D场景中显示选中对象的轮廓"
 
 msgid "Preferences"
 msgstr "偏好设置"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "视图"
@@ -9292,8 +9313,9 @@ msgstr "不兼容的预设"
 msgid "The selected preset is null!"
 msgstr "选择的预设为空！"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "结束"
+msgstr ""
 
 msgid "Customize"
 msgstr "自定义"
@@ -11481,6 +11503,9 @@ msgstr "5倍速移动滑动条"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "水平滑块 - 移动到起始位置"
+
+msgid "End"
+msgstr "结束"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "水平滑块 - 移动到末尾位置"
@@ -16105,6 +16130,9 @@ msgstr "如果启用平滑模式或者传统模式，将在每次打印时生成
 
 msgid "Traditional"
 msgstr "传统模式"
+
+msgid "Smooth"
+msgstr "平滑模式"
 
 msgid "Farthest point timelapse"
 msgstr ""

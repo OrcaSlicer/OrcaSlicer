@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -892,8 +892,9 @@ msgstr "Xóa connector khỏi lựa chọn"
 msgid "Select all connectors"
 msgstr "Chọn tất cả connector"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Cắt"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Xoay mặt cắt"
@@ -1872,8 +1873,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Lắp ráp"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr ""
@@ -2733,6 +2735,9 @@ msgstr "Chuyển đổi từ mét"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Khôi phục về mét"
+
+msgid "Assemble"
+msgstr "Lắp ráp"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Lắp ráp các vật thể đã chọn thành vật thể có nhiều phần"
@@ -4257,6 +4262,14 @@ msgstr "In bằng vật liệu gắn ở mặt sau của vỏ"
 msgid "Print with filament in AMS"
 msgstr "In với filament trong AMS"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Khi vật liệu hiện tại hết, máy in sẽ tiếp tục in theo thứ tự sau."
 
@@ -5570,8 +5583,9 @@ msgstr "Thích ứng"
 msgid "Quality / Speed"
 msgstr "Chất lượng / Tốc độ"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Mượt"
+msgstr ""
 
 msgid "Radius"
 msgstr "Bán kính"
@@ -6188,6 +6202,9 @@ msgstr "Hoàn tác"
 msgid "Redo"
 msgstr "Làm lại"
 
+msgid "Cut"
+msgstr "Cắt"
+
 msgid "Cut selection to clipboard"
 msgstr "Cắt lựa chọn vào clipboard"
 
@@ -6288,6 +6305,10 @@ msgstr "Hiện đường viền xung quanh vật thể đã chọn trong cảnh 
 
 msgid "Preferences"
 msgstr "Tùy chọn"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Xem"
@@ -9244,8 +9265,9 @@ msgstr "Không tương thích"
 msgid "The selected preset is null!"
 msgstr "Preset đã chọn rỗng!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Kết thúc"
+msgstr ""
 
 msgid "Customize"
 msgstr "Tùy chỉnh"
@@ -11388,6 +11410,9 @@ msgstr "Di chuyển thanh trượt nhanh hơn 5 lần"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Thanh trượt ngang - Di chuyển đến vị trí bắt đầu"
+
+msgid "End"
+msgstr "Kết thúc"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Thanh trượt ngang - Di chuyển đến vị trí cuối cùng"
@@ -15880,6 +15905,9 @@ msgstr "Nếu chế độ mịn hoặc truyền thống được chọn, video t
 
 msgid "Traditional"
 msgstr "Truyền thống"
+
+msgid "Smooth"
+msgstr "Mượt"
 
 msgid "Farthest point timelapse"
 msgstr ""

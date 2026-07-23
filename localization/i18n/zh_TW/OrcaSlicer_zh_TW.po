@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -897,8 +897,9 @@ msgstr "取消選擇連接件"
 msgid "Select all connectors"
 msgstr "選擇所有連接件"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "切割"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "旋轉切割面"
@@ -1869,8 +1870,9 @@ msgstr "進入測量工具模式"
 msgid "Leaving Measure gizmo"
 msgstr "退出測量工具模式"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "組合"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "請確認爆炸比例 = 1 並選擇至少兩個零件。"
@@ -2750,6 +2752,9 @@ msgstr "從公尺轉換"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "還原到公尺"
+
+msgid "Assemble"
+msgstr "組合"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "組合所選物件為一個多零件物件"
@@ -4286,6 +4291,14 @@ msgstr "使用安裝在機箱背面的線材進行列印"
 msgid "Print with filament in AMS"
 msgstr "使用 AMS 裡的線材列印"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "當目前線材用完時，列印裝置將按照以下順序繼續列印。"
 
@@ -5627,8 +5640,9 @@ msgstr "適應性"
 msgid "Quality / Speed"
 msgstr "細節/速度"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "平滑模式"
+msgstr ""
 
 msgid "Radius"
 msgstr "半徑"
@@ -6251,6 +6265,9 @@ msgstr "復原"
 msgid "Redo"
 msgstr "重做"
 
+msgid "Cut"
+msgstr "切割"
+
 msgid "Cut selection to clipboard"
 msgstr "剪下所選項目到剪貼簿"
 
@@ -6351,6 +6368,10 @@ msgstr "在 3D 場景中顯示選定物件的輪廓"
 
 msgid "Preferences"
 msgstr "偏好設定"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "視角"
@@ -9342,8 +9363,9 @@ msgstr "不相容的預設"
 msgid "The selected preset is null!"
 msgstr "選擇的預設為空！"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "結束"
+msgstr ""
 
 msgid "Customize"
 msgstr "自訂"
@@ -11530,6 +11552,9 @@ msgstr "5 倍速移動滑動條"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "水平滑動條 - 移動到起始位置"
+
+msgid "End"
+msgstr "結束"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "水平滑動條 - 移動到最後位置"
@@ -16143,6 +16168,9 @@ msgstr "選擇平滑模式或傳統模式時，列印過程將產生縮時影片
 
 msgid "Traditional"
 msgstr "傳統模式"
+
+msgid "Smooth"
+msgstr "平滑模式"
 
 msgid "Farthest point timelapse"
 msgstr ""

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "Language: sv\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -882,8 +882,9 @@ msgstr "Ta bort kontakten från urvalet"
 msgid "Select all connectors"
 msgstr "Välj alla kontakter"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Beskär"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr ""
@@ -1847,8 +1848,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Montera"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr ""
@@ -2701,6 +2703,9 @@ msgstr "Konvertera ifrån meter"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Återställ till meter"
+
+msgid "Assemble"
+msgstr "Montera"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Montera de valda objekten till ett objekt med multipla delar"
@@ -4230,6 +4235,14 @@ msgstr "Skriv ut med filament på en extern spole."
 msgid "Print with filament in AMS"
 msgstr "Skriv ut med filament i AMS"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "När det aktuella materialet tar slut, fortsätter printern att skriva ut material i följande ordning."
 
@@ -5528,6 +5541,7 @@ msgstr "Adaptiv"
 msgid "Quality / Speed"
 msgstr "Kvalitet/Hastighet"
 
+msgctxt "Mesh action"
 msgid "Smooth"
 msgstr ""
 
@@ -6146,6 +6160,9 @@ msgstr "Ångra"
 msgid "Redo"
 msgstr "Gör om"
 
+msgid "Cut"
+msgstr "Beskär"
+
 msgid "Cut selection to clipboard"
 msgstr "Klipp ut markeringen till urklipp"
 
@@ -6246,6 +6263,10 @@ msgstr ""
 
 msgid "Preferences"
 msgstr "Inställningar"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Vy"
@@ -9188,8 +9209,9 @@ msgstr "Inkompatibel"
 msgid "The selected preset is null!"
 msgstr "Den valda förinställningen är noll!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Slut"
+msgstr ""
 
 msgid "Customize"
 msgstr "Anpassa"
@@ -11318,6 +11340,9 @@ msgstr "Flytta reglage 5x snabbare"
 
 msgid "Horizontal slider - Move to start position"
 msgstr ""
+
+msgid "End"
+msgstr "Slut"
 
 msgid "Horizontal slider - Move to last position"
 msgstr ""
@@ -15595,6 +15620,9 @@ msgstr "Om Smooth eller Traditionellt läge väljs genereras en timelapse-video 
 
 msgid "Traditional"
 msgstr "Traditionell"
+
+msgid "Smooth"
+msgstr ""
 
 msgid "Farthest point timelapse"
 msgstr ""

@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: 2026-07-22 20:39-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -883,8 +883,9 @@ msgstr "Remover conector da seleção"
 msgid "Select all connectors"
 msgstr "Selecionar todos os conectores"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Cortar"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Rotacionar plano de corte"
@@ -1857,8 +1858,9 @@ msgstr "Entrando no gizmo de Medida"
 msgid "Leaving Measure gizmo"
 msgstr "Saindo do gizmo de Medida"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Montar"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Por favor, confirme a taxa de explosão = 1 e selecione pelo menos dois volumes."
@@ -2723,6 +2725,9 @@ msgstr "Converter de Metros"
 
 msgid "Restore to Meter"
 msgstr "Restaurar para Metros"
+
+msgid "Assemble"
+msgstr "Montar"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Montar os objetos selecionados em um objeto com várias peças"
@@ -4227,6 +4232,14 @@ msgstr "Imprimir usando filamento no carretel externo."
 msgid "Print with filament in AMS"
 msgstr "Imprimir com filamentos no AMS"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Quando o material atual acabar, a impressora continuará a imprimir na seguinte ordem."
 
@@ -5523,8 +5536,9 @@ msgstr "Adaptativo"
 msgid "Quality / Speed"
 msgstr "Qualidade / Velocidade"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Suave"
+msgstr ""
 
 msgid "Radius"
 msgstr "Raio"
@@ -6144,6 +6158,9 @@ msgstr "Desfazer"
 msgid "Redo"
 msgstr "Refazer"
 
+msgid "Cut"
+msgstr "Cortar"
+
 msgid "Cut selection to clipboard"
 msgstr "Recortar seleção para área de transferência"
 
@@ -6244,6 +6261,10 @@ msgstr "Mostrar contorno ao redor do objeto selecionado na cena 3D."
 
 msgid "Preferences"
 msgstr "Preferências"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Visualizar"
@@ -9220,8 +9241,9 @@ msgstr "Incompatível"
 msgid "The selected preset is null!"
 msgstr "A predefinição selecionada é nula!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Fim"
+msgstr ""
 
 msgid "Customize"
 msgstr "Personalizar"
@@ -11389,6 +11411,9 @@ msgstr "Mover o controle deslizante 5 vezes mais rápido"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Barra deslizante horizontal — Mover para a posição inicial"
+
+msgid "End"
+msgstr "Fim"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Barra deslizante horizontal — Mover para a última posição"
@@ -15952,6 +15977,9 @@ msgstr "Se o modo suave ou tradicional for selecionado, um vídeo em timelapse s
 msgid "Traditional"
 msgstr "Tradicional"
 
+msgid "Smooth"
+msgstr "Suave"
+
 msgid "Farthest point timelapse"
 msgstr ""
 
@@ -16909,6 +16937,9 @@ msgstr "Quando este valor de retração for modificado, ele será usado como a q
 
 msgid "Support fast purge mode"
 msgstr "Suporte ao modo de purga rápida"
+
+msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
 
 msgid "Filament change"
 msgstr ""
@@ -20628,7 +20659,8 @@ msgstr ""
 "Divida suas impressões em placas\n"
 "Você sabia que pode dividir um modelo que tem diversas peças em placas individuais distintas prontas para imprimir? Isso simplifica o processo de manter o controle de todas as peças."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -20700,7 +20732,8 @@ msgstr ""
 "Melhorar a resistência\n"
 "Você sabia que pode usar mais voltas de parede e maior densidade de preenchimento esparso mais alta para melhorar a resistência do modelo?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."

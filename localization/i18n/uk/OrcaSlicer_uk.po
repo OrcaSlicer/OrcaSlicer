@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -896,8 +896,9 @@ msgstr "Вилучити зʼєднання з вибраного"
 msgid "Select all connectors"
 msgstr "Вибрати всі зʼєднання"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Вирізати"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Поверніть площину розрізу"
@@ -1881,8 +1882,9 @@ msgstr "Вхід у gizmo-вимірювання"
 msgid "Leaving Measure gizmo"
 msgstr "Вихід з gizmo-вимірювання"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Збирання"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Будь ласка, підтвердіть коефіцієнт вибуху = 1 та виберіть принаймні два об’єми."
@@ -2755,6 +2757,9 @@ msgstr "Конвертувати з метричної"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Відновити в метричну"
+
+msgid "Assemble"
+msgstr "Збирання"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Зібрати вибрані обʼєкти в обʼєкт з кількома частинами"
@@ -4301,6 +4306,14 @@ msgstr "Друк із використанням матеріалів, закр�
 msgid "Print with filament in AMS"
 msgstr "Друк філаментами в ams"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Коли поточний матеріал закінчується, принтер буде продовжувати друк у наступному порядку."
 
@@ -5613,8 +5626,9 @@ msgstr "Адаптивні"
 msgid "Quality / Speed"
 msgstr "Якість/Швидкість"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Згладити"
+msgstr ""
 
 msgid "Radius"
 msgstr "Радіус"
@@ -6235,6 +6249,9 @@ msgstr "Скасувати"
 msgid "Redo"
 msgstr "Повторити"
 
+msgid "Cut"
+msgstr "Вирізати"
+
 msgid "Cut selection to clipboard"
 msgstr "Вирізати виділення в буфер обміну"
 
@@ -6335,6 +6352,10 @@ msgstr "Показувати контур навколо виділеного о
 
 msgid "Preferences"
 msgstr "Налаштування"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Вигляд"
@@ -9330,8 +9351,9 @@ msgstr "Несумісний"
 msgid "The selected preset is null!"
 msgstr "Обраний пресет є порожнім!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Кінець"
+msgstr ""
 
 msgid "Customize"
 msgstr "Пристосувати"
@@ -11495,6 +11517,9 @@ msgstr "Переміщення повзунка в 5 разів швидше"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Горизонтальний повзунок - Перемістити в початкове положення"
+
+msgid "End"
+msgstr "Кінець"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Горизонтальний повзунок - Перемістити в останню позицію"
@@ -15989,6 +16014,9 @@ msgstr "Якщо вибрано плавний або традиційний р�
 
 msgid "Traditional"
 msgstr "Традиційний"
+
+msgid "Smooth"
+msgstr "Згладити"
 
 msgid "Farthest point timelapse"
 msgstr "Таймлапс найдальшої точки"

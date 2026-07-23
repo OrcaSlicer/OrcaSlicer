@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -883,8 +883,9 @@ msgstr "Pašalinti jungtį iš parinkties"
 msgid "Select all connectors"
 msgstr "Pasirinkti visas jungtis"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Iškirpti"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Sukti pjovimo plokštumą"
@@ -1861,8 +1862,9 @@ msgstr "Įjungiamas matavimo manipuliatorius"
 msgid "Leaving Measure gizmo"
 msgstr "Išjungiamas matavimo manipuliatorius"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Surinkti"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Įsitikinkite, kad išskaidymo koeficientas = 1, ir pasirinkite bent du tūrius."
@@ -2729,6 +2731,9 @@ msgstr "Konvertuoti iš metrų"
 
 msgid "Restore to Meter"
 msgstr "Grąžinti į metrus"
+
+msgid "Assemble"
+msgstr "Surinkti"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Sujungti pasirinktus objektus į objektą iš kelių detalių"
@@ -4224,6 +4229,14 @@ msgstr "Spausdinti išorinės ritės gija"
 msgid "Print with filament in AMS"
 msgstr "Spausdinti AMS gijomis"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Pasibaigus esamai medžiagai, spausdintuvas toliau spausdins šia tvarka."
 
@@ -5515,8 +5528,9 @@ msgstr "Adaptyvus"
 msgid "Quality / Speed"
 msgstr "Kokybė / Greitis"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Glotnus"
+msgstr ""
 
 msgid "Radius"
 msgstr "Spindulys"
@@ -6133,6 +6147,9 @@ msgstr "Atšaukti"
 msgid "Redo"
 msgstr "Perdaryti"
 
+msgid "Cut"
+msgstr "Iškirpti"
+
 msgid "Cut selection to clipboard"
 msgstr "Iškirpti pasirinkimą į mainų sritį"
 
@@ -6231,6 +6248,10 @@ msgstr "Rodyti kontūrą aplink pasirinktą objektą 3D scenoje."
 
 msgid "Preferences"
 msgstr "Parinktys"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Vaizdas"
@@ -9202,8 +9223,9 @@ msgstr "Nesuderinama"
 msgid "The selected preset is null!"
 msgstr "Pasirinktas profilis yra tuščias (null)!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Pabaiga"
+msgstr ""
 
 msgid "Customize"
 msgstr "Pritaikyti"
@@ -11359,6 +11381,9 @@ msgstr "Judinkite slankiklį 5 kartus greičiau"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Horizontalus slankiklis – perkelti į pradinę padėtį"
+
+msgid "End"
+msgstr "Pabaiga"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Horizontalus slankiklis – perkelti į paskutinę padėtį"
@@ -15887,6 +15912,9 @@ msgstr "Jei pasirinktas sklandus (\"smooth\") arba tradicinis (\"traditional\") 
 
 msgid "Traditional"
 msgstr "Tradicinis"
+
+msgid "Smooth"
+msgstr "Glotnus"
 
 msgid "Farthest point timelapse"
 msgstr ""

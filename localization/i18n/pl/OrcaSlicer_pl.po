@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -893,8 +893,9 @@ msgstr "Usuń łącznik z zaznaczenia"
 msgid "Select all connectors"
 msgstr "Zaznacz wszystkie łączniki"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Wytnij"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Obróć przekrój"
@@ -1876,8 +1877,9 @@ msgstr "Otwieranie uchwytu pomiaru"
 msgid "Leaving Measure gizmo"
 msgstr "Zamykanie uchwytu wytłaczania"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Złożenie"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Proszę potwierdzić współczynnik eksplozji = 1 i wybrać co najmniej dwie objętości."
@@ -2738,6 +2740,9 @@ msgstr "Konwertuj z metra"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Przywróć do metra"
+
+msgid "Assemble"
+msgstr "Złożenie"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Zmontuj wybrane obiekty w obiekt wieloczęściowy"
@@ -4285,6 +4290,14 @@ msgstr "Drukowanie przy użyciu materiałów zamontowanych na tylnej części ob
 msgid "Print with filament in AMS"
 msgstr "Drukowanie filamentem z AMS"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Gdy obecny filament się skończy, drukarka będzie kontynuować druk w następującej kolejności."
 
@@ -5594,8 +5607,9 @@ msgstr "Adaptacyjne"
 msgid "Quality / Speed"
 msgstr "Jakość / Prędkość"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Wygładź"
+msgstr ""
 
 msgid "Radius"
 msgstr "Promień"
@@ -6216,6 +6230,9 @@ msgstr "Cofnij"
 msgid "Redo"
 msgstr "Ponów"
 
+msgid "Cut"
+msgstr "Wytnij"
+
 msgid "Cut selection to clipboard"
 msgstr "Przenosi zaznaczone obiekty do schowka"
 
@@ -6316,6 +6333,10 @@ msgstr "Przełącza wyświetlanie konturu wokół zaznaczonego obiektu w scenie 
 
 msgid "Preferences"
 msgstr "Preferencje"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Widok"
@@ -9294,8 +9315,9 @@ msgstr "Niekompatybilne"
 msgid "The selected preset is null!"
 msgstr "Wybrany profil jest pusty!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Koniec"
+msgstr ""
 
 msgid "Customize"
 msgstr "Dostosuj"
@@ -11465,6 +11487,9 @@ msgstr "Przesuń suwak 5x szybciej"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Suwak poziomy - Przesuń do pozycji początkowej"
+
+msgid "End"
+msgstr "Koniec"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Suwak poziomy - Przesuń do ostatniej pozycji"
@@ -15951,6 +15976,9 @@ msgstr "Jeśli wybrany jest tryb „Tradycyjny”, dla każdego wydruku będzie 
 
 msgid "Traditional"
 msgstr "Tradycyjny"
+
+msgid "Smooth"
+msgstr "Wygładź"
 
 msgid "Farthest point timelapse"
 msgstr ""

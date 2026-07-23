@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -877,6 +877,7 @@ msgstr ""
 msgid "Select all connectors"
 msgstr ""
 
+msgctxt "Cut tool"
 msgid "Cut"
 msgstr ""
 
@@ -1838,6 +1839,7 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
 msgstr ""
 
@@ -2657,6 +2659,9 @@ msgid "Convert from Meters"
 msgstr ""
 
 msgid "Restore to Meter"
+msgstr ""
+
+msgid "Assemble"
 msgstr ""
 
 msgid "Assemble the selected objects into an object with multiple parts"
@@ -4121,6 +4126,14 @@ msgstr ""
 msgid "Print with filament in AMS"
 msgstr ""
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr ""
 
@@ -5348,6 +5361,7 @@ msgstr ""
 msgid "Quality / Speed"
 msgstr ""
 
+msgctxt "Mesh action"
 msgid "Smooth"
 msgstr ""
 
@@ -5956,6 +5970,9 @@ msgstr ""
 msgid "Redo"
 msgstr ""
 
+msgid "Cut"
+msgstr ""
+
 msgid "Cut selection to clipboard"
 msgstr ""
 
@@ -6053,6 +6070,10 @@ msgid "Show outline around selected object in 3D scene."
 msgstr ""
 
 msgid "Preferences"
+msgstr ""
+
+msgctxt "Menu"
+msgid "Edit"
 msgstr ""
 
 msgid "View"
@@ -8907,6 +8928,7 @@ msgstr ""
 msgid "The selected preset is null!"
 msgstr ""
 
+msgctxt "Layer range"
 msgid "End"
 msgstr ""
 
@@ -10980,6 +11002,9 @@ msgid "Move slider 5x faster"
 msgstr ""
 
 msgid "Horizontal slider - Move to start position"
+msgstr ""
+
+msgid "End"
 msgstr ""
 
 msgid "Horizontal slider - Move to last position"
@@ -15109,6 +15134,9 @@ msgid "If smooth or traditional mode is selected, a timelapse video will be gene
 msgstr ""
 
 msgid "Traditional"
+msgstr ""
+
+msgid "Smooth"
 msgstr ""
 
 msgid "Farthest point timelapse"

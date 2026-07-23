@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -896,8 +896,9 @@ msgstr "Suprimeix el connector de la selecció"
 msgid "Select all connectors"
 msgstr "Seleccioneu tots els connectors"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Retalla"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Girar el pla tallat"
@@ -1877,8 +1878,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Ensamblar"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Confirmeu que la proporció d'explosió = 1 i seleccioneu almenys dos volums."
@@ -2749,6 +2751,9 @@ msgstr "Convertir des de metres"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Restaurar a metres"
+
+msgid "Assemble"
+msgstr "Ensamblar"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Ensamblar els objectes seleccionats a un objecte amb diverses peces"
@@ -4288,6 +4293,14 @@ msgstr "Imprimir amb materials muntats a la part posterior de la carcassa"
 msgid "Print with filament in AMS"
 msgstr "Imprimir amb filaments en ams"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Quan s'esgoti el material actual, la impressora continuarà imprimint en l'ordre següent."
 
@@ -5606,8 +5619,9 @@ msgstr "Adaptativa"
 msgid "Quality / Speed"
 msgstr "Qualitat / Velocitat"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Suau"
+msgstr ""
 
 msgid "Radius"
 msgstr "Radi"
@@ -6229,6 +6243,9 @@ msgstr "Desfer"
 msgid "Redo"
 msgstr "Refer"
 
+msgid "Cut"
+msgstr "Retalla"
+
 msgid "Cut selection to clipboard"
 msgstr "Tallar la selecció al porta-retalls"
 
@@ -6329,6 +6346,10 @@ msgstr "Mostrar el contorn al voltant de l'objecte seleccionat a l'escena 3D"
 
 msgid "Preferences"
 msgstr "Preferències"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Vista"
@@ -9317,8 +9338,9 @@ msgstr ""
 msgid "The selected preset is null!"
 msgstr "El perfil seleccionat és nul!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Final"
+msgstr ""
 
 msgid "Customize"
 msgstr "Personalitzar"
@@ -11486,6 +11508,9 @@ msgstr "Moure la barra de desplaçament 5 vegades més ràpid"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Control lliscant horitzontal - Mou fins a la posició inicial"
+
+msgid "End"
+msgstr "Final"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Control lliscant horitzontal - Mou a l'última posició"
@@ -16018,6 +16043,9 @@ msgstr "Si se selecciona el mode suau o tradicional, es generarà un vídeo time
 
 msgid "Traditional"
 msgstr "Tradicional"
+
+msgid "Smooth"
+msgstr "Suau"
 
 msgid "Farthest point timelapse"
 msgstr ""

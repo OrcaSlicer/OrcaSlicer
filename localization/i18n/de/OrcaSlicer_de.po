@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -891,8 +891,9 @@ msgstr "Verbinder aus der Auswahl entfernen"
 msgid "Select all connectors"
 msgstr "Alle Verbinder auswählen"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Schneiden"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Schnittfläche drehen"
@@ -1873,8 +1874,9 @@ msgstr "Measure Gizmo benutzen"
 msgid "Leaving Measure gizmo"
 msgstr "Measure Gizmo verlassen"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Zusammenbauen"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Bitte bestätigen Sie das Explosionsverhältnis = 1 und wählen Sie mindestens zwei Volumen aus."
@@ -2751,6 +2753,9 @@ msgstr "Von Metern umrechnen"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Auf Meter zurücksetzen"
+
+msgid "Assemble"
+msgstr "Zusammenbauen"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Die ausgewählten Objekte zu einem Objekt mit mehreren Teilen zusammenfügen"
@@ -4290,6 +4295,14 @@ msgstr "Drucken mit Materialien, die an der Rückseite des Gehäuses montiert si
 msgid "Print with filament in AMS"
 msgstr "Drucken mit Materialien im AMS"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Wenn das aktuelle Material leer ist, druckt der Drucker in folgender Reihenfolge weiter."
 
@@ -5607,8 +5620,9 @@ msgstr "Adaptiv"
 msgid "Quality / Speed"
 msgstr "Qualität / Geschwindigkeit"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Höhenunterschiede glätten"
+msgstr ""
 
 msgid "Radius"
 msgstr "Radius"
@@ -6227,6 +6241,9 @@ msgstr "Rückgängig machen"
 msgid "Redo"
 msgstr "Wiederholen"
 
+msgid "Cut"
+msgstr "Schneiden"
+
 msgid "Cut selection to clipboard"
 msgstr "Auswahl in die Zwischenablage ausschneiden"
 
@@ -6327,6 +6344,10 @@ msgstr "Kontur um das ausgewählte Objekt in der 3D-Szene anzeigen."
 
 msgid "Preferences"
 msgstr "Einstellungen"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Ansicht"
@@ -9336,8 +9357,9 @@ msgstr "Inkompatibel"
 msgid "The selected preset is null!"
 msgstr "Das selektierte Profil ist leer!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Ende"
+msgstr ""
 
 msgid "Customize"
 msgstr "Anpassen"
@@ -11517,6 +11539,9 @@ msgstr "Schieberegler 5x schneller bewegen"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Horizontaler Schieberegler - Zur Startposition bewegen"
+
+msgid "End"
+msgstr "Ende"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Horizontaler Schieberegler - Zur letzten Position bewegen"
@@ -16170,6 +16195,9 @@ msgstr "Wenn der Modus \"Gleichmäßig\" oder \"Traditionell\" ausgewählt ist, 
 
 msgid "Traditional"
 msgstr "Traditionell"
+
+msgid "Smooth"
+msgstr "Höhenunterschiede glätten"
 
 msgid "Farthest point timelapse"
 msgstr ""

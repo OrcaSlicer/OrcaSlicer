@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -891,8 +891,9 @@ msgstr "Odstranit konektor z výběru"
 msgid "Select all connectors"
 msgstr "Vybrat všechny konektory"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Řezat"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Otočit rovinu řezu"
@@ -1873,8 +1874,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Sestavit"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Potvrďte, že poměr rozložení = 1, a vyberte alespoň dva objemy."
@@ -2746,6 +2748,9 @@ msgstr "Převést z metrů"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Obnovit na metry"
+
+msgid "Assemble"
+msgstr "Sestavit"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Sestavit vybrané objekty do objektu s více částmi"
@@ -4287,6 +4292,14 @@ msgstr "Tisk z materiálů umístěných na zadní straně krytu"
 msgid "Print with filament in AMS"
 msgstr "Tisk s filamenty v AMS"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Když dojde aktuální materiál, tiskárna bude pokračovat v tisku v tomto pořadí."
 
@@ -5603,8 +5616,9 @@ msgstr "Adaptivní"
 msgid "Quality / Speed"
 msgstr "Kvalita / Rychlost"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Vyhladit"
+msgstr ""
 
 msgid "Radius"
 msgstr "Poloměr"
@@ -6225,6 +6239,9 @@ msgstr "Zpět"
 msgid "Redo"
 msgstr "Znovu provést"
 
+msgid "Cut"
+msgstr "Řezat"
+
 msgid "Cut selection to clipboard"
 msgstr "Vyjmout výběr do schránky"
 
@@ -6325,6 +6342,10 @@ msgstr "Zobrazit obrys kolem vybraného objektu ve 3D scéně."
 
 msgid "Preferences"
 msgstr "Předvolby"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Zobrazit"
@@ -9311,8 +9332,9 @@ msgstr "Nekompatibilní"
 msgid "The selected preset is null!"
 msgstr "Zvolená předvolba je nulová!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Konec"
+msgstr ""
 
 msgid "Customize"
 msgstr "Přizpůsobit"
@@ -11488,6 +11510,9 @@ msgstr "Posouvejte posuvník 5× rychleji"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Vodorovný posuvník – přesunout na začátek"
+
+msgid "End"
+msgstr "Konec"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Vodorovný posuvník – přesunout na poslední pozici"
@@ -16067,6 +16092,9 @@ msgstr "Pokud je vybrán plynulý nebo tradiční režim, bude pro každý tisk 
 
 msgid "Traditional"
 msgstr "Tradiční"
+
+msgid "Smooth"
+msgstr "Vyhladit"
 
 msgid "Farthest point timelapse"
 msgstr ""

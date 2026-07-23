@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -878,8 +878,9 @@ msgstr "Borrar conector de la selección"
 msgid "Select all connectors"
 msgstr "Seleccionar todos los conectores"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Cortar"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Rotar plano de corte"
@@ -1857,8 +1858,9 @@ msgstr "Entrando al mecanismo de medición"
 msgid "Leaving Measure gizmo"
 msgstr "Saliendo del mecanismo de medición"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Agrupar"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Confirme que la relación de explosión es 1 y seleccione al menos dos volúmenes."
@@ -2728,6 +2730,9 @@ msgstr "Convertir de metros"
 
 msgid "Restore to Meter"
 msgstr "Restaurar a metros"
+
+msgid "Assemble"
+msgstr "Agrupar"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Ensamblar los objetos seleccionados en un objeto con múltiples piezas"
@@ -4218,6 +4223,14 @@ msgstr "Imprimir utilizando filamento de una bobina externa."
 msgid "Print with filament in AMS"
 msgstr "Imprimir usando filamentos en AMS"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Cuando se termine el filamento actual, la impresora continuará imprimiendo en el siguiente orden."
 
@@ -5508,8 +5521,9 @@ msgstr "Adaptativo"
 msgid "Quality / Speed"
 msgstr "Calidad / Velocidad"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Suave"
+msgstr ""
 
 msgid "Radius"
 msgstr "Radio"
@@ -6122,6 +6136,9 @@ msgstr "Deshacer"
 msgid "Redo"
 msgstr "Rehacer"
 
+msgid "Cut"
+msgstr "Cortar"
+
 msgid "Cut selection to clipboard"
 msgstr "Cortar selección al portapapeles"
 
@@ -6220,6 +6237,10 @@ msgstr "Mostrar el contorno alrededor del objeto seleccionado en la escena 3D."
 
 msgid "Preferences"
 msgstr "Preferencias"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Vista"
@@ -9179,8 +9200,9 @@ msgstr "Incompatible"
 msgid "The selected preset is null!"
 msgstr "¡El ajuste seleccionado es nulo!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Final"
+msgstr ""
 
 msgid "Customize"
 msgstr "Personalizar"
@@ -11330,6 +11352,9 @@ msgstr "Mover el deslizador 5 veces más rápido"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Deslizador horizontal - Desplazarse a la posición inicial"
+
+msgid "End"
+msgstr "Final"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Deslizador horizontal - Desplazarse a la última posición"
@@ -15894,6 +15919,9 @@ msgstr "Si se selecciona el modo suave o tradicional, se generará un vídeo tim
 
 msgid "Traditional"
 msgstr "Tradicional"
+
+msgid "Smooth"
+msgstr "Suave"
 
 msgid "Farthest point timelapse"
 msgstr "Timelapse del punto más lejano"

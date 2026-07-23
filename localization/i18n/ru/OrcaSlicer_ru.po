@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer V2.5.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: 2026-02-25 13:38+0300\n"
 "Last-Translator: Felix14_v2\n"
 "Language-Team: Felix14_v2 (ДС/ТГ: @felix14_v2, почта: aleks111001@list.ru), Andylg <andylg@yandex.ru>\n"
@@ -906,10 +906,9 @@ msgstr "Снять выбор"
 msgid "Select all connectors"
 msgstr "Выбрать все соединения"
 
-# Разный перевод одного слова -Одно название действия Разрезать в другой в
-# Правке -> Вырезать
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Разрезать/вырезать"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Поворот секущей плоскости"
@@ -1910,9 +1909,9 @@ msgstr "Запуск режима измерения"
 msgid "Leaving Measure gizmo"
 msgstr "Выход из режима измерения"
 
-# при выборе на столе
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Объединить в сборку"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Отключите разнесение и выберите несколько частей."
@@ -2805,6 +2804,10 @@ msgstr "Преобразовать миллиметры в дюймы"
 
 msgid "Restore to Meter"
 msgstr "Восстановить в миллиметры"
+
+# при выборе на столе
+msgid "Assemble"
+msgstr "Объединить в сборку"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Объединение выбранных объектов в модель, состоящую из нескольких частей"
@@ -4361,6 +4364,14 @@ msgstr "Использовать для печати материал с вне�
 msgid "Print with filament in AMS"
 msgstr "Печать материалом из AMS"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Когда текущий материал закончится, принтер продолжит печать в указанном порядке."
 
@@ -5711,8 +5722,9 @@ msgstr "Адаптировать"
 msgid "Quality / Speed"
 msgstr "Качество/Скорость"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Сгладить"
+msgstr ""
 
 msgid "Radius"
 msgstr "Радиус"
@@ -6365,6 +6377,11 @@ msgstr "Отменить"
 msgid "Redo"
 msgstr "Повторить"
 
+# Разный перевод одного слова -Одно название действия Разрезать в другой в
+# Правке -> Вырезать
+msgid "Cut"
+msgstr "Разрезать/вырезать"
+
 msgid "Cut selection to clipboard"
 msgstr "Вырезать выбранное в буфер обмена"
 
@@ -6463,6 +6480,10 @@ msgstr "Отображение контура вокруг выбранных м
 
 msgid "Preferences"
 msgstr "Настройки"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Вид"
@@ -9497,7 +9518,7 @@ msgstr "Несовместимы"
 msgid "The selected preset is null!"
 msgstr "Выбранный профиль пуст!"
 
-# ?????? не переводим, пока #6970 не исправят
+msgctxt "Layer range"
 msgid "End"
 msgstr ""
 
@@ -11717,6 +11738,10 @@ msgstr "Перемещение ползунка быстрее в 5 раз"
 msgid "Horizontal slider - Move to start position"
 msgstr "Горизонтальный ползунок - перемещение в начальную позицию"
 
+# ?????? не переводим, пока #6970 не исправят
+msgid "End"
+msgstr ""
+
 msgid "Horizontal slider - Move to last position"
 msgstr "Горизонтальный ползунок - перемещение в конечную позицию"
 
@@ -13523,8 +13548,7 @@ msgid ""
 "Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
 "This can cause contraction marks (such as the hull line) on the outer walls.\n"
 "By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
-msgstr ""
-"Расширение закрытой поверхности (например, окружённой стенками впадины) может привести к её сцеплению с внешним контуром модели, что повышает риск возникновения дефектов усадки. Добавление отступа позволяет избежать этого."
+msgstr "Расширение закрытой поверхности (например, окружённой стенками впадины) может привести к её сцеплению с внешним контуром модели, что повышает риск возникновения дефектов усадки. Добавление отступа позволяет избежать этого."
 
 msgid "Top expansion direction"
 msgstr "Направление расширения"
@@ -14329,7 +14353,8 @@ msgstr "Относительные углы"
 msgid ""
 "Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
 "When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
-msgstr "Учитывать вращение модели при расчёте угла мостов, заполнения и разглаживания.\n"
+msgstr ""
+"Учитывать вращение модели при расчёте угла мостов, заполнения и разглаживания.\n"
 "Позволяет сохранять направленность линий относительно модели независимо от её поворота на столе."
 
 msgid "Insert solid layers"
@@ -16676,6 +16701,9 @@ msgstr "На протяжении всей печати встроенная к�
 
 msgid "Traditional"
 msgstr "По умолчанию"
+
+msgid "Smooth"
+msgstr "Сгладить"
 
 msgid "Farthest point timelapse"
 msgstr ""

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -883,8 +883,9 @@ msgstr "Hautaketatik konektorea ezabatu"
 msgid "Select all connectors"
 msgstr "Hautatu konektore guztiak"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Ebaki"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Ebaketa-planoa biratu"
@@ -1860,8 +1861,9 @@ msgstr "Neurketa tresnan sartzen"
 msgid "Leaving Measure gizmo"
 msgstr "Neurketa tresna irteten"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Multzokatu"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Mesedez, baieztatu esplosio-erlazioa = 1 dela, eta hautatu objektu bat gutxienez."
@@ -2729,6 +2731,9 @@ msgstr "Bihurtu metroetatik"
 
 msgid "Restore to Meter"
 msgstr "Leheneratu metroetara"
+
+msgid "Assemble"
+msgstr "Multzokatu"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Multzokatu hautatutako objektuak pieza ugariko objektu bakarrean"
@@ -4219,6 +4224,14 @@ msgstr "Inprimatu kanpoko harileko filamentua erabiliz."
 msgid "Print with filament in AMS"
 msgstr "AMSko filamentuarekin inprimatu"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Uneko materiala agortzen denean, inprimagailuak hurrengo ordenean inprimatzen jarraituko du."
 
@@ -5505,8 +5518,9 @@ msgstr "Egokigarria"
 msgid "Quality / Speed"
 msgstr "Kalitatea / Abiadura"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Leuna"
+msgstr ""
 
 msgid "Radius"
 msgstr "Erradioa"
@@ -6115,6 +6129,9 @@ msgstr "Desegin"
 msgid "Redo"
 msgstr "Berregin"
 
+msgid "Cut"
+msgstr "Ebaki"
+
 msgid "Cut selection to clipboard"
 msgstr "Ebaki hautaketa arbelean"
 
@@ -6213,6 +6230,10 @@ msgstr "Erakutsi hautatutako objektuaren inguruko ingerada 3D eszenan."
 
 msgid "Preferences"
 msgstr "Hobespenak"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Bista"
@@ -9169,8 +9190,9 @@ msgstr "Bateraezina"
 msgid "The selected preset is null!"
 msgstr "Hautatutako aurrezarpena hutsa da!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Amaiera"
+msgstr ""
 
 msgid "Customize"
 msgstr "Pertsonalizatu"
@@ -11320,6 +11342,9 @@ msgstr "Mugitu graduatzailea 5 aldiz azkarrago"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Graduatzaile horizontala - Mugitu hasierako posiziora"
+
+msgid "End"
+msgstr "Amaiera"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Graduatzaile horizontala - Mugitu azken posiziora"
@@ -15887,6 +15912,9 @@ msgstr "Modu leuna edo tradizionala hautatzen bada, timelapse bideo bat sortuko 
 
 msgid "Traditional"
 msgstr "Tradizionala"
+
+msgid "Smooth"
+msgstr "Leuna"
 
 msgid "Farthest point timelapse"
 msgstr "Puntu urruneneko timelapsea"

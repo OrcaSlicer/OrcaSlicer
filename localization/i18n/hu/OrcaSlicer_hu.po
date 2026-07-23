@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -888,8 +888,9 @@ msgstr "Csatlakozó eltávolítása a kijelölésből"
 msgid "Select all connectors"
 msgstr "Összes csatlakozó kijelölése"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Vágás"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Vágósík forgatása"
@@ -1868,8 +1869,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Összeállítás"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Erősítsd meg, hogy a terjedési arány = 1, és válassz ki legalább két térfogatot."
@@ -2742,6 +2744,9 @@ msgstr "Átváltás méterről"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Visszaállítás méterre"
+
+msgid "Assemble"
+msgstr "Összeállítás"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Összeállítja a kijelölt objektumot egy több részből álló objektummá"
@@ -4281,6 +4286,14 @@ msgstr "Nyomtatás külső tartón lévő filamenttel."
 msgid "Print with filament in AMS"
 msgstr "Nyomtatás az AMS-ben lévő filamentekkel"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Amikor az aktuális filament elfogy, a nyomtató a következő sorrendben folytatja a nyomtatást."
 
@@ -5597,8 +5610,9 @@ msgstr "Adaptív"
 msgid "Quality / Speed"
 msgstr "Minőség / sebesség"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Sima"
+msgstr ""
 
 msgid "Radius"
 msgstr "Sugár"
@@ -6219,6 +6233,9 @@ msgstr "Visszavonás"
 msgid "Redo"
 msgstr "Mégis"
 
+msgid "Cut"
+msgstr "Vágás"
+
 msgid "Cut selection to clipboard"
 msgstr "Kijelölés kivágása a vágólapra"
 
@@ -6319,6 +6336,10 @@ msgstr "Körvonal megjelenítése a kijelölt objektum körül a 3D nézetben."
 
 msgid "Preferences"
 msgstr "Beállítások"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Nézet"
@@ -9314,8 +9335,9 @@ msgstr "Nem kompatibilis"
 msgid "The selected preset is null!"
 msgstr "A kiválasztott beállítás nulla!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Vége"
+msgstr ""
 
 msgid "Customize"
 msgstr "Testreszabás"
@@ -11500,6 +11522,9 @@ msgstr "Csúszka 5x gyorsabb mozgatása"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "Vízszintes csúszka - Ugrás a kezdőpozícióra"
+
+msgid "End"
+msgstr "Vége"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Vízszintes csúszka - Ugrás az utolsó pozícióra"
@@ -16096,6 +16121,9 @@ msgstr "Ha a sima vagy a hagyományos mód van kiválasztva, minden nyomtatásn�
 
 msgid "Traditional"
 msgstr "Hagyományos"
+
+msgid "Smooth"
+msgstr "Sima"
 
 msgid "Farthest point timelapse"
 msgstr ""

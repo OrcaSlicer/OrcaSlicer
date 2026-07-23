@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-22 19:11-0300\n"
+"POT-Creation-Date: 2026-07-23 14:21-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -891,8 +891,9 @@ msgstr "選択からコネクタを削除"
 msgid "Select all connectors"
 msgstr "すべてのコネクタを選択"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "カット"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "カット面の回転"
@@ -1869,8 +1870,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "組立てる"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "分解比率が1であることを確認し、少なくとも2つのボリュームを選択してください。"
@@ -2738,6 +2740,9 @@ msgstr "メートルから変換"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "メータル単位に復元"
+
+msgid "Assemble"
+msgstr "組立てる"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "選択したオブジェクトを一つオブジェクトに組み立てます（複数パーツ）"
@@ -4265,6 +4270,14 @@ msgstr "外部スプールホルダーのフィラメントで造形します"
 msgid "Print with filament in AMS"
 msgstr "AMSのフィラメントで造形します"
 
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
+
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "現在の材料がなくなると、プリンターは次の順序で印刷を続けます。"
 
@@ -5571,8 +5584,9 @@ msgstr "アダプティブ"
 msgid "Quality / Speed"
 msgstr "品質/速度"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "滑らか目"
+msgstr ""
 
 msgid "Radius"
 msgstr "半径"
@@ -6187,6 +6201,9 @@ msgstr "元に戻す"
 msgid "Redo"
 msgstr "やり直す"
 
+msgid "Cut"
+msgstr "カット"
+
 msgid "Cut selection to clipboard"
 msgstr "選択範囲をカット"
 
@@ -6287,6 +6304,10 @@ msgstr "3Dシーンで選択したオブジェクトの周りにアウトライ�
 
 msgid "Preferences"
 msgstr "設定"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "表示"
@@ -9265,8 +9286,9 @@ msgstr "互換性なし"
 msgid "The selected preset is null!"
 msgstr "選択したプリセットがnullです！"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "終了"
+msgstr ""
 
 msgid "Customize"
 msgstr "カスタマイズ"
@@ -11415,6 +11437,9 @@ msgstr "5x"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "水平スライダー - 開始位置に移動"
+
+msgid "End"
+msgstr "終了"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "水平スライダー - 最後の位置に移動"
@@ -15696,6 +15721,9 @@ msgstr "有効にした場合、タイムラプスビデオを録画します。
 
 msgid "Traditional"
 msgstr "通常"
+
+msgid "Smooth"
+msgstr "滑らか目"
 
 msgid "Farthest point timelapse"
 msgstr ""
