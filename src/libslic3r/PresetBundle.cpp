@@ -11,6 +11,8 @@
 #include "libslic3r_version.h"
 
 #include <algorithm>
+#include <cstdlib>
+#include <map>
 #include <mutex>
 #include <set>
 #include <fstream>
@@ -22,6 +24,7 @@
 #include <boost/nowide/cstdio.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <boost/property_tree/ini_parser.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/locale.hpp>
 #include <boost/log/trivial.hpp>
@@ -1346,6 +1349,112 @@ bool PresetBundle::apply_vendor_config(
     return true;
 }
 
+namespace {
+
+using QidiSystemProfileIndex = std::map<std::string, fs::path>;
+
+std::vector<fs::path> qidi_system_profile_roots()
+{
+    std::vector<fs::path> roots;
+    if (const char* configured_root = std::getenv("ORCA_QIDI_PROFILE_ROOT"); configured_root != nullptr && *configured_root != '\0')
+        roots.emplace_back(configured_root);
+
+#ifdef _WIN32
+    if (const char* program_files = std::getenv("ProgramFiles"); program_files != nullptr && *program_files != '\0')
+        roots.emplace_back(fs::path(program_files) / "QIDIStudio" / "resources" / "profiles");
+    if (const char* program_files_x86 = std::getenv("ProgramFiles(x86)"); program_files_x86 != nullptr && *program_files_x86 != '\0')
+        roots.emplace_back(fs::path(program_files_x86) / "QIDIStudio" / "resources" / "profiles");
+#endif
+
+    std::sort(roots.begin(), roots.end());
+    roots.erase(std::unique(roots.begin(), roots.end()), roots.end());
+    return roots;
+}
+
+const QidiSystemProfileIndex& qidi_system_profile_index()
+{
+    static const QidiSystemProfileIndex profiles = [] {
+        QidiSystemProfileIndex result;
+        for (const fs::path& root : qidi_system_profile_roots()) {
+            boost::system::error_code ec;
+            if (!fs::exists(root, ec) || ec)
+                continue;
+
+            for (fs::recursive_directory_iterator it(root, ec), end; it != end; it.increment(ec)) {
+                if (ec) {
+                    ec.clear();
+                    continue;
+                }
+                if (!fs::is_regular_file(it->path(), ec) || ec || !boost::iends_with(it->path().extension().string(), ".json")) {
+                    ec.clear();
+                    continue;
+                }
+
+                try {
+                    boost::property_tree::ptree json;
+                    boost::property_tree::read_json(it->path().string(), json);
+                    const std::string name = json.get<std::string>("name", "");
+                    if (!name.empty())
+                        result.emplace(name, it->path());
+                } catch (const boost::property_tree::ptree_error&) {
+                    // A malformed vendor profile should not prevent importing the rest.
+                }
+            }
+        }
+        return result;
+    }();
+    return profiles;
+}
+
+bool load_qidi_system_profile(const std::string& name,
+                              ForwardCompatibilitySubstitutionRule rule,
+                              std::set<std::string>& resolution_stack,
+                              DynamicPrintConfig& resolved)
+{
+    const auto profile = qidi_system_profile_index().find(name);
+    if (profile == qidi_system_profile_index().end()) {
+        BOOST_LOG_TRIVIAL(warning) << "QIDI system parent preset was not found: " << name
+                                   << ". Set ORCA_QIDI_PROFILE_ROOT if QIDI Studio is installed elsewhere.";
+        return false;
+    }
+    if (!resolution_stack.insert(name).second) {
+        BOOST_LOG_TRIVIAL(error) << "QIDI system preset inheritance cycle detected at: " << name;
+        return false;
+    }
+
+    try {
+        DynamicPrintConfig current;
+        std::map<std::string, std::string> key_values;
+        std::string reason;
+        current.load_from_json(profile->second.string(), rule, key_values, reason);
+
+        std::string parent_name;
+        if (auto* inherits = dynamic_cast<ConfigOptionString*>(current.option(BBL_JSON_KEY_INHERITS)); inherits != nullptr)
+            parent_name = inherits->value;
+
+        if (parent_name.empty()) {
+            resolved = std::move(current);
+        } else {
+            DynamicPrintConfig parent;
+            if (!load_qidi_system_profile(parent_name, rule, resolution_stack, parent)) {
+                resolution_stack.erase(name);
+                return false;
+            }
+            parent.apply(std::move(current));
+            resolved = std::move(parent);
+        }
+    } catch (const std::exception& error) {
+        BOOST_LOG_TRIVIAL(error) << "Failed to load QIDI system preset " << name << ": " << error.what();
+        resolution_stack.erase(name);
+        return false;
+    }
+
+    resolution_stack.erase(name);
+    return true;
+}
+
+} // namespace
+
 // Import presets from UI control
 PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string> &              files,
                                                         std::function<int(std::string const &)> override_confirm,
@@ -1370,6 +1479,7 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
         // .qdsflmt) extension. Their JSON preset schema shares Orca's
         // import path, so route them through the same validated extractor
         // instead of asking users to rename the file to .zip.
+        const bool qidi_bundle = boost::iends_with(file, ".qdscfg") || boost::iends_with(file, ".qdsflmt");
         if (boost::iends_with(file, ".orca_printer") || boost::iends_with(file, ".orca_bundle") ||
             boost::iends_with(file, ".orca_filament") || boost::iends_with(file, ".qdscfg") ||
             boost::iends_with(file, ".qdsflmt") || boost::iends_with(file, ".zip")) {
@@ -1458,7 +1568,7 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Failed to open target file: " << target_file_path;
                     } else {
                         bool is_success = import_json_presets(substitutions, target_file_path, override_confirm, rule, overwrite, result,
-                                                              has_bundle_structure ? bundle_base_dir.string() : std::string());
+                                                              has_bundle_structure ? bundle_base_dir.string() : std::string(), qidi_bundle);
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " import target file: " << target_file_path << " import result" << is_success;
                     }
                 }
@@ -1505,7 +1615,8 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
                                        ForwardCompatibilitySubstitutionRule    rule,
                                        int &                                   overwrite,
                                        std::vector<std::string> &              result,
-                                       const std::string &                     bundle_dir)
+                                       const std::string &                     bundle_dir,
+                                       bool                                    resolve_qidi_system_inherits)
 {
     try {
         DynamicPrintConfig config;
@@ -1569,18 +1680,33 @@ bool PresetBundle::import_json_presets(PresetsConfigSubstitutions &            s
             new_config = inherit_preset->config;
             new_config.apply(std::move(config));
         } else {
-            // We support custom root preset now
             auto inherits_config2 = dynamic_cast<ConfigOptionString *>(inherits_config);
             if (inherits_config2 && !inherits_config2->value.empty()) {
-                // we should skip this preset here
-                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", can not find inherit preset for user preset %1%, just skip") % name;
-                return false;
+                DynamicPrintConfig qidi_system_config;
+                std::set<std::string> resolution_stack;
+                if (!resolve_qidi_system_inherits || !load_qidi_system_profile(inherits_config2->value, rule, resolution_stack, qidi_system_config)) {
+                    BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << boost::format(", can not find inherit preset for user preset %1%, just skip") % name;
+                    return false;
+                }
+
+                // The QIDI system parent is external to Orca. Materialize its
+                // values into this user preset and clear inherits so Orca never
+                // tries to resolve the unavailable QIDI name on a later launch.
+                inherits_config2->value.clear();
+                const Preset &default_preset = collection->default_preset_for(config);
+                new_config = default_preset.config;
+                new_config.apply(std::move(qidi_system_config));
+                new_config.apply(std::move(config));
+                extend_default_config_length(new_config, true, default_preset.config);
+                inherits_value.clear();
+                BOOST_LOG_TRIVIAL(info) << "Resolved QIDI system inheritance for imported preset: " << name;
+            } else {
+                // We support custom root presets.
+                const Preset &default_preset = collection->default_preset_for(config);
+                new_config                   = default_preset.config;
+                new_config.apply(std::move(config));
+                extend_default_config_length(new_config, true, default_preset.config);
             }
-            // Find a default preset for the config. The PrintPresetCollection provides different default preset based on the "printer_technology" field.
-            const Preset &default_preset = collection->default_preset_for(config);
-            new_config                   = default_preset.config;
-            new_config.apply(std::move(config));
-            extend_default_config_length(new_config, true, default_preset.config);
         }
 
         Preset &preset     = collection->load_preset(collection->path_from_name(name, inherit_preset == nullptr), preset_name, std::move(new_config), false);
