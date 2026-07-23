@@ -218,12 +218,12 @@ Thank you! :)
 <tr>
 <td>
 <a href="https://qidi3d.com/" style="display:inline-block; border-radius:8px; background:#fff;">
-  <img src="SoftFever_doc\sponsor_logos\QIDI.png" alt="QIDI" width="100" height="100">
+  <img src="SoftFever_doc/sponsor_logos/QIDI.png" alt="QIDI" width="100" height="100">
 </a>
 </td>
 <td>
 <a href="https://bigtree-tech.com/" style="display:inline-block; border-radius:8px; background:#222;">
-    <img src="SoftFever_doc\sponsor_logos\BigTreeTech.png" alt="BIGTREE TECH" width="100" height="100">
+    <img src="SoftFever_doc/sponsor_logos/BigTreeTech.png" alt="BIGTREE TECH" width="100" height="100">
 </a>
 </td>
 </tr>
