@@ -58,6 +58,7 @@ public:
 		Vec2f origin_start_pos;  // not rotated
 
         std::vector<Vec2f> wipe_path;
+        bool is_extruder_change{true};
     };
 
 	struct ToolChangeResult
@@ -309,6 +310,8 @@ public:
     int get_number_of_toolchanges() const { return m_num_tool_changes; }
 
 	void set_filament_map(const std::vector<int> &filament_map) { m_filament_map = filament_map; }
+	// Vortek H2C: filament_id → physical nozzle_id for carousel rotation detection
+	void set_filament_nozzle_map(const std::vector<int> &nozzle_map) { m_filament_nozzle_map = nozzle_map; }
 
 	void set_has_tpu_filament(bool has_tpu) { m_has_tpu_filament = has_tpu; }
     bool has_tpu_filament() const { return m_has_tpu_filament; }
@@ -356,6 +359,12 @@ public:
         // Distance (in mm of filament) that a hotend is allowed to pre-cool before the
         // tower is reached; drives the prime-tower heating-during-wipe model (multi-nozzle only).
         float               filament_cooling_before_tower = 0.f;
+        // .first = extruder change, .second = nozzle change (carousel)
+        std::pair<float,float>  max_e_ramming_speed{0.f, 0.f};
+        std::pair<float,float>  ramming_travel_time{0.f, 0.f};
+        std::pair<int,int>      precool_target_temp{0, 0};
+        std::pair<std::vector<float>,std::vector<float>> precool_t;
+        std::pair<std::vector<float>,std::vector<float>> precool_t_first_layer;
     };
 
 
@@ -395,6 +404,8 @@ public:
     void add_depth_to_block(int filament_id, int filament_adhesiveness_category, float depth, bool is_nozzle_change = false);
 	int get_filament_category(int filament_id);
 	bool is_in_same_extruder(int filament_id_1, int filament_id_2);
+	// Vortek H2C: format BBS-compatible NOZZLE_CHANGE_START/END tag with OF/NF/ON/NN payload
+	std::string format_nozzle_change_tag(bool start, int old_filament_id, int new_filament_id) const;
 	void reset_block_status();
     int get_wall_filament_for_all_layer();
 	// for generate new wipe tower
@@ -453,6 +464,7 @@ private:
     size_t       m_cur_layer_id;
     NozzleChangeResult m_nozzle_change_result;
     std::vector<int>   m_filament_map;
+    std::vector<int>   m_filament_nozzle_map;  // Vortek H2C: filament_id → physical nozzle_id
     bool               m_has_tpu_filament{false};
     bool               m_is_multi_extruder{false};
     bool               m_use_gap_wall{false};
@@ -555,6 +567,7 @@ private:
 
 	bool is_tpu_filament(int filament_id) const;
 	bool is_petg_filament(int filament_id) const;
+    bool is_need_reverse_travel(int filament_id, bool extruder_change) const;
 
 	// BBS
 	box_coordinates align_perimeter(const box_coordinates& perimeter_box);

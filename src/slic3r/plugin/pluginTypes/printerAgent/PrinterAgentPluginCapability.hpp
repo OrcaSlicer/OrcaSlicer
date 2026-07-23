@@ -51,6 +51,7 @@ public:
     int ping_bind(std::string ping_code) override                                                                    = 0;
     int bind(std::string dev_ip,
              std::string dev_id,
+             std::string dev_model,
              std::string sec_link,
              std::string timezone,
              bool improved,
@@ -60,6 +61,7 @@ public:
     // pybind11 override directly; the trampoline wraps it (the Python plugin returns a
     // (result, ticket) tuple), so it stays pure here like the rest.
     int request_bind_ticket(std::string* ticket) override                                                            = 0;
+    int get_hms_snapshot(std::string dev_id, std::string file_name, std::function<void(std::string, int)> callback) override = 0;
     int set_server_callback(OnServerErrFn fn) override                                                               = 0;
     int start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override = 0;
     int start_local_print_with_record(PrintParams params,

@@ -10,12 +10,21 @@
 
 #pragma once
 #include <string>
-#include <utility>
+#include <nlohmann/json.hpp>
+
+// Reserved for future usage
+#define DEV_RESERVED_FOR_FUTURE(...) /* stripped */
+
+// Previous definitions
+namespace Slic3r
+{
+    class MachineObject;
+}
 
 enum PrinterArch
 {
-    ARCH_CORE_XY,
-    ARCH_I3,
+    ARCH_CORE_XY,// move hotbed
+    ARCH_I3,//move z
 };
 
 enum PrinterSeries
@@ -36,6 +45,7 @@ enum AmsStatusMain
     AMS_STATUS_MAIN_RFID_IDENTIFYING = 0x02,
     AMS_STATUS_MAIN_ASSIST = 0x03,
     AMS_STATUS_MAIN_CALIBRATION = 0x04,
+    AMS_STATUS_MAIN_COLD_PULL = 0x07,
     AMS_STATUS_MAIN_SELF_CHECK = 0x10,
     AMS_STATUS_MAIN_DEBUG = 0x20,
     AMS_STATUS_MAIN_UNKNOWN = 0xFF,
@@ -51,10 +61,6 @@ enum DevAmsType : int
     AMS_LITE_MIXED = 5, // AMS-Lite for N9
 };
 
-// Device-numbered filament-change step codes. Newer firmware reports the exact change-step
-// sequence through the AMS (ams.cfs), keyed by these codes, instead of the client hardcoding
-// steps per model. Distinct from the legacy GUI-side Slic3r::GUI::FilamentStep enum.
-// STEP_CHECK_POSITION and STEP_CONFIRM_EXTRUDED share code 0x08 by device design.
 enum DevFilamentStep
 {
     STEP_IDLE = 0x00,
@@ -83,14 +89,10 @@ enum DevFilamentStep
 #define VIRTUAL_AMS_MAIN_ID_STR   "255"
 #define VIRTUAL_AMS_DEPUTY_ID_STR "254"
 
-// Tray index offset for the AMS-Lite-mixed unit (A2L / N9). Its 4 trays occupy
-// global tray indices 24..27.
-#define AMS_LITE_MIXED_TRAY_INDEX_OFFSET 24
+// Tray index offsets for different AMS types
+#define AMS_LITE_MIXED_TRAY_INDEX_OFFSET 24 // Offset for AMS_LITE_MIXED tray index (24)
 
 #define INVALID_AMS_TEMPERATURE std::numeric_limits<float>::min()
-
-// (ams_id, slot_id) pair.
-using DevAmsSlotId = std::pair<int, int>;
 
 /* Extruder*/
 #define MAIN_EXTRUDER_ID          0
@@ -98,22 +100,24 @@ using DevAmsSlotId = std::pair<int, int>;
 #define UNIQUE_EXTRUDER_ID        MAIN_EXTRUDER_ID
 #define INVALID_EXTRUDER_ID       -1
 
-/* Logical extruder ids (multi-nozzle). */
+// see PartPlate::get_physical_extruder_by_logical_extruder
 #define LOGIC_UNIQUE_EXTRUDER_ID  0
 #define LOGIC_L_EXTRUDER_ID       0
 #define LOGIC_R_EXTRUDER_ID       1
 
+// <ams_id, slot_id>
+using DevAmsSlotId = std::pair<int, int>;
 
 /* Nozzle*/
-enum NozzleFlowType
+enum NozzleFlowType : int
 {
     NONE_FLOWTYPE,
     S_FLOW,
     H_FLOW,
-    U_FLOW, // TPU 1.75 High Flow (device-reported; maps to nvtTPUHighFlow)
+    U_FLOW, // TPU 1.75 High Flow
+    E_FLOW, // E3D High Flow
 };
-
-// Discrete nozzle diameters reported by the device.
+/* 0.2mm  0.4mm  0.6mm 0.8mm */
 enum NozzleDiameterType : int
 {
     NONE_DIAMETER_TYPE,
@@ -135,7 +139,7 @@ enum DevPrintingSpeedLevel
 };
 
 /*Upgrade*/
-enum class DevFirmwareUpgradingState : int
+enum class DevFirmwareUpgradeState : int
 {
     DC = -1,
     UpgradingUnavaliable = 0,
@@ -143,6 +147,10 @@ enum class DevFirmwareUpgradingState : int
     UpgradingInProgress = 2,
     UpgradingFinished = 3
 };
+
+// Orca: DeviceManager/UpgradePanel keep the Orca spelling of this enum; the alias to the
+// reference name is a permanent compatibility surface.
+using DevFirmwareUpgradingState = DevFirmwareUpgradeState;
 
 class devPrinterUtil
 {
@@ -157,9 +165,6 @@ public:
 
 namespace GUI
 {
-// Print source. Defined here (rather than in SelectMachine.hpp) so the shared device-mapping
-// GUI headers — AmsMappingPopup, wgtDeviceNozzleSelect — can name it without pulling in
-// SelectMachine.hpp, which would create an include cycle.
 enum PrintFromType
 {
     FROM_NORMAL,
@@ -169,8 +174,6 @@ enum PrintFromType
 
 };// namespace Slic3r
 
-// A nozzle requirement of the sliced plate (or an installed nozzle's identity), compared in the
-// pre-print slicing-vs-installed nozzle checks.
 struct NozzleDef
 {
     float                  nozzle_diameter;
@@ -191,3 +194,6 @@ template<> struct std::hash<NozzleDef>
         return h1 ^ (h2 + 0x9e3779b9 + (h1 << 6) + (h1 >> 2));
     };
 };
+
+// key(extruder_id) -> { key1(nozzle type info), val1( number of the nozzle type)}
+using ExtruderNozzleInfos = std::unordered_map<int, std::unordered_map<NozzleDef, int>>;

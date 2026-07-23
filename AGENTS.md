@@ -17,7 +17,7 @@ cmake --build . --config %build_type% --target ALL_BUILD -- -m
 
 ## Testing
 
-Catch2 framework. Tests in `tests/` directory.
+Catch2 framework. Tests in `tests/`; see [tests/AGENTS.md](tests/AGENTS.md) for where a new test belongs and the conventions to follow.
 
 ```bash
 cd build && ctest --output-on-failure           # all tests

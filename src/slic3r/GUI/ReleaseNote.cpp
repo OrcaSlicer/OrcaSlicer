@@ -137,7 +137,7 @@ UpdatePluginDialog::UpdatePluginDialog(wxWindow* parent /*= nullptr*/)
     m_text_up_info->SetForegroundColour(wxColour(0x26, 0x2E, 0x30));
 
 
-    operation_tips = new ::Label(this, Label::Body_12, _L("Click OK to update the Network plug-in the next time Orca Slicer launches."), LB_AUTO_WRAP);
+    operation_tips = new ::Label(this, Label::Body_12, _L("Click OK to update the Network plug-in now. If a file is in use, the update will be applied the next time Orca Slicer launches."), LB_AUTO_WRAP);
     operation_tips->SetMinSize(wxSize(FromDIP(260), -1));
     operation_tips->SetMaxSize(wxSize(FromDIP(260), -1));
 
@@ -202,34 +202,45 @@ void UpdatePluginDialog::update_info(std::string json_path)
     wxString version;
     wxString description;
 
+    // Parse defensively: a missing or malformed changelog must never leave the
+    // dialog blank, so fall back to a generic prompt instead of returning early.
     try {
         boost::nowide::ifstream ifs(json_path);
         json j;
         ifs >> j;
 
-        version_str = j["version"];
-        description_str = j["description"];
+        if (j.contains("version"))
+            version_str = j["version"];
+        if (j.contains("description"))
+            description_str = j["description"];
     }
-    catch (nlohmann::detail::parse_error& err) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << json_path << " got a nlohmann::detail::parse_error, reason = " << err.what();
-        return;
+    catch (std::exception& err) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << json_path << " failed, reason = " << err.what();
     }
 
     version = from_u8(version_str);
     description = from_u8(description_str);
 
-    m_text_up_info->SetLabel(wxString::Format(_L("A new Network plug-in (%s) is available. Do you want to install it?"), version));
+    if (version.IsEmpty())
+        m_text_up_info->SetLabel(_L("A new Network plug-in is available. Do you want to install it?"));
+    else
+        m_text_up_info->SetLabel(wxString::Format(_L("A new Network plug-in (%s) is available. Do you want to install it?"), version));
     m_text_up_info->SetMinSize(wxSize(FromDIP(260), -1));
     m_text_up_info->SetMaxSize(wxSize(FromDIP(260), -1));
-    wxBoxSizer* sizer_text_release_note = new wxBoxSizer(wxVERTICAL);
-    auto        m_text_label            = new ::Label(m_vebview_release_note, Label::Body_13, description, LB_AUTO_WRAP);
-    m_text_label->SetMinSize(wxSize(FromDIP(235), -1));
-    m_text_label->SetMaxSize(wxSize(FromDIP(235), -1));
 
-    sizer_text_release_note->Add(m_text_label, 0, wxALL, 5);
-    m_vebview_release_note->SetSizer(sizer_text_release_note);
-    m_vebview_release_note->Layout();
-    m_vebview_release_note->Fit();
+    if (description.IsEmpty()) {
+        m_vebview_release_note->Hide();
+    } else {
+        wxBoxSizer* sizer_text_release_note = new wxBoxSizer(wxVERTICAL);
+        auto        m_text_label            = new ::Label(m_vebview_release_note, Label::Body_13, description, LB_AUTO_WRAP);
+        m_text_label->SetMinSize(wxSize(FromDIP(235), -1));
+        m_text_label->SetMaxSize(wxSize(FromDIP(235), -1));
+
+        sizer_text_release_note->Add(m_text_label, 0, wxALL, 5);
+        m_vebview_release_note->SetSizer(sizer_text_release_note);
+        m_vebview_release_note->Layout();
+        m_vebview_release_note->Fit();
+    }
     wxGetApp().UpdateDlgDarkUI(this);
     Layout();
     Fit();

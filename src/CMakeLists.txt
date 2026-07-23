@@ -309,6 +309,13 @@ else ()
         set(MACOSX_BUNDLE_BUNDLE_NAME "OrcaSlicer")
         set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${SoftFever_VERSION})
         set(MACOSX_BUNDLE_COPYRIGHT "Copyright(C) 2022-2024 Li Jiang All Rights Reserved")
+        if (XCODE)
+            # Xcode's CodeSign phase fails on the bundled Python runtime's dotted
+            # dirs (python3.12) under Contents/MacOS. Skip it for local dev builds
+            # and let the linker ad-hoc sign; the shipped bundle is signed by the
+            # Ninja/CI packaging path (build_release_macos.sh, build_orca.yml).
+            set_target_properties(OrcaSlicer PROPERTIES XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED NO)
+        endif()
     endif()
     add_custom_command(TARGET OrcaSlicer POST_BUILD
         COMMAND ln -sfn "${SLIC3R_RESOURCES_DIR}" "${BIN_RESOURCES_DIR}"

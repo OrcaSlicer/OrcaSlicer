@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-17 15:13-0300\n"
+"POT-Creation-Date: 2026-07-20 10:39-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -11,17 +11,137 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n==1) ? 0 : 1;\n"
 "X-Generator: Localazy (https://localazy.com)\n"
 
-msgid "right"
-msgstr "jobb"
+msgid "Main Extruder"
+msgstr ""
 
-msgid "left"
-msgstr "bal"
+msgid "Main extruder"
+msgstr ""
+
+msgid "main extruder"
+msgstr ""
+
+msgid "Auxiliary Extruder"
+msgstr ""
+
+msgid "Auxiliary extruder"
+msgstr ""
+
+msgid "auxiliary extruder"
+msgstr ""
+
+msgid "Left Extruder"
+msgstr "Bal extruder"
+
+msgid "Left extruder"
+msgstr "Bal extruder"
+
+msgid "left extruder"
+msgstr "bal extruder"
+
+msgid "Right Extruder"
+msgstr "Jobb extruder"
+
+msgid "Right extruder"
+msgstr "Jobb extruder"
 
 msgid "right extruder"
 msgstr "jobb extruder"
 
-msgid "left extruder"
-msgstr "bal extruder"
+msgid "Main Nozzle"
+msgstr ""
+
+msgid "Main nozzle"
+msgstr ""
+
+msgid "main nozzle"
+msgstr ""
+
+msgid "Auxiliary Nozzle"
+msgstr ""
+
+msgid "Auxiliary nozzle"
+msgstr ""
+
+msgid "auxiliary nozzle"
+msgstr ""
+
+msgid "Left Nozzle"
+msgstr "Bal fúvóka"
+
+msgid "Left nozzle"
+msgstr "Bal fúvóka"
+
+msgid "left nozzle"
+msgstr "bal fúvóka"
+
+msgid "Right Nozzle"
+msgstr "Jobb fúvóka"
+
+msgid "Right nozzle"
+msgstr "Jobb fúvóka"
+
+msgid "right nozzle"
+msgstr "jobb fúvóka"
+
+msgid "Main Hotend"
+msgstr ""
+
+msgid "Main hotend"
+msgstr ""
+
+msgid "main hotend"
+msgstr ""
+
+msgid "Auxiliary Hotend"
+msgstr ""
+
+msgid "Auxiliary hotend"
+msgstr ""
+
+msgid "auxiliary hotend"
+msgstr ""
+
+msgid "Left Hotend"
+msgstr ""
+
+msgid "Left hotend"
+msgstr ""
+
+msgid "left hotend"
+msgstr ""
+
+msgid "Right Hotend"
+msgstr ""
+
+msgid "Right hotend"
+msgstr ""
+
+msgid "right hotend"
+msgstr ""
+
+msgid "main"
+msgstr ""
+
+msgid "auxiliary"
+msgstr ""
+
+msgid "Main"
+msgstr ""
+
+msgid "Auxiliary"
+msgstr ""
+
+msgid "left"
+msgstr "bal"
+
+msgid "right"
+msgstr "jobb"
+
+msgid "Left"
+msgstr "Bal"
+
+msgid "Right"
+msgstr "Jobb"
 
 msgid "extruder"
 msgstr ""
@@ -218,6 +338,9 @@ msgstr "Beolvasás "
 msgid "Please wait"
 msgstr "Kérjük, várj"
 
+msgid "Reading"
+msgstr ""
+
 msgid "Running..."
 msgstr "Futtatás..."
 
@@ -230,6 +353,12 @@ msgstr "A hotend állapota rendellenes, és jelenleg nem elérhető. Kérjük, l
 msgid "Abnormal Hotend"
 msgstr "Rendellenes hotend"
 
+msgid "Cancel"
+msgstr "Mégse"
+
+msgid "Jump to the upgrade page"
+msgstr "Ugrás a frissítés oldalra"
+
 msgid "Refresh"
 msgstr "Frissítés"
 
@@ -238,12 +367,6 @@ msgstr "Frissítés"
 
 msgid "Hotend status abnormal, unavailable at present. Please upgrade the firmware and try again."
 msgstr "A hotend állapota nem megfelelő, jelenleg nem kérdezhető le. Frissítsd a firmware-t, és próbáld újra."
-
-msgid "Cancel"
-msgstr "Mégse"
-
-msgid "Jump to the upgrade page"
-msgstr "Ugrás a frissítés oldalra"
 
 msgid "SN"
 msgstr ""
@@ -4081,11 +4204,9 @@ msgstr "AMS férőhelyek"
 msgid "Please select from the following filaments"
 msgstr "Válassz az alábbi filamentek közül"
 
-msgid "Select filament that installed to the left nozzle"
-msgstr "Válaszd ki a bal fúvókába betöltött filamentet"
-
-msgid "Select filament that installed to the right nozzle"
-msgstr "Válaszd ki a jobb fúvókába betöltött filamentet"
+#, c-format, boost-format
+msgid "Select filament that installed to the %s"
+msgstr ""
 
 msgid "Left AMS"
 msgstr "Bal AMS"
@@ -4099,38 +4220,24 @@ msgstr "Aktuális filament-hozzárendelés visszaállítása"
 msgid "Right AMS"
 msgstr "Jobb AMS"
 
-msgid "Left Nozzle"
-msgstr "Bal fúvóka"
-
-msgid "Right Nozzle"
-msgstr "Jobb fúvóka"
-
-msgid "Nozzle"
-msgstr "Fúvóka"
-
-msgid "Select Filament && Hotends"
-msgstr "Válassz filamentet és hotendet"
-
-msgid "Select Filament"
-msgstr "Filament kiválasztása"
-
 #, c-format, boost-format
 msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
 msgstr "A jelenlegi fúvókával történő nyomtatás %0.2f g többlethulladékot eredményezhet."
 
-msgid "External spools is not supported since Filament Track Switch has been installed. If you want to use external spool, please uninstall it."
+#, c-format, boost-format
+msgid "Tips: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
 msgstr ""
 
 #, c-format, boost-format
-msgid "Note: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
-msgstr "Megjegyzés: a filament típusa (%s) nem egyezik a szeletelési fájlban lévő filament típussal (%s). Ha ezt a férőhelyet szeretnéd használni, telepíts %s filamentet %s helyett, és módosítsd a férőhely adatait az 'Eszköz' oldalon."
+msgid "Cannot select: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
+msgstr ""
 
 #, c-format, boost-format
-msgid "Note: the slot is empty or undefined. If you want to use this slot, you can install %s and change slot information on the 'Device' page."
-msgstr "Megjegyzés: a férőhely üres vagy nincs meghatározva. Ha ezt a férőhelyet szeretnéd használni, telepíts %s filamentet, és módosítsd a férőhely adatait az 'Eszköz' oldalon."
+msgid "Cannot select: the slot is empty or undefined. If you want to use this slot, you can install %s and change slot information on the 'Device' page."
+msgstr ""
 
-msgid "Note: Only filament-loaded slots can be selected."
-msgstr "Megjegyzés: csak filamenttel betöltött férőhelyek választhatók."
+msgid "Cannot select: No filament loaded in current slot."
+msgstr ""
 
 msgid "Enable AMS"
 msgstr "AMS engedélyezése"
@@ -4172,12 +4279,6 @@ msgstr "Nyomtatás külső tartón lévő filamenttel."
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "Nyomtatás az AMS-ben lévő filamentekkel"
-
-msgid "Left"
-msgstr "Bal"
-
-msgid "Right"
-msgstr "Jobb"
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Amikor az aktuális filament elfogy, a nyomtató a következő sorrendben folytatja a nyomtatást."
@@ -4893,6 +4994,9 @@ msgstr "Nem sikerült létrehozni a kalibrációs G-kódot"
 msgid "Calibration error"
 msgstr "Kalibrációs hiba"
 
+msgid "Network unavailable"
+msgstr ""
+
 msgid "Resume Printing"
 msgstr "Nyomtatás folytatása"
 
@@ -4926,6 +5030,9 @@ msgstr "Élőkép megtekintése"
 msgid "No Reminder Next Time"
 msgstr "Legközelebb ne emlékeztessen"
 
+msgid "Recheck"
+msgstr ""
+
 msgid "Ignore. Don't Remind Next Time"
 msgstr "Figyelmen kívül hagyás. Legközelebb ne emlékeztessen"
 
@@ -4947,6 +5054,15 @@ msgstr "Szárítás leállítása"
 msgid "Proceed"
 msgstr "Folytatás"
 
+msgid "Abort"
+msgstr ""
+
+msgid "Disable Purification for This Print"
+msgstr ""
+
+msgid "Don't Remind Me"
+msgstr ""
+
 msgid "Retry"
 msgstr "Újra"
 
@@ -4955,6 +5071,9 @@ msgstr "Folytatás"
 
 msgid "Unknown error."
 msgstr "Ismeretlen hiba."
+
+msgid "Loading ..."
+msgstr ""
 
 msgid "default"
 msgstr "alapértelmezett"
@@ -5316,12 +5435,6 @@ msgstr "Filamentcsoportosítás"
 msgid "Why this grouping"
 msgstr "Miért ez a csoportosítás"
 
-msgid "Left nozzle"
-msgstr "Bal fúvóka"
-
-msgid "Right nozzle"
-msgstr "Jobb fúvóka"
-
 msgid "Please place filaments on the printer based on grouping result."
 msgstr "Helyezd fel a filamenteket a nyomtatóra a csoportosítási eredmény alapján."
 
@@ -5524,12 +5637,6 @@ msgstr "Az alábbi objektumok túllógnak a tálca határán vagy meghaladják a
 
 msgid "Please solve the problem by moving it totally on or off the plate, and confirming that the height is within the build volume.\n"
 msgstr "Oldd meg a problémát úgy, hogy teljesen a tálcára vagy azon kívülre mozgatod és ellenőrzöd, hogy a magasság a nyomtatási térfogaton belül van.\n"
-
-msgid "left nozzle"
-msgstr "bal fúvóka"
-
-msgid "right nozzle"
-msgstr "jobb fúvóka"
 
 #, c-format, boost-format
 msgid "The position or size of some models exceeds the %s's printable range."
@@ -7316,6 +7423,18 @@ msgid ""
 "Enable or install some to use."
 msgstr ""
 
+msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
+msgstr ""
+
+msgid "Enable Nozzle Clumping Detection"
+msgstr ""
+
+msgid "When enabled, the printer will automatically capture photos of printed parts and upload them to the cloud. Would you like to enable this option?"
+msgstr ""
+
+msgid "Confirm Enable Print Status Snapshot"
+msgstr ""
+
 msgid "Enable detection of build plate position"
 msgstr "Nyomtatótálca helyzetének érzékelése"
 
@@ -7328,6 +7447,21 @@ msgstr "Tálcaészlelés"
 
 msgid "Identifies the type and position of the build plate on the heatbed. Pausing printing if a mismatch is detected."
 msgstr "Azonosítja a tálca típusát és pozícióját a fűtött asztalon. Eltérés esetén szünetelteti a nyomtatást."
+
+msgid "Purifies the chamber air as the print finishes, based on the selected mode."
+msgstr ""
+
+msgid "Purifies the chamber air through internal circulation as each print finishes."
+msgstr ""
+
+msgid "Automatically match the corresponding switch strategy for leak-prone filaments (disable blob detection) and regular filaments (enable blob detection)."
+msgstr ""
+
+msgid "Detect whether the nozzle is wrapped by filament or other foreign matter."
+msgstr ""
+
+msgid "After disabling, nozzle wrapping cannot be detected, which may lead to print failure or nozzle damage."
+msgstr ""
 
 msgid "AI Detections"
 msgstr "AI-észlelések"
@@ -7372,8 +7506,8 @@ msgstr "Automatikus helyreállítás lépésvesztésből"
 msgid "Store Sent Files on External Storage"
 msgstr "Elküldött fájlok mentése külső tárolóra"
 
-msgid "Save the printing files initiated from Bambu Studio, Bambu Handy and MakerWorld on External Storage"
-msgstr "A Bambu Studio, Bambu Handy és MakerWorld által indított nyomtatási fájlok mentése külső tárolóra"
+msgid "Save the printing files sent from the slicer and other apps on External Storage"
+msgstr ""
 
 msgid "Allow Prompt Sound"
 msgstr "Hangjelzés engedélyezése"
@@ -7385,6 +7519,36 @@ msgstr "Filament összegabalyodás észlelés"
 msgid "Check if the nozzle is clumping by filament or other foreign objects."
 msgstr "Ellenőrzi, hogy a fúvókán van-e csomósodás filament vagy egyéb idegen anyag miatt."
 
+msgid "Purify Air at Print End"
+msgstr ""
+
+msgid "Internal Circulation"
+msgstr ""
+
+msgid "Alignment Detection"
+msgstr ""
+
+msgid "Pauses printing when build plate misalignment is detected."
+msgstr ""
+
+msgid "Foreign Object Detection"
+msgstr ""
+
+msgid "Checks for any objects on the build plate at the start of a print to avoid collisions."
+msgstr ""
+
+msgid "Printed Part Displacement Detection"
+msgstr ""
+
+msgid "Monitors the printed part during printing and alerts immediately if it shifts or collapses."
+msgstr ""
+
+msgid "Checks if the nozzle is clumping by filament or other foreign objects."
+msgstr ""
+
+msgid "On"
+msgstr "Be"
+
 msgid "Open Door Detection"
 msgstr "Nyitott ajtó észlelés"
 
@@ -7393,6 +7557,12 @@ msgstr "Értesítés"
 
 msgid "Pause printing"
 msgstr "Nyomtatás szüneteltetése"
+
+msgid "Print Status Snapshot"
+msgstr ""
+
+msgid "Automatically capture and upload print photos, showing defects during printing and the final result for remote viewing."
+msgstr ""
 
 msgctxt "Nozzle Type"
 msgid "Type"
@@ -7543,10 +7713,10 @@ msgstr "Átmérő váltása"
 msgid "Configuration incompatible"
 msgstr "Nem kompatibilis konfiguráció"
 
-msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing. "
+msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing."
 msgstr ""
 
-msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use. "
+msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use."
 msgstr ""
 
 msgid "Tips"
@@ -7576,6 +7746,9 @@ msgstr "Fúvóka-információk és AMS darabszám szinkronizálása"
 
 msgid "Click to edit preset"
 msgstr "Kattints a beállítás szerkesztéséhez"
+
+msgid "Nozzle"
+msgstr "Fúvóka"
 
 msgid "Project Filaments"
 msgstr "Projekt filamentek"
@@ -7962,6 +8135,15 @@ msgstr "%d tálca szeletelése"
 
 msgid "Please resolve the slicing errors and publish again."
 msgstr "Kérlek, orvosold a szeletelési hibákat, és próbáld meg újra."
+
+msgid "Network plug-in switched successfully."
+msgstr "A hálózati bővítmény sikeresen átváltva."
+
+msgid "Success"
+msgstr "Sikeres"
+
+msgid "Failed to load network plug-in. Please restart the application."
+msgstr "A hálózati bővítmény betöltése sikertelen. Indítsd újra az alkalmazást."
 
 msgid "The network plug-in was not detected. Network related features are unavailable."
 msgstr "Nem található a hálózati bővítmény. A hálózattal kapcsolatos szolgáltatások nem érhetők el."
@@ -8386,18 +8568,6 @@ msgstr "Mappa kiválasztása a letöltött elemekhez"
 
 msgid "Choose Download Directory"
 msgstr "Válassz letöltési mappát"
-
-msgid "(Latest)"
-msgstr "(Legfrissebb)"
-
-msgid "Network plug-in switched successfully."
-msgstr "A hálózati bővítmény sikeresen átváltva."
-
-msgid "Success"
-msgstr "Sikeres"
-
-msgid "Failed to load network plug-in. Please restart the application."
-msgstr "A hálózati bővítmény betöltése sikertelen. Indítsd újra az alkalmazást."
 
 #, c-format, boost-format
 msgid ""
@@ -9308,9 +9478,6 @@ msgstr "Bambu hűvös tálca SuperTack"
 msgid "Send print job"
 msgstr "Nyomtatási feladat küldése"
 
-msgid "On"
-msgstr "Be"
-
 msgid "Not satisfied with the grouping of filaments? Regroup and slice ->"
 msgstr "Nem elégedett a filamentek csoportosításával? Csoportosítsd újra és szeleteld ->"
 
@@ -9324,6 +9491,9 @@ msgid "Your filament grouping method in the sliced file is not optimal."
 msgstr "A szeletelt fájlban használt filamentcsoportosítás nem optimális."
 
 msgid "To ensure print quality, the drying temperature will be lowered during printing."
+msgstr ""
+
+msgid "Select timelapse storage location"
 msgstr ""
 
 msgid "Auto Bed Leveling"
@@ -9355,6 +9525,12 @@ msgid ""
 msgstr ""
 "Kalibrálja a fúvókaeltolásokat a nyomtatási minőség javítása érdekében.\n"
 "*Automatikus mód: Nyomtatás előtt ellenőrzi a kalibrálást. Kihagyja, ha nem szükséges."
+
+msgid "Shared PA Profile"
+msgstr ""
+
+msgid "Nozzles and filaments of the same type share the same PA profile."
+msgstr ""
 
 msgid "Send complete"
 msgstr "küldés befejezve"
@@ -9397,6 +9573,10 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "The current nozzle mapping may produce an extra %0.2f g of waste."
+msgstr ""
+
+#, c-format, boost-format
+msgid "Recommended filament arrangement saves %s->"
 msgstr ""
 
 #, c-format, boost-format
@@ -9447,6 +9627,37 @@ msgstr "Ez ellenőrzi a fűtött asztal síkságát. A szintezés egyenletessé 
 msgid "This process determines the dynamic flow values to improve overall print quality."
 msgstr "Ez a folyamat meghatározza a dinamikus anyagáramlási értékeket a nyomtatási minőség javítása érdekében."
 
+msgid "Internal"
+msgstr "Belső"
+
+#, c-format, boost-format
+msgid "%s space less than 20MB. Timelapse may not save properly. You can turn it off or"
+msgstr ""
+
+msgid "Clean up files"
+msgstr ""
+
+msgid "Low internal storage. This timelapse will overwrite the oldest video files."
+msgstr ""
+
+msgid "Low external storage. This timelapse will overwrite the oldest video files."
+msgstr ""
+
+msgid "Insufficient external storage for time-lapse photography. Connect to computer to delete files, or use a larger memory card."
+msgstr ""
+
+msgid "Storage Space Not Enough"
+msgstr ""
+
+msgid "Confirm & Print"
+msgstr ""
+
+msgid "Cancel Timelapse & Print"
+msgstr ""
+
+msgid "Clean Up"
+msgstr ""
+
 msgid "Preparing print job"
 msgstr "Nyomtatási feladat előkészítése"
 
@@ -9493,7 +9704,7 @@ msgstr ""
 msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
 msgstr "A(z) %s(%s) fúvókaáramlási beállítása nem egyezik a szeletelési fájl értékével (%s). Győződj meg róla, hogy a beszerelt fúvóka megegyezik a nyomtató beállításaival, majd szeleteléskor állítsd be a megfelelő nyomtató-előbeállítást."
 
-msgid "Tips: If you changed your nozzle of your printer lately, Please go to 'Device -> Printer parts' to change your nozzle setting."
+msgid "Tips: If you changed your nozzle of your printer lately, please go to 'Device -> Printer parts' to change your nozzle setting."
 msgstr "Tipp: Ha nemrég cseréltél fúvókát a nyomtatón, lépj az 'Eszköz -> Nyomtató alkatrészei' menübe, és módosítsd a fúvóka beállítását."
 
 #, c-format, boost-format
@@ -9511,8 +9722,20 @@ msgstr "mindkét extruder"
 msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). Please verify the nozzle or material settings and try again."
 msgstr "A jelenlegi anyag keménysége (%s) meghaladja a(z) %s (%s) keménységét. Ellenőrizd a fúvóka- vagy anyagbeállításokat, majd próbáld újra."
 
+msgid "Your current firmware version cannot start this print job. Please update to the latest version and try again."
+msgstr ""
+
 #, c-format, boost-format
 msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). It may cause nozzle wear, leading to material leakage and unstable flow. Please exercise caution when using it."
+msgstr ""
+
+msgid "Some filaments may switch between extruders during printing. Manual K-value calibration cannot be applied throughout the entire print, which may affect print quality. Enabling Flow Dynamics Calibration is recommended."
+msgstr ""
+
+msgid "There is stringing-prone filament in this file. For best print quality, we recommend switching nozzle clumping detection to Auto mode."
+msgstr ""
+
+msgid "If 'Dynamic Flow Calibration' is set to Auto/On, the system will use the manual calibration value or the default value and skip the flow calibration process. You can perform a manual flow calibration for TPU filament on the 'Calibration' page."
 msgstr ""
 
 #, c-format, boost-format
@@ -9619,11 +9842,18 @@ msgstr "Állítsd a dinamikus áramlás kalibrálást 'KI'-re az egyéni dinamik
 msgid "This printer does not support printing all plates."
 msgstr "Ez a nyomtató nem támogatja az összes tálcára való nyomtatást"
 
-msgid "The current firmware supports a maximum of 16 materials. You can either reduce the number of materials to 16 or fewer on the Preparation Page, or try updating the firmware. If you are still restricted after the update, please wait for subsequent firmware support."
-msgstr "A jelenlegi firmware legfeljebb 16 anyagot támogat. Vagy csökkentsd az anyagok számát 16-ra vagy kevesebbre az Előkészítés oldalon, vagy próbáld meg frissíteni a firmware-t. Ha a frissítés után is korlátozásba ütközöl, várj a későbbi firmware-támogatásra."
+#, c-format, boost-format
+msgid "The current firmware supports a maximum of %s materials. You can either reduce the number of materials to %s or fewer on the Preparation Page, or try updating the firmware. If you are still restricted after the update, please wait for subsequent firmware support."
+msgstr ""
 
 msgid "The type of external filament is unknown or does not match with the filament type in the slicing file. Please make sure you have installed the correct filament in the external spool."
 msgstr "A külső filament típusa ismeretlen, vagy nem egyezik a szeletelőfájlban szereplő filament típusával. Győződj meg arról, hogy a megfelelő filamentet helyezted be a külső orsóba."
+
+msgid "TPU 90A/TPU 85A are too soft. It is recommended to perform manual flow calibration on the 'Calibration' page. If 'Dynamic Flow Calibration' is set to auto/on, the system will use the previous calibration value and skip the flow calibration process."
+msgstr ""
+
+msgid "The filament in the AMS may be insufficient for this print. Please refill or replace it."
+msgstr ""
 
 msgid "Current firmware does not support file transfer to internal storage."
 msgstr "A jelenlegi firmware nem támogatja a fájlátvitelt belső tárolóra."
@@ -10824,14 +11054,8 @@ msgstr "Felülírás"
 msgid "Reset all filament mapping"
 msgstr "Összes filament-hozzárendelés visszaállítása"
 
-msgid "Left Extruder"
-msgstr "Bal extruder"
-
 msgid "(Recommended filament)"
 msgstr "(Ajánlott filament)"
-
-msgid "Right Extruder"
-msgstr "Jobb extruder"
 
 msgid "Advanced Options"
 msgstr "Speciális beállítások"
@@ -10971,12 +11195,6 @@ msgstr "A szorzónak [%.2f, %.2f] tartományban kell lennie."
 
 msgid "Re-calculate"
 msgstr "Újraszámítás"
-
-msgid "Left extruder"
-msgstr "Bal extruder"
-
-msgid "Right extruder"
-msgstr "Jobb extruder"
 
 msgid "Multiplier"
 msgstr "Szorzó"
@@ -11283,9 +11501,11 @@ msgstr "%s verzió frissítési információi:"
 msgid "Network plug-in update"
 msgstr "Hálózati bővítmény frissítése"
 
-# TODO: Review, changed by lang refactor. PR 14254
-msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
-msgstr "Kattints az OK gombra a hálózati bővítmény frissítéséhez a Orca Slicer következő indításakor."
+msgid "Click OK to update the Network plug-in now. If a file is in use, the update will be applied the next time Orca Slicer launches."
+msgstr ""
+
+msgid "A new Network plug-in is available. Do you want to install it?"
+msgstr ""
 
 #, c-format, boost-format
 msgid "A new Network plug-in (%s) is available. Do you want to install it?"
@@ -11548,14 +11768,6 @@ msgstr ""
 
 msgid "Internal Bridge"
 msgstr "Belső híd"
-
-# TODO: Review, changed by lang refactor. PR 14254
-#, boost-format
-msgid "Failed to calculate line width of %1%. Cannot get value of “%2%” "
-msgstr "Nem sikerült kiszámítani %1% vonalszélességét. \"%2%\" értéke nem érhető el "
-
-msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width"
-msgstr "Érvénytelen térköz lett megadva a Flow::with_spacing() függvényhez, ellenőrizd a rétegmagasságot és az extrudálási szélességet"
 
 msgid "undefined error"
 msgstr "meghatározatlan hiba"
@@ -12636,9 +12848,6 @@ msgstr ""
 "\n"
 "Ezen felül, ha a felkunkorodó kerületeknél való lassítás ki van kapcsolva, vagy a klasszikus túlnyúlási mód engedélyezett, akkor ez lesz azon túlnyúló falak nyomtatási sebessége is, amelyeket 13%-nál kisebb mértékben támaszt alá az alattuk lévő réteg, függetlenül attól, hogy híd vagy túlnyúlás részét képezik."
 
-msgid "Internal"
-msgstr "Belső"
-
 msgid "Speed of internal bridges. If the value is expressed as a percentage, it will be calculated based on the bridge_speed. Default value is 150%."
 msgstr "A belső hidak sebessége. Ha az érték százalékban van megadva, a bridge_speed alapján lesz kiszámítva. Az alapértelmezett érték 150%."
 
@@ -13013,7 +13222,7 @@ msgstr ""
 
 msgid ""
 "Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
-"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane.Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top.The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
+"Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane. Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top. The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
 msgstr ""
 
 msgid "Top expansion wall margin"
@@ -19208,7 +19417,7 @@ msgstr ""
 msgid "Pack"
 msgstr ""
 
-msgid "Cleans and rebuilds system profiles cache on next launch"
+msgid "Cleans and rebuilds system profiles cache on next launch."
 msgstr ""
 
 msgid "Clean system profiles cache"
@@ -19220,16 +19429,16 @@ msgstr ""
 msgid "Loaded profiles overview"
 msgstr ""
 
-msgid "This section shows information for loaded profiles"
+msgid "This section shows information for loaded profiles."
 msgstr ""
 
-msgid "Exports detailed overview of loaded profiles in json format"
+msgid "Exports detailed overview of loaded profiles in json format."
 msgstr ""
 
 msgid "Configurations folder"
 msgstr ""
 
-msgid "Opens configurations folder"
+msgid "Opens configurations folder."
 msgstr ""
 
 msgid "Log level"
@@ -19244,13 +19453,10 @@ msgstr ""
 msgid "Profiles"
 msgstr ""
 
-msgid "Select NO to close dialog and review project"
+msgid "Select NO to close dialog and review project."
 msgstr ""
 
 msgid "No project file on current session. Only logs will be included to package"
-msgstr ""
-
-msgid "Select NO to close dialog and review project."
 msgstr ""
 
 msgid "Please make sure any instances of OrcaSlicer are not running"
@@ -19908,7 +20114,7 @@ msgstr ""
 msgid "Error code not found"
 msgstr ""
 
-msgid "The printer is busy, Please check the device page for the file and try to start printing again."
+msgid "The printer is busy, please check the device page for the file and try to start printing again."
 msgstr ""
 
 msgid "The file is lost, please check and try again."
@@ -20039,6 +20245,9 @@ msgstr "Ez a művelet nem vonható vissza. Folytatod?"
 msgid "Skipping objects."
 msgstr "Objektumok kihagyása."
 
+msgid "Select Filament"
+msgstr "Filament kiválasztása"
+
 msgid "Null Color"
 msgstr "Nincs szín"
 
@@ -20100,6 +20309,12 @@ msgstr "Verzió kihagyása"
 
 msgid "Don't Ask Again"
 msgstr "Ne kérdezz újra"
+
+msgid "(Latest)"
+msgstr "(Legfrissebb)"
+
+msgid "(installed)"
+msgstr ""
 
 msgid "The Bambu Network Plug-in has been installed successfully."
 msgstr "A Bambu Network plug-in telepítése sikeresen befejeződött."
@@ -20698,6 +20913,44 @@ msgid ""
 msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor a tárgyasztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
+
+#~ msgid "Select filament that installed to the left nozzle"
+#~ msgstr "Válaszd ki a bal fúvókába betöltött filamentet"
+
+#~ msgid "Select filament that installed to the right nozzle"
+#~ msgstr "Válaszd ki a jobb fúvókába betöltött filamentet"
+
+#~ msgid "Select Filament && Hotends"
+#~ msgstr "Válassz filamentet és hotendet"
+
+#, c-format, boost-format
+#~ msgid "Note: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
+#~ msgstr "Megjegyzés: a filament típusa (%s) nem egyezik a szeletelési fájlban lévő filament típussal (%s). Ha ezt a férőhelyet szeretnéd használni, telepíts %s filamentet %s helyett, és módosítsd a férőhely adatait az 'Eszköz' oldalon."
+
+#, c-format, boost-format
+#~ msgid "Note: the slot is empty or undefined. If you want to use this slot, you can install %s and change slot information on the 'Device' page."
+#~ msgstr "Megjegyzés: a férőhely üres vagy nincs meghatározva. Ha ezt a férőhelyet szeretnéd használni, telepíts %s filamentet, és módosítsd a férőhely adatait az 'Eszköz' oldalon."
+
+#~ msgid "Note: Only filament-loaded slots can be selected."
+#~ msgstr "Megjegyzés: csak filamenttel betöltött férőhelyek választhatók."
+
+#~ msgid "Save the printing files initiated from Bambu Studio, Bambu Handy and MakerWorld on External Storage"
+#~ msgstr "A Bambu Studio, Bambu Handy és MakerWorld által indított nyomtatási fájlok mentése külső tárolóra"
+
+#~ msgid "The current firmware supports a maximum of 16 materials. You can either reduce the number of materials to 16 or fewer on the Preparation Page, or try updating the firmware. If you are still restricted after the update, please wait for subsequent firmware support."
+#~ msgstr "A jelenlegi firmware legfeljebb 16 anyagot támogat. Vagy csökkentsd az anyagok számát 16-ra vagy kevesebbre az Előkészítés oldalon, vagy próbáld meg frissíteni a firmware-t. Ha a frissítés után is korlátozásba ütközöl, várj a későbbi firmware-támogatásra."
+
+# TODO: Review, changed by lang refactor. PR 14254
+#~ msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."
+#~ msgstr "Kattints az OK gombra a hálózati bővítmény frissítéséhez a Orca Slicer következő indításakor."
+
+# TODO: Review, changed by lang refactor. PR 14254
+#, boost-format
+#~ msgid "Failed to calculate line width of %1%. Cannot get value of “%2%”."
+#~ msgstr "Nem sikerült kiszámítani %1% vonalszélességét. \"%2%\" értéke nem érhető el "
+
+#~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
+#~ msgstr "Érvénytelen térköz lett megadva a Flow::with_spacing() függvényhez, ellenőrizd a rétegmagasságot és az extrudálási szélességet"
 
 #~ msgid "°C"
 #~ msgstr "°C"

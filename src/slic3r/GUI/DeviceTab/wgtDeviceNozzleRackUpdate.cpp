@@ -1,6 +1,6 @@
 //**********************************************************/
 /* File: wgtDeviceNozzleRackUpdate.cpp
-*  Description: The dialog for reading/upgrading the H2C induction-hotend-rack firmware.
+*  Description: The panel with rack updating
 *
 * \n class wgtDeviceNozzleRackUpdate
 //**********************************************************/
@@ -8,6 +8,7 @@
 #include "wgtDeviceNozzleRackUpdate.h"
 
 #include "slic3r/GUI/DeviceCore/DevNozzleSystem.h"
+#include "slic3r/GUI/DeviceCore/DevUpgrade.h"
 
 #include "slic3r/GUI/MainFrame.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -103,7 +104,7 @@ void wgtDeviceNozzleRackUprade::CreateGui()
             wxPanel* separator = new wxPanel(this);
             separator->SetMaxSize(wxSize(-1, FromDIP(1)));
             separator->SetMinSize(wxSize(-1, FromDIP(1)));
-            separator->SetBackgroundColour(wxColour(238, 238, 238));// Orca: grey300 spelled out as a literal RGB, since Orca has no equivalent grey-300 colour macro
+            separator->SetBackgroundColour(wxColour(238, 238, 238)); // Orca: grey300 as a literal, no equivalent colour macro in Orca
             main_sizer->Add(separator, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(12));
         }
     }
@@ -187,6 +188,7 @@ void wgtDeviceNozzleRackHotendUpdate::CreateGui()
 
     // Icon
     wxPanel* imagePanel = new wxPanel(this);
+    imagePanel->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
     imagePanel->SetMaxSize(WX_DIP_SIZE(46, -1));
     imagePanel->SetMinSize(WX_DIP_SIZE(46, -1));
     imagePanel->SetSize(wxSize(FromDIP(46), FromDIP(-1)));
@@ -202,6 +204,7 @@ void wgtDeviceNozzleRackHotendUpdate::CreateGui()
 
     // Diameter/type (vertical)
     wxPanel* type_panel = new wxPanel(this);
+    type_panel->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
     auto* main_type_sizer = new wxBoxSizer(wxVERTICAL);
     auto* type_sizer_row_1 = new wxBoxSizer(wxHORIZONTAL);
     auto* type_sizer_row_2 = new wxBoxSizer(wxHORIZONTAL);
@@ -215,10 +218,13 @@ void wgtDeviceNozzleRackHotendUpdate::CreateGui()
     m_colour_box->SetMinSize(WX_DIP_SIZE(16, 16));
     m_colour_box->SetCornerRadius(FromDIP(2));
     m_colour_box->SetSize(wxSize(FromDIP(16), FromDIP(16)));
+    // m_colour_box->SetBackgroundColour(*wxRED);
 
+    // type_sizer_row_1->AddStretchSpacer();
     type_sizer_row_1->Add(m_colour_box, 0, wxALIGN_CENTER_VERTICAL | wxALIGN_LEFT);
     type_sizer_row_1->AddStretchSpacer(1);
     type_sizer_row_1->Add(m_material_label, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(2));
+    // type_sizer_row_1->AddStretchSpacer();
 
     m_diameter_label = new Label(type_panel);
     m_diameter_label->SetFont(Label::Body_12);
@@ -247,6 +253,7 @@ void wgtDeviceNozzleRackHotendUpdate::CreateGui()
 
     // SN and version (vertical)
     wxPanel* info_panel = new wxPanel(this);
+    info_panel->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
     auto* info_sizer = new wxBoxSizer(wxVERTICAL);
     m_sn_label = new Label(info_panel);
     m_sn_label->SetFont(Label::Body_12);
@@ -277,19 +284,20 @@ void wgtDeviceNozzleRackHotendUpdate::CreateGui()
     m_used_time->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
 
     m_refresh_icon = new ScalableBitmap(this, "refresh_printer", 12);
+    // m_in_refreh_icon = new ScalableBitmap(this, "refresh_nozzle", 12);
     m_error_icon = new ScalableBitmap(this, "error", 14);
     m_status_bitmap = new wxStaticBitmap(this, wxID_ANY, m_refresh_icon->bmp());
     m_status_bitmap->Bind(wxEVT_LEFT_UP, &wgtDeviceNozzleRackHotendUpdate::OnStatusIconClick, this);
 
     std::vector<std::string> list{"refresh_nozzle_1", "refresh_nozzle_2", "refresh_nozzle_3", "refresh_nozzle_4"};
-    // Orca: AnimaIcon has no per-instance size argument (it fixes 25px internally), so no size is
-    // passed here.
+    // Orca: AnimaIcon has no per-instance size argument (it fixes the size internally), so none is passed.
     m_refreshing_icon = new AnimaIcon(this, wxID_ANY, list, "refresh_nozzle", 100);
     m_refreshing_icon->Show(false);
 
 
     m_status_label = new Label(this);
     m_status_label->SetFont(Label::Body_12);
+    // m_status_label->SetForegroundColour(wxColour("#00AE42"));
 
     content_sizer->Add(info_panel, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
     content_sizer->Add(m_used_time, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(20));
@@ -312,7 +320,8 @@ void wgtDeviceNozzleRackHotendUpdate::OnStatusIconClick(wxMouseEvent& event)
         m_status_label->SetForegroundColour(wxColour("#A3A3A3"));
         m_status_label->SetLabel(_L("Refreshing"));
         m_status_bitmap->Show(false);
-        if(!m_refreshing_icon->IsPlaying())
+        // m_status_bitmap->Refresh();
+        if(!m_refreshing_icon->IsPlaying()) 
         {
             m_refreshing_icon->Play();
             m_refreshing_icon->Show();
@@ -333,17 +342,17 @@ void wgtDeviceNozzleRackHotendUpdate::OnStatusIconClick(wxMouseEvent& event)
             dlg.AddButton(wxID_CANCEL, _L("Cancel"), false);
             dlg.AddButton(wxID_OK,_L("Jump to the upgrade page"), true);
 
-            if (dlg.ShowModal() == wxID_OK)
+            if (dlg.ShowModal() == wxID_OK) 
             {
                 wxGetApp().mainframe->m_monitor->jump_to_Upgrade();
 
                 wxCommandEvent evt(wxEVT_NOZZLE_JUMP_UPGRADE, GetId());
                 evt.SetEventObject(this);
                 wxWindow* target = GetParent();
-                if (target)
+                if (target) 
                 {
                     target = target->GetParent();
-                    if (target)
+                    if (target) 
                     {
                         wxPostEvent(target, evt);
                     }
@@ -370,8 +379,8 @@ void wgtDeviceNozzleRackHotendUpdate::OnBitmapHoverEnter(wxMouseEvent& event)
         scaledBmp = m_scaled_nozzle_image;
     }
 
-    m_hoverFrame = new wxFrame(nullptr, wxID_ANY, "",
-                                wxDefaultPosition, wxDefaultSize,
+    m_hoverFrame = new wxFrame(nullptr, wxID_ANY, "", 
+                                wxDefaultPosition, wxDefaultSize, 
                                 wxFRAME_NO_TASKBAR | wxBORDER_NONE | wxTRANSPARENT_WINDOW);
     m_hoverFrame->SetBackgroundColour(WGT_DEVICE_NOZZLE_RACK_HOTEND_UPDATE_DEFAULT_BG);
     m_hoverFrame->SetSize(scaledW, scaledH);
@@ -506,11 +515,11 @@ void wgtDeviceNozzleRackHotendUpdate::UpdateInfo(const DevNozzle& nozzle)
     }
 
     wxString filamentDisplayName{};
-    for (auto iter = GUI::wxGetApp().preset_bundle->filaments.begin(); iter != GUI::wxGetApp().preset_bundle->filaments.end(); ++iter)
+    for (auto iter = GUI::wxGetApp().preset_bundle->filaments.begin(); iter != GUI::wxGetApp().preset_bundle->filaments.end(); ++iter) 
     {
         const Preset& filament_preset = *iter;
         // const auto& config = filament_preset.config;
-        if (filament_preset.filament_id == nozzle.GetFilamentId())
+        if (filament_preset.filament_id == nozzle.GetFilamentId()) 
         {
             filamentDisplayName = wxString(filament_preset.alias);
         }
@@ -612,7 +621,7 @@ void wgtDeviceNozzleRackHotendUpdate::UpdateInfo(const DevNozzle& nozzle)
         m_used_time->Show(true);
         m_status_label->Show(true);
         m_status_bitmap->Show(true);
-        m_status_label->SetForegroundColour(wxColour("#009688"));
+        m_status_label->SetForegroundColour(wxColour("#009688")); // Orca: accent green
         m_status_label->SetLabel(_L("Refresh"));
         m_status_bitmap->SetBitmap(m_refresh_icon->bmp());
         m_status_bitmap->Refresh();
