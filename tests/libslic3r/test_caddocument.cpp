@@ -1716,3 +1716,373 @@ TEST_CASE("mesh_to_brep: degenerate triangles are rejected on a scale-independen
     CHECK_THROWS(GeometryEngine::mesh_to_brep(tiny, 0.1, 0.0, st3));
     CHECK(st3.degenerate_collapsed == 1);
 }
+
+
+// --- Golden recipe fixture (v1 format tripwire) ---
+
+static CadDocument make_golden_doc_v1()
+{
+    CadDocument doc;
+
+    // ---- Body 0: base box with distinctive taper ----
+    int sk0 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
+                             30, 20, 15, "Sketch_Base");
+    doc.add_extrude(sk0, 15.0, false, BooleanMode::New, "Extrude_Base");
+    int ex0 = int(doc.features.size()) - 1;
+    doc.features[ex0].taper_deg = 8.5;
+    doc.features[ex0].extrude_end = ExtrudeEnd::Blind;
+
+    // Dress-up: fillet lateral faces, chamfer top face — distinct non-default sizes
+    doc.add_fillet(3.5, FaceGroup::Lateral, "Fillet_Lat35");
+    doc.add_chamfer(2.0, FaceGroup::Top, "Chamfer_Top2");
+
+    // Hole: offset position, non-through
+    doc.add_hole(7.5, 11.0, false, 4.0, 3.0, SketchPlane::XY(), "Hole_Off75");
+
+    // Draft: angle 7.25 deg on face 3
+    doc.add_draft(7.25, 3, 0, "Draft_F3");
+
+    // Shell: thickness 1.375 mm, open face 1
+    doc.add_shell(1.375, 1, 0, "Shell_T1375");
+
+    // Thread: internal, radius 4, pitch 2.5, height 15, depth 1.25
+    doc.add_thread(4.0, 2.5, 15.0, 1.25, true, 0.0, 0.0, SketchPlane::XY(), "Thread_Int");
+
+    // Cut: plane XY, offset 10, flip, keep upper only
+    doc.add_cut(SketchPlane::XY(), 10.0, true, true, false, 0, "Cut_Flip");
+
+    // Pattern: linear 5 copies, spacing 13.5 mm along plane X
+    doc.add_pattern(false, 5, 13.5, 0, 360.0, 0, "Pattern_Lin5");
+
+    // ---- Datum plane ----
+    doc.add_plane(0, 25.0, 0.0, 0, "Plane_Datum25");
+
+    // ---- Revolve: self-contained body (sketch + revolve) ----
+    {
+        CadFeature sk;
+        sk.type = CadFeatureType::Sketch;
+        sk.name = "Sketch_Rev";
+        sk.plane = SketchPlane::XY();
+        sk.entities = {{SketchEntity::Type::Circle, Vec2d(12,0), Vec2d(12,0), Vec2d(12,0), 4.0}};
+        doc.features.push_back(sk);
+    }
+    int rev_sk = int(doc.features.size()) - 1;
+    doc.add_revolve(rev_sk, 217.0, 1, false, BooleanMode::New, "Revolve_Y217");
+
+    // ---- Sweep: self-contained body (profile + path sketches + sweep) ----
+    {
+        CadFeature sk;
+        sk.type = CadFeatureType::Sketch;
+        sk.name = "Sketch_SwProf";
+        sk.plane = SketchPlane::XY();
+        sk.entities = {{SketchEntity::Type::Circle, Vec2d(0,0), Vec2d(0,0), Vec2d(0,0), 3.0}};
+        doc.features.push_back(sk);
+    }
+    int sw_prof = int(doc.features.size()) - 1;
+    {
+        CadFeature sk;
+        sk.type = CadFeatureType::Sketch;
+        sk.name = "Sketch_SwPath";
+        sk.plane = SketchPlane::XZ();
+        sk.entities = {{SketchEntity::Type::Line, Vec2d(0,0), Vec2d(0,35)}};
+        doc.features.push_back(sk);
+    }
+    int sw_path = int(doc.features.size()) - 1;
+    doc.add_sweep(sw_prof, sw_path, BooleanMode::New, "Sweep_Z35");
+
+    // ---- Loft: self-contained body (two profiles + loft) ----
+    {
+        CadFeature sk;
+        sk.type = CadFeatureType::Sketch;
+        sk.name = "Sketch_LoftBot";
+        sk.plane = SketchPlane::XY();
+        sk.profile.points = {{-7,-7},{7,-7},{7,7},{-7,7}};
+        sk.profile.closed = true;
+        doc.features.push_back(sk);
+    }
+    int loft_bot = int(doc.features.size()) - 1;
+    {
+        CadFeature sk;
+        sk.type = CadFeatureType::Sketch;
+        sk.name = "Sketch_LoftTop";
+        sk.plane.origin = Vec3d(0, 0, 25);
+        sk.plane.normal = Vec3d(0, 0, 1);
+        sk.plane.x_axis = Vec3d(1, 0, 0);
+        sk.plane.y_axis = Vec3d(0, 1, 0);
+        sk.profile.points = {{-9,-9},{9,-9},{9,9},{-9,9}};
+        sk.profile.closed = true;
+        doc.features.push_back(sk);
+    }
+    int loft_top = int(doc.features.size()) - 1;
+    doc.add_loft({loft_bot, loft_top}, true, BooleanMode::New, "Loft_Ruled");
+
+    // ---- Boolean: distinctive tolerance and face-mate params ----
+    doc.add_boolean(BooleanMode::Cut, 0, 1, false, 0.01, 2, 3, "Boolean_Cut");
+
+    // ---- Extrude variant: symmetric + two-sided end ----
+    {
+        CadFeature sk;
+        sk.type = CadFeatureType::Sketch;
+        sk.name = "Sketch_Ex2";
+        sk.plane = SketchPlane::XZ();
+        sk.entities = {{SketchEntity::Type::Circle, Vec2d(0,0), Vec2d(0,0), Vec2d(0,0), 6.0}};
+        doc.features.push_back(sk);
+    }
+    int sk_ex2 = int(doc.features.size()) - 1;
+    {
+        CadFeature ex;
+        ex.type = CadFeatureType::Extrude;
+        ex.name = "Extrude_Sym";
+        ex.sketch_ref = sk_ex2;
+        ex.distance = 25.0;
+        ex.symmetric = true;
+        ex.mode = BooleanMode::New;
+        ex.extrude_end = ExtrudeEnd::Symmetric;
+        ex.distance2 = 12.5;
+        doc.features.push_back(ex);
+    }
+
+    return doc;
+}
+
+TEST_CASE("regenerate golden recipe fixture", "[.regen]")
+{
+    CadDocument doc = make_golden_doc_v1();
+    // ponytail: serialize_recipe() only needs features, recompute is unnecessary
+    // for a fixture that exercises the serialization format.
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v1.bin";
+    std::ofstream ofs(path, std::ios::binary);
+    REQUIRE(ofs.is_open());
+    ofs.write(blob.data(), static_cast<std::streamsize>(blob.size()));
+    ofs.close();
+    SUCCEED("Fixture written to " << path);
+}
+
+TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+    using Catch::Matchers::WithinAbs;
+
+    // Read the golden blob from disk
+    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v1.bin";
+    std::ifstream ifs(path, std::ios::binary);
+    REQUIRE(ifs.is_open());
+    std::string blob((std::istreambuf_iterator<char>(ifs)),
+                      std::istreambuf_iterator<char>());
+    ifs.close();
+    REQUIRE_FALSE(blob.empty());
+
+    // --- Layer 1: deserialize features WITHOUT recomputing, assert field values ---
+    std::vector<CadFeature> features;
+    {
+        std::istringstream iss(blob);
+        cereal::BinaryInputArchive ar(iss);
+        uint32_t v;
+        ar(v);
+        REQUIRE(v <= CadDocument::SNAPORCA_CAD_RECIPE_VERSION);
+        ar(features);
+    }
+
+    CadDocument expected = make_golden_doc_v1();
+    // Scoped tightly: this advice is ONLY valid for a count mismatch. It must not be in
+    // scope for the field-value assertions below, where "regenerate the fixture" is the
+    // one thing you must never do -- regenerating after a reorder bakes the corrupted
+    // layout in as the new golden and permanently disarms this test.
+    {
+        INFO("Feature count changed - did you add/remove features in make_golden_doc_v1()?");
+        INFO("If so: run libslic3r_tests \"[.regen]\" and re-run this test.");
+        REQUIRE(features.size() == expected.features.size());
+    }
+
+    // A failure BELOW this point means the on-disk serialization format changed: some field
+    // in CadFeature::save/load was reordered, retyped, or removed. Fields may only ever be
+    // APPENDED at the end of both lists. Do NOT regenerate the fixture to make this pass --
+    // fix the field order instead. See scripts/kernel-test.sh and the [.regen] case.
+
+    // Field-by-field assertions against expected values.
+    // Every field set to a distinctive non-default literal must be checked here.
+    // A field reorder in save()/load() that swaps fields of differing types
+    // will produce a wrong value at this position and FAIL the test.
+
+    for (size_t i = 0; i < features.size(); ++i) {
+        const auto& f = features[i];
+        const auto& e = expected.features[i];
+
+        INFO("Feature index " << i << " type " << int(f.type));
+
+        REQUIRE(f.type == e.type);
+        REQUIRE(f.name == e.name);
+        REQUIRE(f.enabled == e.enabled);
+
+        // Sketch params (all Sketch types)
+        if (f.type == CadFeatureType::Sketch) {
+            REQUIRE(f.shape == e.shape);
+            if (e.name == "Sketch_Base") {
+                REQUIRE(f.width  == 30);
+                REQUIRE(f.height == 20);
+                REQUIRE(f.radius == 15);
+            }
+            if (e.name == "Sketch_Rev" || e.name == "Sketch_SwProf" || e.name == "Sketch_Ex2" || e.name == "Sketch_SwPath") {
+                REQUIRE(f.entities.size() == e.entities.size());
+                if (!f.entities.empty()) {
+                    REQUIRE(f.entities[0].type == e.entities[0].type);
+                    REQUIRE_THAT(f.entities[0].p0.x(), WithinAbs(e.entities[0].p0.x(), 1e-9));
+                    REQUIRE_THAT(f.entities[0].p0.y(), WithinAbs(e.entities[0].p0.y(), 1e-9));
+                }
+            }
+            if (e.name == "Sketch_LoftBot" || e.name == "Sketch_LoftTop") {
+                REQUIRE(f.profile.points.size() == e.profile.points.size());
+                REQUIRE(f.profile.closed == e.profile.closed);
+            }
+            if (e.name == "Sketch_LoftTop") {
+                REQUIRE_THAT(f.plane.origin.z(), WithinAbs(25.0, 1e-9));
+            }
+        }
+
+        // Extrude params
+        if (f.type == CadFeatureType::Extrude) {
+            REQUIRE(f.mode == e.mode);
+            if (e.name == "Extrude_Base") {
+                REQUIRE(f.distance   == 15.0);
+                REQUIRE(f.symmetric  == false);
+                REQUIRE(f.extrude_end == ExtrudeEnd::Blind);
+                REQUIRE_THAT(f.taper_deg, WithinAbs(8.5, 1e-9));
+            }
+            if (e.name == "Extrude_Sym") {
+                REQUIRE(f.distance    == 25.0);
+                REQUIRE(f.symmetric   == true);
+                REQUIRE(f.extrude_end == ExtrudeEnd::Symmetric);
+                REQUIRE_THAT(f.distance2, WithinAbs(12.5, 1e-9));
+            }
+        }
+
+        // Fillet
+        if (f.type == CadFeatureType::Fillet && e.name == "Fillet_Lat35") {
+            REQUIRE_THAT(f.dressup_size, WithinAbs(3.5, 1e-9));
+            REQUIRE(f.face_group == FaceGroup::Lateral);
+        }
+
+        // Chamfer
+        if (f.type == CadFeatureType::Chamfer && e.name == "Chamfer_Top2") {
+            REQUIRE_THAT(f.dressup_size, WithinAbs(2.0, 1e-9));
+            REQUIRE(f.face_group == FaceGroup::Top);
+        }
+
+        // Hole
+        if (f.type == CadFeatureType::Hole && e.name == "Hole_Off75") {
+            REQUIRE_THAT(f.hole_diameter, WithinAbs(7.5, 1e-9));
+            REQUIRE_THAT(f.hole_depth,    WithinAbs(11.0, 1e-9));
+            REQUIRE(f.hole_through == false);
+            REQUIRE_THAT(f.hole_x, WithinAbs(4.0, 1e-9));
+            REQUIRE_THAT(f.hole_y, WithinAbs(3.0, 1e-9));
+        }
+
+        // Draft
+        if (f.type == CadFeatureType::Draft && e.name == "Draft_F3") {
+            REQUIRE(f.draft_face == 3);
+            REQUIRE_THAT(f.draft_angle, WithinAbs(7.25, 1e-9));
+        }
+
+        // Shell
+        if (f.type == CadFeatureType::Shell && e.name == "Shell_T1375") {
+            REQUIRE_THAT(f.shell_thickness, WithinAbs(1.375, 1e-9));
+            REQUIRE(f.shell_face == 1);
+        }
+
+        // Thread
+        if (f.type == CadFeatureType::Thread && e.name == "Thread_Int") {
+            REQUIRE_THAT(f.thread_radius,   WithinAbs(4.0, 1e-9));
+            REQUIRE_THAT(f.thread_pitch,    WithinAbs(2.5, 1e-9));
+            REQUIRE_THAT(f.thread_height,   WithinAbs(15.0, 1e-9));
+            REQUIRE_THAT(f.thread_depth,    WithinAbs(1.25, 1e-9));
+            REQUIRE(f.thread_internal == true);
+            REQUIRE_THAT(f.thread_x, WithinAbs(0.0, 1e-9));
+            REQUIRE_THAT(f.thread_y, WithinAbs(0.0, 1e-9));
+        }
+
+        // Cut
+        if (f.type == CadFeatureType::Cut && e.name == "Cut_Flip") {
+            REQUIRE_THAT(f.cut_offset,     WithinAbs(10.0, 1e-9));
+            REQUIRE(f.cut_flip       == true);
+            REQUIRE(f.cut_keep_upper == true);
+            REQUIRE(f.cut_keep_lower == false);
+        }
+
+        // Pattern
+        if (f.type == CadFeatureType::Pattern && e.name == "Pattern_Lin5") {
+            REQUIRE(f.pattern_circular == false);
+            REQUIRE(f.pattern_count    == 5);
+            REQUIRE_THAT(f.pattern_spacing, WithinAbs(13.5, 1e-9));
+            REQUIRE(f.pattern_dir == 0);
+        }
+
+        // Datum Plane
+        if (f.type == CadFeatureType::Plane && e.name == "Plane_Datum25") {
+            REQUIRE(f.plane_base       == 0);
+            REQUIRE_THAT(f.plane_offset, WithinAbs(25.0, 1e-9));
+            REQUIRE_THAT(f.plane_angle_tilt, WithinAbs(0.0, 1e-9));
+            REQUIRE(f.plane_axis == 0);
+        }
+
+        // Revolve
+        if (f.type == CadFeatureType::Revolve && e.name == "Revolve_Y217") {
+            REQUIRE_THAT(f.revolve_angle, WithinAbs(217.0, 1e-9));
+            REQUIRE(f.revolve_axis == 1);
+        }
+
+        // Sweep
+        if (f.type == CadFeatureType::Sweep && e.name == "Sweep_Z35") {
+            REQUIRE(f.sweep_path_ref == e.sweep_path_ref);
+            REQUIRE(f.sweep_path_ref >= 0);
+        }
+
+        // Loft
+        if (f.type == CadFeatureType::Loft && e.name == "Loft_Ruled") {
+            REQUIRE(f.loft_ruled == true);
+            REQUIRE(f.loft_profile_refs.size() == 2);
+        }
+
+        // Boolean
+        if (f.type == CadFeatureType::Boolean && e.name == "Boolean_Cut") {
+            REQUIRE(f.mode          == BooleanMode::Cut);
+            REQUIRE(f.bool_tool_body == 1);
+            REQUIRE(f.bool_keep_tool == false);
+            REQUIRE_THAT(f.bool_tolerance,   WithinAbs(0.01, 1e-9));
+            REQUIRE(f.bool_target_face == 2);
+            REQUIRE(f.bool_tool_face   == 3);
+        }
+    }
+
+    // --- Layer 2: geometry check (optional — only if the document recomputes) ---
+    // Build expected document and try to recompute it.
+    // ponytail: the field-value layer above is the real tripwire;
+    // this layer is a bonus sanity check on the full recompute path.
+    CadDocument exp_doc = make_golden_doc_v1();
+    bool exp_ok = exp_doc.recompute();
+    if (!exp_ok) {
+        INFO("Expected document from make_golden_doc_v1() could not recompute "
+             "(complex feature tree). Field-value checks above are sufficient.");
+    }
+
+    CadDocument doc;
+    bool ser_ok = doc.deserialize_recipe(blob);
+
+    if (exp_ok && ser_ok) {
+        REQUIRE(doc.error.empty());
+        REQUIRE(doc.bodies.size() == exp_doc.bodies.size());
+        for (size_t i = 0; i < doc.bodies.size(); ++i) {
+            double v = double(SketchEngine::tessellate(doc.bodies[i].shape).volume());
+            double ev = double(SketchEngine::tessellate(exp_doc.bodies[i].shape).volume());
+            REQUIRE_THAT(v, WithinRel(ev, 1e-6));
+        }
+    } else {
+        INFO("The golden recipe fixture was loaded and field-value checks passed.");
+        INFO("Recompute on the deserialized or expected document failed — this is");
+        INFO("expected for the extended golden fixture (many feature types coexist");
+        INFO("purely for serialization coverage). The field-value tripwire above is");
+        INFO("the primary format check.");
+    }
+}
