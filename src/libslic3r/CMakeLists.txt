@@ -498,6 +498,29 @@ if (SLIC3R_ENABLE_VULKAN_SLICER)
     find_package(Vulkan 1.2 REQUIRED)
     target_link_libraries(libslic3r PRIVATE Vulkan::Vulkan)
     target_compile_definitions(libslic3r PRIVATE SLIC3R_ENABLE_VULKAN_SLICER=1)
+
+    set(ORCA_VULKAN_INTERSECTION_SHADER
+        "${CMAKE_CURRENT_BINARY_DIR}/resources/vulkan/perimeter_infill_candidates.spv")
+    add_custom_command(
+        OUTPUT "${ORCA_VULKAN_INTERSECTION_SHADER}"
+        COMMAND "${CMAKE_COMMAND}" -E make_directory
+                "${CMAKE_CURRENT_BINARY_DIR}/resources/vulkan"
+        COMMAND "${Vulkan_GLSLC_EXECUTABLE}" -O
+                -o "${ORCA_VULKAN_INTERSECTION_SHADER}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/Gpu/shaders/perimeter_infill_candidates.comp"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Gpu/shaders/perimeter_infill_candidates.comp"
+        VERBATIM)
+    add_custom_target(orca_vulkan_intersection_shader ALL
+        DEPENDS "${ORCA_VULKAN_INTERSECTION_SHADER}")
+    add_dependencies(libslic3r orca_vulkan_intersection_shader)
+    install(FILES "${ORCA_VULKAN_INTERSECTION_SHADER}"
+        DESTINATION "./resources/vulkan")
+
+    if (ORCA_TOOLS)
+        add_executable(orca-vulkan-compute-selftest Gpu/VulkanComputeSelfTest.cpp)
+        target_link_libraries(orca-vulkan-compute-selftest PRIVATE libslic3r)
+        target_include_directories(orca-vulkan-compute-selftest PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    endif ()
 endif ()
 
 if (SLIC3R_STATIC)

@@ -14,6 +14,7 @@
 #include "../ClipperUtils.hpp"
 #include "../ExPolygon.hpp"
 #include "../Geometry.hpp"
+#include "../Gpu/VulkanSlicer.hpp"
 #include "../Surface.hpp"
 #include "../ShortestPath.hpp"
 #include "../VariableWidth.hpp"
@@ -756,6 +757,53 @@ enum DirectionMask
     DIR_BACKWARD = 2
 };
 
+// Build the strict-interior portion of the scanline workload in exactly the
+// same stable order as slice_region_by_vertical_lines(). Vertex and tangent
+// cases intentionally remain on the CPU: their outcome depends on adjacent
+// contour edges, not just on the segment being dispatched.
+static Gpu::VulkanVerticalIntersectionBatch prepare_vulkan_vertical_intersections(
+    const ExPolygonWithOffset &poly_with_offset, size_t n_vlines, coord_t x0, coord_t line_spacing)
+{
+    std::vector<Gpu::VulkanVerticalIntersectionRequest> requests;
+    for (size_t iContour = 0; iContour < poly_with_offset.n_contours; ++iContour) {
+        const Points &contour = poly_with_offset.contour(iContour).points;
+        if (contour.size() < 2)
+            continue;
+        for (size_t iSegment = 0; iSegment < contour.size(); ++iSegment) {
+            const size_t iPrev = ((iSegment == 0) ? contour.size() : iSegment) - 1;
+            const Point &p1 = contour[iPrev];
+            const Point &p2 = contour[iSegment];
+            coord_t left = p1.x();
+            coord_t right = p2.x();
+            if (left > right)
+                std::swap(left, right);
+            int il = (left - x0) / line_spacing;
+            while (il * line_spacing + x0 < left)
+                ++il;
+            il = std::max(0, il);
+            int ir = (right - x0 + line_spacing) / line_spacing;
+            while (ir * line_spacing + x0 > right)
+                --ir;
+            ir = std::min(int(n_vlines) - 1, ir);
+            for (int i = il; i <= ir; ++i) {
+                const coord_t scan_x = x0 + i * line_spacing;
+                if (p1.x() == scan_x || p2.x() == scan_x)
+                    continue;
+                requests.push_back({
+                    { { int64_t(p1.x()), int64_t(p1.y()) }, { int64_t(p2.x()), int64_t(p2.y()) } },
+                    int64_t(scan_x), uint64_t(requests.size())
+                });
+            }
+        }
+    }
+
+    // Below this point PCIe/driver dispatch overhead is larger than the
+    // arithmetic saved. Real models and support surfaces normally exceed it.
+    if (requests.size() < 256)
+        return {};
+    return Gpu::VulkanSlicerBackend::dispatch_vertical_intersections(requests);
+}
+
 static std::vector<SegmentedIntersectionLine> slice_region_by_vertical_lines(const ExPolygonWithOffset &poly_with_offset, size_t n_vlines, coord_t x0, coord_t line_spacing)
 {
     // Allocate storage for the segments.
@@ -764,6 +812,10 @@ static std::vector<SegmentedIntersectionLine> slice_region_by_vertical_lines(con
         segs[i].idx = i;
         segs[i].pos = x0 + i * line_spacing;
     }
+    Gpu::VulkanVerticalIntersectionBatch gpu_intersections =
+        prepare_vulkan_vertical_intersections(poly_with_offset, n_vlines, x0, line_spacing);
+    size_t gpu_intersection_index = 0;
+    bool gpu_results_match_cpu = gpu_intersections.dispatched;
     // For each contour
     for (size_t iContour = 0; iContour < poly_with_offset.n_contours; ++ iContour) {
         const Points &contour = poly_with_offset.contour(iContour).points;
@@ -824,18 +876,44 @@ static std::vector<SegmentedIntersectionLine> slice_region_by_vertical_lines(con
                     is.pos_q = 1;
                 } else {
                     // First calculate the intersection parameter 't' as a rational number with non negative denominator.
+                    int64_t cpu_numerator = 0;
+                    int64_t cpu_denominator = 1;
                     if (p2.x() > p1.x()) {
-                        is.pos_p = this_x - p1.x();
-                        is.pos_q = p2.x() - p1.x();
+                        cpu_numerator = this_x - p1.x();
+                        cpu_denominator = p2.x() - p1.x();
                     } else {
-                        is.pos_p = p1.x() - this_x;
-                        is.pos_q = p1.x() - p2.x();
+                        cpu_numerator = p1.x() - this_x;
+                        cpu_denominator = p1.x() - p2.x();
                     }
-                    assert(is.pos_q > 1);
-                    assert(is.pos_p > 0 && is.pos_p < is.pos_q);
+                    assert(cpu_denominator > 1);
+                    assert(cpu_numerator > 0 && cpu_numerator < cpu_denominator);
                     // Make an intersection point from the 't'.
-                    is.pos_p *= int64_t(p2.y() - p1.y());
-                    is.pos_p += p1.y() * int64_t(is.pos_q);
+                    cpu_numerator *= int64_t(p2.y() - p1.y());
+                    cpu_numerator += p1.y() * cpu_denominator;
+
+                    // The GPU owns the fixed-point multiply/add for this
+                    // high-cardinality path. Keep a CPU exact-reference
+                    // calculation and reject the entire batch on any mismatch
+                    // so a driver or shader regression cannot alter G-code.
+                    const bool has_gpu_result = gpu_results_match_cpu &&
+                        gpu_intersection_index < gpu_intersections.intersections.size();
+                    if (has_gpu_result) {
+                        const Gpu::VulkanVerticalIntersection &gpu_result =
+                            gpu_intersections.intersections[gpu_intersection_index];
+                        if (gpu_result.valid && gpu_result.stable_id == gpu_intersection_index &&
+                            gpu_result.numerator == cpu_numerator && gpu_result.denominator == cpu_denominator) {
+                            is.pos_p = gpu_result.numerator;
+                            is.pos_q = gpu_result.denominator;
+                        } else {
+                            gpu_results_match_cpu = false;
+                            is.pos_p = cpu_numerator;
+                            is.pos_q = cpu_denominator;
+                        }
+                    } else {
+                        is.pos_p = cpu_numerator;
+                        is.pos_q = cpu_denominator;
+                    }
+                    ++gpu_intersection_index;
                 }
                 // +-1 to take rounding into account.
                 assert(is.pos() + 1 >= std::min(p1.y(), p2.y()));

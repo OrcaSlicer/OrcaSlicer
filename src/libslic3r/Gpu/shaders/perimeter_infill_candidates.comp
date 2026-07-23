@@ -1,44 +1,61 @@
 #version 460
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
-// Candidate generation only. Final polygon clipping, winding classification,
-// and ordering must consume stable IDs and pass the host exact-reference
-// checks before an extrusion path is committed.
+// Exact scanline-intersection generation.  Final polygon clipping, winding
+// classification and ordering still consume stable IDs and pass the host
+// exact-reference checks before an extrusion path is committed.
 layout(local_size_x = 64) in;
 
-struct Segment {
+struct IntersectionRequest {
     int64_t ax;
     int64_t ay;
     int64_t bx;
     int64_t by;
+    int64_t scan_x;
     uint64_t stable_id;
 };
 
-layout(std430, binding = 0) readonly buffer InputSegments {
-    Segment input_segments[];
+struct IntersectionResult {
+    int64_t numerator;
+    int64_t denominator;
+    uint64_t stable_id;
+    uint valid;
+    uint reserved;
 };
 
-layout(std430, binding = 1) writeonly buffer CandidateFlags {
-    uint candidate_flags[];
+layout(std430, binding = 0) readonly buffer InputRequests {
+    IntersectionRequest input_requests[];
 };
 
-layout(push_constant) uniform Tile {
-    int64_t origin_x;
-    int64_t origin_y;
-    int64_t radius;
-} tile;
-
-bool in_tile(int64_t x, int64_t y)
-{
-    return abs(x - tile.origin_x) <= tile.radius && abs(y - tile.origin_y) <= tile.radius;
-}
+layout(std430, binding = 1) writeonly buffer OutputResults {
+    IntersectionResult output_results[];
+};
 
 void main()
 {
     const uint index = gl_GlobalInvocationID.x;
-    if (index >= input_segments.length())
+    if (index >= input_requests.length())
         return;
 
-    const Segment segment = input_segments[index];
-    candidate_flags[index] = in_tile(segment.ax, segment.ay) && in_tile(segment.bx, segment.by) ? 1u : 0u;
+    const IntersectionRequest request = input_requests[index];
+    IntersectionResult result;
+    result.stable_id = request.stable_id;
+    result.numerator = 0l;
+    result.denominator = 1l;
+    result.valid = 0u;
+    result.reserved = 0u;
+
+    // Endpoint intersections are deliberately excluded. Their inclusion and
+    // tangency rules are topology-sensitive and remain in the CPU reference.
+    const int64_t lower_x = min(request.ax, request.bx);
+    const int64_t upper_x = max(request.ax, request.bx);
+    if (request.ax != request.bx && request.scan_x > lower_x && request.scan_x < upper_x) {
+        const bool forward = request.bx > request.ax;
+        result.numerator = forward ? request.scan_x - request.ax : request.ax - request.scan_x;
+        result.denominator = forward ? request.bx - request.ax : request.ax - request.bx;
+        result.numerator = result.numerator * (request.by - request.ay) + request.ay * result.denominator;
+        result.valid = 1u;
+    }
+
+    output_results[index] = result;
 }
