@@ -1386,7 +1386,7 @@ void GLGizmoCut3D::on_save(cereal::BinaryOutputArchive& ar) const
 
 std::string GLGizmoCut3D::on_get_name() const
 {
-    return _u8L("Cut");
+    return _CTX_utf8("Cut", "Cut tool");
 }
 
 void GLGizmoCut3D::apply_color_clip_plane_colors()

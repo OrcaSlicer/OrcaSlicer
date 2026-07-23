@@ -3262,7 +3262,7 @@ void MainFrame::init_menubar_as_editor()
 #ifndef __APPLE__
     m_topbar->SetFileMenu(fileMenu);
     if (editMenu)
-        m_topbar->AddDropDownSubMenu(editMenu, _L("Edit"));
+        m_topbar->AddDropDownSubMenu(editMenu, _CTX("Edit", "Menu"));
     if (viewMenu)
         m_topbar->AddDropDownSubMenu(viewMenu, _L("View"));
     //BBS add Preference
@@ -3451,7 +3451,7 @@ void MainFrame::init_menubar_as_editor()
 
     m_menubar->Append(fileMenu, wxString::Format("&%s", _L("File")));
     if (editMenu)
-        m_menubar->Append(editMenu, wxString::Format("&%s", _L("Edit")));
+        m_menubar->Append(editMenu, wxString::Format("&%s", _CTX("Edit", "Menu")));
     if (viewMenu)
         m_menubar->Append(viewMenu, wxString::Format("&%s", _L("View")));
     /*if (publishMenu)

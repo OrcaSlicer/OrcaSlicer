@@ -372,7 +372,7 @@ bool GLGizmoAdvancedCut::on_init()
 
 std::string GLGizmoAdvancedCut::on_get_name() const
 {
-    return (_(L("Cut"))).ToUTF8().data();
+    return (_CTX("Cut", "Cut tool")).ToUTF8().data();
 }
 
 void GLGizmoAdvancedCut::on_load(cereal::BinaryInputArchive &ar)
