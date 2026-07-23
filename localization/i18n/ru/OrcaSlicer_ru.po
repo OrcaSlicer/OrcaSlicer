@@ -634,7 +634,7 @@ msgid "Move"
 msgstr "Перемещение"
 
 msgid "Please select at least one object."
-msgstr "Пожалуйста, выберите хотя бы один объект."
+msgstr "Сначала выберите объект."
 
 msgid "Gizmo-Move"
 msgstr "Инструмент перемещения"
@@ -1381,7 +1381,7 @@ msgid ""
 msgstr ""
 "При смене стиля на «%1%» изменения текущего стиля будут утеряны.\n"
 "\n"
-"Хотите продолжить?"
+"Продолжить?"
 
 msgid "Not valid style."
 msgstr "Недопустимый стиль."
@@ -1516,11 +1516,11 @@ msgstr "Выровнять текст по направлению к камер�
 
 #, boost-format
 msgid "Font \"%1%\" can't be used. Please select another."
-msgstr "Невозможно использовать шрифт \"%1%\". Пожалуйста, выберите другой."
+msgstr "Невозможно использовать шрифт «%1%». Пожалуйста, выберите другой."
 
 #, boost-format
 msgid "Can't load exactly same font (\"%1%\"). Application selected a similar one (\"%2%\"). You have to specify font for enable edit text."
-msgstr "Т.к. не удалось загрузить тот же шрифт (\"%1%\"), приложение выбрало похожий шрифт (\"%2%\"). Выберите шрифт для включения редактирования текста."
+msgstr "Не удалось загрузить шрифт («%1%»), был выбран похожий («%2%»). Выберите шрифт для изменения текста."
 
 msgid "No symbol"
 msgstr "Нет символов"
@@ -1814,7 +1814,7 @@ msgid "Measure"
 msgstr "Измерения"
 
 msgid "Please confirm explosion ratio = 1, and please select at least one object."
-msgstr "Сначала отключите разнесение и выберите хотя бы одну модель."
+msgstr "Отключите разнесение и выберите хотя бы одну модель."
 
 msgid "Edit to scale"
 msgstr "Редактировать масштаб"
@@ -1897,10 +1897,10 @@ msgid "Reverse rotation"
 msgstr "Обратное вращение"
 
 msgid "Rotate around center:"
-msgstr "Вращение вокруг центра:"
+msgstr "Вращение по оси:"
 
 msgid "Parallel distance:"
-msgstr "Расстояние между параллельными гранями:"
+msgstr "Расстояние между гранями:"
 
 msgid "Flip by Face 2"
 msgstr "Перевернуть грань 2"
@@ -1916,10 +1916,10 @@ msgid "Assemble"
 msgstr "Объединить в сборку"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
-msgstr "Отключите разнесение и выберите сборку из нескольких частей."
+msgstr "Отключите разнесение и выберите несколько частей."
 
 msgid "Please select at least two volumes."
-msgstr "Выберите хотя бы две модели."
+msgstr "Выберите минимум две модели."
 
 msgid "(Moving)"
 msgstr "(подвижная)"
@@ -2145,7 +2145,7 @@ msgid ""
 "Do you want to continue?"
 msgstr ""
 "%s\n"
-"Хотите продолжить?"
+"Продолжить?"
 
 msgid "Remember my choice"
 msgstr "Запомнить выбор"
@@ -3221,12 +3221,15 @@ msgstr "Манипуляция с моделями"
 msgid "Group manipulation"
 msgstr "Групповые манипуляции"
 
+# Requires refactoring
 msgid "Object Settings to Modify"
 msgstr "Параметры модели для изменения"
 
+# Requires refactoring
 msgid "Part Settings to Modify"
 msgstr "Параметры элемента для изменения"
 
+# Requires refactoring
 msgid "Layer Range Settings to Modify"
 msgstr "Изменение параметров диапазона слоёв"
 
@@ -3489,16 +3492,16 @@ msgid "code"
 msgstr "код"
 
 msgid "Failed to connect to cloud service"
-msgstr "Не удалось подключиться к облачному сервису"
+msgstr "Не удалось подключиться к облаку."
 
 msgid "Please click on the hyperlink above to view the cloud service status"
-msgstr "Для просмотра состояния статуса сервиса нажмите на вышерасположенную ссылку"
+msgstr "Откройте ссылку выше, чтобы проверить статус сервиса."
 
 msgid "Failed to connect to the printer"
 msgstr "Не удалось подключиться к принтеру"
 
 msgid "Connection to printer failed"
-msgstr "Не удалось подключиться к принтеру"
+msgstr "Ошибка подключения к принтеру"
 
 msgid "Please check the network connection of the printer and Orca."
 msgstr "Убедитесь, что принтер и OrcaSlicer имеют доступ к сети."
@@ -3604,7 +3607,7 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Левый (вспом.)"
 
-# FAN_HEAT_BREAK_0_IDX
+# FAN_HEAT_BREAK_0_IDX - охлаждение термобарьера в первом хотэнде 
 msgid "Hotend"
 msgstr "Термобарьер"
 
@@ -3614,7 +3617,7 @@ msgstr "Основной"
 msgid "Aux"
 msgstr "Вспом."
 
-# FAN_HEAT_BREAK_1_IDX
+# FAN_HEAT_BREAK_1_IDX - охлаждение термобарьера во втором хотэнде
 msgid "Nozzle1"
 msgstr "2 термобарьер"
 
@@ -3897,7 +3900,7 @@ msgid "Failed to upload file to ftp. Please try again."
 msgstr "Не удалось загрузить файл на FTP. Пожалуйста, попробуйте ещё раз."
 
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
-msgstr "Проверить текущий статус сервера Bambu можно перейдя по указанной выше ссылке."
+msgstr "Можно проверить текущий статус сервера Bambu, перейдя по ссылке выше."
 
 msgid "The size of the print file is too large. Please adjust the file size and try again."
 msgstr "Размер файла для печати слишком велик. Пожалуйста, уменьшите размер файла и повторите попытку."
@@ -4022,7 +4025,7 @@ msgid "Remaining time: Calculating..."
 msgstr "Осталось: [оценка...]"
 
 msgid "The heated bed's thermal preconditioning helps optimize the first layer print quality. Printing will start once preconditioning is complete."
-msgstr "Термоподготовка нагревательного стола помогает улучшить качество печати первого слоя. Печать начнётся после завершения подготовки."
+msgstr "Преднагрев стола помогает улучшить качество печати первого слоя. Печать начнётся после завершения подготовки."
 
 #, c-format, boost-format
 msgid "Remaining time: %dmin%ds"
@@ -4156,7 +4159,7 @@ msgid "Are you sure you want to clear the filament information?"
 msgstr "Вы действительно хотите удалить информацию о материале?"
 
 msgid "You need to select the material type and color first."
-msgstr "Сначала необходимо выбрать тип материала и цвет."
+msgstr "Сначала нужно выбрать тип материала и цвет."
 
 #, c-format, boost-format
 msgid "Please input a valid value (K in %.1f~%.1f)"
@@ -4251,6 +4254,7 @@ msgstr "Шаг"
 msgid "Unmapped"
 msgstr "Не назначен"
 
+# Requires refactoring
 msgid ""
 "Upper half area:  Original\n"
 "Lower half area: The filament from original project will be used when unmapped.\n"
@@ -4651,7 +4655,7 @@ msgid "The recommended minimum temperature cannot be higher than the recommended
 msgstr "Минимально допустимая температура сопла не может быть выше максимально допустимой.\n"
 
 msgid "Please check.\n"
-msgstr "Провертре введённые значения.\n"
+msgstr "Проверьте введённые значения.\n"
 
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
@@ -4674,7 +4678,7 @@ msgid ""
 "Value was reset to 0.5"
 msgstr ""
 "Слишком низкий предел объёмного расхода.\n"
-"Значение будет сброшено на 0,5."
+"Значение будет сброшено до 0,5."
 
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
@@ -4682,21 +4686,21 @@ msgstr "Текущая температура внутри термокамер�
 
 #, c-format, boost-format
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
-msgstr "Минимальная температура внутри термокамеры (%d℃) превышает целевую (%d℃). Печать начинается по достижении минимальной температуры, поэтому она не должна быть больше целевой. Значение будет уменьшено."
+msgstr "Стартовая температура внутри термокамеры (%d℃) превышает целевую (%d℃). Подразумевается, что печать начинается заранее, поэтому стартовая температура не должна превышать её. Значение будет уменьшено."
 
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
 msgstr ""
 "Слишком маленькая высота слоя.\n"
-"Значение будет сброшено на 0,2."
+"Значение будет сброшено до 0,2."
 
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
 msgstr ""
 "Слишком маленькое расстояние между линиями разглаживания.\n"
-"Значение будет сброшено на 0,1."
+"Значение будет сброшено до 0,1."
 
 msgid ""
 "Zero initial layer height is invalid.\n"
@@ -4717,7 +4721,7 @@ msgstr ""
 "Этот параметр используется только для точной подгонки размера модели и соблюдения допусков.\n"
 "Для более значительной корректировки размеров используйте функцию масштабирования модели.\n"
 "\n"
-"Это значение будет сброшено на 0."
+"Это значение будет сброшено до 0."
 
 msgid ""
 "The elephant foot compensation value is too large.\n"
@@ -4730,7 +4734,7 @@ msgstr ""
 "Если возникает сильный дефект слоновьей ноги, проблема может исходить из других настроек.\n"
 "Например, завышенная температура стола или некорректный прижим сопла на первом слое.\n"
 "\n"
-"Значение будет сброшено на 0."
+"Значение будет сброшено до 0."
 
 msgid "Alternate extra wall does't work well when ensure vertical shell thickness is set to All."
 msgstr "Чередующаяся дополнительная стенка не работает, если для «Сохранение толщины вертикальной оболочки» установлено значение «Все»."
@@ -4789,7 +4793,7 @@ msgid ""
 "Reset to 0."
 msgstr ""
 "Начальная высота не должна превышать высоту слоя.\n"
-"Значение сброшено на 0."
+"Значение сброшено до 0."
 
 #, no-c-format, no-boost-format
 msgid ""
@@ -5614,7 +5618,7 @@ msgid "Acceleration (mm/s²)"
 msgstr "Ускорение (мм/с²)"
 
 msgid "Jerk (mm/s)"
-msgstr "Рывок (мм/s)"
+msgstr "Рывок (мм/с)"
 
 msgid "Fan speed (%)"
 msgstr "Скорость вентилятора (%)"
@@ -6153,7 +6157,7 @@ msgid "No"
 msgstr "Нет"
 
 msgid "will be closed before creating a new model. Do you want to continue?"
-msgstr "будет закрыт перед созданием новой модели. Хотите продолжить?"
+msgstr "будет закрыт перед созданием новой модели. Продолжить?"
 
 # Возможно, имеет смысл убрать тут "стол". Подавляющее большинство проектов –
 # это размещение моделей и их печать на одном столе, поэтому намёк на работу с
@@ -6692,7 +6696,7 @@ msgid ""
 "Do you want to install them?"
 msgstr ""
 "Для этой задачи требуется Virtual Camera Tools!\n"
-"Хотите установить?"
+"Установить?"
 
 msgid "Downloading Virtual Camera Tools"
 msgstr "Загрузка Virtual Camera Tools"
@@ -6702,13 +6706,13 @@ msgid ""
 "Orca Slicer supports only a single virtual camera.\n"
 "Do you want to stop this virtual camera?"
 msgstr ""
-"Уже работает одна виртуальная камера.\n"
-"Orca Slicer поддерживает только одну виртуальную камеру.\n"
-"Хотите остановить эту виртуальную камеру?"
+"Уже работает одна виртуальная камера,\n"
+"Orca Slicer поддерживает только одну.\n"
+"Остановить её?"
 
 #, c-format, boost-format
 msgid "Virtual camera initialize failed (%s)!"
-msgstr "Не удалось инициализировать виртуальную камеру (%s)!"
+msgstr "Не удалось инициализировать виртуальную камеру (%s)."
 
 msgid "Network unreachable"
 msgstr "Сеть недоступна"
@@ -6794,9 +6798,9 @@ msgstr "Просмотр локальных файлов не поддержив
 #, c-format, boost-format
 msgid "You are going to delete %u file from printer. Are you sure to continue?"
 msgid_plural "You are going to delete %u files from printer. Are you sure to continue?"
-msgstr[0] "Вы собираетесь удалить %u файл с принтера. Вы действительно хотите это сделать?"
-msgstr[1] "Вы собираетесь удалить %u файла с принтера. Вы действительно хотите это сделать?"
-msgstr[2] "Вы собираетесь удалить %u файлов с принтера. Вы действительно хотите это сделать?"
+msgstr[0] "Вы собираетесь удалить %u файл с принтера. Продолжить?"
+msgstr[1] "Вы собираетесь удалить %u файла с принтера. Продолжить?"
+msgstr[2] "Вы собираетесь удалить %u файлов с принтера. Продолжить?"
 
 msgid "Delete files"
 msgstr "Удалить файлы"
@@ -7279,10 +7283,10 @@ msgid ""
 msgstr ""
 "\n"
 "\n"
-"Хотите перейти на страницу для выставления оценки?"
+"Открыть страницу для выставления оценки?"
 
 msgid "Some of your images failed to upload. Would you like to redirect to the webpage to give a rating?"
-msgstr "Некоторые из ваших изображений не удалось загрузить. Хотите перейти на страницу для выставления оценки?"
+msgstr "Некоторые из ваших изображений не удалось загрузить. Перейти на страницу для выставления оценки?"
 
 msgid "You can select up to 16 images."
 msgstr "Допускается выбор до 16 изображений."
@@ -7356,7 +7360,7 @@ msgid "The 3MF file version is in Beta and it is newer than the current OrcaSlic
 msgstr "Этот файл 3MF был сохранён в более новой бета-версии OrcaSlicer."
 
 msgid "If you would like to try Orca Slicer Beta, you may click to"
-msgstr "Нажмите, если хотите попробовать бета-версию Orca Slicer:"
+msgstr "Нажмите, чтобы попробовать бета-версию Orca Slicer:"
 
 msgid "Download Beta Version"
 msgstr "Скачать бета-версию"
@@ -7886,7 +7890,7 @@ msgid ""
 "Are you sure to continue syncing?"
 msgstr ""
 "Текущий выбранный профиль принтера не соответствует типу подключённого принтера.\n"
-"Вы уверены, что хотите продолжить синхронизацию?"
+"Продолжить синхронизацию?"
 
 msgid "There are unset nozzle types. Please set the nozzle types of all extruders before synchronizing."
 msgstr "Типы сопел не заданы. Перед синхронизацией необходимо указать типы всех установленных сопел."
@@ -7956,7 +7960,7 @@ msgstr "Информация о типе и цвете филамента син
 
 #, boost-format
 msgid "Do you want to save changes to \"%1%\"?"
-msgstr "Вы хотите сохранить изменения в \"%1%\"?"
+msgstr "Сохранить изменения в «%1%»?"
 
 #, c-format, boost-format
 msgid "Successfully unmounted. The device %s (%s) can now be safely removed from the computer."
@@ -7967,7 +7971,7 @@ msgid "Ejecting of device %s (%s) has failed."
 msgstr "Не удалось извлечь устройство %s (%s)."
 
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
-msgstr "Обнаружен несохранённый проект. Хотите восстановить его?"
+msgstr "Обнаружен несохранённый проект. Восстановить его?"
 
 msgid "Restore"
 msgstr "Восстановить"
@@ -8044,7 +8048,7 @@ msgid "The 3MF was created by BambuStudio (version %s), which is newer than the 
 msgstr "Этот файл 3MF был создан в BambuStudio (версии %s), которая новее совместимой с ней версией OrcaSlicer %s. Некоторые настройки могут не поддерживаться."
 
 msgid "The 3MF was created by BambuStudio. Some settings may differ from OrcaSlicer."
-msgstr "Этот файл 3MF был создан в BambuStudio. Некоторые настройки могут отличаться от OrcaSlicer.s"
+msgstr "Этот файл 3MF был создан в BambuStudio. Некоторые настройки могут отличаться от OrcaSlicer."
 
 msgid "Invalid values found in the 3MF:"
 msgstr "В файле 3MF найдены недопустимые значения:"
@@ -8062,7 +8066,7 @@ msgid "Modified G-code"
 msgstr "Модифицированный G-код"
 
 msgid "The 3MF has the following customized filament or printer presets:"
-msgstr "В этом 3MF файле содержатся следующие пользовательские профили материала или принтера:"
+msgstr "В этом 3MF файле содержатся следующие пользовательские профили материалов или принтера:"
 
 msgid "Please confirm that the G-code within these presets is safe to prevent any damage to the machine!"
 msgstr "Во избежание повреждения принтера убедитесь, что G-код в этих профилях безопасен!"
@@ -8138,9 +8142,8 @@ msgstr "Файл не содержит никаких геометрически
 
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr ""
-"Похоже, ваша модель слишком большая.\n"
-"Хотите автоматически уменьшить её масштаб,\n"
-"чтобы она уместилась на столе?"
+"Размер модели слишком велик.\n"
+"Вписать её в область печати?"
 
 msgid "Object too large"
 msgstr "Модель слишком большая"
@@ -8463,30 +8466,30 @@ msgid "The file %s has been sent to the printer's storage space and can be viewe
 msgstr "Файл %s отправлен в память принтера и может быть просмотрен на нём."
 
 msgid "The nozzle type is not set. Please set the nozzle and try again."
-msgstr "Тип сопла не задан, укажите его и попробуйте ещё раз."
+msgstr "Не указан тип сопла. Укажите его и попробуйте ещё раз."
 
 msgid "The nozzle type is not set. Please check."
-msgstr "Тип сопла не задан, проверьте настройки."
+msgstr "Не указан тип сопла. Проверьте настройки."
 
 msgid "Unable to perform boolean operation on model meshes. Only positive parts will be kept. You may fix the meshes and try again."
 msgstr "Невозможно выполнить булеву операцию над сетками модели. Будут сохранены только положительные части. Попробуйте починить сетку модели и попробовать снова."
 
 #, boost-format
 msgid "Reason: part \"%1%\" is empty."
-msgstr "Причина: часть \"%1%\" пустая."
+msgstr "Причина: часть «%1%» пустая."
 
 # ??? не формирует объем, не имеет замкнутой геометрии
 #, boost-format
 msgid "Reason: part \"%1%\" does not bound a volume."
-msgstr "Причина: часть \"%1%\" не формирует замкнутый объём."
+msgstr "Причина: часть «%1%» не формирует замкнутый объём."
 
 #, boost-format
 msgid "Reason: part \"%1%\" has self intersection."
-msgstr "Причина: часть \"%1%\" имеет самопересечение."
+msgstr "Причина: часть «%1%» имеет самопересечение."
 
 #, boost-format
 msgid "Reason: \"%1%\" and another part have no intersection."
-msgstr "Причина: \"%1%\" и другая часть не пересекаются."
+msgstr "Причина: «%1%» не имеет пересечений с другой частью."
 
 msgid "Unable to perform boolean operation on model meshes. Only positive parts will be exported."
 msgstr "Невозможно выполнить булеву операцию над сетками модели. Будут экспортированы только положительные части."
@@ -8494,6 +8497,7 @@ msgstr "Невозможно выполнить булеву операцию н
 msgid "Flashforge host is not available."
 msgstr ""
 
+# Авторизация принтера Flashforge не удалась.
 msgid "Unable to log in to the Flashforge printer."
 msgstr ""
 
@@ -8620,9 +8624,7 @@ msgstr "Объём: %1% дюйм³\n"
 
 #, boost-format
 msgid "Volume: %1% mm³\n"
-msgstr ""
-"Объём: %1% мм³\n"
-"\n"
+msgstr "Объём: %1% мм³\n"
 
 #, boost-format
 msgid "Triangles: %1%\n"
@@ -8633,7 +8635,7 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
-msgstr "Покрытие %d-го стола (%s) не рекомендуется использовать для печати %s-м материалом (%s). Установите положительную температуру для этого покрытия в настройках материала, чтобы продолжить нарезку."
+msgstr "Покрытие «%2$s» (стол %1$d) не поддерживает печать %4$s (материал %3$s). Смените покрытие или настройте его температуру в профиле материала, чтобы продолжить нарезку."
 
 msgid "Currently, the object configuration form cannot be used with a multiple-extruder printer."
 msgstr "Сводка настроек моделей пока не поддерживает многоэкструдерные принтеры."
@@ -9593,11 +9595,11 @@ msgstr "Перезапись системного профиля запреще�
 
 #, boost-format
 msgid "Preset \"%1%\" already exists."
-msgstr "Профиль \"%1%\" уже существует."
+msgstr "Профиль «%1%» уже существует."
 
 #, boost-format
 msgid "Preset \"%1%\" already exists and is incompatible with the current printer."
-msgstr "Профиль \"%1%\" уже существует и несовместим с текущим принтером."
+msgstr "Профиль «%1%» уже существует и несовместим с текущим принтером."
 
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Обратите внимание, что при сохранении произойдёт перезапись текущего профиля."
@@ -9614,23 +9616,23 @@ msgstr "Копировать"
 
 #, boost-format
 msgid "Printer \"%1%\" is selected with preset \"%2%\""
-msgstr "Принтер \"%1%\" выбран с профилем \"%2%\""
+msgstr "Принтер «%1%» выбран с профилем «%2%»"
 
 #, boost-format
 msgid "Please choose an action with \"%1%\" preset after saving."
-msgstr "Пожалуйста, выберите действие с профилем \"%1%\" после сохранения."
+msgstr "Пожалуйста, выберите действие с профилем «%1%» после сохранения."
 
 #, boost-format
 msgid "For \"%1%\", change \"%2%\" to \"%3%\" "
-msgstr "Для \"%1%\" сменить \"%2%\" на \"%3%\" "
+msgstr "Для «%1%» сменить «%2%» на «%3%» "
 
 #, boost-format
 msgid "For \"%1%\", add \"%2%\" as a new preset"
-msgstr "Для \"%1%\" добавить \"%2%\" как новый профиль"
+msgstr "Для «%1%» добавить «%2%» как новый профиль"
 
 #, boost-format
 msgid "Simply switch to \"%1%\""
-msgstr "Просто переключиться на \"%1%\""
+msgstr "Просто переключиться на «%1%»"
 
 msgid "Task canceled"
 msgstr "Задание отменено"
@@ -9762,10 +9764,10 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Filament %s does not match the filament in AMS slot %s. Please update the printer firmware to support AMS slot assignment."
-msgstr "Материал %s не соответствует материалу в слоте AMS %s. Обновите прошивку принтера для возможности назначения слота AMS."
+msgstr "Материал %s не соответствует материалу в слоте AMS %s. Для назначения слота AMS необходимо обновить прошивку принтера."
 
 msgid "Filament does not match the filament in AMS slot. Please update the printer firmware to support AMS slot assignment."
-msgstr "Материал %s не соответствует материалу в слоте %s AMS. Обновите прошивку принтера, чтобы получить поддержку функции назначения слотов AMS."
+msgstr "Материал %s не соответствует материалу в слоте %s AMS. Для назначения слота AMS необходимо обновить прошивку принтера."
 
 #, c-format, boost-format
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
@@ -9883,18 +9885,18 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
-msgstr "Настройка потока сопла %s(%s) не совпадает с файлом нарезки (%s). Убедитесь, что установленное сопло соответствует настройкам принтера, затем выберите соответствующий профиль принтера при нарезке."
+msgstr "Настройка потока сопла %s(%s) не совпадает с файлом нарезки (%s). Убедитесь, что настройки принтера соответствуют установленному соплу, затем выберите соответствующий профиль принтера при нарезке."
 
 msgid "Tips: If you changed your nozzle of your printer lately, please go to 'Device -> Printer parts' to change your nozzle setting."
 msgstr "Совет: после замены сопла в принтере необходимо обновить его настройки («Принтер» → «Части принтера»)."
 
 #, c-format, boost-format
 msgid "The %s diameter(%.1fmm) of current printer doesn't match with the slicing file (%.1fmm). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset when slicing."
-msgstr "Диаметр %s (%.1f мм) текущего принтера не совпадает с файлом нарезки (%.1f мм). Убедитесь, что установленное сопло соответствует настройкам принтера, и выберите соответствующий профиль принтера при нарезке."
+msgstr "Диаметр %s (%.1f мм) текущего принтера не совпадает с файлом нарезки (%.1f мм). Убедитесь, что настройки принтера соответствуют установленному соплу, и выберите соответствующий профиль принтера при нарезке."
 
 #, c-format, boost-format
 msgid "The current nozzle diameter (%.1fmm) doesn't match with the slicing file (%.1fmm). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset when slicing."
-msgstr "Текущий диаметр сопла (%.1f мм) не совпадает с файлом нарезки (%.1f мм). Убедитесь, что установленное сопло соответствует настройкам принтера, и выберите соответствующий профиль принтера при нарезке."
+msgstr "Текущий диаметр сопла (%.1f мм) не совпадает с файлом нарезки (%.1f мм). Убедитесь, что настройки принтера соответствуют установленному соплу, и выберите соответствующий профиль принтера при нарезке."
 
 msgid "both extruders"
 msgstr "обоих экструдерах"
@@ -10230,13 +10232,13 @@ msgid "A prime tower is required for clumping detection. There may be flaws on t
 msgstr "Черновая башня необходима для обнаружения налипаний на сопле, без неё на модели могут образоваться дефекты. Вы действительно хотите отключить черновую башню?"
 
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable?"
-msgstr "Одновременное включение точной высоты Z и башни очистки может вызвать ошибки нарезки. Вы всё равно хотите включить?"
+msgstr "Включение черновой башни совместно с «Точной высотой по Z» может привести к ошибкам нарезки. Продолжить?"
 
 msgid "A prime tower is required for clumping detection. There may be flaws on the model without prime tower. Do you still want to enable clumping detection?"
 msgstr "Для обнаружения налипаний на сопле требуется черновая башня, без неё на модели могут образоваться дефекты. Включить обнаружение налипаний?"
 
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
-msgstr "Одновременное включение точной высоты Z и башни очистки может вызвать ошибки нарезки. Вы всё равно хотите включить точную высоту Z?"
+msgstr "Включение «Точной высоты по Z» вместе с черновой башней может привести к ошибкам нарезки. Продолжить?"
 
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Для сглаженного таймлапса требуется черновая башня, без неё на модели могут возникнуть дефекты. Включить черновую башню?"
@@ -10528,13 +10530,14 @@ msgid "Chamber temperature"
 msgstr "Температура термокамеры"
 
 msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
-msgstr "Целевая (основная) и минимальная температура термокамеры, с которой начинается печать"
+msgstr "Целевая (основная) и стартовая температуры термокамеры (с которой начинается печать)"
 
 msgid "Target"
 msgstr "Целевая"
 
+# "Минимальная" не влезает
 msgid "Minimal"
-msgstr "Минимальная"
+msgstr "Стартовая"
 
 msgid "Print temperature"
 msgstr "Температура печати"
@@ -10812,9 +10815,9 @@ msgstr "Отсоединён"
 #, c-format, boost-format
 msgid "%d Filament Preset and %d Process Preset is attached to this printer. Those presets would be deleted if the printer is deleted."
 msgstr ""
-"С этим принтером связано\n"
-"• профилей материала: %d\n"
-"• профилей настроек: %d\n"
+"С этим принтером связаны\n"
+"• профили материалов: %d\n"
+"• профили настроек: %d\n"
 "\n"
 "Эти профили будут удалены при удалении принтера."
 
@@ -11083,7 +11086,7 @@ msgid ""
 "Note: New modified presets will be selected in settings tabs after close this dialog."
 msgstr ""
 "Перенос выбранных параметров из левого профиля в правый.\n"
-"Примечание: новые изменённые профили будут выбраны после закрытия этого диалогового окна."
+"Примечание: после закрытия окна будут выбраны изменённые профили."
 
 msgid "Transfer values from left to right"
 msgstr "Перенести значения из левого профиля"
@@ -11092,10 +11095,10 @@ msgid "If enabled, this dialog can be used for transfer selected values from lef
 msgstr "При включении активируется режим выбора значений из левого профиля для переноса в правый."
 
 msgid "One of the presets does not exist"
-msgstr ""
+msgstr "Один из профилей не существует"
 
 msgid "Compared presets has different printer technology"
-msgstr ""
+msgstr "Принтеры печатают по разным технологиям"
 
 msgid "Add File"
 msgstr "Добавить файл"
@@ -12188,6 +12191,7 @@ msgstr "Для использования черновой башни требу
 msgid "The prime tower is only supported if all objects have the same variable layer height."
 msgstr "Для черновой башни требуется, чтобы все модели имели одинаковую переменную высоту слоя."
 
+# Для одного или нескольких моделей назначен несуществующий экструдер – может так будет лучше? Надо по контексту употребления смотреть.
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Для одного или нескольких моделей был назначен экструдер, который у принтера отсутствует."
 
@@ -13974,13 +13978,13 @@ msgid "Filament load time"
 msgstr "Время загрузки прутка"
 
 msgid "Time to load new filament when switch filament. It's usually applicable for single-extruder multi-material machines. For tool changers or multi-tool machines, it's typically 0. For statistics only."
-msgstr "Время загрузки прутка при смене материала. Применяется для комбинированной печати через общий экструдер. Для принтеров со сменой инструмента или многоголовых принтеров обычно равно 0. Используется при подсчёте статистики."
+msgstr "Время загрузки прутка при смене материала. Применяется для совместной печати через общий экструдер. Для принтеров со сменой инструмента или многоголовых принтеров обычно равно 0. Используется при подсчёте статистики."
 
 msgid "Filament unload time"
 msgstr "Время выгрузки прутка"
 
 msgid "Time to unload old filament when switch filament. It's usually applicable for single-extruder multi-material machines. For tool changers or multi-tool machines, it's typically 0. For statistics only."
-msgstr "Время выгрузки старого прутка при смене материала. Применяется для комбинированной печати через общий экструдер. Для принтеров со сменой инструмента или многоголовых принтеров обычно равно 0. Используется при подсчёте статистики."
+msgstr "Время выгрузки старого прутка при смене материала. Применяется для совместной печати через общий экструдер. Для принтеров со сменой инструмента или многоголовых принтеров обычно равно 0. Используется при подсчёте статистики."
 
 msgid "Tool change time"
 msgstr "Время смены инструмента"
@@ -16710,7 +16714,7 @@ msgid "Manual Filament Change"
 msgstr "Ручная смена прутка"
 
 msgid "Enable this option to omit the custom Change filament G-code only at the beginning of the print. The tool change command (e.g., T0) will be skipped throughout the entire print. This is useful for manual multi-material printing, where we use M600/PAUSE to trigger the manual filament change action."
-msgstr "Полезно использовать для смены материала вручную при комбинированной печати через общий экструдер, где для этого используются команды M600/PAUSE. Отключает выполнение «G-кода смены материала» в самом начале печати (обычно это не требуется, так как пруток уже заправлен). Команда смены инструмента (например, T0) будет пропускаться на протяжении всей печати."
+msgstr "Полезно для смены материала вручную при совместной печати через общий экструдер, где для этого используются команды M600/PAUSE. Отключает выполнение «G-кода смены материала» в самом начале печати (обычно это не требуется, так как пруток уже заправлен). Команда смены инструмента (например, T0) будет пропускаться на протяжении всей печати."
 
 msgid "Wipe tower type"
 msgstr "Тип башни очистки"
@@ -16738,13 +16742,14 @@ msgstr "Менять материал над башней"
 
 msgid "Force the toolhead to travel to the wipe tower before issuing the tool change command (Tx). Only relevant for multi-extruder (multi-toolhead) printers using a Type 2 wipe tower. By default Orca skips the travel on multi-toolhead machines because the firmware handles the head swap, which can result in the Tx command being issued above the printed part. Enable this option if you want the tool change to always be issued above the wipe tower instead."
 msgstr ""
-"Перемещать печатающую голову в позицию над башней перед вызовом команды смены инструмента (T<x>). Предполагается, что прошивка принтера выполняет смену материала с учётом позиции детали и учитывает возможные подтёки, но если это не так – данная настройка позволит принудительно перемещать сопло к черновой башне заранее.\n"
+"Перемещать печатающую голову в позицию над башней перед вызовом команды смены инструмента (T<x>). Предполагается, что прошивка принтера настроена на минимизацию подтёков над деталью при смене материала, но если это не так – данная настройка позволит принудительно перемещать сопло к черновой башне заранее.\n"
 "\n"
 "Внимание: применимо только к многоэкструдерным принтерам с черновой башней 2 типа."
 
 msgid "No sparse layers (beta)"
 msgstr "Без разреженных слоёв (beta)"
 
+# Requires refactoring
 msgid "If enabled, the wipe tower will not be printed on layers with no tool changes. On layers with a tool change, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
 msgstr "Если включено, черновая башня не будет печататься на слоях, где не происходит смена материала/инструмента. На слоях, где происходит смена материала, экструдер будет опускаться вниз до верхней части черновой башни, чтобы напечатать её. Слайсер не проверяет столкновения при перемещении, и пользователь сам несет ответственность за правильную настройку всех соответствующих параметров."
 
@@ -16774,6 +16779,7 @@ msgstr "Цикличный"
 msgid "Slice gap closing radius"
 msgstr "Радиус закрытия зазоров полигональной сетки"
 
+# Requires refactoring
 msgid "Cracks smaller than 2x gap closing radius are being filled during the triangle mesh slicing. The gap closing operation may reduce the final print resolution, therefore it is advisable to keep the value reasonably low."
 msgstr "Часто в импортируемых в программу моделях, встречаются небольшие зазоры между полигонами. Если зазор окажется меньше двукратного значения этого параметра, то он будет автоматически закрыт перед нарезкой. Это операция может уменьшить окончательное разрешение печати (детализацию модели), поэтому рекомендуется выставлять это значение достаточно низким."
 
@@ -16971,7 +16977,7 @@ msgstr ""
 "• Полость: классический вид древовидных поддержек без заполнения.\n"
 "\n"
 "Внимание:\n"
-"2 периметра у органического стиля древовидных поддержек можетиметь только с шаблон «Полость» (по умолчанию).\n"
+"2 периметра у органического стиля древовидных поддержек может иметь только с шаблон «Полость» (по умолчанию).\n"
 "Шаблон заполнения «Молния» несовместим с обычным типом поддержек и органическим стилем древовидных поддержек, при\n"
 "выборе несовместимых настроек он будет заменён на зигзаг."
 
@@ -17219,7 +17225,7 @@ msgstr ""
 "В отличие от целевой температуры не приводит к автоматической генерации команд M141/M191 и нужна только для использования в секции G-кода."
 
 msgid "Chamber minimal temperature"
-msgstr "Минимальная температура термокамеры"
+msgstr "Стартовая температура термокамеры"
 
 msgid "Nozzle temperature after the first layer"
 msgstr "Температура при печати последующих слоёв."
@@ -18630,8 +18636,8 @@ msgid ""
 "Within the same extruder, the name(%s) must be unique when the filament type, nozzle diameter, and nozzle flow are the same.\n"
 "Are you sure you want to override the historical result?"
 msgstr ""
-"Для одного экструдера имя (%s) должно быть уникальным при одинаковых типе филамента, диаметре и потоке сопла.\n"
-"Вы уверены, что хотите перезаписать предыдущий результат?"
+"Для одного экструдера имя (%s) должно быть уникальным, если тип материала, диаметр сопла и поток одинаковы.\n"
+"Перезаписать прошлый результат?"
 
 #, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
@@ -18650,7 +18656,7 @@ msgid "Internal Error"
 msgstr "Внутренняя ошибка"
 
 msgid "Please select at least one filament for calibration"
-msgstr "Выберите хотя бы один пруток для калибровки"
+msgstr "Выберите хотя бы один материал для калибровки"
 
 msgid "Flow rate calibration result has been saved to preset."
 msgstr "Результат калибровки динамики потока был сохранён в профиль."
@@ -18697,6 +18703,7 @@ msgstr ""
 msgid "When to use Flow Rate Calibration"
 msgstr "В каких случаях необходима калибровка скорости потока"
 
+# Requires refactoring
 msgid ""
 "After using Flow Dynamics Calibration, there might still be some extrusion issues, such as:\n"
 "1. Over-Extrusion: Excess material on your printed object, forming blobs or zits, or the layers seem thicker than expected and not uniform\n"
@@ -18756,7 +18763,7 @@ msgid "*We recommend you to add brand, materia, type, and even humidity level in
 msgstr "*Рекомендуется указывать в названии производителя, тип материала и даже уровень влажности"
 
 msgid "Please enter the name you want to save to printer."
-msgstr "Введите имя, которое хотите сохранить на принтере."
+msgstr "Введите имя для сохранения на принтере."
 
 msgid "The name cannot exceed 40 characters."
 msgstr "Максимальная длина имени 40 символов."
@@ -18792,7 +18799,7 @@ msgid "Please input a valid value (0.0 < flow ratio < 2.0)"
 msgstr "Введите допустимое значение (0.0 < коэффициент потока < 2.0)"
 
 msgid "Please enter the name of the preset you want to save."
-msgstr "Введите имя профиля, которое хотите сохранить."
+msgstr "Введите имя профиля для сохранения."
 
 msgid "Calibration1"
 msgstr "Калибровка 1"
@@ -18991,8 +18998,8 @@ msgid ""
 "There are several IP addresses resolving to hostname %1%.\n"
 "Please select one that should be used."
 msgstr ""
-"Существует несколько IP-адресов, соответствующих имени хоста %1%.\n"
-"Пожалуйста, выберите тот, который хотите использовать."
+"По имени хоста %1% обнаружено несколько IP-адресов.\n"
+"Выберите адрес для использования."
 
 # В заголовке окна куча места
 msgid "PA Calibration"
@@ -19342,7 +19349,7 @@ msgstr "После загрузки переключиться на вкладк
 
 #, c-format, boost-format
 msgid "Upload filename doesn't end with \"%s\". Do you wish to continue?"
-msgstr "Имя загружаемого файла не заканчивается на \"%s\". Хотите продолжить?"
+msgstr "Имя загружаемого файла не заканчивается на \"%s\". Продолжить?"
 
 msgid "Upload"
 msgstr "Загрузить"
@@ -19540,9 +19547,6 @@ msgstr "Скопировать текущий профиль материала 
 msgid "Basic Information"
 msgstr "Основная информация"
 
-# ??? Создать профиль для этого прутка, Создание профиля прутка для данный
-# прутка
-# ??? было Добавление профиля прутка под текущий пруток
 msgid "Add Filament Preset under this filament"
 msgstr "Создание профиля для данного материала"
 
@@ -19608,8 +19612,8 @@ msgid ""
 "The Filament name %s you created already exists.\n"
 "If you continue, the preset created will be displayed with its full name. Do you want to continue?"
 msgstr ""
-"Материал с таким именем %s уже существует.\n"
-"Если продолжить создание, то созданный профиль будет отображаться с полным именем. Хотите продолжить?"
+"Материал с именем «%s» уже существует.\n"
+"Если продолжить создание, то созданный профиль будет отображаться с полным именем. Продолжить?"
 
 # ??? Создание некоторых профилей завершилось с ошибкой. Список проблемных
 # профилей:
@@ -19621,7 +19625,7 @@ msgid ""
 "Do you want to rewrite it?"
 msgstr ""
 "\n"
-"Хотите перезаписать его?"
+"Перезаписать?"
 
 msgid ""
 "We would rename the presets as \"Vendor Type Serial @printer you selected\".\n"
@@ -19724,8 +19728,8 @@ msgid ""
 "and filament and process presets without the same preset name will be reserved.\n"
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
-"Профиль принтера с таким именем уже существует. Хотите перезаписать его?\n"
-"\tДа: перезаписать профиль принтера. Профили материала и настроек печати с теми же именами будут созданы заново, а профили без имени будут зарезервированы.\n"
+"Профиль принтера с таким именем уже существует. Перезаписать его?\n"
+"\tДа: перезаписать профиль принтера. Профили материалов и настроек печати с теми же именами будут созданы заново, а профили без имени будут зарезервированы.\n"
 "\tОтмена: не создавать профиль и вернуться на экран создания."
 
 msgid "You need to select at least one filament preset."
@@ -19816,6 +19820,7 @@ msgstr ""
 "Обратите внимание, что на качество печати существенно влияют температура сопла,\n"
 "температура стола и максимальный объёмный расход. Подбирайте их с осторожностью."
 
+# Orca has detected that – вообще можно не переводить
 msgid ""
 "\n"
 "\n"
@@ -19831,19 +19836,19 @@ msgid "Printer Setting"
 msgstr "Настроить принтер"
 
 msgid "Printer config bundle(.orca_printer)"
-msgstr "Printer config bundle(.orca_printer) - Пакет профилей принтера"
+msgstr "Пакет профилей принтера (.orca_printer)"
 
 msgid "Filament bundle(.orca_filament)"
-msgstr "Filament bundle(.orca_filament) - Пакет профилей материалов"
+msgstr "Пакет профилей материалов (.orca_filament)"
 
 msgid "Printer presets(.zip)"
-msgstr "Printer presets(.zip) - Профили принтеров"
+msgstr "Профили принтеров (.zip)"
 
 msgid "Filament presets(.zip)"
-msgstr "Filament presets (.zip) - Профили материалов"
+msgstr "Профили материалов (.zip)"
 
 msgid "Process presets(.zip)"
-msgstr "Process presets (.zip) - Профили настроек печати"
+msgstr "Профили настроек печати (.zip)"
 
 msgid "initialize fail"
 msgstr "ошибка инициализации"
@@ -19868,7 +19873,7 @@ msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
 "If not, a time suffix will be added, and you can modify the name after creation."
 msgstr ""
-"Файл '%s' уже существует в текущем каталоге. Хотите перезаписать его?\n"
+"Файл \"%s\" уже существует в текущем каталоге. Перезаписать его?\n"
 "Если нет, то к имени будет добавлен временной суффикс."
 
 #, c-format, boost-format
@@ -19925,7 +19930,7 @@ msgid "Please select at least one printer or filament."
 msgstr "Выберите хотя бы один принтер или материал."
 
 msgid "Please select a preset type you want to export"
-msgstr "Выберите тип профилей, который вы хотите экспортировать"
+msgstr "Выберите тип профилей, которые вы хотите экспортировать"
 
 msgid "Failed to create temporary folder, please try Export Configs again."
 msgstr "Не удалось создать временную папку, пожалуйста, попробуйте экспортировать конфигурацию ещё раз."
@@ -20609,7 +20614,7 @@ msgid "AMS Status"
 msgstr "Статус AMS"
 
 msgid "Please select the devices you would like to manage here (up to 6 devices)"
-msgstr "Пожалуйста, выберите устройства, которыми хотите управлять (до 6 устройств)"
+msgstr "Укажите устройства для управления (до 6 штук)"
 
 msgid "Printing Options"
 msgstr "Параметры печати"
