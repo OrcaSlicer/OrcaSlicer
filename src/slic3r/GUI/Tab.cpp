@@ -8288,6 +8288,9 @@ void Tab::sync_excluder()
     auto dest_str = std::to_string(dest_index);
     auto dirty_options = m_presets->current_dirty_options(true);
     DynamicConfig config_origin, config_to_apply;
+    // An unresolved extruder variant gives -1, which would index set_at() out of range.
+    if (from_index < 0 || dest_index < 0)
+        return;
     for (int i = 0; i < dirty_options.size(); ++i) {
         auto &opt = dirty_options[i];
         auto n= opt.find('#');

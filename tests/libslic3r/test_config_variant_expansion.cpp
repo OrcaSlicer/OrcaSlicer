@@ -81,6 +81,21 @@ TEST_CASE("get_config_index_base resolves (volume type, extruder type, id) to a 
     }
 }
 
+TEST_CASE("get_index_for_extruder returns -1 when no variant column matches the extruder", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("print_extruder_id", true)->values = {1};
+    config.option<ConfigOptionStrings>("print_extruder_variant", true)->values = {"Direct Drive Standard"};
+
+    SECTION("the extruder that owns the column resolves to its slot") {
+        REQUIRE(config.get_index_for_extruder(1, "print_extruder_id", etDirectDrive, nvtStandard, "print_extruder_variant") == 0);
+    }
+
+    SECTION("an extruder with no matching column resolves to -1") {
+        REQUIRE(config.get_index_for_extruder(2, "print_extruder_id", etDirectDrive, nvtStandard, "print_extruder_variant") == -1);
+    }
+}
+
 TEST_CASE("get_extruder_nozzle_volume_count reads the per-extruder volume-type layout", "[Config]")
 {
     std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
