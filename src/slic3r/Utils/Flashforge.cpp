@@ -562,6 +562,7 @@ bool Flashforge::upload_local_api(PrintHostUpload upload_data, ProgressFn progre
     auto        leveling_before_print = upload_data.extended_info["levelingBeforePrint"] == "1";
     auto        time_lapse_video      = upload_data.extended_info["timeLapseVideo"] == "1";
     auto        use_material_station  = upload_data.extended_info["useMatlStation"] == "1";
+    auto        flow_calibration      = upload_data.extended_info["flowCalibration"] == "1";
 
     if (auto it = upload_data.extended_info.find("materialMappings"); it != upload_data.extended_info.end())
         material_map_json = it->second;
@@ -585,7 +586,7 @@ bool Flashforge::upload_local_api(PrintHostUpload upload_data, ProgressFn progre
         .header("fileSize", file_size)
         .header("printNow", upload_data.post_action == PrintHostPostUploadAction::StartPrint ? "true" : "false")
         .header("levelingBeforePrint", leveling_before_print ? "true" : "false")
-        .header("flowCalibration", "false")
+        .header("flowCalibration", flow_calibration ? "true" : "false")
         .header("firstLayerInspection", "false")
         .header("timeLapseVideo", time_lapse_video ? "true" : "false")
         .header("useMatlStation", use_material_station ? "true" : "false")
