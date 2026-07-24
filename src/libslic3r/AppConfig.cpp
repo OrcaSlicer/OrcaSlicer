@@ -602,6 +602,9 @@ void AppConfig::set_defaults()
         set_bool("is_split_compound", false);
     }
 
+    if (get("show_spoolman_consumption_dialog").empty())
+        set_bool("show_spoolman_consumption_dialog", true);
+  
     if(get("installed_networking").empty()) {
         set_bool("installed_networking", false);
     }

@@ -3276,11 +3276,37 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionStrings());
     def->cli = ConfigOptionDef::nocli;
 
+    def = this->add("filament_remaining_weight", coFloats);
+    def->set_default_value(new ConfigOptionFloats());
+    def->cli = ConfigOptionDef::nocli;
+
+    def = this->add("filament_remaining_length", coFloats);
+    def->set_default_value(new ConfigOptionFloats());
+    def->cli = ConfigOptionDef::nocli;
+
     def = this->add("filament_vendor", coStrings);
     def->label = L("Vendor");
     def->tooltip = L("Vendor of filament. For show only.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings{L("(Undefined)")});
+    def->cli = ConfigOptionDef::nocli;
+
+    def = this->add("spoolman_filament_id", coInts);
+    def->label = L("Filament ID");
+    def->tooltip = L("The filament ID of this profile within your Spoolman instance. This will allow automatic spool switching when "
+                     "using moonraker to track spool usage and one touch updating of this filament profile from the Spoolman properties. "
+                     "Setting this to a value of 0 disables its functionality.");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionInts({ 0 }));
+    def->cli = ConfigOptionDef::nocli;
+
+    def = this->add("spoolman_spool_id", coInts);
+    def->label = L("Spool ID");
+    def->tooltip = L("The currently selected spool ID of this profile. "
+                     "After providing a valid filament ID, the spool can be selected using the Spoolman button on the sidebar.");
+    def->mode = comSimple;
+    def->readonly = true;
+    def->set_default_value(new ConfigOptionInts({ 0 }));
     def->cli = ConfigOptionDef::nocli;
 
     def = this->add("infill_direction", coFloat);
@@ -4226,6 +4252,29 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Enable this option if you want to use multiple bed types.");
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("handles_spoolman_consumption", coBool);
+    def->label = L("Handles Spoolman consumption");
+    def->tooltip = L("Indicates that the printer will handle sending consumption requests to Spoolman");
+    def->mode = comSimple;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("spoolman_clear_spool_macro", coString);
+    def->label = L("Clear spool macro");
+    def->tooltip = L("Set the klipper macro that will be used to clear the active Spoolman spool.\n"
+                     "If you use the moonraker macro, this option's should be set to 'CLEAR_ACTIVE_SPOOL'.");
+    def->mode = comSimple;
+    def->full_width = true;
+    def->set_default_value(new ConfigOptionString(""));
+
+    def = this->add("spoolman_set_spool_macro", coString);
+    def->label = L("Set spool macro");
+    def->tooltip = L("Set the klipper macro that will be used to set the active Spoolman spool.\n"
+                     "This option will be parsed and replace '%id%' in the value with the spool ID to be set active."
+                     "If you use the moonraker provided macro, this option should be set to 'SET_ACTIVE_SPOOL ID=%id%'.");
+    def->mode = comSimple;
+    def->full_width = true;
+    def->set_default_value(new ConfigOptionString(""));
 
     def = this->add("gcode_label_objects", coBool);
     def->label = L("Label objects");
@@ -9316,7 +9365,7 @@ DynamicPrintConfig DynamicPrintConfig::full_print_config()
 	return DynamicPrintConfig((const PrintRegionConfig&)FullPrintConfig::defaults());
 }
 
-DynamicPrintConfig::DynamicPrintConfig(const StaticPrintConfig& rhs) : DynamicConfig(rhs, rhs.keys_ref())
+DynamicPrintConfig::DynamicPrintConfig(const StaticPrintConfig& rhs) : DynamicConfigWithDef(rhs, rhs.keys_ref())
 {
 }
 

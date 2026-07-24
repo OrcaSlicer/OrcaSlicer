@@ -894,6 +894,28 @@ enum FilamentCompatibilityType {
     InvalidTemperatureRange
 };
 
+
+struct SpoolmanFilamentConsumptionEstimate
+{
+    const unsigned int print_config_idx;
+    const unsigned int spoolman_spool_id;
+    const std::string  filament_name;
+    const double       est_used_length;
+    const double       est_used_weight;
+
+    SpoolmanFilamentConsumptionEstimate(const unsigned int& print_config_idx, const PrintConfig& config, const double& est_used_length, const double& est_used_weight)
+    : print_config_idx(print_config_idx)
+    , spoolman_spool_id(config.spoolman_spool_id.get_at(print_config_idx))
+    , filament_name(config.filament_settings_id.get_at(print_config_idx))
+    , est_used_length(est_used_length)
+    , est_used_weight(est_used_weight)
+    {}
+
+    // Alternate that allows the estimates to be provided as a std::pair [est_used_length, est_used_weight]
+    SpoolmanFilamentConsumptionEstimate(const unsigned int& print_config_idx, const PrintConfig& config, const std::pair<double, double>& estimates) :
+        SpoolmanFilamentConsumptionEstimate(print_config_idx, config, estimates.first, estimates.second) {}
+};
+
 // The complete print tray with possibly multiple objects.
 class Print : public PrintBaseWithState<PrintStep, psCount>
 {
@@ -1161,6 +1183,8 @@ public:
     void set_check_multi_filaments_compatibility(bool check) { m_need_check_multi_filaments_compatibility = check; }
     bool need_check_multi_filaments_compatibility() const { return m_need_check_multi_filaments_compatibility; }
 
+    void set_spoolman_enabled(bool enabled) { m_spoolman_enabled = enabled; }
+
     // scaled point
     Vec2d translate_to_print_space(const Point &point) const;
     static FilamentTempType get_filament_temp_type(const std::string& filament_type);
@@ -1197,6 +1221,8 @@ public:
      Vec3d shrinkage_compensation() const;
 
     std::tuple<float, float> object_skirt_offset(double margin_height = 0) const;
+
+    std::vector<SpoolmanFilamentConsumptionEstimate> get_spoolman_filament_consumption_estimates() const;
 
 protected:
     struct FilamentIndexKey
@@ -1351,13 +1377,15 @@ private:
     ConflictResultOpt m_conflict_result;
     FakeWipeTower     m_fake_wipe_tower;
     bool              m_has_auto_filament_map_result{false};
-    
+
     std::vector<std::set<int>> m_geometric_unprintable_filaments;
 
     //SoftFever: calibration
     Calib_Params m_calib_params;
 
     bool m_need_check_multi_filaments_compatibility{true};
+
+    bool m_spoolman_enabled{false};
 
     // To allow GCode to set the Print's GCodeExport step status.
     friend class GCode;

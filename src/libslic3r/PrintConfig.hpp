@@ -31,18 +31,18 @@
 namespace Slic3r {
 
 enum GCodeFlavor : unsigned char {
-    gcfMarlinLegacy, 
-    gcfKlipper, 
-    gcfRepRapFirmware, 
-    gcfRepetier, 
-    gcfMarlinFirmware, 
-    gcfRepRapSprinter, 
-    gcfTeacup, 
-    gcfMakerWare, 
-    gcfSailfish, 
-    gcfMach3, 
+    gcfMarlinLegacy,
+    gcfKlipper,
+    gcfRepRapFirmware,
+    gcfRepetier,
+    gcfMarlinFirmware,
+    gcfRepRapSprinter,
+    gcfTeacup,
+    gcfMakerWare,
+    gcfSailfish,
+    gcfMach3,
     gcfMachinekit,
-    gcfSmoothie, 
+    gcfSmoothie,
     gcfNoExtrusion
 };
 
@@ -743,14 +743,14 @@ struct FilamentVariantUse
 // The dynamic configuration is also used to store user modifications of the print global parameters,
 // so the modified configuration values may be diffed against the active configuration
 // to invalidate the proper slicing resp. g-code generation processing steps.
-class DynamicPrintConfig : public DynamicConfig
+class DynamicPrintConfig : public DynamicConfigWithDef
 {
 public:
     DynamicPrintConfig() {}
-    DynamicPrintConfig(const DynamicPrintConfig &rhs) : DynamicConfig(rhs) {}
-    DynamicPrintConfig(DynamicPrintConfig &&rhs) noexcept : DynamicConfig(std::move(rhs)) {}
+    DynamicPrintConfig(const DynamicPrintConfig &rhs) : DynamicConfigWithDef(rhs) {}
+    DynamicPrintConfig(DynamicPrintConfig &&rhs) noexcept : DynamicConfigWithDef(std::move(rhs)) {}
     explicit DynamicPrintConfig(const StaticPrintConfig &rhs);
-    explicit DynamicPrintConfig(const ConfigBase &rhs) : DynamicConfig(rhs) {}
+    explicit DynamicPrintConfig(const ConfigBase &rhs) : DynamicConfigWithDef(rhs) {}
 
     DynamicPrintConfig& operator=(const DynamicPrintConfig &rhs) { DynamicConfig::operator=(rhs); return *this; }
     DynamicPrintConfig& operator=(DynamicPrintConfig &&rhs) noexcept { DynamicConfig::operator=(std::move(rhs)); return *this; }
@@ -1409,7 +1409,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloatOrPercent,       scarf_joint_speed))
     ((ConfigOptionFloat,                scarf_joint_flow_ratio))
     ((ConfigOptionPercent,              scarf_overhang_threshold))
-    
+
     // Orca: Z Anti-Aliasing (aka Z Contouring)
     ((ConfigOptionBool, zaa_enabled))
     ((ConfigOptionBool, zaa_dont_alternate_fill_direction))
@@ -1497,6 +1497,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Used to overcome the PWM start-up threshold on fans that cannot spool below a certain duty cycle.
     // A value of 0 (the default) leaves behaviour unchanged. A fan command of 0 (off) is always honoured.
     ((ConfigOptionInt,                 part_cooling_fan_min_pwm))
+    ((ConfigOptionStrings,             filament_settings_id))
     ((ConfigOptionFloats,              filament_diameter))
     ((ConfigOptionBoolsNullable,       filament_adaptive_volumetric_speed))
     ((ConfigOptionStrings,             volumetric_speed_coefficients))
@@ -1693,6 +1694,15 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloats,   filament_dev_chamber_drying_time))
     ((ConfigOptionFloats,   filament_dev_drying_softening_temperature))
     ((ConfigOptionFloats,   filament_dev_drying_cooling_temperature))
+
+    //Spoolman
+    ((ConfigOptionInts,                spoolman_filament_id))
+    ((ConfigOptionInts,                spoolman_spool_id))
+    ((ConfigOptionFloats,              filament_remaining_weight))
+    ((ConfigOptionFloats,              filament_remaining_length))
+    ((ConfigOptionBool,                handles_spoolman_consumption))
+    ((ConfigOptionString,              spoolman_clear_spool_macro))
+    ((ConfigOptionString,              spoolman_set_spool_macro))
 )
 
 // This object is mapped to Perl as Slic3r::Config::Print.

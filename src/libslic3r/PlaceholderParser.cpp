@@ -1714,6 +1714,22 @@ namespace client
             out.it_range = opt.it_range;
         }
 
+        static void join_vector(const MyContext *ctx, OptWithPos &opt, boost::optional<expr> &param1, expr &out)
+        {
+            if (! ctx->skipping()) {
+                if (opt.has_index() || ! opt.opt->is_vector())
+                    ctx->throw_exception("parameter of concat() is not a vector variable", opt.it_range);
+                std::string out_string;
+                std::string delim = param1.has_value() ? param1->to_string() : " ";
+                for (const auto& value : static_cast<const ConfigOptionVectorBase*>(opt.opt)->vserialize()) {
+                    out_string.append(value).append(delim);
+                }
+                if (!out_string.empty())
+                    out_string.erase(out_string.size()-delim.size());
+                out.set_s(std::move(out_string));
+            }
+        }
+
         // Verify that the expression returns an integer, which may be used
         // to address a vector.
         static void evaluate_index(expr &expr_index, int &output)
@@ -2353,6 +2369,7 @@ namespace client
                 |   (kw["one_of"] > '(' > one_of(_r1) > ')')        [ _val = _1 ]
                 |   (kw["empty"] > '(' > variable_reference(_r1) > ')') [px::bind(&MyContext::is_vector_empty, _r1, _1, _val)]
                 |   (kw["size"] > '(' > variable_reference(_r1) > ')') [px::bind(&MyContext::vector_size, _r1, _1, _val)]
+                |   (kw["join"] > '(' > variable_reference(_r1) > -(',' > conditional_expression(_r1)) > ')' ) [px::bind(&MyContext::join_vector, _r1, _1, _2, _val)]
                 |   (kw["interpolate_table"] > '(' > interpolate_table(_r1) > ')') [ _val = _1 ]
                 |   (strict_double > iter_pos)                      [ px::bind(&FactorActions::double_, _r1, _1, _2, _val) ]
                 |   (int_      > iter_pos)                          [ px::bind(&FactorActions::int_,    _r1, _1, _2, _val) ]
@@ -2407,7 +2424,7 @@ namespace client
             regular_expression = raw[lexeme['/' > *((utf8char - char_('\\') - char_('/')) | ('\\' > char_)) > '/']];
             regular_expression.name("regular_expression");
 
-            keywords.add
+            (void)keywords.add
                 ("and")
                 ("digits")
                 ("zdigits")
@@ -2422,6 +2439,7 @@ namespace client
                 ("endif")
                 ("false")
                 ("global")
+                ("join")
                 ("interpolate_table")
                 ("min")
                 ("max")

@@ -127,6 +127,7 @@
 #include "Notebook.hpp"
 #include "Widgets/Label.hpp"
 #include "Widgets/ProgressDialog.hpp"
+#include "Spoolman.hpp"
 
 //BBS: DailyTip and UserGuide Dialog
 #include "WebDownPluginDlg.hpp"
@@ -3292,6 +3293,9 @@ bool GUI_App::on_init_inner()
             show_error(nullptr, ex.what());
         }
     //}
+
+    if (Spoolman::is_server_valid())
+        Spoolman::get_instance(); // Spoolman is initialized upon getting the instance the first time
 
 #ifdef WIN32
     register_win32_device_notification_event();

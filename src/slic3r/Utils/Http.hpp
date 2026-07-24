@@ -87,6 +87,7 @@ public:
 	//BBS
 	static Http put2(std::string url);
 	static Http patch(std::string url);
+    static Http head(std::string url);
 
 	//BBS set global header for each http request
 	static void set_extra_headers(std::map<std::string, std::string> headers);

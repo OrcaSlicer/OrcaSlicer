@@ -1,5 +1,6 @@
 #include "MoonrakerPrinterAgent.hpp"
 #include "Http.hpp"
+#include "Spoolman.hpp"
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/PresetBundle.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
@@ -667,6 +668,32 @@ std::string MoonrakerPrinterAgent::map_filament_type_to_generic_id(const std::st
     return UNKNOWN_FILAMENT_ID;
 }
 
+std::string MoonrakerPrinterAgent::get_filament_id(int spoolman_spool_id, const std::string& filament_type)
+{
+    auto* bundle = GUI::wxGetApp().preset_bundle;
+    // Attempt to find filament associated with Spoolman first
+    if (spoolman_spool_id > 0) {
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << "Spoolman ID available. Attempting to find an associated spool with ID " << spoolman_spool_id << "...";
+        auto spoolman = Spoolman::get_instance();
+        auto spool   = spoolman->get_spoolman_spool_by_id(spoolman_spool_id);
+        if (spool.has_value()) {
+            auto spoolman_filament_id = spool->get()->filament->id;
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << "Attempting to find a filament with Spoolman filament ID " << spoolman_filament_id << "...";
+            for (auto filament : bundle->filaments.get_compatible()) {
+                if (filament->config.opt_int("spoolman_filament_id", 0) == spoolman_filament_id) {
+                    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << "Found filament: " << filament->filament_id;
+                    return filament->filament_id;
+                }
+            }
+        } else {
+            BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << "Could not find a spool with ID " << spoolman_spool_id;
+        }
+        BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << "Falling back to generic filaments";
+    }
+    // Fallback to generic filaments
+    return bundle ? bundle->filaments.filament_id_by_type(filament_type) : map_filament_type_to_generic_id(filament_type);
+}
+
 // JSON helper methods - null-safe accessors
 std::string MoonrakerPrinterAgent::safe_json_string(const nlohmann::json& obj, const char* key)
 {
@@ -770,6 +797,8 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         return false;
     }
 
+    BOOST_LOG_TRIVIAL(trace) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Received JSON data: " << response_body;
+
     auto json = nlohmann::json::parse(response_body, nullptr, false, true);
     if (json.is_discarded()) {
         BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent::fetch_moonraker_filament_data: Invalid JSON response";
@@ -814,10 +843,7 @@ bool MoonrakerPrinterAgent::fetch_moonraker_filament_data(std::vector<AmsTrayDat
         tray.bed_temp = safe_json_int(lane_obj, "bed_temp");
         tray.nozzle_temp = safe_json_int(lane_obj, "nozzle_temp");
         tray.has_filament = !tray.tray_type.empty();
-        auto* bundle = GUI::wxGetApp().preset_bundle;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        tray.tray_info_idx = get_filament_id(safe_json_int(lane_obj, "spool_id"), tray.tray_type);
 
         max_lane_index = std::max(max_lane_index, lane_index);
         trays.push_back(tray);
@@ -868,6 +894,8 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
         return false;
     }
 
+    BOOST_LOG_TRIVIAL(trace) << "MoonrakerPrinterAgent::fetch_hh_filament_data: Received JSON data: " << response_body;
+
     auto json = nlohmann::json::parse(response_body, nullptr, false, true);
     if (json.is_discarded()) {
         BOOST_LOG_TRIVIAL(debug) << "MoonrakerPrinterAgent::fetch_hh_filament_info: Invalid JSON response";
@@ -906,6 +934,7 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
     const auto& gate_material = mmu.contains("gate_material") ? mmu["gate_material"] : nlohmann::json::array();
     const auto& gate_color = mmu.contains("gate_color") ? mmu["gate_color"] : nlohmann::json::array();
     const auto& gate_temperature = mmu.contains("gate_temperature") ? mmu["gate_temperature"] : nlohmann::json::array();
+    const auto& gate_spool_id = mmu.contains("gate_spool_id") ? mmu["gate_spool_id"] : nlohmann::json::array();
 
     if (!gate_status.is_array() || !gate_material.is_array() ||
         !gate_color.is_array() || !gate_temperature.is_array()) {
@@ -928,6 +957,7 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
         std::string material = safe_array_string(gate_material, gate_idx);
         std::string color = safe_array_string(gate_color, gate_idx);
         int nozzle_temp = safe_array_int(gate_temperature, gate_idx);
+        int spool_id = safe_array_int(gate_spool_id, gate_idx);
 
         // Skip if no material type (empty gate)
         if (material.empty()) {
@@ -942,10 +972,7 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
         tray.bed_temp = 0;  // HH doesn't provide bed temp in gate arrays
         tray.has_filament = true;
 
-        auto* bundle = GUI::wxGetApp().preset_bundle;
-        tray.tray_info_idx = bundle
-            ? bundle->filaments.filament_id_by_type(tray.tray_type)
-            : map_filament_type_to_generic_id(tray.tray_type);
+        tray.tray_info_idx = get_filament_id(spool_id, tray.tray_type);
 
         max_lane_index = std::max(max_lane_index, gate_idx);
         trays.push_back(tray);

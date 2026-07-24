@@ -892,6 +892,13 @@ Http Http::patch(std::string url)
 	return http;
 }
 
+Http Http::head(std::string url)
+{
+    Http http{ std::move(url) };
+    curl_easy_setopt(http.p->curl, CURLOPT_NOBODY, 1L);
+    return http;
+}
+
 Http Http::del(std::string url)
 {
 	Http http{ std::move(url) };

@@ -84,6 +84,10 @@ public:
     bool            m_split_multi_line      = false;
     bool            m_option_label_at_right = false;
 
+    // Orca: allow the show value to be overridden by a callback function
+    // The function provides a bool parameter that is set to the current decision on whether it should be shown
+    std::function<bool(bool)> m_should_show_fn = 0;
+
 public:
 	std::vector <ConfigOptionsGroupShp> m_optgroups;
 	DynamicPrintConfig* m_config;
@@ -382,6 +386,7 @@ public:
 	virtual void	build() = 0;
 	virtual void	update() = 0;
 	virtual void	toggle_options() = 0;
+    virtual void    on_begin_saving_preset() {}
 	virtual void	init_options_list();
 	std::string	options_list_storage_key(const std::string& opt_key) const;
     virtual void    update_custom_dirty(std::vector<std::string> &dirty_options, std::vector<std::string> &nonsys_options) {}
@@ -591,6 +596,7 @@ private:
     void            add_filament_overrides_page();
     void            update_filament_overrides_page(const DynamicPrintConfig* printers_config);
 	void 			update_volumetric_flow_preset_hints();
+    void            update_spoolman_statistics();
 
     std::map<std::string, ::CheckBox*> m_overrides_options;
 
@@ -604,6 +610,7 @@ public:
 	void		reload_config() override;
 	void		update_description_lines() override;
 	void		toggle_options() override;
+	void        on_begin_saving_preset() override;
 	void		update() override;
     void        init_options_list() override;
     void        clear_pages() override;

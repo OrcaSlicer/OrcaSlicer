@@ -747,7 +747,7 @@ void ConfigOptionsGroup::back_to_sys_value(const std::string& opt_key)
     back_to_config_value(m_get_sys_config(), opt_key);
 }
 
-void ConfigOptionsGroup::back_to_config_value(const DynamicPrintConfig& config, const std::string& opt_key)
+void ConfigOptionsGroup::back_to_config_value(const DynamicConfigWithDef& config, const std::string& opt_key)
 {
     boost::any value;
     if (opt_key == "extruders_count") {
@@ -999,7 +999,7 @@ boost::any ConfigOptionsGroup::config_value(const std::string& opt_key, int opt_
     }
 }
 
-boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config, const std::string& opt_key, int opt_index /*= -1*/)
+boost::any ConfigOptionsGroup::get_config_value(const DynamicConfigWithDef& config, const std::string& opt_key, int opt_index /*= -1*/)
 {
     size_t idx = opt_index == -1 ? 0 : opt_index;
 
@@ -1157,7 +1157,7 @@ boost::any ConfigOptionsGroup::get_config_value(const DynamicPrintConfig& config
 }
 
 // BBS: restore all pages in preset
-boost::any ConfigOptionsGroup::get_config_value2(const DynamicPrintConfig& config, const std::string& opt_key, int opt_index /*= -1*/)
+boost::any ConfigOptionsGroup::get_config_value2(const DynamicConfigWithDef& config, const std::string& opt_key, int opt_index /*= -1*/)
 {
     size_t idx = opt_index == -1 ? 0 : opt_index;
 
@@ -1288,7 +1288,7 @@ std::pair<OG_CustomCtrl*, bool*> ConfigOptionsGroup::get_custom_ctrl_with_blinki
 void ConfigOptionsGroup::change_opt_value(const t_config_option_key& opt_key, const boost::any& value, int opt_index /*= 0*/)
 
 {
-    Slic3r::GUI::change_opt_value(const_cast<DynamicPrintConfig&>(*m_config), opt_key, value, opt_index);
+    Slic3r::GUI::change_opt_value(const_cast<DynamicConfigWithDef&>(*m_config), opt_key, value, opt_index);
     if (m_modelconfig)
         m_modelconfig->touch();
 }

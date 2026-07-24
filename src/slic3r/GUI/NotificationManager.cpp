@@ -28,6 +28,8 @@
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
+#include "Spoolman.hpp"
+
 #include <imgui/imgui_internal.h>
 
 static constexpr float GAP_WIDTH = 10.0f;
@@ -1965,7 +1967,7 @@ void NotificationManager::push_validate_error_notification(StringObjectException
                              selected = true;
                          }
                       }
-                      
+
                       if (!selected) {
                            wxGetApp().obj_list()->select_items({ {obj, nullptr} });
                       }
@@ -2034,8 +2036,14 @@ void NotificationManager::push_slicing_error_notification(const std::string &tex
         }
         link += "] ";
     }
-    set_all_slicing_errors_gray(false);
-	push_notification_data({ NotificationType::SlicingError, NotificationLevel::ErrorNotificationLevel, 0,  _u8L("Error:") + "\n" + text, link, callback }, 0);
+
+    NotificationData data { NotificationType::SlicingError, NotificationLevel::ErrorNotificationLevel, 0,  _u8L("Error:") + "\n" + text, link, callback };
+    auto notification = std::make_unique<ObjectIDNotification>(data, m_id_provider, m_evt_handler);
+    notification->plate_id = wxGetApp().plater()->get_current_slicing_plate_index();
+
+    set_all_slicing_errors_gray(false, notification->plate_id);
+
+	push_notification_data(std::move(notification), 0);
 	set_slicing_progress_hidden();
 }
 void NotificationManager::push_slicing_warning_notification(const std::string& text, bool gray, ModelObject const * obj, ObjectID oid, int warning_step, int warning_msg_id, NotificationLevel level/* = NotificationLevel::WarningNotificationLevel*/)
@@ -2062,6 +2070,8 @@ void NotificationManager::push_slicing_warning_notification(const std::string& t
 	auto notification = std::make_unique<NotificationManager::ObjectIDNotification>(data, m_id_provider, m_evt_handler);
 	notification->object_id = oid;
 	notification->warning_step = warning_step;
+    notification->plate_id = wxGetApp().plater()->get_current_slicing_plate_index();
+
 	if (push_notification_data(std::move(notification), 0)) {
 		m_pop_notifications.back()->set_gray(gray);
 	}
@@ -2153,21 +2163,25 @@ void NotificationManager::close_flushing_volume_error_notification(NotificationT
     }
 }
 
-void NotificationManager::set_all_slicing_errors_gray(bool g)
+void NotificationManager::set_all_slicing_errors_gray(bool g, int plate_id)
 {
-	for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
-		if (notification->get_type() == NotificationType::SlicingError) {
-			notification->set_gray(g);
-		}
-	}
+    for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
+        if (notification->get_type() == NotificationType::SlicingError) {
+            if (auto obj_notif = dynamic_cast<ObjectIDNotification*>(notification.get()); plate_id == -1 || obj_notif->plate_id == plate_id) {
+                notification->set_gray(g);
+            }
+        }
+    }
 }
-void NotificationManager::set_all_slicing_warnings_gray(bool g)
+void NotificationManager::set_all_slicing_warnings_gray(bool g, int plate_id)
 {
-	for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
-		if (notification->get_type() == NotificationType::SlicingWarning) {
-			notification->set_gray(g);
-		}
-	}
+    for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
+        if (notification->get_type() == NotificationType::SlicingWarning) {
+            if (auto obj_notif = dynamic_cast<ObjectIDNotification*>(notification.get()); plate_id == -1 || obj_notif->plate_id == plate_id) {
+                notification->set_gray(g);
+            }
+        }
+    }
 }
 /*
 void NotificationManager::set_slicing_warning_gray(const std::string& text, bool g)
@@ -2187,6 +2201,15 @@ void NotificationManager::close_slicing_errors_and_warnings()
 		}
 	}
 }
+void NotificationManager::close_slicing_errors_and_warnings(int plate_idx) {
+    for (std::unique_ptr<PopNotification>& notification : m_pop_notifications) {
+        if (notification->get_type() == NotificationType::SlicingError || notification->get_type() == NotificationType::SlicingWarning) {
+            if (auto oid_notif = dynamic_cast<ObjectIDNotification*>(notification.get()); oid_notif->plate_id == plate_idx) {
+                oid_notif->close();
+            }
+        }
+    }
+}
 void NotificationManager::close_slicing_error_notification(const std::string& text)
 {
 	for (std::unique_ptr<PopNotification>& notification : m_pop_notifications) {
@@ -2194,6 +2217,18 @@ void NotificationManager::close_slicing_error_notification(const std::string& te
 			notification->close();
 		}
 	}
+}
+void NotificationManager::hide_slicing_notifications_from_other_plates(int current_plate_id)
+{
+    for (std::unique_ptr<PopNotification> &notification : m_pop_notifications) {
+        if (notification->get_type() == NotificationType::SlicingWarning ||
+            notification->get_type() == NotificationType::SlicingSeriousWarning ||
+            notification->get_type() == NotificationType::SlicingError) {
+            if (auto oid_notif = dynamic_cast<ObjectIDNotification*>(notification.get())) {
+                oid_notif->hide(oid_notif->plate_id != current_plate_id);
+            }
+        }
+    }
 }
 void  NotificationManager::push_simplify_suggestion_notification(const std::string& text, ObjectID object_id, const std::string& hypertext/* = ""*/, std::function<bool(wxEvtHandler*)> callback/* = std::function<bool(wxEvtHandler*)>()*/)
 {
@@ -2241,12 +2276,12 @@ void NotificationManager::clear_all()
     }
 }
 
-void NotificationManager::remove_slicing_warnings_of_released_objects(const std::vector<ObjectID>& living_oids)
+void NotificationManager::remove_slicing_warnings_of_released_objects(const std::vector<ObjectID>& living_oids, int plate_id)
 {
 	for (std::unique_ptr<PopNotification> &notification : m_pop_notifications)
 		if (notification->get_type() == NotificationType::SlicingWarning) {
-			if (! std::binary_search(living_oids.begin(), living_oids.end(),
-				static_cast<ObjectIDNotification*>(notification.get())->object_id))
+			if (auto oid_notif = static_cast<ObjectIDNotification*>(notification.get());
+			    !std::binary_search(living_oids.begin(), living_oids.end(), oid_notif->object_id) && oid_notif->plate_id == plate_id)
 				notification->close();
 		}
 }
@@ -2294,6 +2329,19 @@ void NotificationManager::push_import_finished_notification(const std::string& p
     set_slicing_progress_hidden();
 }
 
+void NotificationManager::push_spoolman_consumption_finished_notification()
+{
+    close_notification_of_type(NotificationType::SpoolmanConsumptionFinished);
+    auto callback = [](wxEvtHandler*) {
+        if (Spoolman::get_instance()->undo_use_spoolman_spools())
+            return true;
+        show_error(nullptr, _L("Failed to undo Spoolman filament consumption"));
+        return false;
+    };
+    NotificationData data {NotificationType::SpoolmanConsumptionFinished, NotificationLevel::RegularNotificationLevel, 0, _u8L("Spoolman consumption finished successfully.") + " ", _u8L("Undo"), callback };
+    push_notification_data(data, 0);
+}
+
 // SharedProfilesNotification implementation
 
 void NotificationManager::SharedProfilesNotification::init()
@@ -2301,7 +2349,7 @@ void NotificationManager::SharedProfilesNotification::init()
 	PopNotification::init();
 
     // PopNotification::count_lines() may append a duplicate "hypertext doesn't fit inline" placeholder endline (same value as the previous entry)
-    // for the generic renderer's benefit. This class always renders its hyperlink on its own dedicated line regardless, 
+    // for the generic renderer's benefit. This class always renders its hyperlink on its own dedicated line regardless,
     // so that placeholder is meaningless here and would otherwise be drawn as a spurious blank text row.
     if (!m_hypertext.empty() && m_endlines.size() >= 2 && m_endlines.back() == m_endlines[m_endlines.size() - 2]) {
         m_endlines.pop_back();
@@ -2309,7 +2357,7 @@ void NotificationManager::SharedProfilesNotification::init()
     }
 
     // Reserve rows for: "Browse shared profiles" hyperlink, spacing, "Don't show again"
-    m_lines_count += 3; 
+    m_lines_count += 3;
 }
 
 void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& imgui,
@@ -2343,9 +2391,9 @@ void NotificationManager::SharedProfilesNotification::render_text(ImGuiWrapper& 
 
         if (!m_multiline && m_lines_count > 2) {
 		    render_hypertext(imgui, x_offset + (m_endlines.size() == 1 ? 0 : ImGui::CalcTextSize((line + " ").c_str()).x) , starting_y + shift_y, _u8L("More"), true);
-	    } 
+	    }
         else {
-	    // Render "Browse shared profiles" hyperlink on the next line	
+	    // Render "Browse shared profiles" hyperlink on the next line
 	    render_hypertext(imgui, x_offset, hyper_y, m_hypertext);
 
 		// Invisible button
@@ -2744,7 +2792,7 @@ void NotificationManager::push_slicing_serious_warning_notification(const std::s
             for (const auto& pair : ids) {
                 ObjectID obj_id = pair.first;
                 ObjectID inst_id = pair.second;
-                
+
                 auto iter = std::find_if(objects.begin(), objects.end(), [obj_id](auto o) { return o->id() == obj_id; });
                 if (iter != objects.end()) {
                     ModelObject* obj = *iter;
@@ -2755,7 +2803,7 @@ void NotificationManager::push_slicing_serious_warning_notification(const std::s
                             break;
                         }
                     }
-                    
+
                     if (inst_idx != -1) {
                         wxDataViewItem item;
                         wxDataViewItem objItem = model->GetObjectItem(obj);
@@ -2776,9 +2824,9 @@ void NotificationManager::push_slicing_serious_warning_notification(const std::s
                     }
                 }
             }
-            
+
             wxGetApp().mainframe->select_tab(MainFrame::tp3DEditor);
-            
+
             if (!sel_items.empty()) {
                 obj_list->select_items(sel_items);
                 obj_list->update_selections_on_canvas();
@@ -2786,7 +2834,7 @@ void NotificationManager::push_slicing_serious_warning_notification(const std::s
                 obj_list->select_items(fallback_ovs);
                 obj_list->update_selections_on_canvas();
             }
-            
+
             return false;
         };
     }
@@ -2805,10 +2853,14 @@ void NotificationManager::push_slicing_serious_warning_notification(const std::s
         }
         link += "] ";
     }
-    set_all_slicing_warnings_gray(false);
-    push_notification_data({NotificationType::SlicingSeriousWarning, NotificationLevel::SeriousWarningNotificationLevel, 0, _u8L("Serious warning:") + "\n" + text, link,
-                            callback},
-                           0);
+
+    NotificationData data {NotificationType::SlicingSeriousWarning, NotificationLevel::SeriousWarningNotificationLevel, 0, _u8L("Serious warning:") + "\n" + text, link, callback};
+    auto notification = std::make_unique<ObjectIDNotification>(data, m_id_provider, m_evt_handler);
+    notification->plate_id = wxGetApp().plater()->get_current_slicing_plate_index();
+
+    set_all_slicing_warnings_gray(false, notification->plate_id);
+
+    push_notification_data(std::move(notification), 0);
     set_slicing_progress_hidden();
 }
 
@@ -3258,6 +3310,9 @@ bool NotificationManager::activate_existing(const NotificationManager::PopNotifi
 					const NotificationData& data2 = w2->get_data();
 					if (data1.sub_msg_id != data2.sub_msg_id)
 						continue;
+				    // multiple notifications with the same msg id are allowed if they are for different plates
+				    if (w1->plate_id != w2->plate_id)
+				        continue;;
 					//if (!(*it)->compare_text(new_text) || w1->object_id != w2->object_id) {
 					//	continue;
 					//}

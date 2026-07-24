@@ -349,7 +349,7 @@ std::string PresetBundle::find_preset_vendor(const std::string &preset_name, Pre
                 // Found the preset! Get the vendor name and install the entire bundle
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Found preset " << p_name
                                             << " in vendor bundle " << vendor_name;
-                
+
                 return vendor_name;
             }
         }
@@ -393,7 +393,7 @@ PresetBundle::PresetBundle()
         for(const std::string& opt_key : default_config.keys()){
             ConfigOption* opt = default_config.optptr(opt_key, false);
             bool is_override_key = is_filament_extruder_override_key(opt_key);
-            if(!is_override_key || !opt->nullable()) 
+            if(!is_override_key || !opt->nullable())
                 continue;
             opt->deserialize("nil",ForwardCompatibilitySubstitutionRule::Disable);
         }
@@ -1473,7 +1473,7 @@ PresetsConfigSubstitutions PresetBundle::import_presets(std::vector<std::string>
                     metadata.bundle_type = BundleType::Local;
                     metadata.path = metadata_save_path.string();
                     // Store the bundle metadata in m_bundles for tracking
-                    
+
 
                     bundles.WriteLock();
                     bundles.m_bundles[metadata.id] = metadata;
@@ -1860,7 +1860,7 @@ PresetsConfigSubstitutions PresetBundle::update_subscribed_presets(
 
     if (bundles.m_bundles[remote_metadata.id].save_to_json(metadata_save_path.string())) {
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " saved bundle metadata to: " << metadata_save_path.string();
-    } else {                                                                                                                                                                                                                                                              
+    } else {
         BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed to save bundle metadata to: " << metadata_save_path.string();
     }
 
@@ -4056,6 +4056,8 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     std::vector<std::string> print_compatible_printers;
     //BBS: add logic for settings check between different system presets
     std::vector<std::string> different_settings;
+    std::vector<double> filament_remaining_weight;
+    std::vector<double> filament_remaining_length;
     std::string different_print_settings, different_printer_settings;
     compatible_printers_condition.emplace_back(this->prints.get_edited_preset().compatible_printers_condition());
 
@@ -4106,6 +4108,8 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
         out.apply(filament_config);
         compatible_printers_condition.emplace_back(this->filaments.get_edited_preset().compatible_printers_condition());
         compatible_prints_condition  .emplace_back(this->filaments.get_edited_preset().compatible_prints_condition());
+        filament_remaining_weight.emplace_back(this->filaments.get_edited_preset().spoolman_statistics->remaining_weight);
+        filament_remaining_length.emplace_back(this->filaments.get_edited_preset().spoolman_statistics->remaining_length);
         //BBS: add logic for settings check between different system presets
         //std::string filament_inherits = this->filaments.get_edited_preset().inherits();
         std::string current_preset_name = this->filament_presets[0];
@@ -4151,6 +4155,8 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
             DynamicPrintConfig &cfg_rw = *const_cast<DynamicPrintConfig*>(cfg);
             compatible_printers_condition.emplace_back(Preset::compatible_printers_condition(cfg_rw));
             compatible_prints_condition  .emplace_back(Preset::compatible_prints_condition(cfg_rw));
+            filament_remaining_weight.emplace_back(preset->spoolman_statistics->remaining_weight);
+            filament_remaining_length.emplace_back(preset->spoolman_statistics->remaining_length);
 
             //BBS: add logic for settings check between different system presets
             std::string filament_inherits = Preset::inherits(cfg_rw);
@@ -4298,6 +4304,9 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     out.option<ConfigOptionString >("printer_settings_id",  true)->value  = this->printers.get_selected_preset_name();
     out.option<ConfigOptionStrings>("filament_ids", true)->values = filament_ids;
     out.option<ConfigOptionInts>("filament_map", true)->values = filament_maps;
+    out.option<ConfigOptionFloats>("filament_remaining_weight", true)->values = filament_remaining_weight;
+    out.option<ConfigOptionFloats>("filament_remaining_length", true)->values = filament_remaining_length;
+
     // Serialize the collected "compatible_printers_condition" and "inherits" fields.
     // There will be 1 + num_exturders fields for "inherits" and 2 + num_extruders for "compatible_printers_condition" stored.
     // The vector will not be stored if all fields are empty strings.
@@ -5904,14 +5913,14 @@ bool BundleMetadata::load_from_json(const std::string& path)
 
         if (j.contains("updated_time")) this->updated_time = j["updated_time"].get<long long>();
 
-        if (j.contains("print_presets"))                                                                                                                                                                                                                                      
-            this->print_presets = j["print_presets"].get<std::vector<std::string>>();                                                                                                                                                                                         
-                                                                                                                                                                                                                                                                                
-        if (j.contains("filament_presets"))                                                                                                                                                                                                                                   
-            this->filament_presets = j["filament_presets"].get<std::vector<std::string>>();                                                                                                                                                                                   
-                                                                                                                                                                                                                                                                                
-        if (j.contains("printer_presets"))                                                                                                                                                                                                                                    
-            this->printer_presets = j["printer_presets"].get<std::vector<std::string>>();  
+        if (j.contains("print_presets"))
+            this->print_presets = j["print_presets"].get<std::vector<std::string>>();
+
+        if (j.contains("filament_presets"))
+            this->filament_presets = j["filament_presets"].get<std::vector<std::string>>();
+
+        if (j.contains("printer_presets"))
+            this->printer_presets = j["printer_presets"].get<std::vector<std::string>>();
 
         return true;
     } catch (const std::exception& e) {
@@ -5941,8 +5950,8 @@ bool BundleMetadata::save_to_json(const std::string& path) const
         j["imported_time"] = this->imported_time;
         j["updated_time"] = this->updated_time;
 
-        j["print_presets"] = strip_prefix(this->print_presets);                                                                                                                                                                                                                             
-        j["filament_presets"] = strip_prefix(this->filament_presets);                                                                                                                                                                                                                       
+        j["print_presets"] = strip_prefix(this->print_presets);
+        j["filament_presets"] = strip_prefix(this->filament_presets);
         j["printer_presets"] = strip_prefix(this->printer_presets);
 
         boost::nowide::ofstream ofs(path);

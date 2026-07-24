@@ -446,15 +446,15 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
             retraction_length_after_wipe = 0;
         
         // Initialise the remaining retraction amount with the full retraction amount.
-        retraction_length_remaining = toolchange ? 
+        retraction_length_remaining = toolchange ?
             extruder->retract_length_toolchange() : extruder->retraction_length();
         
         // Nothing to retract - return early
         if (retraction_length_remaining <= EPSILON)
             return { 0.f, 0.f, 0.f };
         
-        // Calculate retraction before and after wipe distances from the user setting. 
-        // Keep adding to the for retraction before wipe variable any excess retraction 
+        // Calculate retraction before and after wipe distances from the user setting.
+        // Keep adding to the for retraction before wipe variable any excess retraction
         // needed to be performed before the wipe.
         retraction_length_before_wipe = retraction_length_remaining * extruder->retract_before_wipe();
         retraction_length_after_wipe = retraction_length_remaining * extruder->retract_after_wipe();
@@ -463,7 +463,7 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         retraction_length_remaining -= retraction_length_before_wipe + retraction_length_after_wipe;
 
         // All of the retraction is to be done before the wipe
-        if (retraction_length_remaining <= EPSILON) 
+        if (retraction_length_remaining <= EPSILON)
             return { retraction_length_before_wipe, 0., retraction_length_after_wipe };
         
         // Calculate wipe speed
@@ -479,18 +479,18 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         double wipe_path_length = std::min(wipe_path.length(), wipe_dist);
 
         // Calculate the maximum retraction amount during wipe
-        retraction_length_during_wipe = config.retraction_speed.get_at(extruder_id) * 
+        retraction_length_during_wipe = config.retraction_speed.get_at(extruder_id) *
             unscale_(wipe_path_length) / wipe_speed;
 
         // If the maximum retraction amount during wipe is too small,
         // disable wipe-time retraction and leave any remaining retract amount
         // to the subsequent standard retract flow.
-        if (retraction_length_during_wipe <= EPSILON) 
+        if (retraction_length_during_wipe <= EPSILON)
             return { retraction_length_before_wipe, 0., retraction_length_after_wipe };
         
         // If the maximum retraction amount during wipe is greater than any remaining retraction length
         // return the remaining retraction length to be retracted during the wipe
-        if (retraction_length_during_wipe - retraction_length_remaining > EPSILON) 
+        if (retraction_length_during_wipe - retraction_length_remaining > EPSILON)
             return { retraction_length_before_wipe, retraction_length_remaining, retraction_length_after_wipe };
         
         // We will always proceed with incrementing the retraction amount before wiping with the difference
@@ -2496,6 +2496,27 @@ void GCode::do_export(Print* print, const char* path, GCodeProcessorResult* resu
         result->filename = path;
     }
 
+    // Check for filaments that have a filament ID, but no spool ID
+    for (int i = 0; i < m_config.spoolman_filament_id.size(); ++i) {
+        if (m_config.spoolman_filament_id.get_at(i) > 0 && m_config.spoolman_spool_id.get_at(i) < 1) {
+            std::string msg = (boost::format(_("Filament %1% has a valid filament ID, but an invalid spool ID. Spoolman consumption will not be "
+                                     "available for this filament.")) % m_config.filament_settings_id.get_at(i)).str();
+            print->active_step_add_warning(PrintStateBase::WarningLevel::NON_CRITICAL, msg);
+        }
+    }
+
+    // Check the consumption of filament against the remaining filament as reported by Spoolman
+    for (const auto& est : print->get_spoolman_filament_consumption_estimates()) {
+        double remaining_length   = print->config().filament_remaining_length.get_at(est.print_config_idx);
+        double remaining_weight   = print->config().filament_remaining_weight.get_at(est.print_config_idx);
+
+        if (est.est_used_length > remaining_length || est.est_used_weight > remaining_weight) {
+            std::string msg = (boost::format(_("Filament %1% does not have enough material for the print. Used: %2$.2f m, %3$.2f g, Remaining: %4$.2f m, %5$.2f g")) %
+                                         est.filament_name % (est.est_used_length * 0.001) % est.est_used_weight % (remaining_length * 0.001) % remaining_weight).str();
+            print->active_step_add_warning(PrintStateBase::WarningLevel::CRITICAL, msg, PrintStateBase::SlicingNotificationType::SlicingNotEnoughFilament);
+        }
+    }
+
     //BBS: add some log for error output
     BOOST_LOG_TRIVIAL(debug) << boost::format("Finished processing gcode to %1% ") % path_tmp;
 
@@ -3302,7 +3323,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
             bbox.offset(-25.0);
             bbox.min.x() = std::max(pattern_extents.min.x(), bbox.min.x());
             bbox.max.x() = std::min(pattern_extents.max.x(), bbox.max.x());
-            
+
             pts->values.reserve(4);
             pts->values.emplace_back(bbox.min.x(), bbox.min.y());
             pts->values.emplace_back(bbox.max.x(), bbox.min.y());
@@ -4429,7 +4450,7 @@ void GCode::print_machine_envelope(GCodeOutputStream &file, Print &print)
         }
 
         // Get the max limit value among used extruders
-        auto get_max_value = [&used_extruders](const std::string key, const ConfigOptionFloats& v) { 
+        auto get_max_value = [&used_extruders](const std::string key, const ConfigOptionFloats& v) {
             unsigned int stride = 1;
             if (printer_options_with_variant_2.count(key) > 0) {
                 stride = 2;
@@ -7042,7 +7063,7 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
 
         double small_perimeter_speed = -1.0;
 
-        const auto base_speed = (role == erSupportMaterialInterface) 
+        const auto base_speed = (role == erSupportMaterialInterface)
             ? NOZZLE_CONFIG(support_interface_speed) : NOZZLE_CONFIG(support_speed);
 
         if (NOZZLE_CONFIG(small_support_perimeter_speed).value == 0)
@@ -7428,7 +7449,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
 
     if (speed == 0)
         speed = filament_max_volumetric_speed / _mm3_per_mm;
-    
+
     const auto _layer = layer_id();
     if (this->on_first_layer() || object_layer_over_raft()) {
         //BBS: for solid infill of first layer, speed can be higher as long as
@@ -7439,7 +7460,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
                                             NOZZLE_CONFIG(initial_layer_infill_speed);
         }
     } else if (m_config.slow_down_layers > 1 && m_config.raft_layers == 0) {
-        
+
         if (_layer > 0 && _layer < m_config.slow_down_layers) {
             const auto first_layer_speed =
                 is_perimeter(path.role())
@@ -7453,9 +7474,9 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             }
         }
     } else if (m_config.slow_down_layers > 1 && m_config.raft_layers > 0 ) {
-        
+
         if (_layer > m_config.raft_layers && (_layer - m_config.raft_layers) < m_config.slow_down_layers) {
-            const auto first_layer_speed 
+            const auto first_layer_speed
                 = is_perimeter(path.role()) ? NOZZLE_CONFIG(initial_layer_speed) :
                                                                        NOZZLE_CONFIG(initial_layer_infill_speed);
             if (first_layer_speed < speed) {
@@ -8274,7 +8295,7 @@ std::string GCode::travel_to(const Point& point, ExtrusionRole role, std::string
     if (this->on_first_layer()) {
         unsigned int initial_layer_travel_acceleration = m_config.get_abs_value_at("initial_layer_travel_acceleration", get_nozzle_config_index(m_writer.filament()->id()));
         double initial_layer_travel_jerk = m_config.get_abs_value_at("initial_layer_travel_jerk", get_nozzle_config_index(m_writer.filament()->id()));
-    
+
         if (NOZZLE_CONFIG(default_acceleration) > 0 && initial_layer_travel_acceleration > 0) {
             acceleration_to_set = (unsigned int) floor(initial_layer_travel_acceleration + 0.5);
         }
@@ -8702,6 +8723,30 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
     if (!m_writer.need_toolchange(new_filament_id))
         return "";
 
+    auto select_spoolman_spool = [&]() -> std::string {
+        std::string gcode;
+        if (m_config.gcode_flavor != gcfKlipper
+            || !m_print->m_spoolman_enabled
+            || !m_config.handles_spoolman_consumption)
+            return {};
+
+        // Only use the macros if both are valid
+        if (m_config.spoolman_clear_spool_macro.empty() || m_config.spoolman_set_spool_macro.empty())
+            return {};
+
+        // Add macros
+        gcode += m_config.spoolman_clear_spool_macro.value + '\n';
+
+        const auto& set_macro = m_config.spoolman_set_spool_macro.value;
+        if (set_macro.find("%id%") == std::string::npos)
+            throw SlicingError("The option 'spoolman_set_spool_macro' is not empty and does not contain a '%id%' identifier to replace.");
+        auto spool_id = m_config.spoolman_spool_id.get_at(new_filament_id);
+        if (spool_id > 0)
+            gcode += boost::replace_all_copy(set_macro, "%id%", std::to_string(spool_id)) + '\n';
+
+        return gcode;
+    };
+
     // if we are running a single-extruder setup, just set the extruder and return nothing
     if (!m_writer.multiple_extruders) {
         this->placeholder_parser().set("current_extruder", new_filament_id);
@@ -8743,6 +8788,8 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             m_pa_processor->resetPreviousPA(m_config.pressure_advance.get_at(new_filament_id));
         }
 
+        // Orca: add Spoolman macros
+        gcode += select_spoolman_spool();
         gcode += m_writer.toolchange(new_filament_id, new_extruder_id);
         if (Extruder *fil = m_writer.filament())
             fil->set_config_index((int)get_filament_config_index((int)fil->id()));
@@ -9027,6 +9074,9 @@ std::string GCode::set_extruder(unsigned int new_filament_id, double print_z, bo
             }
         }
     }
+
+    // Orca: add Spoolman macros
+    gcode += select_spoolman_spool();
 
     // BBS. Reset old extruder E-value.
     // Keep retract length because Custom GCode will guarantee retract length be the same as toolchange

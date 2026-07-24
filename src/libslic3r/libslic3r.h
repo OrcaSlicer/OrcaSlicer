@@ -24,6 +24,7 @@
 #include <cmath>
 #include <type_traits>
 #include <optional>
+#include <map>
 
 #ifdef _WIN32
 // On MSVC, std::deque degenerates to a list of pointers, which defeats its purpose of reducing allocator load and memory fragmentation.
@@ -274,6 +275,8 @@ ForwardIt binary_find_by_predicate(ForwardIt first, ForwardIt last, LowerThanKey
     return first != last && equal_to_key(*first) ? first : last;
 }
 
+template<typename KeyType, typename ValueType> inline bool contains(const std::map<KeyType, ValueType> &m, const KeyType &k)
+    { return m.find(k) != m.end(); }
 template<typename ContainerType, typename ValueType> inline bool contains(const ContainerType &c, const ValueType &v)
     { return std::find(c.begin(), c.end(), v) != c.end(); }
 template<typename T> inline bool contains(const std::initializer_list<T> &il, const T &v)

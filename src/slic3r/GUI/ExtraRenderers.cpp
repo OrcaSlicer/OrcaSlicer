@@ -235,7 +235,7 @@ bool BitmapTextRenderer::GetValueFromEditorCtrl(wxWindow* ctrl, wxVariant& value
 
     // The icon can't be edited so get its old value and reuse it.
     wxVariant valueOld;
-    GetView()->GetModel()->GetValue(valueOld, m_item, Slic3r::GUI::ColumnNumber::colName); 
+    GetView()->GetModel()->GetValue(valueOld, m_item, Slic3r::GUI::ColumnNumber::colName);
     
     DataViewBitmapText bmpText;
     bmpText << valueOld;
@@ -312,7 +312,7 @@ wxWindow* BitmapChoiceRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
         labelRect.GetTopLeft(), wxSize(labelRect.GetWidth(), -1),
         0, nullptr, wxCB_READONLY | CB_NO_DROP_ICON | CB_NO_TEXT);
     c_editor->GetDropDown().SetUseContentWidth(true);
-       
+
     if (has_default_extruder && has_default_extruder())
         c_editor->Append(_L("default"), *get_default_extruder_color_icon());
 
@@ -336,12 +336,12 @@ wxWindow* BitmapChoiceRenderer::CreateEditorCtrl(wxWindow* parent, wxRect labelR
 #else
         c_editor->ForceDropdownOpen();
 #endif
-        evt.Skip(); 
+        evt.Skip();
     });
 
     // Close editor after selection is made
     c_editor->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& evt) {
-        evt.StopPropagation(); 
+        evt.StopPropagation();
         // FinishEditing grabs new selection and triggers config update. We better call
         // it explicitly, automatic update on KILL_FOCUS didn't work on Linux.
         this->FinishEditing();
@@ -401,3 +401,18 @@ wxSize TextRenderer::GetSize() const
     return GetTextExtent(m_value);
 }
 
+// ----------------------------------------------------------------------------
+// ColorRenderer
+// ----------------------------------------------------------------------------
+
+bool   ColorRenderer::SetValue(const wxVariant& value) {
+    color << value;
+    return true;
+}
+
+bool   ColorRenderer::Render(wxRect cell, wxDC* dc, int state) {
+    cell.Deflate(4);
+    dc->SetBrush(wxBrush(color));
+    dc->DrawRectangle(cell);
+    return true;
+}

@@ -1350,7 +1350,7 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     m_z_offset = gcode_result.z_offset;
 
     // load_toolpaths(gcode_result, build_volume, exclude_bounding_box);
-    
+
     // ORCA: Apply smart default view type when extruder count changes.
     // Multi-color: ColorPrint (Filament), Single-color: FeatureType (Line Type).
     // User selections persist within same extruder count, defaults reapply on count change.
