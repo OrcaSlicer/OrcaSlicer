@@ -4551,6 +4551,12 @@ void TabFilament::build()
         option.opt.height = gcode_field_height;// 150;
         optgroup->append_single_option_line(option);
 
+        optgroup = page->new_optgroup(L("Slicing Pipeline Plugin"), L"param_gcode", 0);
+        optgroup->hide_labels();
+        option = optgroup->get_option("slicing_pipeline_plugin");
+        option.opt.full_width = true;
+        optgroup->append_single_option_line(option, "others_settings_plugin_picker");
+
         optgroup = page->new_optgroup(L("Plugin Configuration"), L"param_gcode");
         optgroup->append_single_option_line("plugin_config_overrides");
 
