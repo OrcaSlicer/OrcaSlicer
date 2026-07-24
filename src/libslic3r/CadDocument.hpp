@@ -17,7 +17,7 @@
 
 namespace Slic3r {
 
-enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys };
+enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix };
 enum class SketchShape    { Rectangle, Circle };
 enum class PlaneType      { Offset, Angle, Midplane, Tangent, TwoEdges, Coincident };
 enum class AxisType       { TwoPoints, FaceNormal, CylinderCenterline, PlaneIntersection, AlongEdge };
@@ -229,6 +229,15 @@ struct CadFeature {
     int          coordsys_edge{-1};
     Vec3d        coordsys_x_hint{1, 0, 0};
 
+    // Helix curve params (consumed as a sweep path to build springs/coils/augers).
+    // Axis = plane normal through plane origin. pitch = axial rise per full turn.
+    // left_handed flips the winding direction. taper_deg != 0 gives a conical helix.
+    double      helix_radius{10};
+    double      helix_pitch{5};
+    double      helix_height{20};
+    bool        helix_left_handed{false};
+    double      helix_taper_deg{0};
+
     template<class Archive>
     void save(Archive& ar) const {
         std::string brep = (type == CadFeatureType::Import) ? brep_to_string(imported_solid) : std::string();
@@ -253,7 +262,8 @@ struct CadFeature {
            plane_edge_body, plane_edge, plane_edge2_body, plane_edge2, plane_u_size, plane_v_size,
            mirror_keep_original,
            axis_type, axis_p1, axis_p2, axis_body, axis_face, axis_edge, axis_plane_a, axis_plane_b,
-           coordsys_type, coordsys_point, coordsys_body, coordsys_face, coordsys_edge, coordsys_x_hint);
+            coordsys_type, coordsys_point, coordsys_body, coordsys_face, coordsys_edge, coordsys_x_hint,
+            helix_radius, helix_pitch, helix_height, helix_left_handed, helix_taper_deg);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -279,7 +289,8 @@ struct CadFeature {
            plane_edge_body, plane_edge, plane_edge2_body, plane_edge2, plane_u_size, plane_v_size,
            mirror_keep_original,
            axis_type, axis_p1, axis_p2, axis_body, axis_face, axis_edge, axis_plane_a, axis_plane_b,
-           coordsys_type, coordsys_point, coordsys_body, coordsys_face, coordsys_edge, coordsys_x_hint);
+           coordsys_type, coordsys_point, coordsys_body, coordsys_face, coordsys_edge, coordsys_x_hint,
+           helix_radius, helix_pitch, helix_height, helix_left_handed, helix_taper_deg);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -389,6 +400,10 @@ public:
     int  add_axis(AxisType axis_type, const std::string& name);
     // Datum coordinate system.
     int  add_coordsys(CoordSysType type, const Vec3d& point, const std::string& name);
+    int  add_helix(const SketchPlane& plane, double radius, double pitch, double height,
+                   bool left_handed, double taper_deg, const std::string& name);
+    // Build the helix wire from a Helix feature's params (exposed for tests).
+    TopoDS_Wire build_helix_wire(const CadFeature& f, std::string& err) const;
     // Every datum plane currently in the recipe, in feature order, as (name, plane).
     // Used by the GUI to populate plane pickers (after the 3 base planes).
     std::vector<std::pair<std::string, SketchPlane>> resolve_datum_planes() const;

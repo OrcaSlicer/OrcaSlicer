@@ -26,6 +26,7 @@
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepLib.hxx>
 #include <Geom_CylindricalSurface.hxx>
+#include <Geom_ConicalSurface.hxx>
 #include <Geom2d_TrimmedCurve.hxx>
 #include <GCE2d_MakeSegment.hxx>
 #include <TopoDS_Edge.hxx>
@@ -69,6 +70,56 @@ static TopoDS_Wire make_helix_wire(const gp_Ax3& axis, double radius,
     gp_Pnt2d p1(2.0 * M_PI * turns, height);
     Handle(Geom2d_TrimmedCurve) seg = GCE2d_MakeSegment(p0, p1);
     TopoDS_Edge e = BRepBuilderAPI_MakeEdge(seg, cyl).Edge();
+    BRepLib::BuildCurves3d(e);
+    return BRepBuilderAPI_MakeWire(e).Wire();
+}
+
+// Helix spine from a CadFeature's helix params. Supports cylindrical (taper==0)
+// and conical (taper!=0) surfaces; left_handed flips the winding direction.
+// Returns null wire if validation fails (error is written to err).
+static TopoDS_Wire make_helix_spine(const CadFeature& f, std::string& err)
+{
+    err.clear();
+    const double R = f.helix_radius, P = f.helix_pitch, H = f.helix_height;
+    const double taper = f.helix_taper_deg * M_PI / 180.0;
+
+    if (R <= 0)   { err = "helix radius must be > 0"; return TopoDS_Wire(); }
+    if (P <= 0)   { err = "helix pitch must be > 0";  return TopoDS_Wire(); }
+    if (H < 0)    { err = "helix height must be >= 0"; return TopoDS_Wire(); }
+    if (H == 0)   { err = "helix height of 0 (flat spiral) is not supported"; return TopoDS_Wire(); }
+    const double turns = H / P;
+    if (turns > 10000) { err = "helix turn count exceeds limit (10000)"; return TopoDS_Wire(); }
+    if (std::abs(taper) > 1e-12) {
+        const double R_top = R + H * std::tan(taper);
+        if (R_top <= 0) {
+            err = "helix taper drives radius negative before reaching height";
+            return TopoDS_Wire();
+        }
+    }
+
+    gp_Dir zdir(f.plane.normal.x(), f.plane.normal.y(), f.plane.normal.z());
+    gp_Dir xdir(f.plane.x_axis.x(), f.plane.x_axis.y(), f.plane.x_axis.z());
+    Vec3d ori = f.plane.origin;
+    gp_Pnt o(ori.x(), ori.y(), ori.z());
+    gp_Ax2 ax2(o, zdir, xdir);
+    gp_Ax3 ax3(o, zdir, xdir);
+
+    TopoDS_Edge e;
+    if (std::abs(taper) > 1e-12) {
+        Handle(Geom_ConicalSurface) cone = new Geom_ConicalSurface(ax3, taper, R);
+        double u1 = f.helix_left_handed ? -2.0 * M_PI * turns : 2.0 * M_PI * turns;
+        gp_Pnt2d p0(0.0, 0.0);
+        gp_Pnt2d p1(u1, H);
+        Handle(Geom2d_TrimmedCurve) seg = GCE2d_MakeSegment(p0, p1);
+        e = BRepBuilderAPI_MakeEdge(seg, cone).Edge();
+    } else {
+        Handle(Geom_CylindricalSurface) cyl = new Geom_CylindricalSurface(ax3, R);
+        double u1 = f.helix_left_handed ? -2.0 * M_PI * turns : 2.0 * M_PI * turns;
+        gp_Pnt2d p0(0.0, 0.0);
+        gp_Pnt2d p1(u1, H);
+        Handle(Geom2d_TrimmedCurve) seg = GCE2d_MakeSegment(p0, p1);
+        e = BRepBuilderAPI_MakeEdge(seg, cyl).Edge();
+    }
     BRepLib::BuildCurves3d(e);
     return BRepBuilderAPI_MakeWire(e).Wire();
 }
@@ -720,6 +771,27 @@ int CadDocument::add_coordsys(CoordSysType type, const Vec3d& point, const std::
     return int(features.size()) - 1;
 }
 
+int CadDocument::add_helix(const SketchPlane& plane, double radius, double pitch, double height,
+                           bool left_handed, double taper_deg, const std::string& name)
+{
+    CadFeature f;
+    f.type              = CadFeatureType::Helix;
+    f.name              = name;
+    f.plane             = plane;
+    f.helix_radius      = radius;
+    f.helix_pitch       = pitch;
+    f.helix_height      = height;
+    f.helix_left_handed = left_handed;
+    f.helix_taper_deg   = taper_deg;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
+TopoDS_Wire CadDocument::build_helix_wire(const CadFeature& f, std::string& err) const
+{
+    return make_helix_spine(f, err);
+}
+
 // Derive a SketchPlane: shift `base` along its normal by `offset`, then tilt
 // `angle_deg` about the base's X (axis 0) or Y (axis 1) axis (Rodrigues rotation).
 static SketchPlane offset_angle_plane(const SketchPlane& base, double offset,
@@ -1323,6 +1395,8 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
     switch (f.type) {
     case CadFeatureType::Sketch:
         return; // sketches carry no solid; consumed by an extrude
+    case CadFeatureType::Helix:
+        return; // helical curve; consumed by Sweep as a path (like Sketch)
     case CadFeatureType::Boolean:
         return; // body-body boolean is handled in route_feature/apply_boolean, never here
     case CadFeatureType::Import:
@@ -1449,17 +1523,23 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         break;
     }
     case CadFeatureType::Sweep: {
-        // Resolve the profile sketch like Extrude/Revolve, and the path (spine) from
-        // the referenced path Sketch. Both build through build_sketch_wire (the path
-        // sketch is entity-based, so its wire keeps its open/closed shape as drawn).
         const CadFeature& sk = (f.sketch_ref >= 0 && f.sketch_ref < int(features.size())
                                 && features[f.sketch_ref].type == CadFeatureType::Sketch)
                                ? features[f.sketch_ref] : f;
-        if (f.sweep_path_ref < 0 || f.sweep_path_ref >= int(features.size())
-            || features[f.sweep_path_ref].type != CadFeatureType::Sketch)
-            throw std::runtime_error("sweep needs a valid path sketch");
+        if (f.sweep_path_ref < 0 || f.sweep_path_ref >= int(features.size()))
+            throw std::runtime_error("sweep needs a valid path reference");
+        const CadFeature& path_feat = features[f.sweep_path_ref];
+        TopoDS_Wire path;
+        if (path_feat.type == CadFeatureType::Helix) {
+            std::string helix_err;
+            path = make_helix_spine(path_feat, helix_err);
+            if (path.IsNull()) throw std::runtime_error("helix path: " + helix_err);
+        } else if (path_feat.type == CadFeatureType::Sketch) {
+            path = build_sketch_wire(path_feat);
+        } else {
+            throw std::runtime_error("sweep path must be a sketch or helix");
+        }
         TopoDS_Wire profile = build_sketch_wire(sk);
-        TopoDS_Wire path    = build_sketch_wire(features[f.sweep_path_ref]);
         TopoDS_Shape tool   = SketchEngine::make_sweep(profile, path);
         if (!have_body || f.mode == BooleanMode::New) {
             result = tool;
@@ -1897,6 +1977,7 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
     if (f.type == CadFeatureType::Plane)   return;   // datum plane: not part of the body pipeline
     if (f.type == CadFeatureType::Axis)    return;   // datum axis
     if (f.type == CadFeatureType::CoordSys) return; // datum coordinate system
+    if (f.type == CadFeatureType::Helix)   return;   // helical curve; consumed by Sweep
     if (f.type == CadFeatureType::Boolean) { apply_boolean(bodies, f); return; }   // body-body op
     if (f.type == CadFeatureType::Cut)     { apply_cut(bodies, f);     return; }   // plane-split body
     if (f.type == CadFeatureType::Mirror)  { apply_mirror(bodies, f);  return; }   // mirror body about plane
@@ -1935,6 +2016,7 @@ bool CadDocument::recompute()
         for (const CadFeature& f : features) {
             if (!f.enabled) continue;
             if (f.type == CadFeatureType::Sketch) continue; // consumed by an extrude
+            if (f.type == CadFeatureType::Helix)  continue; // consumed by Sweep as a path
             if (f.type == CadFeatureType::Plane)   continue; // datum: no solid, derived on demand
             if (f.type == CadFeatureType::Axis)    continue; // datum axis
             if (f.type == CadFeatureType::CoordSys) continue; // datum coordinate system

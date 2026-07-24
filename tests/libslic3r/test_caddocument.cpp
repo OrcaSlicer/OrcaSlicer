@@ -13,6 +13,11 @@
 #include <set>
 #include <Bnd_Box.hxx>
 #include <BRepBndLib.hxx>
+#include <BRepAdaptor_Curve.hxx>
+#include <TopExp_Explorer.hxx>
+#include <TopoDS.hxx>
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
 #include <BRepPrimAPI_MakeBox.hxx>
 #include <BRepBuilderAPI_Transform.hxx>
 #include <gp_Trsf.hxx>
@@ -2213,6 +2218,290 @@ TEST_CASE("datum coordinate system: point_world gives world axes", "[CadDocument
 }
 
 
+TEST_CASE("helix curve: arc length, bounding box, left-handed, conical", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+    using Catch::Matchers::WithinAbs;
+
+    // --- Cylindrical helix r=5, pitch=2, height=10 (5 turns) ---
+    // One turn arc length = sqrt((2*pi*r)^2 + pitch^2) = sqrt((10*pi)^2 + 4).
+    // Total = 5 * sqrt(986.96...) ≈ 5 * 31.4159 ≈ 157.08 mm.
+    SECTION("cylindrical helix arc length matches analytic") {
+        CadDocument doc;
+        doc.add_helix(SketchPlane::XY(), 5.0, 2.0, 10.0, false, 0.0, "H1");
+        REQUIRE(doc.features.size() == 1);
+        std::string err;
+        TopoDS_Wire w = doc.build_helix_wire(doc.features[0], err);
+        REQUIRE_FALSE(w.IsNull());
+        REQUIRE(err.empty());
+
+        GProp_GProps props;
+        BRepGProp::LinearProperties(w, props);
+        const double len = props.Mass();
+        const double one_turn = std::sqrt(std::pow(2.0 * M_PI * 5.0, 2) + std::pow(2.0, 2));
+        const double expected = 5.0 * one_turn;
+        REQUIRE_THAT(len, WithinRel(expected, 1e-3));
+    }
+
+    // --- Bounding box: X/Y extent = 2*radius, Z extent = height ---
+    SECTION("cylindrical helix bounding box") {
+        CadDocument doc;
+        doc.add_helix(SketchPlane::XY(), 5.0, 2.0, 10.0, false, 0.0, "H1");
+        std::string err;
+        TopoDS_Wire w = doc.build_helix_wire(doc.features[0], err);
+        REQUIRE_FALSE(w.IsNull());
+
+        Bnd_Box bb;
+        BRepBndLib::Add(w, bb);
+        double xmin, ymin, zmin, xmax, ymax, zmax;
+        bb.Get(xmin, ymin, zmin, xmax, ymax, zmax);
+        REQUIRE_THAT(xmax - xmin, WithinRel(10.0, 0.1));
+        REQUIRE_THAT(ymax - ymin, WithinRel(10.0, 0.1));
+        REQUIRE_THAT(zmax - zmin, WithinRel(10.0, 0.1));
+    }
+
+    // --- Left-handed helix: sample a point at parameter ~0.25 and compare ---
+    SECTION("left_handed flips the winding direction") {
+        CadDocument doc_rh, doc_lh;
+        doc_rh.add_helix(SketchPlane::XY(), 5.0, 2.0, 10.0, false, 0.0, "RH");
+        doc_lh.add_helix(SketchPlane::XY(), 5.0, 2.0, 10.0, true,  0.0, "LH");
+
+        std::string err;
+        TopoDS_Wire w_rh = doc_rh.build_helix_wire(doc_rh.features[0], err);
+        TopoDS_Wire w_lh = doc_lh.build_helix_wire(doc_lh.features[0], err);
+        REQUIRE_FALSE(w_rh.IsNull());
+        REQUIRE_FALSE(w_lh.IsNull());
+
+        // Sample at height = height/4 along the helix:
+        // RH: angle = 2*pi*turns*0.25 = pi/2, direction is +2*pi*turns
+        //    so at z = 2.5: u = pi/2 => x = r*cos(pi/2) = 0, y = r*sin(pi/2) = +5
+        // LH: angle goes negative, at z = 2.5: u = -pi/2 => x = 0, y = -5
+        double z_sample = 2.5; // height/4
+        // Approximate by scanning edges and picking the vertex nearest to target z
+        auto point_at_z = [&](const TopoDS_Wire& w, double target_z) -> gp_Pnt {
+            double best_dz = 1e9;
+            gp_Pnt best(0,0,0);
+            for (TopExp_Explorer ex(w, TopAbs_EDGE); ex.More(); ex.Next()) {
+                TopoDS_Edge e = TopoDS::Edge(ex.Current());
+                BRepAdaptor_Curve curve(e);
+                double u0 = curve.FirstParameter();
+                double u1 = curve.LastParameter();
+                for (int s = 0; s <= 100; ++s) {
+                    double u = u0 + (u1 - u0) * s / 100.0;
+                    gp_Pnt p = curve.Value(u);
+                    if (std::abs(p.Z() - target_z) < best_dz) {
+                        best_dz = std::abs(p.Z() - target_z);
+                        best = p;
+                    }
+                }
+            }
+            return best;
+        };
+
+        gp_Pnt prh = point_at_z(w_rh, z_sample);
+        gp_Pnt plh = point_at_z(w_lh, z_sample);
+
+        // At z=2.5 for RH: angle ~ pi/2 -> y > 0
+        REQUIRE(prh.Y() > 0.0);
+        // At z=2.5 for LH: angle ~ -pi/2 -> y < 0
+        REQUIRE(plh.Y() < 0.0);
+        // They must differ in sign of y (mirror winding), not just "differ"
+        REQUIRE(prh.Y() * plh.Y() < 0.0);
+    }
+
+    // --- Conical helix: top radius matches r + height*tan(taper) ---
+    SECTION("conical helix top radius") {
+        CadDocument doc;
+        doc.add_helix(SketchPlane::XY(), 5.0, 2.0, 10.0, false, 10.0, "Cone");
+        std::string err;
+        TopoDS_Wire w = doc.build_helix_wire(doc.features[0], err);
+        REQUIRE_FALSE(w.IsNull());
+        REQUIRE(err.empty());
+
+        // Top radius = 5 + 10*tan(10) ≈ 5 + 1.7633 = 6.7633
+        const double expected_top = 5.0 + 10.0 * std::tan(10.0 * M_PI / 180.0);
+
+        // Sample at z = height: use same sampling approach
+        double best_dz = 1e9;
+        gp_Pnt best(0,0,0);
+        for (TopExp_Explorer ex(w, TopAbs_EDGE); ex.More(); ex.Next()) {
+            TopoDS_Edge e = TopoDS::Edge(ex.Current());
+            BRepAdaptor_Curve curve(e);
+            double u0 = curve.FirstParameter();
+            double u1 = curve.LastParameter();
+            for (int s = 0; s <= 200; ++s) {
+                double u = u0 + (u1 - u0) * s / 200.0;
+                gp_Pnt p = curve.Value(u);
+                if (std::abs(p.Z() - 10.0) < best_dz) {
+                    best_dz = std::abs(p.Z() - 10.0);
+                    best = p;
+                }
+            }
+        }
+        double top_r = std::sqrt(best.X() * best.X() + best.Y() * best.Y());
+        REQUIRE_THAT(top_r, WithinRel(expected_top, 1e-2));
+    }
+}
+
+TEST_CASE("helix: invalid inputs fail cleanly", "[CadDocument]")
+{
+    SECTION("radius <= 0") {
+        CadDocument doc;
+        doc.add_helix(SketchPlane::XY(), 0.0, 2.0, 10.0, false, 0.0, "H");
+        std::string err;
+        REQUIRE(doc.build_helix_wire(doc.features[0], err).IsNull());
+        REQUIRE_FALSE(err.empty());
+    }
+    SECTION("pitch <= 0") {
+        CadDocument doc;
+        doc.add_helix(SketchPlane::XY(), 5.0, 0.0, 10.0, false, 0.0, "H");
+        std::string err;
+        REQUIRE(doc.build_helix_wire(doc.features[0], err).IsNull());
+        REQUIRE_FALSE(err.empty());
+    }
+    SECTION("height < 0") {
+        CadDocument doc;
+        doc.add_helix(SketchPlane::XY(), 5.0, 2.0, -1.0, false, 0.0, "H");
+        std::string err;
+        REQUIRE(doc.build_helix_wire(doc.features[0], err).IsNull());
+        REQUIRE_FALSE(err.empty());
+    }
+    SECTION("height == 0 (flat spiral) rejected") {
+        CadDocument doc;
+        doc.add_helix(SketchPlane::XY(), 5.0, 2.0, 0.0, false, 0.0, "H");
+        std::string err;
+        REQUIRE(doc.build_helix_wire(doc.features[0], err).IsNull());
+        REQUIRE_FALSE(err.empty());
+        CHECK_THAT(err, Catch::Matchers::ContainsSubstring("flat spiral"));
+    }
+    SECTION("absurd turn count") {
+        CadDocument doc;
+        doc.add_helix(SketchPlane::XY(), 5.0, 1e-4, 2.0, false, 0.0, "H");
+        std::string err;
+        REQUIRE(doc.build_helix_wire(doc.features[0], err).IsNull());
+        REQUIRE_FALSE(err.empty());
+    }
+    SECTION("taper drives radius negative") {
+        CadDocument doc;
+        doc.add_helix(SketchPlane::XY(), 1.0, 2.0, 10.0, false, -10.0, "H");
+        std::string err;
+        REQUIRE(doc.build_helix_wire(doc.features[0], err).IsNull());
+        REQUIRE_FALSE(err.empty());
+        CHECK_THAT(err, Catch::Matchers::ContainsSubstring("negative"));
+    }
+}
+
+TEST_CASE("helix as sweep path: spring integration test", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+
+    // Build a plane at the helix start (5,0,0) whose normal IS the start tangent direction.
+    // The helix tangent at u=0 is (0, R, P/(2*pi)) = (0, 5, 3/(2*pi)).
+    const double R = 5.0, P = 3.0;
+    Vec3d tan_dir(0, R, P / (2.0 * M_PI));
+    tan_dir.normalize();
+    Vec3d ref = (std::abs(tan_dir.z()) < 0.9) ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+    Vec3d x_axis = ref.cross(tan_dir);
+    if (x_axis.squaredNorm() < 1e-12) x_axis = Vec3d(1, 0, 0);
+    x_axis.normalize();
+    Vec3d y_axis = tan_dir.cross(x_axis).normalized();
+    SketchPlane profile_plane;
+    profile_plane.origin = Vec3d(R, 0, 0);
+    profile_plane.normal = tan_dir;
+    profile_plane.x_axis = x_axis;
+    profile_plane.y_axis = y_axis;
+
+    // Profile: small circle r=1.5 centered at 2D (0,0) = world (5,0,0) = helix start
+    SketchEntity prof;
+    prof.type   = SketchEntity::Type::Circle;
+    prof.center = Vec2d(0, 0);
+    prof.radius = 1.5;
+    int prof_idx = doc.add_sketch_entities({prof}, profile_plane, "CircleProfile");
+
+    // Helix path: r=5, pitch=3, height=15 (5 turns) about Z axis from origin
+    int helix_idx = doc.add_helix(SketchPlane::XY(), R, P, 15.0, false, 0.0, "HelixPath");
+
+    int sweep_idx = doc.add_sweep(prof_idx, helix_idx, BooleanMode::New, "Spring");
+    REQUIRE(sweep_idx >= 0);
+
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.display_mesh.facets_count() > 0);
+
+    const double v = double(doc.display_mesh.volume());
+    REQUIRE(v > 0.0);
+
+    const double one_turn = std::sqrt(std::pow(2.0 * M_PI * R, 2) + std::pow(P, 2));
+    const double total_len = 5.0 * one_turn;
+    const double prof_area = M_PI * 1.5 * 1.5;
+    const double expected_v = prof_area * total_len;
+    REQUIRE_THAT(v, WithinRel(expected_v, 0.1));
+}
+
+TEST_CASE("helix serialization round-trip with distinctive values", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    doc.add_helix(SketchPlane::XZ(), 7.5, 3.25, 22.0, true, 5.0, "Helix_RT");
+    doc.features.back().helix_radius      = 7.5;
+    doc.features.back().helix_pitch       = 3.25;
+    doc.features.back().helix_height      = 22.0;
+    doc.features.back().helix_left_handed = true;
+    doc.features.back().helix_taper_deg   = 5.0;
+
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    // Deserialize into a feature list directly — recompute fails because a lone
+    // helix doesn't produce a solid, but the serialized field values must survive.
+    std::vector<CadFeature> features2;
+    {
+        std::istringstream iss(blob);
+        cereal::BinaryInputArchive ar(iss);
+        uint32_t v;
+        ar(v);
+        ar(features2);
+    }
+    REQUIRE(features2.size() == 1);
+
+    const auto& f = features2[0];
+    REQUIRE(f.type == CadFeatureType::Helix);
+    REQUIRE(f.name == "Helix_RT");
+    REQUIRE_THAT(f.helix_radius,      WithinAbs(7.5, 1e-9));
+    REQUIRE_THAT(f.helix_pitch,       WithinAbs(3.25, 1e-9));
+    REQUIRE_THAT(f.helix_height,      WithinAbs(22.0, 1e-9));
+    REQUIRE(f.helix_left_handed == true);
+    REQUIRE_THAT(f.helix_taper_deg,   WithinAbs(5.0, 1e-9));
+}
+
+TEST_CASE("helix with sweep path from a non-sketch/non-helix feature errors", "[CadDocument]")
+{
+    // An Extrude feature used as sweep path must fail cleanly.
+    CadDocument doc;
+
+    // Profile: circle
+    SketchEntity prof;
+    prof.type   = SketchEntity::Type::Circle;
+    prof.center = Vec2d(0, 0);
+    prof.radius = 2.0;
+    int prof_idx = doc.add_sketch_entities({prof}, SketchPlane::XY(), "Profile");
+
+    // Path: an Extrude feature (not a Sketch or Helix)
+    CadFeature ex;
+    ex.type       = CadFeatureType::Extrude;
+    ex.name       = "NotAValidPath";
+    ex.sketch_ref = -1;
+    doc.features.push_back(ex);
+    int path_idx = int(doc.features.size()) - 1;
+
+    int sw = doc.add_sweep(prof_idx, path_idx, BooleanMode::New, "BadSweep");
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_FALSE(doc.error.empty());
+}
+
 // --- Golden recipe fixture (v1 format tripwire) ---
 
 static CadDocument make_golden_doc_v1()
@@ -2360,6 +2649,12 @@ static CadDocument make_golden_doc_v1()
         doc.features[cs].coordsys_face   = 1;
         doc.features[cs].coordsys_edge   = 0;
         doc.features[cs].coordsys_x_hint = Vec3d(0.5, 0.8, 0.3);
+    }
+
+    // ---- Helix: conical left-handed with distinctive non-default values ----
+    {
+        int hx = doc.add_helix(SketchPlane::XZ(), 11.5, 4.25, 18.0, true, 3.0, "Helix_CLH");
+        (void)hx;
     }
 
     return doc;
@@ -2610,6 +2905,15 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
             REQUIRE_THAT(f.coordsys_x_hint.x(), WithinAbs(0.5, 1e-9));
             REQUIRE_THAT(f.coordsys_x_hint.y(), WithinAbs(0.8, 1e-9));
             REQUIRE_THAT(f.coordsys_x_hint.z(), WithinAbs(0.3, 1e-9));
+        }
+
+        // Helix
+        if (f.type == CadFeatureType::Helix && e.name == "Helix_CLH") {
+            REQUIRE_THAT(f.helix_radius,      WithinAbs(11.5, 1e-9));
+            REQUIRE_THAT(f.helix_pitch,       WithinAbs(4.25, 1e-9));
+            REQUIRE_THAT(f.helix_height,      WithinAbs(18.0, 1e-9));
+            REQUIRE(f.helix_left_handed == true);
+            REQUIRE_THAT(f.helix_taper_deg,   WithinAbs(3.0, 1e-9));
         }
     }
 

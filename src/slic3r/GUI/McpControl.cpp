@@ -206,6 +206,15 @@ json describe_tools()
                      json{{"name", "edge"},      {"type", "integer"}, {"default", -1}, {"description", "edge id (query_topology) for X axis hint"}},
                      json{{"name", "x_hint"},    {"type", "array"}, {"default", json::array({1,0,0})}, {"description", "fallback X direction hint if no edge given"}},
                  })}},
+            json{{"name", "helix"}, {"summary", "Create a helical curve (consumed by sweep as a path to build springs/coils/augers). pitch = axial rise per turn. left_handed flips the winding. taper_deg != 0 gives a conical helix."},
+                 {"params", json::array({
+                     json{{"name", "radius"},      {"type", "number"}, {"unit", "mm"},  {"default", 10}, {"min", 0.01}},
+                     json{{"name", "pitch"},       {"type", "number"}, {"unit", "mm"},  {"default", 5},  {"min", 0.01}},
+                     json{{"name", "height"},      {"type", "number"}, {"unit", "mm"},  {"default", 20}, {"min", 0.01}},
+                     json{{"name", "left_handed"}, {"type", "boolean"}, {"default", false}},
+                     json{{"name", "taper_deg"},   {"type", "number"}, {"unit", "deg"}, {"default", 0}},
+                     json{{"name", "plane"},       {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
+                 })}},
             json{{"name", "query_topology"}, {"summary", "Measured faces (centroid/normal/cylinder) and edges (length/circle) of a body."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
@@ -894,6 +903,20 @@ json action_coordsys(DesignPanel* panel, const json& params)
     return json{{"ok", true}, {"coordsys_index", idx}, {"error", err}};
 }
 
+json action_helix(DesignPanel* panel, const json& params)
+{
+    const double radius      = params.value("radius", 10.0);
+    const double pitch       = params.value("pitch", 5.0);
+    const double height      = params.value("height", 20.0);
+    const bool   left_handed = params.value("left_handed", false);
+    const double taper       = params.value("taper_deg", 0.0);
+    CadDocument& doc = panel->mcp_doc();
+    doc.checkpoint();
+    int idx = doc.add_helix(plane_from(params, doc), radius, pitch, height, left_handed, taper, "Helix");
+    panel->mcp_after_change();
+    return json{{"ok", true}, {"helix_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 // Dispatch one parsed request ON THE MAIN THREAD. Returns a JSON-RPC reply string.
 std::string handle_on_main(const std::string& method, const json& params, const json& id)
 {
@@ -923,6 +946,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "mirror")         return rpc_result(id, action_mirror(panel, params));
         if (method == "axis")           return rpc_result(id, action_axis(panel, params));
         if (method == "coordsys")       return rpc_result(id, action_coordsys(panel, params));
+        if (method == "helix")          return rpc_result(id, action_helix(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
         return rpc_error(id, -32000, std::string("OCCT: ") + (ex.GetMessageString() ? ex.GetMessageString() : "failure"));
