@@ -2054,6 +2054,164 @@ TEST_CASE("mesh_to_brep: degenerate triangles are rejected on a scale-independen
     CHECK(st3.degenerate_collapsed == 1);
 }
 
+TEST_CASE("datum axis: two points direction is unit and analytic", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int ax = doc.add_axis(AxisType::TwoPoints, "AxisThroughZ");
+    REQUIRE(ax == 0);
+    doc.features[ax].axis_p1 = Vec3d(0, 0, 0);
+    doc.features[ax].axis_p2 = Vec3d(0, 0, 10);
+
+    auto axes = doc.resolve_datum_axes();
+    REQUIRE(axes.size() == 1);
+    REQUIRE(axes[0].name == "AxisThroughZ");
+    REQUIRE(axes[0].error.empty());
+    CHECK_THAT(axes[0].direction.x(), WithinAbs(0.0, 1e-12));
+    CHECK_THAT(axes[0].direction.y(), WithinAbs(0.0, 1e-12));
+    CHECK_THAT(axes[0].direction.z(), WithinAbs(1.0, 1e-12));
+    CHECK_THAT(axes[0].direction.norm(), WithinAbs(1.0, 1e-9));
+    CHECK_THAT(axes[0].origin.x(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT(axes[0].origin.y(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT(axes[0].origin.z(), WithinAbs(0.0, 1e-9));
+}
+
+TEST_CASE("datum axis: degenerate two identical points fails cleanly", "[CadDocument]")
+{
+    CadDocument doc;
+    int ax = doc.add_axis(AxisType::TwoPoints, "Degenerate");
+    doc.features[ax].axis_p1 = Vec3d(5, 5, 5);
+    doc.features[ax].axis_p2 = Vec3d(5, 5, 5);
+
+    auto axes = doc.resolve_datum_axes();
+    REQUIRE(axes.size() == 1);
+    REQUIRE_FALSE(axes[0].error.empty());
+}
+
+TEST_CASE("datum axis: two parallel planes fail with error", "[CadDocument]")
+{
+    CadDocument doc;
+    // Two offset XY planes are parallel -> no intersection
+    doc.add_plane(0 /*XY*/, 10.0, 0.0, 0, "PlaneA");
+    doc.add_plane(0 /*XY*/, 30.0, 0.0, 0, "PlaneB");
+
+    int ax = doc.add_axis(AxisType::TwoPoints, "Parallel");
+    doc.features[ax].axis_type      = AxisType::PlaneIntersection;
+    doc.features[ax].axis_plane_a   = 0;
+    doc.features[ax].axis_plane_b   = 1;
+
+    auto axes = doc.resolve_datum_axes();
+    REQUIRE(axes.size() == 1);
+    REQUIRE_FALSE(axes[0].error.empty());
+}
+
+TEST_CASE("datum axis: cylinder centreline from extruded circle", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    // Build a cylinder: circle r=5 at origin, extrude 20 mm along +Z -> cylinder z=[0,20]
+    int sk = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 5.0, "Circle");
+    doc.add_extrude(sk, 20.0, false, BooleanMode::New, "Cyl");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    // Find the lateral cylindrical face
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int lateral_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        GeometryEngine::CylinderFace cyl = GeometryEngine::cylinder_of_face(fc);
+        if (cyl.ok) { lateral_face = i; break; }
+    }
+    REQUIRE(lateral_face >= 0);
+
+    int ax = doc.add_axis(AxisType::TwoPoints, "CylAx");
+    doc.features[ax].axis_type = AxisType::CylinderCenterline;
+    doc.features[ax].axis_body = 0;
+    doc.features[ax].axis_face = lateral_face;
+
+    auto axes = doc.resolve_datum_axes();
+    REQUIRE(axes.size() == 1);
+    REQUIRE(axes[0].error.empty());
+    // OCCT may return the axis direction as +Z or -Z depending on face orientation;
+    // the centreline is always collinear with Z and passes through (x=0,y=0).
+    CHECK_THAT(std::abs(axes[0].direction.z()), WithinAbs(1.0, 1e-12));
+    CHECK_THAT(axes[0].direction.x(), WithinAbs(0.0, 1e-12));
+    CHECK_THAT(axes[0].direction.y(), WithinAbs(0.0, 1e-12));
+    CHECK_THAT(axes[0].origin.x(), WithinAbs(0.0, 1e-6));
+    CHECK_THAT(axes[0].origin.y(), WithinAbs(0.0, 1e-6));
+}
+
+TEST_CASE("datum coordinate system: non-perpendicular inputs produce orthonormal axes", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    // Build a body so we have a face to reference for FaceAndDirection.
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "BoxExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        Vec3d fn = GeometryEngine::face_normal_world(GeometryEngine::face_by_index(doc.bodies[0].shape, i));
+        if (fn.z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    int cs = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 0), "CS1");
+    REQUIRE(cs >= 0);
+    doc.features[cs].coordsys_type   = CoordSysType::FaceAndDirection;
+    doc.features[cs].coordsys_body   = 0;
+    doc.features[cs].coordsys_face   = top_face;
+    // Deliberately non-perpendicular X hint (NOT orthogonal to face normal ~+Z).
+    doc.features[cs].coordsys_x_hint = Vec3d(3.0, -1.0, 0.5);
+
+    auto css = doc.resolve_datum_coordsys();
+    REQUIRE(css.size() == 1);
+    REQUIRE(css[0].error.empty());
+
+    Vec3d X = css[0].x, Y = css[0].y;
+    // Orthonormality: each axis has unit length
+    CHECK_THAT(X.norm(), WithinAbs(1.0, 1e-9));
+    CHECK_THAT(Y.norm(), WithinAbs(1.0, 1e-9));
+    // Pairwise dot products are ~0
+    CHECK_THAT(std::abs(X.dot(Y)), WithinAbs(0.0, 1e-9));
+    // Z = X x Y (derived), also unit and perpendicular
+    Vec3d Z = X.cross(Y);
+    CHECK_THAT(Z.norm(), WithinAbs(1.0, 1e-9));
+    CHECK_THAT(std::abs(X.dot(Z)), WithinAbs(0.0, 1e-9));
+    CHECK_THAT(std::abs(Y.dot(Z)), WithinAbs(0.0, 1e-9));
+    // Right-handedness: X x Y == Z
+    CHECK_THAT(Z.x(), WithinAbs((X.cross(Y)).x(), 1e-9));
+    CHECK_THAT(Z.y(), WithinAbs((X.cross(Y)).y(), 1e-9));
+    CHECK_THAT(Z.z(), WithinAbs((X.cross(Y)).z(), 1e-9));
+}
+
+TEST_CASE("datum coordinate system: point_world gives world axes", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int cs = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(10, 20, 30), "CS_World");
+    REQUIRE(cs == 0);
+
+    auto css = doc.resolve_datum_coordsys();
+    REQUIRE(css.size() == 1);
+    REQUIRE(css[0].error.empty());
+    CHECK_THAT(css[0].origin.x(), WithinAbs(10.0, 1e-9));
+    CHECK_THAT(css[0].origin.y(), WithinAbs(20.0, 1e-9));
+    CHECK_THAT(css[0].origin.z(), WithinAbs(30.0, 1e-9));
+    CHECK_THAT(css[0].x.x(), WithinAbs(1.0, 1e-9));
+    CHECK_THAT(css[0].x.y(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT(css[0].x.z(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT(css[0].y.x(), WithinAbs(0.0, 1e-9));
+    CHECK_THAT(css[0].y.y(), WithinAbs(1.0, 1e-9));
+    CHECK_THAT(css[0].y.z(), WithinAbs(0.0, 1e-9));
+}
+
 
 // --- Golden recipe fixture (v1 format tripwire) ---
 
@@ -2182,6 +2340,27 @@ static CadDocument make_golden_doc_v1()
     // ---- Mirror: XZ plane, New mode, keep_original=false (distinctive non-defaults) ----
     doc.add_mirror(SketchPlane::XZ(), 0, BooleanMode::New, "Mirror_XZ");
     doc.features.back().mirror_keep_original = false;
+
+    // ---- Datum Axis: two-points with distinctive non-default coordinates ----
+    {
+        int ax = doc.add_axis(AxisType::TwoPoints, "Axis_TP");
+        doc.features[ax].axis_p1 = Vec3d(10, 20, 30);
+        doc.features[ax].axis_p2 = Vec3d(13, 24, 34);
+        doc.features[ax].axis_body = 1;
+        doc.features[ax].axis_face = 3;
+        doc.features[ax].axis_edge = 2;
+        doc.features[ax].axis_plane_a = 4;
+        doc.features[ax].axis_plane_b = 5;
+    }
+
+    // ---- Datum CoordSys: PointWorld with distinctive origin ----
+    {
+        int cs = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(7, 8, 9), "CS_PtWorld");
+        doc.features[cs].coordsys_body   = 2;
+        doc.features[cs].coordsys_face   = 1;
+        doc.features[cs].coordsys_edge   = 0;
+        doc.features[cs].coordsys_x_hint = Vec3d(0.5, 0.8, 0.3);
+    }
 
     return doc;
 }
@@ -2401,6 +2580,36 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
             REQUIRE(f.mode                 == BooleanMode::New);
             REQUIRE(f.mirror_keep_original == false);
             REQUIRE(f.target_body          == 0);
+        }
+
+        // Datum Axis
+        if (f.type == CadFeatureType::Axis && e.name == "Axis_TP") {
+            REQUIRE(f.axis_type  == AxisType::TwoPoints);
+            REQUIRE_THAT(f.axis_p1.x(), WithinAbs(10.0, 1e-9));
+            REQUIRE_THAT(f.axis_p1.y(), WithinAbs(20.0, 1e-9));
+            REQUIRE_THAT(f.axis_p1.z(), WithinAbs(30.0, 1e-9));
+            REQUIRE_THAT(f.axis_p2.x(), WithinAbs(13.0, 1e-9));
+            REQUIRE_THAT(f.axis_p2.y(), WithinAbs(24.0, 1e-9));
+            REQUIRE_THAT(f.axis_p2.z(), WithinAbs(34.0, 1e-9));
+            REQUIRE(f.axis_body     == 1);
+            REQUIRE(f.axis_face     == 3);
+            REQUIRE(f.axis_edge     == 2);
+            REQUIRE(f.axis_plane_a  == 4);
+            REQUIRE(f.axis_plane_b  == 5);
+        }
+
+        // Datum CoordSys
+        if (f.type == CadFeatureType::CoordSys && e.name == "CS_PtWorld") {
+            REQUIRE(f.coordsys_type == CoordSysType::PointWorld);
+            REQUIRE_THAT(f.coordsys_point.x(), WithinAbs(7.0, 1e-9));
+            REQUIRE_THAT(f.coordsys_point.y(), WithinAbs(8.0, 1e-9));
+            REQUIRE_THAT(f.coordsys_point.z(), WithinAbs(9.0, 1e-9));
+            REQUIRE(f.coordsys_body == 2);
+            REQUIRE(f.coordsys_face == 1);
+            REQUIRE(f.coordsys_edge == 0);
+            REQUIRE_THAT(f.coordsys_x_hint.x(), WithinAbs(0.5, 1e-9));
+            REQUIRE_THAT(f.coordsys_x_hint.y(), WithinAbs(0.8, 1e-9));
+            REQUIRE_THAT(f.coordsys_x_hint.z(), WithinAbs(0.3, 1e-9));
         }
     }
 

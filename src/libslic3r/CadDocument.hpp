@@ -17,9 +17,11 @@
 
 namespace Slic3r {
 
-enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror };
+enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys };
 enum class SketchShape    { Rectangle, Circle };
 enum class PlaneType      { Offset, Angle, Midplane, Tangent, TwoEdges, Coincident };
+enum class AxisType       { TwoPoints, FaceNormal, CylinderCenterline, PlaneIntersection, AlongEdge };
+enum class CoordSysType   { PointWorld, FaceAndDirection };
 enum class BooleanMode    { New, Add, Cut, Intersect };
 
 enum class ExtrudeEnd { Blind, Symmetric, TwoSided, ThroughAll, UpToFace, UpToVertex };
@@ -208,6 +210,25 @@ struct CadFeature {
     // the source body survives when mode is New.
     bool   mirror_keep_original{true};
 
+    // Datum axis: reference line (no solid). Construction params stored; resolve_datum_axes()
+    // computes the world-space origin + unit direction on demand.
+    AxisType    axis_type{AxisType::TwoPoints};
+    Vec3d       axis_p1{0, 0, 0};
+    Vec3d       axis_p2{0, 0, 10};
+    int         axis_body{-1};
+    int         axis_face{-1};
+    int         axis_edge{-1};
+    int         axis_plane_a{-1};
+    int         axis_plane_b{-1};
+
+    // Datum coordinate system (no solid). Stored as point + two orthonormal axes.
+    CoordSysType coordsys_type{CoordSysType::PointWorld};
+    Vec3d        coordsys_point{0, 0, 0};
+    int          coordsys_body{-1};
+    int          coordsys_face{-1};
+    int          coordsys_edge{-1};
+    Vec3d        coordsys_x_hint{1, 0, 0};
+
     template<class Archive>
     void save(Archive& ar) const {
         std::string brep = (type == CadFeatureType::Import) ? brep_to_string(imported_solid) : std::string();
@@ -230,7 +251,9 @@ struct CadFeature {
            brep,
            plane_type, plane_face_body, plane_face, plane_face2_body, plane_face2,
            plane_edge_body, plane_edge, plane_edge2_body, plane_edge2, plane_u_size, plane_v_size,
-           mirror_keep_original);
+           mirror_keep_original,
+           axis_type, axis_p1, axis_p2, axis_body, axis_face, axis_edge, axis_plane_a, axis_plane_b,
+           coordsys_type, coordsys_point, coordsys_body, coordsys_face, coordsys_edge, coordsys_x_hint);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -254,7 +277,9 @@ struct CadFeature {
            brep,
            plane_type, plane_face_body, plane_face, plane_face2_body, plane_face2,
            plane_edge_body, plane_edge, plane_edge2_body, plane_edge2, plane_u_size, plane_v_size,
-           mirror_keep_original);
+           mirror_keep_original,
+           axis_type, axis_p1, axis_p2, axis_body, axis_face, axis_edge, axis_plane_a, axis_plane_b,
+           coordsys_type, coordsys_point, coordsys_body, coordsys_face, coordsys_edge, coordsys_x_hint);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -360,9 +385,21 @@ public:
     // along its normal, optional tilt about a base axis. Produces no solid.
     int  add_plane(int base, double offset, double angle_tilt, int axis,
                    const std::string& name);
+    // Datum axis: construction method axis_type determines which ref fields are read.
+    int  add_axis(AxisType axis_type, const std::string& name);
+    // Datum coordinate system.
+    int  add_coordsys(CoordSysType type, const Vec3d& point, const std::string& name);
     // Every datum plane currently in the recipe, in feature order, as (name, plane).
     // Used by the GUI to populate plane pickers (after the 3 base planes).
     std::vector<std::pair<std::string, SketchPlane>> resolve_datum_planes() const;
+    // Resolved datum axes in feature order. axis_err is non-empty if construction failed.
+    struct DatumAxis { std::string name; Vec3d origin{0,0,0}; Vec3d direction{0,0,1};
+                       std::string error; };
+    std::vector<DatumAxis> resolve_datum_axes() const;
+    // Resolved datum coordinate systems. X/Y unit, orthonormal (Z = X.cross(Y)).
+    struct DatumCoordSys { std::string name; Vec3d origin{0,0,0}; Vec3d x{1,0,0};
+                           Vec3d y{0,1,0}; std::string error; };
+    std::vector<DatumCoordSys> resolve_datum_coordsys() const;
     void clear();
     bool recompute();   // replay features -> body + display_mesh; false on error
 

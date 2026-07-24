@@ -699,6 +699,27 @@ int CadDocument::add_plane(int base, double offset, double angle_tilt, int axis,
     return int(features.size()) - 1;
 }
 
+int CadDocument::add_axis(AxisType axis_type_, const std::string& name)
+{
+    CadFeature f;
+    f.type      = CadFeatureType::Axis;
+    f.name      = name;
+    f.axis_type = axis_type_;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
+int CadDocument::add_coordsys(CoordSysType type, const Vec3d& point, const std::string& name)
+{
+    CadFeature f;
+    f.type           = CadFeatureType::CoordSys;
+    f.name           = name;
+    f.coordsys_type  = type;
+    f.coordsys_point = point;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
 // Derive a SketchPlane: shift `base` along its normal by `offset`, then tilt
 // `angle_deg` about the base's X (axis 0) or Y (axis 1) axis (Rodrigues rotation).
 static SketchPlane offset_angle_plane(const SketchPlane& base, double offset,
@@ -891,6 +912,190 @@ std::vector<std::pair<std::string, SketchPlane>> CadDocument::resolve_datum_plan
         }
 
         out.emplace_back(f.name, result);
+    }
+    return out;
+}
+
+// Resolved datum axes in feature order. Origin + unit direction computed from
+// construction params; axis_err is non-empty when construction fails (no crash).
+std::vector<CadDocument::DatumAxis> CadDocument::resolve_datum_axes() const
+{
+    std::vector<DatumAxis> out;
+    // For PlaneIntersection we need the already-resolved datum planes.
+    std::vector<std::pair<std::string, SketchPlane>> datum_planes = resolve_datum_planes();
+
+    auto resolve_face = [&](int body_idx, int face_idx) -> TopoDS_Face {
+        if (face_idx < 0 || body_idx < 0 || body_idx >= int(bodies.size()))
+            return TopoDS_Face();
+        return GeometryEngine::face_by_index(bodies[body_idx].shape, face_idx);
+    };
+    auto resolve_edge = [&](int body_idx, int edge_idx,
+                             Vec3d& p0, Vec3d& dir) -> bool {
+        if (edge_idx < 0 || body_idx < 0 || body_idx >= int(bodies.size()))
+            return false;
+        TopoDS_Edge e = GeometryEngine::edge_by_index(bodies[body_idx].shape, edge_idx);
+        if (e.IsNull()) return false;
+        auto pts = GeometryEngine::sample_edge_world(e);
+        if (pts.size() < 2) return false;
+        p0 = pts.front();
+        dir = (pts.back() - pts.front()).normalized();
+        return true;
+    };
+
+    for (const CadFeature& f : features) {
+        if (f.type != CadFeatureType::Axis || !f.enabled) continue;
+
+        DatumAxis da;
+        da.name = f.name;
+        switch (f.axis_type) {
+        case AxisType::TwoPoints: {
+            Vec3d dir = f.axis_p2 - f.axis_p1;
+            if (dir.squaredNorm() < 1e-18) { da.error = "two points are coincident"; break; }
+            da.origin    = f.axis_p1;
+            da.direction = dir.normalized();
+            break;
+        }
+        case AxisType::FaceNormal: {
+            TopoDS_Face fc = resolve_face(f.axis_body, f.axis_face);
+            if (fc.IsNull()) { da.error = "face not found"; break; }
+            da.origin    = GeometryEngine::face_centroid_world(fc);
+            da.direction = GeometryEngine::face_normal_world(fc);
+            break;
+        }
+        case AxisType::CylinderCenterline: {
+            TopoDS_Face fc = resolve_face(f.axis_body, f.axis_face);
+            if (fc.IsNull()) { da.error = "face not found"; break; }
+            GeometryEngine::CylinderFace cyl = GeometryEngine::cylinder_of_face(fc);
+            if (!cyl.ok) { da.error = "face is not a cylinder"; break; }
+            da.origin    = cyl.base;
+            da.direction = cyl.axis;
+            break;
+        }
+        case AxisType::AlongEdge: {
+            Vec3d p0, dir;
+            if (!resolve_edge(f.axis_body, f.axis_edge, p0, dir)) {
+                da.error = "edge not found"; break;
+            }
+            da.origin    = p0;
+            da.direction = dir;
+            break;
+        }
+        case AxisType::PlaneIntersection: {
+            auto find_plane = [&](int ref) -> const SketchPlane* {
+                if (ref >= 0 && ref < int(datum_planes.size()))
+                    return &datum_planes[ref].second;
+                if (ref >= 3) { // base plane offset: 0=XY,1=XZ,2=YZ
+                    da.error = "plane ref index out of range (datum planes not found)";
+                    return nullptr;
+                }
+                return nullptr;
+            };
+            // For base planes we handle directly.
+            auto base_plane = [&](int ref, Vec3d& origin, Vec3d& normal) -> bool {
+                if (ref >= 0 && ref < int(datum_planes.size())) {
+                    origin = datum_planes[ref].second.origin;
+                    normal = datum_planes[ref].second.normal;
+                    return true;
+                }
+                return false;
+            };
+            // Both refs reference datum plane indices in the resolved list.
+            // Supporting cross-base-plane where ref < 0 isn't in scope.
+            bool ok0 = base_plane(f.axis_plane_a, da.origin, da.direction); // direction reused as normal0
+            Vec3d origin1, normal1;
+            bool ok1 = base_plane(f.axis_plane_b, origin1, normal1);
+            if (!ok0 || !ok1) { da.error = "plane ref not found"; break; }
+            // Direction = cross product of the two plane normals.
+            Vec3d dir = da.direction.cross(normal1); // da.direction was normal0
+            if (dir.squaredNorm() < 1e-18) {
+                da.error = "planes are parallel (no intersection)"; break;
+            }
+            dir.normalize();
+            // Find a point on the intersection line: closest points between two planes.
+            // Project origin of plane A onto the intersection line.
+            Vec3d n0 = da.direction;   // normal of plane A (stored temporarily)
+            Vec3d n1 = normal1;
+            Vec3d p0 = da.origin;
+            Vec3d p1 = origin1;
+            // Solve for point on line of intersection using vector formula.
+            double d0 = n0.dot(p0);
+            double d1 = n1.dot(p1);
+            double n0n1 = n0.dot(n1);
+            double det = 1.0 - n0n1 * n0n1;
+            if (std::abs(det) < 1e-18) { da.error = "planes are parallel (no intersection)"; break; }
+            double t0 = (d0 - d1 * n0n1) / det;
+            double t1 = (d1 - d0 * n0n1) / det;
+            da.origin    = n0 * t0 + n1 * t1;
+            da.direction = dir;
+            break;
+        }
+        }
+        out.push_back(da);
+    }
+    return out;
+}
+
+std::vector<CadDocument::DatumCoordSys> CadDocument::resolve_datum_coordsys() const
+{
+    std::vector<DatumCoordSys> out;
+
+    auto resolve_face = [&](int body_idx, int face_idx) -> TopoDS_Face {
+        if (face_idx < 0 || body_idx < 0 || body_idx >= int(bodies.size()))
+            return TopoDS_Face();
+        return GeometryEngine::face_by_index(bodies[body_idx].shape, face_idx);
+    };
+    auto resolve_edge = [&](int body_idx, int edge_idx,
+                             Vec3d& p0, Vec3d& dir) -> bool {
+        if (edge_idx < 0 || body_idx < 0 || body_idx >= int(bodies.size()))
+            return false;
+        TopoDS_Edge e = GeometryEngine::edge_by_index(bodies[body_idx].shape, edge_idx);
+        if (e.IsNull()) return false;
+        auto pts = GeometryEngine::sample_edge_world(e);
+        if (pts.size() < 2) return false;
+        p0  = pts.front();
+        dir = (pts.back() - pts.front()).normalized();
+        return true;
+    };
+
+    for (const CadFeature& f : features) {
+        if (f.type != CadFeatureType::CoordSys || !f.enabled) continue;
+
+        DatumCoordSys ds;
+        ds.name = f.name;
+        switch (f.coordsys_type) {
+        case CoordSysType::PointWorld: {
+            ds.origin = f.coordsys_point;
+            ds.x      = Vec3d(1, 0, 0);
+            ds.y      = Vec3d(0, 1, 0);
+            break;
+        }
+        case CoordSysType::FaceAndDirection: {
+            TopoDS_Face fc = resolve_face(f.coordsys_body, f.coordsys_face);
+            Vec3d p0, edge_dir;
+            bool have_edge = resolve_edge(f.coordsys_body, f.coordsys_edge, p0, edge_dir);
+            if (fc.IsNull()) { ds.error = "face not found"; break; }
+            ds.origin = GeometryEngine::face_centroid_world(fc);
+            Vec3d Z = GeometryEngine::face_normal_world(fc);
+            // Tentative X: edge direction if available, else the hint or a fallback.
+            Vec3d X_tent = have_edge ? edge_dir : f.coordsys_x_hint;
+            if (X_tent.squaredNorm() < 1e-18) { ds.error = "zero-length direction"; break; }
+            X_tent.normalize();
+            // Gram-Schmidt: ensure orthonormal, right-handed frame.
+            // Y = Z x X_tent,  X = Y x Z  (this makes X perpendicular to Z, not X_tent)
+            Vec3d Y = Z.cross(X_tent);
+            if (Y.squaredNorm() < 1e-12) {
+                // Edge/hint is parallel to Z -> X is degenerate; fall back to world X/Y orthonormalised.
+                Vec3d ref = (std::abs(Z.z()) < 0.9) ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+                Y = Z.cross(ref);
+                if (Y.squaredNorm() < 1e-12) Y = Z.cross(Vec3d(0, 1, 0));
+            }
+            Y.normalize();
+            ds.x = Y.cross(Z).normalized();
+            ds.y = Y;
+            break;
+        }
+        }
+        out.push_back(ds);
     }
     return out;
 }
@@ -1689,7 +1894,9 @@ void CadDocument::apply_mirror(std::vector<CadBody>& bodies, const CadFeature& f
 
 void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
-    if (f.type == CadFeatureType::Plane) return;   // datum plane: not part of the body pipeline
+    if (f.type == CadFeatureType::Plane)   return;   // datum plane: not part of the body pipeline
+    if (f.type == CadFeatureType::Axis)    return;   // datum axis
+    if (f.type == CadFeatureType::CoordSys) return; // datum coordinate system
     if (f.type == CadFeatureType::Boolean) { apply_boolean(bodies, f); return; }   // body-body op
     if (f.type == CadFeatureType::Cut)     { apply_cut(bodies, f);     return; }   // plane-split body
     if (f.type == CadFeatureType::Mirror)  { apply_mirror(bodies, f);  return; }   // mirror body about plane
@@ -1728,7 +1935,9 @@ bool CadDocument::recompute()
         for (const CadFeature& f : features) {
             if (!f.enabled) continue;
             if (f.type == CadFeatureType::Sketch) continue; // consumed by an extrude
-            if (f.type == CadFeatureType::Plane)  continue; // datum: no solid, derived on demand
+            if (f.type == CadFeatureType::Plane)   continue; // datum: no solid, derived on demand
+            if (f.type == CadFeatureType::Axis)    continue; // datum axis
+            if (f.type == CadFeatureType::CoordSys) continue; // datum coordinate system
             route_feature(built, f);
         }
     } catch (const Standard_Failure& e) {

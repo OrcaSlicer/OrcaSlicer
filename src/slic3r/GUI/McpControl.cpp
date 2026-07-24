@@ -70,7 +70,9 @@ const char* feature_type_name(CadFeatureType t)
         case CadFeatureType::Draft:   return "Draft";
         case CadFeatureType::Import:  return "Import";
         case CadFeatureType::Boolean: return "Boolean";
-        case CadFeatureType::Cut:     return "Cut";
+         case CadFeatureType::Cut:     return "Cut";
+        case CadFeatureType::Axis:    return "Axis";
+        case CadFeatureType::CoordSys: return "CoordSys";
     }
     return "Unknown";
 }
@@ -183,6 +185,26 @@ json describe_tools()
                      json{{"name", "mode"},         {"type", "string"}, {"enum", json::array({"new", "add"})},     {"default", "new"}},
                      json{{"name", "keep_original"},{"type", "boolean"}, {"default", true}, {"description", "when mode=new, keep the source body"}},
                      json{{"name", "body"},         {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
+                 })}},
+            json{{"name", "axis"}, {"summary", "Create a datum axis (reference line): two points, face normal, cylinder centreline, plane intersection, or along edge."},
+                 {"params", json::array({
+                     json{{"name", "type"},     {"type", "string"}, {"enum", json::array({"two_points", "face_normal", "cylinder", "plane_intersection", "along_edge"})}, {"default", "two_points"}},
+                     json{{"name", "p1"},       {"type", "array"}, {"default", json::array({0,0,0})}, {"description", "first point [x,y,z] for two_points"}},
+                     json{{"name", "p2"},       {"type", "array"}, {"default", json::array({0,0,10})}, {"description", "second point [x,y,z] for two_points"}},
+                     json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "body for face/edge refs"}},
+                     json{{"name", "face"},     {"type", "integer"}, {"default", -1}, {"description", "face id (query_topology) for face_normal/cylinder"}},
+                     json{{"name", "edge"},     {"type", "integer"}, {"default", -1}, {"description", "edge id (query_topology) for along_edge"}},
+                     json{{"name", "plane_a"},  {"type", "integer"}, {"default", -1}, {"description", "first datum plane feature index for plane_intersection"}},
+                     json{{"name", "plane_b"},  {"type", "integer"}, {"default", -1}, {"description", "second datum plane feature index for plane_intersection"}},
+                 })}},
+            json{{"name", "coordsys"}, {"summary", "Create a datum coordinate system (origin + orthonormal axes). PointWorld aligns to world; FaceAndDirection uses a face for Z and an edge/hint for X."},
+                 {"params", json::array({
+                     json{{"name", "type"},      {"type", "string"}, {"enum", json::array({"point_world", "face_and_direction"})}, {"default", "point_world"}},
+                     json{{"name", "point"},     {"type", "array"}, {"default", json::array({0,0,0})}, {"description", "origin [x,y,z] for point_world"}},
+                     json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "body for face/edge refs"}},
+                     json{{"name", "face"},      {"type", "integer"}, {"default", -1}, {"description", "face id (query_topology) for Z axis"}},
+                     json{{"name", "edge"},      {"type", "integer"}, {"default", -1}, {"description", "edge id (query_topology) for X axis hint"}},
+                     json{{"name", "x_hint"},    {"type", "array"}, {"default", json::array({1,0,0})}, {"description", "fallback X direction hint if no edge given"}},
                  })}},
             json{{"name", "query_topology"}, {"summary", "Measured faces (centroid/normal/cylinder) and edges (length/circle) of a body."},
                  {"params", json::array({
@@ -815,6 +837,63 @@ json action_mirror(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"mirror_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_axis(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    std::string t = params.value("type", std::string("two_points"));
+    AxisType at = AxisType::TwoPoints;
+    if (t == "face_normal")        at = AxisType::FaceNormal;
+    else if (t == "cylinder")      at = AxisType::CylinderCenterline;
+    else if (t == "plane_intersection") at = AxisType::PlaneIntersection;
+    else if (t == "along_edge")    at = AxisType::AlongEdge;
+    doc.checkpoint();
+    int idx = doc.add_axis(at, "Axis");
+    CadFeature& f = doc.features[idx];
+    if (params.contains("p1") && params["p1"].is_array() && params["p1"].size() >= 3)
+        f.axis_p1 = Vec3d(params["p1"][0].get<double>(), params["p1"][1].get<double>(), params["p1"][2].get<double>());
+    if (params.contains("p2") && params["p2"].is_array() && params["p2"].size() >= 3)
+        f.axis_p2 = Vec3d(params["p2"][0].get<double>(), params["p2"][1].get<double>(), params["p2"][2].get<double>());
+    f.axis_body     = params.value("body", -1);
+    f.axis_face     = params.value("face", -1);
+    f.axis_edge     = params.value("edge", -1);
+    f.axis_plane_a  = params.value("plane_a", -1);
+    f.axis_plane_b  = params.value("plane_b", -1);
+    // Datum features don't produce a body; check for an error returned by resolve.
+    bool recompute_ok = doc.recompute();
+    auto axes = doc.resolve_datum_axes();
+    std::string err = doc.error;
+    if (recompute_ok && err.empty() && !axes.empty() && !axes.back().error.empty())
+        err = axes.back().error;
+    panel->mcp_after_change();
+    return json{{"ok", true}, {"axis_index", idx}, {"error", err}};
+}
+
+json action_coordsys(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    std::string t = params.value("type", std::string("point_world"));
+    CoordSysType ct = CoordSysType::PointWorld;
+    if (t == "face_and_direction") ct = CoordSysType::FaceAndDirection;
+    Vec3d pt(0, 0, 0);
+    if (params.contains("point") && params["point"].is_array() && params["point"].size() >= 3)
+        pt = Vec3d(params["point"][0].get<double>(), params["point"][1].get<double>(), params["point"][2].get<double>());
+    doc.checkpoint();
+    int idx = doc.add_coordsys(ct, pt, "CoordSys");
+    CadFeature& f = doc.features[idx];
+    f.coordsys_body  = params.value("body", -1);
+    f.coordsys_face  = params.value("face", -1);
+    f.coordsys_edge  = params.value("edge", -1);
+    if (params.contains("x_hint") && params["x_hint"].is_array() && params["x_hint"].size() >= 3)
+        f.coordsys_x_hint = Vec3d(params["x_hint"][0].get<double>(), params["x_hint"][1].get<double>(), params["x_hint"][2].get<double>());
+    bool recompute_ok = doc.recompute();
+    auto css = doc.resolve_datum_coordsys();
+    std::string err = doc.error;
+    if (recompute_ok && err.empty() && !css.empty() && !css.back().error.empty())
+        err = css.back().error;
+    panel->mcp_after_change();
+    return json{{"ok", true}, {"coordsys_index", idx}, {"error", err}};
+}
+
 // Dispatch one parsed request ON THE MAIN THREAD. Returns a JSON-RPC reply string.
 std::string handle_on_main(const std::string& method, const json& params, const json& id)
 {
@@ -842,6 +921,8 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "shell")          return rpc_result(id, action_shell(panel, params));
         if (method == "draft")          return rpc_result(id, action_draft(panel, params));
         if (method == "mirror")         return rpc_result(id, action_mirror(panel, params));
+        if (method == "axis")           return rpc_result(id, action_axis(panel, params));
+        if (method == "coordsys")       return rpc_result(id, action_coordsys(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
         return rpc_error(id, -32000, std::string("OCCT: ") + (ex.GetMessageString() ? ex.GetMessageString() : "failure"));
