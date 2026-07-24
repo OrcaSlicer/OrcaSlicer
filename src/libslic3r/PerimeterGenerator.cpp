@@ -572,9 +572,9 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
 }
 
 // ORCA: only_one_wall_top detects the top as "slice − upper", so a feature rising from the middle of a
-// top surface becomes an enclosed hole that gets ringed with extra inner walls. Fill those holes back
-// into the top. Only holes that are both covered by the upper layer (excludes bridges) and backed by
-// solid material (excludes voids) are filled.
+// top surface becomes an enclosed hole. Fill those holes back into the top so the top surface stays solid
+// (avoids leaving thin, unfillable slivers once the inner perimeters are removed). Only holes that are both
+// covered by the upper layer (excludes bridges) and backed by solid material (excludes voids) are filled.
 static ExPolygons fill_enclosed_top_feature_holes(const ExPolygons &top, const Polygons &covered_by_upper, const ExPolygons &solid)
 {
     ExPolygons filled = top;
@@ -582,6 +582,27 @@ static ExPolygons fill_enclosed_top_feature_holes(const ExPolygons &top, const P
         ex.holes.clear();
     const ExPolygons feature_holes = intersection_ex(intersection_ex(diff_ex(filled, top), covered_by_upper), solid);
     return feature_holes.empty() ? top : union_ex(top, feature_holes);
+}
+
+// ORCA: only_one_wall_top keeps a single wall on top surfaces. The walls are generated from the real geometry
+// (as when the feature is off) and the inner walls that fall over the top surface are then dropped, so no wall
+// is ever invented along the top/non-top boundary. A loop is dropped as soon as any vertex lands on the top.
+static bool loop_kept_for_one_wall_top(const Points &pts, const ExPolygons &top_region)
+{
+    for (const Point &p : pts)
+        for (const ExPolygon &ex : top_region)
+            if (ex.contains(p, false))
+                return false;
+    return true;
+}
+
+static bool loop_kept_for_one_wall_top(const Arachne::ExtrusionLine &el, const ExPolygons &top_region)
+{
+    for (const Arachne::ExtrusionJunction &j : el.junctions)
+        for (const ExPolygon &ex : top_region)
+            if (ex.contains(j.p, false))
+                return false;
+    return true;
 }
 
 void PerimeterGenerator::split_top_surfaces(const ExPolygons &orig_polygons, ExPolygons &top_fills,
@@ -1251,6 +1272,10 @@ void PerimeterGenerator::process_classic()
         ExPolygons gaps;
         ExPolygons top_fills;
         ExPolygons fill_clip;
+        // ORCA: only_one_wall_top - the top-surface region to keep clear of inner walls, applied in one post-onion
+        // reduction step (see below). Empty / false unless this island has a top surface on this layer.
+        ExPolygons one_wall_top_region;
+        bool       apply_one_wall_top = false;
         if (loop_number >= 0) {
             // In case no perimeters are to be generated, loop_number will equal to -1.
             std::vector<PerimeterGeneratorLoops> contours(loop_number+1);    // depth => loops
@@ -1390,7 +1415,13 @@ void PerimeterGenerator::process_classic()
                 //BBS: refer to superslicer
                 //store surface for top infill if only_one_wall_top
                 if (i == 0 && i!=loop_number && config->only_one_wall_top && !surface.is_bridge() && this->upper_slices != NULL) {
-                    this->split_top_surfaces(last, top_fills, last, fill_clip);
+                    // ORCA: only_one_wall_top - compute the top fill and the top keep-out region, but leave `last`
+                    // as the real geometry; the walls/gaps over the top are reduced in one post-onion step below.
+                    ExPolygons non_top_polygons;
+                    this->split_top_surfaces(last, top_fills, non_top_polygons, fill_clip);
+                    apply_one_wall_top = !top_fills.empty();
+                    if (apply_one_wall_top)
+                        one_wall_top_region = diff_ex(last, non_top_polygons);
                 }
 
                 if (i == loop_number && (! has_gap_fill || this->config->sparse_infill_density.value == 0)) {
@@ -1398,6 +1429,22 @@ void PerimeterGenerator::process_classic()
                 	// As the gap fill is either disabled or not
                 	break;
                 }
+            }
+
+            // ORCA: only_one_wall_top reduction - drop the inner walls (depth > 0) that fall over the top surface
+            // and take that space back from the gaps, leaving the top with just the outer wall and top infill.
+            if (apply_one_wall_top) {
+                auto drop_over_top = [&](PerimeterGeneratorLoops &loops) {
+                    loops.erase(std::remove_if(loops.begin(), loops.end(), [&](const PerimeterGeneratorLoop &loop) {
+                        return !loop_kept_for_one_wall_top(loop.polygon.points, one_wall_top_region);
+                    }), loops.end());
+                };
+                for (int d = 1; d <= loop_number; ++ d) {
+                    drop_over_top(contours[d]);
+                    drop_over_top(holes[d]);
+                }
+                if (! gaps.empty())
+                    gaps = diff_ex(gaps, one_wall_top_region);
             }
 
             // nest loops: holes first
@@ -2230,24 +2277,26 @@ void PerimeterGenerator::process_arachne()
                 // due to thin lines being generated
                 top_expolygons = offset2_ex(top_expolygons, -top_surface_min_width, top_surface_min_width + float(perimeter_width * 0.85));
 
-                // Get the not-top ExPolygons (including bridges) from current slices and expanded real top ExPolygons (without bridges).
-                const ExPolygons not_top_expolygons = diff_ex(infill_contour, top_expolygons);
-
-                // Get final top ExPolygons.
+                // Get final top ExPolygons (bridges were excluded above, so they stay walled).
                 top_expolygons = intersection_ex(top_expolygons, infill_contour);
 
-                const Polygons not_top_polygons = to_polygons(offset_ex(not_top_expolygons,wall_0_inset));
-                Arachne::WallToolPaths inner_wall_tool_paths(not_top_polygons, perimeter_spacing, perimeter_spacing, coord_t(inner_loop_number + 1), 0, layer_height, input_params_tmp);
+                // ORCA: onion the real region (inside the outer wall) for the remaining walls so they follow the
+                // actual geometry, then drop the ones that fall over the top surface. This replaces re-onioning the
+                // non-top complement, which walled the top/non-top interface and ringed top-surface islands (e.g. a
+                // recess floor) with inner walls that don't exist when the feature is disabled.
+                const Polygons inner_region = to_polygons(offset_ex(infill_contour, wall_0_inset));
+                Arachne::WallToolPaths inner_wall_tool_paths(inner_region, perimeter_spacing, perimeter_spacing, coord_t(inner_loop_number + 1), 0, layer_height, input_params_tmp);
                 std::vector<Arachne::VariableWidthLines> inner_perimeters = inner_wall_tool_paths.getToolPaths();
 
-                // Recalculate indexes of inner perimeters before merging them.
-                if (!perimeters.empty()) {
-                    for (Arachne::VariableWidthLines &inner_perimeter : inner_perimeters) {
-                        if (inner_perimeter.empty())
-                            continue;
-                        for (Arachne::ExtrusionLine &el : inner_perimeter)
-                            ++el.inset_idx;
-                    }
+                for (Arachne::VariableWidthLines &inner_perimeter : inner_perimeters) {
+                    inner_perimeter.erase(std::remove_if(inner_perimeter.begin(), inner_perimeter.end(),
+                                              [&top_expolygons](const Arachne::ExtrusionLine &el) {
+                                                  return el.empty() || !loop_kept_for_one_wall_top(el, top_expolygons);
+                                              }),
+                                          inner_perimeter.end());
+                    // These are inner walls, so their inset index comes after the single outer wall.
+                    for (Arachne::ExtrusionLine &el : inner_perimeter)
+                        ++el.inset_idx;
                 }
 
                 perimeters.insert(perimeters.end(), inner_perimeters.begin(), inner_perimeters.end());
