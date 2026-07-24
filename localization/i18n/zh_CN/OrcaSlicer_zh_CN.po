@@ -557,9 +557,10 @@ msgstr "重映射"
 msgid "Reset"
 msgstr "重置"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Enter"
-msgstr ""
+msgstr "Enter"
 
 msgid "Shortcut Key "
 msgstr "快捷键 "
@@ -709,8 +710,9 @@ msgstr "重置位置"
 msgid "Reset rotation"
 msgstr "重置旋转"
 
+# AI Translated
 msgid "World"
-msgstr ""
+msgstr "世界"
 
 msgid "Object"
 msgstr "对象"
@@ -895,9 +897,10 @@ msgstr "取消选择连接件"
 msgid "Select all connectors"
 msgstr "选择所有连接件"
 
+# AI Translated
 msgctxt "Cut tool"
 msgid "Cut"
-msgstr ""
+msgstr "切割"
 
 msgid "Rotate cut plane"
 msgstr "旋转剖切面"
@@ -960,8 +963,9 @@ msgstr "切割为零件"
 msgid "Reset cutting plane and remove connectors"
 msgstr "重置切割平面并移除连接器"
 
+# AI Translated
 msgid "Reset Cut"
-msgstr ""
+msgstr "重置切割"
 
 msgid "Perform cut"
 msgstr "执行切割"
@@ -994,12 +998,16 @@ msgstr "槽所在的切割平面无效"
 msgid "Connector"
 msgstr "连接件"
 
+# AI Translated
 #, boost-format
 msgid ""
 "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
-"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Please report to the OrcaSlicer team in which scenario this issue happened.\n"
 "Thank you."
 msgstr ""
+"物体(%1%)存在重复的连接件。切片结果中可能会缺少部分连接件。\n"
+"请向 OrcaSlicer 团队报告此问题出现的场景。\n"
+"谢谢。"
 
 msgid "Cut by Plane"
 msgstr "按平面切割"
@@ -1759,16 +1767,18 @@ msgstr "选择"
 msgid "Select point"
 msgstr "选择点"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr ""
+msgstr "Delete"
 
 msgid "Restart selection"
 msgstr "重新选择"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Esc"
-msgstr ""
+msgstr "Esc"
 
 msgid "Cancel a feature until exit"
 msgstr "取消一个特征直到退出"
@@ -1871,9 +1881,10 @@ msgstr "进入测量小工具"
 msgid "Leaving Measure gizmo"
 msgstr "离开测量小工具"
 
+# AI Translated
 msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr ""
+msgstr "组合"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "请确认爆炸比例 = 1 并选择至少两个部件。"
@@ -2108,16 +2119,19 @@ msgstr "已经是最新版本。"
 msgid "Info"
 msgstr "信息"
 
+# AI Translated
 msgid "Loading Plugins"
-msgstr ""
+msgstr "正在加载插件"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Plugin %s is no longer available."
-msgstr ""
+msgstr "插件 %s 已不再可用。"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Plugin %s access is unauthorized."
-msgstr ""
+msgstr "插件 %s 的访问未获授权。"
 
 msgid "Loading printer & filament profiles"
 msgstr "正在加载打印机和耗材配置文件"
@@ -2336,9 +2350,10 @@ msgstr "云端缓存的用户预设数量已超过上限，新创建的用户预
 msgid "Sync user presets"
 msgstr "同步用户预设"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The preset \"%s\" is too large to sync to the cloud (exceeds 1MB). Please reduce the preset size by removing custom configurations or use it locally only."
-msgstr ""
+msgstr "预设“%s”过大，无法同步到云端（超过 1MB）。请通过移除自定义配置来减小预设大小，或仅在本地使用。"
 
 #, c-format, boost-format
 msgid "%s updated from %s to %s"
@@ -2379,10 +2394,13 @@ msgstr "语言"
 msgid "Switching Orca Slicer to language %s failed."
 msgstr "切换 Orca Slicer 语言到 %s 失败。"
 
+# AI Translated
 msgid ""
 "\n"
 "You may need to reconfigure the missing locales, likely by running the \"locale-gen\" and \"dpkg-reconfigure locales\" commands.\n"
 msgstr ""
+"\n"
+"您可能需要重新配置缺失的区域设置，通常可以通过运行 “locale-gen” 和 “dpkg-reconfigure locales” 命令来完成。\n"
 
 msgid "Orca Slicer - Switching language failed"
 msgstr "Orca Slicer - 切换语言失败"
@@ -2561,16 +2579,18 @@ msgstr "隐藏"
 msgid "Show"
 msgstr "显示"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr ""
+msgstr "Del"
 
 msgid "Delete the selected object"
 msgstr "删除所选对象"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Backspace"
-msgstr ""
+msgstr "Backspace"
 
 msgid "Load..."
 msgstr "加载..."
@@ -3054,8 +3074,9 @@ msgstr "重命名零件"
 msgid "Paste settings"
 msgstr "粘贴设置"
 
+# AI Translated
 msgid "Shift objects to bed"
-msgstr ""
+msgstr "将物体下移至热床"
 
 msgid "Object order changed"
 msgstr "对象顺序已更改"
@@ -3093,8 +3114,9 @@ msgstr "错误！"
 msgid "Failed to get the model data in the current file."
 msgstr "无法获取当前文件中的模型数据。"
 
+# AI Translated
 msgid "Add primitive"
-msgstr ""
+msgstr "添加标准模型"
 
 msgid "Generic"
 msgstr "通用"
@@ -3545,9 +3567,10 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "左（辅助）"
 
+# AI Translated
 msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr ""
+msgstr "热端"
 
 msgid "Parts"
 msgstr "打印件"
@@ -4224,9 +4247,10 @@ msgstr "AMS舱内材料"
 msgid "Please select from the following filaments"
 msgstr "请从以下耗材中选择"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Select filament that installed to the %s"
-msgstr ""
+msgstr "选择已安装到 %s 的耗材"
 
 msgid "Left AMS"
 msgstr "左侧AMS"
@@ -4244,20 +4268,24 @@ msgstr "右侧AMS"
 msgid "Printing with the current nozzle may produce an extra %0.2f g of waste."
 msgstr "使用当前喷嘴打印可能会产生额外 %0.2f 克废料。"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Tips: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
-msgstr ""
+msgstr "提示：耗材类型(%s)与切片文件中的耗材类型(%s)不匹配。如果您想使用此槽位，可以安装 %s 代替 %s，并在“设备”页面上更改槽位信息。"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Cannot select: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
-msgstr ""
+msgstr "无法选择：耗材类型(%s)与切片文件中的耗材类型(%s)不匹配。如果您想使用此槽位，可以安装 %s 代替 %s，并在“设备”页面上更改槽位信息。"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Cannot select: the slot is empty or undefined. If you want to use this slot, you can install %s and change slot information on the 'Device' page."
-msgstr ""
+msgstr "无法选择：该槽位为空或未定义。如果您想使用此槽位，可以安装 %s，并在“设备”页面上更改槽位信息。"
 
+# AI Translated
 msgid "Cannot select: No filament loaded in current slot."
-msgstr ""
+msgstr "无法选择：当前槽位未装载耗材。"
 
 msgid "Enable AMS"
 msgstr "启用AMS"
@@ -4300,13 +4328,15 @@ msgstr "使用安装在机箱背面的材料进行打印"
 msgid "Print with filament in AMS"
 msgstr "采用AMS里的材料打印"
 
+# AI Translated
 msgctxt "Nozzle position"
 msgid "Left"
-msgstr ""
+msgstr "左"
 
+# AI Translated
 msgctxt "Nozzle position"
 msgid "Right"
-msgstr ""
+msgstr "右"
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "当前材料耗尽时，打印机将按照以下顺序继续打印。"
@@ -4637,9 +4667,10 @@ msgstr ""
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "当前腔体温度高于材料的安全温度，这可能导致材料软化和堵塞。该材料的最高安全温度为 %d。"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
-msgstr ""
+msgstr "最低机箱温度(%d℃)高于目标机箱温度(%d℃)。最低值是开始打印的阈值，此时机箱会持续朝目标温度加热，因此它不应超过目标值。该值将被限制到目标值。"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid ""
@@ -5016,8 +5047,9 @@ msgstr "生成校准gcode失败"
 msgid "Calibration error"
 msgstr "校准错误"
 
+# AI Translated
 msgid "Network unavailable"
-msgstr ""
+msgstr "网络不可用"
 
 msgid "Resume Printing"
 msgstr "继续打印"
@@ -5052,8 +5084,9 @@ msgstr "查看LiveView"
 msgid "No Reminder Next Time"
 msgstr "下次不再提醒"
 
+# AI Translated
 msgid "Recheck"
-msgstr ""
+msgstr "重新检查"
 
 msgid "Ignore. Don't Remind Next Time"
 msgstr "忽略。下次不再提醒"
@@ -5076,14 +5109,17 @@ msgstr "停止干燥"
 msgid "Proceed"
 msgstr "继续"
 
+# AI Translated
 msgid "Abort"
-msgstr ""
+msgstr "中止"
 
+# AI Translated
 msgid "Disable Purification for This Print"
-msgstr ""
+msgstr "为本次打印禁用净化"
 
+# AI Translated
 msgid "Don't Remind Me"
-msgstr ""
+msgstr "不再提醒"
 
 msgid "Retry"
 msgstr "重试"
@@ -5094,8 +5130,9 @@ msgstr "继续"
 msgid "Unknown error."
 msgstr "未知错误。"
 
+# AI Translated
 msgid "Loading ..."
-msgstr ""
+msgstr "正在加载 ..."
 
 msgid "default"
 msgstr "默认"
@@ -5227,27 +5264,34 @@ msgstr "无效格式，应该是\"%1%\"这种数组格式"
 msgid "N/A"
 msgstr "不适用"
 
+# AI Translated
 msgid "System agents"
-msgstr ""
+msgstr "系统代理"
 
+# AI Translated
 msgid "No plugin selected"
-msgstr ""
+msgstr "未选择插件"
 
+# AI Translated
 msgid "Add plugin"
-msgstr ""
+msgstr "添加插件"
 
+# AI Translated
 msgid "Select plugin"
-msgstr ""
+msgstr "选择插件"
 
+# AI Translated
 msgid "Remove plugin"
-msgstr ""
+msgstr "移除插件"
 
+# AI Translated
 msgid "Configure"
-msgstr ""
+msgstr "配置"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Configure (%d)"
-msgstr ""
+msgstr "配置 (%d)"
 
 msgid "Pick"
 msgstr "选择"
@@ -5618,9 +5662,10 @@ msgstr "自适应"
 msgid "Quality / Speed"
 msgstr "细节/速度"
 
+# AI Translated
 msgctxt "Mesh action"
 msgid "Smooth"
-msgstr ""
+msgstr "平滑"
 
 msgid "Radius"
 msgstr "半径"
@@ -5807,8 +5852,9 @@ msgstr "悬垂"
 msgid "Outline"
 msgstr "轮廓线"
 
+# AI Translated
 msgid "Wireframe"
-msgstr ""
+msgstr "线框"
 
 msgid "Realistic View"
 msgstr "写实渲染"
@@ -6346,9 +6392,10 @@ msgstr "在3D场景中显示选中对象的轮廓"
 msgid "Preferences"
 msgstr "偏好设置"
 
+# AI Translated
 msgctxt "Menu"
 msgid "Edit"
-msgstr ""
+msgstr "编辑"
 
 msgid "View"
 msgstr "视图"
@@ -6484,8 +6531,9 @@ msgstr "导出结果"
 msgid "Select profile to load:"
 msgstr "选择要加载的配置："
 
+# AI Translated
 msgid "Config files (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
-msgstr ""
+msgstr "配置文件 (*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament)|*.json;*.zip;*.orca_printer;*.orca_bundle;*.orca_filament"
 
 #, c-format, boost-format
 msgid "There is %d config imported. (Only non-system and compatible configs)"
@@ -6997,11 +7045,13 @@ msgstr "打印暂停时，仅外部插槽支持耗材装载和卸载。"
 msgid "Current extruder is busy changing filament."
 msgstr "当前挤出机正忙于更换耗材丝。"
 
+# AI Translated
 msgid "\"Load\" or \"Unload\" is not supported for external spool while using Filament Track Switch."
-msgstr ""
+msgstr "在使用 Filament Track Switch 时，外部料盘不支持“装载”或“卸载”。"
 
+# AI Translated
 msgid "The Filament Track Switch has not been setup. Please setup on printer."
-msgstr ""
+msgstr "Filament Track Switch 尚未设置。请在打印机上进行设置。"
 
 msgid "Current slot has already been loaded."
 msgstr "当前插槽已被加载。"
@@ -7086,11 +7136,13 @@ msgstr "添加照片"
 msgid "Delete Photo"
 msgstr "删除照片"
 
+# AI Translated
 msgid "Select Images"
-msgstr ""
+msgstr "选择图片"
 
+# AI Translated
 msgid "Image files (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
-msgstr ""
+msgstr "图片文件 (*.png;*.jpg;*jpeg)|*.png;*.jpg;*.jpeg"
 
 msgid "Submit"
 msgstr "提交"
@@ -7434,13 +7486,17 @@ msgstr "底部"
 msgid "Plugin Selection"
 msgstr "插件选择"
 
+# AI Translated
 msgid ""
 "No plugins capabilities available for this type.\n"
 "Enable or install some to use."
 msgstr ""
+"此类型没有可用的插件功能。\n"
+"请启用或安装后再使用。"
 
+# AI Translated
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
-msgstr ""
+msgstr "当前打印任务中存在易拉丝的耗材。此时启用喷嘴结块检测可能会降低打印质量。您确定要启用吗？"
 
 msgid "Enable Nozzle Clumping Detection"
 msgstr "裹头检测"
@@ -7729,11 +7785,13 @@ msgstr "开关直径"
 msgid "Configuration incompatible"
 msgstr "配置不兼容"
 
+# AI Translated
 msgid "Filament switcher detected. All AMS filaments are now available for both extruders. The slicer will auto-assign for optimal printing."
-msgstr ""
+msgstr "检测到耗材切换器。现在所有 AMS 耗材均可供两个挤出机使用。切片器将自动分配以获得最佳打印效果。"
 
+# AI Translated
 msgid "A filament switcher is detected but not calibrated and thus currently unavailable. Please calibrate it on the printer and synchronize before use."
-msgstr ""
+msgstr "检测到耗材切换器，但尚未校准，因此当前不可用。请在打印机上进行校准并同步后再使用。"
 
 msgid "Tips"
 msgstr "提示"
@@ -7769,8 +7827,9 @@ msgstr "喷嘴"
 msgid "Project Filaments"
 msgstr "项目耗材丝"
 
+# AI Translated
 msgid "Purge mode"
-msgstr ""
+msgstr "冲刷模式"
 
 msgid "Flushing volumes"
 msgstr "冲刷体积"
@@ -8412,39 +8471,50 @@ msgstr "设备页面"
 msgid "Synchronize AMS Filament Information"
 msgstr "同步 AMS 耗材丝信息"
 
+# AI Translated
 msgid "OrcaCloud plugins required by the current preset are not installed:"
-msgstr ""
+msgstr "当前预设所需的 OrcaCloud 插件尚未安装："
 
+# AI Translated
 msgid "Install Plugins"
-msgstr ""
+msgstr "安装插件"
 
+# AI Translated
 msgid "Local plugins required by the current preset are missing:"
-msgstr ""
+msgstr "当前预设所需的本地插件缺失："
 
+# AI Translated
 msgid "Find on OrcaCloud"
-msgstr ""
+msgstr "在 OrcaCloud 上查找"
 
+# AI Translated
 msgid "Plugins required by the current preset are not activated:"
-msgstr ""
+msgstr "当前预设所需的插件尚未激活："
 
+# AI Translated
 msgid "Activate Now"
-msgstr ""
+msgstr "立即激活"
 
+# AI Translated
 msgid "The installed plugin does not provide the required capability — it may be outdated:"
-msgstr ""
+msgstr "已安装的插件未提供所需的功能 — 它可能已过时："
 
+# AI Translated
 msgid "Preparing to install plugins..."
-msgstr ""
+msgstr "正在准备安装插件……"
 
+# AI Translated
 msgid "Installing plugins"
-msgstr ""
+msgstr "正在安装插件"
 
+# AI Translated
 msgid "Cancelling — finishing the current plugin..."
-msgstr ""
+msgstr "正在取消 — 正在完成当前插件……"
 
+# AI Translated
 #, boost-format
 msgid "Installing %1%..."
-msgstr ""
+msgstr "正在安装 %1%……"
 
 msgid "Plate Settings"
 msgstr "盘参数设置"
@@ -8720,34 +8790,51 @@ msgstr "显示STEP网格参数设置对话框"
 msgid "If enabled, a parameter settings dialog will appear during STEP file import."
 msgstr "如果启用，在导入STEP文件时将出现参数设置对话框"
 
+# AI Translated
 msgid "STEP importing: linear deflection"
-msgstr ""
+msgstr "STEP 导入：线性偏差"
 
+# AI Translated
 msgid ""
 "Linear deflection used when meshing imported STEP files.\n"
 "Smaller values produce higher-quality meshes but increase processing time.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
 "Default: 0.003 mm."
 msgstr ""
+"对导入的 STEP 文件进行网格化时使用的线性偏差。\n"
+"值越小，网格质量越高，但会增加处理时间。\n"
+"用作导入对话框中的默认值，或在禁用导入对话框时直接使用。\n"
+"默认值：0.003 mm。"
 
+# AI Translated
 msgid "STEP importing: angle deflection"
-msgstr ""
+msgstr "STEP 导入：角度偏差"
 
+# AI Translated
 msgid ""
 "Angle deflection used when meshing imported STEP files.\n"
 "Smaller values produce higher-quality meshes but increase processing time.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
 "Default: 0.5."
 msgstr ""
+"对导入的 STEP 文件进行网格化时使用的角度偏差。\n"
+"值越小，网格质量越高，但会增加处理时间。\n"
+"用作导入对话框中的默认值，或在禁用导入对话框时直接使用。\n"
+"默认值：0.5。"
 
+# AI Translated
 msgid "STEP importing: Split into multiple objects"
-msgstr ""
+msgstr "STEP 导入：拆分为多个物体"
 
+# AI Translated
 msgid ""
 "If enabled, compound and compsolid shapes in imported STEP files are split into multiple objects.\n"
 "Used as the default in the import dialog, or directly when the import dialog is disabled.\n"
 "Default: disabled."
 msgstr ""
+"如果启用，导入的 STEP 文件中的复合(compound)和复合实体(compsolid)形状将被拆分为多个物体。\n"
+"用作导入对话框中的默认值，或在禁用导入对话框时直接使用。\n"
+"默认值：禁用。"
 
 msgid "Quality level for Draco export"
 msgstr "Draco 导出的模型质量"
@@ -8764,11 +8851,13 @@ msgstr ""
 "0 = 无损压缩（以全精度保留几何形状）。有效有损值范围为 8 到 30。\n"
 "较低的值会生成较小的文件，但会丢失更多的几何细节；较高的值可保留更多细节，但代价是文件较大。"
 
+# AI Translated
 msgid "Store full source file paths in projects"
-msgstr ""
+msgstr "在项目中存储完整的源文件路径"
 
+# AI Translated
 msgid "If enabled, saved projects store the absolute path to imported source files (STEP/STL/...), so \"Reload from disk\" still works when the source file is kept in a different folder than the project. If disabled, only the filename is stored, which keeps projects portable and avoids embedding absolute paths."
-msgstr ""
+msgstr "如果启用，保存的项目会存储导入源文件(STEP/STL/...)的绝对路径，这样即使源文件与项目位于不同文件夹中，“从磁盘重新加载”仍然有效。如果禁用，则仅存储文件名，从而保持项目的可移植性并避免嵌入绝对路径。"
 
 msgid "Preset"
 msgstr "预设"
@@ -8932,11 +9021,15 @@ msgstr "图形"
 msgid "Smooth normals"
 msgstr "平滑法线"
 
+# AI Translated
 msgid ""
 "Applies smooth normals to the model.\n"
 "\n"
 "Requires manual scene reload to take effect (right-click on 3D view → \"Reload All\")."
 msgstr ""
+"为模型应用平滑法线。\n"
+"\n"
+"需要手动重新加载场景才能生效（在 3D 视图中右键单击 → “全部重新加载”）。"
 
 msgid "Phong shading"
 msgstr "Phong 着色"
@@ -8953,8 +9046,9 @@ msgstr "在写实渲染中应用 SSAO。"
 msgid "Shadows"
 msgstr "阴影"
 
+# AI Translated
 msgid "Renders cast shadows on the plate, other objects, and each object onto itself in realistic view."
-msgstr ""
+msgstr "在真实感视图中渲染投射到热床、其他物体以及物体自身上的阴影。"
 
 msgid "Anti-aliasing"
 msgstr "抗锯齿"
@@ -9016,14 +9110,17 @@ msgstr "显示 FPS 叠加层"
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr "在右上角显示当前视口的 FPS。"
 
+# AI Translated
 msgid "G-code Preview"
-msgstr ""
+msgstr "G-code 预览"
 
+# AI Translated
 msgid "Dim lower layers"
-msgstr ""
+msgstr "调暗下方图层"
 
+# AI Translated
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
-msgstr ""
+msgstr "在切片预览中拖动图层滑块时，将当前图层下方的图层渲染为变暗状态，以便只有正在查看的图层以完整亮度显示。"
 
 msgid "Login region"
 msgstr "登录区域"
@@ -9153,11 +9250,13 @@ msgstr "显示不受支持的预设"
 msgid "Show incompatible/unsupported presets in the printer and filament dropdown lists. These presets cannot be selected."
 msgstr "在打印机和耗材下拉列表中显示不兼容/不受支持的预设。这些预设无法被选择。"
 
+# AI Translated
 msgid "Experimental Features"
-msgstr ""
+msgstr "实验性功能"
 
+# AI Translated
 msgid "Keep painted feature after mesh change"
-msgstr ""
+msgstr "网格更改后保留已绘制的特征"
 
 msgid ""
 "Attempt to keep painted features (color/seam/support/fuzzy etc.) after changing the object mesh (such as cut/reload from disk/simplify/fix etc.)\n"
@@ -9259,8 +9358,9 @@ msgstr "不兼容的预设"
 msgid "My Printer"
 msgstr "我的打印机"
 
+# AI Translated
 msgid "AMS filaments"
-msgstr ""
+msgstr "AMS 耗材"
 
 msgid "Left filaments"
 msgstr "左耗材"
@@ -9321,9 +9421,10 @@ msgstr "不兼容的预设"
 msgid "The selected preset is null!"
 msgstr "选择的预设为空！"
 
+# AI Translated
 msgctxt "Layer range"
 msgid "End"
-msgstr ""
+msgstr "结束"
 
 msgid "Customize"
 msgstr "自定义"
@@ -9547,8 +9648,9 @@ msgstr ""
 msgid "Shared PA Profile"
 msgstr "共享 PA 预设"
 
+# AI Translated
 msgid "Nozzles and filaments of the same type share the same PA profile."
-msgstr ""
+msgstr "相同类型的喷嘴和耗材共用同一个 PA 配置。"
 
 msgid "Send complete"
 msgstr "发送完成"
@@ -9615,8 +9717,9 @@ msgstr "当启用旋转花瓶模式时，I3结构的机器将不会生成延时�
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "当前打印机在按对象打印时不支持传统模式下的延时拍摄。"
 
+# AI Translated
 msgid "I have checked the installed nozzle and want to print anyway."
-msgstr ""
+msgstr "我已检查已安装的喷嘴，仍要继续打印。"
 
 msgid "Errors"
 msgstr "错误"
@@ -9744,21 +9847,26 @@ msgstr "两台挤出机"
 msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). Please verify the nozzle or material settings and try again."
 msgstr "当前材料的硬度(%s)超过%s(%s)的硬度。请验证喷嘴或材料设置，然后重试。"
 
+# AI Translated
 msgid "Your current firmware version cannot start this print job. Please update to the latest version and try again."
-msgstr ""
+msgstr "您当前的固件版本无法启动此打印任务。请更新到最新版本后重试。"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). It may cause nozzle wear, leading to material leakage and unstable flow. Please exercise caution when using it."
-msgstr ""
+msgstr "当前材料(%s)的硬度超过了 %s(%s)的硬度。这可能会导致喷嘴磨损，从而引起材料泄漏和流量不稳定。请谨慎使用。"
 
+# AI Translated
 msgid "Some filaments may switch between extruders during printing. Manual K-value calibration cannot be applied throughout the entire print, which may affect print quality. Enabling Flow Dynamics Calibration is recommended."
-msgstr ""
+msgstr "部分耗材在打印过程中可能会在挤出机之间切换。手动 K 值校准无法应用于整个打印过程，这可能会影响打印质量。建议启用动态流量校准。"
 
+# AI Translated
 msgid "There is stringing-prone filament in this file. For best print quality, we recommend switching nozzle clumping detection to Auto mode."
-msgstr ""
+msgstr "此文件中存在易拉丝的耗材。为获得最佳打印质量，我们建议将喷嘴结块检测切换为自动模式。"
 
+# AI Translated
 msgid "If 'Dynamic Flow Calibration' is set to Auto/On, the system will use the manual calibration value or the default value and skip the flow calibration process. You can perform a manual flow calibration for TPU filament on the 'Calibration' page."
-msgstr ""
+msgstr "如果“动态流量校准”设置为自动/开启，系统将使用手动校准值或默认值，并跳过流量校准过程。您可以在“校准”页面上对 TPU 耗材执行手动流量校准。"
 
 #, c-format, boost-format
 msgid "[ %s ] requires printing in a high-temperature environment. Please close the door."
@@ -9864,18 +9972,21 @@ msgstr "将动态流量校准设置为“关闭”以启用自定义动态流量
 msgid "This printer does not support printing all plates."
 msgstr "此打印机类型不支持打印所有盘"
 
+# AI Translated
 #, c-format, boost-format
 msgid "The current firmware supports a maximum of %s materials. You can either reduce the number of materials to %s or fewer on the Preparation Page, or try updating the firmware. If you are still restricted after the update, please wait for subsequent firmware support."
-msgstr ""
+msgstr "当前固件最多支持 %s 种材料。您可以在准备页面上将材料数量减少到 %s 种或更少，或尝试更新固件。如果更新后仍受限制，请等待后续固件支持。"
 
 msgid "The type of external filament is unknown or does not match with the filament type in the slicing file. Please make sure you have installed the correct filament in the external spool."
 msgstr "外部耗材的类型未知，或与切片文件中的耗材类型不匹配。请确认您已在外部料盘中安装了正确的耗材。"
 
+# AI Translated
 msgid "TPU 90A/TPU 85A are too soft. It is recommended to perform manual flow calibration on the 'Calibration' page. If 'Dynamic Flow Calibration' is set to auto/on, the system will use the previous calibration value and skip the flow calibration process."
-msgstr ""
+msgstr "TPU 90A/TPU 85A 过软。建议在“校准”页面上执行手动流量校准。如果“动态流量校准”设置为自动/开启，系统将使用之前的校准值并跳过流量校准过程。"
 
+# AI Translated
 msgid "The filament in the AMS may be insufficient for this print. Please refill or replace it."
-msgstr ""
+msgstr "AMS 中的耗材可能不足以完成此次打印。请补充或更换耗材。"
 
 msgid "Current firmware does not support file transfer to internal storage."
 msgstr "当前固件不支持文件传输到内部存储器。"
@@ -10049,11 +10160,13 @@ msgstr "删除此预设"
 msgid "Search in preset"
 msgstr "在预设中搜索"
 
+# AI Translated
 msgid "Synchronization of different extruder drives or nozzle volume types is not supported."
-msgstr ""
+msgstr "不支持同步不同的挤出机传动方式或喷嘴内腔体积类型。"
 
+# AI Translated
 msgid "Synchronize the modification of parameters to the corresponding parameters of another extruder."
-msgstr ""
+msgstr "将参数的修改同步到另一个挤出机的相应参数。"
 
 msgid "Click to reset all settings to the last saved preset."
 msgstr "点击以将所有设置还原到最后一次保存的版本。"
@@ -10307,11 +10420,13 @@ msgstr "挤出类型更换G-code"
 msgid "Post-processing Scripts"
 msgstr "后处理脚本"
 
+# AI Translated
 msgid "Slicing Pipeline Plugin"
-msgstr ""
+msgstr "切片流水线插件"
 
+# AI Translated
 msgid "Plugin Configuration"
-msgstr ""
+msgstr "插件配置"
 
 msgid "Notes"
 msgstr "注释"
@@ -10355,14 +10470,17 @@ msgstr "打印仓温度"
 msgid "Chamber temperature"
 msgstr "机箱温度"
 
+# AI Translated
 msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
-msgstr ""
+msgstr "目标机箱温度，以及开始打印时的最低机箱温度"
 
+# AI Translated
 msgid "Target"
-msgstr ""
+msgstr "目标"
 
+# AI Translated
 msgid "Minimal"
-msgstr ""
+msgstr "最低"
 
 msgid "Print temperature"
 msgstr "打印温度"
@@ -10702,23 +10820,28 @@ msgstr "继续"
 msgid "Don't warn again for this preset"
 msgstr "不再为此预设警告"
 
+# AI Translated
 #, c-format, boost-format
 msgid "%s: %s"
-msgstr ""
+msgstr "%s: %s"
 
+# AI Translated
 msgid "No modifications need to be copied."
-msgstr ""
+msgstr "没有需要复制的修改。"
 
+# AI Translated
 msgid "Copy paramters"
-msgstr ""
+msgstr "复制参数"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Modify paramters of %s"
-msgstr ""
+msgstr "修改 %s 的参数"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Do you want to modify the following parameters of the %s to that of the %s?"
-msgstr ""
+msgstr "是否将 %s 的以下参数修改为 %s 的参数？"
 
 msgid "Click to reset current value and attach to the global value."
 msgstr "点击该图标，恢复到全局的配置数值，并与全局配置同步变化。"
@@ -10871,11 +10994,13 @@ msgstr "挤出机数量"
 msgid "Capabilities"
 msgstr "能力"
 
+# AI Translated
 msgid "Left: "
-msgstr ""
+msgstr "左: "
 
+# AI Translated
 msgid "Right: "
-msgstr ""
+msgstr "右: "
 
 msgid "Show all presets (including incompatible)"
 msgstr "显示所有预设(包括不兼容的)"
@@ -10905,11 +11030,13 @@ msgstr "从左到右的转移值"
 msgid "If enabled, this dialog can be used for transfer selected values from left to right preset."
 msgstr "如果启用，此对话框可用于将选定的值从左侧预设传输到右侧预设。"
 
+# AI Translated
 msgid "One of the presets does not exist"
-msgstr ""
+msgstr "其中一个预设不存在"
 
+# AI Translated
 msgid "Compared presets has different printer technology"
-msgstr ""
+msgstr "所比较的预设具有不同的打印机技术"
 
 msgid "Add File"
 msgstr "添加文件"
@@ -11158,8 +11285,9 @@ msgstr "成功同步喷嘴信息。"
 msgid "Successfully synchronized nozzle and AMS number information."
 msgstr "已成功同步喷嘴和 AMS 编号信息。"
 
+# AI Translated
 msgid "Do you want to continue to sync filaments?"
-msgstr ""
+msgstr "是否继续同步耗材？"
 
 msgid "Successfully synchronized filament color from printer."
 msgstr "已成功同步打印机的耗材丝颜色。"
@@ -11262,8 +11390,9 @@ msgstr "登录"
 msgid "Login failed. Please try again."
 msgstr "登录失败。请重试。"
 
+# AI Translated
 msgid "parse json failed"
-msgstr ""
+msgstr "解析 json 失败"
 
 msgid "[Action Required] "
 msgstr "[需要操作] "
@@ -11340,33 +11469,37 @@ msgstr "选择多个对象"
 msgid "Select objects by rectangle"
 msgstr "框选多个零件"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr ""
+msgstr "↑"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Y方向移动 10mm"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr ""
+msgstr "↓"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Y方向移动 10mm"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr ""
+msgstr "←"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "X方向移动 10mm"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr ""
+msgstr "→"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11452,19 +11585,22 @@ msgstr "缩小"
 msgid "Toggle printable for object/part"
 msgstr "切换对象/零件的可打印状态"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Tab"
-msgstr ""
+msgstr "Tab"
 
 msgid "Switch between Prepare/Preview"
 msgstr "准备/预览之间的切换"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Space"
-msgstr ""
+msgstr "Space"
 
+# AI Translated
 msgid "Open actions speed dial"
-msgstr ""
+msgstr "打开快捷操作盘"
 
 msgid "Plater"
 msgstr "准备"
@@ -11521,16 +11657,18 @@ msgstr "开启/关闭G-code窗口"
 msgid "Move slider 5x faster"
 msgstr "5倍速移动滑动条"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Home"
-msgstr ""
+msgstr "Home"
 
 msgid "Horizontal slider - Move to start position"
 msgstr "水平滑块 - 移动到起始位置"
 
+# AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "End"
-msgstr ""
+msgstr "End"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "水平滑块 - 移动到末尾位置"
@@ -11545,11 +11683,13 @@ msgstr "版本 %s 更新信息"
 msgid "Network plug-in update"
 msgstr "网络插件升级"
 
+# AI Translated
 msgid "Click OK to update the Network plug-in now. If a file is in use, the update will be applied the next time Orca Slicer launches."
-msgstr ""
+msgstr "点击“确定”立即更新网络插件。如果某个文件正在使用中，更新将在下次启动 Orca Slicer 时应用。"
 
+# AI Translated
 msgid "A new Network plug-in is available. Do you want to install it?"
-msgstr ""
+msgstr "有新的网络插件可用。是否要安装？"
 
 #, c-format, boost-format
 msgid "A new Network plug-in (%s) is available. Do you want to install it?"
@@ -11607,8 +11747,9 @@ msgstr "打印机名称"
 msgid "Where to find your printer's IP and Access Code?"
 msgstr "在哪里可以找到打印机的IP和访问码?"
 
+# AI Translated
 msgid "How to trouble shooting"
-msgstr ""
+msgstr "如何排查故障"
 
 msgid "Connect"
 msgstr "连接"
@@ -11674,8 +11815,9 @@ msgstr "切割模块"
 msgid "Auto Fire Extinguishing System"
 msgstr "自动灭火系统"
 
+# AI Translated
 msgid "Filament Track Switch"
-msgstr ""
+msgstr "Filament Track Switch"
 
 msgid "Beta"
 msgstr "测试版"
@@ -11807,8 +11949,9 @@ msgstr "分组错误："
 msgid " can not be placed in the "
 msgstr "不能放置在"
 
+# AI Translated
 msgid "Group error in manual mode. Please check nozzle count or regroup."
-msgstr ""
+msgstr "手动模式下分组错误。请检查喷嘴数量或重新分组。"
 
 msgid "Internal Bridge"
 msgstr "内部搭桥"
@@ -12335,8 +12478,9 @@ msgstr "API秘钥"
 msgid "HTTP digest"
 msgstr "HTTP摘要"
 
+# AI Translated
 msgid "Configuration for the plugin capabilities this preset uses, overriding the global Capabilities configuration. Stored as a raw JSON array and edited through the dialog behind the button, never typed in directly."
-msgstr ""
+msgstr "此预设使用的插件功能的配置，会覆盖全局功能(Capabilities)配置。以原始 JSON 数组形式存储，并通过按钮后面的对话框进行编辑，切勿直接输入。"
 
 msgid "Avoid crossing walls"
 msgstr "避免跨越外墙"
@@ -12510,6 +12654,7 @@ msgstr "当悬垂超过此指定阈值时，强制部件冷却风扇按照下方
 msgid "External bridge infill direction"
 msgstr "外部桥接填充方向"
 
+# AI Translated
 #, no-c-format, no-boost-format
 msgid ""
 "External Bridging angle override.\n"
@@ -12521,10 +12666,19 @@ msgid ""
 "\n"
 "Use 180° for zero absolute angle."
 msgstr ""
+"外部搭桥角度覆盖。\n"
+"如果保留为零，将为每个具体的桥接自动计算搭桥角度。\n"
+"否则，将根据以下方式使用所提供的角度：\n"
+" - 绝对坐标\n"
+" - 绝对坐标 + 模型旋转：如果启用了“将方向对齐到模型”\n"
+" - 最佳自动角度 + 此值：如果启用了“相对桥接角度”\n"
+"\n"
+"使用 180° 表示零绝对角度。"
 
 msgid "Internal bridge infill direction"
 msgstr "内部桥接填充方向"
 
+# AI Translated
 msgid ""
 "Internal Bridging angle override.\n"
 "If left to zero, the bridging angle will be calculated automatically for each specific bridge.\n"
@@ -12535,6 +12689,14 @@ msgid ""
 "\n"
 "Use 180° for zero absolute angle."
 msgstr ""
+"内部搭桥角度覆盖。\n"
+"如果保留为零，将为每个具体的桥接自动计算搭桥角度。\n"
+"否则，将根据以下方式使用所提供的角度：\n"
+" - 绝对坐标\n"
+" - 绝对坐标 + 模型旋转：如果启用了“将方向对齐到模型”\n"
+" - 最佳自动角度 + 此值：如果启用了“相对桥接角度”\n"
+"\n"
+"使用 180° 表示零绝对角度。"
 
 msgid "Relative bridge angle"
 msgstr "相对桥接角度"
@@ -13284,41 +13446,59 @@ msgstr ""
 "100% 的值会创建一个完全实心、平滑的顶面。降低此值会根据所选的顶面图案生成有纹理的顶面。0% 的值将只生成顶层的墙。\n"
 "此选项仅为美观或功能性目的，而不是为了解决过量挤出等问题。"
 
+# AI Translated
 msgid "Top surface expansion"
-msgstr ""
+msgstr "顶面扩展"
 
+# AI Translated
 msgid ""
 "Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
 "Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane. Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top. The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection."
 msgstr ""
+"将顶面按此距离扩展，以连接各个独立的顶面并填补缝隙。\n"
+"适用于顶面被凸起特征（例如平面上的文字）打断的情况。扩展它可以消除这些特征下方的孔洞，并创建一条连续的路径，从而在其上打印时获得更好的表面效果。该扩展应用于原始顶面，在搭桥或悬垂检测等任何其他处理之前进行。"
 
+# AI Translated
 msgid "Top expansion wall margin"
-msgstr ""
+msgstr "顶面扩展墙边距"
 
+# AI Translated
 msgid ""
 "Using “Top surface expansion” may cause a surface that did not previously touch the model's outer walls to now do so.\n"
 "This can cause contraction marks (such as the hull line) on the outer walls.\n"
 "By adding a small margin, this contraction will not occur directly on the walls, thereby preventing a visible mark."
 msgstr ""
+"使用“顶面扩展”可能会导致原本未接触模型外墙的表面现在接触到外墙。\n"
+"这可能会在外墙上造成收缩痕迹（例如轮廓线）。\n"
+"通过添加一个较小的边距，这种收缩就不会直接发生在墙上，从而避免出现可见的痕迹。"
 
+# AI Translated
 msgid "Top expansion direction"
-msgstr ""
+msgstr "顶面扩展方向"
 
+# AI Translated
 msgid ""
 "Direction in which the top surface expansion grows.\n"
 " - Inward grows into the holes and gaps left by features rising from the middle of a top surface.\n"
 " - Outward grows the outer edge of the surface, connecting surfaces separated by features that can divide a surface, such as a lattice pattern.\n"
 " - Inward and Outward does both."
 msgstr ""
+"顶面扩展生长的方向。\n"
+" - 向内：向顶面中部凸起特征所留下的孔洞和缝隙中生长。\n"
+" - 向外：向表面的外边缘生长，连接被可分割表面的特征（例如网格图案）分隔开的各个表面。\n"
+" - 向内和向外：两者兼有。"
 
+# AI Translated
 msgid "Inward and Outward"
-msgstr ""
+msgstr "向内和向外"
 
+# AI Translated
 msgid "Inward"
-msgstr ""
+msgstr "向内"
 
+# AI Translated
 msgid "Outward"
-msgstr ""
+msgstr "向外"
 
 msgid "Bottom surface pattern"
 msgstr "底面图案"
@@ -13338,23 +13518,33 @@ msgstr ""
 "此功能是为了美观或功能性目的，而是为了解决过量挤出等问题。\n"
 "警告：降低此值会对热床粘接力产生负面影响。"
 
+# AI Translated
 msgid "Top surface fill order"
-msgstr ""
+msgstr "顶面填充顺序"
 
+# AI Translated
 msgid ""
 "Direction in which top surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
 "Outward starts at the center of the surface, so any excess material is pushed towards the edge where it is least visible. Inward starts at the edge and ends with the tight curves at the center.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
+"使用基于中心的图案（同心、阿基米德和弦、八角螺旋）时填充顶面的方向。\n"
+"向外从表面中心开始，因此多余的材料会被推向边缘等最不显眼的位置。向内从边缘开始，并以中心处的紧密曲线结束。\n"
+"默认使用最短路径排序，可能沿任一方向进行。"
 
+# AI Translated
 msgid "Bottom surface fill order"
-msgstr ""
+msgstr "底面填充顺序"
 
+# AI Translated
 msgid ""
 "Direction in which bottom surfaces are filled when using a center-based pattern (Concentric, Archimedean Chords, Octagram Spiral).\n"
 "Inward starts each surface with the wider outer curves, which improves first layer adhesion on build plates where the tight curves at the center may not stick. Outward starts at the center, pushing any excess material towards the edge.\n"
 "Default uses shortest-path ordering, which may run in either direction."
 msgstr ""
+"使用基于中心的图案（同心、阿基米德和弦、八角螺旋）时填充底面的方向。\n"
+"向内以较宽的外侧曲线开始每个表面，这可以改善在热床上的首层附着，因为中心处的紧密曲线可能无法粘牢。向外从中心开始，将多余的材料推向边缘。\n"
+"默认使用最短路径排序，可能沿任一方向进行。"
 
 msgid "Internal solid infill pattern"
 msgstr "内部实心填充图案"
@@ -13381,17 +13571,21 @@ msgstr "微小部位周长阈值"
 msgid "This sets the threshold for small perimeter length. Default threshold is 0mm."
 msgstr "这将设置微小部位周长的阈值。默认阈值为0mm"
 
+# AI Translated
 msgid "Small support perimeters"
-msgstr ""
+msgstr "支撑微小部位"
 
+# AI Translated
 msgid "Same as \"Small perimeters\", but for supports. This separate setting will affect the speed of support for areas <= `small_support_perimeter_threshold`. If expressed as a percentage (for example: 80%), it will be calculated on the support or support interface speed setting above. Set to zero for auto."
-msgstr ""
+msgstr "与“微小部位”相同，但用于支撑。此单独设置将影响面积 <= `small_support_perimeter_threshold` 的支撑速度。如果以百分比表示（例如：80%），将基于上方的支撑或支撑接触面速度设置进行计算。设为零表示自动。"
 
+# AI Translated
 msgid "Small support perimeters threshold"
-msgstr ""
+msgstr "支撑微小部位阈值"
 
+# AI Translated
 msgid "This sets the threshold for small support perimeter length. The default threshold is 0mm."
-msgstr ""
+msgstr "此项设置支撑微小部位周长的阈值。默认阈值为 0mm。"
 
 msgid "Walls printing order"
 msgstr "墙顺序"
@@ -13573,9 +13767,11 @@ msgstr ""
 "2. 记下每个体积流速和加速度的最佳 PA 值。您可以通过从配色方案下拉列表中选择流量并将水平滑块移动到 PA 图案线上来找到流量编号。该数字应该在页面底部可见。理想的 PA 值应该随着体积流量的增加而减小。如果不是，请确认您的挤出机运行正常。打印速度越慢且加速度越小，可接受的 PA 值范围就越大。如果没有明显差异，请使用更快测试中的 PA 值\n"
 "3. 在此处的文本框中输入 PA 值、流量和加速度的三元组并保存耗材丝配置文件"
 
+# AI Translated
 msgid "Enable adaptive pressure advance within features (beta)"
-msgstr ""
+msgstr "在特征内启用自适应压力提前 (beta)"
 
+# AI Translated
 msgid ""
 "Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\n"
 "\n"
@@ -13583,16 +13779,27 @@ msgid ""
 "\n"
 "This is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues."
 msgstr ""
+"只要特征内存在流量变化（例如转角处的线宽变化或悬垂），就启用自适应 PA。\n"
+"\n"
+"与 Prusa 打印机不兼容，因为它们会暂停以处理 PA 变化，从而导致延迟和缺陷。\n"
+"\n"
+"这是一个实验性选项，因为如果 PA 配置设置不准确，将会导致均匀性问题。"
 
+# AI Translated
 msgid "Static pressure advance for bridges"
-msgstr ""
+msgstr "桥接的静态压力提前"
 
+# AI Translated
 msgid ""
 "Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \n"
 "equivalent walls (using adaptive settings if enabled).\n"
 "\n"
 "A lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this."
 msgstr ""
+"桥接的静态压力提前值。设为 0 可应用与 \n"
+"等效墙相同的压力提前（如果启用，则使用自适应设置）。\n"
+"\n"
+"打印桥接时较低的 PA 值有助于减少桥接之后紧接着出现的轻微欠挤出现象。这是由于在空中打印时喷嘴内压力下降所致，较低的 PA 有助于抵消这种情况。"
 
 msgid "Default line width if other line widths are set to 0. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "当线宽设置为0时走线的默认线宽。如果以%表示，它将基于喷嘴直径来计算。"
@@ -13663,8 +13870,9 @@ msgstr "自动冲洗"
 msgid "Auto For Match"
 msgstr "自动匹配"
 
+# AI Translated
 msgid "Nozzle Manual"
-msgstr ""
+msgstr "喷嘴手册"
 
 msgid "Flush temperature"
 msgstr "冲洗温度"
@@ -13672,8 +13880,9 @@ msgstr "冲洗温度"
 msgid "Temperature when flushing filament. 0 indicates the upper bound of the recommended nozzle temperature range."
 msgstr "冲洗耗材丝时的温度。 0 表示推荐喷嘴温度范围的上限。"
 
+# AI Translated
 msgid "Flush temperature used in fast purge mode."
-msgstr ""
+msgstr "快速冲刷模式下使用的冲刷温度。"
 
 msgid "Flush volumetric speed"
 msgstr "冲洗体积流量"
@@ -13953,11 +14162,13 @@ msgstr "可打印耗材"
 msgid "The filament is printable in extruder."
 msgstr "此耗材可通过挤出机打印"
 
+# AI Translated
 msgid "Filament-extruder compatibility"
-msgstr ""
+msgstr "耗材-挤出机兼容性"
 
+# AI Translated
 msgid "A single 32-bit int encoding the compatibility level of a filament across all extruders (up to 10). Every 3 bits represent one extruder (bits [3*i, 3*i+2] for extruder i). 0: printable, 1: error, 2: critical warning, 3: warning, 4-7: reserved."
-msgstr ""
+msgstr "一个 32 位整数，用于编码某种耗材在所有挤出机（最多 10 个）上的兼容性级别。每 3 位表示一个挤出机（挤出机 i 对应位 [3*i, 3*i+2]）。0：可打印，1：错误，2：严重警告，3：警告，4-7：保留。"
 
 msgid "Softening temperature"
 msgstr "软化温度"
@@ -14000,21 +14211,29 @@ msgstr "实心填充方向"
 msgid "Angle for solid infill pattern, which controls the start or main direction of line."
 msgstr "实心填充图案的角度，决定走线的开始或整体方向。"
 
+# AI Translated
 msgid "Top layer direction"
-msgstr ""
+msgstr "顶层方向"
 
+# AI Translated
 msgid ""
 "Fixed angle for the top solid infill and ironing lines.\n"
 "Set to -1 to follow the default solid infill direction."
 msgstr ""
+"顶部实心填充和熨烫走线的固定角度。\n"
+"设为 -1 以遵循默认的实心填充方向。"
 
+# AI Translated
 msgid "Bottom layer direction"
-msgstr ""
+msgstr "底层方向"
 
+# AI Translated
 msgid ""
 "Fixed angle for the bottom solid infill lines.\n"
 "Set to -1 to follow the default solid infill direction."
 msgstr ""
+"底部实心填充走线的固定角度。\n"
+"设为 -1 以遵循默认的实心填充方向。"
 
 msgid "Sparse infill density"
 msgstr "稀疏填充密度"
@@ -14023,13 +14242,17 @@ msgstr "稀疏填充密度"
 msgid "Density of internal sparse infill, 100% turns all sparse infill into solid infill and internal solid infill pattern will be used."
 msgstr "内部稀疏填充的密度，100%会将所有稀疏填充变为实心填充，并将使用内部实心填充图案。"
 
+# AI Translated
 msgid "Align directions to model"
-msgstr ""
+msgstr "将方向对齐到模型"
 
+# AI Translated
 msgid ""
 "Aligns infill, bridge, ironing, and top/bottom surface directions to follow the model's orientation on the build plate.\n"
 "When enabled, these directions rotate together with the model so the printed features keep their intended orientation relative to the part, preserving optimal strength and surface characteristics regardless of how the model is placed."
 msgstr ""
+"使填充、桥接、熨烫以及顶/底面的方向对齐，以遵循模型在热床上的朝向。\n"
+"启用后，这些方向会随模型一起旋转，从而使打印出的特征相对于零件保持其预期朝向，无论模型如何摆放都能保持最佳的强度和表面特性。"
 
 msgid "Insert solid layers"
 msgstr "插入实心层"
@@ -14237,9 +14460,11 @@ msgstr ""
 msgid "layer"
 msgstr "层"
 
+# AI Translated
 msgid "First layer fan speed"
-msgstr ""
+msgstr "首层风扇转速"
 
+# AI Translated
 msgid ""
 "Sets an exact fan speed for the first layer, overriding all other cooling settings. Useful for protecting 3D-printed toolhead parts (e.g. Voron-style ABS/ASA ducts) from a hot bed. A small amount of airflow cools the ducts down, without using full cooling that may in certain conditions hurt first-layer adhesion.\n"
 "From the second layer onwards, normal cooling resumes.\n"
@@ -14247,6 +14472,11 @@ msgid ""
 "Only available when \"No cooling for the first\" is 0.\n"
 "Set to -1 to disable it."
 msgstr ""
+"为首层设置一个确切的风扇转速，覆盖所有其他冷却设置。有助于保护 3D 打印的工具头部件（例如 Voron 风格的 ABS/ASA 风道）免受热床影响。少量气流可以冷却风道，而不必使用在某些情况下可能损害首层附着的全速冷却。\n"
+"从第二层开始，恢复正常冷却。\n"
+"如果同时设置了“在指定层达到全速风扇”，风扇会在首层从此值平滑爬升，到指定层时达到您的目标值。\n"
+"仅当“前几层不冷却”为 0 时可用。\n"
+"设为 -1 以禁用。"
 
 msgid "Support interface fan speed"
 msgstr "支撐接触面风扇"
@@ -14571,14 +14801,17 @@ msgstr "最佳自动排列位置在[0,1]范围内，相对于打印床形状。"
 msgid "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255)."
 msgstr "如果打印机有辅助风扇，可以开启此选项。G-code指令：M106 P2 S(0-255)"
 
+# AI Translated
 msgid "Fan direction"
-msgstr ""
+msgstr "风扇方向"
 
+# AI Translated
 msgid "Cooling fan direction of the printer"
-msgstr ""
+msgstr "打印机的冷却风扇方向"
 
+# AI Translated
 msgid "Both"
-msgstr ""
+msgstr "两者"
 
 msgid ""
 "Start the fan this number of seconds earlier than its target start time (you can use fractional seconds). It assumes infinite acceleration for this time estimation, and will only take into account G1 and G0 moves (arc fitting is unsupported).\n"
@@ -15185,29 +15418,37 @@ msgstr "最小空驶速度"
 msgid "Minimum travel speed (M205 T)"
 msgstr "最小空驶速度(M205 T)"
 
+# AI Translated
 msgid "Maximum force of the Y axis"
-msgstr ""
+msgstr "Y 轴的最大作用力"
 
+# AI Translated
 msgid "The allowed maximum output force of Y axis"
-msgstr ""
+msgstr "Y 轴允许的最大输出力"
 
+# AI Translated
 msgid "N"
-msgstr ""
+msgstr "N"
 
+# AI Translated
 msgid "Bed mass of the Y axis"
-msgstr ""
+msgstr "Y 轴热床质量"
 
+# AI Translated
 msgid "The machine bed mass load of Y axis"
-msgstr ""
+msgstr "Y 轴的机器热床质量负载"
 
+# AI Translated
 msgid "g"
-msgstr ""
+msgstr "g"
 
+# AI Translated
 msgid "The allowed max printed mass"
-msgstr ""
+msgstr "允许的最大打印质量"
 
+# AI Translated
 msgid "The allowed max printed mass on a plate"
-msgstr ""
+msgstr "热床上允许的最大打印质量"
 
 msgid "Maximum acceleration for extruding"
 msgstr "挤出最大加速度"
@@ -15604,14 +15845,17 @@ msgstr "挤出类型更换 G-code（工艺）"
 msgid "This G-code is inserted when the extrusion role is changed. It runs after the machine and filament extrusion role G-code."
 msgstr "当挤出类型发生变化时插入此 G-code。它在机器和耗材的挤出类型更换 G-code 之后运行。"
 
+# AI Translated
 msgid "Plugins Used"
-msgstr ""
+msgstr "已使用的插件"
 
+# AI Translated
 msgid "Plugin capabilities referenced by this preset, stored as name;uuid;capability."
-msgstr ""
+msgstr "此预设引用的插件功能，以 name;uuid;capability 形式存储。"
 
+# AI Translated
 msgid "Python plugin(s) invoked at each slicing pipeline step to read and modify intermediate slicing data, including a final G-code post-processing step. Research/experimental."
-msgstr ""
+msgstr "在每个切片流水线步骤中调用的 Python 插件，用于读取和修改中间切片数据，包括最终的 G-code 后处理步骤。研究/实验性。"
 
 msgid "Printer type"
 msgstr "打印机类型"
@@ -15681,14 +15925,18 @@ msgstr "擦拭前的回抽量"
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "擦拭之前的回抽长度，用总回抽长度的百分比表示。"
 
+# AI Translated
 msgid "Retract amount after wipe"
-msgstr ""
+msgstr "擦拭后的回抽量"
 
+# AI Translated
 #, c-format
 msgid ""
 "The length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
 msgstr ""
+"擦拭后快速回抽的长度，相对于回抽长度。\n"
+"该值将被限制为 100% 减去擦拭前回抽量的值。"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Retract on layer change"
@@ -15836,11 +16084,13 @@ msgstr ""
 "向喷嘴重新装填耗材的速度。\n"
 "设为 0 则使用与回抽相同的速度。"
 
+# AI Translated
 msgid "Deretraction speed (extruder change)"
-msgstr ""
+msgstr "装填回抽速度（更换挤出机）"
 
+# AI Translated
 msgid "Speed for reloading filament into the nozzle when switching extruder."
-msgstr ""
+msgstr "切换挤出机时将耗材重新装填到喷嘴的速度。"
 
 msgid "Use firmware retraction"
 msgstr "使用固件回抽"
@@ -16159,11 +16409,13 @@ msgstr "传统模式"
 msgid "Smooth"
 msgstr "平滑模式"
 
+# AI Translated
 msgid "Farthest point timelapse"
-msgstr ""
+msgstr "最远点延时摄影"
 
+# AI Translated
 msgid "When enabled, the timelapse snapshot is taken at the farthest point from camera instead of traveling to the wipe tower or excess chute. Only effective in traditional timelapse mode on non-I3 printers."
-msgstr ""
+msgstr "启用后，延时摄影快照会在距离相机最远的点拍摄，而不是移动到擦拭塔或废料滑道。仅在非 I3 打印机的传统延时摄影模式下有效。"
 
 msgid "Temperature variation"
 msgstr "软化温度"
@@ -16252,17 +16504,23 @@ msgstr "所有挤出机画线"
 msgid "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
 msgstr "如果启用，所有挤出机将在打印开始时在床前画线"
 
+# AI Translated
 msgid "Toolchange ordering"
-msgstr ""
+msgstr "换料顺序"
 
+# AI Translated
 msgid ""
 "Determines the order of tool changes on each layer.\n"
 "- Default: Starts with the last used extruder to minimize tool changes.\n"
 "- Cyclic: Uses a fixed tool sequence each layer. This sacrifices speed for better surface quality, as the extra toolchanges allow layers more time to cool."
 msgstr ""
+"确定每层换料的顺序。\n"
+"- 默认：从上一次使用的挤出机开始，以尽量减少换料次数。\n"
+"- 循环：每层使用固定的工具顺序。这会牺牲速度以换取更好的表面质量，因为额外的换料让每层有更多时间冷却。"
 
+# AI Translated
 msgid "Cyclic"
-msgstr ""
+msgstr "循环"
 
 msgid "Slice gap closing radius"
 msgstr "切片间隙闭合半径"
@@ -16651,6 +16909,7 @@ msgid ""
 "If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr "对于 ABS、ASA、PC 和 PA 等高温材料，较高的腔室温度有助于抑制或减少翘曲，并有可能提高层间粘合强度。但同时，较高的腔室温度会降低 ABS 和 ASA 的空气过滤效率。 对于 PLA、PETG、TPU、PVA 等低温材料，应禁用此选项（设置为 0），因为腔室温度应较低，以避免热断时材料软化导致挤出机堵塞。 如果启用，此参数还会设置一个名为 chamber_temple 的 G-code 变量，该变量可用于将所需的腔室温度传递给打印启动宏，或热浸宏，如下所示：PRINT_START（其他变量）CHAMBER_TEMP=[cham​​ber_Temperature]。如果您的打印机不支持 M141/M191 命令，或者如果您希望在未安装活动室加热器的情况下在打印启动宏中处理热浸，则这可能很有用。"
 
+# AI Translated
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
 "\n"
@@ -16658,9 +16917,15 @@ msgid ""
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
+"这是打印应当开始时的机箱温度，此时机箱会继续朝“目标”机箱温度加热。例如，将目标设为 60、最低设为 50，即可在机箱达到 50℃ 时开始打印，而无需等待达到完整的 60℃。\n"
+"\n"
+"它会设置一个名为 chamber_minimal_temperature 的 G-code 变量，可以传递给您的打印起始宏或热浸泡宏，例如：PRINT_START (其他变量) CHAMBER_MIN_TEMP=[chamber_minimal_temperature]。\n"
+"\n"
+"与“目标”机箱温度不同，此选项不会发出任何 M141/M191 命令；它只会将该值暴露给您的自定义 G-code。它不应超过“目标”机箱温度。"
 
+# AI Translated
 msgid "Chamber minimal temperature"
-msgstr ""
+msgstr "最低机箱温度"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
@@ -16706,34 +16971,49 @@ msgstr "顶部壳体厚度"
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "如果由顶部壳体层数算出的厚度小于这个数值，那么切片时将自动增加顶部壳体层数。这能够避免当层高很小时，顶部壳体过薄。0 表示关闭这个设置，同时顶部壳体的厚度完全由顶部壳体层数决定"
 
+# AI Translated
 msgid "Separated infills"
-msgstr ""
+msgstr "分离式填充"
 
+# AI Translated
 msgid ""
 "Centers the internal infill of each part on itself, as if it were sliced on its own, instead of on the whole assembly. Parts that touch or overlap are treated as one body and share a center; separate parts (or distinct 3D objects) each get their own.\n"
 "Useful when an assembly groups several objects that should each keep a consistent, self-centered infill.\n"
 "Affects line and grid patterns and rotation-template infills.\n"
 "Patterns locked to global coordinates (Gyroid, Honeycomb, TPMS, ...) are unaffected."
 msgstr ""
+"将每个零件的内部填充以其自身为中心，就好像它是单独切片的一样，而不是以整个装配体为中心。相互接触或重叠的零件被视为一个整体并共享一个中心；分离的零件（或不同的 3D 物体）各自拥有自己的中心。\n"
+"当一个装配体将多个物体分为一组、而每个物体都应保持一致的自我居中填充时，此选项很有用。\n"
+"会影响直线和网格图案以及旋转模板填充。\n"
+"锁定到全局坐标的图案（螺旋体、蜂窝、TPMS 等）不受影响。"
 
+# AI Translated
 msgid "Center surface pattern on"
-msgstr ""
+msgstr "表面图案居中于"
 
+# AI Translated
 msgid ""
 "Chooses where the centering point of centered top/bottom surface patterns (Archimedean Chords, Octagram Spiral) is placed.\n"
 " - Each Surface: centers the pattern on every individual surface region, so each island is symmetric on its own.\n"
 " - Each Model: centers the pattern on each connected body. Parts that touch or overlap share one center; parts detached from the rest each get their own.\n"
 " - Each Assembly: uses a single shared center for the whole object or assembly."
 msgstr ""
+"选择居中的顶/底面图案（阿基米德和弦、八角螺旋）的居中点放置位置。\n"
+" - 每个表面：将图案居中于每个单独的表面区域，因此每个岛屿各自对称。\n"
+" - 每个模型：将图案居中于每个相连的实体。相互接触或重叠的零件共享一个中心；与其余部分分离的零件各自拥有自己的中心。\n"
+" - 每个装配体：为整个物体或装配体使用单一的共享中心。"
 
+# AI Translated
 msgid "Each Surface"
-msgstr ""
+msgstr "每个表面"
 
+# AI Translated
 msgid "Each Model"
-msgstr ""
+msgstr "每个模型"
 
+# AI Translated
 msgid "Each Assembly"
-msgstr ""
+msgstr "每个装配体"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
@@ -16783,11 +17063,13 @@ msgstr "冲刷量乘数"
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "实际冲刷量等于冲刷量乘数乘以表格单元中的冲刷量"
 
+# AI Translated
 msgid "Flush multiplier (Fast mode)"
-msgstr ""
+msgstr "冲刷倍数（快速模式）"
 
+# AI Translated
 msgid "The flush multiplier used in fast purge mode."
-msgstr ""
+msgstr "快速冲刷模式下使用的冲刷倍数。"
 
 msgid "Prime volume"
 msgstr "清理量"
@@ -16796,17 +17078,21 @@ msgstr "清理量"
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "擦拭塔上的清理量"
 
+# AI Translated
 msgid "Prime volume mode"
-msgstr ""
+msgstr "预挤出体积模式"
 
+# AI Translated
 msgid "Selects how the wipe-tower prime and flush volumes are computed on multi-extruder printers."
-msgstr ""
+msgstr "选择在多挤出机打印机上如何计算擦拭塔的预挤出量和冲刷量。"
 
+# AI Translated
 msgid "Saving"
-msgstr ""
+msgstr "节省"
 
+# AI Translated
 msgid "Fast"
-msgstr ""
+msgstr "快速"
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the width of prime towers."
@@ -17001,13 +17287,17 @@ msgstr "扭曲多边型孔"
 msgid "Rotate the polyhole every layer."
 msgstr "按层旋转多边形孔。"
 
+# AI Translated
 msgid "Maximum Polyhole edge count"
-msgstr ""
+msgstr "多边形孔最大边数"
 
+# AI Translated
 msgid ""
 "Maximum number of polyhole edges\n"
 "This setting limits the amount of edges a polyhole can have"
 msgstr ""
+"多边形孔的最大边数\n"
+"此设置限制一个多边形孔可以拥有的边数"
 
 msgid "G-code thumbnails"
 msgstr "G-code缩略图尺寸"
@@ -17140,26 +17430,32 @@ msgstr "换热端时回抽量"
 msgid "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends."
 msgstr "当修改此回抽数值时，将用于热端内在更换热端前回抽的耗材量。"
 
+# AI Translated
 msgid "Support fast purge mode"
-msgstr ""
+msgstr "支持快速冲刷模式"
 
+# AI Translated
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
-msgstr ""
+msgstr "此打印机是否支持带有优化温度和倍数的快速冲刷模式。"
 
+# AI Translated
 msgid "Filament change"
-msgstr ""
+msgstr "更换耗材"
 
+# AI Translated
 msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
-msgstr ""
+msgstr "在塔上预挤出挤出机所需的材料体积，不包括更换热端。"
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr "换热端所需的擦料塔上的清理量。"
 
+# AI Translated
 msgid "Preheat temperature delta"
-msgstr ""
+msgstr "预热温度差值"
 
+# AI Translated
 msgid "Temperature delta applied during pre-heating before tool change."
-msgstr ""
+msgstr "换料前预热期间应用的温度差值。"
 
 msgid "Detect narrow internal solid infills"
 msgstr "识别狭窄的内部实心填充"
@@ -19456,128 +19752,170 @@ msgstr "登录/测试"
 msgid "Connection to printers connected via the print host failed."
 msgstr "无法通过打印机主机连接到打印机。"
 
+# AI Translated
 msgid "Detect Creality K-series printer"
-msgstr ""
+msgstr "检测 Creality K 系列打印机"
 
+# AI Translated
 msgid "Click Scan to look for K-series printers on your network."
-msgstr ""
+msgstr "点击“扫描”以在您的网络中查找 K 系列打印机。"
 
+# AI Translated
 msgid "Use Selected"
-msgstr ""
+msgstr "使用所选"
 
+# AI Translated
 msgid "Scanning the LAN for K-series printers... this takes a few seconds."
-msgstr ""
+msgstr "正在局域网 (LAN) 中扫描 K 系列打印机……这需要几秒钟。"
 
+# AI Translated
 msgid "No K-series printers found. Make sure the printer is on the same network and not blocked by Wi-Fi client isolation, then click Scan again."
-msgstr ""
+msgstr "未找到 K 系列打印机。请确保打印机连接在同一网络中，且未被 Wi-Fi 客户端隔离功能阻止，然后再次点击“扫描”。"
 
+# AI Translated
 #, c-format
 msgid "Found %zu Creality printer(s). Select one and click Use Selected."
-msgstr ""
+msgstr "找到 %zu 台 Creality 打印机。请选择一台并点击“使用所选”。"
 
+# AI Translated
 msgid "Active"
-msgstr ""
+msgstr "活动"
 
+# AI Translated
 msgid "Printers"
-msgstr ""
+msgstr "打印机"
 
+# AI Translated
 msgid "Processes"
-msgstr ""
+msgstr "进程"
 
+# AI Translated
 msgid "Show/Hide system information"
-msgstr ""
+msgstr "显示/隐藏系统信息"
 
+# AI Translated
 msgid "Copy system information to clipboard"
-msgstr ""
+msgstr "将系统信息复制到剪贴板"
 
+# AI Translated
 msgid "We need information for diagnosing source of the issue. Check wiki page for detailed guide."
-msgstr ""
+msgstr "我们需要相关信息来诊断问题的根源。请查看 wiki 页面获取详细指南。"
 
+# AI Translated
 msgid "Pack button collects project file and logs of current session onto a zip file."
-msgstr ""
+msgstr "“打包”按钮会将当前会话的项目文件和日志收集到一个 zip 文件中。"
 
+# AI Translated
 msgid "Any additional visual examples like images or screen recordings might be helpful while reporting the issue."
-msgstr ""
+msgstr "报告问题时，任何额外的可视示例（例如图片或屏幕录制）都可能会有帮助。"
 
+# AI Translated
 msgid "Report issue"
-msgstr ""
+msgstr "报告问题"
 
+# AI Translated
 msgid "Pack"
-msgstr ""
+msgstr "打包"
 
+# AI Translated
 msgid "Cleans and rebuilds system profiles cache on next launch."
-msgstr ""
+msgstr "在下次启动时清理并重建系统配置缓存。"
 
+# AI Translated
 msgid "Clean system profiles cache"
-msgstr ""
+msgstr "清理系统配置缓存"
 
+# AI Translated
 msgid "Clean"
-msgstr ""
+msgstr "清理"
 
+# AI Translated
 msgid "Loaded profiles overview"
-msgstr ""
+msgstr "已加载配置概览"
 
+# AI Translated
 msgid "This section shows information for loaded profiles."
-msgstr ""
+msgstr "此部分显示已加载配置的信息。"
 
+# AI Translated
 msgid "Exports detailed overview of loaded profiles in json format."
-msgstr ""
+msgstr "以 json 格式导出已加载配置的详细概览。"
 
+# AI Translated
 msgid "Configurations folder"
-msgstr ""
+msgstr "配置文件夹"
 
+# AI Translated
 msgid "Opens configurations folder."
-msgstr ""
+msgstr "打开配置文件夹。"
 
+# AI Translated
 msgid "Log level"
-msgstr ""
+msgstr "日志级别"
 
+# AI Translated
 msgid "Stored logs"
-msgstr ""
+msgstr "已存储的日志"
 
+# AI Translated
 msgid "Packs all stored logs onto a zip file."
-msgstr ""
+msgstr "将所有已存储的日志打包到一个 zip 文件中。"
 
+# AI Translated
 msgid "Profiles"
-msgstr ""
+msgstr "配置文件"
 
+# AI Translated
 msgid "Select NO to close dialog and review project."
-msgstr ""
+msgstr "选择“否”以关闭对话框并检查项目。"
 
+# AI Translated
 msgid "No project file on current session. Only logs will be included to package"
-msgstr ""
+msgstr "当前会话没有项目文件。打包中将仅包含日志"
 
+# AI Translated
 msgid "Please make sure any instances of OrcaSlicer are not running"
-msgstr ""
+msgstr "请确保没有任何 OrcaSlicer 实例正在运行"
 
+# AI Translated
 msgid "System folder cannot be deleted because some files are in use by another application. Please close any applications using these files and try again."
-msgstr ""
+msgstr "系统文件夹无法删除，因为某些文件正被另一个应用程序占用。请关闭所有使用这些文件的应用程序后重试。"
 
+# AI Translated
 msgid "Failed to delete system folder..."
-msgstr ""
+msgstr "删除系统文件夹失败……"
 
+# AI Translated
 msgid "Failed to determine executable path."
-msgstr ""
+msgstr "无法确定可执行文件路径。"
 
+# AI Translated
 msgid "Failed to launch a new instance."
-msgstr ""
+msgstr "启动新实例失败。"
 
+# AI Translated
 msgid "log(s)"
-msgstr ""
+msgstr "日志"
 
+# AI Translated
 msgid "Choose where to save the exported JSON file"
-msgstr ""
+msgstr "选择导出的 JSON 文件的保存位置"
 
+# AI Translated
 msgid ""
 "Export failed\n"
 "Please check write permissions or file in use by another application"
 msgstr ""
+"导出失败\n"
+"请检查写入权限，或文件是否正被另一个应用程序占用"
 
+# AI Translated
 msgid "Choose where to save the exported ZIP file"
-msgstr ""
+msgstr "选择导出的 ZIP 文件的保存位置"
 
+# AI Translated
 msgid "File already exists. Overwrite?"
-msgstr ""
+msgstr "文件已存在。是否覆盖？"
 
 msgid "3DPrinterOS Cloud upload options"
 msgstr "3DPrinterOS 云上传选项"
@@ -19661,18 +19999,22 @@ msgstr "与 MKS 的连接正常。"
 msgid "Could not connect to MKS"
 msgstr "无法连接到 MKS。"
 
+# AI Translated
 msgid "Connection to Moonraker is working correctly."
-msgstr ""
+msgstr "与 Moonraker 的连接工作正常。"
 
+# AI Translated
 msgid "Could not connect to Moonraker"
-msgstr ""
+msgstr "无法连接到 Moonraker"
 
+# AI Translated
 msgid "The host responded but it doesn't look like Moonraker (missing result.klippy_state)."
-msgstr ""
+msgstr "主机已响应，但看起来不像 Moonraker（缺少 result.klippy_state）。"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Could not parse Moonraker server response: %s"
-msgstr ""
+msgstr "无法解析 Moonraker 服务器响应：%s"
 
 msgid "Connection to OctoPrint is working correctly."
 msgstr "成功连接到 OctoPrint。"
@@ -20042,11 +20384,13 @@ msgstr "打印失败"
 msgid "Removed"
 msgstr "移除"
 
+# AI Translated
 msgid "Enable smart filament assign: Assign one filament to multiple nozzles to maximize savings"
-msgstr ""
+msgstr "启用智能耗材分配：将一种耗材分配给多个喷嘴以最大化节省"
 
+# AI Translated
 msgid "Fila Saving"
-msgstr ""
+msgstr "耗材节省"
 
 msgid "Don't remind me again"
 msgstr "不再提醒"
@@ -20081,9 +20425,10 @@ msgstr "视频指南"
 msgid "(Sync with printer)"
 msgstr "（与打印机同步）"
 
+# AI Translated
 #, c-format, boost-format
 msgid "Error: %s extruder has no available %s nozzle, current group result is invalid."
-msgstr ""
+msgstr "错误：%s 挤出机没有可用的 %s 喷嘴，当前分组结果无效。"
 
 msgid "We will slice according to this grouping method:"
 msgstr "我们将按照这种分组方法进行切片："
@@ -20091,14 +20436,17 @@ msgstr "我们将按照这种分组方法进行切片："
 msgid "Tip: You can drag the filaments to reassign them to different nozzles."
 msgstr "提示：您可以拖动耗材以将它们重新分配到不同的喷嘴。"
 
+# AI Translated
 msgid "Please adjust your grouping or click "
-msgstr ""
+msgstr "请调整您的分组或点击 "
 
+# AI Translated
 msgid " to set nozzle count"
-msgstr ""
+msgstr " 以设置喷嘴数量"
 
+# AI Translated
 msgid "Set the physical nozzle count..."
-msgstr ""
+msgstr "设置物理喷嘴数量……"
 
 msgid "The filament grouping method for current plate is determined by the dropdown option at the slicing plate button."
 msgstr "当前盘的耗材分组方法由切片盘按钮上的下拉选项确定。"
@@ -20365,8 +20713,9 @@ msgstr "错误：%s"
 msgid "Show details"
 msgstr "显示详情"
 
+# AI Translated
 msgid "Hide details"
-msgstr ""
+msgstr "隐藏详情"
 
 msgid "Version to install:"
 msgstr "将安装的版本："
@@ -20393,8 +20742,9 @@ msgstr "立即更新"
 msgid "(Latest)"
 msgstr "（最新的）"
 
+# AI Translated
 msgid "(installed)"
-msgstr ""
+msgstr "（已安装）"
 
 msgid "The Bambu Network Plug-in has been installed successfully."
 msgstr "Bambu 网络插件已成功安装。"
@@ -20438,11 +20788,13 @@ msgstr "三角面片数量"
 msgid "Calculating, please wait..."
 msgstr "正在计算，请稍候..."
 
+# AI Translated
 msgid "Save these settings as default"
-msgstr ""
+msgstr "将这些设置保存为默认值"
 
+# AI Translated
 msgid "If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."
-msgstr ""
+msgstr "如果启用，上述值将被存储为将来 STEP 导入所用的默认值（并显示在首选项中）。"
 
 msgid "PresetBundle"
 msgstr "预设包"
@@ -20530,144 +20882,190 @@ msgstr "存档预览"
 msgid "Open File"
 msgstr "打开文件"
 
+# AI Translated
 msgid "AMS Dryness Control"
-msgstr ""
+msgstr "AMS 干燥控制"
 
+# AI Translated
 msgid "Filament Drying Settings"
-msgstr ""
+msgstr "耗材干燥设置"
 
+# AI Translated
 msgid "Stopping"
-msgstr ""
+msgstr "正在停止"
 
+# AI Translated
 msgid "Unable to dry temporarily due to ..."
-msgstr ""
+msgstr "由于……暂时无法干燥"
 
+# AI Translated
 msgid "Drying Error"
-msgstr ""
+msgstr "干燥错误"
 
+# AI Translated
 msgid "Please check the Assistant for troubleshooting"
-msgstr ""
+msgstr "请查看助手进行故障排查"
 
+# AI Translated
 msgid "Please remove and store the filament (as shown)."
-msgstr ""
+msgstr "请取出并妥善存放耗材（如图所示）。"
 
+# AI Translated
 msgid "The AMS can rotate the filament which is properly stored, providing better drying results."
-msgstr ""
+msgstr "AMS 可以旋转妥善存放的耗材，从而提供更好的干燥效果。"
 
+# AI Translated
 msgid "Rotate spool when drying"
-msgstr ""
+msgstr "干燥时旋转料盘"
 
+# AI Translated
 msgctxt "amsdrying"
 msgid "Back"
-msgstr ""
+msgstr "返回"
 
+# AI Translated
 msgid "Drying-Heating"
-msgstr ""
+msgstr "干燥-加热"
 
+# AI Translated
 msgid "Drying-Dehumidifying"
-msgstr ""
+msgstr "干燥-除湿"
 
+# AI Translated
 msgid " maximum drying temperature is "
-msgstr ""
+msgstr " 最高干燥温度为 "
 
+# AI Translated
 msgid " minimum drying temperature is "
-msgstr ""
+msgstr " 最低干燥温度为 "
 
+# AI Translated
 msgid "This filament may not be completely dried."
-msgstr ""
+msgstr "此耗材可能未完全干燥。"
 
+# AI Translated
 msgid "This AMS is currently printing. To ensure print quality, the drying temperature cannot exceed the recommended drying temperature."
-msgstr ""
+msgstr "此 AMS 当前正在打印。为确保打印质量，干燥温度不能超过推荐的干燥温度。"
 
+# AI Translated
 msgid "The temperature shall not exceed the filament's heat distortion temperature"
-msgstr ""
+msgstr "温度不应超过耗材的热变形温度"
 
+# AI Translated
 msgid "Minimum time value cannot be less than 1."
-msgstr ""
+msgstr "最小时间值不能小于 1。"
 
+# AI Translated
 msgid "Maximum time value cannot be greater than 24."
-msgstr ""
+msgstr "最大时间值不能大于 24。"
 
+# AI Translated
 msgid "Insufficient power"
-msgstr ""
+msgstr "电力不足"
 
+# AI Translated
 msgid "  Too many AMS drying simultaneously. Please plug in the power or stop other drying processes before starting."
-msgstr ""
+msgstr "  同时进行干燥的 AMS 过多。请在开始前接通电源或停止其他干燥进程。"
 
+# AI Translated
 msgid "AMS is busy"
-msgstr ""
+msgstr "AMS 忙碌中"
 
+# AI Translated
 msgid "  AMS is calibrating | reading RFID | loading/unloading material, please wait."
-msgstr ""
+msgstr "  AMS 正在校准 | 读取 RFID | 装载/卸载材料，请稍候。"
 
+# AI Translated
 msgid "Filament in AMS outlet"
-msgstr ""
+msgstr "AMS 出口处有耗材"
 
+# AI Translated
 msgid "  The high drying temperature may cause AMS blockage, please unload first."
-msgstr ""
+msgstr "  较高的干燥温度可能导致 AMS 堵塞，请先卸载。"
 
+# AI Translated
 msgid "Initiating AMS drying"
-msgstr ""
+msgstr "正在启动 AMS 干燥"
 
+# AI Translated
 msgid "Not supported in 2D mode"
-msgstr ""
+msgstr "在 2D 模式下不支持"
 
+# AI Translated
 msgid "Task in progress"
-msgstr ""
+msgstr "任务进行中"
 
+# AI Translated
 msgid "  The AMS might be in use during Task."
-msgstr ""
+msgstr "  在任务期间 AMS 可能正被使用。"
 
+# AI Translated
 msgid "  Firmware update in progress, please wait..."
-msgstr ""
+msgstr "  固件更新进行中，请稍候……"
 
+# AI Translated
 msgid "  Please plug in the power and then use the drying function."
-msgstr ""
+msgstr "  请接通电源，然后再使用干燥功能。"
 
+# AI Translated
 msgid "  The high drying temperature may cause AMS blockage. Please unload the filament manually before proceeding."
-msgstr ""
+msgstr "  较高的干燥温度可能导致 AMS 堵塞。请在继续前手动卸载耗材。"
 
+# AI Translated
 msgid "System is busy"
-msgstr ""
+msgstr "系统忙碌中"
 
+# AI Translated
 msgid "  Initiating other drying processes, please wait a few seconds..."
-msgstr ""
+msgstr "  正在启动其他干燥进程，请稍候几秒……"
 
+# AI Translated
 msgid "For better drying results, remove the filament and allow it to rotate."
-msgstr ""
+msgstr "为获得更好的干燥效果，请取出耗材并让其旋转。"
 
+# AI Translated
 msgid "The AMS will automatically rotate the stored filament slots to enhance the drying performance."
-msgstr ""
+msgstr "AMS 将自动旋转已存放的耗材槽位以增强干燥效果。"
 
+# AI Translated
 msgid "Alternatively, you can dry the filament without removing it."
-msgstr ""
+msgstr "或者，您也可以不取出耗材直接进行干燥。"
 
+# AI Translated
 msgid "Unknown filaments will be treated as PLA."
-msgstr ""
+msgstr "未知耗材将按 PLA 处理。"
 
+# AI Translated
 msgid "Please store the filament marked with an exclamation mark."
-msgstr ""
+msgstr "请存放标有感叹号的耗材。"
 
+# AI Translated
 msgid "Filament left in the feeder during drying may soften because the drying temperature exceeds the softening point of materials like PLA and TPU."
-msgstr ""
+msgstr "干燥期间留在送料器中的耗材可能会软化，因为干燥温度超过了 PLA 和 TPU 等材料的软化点。"
 
+# AI Translated
 msgid "Starting: Checking adapter connection"
-msgstr ""
+msgstr "开始：检查适配器连接"
 
+# AI Translated
 msgid "Starting: Checking filament status"
-msgstr ""
+msgstr "开始：检查耗材状态"
 
+# AI Translated
 msgid "Starting: Checking drying presets"
-msgstr ""
+msgstr "开始：检查干燥预设"
 
+# AI Translated
 msgid "Starting: Checking filament location"
-msgstr ""
+msgstr "开始：检查耗材位置"
 
+# AI Translated
 msgid "Starting: Checking air intake"
-msgstr ""
+msgstr "开始：检查进气口"
 
+# AI Translated
 msgid "Starting: Checking air vent"
-msgstr ""
+msgstr "开始：检查排气口"
 
 msgid "The filament may not be compatible with the current machine settings. Generic filament presets will be used."
 msgstr "此耗材可能于当前设备设置不兼容，将使用通用耗材预设。"
