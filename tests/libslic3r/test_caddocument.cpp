@@ -3094,6 +3094,167 @@ TEST_CASE("thicken round-trip serialization", "[CadDocument]")
     }
 }
 
+// --- Project feature tests ---
+
+TEST_CASE("project a box top face to 4 lines, extrudable", "[CadDocument][project]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        Vec3d n = GeometryEngine::face_normal_world(fc);
+        if (n.z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    int proj = doc.add_project_edges(0, {}, top_face, SketchPlane::XY(), "ProjTop");
+    REQUIRE(proj >= 0);
+    doc.add_extrude(proj, 5.0, false, BooleanMode::New, "FromProj");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    const auto& pf = doc.features[proj];
+    REQUIRE(pf.entities.size() == 4);
+    for (const auto& e : pf.entities)
+        REQUIRE(e.type == SketchEntity::Type::Line);
+
+    REQUIRE(doc.bodies.size() >= 2);
+    double v = double(SketchEngine::tessellate(doc.bodies.back().shape).volume());
+    REQUIRE_THAT(v, WithinRel(20.0 * 20.0 * 5.0, 1e-3));
+}
+
+TEST_CASE("project a cylinder top edge to 1 circle, extrudable", "[CadDocument][project]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    SketchEntity c;
+    c.type   = SketchEntity::Type::Circle;
+    c.center = Vec2d(0, 0);
+    c.radius = 6.0;
+    int sk = doc.add_sketch_entities({c}, SketchPlane::XY(), "Circ");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Cyl");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int n_edges = GeometryEngine::edge_count(doc.bodies[0].shape);
+    int top_edge = -1;
+    for (int i = 0; i < n_edges; ++i) {
+        TopoDS_Edge e = GeometryEngine::edge_by_index(doc.bodies[0].shape, i);
+        auto pts = GeometryEngine::sample_edge_world(e);
+        if (pts.empty()) continue;
+        Vec3d mid = Vec3d::Zero();
+        for (const auto& p : pts) mid += p;
+        mid /= double(pts.size());
+        if (mid.z() > 9.0) {
+            BRepAdaptor_Curve ac(e);
+            if (ac.GetType() == GeomAbs_Circle) { top_edge = i; break; }
+        }
+    }
+    REQUIRE(top_edge >= 0);
+
+    int proj = doc.add_project_edges(0, {top_edge}, -1, SketchPlane::XY(), "ProjCirc");
+    REQUIRE(proj >= 0);
+    doc.add_extrude(proj, 4.0, false, BooleanMode::New, "FromCirc");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    const auto& pf = doc.features[proj];
+    REQUIRE(pf.entities.size() == 1);
+    REQUIRE(pf.entities[0].type == SketchEntity::Type::Circle);
+    REQUIRE_THAT(pf.entities[0].radius, WithinRel(6.0, 1e-3));
+
+    REQUIRE(doc.bodies.size() >= 2);
+    double v = double(SketchEngine::tessellate(doc.bodies.back().shape).volume());
+    REQUIRE_THAT(v, WithinRel(M_PI * 36.0 * 4.0, 1e-2));
+}
+
+TEST_CASE("project bad face id returns error", "[CadDocument][project]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+
+    doc.add_project_edges(0, {}, 9999, SketchPlane::XY(), "Bad");
+    bool ok = doc.recompute();
+    REQUIRE_FALSE(ok);
+    bool has_project = doc.error.find("project") != std::string::npos
+                    || doc.error.find("face")     != std::string::npos;
+    REQUIRE(has_project);
+}
+
+TEST_CASE("project round-trip serialization", "[CadDocument][project]")
+{
+    using Catch::Matchers::WithinAbs;
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        Vec3d n = GeometryEngine::face_normal_world(fc);
+        if (n.z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    doc.add_project_edges(0, {}, top_face, SketchPlane::XY(), "ProjTop");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int saved_src   = doc.features.back().project_source_body;
+    int saved_face  = doc.features.back().project_face;
+    auto saved_edges = doc.features.back().project_edges;
+    size_t saved_nb = doc.bodies.size();
+
+    std::vector<std::pair<Vec3d, Vec3d>> bboxes;
+    for (const auto& b : doc.bodies) {
+        Bnd_Box bb; BRepBndLib::Add(b.shape, bb);
+        Standard_Real x0, y0, z0, x1, y1, z1;
+        bb.Get(x0, y0, z0, x1, y1, z1);
+        bboxes.push_back({Vec3d(x0, y0, z0), Vec3d(x1, y1, z1)});
+    }
+
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument doc2;
+    REQUIRE(doc2.deserialize_recipe(blob));
+    REQUIRE(doc2.bodies.size() == saved_nb);
+    REQUIRE(doc2.features.size() == doc.features.size());
+
+    const auto& f2 = doc2.features.back();
+    REQUIRE(f2.project_source_body == saved_src);
+    REQUIRE(f2.project_face  == saved_face);
+    REQUIRE(f2.project_edges == saved_edges);
+
+    for (size_t i = 0; i < saved_nb; ++i) {
+        Bnd_Box bb; BRepBndLib::Add(doc2.bodies[i].shape, bb);
+        Standard_Real x0, y0, z0, x1, y1, z1;
+        bb.Get(x0, y0, z0, x1, y1, z1);
+        REQUIRE_THAT(double(x0), WithinAbs(bboxes[i].first.x(),  1e-6));
+        REQUIRE_THAT(double(y0), WithinAbs(bboxes[i].first.y(),  1e-6));
+        REQUIRE_THAT(double(z0), WithinAbs(bboxes[i].first.z(),  1e-6));
+        REQUIRE_THAT(double(x1), WithinAbs(bboxes[i].second.x(), 1e-6));
+        REQUIRE_THAT(double(y1), WithinAbs(bboxes[i].second.y(), 1e-6));
+        REQUIRE_THAT(double(z1), WithinAbs(bboxes[i].second.z(), 1e-6));
+    }
+}
+
 // --- Golden recipe fixture (v1 format tripwire) ---
 
 static CadDocument make_golden_doc_v1()
@@ -3256,6 +3417,8 @@ static CadDocument make_golden_doc_v1()
     doc.add_thicken(0, 0, 1.75, true, "GoldenThicken");
 
     doc.add_split_by_face(0, 0, 2, true, false, "GoldenSplit");
+
+    doc.add_project_edges(0, {}, 0, SketchPlane::XY(), "GoldenProject");
 
     return doc;
 }
@@ -3544,6 +3707,13 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
             REQUIRE(f.cut_face       == 2);
             REQUIRE(f.cut_keep_upper == true);
             REQUIRE(f.cut_keep_lower == false);
+        }
+
+        // Project
+        if (f.type == CadFeatureType::Project && e.name == "GoldenProject") {
+            REQUIRE(f.project_source_body == 0);
+            REQUIRE(f.project_face  == 0);
+            REQUIRE(f.project_edges == e.project_edges);
         }
     }
 

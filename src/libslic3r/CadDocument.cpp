@@ -25,6 +25,9 @@
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepLib.hxx>
+#include <BRepAdaptor_Curve.hxx>
+#include <GeomAbs_CurveType.hxx>
+#include <BRep_Tool.hxx>
 #include <Geom_CylindricalSurface.hxx>
 #include <Geom_ConicalSurface.hxx>
 #include <Geom2d_TrimmedCurve.hxx>
@@ -783,6 +786,20 @@ int CadDocument::add_thicken(int target_body, int face, double thickness, bool f
     return int(features.size()) - 1;
 }
 
+int CadDocument::add_project_edges(int source_body, const std::vector<int>& edge_ids, int face,
+                                   const SketchPlane& plane, const std::string& name)
+{
+    CadFeature f;
+    f.type                = CadFeatureType::Project;
+    f.name                = name;
+    f.project_source_body = source_body;
+    f.project_edges       = edge_ids;
+    f.project_face        = face;
+    f.plane               = plane;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
 int CadDocument::add_plane(int base, double offset, double angle_tilt, int axis,
                            const std::string& name)
 {
@@ -1442,6 +1459,8 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
     switch (f.type) {
     case CadFeatureType::Sketch:
         return; // sketches carry no solid; consumed by an extrude
+    case CadFeatureType::Project:
+        return; // edges-to-sketch: consumed downstream, no solid body
     case CadFeatureType::Helix:
         return; // helical curve; consumed by Sweep as a path (like Sketch)
     case CadFeatureType::Boolean:
@@ -1475,7 +1494,8 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             // otherwise fall back to f's own inline sketch params (this makes a
             // single self-contained candidate previewable).
             const CadFeature& sk = (f.sketch_ref >= 0 && f.sketch_ref < int(features.size())
-                                    && features[f.sketch_ref].type == CadFeatureType::Sketch)
+                                    && (features[f.sketch_ref].type == CadFeatureType::Sketch
+                                        || features[f.sketch_ref].type == CadFeatureType::Project))
                                    ? features[f.sketch_ref] : f;
             // Imported rigid art (Text/SVG) extrudes via the faces-with-holes path
             // (with its placement transform applied); otherwise build a single wire
@@ -1546,7 +1566,8 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         // Resolve the profile sketch like Extrude: referenced Sketch when valid,
         // else this feature's own inline entities/profile (self-contained candidate).
         const CadFeature& sk = (f.sketch_ref >= 0 && f.sketch_ref < int(features.size())
-                                && features[f.sketch_ref].type == CadFeatureType::Sketch)
+                                && (features[f.sketch_ref].type == CadFeatureType::Sketch
+                                    || features[f.sketch_ref].type == CadFeatureType::Project))
                                ? features[f.sketch_ref] : f;
         TopoDS_Wire wire = build_sketch_wire(sk);
         const double ang = f.flip ? -f.revolve_angle : f.revolve_angle;
@@ -1571,7 +1592,8 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
     }
     case CadFeatureType::Sweep: {
         const CadFeature& sk = (f.sketch_ref >= 0 && f.sketch_ref < int(features.size())
-                                && features[f.sketch_ref].type == CadFeatureType::Sketch)
+                                && (features[f.sketch_ref].type == CadFeatureType::Sketch
+                                    || features[f.sketch_ref].type == CadFeatureType::Project))
                                ? features[f.sketch_ref] : f;
         if (f.sweep_path_ref < 0 || f.sweep_path_ref >= int(features.size()))
             throw std::runtime_error("sweep needs a valid path reference");
@@ -1612,7 +1634,8 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         std::vector<TopoDS_Wire> profiles;
         for (int ref : f.loft_profile_refs) {
             if (ref < 0 || ref >= int(features.size())
-                || features[ref].type != CadFeatureType::Sketch)
+                || (features[ref].type != CadFeatureType::Sketch
+                    && features[ref].type != CadFeatureType::Project))
                 continue;
             profiles.push_back(build_sketch_wire(features[ref]));
         }
@@ -2092,6 +2115,92 @@ void CadDocument::apply_thicken(std::vector<CadBody>& bodies, const CadFeature& 
     bodies.push_back({solid, f.name.empty() ? std::string("Thicken") : f.name});
 }
 
+void CadDocument::apply_project(const std::vector<CadBody>& bodies, CadFeature& f) const
+{
+    f.entities.clear();
+    const int nb = int(bodies.size());
+    if (nb == 0) throw std::runtime_error("project: no source body");
+    const int src = (f.project_source_body >= 0 && f.project_source_body < nb)
+                    ? f.project_source_body : nb - 1;
+    if (src < 0 || bodies[src].shape.IsNull()) throw std::runtime_error("project: source body is empty");
+    const TopoDS_Shape& shape = bodies[src].shape;
+
+    std::vector<TopoDS_Edge> edges;
+    if (!f.project_edges.empty()) {
+        for (int id : f.project_edges) {
+            TopoDS_Edge e = GeometryEngine::edge_by_index(shape, id);
+            if (e.IsNull()) throw std::runtime_error("project: edge not found");
+            edges.push_back(e);
+        }
+    } else if (f.project_face >= 0) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(shape, f.project_face);
+        if (fc.IsNull()) throw std::runtime_error("project: face not found");
+        edges = GeometryEngine::edges_of_face(fc);
+    } else {
+        throw std::runtime_error("project: no edges or face selected");
+    }
+    if (edges.empty()) throw std::runtime_error("project: no edges to project");
+
+    auto to2d = [&](const gp_Pnt& p) -> Vec2d {
+        Vec3d d(p.X() - f.plane.origin.x(), p.Y() - f.plane.origin.y(), p.Z() - f.plane.origin.z());
+        return Vec2d(d.dot(f.plane.x_axis), d.dot(f.plane.y_axis));
+    };
+
+    for (const TopoDS_Edge& e : edges) {
+        BRepAdaptor_Curve ac(e);
+        const GeomAbs_CurveType ct = ac.GetType();
+        if (ct == GeomAbs_Line) {
+            gp_Pnt a = ac.Value(ac.FirstParameter());
+            gp_Pnt b = ac.Value(ac.LastParameter());
+            SketchEntity se; se.type = SketchEntity::Type::Line;
+            se.p0 = to2d(a); se.p1 = to2d(b);
+            f.entities.push_back(se);
+        } else if (ct == GeomAbs_Circle) {
+            gp_Circ c = ac.Circle();
+            gp_Dir cn = c.Axis().Direction();
+            Vec3d cnv(cn.X(), cn.Y(), cn.Z());
+            const double par = std::abs(cnv.dot(f.plane.normal));
+            const bool full = BRep_Tool::IsClosed(e) ||
+                std::abs((ac.LastParameter() - ac.FirstParameter()) - 2.0 * M_PI) < 1e-6;
+            if (par > 0.999) {
+                Vec2d ctr = to2d(c.Location());
+                if (full) {
+                    SketchEntity se; se.type = SketchEntity::Type::Circle;
+                    se.center = ctr; se.radius = c.Radius();
+                    f.entities.push_back(se);
+                } else {
+                    gp_Pnt a = ac.Value(ac.FirstParameter());
+                    gp_Pnt b = ac.Value(ac.LastParameter());
+                    Vec2d a2 = to2d(a), b2 = to2d(b);
+                    SketchEntity se; se.type = SketchEntity::Type::Arc;
+                    se.center = ctr; se.radius = c.Radius();
+                    se.p0 = a2; se.p1 = b2;
+                    se.start_angle = std::atan2(a2.y() - ctr.y(), a2.x() - ctr.x());
+                    se.end_angle   = std::atan2(b2.y() - ctr.y(), b2.x() - ctr.x());
+                    f.entities.push_back(se);
+                }
+                continue;
+            }
+            std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
+            for (size_t i = 1; i < pts.size(); ++i) {
+                SketchEntity se; se.type = SketchEntity::Type::Line;
+                se.p0 = to2d(gp_Pnt(pts[i-1].x(), pts[i-1].y(), pts[i-1].z()));
+                se.p1 = to2d(gp_Pnt(pts[i].x(),   pts[i].y(),   pts[i].z()));
+                f.entities.push_back(se);
+            }
+        } else {
+            std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
+            for (size_t i = 1; i < pts.size(); ++i) {
+                SketchEntity se; se.type = SketchEntity::Type::Line;
+                se.p0 = to2d(gp_Pnt(pts[i-1].x(), pts[i-1].y(), pts[i-1].z()));
+                se.p1 = to2d(gp_Pnt(pts[i].x(),   pts[i].y(),   pts[i].z()));
+                f.entities.push_back(se);
+            }
+        }
+    }
+    if (f.entities.empty()) throw std::runtime_error("project: produced no entities");
+}
+
 void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
     if (f.type == CadFeatureType::Plane)   return;   // datum plane: not part of the body pipeline
@@ -2103,6 +2212,7 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
     if (f.type == CadFeatureType::Mirror)  { apply_mirror(bodies, f);  return; }   // mirror body about plane
     if (f.type == CadFeatureType::Transform) { apply_transform(bodies, f); return; }   // move/rotate body
     if (f.type == CadFeatureType::Thicken) { apply_thicken(bodies, f); return; }   // face -> plate
+    if (f.type == CadFeatureType::Project) return;   // sketch-like: consumed downstream, no body
     // Resolve the target body: explicit target_body when valid, else the last body.
     const int t = (f.target_body >= 0 && f.target_body < int(bodies.size()))
                   ? f.target_body : int(bodies.size()) - 1;
@@ -2135,13 +2245,14 @@ bool CadDocument::recompute()
     error.clear();
     std::vector<CadBody> built;
     try {
-        for (const CadFeature& f : features) {
+        for (CadFeature& f : features) {
             if (!f.enabled) continue;
             if (f.type == CadFeatureType::Sketch) continue; // consumed by an extrude
             if (f.type == CadFeatureType::Helix)  continue; // consumed by Sweep as a path
             if (f.type == CadFeatureType::Plane)   continue; // datum: no solid, derived on demand
             if (f.type == CadFeatureType::Axis)    continue; // datum axis
             if (f.type == CadFeatureType::CoordSys) continue; // datum coordinate system
+            if (f.type == CadFeatureType::Project) { apply_project(built, f); continue; }
             route_feature(built, f);
         }
     } catch (const Standard_Failure& e) {

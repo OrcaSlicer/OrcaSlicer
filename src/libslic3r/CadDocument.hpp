@@ -17,7 +17,7 @@
 
 namespace Slic3r {
 
-enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken };
+enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project };
 enum class SketchShape    { Rectangle, Circle };
 enum class PlaneType      { Offset, Angle, Midplane, Tangent, TwoEdges, Coincident };
 enum class AxisType       { TwoPoints, FaceNormal, CylinderCenterline, PlaneIntersection, AlongEdge };
@@ -258,6 +258,11 @@ struct CadFeature {
     int         cut_face_body{-1};   // body owning the face; -1 = the target body
     int         cut_face{-1};        // global face id to cut along; -1 = use `plane`
 
+    // Project feature: convert edges of an existing solid into sketch entities on `plane`.
+    int              project_source_body{-1};   // body owning the edges; -1 = last body
+    std::vector<int> project_edges;             // global edge ids to project; empty => use project_face
+    int              project_face{-1};          // if project_edges empty, project every edge of this face
+
     template<class Archive>
     void save(Archive& ar) const {
         std::string brep = (type == CadFeatureType::Import) ? brep_to_string(imported_solid) : std::string();
@@ -286,7 +291,8 @@ struct CadFeature {
             helix_radius, helix_pitch, helix_height, helix_left_handed, helix_taper_deg,
              xf_translate, xf_axis, xf_pivot, xf_angle_deg, xf_copy,
              thicken_face, thicken_thickness, thicken_flip,
-             cut_face_body, cut_face);
+             cut_face_body, cut_face,
+             project_source_body, project_edges, project_face);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -316,7 +322,8 @@ struct CadFeature {
            helix_radius, helix_pitch, helix_height, helix_left_handed, helix_taper_deg,
             xf_translate, xf_axis, xf_pivot, xf_angle_deg, xf_copy,
             thicken_face, thicken_thickness, thicken_flip,
-            cut_face_body, cut_face);
+            cut_face_body, cut_face,
+            project_source_body, project_edges, project_face);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -367,6 +374,10 @@ public:
     int  add_sketch_entities(const std::vector<SketchEntity>& entities,
                              const SketchPlane& plane, const std::string& name,
                              const std::vector<SketchEntityConstraintDef>& constraints = {});
+    // Project edges of source_body onto plane, producing a sketch feature whose
+    // entities are (re)derived on every recompute.
+    int  add_project_edges(int source_body, const std::vector<int>& edge_ids, int face,
+                           const SketchPlane& plane, const std::string& name);
     // Solve features[index]'s sketch constraints, writing solved coordinates back
     // into its profile.points. No-op (returns true) if the feature has no
     // constraints. Returns false if index is invalid / not a Sketch / solve fails.
@@ -537,6 +548,7 @@ private:
     void apply_mirror(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_transform(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_thicken(std::vector<CadBody>& bodies, const CadFeature& f) const;
+    void apply_project(const std::vector<CadBody>& bodies, CadFeature& f) const;
 
     // Undo/redo stacks of feature-list snapshots. checkpoint() pushes onto m_undo and
     // clears m_redo; undo()/redo() shuffle the current state between them. Capped so a
