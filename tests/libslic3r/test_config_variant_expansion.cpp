@@ -335,6 +335,21 @@ TEST_CASE("update_values_to_printer_extruders_for_multiple_filaments resolves pe
     }
 }
 
+TEST_CASE("get_index_for_extruder returns -1 when no variant column matches the extruder", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("print_extruder_id", true)->values = {1};
+    config.option<ConfigOptionStrings>("print_extruder_variant", true)->values = {"Direct Drive Standard"};
+
+    SECTION("the extruder that owns the column resolves to its slot") {
+        REQUIRE(config.get_index_for_extruder(1, "print_extruder_id", etDirectDrive, nvtStandard, "print_extruder_variant") == 0);
+    }
+
+    SECTION("an extruder with no matching column resolves to -1") {
+        REQUIRE(config.get_index_for_extruder(2, "print_extruder_id", etDirectDrive, nvtStandard, "print_extruder_variant") == -1);
+    }
+}
+
 // stride scales the returned slot so callers can address stride-2 options (machine_max_*, a
 // Normal/Silent pair per column) by their pair's base slot. The printer Tab's extruder sync
 // relies on this to copy the right slots on the Motion ability page.
