@@ -794,7 +794,10 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("single_loop_draft_shield", have_skirt); // ORCA: Display one wall if skirt enabled
     for (auto el : {"skirt_type", "min_skirt_length", "skirt_distance", "skirt_start_angle", "skirt_speed", "draft_shield"})
         toggle_line(el, have_skirt);
-    
+    //Toggle the inner wall line width if the user has perimeters, a skirt, or a brim
+    toggle_field("inner_wall_line_width", have_perimeters || have_skirt || have_brim);
+
+
     //Toggle the brim settings if the user disables the brim
     bool have_brim = (config->opt_enum<BrimType>("brim_type") != btNoBrim);
     for (auto el : {"brim_object_gap", "brim_use_efc_outline", "combine_brims", "brim_flow_ratio"})
@@ -827,8 +830,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool have_support_material = config->opt_bool("enable_support") || have_raft;
 
     SupportType support_type = config->opt_enum<SupportType>("support_type");
-    bool have_support_interface = config->opt_int("support_interface_top_layers") > 0 || config->opt_int("support_interface_bottom_layers") > 0;
-    bool have_support_soluble = have_support_material && config->opt_float("support_top_z_distance") == 0;
+    
     auto support_style = config->opt_enum<SupportMaterialStyle>("support_style");
     for (auto el : { "support_style", "support_base_pattern",
         "support_base_pattern_spacing", "support_expansion", "support_angle",
@@ -838,7 +840,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
         "support_object_xy_distance", "support_object_first_layer_gap", "independent_support_layer_height"})
         toggle_line(el, have_support_material);
     toggle_line("support_threshold_angle", have_support_material && is_auto(support_type));
-    toggle_field("support_threshold_overlap", config->opt_int("support_threshold_angle") == 0 && have_support_material && is_auto(support_type));
+    toggle_line("support_threshold_overlap", config->opt_int("support_threshold_angle") == 0 && have_support_material && is_auto(support_type));
     //toggle_field("support_closing_radius", have_support_material && support_style == smsSnug);
 
     bool support_is_tree = config->opt_bool("enable_support") && is_tree(support_type);
@@ -863,9 +865,11 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("bridge_no_support", !support_is_tree);
     toggle_line("support_critical_regions_only", is_auto(support_type) && support_is_tree);
 
+    //Support interfaces and ironing
+    bool have_support_interface = config->opt_int("support_interface_top_layers") > 0 || config->opt_int("support_interface_bottom_layers") > 0;
     for (auto el : { "support_interface_filament",
         "support_interface_loop_pattern", "support_bottom_interface_spacing" })
-        toggle_field(el, have_support_material && have_support_interface);
+        toggle_line(el, have_support_material && have_support_interface);
 
     bool can_ironing_support = have_raft || (have_support_material && config->opt_int("support_interface_top_layers") > 0);
     toggle_field("support_ironing", can_ironing_support);
@@ -873,7 +877,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     for (auto el : {"support_ironing_pattern", "support_ironing_flow", "support_ironing_spacing" })
         toggle_line(el, has_support_ironing);
     // Orca: Force solid support interface when using support ironing
-    toggle_field("support_interface_spacing", have_support_material && have_support_interface && !has_support_ironing);
+    toggle_line("support_interface_spacing", have_support_material && have_support_interface && !has_support_ironing);
 
 //    see issue #10915 - don't hide support speed settings based on settings in other tabs
 //    hiding settings based on other tabs makes it diffcult to find how to toggle them when creating profiles
@@ -889,16 +893,16 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // BBS
     //toggle_field("support_material_synchronize_layers", have_support_soluble);
 
-    toggle_field("inner_wall_line_width", have_perimeters || have_skirt || have_brim);
-    toggle_field("support_filament", have_support_material || have_skirt);
-
+    
+    toggle_line("support_filament", have_support_material || have_skirt);
+    bool have_support_soluble = have_support_material && config->opt_float("support_top_z_distance") == 0;
     toggle_line("raft_contact_distance", have_raft && !have_support_soluble);
 
     // Orca: First-layer density is available for supports broadly.
-    toggle_field("raft_first_layer_density", have_support_material);
+    toggle_line("raft_first_layer_density", have_support_material);
     // Orca: For regular tree (Slim/Strong) without raft, hide first-layer expansion.
     // Keep it enabled for non-tree supports, organic tree, hybrid tree, and any raft case.
-    toggle_field("raft_first_layer_expansion",
+    toggle_line("raft_first_layer_expansion",
                  have_support_material && ((!support_is_normal_tree || support_style == smsTreeHybrid) || have_raft));
 
     bool has_ironing = (config->opt_enum<IroningType>("ironing_type") != IroningType::NoIroning);
