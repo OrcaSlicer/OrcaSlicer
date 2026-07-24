@@ -177,6 +177,13 @@ json describe_tools()
                      json{{"name", "angle"}, {"type", "number"}, {"unit", "deg"}, {"default", 5}},
                      json{{"name", "body"},  {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                  })}},
+            json{{"name", "mirror"}, {"summary", "Mirror a body about a base plane. mode=new creates a mirrored copy; mode=add fuses the mirror back into the source."},
+                 {"params", json::array({
+                     json{{"name", "plane"},        {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XZ"}},
+                     json{{"name", "mode"},         {"type", "string"}, {"enum", json::array({"new", "add"})},     {"default", "new"}},
+                     json{{"name", "keep_original"},{"type", "boolean"}, {"default", true}, {"description", "when mode=new, keep the source body"}},
+                     json{{"name", "body"},         {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
+                 })}},
             json{{"name", "query_topology"}, {"summary", "Measured faces (centroid/normal/cylinder) and edges (length/circle) of a body."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
@@ -791,6 +798,23 @@ json action_draft(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"draft_index", d}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_mirror(DesignPanel* panel, const json& params)
+{
+    std::string m_str = params.value("mode", std::string("new"));
+    BooleanMode m = (m_str == "add") ? BooleanMode::Add : BooleanMode::New;
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to mirror");
+    int bi = target_body_arg(params, doc);
+    bool keep = params.value("keep_original", true);
+    doc.checkpoint();
+    int idx = doc.add_mirror(plane_from(params, doc), bi, m, "Mirror");
+    doc.features[idx].mirror_keep_original = keep;
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"mirror_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 // Dispatch one parsed request ON THE MAIN THREAD. Returns a JSON-RPC reply string.
 std::string handle_on_main(const std::string& method, const json& params, const json& id)
 {
@@ -817,6 +841,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "pattern")        return rpc_result(id, action_pattern(panel, params));
         if (method == "shell")          return rpc_result(id, action_shell(panel, params));
         if (method == "draft")          return rpc_result(id, action_draft(panel, params));
+        if (method == "mirror")         return rpc_result(id, action_mirror(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
         return rpc_error(id, -32000, std::string("OCCT: ") + (ex.GetMessageString() ? ex.GetMessageString() : "failure"));

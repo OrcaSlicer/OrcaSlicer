@@ -17,7 +17,7 @@
 
 namespace Slic3r {
 
-enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut };
+enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror };
 enum class SketchShape    { Rectangle, Circle };
 enum class PlaneType      { Offset, Angle, Midplane, Tangent, TwoEdges, Coincident };
 enum class BooleanMode    { New, Add, Cut, Intersect };
@@ -202,6 +202,12 @@ struct CadFeature {
     bool   cut_keep_upper{true};  // keep the +normal half
     bool   cut_keep_lower{false}; // keep the -normal half (both => split into two bodies)
 
+    // Mirror: reflect a body about a plane. Reuses `plane` (mirror plane, as Cut does),
+    // `target_body` (body to mirror), and `mode` (New = separate mirrored copy,
+    // Add = fuse the mirror back into the source). mirror_keep_original decides whether
+    // the source body survives when mode is New.
+    bool   mirror_keep_original{true};
+
     template<class Archive>
     void save(Archive& ar) const {
         std::string brep = (type == CadFeatureType::Import) ? brep_to_string(imported_solid) : std::string();
@@ -220,10 +226,11 @@ struct CadFeature {
            pattern_circular, pattern_count, pattern_spacing, pattern_dir, pattern_angle,
            plane_base, plane_offset, plane_angle_tilt, plane_axis,
            bool_tool_body, bool_keep_tool, bool_tolerance, bool_target_face, bool_tool_face,
-            cut_offset, cut_flip, cut_keep_upper, cut_keep_lower,
-            brep,
-            plane_type, plane_face_body, plane_face, plane_face2_body, plane_face2,
-            plane_edge_body, plane_edge, plane_edge2_body, plane_edge2, plane_u_size, plane_v_size);
+           cut_offset, cut_flip, cut_keep_upper, cut_keep_lower,
+           brep,
+           plane_type, plane_face_body, plane_face, plane_face2_body, plane_face2,
+           plane_edge_body, plane_edge, plane_edge2_body, plane_edge2, plane_u_size, plane_v_size,
+           mirror_keep_original);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -246,7 +253,8 @@ struct CadFeature {
            cut_offset, cut_flip, cut_keep_upper, cut_keep_lower,
            brep,
            plane_type, plane_face_body, plane_face, plane_face2_body, plane_face2,
-           plane_edge_body, plane_edge, plane_edge2_body, plane_edge2, plane_u_size, plane_v_size);
+           plane_edge_body, plane_edge, plane_edge2_body, plane_edge2, plane_u_size, plane_v_size,
+           mirror_keep_original);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -345,7 +353,9 @@ public:
     // its normal by `offset`, normal flipped iff `flip`). keep_upper/keep_lower select the
     // +normal / -normal half; both => the body is split into two coexisting bodies.
     int  add_cut(const SketchPlane& plane, double offset, bool flip,
-                 bool keep_upper, bool keep_lower, int target_body, const std::string& name);
+                  bool keep_upper, bool keep_lower, int target_body, const std::string& name);
+    int  add_mirror(const SketchPlane& plane, int target_body, BooleanMode mode,
+                    const std::string& name);
     // Datum plane: derived from base (0=XY/1=XZ/2=YZ/3+N=Nth earlier datum), offset
     // along its normal, optional tilt about a base axis. Produces no solid.
     int  add_plane(int base, double offset, double angle_tilt, int axis,
@@ -435,6 +445,7 @@ private:
     // which works on a single result shape). Throws std::runtime_error on a failed op.
     void apply_boolean(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_cut(std::vector<CadBody>& bodies, const CadFeature& f) const;
+    void apply_mirror(std::vector<CadBody>& bodies, const CadFeature& f) const;
 
     // Undo/redo stacks of feature-list snapshots. checkpoint() pushes onto m_undo and
     // clears m_redo; undo()/redo() shuffle the current state between them. Capped so a

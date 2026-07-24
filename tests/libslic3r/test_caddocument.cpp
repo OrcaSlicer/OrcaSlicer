@@ -1379,6 +1379,171 @@ TEST_CASE("cut splits a body with a plane", "[cut]")
     }
 }
 
+TEST_CASE("mirror reflects a body about a plane", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+    using Catch::Matchers::WithinAbs;
+
+    auto make_box = [](CadDocument& doc, double w, double h, double d) {
+        int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), w, h, 0, "Box");
+        doc.add_extrude(sk, d, false, BooleanMode::New, "E");
+    };
+
+    // --- New mode: 20x20x20 cube, mirror about XZ plane offset to x=30 ---
+    // The cube is in x=[-10,10]; the mirror is at x=30, so the mirrored cube
+    // is at x=[50,70]. Disjoint -> two bodies, equal volumes (8000 each).
+    SECTION("New mode: two disjoint bodies, equal volumes") {
+        CadDocument doc;
+        make_box(doc, 20.0, 20.0, 20.0);
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        double v_orig = double(doc.display_mesh.volume());
+        REQUIRE_THAT(v_orig, WithinRel(8000.0, 0.01));
+
+        doc.add_mirror(SketchPlane::XZ(), 0, BooleanMode::New, "Mirror1");
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        REQUIRE(doc.bodies.size() == 2);
+
+        double v0 = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+        double v1 = double(SketchEngine::tessellate(doc.bodies[1].shape).volume());
+        REQUIRE_THAT(v0, WithinRel(8000.0, 0.01));
+        REQUIRE_THAT(v1, WithinRel(8000.0, 0.01));
+    }
+
+    // --- New mode with keep_original=false: the source body is replaced ---
+    SECTION("New mode, keep_original=false: source body removed") {
+        CadDocument doc;
+        make_box(doc, 20.0, 20.0, 20.0);
+        REQUIRE(doc.recompute());
+        doc.add_mirror(SketchPlane::XZ(), 0, BooleanMode::New, "Mirror1");
+        doc.features.back().mirror_keep_original = false;
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        REQUIRE(doc.bodies.size() == 1);
+        double v = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+        REQUIRE_THAT(v, WithinRel(8000.0, 0.01));
+    }
+
+    // --- Add mode: L-shape, entirely on one side of the mirror plane -> 2x volume ---
+    // Build an L-shape completely in x>0: base 20x20x5 at x=[0,20] + wall 10x20x10
+    // at x=[0,10] on top. Mirror about XZ at x=30 -> mirror at x=[40,60], disjoint.
+    SECTION("Add mode: asymmetric L-shape, disjoint halves -> 2x volume") {
+        CadDocument doc;
+        // Base: 20x20x5, shifted to x=10 so it's in x=[0,20]
+        CadFeature skb;
+        skb.type = CadFeatureType::Sketch;
+        skb.name = "Base";
+        skb.plane = SketchPlane::XY();
+        skb.imported_regions = {{ {Vec2d(0,-10), Vec2d(20,-10), Vec2d(20,10), Vec2d(0,10)} }};
+        doc.features.push_back(skb);
+        int skb_idx = int(doc.features.size()) - 1;
+        CadFeature exb;
+        exb.type = CadFeatureType::Extrude;
+        exb.name = "EBase";
+        exb.sketch_ref = skb_idx;
+        exb.distance = 5.0;
+        exb.mode = BooleanMode::New;
+        doc.features.push_back(exb);
+
+        // Wall: 10x20x10 on top of the base, x=[0,10]
+        CadFeature skw;
+        skw.type = CadFeatureType::Sketch;
+        skw.name = "Wall";
+        skw.plane = SketchPlane::XY();
+        skw.plane.origin = Vec3d(0, 0, 5);
+        skw.imported_regions = {{ {Vec2d(0,-10), Vec2d(10,-10), Vec2d(10,10), Vec2d(0,10)} }};
+        doc.features.push_back(skw);
+        int skw_idx = int(doc.features.size()) - 1;
+        CadFeature exw;
+        exw.type = CadFeatureType::Extrude;
+        exw.name = "EWall";
+        exw.sketch_ref = skw_idx;
+        exw.distance = 10.0;
+        exw.mode = BooleanMode::Add;
+        exw.target_body = 0;
+        doc.features.push_back(exw);
+
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        const double v_l = double(doc.display_mesh.volume());
+
+        // Mirror about YZ at x=30 -> the mirror is entirely in x=[40,60],
+        // disjoint from the original in x=[0,20].
+        SketchPlane mp = SketchPlane::YZ();
+        mp.origin = Vec3d(30, 0, 0);
+        doc.add_mirror(mp, 0, BooleanMode::Add, "Mirror1");
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        REQUIRE(doc.bodies.size() == 1);
+        const double v_m = double(doc.display_mesh.volume());
+        REQUIRE_THAT(v_m, WithinRel(2.0 * v_l, 0.02));
+    }
+
+    // --- Add mode with intersecting plane -> fused volume < 2x ---
+    // A 20x20x20 cube centred on the origin (so x=[-10,10]), mirrored about
+    // XZ plane at x=0. The mirror maps the cube onto itself exactly (symmetry).
+    // Fusing a cube with itself at the plane of symmetry produces the same cube
+    // -> volume == original, strictly less than 2x.
+    SECTION("Add mode: intersecting plane -> volume < 2x original") {
+        CadDocument doc;
+        make_box(doc, 20.0, 20.0, 20.0);
+        REQUIRE(doc.recompute());
+        const double v_orig = double(doc.display_mesh.volume());
+        REQUIRE_THAT(v_orig, WithinRel(8000.0, 0.01));
+
+        doc.add_mirror(SketchPlane::XZ(), 0, BooleanMode::Add, "Mirror1");
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        const double v_mir = double(doc.display_mesh.volume());
+        REQUIRE(v_mir < v_orig * 1.9);
+    }
+
+    // --- Invalid target body index ---
+    SECTION("invalid target body index -> error, no crash") {
+        CadDocument doc;
+        // No bodies in the document -> mirror must fail, not crash.
+        doc.features.push_back({CadFeatureType::Mirror, "BadMirror", true,
+                                SketchShape::Rectangle, SketchPlane::XZ()});
+        doc.features.back().mode = BooleanMode::New;
+        REQUIRE_FALSE(doc.recompute());
+        REQUIRE_FALSE(doc.error.empty());
+    }
+}
+
+TEST_CASE("mirror serialization round-trip", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Box");
+    doc.add_extrude(sk, 20.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+
+    doc.add_mirror(SketchPlane::XZ(), 0, BooleanMode::New, "Mirror1");
+    doc.features.back().mirror_keep_original = false;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument doc2;
+    REQUIRE(doc2.deserialize_recipe(blob));
+    REQUIRE(doc2.recompute());
+    REQUIRE(doc2.error.empty());
+
+    REQUIRE(doc2.features.size() == doc.features.size());
+    const auto& f1 = doc.features.back();
+    const auto& f2 = doc2.features.back();
+    REQUIRE(f2.type                 == CadFeatureType::Mirror);
+    REQUIRE(f2.mode                 == BooleanMode::New);
+    REQUIRE(f2.mirror_keep_original == false);
+    REQUIRE(f2.name                 == "Mirror1");
+
+    REQUIRE(doc2.bodies.size() == doc.bodies.size());
+}
+
 TEST_CASE("mass properties: analytic cube", "[CadDocument]")
 {
     using Catch::Matchers::WithinRel;
@@ -2014,6 +2179,10 @@ static CadDocument make_golden_doc_v1()
         doc.features.push_back(ex);
     }
 
+    // ---- Mirror: XZ plane, New mode, keep_original=false (distinctive non-defaults) ----
+    doc.add_mirror(SketchPlane::XZ(), 0, BooleanMode::New, "Mirror_XZ");
+    doc.features.back().mirror_keep_original = false;
+
     return doc;
 }
 
@@ -2225,6 +2394,13 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
             REQUIRE_THAT(f.bool_tolerance,   WithinAbs(0.01, 1e-9));
             REQUIRE(f.bool_target_face == 2);
             REQUIRE(f.bool_tool_face   == 3);
+        }
+
+        // Mirror
+        if (f.type == CadFeatureType::Mirror && e.name == "Mirror_XZ") {
+            REQUIRE(f.mode                 == BooleanMode::New);
+            REQUIRE(f.mirror_keep_original == false);
+            REQUIRE(f.target_body          == 0);
         }
     }
 

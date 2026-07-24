@@ -44,6 +44,8 @@
 #include <IFSelect_ReturnStatus.hxx>
 #include <gp_Ax1.hxx>             // pattern: rotation axis (circular)
 #include <BRepBuilderAPI_Transform.hxx>
+#include <BRepGProp.hxx>
+#include <GProp_GProps.hxx>
 #include <cmath>
 #include <stdexcept>
 #include <algorithm>
@@ -666,6 +668,19 @@ int CadDocument::add_cut(const SketchPlane& plane, double offset, bool flip,
     f.cut_keep_upper = keep_upper;
     f.cut_keep_lower = keep_lower;
     f.target_body    = target_body;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
+int CadDocument::add_mirror(const SketchPlane& plane, int target_body, BooleanMode mode,
+                            const std::string& name)
+{
+    CadFeature f;
+    f.type                 = CadFeatureType::Mirror;
+    f.name                 = name;
+    f.plane                = plane;
+    f.target_body          = target_body;
+    f.mode                 = mode;
     features.push_back(f);
     return int(features.size()) - 1;
 }
@@ -1625,11 +1640,59 @@ void CadDocument::apply_cut(std::vector<CadBody>& bodies, const CadFeature& f) c
     }
 }
 
+void CadDocument::apply_mirror(std::vector<CadBody>& bodies, const CadFeature& f) const
+{
+    const int nb  = int(bodies.size());
+    if (nb == 0) throw std::runtime_error("mirror: no target body");
+    const int tgt = (f.target_body >= 0 && f.target_body < nb) ? f.target_body : nb - 1;
+    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error("mirror: no target body");
+
+    const TopoDS_Shape& src = bodies[tgt].shape;
+
+    gp_Trsf trsf;
+    trsf.SetMirror(gp_Ax2(gp_Pnt(f.plane.origin.x(), f.plane.origin.y(), f.plane.origin.z()),
+                          gp_Dir(f.plane.normal.x(), f.plane.normal.y(), f.plane.normal.z())));
+    BRepBuilderAPI_Transform xform(src, trsf, true /*copy*/);
+    if (!xform.IsDone()) throw std::runtime_error("mirror: transform failed");
+    TopoDS_Shape mirrored = xform.Shape();
+
+    // A mirror reverses orientation — verify the result has positive volume.
+    {
+        GProp_GProps props;
+        BRepGProp::VolumeProperties(mirrored, props);
+        if (props.Mass() <= 0.0) {
+            // Flip orientation to get a valid forward solid.
+            mirrored.Reverse();
+            BRepGProp::VolumeProperties(mirrored, props);
+            if (props.Mass() <= 0.0)
+                throw std::runtime_error("mirror: result has zero or negative volume");
+        }
+    }
+
+    switch (f.mode) {
+    case BooleanMode::Add: {
+        BRepAlgoAPI_Fuse fuse(src, mirrored);
+        if (!fuse.IsDone()) throw std::runtime_error("mirror fuse failed");
+        bodies[tgt].shape = fuse.Shape();
+        break;
+    }
+    case BooleanMode::New: {
+        if (!f.mirror_keep_original)
+            bodies.erase(bodies.begin() + tgt);   // replace: the mirrored copy takes the source slot
+        bodies.push_back({mirrored, f.name.empty() ? std::string("Mirror") : f.name});
+        break;
+    }
+    default:
+        throw std::runtime_error("mirror: mode must be New or Add");
+    }
+}
+
 void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
     if (f.type == CadFeatureType::Plane) return;   // datum plane: not part of the body pipeline
     if (f.type == CadFeatureType::Boolean) { apply_boolean(bodies, f); return; }   // body-body op
     if (f.type == CadFeatureType::Cut)     { apply_cut(bodies, f);     return; }   // plane-split body
+    if (f.type == CadFeatureType::Mirror)  { apply_mirror(bodies, f);  return; }   // mirror body about plane
     // Resolve the target body: explicit target_body when valid, else the last body.
     const int t = (f.target_body >= 0 && f.target_body < int(bodies.size()))
                   ? f.target_body : int(bodies.size()) - 1;
