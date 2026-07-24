@@ -334,3 +334,32 @@ TEST_CASE("update_values_to_printer_extruders_for_multiple_filaments resolves pe
         REQUIRE(config.option<ConfigOptionInts>("filament_self_index")->values == std::vector<int>({1, 2}));
     }
 }
+
+// stride scales the returned slot so callers can address stride-2 options (machine_max_*, a
+// Normal/Silent pair per column) by their pair's base slot. The printer Tab's extruder sync
+// relies on this to copy the right slots on the Motion ability page.
+TEST_CASE("get_index_for_extruder scales the variant column by the requested stride", "[Config]")
+{
+    DynamicPrintConfig config;
+    config.option<ConfigOptionInts>("printer_extruder_id", true)->values = {1, 2};
+    config.option<ConfigOptionStrings>("printer_extruder_variant", true)->values = {"Direct Drive Standard",
+                                                                                    "Direct Drive High Flow"};
+
+    // extruder 1 resolves to column 0, extruder 2 to column 1
+    const int col0_stride1 = config.get_index_for_extruder(1, "printer_extruder_id", etDirectDrive, nvtStandard,
+                                                           "printer_extruder_variant", 1);
+    const int col1_stride1 = config.get_index_for_extruder(2, "printer_extruder_id", etDirectDrive, nvtHighFlow,
+                                                           "printer_extruder_variant", 1);
+    REQUIRE(col0_stride1 == 0);
+    REQUIRE(col1_stride1 == 1);
+
+    // stride 2 returns exactly twice the stride-1 index (the pair's base slot)
+    const int col0_stride2 = config.get_index_for_extruder(1, "printer_extruder_id", etDirectDrive, nvtStandard,
+                                                           "printer_extruder_variant", 2);
+    const int col1_stride2 = config.get_index_for_extruder(2, "printer_extruder_id", etDirectDrive, nvtHighFlow,
+                                                           "printer_extruder_variant", 2);
+    REQUIRE(col0_stride2 == col0_stride1 * 2);
+    REQUIRE(col1_stride2 == col1_stride1 * 2);
+    REQUIRE(col0_stride2 == 0);
+    REQUIRE(col1_stride2 == 2);
+}
