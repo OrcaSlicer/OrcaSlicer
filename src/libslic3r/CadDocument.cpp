@@ -736,6 +736,23 @@ int CadDocument::add_mirror(const SketchPlane& plane, int target_body, BooleanMo
     return int(features.size()) - 1;
 }
 
+int CadDocument::add_transform(int target_body, const Vec3d& translate, const Vec3d& axis,
+                               const Vec3d& pivot, double angle_deg, bool copy,
+                               const std::string& name)
+{
+    CadFeature f;
+    f.type         = CadFeatureType::Transform;
+    f.name         = name;
+    f.target_body  = target_body;
+    f.xf_translate = translate;
+    f.xf_axis      = axis;
+    f.xf_pivot     = pivot;
+    f.xf_angle_deg = angle_deg;
+    f.xf_copy      = copy;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
 int CadDocument::add_plane(int base, double offset, double angle_tilt, int axis,
                            const std::string& name)
 {
@@ -1972,6 +1989,35 @@ void CadDocument::apply_mirror(std::vector<CadBody>& bodies, const CadFeature& f
     }
 }
 
+void CadDocument::apply_transform(std::vector<CadBody>& bodies, const CadFeature& f) const
+{
+    const int nb  = int(bodies.size());
+    if (nb == 0) throw std::runtime_error("transform: no target body");
+    const int tgt = (f.target_body >= 0 && f.target_body < nb) ? f.target_body : nb - 1;
+    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error("transform: no target body");
+
+    gp_Trsf rot;
+    if (std::abs(f.xf_angle_deg) > 1e-12) {
+        if (f.xf_axis.norm() < 1e-9)
+            throw std::runtime_error("transform: rotation axis is degenerate");
+        rot.SetRotation(gp_Ax1(gp_Pnt(f.xf_pivot.x(), f.xf_pivot.y(), f.xf_pivot.z()),
+                               gp_Dir(f.xf_axis.x(), f.xf_axis.y(), f.xf_axis.z())),
+                        f.xf_angle_deg * M_PI / 180.0);
+    }
+    gp_Trsf tr;
+    tr.SetTranslation(gp_Vec(f.xf_translate.x(), f.xf_translate.y(), f.xf_translate.z()));
+    const gp_Trsf trsf = tr * rot;          // rotate first, then translate
+
+    BRepBuilderAPI_Transform xform(bodies[tgt].shape, trsf, true /*copy*/);
+    if (!xform.IsDone()) throw std::runtime_error("transform: failed");
+    TopoDS_Shape moved = xform.Shape();
+
+    if (f.xf_copy)
+        bodies.push_back({moved, f.name.empty() ? std::string("Transform") : f.name});
+    else
+        bodies[tgt].shape = moved;
+}
+
 void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
     if (f.type == CadFeatureType::Plane)   return;   // datum plane: not part of the body pipeline
@@ -1981,6 +2027,7 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
     if (f.type == CadFeatureType::Boolean) { apply_boolean(bodies, f); return; }   // body-body op
     if (f.type == CadFeatureType::Cut)     { apply_cut(bodies, f);     return; }   // plane-split body
     if (f.type == CadFeatureType::Mirror)  { apply_mirror(bodies, f);  return; }   // mirror body about plane
+    if (f.type == CadFeatureType::Transform) { apply_transform(bodies, f); return; }   // move/rotate body
     // Resolve the target body: explicit target_body when valid, else the last body.
     const int t = (f.target_body >= 0 && f.target_body < int(bodies.size()))
                   ? f.target_body : int(bodies.size()) - 1;

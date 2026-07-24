@@ -2502,6 +2502,219 @@ TEST_CASE("helix with sweep path from a non-sketch/non-helix feature errors", "[
     REQUIRE_FALSE(doc.error.empty());
 }
 
+TEST_CASE("transform translate shifts body bbox by the given vector", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "S");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Box");
+    REQUIRE(doc.recompute());
+
+    Bnd_Box bb0;
+    BRepBndLib::Add(doc.bodies[0].shape, bb0);
+    double xmin0, ymin0, zmin0, xmax0, ymax0, zmax0;
+    bb0.Get(xmin0, ymin0, zmin0, xmax0, ymax0, zmax0);
+    double vol0 = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+
+    doc.checkpoint();
+    doc.add_transform(0, Vec3d(5, 0, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0, false, "Move");
+    REQUIRE(doc.recompute());
+
+    REQUIRE(doc.bodies.size() == 1);
+    double vol1 = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+    REQUIRE_THAT(vol1, WithinRel(vol0, 1e-6));
+
+    Bnd_Box bb1;
+    BRepBndLib::Add(doc.bodies[0].shape, bb1);
+    double xmin1, ymin1, zmin1, xmax1, ymax1, zmax1;
+    bb1.Get(xmin1, ymin1, zmin1, xmax1, ymax1, zmax1);
+    REQUIRE_THAT(xmin1, WithinAbs(xmin0 + 5, 1e-6));
+    REQUIRE_THAT(xmax1, WithinAbs(xmax0 + 5, 1e-6));
+}
+
+TEST_CASE("transform rotate 90 about Z swaps XY bbox extents", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "S");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Box");
+    REQUIRE(doc.recompute());
+
+    Bnd_Box bb0;
+    BRepBndLib::Add(doc.bodies[0].shape, bb0);
+    double xmin0, ymin0, zmin0, xmax0, ymax0, zmax0;
+    bb0.Get(xmin0, ymin0, zmin0, xmax0, ymax0, zmax0);
+    double vol0 = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+    double dx0 = xmax0 - xmin0;
+    double dy0 = ymax0 - ymin0;
+
+    doc.checkpoint();
+    doc.add_transform(0, Vec3d(0, 0, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 90, false, "Rot90");
+    REQUIRE(doc.recompute());
+
+    double vol1 = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+    REQUIRE_THAT(vol1, WithinRel(vol0, 1e-6));
+
+    Bnd_Box bb1;
+    BRepBndLib::Add(doc.bodies[0].shape, bb1);
+    double xmin1, ymin1, zmin1, xmax1, ymax1, zmax1;
+    bb1.Get(xmin1, ymin1, zmin1, xmax1, ymax1, zmax1);
+    double dx1 = xmax1 - xmin1;
+    double dy1 = ymax1 - ymin1;
+    REQUIRE_THAT(dx1, WithinAbs(dy0, 1e-6));
+    REQUIRE_THAT(dy1, WithinAbs(dx0, 1e-6));
+}
+
+TEST_CASE("transform copy keeps original and appends transformed body", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "S");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Box");
+    REQUIRE(doc.recompute());
+
+    Bnd_Box bb0;
+    BRepBndLib::Add(doc.bodies[0].shape, bb0);
+    double xmin0, ymin0, zmin0, xmax0, ymax0, zmax0;
+    bb0.Get(xmin0, ymin0, zmin0, xmax0, ymax0, zmax0);
+
+    doc.checkpoint();
+    doc.add_transform(0, Vec3d(5, 0, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0, true, "Copy");
+    REQUIRE(doc.recompute());
+
+    REQUIRE(doc.bodies.size() == 2);
+
+    Bnd_Box bb_orig;
+    BRepBndLib::Add(doc.bodies[0].shape, bb_orig);
+    double xo_min, yo_min, zo_min, xo_max, yo_max, zo_max;
+    bb_orig.Get(xo_min, yo_min, zo_min, xo_max, yo_max, zo_max);
+    REQUIRE_THAT(xo_min, WithinAbs(xmin0, 1e-6));
+    REQUIRE_THAT(xo_max, WithinAbs(xmax0, 1e-6));
+
+    Bnd_Box bb_copy;
+    BRepBndLib::Add(doc.bodies[1].shape, bb_copy);
+    double xc_min, yc_min, zc_min, xc_max, yc_max, zc_max;
+    bb_copy.Get(xc_min, yc_min, zc_min, xc_max, yc_max, zc_max);
+    REQUIRE_THAT(xc_min, WithinAbs(xmin0 + 5, 1e-6));
+    REQUIRE_THAT(xc_max, WithinAbs(xmax0 + 5, 1e-6));
+}
+
+TEST_CASE("transform degenerate axis errors", "[CadDocument]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "S");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Box");
+    REQUIRE(doc.recompute());
+
+    doc.checkpoint();
+    doc.add_transform(0, Vec3d(0, 0, 0), Vec3d(0, 0, 0), Vec3d(0, 0, 0), 45, false, "Bad");
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE(doc.error.find("axis") != std::string::npos);
+}
+
+TEST_CASE("transform moved body participates in later boolean at its new position", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    // Two boxes that do NOT overlap
+    int sk0 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 5, "S0");
+    doc.add_extrude(sk0, 5.0, false, BooleanMode::New, "Box0");
+
+    int sk1 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 5, "S1");
+    doc.add_extrude(sk1, 5.0, false, BooleanMode::New, "Box1");
+    doc.features.back().target_body = 0;
+    REQUIRE(doc.recompute());
+
+    double v0 = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+    double v1 = double(SketchEngine::tessellate(doc.bodies[1].shape).volume());
+    double sum = v0 + v1;
+
+    // Move body 1 so it overlaps body 0
+    doc.checkpoint();
+    doc.add_transform(1, Vec3d(5, 5, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0, false, "Move1");
+    REQUIRE(doc.recompute());
+
+    doc.add_boolean(BooleanMode::Add, 0, 1, false, 0.0, -1, -1, "Fuse");
+    REQUIRE(doc.recompute());
+
+    REQUIRE(doc.bodies.size() == 1);
+    double vf = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+    // Partial overlap: strictly more than one box (the move DID take effect) and strictly
+    // less than both (they still intersect). Without a real B-rep transform the two boxes
+    // stay coincident and vf would equal v0 -- that is what `vf > v0` catches.
+    REQUIRE(vf > v0 * 1.05);
+    REQUIRE(vf < sum);
+}
+
+TEST_CASE("transform round-trip preserves all xf_* fields", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "S");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Box");
+    doc.add_transform(0, Vec3d(3, 4, 5), Vec3d(0, 1, 0), Vec3d(1, 2, 3), 37, true, "RoundTrip");
+    REQUIRE(doc.recompute());
+    int nb = int(doc.bodies.size());
+    REQUIRE(nb >= 1);
+
+    // Capture bboxes before serialization
+    std::vector<std::pair<Vec3d, Vec3d>> bboxes_before;
+    for (int i = 0; i < nb; ++i) {
+        Bnd_Box bb;
+        BRepBndLib::Add(doc.bodies[i].shape, bb);
+        double x0, y0, z0, x1, y1, z1;
+        bb.Get(x0, y0, z0, x1, y1, z1);
+        bboxes_before.push_back({Vec3d(x0, y0, z0), Vec3d(x1, y1, z1)});
+    }
+
+    auto blob = doc.serialize_recipe();
+
+    CadDocument doc2;
+    REQUIRE(doc2.deserialize_recipe(blob));
+    REQUIRE(doc2.bodies.size() == size_t(nb));
+
+    // Check the Transform feature fields
+    bool found = false;
+    for (const auto& f : doc2.features) {
+        if (f.type != CadFeatureType::Transform) continue;
+        REQUIRE_THAT(f.xf_translate.x(), WithinAbs(3, 1e-9));
+        REQUIRE_THAT(f.xf_translate.y(), WithinAbs(4, 1e-9));
+        REQUIRE_THAT(f.xf_translate.z(), WithinAbs(5, 1e-9));
+        REQUIRE_THAT(f.xf_axis.x(), WithinAbs(0, 1e-9));
+        REQUIRE_THAT(f.xf_axis.y(), WithinAbs(1, 1e-9));
+        REQUIRE_THAT(f.xf_axis.z(), WithinAbs(0, 1e-9));
+        REQUIRE_THAT(f.xf_pivot.x(), WithinAbs(1, 1e-9));
+        REQUIRE_THAT(f.xf_pivot.y(), WithinAbs(2, 1e-9));
+        REQUIRE_THAT(f.xf_pivot.z(), WithinAbs(3, 1e-9));
+        REQUIRE_THAT(f.xf_angle_deg, WithinAbs(37, 1e-9));
+        REQUIRE(f.xf_copy == true);
+        found = true;
+        break;
+    }
+    REQUIRE(found);
+
+    // Verify bboxes equal
+    for (int i = 0; i < nb; ++i) {
+        Bnd_Box bb;
+        BRepBndLib::Add(doc2.bodies[i].shape, bb);
+        double x0, y0, z0, x1, y1, z1;
+        bb.Get(x0, y0, z0, x1, y1, z1);
+        REQUIRE_THAT(x0, WithinAbs(bboxes_before[i].first.x(), 1e-6));
+        REQUIRE_THAT(y0, WithinAbs(bboxes_before[i].first.y(), 1e-6));
+        REQUIRE_THAT(z0, WithinAbs(bboxes_before[i].first.z(), 1e-6));
+        REQUIRE_THAT(x1, WithinAbs(bboxes_before[i].second.x(), 1e-6));
+        REQUIRE_THAT(y1, WithinAbs(bboxes_before[i].second.y(), 1e-6));
+        REQUIRE_THAT(z1, WithinAbs(bboxes_before[i].second.z(), 1e-6));
+    }
+}
+
 // --- Golden recipe fixture (v1 format tripwire) ---
 
 static CadDocument make_golden_doc_v1()
@@ -2656,6 +2869,10 @@ static CadDocument make_golden_doc_v1()
         int hx = doc.add_helix(SketchPlane::XZ(), 11.5, 4.25, 18.0, true, 3.0, "Helix_CLH");
         (void)hx;
     }
+
+    // ---- Transform: rigid move/rotate with distinctive non-default values ----
+    doc.add_transform(0, Vec3d(3.5, 4.5, 5.5), Vec3d(0.0, 1.0, 0.0), Vec3d(1.5, 2.5, 3.5),
+                      37.0, true, "GoldenTransform");
 
     return doc;
 }
@@ -2914,6 +3131,21 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
             REQUIRE_THAT(f.helix_height,      WithinAbs(18.0, 1e-9));
             REQUIRE(f.helix_left_handed == true);
             REQUIRE_THAT(f.helix_taper_deg,   WithinAbs(3.0, 1e-9));
+        }
+
+        // Transform
+        if (f.type == CadFeatureType::Transform && e.name == "GoldenTransform") {
+            REQUIRE_THAT(f.xf_translate.x(), WithinAbs(3.5, 1e-9));
+            REQUIRE_THAT(f.xf_translate.y(), WithinAbs(4.5, 1e-9));
+            REQUIRE_THAT(f.xf_translate.z(), WithinAbs(5.5, 1e-9));
+            REQUIRE_THAT(f.xf_axis.x(),      WithinAbs(0.0, 1e-9));
+            REQUIRE_THAT(f.xf_axis.y(),      WithinAbs(1.0, 1e-9));
+            REQUIRE_THAT(f.xf_axis.z(),      WithinAbs(0.0, 1e-9));
+            REQUIRE_THAT(f.xf_pivot.x(),     WithinAbs(1.5, 1e-9));
+            REQUIRE_THAT(f.xf_pivot.y(),     WithinAbs(2.5, 1e-9));
+            REQUIRE_THAT(f.xf_pivot.z(),     WithinAbs(3.5, 1e-9));
+            REQUIRE_THAT(f.xf_angle_deg,     WithinAbs(37.0, 1e-9));
+            REQUIRE(f.xf_copy == true);
         }
     }
 

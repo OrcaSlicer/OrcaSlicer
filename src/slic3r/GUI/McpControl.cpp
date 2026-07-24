@@ -73,6 +73,8 @@ const char* feature_type_name(CadFeatureType t)
          case CadFeatureType::Cut:     return "Cut";
         case CadFeatureType::Axis:    return "Axis";
         case CadFeatureType::CoordSys: return "CoordSys";
+        case CadFeatureType::Helix:    return "Helix";
+        case CadFeatureType::Transform: return "Transform";
     }
     return "Unknown";
 }
@@ -185,6 +187,21 @@ json describe_tools()
                      json{{"name", "mode"},         {"type", "string"}, {"enum", json::array({"new", "add"})},     {"default", "new"}},
                      json{{"name", "keep_original"},{"type", "boolean"}, {"default", true}, {"description", "when mode=new, keep the source body"}},
                      json{{"name", "body"},         {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
+                 })}},
+            json{{"name", "transform"}, {"summary", "Move and/or rotate a body (B-rep transform). copy=true keeps the source and appends the transformed copy as a new body."},
+                 {"params", json::array({
+                     json{{"name", "body"},    {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
+                     json{{"name", "dx"},      {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "dy"},      {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "dz"},      {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "axis_x"},  {"type", "number"}, {"default", 0}},
+                     json{{"name", "axis_y"},  {"type", "number"}, {"default", 0}},
+                     json{{"name", "axis_z"},  {"type", "number"}, {"default", 1}},
+                     json{{"name", "pivot_x"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "pivot_y"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "pivot_z"}, {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 0}},
+                     json{{"name", "copy"},    {"type", "boolean"}, {"default", false}},
                  })}},
             json{{"name", "axis"}, {"summary", "Create a datum axis (reference line): two points, face normal, cylinder centreline, plane intersection, or along edge."},
                  {"params", json::array({
@@ -846,6 +863,24 @@ json action_mirror(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"mirror_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_transform(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to transform");
+    int bi = target_body_arg(params, doc);
+    Vec3d translate(params.value("dx", 0.0), params.value("dy", 0.0), params.value("dz", 0.0));
+    Vec3d axis(params.value("axis_x", 0.0), params.value("axis_y", 0.0), params.value("axis_z", 1.0));
+    Vec3d pivot(params.value("pivot_x", 0.0), params.value("pivot_y", 0.0), params.value("pivot_z", 0.0));
+    double angle = params.value("angle", 0.0);
+    bool copy = params.value("copy", false);
+    doc.checkpoint();
+    int idx = doc.add_transform(bi, translate, axis, pivot, angle, copy, "Transform");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"transform_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 json action_axis(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
@@ -944,6 +979,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "shell")          return rpc_result(id, action_shell(panel, params));
         if (method == "draft")          return rpc_result(id, action_draft(panel, params));
         if (method == "mirror")         return rpc_result(id, action_mirror(panel, params));
+        if (method == "transform")      return rpc_result(id, action_transform(panel, params));
         if (method == "axis")           return rpc_result(id, action_axis(panel, params));
         if (method == "coordsys")       return rpc_result(id, action_coordsys(panel, params));
         if (method == "helix")          return rpc_result(id, action_helix(panel, params));
