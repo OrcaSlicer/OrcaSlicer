@@ -256,6 +256,14 @@ json describe_tools()
                      json{{"name", "edges"},       {"type", "array"}, {"default", json::array()}, {"description", "global edge ids to project; empty => project the face"}},
                      json{{"name", "plane"},       {"type", "string"}, {"default", "XY"}, {"description", "target sketch plane (XY/XZ/YZ)"}},
                  })}},
+            json{{"name", "bridge"}, {"summary", "Build a cubic-Bezier G1 bridge (BSpline) between two sketch-entity endpoints within a sketch feature."},
+                  {"params", json::array({
+                      json{{"name", "sketch"}, {"type", "integer"}, {"description", "sketch feature index"}},
+                      json{{"name", "ent_a"},  {"type", "integer"}, {"description", "first entity index within the sketch"}},
+                      json{{"name", "end_a"},  {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 1}, {"description", "0 = start/p0 side, 1 = end/p1 side"}},
+                      json{{"name", "ent_b"},  {"type", "integer"}, {"description", "second entity index within the sketch"}},
+                      json{{"name", "end_b"},  {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}, {"description", "0 = start/p0 side, 1 = end/p1 side"}},
+                  })}},
             json{{"name", "query_topology"}, {"summary", "Measured faces (centroid/normal/cylinder) and edges (length/circle) of a body."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
@@ -958,6 +966,26 @@ json action_project(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"project_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_bridge(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("sketch")) throw std::runtime_error("bridge needs 'sketch' (feature index)");
+    if (!params.contains("ent_a"))  throw std::runtime_error("bridge needs 'ent_a' (entity index)");
+    if (!params.contains("ent_b"))  throw std::runtime_error("bridge needs 'ent_b' (entity index)");
+    int sketch = params["sketch"].get<int>();
+    int ent_a  = params["ent_a"].get<int>();
+    int ent_b  = params["ent_b"].get<int>();
+    int end_a  = params.value("end_a", 1);
+    int end_b  = params.value("end_b", 0);
+    CadDocument& doc = panel->mcp_doc();
+    doc.checkpoint();
+    int ei = doc.add_bridge(sketch, ent_a, end_a, ent_b, end_b, "Bridge");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"sketch_index", sketch}, {"entity_index", ei},
+                {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 json action_axis(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
@@ -1060,6 +1088,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "thicken")        return rpc_result(id, action_thicken(panel, params));
         if (method == "split")          return rpc_result(id, action_split(panel, params));
         if (method == "project")        return rpc_result(id, action_project(panel, params));
+        if (method == "bridge")         return rpc_result(id, action_bridge(panel, params));
         if (method == "axis")           return rpc_result(id, action_axis(panel, params));
         if (method == "coordsys")       return rpc_result(id, action_coordsys(panel, params));
         if (method == "helix")          return rpc_result(id, action_helix(panel, params));

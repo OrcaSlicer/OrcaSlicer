@@ -1372,4 +1372,57 @@ bool SketchEngine::extend_entity(SketchEntity& e, const std::vector<SketchEntity
     return true;
 }
 
+// Bridge: cubic Bézier with G1 continuity at both ends.
+// Poles = {Pa, Pa + Ta*d/3, Pb - Tb*d/3, Pb}, where d = |Pb - Pa|.
+SketchEntity SketchEngine::make_bridge(const SketchEntity& a, int a_end,
+                                       const SketchEntity& b, int b_end)
+{
+    auto endpoint = [](const SketchEntity& e, int end) -> Vec2d {
+        return end == 0 ? e.p0 : e.p1;
+    };
+
+    auto tangent = [](const SketchEntity& e, int end, const Vec2d& fallback_dir) -> Vec2d {
+        switch (e.type) {
+        case SketchEntity::Type::Line: {
+            Vec2d dir = end == 1 ? e.p1 - e.p0 : e.p0 - e.p1;
+            double len = dir.norm();
+            if (len < 1e-12) return fallback_dir;
+            return dir / len;
+        }
+        case SketchEntity::Type::Arc: {
+            double theta = end == 1 ? e.end_angle : e.start_angle;
+            // Tangent to the circle at angle theta, CCW: (-sin θ, cos θ).
+            // At end=1 (end_angle), the outward direction is along the sweep direction.
+            // At end=0 (start_angle), outward is opposite the sweep direction.
+            double sweep = e.end_angle - e.start_angle;
+            int sign = end == 1 ? (sweep >= 0 ? 1 : -1) : (sweep >= 0 ? -1 : 1);
+            Vec2d t(-std::sin(theta), std::cos(theta));
+            return t * double(sign);
+        }
+        default:
+            // ponytail: straight-ish bridge for unsupported entity types.
+            return fallback_dir;
+        }
+    };
+
+    const Vec2d Pa = endpoint(a, a_end);
+    const Vec2d Pb = endpoint(b, b_end);
+    const double d = (Pb - Pa).norm();
+
+    // Fallback tangent direction: point toward the other endpoint.
+    Vec2d fallback = d < 1e-9 ? Vec2d(1, 0) : (Pb - Pa) / d;
+    Vec2d Ta = tangent(a, a_end, fallback);
+    Vec2d Tb = tangent(b, b_end, fallback * -1.0);
+
+    const double k = std::max(d, 1e-9) / 3.0;
+
+    SketchEntity e;
+    e.type         = SketchEntity::Type::BSpline;
+    e.construction = false;
+    e.ctrl = { Pa, Pa + Ta * k, Pb - Tb * k, Pb };
+    e.p0 = e.ctrl.front();
+    e.p1 = e.ctrl.back();
+    return e;
+}
+
 } // namespace Slic3r

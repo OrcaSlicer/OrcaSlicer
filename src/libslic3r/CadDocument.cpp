@@ -800,6 +800,21 @@ int CadDocument::add_project_edges(int source_body, const std::vector<int>& edge
     return int(features.size()) - 1;
 }
 
+int CadDocument::add_bridge(int sketch_ref, int ent_a, int end_a, int ent_b, int end_b,
+                             const std::string& name)
+{
+    (void)name;
+    if (sketch_ref < 0 || sketch_ref >= int(features.size())
+        || features[sketch_ref].type != CadFeatureType::Sketch)
+        throw std::runtime_error("bridge: sketch_ref must refer to a Sketch feature");
+    auto& ents = features[sketch_ref].entities;
+    if (ent_a < 0 || ent_a >= int(ents.size()) || ent_b < 0 || ent_b >= int(ents.size()))
+        throw std::runtime_error("bridge: entity index out of range in sketch");
+    SketchEntity br = SketchEngine::make_bridge(ents[ent_a], end_a, ents[ent_b], end_b);
+    ents.push_back(br);
+    return int(ents.size()) - 1;
+}
+
 int CadDocument::add_plane(int base, double offset, double angle_tilt, int axis,
                            const std::string& name)
 {

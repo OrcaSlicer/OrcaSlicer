@@ -3808,3 +3808,134 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
         INFO("the primary format check.");
     }
 }
+
+// --- Bridge tests (M3c) ---
+
+TEST_CASE("bridge two collinear lines", "[CadDocument][bridge]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    std::vector<SketchEntity> ents = {
+        {SketchEntity::Type::Line, Vec2d(0,0), Vec2d(10,0)},
+        {SketchEntity::Type::Line, Vec2d(20,0), Vec2d(30,0)},
+    };
+    int sk = doc.add_sketch_entities(ents, SketchPlane::XY(), "S");
+    REQUIRE(sk == 0);
+
+    int bi = doc.add_bridge(0, 0, 1, 1, 0, "Bridge");
+    REQUIRE(bi == 2);
+
+    const auto& se = doc.features[0].entities;
+    REQUIRE(se.size() == 3);
+    REQUIRE(se[bi].type == SketchEntity::Type::BSpline);
+    REQUIRE(se[bi].ctrl.size() == 4);
+    REQUIRE_THAT(se[bi].ctrl.front().x(), WithinAbs(10.0, 1e-6));
+    REQUIRE_THAT(se[bi].ctrl.front().y(), WithinAbs(0.0, 1e-6));
+    REQUIRE_THAT(se[bi].ctrl.back().x(), WithinAbs(20.0, 1e-6));
+    REQUIRE_THAT(se[bi].ctrl.back().y(), WithinAbs(0.0, 1e-6));
+}
+
+TEST_CASE("bridge closes a C profile and extrudes", "[CadDocument][bridge]")
+{
+    using Catch::Matchers::WithinAbs;
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    // Right-side of a closed square: P0(10,-10), up to P1(10,10)
+    std::vector<SketchEntity> ents = {
+        // bottom edge: (-10,-10) to (10,-10)
+        {SketchEntity::Type::Line, Vec2d(-10,-10), Vec2d(10,-10)},
+        // left edge: (10,-10) to (10,10)
+        {SketchEntity::Type::Line, Vec2d(10,-10), Vec2d(10,10)},
+        // top edge: (10,10) to (-10,10)
+        {SketchEntity::Type::Line, Vec2d(10,10), Vec2d(-10,10)},
+    };
+    // Missing: left edge from (-10,10) to (-10,-10). Build it as a separate line
+    // entity so the bridge connects two existing lines.
+    int sk = doc.add_sketch_entities(ents, SketchPlane::XY(), "C");
+    REQUIRE(sk == 0);
+
+    // Add the closing line as entity 3: (-10,10) to (-10,-10)
+    CadFeature& f = doc.features[sk];
+    SketchEntity closing;
+    closing.type = SketchEntity::Type::Line;
+    closing.p0 = Vec2d(-10, 10);
+    closing.p1 = Vec2d(-10, -10);
+    // The C is entities 0,1,2 (bottom cap, right side, top cap).
+    // Entity 0 end=1 is (10,-10); entity 2 start=0 is (10,10). That's a U.
+    // But we need a closed square from C shape.
+    // Re-think: a C shape open on the left side.
+    // Entities: 0 = bottom edge (-10,-10)->(10,-10) [end=1 at (10,-10)]
+    //           1 = right edge (10,-10)->(10,10) [start=0 at (10,-10), end=1 at (10,10)]
+    //           2 = top edge (10,10)->(-10,10) [start=0 at (10,10), end=1 at (-10,10)]
+    // The C is open: entity 2's end is at (-10,10) and entity 0's start is at (-10,-10).
+    // Bridge: entity 2 end=1 (-10,10) -> entity 0 start=0 (-10,-10).
+    f.entities.push_back(closing);
+    REQUIRE(f.entities.size() == 4);
+
+    // Now bridge from top end (entity 2 end=1 = (-10,10)) to bottom start (entity 0 end=0 = (-10,-10))
+    int bi = doc.add_bridge(sk, 2/*top edge*/, 1/*end*/, 0/*bottom edge*/, 0/*start*/, "Bridge");
+    REQUIRE(bi == 4);
+    REQUIRE(f.entities.size() == 5);
+
+    // Now the entities should form a closed loop -> extrude
+    int ex = doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(ex >= 0);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.display_mesh.facets_count() > 0);
+    REQUIRE_THAT(double(doc.display_mesh.volume()), WithinRel(20.0 * 20.0 * 5.0, 1e-2));
+}
+
+TEST_CASE("bridge bad indices throw", "[CadDocument][bridge]")
+{
+    CadDocument doc;
+    std::vector<SketchEntity> ents = {
+        {SketchEntity::Type::Line, Vec2d(0,0), Vec2d(10,0)},
+        {SketchEntity::Type::Line, Vec2d(20,0), Vec2d(30,0)},
+    };
+    doc.add_sketch_entities(ents, SketchPlane::XY(), "S");
+
+    // out-of-range entity a
+    REQUIRE_THROWS(doc.add_bridge(0, 99, 1, 1, 0, "Bad"));
+    // out-of-range entity b
+    REQUIRE_THROWS(doc.add_bridge(0, 0, 1, 99, 0, "Bad"));
+    // out-of-range sketch_ref
+    REQUIRE_THROWS(doc.add_bridge(99, 0, 1, 1, 0, "Bad"));
+    // non-sketch feature as sketch_ref
+    doc.add_extrude(0, 5.0, false, BooleanMode::New, "Ex");
+    REQUIRE_THROWS(doc.add_bridge(1, 0, 1, 1, 0, "Bad"));
+}
+
+TEST_CASE("bridge round-trip serialization", "[CadDocument][bridge]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    std::vector<SketchEntity> ents = {
+        {SketchEntity::Type::Line, Vec2d(0,0), Vec2d(10,0)},
+        {SketchEntity::Type::Line, Vec2d(20,0), Vec2d(30,0)},
+    };
+    int sk = doc.add_sketch_entities(ents, SketchPlane::XY(), "S");
+    REQUIRE(sk == 0);
+    int bi = doc.add_bridge(sk, 0, 1, 1, 0, "Bridge");
+    REQUIRE(bi == 2);
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument doc2;
+    REQUIRE(doc2.deserialize_recipe(blob));
+    REQUIRE(doc2.features.size() == 2);
+
+    const auto& br = doc2.features[0].entities[2];
+    REQUIRE(br.type == SketchEntity::Type::BSpline);
+    REQUIRE(br.ctrl.size() == 4);
+    REQUIRE_THAT(br.ctrl.front().x(), WithinAbs(10.0, 1e-9));
+    REQUIRE_THAT(br.ctrl.front().y(), WithinAbs(0.0, 1e-9));
+    REQUIRE_THAT(br.ctrl.back().x(), WithinAbs(20.0, 1e-9));
+    REQUIRE_THAT(br.ctrl.back().y(), WithinAbs(0.0, 1e-9));
+}

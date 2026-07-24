@@ -250,6 +250,12 @@ public:
 
     static bool extend_entity(SketchEntity& e, const std::vector<SketchEntity>& others,
                               const Vec2d& pick);
+
+    // Build a cubic-Bezier G1 bridge (as a BSpline entity, 4 poles) connecting endpoint
+    // `a_end` of `a` to endpoint `b_end` of `b` (0 = start/p0 side, 1 = end/p1 side).
+    // Tangent-continuous with both entities where the endpoint tangent is defined.
+    static SketchEntity make_bridge(const SketchEntity& a, int a_end,
+                                    const SketchEntity& b, int b_end);
 };
 
 } // namespace Slic3r

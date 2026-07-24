@@ -378,6 +378,12 @@ public:
     // entities are (re)derived on every recompute.
     int  add_project_edges(int source_body, const std::vector<int>& edge_ids, int face,
                            const SketchPlane& plane, const std::string& name);
+    // Append a bridging BSpline entity connecting endpoint `end_a` of entity `ent_a` to
+    // endpoint `end_b` of entity `ent_b`, both within sketch feature `sketch_ref`. Returns
+    // the new entity's index within that sketch's entities vector. Non-parametric: computed
+    // once from the current endpoints (does not auto-follow later solver moves).
+    int add_bridge(int sketch_ref, int ent_a, int end_a, int ent_b, int end_b,
+                   const std::string& name);
     // Solve features[index]'s sketch constraints, writing solved coordinates back
     // into its profile.points. No-op (returns true) if the feature has no
     // constraints. Returns false if index is invalid / not a Sketch / solve fails.
