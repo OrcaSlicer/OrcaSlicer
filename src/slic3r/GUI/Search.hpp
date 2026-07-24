@@ -135,6 +135,7 @@ public:
 
     const std::vector<FoundOption> &found_options() { return found; }
     const GroupAndCategory &        get_group_and_category(const std::string &opt_key) { return groups_and_categories[opt_key]; }
+    GroupAndCategory                get_group_and_category(const std::string &opt_key, Preset::Type type) const;
     std::string &                   search_string() { return search_line; }
 
     void set_printer_technology(PrinterTechnology pt) { printer_technology = pt; }
