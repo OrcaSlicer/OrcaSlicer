@@ -199,8 +199,8 @@ TEST_CASE("sketch entities -> wire -> extrude", "[CadDocument]")
 
         SketchEntity cline;
         cline.type         = SketchEntity::Type::Line;
-        cline.p0           = Vec2d(-10, -10);
-        cline.p1           = Vec2d(10, 10);
+        cline.p0           = Vec2d(-30, 0);
+        cline.p1           = Vec2d(30, 0);
         cline.construction = true;
 
         sk.entities = {
@@ -230,6 +230,47 @@ TEST_CASE("sketch entities -> wire -> extrude", "[CadDocument]")
         REQUIRE(std::abs(sz.y() - 20.0) < 0.5);
         REQUIRE(std::abs(sz.z() -  5.0) < 0.5);
     }
+}
+
+TEST_CASE("construction flag survives recipe round-trip", "[CadDocument]")
+{
+    CadDocument doc;
+
+    // Square edge + 1 construction line
+    std::vector<SketchEntity> ents = {
+        {SketchEntity::Type::Line, Vec2d(-10, -10), Vec2d(10, -10)},
+        {SketchEntity::Type::Line, Vec2d(10, -10), Vec2d(10, 10)},
+        {SketchEntity::Type::Line, Vec2d(10, 10), Vec2d(-10, 10)},
+        {SketchEntity::Type::Line, Vec2d(-10, 10), Vec2d(-10, -10)},
+    };
+    SketchEntity cx;
+    cx.type = SketchEntity::Type::Line;
+    cx.p0 = Vec2d(-33.0, 7.0);
+    cx.p1 = Vec2d(33.0, 7.0);
+    cx.construction = true;
+    ents.push_back(cx);   // ents[4]
+
+    int sk = doc.add_sketch_entities(ents, SketchPlane::XY(), "SkCtor");
+    REQUIRE(sk == 0);
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Ex");
+
+    std::string blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument fresh;
+    REQUIRE(fresh.deserialize_recipe(blob));
+
+    // Locate SkCtor in fresh.features
+    const CadFeature* sf = nullptr;
+    for (const auto& f : fresh.features) {
+        if (f.name == "SkCtor") { sf = &f; break; }
+    }
+    REQUIRE(sf != nullptr);
+    REQUIRE(sf->entities.size() == 5);
+    REQUIRE(sf->entities[0].construction == false);
+    REQUIRE(sf->entities[4].construction == true);
+    REQUIRE_THAT(sf->entities[4].p0.x(), Catch::Matchers::WithinAbs(-33.0, 1e-9));
+    REQUIRE_THAT(sf->entities[4].p1.x(), Catch::Matchers::WithinAbs( 33.0, 1e-9));
 }
 
 // Mirrors the GUI interactive-sketch commit path (DesignPanel ->
@@ -3420,6 +3461,20 @@ static CadDocument make_golden_doc_v1()
 
     doc.add_project_edges(0, {}, 0, SketchPlane::XY(), "GoldenProject");
 
+    // Construction-flag on-disk lock: a real edge + a construction edge with distinctive
+    // literals. Regen-golden does not recompute, so this only exercises serialization.
+    {
+        std::vector<SketchEntity> ge;
+        SketchEntity real0; real0.type = SketchEntity::Type::Line;
+        real0.p0 = Vec2d(-12.0, -12.0); real0.p1 = Vec2d(12.0, -12.0);
+        SketchEntity ctor; ctor.type = SketchEntity::Type::Line;
+        ctor.p0 = Vec2d(-40.0, 9.0); ctor.p1 = Vec2d(40.0, 9.0);
+        ctor.construction = true;
+        ge.push_back(real0);
+        ge.push_back(ctor);
+        doc.add_sketch_entities(ge, SketchPlane::XY(), "Sketch_Ctor");
+    }
+
     return doc;
 }
 
@@ -3517,6 +3572,12 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
             }
             if (e.name == "Sketch_LoftTop") {
                 REQUIRE_THAT(f.plane.origin.z(), WithinAbs(25.0, 1e-9));
+            }
+            if (e.name == "Sketch_Ctor") {
+                REQUIRE(f.entities.size() == 2);
+                REQUIRE(f.entities[0].construction == false);
+                REQUIRE(f.entities[1].construction == true);
+                REQUIRE_THAT(f.entities[1].p0.x(), WithinAbs(-40.0, 1e-9));
             }
         }
 
