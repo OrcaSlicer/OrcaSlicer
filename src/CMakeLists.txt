@@ -31,8 +31,10 @@ if (SLIC3R_GUI)
 
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set (wxWidgets_CONFIG_OPTIONS "--toolkit=gtk${SLIC3R_GTK}")
+        find_package(wxWidgets 3.3 REQUIRED COMPONENTS base core adv html gl aui net media webview)
+    else ()
+        find_package(wxWidgets 3.3 CONFIG REQUIRED COMPONENTS html adv gl core base webview aui net media)
     endif ()
-    find_package(wxWidgets 3.3 CONFIG REQUIRED COMPONENTS base core adv html gl aui net media webview)
 
     if(UNIX)
         message(STATUS "wx-config path: ${wxWidgets_CONFIG_EXECUTABLE}")

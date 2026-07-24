@@ -152,7 +152,7 @@ modules:
     sources:
       - type: git
         url: https://github.com/Noisyfox/wxInspector.git
-        commit: e27ed8eca4e68cd1e64e20328a9706d97668eb65
+        commit: 8569ad6401674d1375034321a1e7a93be242ddf7
 
   # OrcaSlicer C++ dependencies (built offline with pre-downloaded archives)
   - name: orca_deps
