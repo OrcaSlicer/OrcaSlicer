@@ -9,6 +9,11 @@ let selectedCapabilityType = "";
 let selectedHasPresetOverride = false;
 let selectedReadOnly = false;
 
+// Identity of the capability whose custom UI is currently loaded in the frame. Saving re-sends the
+// whole capability_config payload, and rebuilding the frame from it would reload the plugin's page
+// under the user's cursor; when this still matches, the new values are posted in instead.
+let customFrameKey = "";
+
 function SafeJsonParse(text) {
   try {
     return JSON.parse(text);
@@ -168,6 +173,10 @@ function IsCurrentCapability(payload) {
     && String(payload?.capability_type || "") === selectedCapabilityType;
 }
 
+function CapabilityKey(payload) {
+  return JSON.stringify([payload?.plugin_key, payload?.capability_name, payload?.capability_type]);
+}
+
 function RequestCapabilityConfig() {
   if (!selectedPluginKey || !selectedCapabilityName)
     return;
@@ -193,6 +202,7 @@ function ClearCapabilityConfigView() {
   if (custom) {
     custom.hidden = true;
     custom.removeAttribute("srcdoc");
+    customFrameKey = "";
   }
   if (text)
     text.value = "";
@@ -248,8 +258,14 @@ function ApplyCapabilityConfig(payload) {
 
   if (html) {
     if (custom) {
+      const context = OrcaConfigContext(payload, "preset");
       custom.hidden = false;
-      custom.srcdoc = BuildCustomConfigDocument(html, config);
+      if (customFrameKey === CapabilityKey(payload) && custom.contentWindow) {
+        custom.contentWindow.postMessage({ __orca: "config", config: config, context: context }, "*");
+      } else {
+        customFrameKey = CapabilityKey(payload);
+        custom.srcdoc = BuildCustomConfigDocument(html, config, context);
+      }
     }
     if (editor)
       editor.hidden = true;
@@ -260,6 +276,7 @@ function ApplyCapabilityConfig(payload) {
   if (custom) {
     custom.hidden = true;
     custom.removeAttribute("srcdoc");
+    customFrameKey = "";
   }
   if (editor)
     editor.hidden = false;
@@ -354,39 +371,6 @@ function ApplyCapabilityConfigSaved(payload) {
   SetConfigValidation("");
 }
 
-// The whole host surface a custom config UI gets: read the config, save one, drop the preset's
-// override, and be told when either lands. The frame is sandboxed into an opaque origin, so this
-// bridge is its only channel.
-function BuildCustomConfigDocument(html, config) {
-  // Inlined into a <script>: a stored "</script>" would close the tag early, so escape "<" — the
-  // literal stays valid JSON.
-  const seed = JSON.stringify(config).replace(/</g, "\\u003c");
-  const bridge = `<script>
-(function () {
-  var handlers = [];
-  var current = ${seed};
-  window.orca = {
-    getConfig: function () { return current; },
-    saveConfig: function (cfg) { parent.postMessage({ __orca: "save", config: cfg }, "*"); },
-    restoreDefaults: function () { parent.postMessage({ __orca: "restore" }, "*"); },
-    onConfig: function (cb) {
-      if (typeof cb !== "function") return;
-      handlers.push(cb);
-      try { cb(current); } catch (e) {}
-    }
-  };
-  window.addEventListener("message", function (event) {
-    if (!event.data || event.data.__orca !== "config") return;
-    current = event.data.config || {};
-    handlers.forEach(function (handler) {
-      try { handler(current); } catch (e) {}
-    });
-  });
-})();
-<\/script>`;
-  return bridge + html;
-}
-
 function OnCustomConfigMessage(event) {
   const custom = document.getElementById("configCustom");
   // Only the frame we created, and only while it is actually showing.
@@ -432,6 +416,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // OnCustomConfigMessage matches on the frame's contentWindow, not the origin ("null" when
   // sandboxed), and ignores anything else.
   window.addEventListener("message", OnCustomConfigMessage);
+  OrcaWatchThemeForFrame(() => document.getElementById("configCustom"));
 
   SendMessage("request_capabilities");
 });
