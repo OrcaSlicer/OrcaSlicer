@@ -252,6 +252,12 @@ struct CadFeature {
     double      thicken_thickness{2};    // wall thickness (always used as |value|)
     bool        thicken_flip{false};     // true: offset against the face normal
 
+    // Cut-by-face: when cut_face >= 0, apply_cut derives the cut plane from this face
+    // (via SketchPlane::from_face) instead of the base `plane`. cut_offset / cut_flip
+    // still apply along the derived normal.
+    int         cut_face_body{-1};   // body owning the face; -1 = the target body
+    int         cut_face{-1};        // global face id to cut along; -1 = use `plane`
+
     template<class Archive>
     void save(Archive& ar) const {
         std::string brep = (type == CadFeatureType::Import) ? brep_to_string(imported_solid) : std::string();
@@ -278,8 +284,9 @@ struct CadFeature {
            axis_type, axis_p1, axis_p2, axis_body, axis_face, axis_edge, axis_plane_a, axis_plane_b,
             coordsys_type, coordsys_point, coordsys_body, coordsys_face, coordsys_edge, coordsys_x_hint,
             helix_radius, helix_pitch, helix_height, helix_left_handed, helix_taper_deg,
-            xf_translate, xf_axis, xf_pivot, xf_angle_deg, xf_copy,
-            thicken_face, thicken_thickness, thicken_flip);
+             xf_translate, xf_axis, xf_pivot, xf_angle_deg, xf_copy,
+             thicken_face, thicken_thickness, thicken_flip,
+             cut_face_body, cut_face);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -307,8 +314,9 @@ struct CadFeature {
            axis_type, axis_p1, axis_p2, axis_body, axis_face, axis_edge, axis_plane_a, axis_plane_b,
            coordsys_type, coordsys_point, coordsys_body, coordsys_face, coordsys_edge, coordsys_x_hint,
            helix_radius, helix_pitch, helix_height, helix_left_handed, helix_taper_deg,
-           xf_translate, xf_axis, xf_pivot, xf_angle_deg, xf_copy,
-           thicken_face, thicken_thickness, thicken_flip);
+            xf_translate, xf_axis, xf_pivot, xf_angle_deg, xf_copy,
+            thicken_face, thicken_thickness, thicken_flip,
+            cut_face_body, cut_face);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -408,6 +416,10 @@ public:
     // +normal / -normal half; both => the body is split into two coexisting bodies.
     int  add_cut(const SketchPlane& plane, double offset, bool flip,
                   bool keep_upper, bool keep_lower, int target_body, const std::string& name);
+    // Split target_body along the plane of face `face` (owned by face_body, -1 = target).
+    // keep_upper/keep_lower select which half survives; both => split into two bodies.
+    int add_split_by_face(int target_body, int face_body, int face,
+                          bool keep_upper, bool keep_lower, const std::string& name);
     int  add_mirror(const SketchPlane& plane, int target_body, BooleanMode mode,
                     const std::string& name);
     // Rigid body transform: rotate `angle_deg` about `axis` through `pivot`, then translate.

@@ -724,6 +724,21 @@ int CadDocument::add_cut(const SketchPlane& plane, double offset, bool flip,
     return int(features.size()) - 1;
 }
 
+int CadDocument::add_split_by_face(int target_body, int face_body, int face,
+                                    bool keep_upper, bool keep_lower, const std::string& name)
+{
+    CadFeature f;
+    f.type           = CadFeatureType::Cut;
+    f.name           = name;
+    f.target_body    = target_body;
+    f.cut_face_body  = face_body;
+    f.cut_face       = face;
+    f.cut_keep_upper = keep_upper;
+    f.cut_keep_lower = keep_lower;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
 int CadDocument::add_mirror(const SketchPlane& plane, int target_body, BooleanMode mode,
                             const std::string& name)
 {
@@ -1905,7 +1920,16 @@ void CadDocument::apply_cut(std::vector<CadBody>& bodies, const CadFeature& f) c
     if (!f.cut_keep_upper && !f.cut_keep_lower)
         throw std::runtime_error("cut keeps nothing");
 
-    SketchPlane cp = f.plane;
+    SketchPlane cp;
+    if (f.cut_face >= 0) {
+        const int fb = (f.cut_face_body >= 0 && f.cut_face_body < nb) ? f.cut_face_body : tgt;
+        if (bodies[fb].shape.IsNull()) throw std::runtime_error("cut: face body is empty");
+        TopoDS_Face fc = GeometryEngine::face_by_index(bodies[fb].shape, f.cut_face);
+        if (fc.IsNull()) throw std::runtime_error("cut: face not found");
+        cp = SketchPlane::from_face(fc);
+    } else {
+        cp = f.plane;
+    }
     cp.origin += cp.normal * f.cut_offset;
     if (f.cut_flip) cp.normal = -cp.normal;
 

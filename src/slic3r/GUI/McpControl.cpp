@@ -240,6 +240,14 @@ json describe_tools()
                      json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 2}, {"min", 0.01}},
                      json{{"name", "flip"},      {"type", "boolean"}, {"default", false}},
                  })}},
+            json{{"name", "split"}, {"summary", "Split a body along the plane of a picked face."},
+                 {"params", json::array({
+                     json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
+                     json{{"name", "face_body"}, {"type", "integer"}, {"default", -1}, {"description", "body that owns the face; -1 = target"}},
+                     json{{"name", "face"},      {"type", "integer"}, {"description", "face id to split along (query_topology)"}},
+                     json{{"name", "keep_upper"},{"type", "boolean"}, {"default", true}},
+                     json{{"name", "keep_lower"},{"type", "boolean"}, {"default", true}},
+                 })}},
             json{{"name", "query_topology"}, {"summary", "Measured faces (centroid/normal/cylinder) and edges (length/circle) of a body."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
@@ -906,6 +914,24 @@ json action_thicken(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"thicken_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_split(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("face")) throw std::runtime_error("split needs 'face' (id from query_topology)");
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to split");
+    int bi = target_body_arg(params, doc);
+    int face_body = params.value("face_body", -1);
+    int face = params["face"].get<int>();
+    bool keep_upper = params.value("keep_upper", true);
+    bool keep_lower = params.value("keep_lower", true);
+    doc.checkpoint();
+    int idx = doc.add_split_by_face(bi, face_body, face, keep_upper, keep_lower, "Split");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"split_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 json action_axis(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
@@ -1006,6 +1032,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "mirror")         return rpc_result(id, action_mirror(panel, params));
         if (method == "transform")      return rpc_result(id, action_transform(panel, params));
         if (method == "thicken")        return rpc_result(id, action_thicken(panel, params));
+        if (method == "split")          return rpc_result(id, action_split(panel, params));
         if (method == "axis")           return rpc_result(id, action_axis(panel, params));
         if (method == "coordsys")       return rpc_result(id, action_coordsys(panel, params));
         if (method == "helix")          return rpc_result(id, action_helix(panel, params));

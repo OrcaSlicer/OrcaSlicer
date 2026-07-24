@@ -1384,6 +1384,160 @@ TEST_CASE("cut splits a body with a plane", "[cut]")
     }
 }
 
+TEST_CASE("both-halves plane cut splits a body into two equal halves", "[CadDocument][cut]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+    double v_orig = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+    REQUIRE(v_orig > 0.0);
+
+    doc.add_cut(SketchPlane::XY(), 5.0, false, true, true, 0, "SplitBoth");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+
+    double v0 = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+    double v1 = double(SketchEngine::tessellate(doc.bodies[1].shape).volume());
+    REQUIRE_THAT(v0 + v1, WithinRel(v_orig, 1e-4));
+    REQUIRE_THAT(v0, WithinRel(20.0 * 20.0 * 5.0, 0.01));
+    REQUIRE_THAT(v1, WithinRel(20.0 * 20.0 * 5.0, 0.01));
+}
+
+TEST_CASE("split by a body face divides a box into two halves via top-face offset", "[CadDocument][cut]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+    double v_orig = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        Vec3d n = GeometryEngine::face_normal_world(fc);
+        if (n.z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    doc.add_split_by_face(0, -1, top_face, true, true, "SplitByFace");
+    doc.features.back().cut_offset = -5.0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+
+    double v0 = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+    double v1 = double(SketchEngine::tessellate(doc.bodies[1].shape).volume());
+    REQUIRE_THAT(v0 + v1, WithinRel(v_orig, 1e-4));
+    REQUIRE_THAT(v0, WithinRel(20.0 * 20.0 * 5.0, 0.02));
+    REQUIRE_THAT(v1, WithinRel(20.0 * 20.0 * 5.0, 0.02));
+}
+
+TEST_CASE("split by face keep upper only", "[CadDocument][cut]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        Vec3d n = GeometryEngine::face_normal_world(fc);
+        if (n.z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    doc.add_split_by_face(0, -1, top_face, true, false, "SplitUpper");
+    doc.features.back().cut_offset = -5.0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+
+    double v = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+    REQUIRE_THAT(v, WithinRel(20.0 * 20.0 * 5.0, 0.02));
+}
+
+TEST_CASE("split by face round-trip serialization", "[CadDocument][cut]")
+{
+    using Catch::Matchers::WithinRel;
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        Vec3d n = GeometryEngine::face_normal_world(fc);
+        if (n.z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    doc.add_split_by_face(0, 0, top_face, true, true, "SplitRT");
+    doc.features.back().cut_offset = -5.0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+
+    int saved_face_body = doc.features.back().cut_face_body;
+    int saved_face      = doc.features.back().cut_face;
+    bool saved_upper    = doc.features.back().cut_keep_upper;
+    bool saved_lower    = doc.features.back().cut_keep_lower;
+    size_t saved_nb     = doc.bodies.size();
+
+    std::vector<std::pair<Vec3d, Vec3d>> bboxes;
+    for (const auto& b : doc.bodies) {
+        Bnd_Box bb; BRepBndLib::Add(b.shape, bb);
+        Standard_Real x0, y0, z0, x1, y1, z1;
+        bb.Get(x0, y0, z0, x1, y1, z1);
+        bboxes.push_back({Vec3d(x0, y0, z0), Vec3d(x1, y1, z1)});
+    }
+
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument doc2;
+    REQUIRE(doc2.deserialize_recipe(blob));
+    REQUIRE(doc2.bodies.size() == saved_nb);
+    REQUIRE(doc2.features.size() == doc.features.size());
+
+    const auto& f2 = doc2.features.back();
+    REQUIRE(f2.cut_face_body  == saved_face_body);
+    REQUIRE(f2.cut_face       == saved_face);
+    REQUIRE(f2.cut_keep_upper == saved_upper);
+    REQUIRE(f2.cut_keep_lower == saved_lower);
+
+    for (size_t i = 0; i < saved_nb; ++i) {
+        Bnd_Box bb; BRepBndLib::Add(doc2.bodies[i].shape, bb);
+        Standard_Real x0, y0, z0, x1, y1, z1;
+        bb.Get(x0, y0, z0, x1, y1, z1);
+        REQUIRE_THAT(double(x0), WithinAbs(bboxes[i].first.x(),  1e-6));
+        REQUIRE_THAT(double(y0), WithinAbs(bboxes[i].first.y(),  1e-6));
+        REQUIRE_THAT(double(z0), WithinAbs(bboxes[i].first.z(),  1e-6));
+        REQUIRE_THAT(double(x1), WithinAbs(bboxes[i].second.x(), 1e-6));
+        REQUIRE_THAT(double(y1), WithinAbs(bboxes[i].second.y(), 1e-6));
+        REQUIRE_THAT(double(z1), WithinAbs(bboxes[i].second.z(), 1e-6));
+    }
+}
+
 TEST_CASE("mirror reflects a body about a plane", "[CadDocument]")
 {
     using Catch::Matchers::WithinRel;
@@ -3101,6 +3255,8 @@ static CadDocument make_golden_doc_v1()
 
     doc.add_thicken(0, 0, 1.75, true, "GoldenThicken");
 
+    doc.add_split_by_face(0, 0, 2, true, false, "GoldenSplit");
+
     return doc;
 }
 
@@ -3380,6 +3536,14 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
             REQUIRE(f.thicken_face     == 0);
             REQUIRE_THAT(f.thicken_thickness, WithinAbs(1.75, 1e-9));
             REQUIRE(f.thicken_flip     == true);
+        }
+
+        // Cut-by-face: GoldenSplit uses cut_face_body/cut_face instead of plane
+        if (f.type == CadFeatureType::Cut && e.name == "GoldenSplit") {
+            REQUIRE(f.cut_face_body  == 0);
+            REQUIRE(f.cut_face       == 2);
+            REQUIRE(f.cut_keep_upper == true);
+            REQUIRE(f.cut_keep_lower == false);
         }
     }
 
