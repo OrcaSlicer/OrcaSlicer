@@ -794,8 +794,6 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("single_loop_draft_shield", have_skirt); // ORCA: Display one wall if skirt enabled
     for (auto el : {"skirt_type", "min_skirt_length", "skirt_distance", "skirt_start_angle", "skirt_speed", "draft_shield"})
         toggle_line(el, have_skirt);
-    //Toggle the inner wall line width if the user has perimeters, a skirt, or a brim
-    toggle_field("inner_wall_line_width", have_perimeters || have_skirt || have_brim);
 
 
     //Toggle the brim settings if the user disables the brim
@@ -805,6 +803,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool have_brim_width = have_brim && config->opt_enum<BrimType>("brim_type") != btAutoBrim &&
                            config->opt_enum<BrimType>("brim_type") != btPainted;
     toggle_line("brim_width", have_brim_width);
+
 
     bool have_brim_ear = (config->opt_enum<BrimType>("brim_type") == btEar);
     const auto brim_width = config->opt_float("brim_width");
@@ -822,7 +821,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     // Wall filament selectors use the same logic as in Print::extruders().
     toggle_field("outer_wall_filament_id", have_perimeters || have_brim);
     toggle_field("inner_wall_filament_id", have_perimeters || have_brim);
-    
+    //Toggle the inner wall line width if the user has perimeters, a skirt, or a brim
+    toggle_field("inner_wall_line_width", have_perimeters || have_skirt || have_brim);
+
     //
     //Toggling support configurations section
     //

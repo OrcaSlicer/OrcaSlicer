@@ -28,6 +28,8 @@ resources/profiles/user/default
 src/OrcaSlicer-doc/
 SVG
 test.js
+AGENTS.md
+deps/python3/python3.cmake
 
 # Build artefacts
 _build
