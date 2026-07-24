@@ -360,6 +360,14 @@ static ClipperLib_Z::Paths clip_extrusion(const ClipperLib_Z::Path& subject, con
     return clipped_paths;
 }
 
+static double clipper_z_path_length(const ClipperLib_Z::Path &path)
+{
+    double len = 0.;
+    for (size_t i = 1; i < path.size(); ++ i)
+        len += (Vec2d(double(path[i].x()), double(path[i].y())) - Vec2d(double(path[i - 1].x()), double(path[i - 1].y()))).norm();
+    return len;
+}
+
 struct PerimeterGeneratorArachneExtrusion
 {
     Arachne::ExtrusionLine* extrusion = nullptr;
@@ -2343,7 +2351,43 @@ void PerimeterGenerator::process_arachne()
                         subject.reserve(el.size());
                         for (const Arachne::ExtrusionJunction &j : el.junctions)
                             subject.emplace_back(j.p.x(), j.p.y(), j.w);
-                        for (const ClipperLib_Z::Path &path : clip_extrusion(subject, top_paths_z, ClipperLib_Z::ctDifference)) {
+                        ClipperLib_Z::Paths pieces = clip_extrusion(subject, top_paths_z, ClipperLib_Z::ctDifference);
+
+                        // Clipper treats the subject as an open polyline: it also cuts a closed loop at its
+                        // (arbitrary) start vertex and may reverse pieces. Stitch pieces that share an endpoint
+                        // back together so the wall is only divided where it actually crosses the top surface.
+                        auto same_pt = [](const ClipperLib_Z::IntPoint &p, const ClipperLib_Z::IntPoint &q) {
+                            return std::abs(p.x() - q.x()) <= SCALED_EPSILON && std::abs(p.y() - q.y()) <= SCALED_EPSILON;
+                        };
+                        for (size_t i = 0; i < pieces.size(); ++ i) {
+                            for (size_t j = i + 1; j < pieces.size();) {
+                                ClipperLib_Z::Path &a = pieces[i];
+                                ClipperLib_Z::Path &b = pieces[j];
+                                if (same_pt(a.front(), b.front()) || same_pt(a.front(), b.back()))
+                                    std::reverse(a.begin(), a.end());
+                                if (same_pt(a.back(), b.back()))
+                                    std::reverse(b.begin(), b.end());
+                                if (same_pt(a.back(), b.front())) {
+                                    a.insert(a.end(), b.begin() + 1, b.end());
+                                    pieces.erase(pieces.begin() + j);
+                                    // Restart the scan: the merged path has new endpoints.
+                                    j = i + 1;
+                                } else
+                                    ++ j;
+                            }
+                        }
+
+                        // If the clip removed next to nothing (the wall only grazed the expanded top margin),
+                        // keep the loop untouched instead of slitting it open.
+                        double kept_length = 0.;
+                        for (const ClipperLib_Z::Path &path : pieces)
+                            kept_length += clipper_z_path_length(path);
+                        if (clipper_z_path_length(subject) - kept_length < double(perimeter_width)) {
+                            kept.emplace_back(std::move(el));
+                            continue;
+                        }
+
+                        for (const ClipperLib_Z::Path &path : pieces) {
                             Arachne::ExtrusionLine clipped(el.inset_idx, el.is_odd);
                             clipped.junctions.reserve(path.size());
                             for (const ClipperLib_Z::IntPoint &pt : path)
