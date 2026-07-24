@@ -75,6 +75,7 @@ const char* feature_type_name(CadFeatureType t)
         case CadFeatureType::CoordSys: return "CoordSys";
         case CadFeatureType::Helix:    return "Helix";
         case CadFeatureType::Transform: return "Transform";
+        case CadFeatureType::Thicken:  return "Thicken";
     }
     return "Unknown";
 }
@@ -231,6 +232,13 @@ json describe_tools()
                      json{{"name", "left_handed"}, {"type", "boolean"}, {"default", false}},
                      json{{"name", "taper_deg"},   {"type", "number"}, {"unit", "deg"}, {"default", 0}},
                      json{{"name", "plane"},       {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
+                 })}},
+            json{{"name", "thicken"}, {"summary", "Offset a face of a body by a wall thickness, producing a new thin solid body."},
+                 {"params", json::array({
+                     json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
+                     json{{"name", "face"},      {"type", "integer"}, {"description", "face id to thicken (query_topology)"}},
+                     json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 2}, {"min", 0.01}},
+                     json{{"name", "flip"},      {"type", "boolean"}, {"default", false}},
                  })}},
             json{{"name", "query_topology"}, {"summary", "Measured faces (centroid/normal/cylinder) and edges (length/circle) of a body."},
                  {"params", json::array({
@@ -881,6 +889,23 @@ json action_transform(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"transform_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_thicken(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("face")) throw std::runtime_error("thicken needs 'face' (id from query_topology)");
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to thicken");
+    int bi = target_body_arg(params, doc);
+    int face = params["face"].get<int>();
+    double thickness = params.value("thickness", 2.0);
+    bool flip = params.value("flip", false);
+    doc.checkpoint();
+    int idx = doc.add_thicken(bi, face, thickness, flip, "Thicken");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"thicken_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 json action_axis(DesignPanel* panel, const json& params)
 {
     CadDocument& doc = panel->mcp_doc();
@@ -980,6 +1005,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "draft")          return rpc_result(id, action_draft(panel, params));
         if (method == "mirror")         return rpc_result(id, action_mirror(panel, params));
         if (method == "transform")      return rpc_result(id, action_transform(panel, params));
+        if (method == "thicken")        return rpc_result(id, action_thicken(panel, params));
         if (method == "axis")           return rpc_result(id, action_axis(panel, params));
         if (method == "coordsys")       return rpc_result(id, action_coordsys(panel, params));
         if (method == "helix")          return rpc_result(id, action_helix(panel, params));

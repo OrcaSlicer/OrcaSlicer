@@ -17,7 +17,7 @@
 
 namespace Slic3r {
 
-enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform };
+enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken };
 enum class SketchShape    { Rectangle, Circle };
 enum class PlaneType      { Offset, Angle, Midplane, Tangent, TwoEdges, Coincident };
 enum class AxisType       { TwoPoints, FaceNormal, CylinderCenterline, PlaneIntersection, AlongEdge };
@@ -246,6 +246,12 @@ struct CadFeature {
     double      xf_angle_deg{0};
     bool        xf_copy{false};      // true: keep the original, append the moved copy as a new body
 
+    // Thicken feature: offset one face of an existing body into a new thin solid body.
+    // The face belongs to `target_body`; the offset runs along the face normal.
+    int         thicken_face{-1};        // global face id on the target body; -1 = invalid
+    double      thicken_thickness{2};    // wall thickness (always used as |value|)
+    bool        thicken_flip{false};     // true: offset against the face normal
+
     template<class Archive>
     void save(Archive& ar) const {
         std::string brep = (type == CadFeatureType::Import) ? brep_to_string(imported_solid) : std::string();
@@ -272,7 +278,8 @@ struct CadFeature {
            axis_type, axis_p1, axis_p2, axis_body, axis_face, axis_edge, axis_plane_a, axis_plane_b,
             coordsys_type, coordsys_point, coordsys_body, coordsys_face, coordsys_edge, coordsys_x_hint,
             helix_radius, helix_pitch, helix_height, helix_left_handed, helix_taper_deg,
-            xf_translate, xf_axis, xf_pivot, xf_angle_deg, xf_copy);
+            xf_translate, xf_axis, xf_pivot, xf_angle_deg, xf_copy,
+            thicken_face, thicken_thickness, thicken_flip);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -300,7 +307,8 @@ struct CadFeature {
            axis_type, axis_p1, axis_p2, axis_body, axis_face, axis_edge, axis_plane_a, axis_plane_b,
            coordsys_type, coordsys_point, coordsys_body, coordsys_face, coordsys_edge, coordsys_x_hint,
            helix_radius, helix_pitch, helix_height, helix_left_handed, helix_taper_deg,
-           xf_translate, xf_axis, xf_pivot, xf_angle_deg, xf_copy);
+           xf_translate, xf_axis, xf_pivot, xf_angle_deg, xf_copy,
+           thicken_face, thicken_thickness, thicken_flip);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -406,6 +414,9 @@ public:
     // copy=true keeps the source body and appends the transformed one as a new body.
     int add_transform(int target_body, const Vec3d& translate, const Vec3d& axis,
                       const Vec3d& pivot, double angle_deg, bool copy, const std::string& name);
+    // Offset face `face` of `target_body` by `thickness` along its normal, producing a new
+    // thin solid appended as a new body. flip=true offsets against the normal.
+    int add_thicken(int target_body, int face, double thickness, bool flip, const std::string& name);
     // Datum plane: derived from base (0=XY/1=XZ/2=YZ/3+N=Nth earlier datum), offset
     // along its normal, optional tilt about a base axis. Produces no solid.
     int  add_plane(int base, double offset, double angle_tilt, int axis,
@@ -513,6 +524,7 @@ private:
     void apply_cut(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_mirror(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_transform(std::vector<CadBody>& bodies, const CadFeature& f) const;
+    void apply_thicken(std::vector<CadBody>& bodies, const CadFeature& f) const;
 
     // Undo/redo stacks of feature-list snapshots. checkpoint() pushes onto m_undo and
     // clears m_redo; undo()/redo() shuffle the current state between them. Capped so a

@@ -2715,6 +2715,231 @@ TEST_CASE("transform round-trip preserves all xf_* fields", "[CadDocument]")
     }
 }
 
+// --- Thicken tests ---
+
+TEST_CASE("thicken a planar face to a plate", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxSketch");
+    REQUIRE(sk >= 0);
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude1");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        Vec3d n = GeometryEngine::face_normal_world(fc);
+        if (n.z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    doc.add_thicken(0, top_face, 3.0, false, "Plate");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+
+    double v = double(SketchEngine::tessellate(doc.bodies[1].shape).volume());
+    REQUIRE_THAT(v, WithinRel(20.0 * 20.0 * 3.0, 0.01));
+}
+
+TEST_CASE("thicken flip offsets against face normal", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxSketch");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude1");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        Vec3d n = GeometryEngine::face_normal_world(fc);
+        if (n.z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    // non-flipped: plate grows above the box (z > 10)
+    CadDocument doc2;
+    int sk2 = doc2.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxSketch2");
+    doc2.add_extrude(sk2, 10.0, false, BooleanMode::New, "Extrude2");
+    REQUIRE(doc2.recompute());
+    int nf2 = GeometryEngine::face_count(doc2.bodies[0].shape);
+    int tf2 = -1;
+    for (int i = 0; i < nf2; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc2.bodies[0].shape, i);
+        Vec3d n = GeometryEngine::face_normal_world(fc);
+        if (n.z() > 0.9) { tf2 = i; break; }
+    }
+    REQUIRE(tf2 >= 0);
+    doc2.add_thicken(0, tf2, 3.0, false, "PlateFwd");
+    REQUIRE(doc2.recompute());
+    Bnd_Box bb_fwd; BRepBndLib::Add(doc2.bodies[1].shape, bb_fwd);
+    Standard_Real x0, y0, z0, x1, y1, z1;
+    bb_fwd.Get(x0, y0, z0, x1, y1, z1);
+
+    // flipped: plate grows below the face plane (z < 10)
+    CadDocument doc3;
+    int sk3 = doc3.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxSketch3");
+    doc3.add_extrude(sk3, 10.0, false, BooleanMode::New, "Extrude3");
+    REQUIRE(doc3.recompute());
+    int nf3 = GeometryEngine::face_count(doc3.bodies[0].shape);
+    int tf3 = -1;
+    for (int i = 0; i < nf3; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc3.bodies[0].shape, i);
+        Vec3d n = GeometryEngine::face_normal_world(fc);
+        if (n.z() > 0.9) { tf3 = i; break; }
+    }
+    REQUIRE(tf3 >= 0);
+    doc3.add_thicken(0, tf3, 3.0, true, "PlateRev");
+    REQUIRE(doc3.recompute());
+    Bnd_Box bb_rev; BRepBndLib::Add(doc3.bodies[1].shape, bb_rev);
+    Standard_Real rx0, ry0, rz0, rx1, ry1, rz1;
+    bb_rev.Get(rx0, ry0, rz0, rx1, ry1, rz1);
+
+    // forward plate bbox z > 10 (source face at z=10, +3 offset = z in (10,13))
+    REQUIRE(z0 >= 9.9);
+    // reverse plate bbox z < 10 (source face at z=10, -3 offset = z in (7,10))
+    REQUIRE(rz1 <= 10.1);
+}
+
+TEST_CASE("thicken bad face index returns error", "[CadDocument]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+
+    doc.add_thicken(0, 9999, 3.0, false, "Bad");
+    bool ok = doc.recompute();
+    REQUIRE_FALSE(ok);
+    REQUIRE(doc.error.find("face") != std::string::npos);
+}
+
+TEST_CASE("thicken zero thickness returns error", "[CadDocument]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        Vec3d n = GeometryEngine::face_normal_world(fc);
+        if (n.z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    doc.add_thicken(0, top_face, 0.0, false, "Zero");
+    bool ok = doc.recompute();
+    REQUIRE_FALSE(ok);
+    REQUIRE(doc.error.find("thickness") != std::string::npos);
+}
+
+TEST_CASE("thickened plate fuses with source", "[CadDocument]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    double v_box = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        Vec3d n = GeometryEngine::face_normal_world(fc);
+        if (n.z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    doc.add_thicken(0, top_face, 3.0, false, "Plate");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+
+    doc.add_boolean(BooleanMode::Add, 0, 1, false, 0.0, -1, -1, "Fuse");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    double v_fused = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+    REQUIRE(v_fused > v_box);
+}
+
+TEST_CASE("thicken round-trip serialization", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        TopoDS_Face fc = GeometryEngine::face_by_index(doc.bodies[0].shape, i);
+        Vec3d n = GeometryEngine::face_normal_world(fc);
+        if (n.z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+    doc.add_thicken(0, top_face, 3.0, false, "Plate");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+
+    // Remember field values
+    int tf  = doc.features.back().thicken_face;
+    double tt = doc.features.back().thicken_thickness;
+    bool tb   = doc.features.back().thicken_flip;
+    size_t nb = doc.bodies.size();
+
+    std::vector<std::pair<Vec3d, Vec3d>> bboxes;
+    for (const auto& b : doc.bodies) {
+        Bnd_Box bb; BRepBndLib::Add(b.shape, bb);
+        Standard_Real x0, y0, z0, x1, y1, z1;
+        bb.Get(x0, y0, z0, x1, y1, z1);
+        bboxes.push_back({Vec3d(x0, y0, z0), Vec3d(x1, y1, z1)});
+    }
+
+    std::string blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument doc2;
+    REQUIRE(doc2.deserialize_recipe(blob));
+    REQUIRE(doc2.features.size() == doc.features.size());
+    REQUIRE(doc2.bodies.size() == nb);
+
+    const CadFeature& f2 = doc2.features.back();
+    REQUIRE(f2.thicken_face     == tf);
+    REQUIRE_THAT(f2.thicken_thickness, WithinAbs(tt, 1e-9));
+    REQUIRE(f2.thicken_flip     == tb);
+
+    for (size_t i = 0; i < nb; ++i) {
+        Bnd_Box bb; BRepBndLib::Add(doc2.bodies[i].shape, bb);
+        Standard_Real x0, y0, z0, x1, y1, z1;
+        bb.Get(x0, y0, z0, x1, y1, z1);
+        REQUIRE_THAT(double(x0), WithinAbs(bboxes[i].first.x(),  1e-6));
+        REQUIRE_THAT(double(y0), WithinAbs(bboxes[i].first.y(),  1e-6));
+        REQUIRE_THAT(double(z0), WithinAbs(bboxes[i].first.z(),  1e-6));
+        REQUIRE_THAT(double(x1), WithinAbs(bboxes[i].second.x(), 1e-6));
+        REQUIRE_THAT(double(y1), WithinAbs(bboxes[i].second.y(), 1e-6));
+        REQUIRE_THAT(double(z1), WithinAbs(bboxes[i].second.z(), 1e-6));
+    }
+}
+
 // --- Golden recipe fixture (v1 format tripwire) ---
 
 static CadDocument make_golden_doc_v1()
@@ -2873,6 +3098,8 @@ static CadDocument make_golden_doc_v1()
     // ---- Transform: rigid move/rotate with distinctive non-default values ----
     doc.add_transform(0, Vec3d(3.5, 4.5, 5.5), Vec3d(0.0, 1.0, 0.0), Vec3d(1.5, 2.5, 3.5),
                       37.0, true, "GoldenTransform");
+
+    doc.add_thicken(0, 0, 1.75, true, "GoldenThicken");
 
     return doc;
 }
@@ -3146,6 +3373,13 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
             REQUIRE_THAT(f.xf_pivot.z(),     WithinAbs(3.5, 1e-9));
             REQUIRE_THAT(f.xf_angle_deg,     WithinAbs(37.0, 1e-9));
             REQUIRE(f.xf_copy == true);
+        }
+
+        // Thicken
+        if (f.type == CadFeatureType::Thicken && e.name == "GoldenThicken") {
+            REQUIRE(f.thicken_face     == 0);
+            REQUIRE_THAT(f.thicken_thickness, WithinAbs(1.75, 1e-9));
+            REQUIRE(f.thicken_flip     == true);
         }
     }
 

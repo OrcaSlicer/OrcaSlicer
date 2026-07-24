@@ -31,6 +31,7 @@
 #include <GCE2d_MakeSegment.hxx>
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
+#include <TopoDS_Shell.hxx>
 #include <TopoDS_Compound.hxx>      // multi-body: compound of bodies for display/compat
 #include <BRep_Builder.hxx>
 #include <TopAbs_Orientation.hxx>   // outward-normal orientation for face-extrude
@@ -749,6 +750,20 @@ int CadDocument::add_transform(int target_body, const Vec3d& translate, const Ve
     f.xf_pivot     = pivot;
     f.xf_angle_deg = angle_deg;
     f.xf_copy      = copy;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
+int CadDocument::add_thicken(int target_body, int face, double thickness, bool flip,
+                              const std::string& name)
+{
+    CadFeature f;
+    f.type             = CadFeatureType::Thicken;
+    f.name             = name;
+    f.target_body      = target_body;
+    f.thicken_face     = face;
+    f.thicken_thickness = thickness;
+    f.thicken_flip     = flip;
     features.push_back(f);
     return int(features.size()) - 1;
 }
@@ -2018,6 +2033,41 @@ void CadDocument::apply_transform(std::vector<CadBody>& bodies, const CadFeature
         bodies[tgt].shape = moved;
 }
 
+void CadDocument::apply_thicken(std::vector<CadBody>& bodies, const CadFeature& f) const
+{
+    const int nb = int(bodies.size());
+    if (nb == 0) throw std::runtime_error("thicken: no target body");
+    const int tgt = (f.target_body >= 0 && f.target_body < nb) ? f.target_body : nb - 1;
+    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error("thicken: no target body");
+
+    TopoDS_Face fc = GeometryEngine::face_by_index(bodies[tgt].shape, f.thicken_face);
+    if (fc.IsNull()) throw std::runtime_error("thicken: face not found");
+    if (std::abs(f.thicken_thickness) < 1e-9) throw std::runtime_error("thicken: thickness is zero");
+
+    TopoDS_Shell shell;
+    BRep_Builder bb;
+    bb.MakeShell(shell);
+    bb.Add(shell, fc);
+
+    const double off = f.thicken_flip ? -std::abs(f.thicken_thickness)
+                                      :  std::abs(f.thicken_thickness);
+    BRepOffsetAPI_MakeThickSolid mts;
+    mts.MakeThickSolidBySimple(shell, off);
+    mts.Build();
+    if (!mts.IsDone()) throw std::runtime_error("thicken: failed");
+    TopoDS_Shape solid = mts.Shape();
+    if (solid.IsNull()) throw std::runtime_error("thicken: produced no geometry");
+
+    // MakeThickSolidBySimple may produce a reversed solid. Ensure positive volume.
+    {
+        GProp_GProps props;
+        BRepGProp::VolumeProperties(solid, props);
+        if (props.Mass() < 0.0) solid.Reverse();
+    }
+
+    bodies.push_back({solid, f.name.empty() ? std::string("Thicken") : f.name});
+}
+
 void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
     if (f.type == CadFeatureType::Plane)   return;   // datum plane: not part of the body pipeline
@@ -2028,6 +2078,7 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
     if (f.type == CadFeatureType::Cut)     { apply_cut(bodies, f);     return; }   // plane-split body
     if (f.type == CadFeatureType::Mirror)  { apply_mirror(bodies, f);  return; }   // mirror body about plane
     if (f.type == CadFeatureType::Transform) { apply_transform(bodies, f); return; }   // move/rotate body
+    if (f.type == CadFeatureType::Thicken) { apply_thicken(bodies, f); return; }   // face -> plate
     // Resolve the target body: explicit target_body when valid, else the last body.
     const int t = (f.target_body >= 0 && f.target_body < int(bodies.size()))
                   ? f.target_body : int(bodies.size()) - 1;
