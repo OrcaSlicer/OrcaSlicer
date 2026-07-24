@@ -1005,11 +1005,11 @@ msgstr "Зʼєднання"
 #, boost-format
 msgid ""
 "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
-"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Please report to the OrcaSlicer team in which scenario this issue happened.\n"
 "Thank you."
 msgstr ""
 "Обʼєкти(%1%) мають дубльовані зʼєднання. Деякі зʼєднання можуть бути упущені в результаті нарізання.\n"
-"Будь ласка, повідомте команду PrusaSlicer за якого сценарію це сталося.\n"
+"Будь ласка, повідомте команду OrcaSlicer за якого сценарію це сталося.\n"
 "Дякую."
 
 msgid "Cut by Plane"

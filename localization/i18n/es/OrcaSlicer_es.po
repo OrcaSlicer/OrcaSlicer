@@ -983,11 +983,11 @@ msgstr "Conector"
 #, boost-format
 msgid ""
 "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
-"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Please report to the OrcaSlicer team in which scenario this issue happened.\n"
 "Thank you."
 msgstr ""
 "Los objetos(%1%) tienen conectores duplicados. Es posible que falten algunos conectores en el resultado del laminado.\n"
-"Informe al equipo de PrusaSlicer sobre el escenario en el que se produjo este problema.\n"
+"Informe al equipo de OrcaSlicer sobre el escenario en el que se produjo este problema.\n"
 "Gracias."
 
 msgid "Cut by Plane"
