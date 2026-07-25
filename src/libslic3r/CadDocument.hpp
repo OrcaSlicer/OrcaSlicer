@@ -17,7 +17,7 @@
 
 namespace Slic3r {
 
-enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project, DeleteFace };
+enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project, DeleteFace, Rib };
 enum class SketchShape    { Rectangle, Circle };
 enum class PlaneType      { Offset, Angle, Midplane, Tangent, TwoEdges, Coincident };
 enum class AxisType       { TwoPoints, FaceNormal, CylinderCenterline, PlaneIntersection, AlongEdge };
@@ -276,6 +276,12 @@ struct CadFeature {
     // healed via BRepAlgoAPI_Defeaturing.
     std::vector<int> delete_faces;
 
+    // Rib: a thin wall grown from an open sketch line, fused to the body.
+    int    rib_sketch_ref{-1};  // feature index of the Sketch holding the profile
+    int    rib_entity{-1};      // index of the open Line entity within that sketch
+    double rib_thickness{2};    // wall thickness (mm), centred on the line
+    double rib_depth{10};       // extrude distance along the sketch-plane normal (mm)
+
     template<class Archive>
     void save(Archive& ar) const {
         std::string brep = (type == CadFeatureType::Import) ? brep_to_string(imported_solid) : std::string();
@@ -308,7 +314,8 @@ struct CadFeature {
              project_source_body, project_edges, project_face,
              delete_faces,
              hole_style, hole_cbore_diameter, hole_cbore_depth,
-             hole_csink_diameter, hole_csink_angle, hole_standard);
+             hole_csink_diameter, hole_csink_angle, hole_standard,
+             rib_sketch_ref, rib_entity, rib_thickness, rib_depth);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -340,9 +347,10 @@ struct CadFeature {
             thicken_face, thicken_thickness, thicken_flip,
             cut_face_body, cut_face,
              project_source_body, project_edges, project_face,
-              delete_faces,
-              hole_style, hole_cbore_diameter, hole_cbore_depth,
-              hole_csink_diameter, hole_csink_angle, hole_standard);
+               delete_faces,
+               hole_style, hole_cbore_diameter, hole_cbore_depth,
+               hole_csink_diameter, hole_csink_angle, hole_standard,
+               rib_sketch_ref, rib_entity, rib_thickness, rib_depth);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -449,6 +457,10 @@ public:
     int  add_loft(const std::vector<int>& profile_refs, bool ruled, BooleanMode mode,
                   const std::string& name);
     int  add_shell(double thickness, int face, int target_body, const std::string& name);
+    // Grow a thin rib wall (thickness, depth) from the open Line entity `entity` inside sketch
+    // feature `sketch_ref`, fused to `target_body`. Returns the new feature index.
+    int  add_rib(int sketch_ref, int entity, double thickness, double depth,
+                 int target_body, const std::string& name);
     int  add_draft(double angle, int face, int target_body, const std::string& name);
     // Boolean between two existing bodies. op reuses BooleanMode (Add=union, Cut=subtract,
     // Intersect=common; New invalid). target survives, tool is consumed unless keep_tool.

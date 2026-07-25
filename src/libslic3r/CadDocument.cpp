@@ -748,6 +748,21 @@ int CadDocument::add_shell(double thickness, int face, int target_body, const st
     return int(features.size()) - 1;
 }
 
+int CadDocument::add_rib(int sketch_ref, int entity, double thickness, double depth,
+                          int target_body, const std::string& name)
+{
+    CadFeature f;
+    f.type           = CadFeatureType::Rib;
+    f.name           = name;
+    f.rib_sketch_ref = sketch_ref;
+    f.rib_entity     = entity;
+    f.rib_thickness  = thickness;
+    f.rib_depth      = depth;
+    f.target_body    = target_body;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
 int CadDocument::add_delete_face(int target_body, const std::vector<int>& faces,
                                   const std::string& name)
 {
@@ -1782,6 +1797,38 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
             if (!fuse.IsDone()) throw std::runtime_error("pattern fuse failed");
             result = fuse.Shape();
         }
+        break;
+    }
+    case CadFeatureType::Rib: {
+        if (!have_body) throw std::runtime_error("rib needs a body");
+        if (f.rib_sketch_ref < 0 || f.rib_sketch_ref >= (int)features.size())
+            throw std::runtime_error("rib: bad sketch ref");
+        const CadFeature& sk = features[f.rib_sketch_ref];
+        if (sk.type != CadFeatureType::Sketch)
+            throw std::runtime_error("rib: ref is not a sketch");
+        if (f.rib_entity < 0 || f.rib_entity >= (int)sk.entities.size())
+            throw std::runtime_error("rib: bad entity");
+        const SketchEntity& ln = sk.entities[f.rib_entity];
+        if (ln.type != SketchEntity::Type::Line)
+            throw std::runtime_error("rib: entity must be a line"); // ponytail: line-only for now
+        // Thin rectangle centred on the line, in the sketch plane: offset both endpoints by
+        // +/-thickness/2 along the in-plane perpendicular of the line direction.
+        const SketchPlane& pl = sk.plane;
+        Vec2d a = ln.p0, b = ln.p1;
+        Vec2d dir = (b - a); double L = dir.norm();
+        if (L < 1e-9) throw std::runtime_error("rib: degenerate line");
+        dir /= L;
+        Vec2d perp(-dir.y(), dir.x());
+        double h = f.rib_thickness * 0.5;
+        Vec2d q0 = a + perp*h, q1 = b + perp*h, q2 = b - perp*h, q3 = a - perp*h;
+        auto w3 = [&](const Vec2d& p){ Vec3d w = pl.to_world(p); return gp_Pnt(w.x(),w.y(),w.z()); };
+        BRepBuilderAPI_MakePolygon poly(w3(q0), w3(q1), w3(q2), w3(q3), Standard_True);
+        if (!poly.IsDone()) throw std::runtime_error("rib: profile failed");
+        TopoDS_Shape wall = SketchEngine::make_extrude(poly.Wire(), pl, f.rib_depth, false, 0.0);
+        if (wall.IsNull()) throw std::runtime_error("rib: extrude failed");
+        BRepAlgoAPI_Fuse fuse(result, wall);
+        if (!fuse.IsDone()) throw std::runtime_error("rib: fuse failed");
+        result = fuse.Shape();
         break;
     }
     case CadFeatureType::Fillet:

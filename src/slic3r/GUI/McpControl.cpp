@@ -77,6 +77,8 @@ const char* feature_type_name(CadFeatureType t)
         case CadFeatureType::Transform: return "Transform";
         case CadFeatureType::Thicken:  return "Thicken";
         case CadFeatureType::Project:  return "Project";
+        case CadFeatureType::DeleteFace: return "DeleteFace";
+        case CadFeatureType::Rib:        return "Rib";
     }
     return "Unknown";
 }
@@ -293,6 +295,14 @@ json describe_tools()
                       json{{"name", "end_a"},  {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 1}, {"description", "0 = start/p0 side, 1 = end/p1 side"}},
                       json{{"name", "ent_b"},  {"type", "integer"}, {"description", "second entity index within the sketch"}},
                       json{{"name", "end_b"},  {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}, {"description", "0 = start/p0 side, 1 = end/p1 side"}},
+                  })}},
+            json{{"name", "rib"}, {"summary", "Grow a thin rib wall (stiffener) from an open Line sketch entity, fused to a body."},
+                  {"params", json::array({
+                      json{{"name", "sketch"},    {"type", "integer"}, {"description", "sketch feature index holding the open line"}},
+                      json{{"name", "entity"},    {"type", "integer"}, {"description", "entity index of the open Line within the sketch"}},
+                      json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 2}, {"min", 0.01}},
+                      json{{"name", "depth"},     {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
+                      json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                   })}},
             json{{"name", "query_topology"}, {"summary", "Measured faces (centroid/normal/cylinder) and edges (length/circle) of a body."},
                  {"params", json::array({
@@ -944,6 +954,25 @@ json action_shell(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"shell_index", s}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_rib(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("sketch")) throw std::runtime_error("rib needs 'sketch' (feature index)");
+    if (!params.contains("entity")) throw std::runtime_error("rib needs 'entity' (entity index)");
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to rib");
+    int sketch    = params["sketch"].get<int>();
+    int entity    = params["entity"].get<int>();
+    double thickness = params.value("thickness", 2.0);
+    double depth     = params.value("depth", 10.0);
+    int bi = target_body_arg(params, doc);
+    doc.checkpoint();
+    int idx = doc.add_rib(sketch, entity, thickness, depth, bi, "Rib");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"rib_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 json action_draft(DesignPanel* panel, const json& params)
 {
     if (!params.contains("face")) throw std::runtime_error("draft needs 'face' (id from query_topology)");
@@ -1182,6 +1211,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "boolean")        return rpc_result(id, action_boolean(panel, params));
         if (method == "pattern")        return rpc_result(id, action_pattern(panel, params));
         if (method == "shell")          return rpc_result(id, action_shell(panel, params));
+        if (method == "rib")            return rpc_result(id, action_rib(panel, params));
         if (method == "draft")          return rpc_result(id, action_draft(panel, params));
         if (method == "mirror")         return rpc_result(id, action_mirror(panel, params));
         if (method == "transform")      return rpc_result(id, action_transform(panel, params));

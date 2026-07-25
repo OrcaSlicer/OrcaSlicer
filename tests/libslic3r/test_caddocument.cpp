@@ -3809,6 +3809,112 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
     }
 }
 
+// --- Rib tests (M5b) ---
+
+TEST_CASE("rib adds material to a box", "[CadDocument][rib]")
+{
+    using Catch::Matchers::WithinRel;
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+
+    // Build a box: 40x40x10 extruded on XY -> z=[0,10]
+    int sk_box = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
+                                40, 40, 10, "Box");
+    doc.add_extrude(sk_box, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    double Vbox = double(doc.display_mesh.volume());
+    REQUIRE(Vbox > 0.0);
+
+    // Sketch a single open Line across the box footprint, on the same XY plane.
+    // Line from (5,20) to (35,20), centred in Y but off-centre in X.
+    std::vector<SketchEntity> ents = {
+        {SketchEntity::Type::Line, Vec2d(5, 20), Vec2d(35, 20)},
+    };
+    int sk_rib = doc.add_sketch_entities(ents, SketchPlane::XY(), "RibLine");
+    REQUIRE(sk_rib >= 0);
+
+    int fi = doc.add_rib(sk_rib, 0, 3.0, 12.0, 0, "Rib");
+    REQUIRE(fi >= 0);
+    REQUIRE(doc.features[fi].type == CadFeatureType::Rib);
+
+    bool ok = doc.recompute();
+    REQUIRE(ok);
+    REQUIRE(doc.error.empty());
+    // The rib fused extra material -> volume must be strictly larger.
+    double Vrib = double(doc.display_mesh.volume());
+    REQUIRE(Vrib > Vbox);
+
+    // A rib with a bad sketch ref must fail cleanly, not crash.
+    CadDocument bad;
+    bad.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    bad.add_extrude(0, 10.0, false, BooleanMode::New, "E");
+    REQUIRE(bad.recompute());
+    bad.add_rib(999, 0, 3.0, 10.0, 0, "BadRib");
+    REQUIRE_FALSE(bad.recompute());
+}
+
+TEST_CASE("rib non-line entity rejected safely", "[CadDocument][rib]")
+{
+    using Catch::Matchers::Contains;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+
+    // Sketch with a Circle entity (not a Line)
+    std::vector<SketchEntity> ents = {
+        {SketchEntity::Type::Circle, Vec2d(0, 0), Vec2d(0, 0), Vec2d(0, 0), 5.0},
+    };
+    int sk2 = doc.add_sketch_entities(ents, SketchPlane::XY(), "CircleSketch");
+    doc.add_rib(sk2, 0, 2.0, 10.0, 0, "BadRib");
+
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_FALSE(doc.error.empty());
+    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("rib"));
+}
+
+TEST_CASE("rib round-trip serialization", "[CadDocument][rib]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 40, 40, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+
+    std::vector<SketchEntity> ents = {
+        {SketchEntity::Type::Line, Vec2d(5, 20), Vec2d(35, 20)},
+    };
+    int sk2 = doc.add_sketch_entities(ents, SketchPlane::XY(), "RibLine");
+    doc.add_rib(sk2, 0, 3.0, 12.0, 0, "Rib");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    size_t nb = doc.bodies.size();
+    double Vdoc = double(doc.display_mesh.volume());
+
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument fresh;
+    REQUIRE(fresh.deserialize_recipe(blob));
+    REQUIRE(fresh.bodies.size() == nb);
+    double Vfresh = double(fresh.display_mesh.volume());
+    REQUIRE_THAT(Vfresh, WithinAbs(Vdoc, 1e-6));
+
+    // Find the rib feature and check its fields survived.
+    const CadFeature* rf = nullptr;
+    for (const auto& f : fresh.features) {
+        if (f.type == CadFeatureType::Rib) { rf = &f; break; }
+    }
+    REQUIRE(rf != nullptr);
+    REQUIRE_THAT(rf->rib_thickness, WithinAbs(3.0, 1e-9));
+    REQUIRE_THAT(rf->rib_depth,     WithinAbs(12.0, 1e-9));
+}
+
 // --- Bridge tests (M3c) ---
 
 TEST_CASE("bridge two collinear lines", "[CadDocument][bridge]")
