@@ -68,7 +68,7 @@ typedef std::string (*func_build_login_info)(void *agent);
 typedef int (*func_ping_bind)(void *agent, std::string ping_code);
 typedef int (*func_bind_detect)(void *agent, std::string dev_ip, std::string sec_link, detectResult& detect);
 typedef int (*func_set_server_callback)(void *agent, OnServerErrFn fn);
-typedef int (*func_bind)(void *agent, std::string dev_ip, std::string dev_id, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn);
+typedef int (*func_bind)(void *agent, std::string dev_ip, std::string dev_id, std::string dev_model, std::string sec_link, std::string timezone, bool improved, OnUpdateStatusFn update_fn);
 typedef int (*func_unbind)(void *agent, std::string dev_id);
 typedef std::string (*func_get_bambulab_host)(void *agent);
 typedef std::string (*func_get_user_selected_machine)(void *agent);
@@ -127,6 +127,19 @@ typedef int (*func_start_local_print_legacy)(void *agent, PrintParams_Legacy par
 typedef int (*func_start_sdcard_print_legacy)(void* agent, PrintParams_Legacy params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn);
 typedef int (*func_send_message_legacy)(void* agent, std::string dev_id, std::string json_str, int qos);
 typedef int (*func_send_message_to_printer_legacy)(void* agent, std::string dev_id, std::string json_str, int qos);
+
+// Added by the 02.08.01.52 plugin ABI (null on older plugins).
+typedef int (*func_set_on_user_login_fn)(void *agent, OnUserLoginFn fn);
+typedef std::string (*func_get_studio_info_url)(void *agent);
+typedef int (*func_report_consent)(void *agent, std::string expand);
+typedef int (*func_get_camera_url_for_golive)(void *agent, std::string dev_id, std::string sdev_id, std::function<void(std::string)> callback);
+typedef int (*func_get_hms_snapshot)(void *agent, std::string& dev_id, std::string& file_name, std::function<void(std::string, int)> callback);
+typedef int (*func_get_filament_spools)(void *agent, FilamentQueryParams params, std::string* http_body);
+typedef int (*func_create_filament_spool)(void *agent, std::string request_body, std::string* http_body);
+typedef int (*func_update_filament_spool)(void *agent, std::string spool_id, std::string request_body, std::string* http_body);
+typedef int (*func_delete_filament_spools)(void *agent, FilamentDeleteParams params, std::string* http_body);
+typedef int (*func_get_filament_config)(void *agent, std::string* http_body);
+typedef int (*func_sync_ams_filaments)(void *agent, AmsSyncParams params, std::string* http_body);
 
 /**
  * BBLNetworkPlugin - Singleton managing the Bambu Lab network DLL.
@@ -247,6 +260,9 @@ public:
 
     static std::string get_libpath_in_current_directory(const std::string& library_name);
     static std::string get_versioned_library_path(const std::string& version);
+    // Path to load for a stored version: the exact file if present, else - for a bare series
+    // whose file the startup rename did not produce - the newest same-series build on disk.
+    static std::string resolve_library_path(const std::string& version);
     static bool versioned_library_exists(const std::string& version);
     static bool legacy_library_exists();
     static void remove_legacy_library();
@@ -372,6 +388,17 @@ public:
     func_get_model_mall_rating_result get_get_model_mall_rating_result() const { return m_get_model_mall_rating_result; }
     func_get_mw_user_preference get_get_mw_user_preference() const { return m_get_mw_user_preference; }
     func_get_mw_user_4ulist get_get_mw_user_4ulist() const { return m_get_mw_user_4ulist; }
+    func_set_on_user_login_fn get_set_on_user_login_fn() const { return m_set_on_user_login_fn; }
+    func_get_studio_info_url get_get_studio_info_url() const { return m_get_studio_info_url; }
+    func_report_consent get_report_consent() const { return m_report_consent; }
+    func_get_camera_url_for_golive get_get_camera_url_for_golive() const { return m_get_camera_url_for_golive; }
+    func_get_hms_snapshot get_get_hms_snapshot() const { return m_get_hms_snapshot; }
+    func_get_filament_spools get_get_filament_spools() const { return m_get_filament_spools; }
+    func_create_filament_spool get_create_filament_spool() const { return m_create_filament_spool; }
+    func_update_filament_spool get_update_filament_spool() const { return m_update_filament_spool; }
+    func_delete_filament_spools get_delete_filament_spools() const { return m_delete_filament_spools; }
+    func_get_filament_config get_get_filament_config() const { return m_get_filament_config; }
+    func_sync_ams_filaments get_sync_ams_filaments() const { return m_sync_ams_filaments; }
 
     // ========================================================================
     // Legacy Helper
@@ -506,6 +533,17 @@ private:
     func_get_model_mall_rating_result m_get_model_mall_rating_result{nullptr};
     func_get_mw_user_preference m_get_mw_user_preference{nullptr};
     func_get_mw_user_4ulist m_get_mw_user_4ulist{nullptr};
+    func_set_on_user_login_fn m_set_on_user_login_fn{nullptr};
+    func_get_studio_info_url m_get_studio_info_url{nullptr};
+    func_report_consent m_report_consent{nullptr};
+    func_get_camera_url_for_golive m_get_camera_url_for_golive{nullptr};
+    func_get_hms_snapshot m_get_hms_snapshot{nullptr};
+    func_get_filament_spools m_get_filament_spools{nullptr};
+    func_create_filament_spool m_create_filament_spool{nullptr};
+    func_update_filament_spool m_update_filament_spool{nullptr};
+    func_delete_filament_spools m_delete_filament_spools{nullptr};
+    func_get_filament_config m_get_filament_config{nullptr};
+    func_sync_ams_filaments m_sync_ams_filaments{nullptr};
 };
 
 } // namespace Slic3r

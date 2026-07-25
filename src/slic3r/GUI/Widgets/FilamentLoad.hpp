@@ -35,6 +35,10 @@ protected:
 
 public:
     std::map<FilamentStep, wxString> FILAMENT_CHANGE_STEP_STRING;
+    // Labels for the device-numbered steps reported by the AMS (ams.cfs). Keyed by the device
+    // enum, separate from the legacy FilamentStep map above. Only used when the AMS provides a
+    // step list; empty AMS list falls back to the legacy sequences below.
+    std::map<DevFilamentStep, wxString> DEV_FILAMENT_CHANGE_STEP_STRING;
     AMSModel m_ams_model{ AMSModel::GENERIC_AMS };
     AMSModel m_ext_model{ AMSModel::AMS_LITE };
     AMSModel m_is_none_ams_mode{ AMSModel::AMS_LITE };
@@ -44,7 +48,7 @@ public:
     void SetFilamentStep(FilamentStep item_idx, FilamentStepType f_type);
     void ShowFilamentTip(bool hasams = true);
 
-    void SetupSteps(bool is_extrusion_exist);
+    void SetupSteps(MachineObject* obj_, bool is_extrusion_exist);
 
     void show_nofilament_mode(bool show);
     void updateID(int ams_id, int slot_id) { m_ams_id = ams_id; m_slot_id = slot_id; };

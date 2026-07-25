@@ -57,17 +57,13 @@ jobs:
   build_linux:
     strategy:
       fail-fast: false
-      # Build both arches on every event (PRs included), through the same
-      # build_check_cache -> build_deps -> build_orca chain (the AppImage).
-      # aarch64 always uses the GitHub-hosted arm runner (there is no arm
-      # self-hosted server). amd64's empty arch is load-bearing: it keeps the
-      # historical 'linux-clang' deps cache key and the unsuffixed asset names.
+      # SELF_HOSTED skips arm64 (no arm self-hosted server). amd64's empty arch
+      # is load-bearing: it keeps the historical 'linux-clang' deps cache key and
+      # the unsuffixed asset names.
       matrix:
-        include:
-          - arch: ""
-            os: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04' }}
-          - arch: "aarch64"
-            os: ubuntu-24.04-arm
+        include: ${{ fromJSON(vars.SELF_HOSTED
+          && '[{"arch":"","os":"orca-lnx-server"}]'
+          || '[{"arch":"","os":"ubuntu-24.04"},{"arch":"aarch64","os":"ubuntu-24.04-arm"}]') }}
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
@@ -80,18 +76,16 @@ jobs:
     name: Build Windows ${{ matrix.arch }}
     strategy:
       fail-fast: false
+      # SELF_HOSTED skips arm64 (the self-hosted Windows server is x64-only).
       matrix:
-        include:
-          - arch: x64
-            os: windows-latest
-          - arch: arm64
-            os: windows-11-arm
+        include: ${{ fromJSON(vars.SELF_HOSTED
+          && '[{"arch":"x64","os":"orca-win-server"}]'
+          || '[{"arch":"x64","os":"windows-latest"},{"arch":"arm64","os":"windows-11-arm"}]') }}
     # Don't run scheduled builds on forks:
     if: ${{ !cancelled() && (github.event_name != 'schedule' || github.repository == 'OrcaSlicer/OrcaSlicer') }}
     uses: ./.github/workflows/build_check_cache.yml
     with:
-      # Self-hosted runner is x64-only; ARM64 always uses the GitHub-hosted runner.
-      os: ${{ (matrix.arch == 'x64' && vars.SELF_HOSTED) && 'orca-win-server' || matrix.os }}
+      os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
       build-deps-only: ${{ inputs.build-deps-only || false }}
       force-build: ${{ github.event_name == 'schedule' }}
@@ -134,7 +128,7 @@ jobs:
   unit_tests_linux_aarch64:
     name: Linux aarch64
     needs: build_linux
-    if: ${{ !cancelled() && success() }}
+    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: ubuntu-24.04-arm
@@ -150,7 +144,7 @@ jobs:
   unit_tests_windows_arm64:
     name: Windows arm64
     needs: build_windows
-    if: ${{ !cancelled() && success() }}
+    if: ${{ !cancelled() && success() && !vars.SELF_HOSTED }}
     uses: ./.github/workflows/unit_tests.yml
     with:
       os: windows-11-arm
@@ -165,6 +159,30 @@ jobs:
       os: ${{ vars.SELF_HOSTED && 'orca-macos-arm64' || 'macos-14' }}
       artifact: ${{ github.sha }}-tests-macos-arm64
       test-dir: build/arm64/tests
+  # Slice a two-colour cube through every shipped printer so all custom g-code
+  # (change_filament_gcode, machine start/end, etc.) is expanded - catches
+  # slicing regressions the static profile checks and unit tests can't see.
+  # Profile-only PRs are covered by check_profiles.yml's nightly binary; this
+  # covers src/engine PRs with the PR-built binary.
+  slice_check_linux:
+    name: Slice check (Linux ${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }})
+    needs: build_linux
+    if: ${{ !cancelled() && success() }}
+    # Follows whichever Linux leg built the validator.
+    runs-on: ${{ vars.SELF_HOSTED && 'orca-lnx-server' || 'ubuntu-24.04-arm' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Download profile validator
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ github.sha }}-profile-validator-linux-${{ vars.SELF_HOSTED && 'x86_64' || 'aarch64' }}
+          path: validator-bin
+      - name: Validate slice (expand custom g-code)
+        timeout-minutes: 60
+        run: |
+          chmod +x validator-bin/OrcaSlicer_profile_validator
+          ./validator-bin/OrcaSlicer_profile_validator -p "${{ github.workspace }}/resources/profiles" -s -l 2
   publish_test_results:
     name: Publish Test Results
     needs: [unit_tests_linux_x86_64, unit_tests_linux_aarch64, unit_tests_windows_x64, unit_tests_windows_arm64, unit_tests_macos_arm64]

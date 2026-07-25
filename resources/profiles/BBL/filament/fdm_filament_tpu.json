@@ -46,6 +46,30 @@
 	"filament_adhesiveness_category": [
 		"600"
 	],
+    "filament_dev_ams_drying_time": [
+        "12",
+        "18",
+        "12",
+        "18"
+    ],
+    "filament_dev_chamber_drying_time": [
+        "16"
+    ],
+    "filament_dev_ams_drying_heat_distortion_temperature": [
+        "45"
+    ],
+    "filament_dev_drying_cooling_temperature": [
+        "40"
+    ],
+    "filament_dev_ams_drying_temperature": [
+        "65",
+        "75",
+        "45",
+        "45"
+    ],
+    "filament_dev_drying_softening_temperature": [
+        "50"
+    ],
 	"hot_plate_temp": [
 		"35"
 	],

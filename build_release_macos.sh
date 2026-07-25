@@ -179,6 +179,66 @@ function pack_deps() {
     )
 }
 
+# codesign cannot seal the runtime's dotted directories (include/python3.12,
+# lib/python3.12) anywhere under Contents/MacOS -- it mistakes any dotted
+# directory there for a nested bundle and fails with "bundle format
+# unrecognized" -- so packaged apps ship the runtime under Contents/Resources
+# with a compatibility symlink that keeps every Contents/MacOS/python path and
+# the @executable_path/python/lib rpath resolving unchanged.
+function relocate_python_runtime() {
+    local app="$1"
+    local pydir="$app/Contents/MacOS/python"
+    if [ -d "$pydir" ] && [ ! -L "$pydir" ]; then
+        rm -rf "$app/Contents/Resources/python"
+        mv "$pydir" "$app/Contents/Resources/python"
+        ln -s ../Resources/python "$pydir"
+    fi
+}
+
+# --- Bundled Python runtime verification --------------------------------------
+# Relocation is handled at the source: deps/python3/python3.cmake stamps
+# libpython with an @rpath id and src/CMakeLists.txt gives the app a matching
+# rpath. This gate catches regressions that would otherwise only surface as
+# launch failures on end users' machines (the absolute deps path still exists
+# on the build host, so a plain run can pass while relocation is broken --
+# hence the otool checks). The x86_64 leg runs under Rosetta on arm64 hosts.
+function verify_python_runtime() {
+    local app="$1"
+    local pydir="$app/Contents/MacOS/python"
+    [ -d "$pydir" ] || return 0  # app doesn't bundle Python (e.g. profile validator)
+    if [ ! -L "$pydir" ]; then
+        echo "ERROR: Contents/MacOS/python must be a symlink into Contents/Resources" >&2
+        echo "       (see relocate_python_runtime in this script)" >&2
+        exit 1
+    fi
+    # Version-agnostic interpreter name so a CPython version bump cannot
+    # silently skip the gate; if the dir exists the interpreter must too.
+    local pybin="$pydir/bin/python3"
+    if [ ! -x "$pybin" ]; then
+        echo "ERROR: bundled python/ present but no interpreter at $pybin" >&2
+        exit 1
+    fi
+    echo "  Verifying bundled Python runtime in $(basename "$app")..."
+    local bad
+    bad=$(otool -arch all -L "$pybin" "$app/Contents/MacOS/OrcaSlicer" | grep "libpython" | grep -v "@rpath/" || true)
+    if [ -n "$bad" ]; then
+        echo "ERROR: a bundled binary references libpython by absolute path (relocation regression):" >&2
+        echo "$bad" >&2
+        exit 1
+    fi
+    # otool -L shows load commands only; assert the consumer rpath separately.
+    # Its loss is masked on the build host by CMake's absolute build-tree rpath.
+    if ! otool -arch all -l "$app/Contents/MacOS/OrcaSlicer" | grep -q "path @executable_path/python/lib "; then
+        echo "ERROR: OrcaSlicer lacks the @executable_path/python/lib rpath (relocation regression)" >&2
+        exit 1
+    fi
+    if ! "$pybin" -c "import ssl"; then
+        echo "ERROR: bundled Python failed to start (libpython relocation broken," >&2
+        echo "       or missing Rosetta 2 for the x86_64 leg?)" >&2
+        exit 1
+    fi
+}
+
 function build_slicer() {
     # iterate over two architectures: x86_64 and arm64
     for _ARCH in x86_64 arm64; do
@@ -234,8 +294,11 @@ function build_slicer() {
             resources_path=$(readlink ./OrcaSlicer.app/Contents/Resources)
             rm ./OrcaSlicer.app/Contents/Resources
             cp -R "$resources_path" ./OrcaSlicer.app/Contents/Resources
+            relocate_python_runtime ./OrcaSlicer.app
             # delete .DS_Store file
             find ./OrcaSlicer.app/ -name '.DS_Store' -delete
+
+            verify_python_runtime ./OrcaSlicer.app
             
             # Copy OrcaSlicer_profile_validator.app if it exists
             if [ -f "../src$BUILD_DIR_CONFIG_SUBDIR/OrcaSlicer_profile_validator.app/Contents/MacOS/OrcaSlicer_profile_validator" ]; then
@@ -244,6 +307,7 @@ function build_slicer() {
                 cp -pR "../src$BUILD_DIR_CONFIG_SUBDIR/OrcaSlicer_profile_validator.app" ./OrcaSlicer_profile_validator.app
                 # delete .DS_Store file
                 find ./OrcaSlicer_profile_validator.app/ -name '.DS_Store' -delete
+                verify_python_runtime ./OrcaSlicer_profile_validator.app
             fi
         )
 
@@ -299,6 +363,7 @@ function build_universal() {
     echo "Creating universal binaries for OrcaSlicer.app..."
     lipo_dir "$UNIVERSAL_APP" "$X86_64_APP"
     echo "Universal OrcaSlicer.app created at $UNIVERSAL_APP"
+    verify_python_runtime "$UNIVERSAL_APP"
 
     # Create universal binary for profile validator if it exists
     ARM64_VALIDATOR="$PROJECT_DIR/build/arm64/OrcaSlicer/OrcaSlicer_profile_validator.app"

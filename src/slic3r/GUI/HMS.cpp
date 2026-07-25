@@ -12,9 +12,10 @@ static const char* HMS_PATH = "hms";
 static const char* HMS_LOCAL_IMG_PATH = "hms/local_image";
 
 // the local HMS info
+// Orca: dev-id-type set trimmed to the devices Orca ships local HMS images for
 static unordered_set<string> package_dev_id_types {"094", "239", "093", "22E"};
 
-// HMS should be disabled when stealth mode is on or networking is not installed
+// Orca: HMS should be disabled when stealth mode is on or networking is not installed
 static bool should_disable_hms()
 {
     Slic3r::AppConfig* config = Slic3r::GUI::wxGetApp().app_config;
@@ -251,7 +252,7 @@ int HMSQuery::save_to_local(std::string lang, std::string hms_type, std::string 
     std::string dir_str = (hms_folder / filename).make_preferred().string();
     std::ofstream json_file(encode_path(dir_str.c_str()));
     if (json_file.is_open()) {
-        json_file << save_json.dump(1, '\t') << std::endl;
+        json_file << save_json.dump(1, '\t') << std::endl; // Orca: tab-indented dump
         json_file.close();
         return 0;
     }
@@ -266,9 +267,15 @@ std::string HMSQuery::hms_language_code()
         // set language code to en by default
         return "en";
     std::string lang_code = wxGetApp().app_config->get_language_code();
+    // Orca: the HMS host ships no catalog for these locales, so fall back to english to avoid empty texts + retries
     if (lang_code.compare("uk") == 0
         || lang_code.compare("cs") == 0
-        || lang_code.compare("ru") == 0) {
+        || lang_code.compare("ru") == 0
+        || lang_code.compare("tr") == 0
+        || lang_code.compare("pt") == 0
+        || lang_code.compare("ko") == 0
+        )
+    {
         BOOST_LOG_TRIVIAL(info) << "HMS: using english for lang_code = " << lang_code;
         return "en";
     }
@@ -577,6 +584,7 @@ wxImage HMSQuery::query_image_from_local(const wxString& image_name)
             {
                 const fs::path& image_path = entry.path();
                 const fs::path& image_name = fs::relative(image_path, local_img_dir);
+                // Orca: from_path() for correct UTF-8 path encoding
                 m_hms_local_images[from_path(image_name)] = wxImage(from_path(image_path));
             }
         }

@@ -86,6 +86,27 @@ TEST_CASE("Per-object skirts group when objects are close", "[SkirtBrim]")
     }
 }
 
+TEST_CASE("Per-object skirt is generated per instance", "[SkirtBrim]")
+{
+    Print print;
+    Model model;
+    place_two_cube_instances_apart(60, {
+        { "skirt_type",     "perobject" },
+        { "skirt_height",   1 },
+        { "skirt_distance", 2 },
+        { "skirt_loops",    1 },
+        { "brim_type",      "no_brim" },
+    }, print, model);
+    print.process();
+
+    REQUIRE(print.skirt_brim_groups().size() == 2);
+    REQUIRE(print.skirt().items_count() == 2);
+    for (const Print::SkirtBrimGroup &group : print.skirt_brim_groups()) {
+        REQUIRE(group.instances.size() == 1);
+        REQUIRE(group.instances.front().object_id == print.get_object(0)->id());
+    }
+}
+
 TEST_CASE("Combine brims merges touching brims", "[SkirtBrim]")
 {
     auto [gap, combine, expected_brims] = GENERATE(table<double, int, int>({
@@ -110,6 +131,45 @@ TEST_CASE("Combine brims merges touching brims", "[SkirtBrim]")
         print.process();
         CHECK(brim_count(print) == expected_brims);
     }
+}
+
+TEST_CASE("Object brims are generated per instance", "[SkirtBrim]")
+{
+    Print print;
+    Model model;
+    place_two_cube_instances_apart(60, {
+        { "skirt_loops",   0 },
+        { "brim_type",     "outer_only" },
+        { "brim_width",    5 },
+        { "combine_brims", 0 },
+    }, print, model);
+    print.process();
+
+    REQUIRE(print.skirt_brim_groups().size() == 1);
+    REQUIRE(print.skirt_brim_groups().front().brims.size() == 2);
+    for (const Print::SkirtBrimGroup::Brim &brim : print.skirt_brim_groups().front().brims) {
+        REQUIRE(brim.instances.size() == 1);
+        REQUIRE(brim.instances.front().object_id == print.get_object(0)->id());
+    }
+}
+
+TEST_CASE("Combine brims merges neighboring object instances", "[SkirtBrim]")
+{
+    Print print;
+    Model model;
+    place_two_cube_instances_apart(5, {
+        { "skirt_loops",   0 },
+        { "brim_type",     "outer_only" },
+        { "brim_width",    5 },
+        { "combine_brims", 1 },
+    }, print, model);
+    print.process();
+
+    REQUIRE(print.skirt_brim_groups().size() == 1);
+    REQUIRE(print.skirt_brim_groups().front().brims.size() == 1);
+    REQUIRE(print.skirt_brim_groups().front().brims.front().instances.size() == 2);
+    const std::vector<std::string> expected{ "brim", "perimeter" };
+    CHECK(role_sequence(gcode(print), { "brim", "perimeter" }) == expected);
 }
 
 // Each object's skirt and brim come right before that object, not all skirts then all brims first.

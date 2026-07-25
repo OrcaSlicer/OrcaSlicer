@@ -22,7 +22,7 @@ struct Params
         : /*max_acceleration(max_acceleration), */raft_layers_count(raft_layers_count), brim_type(brim_type), brim_width(brim_width)
     {
         if (filament_types.size() > 1) {
-            BOOST_LOG_TRIVIAL(warning)
+            BOOST_LOG_TRIVIAL(debug)
                 << "SupportSpotsGenerator does not currently handle different materials properly, only first will be used";
         }
         if (filament_types.empty() || filament_types[0].empty()) {

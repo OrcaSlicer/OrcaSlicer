@@ -923,7 +923,6 @@ public:
     //Orca: cache clearing procedure to ensure that the shape is positioned accurately when manipulating it
     void clear_cache() {
         m_cached_trans_matrix = Transform3d::Identity().inverse(); // get unvelivable matrix
-        m_cached_volume_bbox.reset();
         m_convex_hull_2d.clear();
         m_cached_2d_polygon.clear();
     };
@@ -968,9 +967,6 @@ public:
 
     // Get count of errors in the mesh
     int                 get_repaired_errors_count() const;
-
-    BoundingBox get_volume_bbox(const Transform3d &matrix, Point &shift, bool apply_cache);
-    void        reset_volume_bbox() { m_cached_volume_bbox.reset(); };
 
     // Helpers for loading / storing into AMF / 3MF files.
     static ModelVolumeType type_from_string(const std::string &s);
@@ -1059,9 +1055,6 @@ private:
     mutable Transform3d                 m_cached_trans_matrix; //BBS, used for convex_hell_2d acceleration
     mutable Polygon                     m_cached_2d_polygon;   //BBS, used for convex_hell_2d acceleration
     Geometry::Transformation        	m_transformation;
-    mutable BoundingBox                 m_cached_volume_bbox; //Orca: used for separated infills
-    mutable Transform3d                 m_cached_volume_bbox_matrix{Transform3d::Identity()}; //Orca: cache key for m_cached_volume_bbox
-    mutable Point                       m_cached_volume_bbox_shift{Point(0, 0)}; //Orca: cache key for m_cached_volume_bbox
 
     //BBS: add convex_hell_2d related logic
     void  calculate_convex_hull_2d(const Geometry::Transformation &transformation) const;

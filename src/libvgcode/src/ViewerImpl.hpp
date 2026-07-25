@@ -85,6 +85,10 @@ public:
     bool is_top_layer_only_view_range() const { return m_settings.top_layer_only_view_range; }
     void toggle_top_layer_only_view_range();
 
+    // ORCA: darken layers below the current top layer while scrubbing (ported from preFlight)
+    bool is_dim_previous_layers() const { return m_settings.dim_previous_layers; }
+    void set_dim_previous_layers(bool value);
+
     bool is_spiral_vase_mode() const { return m_settings.spiral_vase_mode; }
 
     std::vector<ETimeMode> get_time_modes() const;

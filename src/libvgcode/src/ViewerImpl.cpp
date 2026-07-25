@@ -1223,6 +1223,20 @@ static float encode_color(const Color& color) {
     return static_cast<float>(i_color);
 }
 
+// ORCA: how much the layers below the current top layer are darkened when
+// Settings::dim_previous_layers is enabled (ported from preFlight). 0.0 = no change, 1.0 = black.
+static constexpr float PREVIOUS_LAYER_DARKEN_FACTOR = 0.60f;
+
+// ORCA: returns the encoded color scaled towards black by 'factor', preserving its hue
+static float encode_color_darkened(const Color& color, float factor) {
+    const float keep = 1.0f - factor;
+    const int r = static_cast<int>(color[0] * keep);
+    const int g = static_cast<int>(color[1] * keep);
+    const int b = static_cast<int>(color[2] * keep);
+    const int i_color = r << 16 | g << 8 | b;
+    return static_cast<float>(i_color);
+}
+
 
 void ViewerImpl::update_colors_texture()
 {
@@ -1234,14 +1248,30 @@ void ViewerImpl::update_colors_texture()
     const size_t top_layer_id = m_settings.top_layer_only_view_range ? m_layers.get_view_range()[1] : 0;
     const bool color_top_layer_only = m_view_range.get_full()[1] != m_view_range.get_visible()[1];
 
+    // ORCA: when dim_previous_layers is enabled, darken every layer below the current top layer
+    // (keeping its color) whenever we are not rendering the whole print, so that only the layer
+    // being scrubbed to is shown at full brightness (ported from preFlight). This shares
+    // top_layer_id with the greying path, so it only applies while in top-layer-only mode - that
+    // way the moves slider still animates normally across all layers when that mode is disabled.
+    const bool dim_previous_layers = m_settings.dim_previous_layers && !m_layers.empty();
+    const bool full_render = (m_layers.get_view_range()[0] == 0) &&
+                             (m_layers.get_view_range()[1] >= static_cast<uint32_t>(m_layers.count()) - 1) &&
+                             (m_view_range.get_visible()[1] == m_view_range.get_full()[1]);
+
     // Based on current settings and slider position, we might want to render some
-    // vertices as dark grey. Use either that or the normal color (from the cache).
+    // vertices as dark grey (or darkened, see above). Use either that or the normal color (from the cache).
     std::vector<float> colors(m_vertices_colors.size());
     assert(colors.size() == m_vertices.size() && m_vertices_colors.size() == m_vertices.size());
-    for (size_t i=0; i<m_vertices.size(); ++i)
-        colors[i] = (color_top_layer_only && m_vertices[i].layer_id < top_layer_id &&
-                    (!m_settings.spiral_vase_mode || i != m_view_range.get_enabled()[0])) ?
-                    encode_color(DUMMY_COLOR) : m_vertices_colors[i];
+    for (size_t i=0; i<m_vertices.size(); ++i) {
+        const PathVertex& v = m_vertices[i];
+        const bool keep_spiral_seam = m_settings.spiral_vase_mode && i == m_view_range.get_enabled()[0];
+        if (dim_previous_layers && !full_render && v.layer_id < top_layer_id && !keep_spiral_seam)
+            colors[i] = encode_color_darkened(get_vertex_color(v), PREVIOUS_LAYER_DARKEN_FACTOR);
+        else if (color_top_layer_only && v.layer_id < top_layer_id && !keep_spiral_seam)
+            colors[i] = encode_color(DUMMY_COLOR);
+        else
+            colors[i] = m_vertices_colors[i];
+    }
 
     #ifdef ENABLE_OPENGL_ES
         if (!colors.empty())
@@ -1347,6 +1377,17 @@ void ViewerImpl::toggle_top_layer_only_view_range()
     m_settings.update_enabled_entities = true;
     //m_settings.update_colors = true;
     update_colors_texture();
+}
+
+// ORCA: enable/disable darkening of the layers below the current top layer (ported from preFlight)
+void ViewerImpl::set_dim_previous_layers(bool value)
+{
+    if (m_settings.dim_previous_layers == value)
+        return;
+    m_settings.dim_previous_layers = value;
+    // defer the actual color/texture rebuild to the next render(), when the GL context is current
+    // (this may be toggled from the Preferences dialog, outside the canvas context)
+    m_settings.update_colors = true;
 }
 
 std::vector<ETimeMode> ViewerImpl::get_time_modes() const

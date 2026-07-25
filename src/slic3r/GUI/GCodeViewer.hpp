@@ -333,6 +333,10 @@ public:
 
     libvgcode::EViewType get_view_type() const { return m_viewer.get_view_type(); }
 
+    // ORCA: darken layers below the current top layer while scrubbing the preview (ported from preFlight)
+    void set_dim_previous_layers(bool value) { m_viewer.set_dim_previous_layers(value); }
+    bool is_dim_previous_layers() const { return m_viewer.is_dim_previous_layers(); }
+
     void set_layers_z_range(const std::array<unsigned int, 2>& layers_z_range);
 
     bool is_legend_shown() const { return m_legend_visible && m_legend_enabled; }

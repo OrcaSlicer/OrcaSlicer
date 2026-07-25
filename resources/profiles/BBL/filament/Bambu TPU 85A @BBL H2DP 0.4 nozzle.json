@@ -1,0 +1,101 @@
+{
+	"type": "filament",
+	"name": "Bambu TPU 85A @BBL H2DP 0.4 nozzle",
+	"inherits": "Bambu TPU 85A @base",
+	"from": "system",
+	"setting_id": "GFSU04_20",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"100"
+	],
+	"eng_plate_temp": [
+		"35"
+	],
+	"eng_plate_temp_initial_layer": [
+		"35"
+	],
+	"filament_cooling_before_tower": [
+		"10"
+	],
+	"filament_cost": [
+		"41.99"
+	],
+	"filament_density": [
+		"1.22"
+	],
+	"filament_deretraction_speed": [
+		"50"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive TPU High Flow"
+	],
+	"filament_flow_ratio": [
+		"1.1"
+	],
+	"filament_long_retractions_when_cut": [
+		"0"
+	],
+	"filament_max_volumetric_speed": [
+		"2.5"
+	],
+	"filament_pre_cooling_temperature": [
+		"195"
+	],
+	"filament_printable": [
+		"2"
+	],
+	"filament_ramming_travel_time": [
+		"20"
+	],
+	"filament_ramming_volumetric_speed": [
+		"0.55"
+	],
+	"filament_retraction_length": [
+		"2.3"
+	],
+	"filament_retraction_speed": [
+		"20"
+	],
+	"filament_wipe": [
+		"1"
+	],
+	"filament_wipe_distance": [
+		"1"
+	],
+	"filament_z_hop": [
+		"0.6"
+	],
+	"filament_z_hop_types": [
+		"Auto Lift"
+	],
+	"impact_strength_z": [
+		"88.7"
+	],
+	"long_retractions_when_ec": [
+		"1"
+	],
+	"nozzle_temperature": [
+		"230"
+	],
+	"nozzle_temperature_initial_layer": [
+		"230"
+	],
+	"nozzle_temperature_range_high": [
+		"250"
+	],
+	"slow_down_layer_time": [
+		"14"
+	],
+	"slow_down_min_speed": [
+		"30"
+	],
+	"compatible_printers": [
+		"Bambu Lab H2D Pro 0.4 nozzle"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\n"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	]
+}

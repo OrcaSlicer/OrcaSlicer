@@ -24,27 +24,37 @@ namespace Slic3r
 
         DevPrinterConfigUtil::InitFilePath(resources_dir());
 
-        // Load saved local machines
+        // Load saved local machines (needs an agent; when built without one the load is
+        // deferred to set_agent()).
         if (agent) {
-            AppConfig*  config         = GUI::wxGetApp().app_config;
-            const auto local_machines = config->get_local_machines();
-            for (auto& it : local_machines) {
-                const auto&    m         = it.second;
-                MachineObject* obj       = new MachineObject(this, m_agent, m.dev_name, m.dev_id, m.dev_ip);
-                obj->printer_type        = m.printer_type;
-                obj->dev_connection_type = "lan";
-                obj->bind_state          = "free";
-                obj->bind_sec_link       = "secure";
-                obj->m_is_online         = true;
-                obj->last_alive          = Slic3r::Utils::get_current_time_utc();
-                obj->set_access_code(config->get("access_code", m.dev_id), false);
-                obj->set_user_access_code(config->get("user_access_code", m.dev_id), false);
-                if (obj->has_access_right()) {
-                    localMachineList.insert(std::make_pair(m.dev_id, obj));
-                } else {
-                    config->erase_local_machine(m.dev_id);
-                    delete obj;
-                }
+            load_local_machines_from_config();
+        }
+    }
+
+    void DeviceManager::load_local_machines_from_config()
+    {
+        AppConfig* config = GUI::wxGetApp().app_config;
+        if (!config)
+            return;
+        const auto local_machines = config->get_local_machines();
+        for (auto& it : local_machines) {
+            const auto& m = it.second;
+            if (localMachineList.count(m.dev_id))
+                continue;
+            MachineObject* obj       = new MachineObject(this, m_agent, m.dev_name, m.dev_id, m.dev_ip);
+            obj->printer_type        = m.printer_type;
+            obj->dev_connection_type = "lan";
+            obj->bind_state          = "free";
+            obj->bind_sec_link       = "secure";
+            obj->m_is_online         = true;
+            obj->last_alive          = Slic3r::Utils::get_current_time_utc();
+            obj->set_access_code(config->get("access_code", m.dev_id), false);
+            obj->set_user_access_code(config->get("user_access_code", m.dev_id), false);
+            if (obj->has_access_right()) {
+                localMachineList.insert(std::make_pair(m.dev_id, obj));
+            } else {
+                config->erase_local_machine(m.dev_id);
+                delete obj;
             }
         }
     }
@@ -98,6 +108,11 @@ namespace Slic3r
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": updating agent for "
                                 << localMachineList.size() << " local and "
                                 << userMachineList.size() << " user machines";
+
+        // First real agent after an agent-less construction (network plugin wasn't ready at
+        // startup): run the persisted-LAN-printer load the constructor had to skip. See
+        // load_local_machines_from_config().
+        const bool first_real_agent = (m_agent == nullptr && agent != nullptr);
         m_agent = agent;
 
         std::lock_guard<std::mutex> lock(listMutex);
@@ -110,6 +125,10 @@ namespace Slic3r
             if (it.second) {
                 it.second->set_agent(agent);
             }
+        }
+
+        if (first_real_agent) {
+            load_local_machines_from_config();
         }
     }
 
@@ -539,6 +558,7 @@ namespace Slic3r
             }
             else
             {
+                Slic3r::GUI::wxGetApp().reset_unsigned_plugin_warning();
                 if (m_agent)
                 {
                     if (it->second->connection_type() != "lan" || it->second->connection_type().empty())
@@ -572,6 +592,7 @@ namespace Slic3r
         }
 
         selected_machine = dev_id;
+        record_user_last_machine(selected_machine);
         return true;
     }
 
@@ -834,21 +855,39 @@ namespace Slic3r
         }
     }
 
+    void DeviceManager::record_user_last_machine(const std::string& dev_id)
+    {
+        if (Slic3r::GUI::wxGetApp().app_config) {
+            Slic3r::GUI::wxGetApp().app_config->set("user_last_selected_machine", dev_id);
+        }
+    }
+
+    std::string DeviceManager::get_user_last_machine() const
+    {
+        if (Slic3r::GUI::wxGetApp().app_config) {
+            const auto& user_last_machine = Slic3r::GUI::wxGetApp().app_config->get("user_last_selected_machine");
+            if (!user_last_machine.empty()) {
+                return user_last_machine;
+            } else if (m_agent) {
+                return m_agent->get_user_selected_machine();
+            }
+        }
+
+        return "";
+    }
+
     void DeviceManager::load_last_machine()
     {
-        // Get all available machines, include cloud machines and lan machines that have access right
-        auto all_machines = get_my_machine_list();
-        if (all_machines.empty())
-            return;
-        
-        // Then connect to the machine we last selected if available
-        const std::string last_monitor_machine = m_agent ? m_agent->get_user_selected_machine() : "";
-        const auto        last_machine         = all_machines.find(last_monitor_machine);
-        if (last_machine != all_machines.end()) {
-            this->set_selected_machine(last_machine->second->get_dev_id());
+        if (userMachineList.empty()) return;
+        else if (userMachineList.size() == 1) {
+            this->set_selected_machine(userMachineList.begin()->second->get_dev_id());
         } else {
-            // If not, then select the first available one
-            this->set_selected_machine(all_machines.begin()->second->get_dev_id());
+            const auto& last_monitor_machine = get_user_last_machine();
+            if (userMachineList.find(last_monitor_machine) != userMachineList.end()) {
+                set_selected_machine(last_monitor_machine);
+            } else {
+                this->set_selected_machine(userMachineList.begin()->second->get_dev_id());
+            }
         }
     }
 
