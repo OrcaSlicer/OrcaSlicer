@@ -1210,6 +1210,42 @@ json action_helix(DesignPanel* panel, const json& params)
     return json{{"ok", true}, {"helix_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_set_variable(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("name")) throw std::runtime_error("set_variable needs 'name'");
+    if (!params.contains("expr")) throw std::runtime_error("set_variable needs 'expr'");
+    CadDocument& doc = panel->mcp_doc();
+    std::string name = params["name"].get<std::string>();
+    std::string expr = params["expr"].get<std::string>();
+    std::string old = doc.variables.count(name) ? doc.variables[name] : "";
+    doc.checkpoint();
+    doc.variables[name] = expr;
+    bool ok = doc.recompute();
+    if (!ok) { doc.undo(); }
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"name", name}, {"error", doc.error}};
+}
+
+json action_set_feature_expr(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("feature")) throw std::runtime_error("set_feature_expr needs 'feature' index");
+    if (!params.contains("field"))   throw std::runtime_error("set_feature_expr needs 'field' name");
+    if (!params.contains("expr"))    throw std::runtime_error("set_feature_expr needs 'expr' string");
+    CadDocument& doc = panel->mcp_doc();
+    int fi = params["feature"].get<int>();
+    if (fi < 0 || fi >= (int)doc.features.size())
+        return json{{"ok", false}, {"error", "feature index out of range"}};
+    std::string field = params["field"].get<std::string>();
+    std::string expr  = params["expr"].get<std::string>();
+    std::string old = doc.features[fi].expr.count(field) ? doc.features[fi].expr[field] : "";
+    doc.checkpoint();
+    doc.features[fi].expr[field] = expr;
+    bool ok = doc.recompute();
+    if (!ok) { doc.undo(); }
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"feature", fi}, {"field", field}, {"error", doc.error}};
+}
+
 // Dispatch one parsed request ON THE MAIN THREAD. Returns a JSON-RPC reply string.
 std::string handle_on_main(const std::string& method, const json& params, const json& id)
 {
@@ -1250,6 +1286,8 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "axis")           return rpc_result(id, action_axis(panel, params));
         if (method == "coordsys")       return rpc_result(id, action_coordsys(panel, params));
         if (method == "helix")          return rpc_result(id, action_helix(panel, params));
+        if (method == "set_variable")     return rpc_result(id, action_set_variable(panel, params));
+        if (method == "set_feature_expr") return rpc_result(id, action_set_feature_expr(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
         return rpc_error(id, -32000, std::string("OCCT: ") + (ex.GetMessageString() ? ex.GetMessageString() : "failure"));

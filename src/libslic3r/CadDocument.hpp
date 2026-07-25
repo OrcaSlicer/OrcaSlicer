@@ -11,6 +11,8 @@
 #include <cereal/cereal.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/types/string.hpp>
+#include <map>
+#include <cereal/types/map.hpp>
 #include <string>
 #include <vector>
 #include <utility>
@@ -179,6 +181,11 @@ struct CadFeature {
     int pattern_curve_sketch{-1};  // feature index of the Sketch holding the guide curve
     int pattern_curve_entity{-1};  // entity index of the guide curve within that sketch
 
+    // Parametric bindings: field-member-name -> expression string. On recompute() each entry
+    // is evaluated against the document variables and written into the named numeric field
+    // BEFORE geometry runs. Empty (the common case) means the feature uses its literal fields.
+    std::map<std::string, std::string> expr;
+
     // Datum/reference plane: a derived SketchPlane the document offers as a selectable
     // sketch plane (no solid). plane_base selects the reference (0=XY,1=XZ,2=YZ, or 3+N
     // = the Nth earlier datum plane); plane_offset shifts along the base normal;
@@ -321,8 +328,9 @@ struct CadFeature {
              delete_faces,
              hole_style, hole_cbore_diameter, hole_cbore_depth,
              hole_csink_diameter, hole_csink_angle, hole_standard,
-             rib_sketch_ref, rib_entity, rib_thickness, rib_depth,
-             pattern_curve_sketch, pattern_curve_entity);
+              rib_sketch_ref, rib_entity, rib_thickness, rib_depth,
+              pattern_curve_sketch, pattern_curve_entity,
+              expr);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -358,7 +366,8 @@ struct CadFeature {
                hole_style, hole_cbore_diameter, hole_cbore_depth,
                hole_csink_diameter, hole_csink_angle, hole_standard,
                rib_sketch_ref, rib_entity, rib_thickness, rib_depth,
-               pattern_curve_sketch, pattern_curve_entity);
+               pattern_curve_sketch, pattern_curve_entity,
+              expr);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -381,6 +390,9 @@ struct CadBody {
 class CadDocument {
 public:
     std::vector<CadFeature> features;
+    // Named document variables: name -> expression. Evaluated topologically each recompute();
+    // an expression may reference other variables. Feature `expr` bindings resolve against these.
+    std::map<std::string, std::string> variables;
     // Multi-body result of the last replay. A "New" extrude appends a body; other ops
     // mutate a target body. Empty after a failed/empty recompute.
     std::vector<CadBody>    bodies;

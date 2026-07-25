@@ -54,6 +54,7 @@
 #include <BRepGProp.hxx>
 #include <GProp_GProps.hxx>
 #include <cmath>
+#include <cctype>
 #include <stdexcept>
 #include <algorithm>
 #include <sstream>
@@ -158,6 +159,273 @@ static TopoDS_Wire make_thread_profile(const gp_Pnt& origin, const gp_Dir& xdir,
     gp_Pnt apex(origin.XYZ() + (vx * crest).XYZ());
     BRepBuilderAPI_MakePolygon poly(top, bot, apex, Standard_True);
     return poly.Wire();   // closed triangle, swept by MakePipeShell with a fixed binormal
+}
+
+// ---- expression evaluator (file-local) -------------------------------------
+// ponytail: self-contained shunting-yard arithmetic + function set for
+// parametric dimension expressions. Extend the function table if needed.
+
+// Evaluate an arithmetic expression to a double. Supports + - * /, parentheses,
+// unary minus, decimal literals, and identifiers resolved via `vars`. Functions:
+// sqrt, abs, sin, cos, tan (degrees), min, max, and the constant `pi`.
+// Throws std::runtime_error on any parse or lookup error, div-by-zero, bad arity.
+static double eval_expr(const std::string& src, const std::map<std::string, double>& vars)
+{
+    struct Token {
+        enum Type { Num, Id, Op, LParen, RParen, Comma };
+        Type type;
+        std::string val;
+        double num{0};
+    };
+    // precedence: 0=paren/comma, 1=+-, 2=*/, 3=unary-minus, 4=function
+    auto prec = [](char op, bool unary) -> int {
+        if (unary && op == 'u') return 3;
+        if (op == '+' || op == '-') return 1;
+        if (op == '*' || op == '/') return 2;
+        if (op == '(' || op == ')' || op == ',') return 0;
+        return 0;
+    };
+    auto is_op = [](char c) { return c == '+' || c == '-' || c == '*' || c == '/'; };
+
+    // ---- tokenise ----
+    std::vector<Token> tokens;
+    size_t i = 0;
+    bool prev_was_val = false; // tracked for unary-minus detection
+    while (i < src.size()) {
+        char c = src[i];
+        if (c == ' ' || c == '\t' || c == '\r' || c == '\n') { ++i; continue; }
+        if (c == '(') { tokens.push_back({Token::LParen, "("}); ++i; prev_was_val = false; continue; }
+        if (c == ')') { tokens.push_back({Token::RParen, ")"}); ++i; prev_was_val = true; continue; }
+        if (c == ',') { tokens.push_back({Token::Comma, ","}); ++i; prev_was_val = false; continue; }
+        if (isdigit(c) || c == '.') {
+            size_t start = i;
+            while (i < src.size() && (isdigit(src[i]) || src[i] == '.')) ++i;
+            Token t{Token::Num, src.substr(start, i - start)};
+            t.num = std::stod(t.val);
+            tokens.push_back(t);
+            prev_was_val = true;
+            continue;
+        }
+        if (isalpha(c) || c == '_') {
+            size_t start = i;
+            while (i < src.size() && (isalnum(src[i]) || src[i] == '_')) ++i;
+            std::string id = src.substr(start, i - start);
+            tokens.push_back({Token::Id, id});
+            prev_was_val = true;
+            continue;
+        }
+        if (is_op(c)) {
+            // unary minus detection
+            if (c == '-' && !prev_was_val) {
+                tokens.push_back({Token::Op, "u"});
+            } else {
+                tokens.push_back({Token::Op, std::string(1, c)});
+            }
+            ++i;
+            prev_was_val = false;
+            continue;
+        }
+        throw std::runtime_error("bad character in expression");
+    }
+
+    // ---- shunting-yard: infix -> RPN ----
+    std::vector<Token> rpn;
+    std::vector<Token> stack;
+    auto flush_paren = [&]() {
+        while (!stack.empty() && stack.back().type != Token::LParen) {
+            rpn.push_back(stack.back()); stack.pop_back();
+        }
+        if (stack.empty()) throw std::runtime_error("mismatched parentheses");
+        stack.pop_back(); // discard '('
+#if 0
+        // If the '(' belonged to a function call, push the function name
+        // (ponytail: we track this via the Id token on top of the op stack
+        // BEFORE the '(' was pushed; after flush we check if the previous
+        // token was a function-call Id).
+#endif
+        if (!stack.empty() && stack.back().type == Token::Id) {
+            rpn.push_back(stack.back()); stack.pop_back();
+        }
+    };
+
+    for (size_t j = 0; j < tokens.size(); ++j) {
+        const Token& t = tokens[j];
+        if (t.type == Token::Num) {
+            rpn.push_back(t);
+        } else if (t.type == Token::Id) {
+            // function call if the next token is '('
+            if (j + 1 < tokens.size() && tokens[j + 1].type == Token::LParen) {
+                stack.push_back(t);
+            } else {
+                // identifier — resolve now
+                double v;
+                if (t.val == "pi") v = M_PI;
+                else {
+                    auto it = vars.find(t.val);
+                    if (it == vars.end())
+                        throw std::runtime_error("unknown identifier: " + t.val);
+                    v = it->second;
+                }
+                rpn.push_back({Token::Num, "", v});
+            }
+        } else if (t.type == Token::Op) {
+            int p = prec(t.val[0], t.val == "u");
+            while (!stack.empty()) {
+                const Token& top = stack.back();
+                if (top.type != Token::Op && top.type != Token::Id) break;
+                int tp = prec(top.val[0], top.val == "u");
+                if (tp < 4 && p <= tp) {
+                    rpn.push_back(top); stack.pop_back();
+                } else break;
+            }
+            stack.push_back(t);
+        } else if (t.type == Token::LParen) {
+            stack.push_back(t);
+        } else if (t.type == Token::RParen) {
+            flush_paren();
+        } else if (t.type == Token::Comma) {
+            while (!stack.empty() && stack.back().type != Token::LParen) {
+                rpn.push_back(stack.back()); stack.pop_back();
+            }
+            // , is a no-op separator — just stay inside the paren
+        }
+    }
+    while (!stack.empty()) {
+        if (stack.back().type == Token::LParen || stack.back().type == Token::RParen)
+            throw std::runtime_error("mismatched parentheses");
+        rpn.push_back(stack.back()); stack.pop_back();
+    }
+
+    // ---- evaluate RPN ----
+    std::vector<double> vs;
+    for (const Token& t : rpn) {
+        if (t.type == Token::Num) {
+            vs.push_back(t.num);
+        } else if (t.type == Token::Op) {
+            if (t.val == "u") {
+                if (vs.empty()) throw std::runtime_error("missing operand for unary minus");
+                vs.back() = -vs.back();
+            } else {
+                if (vs.size() < 2) throw std::runtime_error("not enough operands for '" + t.val + "'");
+                double b = vs.back(); vs.pop_back();
+                double a = vs.back(); vs.pop_back();
+                if (t.val == "+") vs.push_back(a + b);
+                else if (t.val == "-") vs.push_back(a - b);
+                else if (t.val == "*") vs.push_back(a * b);
+                else if (t.val == "/") { if (b == 0) throw std::runtime_error("division by zero"); vs.push_back(a / b); }
+            }
+        } else if (t.type == Token::Id) {
+            // function call (already on RPN via shunting-yard)
+            auto call_fn = [&](const std::string& name, int arity) {
+                if ((int)vs.size() < arity)
+                    throw std::runtime_error("not enough arguments for " + name + "()");
+                if (name == "sqrt") { double a = vs.back(); vs.pop_back(); vs.push_back(std::sqrt(a)); }
+                else if (name == "abs") { double a = vs.back(); vs.pop_back(); vs.push_back(std::abs(a)); }
+                else if (name == "sin") { double a = vs.back(); vs.pop_back(); vs.push_back(std::sin(a * M_PI / 180.0)); }
+                else if (name == "cos") { double a = vs.back(); vs.pop_back(); vs.push_back(std::cos(a * M_PI / 180.0)); }
+                else if (name == "tan") { double a = vs.back(); vs.pop_back(); vs.push_back(std::tan(a * M_PI / 180.0)); }
+                else if (name == "min") { double b = vs.back(); vs.pop_back(); double a = vs.back(); vs.pop_back(); vs.push_back(std::min(a, b)); }
+                else if (name == "max") { double b = vs.back(); vs.pop_back(); double a = vs.back(); vs.pop_back(); vs.push_back(std::max(a, b)); }
+                else throw std::runtime_error("unknown function: " + name);
+            };
+            call_fn(t.val, (t.val == "min" || t.val == "max") ? 2 : 1);
+        }
+    }
+    if (vs.size() != 1) throw std::runtime_error("invalid expression");
+    return vs[0];
+}
+
+// Topologically evaluate `variables` (name -> expression) into name -> value.
+// An expression may reference other variables; resolution is recursive with a
+// visiting set. Throws std::runtime_error("variable cycle: ...") on a dependency
+// cycle, or propagates eval_expr errors.
+static std::map<std::string, double>
+evaluate_variables(const std::map<std::string, std::string>& variables)
+{
+    std::map<std::string, double> done;
+    std::set<std::string> visiting;
+
+    std::function<double(const std::string&)> resolve = [&](const std::string& name) -> double {
+        auto itd = done.find(name);
+        if (itd != done.end()) return itd->second;
+        if (visiting.count(name)) throw std::runtime_error("variable cycle: " + name);
+        auto itv = variables.find(name);
+        if (itv == variables.end()) throw std::runtime_error("unknown identifier: " + name);
+        visiting.insert(name);
+        // pre-resolve every identifier `name` references: scan for identifiers in
+        // its expression, resolve them first, then eval with the populated map.
+        // ponytail: simplest correct approach — depth-first with visited tracking.
+        std::map<std::string, double> scope = done; // start with already-resolved
+        // Add any variable name found in the expression to scope (resolve recursively)
+        const std::string& expr = itv->second;
+        for (size_t i = 0; i < expr.size(); ) {
+            char c = expr[i];
+            if (c == ' ' || c == '\t' || c == '\r' || c == '\n') { ++i; continue; }
+            if (isalpha(c) || c == '_') {
+                size_t start = i;
+                while (i < expr.size() && (isalnum(expr[i]) || expr[i] == '_')) ++i;
+                std::string id = expr.substr(start, i - start);
+                // skip "pi" and function names — they're built-ins, not variables
+                if (id == "pi" || id == "sqrt" || id == "abs" || id == "sin" || id == "cos" ||
+                    id == "tan" || id == "min" || id == "max") continue;
+                if (!variables.count(id)) throw std::runtime_error("unknown identifier: " + id);
+                scope[id] = resolve(id);
+                continue;
+            }
+            ++i;
+        }
+        double val = eval_expr(expr, scope);
+        visiting.erase(name);
+        done[name] = val;
+        return val;
+    };
+
+    for (const auto& [k, _] : variables) resolve(k);
+    return done;
+}
+
+// Write `value` into the CadFeature numeric field named `field`. Allow-list of
+// the geometric dimension fields a variable realistically drives. Integer-valued
+// fields are rounded. Throws std::runtime_error("unknown parameter: " + field)
+// for anything not in the list.
+static void assign_field(CadFeature& f, const std::string& field, double value)
+{
+    // double fields (alphabetical)
+    if (field == "distance")          { f.distance = value; return; }
+    if (field == "distance2")         { f.distance2 = value; return; }
+    if (field == "draft_angle")       { f.draft_angle = value; return; }
+    if (field == "dressup_size")      { f.dressup_size = value; return; }
+    if (field == "height")            { f.height = value; return; }
+    if (field == "hole_cbore_diameter") { f.hole_cbore_diameter = value; return; }
+    if (field == "hole_cbore_depth")  { f.hole_cbore_depth = value; return; }
+    if (field == "hole_csink_angle")  { f.hole_csink_angle = value; return; }
+    if (field == "hole_csink_diameter") { f.hole_csink_diameter = value; return; }
+    if (field == "hole_depth")        { f.hole_depth = value; return; }
+    if (field == "hole_diameter")     { f.hole_diameter = value; return; }
+    if (field == "hole_x")            { f.hole_x = value; return; }
+    if (field == "hole_y")            { f.hole_y = value; return; }
+    if (field == "import_scale_x")    { f.import_scale_x = value; return; }
+    if (field == "import_scale_y")    { f.import_scale_y = value; return; }
+    if (field == "pattern_angle")     { f.pattern_angle = value; return; }
+    if (field == "pattern_spacing")   { f.pattern_spacing = value; return; }
+    if (field == "plane_angle_tilt")  { f.plane_angle_tilt = value; return; }
+    if (field == "plane_offset")      { f.plane_offset = value; return; }
+    if (field == "radius")            { f.radius = value; return; }
+    if (field == "revolve_angle")     { f.revolve_angle = value; return; }
+    if (field == "rib_depth")         { f.rib_depth = value; return; }
+    if (field == "rib_thickness")     { f.rib_thickness = value; return; }
+    if (field == "shell_thickness")   { f.shell_thickness = value; return; }
+    if (field == "taper_deg")         { f.taper_deg = value; return; }
+    if (field == "thread_depth")      { f.thread_depth = value; return; }
+    if (field == "thread_height")     { f.thread_height = value; return; }
+    if (field == "thread_pitch")      { f.thread_pitch = value; return; }
+    if (field == "thread_radius")     { f.thread_radius = value; return; }
+    if (field == "thread_x")          { f.thread_x = value; return; }
+    if (field == "thread_y")          { f.thread_y = value; return; }
+    if (field == "width")             { f.width = value; return; }
+    // int fields (rounded)
+    if (field == "pattern_count")     { f.pattern_count = (int)std::lround(value); return; }
+    throw std::runtime_error("unknown parameter: " + field);
 }
 
 // ---------------------------------------------------------------------------
@@ -2497,6 +2765,12 @@ bool CadDocument::recompute()
     error.clear();
     std::vector<CadBody> built;
     try {
+        // Parametric pass: evaluate document variables, then each feature's expression bindings,
+        // writing the results into the feature's numeric fields before geometry runs.
+        std::map<std::string, double> varvals = evaluate_variables(variables);
+        for (CadFeature& f : features)
+            for (const auto& [field, e] : f.expr)
+                assign_field(f, field, eval_expr(e, varvals));
         for (CadFeature& f : features) {
             if (!f.enabled) continue;
             if (f.type == CadFeatureType::Sketch) continue; // consumed by an extrude
@@ -2608,6 +2882,7 @@ std::string CadDocument::serialize_recipe() const
         uint32_t v = SNAPORCA_CAD_RECIPE_VERSION;
         ar(v);
         ar(features);
+        ar(variables);
     }
     return oss.str();
 }
@@ -2632,6 +2907,7 @@ bool CadDocument::deserialize_recipe(const std::string& blob)
             return false;
         }
         ar(features);
+        ar(variables);
         return recompute();
     } catch (const Standard_Failure& e) {
         const char* what = e.GetMessageString();

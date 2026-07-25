@@ -4376,3 +4376,159 @@ TEST_CASE("hole: round-trip preserves styled counterbore hole", "[CadDocument][h
     }
     REQUIRE(found);
 }
+
+TEST_CASE("variables drive a box (parametric sketch + extrude)", "[CadDocument][variables]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
+                             20, 20, 10, "Sketch");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.features.size() >= 2);
+    int ex = sk + 1;
+
+    doc.variables = {{"w", "10"}, {"h", "w*2"}};
+    doc.features[sk].expr = {{"width", "w"}, {"height", "w"}};
+    doc.features[ex].expr = {{"distance", "h"}};
+
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE_FALSE(doc.body.IsNull());
+
+    Bnd_Box bb; BRepBndLib::Add(doc.body, bb);
+    double xlo, ylo, zlo, xhi, yhi, zhi;
+    bb.Get(xlo, ylo, zlo, xhi, yhi, zhi);
+    REQUIRE_THAT(xhi - xlo, WithinAbs(10.0, 1.0));
+    REQUIRE_THAT(yhi - ylo, WithinAbs(10.0, 1.0));
+    REQUIRE_THAT(zhi - zlo, WithinAbs(20.0, 2.0));
+}
+
+TEST_CASE("function + pi in expression binding", "[CadDocument][variables]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(),
+                             20, 20, 10, "Sketch");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.features.size() >= 2);
+
+    doc.variables = {{"r", "sqrt(16)+abs(-2)"}};
+    doc.features[sk].expr = {{"radius", "r"}};
+
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE_THAT(doc.features[sk].radius, WithinAbs(6.0, 1e-6));
+
+    doc.variables = {{"r", "max(3, pi)"}};
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE_THAT(doc.features[sk].radius, WithinAbs(M_PI, 1e-6));
+
+    doc.variables = {{"r", "5"}, {"d", "r*2"}};
+    doc.features[sk].expr = {{"radius", "d"}};
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE_THAT(doc.features[sk].radius, WithinAbs(10.0, 1e-6));
+}
+
+TEST_CASE("cycle detected fails recompute with error", "[CadDocument][variables]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
+                             20, 20, 10, "Sketch");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    doc.features[sk].expr = {{"width", "a"}};
+
+    doc.variables = {{"a", "b"}, {"b", "a"}};
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("cycle"));
+}
+
+TEST_CASE("unknown parameter fails recompute", "[CadDocument][variables]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
+                             20, 20, 10, "Sketch");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    doc.features[sk].expr = {{"nope", "1"}};
+
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("unknown parameter"));
+}
+
+TEST_CASE("unknown identifier fails recompute", "[CadDocument][variables]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
+                             20, 20, 10, "Sketch");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    doc.features[sk].expr = {{"width", "x"}};
+
+    doc.variables = {{"x", "y+1"}};
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("unknown identifier"));
+}
+
+TEST_CASE("parametric recipe round-trips through serialize/deserialize", "[CadDocument][variables]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(),
+                             20, 20, 10, "Sketch");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.features.size() >= 2);
+    int ex = sk + 1;
+
+    doc.variables = {{"w", "10"}, {"h", "w*2"}};
+    doc.features[sk].expr = {{"width", "w"}, {"height", "w"}};
+    doc.features[ex].expr = {{"distance", "h"}};
+
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    Bnd_Box bb_orig; BRepBndLib::Add(doc.body, bb_orig);
+    double ox0, oy0, oz0, ox1, oy1, oz1;
+    bb_orig.Get(ox0, oy0, oz0, ox1, oy1, oz1);
+
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument doc2;
+    REQUIRE(doc2.deserialize_recipe(blob));
+
+    REQUIRE(doc2.variables.size() == 2);
+    REQUIRE(doc2.variables["w"] == "10");
+    REQUIRE(doc2.variables["h"] == "w*2");
+
+    bool found_sk = false, found_ex = false;
+    for (const auto& f : doc2.features) {
+        if (f.name == "Sketch") {
+            REQUIRE(f.expr.size() == 2);
+            REQUIRE(f.expr.at("width") == "w");
+            REQUIRE(f.expr.at("height") == "w");
+            found_sk = true;
+        }
+        if (f.name == "Extrude") {
+            REQUIRE(f.expr.size() == 1);
+            REQUIRE(f.expr.at("distance") == "h");
+            found_ex = true;
+        }
+    }
+    REQUIRE(found_sk);
+    REQUIRE(found_ex);
+
+    REQUIRE(doc2.bodies.size() == doc.bodies.size());
+
+    Bnd_Box bb2; BRepBndLib::Add(doc2.body, bb2);
+    double nx0, ny0, nz0, nx1, ny1, nz1;
+    bb2.Get(nx0, ny0, nz0, nx1, ny1, nz1);
+    REQUIRE_THAT(nx0, WithinAbs(ox0, 1e-6));
+    REQUIRE_THAT(ny0, WithinAbs(oy0, 1e-6));
+    REQUIRE_THAT(nz0, WithinAbs(oz0, 1e-6));
+    REQUIRE_THAT(nx1, WithinAbs(ox1, 1e-6));
+    REQUIRE_THAT(ny1, WithinAbs(oy1, 1e-6));
+    REQUIRE_THAT(nz1, WithinAbs(oz1, 1e-6));
+}
