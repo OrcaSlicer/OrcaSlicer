@@ -25,6 +25,8 @@
 #include <TopTools_ListOfShape.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
 #include <BRepPrimAPI_MakeCone.hxx>
+#include <BRepPrimAPI_MakePrism.hxx>
+#include <BRepPrimAPI_MakeRevol.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepLib.hxx>
 #include <BRepAdaptor_Curve.hxx>
@@ -36,10 +38,12 @@
 #include <GCE2d_MakeSegment.hxx>
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
+#include <TopAbs.hxx>
 #include <TopoDS_Shell.hxx>
 #include <TopoDS_Compound.hxx>      // multi-body: compound of bodies for display/compat
 #include <BRep_Builder.hxx>
 #include <TopAbs_Orientation.hxx>   // outward-normal orientation for face-extrude
+#include <TopExp_Explorer.hxx>      // is_sheet_shape
 #include <gp_Circ.hxx>
 #include <gp_Ax2.hxx>
 #include <gp_Ax3.hxx>
@@ -2012,6 +2016,39 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         }
         break;
     }
+    case CadFeatureType::SurfaceExtrude: {
+        if (f.sketch_ref < 0 || f.sketch_ref >= int(features.size()))
+            throw std::runtime_error("surface-extrude: bad sketch ref");
+        const CadFeature& sk = features[f.sketch_ref];
+        if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project)
+            throw std::runtime_error("surface-extrude: ref is not a sketch");
+        TopoDS_Wire wire = build_sketch_wire(sk);
+        if (wire.IsNull()) throw std::runtime_error("surface-extrude: empty profile");
+        gp_Dir nrm(sk.plane.normal.x(), sk.plane.normal.y(), sk.plane.normal.z());
+        gp_Vec v(nrm.XYZ() * f.distance);
+        TopoDS_Shape shell = BRepPrimAPI_MakePrism(wire, v, false, true).Shape();
+        if (shell.IsNull()) throw std::runtime_error("surface-extrude: prism failed");
+        result = shell; have_body = true;
+        break;
+    }
+    case CadFeatureType::SurfaceRevolve: {
+        if (f.sketch_ref < 0 || f.sketch_ref >= int(features.size()))
+            throw std::runtime_error("surface-revolve: bad sketch ref");
+        const CadFeature& sk = features[f.sketch_ref];
+        if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project)
+            throw std::runtime_error("surface-revolve: ref is not a sketch");
+        TopoDS_Wire wire = build_sketch_wire(sk);
+        if (wire.IsNull()) throw std::runtime_error("surface-revolve: empty profile");
+        const Vec3d& adir = (f.revolve_axis == 1) ? sk.plane.y_axis : sk.plane.x_axis;
+        gp_Pnt o(sk.plane.origin.x(), sk.plane.origin.y(), sk.plane.origin.z());
+        gp_Dir xd(adir.x(), adir.y(), adir.z());
+        gp_Ax1 axis(o, xd);
+        const double ang = f.revolve_angle * M_PI / 180.0;
+        BRepPrimAPI_MakeRevol rev(wire, axis, ang, false);
+        if (!rev.IsDone()) throw std::runtime_error("surface-revolve: revolve failed");
+        result = rev.Shape(); have_body = true;
+        break;
+    }
     case CadFeatureType::Sweep: {
         const CadFeature& sk = (f.sketch_ref >= 0 && f.sketch_ref < int(features.size())
                                 && (features[f.sketch_ref].type == CadFeatureType::Sketch
@@ -2741,6 +2778,7 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
     // mutates the target body in place.
     const bool starts_new = bodies.empty()
         || f.type == CadFeatureType::Import   // an imported solid is always its own base body
+        || f.type == CadFeatureType::SurfaceExtrude || f.type == CadFeatureType::SurfaceRevolve
         || ((f.type == CadFeatureType::Extrude || f.type == CadFeatureType::Revolve
              || f.type == CadFeatureType::Sweep || f.type == CadFeatureType::Loft)
             && f.mode == BooleanMode::New);
@@ -2971,6 +3009,37 @@ GeometryEngine::MassProps CadDocument::body_mass_properties(int body_index) cons
 {
     if (body_index < 0 || body_index >= int(bodies.size())) return {};
     return GeometryEngine::mass_properties(bodies[body_index].shape);
+}
+
+int CadDocument::add_surface_extrude(int sketch_ref, double distance, const std::string& name)
+{
+    CadFeature f;
+    f.type       = CadFeatureType::SurfaceExtrude;
+    f.name       = name;
+    f.sketch_ref = sketch_ref;
+    f.distance   = distance;
+    f.mode       = BooleanMode::New;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
+int CadDocument::add_surface_revolve(int sketch_ref, double angle_deg, int axis, const std::string& name)
+{
+    CadFeature f;
+    f.type          = CadFeatureType::SurfaceRevolve;
+    f.name          = name;
+    f.sketch_ref    = sketch_ref;
+    f.revolve_angle = angle_deg;
+    f.revolve_axis  = axis;
+    f.mode          = BooleanMode::New;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
+// ponytail: derived from the OCCT shape type; no stored flag, bodies aren't serialized anyway.
+bool CadDocument::is_sheet_shape(const TopoDS_Shape& s)
+{
+    return !TopExp_Explorer(s, TopAbs_SOLID).More();
 }
 
 } // namespace Slic3r

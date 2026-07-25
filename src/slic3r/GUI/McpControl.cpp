@@ -79,6 +79,8 @@ const char* feature_type_name(CadFeatureType t)
         case CadFeatureType::Project:  return "Project";
         case CadFeatureType::DeleteFace: return "DeleteFace";
         case CadFeatureType::Rib:        return "Rib";
+        case CadFeatureType::SurfaceExtrude: return "SurfaceExtrude";
+        case CadFeatureType::SurfaceRevolve: return "SurfaceRevolve";
     }
     return "Unknown";
 }
@@ -310,6 +312,17 @@ json describe_tools()
                       json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 2}, {"min", 0.01}},
                       json{{"name", "depth"},     {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
                       json{{"name", "body"},      {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
+                  })}},
+            json{{"name", "surface_extrude"}, {"summary", "Extrude a sketch wire with no end caps -> an open sheet body."},
+                  {"params", json::array({
+                      json{{"name", "sketch"},  {"type", "integer"}, {"description", "sketch feature index"}},
+                      json{{"name", "distance"},{"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
+                  })}},
+            json{{"name", "surface_revolve"}, {"summary", "Revolve a sketch wire with no caps -> an open sheet body."},
+                  {"params", json::array({
+                      json{{"name", "sketch"},  {"type", "integer"}, {"description", "sketch feature index"}},
+                      json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 360}},
+                      json{{"name", "axis"},    {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}},
                   })}},
             json{{"name", "query_topology"}, {"summary", "Measured faces (centroid/normal/cylinder) and edges (length/circle) of a body."},
                  {"params", json::array({
@@ -999,6 +1012,35 @@ json action_rib(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"rib_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_surface_extrude(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("sketch")) throw std::runtime_error("surface_extrude needs 'sketch' (feature index)");
+    CadDocument& doc = panel->mcp_doc();
+    int sketch = params["sketch"].get<int>();
+    double distance = params.value("distance", 10.0);
+    doc.checkpoint();
+    int idx = doc.add_surface_extrude(sketch, distance, "SurfaceExtrude");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+json action_surface_revolve(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("sketch")) throw std::runtime_error("surface_revolve needs 'sketch' (feature index)");
+    CadDocument& doc = panel->mcp_doc();
+    int sketch = params["sketch"].get<int>();
+    double angle = params.value("angle", 360.0);
+    int axis = params.value("axis", 0);
+    doc.checkpoint();
+    int idx = doc.add_surface_revolve(sketch, angle, axis, "SurfaceRevolve");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 json action_draft(DesignPanel* panel, const json& params)
 {
     if (!params.contains("face")) throw std::runtime_error("draft needs 'face' (id from query_topology)");
@@ -1288,6 +1330,8 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "helix")          return rpc_result(id, action_helix(panel, params));
         if (method == "set_variable")     return rpc_result(id, action_set_variable(panel, params));
         if (method == "set_feature_expr") return rpc_result(id, action_set_feature_expr(panel, params));
+        if (method == "surface_extrude")  return rpc_result(id, action_surface_extrude(panel, params));
+        if (method == "surface_revolve")  return rpc_result(id, action_surface_revolve(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
         return rpc_error(id, -32000, std::string("OCCT: ") + (ex.GetMessageString() ? ex.GetMessageString() : "failure"));

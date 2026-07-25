@@ -19,7 +19,7 @@
 
 namespace Slic3r {
 
-enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project, DeleteFace, Rib };
+enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project, DeleteFace, Rib, SurfaceExtrude, SurfaceRevolve };
 enum class SketchShape    { Rectangle, Circle };
 enum class PlaneType      { Offset, Angle, Midplane, Tangent, TwoEdges, Coincident };
 enum class AxisType       { TwoPoints, FaceNormal, CylinderCenterline, PlaneIntersection, AlongEdge };
@@ -510,6 +510,8 @@ public:
     int add_thicken(int target_body, int face, double thickness, bool flip, const std::string& name);
     int add_delete_face(int target_body, const std::vector<int>& faces,
                         const std::string& name);
+    int add_surface_extrude(int sketch_ref, double distance, const std::string& name);
+    int add_surface_revolve(int sketch_ref, double angle_deg, int axis, const std::string& name);
     // Datum plane: derived from base (0=XY/1=XZ/2=YZ/3+N=Nth earlier datum), offset
     // along its normal, optional tilt about a base axis. Produces no solid.
     int  add_plane(int base, double offset, double angle_tilt, int axis,
@@ -552,6 +554,9 @@ public:
                      std::string& err) const;
 
     GeometryEngine::MassProps body_mass_properties(int body_index) const;
+
+    // ponytail: derived from the OCCT shape type; no stored flag, bodies aren't serialized anyway.
+    static bool is_sheet_shape(const TopoDS_Shape& s); // true if TopExp finds no TopAbs_SOLID
 
     // Undo/redo of the feature recipe (Onshape-style Ctrl+Z). The caller marks a
     // user-action boundary by calling checkpoint() BEFORE the mutation(s) for that

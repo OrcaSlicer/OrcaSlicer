@@ -4532,3 +4532,97 @@ TEST_CASE("parametric recipe round-trips through serialize/deserialize", "[CadDo
     REQUIRE_THAT(ny1, WithinAbs(oy1, 1e-6));
     REQUIRE_THAT(nz1, WithinAbs(oz1, 1e-6));
 }
+
+TEST_CASE("surface-extrude makes an open shell", "[CadDocument][surface]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Rect");
+    REQUIRE(sk >= 0);
+    int fi = doc.add_surface_extrude(sk, 12.0, "Skin");
+    REQUIRE(fi == 1);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+    REQUIRE(CadDocument::is_sheet_shape(doc.bodies.back().shape));
+
+    // A rectangle skin has 4 side faces (no end caps).
+    int face_count = 0, solid_count = 0;
+    for (TopExp_Explorer fe(doc.bodies.back().shape, TopAbs_FACE); fe.More(); fe.Next()) ++face_count;
+    for (TopExp_Explorer se(doc.bodies.back().shape, TopAbs_SOLID); se.More(); se.Next()) ++solid_count;
+    REQUIRE(face_count >= 1);
+    REQUIRE(solid_count == 0);
+    REQUIRE(doc.display_mesh.facets_count() > 0);
+}
+
+TEST_CASE("surface-revolve makes an open shell", "[CadDocument][surface]")
+{
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    // A small rectangle offset from the axis: u=10..15, v=0..5.
+    SketchProfile sp;
+    sp.points = {{10,0},{15,0},{15,5},{10,5}};
+    sp.closed = true;
+    const int sk = doc.add_sketch_profile(sp, SketchPlane::XY(), "Profile");
+    REQUIRE(sk >= 0);
+    int fi = doc.add_surface_revolve(sk, 360, 0, "Rev");
+    REQUIRE(fi == 1);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+    REQUIRE(CadDocument::is_sheet_shape(doc.bodies.back().shape));
+
+    int solid_count = 0;
+    for (TopExp_Explorer se(doc.bodies.back().shape, TopAbs_SOLID); se.More(); se.Next()) ++solid_count;
+    REQUIRE(solid_count == 0);
+    REQUIRE(doc.display_mesh.facets_count() > 0);
+}
+
+TEST_CASE("surface-extrude bad ref safe", "[CadDocument][surface]")
+{
+    CadDocument doc;
+    int fi = doc.add_surface_extrude(999, 10, "Bad");
+    REQUIRE(fi == 0);
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("surface-extrude"));
+}
+
+TEST_CASE("surface round-trip serialize/deserialize", "[CadDocument][surface]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Rect");
+    doc.add_surface_extrude(sk, 12.0, "Skin");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(CadDocument::is_sheet_shape(doc.bodies.back().shape));
+
+    size_t orig_nb = doc.bodies.size();
+    Bnd_Box orig_bb;
+    BRepBndLib::Add(doc.bodies.back().shape, orig_bb);
+
+    std::string blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument fresh;
+    REQUIRE(fresh.deserialize_recipe(blob));
+    REQUIRE(fresh.error.empty());
+    REQUIRE(fresh.bodies.size() == orig_nb);
+    REQUIRE(CadDocument::is_sheet_shape(fresh.bodies.back().shape));
+
+    Bnd_Box fresh_bb;
+    BRepBndLib::Add(fresh.bodies.back().shape, fresh_bb);
+    Standard_Real ox0, oy0, oz0, ox1, oy1, oz1;
+    orig_bb.Get(ox0, oy0, oz0, ox1, oy1, oz1);
+    Standard_Real fx0, fy0, fz0, fx1, fy1, fz1;
+    fresh_bb.Get(fx0, fy0, fz0, fx1, fy1, fz1);
+    REQUIRE_THAT(double(fx0), WithinAbs(double(ox0), 1e-6));
+    REQUIRE_THAT(double(fy0), WithinAbs(double(oy0), 1e-6));
+    REQUIRE_THAT(double(fz0), WithinAbs(double(oz0), 1e-6));
+    REQUIRE_THAT(double(fx1), WithinAbs(double(ox1), 1e-6));
+    REQUIRE_THAT(double(fy1), WithinAbs(double(oy1), 1e-6));
+    REQUIRE_THAT(double(fz1), WithinAbs(double(oz1), 1e-6));
+}
