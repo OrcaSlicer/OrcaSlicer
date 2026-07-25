@@ -339,6 +339,10 @@ json describe_tools()
                      json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 0}},
                      json{{"name", "flip"},    {"type", "boolean"}, {"default", false}},
                  })}},
+            json{{"name", "check_interference"}, {"summary", "Solid bodies that overlap, as {body_a, body_b, volume}. Read-only; bodies that merely touch enclose no volume and are not reported."},
+                 {"params", json::array({
+                     json{{"name", "min_volume"}, {"type", "number"}, {"unit", "mm^3"}, {"default", 1e-6}, {"description", "overlap volume above which a pair counts as interfering"}},
+                 })}},
             json{{"name", "query_topology"}, {"summary", "Measured faces (centroid/normal/cylinder) and edges (length/circle) of a body."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
@@ -1344,6 +1348,19 @@ json action_mate(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"mate_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_check_interference(DesignPanel* panel, const json& params)
+{
+    const double min_volume = params.value("min_volume", 1e-6);
+    CadDocument& doc = panel->mcp_doc();
+    // Read-only: no checkpoint(), no recompute(), no mcp_after_change().
+    const auto hits = doc.check_interference(min_volume);
+    json arr = json::array();
+    for (const auto& h : hits) {
+        arr.push_back(json{{"body_a", h.body_a}, {"body_b", h.body_b}, {"volume", h.volume}});
+    }
+    return json{{"ok", true}, {"count", int(hits.size())}, {"interferences", arr}};
+}
+
 json action_set_variable(DesignPanel* panel, const json& params)
 {
     if (!params.contains("name")) throw std::runtime_error("set_variable needs 'name'");
@@ -1429,6 +1446,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "surface_loft")    return rpc_result(id, action_surface_loft(panel, params));
         if (method == "surface_fill")    return rpc_result(id, action_surface_fill(panel, params));
         if (method == "mate")          return rpc_result(id, action_mate(panel, params));
+        if (method == "check_interference") return rpc_result(id, action_check_interference(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
         return rpc_error(id, -32000, std::string("OCCT: ") + (ex.GetMessageString() ? ex.GetMessageString() : "failure"));

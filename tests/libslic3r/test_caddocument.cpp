@@ -6230,3 +6230,122 @@ TEST_CASE("cylindrical mate with FaceAndDirection preserves rotation", "[CadDocu
     REQUIRE(rot_preserved);
     // If cylindrical behaved like slider, the face would be at (1,0,0) instead.
 }
+
+// --- Interference detection (M8c) ---
+
+TEST_CASE("interference: overlapping bodies reported with overlap volume", "[CadDocument][interference]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    // A: 20x20x10 box centred on the origin in XY, z in [0,10]
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 10.0, false, BooleanMode::New, "EA");
+    // B: 20x20x10 box, same footprint
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxB");
+    doc.add_extrude(sk_b, 10.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+
+    // Lift B by 6mm: the two overlap over 4mm of height => 20*20*4 = 1600 mm^3.
+    doc.add_transform(1, Vec3d(0, 0, 6), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "LiftB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    auto hits = doc.check_interference();
+    REQUIRE(hits.size() == 1);
+    REQUIRE(hits[0].body_a == 0);
+    REQUIRE(hits[0].body_b == 1);
+    REQUIRE_THAT(hits[0].volume, WithinAbs(1600.0, 1e-3));
+}
+
+TEST_CASE("interference: disjoint and merely touching bodies are not reported", "[CadDocument][interference]")
+{
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 10.0, false, BooleanMode::New, "EA");
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxB");
+    doc.add_extrude(sk_b, 10.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+
+    SECTION("clearly apart") {
+        doc.add_transform(1, Vec3d(0, 0, 50), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "MoveB");
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.check_interference().empty());
+    }
+
+    SECTION("face-to-face contact encloses no volume") {
+        // B sits exactly on top of A: they share a face but nothing overlaps.
+        doc.add_transform(1, Vec3d(0, 0, 10), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "StackB");
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.check_interference().empty());
+    }
+}
+
+TEST_CASE("interference: sheet bodies are skipped", "[CadDocument][interference]")
+{
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 10.0, false, BooleanMode::New, "EA");
+    // A sheet passing straight through the solid: it has no volume, so no interference.
+    int sk_s = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 40, 40, 0, "Sheet");
+    doc.add_surface_extrude(sk_s, 5.0, "SE");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 2);
+    REQUIRE(CadDocument::is_sheet_shape(doc.bodies[1].shape));
+
+    REQUIRE(doc.check_interference().empty());
+}
+
+TEST_CASE("interference: reports every overlapping pair", "[CadDocument][interference]")
+{
+    CadDocument doc;
+    for (int i = 0; i < 3; ++i) {
+        int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Box");
+        doc.add_extrude(sk, 10.0, false, BooleanMode::New, "E");
+    }
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 3);
+
+    // 0 and 1 stay coincident (overlapping); 2 is moved clear of both.
+    doc.add_transform(2, Vec3d(0, 0, 100), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "MoveC");
+    REQUIRE(doc.recompute());
+
+    auto hits = doc.check_interference();
+    REQUIRE(hits.size() == 1);
+    REQUIRE(hits[0].body_a == 0);
+    REQUIRE(hits[0].body_b == 1);
+
+    // min_volume gates the report: a threshold above the overlap silences it.
+    REQUIRE(doc.check_interference(1e9).empty());
+}
+
+TEST_CASE("interference: detects a clash created by a mate", "[CadDocument][interference]")
+{
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 10.0, false, BooleanMode::New, "EA");
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxB");
+    doc.add_extrude(sk_b, 10.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+
+    // Park B well clear, so the clash below is created by the mate and nothing else.
+    doc.add_transform(1, Vec3d(0, 0, 80), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "ParkB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.check_interference().empty());
+
+    // Fastened mate onto a connector inside A's volume drives B into A.
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 85), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+
+    doc.add_mate(0, cs_fixed, cs_moving, 0.0, 0.0, false, "Clash");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    auto hits = doc.check_interference();
+    REQUIRE(hits.size() == 1);
+    REQUIRE(hits[0].volume > 1.0);
+}

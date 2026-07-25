@@ -575,6 +575,13 @@ public:
 
     GeometryEngine::MassProps body_mass_properties(int body_index) const;
 
+    // One overlapping pair of solid bodies. Indices are into `bodies`, a_ < b_.
+    struct Interference { int body_a{-1}; int body_b{-1}; double volume{0}; };
+    // Every pair of solid bodies whose intersection encloses more than min_volume (mm^3).
+    // Reports only — mutates nothing, so mates and placements are unaffected by calling it.
+    // Sheet bodies are skipped: an intersection involving one encloses no volume.
+    std::vector<Interference> check_interference(double min_volume = 1e-6) const;
+
     // ponytail: derived from the OCCT shape type; no stored flag, bodies aren't serialized anyway.
     static bool is_sheet_shape(const TopoDS_Shape& s); // true if TopExp finds no TopAbs_SOLID
 

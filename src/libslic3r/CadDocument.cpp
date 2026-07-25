@@ -3359,6 +3359,40 @@ int CadDocument::add_surface_fill(int sketch_ref, const std::string& name)
     return int(features.size()) - 1;
 }
 
+std::vector<CadDocument::Interference> CadDocument::check_interference(double min_volume) const
+{
+    std::vector<Interference> out;
+    const int n = int(bodies.size());
+
+    for (int i = 0; i < n; ++i) {
+        if (bodies[i].shape.IsNull() || is_sheet_shape(bodies[i].shape)) continue;
+        for (int j = i + 1; j < n; ++j) {
+            if (bodies[j].shape.IsNull() || is_sheet_shape(bodies[j].shape)) continue;
+
+            double v = 0;
+            // A boolean that blows up on one pair must not lose the report for the others,
+            // and OCCT signals those as Standard_Failure, which is NOT a std::exception.
+            try {
+                BRepAlgoAPI_Common common(bodies[i].shape, bodies[j].shape);
+                common.Build();
+                if (!common.IsDone()) continue;
+                const TopoDS_Shape s = common.Shape();
+                if (s.IsNull()) continue;
+                GProp_GProps props;
+                BRepGProp::VolumeProperties(s, props);
+                v = std::abs(props.Mass());
+            } catch (const Standard_Failure&) {
+                continue;
+            }
+
+            // Bodies that merely touch share a face and enclose no volume, so the
+            // threshold is what separates contact from interference.
+            if (v > min_volume) out.push_back({i, j, v});
+        }
+    }
+    return out;
+}
+
 // ponytail: derived from the OCCT shape type; no stored flag, bodies aren't serialized anyway.
 bool CadDocument::is_sheet_shape(const TopoDS_Shape& s)
 {
