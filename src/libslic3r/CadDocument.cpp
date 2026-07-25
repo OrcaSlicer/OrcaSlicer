@@ -162,6 +162,35 @@ static TopoDS_Wire make_thread_profile(const gp_Pnt& origin, const gp_Dir& xdir,
 
 // ---------------------------------------------------------------------------
 
+// Sample a sketch entity at parameter t in [0,1]. Handles Line, Arc, BSpline (cubic, 4 poles).
+// Falls back to a p0->p1 lerp for any other type. // ponytail: covers the entities a guide
+// curve is realistically drawn with; extend if needed.
+static Vec2d sample_entity_2d(const SketchEntity& e, double t)
+{
+    t = std::max(0.0, std::min(1.0, t));
+    switch (e.type) {
+    case SketchEntity::Type::Line:
+        return e.p0 + (e.p1 - e.p0) * t;
+    case SketchEntity::Type::Arc: {
+        double theta = e.start_angle + (e.end_angle - e.start_angle) * t;
+        return e.center + e.radius * Vec2d(std::cos(theta), std::sin(theta));
+    }
+    case SketchEntity::Type::BSpline:
+        if (e.ctrl.size() == 4) {
+            const double u  = 1.0 - t;
+            const double b0 = u * u * u;
+            const double b1 = 3.0 * u * u * t;
+            const double b2 = 3.0 * u * t * t;
+            const double b3 = t * t * t;
+            return e.ctrl[0] * b0 + e.ctrl[1] * b1 + e.ctrl[2] * b2 + e.ctrl[3] * b3;
+        }
+        return e.ctrl.empty() ? e.p0 + (e.p1 - e.p0) * t
+                              : e.ctrl.front() + (e.ctrl.back() - e.ctrl.front()) * t;
+    default:
+        return e.p0 + (e.p1 - e.p0) * t;
+    }
+}
+
 int CadDocument::add_sketch(SketchShape shape, const SketchPlane& plane,
                             double width, double height, double radius,
                             const std::string& name)
@@ -732,6 +761,21 @@ int CadDocument::add_pattern(bool circular, int count, double spacing, int dir,
     f.pattern_dir      = dir;
     f.pattern_angle    = angle_deg;
     f.target_body      = target_body;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
+int CadDocument::add_pattern_on_curve(int count, int curve_sketch, int curve_entity,
+                                       int target, const std::string& name)
+{
+    CadFeature f;
+    f.type                 = CadFeatureType::Pattern;
+    f.name                 = name;
+    f.pattern_count        = count;
+    f.pattern_curve_sketch = curve_sketch;
+    f.pattern_curve_entity = curve_entity;
+    f.target_body          = target;
+    f.pattern_circular     = false;
     features.push_back(f);
     return int(features.size()) - 1;
 }
@@ -1771,6 +1815,35 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         break;
     }
     case CadFeatureType::Pattern: {
+        // Pattern along a curve: when pattern_curve_sketch >= 0 this mode takes
+        // precedence over linear/circular. Copies are placed at equal-parameter points
+        // along the referenced sketch entity, translated by (P_i - P_0).
+        if (f.pattern_curve_sketch >= 0) {
+            if (f.pattern_curve_sketch >= (int)features.size())
+                throw std::runtime_error("pattern-on-curve: bad sketch ref");
+            const CadFeature& gs = features[f.pattern_curve_sketch];
+            if (gs.type != CadFeatureType::Sketch)
+                throw std::runtime_error("pattern-on-curve: ref is not a sketch");
+            if (f.pattern_curve_entity < 0 || f.pattern_curve_entity >= (int)gs.entities.size())
+                throw std::runtime_error("pattern-on-curve: bad entity");
+            if (!have_body) throw std::runtime_error("pattern needs a body");
+            const SketchEntity& gc = gs.entities[f.pattern_curve_entity];
+            const int n = std::max(1, f.pattern_count);
+            const TopoDS_Shape seed = result;
+            Vec3d p0 = gs.plane.to_world(sample_entity_2d(gc, 0.0));
+            for (int i = 1; i < n; ++i) {
+                double t = double(i) / double(n - 1 > 0 ? n - 1 : 1);
+                Vec3d pi = gs.plane.to_world(sample_entity_2d(gc, t));
+                Vec3d d  = pi - p0;
+                gp_Trsf trsf;
+                trsf.SetTranslation(gp_Vec(d.x(), d.y(), d.z()));
+                TopoDS_Shape copy = BRepBuilderAPI_Transform(seed, trsf, true).Shape();
+                BRepAlgoAPI_Fuse fuse(result, copy);
+                if (!fuse.IsDone()) throw std::runtime_error("pattern fuse failed");
+                result = fuse.Shape();
+            }
+            break;
+        }
         // Replicate the target body. Each copy is a rigid gp_Trsf of the seed, all
         // fused into one body. Linear: i*spacing along plane axis pattern_dir
         // (0=X,1=Y). Circular: i*(angle/count) about the plane normal through the

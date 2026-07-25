@@ -173,6 +173,12 @@ struct CadFeature {
     int         pattern_dir{0};            // linear direction: 0 = plane X, 1 = plane Y
     double      pattern_angle{360};        // circular total angle (degrees)
 
+    // Pattern along a curve: when pattern_curve_sketch >= 0 this mode takes precedence over
+    // linear/circular. Copies are placed at equal-parameter points along entity
+    // pattern_curve_entity of sketch pattern_curve_sketch, translated by (P_i - P_0).
+    int pattern_curve_sketch{-1};  // feature index of the Sketch holding the guide curve
+    int pattern_curve_entity{-1};  // entity index of the guide curve within that sketch
+
     // Datum/reference plane: a derived SketchPlane the document offers as a selectable
     // sketch plane (no solid). plane_base selects the reference (0=XY,1=XZ,2=YZ, or 3+N
     // = the Nth earlier datum plane); plane_offset shifts along the base normal;
@@ -315,7 +321,8 @@ struct CadFeature {
              delete_faces,
              hole_style, hole_cbore_diameter, hole_cbore_depth,
              hole_csink_diameter, hole_csink_angle, hole_standard,
-             rib_sketch_ref, rib_entity, rib_thickness, rib_depth);
+             rib_sketch_ref, rib_entity, rib_thickness, rib_depth,
+             pattern_curve_sketch, pattern_curve_entity);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -350,7 +357,8 @@ struct CadFeature {
                delete_faces,
                hole_style, hole_cbore_diameter, hole_cbore_depth,
                hole_csink_diameter, hole_csink_angle, hole_standard,
-               rib_sketch_ref, rib_entity, rib_thickness, rib_depth);
+               rib_sketch_ref, rib_entity, rib_thickness, rib_depth,
+               pattern_curve_sketch, pattern_curve_entity);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -451,6 +459,9 @@ public:
     // Sweep the profile Sketch (profile_sketch_ref) along the path Sketch (path_sketch_ref).
     int  add_pattern(bool circular, int count, double spacing, int dir,
                      double angle_deg, int target_body, const std::string& name);
+    // Pattern `count` copies of `target` along entity `curve_entity` of sketch `curve_sketch`.
+    int  add_pattern_on_curve(int count, int curve_sketch, int curve_entity, int target,
+                              const std::string& name);
     int  add_sweep(int profile_sketch_ref, int path_sketch_ref, BooleanMode mode,
                    const std::string& name);
     // Loft through the ordered profile Sketches (each a closed wire on its own plane).

@@ -1125,6 +1125,98 @@ TEST_CASE("pattern replicates a body linearly and circularly", "[CadDocument]")
     }
 }
 
+TEST_CASE("pattern-on-curve: copies land on a line and bbox spans the curve length", "[CadDocument][pattern]")
+{
+    using Catch::Matchers::WithinAbs;
+    using Catch::Matchers::WithinRel;
+    using namespace Slic3r;
+
+    CadDocument doc;
+
+    // Seed body: 4x4x4 box at the origin via sketch+extrude.
+    int s0 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 4, 4, 0, "Seed");
+    doc.add_extrude(s0, 4.0, false, BooleanMode::New, "E");
+
+    // Guide sketch: one Line entity from (0,0) to (30,0) on XY.
+    std::vector<SketchEntity> guide = {
+        {SketchEntity::Type::Line, Vec2d(0, 0), Vec2d(30, 0)},
+    };
+    int gs = doc.add_sketch_entities(guide, SketchPlane::XY(), "Guide");
+
+    doc.add_pattern_on_curve(4, gs, 0, 0, "OnCurve");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.display_mesh.facets_count() > 0);
+
+    auto bb = doc.display_mesh.bounding_box();
+    double x_extent = bb.max.x() - bb.min.x();
+    // 4 copies: at x=0, x=10, x=20, x=30. The seed is a 4x4 box centred at origin,
+    // so the overall X span is from -2 to 32 = 34 mm.
+    REQUIRE_THAT(x_extent, WithinAbs(34.0, 2.0));
+}
+
+TEST_CASE("pattern-on-curve: bad refs are safe", "[CadDocument][pattern]")
+{
+    using namespace Slic3r;
+
+    CadDocument doc;
+    int s0 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 4, 4, 0, "Seed");
+    doc.add_extrude(s0, 4.0, false, BooleanMode::New, "E");
+
+    // Bad sketch ref -> error.
+    doc.add_pattern_on_curve(3, 999, 0, 0, "Bad");
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_FALSE(doc.error.empty());
+    REQUIRE(doc.error.find("pattern") != std::string::npos);
+}
+
+TEST_CASE("pattern-on-curve: round-trip through serialize/deserialize", "[CadDocument][pattern]")
+{
+    using Catch::Matchers::WithinRel;
+    using namespace Slic3r;
+
+    CadDocument doc;
+    int s0 = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 4, 4, 0, "Seed");
+    doc.add_extrude(s0, 4.0, false, BooleanMode::New, "E");
+
+    std::vector<SketchEntity> guide = {
+        {SketchEntity::Type::Line, Vec2d(0, 0), Vec2d(30, 0)},
+    };
+    int gs = doc.add_sketch_entities(guide, SketchPlane::XY(), "Guide");
+
+    doc.add_pattern_on_curve(4, gs, 0, 0, "OnCurve");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    auto orig_bb = doc.display_mesh.bounding_box();
+    size_t orig_n = doc.bodies.size();
+
+    std::string blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument fresh;
+    REQUIRE(fresh.deserialize_recipe(blob));
+    REQUIRE(fresh.recompute());
+    REQUIRE(fresh.error.empty());
+    REQUIRE(fresh.bodies.size() == orig_n);
+
+    auto fresh_bb = fresh.display_mesh.bounding_box();
+    REQUIRE_THAT(orig_bb.min.x(), WithinRel(fresh_bb.min.x(), 1e-6));
+    REQUIRE_THAT(orig_bb.max.x(), WithinRel(fresh_bb.max.x(), 1e-6));
+
+    // Verify the deserialized field values.
+    bool found = false;
+    for (const auto& f : fresh.features) {
+        if (f.name == "OnCurve") {
+            REQUIRE(f.pattern_curve_sketch == gs);
+            REQUIRE(f.pattern_curve_entity == 0);
+            found = true;
+            break;
+        }
+    }
+    REQUIRE(found);
+}
+
 TEST_CASE("thread standards table carries correct ISO/UTS measures", "[CadDocument]")
 {
     using namespace Slic3r;

@@ -198,6 +198,13 @@ json describe_tools()
                      json{{"name", "plane"},    {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
                      json{{"name", "body"},     {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
                  })}},
+            json{{"name", "pattern_on_curve"}, {"summary", "Replicate a body along a sketch curve: `count` copies placed at equal-parameter points on the entity, each translated by (P_i - P_0)."},
+                 {"params", json::array({
+                     json{{"name", "count"},  {"type", "integer"}, {"default", 3}, {"min", 1}},
+                     json{{"name", "sketch"}, {"type", "integer"}, {"description", "feature index of the sketch holding the guide curve"}},
+                     json{{"name", "entity"}, {"type", "integer"}, {"description", "entity index of the guide curve within that sketch"}},
+                     json{{"name", "body"},   {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
+                 })}},
             json{{"name", "shell"}, {"summary", "Hollow a body to a wall thickness (inward); optionally leave one face open."},
                  {"params", json::array({
                      json{{"name", "thickness"}, {"type", "number"}, {"unit", "mm"}, {"default", 1}, {"min", 0.01}},
@@ -938,6 +945,25 @@ json action_pattern(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"pattern_index", p}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_pattern_on_curve(DesignPanel* panel, const json& params)
+{
+    const int count  = params.value("count", 3);
+    if (count < 1) throw std::runtime_error("count must be >= 1");
+    if (!params.contains("sketch")) throw std::runtime_error("pattern_on_curve needs 'sketch' (feature index)");
+    if (!params.contains("entity")) throw std::runtime_error("pattern_on_curve needs 'entity' (entity index)");
+    const int sketch = params["sketch"].get<int>();
+    const int entity = params["entity"].get<int>();
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to pattern");
+    int bi = target_body_arg(params, doc);
+    doc.checkpoint();
+    int p = doc.add_pattern_on_curve(count, sketch, entity, bi, "PatternOnCurve");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"pattern_index", p}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 json action_shell(DesignPanel* panel, const json& params)
 {
     const double thickness = params.value("thickness", 1.0);
@@ -1210,6 +1236,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "hole_standard") return rpc_result(id, action_hole_standard(panel, params));
         if (method == "boolean")        return rpc_result(id, action_boolean(panel, params));
         if (method == "pattern")        return rpc_result(id, action_pattern(panel, params));
+        if (method == "pattern_on_curve") return rpc_result(id, action_pattern_on_curve(panel, params));
         if (method == "shell")          return rpc_result(id, action_shell(panel, params));
         if (method == "rib")            return rpc_result(id, action_rib(panel, params));
         if (method == "draft")          return rpc_result(id, action_draft(panel, params));
