@@ -493,8 +493,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_sketch->Bind(wxEVT_BUTTON, [act_sketch](wxCommandEvent&) { act_sketch(); });
         m_keys_feature[SHIFT('S')] = act_sketch;
         fadd("sketch", b_sketch);
-        // Add material: Extrude / Revolve / Sweep / Loft
-        feat_dropdown("material", "design_extrude", _L("Add material (extrude / revolve / sweep / loft)"), {
+        // Add material: every feature that grows new solid material — from a profile
+        // (extrude/revolve/sweep/loft), from a face (thicken) or from a line (rib).
+        feat_dropdown("material", "design_extrude", _L("Add material (extrude / revolve / sweep / loft / thicken / rib)"), {
             {"design_extrude", _L("Extrude"), _L("Extrude a sketch profile, or push/pull a picked face"),
              [this] {
                 // Onshape push/pull: an explicitly picked solid face (Face-level cycle, no loop
@@ -699,7 +700,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
              }, SHIFT('V')},
         });
 
-        feat_dropdown("plane", "design_plane", _L("Datum / Curve (plane / axis / coord sys / helix)"), {
+        feat_dropdown("plane", "design_plane", _L("Datum / Curve (plane / axis / coord sys / helix / project)"), {
             {"design_plane", _L("Plane"), _L("Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"),
              [this] {
                  populate_plane_choices(m_plane_base);
@@ -723,6 +724,73 @@ DesignPanel::DesignPanel(wxWindow* parent)
                  populate_plane_choices(m_helix_plane);
                  open_tool(Tool::Helix);
              }, 0},
+            // Project belongs here, not in Dress-up: it consumes a body but PRODUCES sketch
+            // geometry, so it is reference/curve creation like the four above, not a finishing op.
+            {"design_sketch", _L("Project"), _L("Project body edges onto a plane as sketch entities"),
+             [this] {
+                if (m_doc.bodies.empty()) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Project needs a body — add or import one first"));
+                    m_status->Refresh();
+                    return;
+                }
+                {
+                    m_proj_source_body->Clear();
+                    for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                        const std::string& n = m_doc.bodies[i].name;
+                        m_proj_source_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+                    }
+                    if (m_proj_source_body->GetCount() > 0) m_proj_source_body->SetSelection(0);
+                }
+                populate_plane_choices(m_proj_plane);
+                m_sel_solid_face = -1;
+                m_proj_face_label->SetLabel(_L("(all edges)"));
+                open_tool(Tool::Project);
+             }, 0},
+        });
+
+        // Placement — operations that MOVE a body without changing its shape. Transform and
+        // Mirror place one body directly; a Mate places one body relative to another. They were
+        // in Dress-up (fillet/draft/shell) and Datum, which mixed shape-finishing and reference
+        // geometry with rigid-body placement. "place" was already an empty slot in the bar order.
+        feat_dropdown("place", "design_move", _L("Placement (transform / mirror / mate)"), {
+            {"design_move", _L("Transform"), _L("Move and/or rotate an existing body"),
+             [this] {
+                if (m_doc.bodies.empty()) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Transform needs a body — add or import one first"));
+                    m_status->Refresh();
+                    return;
+                }
+                {
+                    m_xf_body->Clear();
+                    for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                        const std::string& n = m_doc.bodies[i].name;
+                        m_xf_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+                    }
+                    if (m_xf_body->GetCount() > 0) m_xf_body->SetSelection(0);
+                }
+                open_tool(Tool::Transform);
+             }, SHIFT('Y')},
+            {"design_mirror", _L("Mirror"), _L("Reflect a body about a plane"),
+             [this] {
+                if (m_doc.bodies.empty()) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Mirror needs a body — add or import one first"));
+                    m_status->Refresh();
+                    return;
+                }
+                {
+                    m_mirror_body->Clear();
+                    for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                        const std::string& n = m_doc.bodies[i].name;
+                        m_mirror_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+                    }
+                    if (m_mirror_body->GetCount() > 0) m_mirror_body->SetSelection(0);
+                }
+                populate_plane_choices(m_mirror_plane);
+                open_tool(Tool::Mirror);
+             }, SHIFT('Z')},
             {"design_plane", _L("Mate"), _L("Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"),
              [this] {
                  open_tool(Tool::Mate);
@@ -767,72 +835,15 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_color->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_set_body_color(); });
         fadd("color", b_color);
 
-        // Dress-up: Fillet/Chamfer / Draft / Shell / Transform / Mirror / Project / Delete Face
-        feat_dropdown("dressup", "design_dressup", _L("Dress-up (fillet / chamfer / draft / shell / transform / mirror / project / delete)"), {
+        // Dress-up: finishing operations on the faces and edges of an existing solid — nothing
+        // that moves a body (see the Placement drawer) and nothing that creates geometry.
+        feat_dropdown("dressup", "design_dressup", _L("Dress-up (fillet / chamfer / draft / shell / delete face)"), {
             {"design_dressup", _L("Fillet / Chamfer"), _L("Round or bevel a picked edge"),
              [this] { open_tool(Tool::Dressup); }, SHIFT('F')},
             {"design_draft", _L("Draft (taper a face)"), _L("Tilt a picked face by a draft angle"),
              [this] { open_tool(Tool::Draft); }, SHIFT('D')},
             {"design_shell", _L("Shell"), _L("Hollow the body to a wall thickness, opening a picked face"),
              [this] { open_tool(Tool::Shell); }, SHIFT('K')},
-            {"design_move", _L("Transform"), _L("Move and/or rotate an existing body"),
-             [this] {
-                if (m_doc.bodies.empty()) {
-                    m_status->SetForegroundColour(wxColour(235, 110, 110));
-                    m_status->SetLabel(_L("Transform needs a body — add or import one first"));
-                    m_status->Refresh();
-                    return;
-                }
-                {
-                    m_xf_body->Clear();
-                    for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
-                        const std::string& n = m_doc.bodies[i].name;
-                        m_xf_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
-                    }
-                    if (m_xf_body->GetCount() > 0) m_xf_body->SetSelection(0);
-                }
-                open_tool(Tool::Transform);
-             }, SHIFT('Y')},
-            {"design_mirror", _L("Mirror"), _L("Reflect a body about a plane"),
-             [this] {
-                if (m_doc.bodies.empty()) {
-                    m_status->SetForegroundColour(wxColour(235, 110, 110));
-                    m_status->SetLabel(_L("Mirror needs a body — add or import one first"));
-                    m_status->Refresh();
-                    return;
-                }
-                {
-                    m_mirror_body->Clear();
-                    for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
-                        const std::string& n = m_doc.bodies[i].name;
-                        m_mirror_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
-                    }
-                    if (m_mirror_body->GetCount() > 0) m_mirror_body->SetSelection(0);
-                }
-                populate_plane_choices(m_mirror_plane);
-                open_tool(Tool::Mirror);
-             }, SHIFT('Z')},
-            {"design_sketch", _L("Project"), _L("Project body edges onto a plane as sketch entities"),
-             [this] {
-                if (m_doc.bodies.empty()) {
-                    m_status->SetForegroundColour(wxColour(235, 110, 110));
-                    m_status->SetLabel(_L("Project needs a body — add or import one first"));
-                    m_status->Refresh();
-                    return;
-                }
-                {
-                    m_proj_source_body->Clear();
-                    for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
-                        const std::string& n = m_doc.bodies[i].name;
-                        m_proj_source_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
-                    }
-                    if (m_proj_source_body->GetCount() > 0) m_proj_source_body->SetSelection(0);
-                }
-                populate_plane_choices(m_proj_plane);
-                m_sel_solid_face = -1;
-                m_proj_face_label->SetLabel(_L("(all edges)"));
-                open_tool(Tool::Project);
-             }, 0},
             {"design_dressup", _L("Delete Face"), _L("Remove faces from a body and heal the solid"),
              [this] {
                 if (m_doc.bodies.empty()) {
@@ -2856,6 +2867,18 @@ DesignPanel::DesignPanel(wxWindow* parent)
     cards->Show(m_box_sketch_session, false, true);
     cards->Show(m_box_constraints,    false, true);
     cards->Show(m_box_expr,          false, true);
+    // A card added to the cards sizer is VISIBLE until something hides it. close_tool()'s
+    // hide-all only runs on a tool switch, so any card missing from THIS block renders
+    // stacked in the sidebar from the moment the tab opens. These eight were wired into
+    // close_tool() but not here, which is what bloated the panel.
+    cards->Show(m_box_transform,   false, true);
+    cards->Show(m_box_mirror,      false, true);
+    cards->Show(m_box_thicken,     false, true);
+    cards->Show(m_box_rib,         false, true);
+    cards->Show(m_box_project,     false, true);
+    cards->Show(m_box_delete_face, false, true);
+    cards->Show(m_box_helix,       false, true);
+    cards->Show(m_box_mate,        false, true);
 
     m_form->FitInside();
     m_form->SetScrollRate(0, 10);   // vertical only, like Prepare's sidebar: never scroll labels out
