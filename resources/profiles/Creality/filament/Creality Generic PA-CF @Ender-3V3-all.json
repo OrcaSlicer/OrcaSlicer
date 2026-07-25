@@ -3,7 +3,7 @@
 	"name": "Creality Generic PA-CF @Ender-3V3-all",
 	"inherits": "Creality Generic PA-CF",
 	"from": "system",
-	"setting_id": "GFSN99_01",
+	"setting_id": "PxYQg8A9aHBV0wKU",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Creality Ender-3 V3 0.4 nozzle",

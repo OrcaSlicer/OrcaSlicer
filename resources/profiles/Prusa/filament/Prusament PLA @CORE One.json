@@ -3,7 +3,7 @@
 	"name": "Prusament PLA @CORE One",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "PuujUMjNKLZvZNAH",
 	"filament_id": "Prusament PLA @CORE One",
 	"instantiation": "true",
 	"chamber_temperature": [

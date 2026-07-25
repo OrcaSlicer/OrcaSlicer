@@ -4,7 +4,7 @@
 	"inherits": "fdm_machine_phoenixprov1_common",
 	"from": "system",
 	"instantiation": "true",
-	"setting_id": "GM001",
+	"setting_id": "XHK731uBkstR3hRp",
 	"printer_model": "WEMAKE3D PhoenixProV1",
 	"nozzle_diameter": [
 		"0.2"

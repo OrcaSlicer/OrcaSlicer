@@ -7,7 +7,7 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/libslic3r.h"
 
-#include "test_data.hpp"
+#include "test_helpers.hpp"
 
 using namespace Slic3r;
 
@@ -35,7 +35,7 @@ static Slic3r::ExtrusionPaths random_paths(size_t count = 10, size_t length = 20
     return p;
 }
 
-SCENARIO("ExtrusionEntityCollection: Polygon flattening", "[ExtrusionEntity]") {
+SCENARIO("Polygon flattening", "[ExtrusionEntity]") {
     srand(0xDEADBEEF); // consistent seed for test reproducibility.
 
     // Generate one specific random path set and save it for later comparison

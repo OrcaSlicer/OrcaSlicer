@@ -3,7 +3,7 @@
 	"name": "SecKit Generic PETG",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "mx45AbmzGkqYMSsW",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"reduce_fan_stop_start_freq": [

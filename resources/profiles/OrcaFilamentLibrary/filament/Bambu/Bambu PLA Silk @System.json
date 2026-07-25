@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Silk @System",
 	"inherits": "Bambu PLA Silk @base",
 	"from": "system",
-	"setting_id": "OGFSA05_01",
+	"setting_id": "urdS8L3VweWtD0bW",
 	"instantiation": "true",
 	"compatible_printers": []
 }

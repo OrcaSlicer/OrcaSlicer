@@ -1,9 +1,11 @@
 {
+	"type": "process",
 	"from": "system",
 	"inherits": "0.20mm Standard @Elegoo N3Pro 0.4 nozzle",
 	"name": "0.12mm Fine @Elegoo N3Pro 0.4 nozzle",
 	"layer_height": "0.12",
 	"wall_loops": "3",
+	"setting_id": "sxbVyUoQQwvDwEgm",
 	"instantiation": "true",
 	"renamed_from": "0.08mm Extra Fine @Elegoo Neptune3;0.08mm Extra Fine @Elegoo Neptune3Pro;0.12mm Fine @Elegoo Neptune3;0.12mm Fine @Elegoo Neptune3Pro"
 }

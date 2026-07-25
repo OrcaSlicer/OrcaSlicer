@@ -3,7 +3,7 @@
 	"name": "PolyLite PETG Translucent @Snapmaker U1",
 	"inherits": "PolyLite PETG Translucent @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL74_00",
+	"setting_id": "NBQOZiQQ8MpcDnLM",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

@@ -3,7 +3,7 @@
 	"name": "Bambu PLA @Qidi X-Plus 4 0.6 nozzle",
 	"inherits": "Bambu PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "CNzhUsHWT2FOW2Qe",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

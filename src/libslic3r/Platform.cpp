@@ -105,6 +105,32 @@ PlatformFlavor platform_flavor()
 	return s_platform_flavor;
 }
 
+std::string platform_os_type()
+{
+#if defined(_WIN32)
+    return "win";
+#elif defined(__APPLE__)
+    return "macos";
+#elif defined(__linux__) || defined(__LINUX__)
+    return "linux";
+#else
+    return "unknown";
+#endif
+}
+
+std::string platform_architecture()
+{
+#if defined(__aarch64__) || defined(__arm64__) || defined(_M_ARM64)
+    return "arm64";
+#elif defined(__x86_64__) || defined(__x86_64) || defined(__amd64__) || defined(__amd64) || defined(_M_X64) || defined(_M_AMD64)
+    return "x86_64";
+#elif defined(__i386__) || defined(__i386) || defined(i386) || defined(_M_IX86)
+    return "i386";
+#else
+    return "unknown";
+#endif
+}
+
 
 
 std::string platform_to_string(Platform platform)

@@ -3,7 +3,7 @@
 	"name": "QIDI PETG Tough @Qidi X-Plus 4 0.8 nozzle",
 	"inherits": "QIDI PETG Tough",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "BwMkyVGyL0Pmqp1w",
 	"filament_id": "QD_0_1_40",
 	"instantiation": "true",
 	"fan_max_speed": [

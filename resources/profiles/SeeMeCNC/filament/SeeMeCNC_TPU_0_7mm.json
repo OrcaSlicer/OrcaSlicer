@@ -1,0 +1,51 @@
+{
+	"type": "filament",
+	"name": "SeeMeCNC TPU 0.7 nozzle",
+	"inherits": "SeeMeCNC TPU",
+	"from": "System",
+	"instantiation": "true",
+	"filament_settings_id": [
+		"SeeMeCNC TPU 0.7 nozzle"
+	],
+	"compatible_printers": [
+		"SeeMeCNC Artemis 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 500 0505 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 500 0510 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 500 0521 0.7 nozzle",
+		"SeeMeCNC BOSSdelta 300 0.7 nozzle",
+		"SeeMeCNC RostockMAX v3.2 0.7 nozzle",
+		"SeeMeCNC RostockMAX v4 0.7 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"compatible_prints": [
+		"0.30mm TPU Solid @SeeMeCNC Artemis 0.7",
+		"0.30mm TPU Solid @SeeMeCNC BOSSdelta 300 0.7",
+		"0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0505 0.7",
+		"0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0510 0.7",
+		"0.30mm TPU Solid @SeeMeCNC BOSSdelta 500 0521 0.7",
+		"0.30mm TPU Solid @SeeMeCNC RostockMAX v3.2 0.7",
+		"0.30mm TPU Solid @SeeMeCNC RostockMAX v4 0.7",
+		"0.35mm TPU Vase @SeeMeCNC Artemis 0.7",
+		"0.35mm TPU Vase @SeeMeCNC BOSSdelta 300 0.7",
+		"0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0505 0.7",
+		"0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0510 0.7",
+		"0.35mm TPU Vase @SeeMeCNC BOSSdelta 500 0521 0.7",
+		"0.35mm TPU Vase @SeeMeCNC RostockMAX v3.2 0.7",
+		"0.35mm TPU Vase @SeeMeCNC RostockMAX v4 0.7"
+	],
+	"compatible_prints_condition": "",
+	"filament_retraction_length": [
+		"7"
+	],
+	"filament_z_hop": [
+		"0.3"
+	],
+	"filament_retraction_speed": [
+		"30"
+	],
+	"filament_deretraction_speed": [
+		"30"
+	],
+	"setting_id": "4LUkyKiKFb96OeC0",
+	"filament_id": "SMCFU00107"
+}

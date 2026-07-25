@@ -2,7 +2,7 @@
 	"type": "machine_model",
 	"name": "Creality Hi",
 	"model_id": "Creality-Hi",
-	"nozzle_diameter": "0.4;0.6",
+	"nozzle_diameter": "0.8;0.6;0.4;0.2",
 	"machine_tech": "FFF",
 	"family": "Creality",
 	"bed_model": "creality_hi_buildplate_model.stl",

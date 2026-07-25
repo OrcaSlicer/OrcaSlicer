@@ -3,7 +3,7 @@
 	"name": "QIDI PAHT-CF @Qidi X-Plus 4 0.8 nozzle",
 	"inherits": "QIDI PAHT-CF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "F30WpUvosUoiAKry",
 	"filament_id": "QD_0_1_30",
 	"instantiation": "true",
 	"fan_cooling_layer_time": [

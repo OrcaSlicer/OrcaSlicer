@@ -3,7 +3,6 @@
 	"name": "QIDI PLA Rapido Metal@Q2-Series",
 	"inherits": "fdm_filament_q_common",
 	"from": "system",
-	"setting_id": "GFSL99",
 	"filament_id": "QD_1_1_3",
 	"instantiation": "false",
 	"filament_type": [

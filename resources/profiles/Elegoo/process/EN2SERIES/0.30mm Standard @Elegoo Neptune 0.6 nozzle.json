@@ -3,7 +3,7 @@
 	"name": "0.30mm Standard @Elegoo Neptune 0.6 nozzle",
 	"inherits": "fdm_process_elegoo_06030",
 	"from": "system",
-	"setting_id": "PEN206030",
+	"setting_id": "G6dUEbP5KTftvQo9",
 	"instantiation": "true",
 	"filename_format": "{nozzle_diameter[0]}{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
 	"default_acceleration": "1000",

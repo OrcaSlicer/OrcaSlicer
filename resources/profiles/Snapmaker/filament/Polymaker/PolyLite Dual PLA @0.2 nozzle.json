@@ -3,7 +3,7 @@
 	"from": "system",
 	"instantiation": "true",
 	"name": "PolyLite Dual PLA @0.2 nozzle",
-	"setting_id": "490991920",
+	"setting_id": "jhmy4YHi9MuL0DWu",
 	"inherits": "PolyLite PLA @0.2 nozzle",
 	"compatible_printers": [
 		"Snapmaker A250 Dual (0.2 nozzle)",

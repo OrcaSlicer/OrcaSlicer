@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include "ActionRegistry.hpp"
 #include "ImGuiWrapper.hpp"
 #include "ConfigWizard.hpp"
 #include "OpenGLManager.hpp"
@@ -85,6 +86,9 @@ class HMSQuery;
 class ModelMallDialog;
 class PingCodeBindDialog;
 class NetworkErrorDialog;
+class PluginsDialog;
+class SpeedDialWebDialog;
+class TerminalDialog;
 
 
 enum FileType
@@ -323,6 +327,7 @@ private:
     boost::thread    m_sync_update_thread;
     std::shared_ptr<int> m_user_sync_token;
     std::atomic<bool>    m_restart_sync_pending {false};
+    std::atomic<bool>    m_sync_user_preset_dlg_active {false}; // a manual "Sync Presets" progress dialog is on screen (see restart_sync_user_preset)
     std::atomic<bool>    m_sync_user_presets_now {false}; // request the sync loop to push user presets on its next tick
     std::atomic<bool>    m_migration_retry_pending {false};
     bool             m_is_dark_mode{ false };
@@ -338,6 +343,7 @@ private:
 public:
     //try again when subscription fails
     void            on_start_subscribe_again(std::string dev_id);
+    void            reset_unsigned_plugin_warning() { m_unsigned_plugin_warning_shown = false; }
     std::string     get_local_models_path();
     bool            OnInit() override;
     int             OnExit() override;
@@ -467,6 +473,7 @@ public:
     void            recreate_GUI(const wxString& message);
     void            system_info();
     void            keyboard_shortcuts();
+    void            troubleshoot();
     void            load_project(wxWindow *parent, wxString& input_file) const;
     void            import_model(wxWindow *parent, wxArrayString& input_files) const;
     void            import_zip(wxWindow* parent, wxString& input_file) const;
@@ -543,11 +550,16 @@ public:
 
     // Bundle subscription sync
     void            check_bundle_updates();
-    void            sync_bundle(std::string bundle_id, std::string version);
+    int             sync_bundle(std::string bundle_id, std::string version);
     bool            unsubscribe_bundle(const std::string& id);
     void            update_single_bundle(wxCommandEvent& evt);
 
     PresetBundleDialog* m_preset_bundle_dlg{nullptr};
+    PluginsDialog* m_plugins_dlg{nullptr};
+    SpeedDialWebDialog* m_speed_dial_dialog{nullptr};
+    TerminalDialog* m_terminal_dlg{nullptr};
+    ActionRegistry  m_action_registry;
+
 
     void            start_http_server(const std::string& provider = ORCA_CLOUD_PROVIDER);
     void            start_http_server(int port, const std::string& provider = ORCA_CLOUD_PROVIDER);
@@ -615,6 +627,10 @@ public:
 
     void            open_preferences(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     void            open_presetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    void            open_plugins_dialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
+    void            open_terminal_dialog();
+    void            open_speed_dial();
+    ActionRegistry& action_registry() { return m_action_registry; }
     void            open_exportpresetbundledialog(size_t open_on_tab = 0, const std::string& highlight_option = std::string());
     virtual bool OnExceptionInMainLoop() override;
     // Calls wxLaunchDefaultBrowser if user confirms in dialog.
@@ -740,6 +756,7 @@ public:
     int             install_plugin(std::string name, std::string package_name, InstallProgressFn pro_fn = nullptr, WasCancelledFn cancel_fn = nullptr);
     std::string     get_http_url(std::string country_code, std::string path = {});
     std::string     get_model_http_url(std::string country_code);
+    bool            use_legacy_network_plugin() const;
     bool            is_compatibility_version();
     bool            check_networking_version();
     void            cancel_networking_install();
@@ -747,7 +764,12 @@ public:
     void            check_config_updates_from_updater() { check_updates(false); }
 
     void            show_network_plugin_download_dialog(bool is_update = false);
+    // One-time normalization of an older full-version identity (config 02.08.01.53 + file
+    // ..._02.08.01.53.dylib) to the AA.BB.CC series form, with no re-download. Runs at startup
+    // before the plug-in is loaded.
+    void            migrate_network_plugin_config();
     bool            hot_reload_network_plugin();
+    bool            install_network_plugin_from_ota(bool& had_cache);
     std::string     get_latest_network_version() const;
     bool            has_network_update_available() const;
     // Orca: return the client version to report to Bambu servers. Pinned to
@@ -762,6 +784,9 @@ private:
     bool            on_init_network(bool try_backup = false);
     void            init_networking_callbacks();
     void            init_app_config();
+    // GUI-side subscriptions to plugin loader events (dialog refresh,
+    // network-agent registration, plate revalidation).
+    void            init_plugin_gui_wiring();
     void            remove_old_networking_plugins();
     void            drain_pending_events(int timeout_ms);
     bool            wait_for_network_idle(int timeout_ms);

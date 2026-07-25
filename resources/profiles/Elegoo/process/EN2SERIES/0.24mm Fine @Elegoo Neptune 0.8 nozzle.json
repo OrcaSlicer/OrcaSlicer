@@ -1,5 +1,6 @@
 {
-	"setting_id": "PEN208024",
+	"type": "process",
+	"setting_id": "58PjDN7iOw2uuKCa",
 	"from": "system",
 	"name": "0.24mm Fine @Elegoo Neptune 0.8 nozzle",
 	"inherits": "0.40mm Standard @Elegoo Neptune 0.8 nozzle",

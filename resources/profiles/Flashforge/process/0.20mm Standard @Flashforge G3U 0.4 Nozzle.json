@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Flashforge G3U 0.4 Nozzle",
 	"inherits": "fdm_process_flashforge_0.20",
 	"from": "system",
-	"setting_id": "GP003",
+	"setting_id": "KhWOD428xXaI9mwx",
 	"instantiation": "true",
 	"accel_to_decel_enable": "0",
 	"accel_to_decel_factor": "50%",

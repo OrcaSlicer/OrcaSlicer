@@ -67,6 +67,10 @@ wxDECLARE_EVENT(EVT_VOLUME_DETACHED, VolumeDetachedEvent);
 
 wxTopLevelWindow* find_toplevel_parent(wxWindow *window);
 wxString format_nozzle_diameter(float diameter);
+// True when running inside an MSIX package (Microsoft Store build); always false on non-Windows.
+bool is_running_in_msix();
+// Opens the Microsoft Store product page for the current package. No-op when not packaged.
+void open_ms_store_product_page();
 
 void on_window_geometry(wxTopLevelWindow *tlw, std::function<void()> callback);
 

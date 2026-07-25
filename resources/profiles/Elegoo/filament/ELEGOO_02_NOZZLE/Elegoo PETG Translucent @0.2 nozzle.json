@@ -3,7 +3,7 @@
 	"name": "Elegoo PETG Translucent @0.2 nozzle",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "EPETGTRAN00020",
+	"setting_id": "3zgNnsZ5SmrldddZ",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.024"

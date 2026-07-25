@@ -3,7 +3,7 @@
 	"name": "Flashforge Guider 3 Ultra 0.8 Nozzle",
 	"inherits": "fdm_guider3_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "zqSpSCSeNgnxibvd",
 	"instantiation": "true",
 	"printer_variant": "0.8",
 	"printer_model": "Flashforge Guider 3 Ultra",

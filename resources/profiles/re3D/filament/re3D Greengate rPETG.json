@@ -5,14 +5,17 @@
 	"instantiation": "true",
 	"inherits": "fdm_filament_pet",
 	"filament_id": "GFG01",
-	"setting_id": "re3d_greengate_rpetg",
+	"setting_id": "SdugLw5oy9GB7NID",
 	"filament_settings_id": [
 		"re3D Greengate rPETG"
 	],
 	"compatible_printers": [
-		"re3D GigabotX 2",
-		"re3D GigabotX 2 XLT",
-		"re3D TerabotX 2"
+		"re3D GigabotX 2 0.8 nozzle",
+		"re3D GigabotX 2 XLT 0.8 nozzle",
+		"re3D TerabotX 2 0.8 nozzle",
+		"re3D GigabotX 2 1.75 nozzle",
+		"re3D GigabotX 2 XLT 1.75 nozzle",
+		"re3D TerabotX 2 1.75 nozzle"
 	],
 	"filament_vendor": [
 		"re3D"

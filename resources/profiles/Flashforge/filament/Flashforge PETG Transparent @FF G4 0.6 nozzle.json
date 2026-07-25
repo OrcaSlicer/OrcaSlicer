@@ -3,6 +3,7 @@
 	"name": "Flashforge PETG Transparent @FF G4 0.6 nozzle",
 	"inherits": "Flashforge Generic PETG @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "LLK1hwKZhDU8SaGJ",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [
 		"40"

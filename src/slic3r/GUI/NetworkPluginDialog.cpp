@@ -4,6 +4,7 @@
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/DialogButtons.hpp"
 #include "BitmapCache.hpp"
 #include "wxExtensions.hpp"
 #include "slic3r/Utils/bambu_networking.hpp"
@@ -11,6 +12,10 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/collpane.h>
+
+#define BORDER_W     FromDIP(20)
+#define TEXT_WRAP    FromDIP(400)
+#define DIALOG_WIDTH FromDIP(440)
 
 namespace Slic3r {
 namespace GUI {
@@ -30,10 +35,10 @@ NetworkPluginDownloadDialog::NetworkPluginDownloadDialog(wxWindow* parent, Mode 
 
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
-    auto m_line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1));
+    auto m_line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(DIALOG_WIDTH, 1));
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
     main_sizer->Add(m_line_top, 0, wxEXPAND, 0);
-    main_sizer->Add(0, 0, 0, wxTOP, FromDIP(20));
+    main_sizer->AddSpacer(BORDER_W);
 
     SetSizer(main_sizer);
 
@@ -52,179 +57,159 @@ void NetworkPluginDownloadDialog::create_missing_plugin_ui()
 {
     wxBoxSizer* main_sizer = static_cast<wxBoxSizer*>(GetSizer());
 
-    auto* desc = new wxStaticText(this, wxID_ANY,
+    auto* desc = new Label(this,
         m_mode == Mode::CorruptedPlugin ?
             _L("The Bambu Network Plug-in is corrupted or incompatible. Please reinstall it.") :
             _L("The Bambu Network Plug-in is required for cloud features, printer discovery, and remote printing."));
-    desc->SetFont(::Label::Body_13);
-    desc->Wrap(FromDIP(400));
-    main_sizer->Add(desc, 0, wxLEFT | wxRIGHT, FromDIP(25));
-    main_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
+    desc->Wrap(TEXT_WRAP);
+    desc->SetMaxSize(wxSize(TEXT_WRAP, -1));
+    main_sizer->Add(desc, 0, wxLEFT | wxRIGHT, BORDER_W);
+    main_sizer->AddSpacer(FromDIP(15));
 
     if (!m_error_message.empty()) {
         auto* error_label = new wxStaticText(this, wxID_ANY,
             wxString::Format(_L("Error: %s"), wxString::FromUTF8(m_error_message)));
         error_label->SetFont(::Label::Body_13);
         error_label->SetForegroundColour(wxColour(208, 93, 93));
-        error_label->Wrap(FromDIP(400));
-        main_sizer->Add(error_label, 0, wxLEFT | wxRIGHT, FromDIP(25));
-        main_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
+        error_label->Wrap(TEXT_WRAP);
+        error_label->SetMaxSize(wxSize(TEXT_WRAP, -1));
+        main_sizer->Add(error_label, 0, wxLEFT | wxRIGHT, BORDER_W);
+        main_sizer->AddSpacer(FromDIP(5));
 
         if (!m_error_details.empty()) {
-            m_details_pane = new wxCollapsiblePane(this, wxID_ANY, _L("Show details"));
-            auto* pane = m_details_pane->GetPane();
-            auto* pane_sizer = new wxBoxSizer(wxVERTICAL);
+            auto expand_btn = new Button(this, _L("Show details"));
+            expand_btn->SetStyle(ButtonStyle::Regular, ButtonType::Compact);
+            main_sizer->Add(expand_btn, 0, wxLEFT, BORDER_W);
+            main_sizer->AddSpacer(FromDIP(5));
 
-            auto* details_text = new wxStaticText(pane, wxID_ANY, wxString::FromUTF8(m_error_details));
+            auto details_text = new wxTextCtrl(this, wxID_ANY, wxString::FromUTF8(m_error_details),
+                wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY | wxNO_BORDER);
+
             details_text->SetFont(wxGetApp().code_font());
-            details_text->Wrap(FromDIP(380));
-            pane_sizer->Add(details_text, 0, wxALL, FromDIP(10));
+            details_text->SetBackgroundColour(wxColour("#F1F1F1"));
+            details_text->SetMaxSize(wxSize(TEXT_WRAP, -1));
+            main_sizer->Add(details_text, 0, wxLEFT | wxRIGHT | wxEXPAND, BORDER_W);
 
-            pane->SetSizer(pane_sizer);
-            main_sizer->Add(m_details_pane, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(25));
-            main_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
+            details_text->Hide();
+
+            expand_btn->Bind(wxEVT_BUTTON, [this, details_text, expand_btn](wxCommandEvent&){
+                Freeze();
+                details_text->Show(!details_text->IsShown());
+                expand_btn->SetLabel(details_text->IsShown() ? _L("Hide details") : _L("Show details"));
+                Layout();
+                Fit();
+                Refresh();
+                Thaw();
+            });
+
+            main_sizer->AddSpacer(FromDIP(15));
         }
     }
 
-    auto* version_label = new wxStaticText(this, wxID_ANY, _L("Version to install:"));
-    version_label->SetFont(::Label::Body_13);
-    main_sizer->Add(version_label, 0, wxLEFT | wxRIGHT, FromDIP(25));
-    main_sizer->Add(0, 0, 0, wxTOP, FromDIP(5));
+    auto* version_label = new Label(this, _L("Version to install:"));
+    main_sizer->Add(version_label, 0, wxLEFT | wxRIGHT, BORDER_W);
+    main_sizer->AddSpacer(FromDIP(3));
 
     setup_version_selector();
-    main_sizer->Add(m_version_combo, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(25));
-    main_sizer->Add(0, 0, 0, wxTOP, FromDIP(20));
 
-    auto* btn_sizer = new wxBoxSizer(wxHORIZONTAL);
-    btn_sizer->Add(0, 0, 1, wxEXPAND, 0);
+    main_sizer->Add(m_version_combo, 0, wxLEFT | wxRIGHT | wxEXPAND, BORDER_W);
+    main_sizer->AddSpacer(15);
 
-    StateColor btn_bg_green(
-        std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
+    auto dlg_btns = new DialogButtons(this,
+        {"Download and Install", "Skip for Now"},
+        _L("Download and Install")  // Primary button
+    );
 
-    StateColor btn_bg_white(
-        std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-        std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
+    dlg_btns->GetButtonFromIndex(0)->Bind(wxEVT_BUTTON, &NetworkPluginDownloadDialog::on_download, this);
+    dlg_btns->GetButtonFromIndex(1)->Bind(wxEVT_BUTTON, &NetworkPluginDownloadDialog::on_skip, this);
 
-    auto* btn_download = new Button(this, _L("Download and Install"));
-    btn_download->SetBackgroundColor(btn_bg_green);
-    btn_download->SetBorderColor(*wxWHITE);
-    btn_download->SetTextColor(*wxWHITE);
-    btn_download->SetFont(::Label::Body_12);
-    btn_download->SetMinSize(wxSize(FromDIP(120), FromDIP(24)));
-    btn_download->Bind(wxEVT_BUTTON, &NetworkPluginDownloadDialog::on_download, this);
-    btn_sizer->Add(btn_download, 0, wxRIGHT, FromDIP(10));
-
-    auto* btn_skip = new Button(this, _L("Skip for Now"));
-    btn_skip->SetBackgroundColor(btn_bg_white);
-    btn_skip->SetBorderColor(wxColour(38, 46, 48));
-    btn_skip->SetFont(::Label::Body_12);
-    btn_skip->SetMinSize(wxSize(FromDIP(100), FromDIP(24)));
-    btn_skip->Bind(wxEVT_BUTTON, &NetworkPluginDownloadDialog::on_skip, this);
-    btn_sizer->Add(btn_skip, 0, wxRIGHT, FromDIP(10));
-
-    main_sizer->Add(btn_sizer, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(20));
-    main_sizer->Add(0, 0, 0, wxBOTTOM, FromDIP(20));
+    main_sizer->Add(dlg_btns, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, FromDIP(10));
 }
 
 void NetworkPluginDownloadDialog::create_update_available_ui(const std::string& current_version)
 {
     wxBoxSizer* main_sizer = static_cast<wxBoxSizer*>(GetSizer());
 
-    auto* desc = new wxStaticText(this, wxID_ANY,
+    auto* desc = new Label(this,
         _L("A new version of the Bambu Network Plug-in is available."));
-    desc->SetFont(::Label::Body_13);
-    desc->Wrap(FromDIP(400));
-    main_sizer->Add(desc, 0, wxLEFT | wxRIGHT, FromDIP(25));
-    main_sizer->Add(0, 0, 0, wxTOP, FromDIP(15));
+    desc->Wrap(TEXT_WRAP);
+    desc->SetMaxSize(wxSize(TEXT_WRAP, -1));
+    main_sizer->Add(desc, 0, wxLEFT | wxRIGHT, BORDER_W);
+    main_sizer->AddSpacer(FromDIP(15));
 
-    auto* version_text = new wxStaticText(this, wxID_ANY,
+    auto* version_text = new Label(this,
         wxString::Format(_L("Current version: %s"), wxString::FromUTF8(current_version)));
-    version_text->SetFont(::Label::Body_13);
-    main_sizer->Add(version_text, 0, wxLEFT | wxRIGHT, FromDIP(25));
-    main_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
+    main_sizer->Add(version_text, 0, wxLEFT | wxRIGHT, BORDER_W);
+    main_sizer->AddSpacer(FromDIP(15));
 
-    auto* update_label = new wxStaticText(this, wxID_ANY, _L("Update to version:"));
-    update_label->SetFont(::Label::Body_13);
-    main_sizer->Add(update_label, 0, wxLEFT | wxRIGHT, FromDIP(25));
-    main_sizer->Add(0, 0, 0, wxTOP, FromDIP(5));
+    auto* update_label = new Label(this, _L("Update to version:"));
+    main_sizer->Add(update_label, 0, wxLEFT | wxRIGHT, BORDER_W);
+    main_sizer->AddSpacer(FromDIP(3));
 
     setup_version_selector();
-    main_sizer->Add(m_version_combo, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(25));
-    main_sizer->Add(0, 0, 0, wxTOP, FromDIP(20));
+    main_sizer->Add(m_version_combo, 0, wxLEFT | wxRIGHT | wxEXPAND, BORDER_W);
+    main_sizer->AddSpacer(20);
 
-    auto* btn_sizer = new wxBoxSizer(wxHORIZONTAL);
-    btn_sizer->Add(0, 0, 1, wxEXPAND, 0);
+    auto daa_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto cfg = wxGetApp().app_config;
 
-    StateColor btn_bg_green(
-        std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
+    auto daa_chk = new CheckBox(this);
+    daa_chk->SetValue(cfg->is_network_update_prompt_disabled());
+    daa_chk->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e){
+        auto cfg = wxGetApp().app_config;
+        cfg->set_network_update_prompt_disabled(e.IsChecked());
+        cfg->save();
+    });
 
-    StateColor btn_bg_white(
-        std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-        std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
+    auto daa_str = new Label(this, _L("Don't Ask Again"));
+    auto on_toggle = [this, daa_chk]() {
+        daa_chk->SetValue(!daa_chk->GetValue());
+        wxCommandEvent evt(wxEVT_TOGGLEBUTTON, daa_chk->GetId());
+        evt.SetEventObject(daa_chk);
+        daa_chk->GetEventHandler()->ProcessEvent(evt);
+    };
+    daa_str->Bind(wxEVT_LEFT_DOWN,   [on_toggle](wxMouseEvent& e) {if(!e.LeftDClick()) on_toggle();});
+    daa_str->Bind(wxEVT_LEFT_DCLICK, [on_toggle](wxMouseEvent& e) {on_toggle();});
 
-    auto* btn_download = new Button(this, _L("Update Now"));
-    btn_download->SetBackgroundColor(btn_bg_green);
-    btn_download->SetBorderColor(*wxWHITE);
-    btn_download->SetTextColor(*wxWHITE);
-    btn_download->SetFont(::Label::Body_12);
-    btn_download->SetMinSize(wxSize(FromDIP(100), FromDIP(24)));
-    btn_download->Bind(wxEVT_BUTTON, &NetworkPluginDownloadDialog::on_download, this);
-    btn_sizer->Add(btn_download, 0, wxRIGHT, FromDIP(10));
+    daa_sizer->Add(daa_chk, 0, wxALIGN_CENTER_VERTICAL);
+    daa_sizer->Add(daa_str, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(5));
 
-    auto* btn_remind = new Button(this, _L("Remind Later"));
-    btn_remind->SetBackgroundColor(btn_bg_white);
-    btn_remind->SetBorderColor(wxColour(38, 46, 48));
-    btn_remind->SetFont(::Label::Body_12);
-    btn_remind->SetMinSize(wxSize(FromDIP(100), FromDIP(24)));
-    btn_remind->Bind(wxEVT_BUTTON, &NetworkPluginDownloadDialog::on_remind_later, this);
-    btn_sizer->Add(btn_remind, 0, wxRIGHT, FromDIP(10));
+    main_sizer->Add(daa_sizer, 0, wxLEFT | wxRIGHT | wxEXPAND, BORDER_W);
+    main_sizer->AddSpacer(10);
 
-    auto* btn_skip = new Button(this, _L("Skip Version"));
-    btn_skip->SetBackgroundColor(btn_bg_white);
-    btn_skip->SetBorderColor(wxColour(38, 46, 48));
-    btn_skip->SetFont(::Label::Body_12);
-    btn_skip->SetMinSize(wxSize(FromDIP(100), FromDIP(24)));
-    btn_skip->Bind(wxEVT_BUTTON, &NetworkPluginDownloadDialog::on_skip_version, this);
-    btn_sizer->Add(btn_skip, 0, wxRIGHT, FromDIP(10));
+    auto dlg_btns = new DialogButtons(this,
+        {"Update Now", "Remind Later", "Skip Version"},
+        _L("Update Now")
+    );
 
-    auto* btn_dont_ask = new Button(this, _L("Don't Ask Again"));
-    btn_dont_ask->SetBackgroundColor(btn_bg_white);
-    btn_dont_ask->SetBorderColor(wxColour(38, 46, 48));
-    btn_dont_ask->SetFont(::Label::Body_12);
-    btn_dont_ask->SetMinSize(wxSize(FromDIP(110), FromDIP(24)));
-    btn_dont_ask->Bind(wxEVT_BUTTON, &NetworkPluginDownloadDialog::on_dont_ask, this);
-    btn_sizer->Add(btn_dont_ask, 0, wxRIGHT, FromDIP(10));
+    dlg_btns->GetButtonFromIndex(0)->Bind(wxEVT_BUTTON, &NetworkPluginDownloadDialog::on_download, this);
+    dlg_btns->GetButtonFromIndex(1)->Bind(wxEVT_BUTTON, &NetworkPluginDownloadDialog::on_remind_later, this);
+    dlg_btns->GetButtonFromIndex(2)->Bind(wxEVT_BUTTON, &NetworkPluginDownloadDialog::on_skip_version, this);
 
-    main_sizer->Add(btn_sizer, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(20));
-    main_sizer->Add(0, 0, 0, wxBOTTOM, FromDIP(20));
+    main_sizer->Add(dlg_btns, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, FromDIP(10));
+}
+
+wxString network_version_label(const NetworkLibraryVersionInfo& ver)
+{
+    wxString label = wxString::FromUTF8(ver.display_name);
+    if (!ver.suffix.empty())
+        label = wxString::FromUTF8("\xE2\x94\x94 ") + label;
+    // Both can apply: the loaded build may also be the highest listed one.
+    if (ver.is_latest)
+        label += wxString(" ") + _L("(Latest)");
+    if (ver.is_loaded)
+        label += wxString(" ") + _L("(installed)");
+    return label;
 }
 
 void NetworkPluginDownloadDialog::setup_version_selector()
 {
     m_version_combo = new ComboBox(this, wxID_ANY, wxEmptyString,
         wxDefaultPosition, wxSize(FromDIP(380), FromDIP(28)), 0, nullptr, wxCB_READONLY);
-    m_version_combo->SetFont(::Label::Body_13);
 
     m_available_versions = get_all_available_versions();
-    for (size_t i = 0; i < m_available_versions.size(); ++i) {
-        const auto& ver = m_available_versions[i];
-        wxString label;
-        if (!ver.suffix.empty()) {
-            label = wxString::FromUTF8("\xE2\x94\x94 ") + wxString::FromUTF8(ver.display_name);
-        } else {
-            label = wxString::FromUTF8(ver.display_name);
-            if (ver.is_latest) {
-                label += wxString(" ") + _L("(Latest)");
-            }
-        }
-        m_version_combo->Append(label);
-    }
+    for (const auto& ver : m_available_versions)
+        m_version_combo->Append(network_version_label(ver));
 
     m_version_combo->SetSelection(0);
 }
@@ -292,10 +277,10 @@ NetworkPluginRestartDialog::NetworkPluginRestartDialog(wxWindow* parent)
 
     wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
-    auto m_line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1));
+    auto m_line_top = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(DIALOG_WIDTH, 1));
     m_line_top->SetBackgroundColour(wxColour(166, 169, 170));
     main_sizer->Add(m_line_top, 0, wxEXPAND, 0);
-    main_sizer->Add(0, 0, 0, wxTOP, FromDIP(20));
+    main_sizer->AddSpacer(BORDER_W);
 
     auto* icon_sizer = new wxBoxSizer(wxHORIZONTAL);
     auto* icon_bitmap = new wxStaticBitmap(this, wxID_ANY,
@@ -304,61 +289,39 @@ NetworkPluginRestartDialog::NetworkPluginRestartDialog(wxWindow* parent)
 
     auto* text_sizer = new wxBoxSizer(wxVERTICAL);
 
-    auto* desc = new wxStaticText(this, wxID_ANY,
+    auto* desc = new Label(this, 
         _L("The Bambu Network Plug-in has been installed successfully."));
-    desc->SetFont(::Label::Body_14);
-    desc->Wrap(FromDIP(350));
+    desc->Wrap(TEXT_WRAP);
+    desc->SetMaxSize(wxSize(TEXT_WRAP, -1));
     text_sizer->Add(desc, 0, wxTOP, FromDIP(10));
-    text_sizer->Add(0, 0, 0, wxTOP, FromDIP(10));
+    text_sizer->AddSpacer(FromDIP(10));
 
-    auto* restart_msg = new wxStaticText(this, wxID_ANY,
+    auto* restart_msg = new Label(this,
         _L("A restart is required to load the new plug-in. Would you like to restart now?"));
-    restart_msg->SetFont(::Label::Body_13);
-    restart_msg->Wrap(FromDIP(350));
+    restart_msg->Wrap(TEXT_WRAP);
+    restart_msg->SetMaxSize(wxSize(TEXT_WRAP, -1));
     text_sizer->Add(restart_msg, 0, wxBOTTOM, FromDIP(10));
 
-    icon_sizer->Add(text_sizer, 1, wxEXPAND | wxRIGHT, FromDIP(20));
-    main_sizer->Add(icon_sizer, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(15));
-    main_sizer->Add(0, 0, 0, wxTOP, FromDIP(20));
+    icon_sizer->Add(text_sizer, 1, wxEXPAND | wxRIGHT, BORDER_W);
+    main_sizer->Add(icon_sizer, 0, wxLEFT | wxRIGHT | wxEXPAND, BORDER_W);
+    main_sizer->AddSpacer(15);
 
-    auto* btn_sizer = new wxBoxSizer(wxHORIZONTAL);
-    btn_sizer->Add(0, 0, 1, wxEXPAND, 0);
+    auto dlg_btns = new DialogButtons(this,
+        {"Restart Now", "Restart Later"},
+        _L("Restart Now") // Primary button
+    );
 
-    StateColor btn_bg_green(
-        std::pair<wxColour, int>(wxColour(0, 137, 123), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(38, 166, 154), StateColor::Hovered),
-        std::pair<wxColour, int>(wxColour(0, 150, 136), StateColor::Normal));
-
-    StateColor btn_bg_white(
-        std::pair<wxColour, int>(wxColour(206, 206, 206), StateColor::Pressed),
-        std::pair<wxColour, int>(wxColour(238, 238, 238), StateColor::Hovered),
-        std::pair<wxColour, int>(*wxWHITE, StateColor::Normal));
-
-    auto* btn_restart = new Button(this, _L("Restart Now"));
-    btn_restart->SetBackgroundColor(btn_bg_green);
-    btn_restart->SetBorderColor(*wxWHITE);
-    btn_restart->SetTextColor(*wxWHITE);
-    btn_restart->SetFont(::Label::Body_12);
-    btn_restart->SetMinSize(wxSize(FromDIP(100), FromDIP(24)));
-    btn_restart->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    dlg_btns->GetButtonFromIndex(0)->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         m_restart_now = true;
         EndModal(wxID_OK);
     });
-    btn_sizer->Add(btn_restart, 0, wxRIGHT, FromDIP(10));
 
-    auto* btn_later = new Button(this, _L("Restart Later"));
-    btn_later->SetBackgroundColor(btn_bg_white);
-    btn_later->SetBorderColor(wxColour(38, 46, 48));
-    btn_later->SetFont(::Label::Body_12);
-    btn_later->SetMinSize(wxSize(FromDIP(100), FromDIP(24)));
-    btn_later->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    dlg_btns->GetButtonFromIndex(1)->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
         m_restart_now = false;
         EndModal(wxID_CANCEL);
     });
-    btn_sizer->Add(btn_later, 0, wxRIGHT, FromDIP(10));
-
-    main_sizer->Add(btn_sizer, 0, wxLEFT | wxRIGHT | wxEXPAND, FromDIP(20));
-    main_sizer->Add(0, 0, 0, wxBOTTOM, FromDIP(20));
+    
+    main_sizer->Add(dlg_btns, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, FromDIP(10));
 
     SetSizer(main_sizer);
     Layout();

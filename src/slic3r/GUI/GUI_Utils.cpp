@@ -24,6 +24,7 @@
 #include <wx/font.h>
 #include <wx/fontutil.h>
 #include <wx/display.h>
+#include <wx/utils.h>
 
 #include "libslic3r/Config.hpp"
 
@@ -170,6 +171,42 @@ template<class F> typename F::FN winapi_get_function(const wchar_t *dll, const c
     return (typename F::FN)GetProcAddress(dll_handle, fn_name);
 }
 #endif
+
+bool is_running_in_msix()
+{
+#ifdef _WIN32
+    // The package identity APIs are Win8+ - resolved dynamically so the exe still loads on Win7
+    // (same treatment as the DPI APIs below). Null-buffer probe: returns ERROR_INSUFFICIENT_BUFFER
+    // when packaged, APPMODEL_ERROR_NO_PACKAGE when running unpackaged.
+    struct GetCurrentPackageFullName_t { typedef LONG (WINAPI *FN)(UINT32 *length, PWSTR full_name); };
+    static const bool packaged = []() {
+        auto fn = winapi_get_function<GetCurrentPackageFullName_t>(L"Kernel32.dll", "GetCurrentPackageFullName");
+        UINT32 length = 0;
+        return fn != nullptr && fn(&length, nullptr) != APPMODEL_ERROR_NO_PACKAGE;
+    }();
+    return packaged;
+#else
+    return false;
+#endif
+}
+
+void open_ms_store_product_page()
+{
+#ifdef _WIN32
+    struct GetCurrentPackageFamilyName_t { typedef LONG (WINAPI *FN)(UINT32 *length, PWSTR family_name); };
+    static auto fn = winapi_get_function<GetCurrentPackageFamilyName_t>(L"Kernel32.dll", "GetCurrentPackageFamilyName");
+    if (fn == nullptr)
+        return;
+    UINT32 length = 0;
+    if (fn(&length, nullptr) != ERROR_INSUFFICIENT_BUFFER)
+        return;
+    std::wstring family_name(length, L'\0');
+    if (fn(&length, family_name.data()) != ERROR_SUCCESS)
+        return;
+    family_name.resize(length > 0 ? length - 1 : 0); // drop the terminating null
+    wxLaunchDefaultBrowser(wxString(L"ms-windows-store://pdp/?PFN=") + family_name.c_str());
+#endif
+}
 
 // If called with nullptr, a DPI for the primary monitor is returned.
 int get_dpi_for_window(const wxWindow *window)

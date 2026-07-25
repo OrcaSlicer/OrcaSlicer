@@ -3,7 +3,7 @@
 	"name": "Qidi PLA-CF",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSL98",
+	"setting_id": "oqzsRA4OuCqTWPGM",
 	"filament_id": "GFL98",
 	"instantiation": "true",
 	"filament_flow_ratio": [

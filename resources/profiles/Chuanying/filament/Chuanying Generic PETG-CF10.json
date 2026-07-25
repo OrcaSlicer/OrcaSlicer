@@ -3,7 +3,7 @@
 	"name": "Chuanying Generic PETG-CF10",
 	"inherits": "fdm_filament_pet",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "S2vCGI7sqN8FwodT",
 	"filament_id": "GFG99",
 	"instantiation": "true",
 	"additional_cooling_fan_speed": [

@@ -2,6 +2,7 @@
 #define slic3r_GLGizmoMmuSegmentation_hpp_
 
 #include "GLGizmoPainterBase.hpp"
+#include "slic3r/GUI/I18N.hpp"
 
 namespace Slic3r::GUI {
 
@@ -100,9 +101,9 @@ protected:
 
     wxString handle_snapshot_action_name(bool shift_down, Button button_down) const override;
 
-    std::string get_gizmo_entering_text() const override { return "Entering color painting"; }
-    std::string get_gizmo_leaving_text() const override { return "Leaving color painting"; }
-    std::string get_action_snapshot_name() const override { return "Color painting editing"; }
+    std::string get_gizmo_entering_text() const override { return _u8L("Entering color painting"); }
+    std::string get_gizmo_leaving_text() const override { return _u8L("Leaving color painting"); }
+    std::string get_action_snapshot_name() const override { return _u8L("Color painting editing"); }
 
     // BBS
     size_t                            m_selected_extruder_idx = 0;

@@ -3,7 +3,7 @@
 	"name": "PolyLite PLA Translucent @Snapmaker U1",
 	"inherits": "PolyLite PLA Translucent @Snapmaker U1 base",
 	"from": "system",
-	"setting_id": "GFSL68_00",
+	"setting_id": "YpMLpguxd61Bs16O",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

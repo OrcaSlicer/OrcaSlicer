@@ -3,7 +3,7 @@
 	"name": "Creality Generic PLA Silk @K2-all",
 	"inherits": "Creality Generic PLA @K2-all",
 	"from": "system",
-	"setting_id": "GFSL96_00",
+	"setting_id": "qS0Mlt24iz1k4P7n",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"10"

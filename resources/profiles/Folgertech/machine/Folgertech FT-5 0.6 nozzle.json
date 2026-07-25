@@ -3,7 +3,7 @@
 	"name": "Folgertech FT-5 0.6 nozzle",
 	"inherits": "fdm_folgertech_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "j5KVIJqBIqEOJKic",
 	"instantiation": "true",
 	"printer_model": "Folgertech FT-5",
 	"nozzle_diameter": [

@@ -3,6 +3,7 @@
 	"name": "SeeMeCNC PA-CF",
 	"inherits": "SeeMeCNC filament base",
 	"from": "System",
+	"setting_id": "xaySfHS4rdZcWsqA",
 	"filament_id": "SMCFN001",
 	"instantiation": "true",
 	"filament_settings_id": [
@@ -264,5 +265,17 @@
 	],
 	"keep_fan_always_on": [
 		"0"
+	],
+	"filament_retraction_length": [
+		"5"
+	],
+	"filament_z_hop": [
+		"0.3"
+	],
+	"filament_retraction_speed": [
+		"40"
+	],
+	"filament_deretraction_speed": [
+		"30"
 	]
 }

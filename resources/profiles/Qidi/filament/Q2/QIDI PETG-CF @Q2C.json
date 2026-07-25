@@ -1,11 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "QD_2_1_42",
-	"setting_id": "GFSG99",
 	"name": "QIDI PETG-CF@Q2C-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_q_common",
+	"from": "system",
+	"filament_id": "QD_2_1_42",
+	"instantiation": "false",
 	"box_temperature_range_high": [
 		"45"
 	],

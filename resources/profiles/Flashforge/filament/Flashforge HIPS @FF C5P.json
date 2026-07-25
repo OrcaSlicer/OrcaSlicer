@@ -3,6 +3,7 @@
 	"name": "Flashforge HIPS @FF C5P",
 	"inherits": "Generic HIPS @System",
 	"from": "system",
+	"setting_id": "AEQYrT7e4Q5J2G6C",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Creator 5 Pro 0.4 nozzle",

@@ -3,6 +3,7 @@
 	"name": "WonderMaker TPU 95A",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
+	"setting_id": "eUyRprcb22IdYNv3",
 	"filament_id": "GFU01",
 	"instantiation": "true",
 	"description": "This filament is too soft and not compatible with the AMS. Printing it is of many requirements, and to get better printing quality, please refer to this wiki: TPU printing guide.",

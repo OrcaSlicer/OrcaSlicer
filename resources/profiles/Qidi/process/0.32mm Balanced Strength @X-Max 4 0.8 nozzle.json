@@ -1,10 +1,10 @@
 {
 	"type": "process",
-	"setting_id": "GP033",
 	"name": "0.32mm Balanced Strength @X-Max 4 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "U4yjBHhJwsHTIDHc",
+	"instantiation": "true",
 	"bridge_flow": "1",
 	"bridge_speed": [
 		"50"

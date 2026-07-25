@@ -3,7 +3,7 @@
 	"name": "Sovol SV06 ACE ABS",
 	"inherits": "Generic ABS @System",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "okqqqm0P8ehlQuDY",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

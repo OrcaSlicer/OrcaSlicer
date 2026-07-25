@@ -3,7 +3,7 @@
 	"name": "Construct 1 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "NvupYOd7fBM7ewuh",
 	"instantiation": "true",
 	"printer_settings_id": "CONSTRUCT3D",
 	"printer_model": "Construct 1",

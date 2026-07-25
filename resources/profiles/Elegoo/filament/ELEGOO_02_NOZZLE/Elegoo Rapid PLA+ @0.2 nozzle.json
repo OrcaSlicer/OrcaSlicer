@@ -4,7 +4,7 @@
 	"renamed_from": "Elegoo RAPID PLA+ @0.2 nozzle",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "ERPLAPLUS00020",
+	"setting_id": "52q6GSMo16aOU2a0",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3.2"

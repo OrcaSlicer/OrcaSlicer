@@ -3,8 +3,8 @@
 	"name": "BLOCKS RF50 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
+	"setting_id": "icpImzXl3Xx16srx",
 	"instantiation": "true",
-	"settings_id": "GM009",
 	"printer_model": "BLOCKS RF50",
 	"default_print_profile": "0.20mm Standard 0.4 nozzle @Blocks_RF50",
 	"max_layer_height": [

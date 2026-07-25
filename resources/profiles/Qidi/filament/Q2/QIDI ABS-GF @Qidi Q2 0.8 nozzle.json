@@ -3,7 +3,7 @@
 	"name": "QIDI ABS-GF @Qidi Q2 0.8 nozzle",
 	"inherits": "QIDI ABS-GF@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "nkgcPR2FOWnS1R8p",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.01"

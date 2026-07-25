@@ -3,7 +3,7 @@
 	"name": "Prusament rPLA @XL 5T",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "yAiHzmW4pa8deage",
 	"instantiation": "true",
 	"nozzle_temperature_intial_layer": "205",
 	"nozzle_temperature": "205",

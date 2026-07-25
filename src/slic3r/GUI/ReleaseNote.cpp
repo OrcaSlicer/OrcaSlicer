@@ -5,6 +5,7 @@
 #include "libslic3r/Thread.hpp"
 #include "GUI.hpp"
 #include "GUI_App.hpp"
+#include "GUI_Utils.hpp"
 #include "GUI_Preview.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
@@ -136,7 +137,7 @@ UpdatePluginDialog::UpdatePluginDialog(wxWindow* parent /*= nullptr*/)
     m_text_up_info->SetForegroundColour(wxColour(0x26, 0x2E, 0x30));
 
 
-    operation_tips = new ::Label(this, Label::Body_12, _L("Click OK to update the Network plug-in when Orca Slicer launches next time."), LB_AUTO_WRAP);
+    operation_tips = new ::Label(this, Label::Body_12, _L("Click OK to update the Network plug-in now. If a file is in use, the update will be applied the next time Orca Slicer launches."), LB_AUTO_WRAP);
     operation_tips->SetMinSize(wxSize(FromDIP(260), -1));
     operation_tips->SetMaxSize(wxSize(FromDIP(260), -1));
 
@@ -201,34 +202,45 @@ void UpdatePluginDialog::update_info(std::string json_path)
     wxString version;
     wxString description;
 
+    // Parse defensively: a missing or malformed changelog must never leave the
+    // dialog blank, so fall back to a generic prompt instead of returning early.
     try {
         boost::nowide::ifstream ifs(json_path);
         json j;
         ifs >> j;
 
-        version_str = j["version"];
-        description_str = j["description"];
+        if (j.contains("version"))
+            version_str = j["version"];
+        if (j.contains("description"))
+            description_str = j["description"];
     }
-    catch (nlohmann::detail::parse_error& err) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << json_path << " got a nlohmann::detail::parse_error, reason = " << err.what();
-        return;
+    catch (std::exception& err) {
+        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << json_path << " failed, reason = " << err.what();
     }
 
     version = from_u8(version_str);
     description = from_u8(description_str);
 
-    m_text_up_info->SetLabel(wxString::Format(_L("A new Network plug-in (%s) is available. Do you want to install it?"), version));
+    if (version.IsEmpty())
+        m_text_up_info->SetLabel(_L("A new Network plug-in is available. Do you want to install it?"));
+    else
+        m_text_up_info->SetLabel(wxString::Format(_L("A new Network plug-in (%s) is available. Do you want to install it?"), version));
     m_text_up_info->SetMinSize(wxSize(FromDIP(260), -1));
     m_text_up_info->SetMaxSize(wxSize(FromDIP(260), -1));
-    wxBoxSizer* sizer_text_release_note = new wxBoxSizer(wxVERTICAL);
-    auto        m_text_label            = new ::Label(m_vebview_release_note, Label::Body_13, description, LB_AUTO_WRAP);
-    m_text_label->SetMinSize(wxSize(FromDIP(235), -1));
-    m_text_label->SetMaxSize(wxSize(FromDIP(235), -1));
 
-    sizer_text_release_note->Add(m_text_label, 0, wxALL, 5);
-    m_vebview_release_note->SetSizer(sizer_text_release_note);
-    m_vebview_release_note->Layout();
-    m_vebview_release_note->Fit();
+    if (description.IsEmpty()) {
+        m_vebview_release_note->Hide();
+    } else {
+        wxBoxSizer* sizer_text_release_note = new wxBoxSizer(wxVERTICAL);
+        auto        m_text_label            = new ::Label(m_vebview_release_note, Label::Body_13, description, LB_AUTO_WRAP);
+        m_text_label->SetMinSize(wxSize(FromDIP(235), -1));
+        m_text_label->SetMaxSize(wxSize(FromDIP(235), -1));
+
+        sizer_text_release_note->Add(m_text_label, 0, wxALL, 5);
+        m_vebview_release_note->SetSizer(sizer_text_release_note);
+        m_vebview_release_note->Layout();
+        m_vebview_release_note->Fit();
+    }
     wxGetApp().UpdateDlgDarkUI(this);
     Layout();
     Fit();
@@ -252,7 +264,9 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
     m_text_up_info = new Label(this, Label::Head_14, wxEmptyString, LB_AUTO_WRAP);
     m_text_up_info->SetForegroundColour(wxColour(0x26, 0x2E, 0x30));
 
-    auto github_link = new HyperLink(this, _L("Check on Github"), "", LB_AUTO_WRAP);
+    // Store builds get updates from the Microsoft Store: wxID_YES opens the Store
+    // product page there (see the EVT_SLIC3R_VERSION_ONLINE handler) instead of GitHub.
+    auto github_link = new HyperLink(this, is_running_in_msix() ? _L("Check on Microsoft Store") : _L("Check on GitHub"), "", LB_AUTO_WRAP);
     github_link->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
         EndModal(wxID_YES);
     });
@@ -302,7 +316,7 @@ UpdateVersionDialog::UpdateVersionDialog(wxWindow *parent)
 
     auto sizer_button = new wxBoxSizer(wxHORIZONTAL);
 
-    m_button_download = new Button(this, _L("Download"));
+    m_button_download = new Button(this, is_running_in_msix() ? _L("Open Microsoft Store") : _L("Download"));
     m_button_download->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
 
     m_button_download->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &e) {
@@ -479,7 +493,10 @@ void UpdateVersionDialog::update_version_info(wxString release_note, wxString ve
     // else {
     //m_simplebook_release_note->SetMaxSize(wxSize(FromDIP(560), FromDIP(430)));
     m_simplebook_release_note->SetSelection(1);
-    m_text_up_info->SetLabel(wxString::Format(_L("Click to download new version in default browser: %s"), version));
+    if (is_running_in_msix())
+        m_text_up_info->SetLabel(wxString::Format(_L("New version available: %s. Please update OrcaSlicer from the Microsoft Store."), version));
+    else
+        m_text_up_info->SetLabel(wxString::Format(_L("Click to download new version in default browser: %s"), version));
     auto data_buf_in = release_note.utf8_str();
     auto bg_color = StateColor::darkModeColorFor(wxColour("#FFFFFF")).GetAsString();
     auto fg_color = StateColor::darkModeColorFor(wxColour("#262E30")).GetAsString();
@@ -1053,7 +1070,7 @@ void PrintErrorDialog::init_button_list()
     init_button(FILAMENT_EXTRUDED, _L("Filament Extruded, Continue"));
     init_button(RETRY_FILAMENT_EXTRUDED, _L("Not Extruded Yet, Retry"));
     init_button(CONTINUE, _L("Finished, Continue"));
-    init_button(LOAD_VIRTUAL_TRAY, _L("Load Filament"));
+    init_button(LOAD_VIRTUAL_TRAY, _L("Load"));
     init_button(OK_BUTTON, _L("OK"));
     init_button(FILAMENT_LOAD_RESUME, _L("Filament Loaded, Resume"));
     init_button(JUMP_TO_LIVEVIEW, _L("View Liveview"));
@@ -1518,7 +1535,7 @@ InputIpAddressDialog::InputIpAddressDialog(wxWindow *parent)
     m_tip4->SetMaxSize(wxSize(FromDIP(355), -1));
 
     // ORCA standardized HyperLink
-    m_trouble_shoot = new HyperLink(this, "How to trouble shooting");
+    m_trouble_shoot = new HyperLink(this, _L("How to trouble shooting"));
 
     m_img_help = new wxStaticBitmap(this, wxID_ANY, create_scaled_bitmap("input_access_code_x1_en", this, 198), wxDefaultPosition, wxSize(FromDIP(355), -1), 0);
 

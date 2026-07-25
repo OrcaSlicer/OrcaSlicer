@@ -3,7 +3,7 @@
 	"name": "Bambu ASA-CF @System",
 	"inherits": "Bambu ASA-CF @base",
 	"from": "system",
-	"setting_id": "OGFSB51_00",
+	"setting_id": "SsFpqlvxTjHLQXaI",
 	"instantiation": "true",
 	"compatible_printers": []
 }

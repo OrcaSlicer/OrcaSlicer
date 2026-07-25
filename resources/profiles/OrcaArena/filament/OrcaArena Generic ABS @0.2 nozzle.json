@@ -3,7 +3,7 @@
 	"name": "OrcaArena Generic ABS @0.2 nozzle",
 	"inherits": "OrcaArena Generic ABS @base",
 	"from": "system",
-	"setting_id": "GFSB99_00",
+	"setting_id": "o9UpKuDWgaJT7sM5",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"

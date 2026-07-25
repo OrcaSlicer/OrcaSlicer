@@ -2,6 +2,7 @@
 	"type": "filament",
 	"name": "SeeMeCNC PLA",
 	"from": "System",
+	"setting_id": "hdn5fZars58kvjwQ",
 	"filament_id": "SMCFL001",
 	"instantiation": "true",
 	"filament_settings_id": [
@@ -443,5 +444,17 @@
 	"volumetric_speed_coefficients": [
 		""
 	],
-	"description": "SeeMeCNC configurations"
+	"description": "SeeMeCNC configurations",
+	"filament_retraction_length": [
+		"5"
+	],
+	"filament_z_hop": [
+		"0.3"
+	],
+	"filament_retraction_speed": [
+		"45"
+	],
+	"filament_deretraction_speed": [
+		"35"
+	]
 }
