@@ -29,6 +29,7 @@
 #include <wx/menu.h>
 #include <wx/progdlg.h>
 #include <wx/utils.h>    // wxWindowDisabler, wxMilliSleep
+#include <wx/msgdlg.h>   // wxMessageBox
 
 #include <string>
 #include <memory>
@@ -720,6 +721,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
              [this] {
                  populate_plane_choices(m_helix_plane);
                  open_tool(Tool::Helix);
+             }, 0},
+            {"design_plane", _L("Mate"), _L("Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"),
+             [this] {
+                 open_tool(Tool::Mate);
              }, 0},
         });
 
@@ -2413,6 +2418,90 @@ DesignPanel::DesignPanel(wxWindow* parent)
     }
     cards->Add(m_box_coordsys, 0, wxEXPAND);
 
+    // --- Mate (assembly: align two CoordSys features) ---
+    m_box_mate = new wxBoxSizer(wxVERTICAL);
+    m_box_mate->Add(card_header(m_cards, "design_plane", _L("Mate"), m_hdr_mate), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_mate->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    {
+        auto* mform = two_col_form();
+
+        m_mate_kind = make_combo(m_cards);
+        m_mate_kind->Append(_L("Fastened — 6 DOF locked, B driven onto A exactly"));
+        m_mate_kind->Append(_L("Planar — z aligned, offset distance; free in-plane slide"));
+        m_mate_kind->Append(_L("Revolute — axes collinear; free rotation about z"));
+        m_mate_kind->Append(_L("Slider — orientation locked; free axial slide"));
+        m_mate_kind->Append(_L("Cylindrical — axes collinear; free spin + axial slide"));
+        m_mate_kind->SetSelection(0);
+        mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Kind")), 0, wxALIGN_CENTER_VERTICAL);
+        mform->Add(m_mate_kind, 0, wxEXPAND);
+
+        // Populate the CoordSys pickers on open; show "A (fixed)" and "B (moves)" combos.
+        m_mate_cs_a = make_combo(m_cards);
+        mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("CS A (fixed)")), 0, wxALIGN_CENTER_VERTICAL);
+        mform->Add(m_mate_cs_a, 0, wxEXPAND);
+
+        m_mate_cs_b = make_combo(m_cards);
+        mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("CS B (moves)")), 0, wxALIGN_CENTER_VERTICAL);
+        mform->Add(m_mate_cs_b, 0, wxEXPAND);
+
+        m_offset_label = new wxStaticText(m_cards, wxID_ANY, _L("Offset"));
+        m_mate_offset = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        mform->Add(m_offset_label, 0, wxALIGN_CENTER_VERTICAL);
+        mform->Add(spin_frame(m_mate_offset), 0, wxEXPAND);
+
+        m_angle_label = new wxStaticText(m_cards, wxID_ANY, _L("Angle \u00b0"));
+        m_mate_angle = make_spin(m_cards, 0.0, -360.0, 360.0);
+        mform->Add(m_angle_label, 0, wxALIGN_CENTER_VERTICAL);
+        mform->Add(spin_frame(m_mate_angle), 0, wxEXPAND);
+
+        m_mate_flip = new CheckBox(m_cards);
+        auto* frow = new wxBoxSizer(wxHORIZONTAL);
+        frow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Flip (oppose z axes)")), 0, wxALIGN_CENTER_VERTICAL);
+        frow->AddStretchSpacer();
+        frow->Add(m_mate_flip, 0, wxALIGN_CENTER_VERTICAL);
+        mform->Add(0, 0);
+        mform->Add(frow, 0, wxEXPAND);
+
+        // Retitle offset/angle labels when the kind changes.
+        m_mate_kind->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
+            const int kind = m_mate_kind->GetSelection();
+            switch (kind) {
+            case 0: // Fastened
+                m_offset_label->SetLabel(_L("Offset"));
+                m_angle_label->SetLabel(_L("Angle \u00b0"));
+                break;
+            case 1: // Planar
+                m_offset_label->SetLabel(_L("Plane distance"));
+                m_angle_label->SetLabel(_L("Angle \u00b0"));
+                break;
+            case 2: // Revolute
+                m_offset_label->SetLabel(_L("Axial position"));
+                m_angle_label->SetLabel(_L("Angle \u00b0"));
+                break;
+            case 3: // Slider
+                m_offset_label->SetLabel(_L("Axial position"));
+                m_angle_label->SetLabel(_L("Angle \u00b0"));
+                break;
+            case 4: // Cylindrical
+                m_offset_label->SetLabel(_L("Axial position"));
+                m_angle_label->SetLabel(_L("Angle \u00b0"));
+                break;
+            }
+            m_cards->Layout(); m_form->Layout(); m_form->FitInside();
+            refresh_preview();
+            e.Skip();
+        });
+
+        m_box_mate->Add(mform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+    }
+    cards->Add(m_box_mate, 0, wxEXPAND);
+    // Refresh the confirm state whenever the mate inputs change.
+    m_mate_cs_a->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+    m_mate_cs_b->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+    m_mate_offset->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+    m_mate_angle->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+    m_mate_flip->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { refresh_preview(); });
+
     // --- Docked value-entry card (Onshape Button->Dialog->Confirm for dimensions) ---
     m_box_value = new wxBoxSizer(wxVERTICAL);
     {
@@ -2556,6 +2645,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         up->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_move_feature(-1); });
         auto* down = edit_btn("design_movedown", _L("Move down"));
         down->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_move_feature(+1); });
+        m_btn_interfere = edit_btn("color_palette", _L("Check interference — find overlapping bodies"));
+        m_btn_interfere->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_check_interference(); });
         const int gap = FromDIP(SidebarProps::ElementSpacing());
         trow->Add(edit, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
         trow->Add(move, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
@@ -2563,6 +2654,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         trow->Add(del,  0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
         trow->Add(up,   0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
         trow->Add(down, 0, wxALIGN_CENTER_VERTICAL);
+        // Interference check sits after a rule: it reports, it does not edit the recipe.
+        trow->AddSpacer(8);
+        trow->Add(new wxStaticLine(m_tree_box, wxID_ANY, wxDefaultPosition, wxSize(1, 22), wxLI_VERTICAL),
+                  0, wxALIGN_CENTER_VERTICAL);
+        trow->AddSpacer(8);
+        trow->Add(m_btn_interfere, 0, wxALIGN_CENTER_VERTICAL);
         // trow IS the header sizer — already added to root above the tree.
     }
 
@@ -4278,6 +4375,79 @@ void DesignPanel::on_add_helix()
     refresh_tree();
 }
 
+void DesignPanel::on_add_mate()
+{
+    const int sel_a = m_mate_cs_a->GetSelection();
+    const int sel_b = m_mate_cs_b->GetSelection();
+    if (sel_a == wxNOT_FOUND || sel_b == wxNOT_FOUND) {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        m_status->SetLabel(_L("Mate needs two CoordSys features — create them first"));
+        m_status->Refresh();
+        return;
+    }
+    const int cs_a = int(reinterpret_cast<intptr_t>(m_mate_cs_a->GetClientData(sel_a)));
+    const int cs_b = int(reinterpret_cast<intptr_t>(m_mate_cs_b->GetClientData(sel_b)));
+    if (cs_a == cs_b) {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        m_status->SetLabel(_L("Mate: CS A and CS B must be different CoordSys features"));
+        m_status->Refresh();
+        return;
+    }
+    m_feature_counter++;
+    int idx = m_doc.add_mate(m_mate_kind->GetSelection(), cs_a, cs_b,
+                             m_mate_offset->GetValue(), m_mate_angle->GetValue(),
+                             m_mate_flip->GetValue(),
+                             "Mate" + std::to_string(m_feature_counter));
+    if (idx < 0) {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        m_status->SetLabel(_L("Mate rejected"));
+        m_status->Refresh();
+        return;
+    }
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::on_check_interference()
+{
+    if (m_doc.bodies.size() < 2) {
+        m_status->SetForegroundColour(wxNullColour);
+        m_status->SetLabel(_L("No interference — need at least two solid bodies to check"));
+        m_status->Refresh();
+        return;
+    }
+    const auto pairs = m_doc.check_interference();
+    if (pairs.empty()) {
+        m_status->SetForegroundColour(wxNullColour);
+        m_status->SetLabel(_L("No interference found"));
+        m_status->Refresh();
+        return;
+    }
+    double worst = 0;
+    for (const auto& p : pairs)
+        if (p.volume > worst) worst = p.volume;
+    m_status->SetForegroundColour(wxNullColour);
+    m_status->SetLabel(wxString::Format(_L("%zu interference pairs, worst %.2f mm³"),
+                                        pairs.size(), worst));
+    m_status->Refresh();
+    wxString msg = _L("Interference pairs:\n\n");
+    for (const auto& p : pairs) {
+        // 1-based, like every other body label in this panel and in the parts tree:
+        // reporting "Body 1" for what the tree calls "Body 2" is worse than no name.
+        wxString na = wxString::Format(_L("Body %d"), p.body_a + 1);
+        wxString nb = wxString::Format(_L("Body %d"), p.body_b + 1);
+        if (p.body_a >= 0 && p.body_a < int(m_doc.bodies.size()) && !m_doc.bodies[p.body_a].name.empty())
+            na = wxString::FromUTF8(m_doc.bodies[p.body_a].name);
+        if (p.body_b >= 0 && p.body_b < int(m_doc.bodies.size()) && !m_doc.bodies[p.body_b].name.empty())
+            nb = wxString::FromUTF8(m_doc.bodies[p.body_b].name);
+        msg += wxString::Format("%s <-> %s: %.4f mm³\n", na, nb, p.volume);
+    }
+    wxMessageBox(msg, _L("Interference"), wxOK, this);
+}
+
 void DesignPanel::populate_sheet_body_choices(ComboBox* c) const
 {
     if (!c) return;
@@ -4635,6 +4805,7 @@ int DesignPanel::tree_icon_for(CadFeatureType t)
     case CadFeatureType::Project:         return 0;   // sketch-family icon (produces sketch)
     case CadFeatureType::DeleteFace:      return 5;   // dressup-family icon
     case CadFeatureType::Helix:           return 4;   // thread-family icon (curve)
+    case CadFeatureType::Mate:            return 2;   // dressup-family icon (assembly)
     }
     return 0;
 }
@@ -6778,6 +6949,14 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_helix_left_handed->SetValue(f.helix_left_handed);
         m_helix_taper->SetValue(f.helix_taper_deg);
         break;
+    case CadFeatureType::Mate:
+        m_mate_kind->SetSelection(f.mate_kind);
+        // CoordSys pickers are repopulated by open_tool(Mate); pre-selection
+        // is done there too via the stored feature index.
+        m_mate_offset->SetValue(f.mate_offset);
+        m_mate_angle->SetValue(f.mate_angle);
+        m_mate_flip->SetValue(f.mate_flip);
+        break;
     default: break;
     }
 }
@@ -6960,6 +7139,28 @@ void DesignPanel::on_edit_feature()
         m_edit_index = sel;
         load_feature_into_dialog(f);
         open_tool(Tool::Helix);
+        break;
+    case CadFeatureType::Mate:
+        m_edit_index = sel;
+        m_mate_kind->SetSelection(f.mate_kind);
+        m_mate_offset->SetValue(f.mate_offset);
+        m_mate_angle->SetValue(f.mate_angle);
+        m_mate_flip->SetValue(f.mate_flip);
+        open_tool(Tool::Mate);   // populates CS pickers; pre-selects from current selection
+        // Now set the re-edit cs_a/cs_b after populating (override the open_tool default)
+        {
+            int pre_a = wxNOT_FOUND, pre_b = wxNOT_FOUND;
+            for (unsigned i = 0; i < m_mate_cs_a->GetCount(); ++i) {
+                const auto* cd = m_mate_cs_a->GetClientData(i);
+                if (cd && int(reinterpret_cast<intptr_t>(cd)) == f.mate_cs_a) pre_a = int(i);
+            }
+            for (unsigned i = 0; i < m_mate_cs_b->GetCount(); ++i) {
+                const auto* cd = m_mate_cs_b->GetClientData(i);
+                if (cd && int(reinterpret_cast<intptr_t>(cd)) == f.mate_cs_b) pre_b = int(i);
+            }
+            if (pre_a != wxNOT_FOUND) m_mate_cs_a->SetSelection(pre_a);
+            if (pre_b != wxNOT_FOUND) m_mate_cs_b->SetSelection(pre_b);
+        }
         break;
     default:
         // Import / Cut have no parametric edit dialog yet (follow-up
@@ -7327,6 +7528,18 @@ CadFeature DesignPanel::build_candidate(Tool t) const
         f.helix_height       = m_helix_height->GetValue();
         f.helix_left_handed  = m_helix_left_handed->GetValue();
         f.helix_taper_deg    = m_helix_taper->GetValue();
+        break;
+    }
+    case Tool::Mate: {
+        f.type       = CadFeatureType::Mate;
+        f.mate_kind  = m_mate_kind->GetSelection();
+        f.mate_cs_a  = m_mate_cs_a->GetSelection() != wxNOT_FOUND
+                           ? int(reinterpret_cast<intptr_t>(m_mate_cs_a->GetClientData(m_mate_cs_a->GetSelection()))) : -1;
+        f.mate_cs_b  = m_mate_cs_b->GetSelection() != wxNOT_FOUND
+                           ? int(reinterpret_cast<intptr_t>(m_mate_cs_b->GetClientData(m_mate_cs_b->GetSelection()))) : -1;
+        f.mate_offset = m_mate_offset->GetValue();
+        f.mate_angle  = m_mate_angle->GetValue();
+        f.mate_flip   = m_mate_flip->GetValue();
         break;
     }
     case Tool::Insert:   // imported art is committed by add_imported_sketch, not build_candidate
@@ -7712,6 +7925,30 @@ void DesignPanel::refresh_preview()
         return;
     }
 
+    if (m_active == Tool::Mate) {
+        // Mate has no 3D ghost — it is an assembly constraint driven by CoordSys features.
+        // Confirm must be disabled when <2 CoordSys exist or when A == B.
+        m_viewport->clear_preview();
+        const bool has_two = m_mate_cs_a && m_mate_cs_a->GetCount() >= 2;
+        const int sel_a = has_two ? m_mate_cs_a->GetSelection() : wxNOT_FOUND;
+        const int sel_b = has_two ? m_mate_cs_b->GetSelection() : wxNOT_FOUND;
+        const bool same = has_two && sel_a != wxNOT_FOUND && sel_b != wxNOT_FOUND && sel_a == sel_b;
+        bool ok = has_two && !same;
+        if (!has_two) {
+            m_status->SetForegroundColour(wxColour(235, 110, 110));
+            m_status->SetLabel(_L("Mate needs at least two CoordSys features"));
+        } else if (same) {
+            m_status->SetForegroundColour(wxColour(235, 110, 110));
+            m_status->SetLabel(_L("Mate: CS A and CS B must be different"));
+        } else {
+            m_status->SetForegroundColour(wxColour(120, 210, 120));
+            m_status->SetLabel(_L("Mate ready"));
+        }
+        for (wxButton* b : m_confirm_btns) if (b) b->Enable(ok);
+        m_status->Refresh();
+        return;
+    }
+
     // Trim m_body_xform to the LIVE committed bodies before building the ghost. A move
     // writes a per-body display transform keyed by index; if a moved body is later deleted
     // or consumed, its stale transform must not survive and get re-applied to whatever new
@@ -7901,7 +8138,35 @@ void DesignPanel::open_tool(Tool t)
     s->Show(m_box_project,      t == Tool::Project,        true);
     s->Show(m_box_delete_face,  t == Tool::DeleteFace,     true);
     s->Show(m_box_helix,        t == Tool::Helix,          true);
+    s->Show(m_box_mate,         t == Tool::Mate,           true);
     s->Show(m_box_insert,  t == Tool::Insert,  true);
+
+    if (t == Tool::Mate) {
+        // Populate both CoordSys pickers with every CoordSys feature; store the real
+        // feature index in client data. Keep prior selection when re-editing.
+        int keep_a = -1, keep_b = -1;
+        if (m_mate_cs_a->GetCount() > 0 && m_mate_cs_a->GetSelection() != wxNOT_FOUND) {
+            const auto* cl = m_mate_cs_a->GetClientData(m_mate_cs_a->GetSelection());
+            if (cl) keep_a = int(reinterpret_cast<intptr_t>(cl));
+        }
+        if (m_mate_cs_b->GetCount() > 0 && m_mate_cs_b->GetSelection() != wxNOT_FOUND) {
+            const auto* cl = m_mate_cs_b->GetClientData(m_mate_cs_b->GetSelection());
+            if (cl) keep_b = int(reinterpret_cast<intptr_t>(cl));
+        }
+        m_mate_cs_a->Clear();
+        m_mate_cs_b->Clear();
+        for (int i = 0; i < int(m_doc.features.size()); ++i) {
+            if (m_doc.features[i].type != CadFeatureType::CoordSys) continue;
+            const wxString nm = wxString::FromUTF8(m_doc.features[i].name);
+            void* const cd = reinterpret_cast<void*>(intptr_t(i));
+            const int pos_a = m_mate_cs_a->Append(nm, wxNullBitmap, cd);
+            const int pos_b = m_mate_cs_b->Append(nm, wxNullBitmap, cd);
+            if (i == keep_a) m_mate_cs_a->SetSelection(pos_a);
+            if (i == keep_b) m_mate_cs_b->SetSelection(pos_b);
+        }
+        if (keep_a < 0 && m_mate_cs_a->GetCount() > 0) m_mate_cs_a->SetSelection(0);
+        if (keep_b < 0 && m_mate_cs_b->GetCount() > 0) m_mate_cs_b->SetSelection(0);
+    }
 
     if (t == Tool::Revolve && m_revolve_sketch_ref >= 0
         && m_revolve_sketch_ref < int(m_doc.features.size()))
@@ -8038,6 +8303,7 @@ void DesignPanel::open_tool(Tool t)
     case Tool::Project:     m_hdr_project->SetLabel(title(_L("Project")));       break;
     case Tool::DeleteFace:  m_hdr_delete_face->SetLabel(title(_L("Delete Face"))); break;
     case Tool::Helix:       m_hdr_helix->SetLabel(title(_L("Helix")));           break;
+    case Tool::Mate:        m_hdr_mate->SetLabel(title(_L("Mate")));             break;
     case Tool::Insert:  break;   // header set by open_insert_card()
     case Tool::None:    break;
     }
@@ -8083,6 +8349,7 @@ void DesignPanel::close_tool()
     s->Show(m_box_project,      false, true);
     s->Show(m_box_delete_face,  false, true);
     s->Show(m_box_helix,        false, true);
+    s->Show(m_box_mate,         false, true);
     s->Show(m_box_insert,  false, true);
     m_viewport->clear_preview();
     m_viewport->clear_extrude_gizmo();
@@ -8137,6 +8404,7 @@ void DesignPanel::confirm_tool()
     case Tool::Cut:     on_add_cut();     break;
     case Tool::Axis:    on_add_axis();    break;
     case Tool::CoordSys: on_add_coordsys(); break;
+    case Tool::Mate:   on_add_mate();   break;
     case Tool::SurfaceExtrude:  on_add_surface_extrude();  break;
     case Tool::SurfaceRevolve:  on_add_surface_revolve();  break;
     case Tool::SurfaceLoft:     on_add_surface_loft();     break;

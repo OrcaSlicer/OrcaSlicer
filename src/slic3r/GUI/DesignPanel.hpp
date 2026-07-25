@@ -51,7 +51,7 @@ public:
     void         mcp_after_change() { after_tree_edit(true); } // refresh tree + viewport + status
 
 private:
-    enum class Tool { None, Sketch, Extrude, Dressup, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Boolean, Cut, Insert, Axis, CoordSys, SurfaceExtrude, SurfaceRevolve, SurfaceLoft, SurfaceFill, SurfaceOffset, ThickenSurface, Transform, Mirror, Thicken, Rib, Project, DeleteFace, Helix };
+    enum class Tool { None, Sketch, Extrude, Dressup, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Boolean, Cut, Insert, Axis, CoordSys, SurfaceExtrude, SurfaceRevolve, SurfaceLoft, SurfaceFill, SurfaceOffset, ThickenSurface, Transform, Mirror, Thicken, Rib, Project, DeleteFace, Helix, Mate };
     // Plane tool: which datum reference the next solid pick fills (declared early so the
     // method decls + card lambdas below can name it).
     enum class PlanePick { None, FaceA, FaceB, EdgeA, EdgeB };
@@ -112,6 +112,8 @@ private:
     void on_add_project();
     void on_add_delete_face();
     void on_add_helix();
+    void on_add_mate();
+    void on_check_interference();
     // Fill m_bool_target / m_bool_tool / m_cut_target. as_of_feature < 0 = current bodies (add);
     // >= 0 = the bodies as they existed just before that feature index (Boolean re-edit, so a
     // consumed tool body still appears and its saved selection round-trips).
@@ -280,6 +282,7 @@ private:
     wxSizer*  m_box_project{nullptr};
     wxSizer*  m_box_delete_face{nullptr};
     wxSizer*  m_box_helix{nullptr};
+    wxSizer*  m_box_mate{nullptr};
     wxSizer*  m_box_insert{nullptr};   // Confirm/Cancel card for placing Text/SVG art
     int       m_insert_feat{-1};       // provisional imported-art feature awaiting Confirm
     // Move-body gizmo runs through the unified action bar too: Confirm keeps the placement,
@@ -324,6 +327,7 @@ private:
     wxStaticText* m_hdr_project{nullptr};
     wxStaticText* m_hdr_delete_face{nullptr};
     wxStaticText* m_hdr_helix{nullptr};
+    wxStaticText* m_hdr_mate{nullptr};
     wxStaticText* m_hdr_insert{nullptr};
 
     wxScrolledWindow* m_form{nullptr};
@@ -477,6 +481,19 @@ private:
     wxSpinCtrlDouble* m_helix_height{nullptr};
     CheckBox*         m_helix_left_handed{nullptr};
     wxSpinCtrlDouble* m_helix_taper{nullptr};
+
+    // Mate (assembly) controls
+    ComboBox*         m_mate_kind{nullptr};
+    ComboBox*         m_mate_cs_a{nullptr};
+    ComboBox*         m_mate_cs_b{nullptr};
+    wxSpinCtrlDouble* m_mate_offset{nullptr};
+    wxSpinCtrlDouble* m_mate_angle{nullptr};
+    CheckBox*         m_mate_flip{nullptr};
+    wxStaticText*     m_offset_label{nullptr};
+    wxStaticText*     m_angle_label{nullptr};
+
+    // Feature-tree button
+    ScalableButton*   m_btn_interfere{nullptr};
 
     // Pattern controls (replicate the target body: linear or circular).
     ComboBox*         m_pattern_type{nullptr};      // 0 = Linear, 1 = Circular
