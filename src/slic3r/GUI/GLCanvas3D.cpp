@@ -2076,9 +2076,11 @@ void GLCanvas3D::render(bool only_init)
     /* view3D render*/
     int hover_id = (m_hover_plate_idxs.size() > 0)?m_hover_plate_idxs.front():-1;
     if (m_canvas_type == ECanvasType::CanvasView3D) {
-        if (!no_partplate)
+        // m_show_bed gates the plate list too: hiding the bed but leaving its grid and outline
+        // floating would read as a rendering fault rather than a deliberate view option.
+        if (!no_partplate && m_show_bed)
             _render_bed(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), m_show_world_axes);
-        if (!no_partplate) //BBS: add outline logic
+        if (!no_partplate && m_show_bed) //BBS: add outline logic
             _render_platelist(camera.get_view_matrix(), camera.get_projection_matrix(), !camera.is_looking_downward(), only_current, only_body, hover_id, true, show_grid);
         
         //BBS: add outline logic

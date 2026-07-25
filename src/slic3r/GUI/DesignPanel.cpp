@@ -752,8 +752,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Placement — operations that MOVE a body without changing its shape. Transform and
         // Mirror place one body directly; a Mate places one body relative to another. They were
         // in Dress-up (fillet/draft/shell) and Datum, which mixed shape-finishing and reference
-        // geometry with rigid-body placement. "place" was already an empty slot in the bar order.
-        feat_dropdown("place", "design_move", _L("Placement (transform / mirror / mate)"), {
+        // geometry with rigid-body placement.
+        // Own slot id: "place" is taken by the Place-on-Face button, and put() formats slot
+        // item 0 as the control and every later item as its chevron, so sharing a slot would
+        // bottom-align this drawer's button like a chevron.
+        feat_dropdown("placement", "design_move", _L("Placement (transform / mirror / mate)"), {
             {"design_move", _L("Transform"), _L("Move and/or rotate an existing body"),
              [this] {
                 if (m_doc.bodies.empty()) {
@@ -1248,6 +1251,23 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_export->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_export_step(); });
         add_doc(b_export);
 
+        // View option, not a document action: hide the printer bed to model without it. Lives in
+        // this row because it must stay reachable with no tool open — a card would come and go.
+        m_show_bed = new CheckBox(m_toolbar);
+        m_show_bed->SetValue(true);                 // bed visible by default, as the tab opens today
+        m_show_bed->SetToolTip(_L("Show the printer bed and its plate grid"));
+        // wxEVT_TOGGLEBUTTON, NOT wxEVT_CHECKBOX: Orca's CheckBox derives from
+        // wxBitmapToggleButton (Widgets/CheckBox.hpp), so a wxEVT_CHECKBOX handler never fires.
+        // Read the control rather than the event so the state cannot disagree with the glyph.
+        m_show_bed->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
+            if (m_viewport) m_viewport->set_show_bed(m_show_bed->GetValue());
+            e.Skip();
+        });
+        auto* bed_lbl = new wxStaticText(m_toolbar, wxID_ANY, _L("Bed"));
+        bed_lbl->SetForegroundColour(dp_sec_text());
+        m_tb_doc->Add(m_show_bed, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 6);
+        m_tb_doc->Add(bed_lbl,    0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 4);
+
         // These act on bodies / the view, so they ride in the feature group, in the slots
         // the user assigned them (9, 11bis, 16).
         auto* b_place = doc_btn("toolbar_flatten", _L("Place on Face (F) — lay the picked face on the bed"),
@@ -1286,7 +1306,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         };
         put("sketch");    put("constrain");            // 7, 7bis
         add_sep(m_tb_feature);
-        put("material");  put("place");   put("plane"); // 8, 9, 10
+        put("material");  put("place");   put("placement"); put("plane"); // 8, 9, 9bis, 10
         put("dressup");   put("section");                // 11, 11bis
         put("hole");      put("boolean"); put("cut");   // 12, 13, 14
         put("surface");   put("color");   put("flip");  // 14bis, 15, 16

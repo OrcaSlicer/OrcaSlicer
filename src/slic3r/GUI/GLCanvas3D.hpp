@@ -551,6 +551,9 @@ private:
     // SnapOrca Design: render the world-axis triad at the bed centre (= modeling origin) instead of
     // the bed corner. Default false preserves the main editor's corner triad.
     bool m_axes_at_bed_center{false};
+    // SnapOrca Design: draw the printer bed and its plate grid at all. Default true, so the
+    // main editor is untouched; the Design tab lets the user hide it to model without a bed.
+    bool m_show_bed{true};
 #ifdef SLIC3R_CAD
     DesignSketchTool* m_design_sketch_tool{nullptr};
 #endif
@@ -900,6 +903,8 @@ public:
     void enable_collapse_toolbar(bool enable);
     void enable_plate_chrome(bool enable);
     void set_axes_at_bed_center(bool b) { m_axes_at_bed_center = b; }
+    void set_show_bed(bool b) { m_show_bed = b; }
+    bool get_show_bed() const { return m_show_bed; }
 #ifdef SLIC3R_CAD
     void set_design_sketch_tool(DesignSketchTool* tool) { m_design_sketch_tool = tool; }
     DesignSketchTool* get_design_sketch_tool() const { return m_design_sketch_tool; }

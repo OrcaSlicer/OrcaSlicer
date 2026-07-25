@@ -414,6 +414,14 @@ void DesignCanvas::refresh_bed()
     m_bed.set_shape(bed_shape_opt->values, printable_height, {}, {}, "", false);  // mainline added extruder_areas/heights params
 }
 
+void DesignCanvas::set_show_bed(bool b)
+{
+    if (!m_canvas) return;
+    if (m_canvas->get_show_bed() == b) return;   // no repaint for a no-op toggle
+    m_canvas->set_show_bed(b);
+    request_repaint();
+}
+
 bool DesignCanvas::is_sketching() const { return m_sketch_tool.is_active(); }
 
 void DesignCanvas::cancel_sketch()

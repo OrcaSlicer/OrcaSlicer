@@ -58,6 +58,7 @@ public:
     void finish_sketch();
     bool is_sketching() const;
     void refresh_bed();   // re-sync the bed to the current printer (call on tab activation)
+    void set_show_bed(bool b);   // view option: draw the printer bed + plate grid, or not
     void cancel_sketch();
     void set_on_sketch_commit(std::function<void(const SketchProfile&, const SketchPlane&)> cb);
     void set_on_sketch_entities_commit(

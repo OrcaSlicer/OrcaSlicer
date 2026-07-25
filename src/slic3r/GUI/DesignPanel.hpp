@@ -255,6 +255,7 @@ private:
     void      push_polygon_params();
     wxSizer*  m_tb_commit{nullptr};   // far-right Commit to Plate, beside Confirm/Cancel
     wxSizer*  m_tb_doc{nullptr};      // toolbar document/view actions (new, commit, export, section, place)
+    CheckBox* m_show_bed{nullptr};    // view option: draw the printer bed + plate grid, or not
     wxSizer*  m_box_move{nullptr};      // Move/Rotate numeric options (distance, axis, angle)
     wxSizer*  m_box_polygon{nullptr};   // Polygon tool options (sides / circumscribed)
     wxSizer*  m_box_sketch{nullptr};
