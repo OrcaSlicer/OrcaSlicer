@@ -1,7 +1,7 @@
 orcaslicer_add_cmake_project(
     wxInspector
     GIT_REPOSITORY https://github.com/Noisyfox/wxInspector.git
-    GIT_TAG        a27c643e8d5d0cf1c8181520c9bb2fd2690a920e 
+    GIT_TAG        4e4ad7dcbaa77e1680e8a22eb66cbeac58013a4a 
     GIT_SHALLOW ON
     DEPENDS dep_wxWidgets
     CMAKE_ARGS
