@@ -15094,7 +15094,7 @@ ProjectDropDialog::ProjectDropDialog(const std::string &filename)
 
     m_sizer_main->Add(dlg_btns, 0, wxEXPAND);
 
-    SetSizer(m_sizer_main);
+    SetSizerAndFit(m_sizer_main);
     Layout();
     Fit();
     Centre(wxBOTH);
