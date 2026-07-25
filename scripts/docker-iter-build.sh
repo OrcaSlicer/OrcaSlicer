@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Incremental slicer build against the snaporca-deps base image.
+# Incremental slicer build against the orcacad-deps base image.
 #
 # The deps-baked image (built from scripts/Dockerfile.deps) carries the pinned
 # dependencies at /OrcaSlicer/deps/build/destdir. This script mounts the LIVE source
@@ -10,15 +10,17 @@
 #
 # Usage (run on the build host, e.g. behemoth, from anywhere):
 #   scripts/docker-iter-build.sh
-#   IMAGE=snaporca-deps scripts/docker-iter-build.sh
+#   IMAGE=orcacad-deps scripts/docker-iter-build.sh
 #
 # On success the binary is inside the persistent volume at
 # /OrcaSlicer/build/package/bin/snapmaker-orca (copy it out with a follow-up
-# `docker run --rm -v snaporca_buildcache:/b alpine cp ...` or via this script's tail).
+# `docker run --rm -v orcacad_buildcache:/b alpine cp ...` or via this script's tail).
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-IMAGE="${IMAGE:-snaporca-deps}"
+# orcacad-deps, NOT snaporca-deps: see the note in kernel-test.sh — the wrong image
+# fails at CMake configure, not at link time.
+IMAGE="${IMAGE:-orcacad-deps}"
 BUILD_VOL="${BUILD_VOL:-orcacad_buildcache}"
 
 echo "REPO=$REPO  IMAGE=$IMAGE  BUILD_VOL=$BUILD_VOL"
@@ -32,6 +34,7 @@ docker run --rm \
   -v "$REPO/resources":/OrcaSlicer/resources \
   -v "$REPO/CMakeLists.txt":/OrcaSlicer/CMakeLists.txt \
   -v "$REPO/cmake":/OrcaSlicer/cmake \
+  -v "$REPO/deps_src":/OrcaSlicer/deps_src \
   -v "$BUILD_VOL":/OrcaSlicer/build \
   "$IMAGE" \
   bash -lc 'cd /OrcaSlicer && ./build_linux.sh -sr'

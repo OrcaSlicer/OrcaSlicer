@@ -296,7 +296,13 @@ struct CadFeature {
     double rib_depth{10};       // extrude distance along the sketch-plane normal (mm)
 
     // --- Mate (assembly) ---
-    int    mate_kind{0};        // 0 = Fastened, 1 = Planar (M8b adds 2/3/4)
+    // 0 Fastened   — all 6 DOF fixed: B's frame is driven onto A's exactly.
+    // 1 Planar     — z axes aligned, normal distance set to mate_offset; in-plane position free.
+    // 2 Revolute   — axes collinear, position on the axis fixed; rotation about z free.
+    // 3 Slider     — orientation fully fixed, perpendicular position fixed; axial slide free.
+    // 4 Cylindrical— axes collinear, perpendicular fixed; both spin and axial slide free.
+    // A "free" DOF is preserved from the body's current placement, not zeroed.
+    int    mate_kind{0};
     int    mate_cs_a{-1};       // feature index of the FIXED CoordSys (mate connector A)
     int    mate_cs_b{-1};       // feature index of the CoordSys on the body that MOVES
     double mate_offset{0};      // translation along A's z, mm

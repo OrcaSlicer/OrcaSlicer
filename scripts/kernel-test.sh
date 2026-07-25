@@ -22,7 +22,11 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-IMAGE="${IMAGE:-snaporca-deps}"
+# orcacad-deps, NOT snaporca-deps: this fork is mainline-based and needs Eigen 5.0.1,
+# CGAL 5.6.3, wx 3.3.2 and Python 3.12 Development.Embed, none of which snaporca-deps has.
+# With the wrong image CMake dies at configure, which is exactly why this fork went
+# M1-M8 without ever compiling (see commit 1633005bba).
+IMAGE="${IMAGE:-orcacad-deps}"
 # Must NOT default to snaporca_buildcache: that is the other fork's volume, and pointing
 # this fork at it makes the two silently trade build artefacts. docker-iter-build.sh had the
 # identical defect and was fixed to orcacad_buildcache; this script was missed.
