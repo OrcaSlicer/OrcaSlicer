@@ -4752,3 +4752,125 @@ TEST_CASE("thicken-surface round-trip serialize/deserialize", "[CadDocument][sur
     REQUIRE_THAT(double(fy1), WithinAbs(double(oy1), 1e-6));
     REQUIRE_THAT(double(fz1), WithinAbs(double(oz1), 1e-6));
 }
+
+TEST_CASE("surface-loft makes an open shell", "[CadDocument][surface]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    SketchProfile bot;
+    bot.points = {{-10,-10},{10,-10},{10,10},{-10,10}};
+    bot.closed = true;
+    int s0 = doc.add_sketch_profile(bot, SketchPlane::XY(), "Bottom");
+
+    doc.add_plane(0 /*XY*/, 20.0, 0.0, 0, "Plane1");
+    SketchPlane top = doc.resolve_datum_planes()[0].second;
+    SketchProfile tp;
+    tp.points = {{-5,-5},{5,-5},{5,5},{-5,5}};
+    tp.closed = true;
+    int s1 = doc.add_sketch_profile(tp, top, "Top");
+
+    int fi = doc.add_surface_loft({s0, s1}, false, "Skin");
+    REQUIRE(fi >= 0);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+    REQUIRE(CadDocument::is_sheet_shape(doc.bodies.back().shape));
+
+    // Contrast with a solid loft on the same profiles.
+    CadDocument doc2;
+    SketchProfile bot2;
+    bot2.points = {{-10,-10},{10,-10},{10,10},{-10,10}};
+    bot2.closed = true;
+    int a0 = doc2.add_sketch_profile(bot2, SketchPlane::XY(), "Bottom");
+    doc2.add_plane(0 /*XY*/, 20.0, 0.0, 0, "Plane1");
+    SketchPlane top2 = doc2.resolve_datum_planes()[0].second;
+    SketchProfile tp2;
+    tp2.points = {{-5,-5},{5,-5},{5,5},{-5,5}};
+    tp2.closed = true;
+    int a1 = doc2.add_sketch_profile(tp2, top2, "Top");
+    doc2.add_loft({a0, a1}, false, BooleanMode::New, "SolidLoft");
+    REQUIRE(doc2.recompute());
+    REQUIRE(doc2.error.empty());
+    REQUIRE_FALSE(CadDocument::is_sheet_shape(doc2.bodies.back().shape));
+}
+
+TEST_CASE("surface-fill makes a one-face sheet", "[CadDocument][surface]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Rect");
+    REQUIRE(sk >= 0);
+    int fi = doc.add_surface_fill(sk, "Patch");
+    REQUIRE(fi == 1);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+    REQUIRE(CadDocument::is_sheet_shape(doc.bodies.back().shape));
+
+    int face_count = 0;
+    for (TopExp_Explorer fe(doc.bodies.back().shape, TopAbs_FACE); fe.More(); fe.Next()) ++face_count;
+    REQUIRE(face_count >= 1);
+}
+
+TEST_CASE("surface-loft / surface-fill bad refs safe", "[CadDocument][surface]")
+{
+    {
+        CadDocument doc;
+        doc.add_surface_loft({999}, false, "Bad");
+        REQUIRE_FALSE(doc.recompute());
+        REQUIRE_THAT(doc.error, Catch::Matchers::Contains("surface-loft"));
+    }
+    {
+        CadDocument doc;
+        doc.add_surface_fill(999, "Bad");
+        REQUIRE_FALSE(doc.recompute());
+        REQUIRE_THAT(doc.error, Catch::Matchers::Contains("surface-fill"));
+    }
+}
+
+TEST_CASE("surface-loft round-trip serialize/deserialize", "[CadDocument][surface]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    SketchProfile bot;
+    bot.points = {{-10,-10},{10,-10},{10,10},{-10,10}};
+    bot.closed = true;
+    int s0 = doc.add_sketch_profile(bot, SketchPlane::XY(), "Bottom");
+    doc.add_plane(0 /*XY*/, 20.0, 0.0, 0, "Plane1");
+    SketchPlane top = doc.resolve_datum_planes()[0].second;
+    SketchProfile tp;
+    tp.points = {{-5,-5},{5,-5},{5,5},{-5,5}};
+    tp.closed = true;
+    int s1 = doc.add_sketch_profile(tp, top, "Top");
+    doc.add_surface_loft({s0, s1}, false, "Skin");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(CadDocument::is_sheet_shape(doc.bodies.back().shape));
+
+    size_t orig_nb = doc.bodies.size();
+    Bnd_Box orig_bb;
+    BRepBndLib::Add(doc.bodies.back().shape, orig_bb);
+
+    std::string blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument fresh;
+    REQUIRE(fresh.deserialize_recipe(blob));
+    REQUIRE(fresh.error.empty());
+    REQUIRE(fresh.bodies.size() == orig_nb);
+    REQUIRE(CadDocument::is_sheet_shape(fresh.bodies.back().shape));
+
+    Bnd_Box fresh_bb;
+    BRepBndLib::Add(fresh.bodies.back().shape, fresh_bb);
+    Standard_Real ox0, oy0, oz0, ox1, oy1, oz1;
+    Standard_Real fx0, fy0, fz0, fx1, fy1, fz1;
+    orig_bb.Get(ox0, oy0, oz0, ox1, oy1, oz1);
+    fresh_bb.Get(fx0, fy0, fz0, fx1, fy1, fz1);
+    REQUIRE_THAT(double(fx0), WithinAbs(double(ox0), 1e-6));
+    REQUIRE_THAT(double(fy0), WithinAbs(double(oy0), 1e-6));
+    REQUIRE_THAT(double(fz0), WithinAbs(double(oz0), 1e-6));
+    REQUIRE_THAT(double(fx1), WithinAbs(double(ox1), 1e-6));
+    REQUIRE_THAT(double(fy1), WithinAbs(double(oy1), 1e-6));
+    REQUIRE_THAT(double(fz1), WithinAbs(double(oz1), 1e-6));
+}

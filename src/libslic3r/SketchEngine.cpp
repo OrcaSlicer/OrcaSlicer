@@ -378,6 +378,24 @@ TopoDS_Shape SketchEngine::make_loft(const std::vector<TopoDS_Wire>& profiles, b
     return s;
 }
 
+// ponytail: sibling of make_loft that builds an open shell (sheet) instead of a solid.
+TopoDS_Shape SketchEngine::make_loft_surface(const std::vector<TopoDS_Wire>& profiles, bool ruled)
+{
+    if (profiles.size() < 2)
+        throw std::runtime_error("loft needs at least 2 profiles");
+    BRepOffsetAPI_ThruSections loft(Standard_False /*shell, no end caps*/,
+                                    ruled ? Standard_True : Standard_False);
+    for (const TopoDS_Wire& w : profiles) {
+        if (w.IsNull()) throw std::runtime_error("loft: null profile wire");
+        loft.AddWire(w);
+    }
+    loft.Build();
+    if (!loft.IsDone()) throw std::runtime_error("loft failed");
+    TopoDS_Shape s = loft.Shape();
+    if (s.IsNull()) throw std::runtime_error("loft produced no shape");
+    return s;
+}
+
 TopoDS_Shape SketchEngine::make_pocket(const TopoDS_Wire& wire, const SketchPlane& plane,
                                         const TopoDS_Shape& target, double depth)
 {

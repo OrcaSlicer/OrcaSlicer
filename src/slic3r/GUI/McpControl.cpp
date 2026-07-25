@@ -1070,6 +1070,35 @@ json action_surface_offset(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_surface_loft(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("profiles") || !params["profiles"].is_array())
+        throw std::runtime_error("surface_loft needs 'profiles' (array of int feature indices)");
+    CadDocument& doc = panel->mcp_doc();
+    std::vector<int> profiles;
+    for (const json& j : params["profiles"]) profiles.push_back(j.get<int>());
+    bool ruled = params.value("ruled", false);
+    doc.checkpoint();
+    int idx = doc.add_surface_loft(profiles, ruled, "SurfaceLoft");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+json action_surface_fill(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("sketch")) throw std::runtime_error("surface_fill needs 'sketch' (feature index)");
+    CadDocument& doc = panel->mcp_doc();
+    int sketch = params["sketch"].get<int>();
+    doc.checkpoint();
+    int idx = doc.add_surface_fill(sketch, "SurfaceFill");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 json action_draft(DesignPanel* panel, const json& params)
 {
     if (!params.contains("face")) throw std::runtime_error("draft needs 'face' (id from query_topology)");
@@ -1363,6 +1392,8 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "surface_revolve")  return rpc_result(id, action_surface_revolve(panel, params));
         if (method == "thicken_surface")  return rpc_result(id, action_thicken_surface(panel, params));
         if (method == "surface_offset")   return rpc_result(id, action_surface_offset(panel, params));
+        if (method == "surface_loft")    return rpc_result(id, action_surface_loft(panel, params));
+        if (method == "surface_fill")    return rpc_result(id, action_surface_fill(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
         return rpc_error(id, -32000, std::string("OCCT: ") + (ex.GetMessageString() ? ex.GetMessageString() : "failure"));

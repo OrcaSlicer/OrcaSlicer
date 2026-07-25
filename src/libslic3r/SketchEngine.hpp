@@ -192,6 +192,11 @@ public:
     // given order. ruled=true => straight (ruled) sections; false => smooth (C2).
     static TopoDS_Shape make_loft(const std::vector<TopoDS_Wire>& profiles, bool ruled);
 
+    // Skin `profiles` WITHOUT end caps -> an open shell (sheet). Same as make_loft but the
+    // ThruSections solid flag is false. // ponytail: a sibling instead of a bool param, so no
+    // existing call site changes.
+    static TopoDS_Shape make_loft_surface(const std::vector<TopoDS_Wire>& profiles, bool ruled);
+
     static TopoDS_Shape make_pocket(const TopoDS_Wire& wire, const SketchPlane& plane,
                                     const TopoDS_Shape& target, double depth);
 

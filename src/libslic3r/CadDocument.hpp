@@ -19,7 +19,7 @@
 
 namespace Slic3r {
 
-enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project, DeleteFace, Rib, SurfaceExtrude, SurfaceRevolve, ThickenSurface, SurfaceOffset };
+enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project, DeleteFace, Rib, SurfaceExtrude, SurfaceRevolve, ThickenSurface, SurfaceOffset, SurfaceLoft, SurfaceFill };
 enum class SketchShape    { Rectangle, Circle };
 enum class PlaneType      { Offset, Angle, Midplane, Tangent, TwoEdges, Coincident };
 enum class AxisType       { TwoPoints, FaceNormal, CylinderCenterline, PlaneIntersection, AlongEdge };
@@ -479,6 +479,10 @@ public:
     // Loft through the ordered profile Sketches (each a closed wire on its own plane).
     int  add_loft(const std::vector<int>& profile_refs, bool ruled, BooleanMode mode,
                   const std::string& name);
+    // Skin 2+ profile sketches open (no end caps) -> a sheet body.
+    int  add_surface_loft(const std::vector<int>& profile_refs, bool ruled, const std::string& name);
+    // Fill sketch sketch_ref's closed boundary wire with a smooth face -> a one-face sheet body.
+    int  add_surface_fill(int sketch_ref, const std::string& name);
     int  add_shell(double thickness, int face, int target_body, const std::string& name);
     // Grow a thin rib wall (thickness, depth) from the open Line entity `entity` inside sketch
     // feature `sketch_ref`, fused to `target_body`. Returns the new feature index.

@@ -19,6 +19,7 @@
 #include <BRepOffsetAPI_MakePipeShell.hxx>
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
 #include <BRepOffsetAPI_MakeOffsetShape.hxx>
+#include <BRepOffsetAPI_MakeFilling.hxx>
 #include <BRepOffsetAPI_DraftAngle.hxx>
 #include <Bnd_Box.hxx>
 #include <BRepBndLib.hxx>
@@ -36,6 +37,7 @@
 #include <Geom_CylindricalSurface.hxx>
 #include <Geom_ConicalSurface.hxx>
 #include <Geom2d_TrimmedCurve.hxx>
+#include <GeomAbs_Shape.hxx>        // SurfaceFill: GeomAbs_C0
 #include <GCE2d_MakeSegment.hxx>
 #include <TopoDS_Edge.hxx>
 #include <TopoDS_Face.hxx>
@@ -44,6 +46,7 @@
 #include <TopoDS_Compound.hxx>      // multi-body: compound of bodies for display/compat
 #include <BRep_Builder.hxx>
 #include <TopAbs_Orientation.hxx>   // outward-normal orientation for face-extrude
+#include <TopoDS.hxx>               // TopoDS::Edge for SurfaceFill
 #include <TopExp_Explorer.hxx>      // is_sheet_shape
 #include <gp_Circ.hxx>
 #include <gp_Ax2.hxx>
@@ -2076,6 +2079,44 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         result = rev.Shape(); have_body = true;
         break;
     }
+    case CadFeatureType::SurfaceLoft: {
+        std::vector<TopoDS_Wire> profiles;
+        for (int ref : f.loft_profile_refs) {
+            if (ref < 0 || ref >= int(features.size())
+                || (features[ref].type != CadFeatureType::Sketch
+                    && features[ref].type != CadFeatureType::Project))
+                continue;
+            profiles.push_back(build_sketch_wire(features[ref]));
+        }
+        if (profiles.size() < 2)
+            throw std::runtime_error("surface-loft needs 2+ valid profile sketches");
+        TopoDS_Shape skin = SketchEngine::make_loft_surface(profiles, f.loft_ruled);
+        if (skin.IsNull()) throw std::runtime_error("surface-loft: loft failed");
+        result = skin; have_body = true;
+        break;
+    }
+    case CadFeatureType::SurfaceFill: {
+        if (f.sketch_ref < 0 || f.sketch_ref >= int(features.size()))
+            throw std::runtime_error("surface-fill: bad sketch ref");
+        const CadFeature& sk = features[f.sketch_ref];
+        if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project)
+            throw std::runtime_error("surface-fill: ref is not a sketch");
+        TopoDS_Wire wire = build_sketch_wire(sk);
+        if (wire.IsNull()) throw std::runtime_error("surface-fill: empty boundary");
+        BRepOffsetAPI_MakeFilling fill;
+        int nedges = 0;
+        for (TopExp_Explorer ex(wire, TopAbs_EDGE); ex.More(); ex.Next()) {
+            fill.Add(TopoDS::Edge(ex.Current()), GeomAbs_C0);
+            ++nedges;
+        }
+        if (nedges == 0) throw std::runtime_error("surface-fill: boundary has no edges");
+        fill.Build();
+        if (!fill.IsDone()) throw std::runtime_error("surface-fill: fill failed");
+        TopoDS_Shape face = fill.Shape();
+        if (face.IsNull()) throw std::runtime_error("surface-fill: produced no geometry");
+        result = face; have_body = true;
+        break;
+    }
     case CadFeatureType::Sweep: {
         const CadFeature& sk = (f.sketch_ref >= 0 && f.sketch_ref < int(features.size())
                                 && (features[f.sketch_ref].type == CadFeatureType::Sketch
@@ -2855,6 +2896,7 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
         || f.type == CadFeatureType::Import   // an imported solid is always its own base body
         || f.type == CadFeatureType::SurfaceExtrude || f.type == CadFeatureType::SurfaceRevolve
         || f.type == CadFeatureType::ThickenSurface || f.type == CadFeatureType::SurfaceOffset
+        || f.type == CadFeatureType::SurfaceLoft || f.type == CadFeatureType::SurfaceFill
         || ((f.type == CadFeatureType::Extrude || f.type == CadFeatureType::Revolve
              || f.type == CadFeatureType::Sweep || f.type == CadFeatureType::Loft)
             && f.mode == BooleanMode::New);
@@ -3108,6 +3150,29 @@ int CadDocument::add_surface_revolve(int sketch_ref, double angle_deg, int axis,
     f.revolve_angle = angle_deg;
     f.revolve_axis  = axis;
     f.mode          = BooleanMode::New;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
+int CadDocument::add_surface_loft(const std::vector<int>& profile_refs, bool ruled, const std::string& name)
+{
+    CadFeature f;
+    f.type              = CadFeatureType::SurfaceLoft;
+    f.name              = name;
+    f.loft_profile_refs = profile_refs;
+    f.loft_ruled        = ruled;
+    f.mode              = BooleanMode::New;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
+int CadDocument::add_surface_fill(int sketch_ref, const std::string& name)
+{
+    CadFeature f;
+    f.type       = CadFeatureType::SurfaceFill;
+    f.name       = name;
+    f.sketch_ref = sketch_ref;
+    f.mode       = BooleanMode::New;
     features.push_back(f);
     return int(features.size()) - 1;
 }
