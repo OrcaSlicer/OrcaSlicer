@@ -1857,7 +1857,7 @@ bool PluginManager::unsubscribe_cloud_plugin(const std::string& plugin_key, std:
     }
 
     if (descriptor.cloud && descriptor.cloud->is_mine) {
-        error = "Cannot unsubscribe your own plugins. Use Delete from Cloud instead.";
+        error = "Cannot unsubscribe your own plugins.";
         set_plugin_error(plugin_key, error);
         return false;
     }
@@ -1890,78 +1890,12 @@ bool PluginManager::delete_and_unsubscribe_cloud_plugin(const std::string& plugi
     }
 
     if (descriptor.cloud->is_mine) {
-        error = "Use Delete local and cloud for owned plugins.";
+        error = "Cannot unsubscribe your own plugins. Use Delete to remove the local files.";
         set_plugin_error(plugin_key, error);
         return false;
     }
 
     if (!m_cloud_service.request_cloud_unsubscribe(descriptor, error)) {
-        set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    return finalize_cloud_plugin_removal(descriptor, false, error);
-}
-
-bool PluginManager::delete_mine_plugin_from_cloud(const std::string& plugin_key, std::string& error)
-{
-    if (!wait_for_discovery(std::chrono::milliseconds::max(), error))
-        return false;
-
-    error.clear();
-
-    PluginDescriptor descriptor;
-    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
-        return false;
-    }
-
-    if (!descriptor.is_cloud_plugin()) {
-        error = "Only owned cloud plugins can be deleted from the cloud.";
-        set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!descriptor.cloud->is_mine) {
-        error = "Only your own plugins can be deleted from the cloud.";
-        set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!m_cloud_service.request_cloud_delete(descriptor, error)) {
-        set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    return finalize_cloud_plugin_removal(descriptor, true, error);
-}
-
-bool PluginManager::delete_mine_local_and_cloud_plugin(const std::string& plugin_key, std::string& error)
-{
-    if (!wait_for_discovery(std::chrono::milliseconds::max(), error))
-        return false;
-
-    error.clear();
-
-    PluginDescriptor descriptor;
-    if (!try_get_plugin_descriptor(plugin_key, descriptor)) {
-        error = "Plugin not found: " + plugin_key;
-        return false;
-    }
-
-    if (!descriptor.is_cloud_plugin()) {
-        error = "Only owned cloud plugins can be deleted from local and cloud.";
-        set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!descriptor.cloud->is_mine) {
-        error = "Only your own plugins can be deleted from local and cloud.";
-        set_plugin_error(plugin_key, error);
-        return false;
-    }
-
-    if (!m_cloud_service.request_cloud_delete(descriptor, error)) {
         set_plugin_error(plugin_key, error);
         return false;
     }
