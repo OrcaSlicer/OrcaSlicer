@@ -2265,7 +2265,23 @@ DesignPanel::DesignPanel(wxWindow* parent)
         dform->Add(m_del_face_body, 0, wxEXPAND);
         m_del_face_add_btn = new wxButton(m_cards, wxID_ANY, _L("Add picked face"));
         m_del_face_add_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-            if (m_sel_solid_face >= 0) {
+            // Say why nothing happened. Clicking with no face picked used to be a silent no-op,
+            // which is indistinguishable from the button being broken.
+            if (m_sel_solid_face < 0) {
+                m_status->SetForegroundColour(wxColour(235, 110, 110));
+                m_status->SetLabel(_L("Click a face on the body first, then Add picked face"));
+                m_status->Refresh();
+                return;
+            }
+            // Adding the same face twice puts a duplicate id in delete_faces, which the
+            // defeaturing algorithm has no reason to cope with. Re-clicking is a no-op, not an error.
+            if (std::find(m_del_faces.begin(), m_del_faces.end(), m_sel_solid_face) != m_del_faces.end()) {
+                m_status->SetForegroundColour(wxNullColour);
+                m_status->SetLabel(wxString::Format(_L("Face %d is already in the list"), m_sel_solid_face));
+                m_status->Refresh();
+                return;
+            }
+            {
                 m_del_faces.push_back(m_sel_solid_face);
                 wxString s;
                 for (size_t i = 0; i < m_del_faces.size(); ++i) {
@@ -4326,8 +4342,8 @@ void DesignPanel::on_add_surface_fill()
 
 void DesignPanel::on_add_surface_offset()
 {
-    const int sel = m_surf_offset_body->GetSelection();
-    if (sel == wxNOT_FOUND || sel < 0 || sel >= int(m_doc.bodies.size())) {
+    const int sel = sheet_choice_body(m_surf_offset_body);
+    if (sel < 0 || sel >= int(m_doc.bodies.size())) {
         m_status->SetLabel(_L("Select a sheet body first"));
         return;
     }
@@ -4343,8 +4359,8 @@ void DesignPanel::on_add_surface_offset()
 
 void DesignPanel::on_add_thicken_surface()
 {
-    const int sel = m_surf_thicken_body->GetSelection();
-    if (sel == wxNOT_FOUND || sel < 0 || sel >= int(m_doc.bodies.size())) {
+    const int sel = sheet_choice_body(m_surf_thicken_body);
+    if (sel < 0 || sel >= int(m_doc.bodies.size())) {
         m_status->SetLabel(_L("Select a sheet body first"));
         return;
     }
@@ -4580,6 +4596,11 @@ void DesignPanel::on_check_interference()
     wxMessageBox(msg, _L("Interference"), wxOK, this);
 }
 
+// The rows are only the SHEET bodies, so a row index is NOT a body index — with a solid at 0
+// and a sheet at 1 the single row is row 0 but body 1. Every caller must therefore read the
+// real body index out of the client data (3-arg Append; the 2-arg form takes a bitmap), never
+// GetSelection(). Getting this wrong targets a solid and the kernel rejects it with
+// "target is not a sheet", which reads as a kernel bug rather than a picker bug.
 void DesignPanel::populate_sheet_body_choices(ComboBox* c) const
 {
     if (!c) return;
@@ -4588,10 +4609,31 @@ void DesignPanel::populate_sheet_body_choices(ComboBox* c) const
     for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
         if (!CadDocument::is_sheet_shape(m_doc.bodies[i].shape)) continue;
         const std::string& n = m_doc.bodies[i].name;
-        c->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+        c->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n),
+                  wxNullBitmap, reinterpret_cast<void*>(intptr_t(i)));
     }
     if (c->GetCount() > 0)
         c->SetSelection(std::min(std::max(keep, 0), int(c->GetCount()) - 1));
+}
+
+// Real body index behind the current row of a sheet-filtered picker, or -1.
+int DesignPanel::sheet_choice_body(ComboBox* c)
+{
+    if (!c) return -1;
+    const int sel = c->GetSelection();
+    if (sel == wxNOT_FOUND) return -1;
+    return int(reinterpret_cast<intptr_t>(c->GetClientData(sel)));
+}
+
+// Select the row whose body index is `body`, so a re-edit restores the stored target rather
+// than treating it as a row number.
+void DesignPanel::select_sheet_choice(ComboBox* c, int body)
+{
+    if (!c) return;
+    for (unsigned i = 0; i < c->GetCount(); ++i) {
+        if (int(reinterpret_cast<intptr_t>(c->GetClientData(i))) == body) { c->SetSelection(int(i)); return; }
+    }
+    if (c->GetCount() > 0) c->SetSelection(0);
 }
 
 void DesignPanel::on_add_pattern()
@@ -6935,15 +6977,14 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
     case CadFeatureType::SurfaceOffset:
         populate_sheet_body_choices(m_surf_offset_body);
         m_surf_offset_distance->SetValue(f.plane_offset);
-        if (f.target_body >= 0 && f.target_body < int(m_surf_offset_body->GetCount()))
-            m_surf_offset_body->SetSelection(f.target_body);
+        // target_body is a BODY index; the rows are sheets only, so match, don't index.
+        select_sheet_choice(m_surf_offset_body, f.target_body);
         break;
     case CadFeatureType::ThickenSurface:
         populate_sheet_body_choices(m_surf_thicken_body);
         m_surf_thicken_thickness->SetValue(f.thicken_thickness);
         m_surf_thicken_flip->SetValue(f.thicken_flip);
-        if (f.target_body >= 0 && f.target_body < int(m_surf_thicken_body->GetCount()))
-            m_surf_thicken_body->SetSelection(f.target_body);
+        select_sheet_choice(m_surf_thicken_body, f.target_body);
         break;
     case CadFeatureType::Transform: {
         {
@@ -7578,15 +7619,13 @@ CadFeature DesignPanel::build_candidate(Tool t) const
         break;
     case Tool::SurfaceOffset: {
         f.type = CadFeatureType::SurfaceOffset;
-        const int sel = m_surf_offset_body->GetSelection();
-        f.target_body = (sel != wxNOT_FOUND) ? sel : -1;
+        f.target_body = sheet_choice_body(m_surf_offset_body);
         f.plane_offset = m_surf_offset_distance->GetValue();
         break;
     }
     case Tool::ThickenSurface: {
         f.type = CadFeatureType::ThickenSurface;
-        const int sel = m_surf_thicken_body->GetSelection();
-        f.target_body       = (sel != wxNOT_FOUND) ? sel : -1;
+        f.target_body       = sheet_choice_body(m_surf_thicken_body);
         f.thicken_thickness = m_surf_thicken_thickness->GetValue();
         f.thicken_flip      = m_surf_thicken_flip->GetValue();
         break;

@@ -123,6 +123,10 @@ private:
     // consumed tool body still appears and its saved selection round-trips).
     void populate_body_choices(int as_of_feature = -1);
     void populate_sheet_body_choices(ComboBox* c) const;   // bodies where is_sheet_shape() is true
+    // Rows of a sheet-filtered picker are not body indices; go through these two, never
+    // GetSelection()/SetSelection() directly.
+    static int  sheet_choice_body(ComboBox* c);            // real body index of the current row, or -1
+    static void select_sheet_choice(ComboBox* c, int body);// select the row holding this body index
     // Import rigid 2D art (Text / SVG) as a new Sketch feature carrying
     // imported_regions (no solver entities). on_add_text/on_import_svg gather
     // input; add_imported_sketch builds the feature, refreshes tree + display.
