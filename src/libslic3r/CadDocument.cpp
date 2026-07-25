@@ -1291,6 +1291,22 @@ int CadDocument::add_coordsys(CoordSysType type, const Vec3d& point, const std::
     return int(features.size()) - 1;
 }
 
+int CadDocument::add_mate(int kind, int cs_a, int cs_b, double offset, double angle_deg, bool flip,
+                           const std::string& name)
+{
+    CadFeature f;
+    f.type       = CadFeatureType::Mate;
+    f.name       = name;
+    f.mate_kind  = kind;
+    f.mate_cs_a  = cs_a;
+    f.mate_cs_b  = cs_b;
+    f.mate_offset = offset;
+    f.mate_angle  = angle_deg;
+    f.mate_flip   = flip;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
 int CadDocument::add_helix(const SketchPlane& plane, double radius, double pitch, double height,
                            bool left_handed, double taper_deg, const std::string& name)
 {
@@ -1627,9 +1643,10 @@ std::vector<CadDocument::DatumAxis> CadDocument::resolve_datum_axes() const
     return out;
 }
 
-std::vector<CadDocument::DatumCoordSys> CadDocument::resolve_datum_coordsys() const
+CadDocument::DatumCoordSys CadDocument::datum_frame(const std::vector<CadBody>& bodies, const CadFeature& f)
 {
-    std::vector<DatumCoordSys> out;
+    CadDocument::DatumCoordSys ds;
+    ds.name = f.name;
 
     auto resolve_face = [&](int body_idx, int face_idx) -> TopoDS_Face {
         if (face_idx < 0 || body_idx < 0 || body_idx >= int(bodies.size()))
@@ -1649,45 +1666,48 @@ std::vector<CadDocument::DatumCoordSys> CadDocument::resolve_datum_coordsys() co
         return true;
     };
 
+    switch (f.coordsys_type) {
+    case CoordSysType::PointWorld: {
+        ds.origin = f.coordsys_point;
+        ds.x      = Vec3d(1, 0, 0);
+        ds.y      = Vec3d(0, 1, 0);
+        break;
+    }
+    case CoordSysType::FaceAndDirection: {
+        TopoDS_Face fc = resolve_face(f.coordsys_body, f.coordsys_face);
+        Vec3d p0, edge_dir;
+        bool have_edge = resolve_edge(f.coordsys_body, f.coordsys_edge, p0, edge_dir);
+        if (fc.IsNull()) { ds.error = "face not found"; break; }
+        ds.origin = GeometryEngine::face_centroid_world(fc);
+        Vec3d Z = GeometryEngine::face_normal_world(fc);
+        // Tentative X: edge direction if available, else the hint or a fallback.
+        Vec3d X_tent = have_edge ? edge_dir : f.coordsys_x_hint;
+        if (X_tent.squaredNorm() < 1e-18) { ds.error = "zero-length direction"; break; }
+        X_tent.normalize();
+        // Gram-Schmidt: ensure orthonormal, right-handed frame.
+        // Y = Z x X_tent,  X = Y x Z  (this makes X perpendicular to Z, not X_tent)
+        Vec3d Y = Z.cross(X_tent);
+        if (Y.squaredNorm() < 1e-12) {
+            // Edge/hint is parallel to Z -> X is degenerate; fall back to world X/Y orthonormalised.
+            Vec3d ref = (std::abs(Z.z()) < 0.9) ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+            Y = Z.cross(ref);
+            if (Y.squaredNorm() < 1e-12) Y = Z.cross(Vec3d(0, 1, 0));
+        }
+        Y.normalize();
+        ds.x = Y.cross(Z).normalized();
+        ds.y = Y;
+        break;
+    }
+    }
+    return ds;
+}
+
+std::vector<CadDocument::DatumCoordSys> CadDocument::resolve_datum_coordsys() const
+{
+    std::vector<DatumCoordSys> out;
     for (const CadFeature& f : features) {
         if (f.type != CadFeatureType::CoordSys || !f.enabled) continue;
-
-        DatumCoordSys ds;
-        ds.name = f.name;
-        switch (f.coordsys_type) {
-        case CoordSysType::PointWorld: {
-            ds.origin = f.coordsys_point;
-            ds.x      = Vec3d(1, 0, 0);
-            ds.y      = Vec3d(0, 1, 0);
-            break;
-        }
-        case CoordSysType::FaceAndDirection: {
-            TopoDS_Face fc = resolve_face(f.coordsys_body, f.coordsys_face);
-            Vec3d p0, edge_dir;
-            bool have_edge = resolve_edge(f.coordsys_body, f.coordsys_edge, p0, edge_dir);
-            if (fc.IsNull()) { ds.error = "face not found"; break; }
-            ds.origin = GeometryEngine::face_centroid_world(fc);
-            Vec3d Z = GeometryEngine::face_normal_world(fc);
-            // Tentative X: edge direction if available, else the hint or a fallback.
-            Vec3d X_tent = have_edge ? edge_dir : f.coordsys_x_hint;
-            if (X_tent.squaredNorm() < 1e-18) { ds.error = "zero-length direction"; break; }
-            X_tent.normalize();
-            // Gram-Schmidt: ensure orthonormal, right-handed frame.
-            // Y = Z x X_tent,  X = Y x Z  (this makes X perpendicular to Z, not X_tent)
-            Vec3d Y = Z.cross(X_tent);
-            if (Y.squaredNorm() < 1e-12) {
-                // Edge/hint is parallel to Z -> X is degenerate; fall back to world X/Y orthonormalised.
-                Vec3d ref = (std::abs(Z.z()) < 0.9) ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
-                Y = Z.cross(ref);
-                if (Y.squaredNorm() < 1e-12) Y = Z.cross(Vec3d(0, 1, 0));
-            }
-            Y.normalize();
-            ds.x = Y.cross(Z).normalized();
-            ds.y = Y;
-            break;
-        }
-        }
-        out.push_back(ds);
+        out.push_back(datum_frame(bodies, f));
     }
     return out;
 }
@@ -2872,6 +2892,114 @@ void CadDocument::apply_project(const std::vector<CadBody>& bodies, CadFeature& 
     if (f.entities.empty()) throw std::runtime_error("project: produced no entities");
 }
 
+void CadDocument::apply_mate(std::vector<CadBody>& bodies, const CadFeature& f) const
+{
+    const int nc = int(features.size());
+    if (f.mate_cs_a < 0 || f.mate_cs_a >= nc)
+        throw std::runtime_error("mate: mate_cs_a out of range");
+    if (f.mate_cs_b < 0 || f.mate_cs_b >= nc)
+        throw std::runtime_error("mate: mate_cs_b out of range");
+
+    const CadFeature& fa = features[f.mate_cs_a];
+    const CadFeature& fb = features[f.mate_cs_b];
+    if (fa.type != CadFeatureType::CoordSys || !fa.enabled)
+        throw std::runtime_error("mate: mate_cs_a is not a valid CoordSys feature");
+    if (fb.type != CadFeatureType::CoordSys || !fb.enabled)
+        throw std::runtime_error("mate: mate_cs_b is not a valid CoordSys feature");
+
+    CadDocument::DatumCoordSys A = datum_frame(bodies, fa);
+    CadDocument::DatumCoordSys B = datum_frame(bodies, fb);
+    if (!A.error.empty()) throw std::runtime_error("mate: " + A.error);
+    if (!B.error.empty()) throw std::runtime_error("mate: " + B.error);
+
+    const int tgt_body = fb.coordsys_body;
+    if (tgt_body < 0)
+        throw std::runtime_error("mate: mate_cs_b has no associated body");
+    if (tgt_body >= int(bodies.size()) || bodies[tgt_body].shape.IsNull())
+        throw std::runtime_error("mate: target body out of range or null");
+
+    Vec3d xA(A.x), yA(A.y), oA(A.origin);
+    Vec3d zA = xA.cross(yA).normalized();
+    Vec3d xB(B.x), yB(B.y), oB(B.origin);
+    Vec3d zB = xB.cross(yB).normalized();
+
+    auto make_4x4 = [&](const Vec3d& x, const Vec3d& y, const Vec3d& z, const Vec3d& o) {
+        gp_Trsf T;
+        T.SetValues(x.x(), y.x(), z.x(), o.x(),
+                    x.y(), y.y(), z.y(), o.y(),
+                    x.z(), y.z(), z.z(), o.z());
+        return T;
+    };
+    gp_Trsf M_A = make_4x4(xA, yA, zA, oA);
+    gp_Trsf M_B = make_4x4(xB, yB, zB, oB);
+
+    gp_Trsf F;
+    if (f.mate_flip) {
+        // Rx(pi): flip y→-y, z→-z
+        F.SetValues(1,  0,  0, 0,
+                    0, -1,  0, 0,
+                    0,  0, -1, 0);
+    }
+
+    gp_Trsf T;
+    if (f.mate_kind == 0) {
+        // Fastened: T = M_A * Rz(mate_angle) * Tz(mate_offset) * F * M_B^-1
+        gp_Trsf Rz;
+        Rz.SetRotation(gp_Ax1(gp_Pnt(0,0,0), gp_Dir(0,0,1)), f.mate_angle * M_PI / 180.0);
+        gp_Trsf Tz;
+        Tz.SetTranslation(gp_Vec(0, 0, f.mate_offset));
+        gp_Trsf M_B_inv = M_B.Inverted();
+        T = M_A * Rz * Tz * F * M_B_inv;
+    } else {
+        // Planar (mate_kind == 1): align normals only, preserve in-plane pose
+        Vec3d z_target = f.mate_flip ? -zA : zA;
+        double ddot = zB.dot(z_target);
+        Vec3d rot_axis;
+        double rot_angle = 0;
+        if (ddot <= -0.9999) {
+            // Anti-parallel: 180° rotation about any axis perpendicular to zB
+            Vec3d ref = (std::abs(zB.z()) < 0.9) ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+            rot_axis = zB.cross(ref).normalized();
+            rot_angle = M_PI;
+        } else {
+            rot_axis = zB.cross(z_target);
+            if (rot_axis.squaredNorm() > 1e-18) {
+                rot_axis.normalize();
+                rot_angle = std::acos(std::max(-1.0, std::min(1.0, ddot)));
+            }
+        }
+
+        gp_Trsf R_align;
+        if (rot_angle > 1e-12) {
+            R_align.SetRotation(gp_Ax1(gp_Pnt(oB.x(), oB.y(), oB.z()),
+                                       gp_Dir(rot_axis.x(), rot_axis.y(), rot_axis.z())),
+                                rot_angle);
+        }
+
+        gp_Trsf Rz_about_target;
+        if (std::abs(f.mate_angle) > 1e-12) {
+            Rz_about_target.SetRotation(
+                gp_Ax1(gp_Pnt(oB.x(), oB.y(), oB.z()),
+                       gp_Dir(z_target.x(), z_target.y(), z_target.z())),
+                f.mate_angle * M_PI / 180.0);
+        }
+
+        gp_Trsf R = Rz_about_target * R_align;
+
+        double d = (oB - oA).dot(zA);
+        Vec3d offset_vec = zA * (f.mate_offset - d);
+
+        T.SetValues(1, 0, 0, offset_vec.x(),
+                    0, 1, 0, offset_vec.y(),
+                    0, 0, 1, offset_vec.z());
+        T = T * R;
+    }
+
+    BRepBuilderAPI_Transform xform(bodies[tgt_body].shape, T, true /*copy*/);
+    if (!xform.IsDone()) throw std::runtime_error("mate: transform failed");
+    bodies[tgt_body].shape = xform.Shape();
+}
+
 void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
     if (f.type == CadFeatureType::Plane)   return;   // datum plane: not part of the body pipeline
@@ -2882,6 +3010,7 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
     if (f.type == CadFeatureType::Cut)     { apply_cut(bodies, f);     return; }   // plane-split body
     if (f.type == CadFeatureType::Mirror)  { apply_mirror(bodies, f);  return; }   // mirror body about plane
     if (f.type == CadFeatureType::Transform) { apply_transform(bodies, f); return; }   // move/rotate body
+    if (f.type == CadFeatureType::Mate)     { apply_mate(bodies, f);     return; }   // assembly mate
     if (f.type == CadFeatureType::Thicken) { apply_thicken(bodies, f); return; }   // face -> plate
     if (f.type == CadFeatureType::ThickenSurface) { apply_thicken_surface(bodies, f); return; }
     if (f.type == CadFeatureType::SurfaceOffset) { apply_surface_offset(bodies, f); return; }

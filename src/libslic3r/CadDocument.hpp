@@ -19,7 +19,7 @@
 
 namespace Slic3r {
 
-enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project, DeleteFace, Rib, SurfaceExtrude, SurfaceRevolve, ThickenSurface, SurfaceOffset, SurfaceLoft, SurfaceFill };
+enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project, DeleteFace, Rib, SurfaceExtrude, SurfaceRevolve, ThickenSurface, SurfaceOffset, SurfaceLoft, SurfaceFill, Mate };
 enum class SketchShape    { Rectangle, Circle };
 enum class PlaneType      { Offset, Angle, Midplane, Tangent, TwoEdges, Coincident };
 enum class AxisType       { TwoPoints, FaceNormal, CylinderCenterline, PlaneIntersection, AlongEdge };
@@ -295,6 +295,14 @@ struct CadFeature {
     double rib_thickness{2};    // wall thickness (mm), centred on the line
     double rib_depth{10};       // extrude distance along the sketch-plane normal (mm)
 
+    // --- Mate (assembly) ---
+    int    mate_kind{0};        // 0 = Fastened, 1 = Planar (M8b adds 2/3/4)
+    int    mate_cs_a{-1};       // feature index of the FIXED CoordSys (mate connector A)
+    int    mate_cs_b{-1};       // feature index of the CoordSys on the body that MOVES
+    double mate_offset{0};      // translation along A's z, mm
+    double mate_angle{0};       // rotation about A's z, degrees
+    bool   mate_flip{false};    // oppose the two z axes (face-to-face)
+
     template<class Archive>
     void save(Archive& ar) const {
         std::string brep = (type == CadFeatureType::Import) ? brep_to_string(imported_solid) : std::string();
@@ -329,8 +337,9 @@ struct CadFeature {
              hole_style, hole_cbore_diameter, hole_cbore_depth,
              hole_csink_diameter, hole_csink_angle, hole_standard,
               rib_sketch_ref, rib_entity, rib_thickness, rib_depth,
-              pattern_curve_sketch, pattern_curve_entity,
-              expr);
+               pattern_curve_sketch, pattern_curve_entity,
+               expr,
+               mate_kind, mate_cs_a, mate_cs_b, mate_offset, mate_angle, mate_flip);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -366,8 +375,9 @@ struct CadFeature {
                hole_style, hole_cbore_diameter, hole_cbore_depth,
                hole_csink_diameter, hole_csink_angle, hole_standard,
                rib_sketch_ref, rib_entity, rib_thickness, rib_depth,
-               pattern_curve_sketch, pattern_curve_entity,
-              expr);
+                pattern_curve_sketch, pattern_curve_entity,
+               expr,
+               mate_kind, mate_cs_a, mate_cs_b, mate_offset, mate_angle, mate_flip);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -528,6 +538,8 @@ public:
     int  add_axis(AxisType axis_type, const std::string& name);
     // Datum coordinate system.
     int  add_coordsys(CoordSysType type, const Vec3d& point, const std::string& name);
+    int  add_mate(int kind, int cs_a, int cs_b, double offset, double angle_deg, bool flip,
+                  const std::string& name);
     int  add_helix(const SketchPlane& plane, double radius, double pitch, double height,
                    bool left_handed, double taper_deg, const std::string& name);
     // Build the helix wire from a Helix feature's params (exposed for tests).
@@ -550,7 +562,7 @@ public:
     // - bump this whenever CadFeature::save/load gains or loses a field
     // - v1 blobs are deliberately not loadable; there is no migration path by design
     // - append fields ONLY at the end of save/load, never reorder (golden fixture enforces this)
-    static constexpr uint32_t SNAPORCA_CAD_RECIPE_VERSION = 2;
+    static constexpr uint32_t SNAPORCA_CAD_RECIPE_VERSION = 3;
     std::string serialize_recipe() const;
     bool deserialize_recipe(const std::string& blob);
 
@@ -634,6 +646,8 @@ private:
     void apply_thicken_surface(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_surface_offset(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_project(const std::vector<CadBody>& bodies, CadFeature& f) const;
+    static DatumCoordSys datum_frame(const std::vector<CadBody>& bodies, const CadFeature& f);
+    void apply_mate(std::vector<CadBody>& bodies, const CadFeature& f) const;
 
     // Undo/redo stacks of feature-list snapshots. checkpoint() pushes onto m_undo and
     // clears m_redo; undo()/redo() shuffle the current state between them. Capped so a

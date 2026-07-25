@@ -3567,6 +3567,17 @@ static CadDocument make_golden_doc_v1()
         doc.add_sketch_entities(ge, SketchPlane::XY(), "Sketch_Ctor");
     }
 
+    // ---- Mate connectors: two CoordSys features with distinctive non-default values ----
+    int cs_idx_a = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(11, 12, 13), "CS_MateA");
+    doc.features[cs_idx_a].coordsys_body = 0;
+    doc.features[cs_idx_a].coordsys_x_hint = Vec3d(0.1, 0.2, 0.9);
+    int cs_idx_b = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(14, 15, 16), "CS_MateB");
+    doc.features[cs_idx_b].coordsys_body = 1;
+    doc.features[cs_idx_b].coordsys_x_hint = Vec3d(0.6, 0.7, 0.3);
+
+    // ---- Mate: Fastened with all six fields carrying distinctive non-defaults ----
+    doc.add_mate(1, cs_idx_a, cs_idx_b, 7.25, 33.0, true, "GoldenMate");
+
     return doc;
 }
 
@@ -3578,7 +3589,7 @@ TEST_CASE("regenerate golden recipe fixture", "[.regen]")
     auto blob = doc.serialize_recipe();
     REQUIRE_FALSE(blob.empty());
 
-    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v2.bin";
+    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v3.bin";
     std::ofstream ofs(path, std::ios::binary);
     REQUIRE(ofs.is_open());
     ofs.write(blob.data(), static_cast<std::streamsize>(blob.size()));
@@ -3592,7 +3603,7 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
     using Catch::Matchers::WithinAbs;
 
     // Read the golden blob from disk
-    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v2.bin";
+    std::string path = std::string(TEST_DATA_DIR) + "/cad_recipe_v3.bin";
     std::ifstream ifs(path, std::ios::binary);
     REQUIRE(ifs.is_open());
     std::string blob((std::istreambuf_iterator<char>(ifs)),
@@ -3867,6 +3878,16 @@ TEST_CASE("golden recipe v1 still deserialises", "[CadDocument]")
             REQUIRE(f.project_source_body == 0);
             REQUIRE(f.project_face  == 0);
             REQUIRE(f.project_edges == e.project_edges);
+        }
+
+        // Mate
+        if (f.type == CadFeatureType::Mate && e.name == "GoldenMate") {
+            REQUIRE(f.mate_kind   == 1);
+            REQUIRE(f.mate_cs_a   == e.mate_cs_a);
+            REQUIRE(f.mate_cs_b   == e.mate_cs_b);
+            REQUIRE_THAT(f.mate_offset, WithinAbs(7.25, 1e-9));
+            REQUIRE_THAT(f.mate_angle,  WithinAbs(33.0, 1e-9));
+            REQUIRE(f.mate_flip   == true);
         }
     }
 
@@ -4873,4 +4894,596 @@ TEST_CASE("surface-loft round-trip serialize/deserialize", "[CadDocument][surfac
     REQUIRE_THAT(double(fx1), WithinAbs(double(ox1), 1e-6));
     REQUIRE_THAT(double(fy1), WithinAbs(double(oy1), 1e-6));
     REQUIRE_THAT(double(fz1), WithinAbs(double(oz1), 1e-6));
+}
+
+// --- Mate tests (M8a) ---
+
+TEST_CASE("fastened mate with zero offset/angle", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk_box = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk_box, 5.0, false, BooleanMode::New, "BoxExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk_cyl = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 3, "Cyl");
+    doc.add_extrude(sk_cyl, 10.0, false, BooleanMode::New, "CylExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 5), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int mi = doc.add_mate(0, cs_fixed, cs_moving, 0.0, 0.0, false, "Mate");
+    REQUIRE(mi >= 0);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    gp_Pnt com = props.CentreOfMass();
+    REQUIRE_THAT(double(com.X()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Y()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Z()), WithinAbs(5.0, 1e-4));
+}
+
+TEST_CASE("fastened mate with offset", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk2 = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 3, "Cyl");
+    doc.add_extrude(sk2, 10.0, false, BooleanMode::New, "CylExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 5), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(0, cs_fixed, cs_moving, 7.0, 0.0, false, "Mate");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    gp_Pnt com = props.CentreOfMass();
+    REQUIRE_THAT(double(com.Z()), WithinAbs(12.0, 1e-4));
+}
+
+TEST_CASE("fastened mate with angle", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk2 = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 3, "Cyl");
+    doc.add_extrude(sk2, 10.0, false, BooleanMode::New, "CylExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 5), "CS_Moving");
+    doc.features[cs_moving].coordsys_x_hint = Vec3d(1, 0, 0);
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(0, cs_fixed, cs_moving, 0.0, 90.0, false, "Mate");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    gp_Pnt com = props.CentreOfMass();
+    REQUIRE_THAT(double(com.X()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Y()), WithinAbs(5.0, 1e-4));
+}
+
+TEST_CASE("fastened mate with flip", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk2 = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 3, "Cyl");
+    doc.add_extrude(sk2, 10.0, false, BooleanMode::New, "CylExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 5), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(0, cs_fixed, cs_moving, 0.0, 0.0, true, "Mate");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    gp_Pnt com = props.CentreOfMass();
+    REQUIRE_THAT(double(com.X()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Y()), WithinAbs(5.0, 1e-4));
+    // Flip opposes Z axes: for a symmetric cylinder this is invisible in centroid,
+    // but the mate executed cleanly and the body moved to the target connector.
+}
+
+TEST_CASE("planar mate: normal distance becomes mate_offset", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk2 = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 3, "Cyl");
+    doc.add_extrude(sk2, 10.0, false, BooleanMode::New, "CylExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(20, 0, 0), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(1, cs_fixed, cs_moving, 3.0, 0.0, false, "MatePlanar");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    gp_Pnt com = props.CentreOfMass();
+    // Connector B was at z=0 (bottom of 10mm cylinder). After planar mate with
+    // offset=3 and A at z=5, the z-distance from A to B becomes 3 => B.z = 8.
+    // The cylinder centroid (was at z=5) moves to z=13.
+    REQUIRE_THAT(double(com.Z()), WithinAbs(13.0, 1e-4));
+}
+
+TEST_CASE("mate round-trip serialization", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_a = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_A");
+    doc.features[cs_a].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk2 = doc.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 3, "Cyl");
+    doc.add_extrude(sk2, 10.0, false, BooleanMode::New, "CylExt");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_b = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(20, 0, 5), "CS_B");
+    doc.features[cs_b].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(1, cs_a, cs_b, 7.25, 33.0, true, "Mate");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    size_t nb = doc.bodies.size();
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument fresh;
+    REQUIRE(fresh.deserialize_recipe(blob));
+    REQUIRE(fresh.bodies.size() == nb);
+
+    const CadFeature* mf = nullptr;
+    for (const auto& f : fresh.features) {
+        if (f.type == CadFeatureType::Mate) { mf = &f; break; }
+    }
+    REQUIRE(mf != nullptr);
+    REQUIRE(mf->mate_kind   == 1);
+    REQUIRE_THAT(mf->mate_offset, WithinAbs(7.25, 1e-9));
+    REQUIRE_THAT(mf->mate_angle,  WithinAbs(33.0, 1e-9));
+    REQUIRE(mf->mate_flip   == true);
+}
+
+TEST_CASE("version 2 blob is rejected", "[CadDocument][mate]")
+{
+    using Catch::Matchers::Contains;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    std::ostringstream oss;
+    {
+        cereal::BinaryOutputArchive ar(oss);
+        uint32_t fake_v = 2;
+        ar(fake_v);
+        ar(doc.features);
+        ar(doc.variables);
+    }
+    std::string blob = oss.str();
+
+    CadDocument fresh;
+    REQUIRE_FALSE(fresh.deserialize_recipe(blob));
+    REQUIRE_THAT(fresh.error, Catch::Matchers::Contains("older version"));
+}
+
+TEST_CASE("mate error: out of range connectors", "[CadDocument][mate]")
+{
+    using Catch::Matchers::Contains;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS");
+    doc.features[cs].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(0, 999, cs, 0, 0, false, "Bad");
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("mate_cs_a out of range"));
+    doc.features.pop_back(); doc.error.clear();
+
+    doc.add_mate(0, cs, 999, 0, 0, false, "Bad");
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("mate_cs_b out of range"));
+    doc.features.pop_back(); doc.error.clear();
+
+    doc.add_mate(0, sk, cs, 0, 0, false, "Bad");
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("not a valid CoordSys"));
+    doc.features.pop_back(); doc.error.clear();
+}
+
+TEST_CASE("mate error: no associated body", "[CadDocument][mate]")
+{
+    using Catch::Matchers::Contains;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 5), "CS_Moving");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(0, cs_fixed, cs_moving, 0, 0, false, "Bad");
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("no associated body"));
+}
+
+TEST_CASE("mate error: disabled connector", "[CadDocument][mate]")
+{
+    using Catch::Matchers::Contains;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
+    doc.add_extrude(sk, 5.0, false, BooleanMode::New, "E");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 5), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.features[cs_moving].enabled = false;
+
+    doc.add_mate(0, cs_fixed, cs_moving, 0, 0, false, "Bad");
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("not a valid CoordSys"));
+}
+
+TEST_CASE("ordering: fillet after mate resolves face ids", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "BoxA");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(0, cs_fixed, cs_moving, 0.0, 0.0, false, "Mate");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_fillet(1.0, FaceGroup::All, "FilletAfterMate");
+    doc.features.back().target_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+}
+
+// --- M8a fix round: planar antiparallel + blind tests ---
+
+static int find_face_by_normal(const CadDocument& doc, int body_idx, const Vec3d& dir, double tol = 0.99)
+{
+    auto faces = GeometryEngine::faces_of(doc.bodies[body_idx].shape);
+    for (int fi = 0; fi < int(faces.size()); ++fi) {
+        if (GeometryEngine::face_normal_world(faces[fi]).dot(dir) > tol) return fi;
+    }
+    return -1;
+}
+
+TEST_CASE("planar mate: antiparallel normals with asymmetric body", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    // Body A: box 20x20x5, centered at origin in XY
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Body B: box 20x10x5, also centered at origin (asymmetric in Y)
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+
+    // Face on A with normal +X, face on B with normal -X
+    int faceA = find_face_by_normal(doc, 0, Vec3d(1, 0, 0));
+    REQUIRE(faceA >= 0);
+    int faceB = find_face_by_normal(doc, 1, Vec3d(-1, 0, 0));
+    REQUIRE(faceB >= 0);
+
+    // Verify z_A != z_B (they point opposite)
+    Vec3d nA_pre = GeometryEngine::face_normal_world(
+        GeometryEngine::face_by_index(doc.bodies[0].shape, faceA));
+    Vec3d nB_pre = GeometryEngine::face_normal_world(
+        GeometryEngine::face_by_index(doc.bodies[1].shape, faceB));
+    REQUIRE(nA_pre.dot(nB_pre) < -0.9);  // antiparallel
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0,0,0), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    doc.features[cs_fixed].coordsys_face = faceA;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_moving = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0,0,0), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    doc.features[cs_moving].coordsys_face = faceB;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Planar mate: z_A=+X, z_B=-X antiparallel. offset=0.
+    // With fix: 180° flip, then translated so z-distance=0.
+    // Without fix: no rotation, only translation — body X-centroid moves differently.
+    doc.add_mate(1, cs_fixed, cs_moving, 0.0, 0.0, false, "PlanarAnti");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // With the fix: 180° rotation about faceB centroid, then translation.
+    // Body B's X-extents are mirrored. After rotation, centroid X = 2*o_B.x - pre_cx = -20,
+    // then translated by offset ≈ 20mm → centroid returns near 0.
+    // Without the fix: no rotation, body just translates ~+20mm → centroid X ≈ 20.
+    GProp_GProps post_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, post_props);
+    double post_cx = post_props.CentreOfMass().X();
+    REQUIRE_THAT(std::abs(post_cx), WithinAbs(0.0, 1e-4));
+}
+
+TEST_CASE("planar mate: in-plane pose preserved", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 10.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+
+    GProp_GProps pre_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, pre_props);
+    gp_Pnt pre_com = pre_props.CentreOfMass();
+
+    // Both connectors use PointWorld (z=(0,0,1)). B's connector offset in X/Y from A's.
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(10, 10, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(7, 4, 10), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(1, cs_fixed, cs_moving, 0.0, 0.0, false, "PlanarSameZ");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps post_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, post_props);
+    gp_Pnt post_com = post_props.CentreOfMass();
+
+    // In-plane (X,Y) components unchanged, only Z moves.
+    REQUIRE_THAT(double(post_com.X()), WithinAbs(double(pre_com.X()), 1e-4));
+    REQUIRE_THAT(double(post_com.Y()), WithinAbs(double(pre_com.Y()), 1e-4));
+    REQUIRE_THAT(double(post_com.Z()), !WithinAbs(double(pre_com.Z()), 1e-4));
+}
+
+TEST_CASE("mate with FaceAndDirection connectors on non-Z faces", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    // Body A: box 20x20x10
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 10.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Face on A with normal +Y
+    int faceA = find_face_by_normal(doc, 0, Vec3d(0, 1, 0));
+    REQUIRE(faceA >= 0);
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0,0,0), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    doc.features[cs_fixed].coordsys_face = faceA;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Body B: box placed at a different location
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Face on B with normal +Y
+    int faceB = find_face_by_normal(doc, 1, Vec3d(0, 1, 0));
+    REQUIRE(faceB >= 0);
+
+    int cs_moving = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0,0,0), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    doc.features[cs_moving].coordsys_face = faceB;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Fastened mate: B's +Y face lands on A's +Y face, offset=0.
+    // Both normals are +Y so z_A = z_B = (0,1,0) — genuine rotation from frame composition.
+    doc.add_mate(0, cs_fixed, cs_moving, 0.0, 0.0, false, "MateY");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // After fastened mate, the two mated faces should be coincident:
+    // same centroid position along the normal (Y), and same centroid in X and Z
+    // (within face dimensions since they're different sizes).
+    Vec3d ca = GeometryEngine::face_centroid_world(GeometryEngine::face_by_index(doc.bodies[0].shape, faceA));
+    Vec3d cb = GeometryEngine::face_centroid_world(GeometryEngine::face_by_index(doc.bodies[1].shape, faceB));
+    REQUIRE_THAT(cb.x(), WithinAbs(ca.x(), 1e-4));
+    REQUIRE_THAT(cb.y(), WithinAbs(ca.y(), 1e-4));
+    REQUIRE_THAT(cb.z(), WithinAbs(ca.z(), 1e-4));
+}
+
+TEST_CASE("fastened mate with flip on asymmetric body", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    // Body A: box
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 10.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Body B: tapered extrude (asymmetric, centroid not at geometric centre)
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "BoxB");
+    int ex_b = doc.add_extrude(sk_b, 8.0, false, BooleanMode::New, "EB");
+    doc.features[ex_b].taper_deg = 8.0;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // PointWorld connectors at distinct positions.
+    // A's connector on the top face centre, B's connector at a corner.
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(10, 10, 10), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(2, 3, 0), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Fastened, NO flip
+    doc.add_mate(0, cs_fixed, cs_moving, 0.0, 0.0, false, "MateNoFlip");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    GProp_GProps nf_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, nf_props);
+    double nf_z = nf_props.CentreOfMass().Z();
+
+    doc.undo();
+
+    // Fastened, WITH flip
+    doc.add_mate(0, cs_fixed, cs_moving, 0.0, 0.0, true, "MateFlip");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    GProp_GProps f_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, f_props);
+    double f_z = f_props.CentreOfMass().Z();
+
+    // Flip changes the centroid Z for an asymmetric body
+    REQUIRE_THAT(f_z, !WithinAbs(nf_z, 1e-4));
 }

@@ -71,6 +71,7 @@ const char* feature_type_name(CadFeatureType t)
         case CadFeatureType::Import:  return "Import";
         case CadFeatureType::Boolean: return "Boolean";
          case CadFeatureType::Cut:     return "Cut";
+        case CadFeatureType::Mirror:  return "Mirror";
         case CadFeatureType::Axis:    return "Axis";
         case CadFeatureType::CoordSys: return "CoordSys";
         case CadFeatureType::Helix:    return "Helix";
@@ -81,6 +82,11 @@ const char* feature_type_name(CadFeatureType t)
         case CadFeatureType::Rib:        return "Rib";
         case CadFeatureType::SurfaceExtrude: return "SurfaceExtrude";
         case CadFeatureType::SurfaceRevolve: return "SurfaceRevolve";
+        case CadFeatureType::ThickenSurface: return "ThickenSurface";
+        case CadFeatureType::SurfaceOffset:   return "SurfaceOffset";
+        case CadFeatureType::SurfaceLoft:     return "SurfaceLoft";
+        case CadFeatureType::SurfaceFill:     return "SurfaceFill";
+        case CadFeatureType::Mate:      return "Mate";
     }
     return "Unknown";
 }
@@ -324,6 +330,15 @@ json describe_tools()
                       json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 360}},
                       json{{"name", "axis"},    {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}},
                   })}},
+            json{{"name", "mate"}, {"summary", "Mate two bodies: transform the moving body (cs_b) so its connector lands on the fixed one (cs_a). kind: 0=Fastened, 1=Planar."},
+                 {"params", json::array({
+                     json{{"name", "kind"},    {"type", "integer"}, {"default", 0}, {"description", "0=Fastened (full align), 1=Planar (normal only)"}},
+                     json{{"name", "cs_a"},    {"type", "integer"}, {"description", "feature index of the fixed CoordSys (mate connector A)"}},
+                     json{{"name", "cs_b"},    {"type", "integer"}, {"description", "feature index of the CoordSys on the body that moves"}},
+                     json{{"name", "offset"},  {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 0}},
+                     json{{"name", "flip"},    {"type", "boolean"}, {"default", false}},
+                 })}},
             json{{"name", "query_topology"}, {"summary", "Measured faces (centroid/normal/cylinder) and edges (length/circle) of a body."},
                  {"params", json::array({
                      json{{"name", "body"}, {"type", "integer"}, {"default", 0}},
@@ -1310,6 +1325,25 @@ json action_helix(DesignPanel* panel, const json& params)
     return json{{"ok", true}, {"helix_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_mate(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("cs_a")) throw std::runtime_error("mate needs 'cs_a' (CoordSys feature index)");
+    if (!params.contains("cs_b")) throw std::runtime_error("mate needs 'cs_b' (CoordSys feature index)");
+    const int kind      = params.value("kind", 0);
+    const int cs_a      = params["cs_a"].get<int>();
+    const int cs_b      = params["cs_b"].get<int>();
+    const double offset = params.value("offset", 0.0);
+    const double angle  = params.value("angle", 0.0);
+    const bool flip     = params.value("flip", false);
+    CadDocument& doc = panel->mcp_doc();
+    doc.checkpoint();
+    int idx = doc.add_mate(kind, cs_a, cs_b, offset, angle, flip, "Mate");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"mate_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 json action_set_variable(DesignPanel* panel, const json& params)
 {
     if (!params.contains("name")) throw std::runtime_error("set_variable needs 'name'");
@@ -1394,6 +1428,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "surface_offset")   return rpc_result(id, action_surface_offset(panel, params));
         if (method == "surface_loft")    return rpc_result(id, action_surface_loft(panel, params));
         if (method == "surface_fill")    return rpc_result(id, action_surface_fill(panel, params));
+        if (method == "mate")          return rpc_result(id, action_mate(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
         return rpc_error(id, -32000, std::string("OCCT: ") + (ex.GetMessageString() ? ex.GetMessageString() : "failure"));
