@@ -1,5 +1,17 @@
 #include <catch2/catch_all.hpp>   // mainline OrcaSlicer ships Catch2 v3 (v2 was catch2/catch.hpp)
 
+// Substring assertions, spelled so this file compiles UNCHANGED on both forks.
+// Catch2 v2 (snaporca) spells it Matchers::Contains; v3 (orca_cad / mainline) spells it
+// Matchers::ContainsSubstring and gives Contains an incompatible meaning — range-contains-
+// ELEMENT — which fails to compile against a std::string rather than failing a test.
+// Using find() sidesteps the rename entirely; INFO keeps the actual string in the report.
+#define REQUIRE_CONTAINS(str, sub) \
+    do { const std::string _actual = (str); INFO("actual: " << _actual); \
+         REQUIRE(_actual.find(sub) != std::string::npos); } while (0)
+#define CHECK_CONTAINS(str, sub) \
+    do { const std::string _actual = (str); INFO("actual: " << _actual); \
+         CHECK(_actual.find(sub) != std::string::npos); } while (0)
+
 #include "libslic3r/CadDocument.hpp"
 #include "libslic3r/GeometryEngine.hpp"
 #include "libslic3r/SketchEngine.hpp"
@@ -1996,7 +2008,7 @@ TEST_CASE("deserialize_recipe rejects future version with error", "[CadDocument]
     }
     REQUIRE_FALSE(doc.deserialize_recipe(oss.str()));
     REQUIRE_FALSE(doc.error.empty());
-    CHECK_THAT(doc.error, Catch::Matchers::ContainsSubstring("newer version"));
+    CHECK_CONTAINS(doc.error, "newer version");
 }
 
 TEST_CASE("deserialize_recipe rejects older version with error", "[CadDocument]")
@@ -2010,7 +2022,7 @@ TEST_CASE("deserialize_recipe rejects older version with error", "[CadDocument]"
     }
     REQUIRE_FALSE(doc.deserialize_recipe(oss.str()));
     REQUIRE_FALSE(doc.error.empty());
-    CHECK_THAT(doc.error, Catch::Matchers::ContainsSubstring("older version"));
+    CHECK_CONTAINS(doc.error, "older version");
 }
 
 TEST_CASE("deserialize_recipe handles truncated blob without throwing", "[CadDocument]")
@@ -2659,7 +2671,7 @@ TEST_CASE("helix: invalid inputs fail cleanly", "[CadDocument]")
         std::string err;
         REQUIRE(doc.build_helix_wire(doc.features[0], err).IsNull());
         REQUIRE_FALSE(err.empty());
-        CHECK_THAT(err, Catch::Matchers::ContainsSubstring("flat spiral"));
+        CHECK_CONTAINS(err, "flat spiral");
     }
     SECTION("absurd turn count") {
         CadDocument doc;
@@ -2674,7 +2686,7 @@ TEST_CASE("helix: invalid inputs fail cleanly", "[CadDocument]")
         std::string err;
         REQUIRE(doc.build_helix_wire(doc.features[0], err).IsNull());
         REQUIRE_FALSE(err.empty());
-        CHECK_THAT(err, Catch::Matchers::ContainsSubstring("negative"));
+        CHECK_CONTAINS(err, "negative");
     }
 }
 
@@ -3970,7 +3982,6 @@ TEST_CASE("rib adds material to a box", "[CadDocument][rib]")
 
 TEST_CASE("rib non-line entity rejected safely", "[CadDocument][rib]")
 {
-    using Catch::Matchers::Contains;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
@@ -3986,7 +3997,7 @@ TEST_CASE("rib non-line entity rejected safely", "[CadDocument][rib]")
 
     REQUIRE_FALSE(doc.recompute());
     REQUIRE_FALSE(doc.error.empty());
-    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("rib"));
+    REQUIRE_CONTAINS(doc.error, "rib");
 }
 
 TEST_CASE("rib round-trip serialization", "[CadDocument][rib]")
@@ -4207,7 +4218,7 @@ TEST_CASE("delete_face with bad face index fails safely", "[CadDocument][deletef
 
     doc.add_delete_face(0, {9999}, "Bad");
     REQUIRE_FALSE(doc.recompute());
-    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("face"));
+    REQUIRE_CONTAINS(doc.error, "face");
 }
 
 TEST_CASE("delete_face round-trip serialization", "[CadDocument][deleteface]")
@@ -4341,7 +4352,7 @@ TEST_CASE("hole: standards table lookup", "[CadDocument][hole]")
     try {
         doc.add_hole_standard("M999", 0, true, 10, 0, 0, SketchPlane::XY(), "H");
     } catch (const std::exception& ex) {
-        CHECK_THAT(std::string(ex.what()), Catch::Matchers::Contains("standard"));
+        CHECK_CONTAINS(std::string(ex.what()), "standard");
     }
 }
 
@@ -4464,7 +4475,7 @@ TEST_CASE("cycle detected fails recompute with error", "[CadDocument][variables]
 
     doc.variables = {{"a", "b"}, {"b", "a"}};
     REQUIRE_FALSE(doc.recompute());
-    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("cycle"));
+    REQUIRE_CONTAINS(doc.error, "cycle");
 }
 
 TEST_CASE("unknown parameter fails recompute", "[CadDocument][variables]")
@@ -4476,7 +4487,7 @@ TEST_CASE("unknown parameter fails recompute", "[CadDocument][variables]")
     doc.features[sk].expr = {{"nope", "1"}};
 
     REQUIRE_FALSE(doc.recompute());
-    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("unknown parameter"));
+    REQUIRE_CONTAINS(doc.error, "unknown parameter");
 }
 
 TEST_CASE("unknown identifier fails recompute", "[CadDocument][variables]")
@@ -4489,7 +4500,7 @@ TEST_CASE("unknown identifier fails recompute", "[CadDocument][variables]")
 
     doc.variables = {{"x", "y+1"}};
     REQUIRE_FALSE(doc.recompute());
-    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("unknown identifier"));
+    REQUIRE_CONTAINS(doc.error, "unknown identifier");
 }
 
 TEST_CASE("parametric recipe round-trips through serialize/deserialize", "[CadDocument][variables]")
@@ -4607,7 +4618,7 @@ TEST_CASE("surface-extrude bad ref safe", "[CadDocument][surface]")
     int fi = doc.add_surface_extrude(999, 10, "Bad");
     REQUIRE(fi == 0);
     REQUIRE_FALSE(doc.recompute());
-    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("surface-extrude"));
+    REQUIRE_CONTAINS(doc.error, "surface-extrude");
 }
 
 TEST_CASE("surface round-trip serialize/deserialize", "[CadDocument][surface]")
@@ -4730,7 +4741,7 @@ TEST_CASE("thicken-surface on non-sheet fails", "[CadDocument][surface]")
 
     doc.add_thicken_surface(0, 2.0, false, "Bad");
     REQUIRE_FALSE(doc.recompute());
-    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("sheet"));
+    REQUIRE_CONTAINS(doc.error, "sheet");
 }
 
 TEST_CASE("thicken-surface round-trip serialize/deserialize", "[CadDocument][surface]")
@@ -4839,13 +4850,13 @@ TEST_CASE("surface-loft / surface-fill bad refs safe", "[CadDocument][surface]")
         CadDocument doc;
         doc.add_surface_loft({999}, false, "Bad");
         REQUIRE_FALSE(doc.recompute());
-        REQUIRE_THAT(doc.error, Catch::Matchers::Contains("surface-loft"));
+        REQUIRE_CONTAINS(doc.error, "surface-loft");
     }
     {
         CadDocument doc;
         doc.add_surface_fill(999, "Bad");
         REQUIRE_FALSE(doc.recompute());
-        REQUIRE_THAT(doc.error, Catch::Matchers::Contains("surface-fill"));
+        REQUIRE_CONTAINS(doc.error, "surface-fill");
     }
 }
 
@@ -5135,7 +5146,6 @@ TEST_CASE("mate round-trip serialization", "[CadDocument][mate]")
 
 TEST_CASE("version 2 blob is rejected", "[CadDocument][mate]")
 {
-    using Catch::Matchers::Contains;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
@@ -5155,12 +5165,11 @@ TEST_CASE("version 2 blob is rejected", "[CadDocument][mate]")
 
     CadDocument fresh;
     REQUIRE_FALSE(fresh.deserialize_recipe(blob));
-    REQUIRE_THAT(fresh.error, Catch::Matchers::Contains("older version"));
+    REQUIRE_CONTAINS(fresh.error, "older version");
 }
 
 TEST_CASE("mate error: out of range connectors", "[CadDocument][mate]")
 {
-    using Catch::Matchers::Contains;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
@@ -5175,23 +5184,22 @@ TEST_CASE("mate error: out of range connectors", "[CadDocument][mate]")
 
     doc.add_mate(0, 999, cs, 0, 0, false, "Bad");
     REQUIRE_FALSE(doc.recompute());
-    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("mate_cs_a out of range"));
+    REQUIRE_CONTAINS(doc.error, "mate_cs_a out of range");
     doc.features.pop_back(); doc.error.clear();
 
     doc.add_mate(0, cs, 999, 0, 0, false, "Bad");
     REQUIRE_FALSE(doc.recompute());
-    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("mate_cs_b out of range"));
+    REQUIRE_CONTAINS(doc.error, "mate_cs_b out of range");
     doc.features.pop_back(); doc.error.clear();
 
     doc.add_mate(0, sk, cs, 0, 0, false, "Bad");
     REQUIRE_FALSE(doc.recompute());
-    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("not a valid CoordSys"));
+    REQUIRE_CONTAINS(doc.error, "not a valid CoordSys");
     doc.features.pop_back(); doc.error.clear();
 }
 
 TEST_CASE("mate error: no associated body", "[CadDocument][mate]")
 {
-    using Catch::Matchers::Contains;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
@@ -5210,12 +5218,11 @@ TEST_CASE("mate error: no associated body", "[CadDocument][mate]")
 
     doc.add_mate(0, cs_fixed, cs_moving, 0, 0, false, "Bad");
     REQUIRE_FALSE(doc.recompute());
-    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("no associated body"));
+    REQUIRE_CONTAINS(doc.error, "no associated body");
 }
 
 TEST_CASE("mate error: disabled connector", "[CadDocument][mate]")
 {
-    using Catch::Matchers::Contains;
 
     CadDocument doc;
     int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "Box");
@@ -5234,7 +5241,7 @@ TEST_CASE("mate error: disabled connector", "[CadDocument][mate]")
 
     doc.add_mate(0, cs_fixed, cs_moving, 0, 0, false, "Bad");
     REQUIRE_FALSE(doc.recompute());
-    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("not a valid CoordSys"));
+    REQUIRE_CONTAINS(doc.error, "not a valid CoordSys");
 }
 
 TEST_CASE("ordering: fillet after mate resolves face ids", "[CadDocument][mate]")

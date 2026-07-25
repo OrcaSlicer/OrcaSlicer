@@ -229,6 +229,10 @@ SCENARIO("CAD recipe is embedded in the BBS 3mf archive", "[3mf]") {
                 REQUIRE(got.size() == recipe.size());
                 REQUIRE(got == recipe);
             }
+        }
+    }
+}
+
 // .3mf multi-nozzle round-trip.
 // Locks the load/save handling for the H2C multi-nozzle plate metadata:
 //   * filament_volume_maps  -> plate config "filament_volume_map" (with the >1 -> 0 clamp)

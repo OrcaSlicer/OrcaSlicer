@@ -85,6 +85,7 @@ docker run --rm \
   -v "$REPO/resources":/OrcaSlicer/resources \
   -v "$REPO/CMakeLists.txt":/OrcaSlicer/CMakeLists.txt \
   -v "$REPO/cmake":/OrcaSlicer/cmake \
+  -v "$REPO/deps_src":/OrcaSlicer/deps_src \
   -v "$VOL":/OrcaSlicer/build \
   "$IMAGE" \
   bash -lc "set -e
