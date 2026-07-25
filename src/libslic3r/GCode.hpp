@@ -34,6 +34,11 @@
 #include <set>
 #include <string>
 #include <cfloat>
+#include <condition_variable>
+#include <deque>
+#include <exception>
+#include <mutex>
+#include <thread>
 
 namespace Slic3r {
 
@@ -319,7 +324,7 @@ public:
 private:
     class GCodeOutputStream {
     public:
-        GCodeOutputStream(FILE *f, GCodeProcessor &processor) : f(f), m_processor(processor) {}
+        GCodeOutputStream(FILE *f, GCodeProcessor &processor);
         ~GCodeOutputStream() { this->close(); }
 
         bool is_open() const { return f; }
@@ -328,8 +333,10 @@ private:
         void flush();
         void close();
 
-        // Write a string into a file.
-        void write(const std::string& what) { this->write(what.c_str()); }
+        // Write a string into a file. Keeping the std::string view intact
+        // avoids a full layer-sized copy before the streaming analyser sees it.
+        void write(const std::string& what);
+        void write(std::string&& what);
         void write(const char* what);
 
         // Write a string into a file.
@@ -341,8 +348,27 @@ private:
         void write_format(const char* format, ...);
 
     private:
+        void enqueue(std::string what);
+        void writer_thread();
+        void wait_until_drained();
+        void rethrow_worker_error() const;
+
         FILE *f = nullptr;
         GCodeProcessor &m_processor;
+        std::thread m_writer_thread;
+        mutable std::mutex m_queue_mutex;
+        std::condition_variable m_queue_ready;
+        std::condition_variable m_queue_drained;
+        std::deque<std::string> m_pending;
+        std::exception_ptr m_worker_error;
+        size_t m_pending_bytes { 0 };
+        bool m_worker_busy { false };
+        bool m_stopping { false };
+
+        // Keep only a small bounded look-ahead. It overlaps layer generation
+        // with ordered parsing/file output without reproducing the old large
+        // G-code allocations as an unbounded queue.
+        static constexpr size_t kMaximumPendingBytes = 8 * 1024 * 1024;
     };
     void            _do_export(Print &print, GCodeOutputStream &file, ThumbnailsGeneratorCallback thumbnail_cb);
 

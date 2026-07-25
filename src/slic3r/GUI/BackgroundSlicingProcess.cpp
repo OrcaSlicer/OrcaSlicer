@@ -22,6 +22,7 @@
 #include "libslic3r/Utils.hpp"
 #include "PostProcessor.hpp"
 #include "libslic3r/Format/SL1.hpp"
+#include "libslic3r/Gpu/VulkanSlicer.hpp"
 #include "libslic3r/Thread.hpp"
 #include "libslic3r/libslic3r.h"
 
@@ -33,12 +34,28 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/cstdio.hpp>
+#include <tbb/scalable_allocator.h>
 #include "I18N.hpp"
 // #include "RemovableDriveManager.hpp"
 
 #include "slic3r/GUI/Plater.hpp"
 
 namespace Slic3r {
+
+namespace {
+
+void release_slicing_allocator_caches()
+{
+    // Print::process() joins its worker tasks before returning. At this point
+    // tbbmalloc may return unused per-thread geometry buffers without touching
+    // the live Print/G-code data that the preview consumes afterwards.
+    Gpu::VulkanSlicerBackend::release_unused_staging_memory();
+    const int result = scalable_allocation_command(TBBMALLOC_CLEAN_ALL_BUFFERS, nullptr);
+    BOOST_LOG_TRIVIAL(info) << "[Memory] released unused Vulkan staging and TBB slicing allocator buffers"
+                            << " (result=" << result << ")" << log_memory_info();
+}
+
+} // namespace
 
 bool SlicingProcessCompletedEvent::critical_error() const
 {
@@ -225,9 +242,30 @@ void BackgroundSlicingProcess::process_fff()
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__
                                 << boost::format(" %1%: will start slicing, reset gcode_result %2% firstly") % __LINE__ % m_gcode_result;
         m_gcode_result->reset();
+        Gpu::VulkanSlicerBackend::begin_slicing_session();
+
+        // Read the persisted preference on the worker before touching Vulkan.
+        // Disabling it avoids device initialization entirely and leaves the
+        // exact CPU pipeline as the only active slicing path.
+        const bool vulkan_compute_enabled = wxGetApp().app_config->get_bool("vulkan_slicer_compute");
+        Gpu::VulkanSlicerBackend::set_compute_enabled(vulkan_compute_enabled);
+
+        // Initialize on the slicing worker, not the UI thread. This makes
+        // device selection, autotuning and exact qualification visible before
+        // the first infill batch without delaying the progress window.
+        if (vulkan_compute_enabled && !Gpu::VulkanSlicerBackend::prepare_for_slicing()) {
+            BOOST_LOG_TRIVIAL(warning) << "[Vulkan slicer] "
+                << Gpu::VulkanSlicerBackend::query_runtime_stats().last_diagnostic;
+        }
 
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(" %1%: gcode_result reseted, will start print::process") % __LINE__;
-        m_print->process();
+        try {
+            m_print->process();
+        } catch (...) {
+            release_slicing_allocator_caches();
+            throw;
+        }
+        release_slicing_allocator_caches();
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__
                                 << boost::format(" %1%: after print::process, send slicing complete event to gui...") % __LINE__;
         if (m_current_plate->get_real_filament_map_mode(preset_bundle.project_config) < FilamentMapMode::fmmManual) {

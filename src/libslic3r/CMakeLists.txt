@@ -498,22 +498,54 @@ if (SLIC3R_ENABLE_VULKAN_SLICER)
     find_package(Vulkan 1.2 REQUIRED)
     target_link_libraries(libslic3r PRIVATE Vulkan::Vulkan)
     target_compile_definitions(libslic3r PRIVATE SLIC3R_ENABLE_VULKAN_SLICER=1)
+    # Build-tree runs link resources/ to the source tree, while the generated
+    # SPIR-V modules live in this binary directory. Keep that path as a
+    # development-only runtime fallback; installed packages use resources/vulkan.
+    target_compile_definitions(libslic3r PRIVATE
+        SLIC3R_VULKAN_BUILD_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/resources/vulkan")
 
-    set(ORCA_VULKAN_INTERSECTION_SHADER
-        "${CMAKE_CURRENT_BINARY_DIR}/resources/vulkan/perimeter_infill_candidates.spv")
+    # Use literal LocalSize shader variants. The Windows glslc shipped with
+    # some SDKs compiles LocalSizeId into LocalSize=1, so pipeline
+    # specialization cannot safely tune it at runtime.
+    set(ORCA_VULKAN_WORKGROUP_SIZES 64 128 256 512 1024)
+    set(ORCA_VULKAN_INTERSECTION_SHADERS)
+    foreach(ORCA_VULKAN_WORKGROUP_SIZE IN LISTS ORCA_VULKAN_WORKGROUP_SIZES)
+        set(ORCA_VULKAN_INTERSECTION_SHADER
+            "${CMAKE_CURRENT_BINARY_DIR}/resources/vulkan/perimeter_infill_candidates_${ORCA_VULKAN_WORKGROUP_SIZE}.spv")
+        add_custom_command(
+            OUTPUT "${ORCA_VULKAN_INTERSECTION_SHADER}"
+            COMMAND "${CMAKE_COMMAND}" -E make_directory
+                    "${CMAKE_CURRENT_BINARY_DIR}/resources/vulkan"
+            COMMAND "${Vulkan_GLSLC_EXECUTABLE}" --target-env=vulkan1.2 -O
+                    "-DORCA_WORKGROUP_SIZE=${ORCA_VULKAN_WORKGROUP_SIZE}"
+                    -o "${ORCA_VULKAN_INTERSECTION_SHADER}"
+                    "${CMAKE_CURRENT_SOURCE_DIR}/Gpu/shaders/perimeter_infill_candidates.comp"
+            DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Gpu/shaders/perimeter_infill_candidates.comp"
+            VERBATIM)
+        list(APPEND ORCA_VULKAN_INTERSECTION_SHADERS "${ORCA_VULKAN_INTERSECTION_SHADER}")
+    endforeach()
+
+    add_custom_target(orca_vulkan_intersection_shader ALL
+        DEPENDS ${ORCA_VULKAN_INTERSECTION_SHADERS})
+    add_dependencies(libslic3r orca_vulkan_intersection_shader)
+    install(FILES ${ORCA_VULKAN_INTERSECTION_SHADERS}
+        DESTINATION "./resources/vulkan")
+
+    set(ORCA_VULKAN_TREE_CONTOUR_SHADER
+        "${CMAKE_CURRENT_BINARY_DIR}/resources/vulkan/tree_support_contour_candidates.spv")
     add_custom_command(
-        OUTPUT "${ORCA_VULKAN_INTERSECTION_SHADER}"
+        OUTPUT "${ORCA_VULKAN_TREE_CONTOUR_SHADER}"
         COMMAND "${CMAKE_COMMAND}" -E make_directory
                 "${CMAKE_CURRENT_BINARY_DIR}/resources/vulkan"
-        COMMAND "${Vulkan_GLSLC_EXECUTABLE}" -O
-                -o "${ORCA_VULKAN_INTERSECTION_SHADER}"
-                "${CMAKE_CURRENT_SOURCE_DIR}/Gpu/shaders/perimeter_infill_candidates.comp"
-        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Gpu/shaders/perimeter_infill_candidates.comp"
+        COMMAND "${Vulkan_GLSLC_EXECUTABLE}" --target-env=vulkan1.2 -O
+                -o "${ORCA_VULKAN_TREE_CONTOUR_SHADER}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/Gpu/shaders/tree_support_contour_candidates.comp"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Gpu/shaders/tree_support_contour_candidates.comp"
         VERBATIM)
-    add_custom_target(orca_vulkan_intersection_shader ALL
-        DEPENDS "${ORCA_VULKAN_INTERSECTION_SHADER}")
-    add_dependencies(libslic3r orca_vulkan_intersection_shader)
-    install(FILES "${ORCA_VULKAN_INTERSECTION_SHADER}"
+    add_custom_target(orca_vulkan_tree_contour_shader ALL
+        DEPENDS "${ORCA_VULKAN_TREE_CONTOUR_SHADER}")
+    add_dependencies(libslic3r orca_vulkan_tree_contour_shader)
+    install(FILES "${ORCA_VULKAN_TREE_CONTOUR_SHADER}"
         DESTINATION "./resources/vulkan")
 
     if (ORCA_TOOLS)

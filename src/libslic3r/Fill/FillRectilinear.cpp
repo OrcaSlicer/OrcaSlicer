@@ -3,8 +3,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 #include <random>
+#include <string>
 
 #include <boost/container/small_vector.hpp>
 #include <boost/log/trivial.hpp>
@@ -757,6 +759,15 @@ enum DirectionMask
     DIR_BACKWARD = 2
 };
 
+static bool vulkan_slice_diagnostics_enabled()
+{
+    static const bool enabled = [] {
+        const char* value = std::getenv("ORCA_VULKAN_SLICER_DIAGNOSTICS");
+        return value != nullptr && *value != '\0' && std::string(value) != "0";
+    }();
+    return enabled;
+}
+
 // Build the strict-interior portion of the scanline workload in exactly the
 // same stable order as slice_region_by_vertical_lines(). Vertex and tangent
 // cases intentionally remain on the CPU: their outcome depends on adjacent
@@ -764,7 +775,33 @@ enum DirectionMask
 static Gpu::VulkanVerticalIntersectionBatch prepare_vulkan_vertical_intersections(
     const ExPolygonWithOffset &poly_with_offset, size_t n_vlines, coord_t x0, coord_t line_spacing)
 {
+    // This must agree with the backend's persistent staging guard.  Refuse a
+    // single giant region before materialising a second, GPU-specific copy of
+    // all its candidates; the existing CPU path remains exact and bounded.
+    constexpr size_t maximum_gpu_candidate_requests = 256 * 1024;
+    constexpr size_t initial_request_reserve = 32 * 1024;
+
+    // Most tiny islands cannot reach the calibrated CPU/GPU crossover. Avoid
+    // materialising a second, GPU-only copy of their scanline requests just
+    // to discover that the CPU path is faster. This upper bound is safe: if it
+    // is below the crossover, the exact candidate count is below it as well.
+    size_t contour_edge_count = 0;
+    for (size_t iContour = 0; iContour < poly_with_offset.n_contours; ++iContour) {
+        const Points &contour = poly_with_offset.contour(iContour).points;
+        if (contour.size() >= 2)
+            contour_edge_count += contour.size();
+    }
+    if (contour_edge_count == 0 || n_vlines == 0)
+        return {};
+    const size_t upper_bound = contour_edge_count > maximum_gpu_candidate_requests / n_vlines ?
+        maximum_gpu_candidate_requests : contour_edge_count * n_vlines;
+    if (!Gpu::VulkanSlicerBackend::should_dispatch_vertical_intersections(upper_bound)) {
+        Gpu::VulkanSlicerBackend::note_skipped_vertical_intersection_workload(upper_bound);
+        return {};
+    }
+
     std::vector<Gpu::VulkanVerticalIntersectionRequest> requests;
+    requests.reserve(std::min(upper_bound, initial_request_reserve));
     for (size_t iContour = 0; iContour < poly_with_offset.n_contours; ++iContour) {
         const Points &contour = poly_with_offset.contour(iContour).points;
         if (contour.size() < 2)
@@ -789,6 +826,10 @@ static Gpu::VulkanVerticalIntersectionBatch prepare_vulkan_vertical_intersection
                 const coord_t scan_x = x0 + i * line_spacing;
                 if (p1.x() == scan_x || p2.x() == scan_x)
                     continue;
+                if (requests.size() == maximum_gpu_candidate_requests) {
+                    Gpu::VulkanSlicerBackend::note_skipped_vertical_intersection_workload(requests.size());
+                    return {};
+                }
                 requests.push_back({
                     { { int64_t(p1.x()), int64_t(p1.y()) }, { int64_t(p2.x()), int64_t(p2.y()) } },
                     int64_t(scan_x), uint64_t(requests.size())
@@ -797,10 +838,12 @@ static Gpu::VulkanVerticalIntersectionBatch prepare_vulkan_vertical_intersection
         }
     }
 
-    // Below this point PCIe/driver dispatch overhead is larger than the
-    // arithmetic saved. Real models and support surfaces normally exceed it.
-    if (requests.size() < 256)
+    // This dispatch synchronizes before topology is committed. Its crossover
+    // is calibrated from the active CPU and Vulkan device at slice startup.
+    if (!Gpu::VulkanSlicerBackend::should_dispatch_vertical_intersections(requests.size())) {
+        Gpu::VulkanSlicerBackend::note_skipped_vertical_intersection_workload(requests.size());
         return {};
+    }
     return Gpu::VulkanSlicerBackend::dispatch_vertical_intersections(requests);
 }
 
@@ -815,6 +858,9 @@ static std::vector<SegmentedIntersectionLine> slice_region_by_vertical_lines(con
     Gpu::VulkanVerticalIntersectionBatch gpu_intersections =
         prepare_vulkan_vertical_intersections(poly_with_offset, n_vlines, x0, line_spacing);
     size_t gpu_intersection_index = 0;
+    size_t accepted_gpu_intersections = 0;
+    size_t cpu_validation_checks = 0;
+    bool gpu_validation_failed = false;
     bool gpu_results_match_cpu = gpu_intersections.dispatched;
     // For each contour
     for (size_t iContour = 0; iContour < poly_with_offset.n_contours; ++ iContour) {
@@ -875,41 +921,63 @@ static std::vector<SegmentedIntersectionLine> slice_region_by_vertical_lines(con
                     is.pos_p = p2.y();
                     is.pos_q = 1;
                 } else {
-                    // First calculate the intersection parameter 't' as a rational number with non negative denominator.
+                    // The qualified GPU shader owns this fixed-point
+                    // multiply/add. In sampled mode the CPU computes only
+                    // boundary and periodic references; strict mode keeps a
+                    // reference for every result when auditing a new driver.
                     int64_t cpu_numerator = 0;
                     int64_t cpu_denominator = 1;
-                    if (p2.x() > p1.x()) {
-                        cpu_numerator = this_x - p1.x();
-                        cpu_denominator = p2.x() - p1.x();
-                    } else {
-                        cpu_numerator = p1.x() - this_x;
-                        cpu_denominator = p1.x() - p2.x();
-                    }
-                    assert(cpu_denominator > 1);
-                    assert(cpu_numerator > 0 && cpu_numerator < cpu_denominator);
-                    // Make an intersection point from the 't'.
-                    cpu_numerator *= int64_t(p2.y() - p1.y());
-                    cpu_numerator += p1.y() * cpu_denominator;
+                    const auto calculate_cpu_reference = [&] {
+                        if (p2.x() > p1.x()) {
+                            cpu_numerator = this_x - p1.x();
+                            cpu_denominator = p2.x() - p1.x();
+                        } else {
+                            cpu_numerator = p1.x() - this_x;
+                            cpu_denominator = p1.x() - p2.x();
+                        }
+                        assert(cpu_denominator > 1);
+                        assert(cpu_numerator > 0 && cpu_numerator < cpu_denominator);
+                        cpu_numerator *= int64_t(p2.y() - p1.y());
+                        cpu_numerator += p1.y() * cpu_denominator;
+                    };
 
-                    // The GPU owns the fixed-point multiply/add for this
-                    // high-cardinality path. Keep a CPU exact-reference
-                    // calculation and reject the entire batch on any mismatch
-                    // so a driver or shader regression cannot alter G-code.
                     const bool has_gpu_result = gpu_results_match_cpu &&
                         gpu_intersection_index < gpu_intersections.intersections.size();
                     if (has_gpu_result) {
                         const Gpu::VulkanVerticalIntersection &gpu_result =
                             gpu_intersections.intersections[gpu_intersection_index];
-                        if (gpu_result.valid && gpu_result.stable_id == gpu_intersection_index &&
-                            gpu_result.numerator == cpu_numerator && gpu_result.denominator == cpu_denominator) {
-                            is.pos_p = gpu_result.numerator;
-                            is.pos_q = gpu_result.denominator;
-                        } else {
+                        if (!gpu_result.valid || gpu_result.stable_id != gpu_intersection_index) {
                             gpu_results_match_cpu = false;
+                            gpu_validation_failed = true;
+                            calculate_cpu_reference();
                             is.pos_p = cpu_numerator;
                             is.pos_q = cpu_denominator;
+                        } else if (Gpu::VulkanSlicerBackend::should_validate_vertical_intersection(
+                                       gpu_intersection_index, gpu_intersections.intersections.size())) {
+                            calculate_cpu_reference();
+                            ++cpu_validation_checks;
+                            if (gpu_result.numerator == cpu_numerator &&
+                                gpu_result.denominator == cpu_denominator) {
+                                is.pos_p = gpu_result.numerator;
+                                is.pos_q = gpu_result.denominator;
+                                ++accepted_gpu_intersections;
+                            } else {
+                                gpu_results_match_cpu = false;
+                                gpu_validation_failed = true;
+                                is.pos_p = cpu_numerator;
+                                is.pos_q = cpu_denominator;
+                            }
+                        } else {
+                            is.pos_p = gpu_result.numerator;
+                            is.pos_q = gpu_result.denominator;
+                            ++accepted_gpu_intersections;
                         }
                     } else {
+                        if (gpu_results_match_cpu && gpu_intersections.dispatched) {
+                            gpu_results_match_cpu = false;
+                            gpu_validation_failed = true;
+                        }
+                        calculate_cpu_reference();
                         is.pos_p = cpu_numerator;
                         is.pos_q = cpu_denominator;
                     }
@@ -920,6 +988,23 @@ static std::vector<SegmentedIntersectionLine> slice_region_by_vertical_lines(con
                 assert(is.pos() <= std::max(p1.y(), p2.y()) + 1);
                 segs[i].intersections.push_back(is);
             }
+        }
+    }
+
+    if (gpu_intersections.dispatched) {
+        const std::string diagnostic = gpu_validation_failed ?
+            "GPU result validation failed; remaining scanline intersections fell back to the CPU." :
+            "GPU scanline intersections accepted.";
+        Gpu::VulkanSlicerBackend::note_vertical_intersection_usage(
+            accepted_gpu_intersections, cpu_validation_checks, gpu_validation_failed, diagnostic);
+        if (vulkan_slice_diagnostics_enabled()) {
+            BOOST_LOG_TRIVIAL(info) << "[Vulkan slicer] " << diagnostic
+                << " requests=" << gpu_intersections.intersections.size()
+                << " gpu_accepted=" << accepted_gpu_intersections
+                << " cpu_checks=" << cpu_validation_checks
+                << " gpu_ms=" << gpu_intersections.gpu_elapsed_ms
+                << " host_ms=" << gpu_intersections.host_elapsed_ms
+                << " profile=" << Gpu::VulkanSlicerBackend::query_runtime_stats().execution_profile;
         }
     }
 

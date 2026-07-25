@@ -4,6 +4,7 @@
 #include "MainFrame.hpp"
 #include "Plater.hpp"
 #include "GLCanvas3D.hpp" // ORCA: for live preview refresh when toggling "Dim lower layers"
+#include "libslic3r/Gpu/VulkanSlicer.hpp"
 #include "MsgDialog.hpp"
 #include "I18N.hpp"
 #include "libslic3r/AppConfig.hpp"
@@ -1060,6 +1061,9 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 }
             }
         }
+        else if (param == "vulkan_slicer_compute") {
+            Gpu::VulkanSlicerBackend::set_compute_enabled(checkbox->GetValue());
+        }
 
 #ifdef __WXMSW__
         if (param == "associate_3mf") {
@@ -1824,6 +1828,14 @@ void PreferencesDialog::create_items()
 
     //// GRAPHICS > General
     g_sizer->Add(create_item_title(_L("General")), 1, wxEXPAND);
+
+    auto item_vulkan_slicer_compute = create_item_checkbox(
+        _L("Enable Vulkan slicing acceleration"),
+        _L("Uses Vulkan compute for exact high-cardinality infill and support scan conversion. "
+           "The slicer automatically keeps smaller or topology-sensitive workloads on the CPU when that is faster. "
+           "Turning this off uses the established exact CPU path for the next slice."),
+        "vulkan_slicer_compute");
+    g_sizer->Add(item_vulkan_slicer_compute);
 
     auto smooth_normals = create_item_checkbox(
         _L("Smooth normals"),

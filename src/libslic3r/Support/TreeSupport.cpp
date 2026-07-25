@@ -14,6 +14,7 @@
 #include "TreeSupportCommon.hpp"
 #include "TreeSupport.hpp"
 #include "TreeSupport3D.hpp"
+#include "../Gpu/VulkanSlicer.hpp"
 #include <libnest2d/backends/libslic3r/geometries.hpp>
 #include <libnest2d/placers/nfpplacer.hpp>
 
@@ -2833,6 +2834,54 @@ void TreeSupport::drop_nodes()
             spanning_trees.emplace_back(points_to_buildplate);
         }
         profiler.stage_add(STAGE_MinimumSpanningTree);
+
+        // Tree growth is still topology-sensitive and is finalized by Clipper
+        // below. Before those exact calls, however, batch the MST branch
+        // boxes against this layer's contour-edge boxes on Vulkan. A clear
+        // result cannot possibly intersect, so it is safe to cache as false;
+        // every possible overlap continues through the CPU exact predicate.
+        std::vector<Gpu::Segment> gpu_contour_edges;
+        for (const Polygon& contour : layer_contours) {
+            if (contour.size() < 2)
+                continue;
+            for (size_t index = 0; index < contour.size(); ++index) {
+                const Point& a = contour[index];
+                const Point& b = contour[(index + 1) % contour.size()];
+                gpu_contour_edges.push_back({ { int64_t(a.x()), int64_t(a.y()) },
+                                              { int64_t(b.x()), int64_t(b.y()) } });
+            }
+        }
+        std::vector<Line> gpu_tree_lines;
+        for (size_t group_index = 0; group_index < nodes_per_part.size(); ++group_index) {
+            const MinimumSpanningTree& mst = spanning_trees[group_index];
+            for (const auto& entry : nodes_per_part[group_index]) {
+                for (const Point& neighbour : mst.adjacent_nodes(entry.first)) {
+                    const Point& point = entry.first;
+                    if (point.x() > neighbour.x() ||
+                        (point.x() == neighbour.x() && point.y() >= neighbour.y()))
+                        continue;
+                    gpu_tree_lines.emplace_back(point, neighbour);
+                }
+            }
+        }
+        std::vector<Gpu::VulkanTreeContourRequest> gpu_tree_requests;
+        gpu_tree_requests.reserve(gpu_tree_lines.size());
+        for (size_t index = 0; index < gpu_tree_lines.size(); ++index) {
+            const Line& line = gpu_tree_lines[index];
+            gpu_tree_requests.push_back({ { { int64_t(line.a.x()), int64_t(line.a.y()) },
+                                            { int64_t(line.b.x()), int64_t(line.b.y()) } }, uint64_t(index) });
+        }
+        const Gpu::VulkanTreeContourBatch gpu_tree_batch =
+            Gpu::VulkanSlicerBackend::dispatch_tree_contour_candidates(gpu_tree_requests, gpu_contour_edges);
+        if (gpu_tree_batch.dispatched && gpu_tree_batch.may_intersect.size() == gpu_tree_lines.size()) {
+            for (size_t index = 0; index < gpu_tree_lines.size(); ++index) {
+                if (gpu_tree_batch.may_intersect[index] != 0)
+                    continue;
+                const Line& line = gpu_tree_lines[index];
+                mst_line_x_layer_contour_cache.insert({ line, false });
+                mst_line_x_layer_contour_cache.insert({ Line(line.b, line.a), false });
+            }
+        }
 
 #ifdef SUPPORT_TREE_DEBUG_TO_SVG
         coordf_t branch_radius_temp = 0;

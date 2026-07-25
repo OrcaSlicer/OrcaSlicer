@@ -4196,7 +4196,7 @@ void GCode::process_layers(
         );
     
     const auto output = tbb::make_filter<std::string, void>(slic3r_tbb_filtermode::serial_in_order,
-        [&output_stream](std::string s) { output_stream.write(s); }
+        [&output_stream](std::string s) { output_stream.write(std::move(s)); }
     );
 
     const auto fan_mover = tbb::make_filter<std::string, std::string>(slic3r_tbb_filtermode::serial_in_order,
@@ -4296,7 +4296,7 @@ void GCode::process_layers(
     );
     
     const auto output = tbb::make_filter<std::string, void>(slic3r_tbb_filtermode::serial_in_order,
-        [&output_stream](std::string s) { output_stream.write(s); }
+        [&output_stream](std::string s) { output_stream.write(std::move(s)); }
     );
 
     const auto fan_mover = tbb::make_filter<std::string, std::string>(slic3r_tbb_filtermode::serial_in_order,
@@ -7104,33 +7104,149 @@ std::string GCode::extrude_support(const ExtrusionEntityCollection &support_fill
     return gcode;
 }
 
+GCode::GCodeOutputStream::GCodeOutputStream(FILE *file, GCodeProcessor &processor) :
+    f(file),
+    m_processor(processor)
+{
+    if (this->f != nullptr)
+        m_writer_thread = std::thread(&GCodeOutputStream::writer_thread, this);
+}
+
+void GCode::GCodeOutputStream::rethrow_worker_error() const
+{
+    std::exception_ptr error;
+    {
+        std::lock_guard<std::mutex> lock(m_queue_mutex);
+        error = m_worker_error;
+    }
+    if (error)
+        std::rethrow_exception(error);
+}
+
+void GCode::GCodeOutputStream::wait_until_drained()
+{
+    std::unique_lock<std::mutex> lock(m_queue_mutex);
+    m_queue_drained.wait(lock, [this] {
+        return m_worker_error || (m_pending.empty() && !m_worker_busy);
+    });
+    lock.unlock();
+    rethrow_worker_error();
+}
+
+void GCode::GCodeOutputStream::enqueue(std::string what)
+{
+    if (what.empty())
+        return;
+
+    std::unique_lock<std::mutex> lock(m_queue_mutex);
+    m_queue_drained.wait(lock, [this, byte_count = what.size()] {
+        // A single large layer is admitted only when it is the sole queued
+        // item; it is already materialised by the generator, so this does not
+        // introduce a second unbounded staging allocation.
+        return m_worker_error || m_stopping ||
+            m_pending_bytes + byte_count <= kMaximumPendingBytes ||
+            (m_pending.empty() && !m_worker_busy);
+    });
+    if (m_worker_error) {
+        lock.unlock();
+        rethrow_worker_error();
+    }
+    if (m_stopping)
+        throw Slic3r::RuntimeError("G-code output stream was closed while writing.");
+
+    m_pending_bytes += what.size();
+    m_pending.emplace_back(std::move(what));
+    lock.unlock();
+    m_queue_ready.notify_one();
+}
+
+void GCode::GCodeOutputStream::writer_thread()
+{
+    // The export thread sets a numeric C locale already. The parser runs on
+    // this worker, so give it the same locale guarantee when decoding G-code.
+    CNumericLocalesSetter locales_setter;
+    while (true) {
+        std::string gcode;
+        {
+            std::unique_lock<std::mutex> lock(m_queue_mutex);
+            m_queue_ready.wait(lock, [this] { return m_stopping || !m_pending.empty(); });
+            if (m_pending.empty()) {
+                if (m_stopping)
+                    break;
+                continue;
+            }
+            gcode = std::move(m_pending.front());
+            m_pending.pop_front();
+            m_pending_bytes -= gcode.size();
+            m_worker_busy = true;
+        }
+        m_queue_drained.notify_all();
+
+        try {
+            fwrite(gcode.data(), 1, gcode.size(), this->f);
+            m_processor.process_buffer(gcode);
+        } catch (...) {
+            std::lock_guard<std::mutex> lock(m_queue_mutex);
+            m_worker_error = std::current_exception();
+            m_pending.clear();
+            m_pending_bytes = 0;
+            m_worker_busy = false;
+            m_stopping = true;
+            m_queue_drained.notify_all();
+            m_queue_ready.notify_all();
+            return;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(m_queue_mutex);
+            m_worker_busy = false;
+        }
+        m_queue_drained.notify_all();
+    }
+    m_queue_drained.notify_all();
+}
+
 bool GCode::GCodeOutputStream::is_error() const
 {
+    std::lock_guard<std::mutex> lock(m_queue_mutex);
     return ::ferror(this->f);
 }
 
 void GCode::GCodeOutputStream::flush()
 {
+    wait_until_drained();
     ::fflush(this->f);
 }
 
 void GCode::GCodeOutputStream::close()
 {
+    {
+        std::lock_guard<std::mutex> lock(m_queue_mutex);
+        m_stopping = true;
+    }
+    m_queue_ready.notify_all();
+    if (m_writer_thread.joinable())
+        m_writer_thread.join();
     if (this->f) {
         ::fclose(this->f);
         this->f = nullptr;
     }
 }
 
+void GCode::GCodeOutputStream::write(const std::string& what)
+{
+    enqueue(what);
+}
+
+void GCode::GCodeOutputStream::write(std::string&& what)
+{
+    enqueue(std::move(what));
+}
+
 void GCode::GCodeOutputStream::write(const char *what)
 {
-    if (what != nullptr) {
-        const char* gcode = what;
-        // writes string to file
-        fwrite(gcode, 1, ::strlen(gcode), this->f);
-        //FIXME don't allocate a string, maybe process a batch of lines?
-        m_processor.process_buffer(std::string(gcode));
-    }
+    if (what != nullptr)
+        this->write(std::string(what));
 }
 
 void GCode::GCodeOutputStream::writeln(const std::string &what)

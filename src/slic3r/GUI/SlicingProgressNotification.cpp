@@ -1,9 +1,28 @@
 #include "SlicingProgressNotification.hpp"
 
+#include <libslic3r/Gpu/VulkanSlicer.hpp>
+
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
 #include <imgui/imgui_internal.h>
+
+#include <algorithm>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <psapi.h>
+#pragma comment(lib, "Psapi.lib")
+#endif
 
 namespace Slic3r { namespace GUI {
 
@@ -14,6 +33,69 @@ namespace {
 			ImGui::PushStyleColor(idx, ImVec4(col.x, col.y, col.z, col.w * current_fade_opacity));
 		else
 			ImGui::PushStyleColor(idx, col);
+	}
+
+#ifdef _WIN32
+	uint64_t filetime_to_100ns(const FILETIME& value)
+	{
+		ULARGE_INTEGER ticks;
+		ticks.LowPart  = value.dwLowDateTime;
+		ticks.HighPart = value.dwHighDateTime;
+		return ticks.QuadPart;
+	}
+#endif
+
+	std::string compact_gpu_name(std::string name)
+	{
+		for (const char* marker : { "RTX ", "GTX ", "Arc", "Radeon" }) {
+			const size_t marker_pos = name.find(marker);
+			if (marker_pos != std::string::npos) {
+				name = name.substr(marker_pos);
+				break;
+			}
+		}
+
+		constexpr size_t maximum_length = 22;
+		if (name.size() > maximum_length)
+			name = name.substr(0, maximum_length - 3) + "...";
+		return name;
+	}
+
+	std::string compact_count(uint64_t value)
+	{
+		std::ostringstream stream;
+		if (value >= 1000000)
+			stream << std::fixed << std::setprecision(1) << (double(value) / 1000000.0) << "M";
+		else if (value >= 1000)
+			stream << std::fixed << std::setprecision(1) << (double(value) / 1000.0) << "k";
+		else
+			stream << value;
+		return stream.str();
+	}
+
+	std::string compact_gpu_operation(const std::string& operation)
+	{
+		if (operation == "Exact infill/support edge intersections")
+			return "infill/support intersections";
+		if (operation == "CPU fallback for a small intersection batch")
+			return "CPU fallback (small batch)";
+		if (operation == "CPU fallback after Vulkan dispatch failure")
+			return "CPU fallback (dispatch failed)";
+		if (operation == "Wall topology candidate graph")
+			return "wall topology candidates";
+		if (operation == "CPU fallback for wall topology preflight")
+			return "CPU wall topology fallback";
+		return operation.empty() ? "preparing compute" : operation;
+	}
+
+	std::string format_memory_size(size_t bytes)
+	{
+		std::ostringstream stream;
+		if (bytes >= size_t(1024) * 1024 * 1024)
+			stream << std::fixed << std::setprecision(1) << (double(bytes) / (1024.0 * 1024.0 * 1024.0)) << " GiB";
+		else
+			stream << std::fixed << std::setprecision(1) << (double(bytes) / (1024.0 * 1024.0)) << " MiB";
+		return stream.str();
 	}
 }
 
@@ -27,6 +109,13 @@ void NotificationManager::SlicingProgressNotification::init()
 {
 	if (m_sp_state == SlicingProgressState::SP_PROGRESS) {
 		PopNotification::init();
+		// The original notification width was sized for a one-line status. The
+		// live resource rows below need enough room for a device and a concise
+		// compute-phase label without clipping either one.
+		m_window_width = std::max(m_window_width, m_line_height * 42.0f);
+		// PopNotification::init() measured status text at the legacy width.
+		// Reflow after widening so it does not retain an unnecessary wrap.
+		count_lines();
 		if (m_endlines.empty()) {
 			m_endlines.push_back(0);
 		}
@@ -68,6 +157,7 @@ bool NotificationManager::SlicingProgressNotification::set_progress_state(Notifi
 	case Slic3r::GUI::NotificationManager::SlicingProgressNotification::SlicingProgressState::SP_NO_SLICING:
         m_state = EState::Hidden;
         set_percentage(-1);
+		reset_resource_usage();
         m_has_print_info = false;
         set_export_possible(false);
         m_sp_state             = state;
@@ -75,6 +165,7 @@ bool NotificationManager::SlicingProgressNotification::set_progress_state(Notifi
 	case Slic3r::GUI::NotificationManager::SlicingProgressNotification::SlicingProgressState::SP_BEGAN:
 		m_state = EState::Hidden;
 		set_percentage(-1);
+		reset_resource_usage();
 		m_has_print_info = false;
 		set_export_possible(false);
 		m_sp_state = state;
@@ -89,6 +180,7 @@ bool NotificationManager::SlicingProgressNotification::set_progress_state(Notifi
 		return true;
 	case Slic3r::GUI::NotificationManager::SlicingProgressNotification::SlicingProgressState::SP_CANCELLED:
 		set_percentage(-1);
+		reset_resource_usage();
 		m_has_print_info = false;
 		set_export_possible(false);
 		m_sp_state = state;
@@ -97,6 +189,7 @@ bool NotificationManager::SlicingProgressNotification::set_progress_state(Notifi
 		if (m_sp_state != SlicingProgressState::SP_BEGAN && m_sp_state != SlicingProgressState::SP_PROGRESS)
 			return false;
 		set_percentage(1);
+		reset_resource_usage();
 		m_has_print_info = false;
 		// m_export_possible is important only for SP_PROGRESS state, thus we can reset it here
 		set_export_possible(false);
@@ -196,6 +289,8 @@ void NotificationManager::SlicingProgressNotification::render(GLCanvas3D& canvas
 
 	ImGuiWrapper& imgui = *wxGetApp().imgui();
 	float scale = imgui.get_font_size() / 15.0f;
+	if (m_sp_state == SlicingProgressState::SP_PROGRESS)
+		update_resource_usage();
 
 	bool fading_pop = false;
 	if (m_state == EState::FadingOut) {
@@ -221,7 +316,8 @@ void NotificationManager::SlicingProgressNotification::render(GLCanvas3D& canvas
 	const ImVec2 dailytips_child_window_padding = m_dailytips_panel->is_expanded() ? ImVec2(15.f, 10.f) * scale : ImVec2(15.f, 0.f) * scale;
 	const ImVec2 bottom_padding = ImVec2(0.f, 0.f) * scale;
 	const float  progress_panel_width = (m_window_width - 2 * progress_child_window_padding.x);
-	const float  progress_panel_height = (58.0f * scale) + (m_lines_count - 1) * m_line_height;
+	const float  resource_lines = m_sp_state == SlicingProgressState::SP_PROGRESS ? 4.5f : 0.0f;
+	const float  progress_panel_height = (58.0f * scale) + (m_lines_count - 1 + resource_lines) * m_line_height;
 	const float  dailytips_panel_width = (m_window_width - 2 * dailytips_child_window_padding.x);
 	const float  gcodeviewer_height = wxGetApp().plater()->get_preview_canvas3D()->get_gcode_viewer().get_legend_height();
 	//const float  dailytips_panel_height = std::min(380.0f * scale, std::max(90.0f, (cnv_size.get_height() - gcodeviewer_height - progress_panel_height - dailytips_child_window_padding.y - initial_y - m_line_height * 4)));
@@ -276,11 +372,12 @@ void NotificationManager::SlicingProgressNotification::render(GLCanvas3D& canvas
                 float  text_bottom = progress_bar_size.y + m_line_height * 1.2f + 7.f * scale;
                 ImVec2 progress_bar_pos = child_window_pos + ImVec2(0, progress_panel_height - text_bottom);
 				ImVec2 button_pos = child_window_pos + ImVec2(progress_panel_width - button_size.x, progress_panel_height - text_bottom - button_size.y / 2.0f);
-				ImVec2 text_pos = ImVec2(progress_bar_pos.x, progress_bar_pos.y - m_line_height * (1.2f + m_lines_count - 1));
+				ImVec2 text_pos = ImVec2(progress_bar_pos.x, progress_bar_pos.y - m_line_height * (1.2f + resource_lines + m_lines_count - 1));
 
 				render_text(text_pos);
 				render_close_button(button_pos, button_size);
 				if (m_sp_state == SlicingProgressState::SP_PROGRESS) {
+					render_resource_usage(ImVec2(progress_bar_pos.x, progress_bar_pos.y - m_line_height * 4.35f));
 					render_bar(progress_bar_pos, progress_bar_size);
 					render_cancel_button(button_pos, button_size);
 				}
@@ -317,6 +414,120 @@ void NotificationManager::SlicingProgressNotification::render(GLCanvas3D& canvas
 	restore_default_theme();
 	if (fading_pop)
 		ImGui::PopStyleColor(3);
+}
+
+void NotificationManager::SlicingProgressNotification::reset_resource_usage()
+{
+	m_last_resource_sample = {};
+	m_last_process_cpu_time_100ns = 0;
+	m_logical_processor_count = 0;
+	m_resource_monitor_initialized = false;
+	m_cpu_resource_text.clear();
+	m_gpu_resource_text.clear();
+	m_gpu_activity_text.clear();
+	m_memory_resource_text.clear();
+}
+
+void NotificationManager::SlicingProgressNotification::update_resource_usage()
+{
+	const auto now = std::chrono::steady_clock::now();
+	if (m_resource_monitor_initialized &&
+		now - m_last_resource_sample < std::chrono::milliseconds(500))
+		return;
+
+	std::ostringstream cpu_text;
+	bool cpu_sample_available = false;
+
+#ifdef _WIN32
+	FILETIME creation_time, exit_time, kernel_time, user_time;
+	if (GetProcessTimes(GetCurrentProcess(), &creation_time, &exit_time, &kernel_time, &user_time)) {
+		const uint64_t process_cpu_time = filetime_to_100ns(kernel_time) + filetime_to_100ns(user_time);
+		if (!m_resource_monitor_initialized) {
+			SYSTEM_INFO system_info;
+			GetSystemInfo(&system_info);
+			m_logical_processor_count = std::max<uint32_t>(1, system_info.dwNumberOfProcessors);
+			m_last_process_cpu_time_100ns = process_cpu_time;
+			cpu_text << "CPU: sampling / " << m_logical_processor_count << " logical cores";
+			cpu_sample_available = true;
+		} else {
+			const auto elapsed = std::chrono::duration<double>(now - m_last_resource_sample).count();
+			if (elapsed > 0.0 && process_cpu_time >= m_last_process_cpu_time_100ns) {
+				const double process_seconds = double(process_cpu_time - m_last_process_cpu_time_100ns) / 10000000.0;
+				const double cpu_percent = std::min(100.0, 100.0 * process_seconds /
+					(elapsed * std::max<uint32_t>(1, m_logical_processor_count)));
+				cpu_text << std::fixed << std::setprecision(1)
+					<< "CPU: " << cpu_percent << "% / "
+					<< m_logical_processor_count << " logical cores";
+				cpu_sample_available = true;
+			}
+			m_last_process_cpu_time_100ns = process_cpu_time;
+		}
+	}
+#endif
+
+	if (!cpu_sample_available)
+		cpu_text << "CPU: unavailable";
+
+	const Gpu::VulkanSlicerRuntimeStats gpu = Gpu::VulkanSlicerBackend::query_runtime_stats();
+	std::ostringstream gpu_text;
+	std::ostringstream gpu_activity_text;
+	if (!Gpu::VulkanSlicerBackend::compute_enabled()) {
+		gpu_text << "GPU: Vulkan compute disabled";
+		gpu_activity_text << "GPU job: CPU exact geometry path";
+	} else if (gpu.selected_device.empty()) {
+		gpu_text << "GPU: Vulkan initializing";
+		gpu_activity_text << "GPU job: preparing exact compute";
+	} else if (gpu.dispatch_calls == 0) {
+		gpu_text << "GPU: " << compact_gpu_name(gpu.selected_device) << " / Vulkan ready, idle";
+		if (gpu.skipped_small_workloads != 0) {
+			gpu_activity_text << "GPU job: CPU kept "
+				<< compact_count(gpu.skipped_small_workloads) << " small batches";
+		} else {
+			gpu_activity_text << "GPU job: no eligible scanline batch in this slice";
+		}
+	} else {
+		gpu_text << "GPU: " << compact_gpu_name(gpu.selected_device) << " / Vulkan ready";
+		gpu_activity_text << "GPU last: " << compact_gpu_operation(gpu.current_operation)
+			<< " / " << compact_count(gpu.dispatch_calls)
+			<< " / " << compact_count(gpu.submitted_intersections);
+	}
+
+	m_cpu_resource_text = cpu_text.str();
+	m_gpu_resource_text = gpu_text.str();
+	m_gpu_activity_text = gpu_activity_text.str();
+
+	std::ostringstream memory_text;
+#ifdef _WIN32
+	PROCESS_MEMORY_COUNTERS_EX memory_counters {};
+	memory_counters.cb = sizeof(memory_counters);
+	if (GetProcessMemoryInfo(GetCurrentProcess(),
+		reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory_counters), sizeof(memory_counters))) {
+		const size_t vulkan_staging_bytes = gpu.reusable_staging_capacity * (48 + 32);
+		memory_text << "RAM: " << format_memory_size(memory_counters.WorkingSetSize)
+			<< " W / " << format_memory_size(memory_counters.PrivateUsage)
+			<< " P / staging " << format_memory_size(vulkan_staging_bytes);
+	} else {
+		memory_text << "RAM: unavailable";
+	}
+#else
+	memory_text << "RAM: platform monitor unavailable";
+#endif
+	m_memory_resource_text = memory_text.str();
+	m_last_resource_sample = now;
+	m_resource_monitor_initialized = true;
+}
+
+void NotificationManager::SlicingProgressNotification::render_resource_usage(const ImVec2& pos)
+{
+	ImGuiWrapper& imgui = *wxGetApp().imgui();
+	ImGui::SetCursorScreenPos(pos);
+	imgui.text(m_cpu_resource_text.c_str());
+	ImGui::SetCursorScreenPos(pos + ImVec2(0.0f, m_line_height * 1.1f));
+	imgui.text(m_gpu_resource_text.c_str());
+	ImGui::SetCursorScreenPos(pos + ImVec2(0.0f, m_line_height * 2.2f));
+	imgui.text(m_gpu_activity_text.c_str());
+	ImGui::SetCursorScreenPos(pos + ImVec2(0.0f, m_line_height * 3.3f));
+	imgui.text(m_memory_resource_text.c_str());
 }
 
 void Slic3r::GUI::NotificationManager::SlicingProgressNotification::render_text(const ImVec2& pos)

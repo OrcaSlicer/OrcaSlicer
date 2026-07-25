@@ -1,0 +1,64 @@
+#version 460
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+
+// A conservative broad phase for tree-support branches. Each workgroup owns
+// one branch and checks its axis-aligned box against every model contour edge.
+// A zero result proves no intersection is possible; any overlap remains on
+// the CPU for the exact Clipper test, preserving existing topology rules.
+layout(local_size_x = 128) in;
+
+struct Branch {
+    int64_t ax;
+    int64_t ay;
+    int64_t bx;
+    int64_t by;
+    uint64_t stable_id;
+};
+
+struct ContourEdge {
+    int64_t ax;
+    int64_t ay;
+    int64_t bx;
+    int64_t by;
+};
+
+layout(std430, binding = 0) readonly buffer Branches { Branch branches[]; };
+layout(std430, binding = 1) readonly buffer Contours { ContourEdge contours[]; };
+layout(std430, binding = 2) writeonly buffer Results { uint may_intersect[]; };
+
+shared uint any_overlap;
+
+bool boxes_overlap(const Branch branch, const ContourEdge edge)
+{
+    const int64_t branch_min_x = min(branch.ax, branch.bx);
+    const int64_t branch_max_x = max(branch.ax, branch.bx);
+    const int64_t branch_min_y = min(branch.ay, branch.by);
+    const int64_t branch_max_y = max(branch.ay, branch.by);
+    const int64_t edge_min_x = min(edge.ax, edge.bx);
+    const int64_t edge_max_x = max(edge.ax, edge.bx);
+    const int64_t edge_min_y = min(edge.ay, edge.by);
+    const int64_t edge_max_y = max(edge.ay, edge.by);
+    return branch_min_x <= edge_max_x && edge_min_x <= branch_max_x &&
+           branch_min_y <= edge_max_y && edge_min_y <= branch_max_y;
+}
+
+void main()
+{
+    const uint branch_index = gl_WorkGroupID.x;
+    if (branch_index >= branches.length())
+        return;
+    if (gl_LocalInvocationIndex == 0u)
+        any_overlap = 0u;
+    barrier();
+
+    const Branch branch = branches[branch_index];
+    for (uint edge_index = gl_LocalInvocationIndex; edge_index < contours.length();
+         edge_index += gl_WorkGroupSize.x) {
+        if (boxes_overlap(branch, contours[edge_index]))
+            atomicOr(any_overlap, 1u);
+    }
+    memoryBarrierShared();
+    barrier();
+    if (gl_LocalInvocationIndex == 0u)
+        may_intersect[branch_index] = any_overlap;
+}

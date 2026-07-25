@@ -4,7 +4,13 @@
 // Exact scanline-intersection generation.  Final polygon clipping, winding
 // classification and ordering still consume stable IDs and pass the host
 // exact-reference checks before an extrusion path is committed.
-layout(local_size_x = 64) in;
+// glslc versions bundled with some Windows Vulkan SDKs emit LocalSize=1 for
+// LocalSizeId. The build produces fixed 64/128/256/512/1024 variants instead;
+// the runtime benchmarks the actual GPU and loads the fastest one.
+#ifndef ORCA_WORKGROUP_SIZE
+#define ORCA_WORKGROUP_SIZE 256
+#endif
+layout(local_size_x = ORCA_WORKGROUP_SIZE) in;
 
 struct IntersectionRequest {
     int64_t ax;
