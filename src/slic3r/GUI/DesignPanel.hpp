@@ -52,6 +52,10 @@ public:
 
 private:
     enum class Tool { None, Sketch, Extrude, Dressup, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Boolean, Cut, Insert, Axis, CoordSys, SurfaceExtrude, SurfaceRevolve, SurfaceLoft, SurfaceFill, SurfaceOffset, ThickenSurface, Transform, Mirror, Thicken, Rib, Project, DeleteFace, Helix, Mate };
+    // Which numeric fields an expression can be bound to, per feature type. A member rather
+    // than a file-static helper so Tool — 32 values of purely internal card state — does not
+    // have to become part of this panel's public API just to be named in a signature.
+    static std::vector<std::string> fields_for_tool(Tool t);
     // Plane tool: which datum reference the next solid pick fills (declared early so the
     // method decls + card lambdas below can name it).
     enum class PlanePick { None, FaceA, FaceB, EdgeA, EdgeB };
@@ -284,6 +288,7 @@ private:
     wxSizer*  m_box_helix{nullptr};
     wxSizer*  m_box_mate{nullptr};
     wxSizer*  m_box_insert{nullptr};   // Confirm/Cancel card for placing Text/SVG art
+    wxSizer*  m_box_expr{nullptr};     // expression binding card (visible during edit only)
     int       m_insert_feat{-1};       // provisional imported-art feature awaiting Confirm
     // Move-body gizmo runs through the unified action bar too: Confirm keeps the placement,
     // Cancel reverts to the pose captured when the move started.
@@ -491,6 +496,27 @@ private:
     CheckBox*         m_mate_flip{nullptr};
     wxStaticText*     m_offset_label{nullptr};
     wxStaticText*     m_angle_label{nullptr};
+
+    // Expression binding (per-feature, visible during edit only)
+    ComboBox*         m_expr_field{nullptr};     // field-name picker (editable)
+    wxTextCtrl*       m_expr_text{nullptr};      // expression string
+    wxButton*         m_expr_set_btn{nullptr};   // Apply / bind
+    wxButton*         m_expr_clear_btn{nullptr}; // Remove binding
+    wxStaticText*     m_expr_status{nullptr};    // shows current bindings for the edited feature
+    void              populate_expr_fields(Tool t);   // fill m_expr_field from feature-type fields
+    void              on_set_expr();                   // checkpoint + write -> recompute -> undo on fail
+    void              on_clear_expr();                 // remove selected binding
+
+    // Document variables panel (below the feature tree / parts)
+    StaticBox*        m_var_box{nullptr};
+    wxListCtrl*       m_var_list{nullptr};
+    wxButton*         m_btn_add_var{nullptr};
+    wxButton*         m_btn_edit_var{nullptr};
+    wxButton*         m_btn_del_var{nullptr};
+    void              refresh_variables();            // rebuild m_var_list from m_doc.variables
+    void              on_add_variable();
+    void              on_edit_variable();
+    void              on_remove_variable();
 
     // Feature-tree button
     ScalableButton*   m_btn_interfere{nullptr};

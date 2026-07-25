@@ -16,6 +16,7 @@
 #include <wx/checkbox.h>
 #include <wx/checklst.h>
 #include <wx/spinctrl.h>
+#include <wx/listctrl.h>
 #include <wx/treectrl.h>
 #include <wx/imaglist.h>
 #include <wx/statline.h>
@@ -2502,6 +2503,56 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_mate_angle->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
     m_mate_flip->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { refresh_preview(); });
 
+    // --- Expression binding card (visible during feature edit only) ---
+    // Lets the user bind a numeric field to a document-variable expression. Field-name
+    // combo is populated per feature type and is editable for power users. Set applies
+    // the binding with checkpoint+recompute+undo-on-failure; Clear removes it.
+    m_box_expr = new wxBoxSizer(wxVERTICAL);
+    {
+        wxStaticText* expr_hdr = nullptr;
+        m_box_expr->Add(card_header(m_cards, "design_constrain", _L("Expression"), expr_hdr), 0,
+                        wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_expr->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+
+        auto* eform = two_col_form();
+
+        // The only editable combo in this panel, hence not make_combo(): that passes
+        // wxCB_READONLY, and Orca's ComboBox HIDES its text ctrl under that style
+        // (ComboBox.cpp:51), so there is nothing to type into and no SetEditable() to
+        // turn it back on. Constructed with style 0, the ctrl is shown with
+        // wxTE_PROCESS_ENTER and GetTextLabel() returns what the user typed — which is
+        // what makes the 21 unmapped feature types reachable at all.
+        m_expr_field = new ComboBox(m_cards, wxID_ANY, wxEmptyString, wxDefaultPosition,
+                                    wxSize(FromDIP(90), FromDIP(24)), 0, nullptr, 0);
+        m_expr_field->SetMinSize(wxSize(FromDIP(90), FromDIP(24)));
+        eform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Field")), 0, wxALIGN_CENTER_VERTICAL);
+        eform->Add(m_expr_field, 0, wxEXPAND);
+
+        m_expr_text = new wxTextCtrl(m_cards, wxID_ANY, "", wxDefaultPosition,
+                                     wxSize(FromDIP(120), FromDIP(24)),
+                                     wxTE_PROCESS_ENTER | wxBORDER_SIMPLE);
+        m_expr_text->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { on_set_expr(); });
+        eform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Expr")), 0, wxALIGN_CENTER_VERTICAL);
+        eform->Add(m_expr_text, 0, wxEXPAND);
+
+        m_box_expr->Add(eform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+
+        auto* brow = new wxBoxSizer(wxHORIZONTAL);
+        m_expr_set_btn   = new wxButton(m_cards, wxID_ANY, _L("Set"), wxDefaultPosition, wxSize(50, 24));
+        m_expr_clear_btn = new wxButton(m_cards, wxID_ANY, _L("Clear"), wxDefaultPosition, wxSize(50, 24));
+        m_expr_set_btn->Bind(wxEVT_BUTTON,   [this](wxCommandEvent&) { on_set_expr(); });
+        m_expr_clear_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_clear_expr(); });
+        brow->Add(m_expr_set_btn,   0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+        brow->Add(m_expr_clear_btn, 0, wxALIGN_CENTER_VERTICAL);
+        brow->AddStretchSpacer();
+        m_box_expr->Add(brow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+
+        m_expr_status = new wxStaticText(m_cards, wxID_ANY, _L("(no bindings)"));
+        m_expr_status->SetForegroundColour(dp_sec_text());
+        m_box_expr->Add(m_expr_status, 0, wxLEFT | wxRIGHT | wxBOTTOM, 12);
+    }
+    cards->Add(m_box_expr, 0, wxEXPAND);
+
     // --- Docked value-entry card (Onshape Button->Dialog->Confirm for dimensions) ---
     m_box_value = new wxBoxSizer(wxVERTICAL);
     {
@@ -2706,6 +2757,43 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_status->Refresh();
     });
 
+    // --- Variables (document-scope named expressions) ---
+    // Below the feature tree + parts, always visible. wxListCtrl in report mode with two
+    // columns (Name, Expression). Add / edit open a small dialog; delete removes the
+    // selected row. Every mutation goes through checkpoint+recompute+undo-on-failure.
+    m_var_box = make_card(m_form);
+    auto* var_inner = new wxBoxSizer(wxVERTICAL);
+    m_var_box->SetSizer(var_inner);
+    {
+        auto* var_hdr = new wxBoxSizer(wxHORIZONTAL);
+        wxStaticText* var_hdr_title = nullptr;
+        var_hdr->Add(card_header(m_var_box, "design_constrain", _L("Variables"), var_hdr_title), 0,
+                     wxALIGN_CENTER_VERTICAL);
+        var_hdr->AddStretchSpacer();
+        m_btn_add_var  = new wxButton(m_var_box, wxID_ANY, _L("+"), wxDefaultPosition, wxSize(30, 24));
+        m_btn_edit_var = new wxButton(m_var_box, wxID_ANY, _L("Edit"), wxDefaultPosition, wxSize(50, 24));
+        m_btn_del_var  = new wxButton(m_var_box, wxID_ANY, _L("Del"), wxDefaultPosition, wxSize(42, 24));
+        m_btn_add_var->Bind(wxEVT_BUTTON,  [this](wxCommandEvent&) { on_add_variable(); });
+        m_btn_edit_var->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_edit_variable(); });
+        m_btn_del_var->Bind(wxEVT_BUTTON,  [this](wxCommandEvent&) { on_remove_variable(); });
+        const int vhgap = FromDIP(SidebarProps::ElementSpacing());
+        var_hdr->Add(m_btn_add_var,  0, wxALIGN_CENTER_VERTICAL | wxRIGHT, vhgap);
+        var_hdr->Add(m_btn_edit_var, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, vhgap);
+        var_hdr->Add(m_btn_del_var,  0, wxALIGN_CENTER_VERTICAL);
+        var_inner->Add(var_hdr, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP,
+                       FromDIP(SidebarProps::ContentMargin()));
+        var_inner->Add(new wxStaticLine(m_var_box), 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP,
+                       FromDIP(SidebarProps::TitlebarMargin()));
+
+        m_var_list = new wxListCtrl(m_var_box, wxID_ANY, wxDefaultPosition,
+                                    wxSize(-1, FromDIP(64)), wxLC_REPORT | wxLC_SINGLE_SEL);
+        if (!dp_dark()) m_var_list->SetBackgroundColour(dp_panel_bg());
+        m_var_list->AppendColumn(_L("Name"),       wxLIST_FORMAT_LEFT, FromDIP(90));
+        m_var_list->AppendColumn(_L("Expression"), wxLIST_FORMAT_LEFT, FromDIP(120));
+        var_inner->Add(m_var_list, 0, wxEXPAND | wxALL, FromDIP(SidebarProps::ContentMargin()));
+    }
+    root->Add(m_var_box, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 8);
+
     // Orca-styled full-width buttons (ButtonType::Expanded), so the Design sidebar reads like
     // Prepare's instead of showing raw OS-default wxButtons.
     const int cm = FromDIP(SidebarProps::ContentMargin());
@@ -2767,6 +2855,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     cards->Show(m_box_value,   false, true);
     cards->Show(m_box_sketch_session, false, true);
     cards->Show(m_box_constraints,    false, true);
+    cards->Show(m_box_expr,          false, true);
 
     m_form->FitInside();
     m_form->SetScrollRate(0, 10);   // vertical only, like Prepare's sidebar: never scroll labels out
@@ -5174,8 +5263,9 @@ void DesignPanel::set_tree_selection(int row)
 
 void DesignPanel::after_tree_edit(bool ok)
 {
-    update_undo_redo_buttons();   // every commit/undo/redo funnels through here -> refresh greying
+    update_undo_redo_buttons();
     refresh_tree();
+    refresh_variables();
     if (!ok) {
         // The edit was rolled back (recompute failed); the body is unchanged.
         m_status->SetForegroundColour(wxColour(235, 110, 110));
@@ -8140,6 +8230,7 @@ void DesignPanel::open_tool(Tool t)
     s->Show(m_box_helix,        t == Tool::Helix,          true);
     s->Show(m_box_mate,         t == Tool::Mate,           true);
     s->Show(m_box_insert,  t == Tool::Insert,  true);
+    s->Show(m_box_expr,   m_edit_index >= 0,  true);   // expression binding available during edit only
 
     if (t == Tool::Mate) {
         // Populate both CoordSys pickers with every CoordSys feature; store the real
@@ -8308,6 +8399,24 @@ void DesignPanel::open_tool(Tool t)
     case Tool::None:    break;
     }
 
+    if (editing) {
+        populate_expr_fields(t);   // field-name combo for this feature type
+        // Display current expression bindings on the edited feature
+        const CadFeature& ef = m_doc.features[m_edit_index];
+        if (ef.expr.empty()) {
+            m_expr_status->SetLabel(_L("(no bindings)"));
+            m_expr_status->SetForegroundColour(dp_sec_text());
+        } else {
+            wxString s;
+            for (const auto& [field, e] : ef.expr) {
+                if (!s.IsEmpty()) s += "; ";
+                s += wxString::FromUTF8(field) + " = " + wxString::FromUTF8(e);
+            }
+            m_expr_status->SetLabel(s);
+            m_expr_status->SetForegroundColour(dp_ctl_text());
+        }
+    }
+
     update_cards_frame(); m_form->Layout();
     m_form->FitInside();
     update_action_bar();   // a tool is now active -> show the unified ✓/✗
@@ -8351,6 +8460,7 @@ void DesignPanel::close_tool()
     s->Show(m_box_helix,        false, true);
     s->Show(m_box_mate,         false, true);
     s->Show(m_box_insert,  false, true);
+    s->Show(m_box_expr,    false, true);
     m_viewport->clear_preview();
     m_viewport->clear_extrude_gizmo();
     m_viewport->clear_fillet_gizmo();
@@ -8562,6 +8672,228 @@ void DesignPanel::do_undo_redo(bool redo)
     m_status->SetLabel(wxString::Format(redo ? _L("Redo  (%zu more)") : _L("Undo  (%zu more)"),
                                         redo ? m_doc.redo_depth() : m_doc.undo_depth()));
     m_status->Refresh();
+}
+
+// --- Document variables panel ---------------------------------------------------------
+
+void DesignPanel::refresh_variables()
+{
+    if (!m_var_list) return;
+    m_var_list->DeleteAllItems();
+    int row = 0;
+    for (const auto& [name, expr] : m_doc.variables) {
+        m_var_list->InsertItem(row, wxString::FromUTF8(name));
+        m_var_list->SetItem(row, 1, wxString::FromUTF8(expr));
+        ++row;
+    }
+}
+
+void DesignPanel::on_add_variable()
+{
+    wxString name = ::wxGetTextFromUser(_L("Variable name:"), _L("Add Variable"), "", this);
+    if (name.IsEmpty()) return;
+    name.Trim(true).Trim(false);
+    if (name.Contains(' ')) {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        m_status->SetLabel(_L("Variable name must not contain spaces"));
+        m_status->Refresh();
+        return;
+    }
+    wxString expr = ::wxGetTextFromUser(
+        wxString::Format(_L("Expression for '%s':"), name),
+        _L("Add Variable"), "0", this);
+    if (expr.IsEmpty()) return;
+
+    const std::string name_str = name.ToUTF8().data();
+    const std::string expr_str = expr.ToUTF8().data();
+
+    m_doc.checkpoint();
+    m_doc.variables[name_str] = expr_str;
+    bool ok = m_doc.recompute();
+    if (!ok) { m_doc.undo(); }
+    after_tree_edit(ok);
+    refresh_variables();
+}
+
+void DesignPanel::on_edit_variable()
+{
+    if (!m_var_list) return;
+    const long sel = m_var_list->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+    if (sel < 0) {
+        m_status->SetLabel(_L("Select a variable first"));
+        m_status->Refresh();
+        return;
+    }
+    const std::string name_str = m_var_list->GetItemText(sel, 0).ToUTF8().data();
+    const std::string old_expr  = m_var_list->GetItemText(sel, 1).ToUTF8().data();
+    wxString expr = ::wxGetTextFromUser(
+        wxString::Format(_L("Expression for '%s':"), m_var_list->GetItemText(sel, 0)),
+        _L("Edit Variable"), wxString::FromUTF8(old_expr), this);
+    if (expr.IsEmpty()) return;
+
+    const std::string expr_str = expr.ToUTF8().data();
+    m_doc.checkpoint();
+    m_doc.variables[name_str] = expr_str;
+    bool ok = m_doc.recompute();
+    if (!ok) { m_doc.undo(); }
+    after_tree_edit(ok);
+    refresh_variables();
+}
+
+void DesignPanel::on_remove_variable()
+{
+    if (!m_var_list) return;
+    const long sel = m_var_list->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+    if (sel < 0) {
+        m_status->SetLabel(_L("Select a variable first"));
+        m_status->Refresh();
+        return;
+    }
+    const std::string name_str = m_var_list->GetItemText(sel, 0).ToUTF8().data();
+
+    m_doc.checkpoint();
+    m_doc.variables.erase(name_str);
+    bool ok = m_doc.recompute();
+    if (!ok) {
+        m_doc.undo();
+        // A failed recompute on remove means a feature expr still references it
+        m_doc.error = wxString::Format(
+            _L("Variable '%s' is referenced by a feature expression and cannot be removed"),
+            m_var_list->GetItemText(sel, 0)).ToUTF8().data();
+    }
+    after_tree_edit(ok);
+    refresh_variables();
+}
+
+// --- Expression binding ---------------------------------------------------------------
+
+// Field-name lists per feature type. The combo is editable so a power user can type any
+// valid field name; these lists pre-populate the picker for the common operations.
+std::vector<std::string> DesignPanel::fields_for_tool(Tool t)
+{
+    using T = DesignPanel::Tool;
+    switch (t) {
+    case T::Sketch:           return {"width", "height", "radius"};
+    case T::Extrude:          return {"distance", "distance2", "taper_deg"};
+    case T::Dressup:          return {"dressup_size"};
+    case T::Hole:             return {"hole_diameter", "hole_depth", "hole_x", "hole_y"};
+    case T::Thread:           return {"thread_radius", "thread_pitch", "thread_height", "thread_depth", "thread_x", "thread_y"};
+    case T::Shell:            return {"shell_thickness"};
+    case T::Revolve:          return {"revolve_angle"};
+    case T::Sweep:            return {};
+    case T::Pattern:          return {"pattern_count", "pattern_spacing", "pattern_angle"};
+    case T::Plane:            return {"plane_offset", "plane_angle_tilt"};
+    case T::Loft:             return {};
+    case T::Draft:            return {"draft_angle"};
+    case T::Boolean:          return {};
+    case T::Cut:              return {};
+    case T::SurfaceExtrude:   return {"distance"};
+    case T::SurfaceRevolve:   return {"revolve_angle"};
+    case T::SurfaceLoft:      return {};
+    case T::SurfaceFill:      return {};
+    case T::SurfaceOffset:    return {"plane_offset"};
+    case T::ThickenSurface:   return {"thicken_thickness"};
+    case T::Transform:        return {};
+    case T::Mirror:           return {};
+    case T::Thicken:          return {"thicken_thickness"};
+    case T::Rib:              return {"rib_thickness", "rib_depth"};
+    case T::Project:          return {};
+    case T::DeleteFace:       return {};
+    case T::Helix:            return {"helix_radius", "helix_pitch", "helix_height", "helix_taper_deg"};
+    case T::Axis:             return {};
+    case T::CoordSys:         return {};
+    case T::Mate:             return {};
+    case T::Insert:           return {};
+    case T::None:             return {};
+    }
+    return {};
+}
+
+void DesignPanel::populate_expr_fields(Tool t)
+{
+    if (!m_expr_field) return;
+    m_expr_field->Clear();
+    for (const std::string& f : fields_for_tool(t))
+        m_expr_field->Append(wxString::FromUTF8(f));
+    if (m_expr_field->GetCount() > 0)
+        m_expr_field->SetSelection(0);
+}
+
+void DesignPanel::on_set_expr()
+{
+    if (m_edit_index < 0 || m_edit_index >= int(m_doc.features.size())) return;
+    if (!m_expr_field || !m_expr_text) return;
+
+    const wxString fwx = m_expr_field->GetValue();
+    const wxString ewx = m_expr_text->GetValue();
+    if (fwx.IsEmpty()) return;
+
+    const std::string field = fwx.ToUTF8().data();
+    const std::string expr  = ewx.ToUTF8().data();
+
+    m_doc.checkpoint();
+    m_doc.features[m_edit_index].expr[field] = expr;
+    bool ok = m_doc.recompute();
+    if (!ok) { m_doc.undo(); }
+    after_tree_edit(ok);
+    if (ok) m_expr_text->Clear();
+
+    // Refresh the status line showing current bindings
+    if (m_edit_index >= 0 && m_edit_index < int(m_doc.features.size())) {
+        const CadFeature& ef = m_doc.features[m_edit_index];
+        if (ef.expr.empty()) {
+            m_expr_status->SetLabel(_L("(no bindings)"));
+            m_expr_status->SetForegroundColour(dp_sec_text());
+        } else {
+            wxString s;
+            for (const auto& [f, e] : ef.expr) {
+                if (!s.IsEmpty()) s += "; ";
+                s += wxString::FromUTF8(f) + " = " + wxString::FromUTF8(e);
+            }
+            m_expr_status->SetLabel(s);
+            m_expr_status->SetForegroundColour(dp_ctl_text());
+        }
+    }
+}
+
+void DesignPanel::on_clear_expr()
+{
+    if (m_edit_index < 0 || m_edit_index >= int(m_doc.features.size())) return;
+    if (!m_expr_field) return;
+
+    const wxString fwx = m_expr_field->GetValue();
+    if (fwx.IsEmpty()) return;
+
+    const std::string field = fwx.ToUTF8().data();
+    auto& feat_expr = m_doc.features[m_edit_index].expr;
+    if (feat_expr.find(field) == feat_expr.end()) {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        m_status->SetLabel(_L("No binding for that field"));
+        m_status->Refresh();
+        return;
+    }
+
+    m_doc.checkpoint();
+    feat_expr.erase(field);
+    bool ok = m_doc.recompute();
+    if (!ok) { m_doc.undo(); }
+    after_tree_edit(ok);
+
+    if (m_edit_index >= 0 && m_edit_index < int(m_doc.features.size())) {
+        const CadFeature& ef = m_doc.features[m_edit_index];
+        if (ef.expr.empty()) {
+            m_expr_status->SetLabel(_L("(no bindings)"));
+            m_expr_status->SetForegroundColour(dp_sec_text());
+        } else {
+            wxString s;
+            for (const auto& [f, e] : ef.expr) {
+                if (!s.IsEmpty()) s += "; ";
+                s += wxString::FromUTF8(f) + " = " + wxString::FromUTF8(e);
+            }
+            m_expr_status->SetLabel(s);
+            m_expr_status->SetForegroundColour(dp_ctl_text());
+        }
+    }
 }
 
 }} // namespace Slic3r::GUI
