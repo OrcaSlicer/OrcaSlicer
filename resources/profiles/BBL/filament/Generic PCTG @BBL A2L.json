@@ -1,0 +1,19 @@
+{
+	"type": "filament",
+	"name": "Generic PCTG @BBL A2L",
+	"inherits": "Generic PCTG @base",
+	"from": "system",
+	"setting_id": "GFSG97_10",
+	"instantiation": "true",
+	"pre_start_fan_time": [
+		"2"
+	],
+	"compatible_printers": [
+		"Bambu Lab A2L 0.4 nozzle",
+		"Bambu Lab A2L 0.6 nozzle",
+		"Bambu Lab A2L 0.8 nozzle"
+	],
+	"filament_start_gcode": [
+		""
+	]
+}

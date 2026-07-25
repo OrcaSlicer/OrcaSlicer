@@ -100,12 +100,17 @@ struct FillParams
     bool            dont_sort{ false }; // do not sort the lines, just simply connect them
     bool            can_reverse{true};
 
+    // Orca: forced print order of surface fill loops/fragments for center-based patterns
+    // (Concentric, Archimedean Chords, Octagram Spiral). Default keeps shortest-path ordering.
+    SurfaceFillOrder fill_order { SurfaceFillOrder::Default };
+
     float           horiz_move{0.0}; //move infill to get cross zag pattern
     bool            symmetric_infill_y_axis{false};
     coord_t         symmetric_y_axis{0};
     bool            locked_zag{false};
     float           infill_lock_depth{0.0};
     float           skin_infill_depth{0.0};
+    CenterOfSurfacePattern center_of_surface_pattern{CenterOfSurfacePattern::Each_Surface};
 };
 static_assert(IsTriviallyCopyable<FillParams>::value, "FillParams class is not POD (and it should be - see constructor).");
 

@@ -1,0 +1,339 @@
+{
+	"type": "filament",
+	"name": "addnorth PLA HT-PLA PRO Matte",
+	"inherits": "Generic PLA @base",
+	"from": "system",
+	"setting_id": "GF_ANHTP_00",
+	"filament_id": "GF_ANHTP",
+	"instantiation": "true",
+	"activate_air_filtration": [
+		"0"
+	],
+	"additional_cooling_fan_speed": [
+		"70"
+	],
+	"chamber_temperatures": [
+		"0"
+	],
+	"circle_compensation_speed": [
+		"200"
+	],
+	"close_fan_the_first_x_layers": [
+		"2"
+	],
+	"compatible_printers": [
+		"Bambu Lab A1 mini 0.4 nozzle",
+		"Bambu Lab A1 mini 0.6 nozzle",
+		"Bambu Lab A1 mini 0.8 nozzle",
+		"Bambu Lab A1 0.4 nozzle",
+		"Bambu Lab A1 0.6 nozzle",
+		"Bambu Lab A1 0.8 nozzle",
+		"Bambu Lab P1P 0.4 nozzle",
+		"Bambu Lab P1P 0.6 nozzle",
+		"Bambu Lab P1P 0.8 nozzle",
+		"Bambu Lab P1S 0.4 nozzle",
+		"Bambu Lab P1S 0.6 nozzle",
+		"Bambu Lab P1S 0.8 nozzle",
+		"Bambu Lab X1 0.4 nozzle",
+		"Bambu Lab X1 0.6 nozzle",
+		"Bambu Lab X1 0.8 nozzle",
+		"Bambu Lab X1 Carbon 0.4 nozzle",
+		"Bambu Lab X1 Carbon 0.6 nozzle",
+		"Bambu Lab X1 Carbon 0.8 nozzle",
+		"Bambu Lab X1E 0.4 nozzle",
+		"Bambu Lab X1E 0.6 nozzle",
+		"Bambu Lab X1E 0.8 nozzle",
+		"Bambu Lab H2D 0.4 nozzle",
+		"Bambu Lab H2D 0.6 nozzle",
+		"Bambu Lab H2D 0.8 nozzle",
+		"Bambu Lab H2D Pro 0.4 nozzle",
+		"Bambu Lab H2D Pro 0.6 nozzle",
+		"Bambu Lab H2D Pro 0.8 nozzle",
+		"Bambu Lab H2S 0.4 nozzle",
+		"Bambu Lab H2S 0.6 nozzle",
+		"Bambu Lab H2S 0.8 nozzle",
+		"Bambu Lab P2S 0.4 nozzle",
+		"Bambu Lab P2S 0.6 nozzle",
+		"Bambu Lab P2S 0.8 nozzle",
+		"Bambu Lab X2D 0.2 nozzle",
+		"Bambu Lab X2D 0.4 nozzle",
+		"Bambu Lab X2D 0.6 nozzle",
+		"Bambu Lab X2D 0.8 nozzle"
+	],
+	"compatible_printers_condition": "",
+	"compatible_prints": [],
+	"compatible_prints_condition": "",
+	"complete_print_exhaust_fan_speed": [
+		"70"
+	],
+	"cool_plate_temp": [
+		"55"
+	],
+	"cool_plate_temp_initial_layer": [
+		"55"
+	],
+	"counter_coef_1": [
+		"0"
+	],
+	"counter_coef_2": [
+		"0.008"
+	],
+	"counter_coef_3": [
+		"-0.041"
+	],
+	"counter_limit_max": [
+		"0.033"
+	],
+	"counter_limit_min": [
+		"-0.035"
+	],
+	"default_filament_colour": [
+		""
+	],
+	"diameter_limit": [
+		"50"
+	],
+	"during_print_exhaust_fan_speed": [
+		"70"
+	],
+	"enable_overhang_bridge_fan": [
+		"1"
+	],
+	"enable_pressure_advance": [
+		"0"
+	],
+	"eng_plate_temp": [
+		"0"
+	],
+	"eng_plate_temp_initial_layer": [
+		"0"
+	],
+	"fan_cooling_layer_time": [
+		"100"
+	],
+	"fan_max_speed": [
+		"100"
+	],
+	"fan_min_speed": [
+		"100"
+	],
+	"filament_adhesiveness_category": [
+		"100"
+	],
+	"filament_change_length": [
+		"10"
+	],
+	"filament_cost": [
+		"55"
+	],
+	"filament_density": [
+		"1.4"
+	],
+	"filament_deretraction_speed": [
+		"nil",
+		"nil"
+	],
+	"filament_diameter": [
+		"1.75"
+	],
+	"filament_end_gcode": [
+		"; filament end gcode \n"
+	],
+	"filament_extruder_variant": [
+		"Direct Drive Standard"
+	],
+	"filament_flow_ratio": [
+		"0.98",
+		"0.98"
+	],
+	"filament_is_support": [
+		"0"
+	],
+	"filament_long_retractions_when_cut": [
+		"nil",
+		"nil"
+	],
+	"filament_max_volumetric_speed": [
+		"8",
+		"11"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	],
+	"filament_notes": "File Version:2.6 - V.Pack:18_05_2026",
+	"filament_pre_cooling_temperature": [
+		"0",
+		"0"
+	],
+	"filament_prime_volume": [
+		"45"
+	],
+	"filament_ramming_travel_time": [
+		"0",
+		"0"
+	],
+	"filament_ramming_volumetric_speed": [
+		"-1",
+		"-1"
+	],
+	"filament_retract_before_wipe": [
+		"nil",
+		"nil"
+	],
+	"filament_retract_restart_extra": [
+		"nil"
+	],
+	"filament_retract_when_changing_layer": [
+		"nil",
+		"nil"
+	],
+	"filament_retraction_distances_when_cut": [
+		"nil",
+		"nil"
+	],
+	"filament_retraction_length": [
+		"nil",
+		"nil"
+	],
+	"filament_retraction_minimum_travel": [
+		"nil",
+		"nil"
+	],
+	"filament_retraction_speed": [
+		"nil",
+		"nil"
+	],
+	"filament_scarf_gap": [
+		"15%"
+	],
+	"filament_scarf_height": [
+		"10%"
+	],
+	"filament_scarf_length": [
+		"10"
+	],
+	"filament_scarf_seam_type": [
+		"none"
+	],
+	"filament_settings_id": [
+		"addnorth PLA HT-PLA PRO Matte"
+	],
+	"filament_shrink": [
+		"100%"
+	],
+	"filament_soluble": [
+		"0"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode {if (bed_temperature[current_extruder] >55)||(bed_temperature_initial_layer[current_extruder] >55)}M106 P3 S200 {elsif(bed_temperature[current_extruder] >50)||(bed_temperature_initial_layer[current_extruder] >50)}M106 P3 S150 {elsif(bed_temperature[current_extruder] >45)||(bed_temperature_initial_layer[current_extruder] >45)}M106 P3 S50 {endif} {if activate_air_filtration[current_extruder] && support_air_filtration} M106 P3 S{during_print_exhaust_fan_speed_num[current_extruder]} {endif}"
+	],
+	"filament_type": [
+		"PLA"
+	],
+	"filament_vendor": [
+		"addnorth"
+	],
+	"filament_wipe": [
+		"nil",
+		"nil"
+	],
+	"filament_wipe_distance": [
+		"nil",
+		"nil"
+	],
+	"filament_z_hop": [
+		"nil",
+		"nil"
+	],
+	"filament_z_hop_types": [
+		"nil",
+		"nil"
+	],
+	"full_fan_speed_layer": [
+		"0"
+	],
+	"hole_coef_1": [
+		"0"
+	],
+	"hole_coef_2": [
+		"-0.008"
+	],
+	"hole_coef_3": [
+		"0.23415"
+	],
+	"hole_limit_max": [
+		"0.22"
+	],
+	"hole_limit_min": [
+		"0.088"
+	],
+	"hot_plate_temp": [
+		"70"
+	],
+	"hot_plate_temp_initial_layer": [
+		"70"
+	],
+	"impact_strength_z": [
+		"10"
+	],
+	"nozzle_temperature": [
+		"240",
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"235",
+		"235"
+	],
+	"nozzle_temperature_range_high": [
+		"245"
+	],
+	"nozzle_temperature_range_low": [
+		"210"
+	],
+	"overhang_fan_speed": [
+		"100"
+	],
+	"overhang_fan_threshold": [
+		"50%"
+	],
+	"overhang_threshold_participating_cooling": [
+		"95%"
+	],
+	"pre_start_fan_time": [
+		"2"
+	],
+	"pressure_advance": [
+		"0.02"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"required_nozzle_HRC": [
+		"3"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"slow_down_min_speed": [
+		"20"
+	],
+	"supertack_plate_temp": [
+		"45"
+	],
+	"supertack_plate_temp_initial_layer": [
+		"45"
+	],
+	"temperature_vitrification": [
+		"50"
+	],
+	"textured_plate_temp": [
+		"75"
+	],
+	"textured_plate_temp_initial_layer": [
+		"75"
+	],
+	"version": "2.0.0.77"
+}

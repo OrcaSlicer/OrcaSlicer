@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "R45ynb8LjuLowV3e",
 	"name": "QIDI TPU-GF @Qidi X-Plus 4 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI TPU-GF",
+	"from": "system",
+	"setting_id": "R45ynb8LjuLowV3e",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi X-Plus 4 0.8 nozzle"
 	]

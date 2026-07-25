@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "Sp4WwVIaTBVVDnDc",
 	"name": "QIDI UltraPA @Qidi Q2C 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI UltraPA@Q2C-Series",
+	"from": "system",
+	"setting_id": "Sp4WwVIaTBVVDnDc",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi Q2C 0.4 nozzle"
 	]

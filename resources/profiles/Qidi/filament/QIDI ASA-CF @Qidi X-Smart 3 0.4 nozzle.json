@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "GFB99",
-	"setting_id": "wyns97Rn3EVTl0v5",
 	"name": "QIDI ASA-CF @Qidi X-Smart 3 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ASA-CF",
+	"from": "system",
+	"setting_id": "wyns97Rn3EVTl0v5",
+	"filament_id": "GFB99",
+	"instantiation": "true",
 	"additional_cooling_fan_speed_unseal": [
 		"0"
 	],

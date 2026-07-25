@@ -174,6 +174,16 @@ void change_opt_value(DynamicPrintConfig& config, const t_config_option_key& opt
 				config.option<ConfigOptionStrings>(opt_key)->values =
 					boost::any_cast<std::vector<std::string>>(value);
 			}
+			else if (config.def()->get(opt_key)->gui_type == ConfigOptionDef::GUIType::plugin_picker) {
+				if (value.type() == typeid(std::vector<std::string>)) {
+					config.option<ConfigOptionStrings>(opt_key)->values =
+						boost::any_cast<std::vector<std::string>>(value);
+				} else {
+					std::string str = boost::any_cast<std::string>(value);
+					config.option<ConfigOptionStrings>(opt_key)->values = str.empty() ?
+						std::vector<std::string>() : std::vector<std::string>{str};
+				}
+			}
 			else if (config.def()->get(opt_key)->gui_flags.compare("serialized") == 0) {
 				std::string str = boost::any_cast<std::string>(value);
                 std::vector<std::string> values {};

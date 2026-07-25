@@ -1,10 +1,10 @@
 {
 	"type": "process",
-	"setting_id": "JpZoDa8jLalawI6Q",
 	"name": "0.16mm Standard @X-Max 4",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "JpZoDa8jLalawI6Q",
+	"instantiation": "true",
 	"bottom_color_penetration_layers": "4",
 	"bottom_shell_layers": "4",
 	"bridge_flow": "1",

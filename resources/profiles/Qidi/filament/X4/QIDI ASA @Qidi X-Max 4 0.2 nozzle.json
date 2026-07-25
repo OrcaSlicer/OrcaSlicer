@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "5MVL667eGducTxlJ",
 	"name": "QIDI ASA @Qidi X-Max 4 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI ASA@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "5MVL667eGducTxlJ",
+	"instantiation": "true",
 	"chamber_temperature": [
 		"0"
 	],

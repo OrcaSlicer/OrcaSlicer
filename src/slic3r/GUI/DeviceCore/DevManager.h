@@ -48,6 +48,9 @@ public:
     MachineObject* get_selected_machine();
     bool set_selected_machine(std::string dev_id);
 
+    void record_user_last_machine(const std::string& dev_id);
+    std::string get_user_last_machine() const;
+
     // local machine
     void           set_local_selected_machine(std::string dev_id) { local_selected_machine = dev_id; };
     MachineObject* get_local_selected_machine() const { return get_local_machine(local_selected_machine); }
@@ -96,6 +99,13 @@ public:
     std::map<std::string, std::vector<std::string>> device_subseries;
 
 private:
+    // Load the LAN printers persisted in AppConfig into localMachineList. Runs from the
+    // constructor when an agent is available and, for the case where the DeviceManager was
+    // first built without one (network plugin not yet installed at startup), from set_agent()
+    // once a real agent finally arrives - so paired printers survive a plugin install/hot
+    // reload without an app restart.
+    void load_local_machines_from_config();
+
     void keep_alive();
     void check_pushing();
 

@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "WIoSfzFsVr63PIJn",
 	"name": "Bambu PLA @Qidi Q2C 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Bambu PLA@Q2C-Series",
+	"from": "system",
+	"setting_id": "WIoSfzFsVr63PIJn",
+	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"2"
 	],

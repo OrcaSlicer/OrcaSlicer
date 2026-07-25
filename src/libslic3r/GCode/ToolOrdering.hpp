@@ -9,6 +9,7 @@
 
 #include <boost/container/small_vector.hpp>
 #include "../FilamentGroup.hpp"
+#include "../MultiNozzleUtils.hpp"
 #include "../ExtrusionEntity.hpp"
 #include "../PrintConfig.hpp"
 
@@ -98,19 +99,23 @@ private:
 struct FilamentChangeStats
 {
     int filament_flush_weight{0};
+    // flush_filament_change_count counts filament changes that actually flush a physical nozzle.
+    // It replaces the former (dead, never populated) extruder_change_count. For single-nozzle-per-
+    // extruder printers it equals the per-extruder filament_change_count, so GUI stat displays are
+    // unchanged.
+    int flush_filament_change_count{0};
     int filament_change_count{0};
-    int extruder_change_count{0};
 
     void clear(){
         filament_flush_weight = 0;
         filament_change_count = 0;
-        extruder_change_count = 0;
+        flush_filament_change_count = 0;
     }
 
     FilamentChangeStats& operator+=(const FilamentChangeStats& other) {
         this->filament_flush_weight += other.filament_flush_weight;
         this->filament_change_count += other.filament_change_count;
-        this->extruder_change_count += other.extruder_change_count;
+        this->flush_filament_change_count += other.flush_filament_change_count;
         return *this;
     }
 
@@ -118,7 +123,7 @@ struct FilamentChangeStats
         FilamentChangeStats ret;
         ret.filament_flush_weight = this->filament_flush_weight + other.filament_flush_weight;
         ret.filament_change_count = this->filament_change_count + other.filament_change_count;
-        ret.extruder_change_count = this->extruder_change_count + other.extruder_change_count;
+        ret.flush_filament_change_count = this->flush_filament_change_count + other.flush_filament_change_count;
         return ret;
     }
 
@@ -236,12 +241,44 @@ public:
     bool 				has_wipe_tower() const { return ! m_layer_tools.empty() && m_first_printing_extruder != (unsigned int)-1 && m_layer_tools.front().has_wipe_tower; }
 
     int                 get_most_used_extruder() const { return most_used_extruder; }
+
+    // Logical (extruder, nozzle) grouping of the used filaments, built during reorder.
+    // For single-nozzle printers this is one logical nozzle per extruder (nozzle id == extruder id).
+    // Consumed by GCode (get_nozzle_id / get_first_nozzle_for_filament).
+    const MultiNozzleUtils::LayeredNozzleGroupResult &get_layered_nozzle_group_result() const { return m_nozzle_group_result; }
+
+    // Physical nozzle occupancy threading for the sequential (by-object) selector regroup: the
+    // setter seeds both the initial recorder (the state the per-layer plan starts from) and the
+    // running recorder (read back after sort_and_build_data via get_nozzle_status()), so each
+    // object's plan continues from the nozzle state the previous object ended with.
+    const MultiNozzleUtils::NozzleStatusRecorder &get_nozzle_status() const { return m_nozzle_status; }
+    void set_nozzle_status(const MultiNozzleUtils::NozzleStatusRecorder &status) { m_initial_nozzle_status = status; m_nozzle_status = status; }
     /*
     * called in single extruder mode, the value in map are all 0
     * called in dual extruder mode, the value in map will be 0 or 1
     * 0 based group id
     */
-    static std::vector<int> get_recommended_filament_maps(const std::vector<std::vector<unsigned int>>& layer_filaments, const Print* print,const FilamentMapMode mode, const std::vector<std::set<int>>& physical_unprintables, const std::vector<std::set<int>>& geometric_unprintables);
+    // Nozzle-centric grouping. Returns a nozzle-aware LayeredNozzleGroupResult instead of a plain
+    // extruder-level std::vector<int>. Callers derive the 0/1-based extruder map via
+    // result.get_extruder_map(). unprintable_volumes / nozzle_status default empty for the static
+    // path; the per-layer engine supplies non-empty values.
+    static MultiNozzleUtils::LayeredNozzleGroupResult get_recommended_filament_maps(const std::vector<std::vector<unsigned int>>& layer_filaments, const Print* print,const FilamentMapMode mode, const std::vector<std::set<int>>& physical_unprintables, const std::vector<std::set<int>>& geometric_unprintables, const std::map<int, std::set<NozzleVolumeType>>& unprintable_volumes = {}, const std::unordered_map<int, int>& nozzle_status = {});
+
+    // Wrap stitched per-layer filament->nozzle maps from a sequential (by-object) selector regroup
+    // into one print-wide result. nozzle_map_per_layer / layer_filaments / layer_sequences are the
+    // per-object planned layers concatenated in print order; nozzle_map_per_layer is taken by value
+    // and normalized in place. The nozzle list is rebuilt from the print's grouping context. Returns
+    // an empty result when the wrap fails. Lives here (not in Print) to reach the file-local
+    // grouping-context builder.
+    static MultiNozzleUtils::LayeredNozzleGroupResult build_sequential_group_result(
+        Print*                                            print,
+        std::vector<std::vector<int>>                     nozzle_map_per_layer,
+        const std::vector<std::vector<unsigned int>>&     layer_filaments,
+        const std::vector<std::vector<unsigned int>>&     layer_sequences,
+        const std::vector<unsigned int>&                  used_filaments,
+        const std::vector<std::set<int>>&                 physical_unprintables,
+        const std::vector<std::set<int>>&                 geometric_unprintables,
+        const std::map<int, std::set<NozzleVolumeType>>&  unprintable_volumes);
 
     // should be called after doing reorder
     FilamentChangeStats get_filament_change_stats(FilamentChangeMode mode);
@@ -283,6 +320,13 @@ private:
     FilamentChangeStats        m_stats_by_single_extruder;
     FilamentChangeStats        m_stats_by_multi_extruder_curr;
     FilamentChangeStats        m_stats_by_multi_extruder_best;
+    MultiNozzleUtils::LayeredNozzleGroupResult m_nozzle_group_result;
+    // Physical nozzle occupancy threaded through the per-layer selector regroup.
+    // m_initial_nozzle_status seeds the first combo range (empty for a fresh slice — there is no
+    // device continuation state); m_nozzle_status carries the running state out of the plan. Inert
+    // for every printer except an H2C profile that enables the filament selector (is_dynamic_group_reorder).
+    MultiNozzleUtils::NozzleStatusRecorder     m_initial_nozzle_status;
+    MultiNozzleUtils::NozzleStatusRecorder     m_nozzle_status;
 
     int                        most_used_extruder;
 };

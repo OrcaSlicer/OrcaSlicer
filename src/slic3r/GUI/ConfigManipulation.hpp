@@ -70,7 +70,7 @@ public:
 
     // FFF print
     void    update_print_fff_config(DynamicPrintConfig* config, const bool is_global_config = false, const bool is_plate_config = false);
-    void    toggle_print_fff_options(DynamicPrintConfig* config, const bool is_global_config = false);
+    void    toggle_print_fff_options(DynamicPrintConfig* config, int variant_index, const bool is_global_config = false);
     void    apply_null_fff_config(DynamicPrintConfig *config, std::vector<std::string> const &keys, std::map<ObjectBase*, ModelConfig*> const & configs);
 
     //BBS: FFF filament nozzle temperature range
