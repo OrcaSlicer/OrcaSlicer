@@ -13,6 +13,7 @@
 #include <BRepAlgoAPI_Fuse.hxx>
 #include <BRepAlgoAPI_Cut.hxx>
 #include <BRepAlgoAPI_Common.hxx>
+#include <BRepAlgoAPI_Defeaturing.hxx>
 #include <BRepAlgoAPI_BooleanOperation.hxx>
 #include <BRepOffsetAPI_MakePipe.hxx>
 #include <BRepOffsetAPI_MakePipeShell.hxx>
@@ -676,6 +677,18 @@ int CadDocument::add_shell(double thickness, int face, int target_body, const st
     f.shell_thickness = thickness;
     f.shell_face      = face;
     f.target_body     = target_body;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
+int CadDocument::add_delete_face(int target_body, const std::vector<int>& faces,
+                                  const std::string& name)
+{
+    CadFeature f;
+    f.type         = CadFeatureType::DeleteFace;
+    f.name         = name;
+    f.target_body  = target_body;
+    f.delete_faces = faces;
     features.push_back(f);
     return int(features.size()) - 1;
 }
@@ -1871,6 +1884,22 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         if (!draft.IsDone()) throw std::runtime_error("draft failed");
         result = draft.Shape();
         if (result.IsNull()) throw std::runtime_error("draft produced no geometry");
+        break;
+    }
+    case CadFeatureType::DeleteFace: {
+        if (!have_body) throw std::runtime_error("delete_face needs a body");
+        if (f.delete_faces.empty()) throw std::runtime_error("delete_face needs at least one face");
+        BRepAlgoAPI_Defeaturing df;
+        df.SetShape(result);
+        for (int fi : f.delete_faces) {
+            TopoDS_Face fc = GeometryEngine::face_by_index(result, fi);
+            if (fc.IsNull()) throw std::runtime_error("delete_face: face not found");
+            df.AddFaceToRemove(fc);
+        }
+        df.Build();
+        if (!df.IsDone()) throw std::runtime_error("delete_face failed");
+        result = df.Shape();
+        if (result.IsNull()) throw std::runtime_error("delete_face produced no geometry");
         break;
     }
     }

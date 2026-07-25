@@ -249,13 +249,18 @@ json describe_tools()
                      json{{"name", "keep_upper"},{"type", "boolean"}, {"default", true}},
                      json{{"name", "keep_lower"},{"type", "boolean"}, {"default", true}},
                  })}},
-            json{{"name", "project"}, {"summary", "Project edges of a solid onto a sketch plane, producing a new sketch feature."},
-                 {"params", json::array({
-                     json{{"name", "source_body"}, {"type", "integer"}, {"default", -1}, {"description", "body owning the edges; -1 = last body"}},
-                     json{{"name", "face"},        {"type", "integer"}, {"default", -1}, {"description", "global face id on the source body; when set, all its edges are projected"}},
-                     json{{"name", "edges"},       {"type", "array"}, {"default", json::array()}, {"description", "global edge ids to project; empty => project the face"}},
-                     json{{"name", "plane"},       {"type", "string"}, {"default", "XY"}, {"description", "target sketch plane (XY/XZ/YZ)"}},
-                 })}},
+             json{{"name", "project"}, {"summary", "Project edges of a solid onto a sketch plane, producing a new sketch feature."},
+                  {"params", json::array({
+                      json{{"name", "source_body"}, {"type", "integer"}, {"default", -1}, {"description", "body owning the edges; -1 = last body"}},
+                      json{{"name", "face"},        {"type", "integer"}, {"default", -1}, {"description", "global face id on the source body; when set, all its edges are projected"}},
+                      json{{"name", "edges"},       {"type", "array"}, {"default", json::array()}, {"description", "global edge ids to project; empty => project the face"}},
+                      json{{"name", "plane"},       {"type", "string"}, {"default", "XY"}, {"description", "target sketch plane (XY/XZ/YZ)"}},
+                  })}},
+             json{{"name", "delete_face"}, {"summary", "Remove faces from a solid, healing the gap via OCCT defeaturing."},
+                  {"params", json::array({
+                      json{{"name", "body"},  {"type", "integer"}, {"default", -1}, {"description", "target body; omit for the last body"}},
+                      json{{"name", "faces"}, {"type", "array"}, {"description", "global face ids to delete"}},
+                  })}},
             json{{"name", "bridge"}, {"summary", "Build a cubic-Bezier G1 bridge (BSpline) between two sketch-entity endpoints within a sketch feature."},
                   {"params", json::array({
                       json{{"name", "sketch"}, {"type", "integer"}, {"description", "sketch feature index"}},
@@ -966,6 +971,23 @@ json action_project(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"project_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_delete_face(DesignPanel* panel, const json& params)
+{
+    if (!params.contains("faces")) throw std::runtime_error("delete_face needs 'faces' (array of face ids)");
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to delete faces from");
+    int bi = target_body_arg(params, doc);
+    std::vector<int> faces;
+    if (params["faces"].is_array())
+        for (const auto& v : params["faces"]) faces.push_back(v.get<int>());
+    doc.checkpoint();
+    int idx = doc.add_delete_face(bi, faces, "DeleteFace");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 json action_bridge(DesignPanel* panel, const json& params)
 {
     if (!params.contains("sketch")) throw std::runtime_error("bridge needs 'sketch' (feature index)");
@@ -1088,6 +1110,7 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "thicken")        return rpc_result(id, action_thicken(panel, params));
         if (method == "split")          return rpc_result(id, action_split(panel, params));
         if (method == "project")        return rpc_result(id, action_project(panel, params));
+        if (method == "delete_face")    return rpc_result(id, action_delete_face(panel, params));
         if (method == "bridge")         return rpc_result(id, action_bridge(panel, params));
         if (method == "axis")           return rpc_result(id, action_axis(panel, params));
         if (method == "coordsys")       return rpc_result(id, action_coordsys(panel, params));

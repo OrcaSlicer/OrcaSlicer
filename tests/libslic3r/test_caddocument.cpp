@@ -3939,3 +3939,112 @@ TEST_CASE("bridge round-trip serialization", "[CadDocument][bridge]")
     REQUIRE_THAT(br.ctrl.back().x(), WithinAbs(20.0, 1e-9));
     REQUIRE_THAT(br.ctrl.back().y(), WithinAbs(0.0, 1e-9));
 }
+
+TEST_CASE("delete_face removes a fillet face and restores volume", "[CadDocument][deleteface]")
+{
+    using Catch::Matchers::WithinRel;
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    REQUIRE(sk >= 0);
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    double Vbox = double(doc.display_mesh.volume());
+    REQUIRE(Vbox > 0.0);
+
+    doc.add_fillet(2.0, FaceGroup::All, "Fillet");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    double Vf = double(doc.display_mesh.volume());
+    REQUIRE(Vf < Vbox);
+
+    int nfaces = GeometryEngine::face_count(doc.bodies[0].shape);
+    doc.checkpoint();
+    bool found = false;
+    for (int fi = 0; fi < nfaces && !found; ++fi) {
+        int idx = doc.add_delete_face(0, {fi}, "Unfillet");
+        (void)idx;
+        if (doc.recompute() && doc.error.empty()) {
+            double Vr = double(doc.display_mesh.volume());
+            if (Vr > Vf) {
+                found = true;
+            }
+        }
+        if (!found) doc.undo();
+    }
+    REQUIRE(found);
+}
+
+TEST_CASE("delete_face with bad face index fails safely", "[CadDocument][deleteface]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    REQUIRE(sk >= 0);
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_delete_face(0, {9999}, "Bad");
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("face"));
+}
+
+TEST_CASE("delete_face round-trip serialization", "[CadDocument][deleteface]")
+{
+    using Catch::Matchers::WithinRel;
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    REQUIRE(sk >= 0);
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    doc.add_fillet(2.0, FaceGroup::All, "Fillet");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int nfaces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int fillet_face = -1;
+    for (int fi = 0; fi < nfaces; ++fi) {
+        doc.checkpoint();
+        doc.add_delete_face(0, {fi}, "Unfillet");
+        bool ok = doc.recompute();
+        if (ok && doc.error.empty()) {
+            fillet_face = fi;
+            break;
+        }
+        doc.undo();
+    }
+    REQUIRE(fillet_face >= 0);
+
+    std::vector<std::pair<Vec3d, Vec3d>> bboxes;
+    for (const auto& b : doc.bodies) {
+        Bnd_Box bb; BRepBndLib::Add(b.shape, bb);
+        Standard_Real x0, y0, z0, x1, y1, z1;
+        bb.Get(x0, y0, z0, x1, y1, z1);
+        bboxes.push_back({Vec3d(x0, y0, z0), Vec3d(x1, y1, z1)});
+    }
+
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument doc2;
+    REQUIRE(doc2.deserialize_recipe(blob));
+    REQUIRE(doc2.error.empty());
+    REQUIRE(doc2.recompute());
+    REQUIRE(doc2.error.empty());
+    REQUIRE(doc2.bodies.size() == doc.bodies.size());
+
+    for (size_t i = 0; i < bboxes.size(); ++i) {
+        Bnd_Box bb; BRepBndLib::Add(doc2.bodies[i].shape, bb);
+        Standard_Real x0, y0, z0, x1, y1, z1;
+        bb.Get(x0, y0, z0, x1, y1, z1);
+        REQUIRE_THAT(double(x0), WithinAbs(bboxes[i].first.x(),  1e-6));
+        REQUIRE_THAT(double(y0), WithinAbs(bboxes[i].first.y(),  1e-6));
+        REQUIRE_THAT(double(z0), WithinAbs(bboxes[i].first.z(),  1e-6));
+        REQUIRE_THAT(double(x1), WithinAbs(bboxes[i].second.x(), 1e-6));
+        REQUIRE_THAT(double(y1), WithinAbs(bboxes[i].second.y(), 1e-6));
+        REQUIRE_THAT(double(z1), WithinAbs(bboxes[i].second.z(), 1e-6));
+    }
+}

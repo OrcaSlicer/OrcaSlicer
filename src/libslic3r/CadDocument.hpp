@@ -17,7 +17,7 @@
 
 namespace Slic3r {
 
-enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project };
+enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project, DeleteFace };
 enum class SketchShape    { Rectangle, Circle };
 enum class PlaneType      { Offset, Angle, Midplane, Tangent, TwoEdges, Coincident };
 enum class AxisType       { TwoPoints, FaceNormal, CylinderCenterline, PlaneIntersection, AlongEdge };
@@ -263,6 +263,10 @@ struct CadFeature {
     std::vector<int> project_edges;             // global edge ids to project; empty => use project_face
     int              project_face{-1};          // if project_edges empty, project every edge of this face
 
+    // Direct edit: faces to remove (global face indices into target_body's shape),
+    // healed via BRepAlgoAPI_Defeaturing.
+    std::vector<int> delete_faces;
+
     template<class Archive>
     void save(Archive& ar) const {
         std::string brep = (type == CadFeatureType::Import) ? brep_to_string(imported_solid) : std::string();
@@ -292,7 +296,8 @@ struct CadFeature {
              xf_translate, xf_axis, xf_pivot, xf_angle_deg, xf_copy,
              thicken_face, thicken_thickness, thicken_flip,
              cut_face_body, cut_face,
-             project_source_body, project_edges, project_face);
+             project_source_body, project_edges, project_face,
+             delete_faces);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -323,7 +328,8 @@ struct CadFeature {
             xf_translate, xf_axis, xf_pivot, xf_angle_deg, xf_copy,
             thicken_face, thicken_thickness, thicken_flip,
             cut_face_body, cut_face,
-            project_source_body, project_edges, project_face);
+             project_source_body, project_edges, project_face,
+             delete_faces);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -446,6 +452,8 @@ public:
     // Offset face `face` of `target_body` by `thickness` along its normal, producing a new
     // thin solid appended as a new body. flip=true offsets against the normal.
     int add_thicken(int target_body, int face, double thickness, bool flip, const std::string& name);
+    int add_delete_face(int target_body, const std::vector<int>& faces,
+                        const std::string& name);
     // Datum plane: derived from base (0=XY/1=XZ/2=YZ/3+N=Nth earlier datum), offset
     // along its normal, optional tilt about a base axis. Produces no solid.
     int  add_plane(int base, double offset, double angle_tilt, int axis,
