@@ -1081,12 +1081,10 @@ void PrintConfigDef::init_common_params()
         def->set_default_value(new ConfigOptionString());
     }
 
-    // Per preset type (Preset::plugin_overrides_key): the print, printer and filament presets each hold
-    // the capability overrides for their own plugin-backed options (slicing_pipeline_plugin,
-    // printer_agent, ...). Separate keys keep them from clobbering each other when the presets merge
-    // into one full config. They replace a single shared "plugin_config_overrides" deliberately without
-    // handle_legacy migration: that key existed in nightly builds only, never in a release. Never shown
-    // as a text field: GUIType::plugin_config renders a button that opens PluginsConfigDialog.
+    // One key per preset type (Preset::plugin_overrides_key), so the print, printer and filament
+    // overrides don't clobber each other when the presets merge into one full config. No handle_legacy
+    // migration from the shared "plugin_config_overrides" they replace: it only ever shipped in
+    // nightlies. Never a text field — GUIType::plugin_config renders a button opening PluginsConfigDialog.
     for (const char* key : {"print_plugin_config_overrides", "printer_plugin_config_overrides", "filament_plugin_config_overrides"}) {
         def = this->add(key, coString);
         def->label = L("Capabilities");

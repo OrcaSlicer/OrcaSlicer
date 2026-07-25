@@ -4,7 +4,7 @@
 # [tool.orcaslicer.plugin]
 # name = "Twistify"
 # description = "Twists, tapers, and wobbles every layer's slice polygons as a function of Z (demo)."
-# author = "OrcaSlicer"
+# author = "SoftFever"
 # version = "0.03"
 # type = "slicing-pipeline"
 # ///
@@ -79,10 +79,9 @@ def _layer_params(z_rel, mm_to_scaled, p):
 
 
 # The configuration page. Self-contained on purpose: it runs in an iframe sandboxed into an opaque
-# origin, so there is no network, no same-origin access to the host, and no shared stylesheet --
-# only the window.orca bridge and the --orca-* theme variables the host injects. __ORCA_DEFAULTS__
-# is substituted with _DEFAULTS in get_config_ui(), so Python stays the single source of truth for
-# the values; the page adds only presentation (ranges, labels, wording).
+# origin, so it has only the window.orca bridge and the --orca-* theme variables the host injects --
+# no network, no same-origin access, no shared stylesheet. get_config_ui() substitutes _DEFAULTS for
+# __ORCA_DEFAULTS__, so Python owns the values and the page adds only presentation.
 _CONFIG_UI = """
 <style>
   :root {
@@ -259,7 +258,7 @@ _CONFIG_UI = """
       hint: "Taper never shrinks a layer past this, so a tall model cannot collapse." }
   ];
 
-  // The preview simulates this much height. Nothing reads the real model, so say so in the caption
+  // The preview simulates this much height. It never reads the real model, so the caption says so
   // rather than implying the drawing is to scale with the plate.
   var Z_SPAN = 40;
   var Z_STEP = 2;
@@ -338,8 +337,8 @@ _CONFIG_UI = """
       layers.push({ z: z, plan: plan });
       plan.forEach(function (p) { reach = Math.max(reach, Math.abs(p[0] - p[1]) * ISO_X); });
     }
-    // A wide taper or a big wobble would run out of the frame; the drawing scales down to fit rather
-    // than clipping. The Z axis keeps its scale, so the ruler stays true.
+    // A wide taper or a big wobble would run out of the frame, so scale down to fit rather than
+    // clipping. Z keeps its scale, so the ruler stays true.
     var fit = reach > REACH ? REACH / reach : 1;
 
     // Z ruler: the drawing is a height plot, so it gets an axis.
@@ -351,7 +350,7 @@ _CONFIG_UI = """
     svg.push('<text x="30" y="' + (ORIGIN_Y - Z_SPAN * Z_UNITS - 11).toFixed(1) +
              '" text-anchor="end">mm</text>');
 
-    // The stack, faint at the bed and reaching full strength at the top: the deformation grows with Z.
+    // The stack, faint at the bed and full strength at the top: the deformation grows with Z.
     var trace = [];
     layers.forEach(function (layer) {
       var ring = points(layer.plan, layer.z, fit);
@@ -360,10 +359,10 @@ _CONFIG_UI = """
       trace.push(ring.split(" ")[1]);
     });
 
-    // One corner followed all the way up. On a twisted model this is the helix the walls will run in.
+    // One corner followed all the way up: on a twisted model, the helix the walls will run in.
     svg.push('<polyline class="helix" points="' + trace.join(" ") + '"/>');
 
-    // The datum: the first layer is never transformed, so it is drawn as the reference outline.
+    // The datum: the first layer is never transformed, so it doubles as the reference outline.
     svg.push('<polygon class="datum" points="' + points(layers[0].plan, 0, fit) + '"/>');
 
     document.getElementById("plot").innerHTML = svg.join("");
@@ -391,8 +390,7 @@ _CONFIG_UI = """
 
   function setReadout(html) { document.getElementById("readout").innerHTML = html; }
 
-  // Whatever the pointer or the keyboard is on explains itself; with neither, the line reports what
-  // the current values add up to.
+  // Whatever the pointer or the keyboard is on explains itself; with neither, report the totals.
   function restoreReadout() {
     var id = document.activeElement ? document.activeElement.id : "";
     for (var i = 0; i < FIELDS.length; i++)
@@ -431,16 +429,16 @@ _CONFIG_UI = """
   function clamp(field, value) { return Math.min(field.max, Math.max(field.min, value)); }
 
   // `echo` rewrites the number field with the clamped, formatted value. Off while the user is still
-  // typing: "-" and "0.0" are valid things to have typed so far, and replacing them mid-keystroke
-  // would fight the person doing it. The drawing still follows every keystroke.
+  // typing: "-" and "0.0" are valid partial input, and rewriting them mid-keystroke fights the
+  // typist. The drawing still follows every keystroke.
   function apply(field, value, echo) {
     form[field.key] = clamp(field, value);
     if (echo)
       document.getElementById("n-" + field.key).value = form[field.key].toFixed(field.dp);
     document.getElementById("r-" + field.key).value = form[field.key];
     draw();
-    // A control explains itself while you approach it and reports while you change it: once a value
-    // moves, what matters is the total it adds up to, not what the control does.
+    // A control explains itself while you approach it, but once a value moves what matters is the
+    // total it adds up to.
     setReadout(describe());
     refreshState();
   }
@@ -451,7 +449,7 @@ _CONFIG_UI = """
       var row = document.createElement("div");
       row.className = "row";
       // The number input is the labelled, keyboard-reachable control; the rail is the same value by
-      // pointer, so it stays out of the tab order and out of the accessibility tree.
+      // pointer, so it stays out of the tab order and the accessibility tree.
       row.innerHTML =
         '<label class="row-label" for="n-' + field.key + '">' + field.label + '</label>' +
         '<span class="row-figure">' +
@@ -494,9 +492,8 @@ _CONFIG_UI = """
     setInputsEnabled(!context.readOnly);
   }
 
-  // "Restore defaults" writes the plugin's own defaults globally, but in a preset it discards that
-  // preset's override and falls back to the global configuration. Two different actions, so the
-  // button says which one it is.
+  // "Restore defaults" writes the plugin's own defaults globally, but in a preset it drops that
+  // preset's override and falls back to the global configuration. Say which one the button does.
   function labelRestore() {
     var restore = document.getElementById("restore");
     var preset = context.scope === "preset";
@@ -527,16 +524,16 @@ _CONFIG_UI = """
   if (window.orca && window.orca.onConfig) {
     var first = true;
     window.orca.onConfig(function (config) {
-      // Fires once immediately (already handled above) and then whenever the host persists
-      // something: reload from what was stored, never from what was typed.
+      // Fires once immediately (already handled above) and then on every host save: reload from
+      // what was stored, never from what was typed.
       if (first) { first = false; return; }
       if (window.orca.getContext) context = window.orca.getContext();
       load(config);
       announce("Saved");
     });
   }
-  // Nothing to do for a theme change: every colour on the page, the drawing included, resolves
-  // through the --orca-* variables the host rewrites in place.
+  // No theme handler needed: every colour on the page, the drawing included, resolves through the
+  // --orca-* variables the host rewrites in place.
 })();
 </script>
 """

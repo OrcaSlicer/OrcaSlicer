@@ -235,7 +235,7 @@ TEST_CASE("Changing print_plugin_config_overrides invalidates posSlice", "[slici
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 // A similarity transform (rotate + uniform scale) applied to slices at Step.posSlice, matching
-// what the Twistify sample (sandboxes/orca_twistify_plugin_example_any.py) does. This C++ analogue
+// what the Twistify plugin (sandboxes/orca_twistify_plugin_any.py) does. This C++ analogue
 // rotates every region's slices a fixed 45 deg about the object's base-footprint center -- the same
 // seam and cascade the sample drives through the slices.set() + Layer::make_slices() path. Two
 // end-to-end invariants after process() confirm the approach:

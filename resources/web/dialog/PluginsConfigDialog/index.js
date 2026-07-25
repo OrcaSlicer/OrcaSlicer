@@ -9,11 +9,10 @@ let selectedCapabilityType = "";
 let selectedHasPresetOverride = false;
 let selectedReadOnly = false;
 
-// Whether the frame holds the selected capability's custom UI. Payloads are gated by
-// IsCurrentCapability and every selection change clears the view, so a loaded frame is always the
-// selected capability's. Saving re-sends the whole capability_config payload, and rebuilding the
-// frame from it would reload the plugin's page under the user's cursor; while the frame is loaded,
-// the new values are posted in instead.
+// Whether the frame already holds the selected capability's custom UI (payloads are gated by
+// IsCurrentCapability and every selection change clears the view). Saving re-sends the whole
+// capability_config payload, and rebuilding the frame from it would reload the plugin's page under
+// the user's cursor, so a loaded frame gets the new values posted in instead.
 let customFrameLoaded = false;
 
 function SafeJsonParse(text) {

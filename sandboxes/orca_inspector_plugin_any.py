@@ -3,12 +3,12 @@
 # dependencies = ["numpy"]
 #
 # [tool.orcaslicer.plugin]
-# name = "Orca Inspector Example"
+# name = "Orca Inspector"
 # description = "An interactive panel that browses the whole orca.host read-only API and demos every orca.host.ui facility."
-# author = "OrcaSlicer"
-# version = "0.0.1"
+# author = "SoftFever"
+# version = "0.0.3"
 # ///
-"""Orca Inspector — the worked example for `orca.host` and `orca.host.ui`.
+"""Orca Inspector — a guided tour of `orca.host` and `orca.host.ui`.
 
 Run it from the Plugins dialog. It opens a NON-MODAL window (OrcaSlicer stays
 usable) with a sidebar of sections, each exercising one part of the API:
@@ -194,9 +194,8 @@ def build_overview():
     }
 
 
-# label -> how to reach the PresetCollection on the bundle, in the order the Presets
-# tab stacks its groups. The bundle also exposes sla_prints/sla_materials, but
-# OrcaSlicer doesn't support SLA, so they are omitted.
+# PresetCollection attribute -> label, in the order the Presets tab stacks its groups.
+# The bundle also exposes sla_prints/sla_materials, omitted as OrcaSlicer has no SLA.
 COLLECTIONS = [
     ("printers", "Printer"),
     ("filaments", "Filament"),
@@ -478,8 +477,7 @@ SECTION_BUILDERS = {
 # the pages — themed via BASE_CSS, which aliases the injected --orca-* vars
 # --------------------------------------------------------------------------- #
 # The host injects theme *variables* only (never element styles), so every page owns
-# its base look. The fallbacks keep the raw HTML previewable in a plain browser,
-# where the prefers-color-scheme block stands in for the host's color-scheme.
+# its base look. The fallbacks keep the raw HTML previewable in a plain browser.
 BASE_CSS = r"""
   :root {
     --bg:        var(--orca-bg, #ffffff);
@@ -510,14 +508,13 @@ BASE_CSS = r"""
   :focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
 """
 
-# Identity hues for the preset collections — semantic colors, deliberately the same
-# in light and dark mode: they say what a card is, not what theme is on. One source
-# feeds both the main page's group styling and the config viewer window.
+# Identity hues for the preset collections, shared by the main page's group styling and
+# the config viewer window. Deliberately the same in light and dark mode: they say what a
+# card is, not what theme is on.
 HUES = {"printers": "#9a6ee8", "filaments": "#ee8f41", "prints": "#4e8df6"}
 HUE_CSS = "".join(f"  .hue-{key} {{ --hue:{color}; }}\n" for key, color in HUES.items())
 
-# The filterable key/value config table, shared by the Config tab and the
-# per-preset viewer window.
+# The filterable key/value config table, shared by the Config tab and the viewer window.
 CFG_TABLE_CSS = r"""
   table.cfg { width:100%; border-collapse:collapse; font-size:12px; }
   table.cfg th { text-align:left; font-size:11px; letter-spacing:.07em;
@@ -1082,8 +1079,8 @@ function drawPoints(canvas, pts, ax, ay) {
     ctx.fillRect(ox + (p[ax] - minX) * scale - r / 2,
                  h - oy - (p[ay] - minY) * scale - r / 2, r, r);
 }
-// A live theme switch rewrites the injected vars and re-stamps data-orca-theme, and a
-// resize leaves the bitmap at its old size — both repaint every known preview.
+// A live theme switch re-stamps data-orca-theme and a resize leaves the bitmap at its
+// old size — both need every known preview repainted.
 function repaintPreviews() {
   document.querySelectorAll('canvas.preview').forEach(c => {
     const p = PREVIEWS[c.id];
@@ -1179,8 +1176,8 @@ $('content').addEventListener('click', e => {
     uiAction(t.dataset.ui);
   }
 });
-// Keyboard parity for the click-only elements (nav items, tree toggles, "show all"):
-// Enter/Space activates the focused one; real form controls keep their native keys.
+// Keyboard parity for the click-only elements (nav items, tree toggles, "show all").
+// Real form controls are skipped so they keep their native keys.
 document.addEventListener('keydown', e => {
   if (e.key !== 'Enter' && e.key !== ' ') return;
   if (/^(BUTTON|INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
@@ -1266,9 +1263,9 @@ CHILD_PAGE = r"""<!DOCTYPE html>
 </body></html>
 """
 
-# The per-preset config viewer, opened by "View config" on the Presets tab. The rows
-# are baked in as JSON at build time, so the window needs no bridge traffic at all;
-# it stays open (and comparable side by side with the panel) until closed.
+# The per-preset config viewer, opened by "View config" on the Presets tab. Its rows are
+# baked in as JSON at build time, so the window needs no bridge traffic and stays usable
+# side by side with the panel until closed.
 CONFIG_PAGE = r"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><style>""" + BASE_CSS + CFG_TABLE_CSS + r"""
   body { padding:12px 16px 20px; border-top:3px solid var(--hue, var(--accent)); }
@@ -1419,8 +1416,8 @@ class OrcaInspectorPanel(orca.script.ScriptPluginCapabilityBase):
             self.win.post({**reply, "ok": False, "error": str(exc)})
 
     def open_preset_config(self, collection, name):
-        # One viewer at a time: a new pick replaces the previous window. The main
-        # page only ever hears back about failures (and clears them on success).
+        # One viewer at a time: a new pick replaces the previous window. The main page
+        # only hears back about failures.
         reply = {"command": "preset_config", "collection": collection, "name": name}
         try:
             rows = build_preset_config(collection, name)
@@ -1476,8 +1473,8 @@ class OrcaInspectorPanel(orca.script.ScriptPluginCapabilityBase):
                 if self.child is not None and self.child.is_open():
                     report("child already open")
                 else:
-                    # Fresh payload: `reply` here carries action "child_open", but the close
-                    # can be triggered later by "child_close" too, so label it neutrally.
+                    # Not `reply`: the close can also come from "child_close" later, so the
+                    # on_close payload is labelled neutrally.
                     self.child = orca.host.ui.create_window(
                         title="Orca Inspector — child", html=CHILD_PAGE,
                         width=380, height=240, on_message=self.on_child_message,

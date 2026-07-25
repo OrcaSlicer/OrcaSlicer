@@ -464,11 +464,9 @@ TEST_CASE("Profile validator flags dangling and renamed preset references", "[Pr
     }
 }
 
-// Each preset type stores its plugin capability overrides under its own option key. Merging the print,
-// printer and filament presets into one full config under a shared key would let the last preset applied
-// overwrite the others' overrides -- the clobber that stopped an edited slicing-pipeline (print) override
-// from reaching Print::apply's diff, so re-configuring a plugin never re-sliced. Distinct per-type keys
-// make that collision impossible; guard the scoping here.
+// Under a shared override key, the last preset merged into the full config overwrote the others', so an
+// edited slicing-pipeline override never reached Print::apply's diff and re-configuring a plugin never
+// re-sliced. Per-type keys make that collision impossible; guard the scoping here.
 TEST_CASE("Plugin capability override keys are scoped per preset type", "[Preset][Plugin]")
 {
     // Pin the key names: presets and 3mf files store them verbatim, so a rename is a format change.

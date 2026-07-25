@@ -52,12 +52,11 @@ private:
 bool parse_plugin_overrides(const std::string& raw, CapabilityConfigDocument& document, std::string& error);
 std::string serialize_plugin_overrides(const CapabilityConfigDocument& document);
 
-// Drops plugin override entries for capabilities no longer named by any plugin-backed option's current
-// value in `config` (e.g. slicing_pipeline_plugin cleared or switched to a different capability), and
-// writes the result back to `overrides_key` if anything changed. Called wherever a plugin-backed
-// option's value changes, so a saved preset never carries configuration for a capability it no longer
-// references. Returns true if `config` was modified, so a caller holding a GUI field over
-// `overrides_key` knows it must refresh that field's displayed value.
+// Drops override entries for capabilities no longer named by any plugin-backed option in `config`
+// (e.g. slicing_pipeline_plugin cleared or pointed at another capability) and writes the result back
+// to `overrides_key`. Call it wherever such an option changes, so a saved preset never carries
+// configuration for a capability it no longer references. Returns true if `config` was modified, so a
+// caller holding a GUI field over `overrides_key` knows to refresh it.
 bool prune_stale_plugin_overrides(DynamicConfig& config, const std::string& overrides_key);
 
 struct EffectiveCapabilityConfig
