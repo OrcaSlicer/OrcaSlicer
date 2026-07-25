@@ -124,6 +124,12 @@ public:
     static void set_compute_enabled(bool enabled);
     static bool compute_enabled();
 
+    // GPU-priority mode is the default. It submits all but extremely small
+    // intersection batches to a qualified Vulkan device. Disabling it restores
+    // the conservative calibrated CPU/GPU crossover policy.
+    static void set_gpu_priority_enabled(bool enabled);
+    static bool gpu_priority_enabled();
+
     // Clears per-slice counters while retaining the qualified device and
     // pipeline. The progress UI can then report this slice's actual GPU work
     // instead of carrying a stale job label into a later CPU-only stage.

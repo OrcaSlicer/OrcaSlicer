@@ -131,6 +131,12 @@ void AppConfig::set_defaults()
         if (get("vulkan_slicer_compute").empty())
             set_bool("vulkan_slicer_compute", true);
 
+        // Default to GPU-priority dispatch after the Vulkan device has passed
+        // exact-integer qualification. The backend still retains tiny batches
+        // and demonstrably slower devices on the exact CPU path.
+        if (get("vulkan_slicer_gpu_priority").empty())
+            set_bool("vulkan_slicer_gpu_priority", true);
+
         if (get("drop_project_action").empty())
             set_bool("drop_project_action", true);
 

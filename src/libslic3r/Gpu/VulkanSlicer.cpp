@@ -35,6 +35,7 @@ constexpr size_t   kMaximumReusableStagingRequestCapacity = 256 * 1024;
 // The GUI changes this flag through VulkanSlicerBackend. Keeping it here
 // avoids coupling the slicing engine to GUI/AppConfig headers.
 std::atomic_bool g_compute_enabled { true };
+std::atomic_bool g_gpu_priority_enabled { true };
 
 class RuntimeStatsRegistry {
 public:
@@ -404,6 +405,7 @@ public:
     bool prepare_for_slicing()
     {
         std::call_once(m_initialize_once, [this] { this->initialize(); });
+        refresh_intersection_dispatch_mode();
         if (!m_ready) {
             if (m_diagnostic.empty())
                 m_diagnostic = "Vulkan infill compute did not finish initialization.";
@@ -416,7 +418,8 @@ public:
 
     bool should_dispatch_vertical_intersections(size_t request_count) const
     {
-        return request_count >= (m_ready ? m_preferred_intersection_batch : kDefaultPreferredIntersectionBatch);
+        return request_count >= (m_ready ? m_preferred_intersection_batch.load(std::memory_order_acquire)
+                                         : kDefaultPreferredIntersectionBatch);
     }
 
     void release_unused_staging_memory()
@@ -642,7 +645,8 @@ private:
         }
         calibrate_intersection_dispatch_policy();
         update_execution_profile();
-        runtime_stats_registry().set_preferred_intersection_batch(m_preferred_intersection_batch);
+        runtime_stats_registry().set_preferred_intersection_batch(
+            m_preferred_intersection_batch.load(std::memory_order_acquire));
         m_diagnostic = "Vulkan exact vertical-intersection compute is qualified and ready on " + m_selected_device + ".";
         runtime_stats_registry().set_backend(m_selected_device, m_execution_profile, m_diagnostic,
                                              m_workgroup_size, m_maximum_workgroup_size,
@@ -660,31 +664,70 @@ private:
 
     void update_execution_profile()
     {
+        const size_t preferred_batch = m_preferred_intersection_batch.load(std::memory_order_acquire);
         std::ostringstream profile;
         profile << (m_is_nvidia_rtx ? "NVIDIA RTX" : (m_is_gtx_1060 ? "NVIDIA GTX 1060 / Pascal" : "Generic Vulkan"))
                 << ": " << m_workgroup_size << " threads/group (autotuned; device maximum "
                 << m_maximum_workgroup_size << "), " << m_initial_staging_request_capacity
-                << " reusable requests, CPU/GPU batch >= "
-                << m_preferred_intersection_batch;
+                << " reusable requests, "
+                << (m_gpu_priority_mode ? "GPU-priority" : "balanced CPU/GPU")
+                << " batch >= " << preferred_batch;
         m_execution_profile = profile.str();
+    }
+
+    void apply_intersection_dispatch_mode()
+    {
+        m_gpu_priority_mode = g_gpu_priority_enabled.load(std::memory_order_acquire);
+        size_t preferred_batch = m_balanced_intersection_batch;
+        if (m_gpu_throughput_is_extremely_slow) {
+            // The variable GPU cost lost to the CPU benchmark, not merely the
+            // one-time dispatch cost. Keeping this device on CPU prevents the
+            // GPU-priority preference from making an entire slice slower.
+            preferred_batch = m_max_requests_per_submission + 1;
+        } else if (m_gpu_priority_mode) {
+            // Transfer/synchronization dominates only truly tiny batches.
+            // This makes a 2.6k batch GPU eligible while retaining a strict
+            // guard against thousands of sub-millisecond submissions.
+            preferred_batch = std::min(kGpuPriorityMinimumIntersectionBatch,
+                                       m_max_requests_per_submission);
+        }
+        m_preferred_intersection_batch.store(preferred_batch, std::memory_order_release);
+    }
+
+    void refresh_intersection_dispatch_mode()
+    {
+        if (!m_ready)
+            return;
+        const bool requested_gpu_priority = g_gpu_priority_enabled.load(std::memory_order_acquire);
+        if (requested_gpu_priority == m_gpu_priority_mode)
+            return;
+        apply_intersection_dispatch_mode();
+        update_execution_profile();
+        runtime_stats_registry().set_preferred_intersection_batch(
+            m_preferred_intersection_batch.load(std::memory_order_acquire));
     }
 
     void calibrate_intersection_dispatch_policy()
     {
         const char* policy = std::getenv("ORCA_VULKAN_SLICER_POLICY");
         if (policy != nullptr && std::string(policy) == "cpu") {
-            m_preferred_intersection_batch = m_max_requests_per_submission + 1;
+            m_gpu_throughput_is_extremely_slow = true;
+            m_balanced_intersection_batch = m_max_requests_per_submission + 1;
+            apply_intersection_dispatch_mode();
             return;
         }
         if (policy != nullptr && std::string(policy) == "gpu") {
-            m_preferred_intersection_batch = kDefaultPreferredIntersectionBatch;
+            m_gpu_throughput_is_extremely_slow = false;
+            m_balanced_intersection_batch = kGpuPriorityMinimumIntersectionBatch;
+            apply_intersection_dispatch_mode();
             return;
         }
 
         const size_t small_count = std::min<size_t>(4096, m_max_requests_per_submission);
         const size_t large_count = std::min<size_t>(32768, m_max_requests_per_submission);
         if (small_count < 256 || large_count <= small_count) {
-            m_preferred_intersection_batch = kDefaultPreferredIntersectionBatch;
+            m_balanced_intersection_batch = kDefaultPreferredIntersectionBatch;
+            apply_intersection_dispatch_mode();
             return;
         }
 
@@ -701,7 +744,8 @@ private:
         const VulkanVerticalIntersectionBatch gpu_small = dispatch_locked(small);
         const VulkanVerticalIntersectionBatch gpu_large = dispatch_locked(requests);
         if (!gpu_small.dispatched || !gpu_large.dispatched) {
-            m_preferred_intersection_batch = kDefaultPreferredIntersectionBatch;
+            m_balanced_intersection_batch = kDefaultPreferredIntersectionBatch;
+            apply_intersection_dispatch_mode();
             return;
         }
 
@@ -729,13 +773,27 @@ private:
         // as recoverable CPU work when choosing the crossover point.
         const double recoverable_cpu_per_request_ms = cpu_per_request_ms * 0.35;
         if (gpu_per_request_ms >= recoverable_cpu_per_request_ms) {
-            m_preferred_intersection_batch = std::min<size_t>(65536, m_max_requests_per_submission);
+            // GPU-priority mode is intentionally permissive. A synchronized
+            // micro-benchmark may make the GPU look slower even when a real
+            // slice has enough parallel work to benefit. Only reject a device
+            // if the *large* calibrated submission is both materially long
+            // and many times slower than the full CPU reference.
+            constexpr double extreme_gpu_slowdown_factor = 32.0;
+            constexpr double extreme_gpu_elapsed_ms = 50.0;
+            const double cpu_large_reference_ms = cpu_per_request_ms * double(large_count);
+            m_gpu_throughput_is_extremely_slow =
+                gpu_large.host_elapsed_ms >= extreme_gpu_elapsed_ms &&
+                gpu_large.host_elapsed_ms >= cpu_large_reference_ms * extreme_gpu_slowdown_factor;
+            m_balanced_intersection_batch = m_max_requests_per_submission + 1;
+            apply_intersection_dispatch_mode();
             return;
         }
         const size_t crossover = size_t(std::ceil(gpu_fixed_overhead_ms /
             (recoverable_cpu_per_request_ms - gpu_per_request_ms)));
-        m_preferred_intersection_batch = std::clamp<size_t>(crossover, kDefaultPreferredIntersectionBatch,
-                                                              std::min<size_t>(65536, m_max_requests_per_submission));
+        m_gpu_throughput_is_extremely_slow = false;
+        m_balanced_intersection_batch = std::clamp<size_t>(crossover, kDefaultPreferredIntersectionBatch,
+                                                            std::min<size_t>(65536, m_max_requests_per_submission));
+        apply_intersection_dispatch_mode();
     }
 
     bool create_compute_pipeline(uint32_t workgroup_size, VkPipeline& pipeline)
@@ -1253,7 +1311,8 @@ private:
     size_t          m_tree_request_capacity { 0 };
     size_t          m_tree_edge_capacity { 0 };
     size_t          m_initial_staging_request_capacity { kGenericStagingRequestCapacity };
-    size_t          m_preferred_intersection_batch { kDefaultPreferredIntersectionBatch };
+    std::atomic_size_t m_preferred_intersection_batch { kDefaultPreferredIntersectionBatch };
+    size_t          m_balanced_intersection_batch { kDefaultPreferredIntersectionBatch };
     size_t          m_max_requests_per_submission { 0 };
     size_t          m_storage_buffer_request_limit { 0 };
     uint32_t        m_workgroup_size { kDefaultWorkgroupSize };
@@ -1265,10 +1324,13 @@ private:
     bool            m_is_gtx_1060 { false };
     bool            m_is_nvidia_rtx { false };
     bool            m_compute_timestamps_available { false };
+    bool            m_gpu_throughput_is_extremely_slow { false };
+    bool            m_gpu_priority_mode { true };
     bool           m_ready { false };
     std::string    m_diagnostic;
 
     static constexpr size_t kDefaultPreferredIntersectionBatch = 4096;
+    static constexpr size_t kGpuPriorityMinimumIntersectionBatch = 512;
 };
 
 VulkanIntersectionContext& vulkan_intersection_context()
@@ -1468,6 +1530,16 @@ void VulkanSlicerBackend::set_compute_enabled(bool enabled)
 bool VulkanSlicerBackend::compute_enabled()
 {
     return g_compute_enabled.load(std::memory_order_acquire);
+}
+
+void VulkanSlicerBackend::set_gpu_priority_enabled(bool enabled)
+{
+    g_gpu_priority_enabled.store(enabled, std::memory_order_release);
+}
+
+bool VulkanSlicerBackend::gpu_priority_enabled()
+{
+    return g_gpu_priority_enabled.load(std::memory_order_acquire);
 }
 
 void VulkanSlicerBackend::begin_slicing_session()

@@ -248,7 +248,9 @@ void BackgroundSlicingProcess::process_fff()
         // Disabling it avoids device initialization entirely and leaves the
         // exact CPU pipeline as the only active slicing path.
         const bool vulkan_compute_enabled = wxGetApp().app_config->get_bool("vulkan_slicer_compute");
+        const bool vulkan_gpu_priority = wxGetApp().app_config->get_bool("vulkan_slicer_gpu_priority");
         Gpu::VulkanSlicerBackend::set_compute_enabled(vulkan_compute_enabled);
+        Gpu::VulkanSlicerBackend::set_gpu_priority_enabled(vulkan_gpu_priority);
 
         // Initialize on the slicing worker, not the UI thread. This makes
         // device selection, autotuning and exact qualification visible before

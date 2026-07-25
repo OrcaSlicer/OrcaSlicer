@@ -1064,6 +1064,9 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         else if (param == "vulkan_slicer_compute") {
             Gpu::VulkanSlicerBackend::set_compute_enabled(checkbox->GetValue());
         }
+        else if (param == "vulkan_slicer_gpu_priority") {
+            Gpu::VulkanSlicerBackend::set_gpu_priority_enabled(checkbox->GetValue());
+        }
 
 #ifdef __WXMSW__
         if (param == "associate_3mf") {
@@ -1836,6 +1839,14 @@ void PreferencesDialog::create_items()
            "Turning this off uses the established exact CPU path for the next slice."),
         "vulkan_slicer_compute");
     g_sizer->Add(item_vulkan_slicer_compute);
+
+    auto item_vulkan_slicer_gpu_priority = create_item_checkbox(
+        _L("Prefer GPU for almost all slicing batches"),
+        _L("Enabled by default. Sends infill and support scan-conversion batches to Vulkan whenever possible. "
+           "Only extremely small batches or a device proven slower by startup calibration remain on the exact CPU path. "
+           "Disable this to restore the conservative CPU/GPU crossover policy."),
+        "vulkan_slicer_gpu_priority");
+    g_sizer->Add(item_vulkan_slicer_gpu_priority);
 
     auto smooth_normals = create_item_checkbox(
         _L("Smooth normals"),

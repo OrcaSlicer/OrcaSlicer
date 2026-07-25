@@ -82,16 +82,26 @@ it returns only allocator cache pages that otherwise remain committed after a
 large slice.
 # Performance policy
 
-At slice startup the normal slicer benchmarks the active CPU's fixed-point
+At slice startup the slicer benchmarks the active CPU's fixed-point
 intersection throughput against the selected GPU's real Vulkan submission
-latency. It then chooses a conservative batch crossover (never below 4,096
-candidates) before dispatching exact infill/support intersections. Each
-current dispatch waits for its result before final CPU topology processing, so
-small batches can be slower than the CPU reference despite using the GPU.
+latency. **Prefer GPU for almost all slicing batches** is enabled by default:
+once the device passes qualification, all batches of 512 or more candidates
+are eligible for Vulkan. This includes a 2.6k batch that the prior conservative
+policy would have kept on CPU. Batches below 512 stay CPU because command
+submission and synchronization would dominate their work.
+
+The calibration can still identify an extreme outlier: a large calibrated GPU
+submission must be at least 50 ms and at least 32 times slower than the full
+CPU reference before GPU priority keeps that device on CPU. This avoids
+misclassifying normal host/device synchronization overhead as a reason to
+reject GPU work. Disable the preference to restore the original balanced
+crossover policy (never below 4,096 candidates), which favors peak elapsed
+time instead of GPU utilization.
 
 Set `ORCA_VULKAN_SLICER_POLICY=cpu` to keep this stage on CPU or
-`ORCA_VULKAN_SLICER_POLICY=gpu` to use the minimum calibrated-safe batch size
-for profiling. The default policy is balanced and selects per machine.
+`ORCA_VULKAN_SLICER_POLICY=gpu` to use the 512-candidate GPU-priority floor
+for profiling. The default UI policy is GPU priority; users can opt back into
+the balanced per-machine crossover in Preferences.
 
 ## Tree-support contour broad phase
 
