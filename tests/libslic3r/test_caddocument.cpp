@@ -4626,3 +4626,129 @@ TEST_CASE("surface round-trip serialize/deserialize", "[CadDocument][surface]")
     REQUIRE_THAT(double(fy1), WithinAbs(double(oy1), 1e-6));
     REQUIRE_THAT(double(fz1), WithinAbs(double(oz1), 1e-6));
 }
+
+TEST_CASE("thicken-surface makes a solid from a sheet", "[CadDocument][surface]")
+{
+    using Catch::Matchers::WithinRel;
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Rect");
+    REQUIRE(sk >= 0);
+    int si = doc.add_surface_extrude(sk, 12.0, "Skin");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 1);
+    REQUIRE(CadDocument::is_sheet_shape(doc.bodies.back().shape));
+
+    Bnd_Box sheet_bb;
+    BRepBndLib::Add(doc.bodies.back().shape, sheet_bb);
+
+    int ti = doc.add_thicken_surface(0, 2.0, false, "Wall");
+    REQUIRE(ti == 2);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+
+    REQUIRE(!CadDocument::is_sheet_shape(doc.bodies.back().shape));
+    double vol = doc.body_mass_properties(1).volume;
+    REQUIRE(vol > 0);
+
+    Bnd_Box thick_bb;
+    BRepBndLib::Add(doc.bodies.back().shape, thick_bb);
+    Standard_Real sx0, sy0, sz0, sx1, sy1, sz1;
+    Standard_Real tx0, ty0, tz0, tx1, ty1, tz1;
+    sheet_bb.Get(sx0, sy0, sz0, sx1, sy1, sz1);
+    thick_bb.Get(tx0, ty0, tz0, tx1, ty1, tz1);
+    REQUIRE_THAT(double(tx0), WithinAbs(double(sx0), 2.1));
+    REQUIRE_THAT(double(tx1), WithinAbs(double(sx1), 2.1));
+}
+
+TEST_CASE("surface-offset creates another sheet shifted outward", "[CadDocument][surface]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Rect");
+    REQUIRE(sk >= 0);
+    int si = doc.add_surface_extrude(sk, 12.0, "Skin");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    Bnd_Box src_bb;
+    BRepBndLib::Add(doc.bodies.back().shape, src_bb);
+
+    int oi = doc.add_surface_offset(0, 1.0, "Off");
+    REQUIRE(oi == 2);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+    REQUIRE(CadDocument::is_sheet_shape(doc.bodies.back().shape));
+
+    Bnd_Box off_bb;
+    BRepBndLib::Add(doc.bodies.back().shape, off_bb);
+    Standard_Real sx0, sy0, sz0, sx1, sy1, sz1;
+    Standard_Real ox0, oy0, oz0, ox1, oy1, oz1;
+    src_bb.Get(sx0, sy0, sz0, sx1, sy1, sz1);
+    off_bb.Get(ox0, oy0, oz0, ox1, oy1, oz1);
+    REQUIRE(std::abs(double(ox0) - double(sx0)) > 1e-3);
+    REQUIRE(std::abs(double(ox1) - double(sx1)) > 1e-3);
+    REQUIRE(std::abs(double(oy0) - double(sy0)) > 1e-3);
+    REQUIRE(std::abs(double(oy1) - double(sy1)) > 1e-3);
+}
+
+TEST_CASE("thicken-surface on non-sheet fails", "[CadDocument][surface]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Rect");
+    REQUIRE(sk >= 0);
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Solid");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE_FALSE(CadDocument::is_sheet_shape(doc.bodies.back().shape));
+
+    doc.add_thicken_surface(0, 2.0, false, "Bad");
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE_THAT(doc.error, Catch::Matchers::Contains("sheet"));
+}
+
+TEST_CASE("thicken-surface round-trip serialize/deserialize", "[CadDocument][surface]")
+{
+    using Catch::Matchers::WithinAbs;
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "Rect");
+    doc.add_surface_extrude(sk, 12.0, "Skin");
+    REQUIRE(doc.recompute());
+    doc.add_thicken_surface(0, 2.0, false, "Wall");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE_FALSE(CadDocument::is_sheet_shape(doc.bodies.back().shape));
+
+    size_t orig_nb = doc.bodies.size();
+    Bnd_Box orig_bb;
+    BRepBndLib::Add(doc.bodies.back().shape, orig_bb);
+
+    std::string blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument fresh;
+    REQUIRE(fresh.deserialize_recipe(blob));
+    REQUIRE(fresh.error.empty());
+    REQUIRE(fresh.bodies.size() == orig_nb);
+    REQUIRE_FALSE(CadDocument::is_sheet_shape(fresh.bodies.back().shape));
+
+    Bnd_Box fresh_bb;
+    BRepBndLib::Add(fresh.bodies.back().shape, fresh_bb);
+    Standard_Real ox0, oy0, oz0, ox1, oy1, oz1;
+    Standard_Real fx0, fy0, fz0, fx1, fy1, fz1;
+    orig_bb.Get(ox0, oy0, oz0, ox1, oy1, oz1);
+    fresh_bb.Get(fx0, fy0, fz0, fx1, fy1, fz1);
+    REQUIRE_THAT(double(fx0), WithinAbs(double(ox0), 1e-6));
+    REQUIRE_THAT(double(fy0), WithinAbs(double(oy0), 1e-6));
+    REQUIRE_THAT(double(fz0), WithinAbs(double(oz0), 1e-6));
+    REQUIRE_THAT(double(fx1), WithinAbs(double(ox1), 1e-6));
+    REQUIRE_THAT(double(fy1), WithinAbs(double(oy1), 1e-6));
+    REQUIRE_THAT(double(fz1), WithinAbs(double(oz1), 1e-6));
+}

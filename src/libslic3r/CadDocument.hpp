@@ -19,7 +19,7 @@
 
 namespace Slic3r {
 
-enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project, DeleteFace, Rib, SurfaceExtrude, SurfaceRevolve };
+enum class CadFeatureType { Sketch, Extrude, Fillet, Chamfer, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Import, Boolean, Cut, Mirror, Axis, CoordSys, Helix, Transform, Thicken, Project, DeleteFace, Rib, SurfaceExtrude, SurfaceRevolve, ThickenSurface, SurfaceOffset };
 enum class SketchShape    { Rectangle, Circle };
 enum class PlaneType      { Offset, Angle, Midplane, Tangent, TwoEdges, Coincident };
 enum class AxisType       { TwoPoints, FaceNormal, CylinderCenterline, PlaneIntersection, AlongEdge };
@@ -508,6 +508,10 @@ public:
     // Offset face `face` of `target_body` by `thickness` along its normal, producing a new
     // thin solid appended as a new body. flip=true offsets against the normal.
     int add_thicken(int target_body, int face, double thickness, bool flip, const std::string& name);
+    // Thicken an entire SHEET body's shell into a solid.
+    int add_thicken_surface(int target_body, double thickness, bool flip, const std::string& name);
+    // Offset a SHEET body's shell by a signed distance, producing another SHEET body.
+    int add_surface_offset(int target_body, double offset, const std::string& name);
     int add_delete_face(int target_body, const std::vector<int>& faces,
                         const std::string& name);
     int add_surface_extrude(int sketch_ref, double distance, const std::string& name);
@@ -623,6 +627,8 @@ private:
     void apply_mirror(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_transform(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_thicken(std::vector<CadBody>& bodies, const CadFeature& f) const;
+    void apply_thicken_surface(std::vector<CadBody>& bodies, const CadFeature& f) const;
+    void apply_surface_offset(std::vector<CadBody>& bodies, const CadFeature& f) const;
     void apply_project(const std::vector<CadBody>& bodies, CadFeature& f) const;
 
     // Undo/redo stacks of feature-list snapshots. checkpoint() pushes onto m_undo and

@@ -18,6 +18,7 @@
 #include <BRepOffsetAPI_MakePipe.hxx>
 #include <BRepOffsetAPI_MakePipeShell.hxx>
 #include <BRepOffsetAPI_MakeThickSolid.hxx>
+#include <BRepOffsetAPI_MakeOffsetShape.hxx>
 #include <BRepOffsetAPI_DraftAngle.hxx>
 #include <Bnd_Box.hxx>
 #include <BRepBndLib.hxx>
@@ -1193,6 +1194,32 @@ int CadDocument::add_thicken(int target_body, int face, double thickness, bool f
     f.thicken_face     = face;
     f.thicken_thickness = thickness;
     f.thicken_flip     = flip;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
+int CadDocument::add_thicken_surface(int target_body, double thickness, bool flip,
+                                      const std::string& name)
+{
+    CadFeature f;
+    f.type              = CadFeatureType::ThickenSurface;
+    f.name              = name;
+    f.target_body       = target_body;
+    f.thicken_thickness = thickness;
+    f.thicken_flip      = flip;
+    f.mode              = BooleanMode::New;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
+int CadDocument::add_surface_offset(int target_body, double offset, const std::string& name)
+{
+    CadFeature f;
+    f.type         = CadFeatureType::SurfaceOffset;
+    f.name         = name;
+    f.target_body  = target_body;
+    f.plane_offset = offset;
+    f.mode         = BooleanMode::New;
     features.push_back(f);
     return int(features.size()) - 1;
 }
@@ -2672,6 +2699,52 @@ void CadDocument::apply_thicken(std::vector<CadBody>& bodies, const CadFeature& 
     bodies.push_back({solid, f.name.empty() ? std::string("Thicken") : f.name});
 }
 
+void CadDocument::apply_thicken_surface(std::vector<CadBody>& bodies, const CadFeature& f) const
+{
+    const int nb = int(bodies.size());
+    if (nb == 0) throw std::runtime_error("thicken-surface: no target body");
+    const int tgt = (f.target_body >= 0 && f.target_body < nb) ? f.target_body : nb - 1;
+    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error("thicken-surface: no target body");
+    if (!is_sheet_shape(bodies[tgt].shape)) throw std::runtime_error("thicken-surface: target is not a sheet body");
+    if (std::abs(f.thicken_thickness) < 1e-9) throw std::runtime_error("thicken-surface: thickness is zero");
+
+    const double off = f.thicken_flip ? -std::abs(f.thicken_thickness)
+                                      :  std::abs(f.thicken_thickness);
+    BRepOffsetAPI_MakeThickSolid mts;
+    mts.MakeThickSolidBySimple(bodies[tgt].shape, off);
+    mts.Build();
+    if (!mts.IsDone()) throw std::runtime_error("thicken-surface: failed");
+    TopoDS_Shape solid = mts.Shape();
+    if (solid.IsNull()) throw std::runtime_error("thicken-surface: produced no geometry");
+
+    {
+        GProp_GProps props;
+        BRepGProp::VolumeProperties(solid, props);
+        if (props.Mass() < 0.0) solid.Reverse();
+    }
+
+    bodies.push_back({solid, f.name.empty() ? std::string("ThickenSurface") : f.name});
+}
+
+void CadDocument::apply_surface_offset(std::vector<CadBody>& bodies, const CadFeature& f) const
+{
+    const int nb = int(bodies.size());
+    if (nb == 0) throw std::runtime_error("surface-offset: no target body");
+    const int tgt = (f.target_body >= 0 && f.target_body < nb) ? f.target_body : nb - 1;
+    if (tgt < 0 || bodies[tgt].shape.IsNull()) throw std::runtime_error("surface-offset: no target body");
+    if (!is_sheet_shape(bodies[tgt].shape)) throw std::runtime_error("surface-offset: target is not a sheet body");
+    const double d = f.plane_offset;
+    if (std::abs(d) < 1e-9) throw std::runtime_error("surface-offset: zero offset");
+
+    BRepOffsetAPI_MakeOffsetShape mos;
+    mos.PerformBySimple(bodies[tgt].shape, d);
+    if (!mos.IsDone()) throw std::runtime_error("surface-offset: failed");
+    TopoDS_Shape off_shape = mos.Shape();
+    if (off_shape.IsNull()) throw std::runtime_error("surface-offset: produced no geometry");
+
+    bodies.push_back({off_shape, f.name.empty() ? std::string("SurfaceOffset") : f.name});
+}
+
 void CadDocument::apply_project(const std::vector<CadBody>& bodies, CadFeature& f) const
 {
     f.entities.clear();
@@ -2769,6 +2842,8 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
     if (f.type == CadFeatureType::Mirror)  { apply_mirror(bodies, f);  return; }   // mirror body about plane
     if (f.type == CadFeatureType::Transform) { apply_transform(bodies, f); return; }   // move/rotate body
     if (f.type == CadFeatureType::Thicken) { apply_thicken(bodies, f); return; }   // face -> plate
+    if (f.type == CadFeatureType::ThickenSurface) { apply_thicken_surface(bodies, f); return; }
+    if (f.type == CadFeatureType::SurfaceOffset) { apply_surface_offset(bodies, f); return; }
     if (f.type == CadFeatureType::Project) return;   // sketch-like: consumed downstream, no body
     // Resolve the target body: explicit target_body when valid, else the last body.
     const int t = (f.target_body >= 0 && f.target_body < int(bodies.size()))
@@ -2779,6 +2854,7 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
     const bool starts_new = bodies.empty()
         || f.type == CadFeatureType::Import   // an imported solid is always its own base body
         || f.type == CadFeatureType::SurfaceExtrude || f.type == CadFeatureType::SurfaceRevolve
+        || f.type == CadFeatureType::ThickenSurface || f.type == CadFeatureType::SurfaceOffset
         || ((f.type == CadFeatureType::Extrude || f.type == CadFeatureType::Revolve
              || f.type == CadFeatureType::Sweep || f.type == CadFeatureType::Loft)
             && f.mode == BooleanMode::New);

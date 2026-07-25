@@ -1041,6 +1041,35 @@ json action_surface_revolve(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_thicken_surface(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no sheet body to thicken");
+    int bi = target_body_arg(params, doc);
+    double thickness = params.value("thickness", 2.0);
+    bool flip = params.value("flip", false);
+    doc.checkpoint();
+    int idx = doc.add_thicken_surface(bi, thickness, flip, "ThickenSurface");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+json action_surface_offset(DesignPanel* panel, const json& params)
+{
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no sheet body to offset");
+    int bi = target_body_arg(params, doc);
+    double offset = params.value("offset", 1.0);
+    doc.checkpoint();
+    int idx = doc.add_surface_offset(bi, offset, "SurfaceOffset");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
 json action_draft(DesignPanel* panel, const json& params)
 {
     if (!params.contains("face")) throw std::runtime_error("draft needs 'face' (id from query_topology)");
@@ -1332,6 +1361,8 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "set_feature_expr") return rpc_result(id, action_set_feature_expr(panel, params));
         if (method == "surface_extrude")  return rpc_result(id, action_surface_extrude(panel, params));
         if (method == "surface_revolve")  return rpc_result(id, action_surface_revolve(panel, params));
+        if (method == "thicken_surface")  return rpc_result(id, action_thicken_surface(panel, params));
+        if (method == "surface_offset")   return rpc_result(id, action_surface_offset(panel, params));
         return rpc_error(id, -32601, "Unknown method: " + method);
     } catch (const Standard_Failure& ex) {   // OCCT errors are NOT std::exception
         return rpc_error(id, -32000, std::string("OCCT: ") + (ex.GetMessageString() ? ex.GetMessageString() : "failure"));
