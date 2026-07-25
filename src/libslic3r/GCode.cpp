@@ -732,6 +732,42 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return temp_set_by_gcode;
     }
 
+    struct CustomGCodeMotionStateChanges
+    {
+        bool acceleration = false;
+        bool jerk         = false;
+    };
+
+    static bool custom_gcode_line_has_xy_parameter(const std::string &raw)
+    {
+        const size_t comment_pos = raw.find(';');
+        const std::string_view code(raw.data(), comment_pos == std::string::npos ? raw.size() : comment_pos);
+        return code.find_first_of("XxYy") != std::string_view::npos;
+    }
+
+    static CustomGCodeMotionStateChanges custom_gcode_motion_state_changes(const std::string &gcode)
+    {
+        CustomGCodeMotionStateChanges changes;
+        GCodeReader parser;
+        parser.parse_buffer(gcode, [&changes](GCodeReader &parser, const GCodeReader::GCodeLine &line) {
+            const std::string_view cmd = line.cmd();
+            if (boost::iequals(cmd, "M204") || boost::iequals(cmd, "M201") ||
+                boost::iequals(cmd, "M202"))
+                changes.acceleration = true;
+            else if ((boost::iequals(cmd, "M205") || boost::iequals(cmd, "M207") || boost::iequals(cmd, "M566")) &&
+                     custom_gcode_line_has_xy_parameter(line.raw()))
+                changes.jerk = true;
+            else if (boost::iequals(cmd, "SET_VELOCITY_LIMIT")) {
+                changes.acceleration |= boost::icontains(line.raw(), "ACCEL=");
+                changes.jerk         |= boost::icontains(line.raw(), "SQUARE_CORNER_VELOCITY=");
+            }
+
+            if (changes.acceleration && changes.jerk)
+                parser.quit_parsing();
+        });
+        return changes;
+    }
+
     // BBS
     // start_pos refers to the last position before the wipe_tower.
     // end_pos refers to the wipe tower's start_pos.
@@ -3317,10 +3353,27 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
 
         BoundingBoxf bbox;
         auto pts = std::make_unique<ConfigOptionPoints>();
-        if (print.calib_mode() == CalibMode::Calib_PA_Line || print.calib_mode() == CalibMode::Calib_PA_Pattern) {
+        if (print.calib_mode() == CalibMode::Calib_PA_Pattern) {
+            //PA_Pattern can have any size or arrangement - not dependent on 3mf model size
             bbox = bbox_bed;
             bbox.offset(-25.0);
             // add 4 corner points of bbox into pts
+            pts->values.reserve(4);
+            pts->values.emplace_back(bbox.min.x(), bbox.min.y());
+            pts->values.emplace_back(bbox.max.x(), bbox.min.y());
+            pts->values.emplace_back(bbox.max.x(), bbox.max.y());
+            pts->values.emplace_back(bbox.min.x(), bbox.max.y());
+
+        } else if (print.calib_mode() == CalibMode::Calib_PA_Line) {
+            // Derive X bounds from the actual calibration geometry.
+            CalibPressureAdvanceLine temp_pa_line_forsize(this);
+            BoundingBoxf pattern_extents = temp_pa_line_forsize.print_extents(bbox_bed);
+
+            bbox = bbox_bed;
+            bbox.offset(-25.0);
+            bbox.min.x() = std::max(pattern_extents.min.x(), bbox.min.x());
+            bbox.max.x() = std::min(pattern_extents.max.x(), bbox.max.x());
+            
             pts->values.reserve(4);
             pts->values.emplace_back(bbox.min.x(), bbox.min.y());
             pts->values.emplace_back(bbox.max.x(), bbox.min.y());
@@ -4455,6 +4508,11 @@ PlaceholderParserIntegration &ppi = m_placeholder_parser_integration;
         ppi.update_from_gcodewriter(m_writer);
         std::string output = ppi.parser.process(templ, current_filament_id, config_override, &ppi.output_config, &ppi.context);
         ppi.validate_output_vector_variables();
+        const CustomGCodeMotionStateChanges motion_state_changes = custom_gcode_motion_state_changes(output);
+        if (motion_state_changes.acceleration)
+            m_writer.invalidate_acceleration();
+        if (motion_state_changes.jerk)
+            m_writer.invalidate_jerk();
 
         if (const std::vector<double> &pos = ppi.opt_position->values; ppi.position != pos) {
             // Update G-code writer.
@@ -5791,10 +5849,17 @@ LayerResult GCode::process_layer(
     for (const auto &layer_to_print : layers) {
         if (layer_to_print.object_layer) {
             const auto& regions = layer_to_print.object_layer->regions();
-            const bool  enable_overhang_speed = std::any_of(regions.begin(), regions.end(), [this](const LayerRegion* r) {
+            const bool has_extrusions = std::any_of(regions.begin(), regions.end(), [](const LayerRegion* r) {
+                return r->has_extrusions();
+            });
+            const bool enable_overhang_speed = std::any_of(regions.begin(), regions.end(), [this](const LayerRegion* r) {
                 return r->has_extrusions() && r->region().config().enable_overhang_speed.get_at(get_nozzle_config_index(m_writer.filament()->id()));
             });
-            if (enable_overhang_speed) {
+            const bool enable_overhang_fan = m_enable_cooling_markers && has_extrusions &&
+                std::any_of(m_config.enable_overhang_bridge_fan.values.begin(),
+                            m_config.enable_overhang_bridge_fan.values.end(),
+                            [](unsigned char value) { return value != 0; });
+            if (enable_overhang_speed || enable_overhang_fan) {
                 m_extrusion_quality_estimator.prepare_for_new_layer(layer_to_print.original_object,
                                                                     layer_to_print.object_layer);
             }
@@ -7633,7 +7698,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     bool variable_speed = false;
     std::vector<ProcessedPoint> new_points {};
 
-    if (NOZZLE_CONFIG(enable_overhang_speed) && !this->on_first_layer() && !object_layer_over_raft() &&
+    const bool need_overhang_detection = NOZZLE_CONFIG(enable_overhang_speed) ||
+        (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers);
+
+    if (need_overhang_detection && !this->on_first_layer() && !object_layer_over_raft() &&
         (is_bridge(path.role()) || is_perimeter(path.role()))) {
             bool is_external = is_external_perimeter(path.role());
             double ref_speed   = is_external ? NOZZLE_CONFIG(outer_wall_speed) : NOZZLE_CONFIG(inner_wall_speed);
@@ -7692,6 +7760,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             }
             variable_speed = std::any_of(new_points.begin(), new_points.end(),
                                          [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
+            if (!NOZZLE_CONFIG(enable_overhang_speed) && FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers) {
+                for (ProcessedPoint &point : new_points)
+                    point.speed = speed;
+                variable_speed = new_points.size() > 1;
+            }
     }
 
     double F = speed * 60;  // convert mm/sec to mm/min
@@ -7700,7 +7773,7 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     // If adaptive PA is enabled, by default evaluate PA on all extrusion moves
     bool is_pa_calib = m_curr_print->calib_mode() == CalibMode::Calib_PA_Line ||
                        m_curr_print->calib_mode() == CalibMode::Calib_PA_Pattern ||
-                       m_curr_print->calib_mode() == CalibMode::Calib_PA_Tower; 
+                       m_curr_print->calib_mode() == CalibMode::Calib_PA_Tower;
     bool evaluate_adaptive_pa = false;
     bool role_change = (m_last_extrusion_role != path.role());
     if (!is_pa_calib && FILAMENT_CONFIG(adaptive_pressure_advance) && FILAMENT_CONFIG(enable_pressure_advance)) {
@@ -9292,7 +9365,7 @@ std::string GCode::set_object_info(Print *print) {
     std::ostringstream gcode;
     size_t object_id = 0;
     // Orca: check if we are in pa calib mode
-    if (print->calib_mode() == CalibMode::Calib_PA_Line || print->calib_mode() == CalibMode::Calib_PA_Pattern) {
+    if (print->calib_mode() == CalibMode::Calib_PA_Pattern) {
         BoundingBoxf bbox_bed(print->config().printable_area.values);
         bbox_bed.offset(-25.0);
         Polygon polygon_bed;
@@ -9303,6 +9376,8 @@ std::string GCode::set_object_info(Print *print) {
         gcode << "EXCLUDE_OBJECT_DEFINE NAME="
               << "Orca-PA-Calibration-Test"
               << " CENTER=" << 0 << "," << 0 << " POLYGON=" << polygon_to_string(polygon_bed, print, true) << "\n";
+    } else if (print->calib_mode() == CalibMode::Calib_PA_Line) {
+        // PA_Line has only one object, no EXCLUDE_OBJECT_DEFINE needed
     } else {
         size_t unique_id = 0;
         for (PrintObject* object : print->objects()) {

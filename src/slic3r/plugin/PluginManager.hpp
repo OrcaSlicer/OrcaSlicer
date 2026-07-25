@@ -196,8 +196,6 @@ public:
     bool delete_plugin(const std::string& plugin_key, std::string& error);
     bool unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error);
     bool delete_and_unsubscribe_cloud_plugin(const std::string& plugin_key, std::string& error);
-    bool delete_mine_plugin_from_cloud(const std::string& plugin_key, std::string& error);
-    bool delete_mine_local_and_cloud_plugin(const std::string& plugin_key, std::string& error);
 
     ExecutionResult run_script_capability(const std::string& plugin_key, const std::string& capability_name, std::string& error);
 

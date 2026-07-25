@@ -35,6 +35,7 @@
 #include "GUI_App.hpp"
 #include "GUI_ObjectList.hpp"
 #include "slic3r/Utils/PresetUpdater.hpp"
+#include "slic3r/plugin/PluginConfig.hpp"
 #include "Plater.hpp"
 #include "MainFrame.hpp"
 #include "format.hpp"
@@ -1797,9 +1798,20 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
 
     // Keep this preset's "plugins" manifest in sync when a plugin picker changes, so full_config() and
     // save_to_json() always find resolved "name;uuid;capability" references and rebuild it nowhere else.
+    // Also drop any plugin config override entries for a capability the change just stopped
+    // referencing (e.g. a plugin removed from slicing_pipeline_plugin), so a saved preset never
+    // carries configuration for a capability it no longer names. The Configure button is a separate
+    // field holding its own cached copy of that value, so it needs to be told explicitly, or it
+    // keeps showing the stale count until something else happens to refresh it.
     if (const ConfigOptionDef* opt_def = m_config->def()->get(opt_key);
-        opt_def && opt_def->is_plugin_backed())
+        opt_def && opt_def->is_plugin_backed()) {
         m_config->update_plugin_manifest();
+        const std::string overrides_key = Preset::plugin_overrides_key(m_type);
+        if (prune_stale_plugin_overrides(*m_config, overrides_key)) {
+            if (Field* overrides_field = get_field(overrides_key))
+                overrides_field->set_value(boost::any(m_config->opt_string(overrides_key)), false);
+        }
+    }
 
     if (opt_key == "gcode_flavor" && m_type == Preset::TYPE_PRINTER) {
         if (auto printer_tab = dynamic_cast<TabPrinter*>(this))
@@ -3127,7 +3139,7 @@ void TabPrint::build()
         // Its own group: the one above hides its labels, and this row needs its label — and the revert
         // arrow beside it — to show. No label-width override either, as a 0 there means "no label column".
         optgroup = page->new_optgroup(L("Plugin Configuration"), L"param_gcode");
-        optgroup->append_single_option_line("plugin_config_overrides");
+        optgroup->append_single_option_line("print_plugin_config_overrides");
 
         optgroup = page->new_optgroup(L("Notes"), "note", 0);
         option = optgroup->get_option("notes");
@@ -3290,7 +3302,19 @@ static std::vector<std::string> intersect(std::vector<std::string> const& l, std
 static std::vector<std::string> concat(std::vector<std::string> const& l, std::vector<std::string> const& r)
 {
     std::vector<std::string> t;
-    std::set_union(l.begin(), l.end(), r.begin(), r.end(), std::back_inserter(t));
+    bool l_is_sorted = std::is_sorted(l.begin(), l.end());
+    bool r_is_sorted = std::is_sorted(r.begin(), r.end());
+
+    if (l_is_sorted && r_is_sorted) {
+        std::set_union(l.begin(), l.end(), r.begin(), r.end(), std::back_inserter(t));
+        return t;
+    }
+
+    std::vector<std::string> l_sorted = l;
+    std::vector<std::string> r_sorted = r;
+    std::sort(l_sorted.begin(), l_sorted.end());
+    std::sort(r_sorted.begin(), r_sorted.end());
+    std::set_union(l_sorted.begin(), l_sorted.end(), r_sorted.begin(), r_sorted.end(), std::back_inserter(t));
     return t;
 }
 
@@ -4531,7 +4555,7 @@ void TabFilament::build()
         optgroup->append_single_option_line(option);
 
         optgroup = page->new_optgroup(L("Plugin Configuration"), L"param_gcode");
-        optgroup->append_single_option_line("plugin_config_overrides");
+        optgroup->append_single_option_line("filament_plugin_config_overrides");
 
     page = add_options_page(L("Multimaterial"), "custom-gcode_multi_material"); // ORCA: icon only visible on placeholders
         optgroup = page->new_optgroup(L("Wipe tower parameters"), "param_tower");
@@ -5630,7 +5654,7 @@ void TabPrinter::build_fff()
         optgroup->append_single_option_line("time_cost", "printer_basic_information_advanced#time-cost");
 
         optgroup = page->new_optgroup(L("Plugin Configuration"), L"param_gcode");
-        optgroup->append_single_option_line("plugin_config_overrides");
+        optgroup->append_single_option_line("printer_plugin_config_overrides");
 
         optgroup  = page->new_optgroup(L("Cooling Fan"), "param_cooling_fan");
         Line line = Line{ L("Fan speed-up time"), optgroup->get_option("fan_speedup_time").opt.tooltip };
@@ -8672,7 +8696,7 @@ bool Tab::validate_filament_temperature_pairs()
         if (delta <= rule.max_delta)
             continue;
 
-        const wxString deg_c   = wxString::FromUTF8("℃");
+        const wxString deg_c   = wxString::FromUTF8(u8"\u2103" /* °C */);
         const wxString bullet  = wxString::FromUTF8("•");
         invalid_pairs += wxString::Format(_L(" - %s:\n    %s first layer %d %s, other layers %d %s\n    %s max delta %d %s, current delta %d %s\n"),
                                           rule.label, bullet, first_temp, deg_c, other_temp, deg_c, bullet, rule.max_delta, deg_c, delta, deg_c);
@@ -8690,7 +8714,7 @@ bool Tab::validate_filament_temperature_pairs()
 
     RichMessageDialog dialog(parent(), msg_text, _L("Temperature Safety Check"), wxYES | wxNO | wxICON_WARNING);
     dialog.SetButtonLabel(wxID_YES, _L("Continue"), true);
-    dialog.SetButtonLabel(wxID_NO, _CTX("Back", "Navigation"));
+    dialog.SetButtonLabel(wxID_NO, _L_CONTEXT("Back", "Navigation"));
     dialog.ShowCheckBox(_L("Don't warn again for this preset"));
     const int answer = dialog.ShowModal();
     // Session-only suppression (does not modify/save filament preset data).
@@ -8731,7 +8755,9 @@ void Tab::update_extruder_variants(int extruder_id, bool reload)
         m_actual_nozzle_volumes.resize(extruder_nums, NozzleVolumeType::nvtStandard);
         for (int i = 0; i < extruder_nums; i++) m_actual_nozzle_volumes[i] = (NozzleVolumeType)nozzle_volumes->values[i];
 
-        if (extruder_nums == 2) {
+        // Orca: a non-Bambu dual-nozzle printer has two extruders but a single variant column, so
+        // the nozzle switch and sync button have nothing to act on. Only enable with real variants.
+        if (extruder_nums == 2 && m_preset_bundle->support_different_extruders()) {
             auto options = generate_extruder_options();
             m_extruder_switch->SetOptions(options);
 

@@ -835,7 +835,7 @@ endif ()
 set(L10N_DIR "${SLIC3R_RESOURCES_DIR}/i18n")
 set(BBL_L18N_DIR "${CMAKE_CURRENT_SOURCE_DIR}/localization/i18n")
 add_custom_target(gettext_make_pot
-    COMMAND xgettext --keyword=L --keyword=_L --keyword=_u8L --keyword=L_CONTEXT:1,2c --keyword=_CTX:1,2c --keyword=_CTX_utf8:1,2c --keyword=_L_PLURAL:1,2 --add-comments=TRN --from-code=UTF-8 --no-location --debug --boost
+    COMMAND xgettext --keyword=L --keyword=_L --keyword=_u8L --keyword=L_CONTEXT:1,2c --keyword=_L_CONTEXT:1,2c --keyword=_u8L_CONTEXT:1,2c --keyword=_L_PLURAL:1,2 --add-comments=TRN --from-code=UTF-8 --no-location --debug --boost
         -f "${BBL_L18N_DIR}/list.txt"
         -o "${BBL_L18N_DIR}/OrcaSlicer.pot"
     COMMAND hintsToPot ${SLIC3R_RESOURCES_DIR} ${BBL_L18N_DIR}
@@ -853,7 +853,6 @@ foreach(po_file ${BBL_L10N_PO_FILES})
     add_custom_command(
         TARGET gettext_merge_po_with_pot PRE_BUILD
         COMMAND msgmerge -N -o ${po_file} ${po_file} "${BBL_L18N_DIR}/OrcaSlicer.pot"
-        DEPENDS ${po_file}
     )
 endforeach()
 add_custom_target(gettext_po_to_mo
@@ -869,7 +868,6 @@ foreach(po_file ${BBL_L10N_PO_FILES})
         TARGET gettext_po_to_mo PRE_BUILD
         COMMAND msgfmt ARGS --check-format -o ${mo_file} ${po_file}
         #COMMAND msgfmt ARGS --check-compatibility -o ${mo_file} ${po_file}
-        DEPENDS ${po_file}
     )
 endforeach()
 

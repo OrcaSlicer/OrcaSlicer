@@ -1817,6 +1817,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionString,             filename_format))
     ((ConfigOptionStrings,            post_process))
     ((ConfigOptionStrings,            slicing_pipeline_plugin))
+    ((ConfigOptionString,             print_plugin_config_overrides))
     ((ConfigOptionString,             printer_model))
     ((ConfigOptionFloat,              resolution))
     ((ConfigOptionFloats,             retraction_minimum_travel))
@@ -1878,6 +1879,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     // BBS: wipe tower is only used for priming
     ((ConfigOptionFloat,              prime_volume))
     // Nozzle-change (nc) prime volume + pre-heat delta
+    ((ConfigOptionFloats,             filament_prime_volume))
     ((ConfigOptionFloats,             filament_prime_volume_nc))
     ((ConfigOptionFloatsNullable,     filament_preheat_temperature_delta))
     ((ConfigOptionFloats,             flush_multiplier))

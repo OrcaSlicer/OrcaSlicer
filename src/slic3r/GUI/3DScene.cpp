@@ -548,7 +548,7 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
         glsafe(::glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, cnv_size.get_width(), cnv_size.get_height(), 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr));
 
-        glsafe(::glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depth_tex, 0));
+        glsafe(::glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depth_tex, 0));
     }
     glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
     if (tverts_range == std::make_pair<size_t, size_t>(0, -1))

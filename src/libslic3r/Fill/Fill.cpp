@@ -57,6 +57,9 @@ double calculate_infill_rotation_angle(const PrintObject* object,
     if (template_string.empty()) {
         return Geometry::deg2rad(fixed_infill_angle);
     }
+    // Convert the id to an index. Layer::id() counts the raft layers, object->layers() does not.
+    const size_t first_object_layer_id = object->get_layer(0)->id();
+    layer_id = layer_id > first_object_layer_id ? layer_id - first_object_layer_id : 0;
     double             angle = 0.0;
     ConfigOptionFloats rotate_angles;
     const std::string  search_string = "/NnZz$LlUuQq~^|#";
@@ -75,6 +78,8 @@ double calculate_infill_rotation_angle(const PrintObject* object,
         double angle_start  = 0;
         double limit_fill_z = object->get_layer(0)->bottom_z();
         double start_fill_z = limit_fill_z;
+        // The raft height, or 0 without a raft.
+        const double print_z_offset = object->slicing_parameters().object_print_z_min;
         bool   _noop        = false;
         auto              fill_form = std::string::npos;
         bool              _absolute = false;
@@ -84,7 +89,8 @@ double calculate_infill_rotation_angle(const PrintObject* object,
         for (int i = 0; i <= layer_id; i++) {
             double fill_z = object->get_layer(i)->bottom_z();
 
-            if (limit_fill_z < object->get_layer(i)->slice_z) {
+            // slice_z is measured from the bottom of the model, limit_fill_z from the build plate.
+            if (limit_fill_z < object->get_layer(i)->slice_z + print_z_offset) {
                 if (repeats) { // if repeats >0 then restore parameters for new iteration
                     limit_fill_z += limit_fill_z - start_fill_z;
                     start_fill_z = fill_z;

@@ -1100,16 +1100,21 @@ void PrintConfigDef::init_common_params()
         def->set_default_value(new ConfigOptionString());
     }
 
-    def = this->add("plugin_config_overrides", coString);
-    def->label = L("Capabilities");
-    def->tooltip = L("Configuration for the plugin capabilities this preset uses, overriding the global "
-                     "Capabilities configuration. Stored as a raw JSON array and edited through the dialog "
-                     "behind the button, never typed in directly.");
-    // Never shown as a text field: GUIType::plugin_config renders a button that opens PluginsConfigDialog.
-    def->gui_type = ConfigOptionDef::GUIType::plugin_config;
-    def->mode = comAdvanced;
-    def->cli = ConfigOptionDef::nocli;
-    def->set_default_value(new ConfigOptionString(""));
+    // One key per preset type (Preset::plugin_overrides_key), so the print, printer and filament
+    // overrides don't clobber each other when the presets merge into one full config. No handle_legacy
+    // migration from the shared "plugin_config_overrides" they replace: it only ever shipped in
+    // nightlies. Never a text field — GUIType::plugin_config renders a button opening PluginsConfigDialog.
+    for (const char* key : {"print_plugin_config_overrides", "printer_plugin_config_overrides", "filament_plugin_config_overrides"}) {
+        def = this->add(key, coString);
+        def->label = L("Capabilities");
+        def->tooltip = L("Configuration for the plugin capabilities this preset uses, overriding the global "
+                         "Capabilities configuration. Stored as a raw JSON array and edited through the dialog "
+                         "behind the button, never typed in directly.");
+        def->gui_type = ConfigOptionDef::GUIType::plugin_config;
+        def->mode = comAdvanced;
+        def->cli = ConfigOptionDef::nocli;
+        def->set_default_value(new ConfigOptionString(""));
+    }
 }
 
 void PrintConfigDef::init_fff_params()
@@ -2306,8 +2311,8 @@ void PrintConfigDef::init_fff_params()
     def->label = L("Top surface expansion");
     def->category = L("Strength");
     def->tooltip = L("Expands the top surfaces by this distance to connect distinct top surfaces and fill gaps.\n"
-                     "Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane."
-                     "Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top."
+                     "Useful for cases where the top surface is interrupted by a raised feature, such as text on a plane. "
+                     "Expanding it removes the holes beneath these features and creates a continuous path with a better finish for printing on top. "
                      "The expansion is applied to the original top surface, before any other processing such as bridging or overhang detection.");
     def->sidetext = L("mm");
     def->min = 0;
@@ -2882,7 +2887,7 @@ void PrintConfigDef::init_fff_params()
     def->nullable = true;
     def->min = 0;
     def->max = max_temp;
-    def->sidetext = L(u8"℃" /* °C */);	// degrees Celsius, CIS languages need translation
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->set_default_value(new ConfigOptionIntsNullable{0});
 
     def = this->add("filament_flush_volumetric_speed", coFloats);
@@ -7531,7 +7536,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("The flush multiplier used in fast purge mode.");
     def->set_default_value(new ConfigOptionFloats{1.2});
 
-    // BBS
+    // Orca: used by the generic (Type2) wipe tower; also the fallback for filament_prime_volume on Type1.
     def = this->add("prime_volume", coFloat);
     def->label = L("Prime volume");
     def->tooltip = L("This is the volume of material to prime the extruder with on the tower.");
@@ -8107,7 +8112,7 @@ void PrintConfigDef::init_fff_params()
     def->label    = L("Extruder change");
     def->tooltip  = L("To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled.");
     def->mode     = comAdvanced;
-    def->sidetext = "°C";
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min      = 0;
     def->nullable = true;
     def->set_default_value(new ConfigOptionIntsNullable{0});
@@ -8137,7 +8142,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L(
         "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled.");
     def->mode     = comAdvanced;
-    def->sidetext = "°C";
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->min      = 0;
     def->nullable = true;
     def->set_default_value(new ConfigOptionIntsNullable{0});
@@ -8177,6 +8182,16 @@ void PrintConfigDef::init_fff_params()
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionBool(false));
 
+    // Used by the Type1 wipe tower: filament_prime_volume on a filament change,
+    // filament_prime_volume_nc on a hotend/nozzle change. Type2 uses prime_volume instead.
+    def           = this->add("filament_prime_volume", coFloats);
+    def->label    = L("Filament change");
+    def->tooltip  = L("The volume of material required to prime the extruder on the tower, excluding a hotend change.");
+    def->sidetext = L("mm³");
+    def->min      = 1.0;
+    def->mode     = comSimple;
+    def->set_default_value(new ConfigOptionFloats{45.});
+
     def           = this->add("filament_prime_volume_nc", coFloats);
     def->label    = L("Hotend change");
     def->tooltip  = L("The volume of material required to prime the extruder for a hotend change on the tower.");
@@ -8188,7 +8203,7 @@ void PrintConfigDef::init_fff_params()
     def = this->add("filament_preheat_temperature_delta", coFloats);
     def->label = L("Preheat temperature delta");
     def->tooltip = L("Temperature delta applied during pre-heating before tool change.");
-    def->sidetext = "°C";
+    def->sidetext = L(u8"\u2103" /* °C */);	// degrees Celsius, CIS languages need translation
     def->mode = comDevelop;
     def->nullable = true;
     def->set_default_value(new ConfigOptionFloatsNullable{0});
@@ -9197,7 +9212,7 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         "retraction_distance_when_cut",
         "internal_bridge_support_thickness", "top_area_threshold", "reduce_wall_solid_infill","filament_load_time","filament_unload_time",
         "smooth_coefficient", "overhang_totally_speed", "silent_mode",
-        "overhang_speed_classic", "filament_prime_volume",
+        "overhang_speed_classic",
         "anisotropic_surfaces", // superseded by top_surface_fill_order / bottom_surface_fill_order
     };
 

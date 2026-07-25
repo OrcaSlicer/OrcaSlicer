@@ -2637,7 +2637,6 @@ void GUI_App::on_start_subscribe_again(std::string dev_id)
 
         if ( (dev_id == obj->get_dev_id()) && obj->is_connecting() && obj->subscribe_counter > 0) {
             obj->subscribe_counter--;
-            if(wxGetApp().getAgent()) wxGetApp().getAgent()->set_user_selected_machine(dev_id);
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": dev_id=" << obj->get_dev_id();
         }
     });
@@ -6127,18 +6126,23 @@ bool GUI_App::process_network_msg(std::string dev_id, std::string msg)
         }
         else if (msg == "unsigned_studio") {
             BOOST_LOG_TRIVIAL(info) << "process_network_msg, unsigned_studio";
-            MessageDialog
-                msg_dlg(nullptr,
-                        _L("To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and Developer mode on your printer.\n\n"
-                           "Please go to your printer's settings and:\n"
-                           "1. Turn on LAN mode\n"
-                           "2. Enable Developer mode\n\n"
-                           "Developer mode allows the printer to work exclusively through local network access, "
-                           "enabling full functionality with OrcaSlicer."),
-                        _L("Network Plug-in Restriction"), wxAPPLY | wxOK);
-            m_show_error_msgdlg = true;
-            msg_dlg.ShowModal();
-            m_show_error_msgdlg = false;
+            // Plugin re-emits this on every subscribe retry; latch it so it shows
+            // once per connection episode.
+            if (!m_show_error_msgdlg && !m_unsigned_plugin_warning_shown) {
+                m_unsigned_plugin_warning_shown = true;
+                MessageDialog
+                    msg_dlg(nullptr,
+                            _L("To use OrcaSlicer with Bambu Lab printers, you need to enable LAN mode and Developer mode on your printer.\n\n"
+                               "Please go to your printer's settings and:\n"
+                               "1. Turn on LAN mode\n"
+                               "2. Enable Developer mode\n\n"
+                               "Developer mode allows the printer to work exclusively through local network access, "
+                               "enabling full functionality with OrcaSlicer."),
+                            _L("Network Plug-in Restriction"), wxAPPLY | wxOK);
+                m_show_error_msgdlg = true;
+                msg_dlg.ShowModal();
+                m_show_error_msgdlg = false;
+            }
             return true;
         }
     }
