@@ -6,6 +6,7 @@ orcaslicer_add_cmake_project(
     DEPENDS dep_wxWidgets
     CMAKE_ARGS
         -DCMAKE_CXX_FLAGS="-DwxDEBUG_LEVEL=0"
+        -DCMAKE_POSITION_INDEPENDENT_CODE=ON
 )
 
 if (MSVC)

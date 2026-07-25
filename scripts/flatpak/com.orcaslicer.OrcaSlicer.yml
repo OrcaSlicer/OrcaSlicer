@@ -149,6 +149,7 @@ modules:
       - -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"
       - -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=lld"
       - -DCMAKE_MODULE_LINKER_FLAGS="-fuse-ld=lld"
+      - -DCMAKE_POSITION_INDEPENDENT_CODE=ON
     sources:
       - type: git
         url: https://github.com/Noisyfox/wxInspector.git
