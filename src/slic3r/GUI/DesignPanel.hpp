@@ -51,10 +51,12 @@ public:
     void         mcp_after_change() { after_tree_edit(true); } // refresh tree + viewport + status
 
 private:
-    enum class Tool { None, Sketch, Extrude, Dressup, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Boolean, Cut, Insert };
+    enum class Tool { None, Sketch, Extrude, Dressup, Hole, Thread, Shell, Revolve, Sweep, Pattern, Plane, Loft, Draft, Boolean, Cut, Insert, Axis, CoordSys, SurfaceExtrude, SurfaceRevolve, SurfaceLoft, SurfaceFill, SurfaceOffset, ThickenSurface, Transform, Mirror, Thicken, Rib, Project, DeleteFace, Helix };
     // Plane tool: which datum reference the next solid pick fills (declared early so the
     // method decls + card lambdas below can name it).
     enum class PlanePick { None, FaceA, FaceB, EdgeA, EdgeB };
+    enum class AxisPick { None, Face, Edge };
+    enum class CoordSysPick { None, Face, Edge };
 
     // Onshape-style contextual top toolbar: only the active mode's tool group is
     // shown (Feature = sketch/extrude/dress/hole/thread; Sketch = entity tools;
@@ -87,10 +89,34 @@ private:
     void on_add_draft();
     void on_add_boolean();
     void on_add_cut();              // commit a plane Cut (split-by-plane)
+    void on_add_axis();
+    void arm_axis_pick(AxisPick target);
+    void apply_axis_refs(CadFeature& f) const;
+    void refresh_axis_labels();
+    void reset_axis_refs();
+    void on_add_coordsys();
+    void arm_coordsys_pick(CoordSysPick target);
+    void apply_coordsys_refs(CadFeature& f) const;
+    void refresh_coordsys_labels();
+    void reset_coordsys_refs();
+    void on_add_surface_extrude();
+    void on_add_surface_revolve();
+    void on_add_surface_loft();
+    void on_add_surface_fill();
+    void on_add_surface_offset();
+    void on_add_thicken_surface();
+    void on_add_transform();
+    void on_add_mirror();
+    void on_add_thicken();
+    void on_add_rib();
+    void on_add_project();
+    void on_add_delete_face();
+    void on_add_helix();
     // Fill m_bool_target / m_bool_tool / m_cut_target. as_of_feature < 0 = current bodies (add);
     // >= 0 = the bodies as they existed just before that feature index (Boolean re-edit, so a
     // consumed tool body still appears and its saved selection round-trips).
     void populate_body_choices(int as_of_feature = -1);
+    void populate_sheet_body_choices(ComboBox* c) const;   // bodies where is_sheet_shape() is true
     // Import rigid 2D art (Text / SVG) as a new Sketch feature carrying
     // imported_regions (no solver entities). on_add_text/on_import_svg gather
     // input; add_imported_sketch builds the feature, refreshes tree + display.
@@ -239,6 +265,21 @@ private:
     wxSizer*  m_box_draft{nullptr};
     wxSizer*  m_box_boolean{nullptr};
     wxSizer*  m_box_cut{nullptr};
+    wxSizer*  m_box_axis{nullptr};
+    wxSizer*  m_box_coordsys{nullptr};
+    wxSizer*  m_box_surf_extrude{nullptr};
+    wxSizer*  m_box_surf_revolve{nullptr};
+    wxSizer*  m_box_surf_loft{nullptr};
+    wxSizer*  m_box_surf_fill{nullptr};
+    wxSizer*  m_box_surf_offset{nullptr};
+    wxSizer*  m_box_surf_thicken{nullptr};
+    wxSizer*  m_box_transform{nullptr};
+    wxSizer*  m_box_mirror{nullptr};
+    wxSizer*  m_box_thicken{nullptr};
+    wxSizer*  m_box_rib{nullptr};
+    wxSizer*  m_box_project{nullptr};
+    wxSizer*  m_box_delete_face{nullptr};
+    wxSizer*  m_box_helix{nullptr};
     wxSizer*  m_box_insert{nullptr};   // Confirm/Cancel card for placing Text/SVG art
     int       m_insert_feat{-1};       // provisional imported-art feature awaiting Confirm
     // Move-body gizmo runs through the unified action bar too: Confirm keeps the placement,
@@ -268,6 +309,21 @@ private:
     wxStaticText* m_hdr_draft{nullptr};
     wxStaticText* m_hdr_boolean{nullptr};
     wxStaticText* m_hdr_cut{nullptr};
+    wxStaticText* m_hdr_axis{nullptr};
+    wxStaticText* m_hdr_coordsys{nullptr};
+    wxStaticText* m_hdr_surf_extrude{nullptr};
+    wxStaticText* m_hdr_surf_revolve{nullptr};
+    wxStaticText* m_hdr_surf_loft{nullptr};
+    wxStaticText* m_hdr_surf_fill{nullptr};
+    wxStaticText* m_hdr_surf_offset{nullptr};
+    wxStaticText* m_hdr_surf_thicken{nullptr};
+    wxStaticText* m_hdr_transform{nullptr};
+    wxStaticText* m_hdr_mirror{nullptr};
+    wxStaticText* m_hdr_thicken{nullptr};
+    wxStaticText* m_hdr_rib{nullptr};
+    wxStaticText* m_hdr_project{nullptr};
+    wxStaticText* m_hdr_delete_face{nullptr};
+    wxStaticText* m_hdr_helix{nullptr};
     wxStaticText* m_hdr_insert{nullptr};
 
     wxScrolledWindow* m_form{nullptr};
@@ -341,6 +397,86 @@ private:
     ComboBox*         m_loft_mode{nullptr};        // New/Add/Cut/Intersect
     std::vector<int>  m_loft_sketch_idx;           // feature index for each row in m_loft_list
     std::vector<int>  m_loft_refs;                 // chosen profile refs (for re-edit pre-check)
+
+    // Surface Extrude controls (sheet from sketch profile).
+    wxStaticText*     m_surf_extrude_sketch_label{nullptr};
+    wxSpinCtrlDouble* m_surf_extrude_distance{nullptr};
+    int               m_surf_extrude_sketch_ref{-1};
+
+    // Surface Revolve controls (sheet from sketch about axis).
+    wxStaticText*     m_surf_revolve_sketch_label{nullptr};
+    wxSpinCtrlDouble* m_surf_revolve_angle{nullptr};
+    ComboBox*         m_surf_revolve_axis{nullptr};   // 0 = plane X, 1 = plane Y
+    CheckBox*         m_surf_revolve_flip{nullptr};
+    int               m_surf_revolve_sketch_ref{-1};
+
+    // Surface Loft controls (skin a sheet through 2+ ordered profile sketches).
+    wxCheckListBox*   m_surf_loft_list{nullptr};        // every Sketch; check 2+ in list order = profiles
+    CheckBox*         m_surf_loft_ruled{nullptr};       // ruled (straight) vs smooth sections
+    std::vector<int>  m_surf_loft_sketch_idx;           // feature index for each row
+    std::vector<int>  m_surf_loft_refs;                 // chosen profile refs (for re-edit pre-check)
+
+    // Surface Fill controls (one-face sheet from a sketch boundary).
+    wxStaticText*     m_surf_fill_sketch_label{nullptr};
+    int               m_surf_fill_sketch_ref{-1};
+
+    // Surface Offset controls (offset a SHEET body).
+    ComboBox*         m_surf_offset_body{nullptr};       // sheet-body picker
+    wxSpinCtrlDouble* m_surf_offset_distance{nullptr};
+
+    // Thicken Surface controls (thicken a SHEET body into a solid).
+    ComboBox*         m_surf_thicken_body{nullptr};      // sheet-body picker
+    wxSpinCtrlDouble* m_surf_thicken_thickness{nullptr};
+    CheckBox*         m_surf_thicken_flip{nullptr};
+
+    // Transform controls (rigid move/rotate of a body).
+    ComboBox*         m_xf_body{nullptr};            // body to transform
+    wxSpinCtrlDouble* m_xf_dx{nullptr};              // translate X
+    wxSpinCtrlDouble* m_xf_dy{nullptr};              // translate Y
+    wxSpinCtrlDouble* m_xf_dz{nullptr};              // translate Z
+    ComboBox*         m_xf_axis{nullptr};            // rotation axis: X/Y/Z
+    wxSpinCtrlDouble* m_xf_angle{nullptr};           // rotation angle (deg)
+    wxSpinCtrlDouble* m_xf_pivot_x{nullptr};         // pivot X
+    wxSpinCtrlDouble* m_xf_pivot_y{nullptr};         // pivot Y
+    wxSpinCtrlDouble* m_xf_pivot_z{nullptr};         // pivot Z
+    CheckBox*         m_xf_copy{nullptr};            // keep original (make a copy)
+
+    // Mirror controls (reflect a body about a plane).
+    ComboBox*         m_mirror_body{nullptr};        // body to mirror
+    ComboBox*         m_mirror_plane{nullptr};       // mirror plane (XY/XZ/YZ + datums)
+    CheckBox*         m_mirror_keep{nullptr};        // keep original body
+
+    // Thicken controls (offset one solid face into a thin plate).
+    ComboBox*         m_thicken_body{nullptr};       // source body
+    wxStaticText*     m_thicken_face_label{nullptr}; // picked face
+    wxSpinCtrlDouble* m_thicken_thickness{nullptr};
+    CheckBox*         m_thicken_flip{nullptr};       // flip direction
+
+    // Rib controls (thin wall from an open sketch line).
+    ComboBox*         m_rib_body{nullptr};           // target body
+    ComboBox*         m_rib_sketch{nullptr};         // sketch holding the open line (feature index in client data)
+    wxSpinCtrl*       m_rib_entity{nullptr};         // entity index within the sketch
+    wxSpinCtrlDouble* m_rib_thickness{nullptr};
+    wxSpinCtrlDouble* m_rib_depth{nullptr};
+
+    // Project controls (project body edges onto a plane as sketch entities).
+    ComboBox*         m_proj_source_body{nullptr};   // source body
+    wxStaticText*     m_proj_face_label{nullptr};    // picked face (or "all edges")
+    ComboBox*         m_proj_plane{nullptr};         // target plane
+
+    // Delete Face controls (remove faces, heal the solid).
+    ComboBox*         m_del_face_body{nullptr};      // target body
+    wxButton*         m_del_face_add_btn{nullptr};   // "Add picked face" button
+    wxStaticText*     m_del_face_list{nullptr};      // shows the accumulated face ids
+    std::vector<int>  m_del_faces;                   // accumulated face list
+
+    // Helix controls (helical curve).
+    ComboBox*         m_helix_plane{nullptr};        // axis plane (XY/XZ/YZ + datums)
+    wxSpinCtrlDouble* m_helix_radius{nullptr};
+    wxSpinCtrlDouble* m_helix_pitch{nullptr};
+    wxSpinCtrlDouble* m_helix_height{nullptr};
+    CheckBox*         m_helix_left_handed{nullptr};
+    wxSpinCtrlDouble* m_helix_taper{nullptr};
 
     // Pattern controls (replicate the target body: linear or circular).
     ComboBox*         m_pattern_type{nullptr};      // 0 = Linear, 1 = Circular
@@ -434,6 +570,28 @@ private:
     // Draft controls (taper a single picked solid face about the body bottom).
     wxSpinCtrlDouble* m_draft_angle{nullptr};
     wxStaticText*     m_draft_face_label{nullptr};   // shows the picked face to draft
+
+    // Axis controls (datum axis: line through two points or derived from geometry).
+    ComboBox*         m_axis_type{nullptr};          // AxisType: TwoPoints/FaceNormal/CylinderCenterline/PlaneIntersection/AlongEdge
+    wxButton*         m_axis_pick_face{nullptr};     wxStaticText* m_axis_face_lbl{nullptr};
+    wxButton*         m_axis_pick_edge{nullptr};     wxStaticText* m_axis_edge_lbl{nullptr};
+    ComboBox*         m_axis_plane_a{nullptr};
+    ComboBox*         m_axis_plane_b{nullptr};
+    wxSpinCtrlDouble* m_axis_p1x{nullptr};           wxSpinCtrlDouble* m_axis_p1y{nullptr};           wxSpinCtrlDouble* m_axis_p1z{nullptr};
+    wxSpinCtrlDouble* m_axis_p2x{nullptr};           wxSpinCtrlDouble* m_axis_p2y{nullptr};           wxSpinCtrlDouble* m_axis_p2z{nullptr};
+    int m_ax_face_body{-1}, m_ax_face{-1};
+    int m_ax_edge_body{-1}, m_ax_edge{-1};
+    AxisPick m_axis_pick{AxisPick::None};
+
+    // CoordSys controls (datum coordinate system: point + orthonormal frame).
+    ComboBox*         m_coordsys_type{nullptr};      // CoordSysType: PointWorld/FaceAndDirection
+    wxSpinCtrlDouble* m_cs_x{nullptr};               wxSpinCtrlDouble* m_cs_y{nullptr};               wxSpinCtrlDouble* m_cs_z{nullptr};
+    wxButton*         m_cs_pick_face{nullptr};       wxStaticText* m_cs_face_lbl{nullptr};
+    wxButton*         m_cs_pick_edge{nullptr};       wxStaticText* m_cs_edge_lbl{nullptr};
+    wxSpinCtrlDouble* m_cs_hx{nullptr};              wxSpinCtrlDouble* m_cs_hy{nullptr};              wxSpinCtrlDouble* m_cs_hz{nullptr};
+    int m_cs_face_body{-1}, m_cs_face{-1};
+    int m_cs_edge_body{-1}, m_cs_edge{-1};
+    CoordSysPick m_coordsys_pick{CoordSysPick::None};
 
     // Onshape-style docked value-entry card (Angle/Radius/Diameter/Offset/Fillet).
     wxSizer*          m_box_value{nullptr};

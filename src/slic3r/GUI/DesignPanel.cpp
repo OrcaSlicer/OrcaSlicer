@@ -552,6 +552,61 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_loft_refs.clear();   // fresh loft: nothing pre-checked
                 open_tool(Tool::Loft);
              }, SHIFT('L')},
+            {"design_extrude", _L("Thicken"), _L("Offset a solid face into a thin plate (new body)"),
+             [this] {
+                if (m_doc.bodies.empty()) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Thicken needs a solid body — add or import one first"));
+                    m_status->Refresh();
+                    return;
+                }
+                {
+                    m_thicken_body->Clear();
+                    for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                        const std::string& n = m_doc.bodies[i].name;
+                        m_thicken_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+                    }
+                    if (m_thicken_body->GetCount() > 0) m_thicken_body->SetSelection(0);
+                }
+                m_sel_solid_face = -1;
+                m_thicken_face_label->SetLabel(_L("(pick a solid face)"));
+                open_tool(Tool::Thicken);
+             }, 0},
+            {"design_extrude", _L("Rib"), _L("Grow a thin wall from an open sketch line, fused to a body"),
+             [this] {
+                if (m_doc.bodies.empty()) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Rib needs a solid body — add or import one first"));
+                    m_status->Refresh();
+                    return;
+                }
+                {
+                    m_rib_body->Clear();
+                    for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                        const std::string& n = m_doc.bodies[i].name;
+                        m_rib_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+                    }
+                    if (m_rib_body->GetCount() > 0) m_rib_body->SetSelection(0);
+                }
+                {
+                    m_rib_sketch->Clear();
+                    for (int i = 0; i < int(m_doc.features.size()); ++i) {
+                        // 3-arg Append: ComboBox's own Append(text, bitmap) hides
+                        // wxItemContainer's (text, void*) — see the Sweep picker.
+                        if (m_doc.features[i].type == CadFeatureType::Sketch)
+                            m_rib_sketch->Append(wxString::FromUTF8(m_doc.features[i].name), wxNullBitmap,
+                                                 reinterpret_cast<void*>(intptr_t(i)));
+                    }
+                    if (m_rib_sketch->GetCount() > 0) m_rib_sketch->SetSelection(0);
+                    else {
+                        m_status->SetForegroundColour(wxColour(235, 110, 110));
+                        m_status->SetLabel(_L("Create a sketch with an open line first"));
+                        m_status->Refresh();
+                        return;
+                    }
+                }
+                open_tool(Tool::Rib);
+             }, 0},
         });
 
         auto* b_pattern = icon_btn("design_pattern", _L("Pattern"));
@@ -569,15 +624,104 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_keys_feature[SHIFT('N')] = act_pattern;
         fadd("pattern", b_pattern);
 
-        auto* b_plane = icon_btn("design_plane", _L("Plane"));
-        std::function<void()> act_plane = [this] {
-            populate_plane_choices(m_plane_base);   // refresh base list w/ existing datum planes
-            reset_plane_refs();                     // fresh datum: no captured face/edge refs
-            open_tool(Tool::Plane);
-        };
-        b_plane->Bind(wxEVT_BUTTON, [act_plane](wxCommandEvent&) { act_plane(); });
-        m_keys_feature[SHIFT('P')] = act_plane;
-        fadd("plane", b_plane);
+        // Surface: sheet-body tools (extrude / revolve / loft / fill / offset / thicken)
+        feat_dropdown("surface", "design_extrude", _L("Surface (extrude / revolve / loft / fill / offset / thicken)"), {
+            {"design_extrude", _L("Surface Extrude"), _L("Extrude a sketch into a sheet body (no end caps)"),
+             [this] {
+                m_surf_extrude_sketch_ref = resolve_extrude_sketch();
+                if (m_surf_extrude_sketch_ref < 0) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Create a sketch first"));
+                    m_status->Refresh();
+                    return;
+                }
+                open_tool(Tool::SurfaceExtrude);
+             }, SHIFT('G')},
+            {"design_extrude", _L("Surface Revolve"), _L("Revolve a sketch profile into a sheet body"),
+             [this] {
+                m_surf_revolve_sketch_ref = resolve_extrude_sketch();
+                if (m_surf_revolve_sketch_ref < 0) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Create a sketch profile to revolve first"));
+                    m_status->Refresh();
+                    return;
+                }
+                open_tool(Tool::SurfaceRevolve);
+             }, SHIFT('J')},
+            {"design_loft", _L("Surface Loft"), _L("Loft (skin) between 2+ profiles, open (no end caps)"),
+             [this] {
+                int n = 0;
+                for (const auto& f : m_doc.features)
+                    if (f.type == CadFeatureType::Sketch) ++n;
+                if (n < 2) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Create at least two profile sketches to loft"));
+                    m_status->Refresh();
+                    return;
+                }
+                m_surf_loft_refs.clear();
+                open_tool(Tool::SurfaceLoft);
+             }, SHIFT('O')},
+            {"design_extrude", _L("Surface Fill"), _L("Fill a sketch boundary with a smooth face"),
+             [this] {
+                m_surf_fill_sketch_ref = resolve_extrude_sketch();
+                if (m_surf_fill_sketch_ref < 0) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Create a sketch profile to fill first"));
+                    m_status->Refresh();
+                    return;
+                }
+                open_tool(Tool::SurfaceFill);
+             }, SHIFT('Q')},
+            {"design_extrude", _L("Surface Offset"), _L("Offset a sheet body's shell by a signed distance"),
+             [this] {
+                populate_sheet_body_choices(m_surf_offset_body);
+                if (m_surf_offset_body->GetCount() == 0) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("No sheet body to offset — create a surface feature first"));
+                    m_status->Refresh();
+                    return;
+                }
+                open_tool(Tool::SurfaceOffset);
+             }, SHIFT('U')},
+            {"design_extrude", _L("Thicken Surface"), _L("Thicken a sheet body into a solid"),
+             [this] {
+                populate_sheet_body_choices(m_surf_thicken_body);
+                if (m_surf_thicken_body->GetCount() == 0) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("No sheet body to thicken — create a surface feature first"));
+                    m_status->Refresh();
+                    return;
+                }
+                open_tool(Tool::ThickenSurface);
+             }, SHIFT('V')},
+        });
+
+        feat_dropdown("plane", "design_plane", _L("Datum / Curve (plane / axis / coord sys / helix)"), {
+            {"design_plane", _L("Plane"), _L("Reference plane (offset / tilt / midplane / tangent / two edges / coincident)"),
+             [this] {
+                 populate_plane_choices(m_plane_base);
+                 reset_plane_refs();
+                 open_tool(Tool::Plane);
+             }, SHIFT('P')},
+            {"design_plane", _L("Axis"), _L("Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"),
+             [this] {
+                 populate_plane_choices(m_axis_plane_a);
+                 populate_plane_choices(m_axis_plane_b);
+                 reset_axis_refs();
+                 open_tool(Tool::Axis);
+             }, SHIFT('A')},
+            {"design_plane", _L("Coord Sys"), _L("Datum coordinate system (world point, or face + direction edge)"),
+             [this] {
+                 reset_coordsys_refs();
+                 open_tool(Tool::CoordSys);
+             }, SHIFT('C')},
+            {"design_thread", _L("Helix"), _L("Helical curve (spring path) — use as a sweep path for coils / springs / augers"),
+             [this] {
+                 populate_plane_choices(m_helix_plane);
+                 open_tool(Tool::Helix);
+             }, 0},
+        });
 
         auto* b_boolean = icon_btn("design_boolean", _L("Boolean (combine bodies)"));
         std::function<void()> act_boolean = [this] {
@@ -617,14 +761,92 @@ DesignPanel::DesignPanel(wxWindow* parent)
         b_color->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_set_body_color(); });
         fadd("color", b_color);
 
-        // Dress-up: Fillet/Chamfer / Draft / Shell
-        feat_dropdown("dressup", "design_dressup", _L("Dress-up (fillet / chamfer / draft / shell)"), {
+        // Dress-up: Fillet/Chamfer / Draft / Shell / Transform / Mirror / Project / Delete Face
+        feat_dropdown("dressup", "design_dressup", _L("Dress-up (fillet / chamfer / draft / shell / transform / mirror / project / delete)"), {
             {"design_dressup", _L("Fillet / Chamfer"), _L("Round or bevel a picked edge"),
              [this] { open_tool(Tool::Dressup); }, SHIFT('F')},
             {"design_draft", _L("Draft (taper a face)"), _L("Tilt a picked face by a draft angle"),
              [this] { open_tool(Tool::Draft); }, SHIFT('D')},
             {"design_shell", _L("Shell"), _L("Hollow the body to a wall thickness, opening a picked face"),
              [this] { open_tool(Tool::Shell); }, SHIFT('K')},
+            {"design_move", _L("Transform"), _L("Move and/or rotate an existing body"),
+             [this] {
+                if (m_doc.bodies.empty()) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Transform needs a body — add or import one first"));
+                    m_status->Refresh();
+                    return;
+                }
+                {
+                    m_xf_body->Clear();
+                    for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                        const std::string& n = m_doc.bodies[i].name;
+                        m_xf_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+                    }
+                    if (m_xf_body->GetCount() > 0) m_xf_body->SetSelection(0);
+                }
+                open_tool(Tool::Transform);
+             }, SHIFT('Y')},
+            {"design_mirror", _L("Mirror"), _L("Reflect a body about a plane"),
+             [this] {
+                if (m_doc.bodies.empty()) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Mirror needs a body — add or import one first"));
+                    m_status->Refresh();
+                    return;
+                }
+                {
+                    m_mirror_body->Clear();
+                    for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                        const std::string& n = m_doc.bodies[i].name;
+                        m_mirror_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+                    }
+                    if (m_mirror_body->GetCount() > 0) m_mirror_body->SetSelection(0);
+                }
+                populate_plane_choices(m_mirror_plane);
+                open_tool(Tool::Mirror);
+             }, SHIFT('Z')},
+            {"design_sketch", _L("Project"), _L("Project body edges onto a plane as sketch entities"),
+             [this] {
+                if (m_doc.bodies.empty()) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Project needs a body — add or import one first"));
+                    m_status->Refresh();
+                    return;
+                }
+                {
+                    m_proj_source_body->Clear();
+                    for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                        const std::string& n = m_doc.bodies[i].name;
+                        m_proj_source_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+                    }
+                    if (m_proj_source_body->GetCount() > 0) m_proj_source_body->SetSelection(0);
+                }
+                populate_plane_choices(m_proj_plane);
+                m_sel_solid_face = -1;
+                m_proj_face_label->SetLabel(_L("(all edges)"));
+                open_tool(Tool::Project);
+             }, 0},
+            {"design_dressup", _L("Delete Face"), _L("Remove faces from a body and heal the solid"),
+             [this] {
+                if (m_doc.bodies.empty()) {
+                    m_status->SetForegroundColour(wxColour(235, 110, 110));
+                    m_status->SetLabel(_L("Delete Face needs a body — add or import one first"));
+                    m_status->Refresh();
+                    return;
+                }
+                {
+                    m_del_face_body->Clear();
+                    for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                        const std::string& n = m_doc.bodies[i].name;
+                        m_del_face_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+                    }
+                    if (m_del_face_body->GetCount() > 0) m_del_face_body->SetSelection(0);
+                }
+                m_del_faces.clear();
+                m_del_face_list->SetLabel(_L("(none)"));
+                open_tool(Tool::DeleteFace);
+             }, 0},
         });
 
         // Hole / Thread — drilling into a solid (both face-aware)
@@ -1048,9 +1270,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         put("sketch");    put("constrain");            // 7, 7bis
         add_sep(m_tb_feature);
         put("material");  put("place");   put("plane"); // 8, 9, 10
-        put("dressup");   put("section");               // 11, 11bis
+        put("dressup");   put("section");                // 11, 11bis
         put("hole");      put("boolean"); put("cut");   // 12, 13, 14
-        put("color");     put("flip");                  // 15, 16
+        put("surface");   put("color");   put("flip");  // 14bis, 15, 16
         put("pattern");                                 // kept, at the end
     }
 
@@ -1662,6 +1884,121 @@ DesignPanel::DesignPanel(wxWindow* parent)
     }
     cards->Add(m_box_loft, 0, wxEXPAND);
 
+    // --- Surface Extrude (sheet body from sketch) ---
+    m_box_surf_extrude = new wxBoxSizer(wxVERTICAL);
+    m_box_surf_extrude->Add(card_header(m_cards, "design_extrude", _L("Surface Extrude"), m_hdr_surf_extrude), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_surf_extrude->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    m_surf_extrude_sketch_label = new wxStaticText(m_cards, wxID_ANY, _L("Sketch: —"));
+    m_box_surf_extrude->Add(m_surf_extrude_sketch_label, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    {
+        auto* sform = two_col_form();
+        m_surf_extrude_distance = make_spin(m_cards, 10);
+        sform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Distance")), 0, wxALIGN_CENTER_VERTICAL);
+        sform->Add(spin_frame(m_surf_extrude_distance), 0, wxEXPAND);
+        m_box_surf_extrude->Add(sform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+    }
+    cards->Add(m_box_surf_extrude, 0, wxEXPAND);
+
+    // --- Surface Revolve (sheet body from sketch about axis) ---
+    m_box_surf_revolve = new wxBoxSizer(wxVERTICAL);
+    m_box_surf_revolve->Add(card_header(m_cards, "design_extrude", _L("Surface Revolve"), m_hdr_surf_revolve), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_surf_revolve->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    m_surf_revolve_sketch_label = new wxStaticText(m_cards, wxID_ANY, _L("Sketch: —"));
+    m_box_surf_revolve->Add(m_surf_revolve_sketch_label, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    {
+        auto* rform = two_col_form();
+        m_surf_revolve_angle = make_spin(m_cards, 360.0, 1.0, 360.0);
+        rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Angle °")), 0, wxALIGN_CENTER_VERTICAL);
+        rform->Add(spin_frame(m_surf_revolve_angle), 0, wxEXPAND);
+        m_surf_revolve_axis = make_combo(m_cards);
+        m_surf_revolve_axis->Append(_L("Plane X"));
+        m_surf_revolve_axis->Append(_L("Plane Y"));
+        m_surf_revolve_axis->SetSelection(0);
+        rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Axis")), 0, wxALIGN_CENTER_VERTICAL);
+        rform->Add(m_surf_revolve_axis, 0, wxEXPAND);
+        m_surf_revolve_flip = new CheckBox(m_cards);
+        rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Flip direction")), 0, wxALIGN_CENTER_VERTICAL);
+        rform->Add(m_surf_revolve_flip, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+        m_box_surf_revolve->Add(rform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+    }
+    cards->Add(m_box_surf_revolve, 0, wxEXPAND);
+
+    // --- Surface Loft (sheet skin through 2+ ordered profile sketches) ---
+    m_box_surf_loft = new wxBoxSizer(wxVERTICAL);
+    m_box_surf_loft->Add(card_header(m_cards, "design_loft", _L("Surface Loft"), m_hdr_surf_loft), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_surf_loft->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    m_box_surf_loft->Add(new wxStaticText(m_cards, wxID_ANY, _L("Profiles (check 2+, in order):")),
+                         0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_surf_loft_list = new wxCheckListBox(m_cards, wxID_ANY, wxDefaultPosition, wxSize(-1, 120));
+    m_surf_loft_list->Bind(wxEVT_CHECKLISTBOX, [this](wxCommandEvent&) { refresh_preview(); });
+    m_box_surf_loft->Add(m_surf_loft_list, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+    m_surf_loft_ruled = new CheckBox(m_cards);
+    {
+        auto* lrow = new wxBoxSizer(wxHORIZONTAL);
+        lrow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Ruled (straight) sections")), 0, wxALIGN_CENTER_VERTICAL);
+        lrow->AddStretchSpacer();
+        lrow->Add(m_surf_loft_ruled, 0, wxALIGN_CENTER_VERTICAL);
+        m_box_surf_loft->Add(lrow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+    }
+    cards->Add(m_box_surf_loft, 0, wxEXPAND);
+
+    // --- Surface Fill (one-face sheet from sketch boundary) ---
+    m_box_surf_fill = new wxBoxSizer(wxVERTICAL);
+    m_box_surf_fill->Add(card_header(m_cards, "design_extrude", _L("Surface Fill"), m_hdr_surf_fill), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_surf_fill->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    m_surf_fill_sketch_label = new wxStaticText(m_cards, wxID_ANY, _L("Sketch: —"));
+    m_box_surf_fill->Add(m_surf_fill_sketch_label, 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_surf_fill->Add(new wxStaticText(m_cards, wxID_ANY,
+                          _L("Fills the sketch's closed boundary with a smooth face.")),
+                         0, wxLEFT | wxRIGHT, 12);
+    cards->Add(m_box_surf_fill, 0, wxEXPAND);
+
+    // --- Surface Offset (offset a sheet body) ---
+    m_box_surf_offset = new wxBoxSizer(wxVERTICAL);
+    m_box_surf_offset->Add(card_header(m_cards, "design_extrude", _L("Surface Offset"), m_hdr_surf_offset), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_surf_offset->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    {
+        auto* oform = two_col_form();
+        m_surf_offset_body = make_combo(m_cards);
+        m_surf_offset_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+        oform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Sheet body")), 0, wxALIGN_CENTER_VERTICAL);
+        oform->Add(m_surf_offset_body, 0, wxEXPAND);
+        m_surf_offset_distance = make_spin(m_cards, 1.0, -100000.0, 100000.0);
+        m_surf_offset_distance->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        oform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Offset")), 0, wxALIGN_CENTER_VERTICAL);
+        oform->Add(spin_frame(m_surf_offset_distance), 0, wxEXPAND);
+        m_box_surf_offset->Add(oform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_surf_offset->Add(new wxStaticText(m_cards, wxID_ANY,
+                                  _L("Offsets a sheet body's shell. Positive = outward, negative = inward.")),
+                               0, wxLEFT | wxRIGHT, 12);
+    }
+    cards->Add(m_box_surf_offset, 0, wxEXPAND);
+
+    // --- Thicken Surface (thicken a sheet body into a solid) ---
+    m_box_surf_thicken = new wxBoxSizer(wxVERTICAL);
+    m_box_surf_thicken->Add(card_header(m_cards, "design_extrude", _L("Thicken Surface"), m_hdr_surf_thicken), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_surf_thicken->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    {
+        auto* tform = two_col_form();
+        m_surf_thicken_body = make_combo(m_cards);
+        m_surf_thicken_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+        tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Sheet body")), 0, wxALIGN_CENTER_VERTICAL);
+        tform->Add(m_surf_thicken_body, 0, wxEXPAND);
+        m_surf_thicken_thickness = make_spin(m_cards, 1.0, 0.01, 100000.0);
+        m_surf_thicken_thickness->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Thickness")), 0, wxALIGN_CENTER_VERTICAL);
+        tform->Add(spin_frame(m_surf_thicken_thickness), 0, wxEXPAND);
+        m_surf_thicken_flip = new CheckBox(m_cards);
+        m_surf_thicken_flip->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { refresh_preview(); });
+        tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Flip direction")), 0, wxALIGN_CENTER_VERTICAL);
+        tform->Add(m_surf_thicken_flip, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+        m_box_surf_thicken->Add(tform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_surf_thicken->Add(new wxStaticText(m_cards, wxID_ANY,
+                                  _L("Thickens a sheet body into a solid. Flip reverses the direction.")),
+                               0, wxLEFT | wxRIGHT, 12);
+    }
+    cards->Add(m_box_surf_thicken, 0, wxEXPAND);
+
     // --- Shell (hollow the current body to a wall thickness, removing one picked face) ---
     auto* sform = two_col_form();
     m_shell_thickness = make_spin(m_cards, 2.0, 0.01, 100000.0);
@@ -1697,6 +2034,384 @@ DesignPanel::DesignPanel(wxWindow* parent)
                      0, wxLEFT | wxRIGHT, 12);
     m_box_draft->Add(drform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
     cards->Add(m_box_draft, 0, wxEXPAND);
+
+    // --- Transform (rigid move/rotate of an existing body) ---
+    m_box_transform = new wxBoxSizer(wxVERTICAL);
+    m_box_transform->Add(card_header(m_cards, "design_move", _L("Transform"), m_hdr_transform), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_transform->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    {
+        auto* xform = two_col_form();
+        m_xf_body = make_combo(m_cards);
+        m_xf_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+        xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Body")), 0, wxALIGN_CENTER_VERTICAL);
+        xform->Add(m_xf_body, 0, wxEXPAND);
+        m_xf_dx = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        m_xf_dx->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Translate X")), 0, wxALIGN_CENTER_VERTICAL);
+        xform->Add(spin_frame(m_xf_dx), 0, wxEXPAND);
+        m_xf_dy = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        m_xf_dy->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Translate Y")), 0, wxALIGN_CENTER_VERTICAL);
+        xform->Add(spin_frame(m_xf_dy), 0, wxEXPAND);
+        m_xf_dz = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        m_xf_dz->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Translate Z")), 0, wxALIGN_CENTER_VERTICAL);
+        xform->Add(spin_frame(m_xf_dz), 0, wxEXPAND);
+        m_xf_axis = make_combo(m_cards);
+        m_xf_axis->Append(_L("X"));
+        m_xf_axis->Append(_L("Y"));
+        m_xf_axis->Append(_L("Z"));
+        m_xf_axis->SetSelection(2);  // default Z
+        m_xf_axis->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+        xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Rotate axis")), 0, wxALIGN_CENTER_VERTICAL);
+        xform->Add(m_xf_axis, 0, wxEXPAND);
+        m_xf_angle = make_spin(m_cards, 0.0, -360.0, 360.0);
+        m_xf_angle->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Angle (°)")), 0, wxALIGN_CENTER_VERTICAL);
+        xform->Add(spin_frame(m_xf_angle), 0, wxEXPAND);
+        m_xf_pivot_x = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        m_xf_pivot_x->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Pivot X")), 0, wxALIGN_CENTER_VERTICAL);
+        xform->Add(spin_frame(m_xf_pivot_x), 0, wxEXPAND);
+        m_xf_pivot_y = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        m_xf_pivot_y->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Pivot Y")), 0, wxALIGN_CENTER_VERTICAL);
+        xform->Add(spin_frame(m_xf_pivot_y), 0, wxEXPAND);
+        m_xf_pivot_z = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        m_xf_pivot_z->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        xform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Pivot Z")), 0, wxALIGN_CENTER_VERTICAL);
+        xform->Add(spin_frame(m_xf_pivot_z), 0, wxEXPAND);
+        m_box_transform->Add(xform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        m_xf_copy = new CheckBox(m_cards);
+        m_xf_copy->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { refresh_preview(); });
+        auto* cpro = new wxBoxSizer(wxHORIZONTAL);
+        cpro->Add(new wxStaticText(m_cards, wxID_ANY, _L("Keep original (make a copy)")), 0, wxALIGN_CENTER_VERTICAL);
+        cpro->AddStretchSpacer();
+        cpro->Add(m_xf_copy, 0, wxALIGN_CENTER_VERTICAL);
+        m_box_transform->Add(cpro, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_transform->Add(new wxStaticText(m_cards, wxID_ANY,
+                               _L("Translate and/or rotate the selected body. Rotation is applied about the pivot, then translation follows.")),
+                            0, wxLEFT | wxRIGHT, 12);
+    }
+    cards->Add(m_box_transform, 0, wxEXPAND);
+
+    // --- Mirror (reflect a body about a plane) ---
+    m_box_mirror = new wxBoxSizer(wxVERTICAL);
+    m_box_mirror->Add(card_header(m_cards, "design_mirror", _L("Mirror"), m_hdr_mirror), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_mirror->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    {
+        auto* mform = two_col_form();
+        m_mirror_body = make_combo(m_cards);
+        m_mirror_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+        mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Body")), 0, wxALIGN_CENTER_VERTICAL);
+        mform->Add(m_mirror_body, 0, wxEXPAND);
+        m_mirror_plane = make_combo(m_cards);
+        m_mirror_plane->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+        mform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Mirror plane")), 0, wxALIGN_CENTER_VERTICAL);
+        mform->Add(m_mirror_plane, 0, wxEXPAND);
+        m_box_mirror->Add(mform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        m_mirror_keep = new CheckBox(m_cards);
+        m_mirror_keep->SetValue(true);
+        m_mirror_keep->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { refresh_preview(); });
+        auto* mkrow = new wxBoxSizer(wxHORIZONTAL);
+        mkrow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Keep original")), 0, wxALIGN_CENTER_VERTICAL);
+        mkrow->AddStretchSpacer();
+        mkrow->Add(m_mirror_keep, 0, wxALIGN_CENTER_VERTICAL);
+        m_box_mirror->Add(mkrow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_mirror->Add(new wxStaticText(m_cards, wxID_ANY,
+                            _L("Reflect the selected body about a plane. The mirror is always a new body; keeping the original gives you both.")),
+                         0, wxLEFT | wxRIGHT, 12);
+    }
+    cards->Add(m_box_mirror, 0, wxEXPAND);
+
+    // --- Thicken (offset one solid face into a thin plate) ---
+    m_box_thicken = new wxBoxSizer(wxVERTICAL);
+    m_box_thicken->Add(card_header(m_cards, "design_extrude", _L("Thicken"), m_hdr_thicken), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_thicken->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    {
+        auto* tform = two_col_form();
+        m_thicken_body = make_combo(m_cards);
+        m_thicken_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+        tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Body")), 0, wxALIGN_CENTER_VERTICAL);
+        tform->Add(m_thicken_body, 0, wxEXPAND);
+        m_thicken_face_label = new wxStaticText(m_cards, wxID_ANY, _L("(pick a solid face)"));
+        tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Face")), 0, wxALIGN_CENTER_VERTICAL);
+        tform->Add(m_thicken_face_label, 0, wxALIGN_CENTER_VERTICAL);
+        m_thicken_thickness = make_spin(m_cards, 2.0, 0.01, 100000.0);
+        m_thicken_thickness->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Thickness")), 0, wxALIGN_CENTER_VERTICAL);
+        tform->Add(spin_frame(m_thicken_thickness), 0, wxEXPAND);
+        m_box_thicken->Add(tform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        m_thicken_flip = new CheckBox(m_cards);
+        m_thicken_flip->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { refresh_preview(); });
+        auto* trow = new wxBoxSizer(wxHORIZONTAL);
+        trow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Flip direction")), 0, wxALIGN_CENTER_VERTICAL);
+        trow->AddStretchSpacer();
+        trow->Add(m_thicken_flip, 0, wxALIGN_CENTER_VERTICAL);
+        m_box_thicken->Add(trow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_thicken->Add(new wxStaticText(m_cards, wxID_ANY,
+                              _L("Pick a solid face and offset it into a new thin body. Not for sheet bodies — use Thicken Surface for those.")),
+                           0, wxLEFT | wxRIGHT, 12);
+    }
+    cards->Add(m_box_thicken, 0, wxEXPAND);
+
+    // --- Rib (thin wall from an open sketch line, fused to a body) ---
+    m_box_rib = new wxBoxSizer(wxVERTICAL);
+    m_box_rib->Add(card_header(m_cards, "design_extrude", _L("Rib"), m_hdr_rib), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_rib->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    {
+        auto* rform = two_col_form();
+        m_rib_body = make_combo(m_cards);
+        m_rib_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+        rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Target body")), 0, wxALIGN_CENTER_VERTICAL);
+        rform->Add(m_rib_body, 0, wxEXPAND);
+        m_rib_sketch = make_combo(m_cards);
+        m_rib_sketch->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+        rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Sketch")), 0, wxALIGN_CENTER_VERTICAL);
+        rform->Add(m_rib_sketch, 0, wxEXPAND);
+        m_rib_entity = new wxSpinCtrl(m_cards, wxID_ANY, "", wxDefaultPosition, wxSize(90, -1),
+                                      wxSP_ARROW_KEYS | wxBORDER_SIMPLE);
+        m_rib_entity->SetRange(0, 999);
+        m_rib_entity->SetValue(0);
+        m_rib_entity->Bind(wxEVT_SPINCTRL, [this](wxSpinEvent&) { refresh_preview(); });
+        rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Entity index")), 0, wxALIGN_CENTER_VERTICAL);
+        rform->Add(m_rib_entity, 0, wxEXPAND);
+        m_rib_thickness = make_spin(m_cards, 2.0, 0.01, 100000.0);
+        m_rib_thickness->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Thickness")), 0, wxALIGN_CENTER_VERTICAL);
+        rform->Add(spin_frame(m_rib_thickness), 0, wxEXPAND);
+        m_rib_depth = make_spin(m_cards, 10.0, 0.01, 100000.0);
+        m_rib_depth->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        rform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Depth")), 0, wxALIGN_CENTER_VERTICAL);
+        rform->Add(spin_frame(m_rib_depth), 0, wxEXPAND);
+        m_box_rib->Add(rform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_rib->Add(new wxStaticText(m_cards, wxID_ANY,
+                          _L("Grow a thin wall from an open sketch Line entity, fused to the target body. Entity index is the position of the open Line in the sketch.")),
+                       0, wxLEFT | wxRIGHT, 12);
+    }
+    cards->Add(m_box_rib, 0, wxEXPAND);
+
+    // --- Project (project body edges onto a plane as sketch entities) ---
+    m_box_project = new wxBoxSizer(wxVERTICAL);
+    m_box_project->Add(card_header(m_cards, "design_sketch", _L("Project"), m_hdr_project), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_project->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    {
+        auto* pform = two_col_form();
+        m_proj_source_body = make_combo(m_cards);
+        m_proj_source_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+        pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Source body")), 0, wxALIGN_CENTER_VERTICAL);
+        pform->Add(m_proj_source_body, 0, wxEXPAND);
+        m_proj_face_label = new wxStaticText(m_cards, wxID_ANY, _L("(all edges)"));
+        pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Face")), 0, wxALIGN_CENTER_VERTICAL);
+        pform->Add(m_proj_face_label, 0, wxALIGN_CENTER_VERTICAL);
+        m_proj_plane = make_combo(m_cards);
+        populate_plane_choices(m_proj_plane);
+        m_proj_plane->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+        pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Target plane")), 0, wxALIGN_CENTER_VERTICAL);
+        pform->Add(m_proj_plane, 0, wxEXPAND);
+        m_box_project->Add(pform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_project->Add(new wxStaticText(m_cards, wxID_ANY,
+                              _L("Project the edges of a body onto a plane as sketch entities. Pick a face to project only its edges, or leave the face empty to project the whole body.")),
+                           0, wxLEFT | wxRIGHT, 12);
+    }
+    cards->Add(m_box_project, 0, wxEXPAND);
+
+    // --- Delete Face (remove faces, heal the solid) ---
+    m_box_delete_face = new wxBoxSizer(wxVERTICAL);
+    m_box_delete_face->Add(card_header(m_cards, "design_dressup", _L("Delete Face"), m_hdr_delete_face), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_delete_face->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    {
+        auto* dform = two_col_form();
+        m_del_face_body = make_combo(m_cards);
+        m_del_face_body->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+        dform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Body")), 0, wxALIGN_CENTER_VERTICAL);
+        dform->Add(m_del_face_body, 0, wxEXPAND);
+        m_del_face_add_btn = new wxButton(m_cards, wxID_ANY, _L("Add picked face"));
+        m_del_face_add_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+            if (m_sel_solid_face >= 0) {
+                m_del_faces.push_back(m_sel_solid_face);
+                wxString s;
+                for (size_t i = 0; i < m_del_faces.size(); ++i) {
+                    if (i > 0) s += ", ";
+                    s += wxString::Format("Face %d", m_del_faces[i]);
+                }
+                m_del_face_list->SetLabel(s.empty() ? _L("(none)") : s);
+                m_del_face_list->GetParent()->Layout();
+                m_del_face_list->Refresh();
+                refresh_preview();
+            }
+        });
+        dform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Faces to delete")), 0, wxALIGN_CENTER_VERTICAL);
+        dform->Add(m_del_face_add_btn, 0, wxALIGN_CENTER_VERTICAL);
+        m_del_face_list = new wxStaticText(m_cards, wxID_ANY, _L("(none)"));
+        dform->Add(0, 0);
+        dform->Add(m_del_face_list, 0, wxALIGN_CENTER_VERTICAL);
+        m_box_delete_face->Add(dform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_delete_face->Add(new wxStaticText(m_cards, wxID_ANY,
+                                  _L("Pick a solid face, then click 'Add picked face' to accumulate faces. Confirm to remove all listed faces and heal the solid.")),
+                               0, wxLEFT | wxRIGHT, 12);
+    }
+    cards->Add(m_box_delete_face, 0, wxEXPAND);
+
+    // --- Helix (helical curve) ---
+    m_box_helix = new wxBoxSizer(wxVERTICAL);
+    m_box_helix->Add(card_header(m_cards, "design_thread", _L("Helix"), m_hdr_helix), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_helix->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    {
+        auto* hform = two_col_form();
+        m_helix_plane = make_combo(m_cards);
+        populate_plane_choices(m_helix_plane);
+        m_helix_plane->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) { refresh_preview(); });
+        hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Plane")), 0, wxALIGN_CENTER_VERTICAL);
+        hform->Add(m_helix_plane, 0, wxEXPAND);
+        m_helix_radius = make_spin(m_cards, 10.0, 0.01, 10000.0);
+        m_helix_radius->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Radius")), 0, wxALIGN_CENTER_VERTICAL);
+        hform->Add(spin_frame(m_helix_radius), 0, wxEXPAND);
+        m_helix_pitch = make_spin(m_cards, 5.0, 0.01, 10000.0);
+        m_helix_pitch->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Pitch")), 0, wxALIGN_CENTER_VERTICAL);
+        hform->Add(spin_frame(m_helix_pitch), 0, wxEXPAND);
+        m_helix_height = make_spin(m_cards, 20.0, 0.01, 10000.0);
+        m_helix_height->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Height")), 0, wxALIGN_CENTER_VERTICAL);
+        hform->Add(spin_frame(m_helix_height), 0, wxEXPAND);
+        m_box_helix->Add(hform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        m_helix_left_handed = new CheckBox(m_cards);
+        m_helix_left_handed->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { refresh_preview(); });
+        auto* hrow = new wxBoxSizer(wxHORIZONTAL);
+        hrow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Left-handed")), 0, wxALIGN_CENTER_VERTICAL);
+        hrow->AddStretchSpacer();
+        hrow->Add(m_helix_left_handed, 0, wxALIGN_CENTER_VERTICAL);
+        m_box_helix->Add(hrow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        m_helix_taper = make_spin(m_cards, 0.0, -89.0, 89.0);
+        m_helix_taper->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { refresh_preview(); });
+        auto* tvalform = two_col_form();
+        tvalform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Taper (°)")), 0, wxALIGN_CENTER_VERTICAL);
+        tvalform->Add(spin_frame(m_helix_taper), 0, wxEXPAND);
+        m_box_helix->Add(tvalform, 0, wxEXPAND | wxLEFT | wxRIGHT, 12);
+        m_box_helix->Add(new wxStaticText(m_cards, wxID_ANY,
+                            _L("A helical curve (spring path). Use as a sweep path to build springs, coils, or augers.")),
+                         0, wxLEFT | wxRIGHT, 12);
+    }
+    cards->Add(m_box_helix, 0, wxEXPAND);
+
+    // --- Axis (datum axis: line through two points or derived from geometry) ---
+    m_box_axis = new wxBoxSizer(wxVERTICAL);
+    m_box_axis->Add(card_header(m_cards, "design_plane", _L("Axis"), m_hdr_axis), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_axis->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    {
+        m_axis_type = make_combo(m_cards);
+        for (const wxString& t : { _L("Two points"), _L("Face normal"), _L("Cylinder centerline"),
+                                   _L("Plane intersection"), _L("Along edge") })
+            m_axis_type->Append(t);
+        m_axis_type->SetSelection(0);
+        m_box_axis->Add(new wxStaticText(m_cards, wxID_ANY, _L("Axis type")), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_axis->Add(m_axis_type, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+
+        auto* axform = two_col_form();
+
+        auto ax_pick = [&](const wxString& label, wxButton*& btn, wxStaticText*& lbl, AxisPick target) {
+            btn = new wxButton(m_cards, wxID_ANY, label);
+            lbl = new wxStaticText(m_cards, wxID_ANY, _L("(none)"));
+            btn->Bind(wxEVT_BUTTON, [this, target](wxCommandEvent&) { arm_axis_pick(target); });
+            axform->Add(btn);
+            axform->Add(lbl, 0, wxALIGN_CENTER_VERTICAL);
+        };
+        ax_pick(_L("Pick Face"),  m_axis_pick_face, m_axis_face_lbl, AxisPick::Face);
+        ax_pick(_L("Pick Edge"),  m_axis_pick_edge, m_axis_edge_lbl, AxisPick::Edge);
+
+        m_axis_plane_a = make_combo(m_cards);
+        populate_plane_choices(m_axis_plane_a);
+        axform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Plane A")), 0, wxALIGN_CENTER_VERTICAL);
+        axform->Add(m_axis_plane_a, 0, wxEXPAND);
+        m_axis_plane_b = make_combo(m_cards);
+        populate_plane_choices(m_axis_plane_b);
+        axform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Plane B")), 0, wxALIGN_CENTER_VERTICAL);
+        axform->Add(m_axis_plane_b, 0, wxEXPAND);
+
+        m_axis_p1x = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        m_axis_p1y = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        m_axis_p1z = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        axform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Point 1 X")), 0, wxALIGN_CENTER_VERTICAL);
+        axform->Add(spin_frame(m_axis_p1x), 0, wxEXPAND);
+        axform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Point 1 Y")), 0, wxALIGN_CENTER_VERTICAL);
+        axform->Add(spin_frame(m_axis_p1y), 0, wxEXPAND);
+        axform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Point 1 Z")), 0, wxALIGN_CENTER_VERTICAL);
+        axform->Add(spin_frame(m_axis_p1z), 0, wxEXPAND);
+
+        m_axis_p2x = make_spin(m_cards, 10.0, -100000.0, 100000.0);
+        m_axis_p2y = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        m_axis_p2z = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        axform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Point 2 X")), 0, wxALIGN_CENTER_VERTICAL);
+        axform->Add(spin_frame(m_axis_p2x), 0, wxEXPAND);
+        axform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Point 2 Y")), 0, wxALIGN_CENTER_VERTICAL);
+        axform->Add(spin_frame(m_axis_p2y), 0, wxEXPAND);
+        axform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Point 2 Z")), 0, wxALIGN_CENTER_VERTICAL);
+        axform->Add(spin_frame(m_axis_p2z), 0, wxEXPAND);
+
+        m_box_axis->Add(axform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+    }
+    cards->Add(m_box_axis, 0, wxEXPAND);
+
+    // --- CoordSys (datum coordinate system: point + orthonormal frame) ---
+    m_box_coordsys = new wxBoxSizer(wxVERTICAL);
+    m_box_coordsys->Add(card_header(m_cards, "design_plane", _L("Coord Sys"), m_hdr_coordsys), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_coordsys->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
+    {
+        m_coordsys_type = make_combo(m_cards);
+        for (const wxString& t : { _L("Point (world)"), _L("Face + direction") })
+            m_coordsys_type->Append(t);
+        m_coordsys_type->SetSelection(0);
+        m_box_coordsys->Add(new wxStaticText(m_cards, wxID_ANY, _L("Type")), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+        m_box_coordsys->Add(m_coordsys_type, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+
+        auto* csform = two_col_form();
+
+        m_cs_x = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        m_cs_y = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        m_cs_z = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("X")), 0, wxALIGN_CENTER_VERTICAL);
+        csform->Add(spin_frame(m_cs_x), 0, wxEXPAND);
+        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Y")), 0, wxALIGN_CENTER_VERTICAL);
+        csform->Add(spin_frame(m_cs_y), 0, wxEXPAND);
+        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Z")), 0, wxALIGN_CENTER_VERTICAL);
+        csform->Add(spin_frame(m_cs_z), 0, wxEXPAND);
+
+        auto cs_pick = [&](const wxString& label, wxButton*& btn, wxStaticText*& lbl, CoordSysPick target) {
+            btn = new wxButton(m_cards, wxID_ANY, label);
+            lbl = new wxStaticText(m_cards, wxID_ANY, _L("(none)"));
+            btn->Bind(wxEVT_BUTTON, [this, target](wxCommandEvent&) { arm_coordsys_pick(target); });
+            csform->Add(btn);
+            csform->Add(lbl, 0, wxALIGN_CENTER_VERTICAL);
+        };
+        cs_pick(_L("Pick Face"), m_cs_pick_face, m_cs_face_lbl, CoordSysPick::Face);
+
+        // ponytail: edge pick for CoordSys with rotation-direction hint
+        m_cs_pick_edge = new wxButton(m_cards, wxID_ANY, _L("Edge (sets in-plane direction)"));
+        m_cs_edge_lbl = new wxStaticText(m_cards, wxID_ANY, _L("(none)"));
+        m_cs_pick_edge->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { arm_coordsys_pick(CoordSysPick::Edge); });
+        csform->Add(m_cs_pick_edge);
+        csform->Add(m_cs_edge_lbl, 0, wxALIGN_CENTER_VERTICAL);
+        auto* edge_hint = new wxStaticText(m_cards, wxID_ANY,
+            _L("Without an edge the frame's rotation about its normal follows world X, not the body"));
+        edge_hint->SetForegroundColour(dp_sec_text());
+        csform->Add(0, 0);   // empty left column
+        csform->Add(edge_hint, 0, wxALIGN_CENTER_VERTICAL);
+
+        m_cs_hx = make_spin(m_cards, 1.0, -100000.0, 100000.0);
+        m_cs_hy = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        m_cs_hz = make_spin(m_cards, 0.0, -100000.0, 100000.0);
+        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("X hint X")), 0, wxALIGN_CENTER_VERTICAL);
+        csform->Add(spin_frame(m_cs_hx), 0, wxEXPAND);
+        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("X hint Y")), 0, wxALIGN_CENTER_VERTICAL);
+        csform->Add(spin_frame(m_cs_hy), 0, wxEXPAND);
+        csform->Add(new wxStaticText(m_cards, wxID_ANY, _L("X hint Z")), 0, wxALIGN_CENTER_VERTICAL);
+        csform->Add(spin_frame(m_cs_hz), 0, wxEXPAND);
+
+        m_box_coordsys->Add(csform, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+    }
+    cards->Add(m_box_coordsys, 0, wxEXPAND);
 
     // --- Docked value-entry card (Onshape Button->Dialog->Confirm for dimensions) ---
     m_box_value = new wxBoxSizer(wxVERTICAL);
@@ -1935,6 +2650,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
     cards->Show(m_box_sweep, false, true);
     cards->Show(m_box_pattern, false, true);
     cards->Show(m_box_plane, false, true);
+    cards->Show(m_box_axis, false, true);
+    cards->Show(m_box_coordsys, false, true);
     cards->Show(m_box_loft, false, true);
     cards->Show(m_box_draft, false, true);
     cards->Show(m_box_boolean, false, true);
@@ -1944,6 +2661,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
     cards->Show(m_box_hole,    false, true);
     cards->Show(m_box_thread,  false, true);
     cards->Show(m_box_shell,   false, true);
+    cards->Show(m_box_surf_extrude, false, true);
+    cards->Show(m_box_surf_revolve, false, true);
+    cards->Show(m_box_surf_loft,    false, true);
+    cards->Show(m_box_surf_fill,    false, true);
+    cards->Show(m_box_surf_offset,  false, true);
+    cards->Show(m_box_surf_thicken, false, true);
     cards->Show(m_box_value,   false, true);
     cards->Show(m_box_sketch_session, false, true);
     cards->Show(m_box_constraints,    false, true);
@@ -2194,6 +2917,26 @@ DesignPanel::DesignPanel(wxWindow* parent)
             default: break;
             }
             if (got) { m_plane_pick = PlanePick::None; refresh_plane_labels(); }
+        }
+        // Axis tool with a pick armed: face or edge.
+        if (m_active == Tool::Axis && m_axis_pick != AxisPick::None) {
+            bool got = false;
+            switch (m_axis_pick) {
+            case AxisPick::Face: if (m_sel_solid_face >= 0) { m_ax_face_body = m_sel_solid_body; m_ax_face = m_sel_solid_face; got = true; } break;
+            case AxisPick::Edge: if (m_sel_solid_edge >= 0) { m_ax_face_body = m_sel_solid_body; m_ax_edge = m_sel_solid_edge; got = true; } break;
+            default: break;
+            }
+            if (got) { m_axis_pick = AxisPick::None; refresh_axis_labels(); }
+        }
+        // CoordSys tool with a pick armed: face or edge.
+        if (m_active == Tool::CoordSys && m_coordsys_pick != CoordSysPick::None) {
+            bool got = false;
+            switch (m_coordsys_pick) {
+            case CoordSysPick::Face: if (m_sel_solid_face >= 0) { m_cs_face_body = m_sel_solid_body; m_cs_face = m_sel_solid_face; got = true; } break;
+            case CoordSysPick::Edge: if (m_sel_solid_edge >= 0) { m_cs_face_body = m_sel_solid_body; m_cs_edge = m_sel_solid_edge; got = true; } break;
+            default: break;
+            }
+            if (got) { m_coordsys_pick = CoordSysPick::None; refresh_coordsys_labels(); }
         }
         m_status->SetForegroundColour(wxNullColour);
         const int nb = int(m_doc.bodies.size());
@@ -3283,6 +4026,272 @@ void DesignPanel::on_add_loft()
     refresh_tree();
 }
 
+void DesignPanel::on_add_surface_extrude()
+{
+    if (m_surf_extrude_sketch_ref < 0 || m_surf_extrude_sketch_ref >= int(m_doc.features.size())) {
+        m_status->SetLabel(_L("Pick a sketch profile to extrude first"));
+        return;
+    }
+    m_feature_counter++;
+    m_doc.add_surface_extrude(m_surf_extrude_sketch_ref, m_surf_extrude_distance->GetValue(),
+                              "SurfaceExtrude" + std::to_string(m_feature_counter));
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::on_add_surface_revolve()
+{
+    if (m_surf_revolve_sketch_ref < 0 || m_surf_revolve_sketch_ref >= int(m_doc.features.size())) {
+        m_status->SetLabel(_L("Pick a sketch profile to revolve first"));
+        return;
+    }
+    m_feature_counter++;
+    m_doc.add_surface_revolve(m_surf_revolve_sketch_ref, m_surf_revolve_angle->GetValue(),
+                              m_surf_revolve_axis->GetSelection(),
+                              "SurfaceRevolve" + std::to_string(m_feature_counter));
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::on_add_surface_loft()
+{
+    std::vector<int> refs;
+    for (unsigned i = 0; i < m_surf_loft_list->GetCount(); ++i)
+        if (m_surf_loft_list->IsChecked(i) && i < m_surf_loft_sketch_idx.size())
+            refs.push_back(m_surf_loft_sketch_idx[i]);
+    if (refs.size() < 2) {
+        m_status->SetLabel(_L("Check at least two profile sketches to loft"));
+        return;
+    }
+    m_feature_counter++;
+    m_doc.add_surface_loft(refs, m_surf_loft_ruled->GetValue(),
+                           "SurfaceLoft" + std::to_string(m_feature_counter));
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::on_add_surface_fill()
+{
+    if (m_surf_fill_sketch_ref < 0 || m_surf_fill_sketch_ref >= int(m_doc.features.size())) {
+        m_status->SetLabel(_L("Pick a sketch to fill first"));
+        return;
+    }
+    m_feature_counter++;
+    m_doc.add_surface_fill(m_surf_fill_sketch_ref,
+                           "SurfaceFill" + std::to_string(m_feature_counter));
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::on_add_surface_offset()
+{
+    const int sel = m_surf_offset_body->GetSelection();
+    if (sel == wxNOT_FOUND || sel < 0 || sel >= int(m_doc.bodies.size())) {
+        m_status->SetLabel(_L("Select a sheet body first"));
+        return;
+    }
+    m_feature_counter++;
+    m_doc.add_surface_offset(sel, m_surf_offset_distance->GetValue(),
+                             "SurfaceOffset" + std::to_string(m_feature_counter));
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::on_add_thicken_surface()
+{
+    const int sel = m_surf_thicken_body->GetSelection();
+    if (sel == wxNOT_FOUND || sel < 0 || sel >= int(m_doc.bodies.size())) {
+        m_status->SetLabel(_L("Select a sheet body first"));
+        return;
+    }
+    m_feature_counter++;
+    m_doc.add_thicken_surface(sel, m_surf_thicken_thickness->GetValue(),
+                              m_surf_thicken_flip->GetValue(),
+                              "ThickenSurface" + std::to_string(m_feature_counter));
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::on_add_transform()
+{
+    if (m_doc.bodies.empty()) {
+        m_status->SetLabel(_L("Transform needs a body — add or import one first"));
+        return;
+    }
+    const int sel = m_xf_body->GetSelection();
+    const int target = (sel != wxNOT_FOUND) ? sel : -1;
+    const Vec3d trans(m_xf_dx->GetValue(), m_xf_dy->GetValue(), m_xf_dz->GetValue());
+    const int ax = m_xf_axis->GetSelection();
+    const Vec3d axis = (ax == 0) ? Vec3d(1, 0, 0) : (ax == 1) ? Vec3d(0, 1, 0) : Vec3d(0, 0, 1);
+    const Vec3d pivot(m_xf_pivot_x->GetValue(), m_xf_pivot_y->GetValue(), m_xf_pivot_z->GetValue());
+    m_feature_counter++;
+    m_doc.add_transform(target, trans, axis, pivot, m_xf_angle->GetValue(), m_xf_copy->GetValue(),
+                        "Transform" + std::to_string(m_feature_counter));
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::on_add_mirror()
+{
+    if (m_doc.bodies.empty()) {
+        m_status->SetLabel(_L("Mirror needs a body — add or import one first"));
+        return;
+    }
+    const int sel = m_mirror_body->GetSelection();
+    const int target = (sel != wxNOT_FOUND) ? sel : -1;
+    const BooleanMode mode = m_mirror_keep->GetValue() ? BooleanMode::New : BooleanMode::Add;
+    m_feature_counter++;
+    m_doc.add_mirror(plane_from_choice(m_mirror_plane->GetSelection()), target, mode,
+                     "Mirror" + std::to_string(m_feature_counter));
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::on_add_thicken()
+{
+    if (m_doc.bodies.empty()) {
+        m_status->SetLabel(_L("Thicken needs a solid body — add or import one first"));
+        return;
+    }
+    if (m_sel_solid_face < 0) {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        m_status->SetLabel(_L("Pick a solid face to thicken first"));
+        m_status->Refresh();
+        return;
+    }
+    const int sel = m_thicken_body->GetSelection();
+    const int target = (sel != wxNOT_FOUND) ? sel : -1;
+    m_feature_counter++;
+    m_doc.add_thicken(target, m_sel_solid_face, m_thicken_thickness->GetValue(),
+                      m_thicken_flip->GetValue(), "Thicken" + std::to_string(m_feature_counter));
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::on_add_rib()
+{
+    if (m_doc.bodies.empty()) {
+        m_status->SetLabel(_L("Rib needs a solid body — add or import one first"));
+        return;
+    }
+    const int bsel = m_rib_body->GetSelection();
+    const int target = (bsel != wxNOT_FOUND) ? bsel : -1;
+    const int ssel = m_rib_sketch->GetSelection();
+    const int sketch_ref = (ssel != wxNOT_FOUND)
+                               ? int(reinterpret_cast<intptr_t>(m_rib_sketch->GetClientData(ssel))) : -1;
+    if (sketch_ref < 0) {
+        m_status->SetLabel(_L("Pick a sketch with an open line first"));
+        return;
+    }
+    m_feature_counter++;
+    m_doc.add_rib(sketch_ref, m_rib_entity->GetValue(), m_rib_thickness->GetValue(),
+                  m_rib_depth->GetValue(), target, "Rib" + std::to_string(m_feature_counter));
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::on_add_project()
+{
+    if (m_doc.bodies.empty()) {
+        m_status->SetLabel(_L("Project needs a body — add or import one first"));
+        return;
+    }
+    const int sel = m_proj_source_body->GetSelection();
+    const int src_body = (sel != wxNOT_FOUND) ? sel : -1;
+    const int face = (m_sel_solid_face >= 0) ? m_sel_solid_face : -1;
+    m_feature_counter++;
+    m_doc.add_project_edges(src_body, {}, face,
+                            plane_from_choice(m_proj_plane->GetSelection()),
+                            "Project" + std::to_string(m_feature_counter));
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::on_add_delete_face()
+{
+    if (m_doc.bodies.empty()) {
+        m_status->SetLabel(_L("Delete Face needs a body — add or import one first"));
+        return;
+    }
+    if (m_del_faces.empty()) {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        m_status->SetLabel(_L("Add at least one face to delete first"));
+        m_status->Refresh();
+        return;
+    }
+    const int sel = m_del_face_body->GetSelection();
+    const int target = (sel != wxNOT_FOUND) ? sel : -1;
+    m_feature_counter++;
+    m_doc.add_delete_face(target, m_del_faces, "DeleteFace" + std::to_string(m_feature_counter));
+    m_del_faces.clear();  // consumed; fresh state for the next use
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::on_add_helix()
+{
+    m_feature_counter++;
+    m_doc.add_helix(plane_from_choice(m_helix_plane->GetSelection()),
+                    m_helix_radius->GetValue(), m_helix_pitch->GetValue(),
+                    m_helix_height->GetValue(), m_helix_left_handed->GetValue(),
+                    m_helix_taper->GetValue(), "Helix" + std::to_string(m_feature_counter));
+    if (!recompute_guarded(_L("Rebuilding model…")))
+        m_status->SetLabel(_L("Recompute error: ") + wxString::FromUTF8(m_doc.error));
+    else
+        set_status_ok();
+    refresh_tree();
+}
+
+void DesignPanel::populate_sheet_body_choices(ComboBox* c) const
+{
+    if (!c) return;
+    const int keep = c->GetSelection();
+    c->Clear();
+    for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+        if (!CadDocument::is_sheet_shape(m_doc.bodies[i].shape)) continue;
+        const std::string& n = m_doc.bodies[i].name;
+        c->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+    }
+    if (c->GetCount() > 0)
+        c->SetSelection(std::min(std::max(keep, 0), int(c->GetCount()) - 1));
+}
+
 void DesignPanel::on_add_pattern()
 {
     if (m_doc.bodies.empty()) {
@@ -3435,6 +4444,80 @@ void DesignPanel::arm_plane_pick(PlanePick target)
     m_status->Refresh();
 }
 
+// --- Axis helpers ---
+
+void DesignPanel::apply_axis_refs(CadFeature& f) const
+{
+    f.axis_type = (AxisType)m_axis_type->GetSelection();
+    f.axis_face = m_ax_face;
+    f.axis_edge = m_ax_edge;
+    f.axis_plane_a = m_axis_plane_a->GetSelection();
+    f.axis_plane_b = m_axis_plane_b->GetSelection();
+    f.axis_p1 = Vec3d(m_axis_p1x->GetValue(), m_axis_p1y->GetValue(), m_axis_p1z->GetValue());
+    f.axis_p2 = Vec3d(m_axis_p2x->GetValue(), m_axis_p2y->GetValue(), m_axis_p2z->GetValue());
+    f.axis_body = m_ax_face_body;
+}
+
+void DesignPanel::refresh_axis_labels()
+{
+    auto txt = [](int idx) { return idx >= 0 ? wxString::Format("#%d", idx) : wxString(_L("(none)")); };
+    if (m_axis_face_lbl) m_axis_face_lbl->SetLabel(txt(m_ax_face));
+    if (m_axis_edge_lbl) m_axis_edge_lbl->SetLabel(txt(m_ax_edge));
+}
+
+void DesignPanel::reset_axis_refs()
+{
+    m_ax_face_body = m_ax_face = -1;
+    m_ax_edge = -1;
+    m_axis_pick = AxisPick::None;
+    refresh_axis_labels();
+}
+
+void DesignPanel::arm_axis_pick(AxisPick target)
+{
+    m_axis_pick = target;
+    m_status->SetForegroundColour(wxNullColour);
+    m_status->SetLabel(target == AxisPick::Face ? _L("Click a solid FACE in the viewport")
+                                                : _L("Click a solid EDGE in the viewport"));
+    m_status->Refresh();
+}
+
+// --- CoordSys helpers ---
+
+void DesignPanel::apply_coordsys_refs(CadFeature& f) const
+{
+    f.coordsys_type  = (CoordSysType)m_coordsys_type->GetSelection();
+    f.coordsys_point = Vec3d(m_cs_x->GetValue(), m_cs_y->GetValue(), m_cs_z->GetValue());
+    f.coordsys_body  = m_cs_face_body;
+    f.coordsys_face  = m_cs_face;
+    f.coordsys_edge  = m_cs_edge;
+    f.coordsys_x_hint = Vec3d(m_cs_hx->GetValue(), m_cs_hy->GetValue(), m_cs_hz->GetValue());
+}
+
+void DesignPanel::refresh_coordsys_labels()
+{
+    auto txt = [](int idx) { return idx >= 0 ? wxString::Format("#%d", idx) : wxString(_L("(none)")); };
+    if (m_cs_face_lbl) m_cs_face_lbl->SetLabel(txt(m_cs_face));
+    if (m_cs_edge_lbl) m_cs_edge_lbl->SetLabel(txt(m_cs_edge));
+}
+
+void DesignPanel::reset_coordsys_refs()
+{
+    m_cs_face_body = m_cs_face = -1;
+    m_cs_edge = -1;
+    m_coordsys_pick = CoordSysPick::None;
+    refresh_coordsys_labels();
+}
+
+void DesignPanel::arm_coordsys_pick(CoordSysPick target)
+{
+    m_coordsys_pick = target;
+    m_status->SetForegroundColour(wxNullColour);
+    m_status->SetLabel(target == CoordSysPick::Face ? _L("Click a solid FACE in the viewport")
+                                                    : _L("Click a solid EDGE in the viewport"));
+    m_status->Refresh();
+}
+
 void DesignPanel::on_add_plane()
 {
     m_feature_counter++;
@@ -3445,6 +4528,31 @@ void DesignPanel::on_add_plane()
     m_doc.recompute();   // datum-only docs yield no body; that is expected/benign
     m_status->SetForegroundColour(wxNullColour);
     m_status->SetLabel(_L("Plane added — pick it as a sketch plane"));
+    refresh_tree();
+}
+
+void DesignPanel::on_add_axis()
+{
+    m_feature_counter++;
+    int idx = m_doc.add_axis((AxisType)m_axis_type->GetSelection(),
+                             "Axis" + std::to_string(m_feature_counter));
+    if (idx >= 0 && idx < int(m_doc.features.size())) apply_axis_refs(m_doc.features[idx]);
+    m_doc.recompute();
+    m_status->SetForegroundColour(wxNullColour);
+    m_status->SetLabel(_L("Axis added"));
+    refresh_tree();
+}
+
+void DesignPanel::on_add_coordsys()
+{
+    m_feature_counter++;
+    Vec3d pt(m_cs_x->GetValue(), m_cs_y->GetValue(), m_cs_z->GetValue());
+    int idx = m_doc.add_coordsys((CoordSysType)m_coordsys_type->GetSelection(), pt,
+                                 "Coord" + std::to_string(m_feature_counter));
+    if (idx >= 0 && idx < int(m_doc.features.size())) apply_coordsys_refs(m_doc.features[idx]);
+    m_doc.recompute();
+    m_status->SetForegroundColour(wxNullColour);
+    m_status->SetLabel(_L("Coord Sys added"));
     refresh_tree();
 }
 
@@ -3512,6 +4620,21 @@ int DesignPanel::tree_icon_for(CadFeatureType t)
     case CadFeatureType::Import:  return 1;   // imported solid: solid-family icon
     case CadFeatureType::Boolean: return 1;   // body-body combine: solid-family icon
     case CadFeatureType::Cut:     return 1;   // plane split: solid-family icon
+    case CadFeatureType::Axis:    return 0;   // datum axis: sketch-family icon
+    case CadFeatureType::CoordSys: return 0;  // datum coord sys: sketch-family icon
+    case CadFeatureType::SurfaceExtrude:  return 1;
+    case CadFeatureType::SurfaceRevolve:  return 1;
+    case CadFeatureType::SurfaceLoft:     return 1;
+    case CadFeatureType::SurfaceFill:     return 1;
+    case CadFeatureType::ThickenSurface:  return 1;
+    case CadFeatureType::SurfaceOffset:   return 1;
+    case CadFeatureType::Transform:       return 1;   // solid-family icon
+    case CadFeatureType::Mirror:          return 1;   // solid-family icon
+    case CadFeatureType::Thicken:         return 1;   // solid-family icon
+    case CadFeatureType::Rib:             return 1;   // solid-family icon
+    case CadFeatureType::Project:         return 0;   // sketch-family icon (produces sketch)
+    case CadFeatureType::DeleteFace:      return 5;   // dressup-family icon
+    case CadFeatureType::Helix:           return 4;   // thread-family icon (curve)
     }
     return 0;
 }
@@ -5440,6 +6563,32 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
             ? wxString::Format(_L("Face %d"), f.draft_face)
             : _L("(pick a side face)"));
         break;
+    case CadFeatureType::Axis:
+        m_axis_type->SetSelection((int)f.axis_type);
+        m_ax_face_body = f.axis_body; m_ax_face = f.axis_face;
+        m_ax_edge = f.axis_edge;
+        populate_plane_choices(m_axis_plane_a);
+        populate_plane_choices(m_axis_plane_b);
+        m_axis_plane_a->SetSelection(f.axis_plane_a >= 0 ? f.axis_plane_a : 0);
+        m_axis_plane_b->SetSelection(f.axis_plane_b >= 0 ? f.axis_plane_b : 0);
+        m_axis_p1x->SetValue(f.axis_p1.x()); m_axis_p1y->SetValue(f.axis_p1.y()); m_axis_p1z->SetValue(f.axis_p1.z());
+        m_axis_p2x->SetValue(f.axis_p2.x()); m_axis_p2y->SetValue(f.axis_p2.y()); m_axis_p2z->SetValue(f.axis_p2.z());
+        m_axis_pick = AxisPick::None;
+        refresh_axis_labels();
+        break;
+    case CadFeatureType::CoordSys:
+        m_coordsys_type->SetSelection((int)f.coordsys_type);
+        m_cs_x->SetValue(f.coordsys_point.x());
+        m_cs_y->SetValue(f.coordsys_point.y());
+        m_cs_z->SetValue(f.coordsys_point.z());
+        m_cs_face_body = f.coordsys_body; m_cs_face = f.coordsys_face;
+        m_cs_edge = f.coordsys_edge;
+        m_cs_hx->SetValue(f.coordsys_x_hint.x());
+        m_cs_hy->SetValue(f.coordsys_x_hint.y());
+        m_cs_hz->SetValue(f.coordsys_x_hint.z());
+        m_coordsys_pick = CoordSysPick::None;
+        refresh_coordsys_labels();
+        break;
     case CadFeatureType::Boolean:
         // List the bodies available to the boolean (as-of its timeline slot), so the consumed
         // tool body still appears and the saved selections below land on the right entries.
@@ -5452,6 +6601,182 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
             m_bool_tool->SetSelection(f.bool_tool_body);
         m_bool_keep->SetValue(f.bool_keep_tool);
         m_bool_tol->SetValue(f.bool_tolerance);
+        break;
+    case CadFeatureType::SurfaceExtrude:
+        m_surf_extrude_distance->SetValue(f.distance);
+        m_surf_extrude_sketch_ref = f.sketch_ref;
+        if (m_surf_extrude_sketch_ref >= 0 && m_surf_extrude_sketch_ref < int(m_doc.features.size()))
+            m_surf_extrude_sketch_label->SetLabel(_L("Sketch: ") +
+                wxString::FromUTF8(m_doc.features[m_surf_extrude_sketch_ref].name));
+        break;
+    case CadFeatureType::SurfaceRevolve:
+        m_surf_revolve_angle->SetValue(f.revolve_angle);
+        m_surf_revolve_axis->SetSelection(f.revolve_axis);
+        m_surf_revolve_flip->SetValue(f.flip);
+        m_surf_revolve_sketch_ref = f.sketch_ref;
+        if (m_surf_revolve_sketch_ref >= 0 && m_surf_revolve_sketch_ref < int(m_doc.features.size()))
+            m_surf_revolve_sketch_label->SetLabel(_L("Sketch: ") +
+                wxString::FromUTF8(m_doc.features[m_surf_revolve_sketch_ref].name));
+        break;
+    case CadFeatureType::SurfaceLoft:
+        m_surf_loft_refs = f.loft_profile_refs;
+        m_surf_loft_ruled->SetValue(f.loft_ruled);
+        break;
+    case CadFeatureType::SurfaceFill:
+        m_surf_fill_sketch_ref = f.sketch_ref;
+        if (m_surf_fill_sketch_ref >= 0 && m_surf_fill_sketch_ref < int(m_doc.features.size()))
+            m_surf_fill_sketch_label->SetLabel(_L("Sketch: ") +
+                wxString::FromUTF8(m_doc.features[m_surf_fill_sketch_ref].name));
+        break;
+    case CadFeatureType::SurfaceOffset:
+        populate_sheet_body_choices(m_surf_offset_body);
+        m_surf_offset_distance->SetValue(f.plane_offset);
+        if (f.target_body >= 0 && f.target_body < int(m_surf_offset_body->GetCount()))
+            m_surf_offset_body->SetSelection(f.target_body);
+        break;
+    case CadFeatureType::ThickenSurface:
+        populate_sheet_body_choices(m_surf_thicken_body);
+        m_surf_thicken_thickness->SetValue(f.thicken_thickness);
+        m_surf_thicken_flip->SetValue(f.thicken_flip);
+        if (f.target_body >= 0 && f.target_body < int(m_surf_thicken_body->GetCount()))
+            m_surf_thicken_body->SetSelection(f.target_body);
+        break;
+    case CadFeatureType::Transform: {
+        {
+            m_xf_body->Clear();
+            for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                const std::string& n = m_doc.bodies[i].name;
+                m_xf_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+            }
+            if (f.target_body >= 0 && f.target_body < int(m_xf_body->GetCount()))
+                m_xf_body->SetSelection(f.target_body);
+            else if (m_xf_body->GetCount() > 0) m_xf_body->SetSelection(0);
+        }
+        m_xf_dx->SetValue(f.xf_translate.x());
+        m_xf_dy->SetValue(f.xf_translate.y());
+        m_xf_dz->SetValue(f.xf_translate.z());
+        const int ax = (std::abs(f.xf_axis.x()) > 0.5) ? 0 : (std::abs(f.xf_axis.y()) > 0.5) ? 1 : 2;
+        m_xf_axis->SetSelection(ax);
+        m_xf_angle->SetValue(f.xf_angle_deg);
+        m_xf_pivot_x->SetValue(f.xf_pivot.x());
+        m_xf_pivot_y->SetValue(f.xf_pivot.y());
+        m_xf_pivot_z->SetValue(f.xf_pivot.z());
+        m_xf_copy->SetValue(f.xf_copy);
+        break;
+    }
+    case CadFeatureType::Mirror: {
+        {
+            m_mirror_body->Clear();
+            for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                const std::string& n = m_doc.bodies[i].name;
+                m_mirror_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+            }
+            if (f.target_body >= 0 && f.target_body < int(m_mirror_body->GetCount()))
+                m_mirror_body->SetSelection(f.target_body);
+            else if (m_mirror_body->GetCount() > 0) m_mirror_body->SetSelection(0);
+        }
+        populate_plane_choices(m_mirror_plane);
+        m_mirror_plane->SetSelection(index_from_plane(f.plane));
+        m_mirror_keep->SetValue(f.mirror_keep_original);
+        break;
+    }
+    case CadFeatureType::Thicken: {
+        {
+            m_thicken_body->Clear();
+            for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                const std::string& n = m_doc.bodies[i].name;
+                m_thicken_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+            }
+            if (f.target_body >= 0 && f.target_body < int(m_thicken_body->GetCount()))
+                m_thicken_body->SetSelection(f.target_body);
+            else if (m_thicken_body->GetCount() > 0) m_thicken_body->SetSelection(0);
+        }
+        m_sel_solid_face = f.thicken_face;
+        m_thicken_face_label->SetLabel(f.thicken_face >= 0
+            ? wxString::Format(_L("Face %d"), f.thicken_face)
+            : _L("(pick a solid face)"));
+        m_thicken_thickness->SetValue(f.thicken_thickness);
+        m_thicken_flip->SetValue(f.thicken_flip);
+        break;
+    }
+    case CadFeatureType::Rib: {
+        {
+            m_rib_body->Clear();
+            for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                const std::string& n = m_doc.bodies[i].name;
+                m_rib_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+            }
+            if (f.target_body >= 0 && f.target_body < int(m_rib_body->GetCount()))
+                m_rib_body->SetSelection(f.target_body);
+            else if (m_rib_body->GetCount() > 0) m_rib_body->SetSelection(0);
+        }
+        {
+            m_rib_sketch->Clear();
+            int pre_sel = wxNOT_FOUND;
+            for (int i = 0; i < int(m_doc.features.size()); ++i) {
+                if (m_doc.features[i].type == CadFeatureType::Sketch) {
+                    const int pos = m_rib_sketch->Append(wxString::FromUTF8(m_doc.features[i].name), wxNullBitmap,
+                                                         reinterpret_cast<void*>(intptr_t(i)));
+                    if (i == f.rib_sketch_ref) pre_sel = pos;
+                }
+            }
+            if (pre_sel != wxNOT_FOUND) m_rib_sketch->SetSelection(pre_sel);
+            else if (m_rib_sketch->GetCount() > 0) m_rib_sketch->SetSelection(0);
+        }
+        m_rib_entity->SetValue(f.rib_entity);
+        m_rib_thickness->SetValue(f.rib_thickness);
+        m_rib_depth->SetValue(f.rib_depth);
+        break;
+    }
+    case CadFeatureType::Project: {
+        {
+            m_proj_source_body->Clear();
+            for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                const std::string& n = m_doc.bodies[i].name;
+                m_proj_source_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+            }
+            if (f.project_source_body >= 0 && f.project_source_body < int(m_proj_source_body->GetCount()))
+                m_proj_source_body->SetSelection(f.project_source_body);
+            else if (m_proj_source_body->GetCount() > 0) m_proj_source_body->SetSelection(0);
+        }
+        populate_plane_choices(m_proj_plane);
+        m_proj_plane->SetSelection(index_from_plane(f.plane));
+        m_sel_solid_face = f.project_face;
+        m_proj_face_label->SetLabel(f.project_face >= 0
+            ? wxString::Format(_L("Face %d"), f.project_face)
+            : _L("(all edges)"));
+        break;
+    }
+    case CadFeatureType::DeleteFace: {
+        {
+            m_del_face_body->Clear();
+            for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
+                const std::string& n = m_doc.bodies[i].name;
+                m_del_face_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+            }
+            if (f.target_body >= 0 && f.target_body < int(m_del_face_body->GetCount()))
+                m_del_face_body->SetSelection(f.target_body);
+            else if (m_del_face_body->GetCount() > 0) m_del_face_body->SetSelection(0);
+        }
+        m_del_faces = f.delete_faces;
+        {
+            wxString s;
+            for (size_t i = 0; i < m_del_faces.size(); ++i) {
+                if (i > 0) s += ", ";
+                s += wxString::Format("Face %d", m_del_faces[i]);
+            }
+            m_del_face_list->SetLabel(s.empty() ? _L("(none)") : s);
+        }
+        break;
+    }
+    case CadFeatureType::Helix:
+        populate_plane_choices(m_helix_plane);
+        m_helix_plane->SetSelection(index_from_plane(f.plane));
+        m_helix_radius->SetValue(f.helix_radius);
+        m_helix_pitch->SetValue(f.helix_pitch);
+        m_helix_height->SetValue(f.helix_height);
+        m_helix_left_handed->SetValue(f.helix_left_handed);
+        m_helix_taper->SetValue(f.helix_taper_deg);
         break;
     default: break;
     }
@@ -5546,6 +6871,16 @@ void DesignPanel::on_edit_feature()
         load_feature_into_dialog(f);
         open_tool(Tool::Plane);
         break;
+    case CadFeatureType::Axis:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::Axis);
+        break;
+    case CadFeatureType::CoordSys:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::CoordSys);
+        break;
     case CadFeatureType::Loft:
         m_edit_index = sel;
         load_feature_into_dialog(f);
@@ -5560,6 +6895,71 @@ void DesignPanel::on_edit_feature()
         m_edit_index = sel;
         load_feature_into_dialog(f);
         open_tool(Tool::Boolean);
+        break;
+    case CadFeatureType::SurfaceExtrude:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::SurfaceExtrude);
+        break;
+    case CadFeatureType::SurfaceRevolve:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::SurfaceRevolve);
+        break;
+    case CadFeatureType::SurfaceLoft:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::SurfaceLoft);
+        break;
+    case CadFeatureType::SurfaceFill:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::SurfaceFill);
+        break;
+    case CadFeatureType::SurfaceOffset:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::SurfaceOffset);
+        break;
+    case CadFeatureType::ThickenSurface:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::ThickenSurface);
+        break;
+    case CadFeatureType::Transform:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::Transform);
+        break;
+    case CadFeatureType::Mirror:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::Mirror);
+        break;
+    case CadFeatureType::Thicken:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::Thicken);
+        break;
+    case CadFeatureType::Rib:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::Rib);
+        break;
+    case CadFeatureType::Project:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::Project);
+        break;
+    case CadFeatureType::DeleteFace:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::DeleteFace);
+        break;
+    case CadFeatureType::Helix:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::Helix);
         break;
     default:
         // Import / Cut have no parametric edit dialog yet (follow-up
@@ -5778,6 +7178,14 @@ CadFeature DesignPanel::build_candidate(Tool t) const
         f.plane_axis       = m_plane_tilt_axis->GetSelection();
         apply_plane_refs(f);   // plane_type + face/edge refs + u/v size from the card
         break;
+    case Tool::Axis:
+        f.type = CadFeatureType::Axis;
+        apply_axis_refs(f);
+        break;
+    case Tool::CoordSys:
+        f.type = CadFeatureType::CoordSys;
+        apply_coordsys_refs(f);
+        break;
     case Tool::Loft: {
         f.type      = CadFeatureType::Loft;
         f.loft_ruled = m_loft_ruled->GetValue();
@@ -5809,6 +7217,118 @@ CadFeature DesignPanel::build_candidate(Tool t) const
         f.cut_keep_lower = true;
         f.target_body    = m_cut_target->GetSelection();
         break;
+    case Tool::SurfaceExtrude:
+        f.type      = CadFeatureType::SurfaceExtrude;
+        f.sketch_ref = m_surf_extrude_sketch_ref;
+        f.distance   = m_surf_extrude_distance->GetValue();
+        break;
+    case Tool::SurfaceRevolve:
+        f.type         = CadFeatureType::SurfaceRevolve;
+        f.sketch_ref   = m_surf_revolve_sketch_ref;
+        f.revolve_angle = m_surf_revolve_angle->GetValue();
+        f.revolve_axis = m_surf_revolve_axis->GetSelection();
+        f.flip         = m_surf_revolve_flip->GetValue();
+        break;
+    case Tool::SurfaceLoft: {
+        f.type      = CadFeatureType::SurfaceLoft;
+        f.loft_ruled = m_surf_loft_ruled->GetValue();
+        f.loft_profile_refs.clear();
+        for (unsigned i = 0; i < m_surf_loft_list->GetCount(); ++i)
+            if (m_surf_loft_list->IsChecked(i) && i < m_surf_loft_sketch_idx.size())
+                f.loft_profile_refs.push_back(m_surf_loft_sketch_idx[i]);
+        break;
+    }
+    case Tool::SurfaceFill:
+        f.type      = CadFeatureType::SurfaceFill;
+        f.sketch_ref = m_surf_fill_sketch_ref;
+        break;
+    case Tool::SurfaceOffset: {
+        f.type = CadFeatureType::SurfaceOffset;
+        const int sel = m_surf_offset_body->GetSelection();
+        f.target_body = (sel != wxNOT_FOUND) ? sel : -1;
+        f.plane_offset = m_surf_offset_distance->GetValue();
+        break;
+    }
+    case Tool::ThickenSurface: {
+        f.type = CadFeatureType::ThickenSurface;
+        const int sel = m_surf_thicken_body->GetSelection();
+        f.target_body       = (sel != wxNOT_FOUND) ? sel : -1;
+        f.thicken_thickness = m_surf_thicken_thickness->GetValue();
+        f.thicken_flip      = m_surf_thicken_flip->GetValue();
+        break;
+    }
+    case Tool::Transform: {
+        f.type = CadFeatureType::Transform;
+        const int sel = m_xf_body->GetSelection();
+        f.target_body   = (sel != wxNOT_FOUND) ? sel : -1;
+        f.xf_translate  = Vec3d(m_xf_dx->GetValue(), m_xf_dy->GetValue(), m_xf_dz->GetValue());
+        const int ax = m_xf_axis->GetSelection();
+        f.xf_axis   = (ax == 0) ? Vec3d(1, 0, 0) : (ax == 1) ? Vec3d(0, 1, 0) : Vec3d(0, 0, 1);
+        f.xf_pivot  = Vec3d(m_xf_pivot_x->GetValue(), m_xf_pivot_y->GetValue(), m_xf_pivot_z->GetValue());
+        f.xf_angle_deg = m_xf_angle->GetValue();
+        f.xf_copy      = m_xf_copy->GetValue();
+        break;
+    }
+    case Tool::Mirror: {
+        f.type = CadFeatureType::Mirror;
+        const int sel = m_mirror_body->GetSelection();
+        f.target_body          = (sel != wxNOT_FOUND) ? sel : -1;
+        f.plane                = plane_from_choice(m_mirror_plane->GetSelection());
+        f.mirror_keep_original = m_mirror_keep->GetValue();
+        f.mode                 = f.mirror_keep_original ? BooleanMode::New : BooleanMode::Add;
+        break;
+    }
+    case Tool::Thicken: {
+        f.type = CadFeatureType::Thicken;
+        const int sel = m_thicken_body->GetSelection();
+        f.target_body       = (sel != wxNOT_FOUND) ? sel : -1;
+        f.thicken_face      = (m_sel_solid_face >= 0) ? m_sel_solid_face : -1;
+        f.thicken_thickness = m_thicken_thickness->GetValue();
+        f.thicken_flip      = m_thicken_flip->GetValue();
+        break;
+    }
+    case Tool::Rib: {
+        f.type = CadFeatureType::Rib;
+        const int bsel = m_rib_body->GetSelection();
+        f.target_body      = (bsel != wxNOT_FOUND) ? bsel : -1;
+        const int ssel = m_rib_sketch->GetSelection();
+        f.rib_sketch_ref = (ssel != wxNOT_FOUND)
+                               ? int(reinterpret_cast<intptr_t>(m_rib_sketch->GetClientData(ssel))) : -1;
+        f.rib_entity     = m_rib_entity->GetValue();
+        f.rib_thickness  = m_rib_thickness->GetValue();
+        f.rib_depth      = m_rib_depth->GetValue();
+        break;
+    }
+    case Tool::Project: {
+        f.type = CadFeatureType::Project;
+        const int sel = m_proj_source_body->GetSelection();
+        f.project_source_body = (sel != wxNOT_FOUND) ? sel : -1;
+        f.plane               = plane_from_choice(m_proj_plane->GetSelection());
+        if (m_sel_solid_face >= 0) {
+            f.project_face = m_sel_solid_face;
+        } else {
+            f.project_face = -1;
+        }
+        f.project_edges.clear();  // empty => use project_face
+        break;
+    }
+    case Tool::DeleteFace: {
+        f.type = CadFeatureType::DeleteFace;
+        const int sel = m_del_face_body->GetSelection();
+        f.target_body  = (sel != wxNOT_FOUND) ? sel : -1;
+        f.delete_faces = m_del_faces;
+        break;
+    }
+    case Tool::Helix: {
+        f.type = CadFeatureType::Helix;
+        f.plane              = plane_from_choice(m_helix_plane->GetSelection());
+        f.helix_radius       = m_helix_radius->GetValue();
+        f.helix_pitch        = m_helix_pitch->GetValue();
+        f.helix_height       = m_helix_height->GetValue();
+        f.helix_left_handed  = m_helix_left_handed->GetValue();
+        f.helix_taper_deg    = m_helix_taper->GetValue();
+        break;
+    }
     case Tool::Insert:   // imported art is committed by add_imported_sketch, not build_candidate
     case Tool::None:
         break;
@@ -5818,7 +7338,10 @@ CadFeature DesignPanel::build_candidate(Tool t) const
     // extrude mutate it). -1 when nothing is picked => auto (last body).
     // Targeting the picked body is an ADD-time concern; while editing, the original feature's
     // target_body is preserved from the seed (the card did not re-pick a body).
-    if (!editing && m_active != Tool::Boolean && m_active != Tool::Cut)
+    if (!editing && m_active != Tool::Boolean && m_active != Tool::Cut
+        && m_active != Tool::Transform && m_active != Tool::Mirror && m_active != Tool::Thicken
+        && m_active != Tool::DeleteFace && m_active != Tool::Rib && m_active != Tool::Project
+        && m_active != Tool::Helix)
         f.target_body = m_sel_solid_body;
     return f;
 }
@@ -6359,10 +7882,25 @@ void DesignPanel::open_tool(Tool t)
     s->Show(m_box_sweep,   t == Tool::Sweep,   true);
     s->Show(m_box_pattern, t == Tool::Pattern, true);
     s->Show(m_box_plane,   t == Tool::Plane,   true);
+    s->Show(m_box_axis,   t == Tool::Axis,   true);
+    s->Show(m_box_coordsys, t == Tool::CoordSys, true);
     s->Show(m_box_loft,    t == Tool::Loft,    true);
     s->Show(m_box_boolean, t == Tool::Boolean, true);
     s->Show(m_box_cut,     t == Tool::Cut,     true);
     s->Show(m_box_draft,   t == Tool::Draft,   true);
+    s->Show(m_box_surf_extrude, t == Tool::SurfaceExtrude, true);
+    s->Show(m_box_surf_revolve, t == Tool::SurfaceRevolve, true);
+    s->Show(m_box_surf_loft,    t == Tool::SurfaceLoft,    true);
+    s->Show(m_box_surf_fill,    t == Tool::SurfaceFill,    true);
+    s->Show(m_box_surf_offset,  t == Tool::SurfaceOffset,  true);
+    s->Show(m_box_surf_thicken, t == Tool::ThickenSurface,  true);
+    s->Show(m_box_transform,    t == Tool::Transform,      true);
+    s->Show(m_box_mirror,       t == Tool::Mirror,         true);
+    s->Show(m_box_thicken,      t == Tool::Thicken,        true);
+    s->Show(m_box_rib,          t == Tool::Rib,            true);
+    s->Show(m_box_project,      t == Tool::Project,        true);
+    s->Show(m_box_delete_face,  t == Tool::DeleteFace,     true);
+    s->Show(m_box_helix,        t == Tool::Helix,          true);
     s->Show(m_box_insert,  t == Tool::Insert,  true);
 
     if (t == Tool::Revolve && m_revolve_sketch_ref >= 0
@@ -6405,6 +7943,37 @@ void DesignPanel::open_tool(Tool t)
             if (std::find(m_loft_refs.begin(), m_loft_refs.end(), i) != m_loft_refs.end())
                 m_loft_list->Check(row, true);
         }
+    }
+
+    if (t == Tool::SurfaceExtrude) {
+        if (m_surf_extrude_sketch_ref >= 0 && m_surf_extrude_sketch_ref < int(m_doc.features.size()))
+            m_surf_extrude_sketch_label->SetLabel(_L("Sketch: ") +
+                wxString::FromUTF8(m_doc.features[m_surf_extrude_sketch_ref].name));
+    }
+
+    if (t == Tool::SurfaceRevolve) {
+        if (m_surf_revolve_sketch_ref >= 0 && m_surf_revolve_sketch_ref < int(m_doc.features.size()))
+            m_surf_revolve_sketch_label->SetLabel(_L("Sketch: ") +
+                wxString::FromUTF8(m_doc.features[m_surf_revolve_sketch_ref].name));
+    }
+
+    if (t == Tool::SurfaceLoft) {
+        m_surf_loft_list->Clear();
+        m_surf_loft_sketch_idx.clear();
+        for (int i = 0; i < int(m_doc.features.size()); ++i) {
+            const CadFeature& sf = m_doc.features[i];
+            if (sf.type != CadFeatureType::Sketch) continue;
+            const int row = m_surf_loft_list->Append(wxString::FromUTF8(sf.name));
+            m_surf_loft_sketch_idx.push_back(i);
+            if (std::find(m_surf_loft_refs.begin(), m_surf_loft_refs.end(), i) != m_surf_loft_refs.end())
+                m_surf_loft_list->Check(row, true);
+        }
+    }
+
+    if (t == Tool::SurfaceFill) {
+        if (m_surf_fill_sketch_ref >= 0 && m_surf_fill_sketch_ref < int(m_doc.features.size()))
+            m_surf_fill_sketch_label->SetLabel(_L("Sketch: ") +
+                wxString::FromUTF8(m_doc.features[m_surf_fill_sketch_ref].name));
     }
 
     if (t == Tool::Extrude) {
@@ -6454,6 +8023,21 @@ void DesignPanel::open_tool(Tool t)
     case Tool::Draft:   m_hdr_draft->SetLabel(title(_L("Draft")));     break;
     case Tool::Boolean: m_hdr_boolean->SetLabel(title(_L("Boolean"))); break;
     case Tool::Cut:     m_hdr_cut->SetLabel(title(_L("Cut")));         break;
+    case Tool::Axis:    m_hdr_axis->SetLabel(title(_L("Axis")));       break;
+    case Tool::CoordSys: m_hdr_coordsys->SetLabel(title(_L("Coord Sys"))); break;
+    case Tool::SurfaceExtrude:  m_hdr_surf_extrude->SetLabel(title(_L("Surface Extrude")));  break;
+    case Tool::SurfaceRevolve:  m_hdr_surf_revolve->SetLabel(title(_L("Surface Revolve")));  break;
+    case Tool::SurfaceLoft:     m_hdr_surf_loft->SetLabel(title(_L("Surface Loft")));      break;
+    case Tool::SurfaceFill:     m_hdr_surf_fill->SetLabel(title(_L("Surface Fill")));      break;
+    case Tool::SurfaceOffset:   m_hdr_surf_offset->SetLabel(title(_L("Surface Offset")));   break;
+    case Tool::ThickenSurface:  m_hdr_surf_thicken->SetLabel(title(_L("Thicken Surface")));   break;
+    case Tool::Transform:   m_hdr_transform->SetLabel(title(_L("Transform")));   break;
+    case Tool::Mirror:      m_hdr_mirror->SetLabel(title(_L("Mirror")));         break;
+    case Tool::Thicken:     m_hdr_thicken->SetLabel(title(_L("Thicken")));       break;
+    case Tool::Rib:         m_hdr_rib->SetLabel(title(_L("Rib")));               break;
+    case Tool::Project:     m_hdr_project->SetLabel(title(_L("Project")));       break;
+    case Tool::DeleteFace:  m_hdr_delete_face->SetLabel(title(_L("Delete Face"))); break;
+    case Tool::Helix:       m_hdr_helix->SetLabel(title(_L("Helix")));           break;
     case Tool::Insert:  break;   // header set by open_insert_card()
     case Tool::None:    break;
     }
@@ -6480,10 +8064,25 @@ void DesignPanel::close_tool()
     s->Show(m_box_sweep,   false, true);
     s->Show(m_box_pattern, false, true);
     s->Show(m_box_plane,   false, true);
+    s->Show(m_box_axis,   false, true);
+    s->Show(m_box_coordsys, false, true);
     s->Show(m_box_loft,    false, true);
     s->Show(m_box_boolean, false, true);
     s->Show(m_box_cut,     false, true);
     s->Show(m_box_draft,   false, true);
+    s->Show(m_box_surf_extrude, false, true);
+    s->Show(m_box_surf_revolve, false, true);
+    s->Show(m_box_surf_loft,    false, true);
+    s->Show(m_box_surf_fill,    false, true);
+    s->Show(m_box_surf_offset,  false, true);
+    s->Show(m_box_surf_thicken, false, true);
+    s->Show(m_box_transform,    false, true);
+    s->Show(m_box_mirror,       false, true);
+    s->Show(m_box_thicken,      false, true);
+    s->Show(m_box_rib,          false, true);
+    s->Show(m_box_project,      false, true);
+    s->Show(m_box_delete_face,  false, true);
+    s->Show(m_box_helix,        false, true);
     s->Show(m_box_insert,  false, true);
     m_viewport->clear_preview();
     m_viewport->clear_extrude_gizmo();
@@ -6536,6 +8135,21 @@ void DesignPanel::confirm_tool()
     case Tool::Draft:   on_add_draft();   break;
     case Tool::Boolean: on_add_boolean(); break;
     case Tool::Cut:     on_add_cut();     break;
+    case Tool::Axis:    on_add_axis();    break;
+    case Tool::CoordSys: on_add_coordsys(); break;
+    case Tool::SurfaceExtrude:  on_add_surface_extrude();  break;
+    case Tool::SurfaceRevolve:  on_add_surface_revolve();  break;
+    case Tool::SurfaceLoft:     on_add_surface_loft();     break;
+    case Tool::SurfaceFill:     on_add_surface_fill();     break;
+    case Tool::SurfaceOffset:   on_add_surface_offset();   break;
+    case Tool::ThickenSurface:  on_add_thicken_surface();  break;
+    case Tool::Transform:    on_add_transform();    break;
+    case Tool::Mirror:       on_add_mirror();       break;
+    case Tool::Thicken:      on_add_thicken();      break;
+    case Tool::Rib:          on_add_rib();          break;
+    case Tool::Project:      on_add_project();      break;
+    case Tool::DeleteFace:   on_add_delete_face();  break;
+    case Tool::Helix:        on_add_helix();        break;
     case Tool::Insert:  return;   // committed via finalize_insert(), never here
     case Tool::None:    return;
     }
