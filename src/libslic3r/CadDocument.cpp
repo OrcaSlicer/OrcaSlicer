@@ -2951,48 +2951,101 @@ void CadDocument::apply_mate(std::vector<CadBody>& bodies, const CadFeature& f) 
         gp_Trsf M_B_inv = M_B.Inverted();
         T = M_A * Rz * Tz * F * M_B_inv;
     } else {
-        // Planar (mate_kind == 1): align normals only, preserve in-plane pose
         Vec3d z_target = f.mate_flip ? -zA : zA;
-        double ddot = zB.dot(z_target);
-        Vec3d rot_axis;
-        double rot_angle = 0;
-        if (ddot <= -0.9999) {
-            // Anti-parallel: 180° rotation about any axis perpendicular to zB
-            Vec3d ref = (std::abs(zB.z()) < 0.9) ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
-            rot_axis = zB.cross(ref).normalized();
-            rot_angle = M_PI;
-        } else {
-            rot_axis = zB.cross(z_target);
-            if (rot_axis.squaredNorm() > 1e-18) {
-                rot_axis.normalize();
-                rot_angle = std::acos(std::max(-1.0, std::min(1.0, ddot)));
+
+        // Minimum-rotation helper: compute R that rotates zB onto z_target
+        // about an axis through oB. Reused by Planar / Revolute / Cylindrical.
+        auto make_z_align = [&](const Vec3d& zsrc, const Vec3d& zdst) -> gp_Trsf {
+            double ddot = zsrc.dot(zdst);
+            Vec3d rot_axis;
+            double rot_angle = 0;
+            if (ddot <= -0.9999) {
+                Vec3d ref = (std::abs(zsrc.z()) < 0.9) ? Vec3d(0, 0, 1) : Vec3d(1, 0, 0);
+                rot_axis = zsrc.cross(ref).normalized();
+                rot_angle = M_PI;
+            } else {
+                rot_axis = zsrc.cross(zdst);
+                if (rot_axis.squaredNorm() > 1e-18) {
+                    rot_axis.normalize();
+                    rot_angle = std::acos(std::max(-1.0, std::min(1.0, ddot)));
+                }
             }
+            gp_Trsf R;
+            if (rot_angle > 1e-12) {
+                R.SetRotation(gp_Ax1(gp_Pnt(oB.x(), oB.y(), oB.z()),
+                                     gp_Dir(rot_axis.x(), rot_axis.y(), rot_axis.z())),
+                              rot_angle);
+            }
+            return R;
+        };
+
+        if (f.mate_kind == 1 || f.mate_kind == 2 || f.mate_kind == 4) {
+            // Planar (1) / Revolute (2) / Cylindrical (4):
+            // all share the same minimum-rotation z-alignment.
+            gp_Trsf R_align = make_z_align(zB, z_target);
+
+            gp_Trsf Rz_about_target;
+            if (std::abs(f.mate_angle) > 1e-12) {
+                Rz_about_target.SetRotation(
+                    gp_Ax1(gp_Pnt(oB.x(), oB.y(), oB.z()),
+                           gp_Dir(z_target.x(), z_target.y(), z_target.z())),
+                    f.mate_angle * M_PI / 180.0);
+            }
+            gp_Trsf R = Rz_about_target * R_align;
+
+            // Translation: depends on which DOFs are constrained
+            Vec3d trans;
+            if (f.mate_kind == 1) {
+                // Planar: normal distance becomes mate_offset
+                double d = (oB - oA).dot(zA);
+                trans = zA * (f.mate_offset - d);
+            } else if (f.mate_kind == 2) {
+                // Revolute: full position on the axis line
+                trans = (oA + zA * f.mate_offset) - oB;
+            } else {
+                // Cylindrical (4): fix perpendicular, preserve axial
+                double axial = (oB - oA).dot(zA);
+                trans = (oA + zA * (axial + f.mate_offset)) - oB;
+            }
+
+            T.SetValues(1, 0, 0, trans.x(),
+                        0, 1, 0, trans.y(),
+                        0, 0, 1, trans.z());
+            T = T * R;
+        } else {
+            // Slider (mate_kind == 3): full orientation alignment,
+            // fix perpendicular position, preserve axial translation.
+            Vec3d x_target = xA;
+            Vec3d y_target = f.mate_flip ? -yA : yA;
+
+            // R = target * B^T  (both bases orthonormal)
+            double r11 = x_target.x() * xB.x() + y_target.x() * yB.x() + z_target.x() * zB.x();
+            double r12 = x_target.x() * xB.y() + y_target.x() * yB.y() + z_target.x() * zB.y();
+            double r13 = x_target.x() * xB.z() + y_target.x() * yB.z() + z_target.x() * zB.z();
+            double r21 = x_target.y() * xB.x() + y_target.y() * yB.x() + z_target.y() * zB.x();
+            double r22 = x_target.y() * xB.y() + y_target.y() * yB.y() + z_target.y() * zB.y();
+            double r23 = x_target.y() * xB.z() + y_target.y() * yB.z() + z_target.y() * zB.z();
+            double r31 = x_target.z() * xB.x() + y_target.z() * yB.x() + z_target.z() * zB.x();
+            double r32 = x_target.z() * xB.y() + y_target.z() * yB.y() + z_target.z() * zB.y();
+            double r33 = x_target.z() * xB.z() + y_target.z() * yB.z() + z_target.z() * zB.z();
+
+            // Build rotation about oB: R_full * p = R * (p - oB) + oB
+            double tx = oB.x() - (r11 * oB.x() + r12 * oB.y() + r13 * oB.z());
+            double ty = oB.y() - (r21 * oB.x() + r22 * oB.y() + r23 * oB.z());
+            double tz = oB.z() - (r31 * oB.x() + r32 * oB.y() + r33 * oB.z());
+            gp_Trsf R_full;
+            R_full.SetValues(r11, r12, r13, tx,
+                             r21, r22, r23, ty,
+                             r31, r32, r33, tz);
+
+            double axial = (oB - oA).dot(zA);
+            Vec3d trans = (oA + zA * (axial + f.mate_offset)) - oB;
+
+            T.SetValues(1, 0, 0, trans.x(),
+                        0, 1, 0, trans.y(),
+                        0, 0, 1, trans.z());
+            T = T * R_full;
         }
-
-        gp_Trsf R_align;
-        if (rot_angle > 1e-12) {
-            R_align.SetRotation(gp_Ax1(gp_Pnt(oB.x(), oB.y(), oB.z()),
-                                       gp_Dir(rot_axis.x(), rot_axis.y(), rot_axis.z())),
-                                rot_angle);
-        }
-
-        gp_Trsf Rz_about_target;
-        if (std::abs(f.mate_angle) > 1e-12) {
-            Rz_about_target.SetRotation(
-                gp_Ax1(gp_Pnt(oB.x(), oB.y(), oB.z()),
-                       gp_Dir(z_target.x(), z_target.y(), z_target.z())),
-                f.mate_angle * M_PI / 180.0);
-        }
-
-        gp_Trsf R = Rz_about_target * R_align;
-
-        double d = (oB - oA).dot(zA);
-        Vec3d offset_vec = zA * (f.mate_offset - d);
-
-        T.SetValues(1, 0, 0, offset_vec.x(),
-                    0, 1, 0, offset_vec.y(),
-                    0, 0, 1, offset_vec.z());
-        T = T * R;
     }
 
     BRepBuilderAPI_Transform xform(bodies[tgt_body].shape, T, true /*copy*/);

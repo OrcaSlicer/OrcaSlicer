@@ -330,9 +330,9 @@ json describe_tools()
                       json{{"name", "angle"},   {"type", "number"}, {"unit", "deg"}, {"default", 360}},
                       json{{"name", "axis"},    {"type", "integer"}, {"enum", json::array({0, 1})}, {"default", 0}},
                   })}},
-            json{{"name", "mate"}, {"summary", "Mate two bodies: transform the moving body (cs_b) so its connector lands on the fixed one (cs_a). kind: 0=Fastened, 1=Planar."},
+            json{{"name", "mate"}, {"summary", "Mate two bodies: transform the moving body (cs_b) so its connector lands on the fixed one (cs_a). kind: 0=Fastened, 1=Planar, 2=Revolute, 3=Slider, 4=Cylindrical."},
                  {"params", json::array({
-                     json{{"name", "kind"},    {"type", "integer"}, {"default", 0}, {"description", "0=Fastened (full align), 1=Planar (normal only)"}},
+                     json{{"name", "kind"},    {"type", "integer"}, {"default", 0}, {"description", "0=Fastened (rigid), 1=Planar (normal only), 2=Revolute (free rotation about axis), 3=Slider (free translation along axis), 4=Cylindrical (free rotation+translation)"}},
                      json{{"name", "cs_a"},    {"type", "integer"}, {"description", "feature index of the fixed CoordSys (mate connector A)"}},
                      json{{"name", "cs_b"},    {"type", "integer"}, {"description", "feature index of the CoordSys on the body that moves"}},
                      json{{"name", "offset"},  {"type", "number"}, {"unit", "mm"}, {"default", 0}},

@@ -5284,6 +5284,28 @@ static int find_face_by_normal(const CadDocument& doc, int body_idx, const Vec3d
     return -1;
 }
 
+// Global edge index of the first edge belonging to `face_idx`.
+//
+// A CoordSys built from a face alone takes its z from the face normal (which follows the
+// body) but its x from coordsys_x_hint, a WORLD constant. Such a frame is only half
+// body-following: the body's rotation about the face normal is invisible to it, so no mate
+// can correct or preserve a spin the connector cannot see. Pinning coordsys_edge to an edge
+// of the body makes the in-plane direction follow the body too, which is what any test
+// distinguishing Slider (corrects spin) from Cylindrical (preserves it) requires.
+static int find_edge_on_face(const CadDocument& doc, int body_idx, int face_idx)
+{
+    TopoDS_Face f = GeometryEngine::face_by_index(doc.bodies[body_idx].shape, face_idx);
+    if (f.IsNull()) return -1;
+    auto face_edges = GeometryEngine::edges_of_face(f);
+    auto all_edges  = GeometryEngine::edges_of(doc.bodies[body_idx].shape);
+    for (int ei = 0; ei < int(all_edges.size()); ++ei) {
+        for (const auto& fe : face_edges) {
+            if (all_edges[ei].IsSame(fe)) return ei;
+        }
+    }
+    return -1;
+}
+
 TEST_CASE("planar mate: antiparallel normals with asymmetric body", "[CadDocument][mate]")
 {
     using Catch::Matchers::WithinAbs;
@@ -5486,4 +5508,725 @@ TEST_CASE("fastened mate with flip on asymmetric body", "[CadDocument][mate]")
 
     // Flip changes the centroid Z for an asymmetric body
     REQUIRE_THAT(f_z, !WithinAbs(nf_z, 1e-4));
+}
+
+// --- M8b: Revolute / Slider / Cylindrical mates ---
+
+TEST_CASE("revolute mate: position corrected, rotation about axis preserved", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    // Body A: reference box
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Body B: asymmetric box 20x10x5
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);
+
+    // Pre-rotate B 30deg about Z, translate off-axis to (15, 2, 7)
+    doc.add_transform(1, Vec3d(15, 2, 7), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 30.0, false, "PrePose");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Record rotation: body B has a face that was originally +X, now at 30deg
+    auto faces_pre = GeometryEngine::faces_of(doc.bodies[1].shape);
+    REQUIRE(faces_pre.size() == 6);
+    Vec3d pre_x_face_normal;
+    bool found = false;
+    for (const auto& f : faces_pre) {
+        Vec3d n = GeometryEngine::face_normal_world(f);
+        // The face that was originally +X now points ~(cos30, sin30, 0)
+        if (std::abs(n.x() - 0.866) < 0.02 && std::abs(n.y() - 0.5) < 0.02) {
+            pre_x_face_normal = n; found = true; break;
+        }
+    }
+    REQUIRE(found);
+
+    // Fixed connector on A at (5,5,5), world axes
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    // Moving connector on B: PointWorld at its current (transformed) centroid
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(15, 2, 7), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(2, cs_fixed, cs_moving, 0.0, 0.0, false, "Revolute");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Position corrected: body centroid moves to the axis line.
+    // Connector B (15,2,7) → (5,5,5); body centroid (15,2,9.5) → (5,5,7.5).
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    gp_Pnt com = props.CentreOfMass();
+    REQUIRE_THAT(double(com.X()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Y()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Z()), WithinAbs(7.5, 1e-4));
+
+    // Rotation about Z preserved: the ~(0.866, 0.5, 0) face normal still exists
+    auto faces_post = GeometryEngine::faces_of(doc.bodies[1].shape);
+    REQUIRE(faces_post.size() == 6);
+    bool rot_preserved = false;
+    for (const auto& f : faces_post) {
+        Vec3d n = GeometryEngine::face_normal_world(f);
+        if (std::abs(n.x() - 0.866) < 0.02 && std::abs(n.y() - 0.5) < 0.02) {
+            rot_preserved = true; break;
+        }
+    }
+    REQUIRE(rot_preserved);
+    // Fastened would have aligned face normals to world axes: no face with Y≈0.5 would exist.
+}
+
+TEST_CASE("revolute mate: no-op when already correct", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Move body B to exactly the correct pose: on axis at (5,5,5) with no rotation
+    doc.add_transform(1, Vec3d(5, 5, 5), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "PrePose");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps pre_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, pre_props);
+    gp_Pnt pre_com = pre_props.CentreOfMass();
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(2, cs_fixed, cs_moving, 0.0, 0.0, false, "RevoluteNoOp");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps post_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, post_props);
+    gp_Pnt post_com = post_props.CentreOfMass();
+    REQUIRE_THAT(double(post_com.X()), WithinAbs(double(pre_com.X()), 1e-4));
+    REQUIRE_THAT(double(post_com.Y()), WithinAbs(double(pre_com.Y()), 1e-4));
+    REQUIRE_THAT(double(post_com.Z()), WithinAbs(double(pre_com.Z()), 1e-4));
+}
+
+TEST_CASE("revolute mate: mate_angle applies additional rotation", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Body B: asymmetric box, pre-rotated 30deg about Z, off-axis
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_transform(1, Vec3d(15, 2, 7), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 30.0, false, "PrePose");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(15, 2, 7), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // mate_angle=45deg on top of preserved 30deg → face originally +X now at 75deg
+    doc.add_mate(2, cs_fixed, cs_moving, 0.0, 45.0, false, "RevoluteAngle");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Position on axis line (same as revolute preservation test)
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    gp_Pnt com = props.CentreOfMass();
+    REQUIRE_THAT(double(com.X()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Y()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Z()), WithinAbs(7.5, 1e-4));
+
+    // Rotation = 30deg (preserved) + 45deg (mate_angle) = 75deg → normal ≈ (cos75, sin75, 0)
+    auto faces = GeometryEngine::faces_of(doc.bodies[1].shape);
+    bool found_75 = false;
+    for (const auto& f : faces) {
+        Vec3d n = GeometryEngine::face_normal_world(f);
+        if (std::abs(n.x() - 0.2588) < 0.02 && std::abs(n.y() - 0.9659) < 0.02) {
+            found_75 = true; break;
+        }
+    }
+    REQUIRE(found_75);
+}
+
+TEST_CASE("slider mate: rotation corrected, axial position preserved", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Pre-rotate B 30deg about Z, translate off-axis to (15, 2, 13)
+    doc.add_transform(1, Vec3d(15, 2, 13), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 30.0, false, "PrePose");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps pre_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, pre_props);
+    double pre_z = pre_props.CentreOfMass().Z();
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(15, 2, 13), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(3, cs_fixed, cs_moving, 0.0, 0.0, false, "Slider");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Perpendicular position corrected to the axis line (X=5, Y=5)
+    GProp_GProps post_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, post_props);
+    gp_Pnt post_com = post_props.CentreOfMass();
+    REQUIRE_THAT(double(post_com.X()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(post_com.Y()), WithinAbs(5.0, 1e-4));
+
+    // Axial (Z) position preserved from pre-mate pose
+    REQUIRE_THAT(double(post_com.Z()), WithinAbs(pre_z, 1e-4));
+    // Fastened would have placed the body at Z=5. pre_z=15.5 (centroid), clearly different.
+}
+
+TEST_CASE("slider mate: mate_offset shifts axial position", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_transform(1, Vec3d(12, 3, 9), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "PrePose");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(12, 3, 9), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Slider with mate_offset=4: body centroid at (12,3,11.5), connector at (12,3,9).
+    // Perpendicular corrected: X=5,Y=5. Axial: preserved Z 11.5 + offset 4 = 15.5.
+    doc.add_mate(3, cs_fixed, cs_moving, 4.0, 0.0, false, "SliderOffset");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    gp_Pnt com = props.CentreOfMass();
+    REQUIRE_THAT(double(com.X()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Y()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Z()), WithinAbs(15.5, 1e-3));
+}
+
+TEST_CASE("slider mate: no-op when already correct", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Body already on axis at (5,5,20), no rotation
+    doc.add_transform(1, Vec3d(5, 5, 20), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "PrePose");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps pre_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, pre_props);
+    gp_Pnt pre_com = pre_props.CentreOfMass();
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 20), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(3, cs_fixed, cs_moving, 0.0, 0.0, false, "SliderNoOp");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps post_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, post_props);
+    gp_Pnt post_com = post_props.CentreOfMass();
+    REQUIRE_THAT(double(post_com.X()), WithinAbs(double(pre_com.X()), 1e-4));
+    REQUIRE_THAT(double(post_com.Y()), WithinAbs(double(pre_com.Y()), 1e-4));
+    REQUIRE_THAT(double(post_com.Z()), WithinAbs(double(pre_com.Z()), 1e-4));
+}
+
+TEST_CASE("cylindrical mate: perpendicular corrected, rotation and axial preserved", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Pre-rotate B 30deg about Z, translate off-axis to (15, 2, 13)
+    doc.add_transform(1, Vec3d(15, 2, 13), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 30.0, false, "PrePose");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps pre_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, pre_props);
+    double pre_z = pre_props.CentreOfMass().Z();
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(15, 2, 13), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(4, cs_fixed, cs_moving, 0.0, 0.0, false, "Cylindrical");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Perpendicular position corrected to axis line
+    GProp_GProps post_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, post_props);
+    gp_Pnt com = post_props.CentreOfMass();
+    REQUIRE_THAT(double(com.X()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Y()), WithinAbs(5.0, 1e-4));
+
+    // Axial Z position preserved from pre-mate
+    REQUIRE_THAT(double(com.Z()), WithinAbs(pre_z, 1e-4));
+
+    // Rotation about Z preserved: face originally +X is still at 30deg
+    auto faces = GeometryEngine::faces_of(doc.bodies[1].shape);
+    REQUIRE(faces.size() == 6);
+    bool rot_preserved = false;
+    for (const auto& f : faces) {
+        Vec3d n = GeometryEngine::face_normal_world(f);
+        if (std::abs(n.x() - 0.866) < 0.02 && std::abs(n.y() - 0.5) < 0.02) {
+            rot_preserved = true; break;
+        }
+    }
+    REQUIRE(rot_preserved);
+    // Fastened would have aligned face normals to world axes and fixed Z.
+}
+
+TEST_CASE("cylindrical mate: mate_offset and mate_angle applied on top", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_transform(1, Vec3d(15, 2, 9), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 30.0, false, "PrePose");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(15, 2, 9), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(4, cs_fixed, cs_moving, 3.0, 45.0, false, "CylOffsetAngle");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Position: perpendicular corrected, axial = 11.5 (centroid preserved) + 3 (offset) = 14.5
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    gp_Pnt com = props.CentreOfMass();
+    REQUIRE_THAT(double(com.X()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Y()), WithinAbs(5.0, 1e-4));
+    REQUIRE_THAT(double(com.Z()), WithinAbs(14.5, 1e-3));
+
+    // Rotation = 30deg (preserved) + 45deg (angle) = 75deg
+    auto faces = GeometryEngine::faces_of(doc.bodies[1].shape);
+    bool found_75 = false;
+    for (const auto& f : faces) {
+        Vec3d n = GeometryEngine::face_normal_world(f);
+        if (std::abs(n.x() - 0.2588) < 0.02 && std::abs(n.y() - 0.9659) < 0.02) {
+            found_75 = true; break;
+        }
+    }
+    REQUIRE(found_75);
+}
+
+TEST_CASE("cylindrical mate: no-op when already correct", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 5.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 10, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Body already on axis at (5,5,20), no rotation
+    doc.add_transform(1, Vec3d(5, 5, 20), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 0.0, false, "PrePose");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps pre_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, pre_props);
+    gp_Pnt pre_com = pre_props.CentreOfMass();
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 5), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    int cs_moving = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(5, 5, 20), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_mate(4, cs_fixed, cs_moving, 0.0, 0.0, false, "CylNoOp");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    GProp_GProps post_props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, post_props);
+    gp_Pnt post_com = post_props.CentreOfMass();
+    REQUIRE_THAT(double(post_com.X()), WithinAbs(double(pre_com.X()), 1e-4));
+    REQUIRE_THAT(double(post_com.Y()), WithinAbs(double(pre_com.Y()), 1e-4));
+    REQUIRE_THAT(double(post_com.Z()), WithinAbs(double(pre_com.Z()), 1e-4));
+}
+
+TEST_CASE("revolute mate with FaceAndDirection on non-Z faces", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    // Body A: box 20x20x10
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 10.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Face on A with normal +Y
+    int faceA = find_face_by_normal(doc, 0, Vec3d(0, 1, 0));
+    REQUIRE(faceA >= 0);
+    Vec3d nA = GeometryEngine::face_normal_world(
+        GeometryEngine::face_by_index(doc.bodies[0].shape, faceA));
+
+    // Body B: asymmetric box 20x10x5, also with +Y face
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int faceB = find_face_by_normal(doc, 1, Vec3d(0, 1, 0));
+    REQUIRE(faceB >= 0);
+    Vec3d nB_pre = GeometryEngine::face_normal_world(
+        GeometryEngine::face_by_index(doc.bodies[1].shape, faceB));
+    REQUIRE_THAT(nB_pre.dot(nA), WithinAbs(1.0, 1e-4));
+
+    // Pre-rotate B about Y (the face normal) by 30deg to give it a non-trivial rotation about its connector z
+    doc.add_transform(1, Vec3d(0, 0, 0), Vec3d(0, 1, 0), Vec3d(0, 0, 0), 30.0, false, "PrePose");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // FaceAndDirection on A's +Y face
+    int cs_fixed = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0,0,0), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    doc.features[cs_fixed].coordsys_face = faceA;
+    // FaceAndDirection on B's +Y face
+    int cs_moving = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0,0,0), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    doc.features[cs_moving].coordsys_face = faceB;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Record face normals on B before mate (to verify rotation preservation)
+    // +30deg rotation about Y maps +Z=(0,0,1) → (0.5, 0, 0.866), -Z → (-0.5, 0, -0.866)
+    auto faces_pre = GeometryEngine::faces_of(doc.bodies[1].shape);
+    Vec3d pre_rotated_normal;
+    {
+        bool fnd = false;
+        for (const auto& f : faces_pre) {
+            Vec3d n = GeometryEngine::face_normal_world(f);
+            if (std::abs(n.z()) > 0.85 && std::abs(n.x()) > 0.45 && std::abs(n.y()) < 0.02) {
+                pre_rotated_normal = n; fnd = true; break;
+            }
+        }
+        REQUIRE(fnd);
+    }
+
+    doc.add_mate(2, cs_fixed, cs_moving, 0.0, 0.0, false, "RevoluteFaceDir");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Position: faces are coincident (same as fastened position since no offset and axes aligned)
+    Vec3d ca = GeometryEngine::face_centroid_world(GeometryEngine::face_by_index(doc.bodies[0].shape, faceA));
+    Vec3d cb = GeometryEngine::face_centroid_world(GeometryEngine::face_by_index(doc.bodies[1].shape, faceB));
+    REQUIRE_THAT(cb.x(), WithinAbs(ca.x(), 1e-4));
+    REQUIRE_THAT(cb.y(), WithinAbs(ca.y(), 1e-4));
+    REQUIRE_THAT(cb.z(), WithinAbs(ca.z(), 1e-4));
+
+    // Rotation about the connector z (which is +Y) is preserved:
+    // the face with |z| ≈ 0.866, |x| ≈ 0.5, y ≈ 0 must still exist.
+    auto faces_post = GeometryEngine::faces_of(doc.bodies[1].shape);
+    bool rot_preserved = false;
+    for (const auto& f : faces_post) {
+        Vec3d n = GeometryEngine::face_normal_world(f);
+        if (std::abs(n.z()) > 0.85 && std::abs(n.x()) > 0.45 && std::abs(n.y()) < 0.02) {
+            rot_preserved = true; break;
+        }
+    }
+    REQUIRE(rot_preserved);
+    // Fastened would force all axes to align: no face with Z≈0.87 would exist.
+}
+
+// --- M8b: rotation-coverage hole — FaceAndDirection captures body orientation ---
+
+TEST_CASE("slider mate with FaceAndDirection corrects rotation", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    // Body A: box 20x20x10
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 10.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int faceA = find_face_by_normal(doc, 0, Vec3d(0, 0, 1));
+    REQUIRE(faceA >= 0);
+
+    // Body B: asymmetric box 20x10x5
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int faceB = find_face_by_normal(doc, 1, Vec3d(0, 0, 1));
+    REQUIRE(faceB >= 0);
+
+    // Pre-rotate B: first 20deg about X (tilts +Z face normal off-axis, so the
+    // connector z genuinely differs from A's), then 30deg about Z (adds rotation
+    // about the mate axis that Slider must correct and Cylindrical must preserve).
+    doc.add_transform(1, Vec3d(14, 3, 7), Vec3d(1, 0, 0), Vec3d(0, 0, 0), 20.0, false, "RotX");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_transform(1, Vec3d(0, 0, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 30.0, false, "RotZ");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Both connectors pin their in-plane direction to an edge of their own body, so each
+    // frame follows its body's spin. Without this the frames' x comes from the world hint
+    // and the 30deg spin is invisible to the mate — see find_edge_on_face.
+    int edgeA = find_edge_on_face(doc, 0, faceA);
+    int edgeB = find_edge_on_face(doc, 1, faceB);
+    REQUIRE(edgeA >= 0);
+    REQUIRE(edgeB >= 0);
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0, 0, 0), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    doc.features[cs_fixed].coordsys_face = faceA;
+    doc.features[cs_fixed].coordsys_edge = edgeA;
+
+    int cs_moving = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0, 0, 0), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    doc.features[cs_moving].coordsys_face = faceB;
+    doc.features[cs_moving].coordsys_edge = edgeB;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Record the pre-mate axial position of the CONNECTOR, not of the centroid. Slider
+    // rotates the body about the connector origin to correct the 20deg tilt, and that
+    // rotation legitimately moves the centroid in Z (by -d*(1-cos20) for a centroid d
+    // below the mated face) while leaving the connector itself where it is. The DOF
+    // Slider preserves is the connector's position along the axis.
+    const double pre_conn_z = GeometryEngine::face_centroid_world(
+        GeometryEngine::face_by_index(doc.bodies[1].shape, faceB)).z();
+
+    doc.add_mate(3, cs_fixed, cs_moving, 0.0, 0.0, false, "SliderFaceDir");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Position: perpendicular corrected to axis line through A's +Z face centroid.
+    // The +Z face of a 20x20x10 box centred at origin has centroid at (0, 0, 10).
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    gp_Pnt com = props.CentreOfMass();
+    REQUIRE_THAT(double(com.X()), WithinAbs(0.0, 1e-4));
+    REQUIRE_THAT(double(com.Y()), WithinAbs(0.0, 1e-4));
+    // Axial position of the connector preserved — Slider does not own that DOF.
+    const double post_conn_z = GeometryEngine::face_centroid_world(
+        GeometryEngine::face_by_index(doc.bodies[1].shape, faceB)).z();
+    REQUIRE_THAT(post_conn_z, WithinAbs(pre_conn_z, 1e-4));
+
+    // Rotation: Slider owns this DOF — all face normals must be axis-aligned.
+    auto faces = GeometryEngine::faces_of(doc.bodies[1].shape);
+    REQUIRE(faces.size() == 6);
+    int axis_aligned = 0;
+    for (const auto& f : faces) {
+        Vec3d n = GeometryEngine::face_normal_world(f);
+        double d = std::max({std::abs(n.x()), std::abs(n.y()), std::abs(n.z())});
+        if (d > 0.999) ++axis_aligned;
+    }
+    REQUIRE(axis_aligned == 6);
+    // Dropping rotation correction would leave 30deg Z rotation — at least 2
+    // faces would have normals not aligned to any world axis.
+}
+
+TEST_CASE("cylindrical mate with FaceAndDirection preserves rotation", "[CadDocument][mate]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    // Body A: box 20x20x10
+    int sk_a = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 0, "BoxA");
+    doc.add_extrude(sk_a, 10.0, false, BooleanMode::New, "EA");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int faceA = find_face_by_normal(doc, 0, Vec3d(0, 0, 1));
+    REQUIRE(faceA >= 0);
+
+    // Body B: asymmetric box 20x10x5
+    int sk_b = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 10, 0, "BoxB");
+    doc.add_extrude(sk_b, 5.0, false, BooleanMode::New, "EB");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    int faceB = find_face_by_normal(doc, 1, Vec3d(0, 0, 1));
+    REQUIRE(faceB >= 0);
+
+    // Same two-step pre-rotation as the slider test.
+    doc.add_transform(1, Vec3d(14, 3, 7), Vec3d(1, 0, 0), Vec3d(0, 0, 0), 20.0, false, "RotX");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_transform(1, Vec3d(0, 0, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 30.0, false, "RotZ");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Edge-pinned frames, as in the Slider case. These matter here for the opposite
+    // reason: with a world-derived in-plane direction, a Cylindrical that WRONGLY aligned
+    // the spin would still leave the body's 30deg face at 30deg, and the assertion below
+    // would pass for the wrong implementation.
+    int edgeA = find_edge_on_face(doc, 0, faceA);
+    int edgeB = find_edge_on_face(doc, 1, faceB);
+    REQUIRE(edgeA >= 0);
+    REQUIRE(edgeB >= 0);
+
+    int cs_fixed = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0, 0, 0), "CS_Fixed");
+    doc.features[cs_fixed].coordsys_body = 0;
+    doc.features[cs_fixed].coordsys_face = faceA;
+    doc.features[cs_fixed].coordsys_edge = edgeA;
+
+    int cs_moving = doc.add_coordsys(CoordSysType::FaceAndDirection, Vec3d(0, 0, 0), "CS_Moving");
+    doc.features[cs_moving].coordsys_body = 1;
+    doc.features[cs_moving].coordsys_face = faceB;
+    doc.features[cs_moving].coordsys_edge = edgeB;
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // As in the Slider case, the preserved DOF is the CONNECTOR's position along the
+    // axis, not the centroid's: aligning the 20deg tilt rotates the body about the
+    // connector origin, which moves the centroid in Z by design.
+    const double pre_conn_z_c = GeometryEngine::face_centroid_world(
+        GeometryEngine::face_by_index(doc.bodies[1].shape, faceB)).z();
+
+    doc.add_mate(4, cs_fixed, cs_moving, 0.0, 0.0, false, "CylFaceDir");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // Position: perpendicular corrected to axis line (X=0, Y=0 at +Z face centroid)
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(doc.bodies[1].shape, props);
+    gp_Pnt com = props.CentreOfMass();
+    REQUIRE_THAT(double(com.X()), WithinAbs(0.0, 1e-4));
+    REQUIRE_THAT(double(com.Y()), WithinAbs(0.0, 1e-4));
+    // Axial position of the connector preserved — Cylindrical leaves that DOF free.
+    const double post_conn_z_c = GeometryEngine::face_centroid_world(
+        GeometryEngine::face_by_index(doc.bodies[1].shape, faceB)).z();
+    REQUIRE_THAT(post_conn_z_c, WithinAbs(pre_conn_z_c, 1e-4));
+
+    // Rotation about Z (30deg) is preserved: the 20deg X-rotation was undone
+    // by z-alignment, leaving the 30deg Z-rotation intact.
+    // The +X face normal should be at ~(cos30, sin30, 0).
+    auto faces = GeometryEngine::faces_of(doc.bodies[1].shape);
+    REQUIRE(faces.size() == 6);
+    bool rot_preserved = false;
+    for (const auto& f : faces) {
+        Vec3d n = GeometryEngine::face_normal_world(f);
+        if (std::abs(n.x() - 0.866) < 0.02 && std::abs(n.y() - 0.5) < 0.02) {
+            rot_preserved = true; break;
+        }
+    }
+    REQUIRE(rot_preserved);
+    // If cylindrical behaved like slider, the face would be at (1,0,0) instead.
 }
