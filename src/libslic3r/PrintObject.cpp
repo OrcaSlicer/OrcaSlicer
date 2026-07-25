@@ -1254,8 +1254,7 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "interlocking_beam_layer_count"
             || opt_key == "interlocking_depth"
             || opt_key == "interlocking_boundary_avoidance"
-            || opt_key == "interlocking_beam_width"
-            || opt_key == "plugin_config_overrides") {
+            || opt_key == "interlocking_beam_width") {
             steps.emplace_back(posSlice);
 		} else if (
                opt_key == "elefant_foot_compensation"

@@ -9,10 +9,12 @@ let selectedCapabilityType = "";
 let selectedHasPresetOverride = false;
 let selectedReadOnly = false;
 
-// Identity of the capability whose custom UI is currently loaded in the frame. Saving re-sends the
-// whole capability_config payload, and rebuilding the frame from it would reload the plugin's page
-// under the user's cursor; when this still matches, the new values are posted in instead.
-let customFrameKey = "";
+// Whether the frame holds the selected capability's custom UI. Payloads are gated by
+// IsCurrentCapability and every selection change clears the view, so a loaded frame is always the
+// selected capability's. Saving re-sends the whole capability_config payload, and rebuilding the
+// frame from it would reload the plugin's page under the user's cursor; while the frame is loaded,
+// the new values are posted in instead.
+let customFrameLoaded = false;
 
 function SafeJsonParse(text) {
   try {
@@ -173,10 +175,6 @@ function IsCurrentCapability(payload) {
     && String(payload?.capability_type || "") === selectedCapabilityType;
 }
 
-function CapabilityKey(payload) {
-  return JSON.stringify([payload?.plugin_key, payload?.capability_name, payload?.capability_type]);
-}
-
 function RequestCapabilityConfig() {
   if (!selectedPluginKey || !selectedCapabilityName)
     return;
@@ -202,7 +200,7 @@ function ClearCapabilityConfigView() {
   if (custom) {
     custom.hidden = true;
     custom.removeAttribute("srcdoc");
-    customFrameKey = "";
+    customFrameLoaded = false;
   }
   if (text)
     text.value = "";
@@ -260,10 +258,10 @@ function ApplyCapabilityConfig(payload) {
     if (custom) {
       const context = OrcaConfigContext(payload, "preset");
       custom.hidden = false;
-      if (customFrameKey === CapabilityKey(payload) && custom.contentWindow) {
+      if (customFrameLoaded && custom.contentWindow) {
         custom.contentWindow.postMessage({ __orca: "config", config: config, context: context }, "*");
       } else {
-        customFrameKey = CapabilityKey(payload);
+        customFrameLoaded = true;
         custom.srcdoc = BuildCustomConfigDocument(html, config, context);
       }
     }
@@ -276,7 +274,7 @@ function ApplyCapabilityConfig(payload) {
   if (custom) {
     custom.hidden = true;
     custom.removeAttribute("srcdoc");
-    customFrameKey = "";
+    customFrameLoaded = false;
   }
   if (editor)
     editor.hidden = false;
@@ -416,7 +414,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // OnCustomConfigMessage matches on the frame's contentWindow, not the origin ("null" when
   // sandboxed), and ignores anything else.
   window.addEventListener("message", OnCustomConfigMessage);
-  OrcaWatchThemeForFrame(() => document.getElementById("configCustom"));
+  OrcaWatchThemeForFrame("configCustom");
 
   SendMessage("request_capabilities");
 });

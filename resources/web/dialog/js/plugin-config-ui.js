@@ -3,41 +3,25 @@
 // opaque origin, so this bridge is its only channel, and both must offer plugin authors exactly the
 // same one — hence a single module rather than a copy per dialog.
 
-// The host theme "contract" (WebViewHostDialog::host_theme_vars_css). The document-start injector
-// stamps it on the top-level page only — it returns early in child frames — so a sandboxed config UI
-// never sees it unless we hand it over.
-const ORCA_THEME_VARS = [
-  "--orca-bg",
-  "--orca-fg",
-  "--orca-muted",
-  "--orca-border",
-  "--orca-accent",
-  "--orca-accent-fg",
-  "--orca-font"
-];
-
-// Read the contract off this page as it is rendering right now, so the frame always opens in the
-// live theme rather than whatever the app started in.
+// The host theme "contract" (WebViewHostDialog::host_theme_vars_css) arrives as a complete
+// ":root{--orca-*;color-scheme:...}" rule in the injected <style id="orca-host-theme-vars">, which
+// the document-start injector stamps on the top-level page only — it returns early in child frames —
+// so a sandboxed config UI never sees it unless we hand it over. Relay that host-authored CSS
+// verbatim rather than re-deriving it variable by variable: the C++ function stays the only place
+// the contract is spelled out, and the host re-themes the style in place, so reading it now always
+// yields the live theme.
 function OrcaThemeSnapshot() {
-  const style = getComputedStyle(document.documentElement);
-  const vars = {};
-  ORCA_THEME_VARS.forEach((name) => {
-    // Values are host-produced colors and a pre-sanitized font stack; strip anything that could end
-    // the declaration or the <style> block it gets inlined into.
-    const value = String(style.getPropertyValue(name) || "").trim().replace(/[<>{};]/g, "");
-    if (value)
-      vars[name] = value;
-  });
+  const style = document.getElementById("orca-host-theme-vars");
   return {
     theme: document.documentElement.getAttribute("data-orca-theme") === "dark" ? "dark" : "light",
-    vars: vars
+    css: style ? style.textContent : ""
   };
 }
 
 // Inlined into a <script> or a JSON payload: a stored "</script>" would close the tag early, so
 // escape "<" — the literal stays valid JSON.
 function OrcaInlineJson(value) {
-  return JSON.stringify(value === undefined ? null : value).replace(/</g, "\\u003c");
+  return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
 // What a custom UI can learn about the surface it is being edited on. Kept to what changes the
@@ -66,13 +50,9 @@ function BuildCustomConfigDocument(html, config, context) {
   var theme = ${OrcaInlineJson(theme)};
 
   function applyTheme(next) {
-    if (next && next.vars) theme = next;
-    var css = ":root{";
-    for (var name in theme.vars)
-      if (Object.prototype.hasOwnProperty.call(theme.vars, name)) css += name + ":" + theme.vars[name] + ";";
-    css += "color-scheme:" + theme.theme + ";}";
+    if (next && typeof next.css === "string") theme = next;
     var style = document.getElementById("orca-host-theme-vars");
-    if (style) style.textContent = css;
+    if (style) style.textContent = theme.css;
     if (document.documentElement) document.documentElement.setAttribute("data-orca-theme", theme.theme);
     themeHandlers.forEach(function (handler) {
       try { handler(theme.theme); } catch (e) {}
@@ -116,9 +96,9 @@ function BuildCustomConfigDocument(html, config, context) {
 // The host re-themes an open dialog in place (WebViewHostDialog::host_theme_apply_js rewrites the
 // injected variables and re-stamps data-orca-theme), which a sandboxed child frame never sees. Relay
 // it so a custom UI follows a light/dark switch without being reopened.
-function OrcaWatchThemeForFrame(getFrame) {
+function OrcaWatchThemeForFrame(frameId) {
   const relay = () => {
-    const frame = getFrame();
+    const frame = document.getElementById(frameId);
     if (!frame || frame.hidden || !frame.contentWindow)
       return;
     frame.contentWindow.postMessage({ __orca: "theme", theme: OrcaThemeSnapshot() }, "*");

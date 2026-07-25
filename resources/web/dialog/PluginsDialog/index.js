@@ -90,7 +90,7 @@ function OnInit() {
   // OnCustomConfigMessage matches on the frame's contentWindow, not the origin ("null" when
   // sandboxed), and ignores anything else.
   window.addEventListener("message", OnCustomConfigMessage);
-  OrcaWatchThemeForFrame(() => document.getElementById("configCustom"));
+  OrcaWatchThemeForFrame("configCustom");
 
   document.addEventListener("click", (event) => {
     if (!event.target.closest(".ctx"))

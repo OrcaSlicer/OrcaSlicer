@@ -490,6 +490,8 @@ _CONFIG_UI = """
     draw();
     restoreReadout();
     refreshState();
+    labelRestore();
+    setInputsEnabled(!context.readOnly);
   }
 
   // "Restore defaults" writes the plugin's own defaults globally, but in a preset it discards that
@@ -513,8 +515,6 @@ _CONFIG_UI = """
 
   buildRows();
   load(window.orca ? window.orca.getConfig() : {});
-  labelRestore();
-  setInputsEnabled(!context.readOnly);
 
   document.getElementById("save").addEventListener("click", function () {
     if (!window.orca) return;
@@ -532,8 +532,6 @@ _CONFIG_UI = """
       if (first) { first = false; return; }
       if (window.orca.getContext) context = window.orca.getContext();
       load(config);
-      labelRestore();
-      setInputsEnabled(!context.readOnly);
       announce("Saved");
     });
   }
