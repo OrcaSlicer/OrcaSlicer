@@ -23,7 +23,10 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 IMAGE="${IMAGE:-snaporca-deps}"
-VOL="${BUILD_VOL:-snaporca_buildcache}"
+# Must NOT default to snaporca_buildcache: that is the other fork's volume, and pointing
+# this fork at it makes the two silently trade build artefacts. docker-iter-build.sh had the
+# identical defect and was fixed to orcacad_buildcache; this script was missed.
+VOL="${BUILD_VOL:-orcacad_kerneltest}"
 # Two pre-existing failures are excluded by default (see [known-broken] in
 # test_caddocument.cpp): one of them SIGABRTs inside the vendored solver and takes the
 # whole process down, so without this exclusion a green run is simply unreachable and the
