@@ -4503,6 +4503,51 @@ TEST_CASE("unknown identifier fails recompute", "[CadDocument][variables]")
     REQUIRE_CONTAINS(doc.error, "unknown identifier");
 }
 
+// The checkpoint -> mutate -> recompute -> undo-on-failure pattern is what both the GUI and
+// McpControl use to keep a bad edit out of the document. It only works if the snapshot covers
+// `variables` as well as `features`: undo() used to restore features alone, so a bad variable
+// survived the rollback and every later recompute failed — the document was left unusable.
+TEST_CASE("undo rolls back a bad variable, not just features", "[CadDocument][variables]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Sketch");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    doc.features[sk].expr = {{"width", "w"}};
+    doc.variables = {{"w", "20"}};
+    REQUIRE(doc.recompute());
+
+    // Caller sets a variable to something unevaluable, exactly as action_set_variable does.
+    doc.checkpoint();
+    doc.variables["w"] = "nosuchvar + 1";
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE(doc.undo());
+
+    // The good value must be back...
+    REQUIRE(doc.variables.at("w") == "20");
+    // ...and, the part that actually bit, the document must still be usable.
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+}
+
+// A variable ADDED under a checkpoint must disappear entirely on undo, not linger with a
+// stale value: the pre-mutation snapshot simply did not contain the key.
+TEST_CASE("undo removes a variable that did not exist before the checkpoint", "[CadDocument][variables]")
+{
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Sketch");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.variables.empty());
+
+    doc.checkpoint();
+    doc.variables["bogus"] = "1/0 +";     // syntactically broken
+    REQUIRE_FALSE(doc.recompute());
+    REQUIRE(doc.undo());
+
+    REQUIRE(doc.variables.count("bogus") == 0);
+    REQUIRE(doc.recompute());
+}
+
 TEST_CASE("parametric recipe round-trips through serialize/deserialize", "[CadDocument][variables]")
 {
     using Catch::Matchers::WithinAbs;

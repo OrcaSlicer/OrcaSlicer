@@ -1372,7 +1372,9 @@ json action_set_variable(DesignPanel* panel, const json& params)
     doc.checkpoint();
     doc.variables[name] = expr;
     bool ok = doc.recompute();
-    if (!ok) { doc.undo(); }
+    // undo() recomputes, which succeeds and clears doc.error; carry the reason across so
+    // the JSON reply below reports why the edit was rejected instead of an empty string.
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"name", name}, {"error", doc.error}};
 }
@@ -1392,7 +1394,9 @@ json action_set_feature_expr(DesignPanel* panel, const json& params)
     doc.checkpoint();
     doc.features[fi].expr[field] = expr;
     bool ok = doc.recompute();
-    if (!ok) { doc.undo(); }
+    // undo() recomputes, which succeeds and clears doc.error; carry the reason across so
+    // the JSON reply below reports why the edit was rejected instead of an empty string.
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"feature", fi}, {"field", field}, {"error", doc.error}};
 }

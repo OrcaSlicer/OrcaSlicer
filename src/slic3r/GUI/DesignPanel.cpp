@@ -8792,7 +8792,9 @@ void DesignPanel::on_add_variable()
     m_doc.checkpoint();
     m_doc.variables[name_str] = expr_str;
     bool ok = m_doc.recompute();
-    if (!ok) { m_doc.undo(); }
+    // undo() recomputes, which SUCCEEDS and clears doc.error — so the reason the edit was
+    // rejected is gone before anything can display it. Carry it across the rollback.
+    if (!ok) { const std::string why = m_doc.error; m_doc.undo(); m_doc.error = why; }
     after_tree_edit(ok);
     refresh_variables();
 }
@@ -8817,7 +8819,9 @@ void DesignPanel::on_edit_variable()
     m_doc.checkpoint();
     m_doc.variables[name_str] = expr_str;
     bool ok = m_doc.recompute();
-    if (!ok) { m_doc.undo(); }
+    // undo() recomputes, which SUCCEEDS and clears doc.error — so the reason the edit was
+    // rejected is gone before anything can display it. Carry it across the rollback.
+    if (!ok) { const std::string why = m_doc.error; m_doc.undo(); m_doc.error = why; }
     after_tree_edit(ok);
     refresh_variables();
 }
@@ -8837,11 +8841,16 @@ void DesignPanel::on_remove_variable()
     m_doc.variables.erase(name_str);
     bool ok = m_doc.recompute();
     if (!ok) {
+        // Capture before undo(): its recompute succeeds and clears doc.error.
+        const std::string why = m_doc.error;
         m_doc.undo();
-        // A failed recompute on remove means a feature expr still references it
+        // Almost always a feature expr still referencing the variable — but say so as the
+        // likely cause and keep the real message, rather than asserting a diagnosis that
+        // would be wrong for any other failure.
         m_doc.error = wxString::Format(
-            _L("Variable '%s' is referenced by a feature expression and cannot be removed"),
-            m_var_list->GetItemText(sel, 0)).ToUTF8().data();
+            _L("Variable '%s' could not be removed (likely still referenced by a feature "
+               "expression): %s"),
+            m_var_list->GetItemText(sel, 0), wxString::FromUTF8(why)).ToUTF8().data();
     }
     after_tree_edit(ok);
     refresh_variables();
@@ -8916,7 +8925,9 @@ void DesignPanel::on_set_expr()
     m_doc.checkpoint();
     m_doc.features[m_edit_index].expr[field] = expr;
     bool ok = m_doc.recompute();
-    if (!ok) { m_doc.undo(); }
+    // undo() recomputes, which SUCCEEDS and clears doc.error — so the reason the edit was
+    // rejected is gone before anything can display it. Carry it across the rollback.
+    if (!ok) { const std::string why = m_doc.error; m_doc.undo(); m_doc.error = why; }
     after_tree_edit(ok);
     if (ok) m_expr_text->Clear();
 
@@ -8958,7 +8969,9 @@ void DesignPanel::on_clear_expr()
     m_doc.checkpoint();
     feat_expr.erase(field);
     bool ok = m_doc.recompute();
-    if (!ok) { m_doc.undo(); }
+    // undo() recomputes, which SUCCEEDS and clears doc.error — so the reason the edit was
+    // rejected is gone before anything can display it. Carry it across the rollback.
+    if (!ok) { const std::string why = m_doc.error; m_doc.undo(); m_doc.error = why; }
     after_tree_edit(ok);
 
     if (m_edit_index >= 0 && m_edit_index < int(m_doc.features.size())) {

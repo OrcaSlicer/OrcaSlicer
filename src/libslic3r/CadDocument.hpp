@@ -662,11 +662,21 @@ private:
     static DatumCoordSys datum_frame(const std::vector<CadBody>& bodies, const CadFeature& f);
     void apply_mate(std::vector<CadBody>& bodies, const CadFeature& f) const;
 
-    // Undo/redo stacks of feature-list snapshots. checkpoint() pushes onto m_undo and
-    // clears m_redo; undo()/redo() shuffle the current state between them. Capped so a
-    // long session can't grow unbounded.
-    std::vector<std::vector<CadFeature>> m_undo;
-    std::vector<std::vector<CadFeature>> m_redo;
+    // Undo/redo stacks of recipe snapshots. checkpoint() pushes onto m_undo and clears
+    // m_redo; undo()/redo() shuffle the current state between them. Capped so a long
+    // session can't grow unbounded.
+    //
+    // The snapshot MUST carry `variables` as well as `features`: a caller that sets a bad
+    // variable, sees recompute() fail and calls undo() to roll it back would otherwise be
+    // left with the bad variable still in the document, so every later recompute fails —
+    // the exact corruption the checkpoint/undo pattern exists to prevent. Not serialized,
+    // so this changes no on-disk format.
+    struct Snapshot {
+        std::vector<CadFeature>            features;
+        std::map<std::string, std::string> variables;
+    };
+    std::vector<Snapshot> m_undo;
+    std::vector<Snapshot> m_redo;
     static constexpr size_t k_undo_cap = 200;
 };
 
