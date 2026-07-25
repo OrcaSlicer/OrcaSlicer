@@ -4048,3 +4048,133 @@ TEST_CASE("delete_face round-trip serialization", "[CadDocument][deleteface]")
         REQUIRE_THAT(double(z1), WithinAbs(bboxes[i].second.z(), 1e-6));
     }
 }
+
+TEST_CASE("hole: counterbore removes more material than a simple bore", "[CadDocument][hole]")
+{
+    using Catch::Matchers::WithinAbs;
+    auto make_box_hole = [](int style, double cbore_d, double cbore_depth,
+                             double csink_d, double csink_angle, const std::string& desig) {
+        CadDocument doc;
+        int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 30, 30, 0, "Box");
+        doc.add_extrude(sk, 15.0, false, BooleanMode::New, "Extrude");
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        double v_box = doc.body_mass_properties(0).volume;
+        if (style == 0)
+            doc.add_hole(6.0, 10.0, false, 0.0, 0.0, SketchPlane::XY(), "Hole");
+        else
+            doc.add_hole_styled(6.0, 10.0, false, 0.0, 0.0, SketchPlane::XY(), style,
+                                cbore_d, cbore_depth, csink_d, csink_angle, desig, "Hole");
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        double v = doc.body_mass_properties(0).volume;
+        REQUIRE(v < v_box);
+        return v;
+    };
+
+    double v_simple   = make_box_hole(0, 0, 0, 0, 0, "");
+    double v_cbore    = make_box_hole(1, 11.0, 6.0, 0, 0, "M6");
+    REQUIRE(v_cbore < v_simple);
+}
+
+TEST_CASE("hole: countersink removes more material than a simple bore", "[CadDocument][hole]")
+{
+    using Catch::Matchers::WithinAbs;
+    auto make_box = []() {
+        CadDocument doc;
+        int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 30, 30, 0, "Box");
+        doc.add_extrude(sk, 15.0, false, BooleanMode::New, "Extrude");
+        REQUIRE(doc.recompute());
+        REQUIRE(doc.error.empty());
+        return doc;
+    };
+
+    CadDocument doc_simple = make_box();
+    doc_simple.add_hole(6.0, 10.0, false, 0.0, 0.0, SketchPlane::XY(), "Hole");
+    REQUIRE(doc_simple.recompute());
+    double v_simple = doc_simple.body_mass_properties(0).volume;
+    double v_box = 30.0 * 30.0 * 15.0;
+
+    CadDocument doc_csink = make_box();
+    doc_csink.add_hole_styled(6.0, 10.0, false, 0.0, 0.0, SketchPlane::XY(), 2,
+                              0.0, 0.0, 12.0, 90.0, "M6", "Hole");
+    REQUIRE(doc_csink.recompute());
+    double v_csink = doc_csink.body_mass_properties(0).volume;
+
+    REQUIRE(v_simple < v_box);
+    REQUIRE(v_csink < v_simple);
+}
+
+TEST_CASE("hole: standards table lookup", "[CadDocument][hole]")
+{
+    using Catch::Matchers::WithinAbs;
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 30, 30, 0, "Box");
+    doc.add_extrude(sk, 15.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+
+    int fi = doc.add_hole_standard("M6", 0, true, 10, 0, 0, SketchPlane::XY(), "H");
+    REQUIRE(fi >= 0);
+    REQUIRE_THAT(doc.features[fi].hole_diameter, WithinAbs(6.6, 1e-6));
+    REQUIRE(doc.features[fi].hole_standard == "M6");
+
+    REQUIRE_THROWS(doc.add_hole_standard("M999", 0, true, 10, 0, 0, SketchPlane::XY(), "H"));
+    try {
+        doc.add_hole_standard("M999", 0, true, 10, 0, 0, SketchPlane::XY(), "H");
+    } catch (const std::exception& ex) {
+        CHECK_THAT(std::string(ex.what()), Catch::Matchers::Contains("standard"));
+    }
+}
+
+TEST_CASE("hole: round-trip preserves styled counterbore hole", "[CadDocument][hole]")
+{
+    using Catch::Matchers::WithinAbs;
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 30, 30, 0, "Box");
+    doc.add_extrude(sk, 15.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    doc.add_hole_styled(6.0, 10.0, false, 0.0, 0.0, SketchPlane::XY(), 1,
+                        11.0, 6.0, 0.0, 90.0, "M6", "Cbore");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    std::vector<std::pair<Vec3d, Vec3d>> bboxes;
+    for (const auto& b : doc.bodies) {
+        Bnd_Box bb; BRepBndLib::Add(b.shape, bb);
+        Standard_Real x0, y0, z0, x1, y1, z1;
+        bb.Get(x0, y0, z0, x1, y1, z1);
+        bboxes.emplace_back(Vec3d(x0, y0, z0), Vec3d(x1, y1, z1));
+    }
+
+    auto blob = doc.serialize_recipe();
+    REQUIRE_FALSE(blob.empty());
+
+    CadDocument doc2;
+    REQUIRE(doc2.deserialize_recipe(blob));
+    REQUIRE(doc2.error.empty());
+    REQUIRE(doc2.bodies.size() == doc.bodies.size());
+
+    for (size_t i = 0; i < bboxes.size(); ++i) {
+        Bnd_Box bb; BRepBndLib::Add(doc2.bodies[i].shape, bb);
+        Standard_Real x0, y0, z0, x1, y1, z1;
+        bb.Get(x0, y0, z0, x1, y1, z1);
+        REQUIRE_THAT(double(x0), WithinAbs(bboxes[i].first.x(),  1e-6));
+        REQUIRE_THAT(double(y0), WithinAbs(bboxes[i].first.y(),  1e-6));
+        REQUIRE_THAT(double(z0), WithinAbs(bboxes[i].first.z(),  1e-6));
+        REQUIRE_THAT(double(x1), WithinAbs(bboxes[i].second.x(), 1e-6));
+        REQUIRE_THAT(double(y1), WithinAbs(bboxes[i].second.y(), 1e-6));
+        REQUIRE_THAT(double(z1), WithinAbs(bboxes[i].second.z(), 1e-6));
+    }
+
+    bool found = false;
+    for (const auto& f : doc2.features) {
+        if (f.type == CadFeatureType::Hole && f.name == "Cbore") {
+            REQUIRE(f.hole_style == 1);
+            REQUIRE_THAT(f.hole_cbore_diameter, WithinAbs(11.0, 1e-9));
+            found = true;
+        }
+    }
+    REQUIRE(found);
+}

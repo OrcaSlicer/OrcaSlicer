@@ -118,6 +118,15 @@ struct CadFeature {
     double      hole_x{0};                 // position on the plane (plane u/x axis)
     double      hole_y{0};                 // position on the plane (plane v/y axis)
 
+    // Hole standards library (extends the plain bore above).
+    // hole_style: 0 = simple, 1 = counterbore, 2 = countersink.
+    int         hole_style{0};
+    double      hole_cbore_diameter{0};    // counterbore cylinder diameter (mm), style==1
+    double      hole_cbore_depth{0};       // counterbore depth from the entry face (mm), style==1
+    double      hole_csink_diameter{0};    // countersink major diameter at entry face (mm), style==2
+    double      hole_csink_angle{90};      // countersink included angle (degrees), style==2
+    std::string hole_standard;             // provenance only, e.g. "M6" / "1/4-20"; not used by geometry
+
     // Thread params (helical thread about the plane normal at a positioned point)
     double      thread_radius{5};          // nominal cylinder radius
     double      thread_pitch{2};           // axial advance per turn
@@ -297,7 +306,9 @@ struct CadFeature {
              thicken_face, thicken_thickness, thicken_flip,
              cut_face_body, cut_face,
              project_source_body, project_edges, project_face,
-             delete_faces);
+             delete_faces,
+             hole_style, hole_cbore_diameter, hole_cbore_depth,
+             hole_csink_diameter, hole_csink_angle, hole_standard);
     }
     template<class Archive>
     void load(Archive& ar) {
@@ -329,7 +340,9 @@ struct CadFeature {
             thicken_face, thicken_thickness, thicken_flip,
             cut_face_body, cut_face,
              project_source_body, project_edges, project_face,
-             delete_faces);
+              delete_faces,
+              hole_style, hole_cbore_diameter, hole_cbore_depth,
+              hole_csink_diameter, hole_csink_angle, hole_standard);
         imported_solid = brep_from_string(brep);
     }
 };
@@ -410,6 +423,14 @@ public:
     int  add_hole(double diameter, double depth, bool through,
                   double x, double y, const SketchPlane& plane,
                   const std::string& name);
+    int  add_hole_styled(double diameter, double depth, bool through,
+                         double x, double y, const SketchPlane& plane, int style,
+                         double cbore_diameter, double cbore_depth,
+                         double csink_diameter, double csink_angle,
+                         const std::string& standard, const std::string& name);
+    int  add_hole_standard(const std::string& designation, int style, bool through,
+                           double depth, double x, double y,
+                           const SketchPlane& plane, const std::string& name);
     int  add_thread(double radius, double pitch, double height, double depth,
                     bool internal, double x, double y, const SketchPlane& plane,
                     const std::string& name);

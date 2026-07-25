@@ -24,6 +24,7 @@
 #include <gp_Pln.hxx>
 #include <TopTools_ListOfShape.hxx>
 #include <BRepPrimAPI_MakeCylinder.hxx>
+#include <BRepPrimAPI_MakeCone.hxx>
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepLib.hxx>
 #include <BRepAdaptor_Curve.hxx>
@@ -573,6 +574,72 @@ int CadDocument::add_hole(double diameter, double depth, bool through,
     f.hole_y        = y;
     features.push_back(f);
     return int(features.size()) - 1;
+}
+
+// Hole standards lookup table (representative ISO 273 medium / ISO 4762 / ANSI unified).
+struct HoleStdEntry { const char* desig; double clearance; double cbore_d; double cbore_depth; double csink_d; };
+static const HoleStdEntry kHoleStdTable[] = {
+    {"M3",   3.4,  6.0,  3.4,  6.3},
+    {"M4",   4.5,  8.0,  4.4,  8.4},
+    {"M5",   5.5, 10.0,  5.4, 10.4},
+    {"M6",   6.6, 11.0,  6.8, 12.6},
+    {"M8",   9.0, 15.0,  8.8, 17.3},
+    {"M10", 11.0, 18.0, 11.0, 20.0},
+    {"#6-32",    3.7,  8.8,  4.2,  8.7},
+    {"#8-32",    4.4,  9.9,  5.1, 10.2},
+    {"1/4-20",   6.9, 14.4,  7.2, 14.7},
+    {"5/16-18",  8.8, 17.0,  8.2, 17.3},
+    {"3/8-16",  10.5, 19.6,  9.5, 19.8},
+};
+static bool hole_std_lookup(const std::string& desig, double& clearance,
+                            double& cbore_d, double& cbore_depth, double& csink_d)
+{
+    for (const auto& e : kHoleStdTable) {
+        if (e.desig == desig) {
+            clearance   = e.clearance;
+            cbore_d     = e.cbore_d;
+            cbore_depth = e.cbore_depth;
+            csink_d     = e.csink_d;
+            return true;
+        }
+    }
+    return false;
+}
+
+int CadDocument::add_hole_styled(double diameter, double depth, bool through,
+                                 double x, double y, const SketchPlane& plane, int style,
+                                 double cbore_diameter, double cbore_depth,
+                                 double csink_diameter, double csink_angle,
+                                 const std::string& standard, const std::string& name)
+{
+    CadFeature f;
+    f.type                = CadFeatureType::Hole;
+    f.name                = name;
+    f.plane               = plane;
+    f.hole_diameter       = diameter;
+    f.hole_depth          = depth;
+    f.hole_through        = through;
+    f.hole_x              = x;
+    f.hole_y              = y;
+    f.hole_style          = style;
+    f.hole_cbore_diameter = cbore_diameter;
+    f.hole_cbore_depth    = cbore_depth;
+    f.hole_csink_diameter = csink_diameter;
+    f.hole_csink_angle    = csink_angle;
+    f.hole_standard       = standard;
+    features.push_back(f);
+    return int(features.size()) - 1;
+}
+
+int CadDocument::add_hole_standard(const std::string& designation, int style, bool through,
+                                   double depth, double x, double y,
+                                   const SketchPlane& plane, const std::string& name)
+{
+    double clearance, cbore_d, cbore_depth, csink_d;
+    if (!hole_std_lookup(designation, clearance, cbore_d, cbore_depth, csink_d))
+        throw std::runtime_error("unknown hole standard \"" + designation + "\"");
+    return add_hole_styled(clearance, depth, through, x, y, plane, style,
+                           cbore_d, cbore_depth, csink_d, 90, designation, name);
 }
 
 int CadDocument::add_thread(double radius, double pitch, double height, double depth,
@@ -1749,6 +1816,27 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         BRepAlgoAPI_Cut cut(result, tool);
         if (!cut.IsDone()) throw std::runtime_error("hole cut failed");
         result = cut.Shape();
+
+        // Enlarge the entry for a screw head (style 1 = counterbore, 2 = countersink).
+        if (f.hole_style == 1 && f.hole_cbore_diameter > f.hole_diameter
+                              && f.hole_cbore_depth > 1e-6) {
+            gp_Ax2 cbax(o, n);
+            TopoDS_Shape cb = BRepPrimAPI_MakeCylinder(cbax, f.hole_cbore_diameter * 0.5,
+                                                       f.hole_cbore_depth).Shape();
+            BRepAlgoAPI_Cut cbc(result, cb);
+            if (cbc.IsDone() && !cbc.Shape().IsNull()) result = cbc.Shape();
+        } else if (f.hole_style == 2 && f.hole_csink_diameter > f.hole_diameter) {
+            const double Rmaj = f.hole_csink_diameter * 0.5;
+            const double Rmin = f.hole_diameter * 0.5;
+            const double half = f.hole_csink_angle * 0.5 * M_PI / 180.0;
+            const double h = (Rmaj - Rmin) / std::tan(half);
+            if (h > 1e-6) {
+                gp_Ax2 csax(o, n);
+                TopoDS_Shape cs = BRepPrimAPI_MakeCone(csax, Rmaj, Rmin, h).Shape();
+                BRepAlgoAPI_Cut csc(result, cs);
+                if (csc.IsDone() && !csc.Shape().IsNull()) result = csc.Shape();
+            }
+        }
         break;
     }
     case CadFeatureType::Thread: {

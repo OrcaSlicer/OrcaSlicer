@@ -153,6 +153,31 @@ json describe_tools()
                      json{{"name", "y"},        {"type", "number"}, {"unit", "mm"}, {"default", 0}},
                      json{{"name", "plane"},    {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
                  })}},
+            json{{"name", "hole_styled"}, {"summary", "Drill a hole with optional counterbore (style=1) or countersink (style=2) at (x,y) on a plane."},
+                 {"params", json::array({
+                     json{{"name", "diameter"},        {"type", "number"}, {"unit", "mm"}, {"default", 5}, {"min", 0.01}},
+                     json{{"name", "depth"},           {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
+                     json{{"name", "through"},         {"type", "boolean"}, {"default", true}},
+                     json{{"name", "x"},               {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "y"},               {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "plane"},           {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
+                     json{{"name", "style"},           {"type", "integer"}, {"default", 0}, {"description", "0=simple, 1=counterbore, 2=countersink"}},
+                     json{{"name", "cbore_diameter"},  {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "cbore_depth"},     {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "csink_diameter"},  {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "csink_angle"},     {"type", "number"}, {"unit", "deg"}, {"default", 90}},
+                     json{{"name", "standard"},        {"type", "string"}, {"default", ""}, {"description", "provenance designation, e.g. M6"}},
+                 })}},
+            json{{"name", "hole_standard"}, {"summary", "Drill a standard clearance hole (ISO 273 / ANSI) at (x,y) on a plane. style: 0=simple, 1=counterbore, 2=countersink."},
+                 {"params", json::array({
+                     json{{"name", "designation"},  {"type", "string"}, {"description", "e.g. M6, 1/4-20"}},
+                     json{{"name", "style"},        {"type", "integer"}, {"default", 0}},
+                     json{{"name", "through"},      {"type", "boolean"}, {"default", true}},
+                     json{{"name", "depth"},        {"type", "number"}, {"unit", "mm"}, {"default", 10}, {"min", 0.01}},
+                     json{{"name", "x"},            {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "y"},            {"type", "number"}, {"unit", "mm"}, {"default", 0}},
+                     json{{"name", "plane"},        {"type", "string"}, {"enum", json::array({"XY", "XZ", "YZ"})}, {"default", "XY"}},
+                 })}},
             json{{"name", "boolean"}, {"summary", "Combine two bodies: union | subtract (tool from target) | intersect."},
                  {"params", json::array({
                      json{{"name", "op"},        {"type", "string"}, {"enum", json::array({"union", "subtract", "intersect"})}, {"default", "subtract"}},
@@ -811,6 +836,57 @@ json action_hole(DesignPanel* panel, const json& params)
     return json{{"ok", ok}, {"hole_index", h}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
 
+json action_hole_styled(DesignPanel* panel, const json& params)
+{
+    const double dia   = params.value("diameter", 5.0);
+    const double depth = params.value("depth", 10.0);
+    const bool   thru  = params.value("through", true);
+    const double x = params.value("x", 0.0), y = params.value("y", 0.0);
+    const int    style          = params.value("style", 0);
+    const double cbore_diameter = params.value("cbore_diameter", 0.0);
+    const double cbore_depth    = params.value("cbore_depth", 0.0);
+    const double csink_diameter = params.value("csink_diameter", 0.0);
+    const double csink_angle    = params.value("csink_angle", 90.0);
+    const std::string standard  = params.value("standard", std::string(""));
+    if (dia <= 0) throw std::runtime_error("diameter must be > 0");
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to drill");
+    SketchPlane pl = plane_from(params, doc);
+    doc.checkpoint();
+    int h = doc.add_hole_styled(dia, depth, thru, x, y, pl, style,
+                                cbore_diameter, cbore_depth,
+                                csink_diameter, csink_angle, standard, "Hole");
+    bool ok = doc.recompute();
+    if (!ok) doc.undo();
+    panel->mcp_after_change();
+    return json{{"ok", ok}, {"hole_index", h}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+}
+
+json action_hole_standard(DesignPanel* panel, const json& params)
+{
+    const std::string desig = params.value("designation", std::string(""));
+    if (desig.empty()) throw std::runtime_error("designation is required");
+    const int    style  = params.value("style", 0);
+    const bool   thru   = params.value("through", true);
+    const double depth  = params.value("depth", 10.0);
+    const double x = params.value("x", 0.0), y = params.value("y", 0.0);
+    CadDocument& doc = panel->mcp_doc();
+    if (doc.bodies.empty()) throw std::runtime_error("no body to drill");
+    SketchPlane pl = plane_from(params, doc);
+    doc.checkpoint();
+    try {
+        int h = doc.add_hole_standard(desig, style, thru, depth, x, y, pl, "Hole");
+        bool ok = doc.recompute();
+        if (!ok) doc.undo();
+        panel->mcp_after_change();
+        return json{{"ok", ok}, {"hole_index", h}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
+    } catch (const std::exception& ex) {
+        doc.undo();
+        panel->mcp_after_change();
+        return json{{"ok", false}, {"error", ex.what()}};
+    }
+}
+
 json action_boolean(DesignPanel* panel, const json& params)
 {
     BooleanMode m = bool_from(params.value("op", std::string("subtract")));
@@ -1101,6 +1177,8 @@ std::string handle_on_main(const std::string& method, const json& params, const 
         if (method == "fillet")         return rpc_result(id, action_fillet(panel, params));
         if (method == "chamfer")        return rpc_result(id, action_chamfer(panel, params));
         if (method == "hole")           return rpc_result(id, action_hole(panel, params));
+        if (method == "hole_styled")   return rpc_result(id, action_hole_styled(panel, params));
+        if (method == "hole_standard") return rpc_result(id, action_hole_standard(panel, params));
         if (method == "boolean")        return rpc_result(id, action_boolean(panel, params));
         if (method == "pattern")        return rpc_result(id, action_pattern(panel, params));
         if (method == "shell")          return rpc_result(id, action_shell(panel, params));
