@@ -9,6 +9,7 @@
 #include "libslic3r/Preset.hpp"
 #include "libslic3r/MultiNozzleUtils.hpp"
 #include "libslic3r/ProjectTask.hpp"
+#include "libslic3r/Utils.hpp"   // set_temporary_dir
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string/predicate.hpp>
@@ -184,6 +185,16 @@ SCENARIO("CAD recipe blob survives a 3mf save/load cycle", "[3mf]") {
 // way load_bbs_3mf does. The full GUI reopen is verified live on the Design tab.
 SCENARIO("CAD recipe is embedded in the BBS 3mf archive", "[3mf]") {
     GIVEN("a model carrying a binary cad_recipe") {
+        // store_bbs_3mf reaches Model::get_backup_path(), which builds
+        // temporary_dir() + "/orcaslicer_model/...". temporary_dir() is a static that ONLY
+        // OrcaSlicer.cpp's startup sets, so in a test binary it is the empty string and the
+        // backup path becomes "/orcaslicer_model/..." — absolute, at the filesystem root.
+        // The CI runners cannot create that, so the test died on
+        // "create_directories: Permission denied". It passed locally only because the build
+        // container runs as root, and on Windows only because that drive root is writable —
+        // which is why this went unnoticed until Unit Tests first ran to completion.
+        set_temporary_dir(boost::filesystem::temp_directory_path().string());
+
         Model model;
         std::string src = std::string(TEST_DATA_DIR) + "/test_3mf/Prusa.stl";
         load_stl(src.c_str(), &model);
