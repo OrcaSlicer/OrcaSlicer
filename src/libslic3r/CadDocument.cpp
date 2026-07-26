@@ -151,6 +151,12 @@ static TopoDS_Wire make_thread_profile(const gp_Pnt& origin, const gp_Dir& xdir,
                                        const gp_Dir& zdir, double radius,
                                        double pitch, double depth, bool internal)
 {
+    // `internal` is intentionally unused: the V is the same shape either way, always pointing
+    // radially outward from `radius`. What differs is what the caller DOES with the swept solid
+    // — an external thread fuses it onto the shaft, an internal one cuts it out of the wall after
+    // boring at the minor diameter. Keeping the parameter documents that the caller decided, and
+    // stops someone "fixing" the profile to point inward for the internal case, which would make
+    // the groove sweep already-empty bore space and cut nothing.
     (void)internal;
     gp_Vec vx(xdir), vz(zdir);
     // Root the V CLEARLY inside the wall (a real overlap, not a 0.05 mm tangency) so the boolean

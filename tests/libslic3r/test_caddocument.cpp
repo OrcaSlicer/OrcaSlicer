@@ -967,11 +967,17 @@ TEST_CASE("extrude taper + up-to-face distance", "[CadDocument]")
     }
 }
 
-// [known-broken]: pre-existing failure, the cut groove volume does not meet the asserted
-// threshold. Excluded from the delegated dev loop so a green run means "I broke nothing",
-// and [NotWorking] excludes it from CI's ctest gate for the same reason as the case above.
-// Tracked in the issue tracker instead — see snaporca-kzy.
-TEST_CASE("internal thread cuts a visible groove into the bore wall", "[CadDocument][known-broken][NotWorking]")
+// Was [known-broken] until the numbers were actually measured (snaporca-kzy). The geometry
+// was right all along; the TEST compared against the wrong reference. An internal thread bores
+// at the MINOR radius (radius - depth) and then carves the groove out to radius + depth, so a
+// tapped hole keeps the crests between turns and therefore holds MORE material than a plain
+// clearance hole at the nominal radius. Asserting the thread removes more than a plain Ø12 bore
+// asked for something no real tapped hole does. Measured on this fixture: plain Ø12 bore removes
+// 2261 mm3, the thread removes 2157 = 1571 (minor bore) + 586 (groove). Exact BRepGProp volume
+// agrees with the tessellated volume to 2.5 mm3, so this was never a meshing artefact either.
+// The tap-drill bore is the honest reference: against it, the groove's 586 mm3 is the thing worth
+// asserting, because that is what "the thread actually cuts" means.
+TEST_CASE("internal thread cuts a visible groove into the bore wall", "[CadDocument][thread]")
 {
     using namespace Slic3r;
     SketchPlane xy = SketchPlane::XY();
@@ -992,10 +998,11 @@ TEST_CASE("internal thread cuts a visible groove into the bore wall", "[CadDocum
         doc.features.push_back(ex);
     };
 
-    // Reference: box with a plain Ø12 bore through it.
+    // Reference: box bored at the MINOR diameter — the tap drill the thread starts from.
+    // Ø10 = 2 * (radius 6 - depth 1), matching what apply_thread cuts before the groove.
     CadDocument hole_doc;
     make_box(hole_doc);
-    hole_doc.add_hole(12.0, 20.0, true, 0.0, 0.0, xy, "Hole");
+    hole_doc.add_hole(10.0, 20.0, true, 0.0, 0.0, xy, "Hole");
     REQUIRE(hole_doc.recompute());
     REQUIRE(hole_doc.error.empty());
     const double v_hole = double(hole_doc.display_mesh.volume());
@@ -1008,10 +1015,9 @@ TEST_CASE("internal thread cuts a visible groove into the bore wall", "[CadDocum
     REQUIRE(thr_doc.error.empty());
     const double v_thread = double(thr_doc.display_mesh.volume());
 
-    // The helical groove must carve material OUT of the wall, beyond the plain
-    // bore -> a visible internal thread. The old inward-pointing profile only
-    // swept already-empty bore space and removed essentially nothing, so it would
-    // give v_thread ~= v_hole; the fixed profile removes a meaningful volume.
+    // The groove must carve material out of the wall BEYOND the tap-drill bore, which is what
+    // makes the thread visible. A profile that only swept already-empty bore space would give
+    // v_thread ~= v_hole; the real one removes several hundred mm3 more.
     REQUIRE(v_thread > 0.0);
     REQUIRE(v_thread < v_hole);
     REQUIRE((v_hole - v_thread) > 20.0);
