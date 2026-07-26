@@ -290,3 +290,4 @@ src/slic3r/GUI/PrinterWebViewHandler.cpp
 src/slic3r/GUI/AMSDryControl.cpp
 src/slic3r/GUI/AMSDryControl.hpp
 src/libslic3r/PresetBundle.cpp
+src/slic3r/GUI/DesignPanel.cpp

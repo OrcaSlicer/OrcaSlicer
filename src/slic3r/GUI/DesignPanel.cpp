@@ -2453,7 +2453,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         csform->Add(m_cs_pick_edge);
         csform->Add(m_cs_edge_lbl, 0, wxALIGN_CENTER_VERTICAL);
         auto* edge_hint = new wxStaticText(m_cards, wxID_ANY,
-            _L("Without an edge the frame's rotation about its normal follows world X, not the body"));
+            _L("Without an edge the frame takes X from the face's first edge — pick one to choose it yourself"));
         edge_hint->SetForegroundColour(dp_sec_text());
         csform->Add(0, 0);   // empty left column
         csform->Add(edge_hint, 0, wxALIGN_CENTER_VERTICAL);
