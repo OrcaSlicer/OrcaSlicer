@@ -2329,8 +2329,10 @@ void PerimeterGenerator::process_arachne()
                 // Walls that merely graze the top surface are clipped against it rather than dropped whole, so the
                 // geometry that continues upward keeps its walls; only the pieces over the top disappear.
                 const BoundingBox top_region_bbox = get_extents(top_expolygons).inflated(SCALED_EPSILON);
+                // The cut is pulled back by half a wall width: the clip severs the centerline, but the bead's
+                // rounded end extends half a width past its endpoint and would otherwise overlap the top fill.
                 ClipperLib_Z::Paths top_paths_z;
-                for (const Polygon &poly : to_polygons(top_expolygons)) {
+                for (const Polygon &poly : to_polygons(offset_ex(top_expolygons, float(perimeter_width) / 2.f))) {
                     top_paths_z.emplace_back();
                     ClipperLib_Z::Path &out = top_paths_z.back();
                     out.reserve(poly.points.size());
@@ -2378,11 +2380,12 @@ void PerimeterGenerator::process_arachne()
                         }
 
                         // If the clip removed next to nothing (the wall only grazed the expanded top margin),
-                        // keep the loop untouched instead of slitting it open.
+                        // keep the loop untouched instead of slitting it open. The half-width pull-back above
+                        // already costs about one width per crossing, hence the two-width threshold.
                         double kept_length = 0.;
                         for (const ClipperLib_Z::Path &path : pieces)
                             kept_length += clipper_z_path_length(path);
-                        if (clipper_z_path_length(subject) - kept_length < double(perimeter_width)) {
+                        if (clipper_z_path_length(subject) - kept_length < 2. * double(perimeter_width)) {
                             kept.emplace_back(std::move(el));
                             continue;
                         }
