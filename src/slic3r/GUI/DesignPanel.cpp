@@ -628,8 +628,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
         fadd("pattern", b_pattern);
 
         // Surface: sheet-body tools (extrude / revolve / loft / fill / offset / thicken)
-        feat_dropdown("surface", "design_extrude", _L("Surface (extrude / revolve / loft / fill / offset / thicken)"), {
-            {"design_extrude", _L("Surface Extrude"), _L("Extrude a sketch into a sheet body (no end caps)"),
+        // design_surface, not design_extrude: sharing a face with the Add-material drawer made
+        // the two buttons indistinguishable in the bar.
+        feat_dropdown("surface", "design_surface", _L("Surface (extrude / revolve / loft / fill / offset / thicken)"), {
+            {"design_surface", _L("Surface Extrude"), _L("Extrude a sketch into a sheet body (no end caps)"),
              [this] {
                 m_surf_extrude_sketch_ref = resolve_extrude_sketch();
                 if (m_surf_extrude_sketch_ref < 0) {
@@ -640,7 +642,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 }
                 open_tool(Tool::SurfaceExtrude);
              }, SHIFT('G')},
-            {"design_extrude", _L("Surface Revolve"), _L("Revolve a sketch profile into a sheet body"),
+            {"design_surface", _L("Surface Revolve"), _L("Revolve a sketch profile into a sheet body"),
              [this] {
                 m_surf_revolve_sketch_ref = resolve_extrude_sketch();
                 if (m_surf_revolve_sketch_ref < 0) {
@@ -665,7 +667,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_surf_loft_refs.clear();
                 open_tool(Tool::SurfaceLoft);
              }, SHIFT('O')},
-            {"design_extrude", _L("Surface Fill"), _L("Fill a sketch boundary with a smooth face"),
+            {"design_surface", _L("Surface Fill"), _L("Fill a sketch boundary with a smooth face"),
              [this] {
                 m_surf_fill_sketch_ref = resolve_extrude_sketch();
                 if (m_surf_fill_sketch_ref < 0) {
@@ -676,7 +678,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 }
                 open_tool(Tool::SurfaceFill);
              }, SHIFT('Q')},
-            {"design_extrude", _L("Surface Offset"), _L("Offset a sheet body's shell by a signed distance"),
+            {"design_surface", _L("Surface Offset"), _L("Offset a sheet body's shell by a signed distance"),
              [this] {
                 populate_sheet_body_choices(m_surf_offset_body);
                 if (m_surf_offset_body->GetCount() == 0) {
@@ -687,7 +689,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 }
                 open_tool(Tool::SurfaceOffset);
              }, SHIFT('U')},
-            {"design_extrude", _L("Thicken Surface"), _L("Thicken a sheet body into a solid"),
+            {"design_surface", _L("Thicken Surface"), _L("Thicken a sheet body into a solid"),
              [this] {
                 populate_sheet_body_choices(m_surf_thicken_body);
                 if (m_surf_thicken_body->GetCount() == 0) {
