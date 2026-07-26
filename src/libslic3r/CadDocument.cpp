@@ -2273,7 +2273,10 @@ void CadDocument::apply_feature(TopoDS_Shape& result, bool& have_body,
         if (f.rib_sketch_ref < 0 || f.rib_sketch_ref >= (int)features.size())
             throw std::runtime_error("rib: bad sketch ref");
         const CadFeature& sk = features[f.rib_sketch_ref];
-        if (sk.type != CadFeatureType::Sketch)
+        // Project counts as sketch-like here exactly as it does for Extrude, SurfaceExtrude
+        // and SurfaceRevolve: it carries plane + Line entities, which is all a rib reads.
+        // Ribbing along a projected body edge is otherwise unreachable.
+        if (sk.type != CadFeatureType::Sketch && sk.type != CadFeatureType::Project)
             throw std::runtime_error("rib: ref is not a sketch");
         if (f.rib_entity < 0 || f.rib_entity >= (int)sk.entities.size())
             throw std::runtime_error("rib: bad entity");

@@ -4048,6 +4048,30 @@ TEST_CASE("rib adds material to a box", "[CadDocument][rib]")
     REQUIRE_FALSE(bad.recompute());
 }
 
+TEST_CASE("rib accepts a Project feature as its sketch ref", "[CadDocument][rib]")
+{
+    // Project carries plane + Line entities, which is all a rib reads. Every other consumer
+    // (Extrude, SurfaceExtrude, SurfaceRevolve) already accepts it; Rib used to reject it,
+    // which made "project a body edge, then rib along it" unreachable.
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 40, 40, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    double Vbox = double(doc.display_mesh.volume());
+
+    // Project the whole body onto XY: the 4 top and 4 bottom edges survive as Lines.
+    int proj = doc.add_project_edges(0, {}, -1, SketchPlane::XY(), "Proj");
+    REQUIRE(proj >= 0);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.features[proj].entities.size() == 8);
+
+    int fi = doc.add_rib(proj, 0, 3.0, 12.0, 0, "RibFromProjection");
+    REQUIRE(fi >= 0);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(double(doc.display_mesh.volume()) > Vbox);
+}
+
 TEST_CASE("rib non-line entity rejected safely", "[CadDocument][rib]")
 {
 

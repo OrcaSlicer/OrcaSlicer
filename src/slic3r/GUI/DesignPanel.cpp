@@ -596,7 +596,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
                     for (int i = 0; i < int(m_doc.features.size()); ++i) {
                         // 3-arg Append: ComboBox's own Append(text, bitmap) hides
                         // wxItemContainer's (text, void*) — see the Sweep picker.
-                        if (m_doc.features[i].type == CadFeatureType::Sketch)
+                        // Project features too: they carry Line entities the kernel ribs from
+                        // just like a drawn sketch, so a projected body edge is a valid path.
+                        if (m_doc.features[i].type == CadFeatureType::Sketch ||
+                            m_doc.features[i].type == CadFeatureType::Project)
                             m_rib_sketch->Append(wxString::FromUTF8(m_doc.features[i].name), wxNullBitmap,
                                                  reinterpret_cast<void*>(intptr_t(i)));
                     }
