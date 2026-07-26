@@ -236,9 +236,31 @@ static SketchSolveResult solve_impl(std::vector<SketchEntity>& entities,
             if (aCurve && bCurve)
                 b.C(SLVS_C_CURVE_CURVE_TANGENT, 0, 0, 0, primOf(c.ea), primOf(c.eb));
             else {
-                const Slvs_hEntity arc  = aCurve ? primOf(c.ea) : primOf(c.eb);
-                const Slvs_hEntity line = aCurve ? primOf(c.eb) : primOf(c.ea);
-                b.C(SLVS_C_ARC_LINE_TANGENT, 0, 0, 0, arc, line);
+                const int ci = aCurve ? c.ea : c.eb;   // the curve
+                const int li = aCurve ? c.eb : c.ea;   // the line
+                if (valid(ci) && entities[ci].type == SketchEntity::Type::Circle) {
+                    // A FULL circle cannot use SLVS_C_ARC_LINE_TANGENT. That constraint reads
+                    // arc->point[1] / point[2] — the arc's endpoints (see constrainteq.cpp,
+                    // Type::ARC_LINE_TANGENT) — and a circle entity only has point[0], its
+                    // centre. The zero handles send FindById into "Cannot find handle", which
+                    // ABORTS the process rather than failing the solve, taking every later test
+                    // with it. It is also the wrong equation for a circle: it only makes the
+                    // line perpendicular to the radius AT AN ENDPOINT that does not exist.
+                    //
+                    // For a circle, tangency is exactly "the centre sits one radius away from
+                    // the line", which slvs expresses directly.
+                    //
+                    // ponytail: the radius is captured here rather than tied as a variable —
+                    // the C API takes a constant distance and offers no way to reference the
+                    // circle's radius parameter. Exact whenever the radius is fixed or simply
+                    // not being changed by another constraint in the same solve; if some other
+                    // constraint drives the radius, re-solving restores tangency. Tying them
+                    // would need an auxiliary point constrained onto both circle and line.
+                    b.C(SLVS_C_PT_LINE_DISTANCE, entities[ci].radius,
+                        ptOf(ci, Role::Center), 0, primOf(li), 0);
+                } else {
+                    b.C(SLVS_C_ARC_LINE_TANGENT, 0, 0, 0, primOf(ci), primOf(li));
+                }
             }
             break;
         }

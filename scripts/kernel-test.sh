@@ -31,15 +31,11 @@ IMAGE="${IMAGE:-orcacad-deps}"
 # this fork at it makes the two silently trade build artefacts. docker-iter-build.sh had the
 # identical defect and was fixed to orcacad_buildcache; this script was missed.
 VOL="${BUILD_VOL:-orcacad_kerneltest}"
-# ONE pre-existing failure is excluded by default (see [known-broken] in
-# test_caddocument.cpp): it SIGABRTs inside the vendored solver and takes the
-# whole process down, so without this exclusion a green run is simply unreachable and the
-# suite stops after ~12 of 32 cases. It is also tagged [NotWorking], the ctest label the
-# mainline fork's CI excludes, so it no longer reddens the Unit Tests job on every commit;
-# it stays tracked as snaporca-tkz rather than as CI noise. The internal-thread case that
-# used to sit alongside it is gone from this exclusion: its geometry was correct and the
-# test's reference was wrong (snaporca-kzy), so it now runs like any other.
-TAGS="${TAGS:-[CadDocument]~[known-broken]}"
+# No exclusions. Both cases that used to be quarantined now run: the solver SIGABRT on
+# circle-line tangency is fixed (snaporca-tkz), and the internal-thread case turned out to have
+# correct geometry and a wrong reference in the test (snaporca-kzy). A green run here now means
+# the whole CAD suite passed, not "everything except the two we gave up on".
+TAGS="${TAGS:-[CadDocument]}"
 HOST=""
 
 while [[ $# -gt 0 ]]; do
