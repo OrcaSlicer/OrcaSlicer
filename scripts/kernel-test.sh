@@ -55,6 +55,9 @@ echo "REPO=$REPO IMAGE=$IMAGE VOL=$VOL TAGS=$TAGS HOST=${HOST:-local}"
 if [[ -n "$HOST" ]]; then
   # Stage per-volume so parallel workers never share a remote tree.
   REMOTE="kt-$VOL"   # relative: ssh and rsync both start in the remote home dir
+  # SC2029: $REMOTE expanding on the CLIENT is the point -- it is derived from $VOL here,
+  # and the remote has no such variable. The rsync destination below expands it the same way.
+  # shellcheck disable=SC2029
   ssh "$HOST" "mkdir -p $REMOTE"
   # Only the inputs the build reads. --delete keeps a stale file from a prior worker from
   # silently compiling in.
