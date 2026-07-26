@@ -479,7 +479,11 @@ TriangleMesh SketchEngine::tessellate(const TopoDS_Shape& shape,
     its.indices.reserve(raw.indices.size());
     its.vertices.reserve(raw.vertices.size() / 2);
 
-    for (const auto& tri : raw.indices) {
+    std::vector<int> kept_face;
+    kept_face.reserve(tri_face.size());
+
+    for (size_t ti = 0; ti < raw.indices.size(); ++ti) {
+        const auto& tri = raw.indices[ti];
         stl_triangle_vertex_indices new_tri;
         for (int j = 0; j < 3; ++j) {
             const stl_vertex& v = raw.vertices[tri[j]];
@@ -494,8 +498,18 @@ TriangleMesh SketchEngine::tessellate(const TopoDS_Shape& shape,
                 new_tri[j] = it->second;
             }
         }
+        // Drop triangles that welding collapsed to a repeated vertex. OCCT emits one at the
+        // pole of every degenerate surface parameterization — a sphere patch at a filleted
+        // corner has exactly one — and its v->v edge can never pair with a neighbour, so the
+        // mesh reports an open edge per corner and the slicer declares the model non-manifold
+        // and tells the user to repair it elsewhere. The triangle has zero area: removing it
+        // changes no geometry, only the mesh's bookkeeping.
+        if (new_tri[0] == new_tri[1] || new_tri[1] == new_tri[2] || new_tri[0] == new_tri[2])
+            continue;
         its.indices.push_back(new_tri);
+        kept_face.push_back(tri_face[ti]);
     }
+    tri_face.swap(kept_face);   // tri_face stays index-aligned with its.indices
 
     return TriangleMesh(std::move(its));
 }

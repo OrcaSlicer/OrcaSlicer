@@ -6591,3 +6591,32 @@ TEST_CASE("interference: detects a clash created by a mate", "[CadDocument][inte
     REQUIRE(hits.size() == 1);
     REQUIRE(hits[0].volume > 1.0);
 }
+
+// A filleted solid must reach the plate as a watertight mesh. OCCT emits one degenerate
+// triangle at the pole of every corner sphere patch; welded, its v->v edge counts as an open
+// edge and the slicer tells the user to go repair the model in another CAD application --
+// the exact round trip this feature exists to remove. snaporca-agw.
+TEST_CASE("CadDocument filleted solid tessellates watertight", "[CadDocument]")
+{
+    CadDocument doc;
+    SketchProfile sp;
+    sp.points.push_back(Vec2d(  0,  0));
+    sp.points.push_back(Vec2d( 80,  0));
+    sp.points.push_back(Vec2d( 80, 50));
+    sp.points.push_back(Vec2d(  0, 50));
+    sp.closed = true;
+    const int sk = doc.add_sketch_profile(sp, SketchPlane::XY(), "P");
+    doc.add_extrude(sk, 12.0, false, BooleanMode::New, "E");
+    doc.add_fillet(3.0, FaceGroup::All, "F");
+    REQUIRE(doc.recompute());
+
+    CHECK(doc.display_mesh.stats().open_edges == 0);
+    CHECK(its_num_open_edges(doc.display_mesh.its) == 0);
+    // No degenerate triangles survive the weld, and the per-triangle face map stays aligned.
+    size_t degenerate = 0;
+    for (const auto& t : doc.display_mesh.its.indices)
+        if (t[0] == t[1] || t[1] == t[2] || t[0] == t[2]) ++degenerate;
+    REQUIRE(degenerate == 0);
+    REQUIRE(doc.display_tri_face.size() == doc.display_mesh.its.indices.size());
+    REQUIRE(doc.display_tri_body.size() == doc.display_mesh.its.indices.size());
+}
