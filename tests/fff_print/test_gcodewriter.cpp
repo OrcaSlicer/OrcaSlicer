@@ -1084,6 +1084,8 @@ SCENARIO("set_pressure_advance emits BBL M900 L1000 M10 regardless of tool index
             }
         }
     }
+}
+
 TEST_CASE("Custom G-code motion limits are restored before generated moves", "[GCodeWriter]")
 {
     const std::string gcode = Slic3r::Test::slice({ cube(20) }, {
