@@ -399,11 +399,6 @@ include(wxWidgets/wxWidgets.cmake)
 if (NOT FLATPAK)
     set(WXWIDGETS_PKG "dep_wxWidgets")
 endif()
-set(WXINSPECTOR_PKG "")
-include(wxInspector/wxInspector.cmake)
-if (NOT FLATPAK)
-    set(WXINSPECTOR_PKG "dep_wxInspector")
-endif()
 
 set(FREETYPE_PKG "")
 if(NOT FREETYPE_FOUND)
@@ -428,6 +423,7 @@ endif ()
 include(OCCT/OCCT.cmake)
 include(OpenCV/OpenCV.cmake)
 include(python3/python3.cmake)
+include(wxInspector/wxInspector.cmake)
 
 set(_dep_list
     dep_Boost
@@ -451,7 +447,7 @@ set(_dep_list
     ${EXPAT_PKG}
     dep_libnoise
     dep_python3
-    ${WXINSPECTOR_PKG}
+    dep_wxInspector
     )
 
 if (MSVC)
