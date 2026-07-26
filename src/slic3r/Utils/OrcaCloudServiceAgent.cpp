@@ -3505,25 +3505,6 @@ int OrcaCloudServiceAgent::unsubscribe_plugins(const std::vector<std::string>& p
     return 0;
 }
 
-int OrcaCloudServiceAgent::delete_my_plugin(const std::string& plugin_uuid)
-{
-    if (plugin_uuid.empty())
-        return -1;
-
-    const std::string path = std::string(ORCA_PLUGINS_BASE) + "?ids=" + Http::url_encode(plugin_uuid);
-    std::string response_body;
-    unsigned int http_code = 0;
-
-    int result = http_delete(path, &response_body, &http_code);
-
-    if (result != 0 || (http_code != 200 && http_code != 204)) {
-        BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << " failed: http_code=" << http_code << ", response=" << response_body;
-        return http_code != 0 ? static_cast<int>(http_code) : result;
-    }
-
-    return 0;
-}
-
 int OrcaCloudServiceAgent::fetch_plugin_changelogs(const std::vector<std::string>& uuids,
                                                    std::unordered_map<std::string, std::vector<PluginChangelog>>& changelog)
 {

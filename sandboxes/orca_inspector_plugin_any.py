@@ -3,18 +3,18 @@
 # dependencies = ["numpy"]
 #
 # [tool.orcaslicer.plugin]
-# name = "Orca Inspector Example"
+# name = "Orca Inspector"
 # description = "An interactive panel that browses the whole orca.host read-only API and demos every orca.host.ui facility."
-# author = "OrcaSlicer"
-# version = "0.0.1"
+# author = "SoftFever"
+# version = "0.0.3"
 # ///
-"""Orca Inspector — the worked example for `orca.host` and `orca.host.ui`.
+"""Orca Inspector — a guided tour of `orca.host` and `orca.host.ui`.
 
 Run it from the Plugins dialog. It opens a NON-MODAL window (OrcaSlicer stays
 usable) with a sidebar of sections, each exercising one part of the API:
 
   Overview   plater state, scene statistics, current printer/process/filaments
-  Presets    every PresetCollection, preset flags, any preset's full config
+  Presets    every PresetCollection, filament slots, config viewer windows
   Config     the complete merged full_config as a searchable table
   Model      Model -> Object -> Volume/Instance tree with lazy mesh geometry
   Assembly   objects grouped by module_name, per-instance assemble transforms
@@ -32,9 +32,10 @@ and heavy mesh geometry (zero-copy numpy arrays, world-space math, the little
 point-cloud previews) only when you ask for it. "Refresh" drops the cache and
 refetches the visible section.
 
-Style rules the page follows (see the plugin docs):
-  - no hardcoded colors — only the host-injected --orca-* theme variables, so
-    the panel matches light and dark mode automatically;
+Style rules the pages follow (see the plugin docs):
+  - no hardcoded theme: BASE_CSS aliases the host-injected --orca-* variables
+    (with fallbacks so the raw HTML previews in a plain browser) and styles the
+    body and native controls from them — the host injects variables only;
   - self-contained HTML (inline CSS/JS, no external resources);
   - on_message runs on the UI thread, so long work (the progress demos) is
     offloaded to a thread and results are pushed back with win.post().
@@ -45,6 +46,7 @@ transforms need bindings added in July 2026 — on older builds the panel shows
 what is missing instead of failing.
 """
 
+import json
 import re
 import threading
 import time
@@ -125,6 +127,19 @@ def split_config_list(value):
 # --------------------------------------------------------------------------- #
 # section builders
 # --------------------------------------------------------------------------- #
+def filament_slots(bundle):
+    """One entry per filament slot: the mounted preset (current_filament_presets)
+    plus its color and material from the merged config."""
+    cfg = bundle.full_config_value
+    colors = split_config_list(cfg("filament_colour"))
+    types = split_config_list(cfg("filament_type"))
+    return [{"slot": i + 1,
+             "color": colors[i] if i < len(colors) else "",
+             "material": types[i] if i < len(types) else "",
+             "preset": preset_dict(preset) if preset else None}
+            for i, preset in enumerate(bundle.current_filament_presets())]
+
+
 def build_overview():
     plater = orca.host.plater()
     model = orca.host.model()
@@ -132,17 +147,7 @@ def build_overview():
     objects = model.objects()
 
     cfg = bundle.full_config_value
-    colors = split_config_list(cfg("filament_colour"))
-    types = split_config_list(cfg("filament_type"))
-    filaments = []
-    for i, preset in enumerate(bundle.current_filament_presets()):
-        filaments.append({
-            "name": preset.name if preset else "<missing preset>",
-            "color": colors[i] if i < len(colors) else "",
-            "type": types[i] if i < len(types) else "",
-            "is_system": bool(preset.is_system) if preset else False,
-            "is_dirty": bool(preset.is_dirty) if preset else False,
-        })
+    filaments = filament_slots(bundle)
 
     printer = bundle.current_printer_preset()
     process = bundle.current_process_preset()
@@ -189,13 +194,12 @@ def build_overview():
     }
 
 
-# label -> how to reach the PresetCollection on the bundle
+# PresetCollection attribute -> label, in the order the Presets tab stacks its groups.
+# The bundle also exposes sla_prints/sla_materials, omitted as OrcaSlicer has no SLA.
 COLLECTIONS = [
-    ("prints", "Process"),
     ("printers", "Printer"),
     ("filaments", "Filament"),
-    ("sla_prints", "SLA print"),
-    ("sla_materials", "SLA material"),
+    ("prints", "Process"),
 ]
 
 
@@ -206,21 +210,25 @@ def build_presets():
         coll = getattr(bundle, attr)
         names = coll.preset_names()
         selected = coll.selected_preset()
+        selected_name = coll.selected_preset_name()
+        shown = names[:MAX_PRESET_NAMES]
+        if selected_name and selected_name not in shown:
+            shown.insert(0, selected_name)   # the active preset stays pickable past the cap
         collections.append({
             "key": attr,
             "label": label,
             "size": coll.size(),
-            "selected_name": coll.selected_preset_name(),
+            "selected_name": selected_name,
             # selected = as saved on disk; edited = selected + unsaved modifications
             "selected": {"name": selected.name, "is_dirty": selected.is_dirty,
                          "config_key_count": len(selected.config_keys())},
             "edited": preset_dict(coll.edited_preset()),
-            "names": names[:MAX_PRESET_NAMES],
+            "names": shown,
             "truncated": max(0, len(names) - MAX_PRESET_NAMES),
         })
     return {
         "collections": collections,
-        "filament_names": bundle.current_filament_preset_names(),
+        "filament_slots": filament_slots(bundle),
     }
 
 
@@ -231,8 +239,7 @@ def build_preset_config(collection_key, name):
     preset = getattr(bundle, collection_key).find_preset(name)
     if preset is None:
         raise ValueError(f"preset {name!r} not found")
-    return {"preset": preset_dict(preset),
-            "rows": config_rows(preset.config_keys(), preset.config_value)}
+    return config_rows(preset.config_keys(), preset.config_value)
 
 
 def build_config():
@@ -467,102 +474,149 @@ SECTION_BUILDERS = {
 
 
 # --------------------------------------------------------------------------- #
-# the page — sidebar app, themed exclusively via the injected --orca-* vars
+# the pages — themed via BASE_CSS, which aliases the injected --orca-* vars
 # --------------------------------------------------------------------------- #
+# The host injects theme *variables* only (never element styles), so every page owns
+# its base look. The fallbacks keep the raw HTML previewable in a plain browser.
+BASE_CSS = r"""
+  :root {
+    --bg:        var(--orca-bg, #ffffff);
+    --fg:        var(--orca-fg, #1f2429);
+    --muted:     var(--orca-muted, #6b7580);
+    --border:    var(--orca-border, #d9dee3);
+    --accent:    var(--orca-accent, #009688);
+    --accent-fg: var(--orca-accent-fg, #ffffff);
+    --ui:        var(--orca-font, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+    --mono:      ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:     var(--orca-bg, #2b2d30);
+      --fg:     var(--orca-fg, #e4e6e8);
+      --muted:  var(--orca-muted, #9aa0a6);
+      --border: var(--orca-border, #3d4043);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.45 var(--ui); }
+  button { font:inherit; padding:4px 12px; cursor:pointer; border-radius:6px;
+           background:var(--accent); color:var(--accent-fg); border:1px solid var(--accent); }
+  button.secondary { background:transparent; color:var(--fg); border-color:var(--border); }
+  button:disabled { opacity:.55; cursor:default; }
+  input, select { font:inherit; color:var(--fg); background:var(--bg);
+                  border:1px solid var(--border); border-radius:6px; padding:4px 8px; }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+"""
+
+# Identity hues for the preset collections, shared by the main page's group styling and
+# the config viewer window. Deliberately the same in light and dark mode: they say what a
+# card is, not what theme is on.
+HUES = {"printers": "#9a6ee8", "filaments": "#ee8f41", "prints": "#4e8df6"}
+HUE_CSS = "".join(f"  .hue-{key} {{ --hue:{color}; }}\n" for key, color in HUES.items())
+
+# The filterable key/value config table, shared by the Config tab and the viewer window.
+CFG_TABLE_CSS = r"""
+  table.cfg { width:100%; border-collapse:collapse; font-size:12px; }
+  table.cfg th { text-align:left; font-size:11px; letter-spacing:.07em;
+                 text-transform:uppercase; color:var(--muted); padding-bottom:4px; }
+  table.cfg td:first-child { font-family:var(--mono); white-space:nowrap;
+                             vertical-align:top; }
+  table.cfg td.val { font-family:var(--mono); white-space:pre-wrap; word-break:break-word; }
+  td.val .more { color:var(--accent); cursor:pointer; }
+"""
+
 PAGE = r"""<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<style>
-  :root { --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  * { box-sizing: border-box; }
-  body { margin:0; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+<style>""" + BASE_CSS + r"""
+  body { height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 
   header { flex:none; display:flex; align-items:center; gap:10px;
-           padding:10px 16px; border-bottom:1px solid var(--orca-border); }
+           padding:10px 16px; border-bottom:1px solid var(--border); }
   header h1 { font-size:15px; margin:0; }
-  #stamp { flex:1; color:var(--orca-muted); font-size:12px; }
-  button.secondary { background:transparent; color:var(--orca-fg);
-                     border-color:var(--orca-border); }
+  #stamp { flex:1; color:var(--muted); font-size:12px; }
   button.small { padding:2px 10px; font-size:12px; }
 
   main { flex:1; display:flex; min-height:0; }
   nav  { flex:none; width:150px; padding:8px 0; overflow-y:auto;
-         border-right:1px solid var(--orca-border); }
+         border-right:1px solid var(--border); }
   nav .item { padding:8px 14px; cursor:pointer; user-select:none;
-              color:var(--orca-muted); border-left:3px solid transparent; }
-  nav .item:hover  { color:var(--orca-fg); }
-  nav .item.active { color:var(--orca-fg); font-weight:600;
-                     border-left-color:var(--orca-accent); }
+              color:var(--muted); border-left:3px solid transparent; }
+  nav .item:hover  { color:var(--fg); }
+  nav .item.active { color:var(--fg); font-weight:600;
+                     border-left-color:var(--accent); }
   nav .glyph { display:inline-block; width:1.5em; }
   #content { flex:1; overflow:auto; padding:14px 16px 28px; }
 
   .tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(108px,1fr));
            gap:10px; margin-bottom:12px; }
-  .tile  { border:1px solid var(--orca-border); border-radius:8px; padding:10px 12px; }
+  .tile  { border:1px solid var(--border); border-radius:8px; padding:10px 12px; }
   .tile .v { font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; }
-  .tile .l { font-size:11px; color:var(--orca-muted); margin-top:2px; }
+  .tile .l { font-size:11px; color:var(--muted); margin-top:2px; }
 
   .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px; }
-  .card  { border:1px solid var(--orca-border); border-radius:8px;
+  .card  { border:1px solid var(--border); border-radius:8px;
            padding:12px 14px; min-width:0; }
   .card h3 { margin:0 0 8px; font-size:11px; letter-spacing:.07em;
-             text-transform:uppercase; color:var(--orca-muted); }
+             text-transform:uppercase; color:var(--muted); }
   .card.wide { grid-column:1 / -1; }
+""" + HUE_CSS + r"""  .card.hued { border-top:3px solid var(--hue); }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%;
+         background:var(--hue); margin-right:6px; }
+  .pgroup { margin-bottom:18px; }
+  .pgroup-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .pgroup-head h2 { margin:0; font-size:12px; letter-spacing:.07em; text-transform:uppercase; }
+  .pgroup-head select { flex:0 1 260px; min-width:120px; }
+  .spacer { flex:1; }
 
   .kv { display:grid; grid-template-columns:minmax(110px,max-content) 1fr;
         gap:3px 14px; font-size:12px; }
-  .kv .k { color:var(--orca-muted); }
+  .kv .k { color:var(--muted); }
   .kv .v { font-family:var(--mono); word-break:break-word; }
 
-  .badge { display:inline-block; border:1px solid var(--orca-border);
-           color:var(--orca-muted); border-radius:999px; padding:1px 8px;
+  .badge { display:inline-block; border:1px solid var(--border);
+           color:var(--muted); border-radius:999px; padding:1px 8px;
            font-size:11px; margin:1px 3px 1px 0; white-space:nowrap; }
-  .badge.on { background:var(--orca-accent); border-color:var(--orca-accent);
-              color:var(--orca-accent-fg); }
+  .badge.on { background:var(--accent); border-color:var(--accent);
+              color:var(--accent-fg); }
   .swatch { display:inline-block; width:12px; height:12px; border-radius:3px;
-            border:1px solid var(--orca-border); vertical-align:-2px; margin-right:5px; }
+            border:1px solid var(--border); vertical-align:-2px; margin-right:5px; }
 
   .toolbar { display:flex; gap:8px; align-items:center; margin-bottom:10px; }
   .toolbar input { flex:1; max-width:340px; }
-  .count { color:var(--orca-muted); font-size:12px; }
-
-  table.cfg { width:100%; border-collapse:collapse; font-size:12px; }
-  table.cfg td:first-child { font-family:var(--mono); white-space:nowrap;
-                             vertical-align:top; }
-  table.cfg td.val { font-family:var(--mono); white-space:pre-wrap; word-break:break-word; }
-  td.val .more { color:var(--orca-accent); cursor:pointer; }
-
+  .count { color:var(--muted); font-size:12px; }
+""" + CFG_TABLE_CSS + r"""
   .node  { margin:1px 0; }
   .nhead { display:flex; align-items:center; gap:7px; padding:4px 8px;
            border-radius:6px; cursor:pointer; user-select:none; flex-wrap:wrap; }
-  .nhead:hover { background:var(--orca-border); }
-  .twist { width:1em; flex:none; color:var(--orca-muted); font-size:10px; }
+  .nhead:hover { background:var(--border); }
+  .twist { width:1em; flex:none; color:var(--muted); font-size:10px; }
   .nname { font-weight:600; }
   .nbody { display:none; margin-left:14px; padding:4px 0 4px 12px;
-           border-left:1px dotted var(--orca-border); }
+           border-left:1px dotted var(--border); }
   .node.open > .nhead .twist { transform:rotate(90deg); }
   .node.open > .nbody { display:block; }
   .subhead { margin:8px 0 4px; font-size:11px; letter-spacing:.07em;
-             text-transform:uppercase; color:var(--orca-muted); }
+             text-transform:uppercase; color:var(--muted); }
 
-  .banner { border:1px solid var(--orca-border); border-left:3px solid var(--orca-accent);
+  .banner { border:1px solid var(--border); border-left:3px solid var(--accent);
             border-radius:6px; padding:9px 12px; margin-bottom:12px; font-size:12px; }
-  .muted  { color:var(--orca-muted); }
+  .muted  { color:var(--muted); }
   .mono   { font-family:var(--mono); }
 
-  canvas.preview { width:100%; height:160px; border:1px solid var(--orca-border);
+  canvas.preview { width:100%; height:160px; border:1px solid var(--border);
                    border-radius:6px; }
   .previews { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; }
-  .previews .cap { font-size:11px; color:var(--orca-muted); text-align:center; margin-top:2px; }
+  .previews .cap { font-size:11px; color:var(--muted); text-align:center; margin-top:2px; }
 
-  .log { font-family:var(--mono); font-size:12px; border:1px solid var(--orca-border);
+  .log { font-family:var(--mono); font-size:12px; border:1px solid var(--border);
          border-radius:6px; padding:8px 10px; max-height:190px; overflow:auto; }
   .log div { padding:1px 0; }
-  fieldset { border:1px solid var(--orca-border); border-radius:6px; margin:0 0 10px; }
-  legend { color:var(--orca-muted); font-size:11px; padding:0 6px; }
+  fieldset { border:1px solid var(--border); border-radius:6px; margin:0 0 10px; }
+  legend { color:var(--muted); font-size:11px; padding:0 6px; }
   .frow { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:6px 0; }
-  label { font-size:12px; color:var(--orca-muted); }
+  label { font-size:12px; color:var(--muted); }
 </style>
 </head>
 <body>
@@ -588,7 +642,7 @@ const SECTIONS = [
   ['assembly', '⬡', 'Assembly'],
   ['uikit',    '▣', 'UI Toolkit'],
 ];
-const S = { current:'overview', cache:{}, busy:{}, colors:[], uiLog:[] };
+const S = { current:'overview', cache:{}, busy:{}, colors:[], uiLog:[], gen:0 };
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s)
@@ -598,6 +652,9 @@ const deg = r => num(r * 180 / Math.PI, 1) + '°';
 const vec3 = (v, d=2) => v ? '(' + v.map(c => num(c, d)).join(', ') + ')' : '—';
 const yn  = b => b ? 'yes' : 'no';
 const badge = (label, on) => '<span class="badge' + (on ? ' on' : '') + '">' + esc(label) + '</span>';
+// Colors land in a style attribute, so only literal hex colors pass through.
+const swatch = c => /^#[0-9a-f]{3,8}$/i.test(c || '')
+  ? '<span class="swatch" style="background:' + c + '"></span>' : '';
 const kv = rows => '<div class="kv">' + rows.map(([k, v]) =>
   '<div class="k">' + esc(k) + '</div><div class="v">' + v + '</div>').join('') + '</div>';
 const bboxRows = (label, bb) => bb ? [
@@ -608,7 +665,8 @@ const bboxRows = (label, bb) => bb ? [
 /* ------------------------------------------------------- nav + fetching */
 function buildNav() {
   $('nav').innerHTML = SECTIONS.map(([key, glyph, label]) =>
-    '<div class="item" id="nav-' + key + '" onclick="show(\'' + key + '\')">' +
+    '<div class="item" id="nav-' + key + '" role="button" tabindex="0" ' +
+    'onclick="show(\'' + key + '\')">' +
     '<span class="glyph">' + glyph + '</span>' + label + '</div>').join('');
 }
 function show(key) {
@@ -622,9 +680,10 @@ function show(key) {
 function fetchSection(key) {
   S.busy[key] = true;
   $('content').innerHTML = '<p class="muted">Loading ' + esc(key) + '…</p>';
-  orca.postMessage({ command:'fetch', section:key });
+  orca.postMessage({ command:'fetch', section:key, gen:S.gen });
 }
 function refresh() {
+  S.gen++;             // replies to fetches from before this point are dropped
   S.cache = {};
   S.busy = {};
   show(S.current);
@@ -660,13 +719,12 @@ function renderOverview(d) {
     [t.config_keys, 'config keys'],
   ].map(([v, l]) => '<div class="tile"><div class="v">' + v + '</div><div class="l">' + l + '</div></div>').join('');
 
-  const filaments = d.setup.filaments.map((f, i) =>
-    '<div style="margin:3px 0">' +
-    (f.color ? '<span class="swatch" style="background:' + esc(f.color) + '"></span>' : '') +
-    '<b>' + (i + 1) + '</b> ' + esc(f.name) +
-    (f.type ? ' <span class="muted">' + esc(f.type) + '</span>' : '') +
-    badge(f.is_system ? 'system' : 'user', f.is_system) +
-    (f.is_dirty ? badge('modified', true) : '') +
+  const filaments = d.setup.filaments.map(f =>
+    '<div style="margin:3px 0">' + swatch(f.color) +
+    '<b>' + f.slot + '</b> ' + esc(f.preset ? f.preset.name : '<missing preset>') +
+    (f.material ? ' <span class="muted">' + esc(f.material) + '</span>' : '') +
+    (f.preset ? badge(f.preset.is_system ? 'system' : 'user', f.preset.is_system) +
+                (f.preset.is_dirty ? badge('modified', true) : '') : '') +
     '</div>').join('') || '<span class="muted">none</span>';
 
   return '<div class="tiles">' + tiles + '</div><div class="cards">' +
@@ -709,35 +767,65 @@ function presetBadges(p) {
     (p.is_visible ? '' : badge('hidden', false));
 }
 function renderPresets(d) {
-  return '<div class="banner">Each card is one <span class="mono">host.PresetCollection</span>. ' +
-    '“Edited” is the selected preset plus any unsaved changes. Pick any preset ' +
-    'and load its complete config via <span class="mono">find_preset().config_value()</span>.</div>' +
-    '<div class="cards">' + d.collections.map(c => {
-      const p = c.edited;
-      const options = c.names.map(n =>   // explicit value= so odd whitespace in names survives
-        '<option value="' + esc(n) + '"' + (n === c.selected_name ? ' selected' : '') + '>' +
+  const detailCard = g => {
+    const p = g.edited;
+    return '<div class="cards"><div class="card hued">' +
+      '<div style="margin-bottom:6px"><b>' + esc(p.name) + '</b> ' + presetBadges(p) + '</div>' +
+      kv([['label()', esc(p.label)], ['alias', esc(p.alias) || '—'],
+          ['type', esc(p.type)], ['bundle', esc(p.bundle_id) || '—'],
+          ['edited_preset()', p.config_key_count + ' keys' +
+            (p.is_dirty ? ' · has unsaved changes' : ' · same as saved')],
+          ['selected_preset()', esc(g.selected.name) + ' · ' + g.selected.config_key_count + ' keys'],
+          ['file', '<span class="muted">' + esc(p.file) + '</span>']]) +
+      '</div></div>';
+  };
+  const slotCard = (s, g) => {
+    const p = s.preset;
+    if (!p) return '<div class="card hued"><h3>Slot ' + s.slot + '</h3>' +
+      '<p class="muted">no preset mounted</p></div>';
+    return '<div class="card hued"><h3>Slot ' + s.slot + '</h3>' +
+      '<div style="margin-bottom:6px">' + swatch(s.color) + '<b>' + esc(p.name) + '</b> ' +
+      badge(p.is_system ? 'system' : 'user', p.is_system) +
+      (p.is_dirty ? badge('modified', true) : '') +
+      (p.name === g.selected_name ? badge('editing', true) : '') + '</div>' +
+      kv([['material', esc(s.material) || '—'],
+          ['alias', esc(p.alias) || '—'],
+          ['config keys', p.config_key_count],
+          ['file', '<span class="muted">' + esc(p.file) + '</span>']]) +
+      '<div class="frow" style="margin-top:8px"><button class="small secondary" ' +
+      'data-act="pcfg" data-coll="filaments" data-name="' + esc(p.name) + '">View config</button></div>' +
+      '</div>';
+  };
+  return '<div class="banner">Each group is one <span class="mono">host.PresetCollection</span>; ' +
+    'the Filament group shows every slot from <span class="mono">current_filament_presets()</span>, ' +
+    'and “editing” marks the preset open in its settings tab. Pick any preset in a group ' +
+    'header — “View config” opens its complete config (via ' +
+    '<span class="mono">find_preset().config_value()</span>) in its own window.</div>' +
+    d.collections.map(g => {
+      const options = g.names.map(n =>   // explicit value= so odd whitespace in names survives
+        '<option value="' + esc(n) + '"' + (n === g.selected_name ? ' selected' : '') + '>' +
         esc(n) + '</option>').join('');
-      return '<div class="card"><h3>' + esc(c.label) + ' · ' + c.size + ' presets</h3>' +
-        '<div style="margin-bottom:6px"><b>' + esc(p.name) + '</b> ' + presetBadges(p) + '</div>' +
-        kv([['label()', esc(p.label)], ['alias', esc(p.alias) || '—'],
-            ['type', esc(p.type)], ['bundle', esc(p.bundle_id) || '—'],
-            ['edited_preset()', p.config_key_count + ' keys' +
-              (p.is_dirty ? ' · has unsaved changes' : ' · same as saved')],
-            ['selected_preset()', esc(c.selected.name) + ' · ' + c.selected.config_key_count + ' keys'],
-            ['file', '<span class="muted">' + esc(p.file) + '</span>']]) +
-        '<div class="frow" style="margin-top:8px">' +
-          '<select id="sel-' + c.key + '" style="flex:1;min-width:0">' + options + '</select>' +
-          '<button class="small" data-act="pcfg" data-coll="' + c.key + '">View config</button>' +
-        '</div>' +
-        (c.truncated ? '<p class="muted">list capped, ' + c.truncated + ' more not shown</p>' : '') +
-        '<div id="pcfg-' + c.key + '"></div></div>';
-    }).join('') + '</div>';
+      const cards = g.key === 'filaments'
+        ? '<div class="cards">' + (d.filament_slots.map(s => slotCard(s, g)).join('') ||
+            '<p class="muted">no filament slots</p>') + '</div>'
+        : detailCard(g);
+      return '<div class="pgroup hue-' + g.key + '">' +
+        '<div class="pgroup-head"><span class="dot"></span><h2>' + esc(g.label) + '</h2>' +
+        '<span class="count">' + g.size + ' presets</span><span class="spacer"></span>' +
+        '<select id="sel-' + g.key + '">' + options + '</select>' +
+        '<button class="small" data-act="pcfg" data-coll="' + g.key + '">View config</button></div>' +
+        cards +
+        (g.truncated ? '<p class="muted">select capped, ' + g.truncated + ' more not listed</p>' : '') +
+        // the config itself opens in a viewer window; this slot only shows failures
+        '<div id="pcfg-' + g.key + '"></div></div>';
+    }).join('');
 }
 
 function configTable(rows, id) {
   const body = rows.map(r => {
     const long = r.v.length > 160;
-    const shown = long ? esc(r.v.slice(0, 160)) + '<span class="more" data-act="expand"> … show all</span>'
+    const shown = long ? esc(r.v.slice(0, 160)) +
+        '<span class="more" data-act="expand" role="button" tabindex="0"> … show all</span>'
                        : esc(r.v);
     return '<tr data-k="' + esc(r.k.toLowerCase()) + '"><td>' + esc(r.k) + '</td>' +
       '<td class="val" data-full="' + esc(r.v) + '">' + shown + '</td></tr>';
@@ -746,37 +834,36 @@ function configTable(rows, id) {
 }
 function renderConfig(d) {
   return '<div class="toolbar"><input id="cfg-search" placeholder="Filter ' + d.count +
-    ' keys…" oninput="filterConfig(this.value)">' +
+    ' keys…" oninput="filterTable(\'cfg-table\', this.value, \'cfg-count\')">' +
     '<span class="count" id="cfg-count">' + d.count + ' keys</span></div>' +
     '<div class="banner">The merged result of printer + process + filament presets — ' +
     'exactly what <span class="mono">preset_bundle().full_config_value(key)</span> returns for ' +
     'every key in <span class="mono">full_config_keys()</span>.</div>' +
     configTable(d.rows, 'cfg-table');
 }
-function filterConfig(q) {
+function filterTable(tableId, q, countId) {
   q = q.trim().toLowerCase();
   let visible = 0;
-  document.querySelectorAll('#cfg-table tr[data-k]').forEach(tr => {
+  document.querySelectorAll('#' + tableId + ' tr[data-k]').forEach(tr => {
     const hit = !q || tr.dataset.k.includes(q) ||
       tr.querySelector('.val').dataset.full.toLowerCase().includes(q);
     tr.style.display = hit ? '' : 'none';
     if (hit) visible++;
   });
-  $('cfg-count').textContent = visible + ' keys';
+  if (countId) $(countId).textContent = visible + ' keys';
 }
 
 function extruderChip(id) {
   if (id == null || id < 1) return '<span class="badge">extruder —</span>';
-  const color = S.colors[id - 1];
-  return '<span class="badge">' + (color ? '<span class="swatch" style="background:' +
-    esc(color) + '"></span>' : '') + 'extruder ' + id + '</span>';
+  return '<span class="badge">' + swatch(S.colors[id - 1]) + 'extruder ' + id + '</span>';
 }
 const VOL_GLYPH = { ModelPart:'◆', NegativeVolume:'◇', ParameterModifier:'▨',
                     SupportEnforcer:'▲', SupportBlocker:'▽' };
 
 function node(head, body, open) {
   return '<div class="node' + (open ? ' open' : '') + '">' +
-    '<div class="nhead" data-act="toggle"><span class="twist">▶</span>' + head + '</div>' +
+    '<div class="nhead" data-act="toggle" role="button" tabindex="0" aria-expanded="' +
+    !!open + '"><span class="twist">▶</span>' + head + '</div>' +
     '<div class="nbody">' + body + '</div></div>';
 }
 function paintedBadges(p) {
@@ -969,7 +1056,7 @@ function drawPoints(canvas, pts, ax, ay) {
   PREVIEWS[canvas.id] = { pts, ax, ay };
   const scaleDpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth * scaleDpr, h = canvas.clientHeight * scaleDpr;
-  if (!w || !h) return;      // inside a collapsed node; repainted on toggle
+  if (!w || !h) { delete canvas.dataset.painted; return; }  // collapsed; repainted on toggle
   canvas.dataset.painted = '1';
   canvas.width = w; canvas.height = h;
   const ctx = canvas.getContext('2d');
@@ -983,7 +1070,7 @@ function drawPoints(canvas, pts, ax, ay) {
                          (h - 2 * pad) / Math.max(maxY - minY, 1e-6));
   const ox = (w - (maxX - minX) * scale) / 2, oy = (h - (maxY - minY) * scale) / 2;
   const style = getComputedStyle(document.body);
-  ctx.strokeStyle = style.getPropertyValue('--orca-accent');
+  ctx.strokeStyle = style.getPropertyValue('--accent');
   ctx.strokeRect(ox, oy, (maxX - minX) * scale, (maxY - minY) * scale);
   ctx.fillStyle = style.color;
   ctx.globalAlpha = 0.55;
@@ -992,6 +1079,21 @@ function drawPoints(canvas, pts, ax, ay) {
     ctx.fillRect(ox + (p[ax] - minX) * scale - r / 2,
                  h - oy - (p[ay] - minY) * scale - r / 2, r, r);
 }
+// A live theme switch re-stamps data-orca-theme and a resize leaves the bitmap at its
+// old size — both need every known preview repainted.
+function repaintPreviews() {
+  document.querySelectorAll('canvas.preview').forEach(c => {
+    const p = PREVIEWS[c.id];
+    if (p) drawPoints(c, p.pts, p.ax, p.ay);
+  });
+}
+new MutationObserver(repaintPreviews)
+  .observe(document.documentElement, { attributes:true, attributeFilter:['data-orca-theme'] });
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(repaintPreviews, 150);
+});
 
 /* ------------------------------------------------------------ UI toolkit */
 function renderUikit() {
@@ -1052,6 +1154,7 @@ $('content').addEventListener('click', e => {
   if (act === 'toggle') {
     const node = t.parentElement;
     node.classList.toggle('open');
+    t.setAttribute('aria-expanded', node.classList.contains('open'));
     // Repaint any preview whose canvas was hidden (zero-size) when its data arrived.
     node.querySelectorAll('canvas.preview').forEach(c => {
       const p = PREVIEWS[c.id];
@@ -1062,9 +1165,10 @@ $('content').addEventListener('click', e => {
     t.textContent = 'Loading…';
     orca.postMessage({ command:'mesh', object:+t.dataset.o, volume:+t.dataset.v });
   } else if (act === 'pcfg') {
-    const coll = t.dataset.coll;
+    const coll = t.dataset.coll;   // slot buttons carry their preset in data-name
     orca.postMessage({ command:'preset_config', collection:coll,
-                       name:$('sel-' + coll).value });
+                       name:t.dataset.name !== undefined ? t.dataset.name
+                                                         : $('sel-' + coll).value });
   } else if (act === 'expand') {
     const td = t.closest('td');
     td.textContent = td.dataset.full;
@@ -1072,11 +1176,22 @@ $('content').addEventListener('click', e => {
     uiAction(t.dataset.ui);
   }
 });
+// Keyboard parity for the click-only elements (nav items, tree toggles, "show all").
+// Real form controls are skipped so they keep their native keys.
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  if (/^(BUTTON|INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  const t = e.target.closest('.item, [data-act]');
+  if (!t) return;
+  e.preventDefault();
+  t.click();
+});
 
 /* ------------------------------------------------------------- messages */
 orca.onMessage(msg => {
   if (!msg || !msg.command) return;
   if (msg.command === 'section') {
+    if (msg.gen !== S.gen) return;   // raced a Refresh; the refetch is in flight
     S.cache[msg.section] = msg;
     S.busy[msg.section] = false;
     stamp();
@@ -1085,14 +1200,15 @@ orca.onMessage(msg => {
     const container = $('mesh-' + msg.object + '-' + msg.volume);
     if (!container) return;
     if (msg.ok) renderMeshDetail(container, msg.data);
-    else container.innerHTML = '<span class="muted">⚠ ' + esc(msg.error) + '</span>';
+    else container.innerHTML =
+      '<button class="small secondary" data-act="mesh" data-o="' + msg.object +
+      '" data-v="' + msg.volume + '">Retry</button> <span class="muted">⚠ ' +
+      esc(msg.error) + '</span>';
   } else if (msg.command === 'preset_config') {
+    // Success opened a viewer window; this slot only shows (or clears) failures.
     const container = $('pcfg-' + msg.collection);
     if (!container) return;
-    container.innerHTML = msg.ok
-      ? '<div class="subhead">' + esc(msg.name) + ' · ' + msg.data.rows.length +
-        ' keys</div>' + configTable(msg.data.rows, 'pcfg-table-' + msg.collection)
-      : '<span class="muted">⚠ ' + esc(msg.error) + '</span>';
+    container.innerHTML = msg.ok ? '' : '<p class="muted">⚠ ' + esc(msg.error) + '</p>';
   } else if (msg.command === 'ui_result') {
     addLog(msg.ok ? '← ' + msg.action + ': ' + msg.result
                   : '← ' + msg.action + ' failed: ' + msg.error);
@@ -1110,28 +1226,33 @@ show('overview');
 # The modal page demoed from the UI Toolkit tab: create_window(style=WINDOW_MODAL)
 # keeps the handle alive for callbacks; orca.submit(payload) invokes on_submit.
 MODAL_PAGE = r"""<!DOCTYPE html>
-<html><head><meta charset="utf-8"></head>
-<body style="padding:18px">
-  <h3 style="margin-top:0">Modal dialog</h3>
+<html lang="en"><head><meta charset="utf-8"><style>""" + BASE_CSS + r"""
+  body { padding:18px; }
+  h3 { margin-top:0; }
+  input { width:100%; }
+</style></head>
+<body>
+  <h3>Modal dialog</h3>
   <p>create_window(style=WINDOW_MODAL) keeps this page interactive until it submits or closes.</p>
-  <p><input id="note" style="width:100%" value="hello from the modal"></p>
+  <p><input id="note" value="hello from the modal"></p>
   <p style="text-align:right">
-    <button style="background:transparent;color:var(--orca-fg);border-color:var(--orca-border)"
-            onclick="orca.postMessage({live: document.getElementById('note').value})">Post while open</button>
-    <button style="background:transparent;color:var(--orca-fg);border-color:var(--orca-border)"
-            onclick="orca.close()">Cancel</button>
+    <button class="secondary" onclick="orca.postMessage({live: document.getElementById('note').value})">Post while open</button>
+    <button class="secondary" onclick="orca.close()">Cancel</button>
     <button onclick="orca.submit({note: document.getElementById('note').value})">Submit</button>
   </p>
 </body></html>
 """
 
 CHILD_PAGE = r"""<!DOCTYPE html>
-<html><head><meta charset="utf-8"></head>
-<body style="padding:18px">
-  <h3 style="margin-top:0">Child window</h3>
+<html lang="en"><head><meta charset="utf-8"><style>""" + BASE_CSS + r"""
+  body { padding:18px; }
+  h3 { margin-top:0; }
+</style></head>
+<body>
+  <h3>Child window</h3>
   <p>Same create_window() API — one plugin, several windows.</p>
   <p><button onclick="orca.postMessage({command:'ping'})">Ping the plugin</button></p>
-  <div id="log" style="color:var(--orca-muted)"></div>
+  <div id="log" style="color:var(--muted)"></div>
   <script>
     var n = 0;
     orca.onMessage(function (msg) {
@@ -1142,6 +1263,75 @@ CHILD_PAGE = r"""<!DOCTYPE html>
 </body></html>
 """
 
+# The per-preset config viewer, opened by "View config" on the Presets tab. Its rows are
+# baked in as JSON at build time, so the window needs no bridge traffic and stays usable
+# side by side with the panel until closed.
+CONFIG_PAGE = r"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><style>""" + BASE_CSS + CFG_TABLE_CSS + r"""
+  body { padding:12px 16px 20px; border-top:3px solid var(--hue, var(--accent)); }
+  .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+  .toolbar h3 { margin:0; font-size:13px; }
+  .toolbar input { flex:1; min-width:140px; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; flex:none;
+         background:var(--hue, var(--accent)); }
+  .count { color:var(--muted); font-size:12px; white-space:nowrap; }
+</style></head>
+<body>
+  <div class="toolbar"><span class="dot"></span><h3 id="name"></h3>
+    <span class="count" id="count"></span>
+    <input id="q" placeholder="Filter keys…">
+    <button class="secondary" onclick="orca.close()">Close</button></div>
+  <div id="table"></div>
+<script>
+'use strict';
+const DATA = __DATA__;
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s)
+  .replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+if (DATA.hue) document.body.style.setProperty('--hue', DATA.hue);
+$('name').textContent = DATA.name;
+$('table').innerHTML = '<table class="cfg" id="t"><tr><th>key</th><th>value</th></tr>' +
+  DATA.rows.map(r => {
+    const long = r.v.length > 160;
+    const shown = long ? esc(r.v.slice(0, 160)) +
+        '<span class="more" role="button" tabindex="0"> … show all</span>' : esc(r.v);
+    return '<tr data-k="' + esc(r.k.toLowerCase()) + '"><td>' + esc(r.k) + '</td>' +
+      '<td class="val" data-full="' + esc(r.v) + '">' + shown + '</td></tr>';
+  }).join('') + '</table>';
+function filter(q) {
+  q = q.trim().toLowerCase();
+  let visible = 0;
+  document.querySelectorAll('#t tr[data-k]').forEach(tr => {
+    const hit = !q || tr.dataset.k.includes(q) ||
+      tr.querySelector('.val').dataset.full.toLowerCase().includes(q);
+    tr.style.display = hit ? '' : 'none';
+    if (hit) visible++;
+  });
+  $('count').textContent = visible + ' keys';
+}
+$('q').addEventListener('input', e => filter(e.target.value));
+$('table').addEventListener('click', e => {
+  const t = e.target.closest('.more');
+  if (t) { const td = t.closest('td'); td.textContent = td.dataset.full; }
+});
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('more')) {
+    e.preventDefault();
+    e.target.click();
+  }
+});
+filter('');
+</script>
+</body></html>
+"""
+
+
+def config_page(collection, name, rows):
+    """CONFIG_PAGE with one preset's rows baked in. `</` is escaped so a config
+    value containing e.g. `</script>` cannot break out of the script block."""
+    payload = json.dumps({"name": name, "hue": HUES.get(collection, ""), "rows": rows})
+    return CONFIG_PAGE.replace("__DATA__", payload.replace("</", "<\\/"))
+
 
 # --------------------------------------------------------------------------- #
 # the plugin
@@ -1150,6 +1340,7 @@ class OrcaInspectorPanel(orca.script.ScriptPluginCapabilityBase):
     win = None
     child = None
     modal = None
+    cfgwin = None
 
     def get_name(self):
         return "Orca Inspector"
@@ -1166,6 +1357,9 @@ class OrcaInspectorPanel(orca.script.ScriptPluginCapabilityBase):
         if self.modal is not None:
             self.modal.close()
             self.modal = None
+        if self.cfgwin is not None:
+            self.cfgwin.close()
+            self.cfgwin = None
         # Non-modal: returns immediately. The window is host-owned and lives on
         # after execute() returns; on_message keeps firing when the page posts.
         self.win = orca.host.ui.create_window(
@@ -1184,11 +1378,11 @@ class OrcaInspectorPanel(orca.script.ScriptPluginCapabilityBase):
         msg = msg or {}
         command = msg.get("command")
         if command == "fetch":
-            self.send_section(msg.get("section", ""))
+            self.send_section(msg.get("section", ""), msg.get("gen"))
         elif command == "mesh":
-            self.send_mesh(int(msg.get("object", -1)), int(msg.get("volume", -1)))
+            self.send_mesh(msg.get("object", -1), msg.get("volume", -1))
         elif command == "preset_config":
-            self.send_preset_config(msg.get("collection", ""), msg.get("name", ""))
+            self.open_preset_config(msg.get("collection", ""), msg.get("name", ""))
         elif command == "ui":
             self.run_ui_action(msg)
 
@@ -1196,11 +1390,15 @@ class OrcaInspectorPanel(orca.script.ScriptPluginCapabilityBase):
         if self.child is not None:
             self.child.close()
             self.child = None
+        if self.cfgwin is not None:
+            self.cfgwin.close()
+            self.cfgwin = None
         print("Orca Inspector closed")
 
-    def send_section(self, section):
+    def send_section(self, section, gen=None):
         builder = SECTION_BUILDERS.get(section)
-        reply = {"command": "section", "section": section}
+        # gen echoes the page's refresh counter so a reply that raced a Refresh is dropped there.
+        reply = {"command": "section", "section": section, "gen": gen}
         if builder is None:
             self.win.post({**reply, "ok": False, "error": f"unknown section {section!r}"})
             return
@@ -1213,15 +1411,23 @@ class OrcaInspectorPanel(orca.script.ScriptPluginCapabilityBase):
         reply = {"command": "mesh", "object": object_index, "volume": volume_index}
         try:
             self.win.post({**reply, "ok": True,
-                           "data": build_mesh(object_index, volume_index)})
+                           "data": build_mesh(int(object_index), int(volume_index))})
         except Exception as exc:
             self.win.post({**reply, "ok": False, "error": str(exc)})
 
-    def send_preset_config(self, collection, name):
+    def open_preset_config(self, collection, name):
+        # One viewer at a time: a new pick replaces the previous window. The main page
+        # only hears back about failures.
         reply = {"command": "preset_config", "collection": collection, "name": name}
         try:
-            self.win.post({**reply, "ok": True,
-                           "data": build_preset_config(collection, name)})
+            rows = build_preset_config(collection, name)
+            if self.cfgwin is not None:
+                self.cfgwin.close()
+            self.cfgwin = orca.host.ui.create_window(
+                title=f"Orca Inspector — {name}",
+                html=config_page(collection, name, rows),
+                width=520, height=640)
+            self.win.post({**reply, "ok": True})
         except Exception as exc:
             self.win.post({**reply, "ok": False, "error": str(exc)})
 
@@ -1267,15 +1473,19 @@ class OrcaInspectorPanel(orca.script.ScriptPluginCapabilityBase):
                 if self.child is not None and self.child.is_open():
                     report("child already open")
                 else:
+                    # Not `reply`: the close can also come from "child_close" later, so the
+                    # on_close payload is labelled neutrally.
                     self.child = orca.host.ui.create_window(
                         title="Orca Inspector — child", html=CHILD_PAGE,
                         width=380, height=240, on_message=self.on_child_message,
                         on_close=lambda: self.win.post(
-                            {**reply, "ok": True, "result": "child window closed"}))
+                            {"command": "ui_result", "action": "child",
+                             "ok": True, "result": "child window closed"}))
                     report("child opened")
             elif action == "child_close":
                 if self.child is not None:
                     self.child.close()
+                    report("close requested")   # the actual close is logged by on_close
                 else:
                     report("no child window")
             elif action == "child_state":

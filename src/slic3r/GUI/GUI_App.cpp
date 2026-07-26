@@ -96,6 +96,7 @@
 #include "../Utils/PresetUpdater.hpp"
 #include "../Utils/PrintHost.hpp"
 #include "../Utils/Process.hpp"
+#include "../Utils/wxInspectorPlugins/Registration.hpp"
 #include "../Utils/MacDarkMode.hpp"
 #include "../Utils/Http.hpp"
 #include "../Utils/InstanceID.hpp"
@@ -2834,6 +2835,9 @@ bool GUI_App::on_init_inner()
 #endif
 
     ::Label::initSysFont();
+
+    // Register wxInspector plugins for Orca custom controls
+    RegisterOrcaInspectorPlugins();
 
     // Set initialization of image handlers before any UI actions - See GH issue #7469
     wxInitAllImageHandlers();
