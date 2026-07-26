@@ -65,7 +65,7 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
     main_sizer->Add(btn_sizer, 0, wxBOTTOM | wxRIGHT | wxEXPAND | wxTOP, FromDIP(10));
 
     apply_style(style);
-	SetSizerAndFit(main_sizer);
+	SetSizer(main_sizer);
     wxGetApp().UpdateDlgDarkUI(this);
 }
 
@@ -221,6 +221,7 @@ void MsgDialog::apply_style(long style)
 
 void MsgDialog::finalize()
 {
+    GetSizer()->SetSizeHints(this);
     Layout();
     Fit();
     CenterOnParent();
