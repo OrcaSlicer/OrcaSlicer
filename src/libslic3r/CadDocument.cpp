@@ -1681,8 +1681,29 @@ CadDocument::DatumCoordSys CadDocument::datum_frame(const std::vector<CadBody>& 
         if (fc.IsNull()) { ds.error = "face not found"; break; }
         ds.origin = GeometryEngine::face_centroid_world(fc);
         Vec3d Z = GeometryEngine::face_normal_world(fc);
-        // Tentative X: edge direction if available, else the hint or a fallback.
-        Vec3d X_tent = have_edge ? edge_dir : f.coordsys_x_hint;
+        // Tentative X: an explicit edge reference wins. Failing that, derive X from the
+        // face's OWN first usable edge, so the frame rotates with the body. Reading it from
+        // coordsys_x_hint — a world constant — meant a face-only connector could not encode
+        // spin about its own normal: Z followed the body, X did not, so Fastened and Slider
+        // claimed to fix an orientation the frame could not see. The hint survives only as a
+        // last resort, for faces that offer no usable direction (a full circular edge has
+        // coincident endpoints, and a cylinder's seam projects to nothing in-plane).
+        Vec3d X_tent = Vec3d::Zero();
+        if (have_edge) {
+            X_tent = edge_dir;
+        } else {
+            for (const TopoDS_Edge& fe : GeometryEngine::edges_of_face(fc)) {
+                auto pts = GeometryEngine::sample_edge_world(fe);
+                if (pts.size() < 2) continue;
+                Vec3d d = pts.back() - pts.front();
+                if (d.squaredNorm() < 1e-18) continue;      // closed edge: endpoints coincide
+                Vec3d in_plane = d - Z * Z.dot(d);          // drop any out-of-plane component
+                if (in_plane.squaredNorm() < 1e-18) continue;
+                X_tent = in_plane;
+                break;
+            }
+            if (X_tent.squaredNorm() < 1e-18) X_tent = f.coordsys_x_hint;
+        }
         if (X_tent.squaredNorm() < 1e-18) { ds.error = "zero-length direction"; break; }
         X_tent.normalize();
         // Gram-Schmidt: ensure orthonormal, right-handed frame.

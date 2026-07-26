@@ -2544,6 +2544,61 @@ TEST_CASE("datum coordinate system: non-perpendicular inputs produce orthonormal
     CHECK_THAT(Z.z(), WithinAbs((X.cross(Y)).z(), 1e-9));
 }
 
+TEST_CASE("datum coordinate system: a face-only frame rotates with its body", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    // The bug this pins down: Z came from the face normal (body-following) but X came from
+    // coordsys_x_hint, a WORLD constant. Spinning the body about its own face normal left the
+    // frame identical, so a face-only connector could not encode that rotation at all — and a
+    // Fastened or Slider mate built on it claimed to fix an orientation it could not see.
+    // A rectangular top face is used deliberately: its edges give an unambiguous in-plane
+    // direction, so "did the frame follow the body" is answerable to the degree.
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 40, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+
+    int n_faces = GeometryEngine::face_count(doc.bodies[0].shape);
+    int top_face = -1;
+    for (int i = 0; i < n_faces; ++i) {
+        Vec3d fn = GeometryEngine::face_normal_world(GeometryEngine::face_by_index(doc.bodies[0].shape, i));
+        if (fn.z() > 0.9) { top_face = i; break; }
+    }
+    REQUIRE(top_face >= 0);
+
+    int cs = doc.add_coordsys(CoordSysType::PointWorld, Vec3d(0, 0, 0), "CS");
+    doc.features[cs].coordsys_type = CoordSysType::FaceAndDirection;
+    doc.features[cs].coordsys_body = 0;
+    doc.features[cs].coordsys_face = top_face;
+    doc.features[cs].coordsys_edge = -1;              // face only: no explicit direction edge
+    REQUIRE(doc.recompute());
+
+    auto before = doc.resolve_datum_coordsys();
+    REQUIRE(before.size() == 1);
+    REQUIRE(before[0].error.empty());
+    const Vec3d X0 = before[0].x;
+    const Vec3d Z0 = before[0].x.cross(before[0].y);
+
+    // Spin the body 90 degrees about its own face normal (world Z here).
+    doc.add_transform(0, Vec3d(0, 0, 0), Vec3d(0, 0, 1), Vec3d(0, 0, 0), 90.0, false, "Spin");
+    REQUIRE(doc.recompute());
+
+    auto after = doc.resolve_datum_coordsys();
+    REQUIRE(after.size() == 1);
+    REQUIRE(after[0].error.empty());
+    const Vec3d X1 = after[0].x;
+
+    // The normal is unchanged by a spin about itself — that is exactly why the old code could
+    // not detect the rotation.
+    const Vec3d Z1 = after[0].x.cross(after[0].y);
+    CHECK_THAT(std::abs(Z0.dot(Z1)), WithinAbs(1.0, 1e-6));
+
+    // X must have turned with the body. Before the fix X0 == X1 and this failed.
+    const double cos_turn = std::clamp(X0.dot(X1), -1.0, 1.0);
+    CHECK_THAT(std::abs(cos_turn), WithinAbs(0.0, 1e-6));   // 90 degrees apart
+}
+
 TEST_CASE("datum coordinate system: point_world gives world axes", "[CadDocument]")
 {
     using Catch::Matchers::WithinAbs;
