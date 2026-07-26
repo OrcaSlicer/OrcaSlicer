@@ -555,7 +555,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_loft_refs.clear();   // fresh loft: nothing pre-checked
                 open_tool(Tool::Loft);
              }, SHIFT('L')},
-            {"design_extrude", _L("Thicken"), _L("Offset a solid face into a thin plate (new body)"),
+            {"design_thicken", _L("Thicken"), _L("Offset a solid face into a thin plate (new body)"),
              [this] {
                 if (m_doc.bodies.empty()) {
                     m_status->SetForegroundColour(wxColour(235, 110, 110));
@@ -575,7 +575,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_thicken_face_label->SetLabel(_L("(pick a solid face)"));
                 open_tool(Tool::Thicken);
              }, 0},
-            {"design_extrude", _L("Rib"), _L("Grow a thin wall from an open sketch line, fused to a body"),
+            {"design_rib", _L("Rib"), _L("Grow a thin wall from an open sketch line, fused to a body"),
              [this] {
                 if (m_doc.bodies.empty()) {
                     m_status->SetForegroundColour(wxColour(235, 110, 110));
@@ -628,10 +628,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
         fadd("pattern", b_pattern);
 
         // Surface: sheet-body tools (extrude / revolve / loft / fill / offset / thicken)
-        // design_surface, not design_extrude: sharing a face with the Add-material drawer made
-        // the two buttons indistinguishable in the bar.
+        // The drawer BUTTON is design_surface, not design_extrude: sharing a face with the
+        // Add-material drawer made the two buttons indistinguishable in the bar. The entries
+        // inside may reuse the solid glyphs — a menu row carries its own text label.
         feat_dropdown("surface", "design_surface", _L("Surface (extrude / revolve / loft / fill / offset / thicken)"), {
-            {"design_surface", _L("Surface Extrude"), _L("Extrude a sketch into a sheet body (no end caps)"),
+            {"design_extrude", _L("Surface Extrude"), _L("Extrude a sketch into a sheet body (no end caps)"),
              [this] {
                 m_surf_extrude_sketch_ref = resolve_extrude_sketch();
                 if (m_surf_extrude_sketch_ref < 0) {
@@ -642,7 +643,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 }
                 open_tool(Tool::SurfaceExtrude);
              }, SHIFT('G')},
-            {"design_surface", _L("Surface Revolve"), _L("Revolve a sketch profile into a sheet body"),
+            {"design_revolve", _L("Surface Revolve"), _L("Revolve a sketch profile into a sheet body"),
              [this] {
                 m_surf_revolve_sketch_ref = resolve_extrude_sketch();
                 if (m_surf_revolve_sketch_ref < 0) {
@@ -678,7 +679,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 }
                 open_tool(Tool::SurfaceFill);
              }, SHIFT('Q')},
-            {"design_surface", _L("Surface Offset"), _L("Offset a sheet body's shell by a signed distance"),
+            {"design_offset", _L("Surface Offset"), _L("Offset a sheet body's shell by a signed distance"),
              [this] {
                 populate_sheet_body_choices(m_surf_offset_body);
                 if (m_surf_offset_body->GetCount() == 0) {
@@ -689,7 +690,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 }
                 open_tool(Tool::SurfaceOffset);
              }, SHIFT('U')},
-            {"design_surface", _L("Thicken Surface"), _L("Thicken a sheet body into a solid"),
+            {"design_thicken", _L("Thicken Surface"), _L("Thicken a sheet body into a solid"),
              [this] {
                 populate_sheet_body_choices(m_surf_thicken_body);
                 if (m_surf_thicken_body->GetCount() == 0) {
@@ -709,14 +710,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
                  reset_plane_refs();
                  open_tool(Tool::Plane);
              }, SHIFT('P')},
-            {"design_plane", _L("Axis"), _L("Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"),
+            {"design_line", _L("Axis"), _L("Datum axis (two points, face normal, cylinder centerline, two planes, along edge)"),
              [this] {
                  populate_plane_choices(m_axis_plane_a);
                  populate_plane_choices(m_axis_plane_b);
                  reset_axis_refs();
                  open_tool(Tool::Axis);
              }, SHIFT('A')},
-            {"design_plane", _L("Coord Sys"), _L("Datum coordinate system (world point, or face + direction edge)"),
+            {"design_point", _L("Coord Sys"), _L("Datum coordinate system (world point, or face + direction edge)"),
              [this] {
                  reset_coordsys_refs();
                  open_tool(Tool::CoordSys);
@@ -796,7 +797,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 populate_plane_choices(m_mirror_plane);
                 open_tool(Tool::Mirror);
              }, SHIFT('Z')},
-            {"design_plane", _L("Mate"), _L("Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"),
+            {"design_c_coincident", _L("Mate"), _L("Assembly: align two CoordSys features (fastened, planar, revolute, slider, cylindrical)"),
              [this] {
                  open_tool(Tool::Mate);
              }, 0},
@@ -849,7 +850,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
              [this] { open_tool(Tool::Draft); }, SHIFT('D')},
             {"design_shell", _L("Shell"), _L("Hollow the body to a wall thickness, opening a picked face"),
              [this] { open_tool(Tool::Shell); }, SHIFT('K')},
-            {"design_dressup", _L("Delete Face"), _L("Remove faces from a body and heal the solid"),
+            {"design_delete", _L("Delete Face"), _L("Remove faces from a body and heal the solid"),
              [this] {
                 if (m_doc.bodies.empty()) {
                     m_status->SetForegroundColour(wxColour(235, 110, 110));
@@ -1643,7 +1644,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Revolve (sweep a sketch profile about an in-plane axis) ---
     m_box_revolve = new wxBoxSizer(wxVERTICAL);
-    m_box_revolve->Add(card_header(m_cards, "design_extrude", _L("Revolve"), m_hdr_revolve), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_revolve->Add(card_header(m_cards, "design_revolve", _L("Revolve"), m_hdr_revolve), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_revolve->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     m_revolve_sketch_label = new wxStaticText(m_cards, wxID_ANY, _L("Sketch: —"));
     m_box_revolve->Add(m_revolve_sketch_label, 0, wxLEFT | wxRIGHT | wxTOP, 12);
@@ -1680,7 +1681,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Sweep (sweep a profile sketch along a path sketch) ---
     m_box_sweep = new wxBoxSizer(wxVERTICAL);
-    m_box_sweep->Add(card_header(m_cards, "design_extrude", _L("Sweep"), m_hdr_sweep), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_sweep->Add(card_header(m_cards, "design_sweep", _L("Sweep"), m_hdr_sweep), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_sweep->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     m_sweep_profile_label = new wxStaticText(m_cards, wxID_ANY, _L("Profile: —"));
     m_box_sweep->Add(m_sweep_profile_label, 0, wxLEFT | wxRIGHT | wxTOP, 12);
@@ -1706,7 +1707,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Pattern (replicate the target body: linear or circular) ---
     m_box_pattern = new wxBoxSizer(wxVERTICAL);
-    m_box_pattern->Add(card_header(m_cards, "design_extrude", _L("Pattern"), m_hdr_pattern), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_pattern->Add(card_header(m_cards, "design_pattern", _L("Pattern"), m_hdr_pattern), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_pattern->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     {
         auto* pform = two_col_form();
@@ -1826,7 +1827,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Plane (datum/reference plane: offset + tilt from a base plane; no solid) ---
     m_box_plane = new wxBoxSizer(wxVERTICAL);
-    m_box_plane->Add(card_header(m_cards, "design_sketch", _L("Plane"), m_hdr_plane), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_plane->Add(card_header(m_cards, "design_plane", _L("Plane"), m_hdr_plane), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_plane->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     {
         // Plane type chooses which inputs matter (Onshape/Fusion parity):
@@ -1892,7 +1893,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Loft (skin a solid through 2+ ordered profile sketches) ---
     m_box_loft = new wxBoxSizer(wxVERTICAL);
-    m_box_loft->Add(card_header(m_cards, "design_extrude", _L("Loft"), m_hdr_loft), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_loft->Add(card_header(m_cards, "design_loft", _L("Loft"), m_hdr_loft), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_loft->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     m_box_loft->Add(new wxStaticText(m_cards, wxID_ANY, _L("Profiles (check 2+, in order):")),
                     0, wxLEFT | wxRIGHT | wxTOP, 12);
@@ -1940,7 +1941,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Surface Revolve (sheet body from sketch about axis) ---
     m_box_surf_revolve = new wxBoxSizer(wxVERTICAL);
-    m_box_surf_revolve->Add(card_header(m_cards, "design_extrude", _L("Surface Revolve"), m_hdr_surf_revolve), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_surf_revolve->Add(card_header(m_cards, "design_revolve", _L("Surface Revolve"), m_hdr_surf_revolve), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_surf_revolve->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     m_surf_revolve_sketch_label = new wxStaticText(m_cards, wxID_ANY, _L("Sketch: —"));
     m_box_surf_revolve->Add(m_surf_revolve_sketch_label, 0, wxLEFT | wxRIGHT | wxTOP, 12);
@@ -1983,7 +1984,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Surface Fill (one-face sheet from sketch boundary) ---
     m_box_surf_fill = new wxBoxSizer(wxVERTICAL);
-    m_box_surf_fill->Add(card_header(m_cards, "design_extrude", _L("Surface Fill"), m_hdr_surf_fill), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_surf_fill->Add(card_header(m_cards, "design_surface", _L("Surface Fill"), m_hdr_surf_fill), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_surf_fill->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     m_surf_fill_sketch_label = new wxStaticText(m_cards, wxID_ANY, _L("Sketch: —"));
     m_box_surf_fill->Add(m_surf_fill_sketch_label, 0, wxLEFT | wxRIGHT | wxTOP, 12);
@@ -1994,7 +1995,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Surface Offset (offset a sheet body) ---
     m_box_surf_offset = new wxBoxSizer(wxVERTICAL);
-    m_box_surf_offset->Add(card_header(m_cards, "design_extrude", _L("Surface Offset"), m_hdr_surf_offset), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_surf_offset->Add(card_header(m_cards, "design_offset", _L("Surface Offset"), m_hdr_surf_offset), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_surf_offset->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     {
         auto* oform = two_col_form();
@@ -2015,7 +2016,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Thicken Surface (thicken a sheet body into a solid) ---
     m_box_surf_thicken = new wxBoxSizer(wxVERTICAL);
-    m_box_surf_thicken->Add(card_header(m_cards, "design_extrude", _L("Thicken Surface"), m_hdr_surf_thicken), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_surf_thicken->Add(card_header(m_cards, "design_thicken", _L("Thicken Surface"), m_hdr_surf_thicken), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_surf_thicken->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     {
         auto* tform = two_col_form();
@@ -2048,7 +2049,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     sform->Add(m_shell_face_label, 0, wxALIGN_CENTER_VERTICAL);
 
     m_box_shell = new wxBoxSizer(wxVERTICAL);
-    m_box_shell->Add(card_header(m_cards, "design_dressup", _L("Shell"), m_hdr_shell), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_shell->Add(card_header(m_cards, "design_shell", _L("Shell"), m_hdr_shell), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_shell->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     m_box_shell->Add(new wxStaticText(m_cards, wxID_ANY,
                         _L("Pick a solid face to open it, then set the wall thickness.")),
@@ -2066,7 +2067,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     drform->Add(m_draft_face_label, 0, wxALIGN_CENTER_VERTICAL);
 
     m_box_draft = new wxBoxSizer(wxVERTICAL);
-    m_box_draft->Add(card_header(m_cards, "design_dressup", _L("Draft"), m_hdr_draft), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_draft->Add(card_header(m_cards, "design_draft", _L("Draft"), m_hdr_draft), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_draft->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     m_box_draft->Add(new wxStaticText(m_cards, wxID_ANY,
                         _L("Pick a side face, then set the draft angle. The face pivots about the body base.")),
@@ -2165,7 +2166,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Thicken (offset one solid face into a thin plate) ---
     m_box_thicken = new wxBoxSizer(wxVERTICAL);
-    m_box_thicken->Add(card_header(m_cards, "design_extrude", _L("Thicken"), m_hdr_thicken), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_thicken->Add(card_header(m_cards, "design_thicken", _L("Thicken"), m_hdr_thicken), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_thicken->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     {
         auto* tform = two_col_form();
@@ -2196,7 +2197,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Rib (thin wall from an open sketch line, fused to a body) ---
     m_box_rib = new wxBoxSizer(wxVERTICAL);
-    m_box_rib->Add(card_header(m_cards, "design_extrude", _L("Rib"), m_hdr_rib), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_rib->Add(card_header(m_cards, "design_rib", _L("Rib"), m_hdr_rib), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_rib->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     {
         auto* rform = two_col_form();
@@ -2257,7 +2258,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Delete Face (remove faces, heal the solid) ---
     m_box_delete_face = new wxBoxSizer(wxVERTICAL);
-    m_box_delete_face->Add(card_header(m_cards, "design_dressup", _L("Delete Face"), m_hdr_delete_face), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_delete_face->Add(card_header(m_cards, "design_delete", _L("Delete Face"), m_hdr_delete_face), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_delete_face->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     {
         auto* dform = two_col_form();
@@ -2353,7 +2354,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Axis (datum axis: line through two points or derived from geometry) ---
     m_box_axis = new wxBoxSizer(wxVERTICAL);
-    m_box_axis->Add(card_header(m_cards, "design_plane", _L("Axis"), m_hdr_axis), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_axis->Add(card_header(m_cards, "design_line", _L("Axis"), m_hdr_axis), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_axis->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     {
         m_axis_type = make_combo(m_cards);
@@ -2411,7 +2412,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- CoordSys (datum coordinate system: point + orthonormal frame) ---
     m_box_coordsys = new wxBoxSizer(wxVERTICAL);
-    m_box_coordsys->Add(card_header(m_cards, "design_plane", _L("Coord Sys"), m_hdr_coordsys), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_coordsys->Add(card_header(m_cards, "design_point", _L("Coord Sys"), m_hdr_coordsys), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_coordsys->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     {
         m_coordsys_type = make_combo(m_cards);
@@ -2470,7 +2471,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Mate (assembly: align two CoordSys features) ---
     m_box_mate = new wxBoxSizer(wxVERTICAL);
-    m_box_mate->Add(card_header(m_cards, "design_plane", _L("Mate"), m_hdr_mate), 0, wxLEFT | wxRIGHT | wxTOP, 12);
+    m_box_mate->Add(card_header(m_cards, "design_c_coincident", _L("Mate"), m_hdr_mate), 0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_mate->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     {
         auto* mform = two_col_form();
@@ -2691,7 +2692,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_tree_images->Add(create_scaled_bitmap("design_dressup", nullptr, 16)); // 2 Fillet/Chamfer
     m_tree_images->Add(create_scaled_bitmap("design_hole",    nullptr, 16)); // 3 Hole
     m_tree_images->Add(create_scaled_bitmap("design_thread",  nullptr, 16)); // 4 Thread
-    m_tree_images->Add(create_scaled_bitmap("design_dressup", nullptr, 16)); // 5 Shell
+    m_tree_images->Add(create_scaled_bitmap("design_shell",   nullptr, 16)); // 5 Shell
     m_tree->AssignImageList(m_tree_images);
     tree_inner->Add(m_tree, 0, wxEXPAND | wxALL, 12);
 
