@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "PolyLite PLA @Qidi Q2C 0.4 nozzle",
+	"inherits": "PolyLite PLA@Q2C-Series",
+	"from": "system",
+	"setting_id": "55gNJLcwSNCpFRLt",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.037"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
+}

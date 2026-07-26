@@ -17,22 +17,20 @@ namespace igl
   {
     namespace cgal
     {
-      // Compute the Minkowski sum of a closed triangle mesh (V,F) and a
-      // set of simplices in 3D.
-      //
-      // Inputs:
-      //   VA  #VA by 3 list of mesh vertices in 3D
-      //   FA  #FA by 3 list of triangle indices into VA
-      //   VB  #VB by 3 list of mesh vertices in 3D
-      //   FB  #FB by ss list of simplex indices into VB, ss<=3
-      //   resolve_overlaps  whether or not to resolve self-union. If false
-      //     then result may contain self-intersections if input mesh is
-      //     non-convex.
-      // Outputs:
-      //   W  #W by 3 list of mesh vertices in 3D
-      //   G  #G by 3 list of triangle indices into W
-      //   J  #G by 2 list of indices into 
-      //   
+      /// Compute the Minkowski sum of a closed triangle mesh (V,F) and a
+      /// set of simplices in 3D.
+      ///
+      /// @param[in] VA  #VA by 3 list of mesh vertices in 3D
+      /// @param[in] FA  #FA by 3 list of triangle indices into VA
+      /// @param[in] VB  #VB by 3 list of mesh vertices in 3D
+      /// @param[in] FB  #FB by ss list of simplex indices into VB, ss<=3
+      /// @param[in] resolve_overlaps  whether or not to resolve self-union. If false
+      ///     then result may contain self-intersections if input mesh is
+      ///     non-convex.
+      /// @param[out] W  #W by 3 list of mesh vertices in 3D
+      /// @param[out] G  #G by 3 list of triangle indices into W
+      /// @param[out] J  #G by 2 list of indices into 
+      ///   
       template <
         typename DerivedVA,
         typename DerivedFA,
@@ -50,22 +48,12 @@ namespace igl
         Eigen::PlainObjectBase<DerivedW> & W,
         Eigen::PlainObjectBase<DerivedG> & G,
         Eigen::PlainObjectBase<DerivedJ> & J);
-      // Compute the Minkowski sum of a closed triangle mesh (V,F) and a
-      // segment [s,d] in 3D.
-      //
-      // Inputs:
-      //   VA  #VA by 3 list of mesh vertices in 3D
-      //   FA  #FA by 3 list of triangle indices into VA
-      //   s  segment source endpoint in 3D
-      //   d  segment source endpoint in 3D
-      //   resolve_overlaps  whether or not to resolve self-union. If false
-      //     then result may contain self-intersections if input mesh is
-      //     non-convex.
-      // Outputs:
-      //   W  #W by 3 list of mesh vertices in 3D
-      //   G  #G by 3 list of triangle indices into W
-      //   J  #G list of indices into [F;#V+F;[s d]] of birth parents
-      //
+      /// \overload
+      /// \brief Compute the Minkowski sum of a closed triangle mesh (V,F) and a
+      /// segment [s,d] in 3D.
+      ///
+      /// @param[in] s  segment source endpoint in 3D
+      /// @param[in] d  segment source endpoint in 3D
       template <
         typename DerivedVA,
         typename DerivedFA,
@@ -83,6 +71,7 @@ namespace igl
         Eigen::PlainObjectBase<DerivedW> & W,
         Eigen::PlainObjectBase<DerivedG> & G,
         Eigen::PlainObjectBase<DerivedJ> & J);
+      /// \overload
       template <
         typename DerivedVA,
         typename DerivedFA,

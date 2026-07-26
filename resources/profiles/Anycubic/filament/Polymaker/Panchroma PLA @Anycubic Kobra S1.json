@@ -1,0 +1,70 @@
+{
+	"type": "filament",
+	"name": "Panchroma PLA @Anycubic Kobra S1",
+	"inherits": "fdm_filament_pla",
+	"from": "system",
+	"setting_id": "gsXcm0Q6TdKW0GBx",
+	"filament_id": "GFPM001",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Anycubic Kobra S1 0.4 nozzle"
+	],
+	"filament_vendor": [
+		"Polymaker"
+	],
+	"filament_type": [
+		"PLA"
+	],
+	"cool_plate_temp": [
+		"50"
+	],
+	"eng_plate_temp": [
+		"50"
+	],
+	"hot_plate_temp": [
+		"50"
+	],
+	"textured_plate_temp": [
+		"50"
+	],
+	"cool_plate_temp_initial_layer": [
+		"50"
+	],
+	"eng_plate_temp_initial_layer": [
+		"50"
+	],
+	"hot_plate_temp_initial_layer": [
+		"50"
+	],
+	"textured_plate_temp_initial_layer": [
+		"50"
+	],
+	"filament_flow_ratio": [
+		"0.88"
+	],
+	"filament_cost": [
+		"0"
+	],
+	"filament_density": [
+		"1.32"
+	],
+	"filament_max_volumetric_speed": [
+		"20"
+	],
+	"slow_down_min_speed": [
+		"5"
+	],
+	"slow_down_layer_time": [
+		"10"
+	],
+	"temperature_vitrification": [
+		"62.5"
+	],
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+
+	"enable_pressure_advance": [
+		"1"
+	]
+}

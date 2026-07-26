@@ -1,0 +1,45 @@
+{
+	"type": "machine",
+	"setting_id": "8CM5vaCDh096ZzUs",
+	"name": "Elegoo Neptune 3 Max 0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "Elegoo Neptune 3 Pro 0.4 nozzle",
+	"host_type": "elegoolink",
+	"printer_model": "Elegoo Neptune 3 Max",
+	"default_print_profile": "0.20mm Standard @Elegoo N3Max 0.4 nozzle",
+	"nozzle_diameter": [
+		"0.4"
+	],
+	"printable_area": [
+		"0x0",
+		"425x0",
+		"425x425",
+		"0x425"
+	],
+	"printable_height": "500",
+	"retract_lift_below": [
+		"499"
+	],
+	"auxiliary_fan": "0",
+	"machine_max_acceleration_extruding": [
+		"700",
+		"700"
+	],
+	"machine_max_acceleration_retracting": [
+		"700",
+		"700"
+	],
+	"machine_max_acceleration_travel": [
+		"700",
+		"700"
+	],
+	"machine_max_acceleration_x": [
+		"700",
+		"700"
+	],
+	"machine_max_acceleration_y": [
+		"700",
+		"700"
+	]
+}

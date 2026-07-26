@@ -34,97 +34,165 @@ jobs:
 
       # Setup the environment
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
-          lfs: 'true'
+          lfs: 'false'
 
       - name: load cached deps
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ inputs.cache-path }}
           key: ${{ inputs.cache-key }}
 
       - uses: lukka/get-cmake@latest
+        # The windows-11-arm runner needs CMake <= 3.31 (handled in the next step).
+        if: ${{ !(runner.os == 'Windows' && inputs.arch == 'arm64') }}
         with:
-          cmakeVersion: "~3.28.0"  # use most recent 3.28.x version
+          cmakeVersion: "~4.3.0"  # use most recent 4.3.x version
+          useLocalCache: true         # <--= Use the local cache (default is 'false').
+          useCloudCache: true
+
+      - name: Install CMake 3.31.x (Windows ARM64)
+        # windows-11-arm ships CMake 4.x, which removed pre-3.5 policy
+        # compatibility AND has incomplete ASM_ARMASM linker modules
+        # (breaks Boost.Context on ARM64). Pin to the last 3.x release.
+        if: runner.os == 'Windows' && inputs.arch == 'arm64'
+        shell: pwsh
+        run: |
+          $ver = "3.31.6"
+          $url = "https://github.com/Kitware/CMake/releases/download/v$ver/cmake-$ver-windows-arm64.zip"
+          Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP\cmake.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\cmake.zip" -DestinationPath "$env:RUNNER_TEMP\cmake" -Force
+          $cmakeBin = "$env:RUNNER_TEMP\cmake\cmake-$ver-windows-arm64\bin"
+          if (-not (Test-Path "$cmakeBin\cmake.exe")) { throw "cmake.exe not found at $cmakeBin" }
+          Add-Content -Path $env:GITHUB_PATH -Value $cmakeBin
 
       - name: setup dev on Windows
-        if: inputs.os == 'windows-latest'
-        uses: microsoft/setup-msbuild@v2
+        if: runner.os == 'Windows'
+        uses: microsoft/setup-msbuild@v3
 
       - name: Get the date on Ubuntu and macOS
-        if: inputs.os != 'windows-latest'
+        if: runner.os != 'Windows'
         run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_ENV
         shell: bash
 
       - name: Get the date on Windows
-        if: inputs.os == 'windows-latest'
+        if: runner.os == 'Windows'
         run: echo "date=$(Get-Date -Format 'yyyyMMdd')" | Out-File -Append -FilePath $env:GITHUB_ENV -Encoding utf8
         shell: pwsh
 
 
+      - name: Install MSYS2 (clangarm64) with GMP/MPFR and LLVM tools
+        if: runner.os == 'Windows' && inputs.arch == 'arm64'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANGARM64
+          update: true
+          install: >-
+            mingw-w64-clang-aarch64-gmp
+            mingw-w64-clang-aarch64-mpfr
+            mingw-w64-clang-aarch64-llvm
+
+      - name: Stage ARM64 GMP/MPFR (no prebuilt blobs exist for win-arm64)
+        # GMP/MPFR ship prebuilt x64/x86 blobs in-tree but none for ARM64.
+        # Pull them from MSYS2 clangarm64 and generate MSVC import libs via
+        # llvm-dlltool, then stage into deps/{GMP,MPFR}/.../win-arm64 where the
+        # MSVC branch of GMP.cmake/MPFR.cmake copies them into the dep prefix.
+        if: runner.os == 'Windows' && inputs.arch == 'arm64'
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+          BIN=/clangarm64/bin
+          REPO=$(cygpath -u "$GITHUB_WORKSPACE")
+
+          make_import_lib() {
+            local dll="$1"; local lib="$2"; local def="/tmp/${dll%.dll}.def"
+            echo "EXPORTS" > "$def"
+            llvm-readobj --coff-exports "$BIN/$dll" | awk '/Name: /{print $2}' >> "$def"
+            llvm-dlltool -m arm64 -D "$dll" -d "$def" -l "$BIN/$lib"
+          }
+
+          make_import_lib libgmp-10.dll libgmp-10.lib
+
+          # MPFR 4.x ships as libmpfr-6.dll; rename to libmpfr-4 BEFORE generating
+          # the import lib so the baked-in runtime DLL name is correct.
+          MPFR_DLL=$(ls $BIN/libmpfr-*.dll | head -1 | xargs basename)
+          if [ "$MPFR_DLL" != "libmpfr-4.dll" ]; then cp "$BIN/$MPFR_DLL" "$BIN/libmpfr-4.dll"; fi
+          make_import_lib libmpfr-4.dll libmpfr-4.lib
+
+          mkdir -p $REPO/deps/GMP/gmp/lib/win-arm64 $REPO/deps/MPFR/mpfr/lib/win-arm64
+          cp $BIN/libgmp-10.dll $BIN/libgmp-10.lib $REPO/deps/GMP/gmp/lib/win-arm64/
+          cp $BIN/libmpfr-4.dll $BIN/libmpfr-4.lib $REPO/deps/MPFR/mpfr/lib/win-arm64/
+          cp /clangarm64/include/gmp.h  $REPO/deps/GMP/gmp/include/
+          cp /clangarm64/include/mpfr.h $REPO/deps/MPFR/mpfr/include/ || true
+
       # Build Dependencies
       - name: Build on Windows
-        if: inputs.os == 'windows-latest'
+        if: runner.os == 'Windows'
         working-directory: ${{ github.workspace }}
         run: |
-            choco install strawberryperl
-            .\build_release_vs.bat deps
-            .\build_release_vs.bat pack
-            cd ${{ github.workspace }}/deps/build
+            if (-not "${{ vars.SELF_HOSTED }}") {
+              choco install strawberryperl
+            }
+            $arch = "${{ inputs.arch }}"
+            if ($arch -eq "arm64") {
+              .\build_release_vs.bat deps arm64
+              .\build_release_vs.bat pack arm64
+            } else {
+              .\build_release_vs.bat deps
+              .\build_release_vs.bat pack
+            }
+        shell: pwsh
 
       - name: Build on Mac ${{ inputs.arch }}
-        if: inputs.os == 'orca-macos-arm64'
+        if: runner.os == 'macOS'
         working-directory: ${{ github.workspace }}
         run: |
-            # brew install automake texinfo libtool
-            # brew list
-            # brew uninstall --ignore-dependencies zstd
-            ./build_release_macos.sh -dx -a universal -t 10.15
-            for arch in arm64 x86_64; do
-                (cd "${{ github.workspace }}/deps/build/${arch}" && \
-                find . -mindepth 1 -maxdepth 1 ! -name 'OrcaSlicer_dep' -exec rm -rf {} +)
-            done
-            # brew install zstd
+            if [ -z "${{ vars.SELF_HOSTED }}" ]; then
+              brew install automake texinfo libtool
+            fi
+            ./build_release_macos.sh -dx ${{ !vars.SELF_HOSTED && '-1' || '' }} -a ${{ inputs.arch }} -t 10.15
+            (cd "${{ github.workspace }}/deps/build/${{ inputs.arch }}" && \
+            find . -mindepth 1 -maxdepth 1 ! -name 'OrcaSlicer_dep' -exec rm -rf {} +)
 
 
       - name: Apt-Install Dependencies
-        if: inputs.os == 'ubuntu-24.04'
+        if: runner.os == 'Linux' && !vars.SELF_HOSTED
         uses: ./.github/actions/apt-install-deps
 
       - name: Build on Ubuntu
-        if: inputs.os == 'ubuntu-20.04' || inputs.os == 'ubuntu-24.04'
+        if: runner.os == 'Linux'
         working-directory: ${{ github.workspace }}
         run: |
             mkdir -p ${{ github.workspace }}/deps/build/destdir
-            ./build_linux.sh -dr
+            ./build_linux.sh -drlL
             cd deps/build
             tar -czvf OrcaSlicer_dep_ubuntu_$(date +"%Y%m%d").tar.gz destdir
 
 
       # Upload Artifacts
       # - name: Upload Mac ${{ inputs.arch }} artifacts
-      #   if: inputs.os == 'orca-macos-arm64'
+      #   if: runner.os == 'macOS'
       #   uses: actions/upload-artifact@v6
       #   with:
       #     name: OrcaSlicer_dep_mac_${{ env.date }}
       #     path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep*.tar.gz
 
-      - name: Upload Windows artifacts
-        if: inputs.os == 'windows-latest'
-        uses: actions/upload-artifact@v6
-        with:
-          name: OrcaSlicer_dep_win64_${{ env.date }}
-          path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep*.zip
+      # - name: Upload Windows artifacts
+      #   if: runner.os == 'Windows'
+      #   uses: actions/upload-artifact@v6
+      #   with:
+      #     name: OrcaSlicer_dep_win64_${{ env.date }}
+      #     path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep*.zip
 
-      - name: Upload Ubuntu artifacts
-        if: ${{ ! env.ACT && inputs.os == 'ubuntu-20.04' || inputs.os == 'ubuntu-24.04' }}
-        env:
-          ubuntu-ver: ${{ (inputs.os == 'ubuntu-20.04' && '2004') || (inputs.os == 'ubuntu-24.04' && '2404') || '' }}
-        uses: actions/upload-artifact@v6
-        with:
-          name: OrcaSlicer_dep_ubuntu_${{ env.ubuntu-ver }}_${{ env.date }}
-          path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep_ubuntu_*.tar.gz
+      # - name: Upload Ubuntu artifacts
+      #   if: runner.os == 'Linux' && !env.ACT
+      #   env:
+      #     ubuntu-ver: '2404'
+      #   uses: actions/upload-artifact@v6
+      #   with:
+      #     name: OrcaSlicer_dep_ubuntu_${{ env.ubuntu-ver }}_${{ env.date }}
+      #     path: ${{ github.workspace }}/deps/build/OrcaSlicer_dep_ubuntu_*.tar.gz
 
   build_orca:
     name: Build OrcaSlicer

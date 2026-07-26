@@ -1,0 +1,12 @@
+{
+	"type": "machine_model",
+	"name": "Elegoo Neptune 2",
+	"model_id": "Elegoo-N2",
+	"nozzle_diameter": "0.4;0.6;0.8",
+	"machine_tech": "FFF",
+	"family": "Elegoo",
+	"bed_model": "elegoo_neptune2_buildplate_model.stl",
+	"bed_texture": "elegoo_neptune2_buildplate_texture.svg",
+	"hotend_model": "",
+	"default_materials": "Elegoo ASA @0.2 nozzle;Elegoo ASA @EN2 Series;Elegoo PETG @0.2 nozzle;Elegoo PETG @EN2 Series;Elegoo PETG PRO @0.2 nozzle;Elegoo PETG PRO @EN2 Series;Elegoo PLA @0.2 nozzle;Elegoo PLA Matte @0.2 nozzle;Elegoo PLA Matte @EN2 Series;Elegoo PLA PRO @0.2 nozzle;Elegoo PLA PRO @EN2 Series;Elegoo PLA Silk @0.2 nozzle;Elegoo PLA Silk @EN2 Series;Elegoo PLA-CF @EN2 Series;Elegoo PLA @EN2 Series;Elegoo PLA+ @0.2 nozzle;Elegoo PLA+ @EN2 Series;Elegoo Rapid PETG @0.2 nozzle;Elegoo Rapid PETG @EN2 Series;Elegoo Rapid PLA+ @0.2 nozzle;Elegoo Rapid PLA+ @EN2 Series;Elegoo PLA Basic @0.2 nozzle;Elegoo PLA Basic @EN2 Series;Elegoo PLA Galaxy @EN2 Series;Elegoo PLA Marble @EN2 Series;Elegoo PLA Sparkle @EN2 Series;Elegoo PLA Wood @EN2 Series;Elegoo Rapid TPU 95A @EN2 Series;Elegoo PETG-CF @EN2 Series;Elegoo PETG-GF @EN2 Series;Elegoo PETG Translucent @0.2 nozzle;Elegoo PETG Translucent @EN2 Series"
+}

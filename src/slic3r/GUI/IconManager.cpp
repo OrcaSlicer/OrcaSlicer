@@ -9,7 +9,7 @@
 #include "libslic3r/Utils.hpp" // ScopeGuard   
 
 #include "3DScene.hpp" // glsafe
-#include "GL/glew.h"
+#include <glad/gl.h>
 
 #define STB_RECT_PACK_IMPLEMENTATION
 #include "imgui/imstb_rectpack.h" // distribute rectangles

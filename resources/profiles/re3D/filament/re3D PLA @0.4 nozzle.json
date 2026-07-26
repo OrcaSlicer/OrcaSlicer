@@ -1,0 +1,174 @@
+{
+	"type": "filament",
+	"name": "re3D PLA @0.4 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pla",
+	"filament_id": "GFL99",
+	"setting_id": "M8OOntNjjDBR4W32",
+	"filament_settings_id": [
+		"re3D PLA @0.4 nozzle"
+	],
+	"compatible_printers": [
+		"re3D Gigabot 4 0.4 nozzle",
+		"re3D Gigabot 4 XLT 0.4 nozzle",
+		"re3D Terabot 4 0.4 nozzle"
+	],
+	"filament_vendor": [
+		"re3D"
+	],
+	"close_fan_the_first_x_layers": "2",
+	"filament_density": [
+		"1.24"
+	],
+	"filament_diameter": [
+		"2.85"
+	],
+	"filament_flow_ratio": [
+		"0.99"
+	],
+	"filament_max_volumetric_speed": [
+		"12"
+	],
+	"nozzle_temperature": [
+		"240"
+	],
+	"nozzle_temperature_initial_layer": [
+		"240"
+	],
+	"nozzle_temperature_range_low": [
+		"220"
+	],
+	"nozzle_temperature_range_high": [
+		"250"
+	],
+	"hot_plate_temp": [
+		"65"
+	],
+	"hot_plate_temp_initial_layer": [
+		"65"
+	],
+	"cool_plate_temp": [
+		"65"
+	],
+	"cool_plate_temp_initial_layer": [
+		"65"
+	],
+	"eng_plate_temp": [
+		"65"
+	],
+	"eng_plate_temp_initial_layer": [
+		"65"
+	],
+	"textured_plate_temp": [
+		"65"
+	],
+	"textured_plate_temp_initial_layer": [
+		"65"
+	],
+	"fan_max_speed": [
+		"100"
+	],
+	"fan_min_speed": [
+		"80"
+	],
+	"fan_cooling_layer_time": [
+		"20"
+	],
+	"full_fan_speed_layer": [
+		"2"
+	],
+	"overhang_fan_threshold": [
+		"0%"
+	],
+	"overhang_fan_speed": [
+		"80"
+	],
+	"enable_overhang_bridge_fan": [
+		"1"
+	],
+	"slow_down_for_layer_cooling": [
+		"1"
+	],
+	"slow_down_layer_time": [
+		"20"
+	],
+	"slow_down_min_speed": [
+		"30"
+	],
+	"pressure_advance": [
+		"0.096"
+	],
+	"enable_pressure_advance": [
+		"1"
+	],
+	"reduce_fan_stop_start_freq": [
+		"1"
+	],
+	"temperature_vitrification": [
+		"70"
+	],
+	"support_material_interface_fan_speed": [
+		"100"
+	],
+	"filament_soluble": [
+		"0"
+	],
+	"filament_multitool_ramming": [
+		"1"
+	],
+	"filament_multitool_ramming_volume": [
+		"20"
+	],
+	"filament_multitool_ramming_flow": [
+		"10.5"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	],
+	"filament_tower_interface_pre_extrusion_dist": [
+		"0"
+	],
+	"filament_tower_interface_pre_extrusion_length": [
+		"0"
+	],
+	"filament_tower_ironing_area": [
+		"0"
+	],
+	"filament_tower_interface_purge_volume": [
+		"0"
+	],
+	"filament_tower_interface_print_temp": [
+		"0"
+	],
+	"filament_loading_speed_start": [
+		"0"
+	],
+	"filament_loading_speed": [
+		"0"
+	],
+	"filament_unloading_speed_start": [
+		"0"
+	],
+	"filament_unloading_speed": [
+		"0"
+	],
+	"filament_toolchange_delay": [
+		"0"
+	],
+	"filament_cooling_moves": [
+		"0"
+	],
+	"filament_cooling_initial_speed": [
+		"0"
+	],
+	"filament_cooling_final_speed": [
+		"0"
+	],
+	"filament_stamping_loading_speed": [
+		"0"
+	],
+	"filament_stamping_distance": [
+		"0"
+	]
+}

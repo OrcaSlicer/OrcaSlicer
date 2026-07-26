@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "QIDI PET-CF @Qidi Q2C 0.4 nozzle",
+	"inherits": "QIDI PET-CF@Q2C-Series",
+	"from": "system",
+	"setting_id": "bqf0nv6TibBm2zIy",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
+}

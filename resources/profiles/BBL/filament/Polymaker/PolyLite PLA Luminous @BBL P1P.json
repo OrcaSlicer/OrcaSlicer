@@ -1,0 +1,16 @@
+{
+	"type": "filament",
+	"name": "PolyLite PLA Luminous @BBL P1P",
+	"inherits": "PolyLite PLA Luminous @base",
+	"from": "system",
+	"setting_id": "GFSL65_02",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Bambu Lab P1P 0.4 nozzle",
+		"Bambu Lab P1P 0.6 nozzle",
+		"Bambu Lab P1P 0.8 nozzle"
+	],
+	"slow_down_layer_time": [
+		"10"
+	]
+}

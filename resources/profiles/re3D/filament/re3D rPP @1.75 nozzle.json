@@ -1,0 +1,65 @@
+{
+	"type": "filament",
+	"filament_id": "GFG02",
+	"setting_id": "356nOwsfGLI3CNqU",
+	"name": "re3D rPP @1.75 nozzle",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_filament_pet",
+	"filament_type": [
+		"PP"
+	],
+	"filament_vendor": [
+		"re3D"
+	],
+	"close_fan_the_first_x_layers": [
+		"2"
+	],
+	"default_filament_colour": [
+		"#FFFFFF"
+	],
+	"filament_density": [
+		"0.675"
+	],
+	"filament_max_volumetric_speed": [
+		"50"
+	],
+	"nozzle_temperature_initial_layer": [
+		"185"
+	],
+	"nozzle_temperature": [
+		"185"
+	],
+	"nozzle_temperature_range_low": [
+		"180"
+	],
+	"nozzle_temperature_range_high": [
+		"280"
+	],
+	"hot_plate_temp_initial_layer": [
+		"110"
+	],
+	"hot_plate_temp": [
+		"110"
+	],
+	"filament_flow_ratio": [
+		"1.15"
+	],
+	"enable_pressure_advance": [
+		"0"
+	],
+	"slow_down_layer_time": [
+		"50"
+	],
+	"slow_down_min_speed": [
+		"3"
+	],
+	"filament_start_gcode": [
+		"; filament start gcode\nM190 S110\nM104 S185 T0\nM104 S185 T1\nM104 S185 T2\nM109 S185 T0\nM109 S185 T1\nM109 S185 T2\n"
+	],
+	"compatible_printers": [
+		"re3D GigabotX 2 1.75 nozzle",
+		"re3D GigabotX 2 XLT 1.75 nozzle",
+		"re3D TerabotX 2 1.75 nozzle"
+	]
+}

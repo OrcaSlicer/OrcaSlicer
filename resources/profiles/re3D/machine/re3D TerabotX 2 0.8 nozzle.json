@@ -1,0 +1,33 @@
+{
+	"type": "machine",
+	"name": "re3D TerabotX 2 0.8 nozzle",
+	"inherits": "fgf_re3D_common",
+	"instantiation": "true",
+	"machine_tech": "FGF",
+	"model_id": "re3D TBX2",
+	"printer_model": "re3D TerabotX 2",
+	"bed_texture": "Gigabot 4_buildplate_texture.png",
+	"printable_area": [
+		"0x0",
+		"892x0",
+		"892x908",
+		"0x908"
+	],
+	"printable_height": "870",
+	"nozzle_diameter": [
+		"0.8"
+	],
+	"printer_variant": "0.8",
+	"max_layer_height": [
+		"0.6"
+	],
+	"min_layer_height": [
+		"0.3"
+	],
+	"default_filament_profile": [
+		"re3D Greengate rPETG @0.8 nozzle"
+	],
+	"default_print_profile": "0.6 Standard",
+	"printer_settings_id": "re3d_tbx2_08",
+	"setting_id": "A6jcgezqyq6DE5mi"
+}

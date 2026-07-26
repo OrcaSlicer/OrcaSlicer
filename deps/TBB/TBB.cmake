@@ -1,4 +1,4 @@
-if (FLATPAK)
+if (FLATPAK AND "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(_patch_command ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_LIST_DIR}/GNU.cmake ./cmake/compilers/GNU.cmake)
 else()
     set(_patch_command "")

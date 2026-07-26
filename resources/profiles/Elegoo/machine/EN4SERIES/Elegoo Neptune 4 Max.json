@@ -1,0 +1,15 @@
+{
+	"type": "machine_model",
+	"name": "Elegoo Neptune 4 Max",
+	"model_id": "Elegoo-N4Max",
+	"nozzle_diameter": "0.4;0.2;0.6;0.8;1.0",
+	"machine_tech": "FFF",
+	"family": "Elegoo",
+	"bed_model": "elegoo_neptune4max_buildplate_model.stl",
+	"bed_texture": "elegoo_neptune4max_buildplate_texture.svg",
+	"bed_exclude_area": [
+		"0x0"
+	],
+	"hotend_model": "",
+	"default_materials": "Elegoo ASA @0.2 nozzle;Elegoo ASA @EN4 Series;Elegoo PETG PRO @0.2 nozzle;Elegoo PETG PRO @EN4 Series;Elegoo PLA @0.2 nozzle;Elegoo PLA Matte @0.2 nozzle;Elegoo PLA Matte @EN4 Series;Elegoo PLA PRO @0.2 nozzle;Elegoo PLA PRO @EN4 Series;Elegoo PLA Silk @0.2 nozzle;Elegoo PLA Silk @EN4 Series;Elegoo PLA-CF @EN4 Series;Elegoo PLA @EN4 Series;Elegoo PLA+ @0.2 nozzle;Elegoo PLA+ @EN4 Series;Elegoo Rapid PETG @0.2 nozzle;Elegoo Rapid PETG @EN4 Series;Elegoo Rapid PLA+ @0.2 nozzle;Elegoo Rapid PLA+ @EN4 Series;Elegoo TPU 95A @EN4 Series;Elegoo PLA Basic @0.2 nozzle;Elegoo PLA Basic @EN4 Series;Elegoo PLA Galaxy @EN4 Series;Elegoo PLA Marble @EN4 Series;Elegoo PLA Sparkle @EN4 Series;Elegoo PLA Wood @EN4 Series;Elegoo Rapid TPU 95A @EN4 Series;Elegoo PETG-CF @EN4 Series;Elegoo PETG-GF @EN4 Series;Elegoo PETG Translucent @0.2 nozzle;Elegoo PETG Translucent @EN4 Series"
+}

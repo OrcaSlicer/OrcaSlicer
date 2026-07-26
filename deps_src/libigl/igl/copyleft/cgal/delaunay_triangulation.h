@@ -18,21 +18,17 @@ namespace igl
   {
     namespace cgal
     {
-
-      // Given a set of points in 2D, return a Delaunay triangulation of these
-      // points.
-      //
-      // Inputs:
-      //   V  #V by 2 list of vertex positions
-      //
-      // Outputs:
-      //   F  #F by 3 of faces in Delaunay triangulation.
+      /// Given a set of points in 2D, return a Delaunay triangulation of these
+      /// points.
+      ///
+      /// @param[in] V  #V by 2 list of vertex positions
+      /// @param[out] F  #F by 3 of faces in Delaunay triangulation.
       template<
         typename DerivedV,
         typename DerivedF
         >
       IGL_INLINE void delaunay_triangulation(
-          const Eigen::PlainObjectBase<DerivedV>& V,
+          const Eigen::MatrixBase<DerivedV>& V,
           Eigen::PlainObjectBase<DerivedF>& F);
     }
   }

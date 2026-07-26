@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "Generic PLA Silk @Qidi Q2C 0.6 nozzle",
+	"inherits": "Generic PLA Silk@Q2C-Series",
+	"from": "system",
+	"setting_id": "5V4coBYC2JEZQSbX",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.014"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.6 nozzle"
+	]
+}

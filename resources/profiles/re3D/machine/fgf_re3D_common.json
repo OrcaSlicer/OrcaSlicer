@@ -1,0 +1,63 @@
+{
+	"type": "machine",
+	"name": "fgf_re3D_common",
+	"from": "system",
+	"instantiation": "false",
+	"inherits": "fdm_machine_common",
+	"gcode_flavor": "klipper",
+	"printer_settings_id": "",
+	"printer_technology": "FFF",
+	"purge_in_prime_tower": "0",
+	"enable_filament_ramming": "0",
+	"retraction_minimum_travel": [
+		"1"
+	],
+	"retract_before_wipe": [
+		"70%"
+	],
+	"extruders_count": [
+		"1"
+	],
+	"retract_when_changing_layer": [
+		"1"
+	],
+	"retraction_length": [
+		"0"
+	],
+	"retract_length_toolchange": [
+		"0"
+	],
+	"z_hop": [
+		"0"
+	],
+	"retract_restart_extra": [
+		"0"
+	],
+	"retract_restart_extra_toolchange": [
+		"0"
+	],
+	"retraction_speed": [
+		"40"
+	],
+	"deretraction_speed": [
+		"30"
+	],
+	"z_hop_types": "Normal Lift",
+	"silent_mode": "0",
+	"single_extruder_multi_material": "0",
+	"change_filament_gcode": "M600",
+	"machine_pause_gcode": "PAUSE",
+	"wipe": [
+		"1"
+	],
+	"bed_exclude_area": [
+		"0x0"
+	],
+	"machine_start_gcode": "M220 S100\nM221 S100\nG28\nG92 E0\nG1 Z0.3 F200\n",
+	"machine_end_gcode": "M104 S0 T0\nM104 S0 T1\nM104 S0 T2\nM140 S0\n\nG28 X Y\nM18\nM107\n",
+	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
+	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\nG92 E0\n",
+	"scan_first_layer": "0",
+	"nozzle_type": "undefine",
+	"auxiliary_fan": "0"
+}

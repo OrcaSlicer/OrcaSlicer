@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "Overture PLA @Qidi Q2C 0.2 nozzle",
+	"inherits": "Overture PLA@Q2C-Series",
+	"from": "system",
+	"setting_id": "sR59dH6Xa2wZYoju",
+	"instantiation": "true",
+	"filament_max_volumetric_speed": [
+		"2"
+	],
+	"pressure_advance": [
+		"0.062"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.2 nozzle"
+	]
+}

@@ -11,7 +11,7 @@
 #include "libslic3r/Model.hpp"
 #include "libslic3r/QuadricEdgeCollapse.hpp"
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 #include <thread>
 
@@ -367,7 +367,7 @@ void GLGizmoSimplify::on_render_input_window(float x, float y, float bottom_limi
         apply_simplify();
     }
     else if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) && is_worker_running) {
-        ImGui::SetTooltip("%s", _u8L("Can't apply when processing preview.").c_str());
+        ImGui::SetTooltip("%s", _u8L("Unable to apply when processing preview").c_str());
     }
     m_imgui->pop_confirm_button_style();
     m_imgui->disabled_end(); // state !settings
@@ -535,12 +535,20 @@ void GLGizmoSimplify::apply_simplify() {
 
     auto plater = wxGetApp().plater();
     plater->take_snapshot(GUI::format("Simplify %1%", m_volume->name));
-    plater->clear_before_change_mesh(object_idx);
+    const bool keep_painting = GUI::wxGetApp().app_config->get_bool("keep_painting");
+    if (!keep_painting) {
+        plater->clear_before_change_mesh(object_idx);
+    }
 
     ModelVolume* mv = get_model_volume(selection, wxGetApp().model());
     assert(mv == m_volume);
 
+    // Save paint
+    std::optional<TriangleSelector::SavedPainting> saved_painting = keep_painting ? mv->save_painting() :
+                                                                                    std::optional<TriangleSelector::SavedPainting>{};
     mv->set_mesh(std::move(*m_state.result));
+    // Remap paint
+    mv->restore_painting(saved_painting);
     m_state.result.reset();
     mv->calculate_convex_hull();
     mv->invalidate_convex_hull_2d();

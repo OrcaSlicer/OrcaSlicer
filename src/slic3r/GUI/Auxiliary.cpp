@@ -368,7 +368,7 @@ void AuFile::on_input_enter(wxCommandEvent &evt)
     auto     new_fullname = new_file_name + m_file_path.extension().string();
 
     
-    wxString new_fullname_path = dir.wstring() + "/" + new_fullname;
+    wxString new_fullname_path = wxString(dir.wstring()) + "/" + new_fullname;
     fs::path new_dir_path(new_fullname_path.ToStdWstring());
     
 
@@ -380,17 +380,17 @@ void AuFile::on_input_enter(wxCommandEvent &evt)
     }
 
     if (m_valid_type == Valid && new_file_name.empty()) {
-        info_line    = _L("The name is not allowed to be empty.");
+        info_line    = _L("The name field is not allowed to be empty.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_first_of(' ') == 0) {
-        info_line    = _L("The name is not allowed to start with space character.");
+        info_line    = _L("The name is not allowed to start with a space.");
         m_valid_type = NoValid;
     }
 
     if (m_valid_type == Valid && new_file_name.find_last_of(' ') == new_file_name.length() - 1) {
-        info_line    = _L("The name is not allowed to end with space character.");
+        info_line    = _L("The name is not allowed to end with a space.");
         m_valid_type = NoValid;
     }
 
@@ -955,7 +955,8 @@ void AuxiliaryPanel::on_import_file(wxCommandEvent &event)
             }
             
             if (!is_exist) {
-                dir_path += "/" + src_bfs_path.filename().generic_wstring();
+                dir_path += "/";
+                dir_path += src_bfs_path.filename().generic_wstring();
             } else {
                 time_t t1 = time(0);
                 char   ch1[64];
@@ -965,7 +966,7 @@ void AuxiliaryPanel::on_import_file(wxCommandEvent &event)
                 wxString name = src_bfs_path.filename().generic_wstring();
                 auto before_name = replaceSpace(name.ToStdString(), src_bfs_path.extension().string(), "");
                 time_text = replaceSpace(time_text, ":", "_");
-                dir_path += "/" + before_name + "_" + time_text + src_bfs_path.extension().wstring();
+                dir_path += wxString("/") + before_name + "_" + time_text + src_bfs_path.extension().wstring();
             }
            
 

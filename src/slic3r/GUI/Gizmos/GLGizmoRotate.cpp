@@ -9,7 +9,7 @@
 
 #include "libslic3r/PresetBundle.hpp"
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 namespace Slic3r {
 namespace GUI {
@@ -709,7 +709,7 @@ GLGizmoRotate3D::RotoptimzeWindow::RotoptimzeWindow(ImGuiWrapper *   imgui,
                 wxGetApp().app_config->set("sla_auto_rotate",
                                            "method_id",
                                            std::to_string(state.method_id));
-#endif SUPPORT_SLA_AUTO_ROTATE
+#endif // SUPPORT_SLA_AUTO_ROTATE
             }
 
             if (ImGui::IsItemHovered())

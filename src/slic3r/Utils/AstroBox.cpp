@@ -71,7 +71,7 @@ bool AstroBox::test(wxString &msg) const
             }
             catch (const std::exception &) {
                 res = false;
-                msg = "Could not parse server response";
+                msg = _L("Could not parse server response.");
             }
         })
         .perform_sync();

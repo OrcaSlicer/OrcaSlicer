@@ -5,19 +5,30 @@ add_executable(${_TEST_NAME}_tests
     test_3mf.cpp
     test_aabbindirect.cpp
     test_appconfig.cpp
+    test_arachne_walls.cpp
+    test_arrange.cpp
     test_bambu_networking.cpp
+    test_calib.cpp
     test_clipper_offset.cpp
     test_clipper_utils.cpp
     test_config.cpp
+    test_config_variant_expansion.cpp
+    test_toolordering_nozzle_group.cpp
+    test_preset_bundle_loading.cpp
+    test_preset_setting_id.cpp
+    test_preset_diff.cpp
     test_elephant_foot_compensation.cpp
     test_geometry.cpp
+    test_multimaterial_segmentation.cpp
     test_placeholder_parser.cpp
     test_polygon.cpp
     test_mutable_polygon.cpp
     test_mutable_priority_queue.cpp
+    test_nozzle_volume_type.cpp
     test_stl.cpp
     test_meshboolean.cpp
     test_marchingsquares.cpp
+    test_utils.cpp
     test_timeutils.cpp
     test_voronoi.cpp
     test_optimizers.cpp
@@ -34,14 +45,6 @@ target_link_libraries(${_TEST_NAME}_tests test_common libslic3r Catch2::Catch2Wi
 target_include_directories(${_TEST_NAME}_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 
-if (WIN32)
-    if ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
-    orcaslicer_copy_dlls(COPY_DLLS "Debug" "d" output_dlls_Debug)
-    elseif("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
-    orcaslicer_copy_dlls(COPY_DLLS "RelWithDebInfo" "" output_dlls_Release)
-    else()
-    orcaslicer_copy_dlls(COPY_DLLS "Release" "" output_dlls_Release)
-    endif()
-endif()
+orcaslicer_copy_test_dlls()
 
-catch_discover_tests(${_TEST_NAME}_tests)
+orcaslicer_discover_tests(${_TEST_NAME}_tests)

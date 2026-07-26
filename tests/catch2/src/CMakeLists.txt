@@ -385,6 +385,10 @@ target_include_directories(Catch2
 add_library(Catch2WithMain
   ${SOURCES_DIR}/internal/catch_main.cpp
 )
+# Force standard main() entry point instead of wmain() on Windows.
+# wxWidgets defines _UNICODE globally, which causes Catch2 to use wmain,
+# but test executables expect a standard main() entry point.
+target_compile_definitions(Catch2WithMain PRIVATE DO_NOT_USE_WMAIN)
 if(CATCH_ENABLE_REPRODUCIBLE_BUILD)
   add_build_reproducibility_settings(Catch2WithMain)
 endif()

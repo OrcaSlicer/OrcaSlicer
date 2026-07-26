@@ -1,7 +1,0 @@
-{
-    "type": "process",
-    "name": "0.30mm Strength @Elegoo Giga 0.6 nozzle",
-    "inherits": "0.30mm Standard @Elegoo Giga 0.6 nozzle",
-    "instantiation": "true",
-    "wall_loops": "5"
-}

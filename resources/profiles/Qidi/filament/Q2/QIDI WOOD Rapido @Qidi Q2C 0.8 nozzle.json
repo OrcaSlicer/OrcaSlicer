@@ -1,0 +1,14 @@
+{
+	"type": "filament",
+	"name": "QIDI WOOD Rapido @Qidi Q2C 0.8 nozzle",
+	"inherits": "QIDI WOOD Rapido@Q2C-Series",
+	"from": "system",
+	"setting_id": "ILkX32CTmrBR01UC",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.012"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.8 nozzle"
+	]
+}

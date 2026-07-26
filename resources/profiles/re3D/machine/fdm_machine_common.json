@@ -1,0 +1,13 @@
+{
+	"type": "machine",
+	"name": "fdm_machine_common",
+	"from": "system",
+	"instantiation": "false",
+	"auxiliary_fan": "0",
+	"bed_exclude_area": ["0x0"],
+	"family": "re3D",
+	"gcode_flavor": "klipper",
+	"emit_machine_limits_to_gcode": "0",
+	"silent_mode": "0",
+	"scan_first_layer": "0"
+}

@@ -150,6 +150,7 @@ private:
     static std::map<int, void*> icon_list;
 
     bool m_is_dark = false;
+    bool m_restore_realistic_view_after_paint = false;
 
     /// <summary>
     /// Process mouse event on gizmo toolbar

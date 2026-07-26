@@ -21,6 +21,11 @@ CloneDialog::CloneDialog(wxWindow *parent)
     auto count_label = new wxStaticText(this, wxID_ANY, _L("Number of copies:"), wxDefaultPosition, wxDefaultSize, 0);
     m_count_spin = new SpinInput(this, wxEmptyString, "", wxDefaultPosition, wxSize(FromDIP(120), -1), wxSP_ARROW_KEYS, 1, 1000, 1);
     m_count_spin->GetTextCtrl()->SetFocus();
+    m_count_spin->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent &e) {
+        e.SetId(GetId());
+        ProcessEventLocally(e);
+        e.Skip();
+    });
     f_sizer->Add(count_label  , 0, wxEXPAND | wxALIGN_CENTER_VERTICAL);
     f_sizer->Add(m_count_spin, 0, wxALIGN_CENTER_VERTICAL);
 
@@ -41,7 +46,7 @@ CloneDialog::CloneDialog(wxWindow *parent)
     m_progress->SetProgressForedColour(StateColor::darkModeColorFor(wxColour("#DFDFDF")));
     m_progress->SetDoubleBuffered(true);
     m_progress->Hide();
-    bottom_sizer->Add(m_progress, 2, wxEXPAND | wxLEFT | wxALIGN_CENTER_VERTICAL, FromDIP(10));
+    bottom_sizer->Add(m_progress, 2, wxALIGN_CENTER_VERTICAL | wxLEFT, FromDIP(10));
 
     auto dlg_btns = new DialogButtons(this, {"Fill", "OK", "Cancel"}, "", 1 /*left_aligned*/);
 

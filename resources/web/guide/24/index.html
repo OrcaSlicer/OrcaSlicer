@@ -6,6 +6,7 @@
 <title>引导_P21</title>
 <link rel="stylesheet" type="text/css" href="../../include/global.css" />	<!-- ORCA One for all-->
 <link rel="stylesheet" type="text/css" href="../css/common.css" />
+<link rel="stylesheet" type="text/css" href="../21/common.css" /> <!-- ORCA use common sources for setup guide and standalone dialog -->
 <link rel="stylesheet" type="text/css" href="24.css" />
 <link rel="stylesheet" type="text/css" href="../css/dark.css" />	
 <!-- <script type="text/javascript" src="test.js"></script> -->
@@ -13,86 +14,74 @@
 <script type="text/javascript" src="../js/json2.js"></script>	
 <script type="text/javascript" src="../../data/text.js"></script>	
 <script type="text/javascript" src="../js/globalapi.js"></script>	
-<!-- <script type="text/javascript" src="../js/common.js"></script> -->
-<script type="text/javascript" src="24.js"></script>		
+<script type="text/javascript" src="../js/common.js"></script>
+<script type="text/javascript" src="../21/common.js"></script> <!-- ORCA use common sources for setup guide and standalone dialog -->
+<script type="text/javascript" src="24.js"></script>	
 </head>
 <body onLoad="OnInit()">
 <div id="Title">
 	<div class="trans" tid="t10">Printer Selection</div>
 </div>
-<div class="wrap">
-	<div class="search">
-		<input type="text" class="searchTerm" placeholder="Device keyword" oninput="textInput(this)">
-		<svg id="search-icon" width="16px" height="16px"> <!-- ORCA -->
-			<path d="M6.5,2A4.505,4.505,0,0,0,2,6.5a.5.5,0,0,0,1,0A3.5,3.5,0,0,1,6.5,3a.5.5,0,0,0,0-1Z"/>
-			<path d="M14.854,14.146l-3.423-3.422a6.518,6.518,0,1,0-.707.707l3.422,3.423a.5.5,0,0,0,.708-.708ZM1,6.5A5.5,5.5,0,1,1,6.5,12,5.507,5.507,0,0,1,1,6.5Z"/>
-		</svg>
+
+<div id="SidebarContainer">
+	<div id="Sidebar" class="thin-scroll">
+		<div class="title">Vendors</div>
+		<div class="area" id="SidebarVendors">
+			<!-- <div class="SidebarItem"></div> -->
+		</div>
+	</div>
+	<div class="back" onclick="document.getElementById('SidebarContainer').setAttribute('open', '0')"></div>
+</div>
+<div class="SidebarBtn ButtonStyleRegular" onclick="document.getElementById('SidebarContainer').setAttribute('open', '1')">
+	<div class="icon16"></div>
+</div>
+
+<div class="search" hasvalue="0">
+	<div class="search-icon icon16"></div>
+	<input type="text" class="searchTerm" placeholder=" " oninput="textInput(this)">
+	<span class="search-placeholder trans">Search...</span>
+</div>
+<div class="LayoutSelector">
+	<div class="TabGroup">
+		<div class="TabButton" onclick="LayoutMode('compact-list')" ><div class="icon16"></div></div>
+		<div class="TabButton" onclick="LayoutMode('compact-cover')"><div class="icon16"></div></div>
+		<div class="TabButton" onclick="LayoutMode('large-cover')"  ><div class="icon16"></div></div>
 	</div>
 </div>
-<div id="Content"  class="ZScrol"s>
 
-<!--<div class="OneVendorBlock" Vendor="BBL">	
-<div class="BlockBanner">
-	<div class="BannerBtns">
-		<div class="ButtonStyleConfirm ButtonTypeWindow" onClick="SelectPrinterAll('BBL')">所有</div>
-		<div class="ButtonStyleRegular ButtonTypeWindow" onClick="SelectPrinterNone('BBL')">无</div>
+<div id="Content"  class="thin-scroll">
+
+<!-- EXAMPLE GENERATED CODE BLOCK
+<div class="OneVendorBlock" Vendor="VendorName">
+	<div class="BlockBanner">
+		<a>VendorName</a>
+			<div class="BannerBtns" onClick="ChooseVendor('VendorName')" >
+				<div class="modelCount"></div>
+				<input type="checkbox" class="VendorCheckbox" />
+			</div>	
 	</div>
-	
-	<a>BBL-3DP</a>	
-</div>
-	
-<div class="PrinterArea">	
-	
-<div class="PrinterBlock">
-	<div class="PImg"><img src="p2.jpg"  /></div>	
-    <div class="PName">BBL-3DP-V4NORMAL</div>
-    <div class="pNozzel"><input id="ZZ" type="checkbox" model="BBL-3DP-V4NORMAL" nozzel="0.4" vendor="BBL" />0.4mm nozzle</div>
-	<div class="pNozzel"><input type="checkbox" model="BBL-3DP-V4NORMAL" nozzel="0.1" vendor="BBL" />0.1mm nozzle</div>
-</div>
-<div class="PrinterBlock">
-	<div class="PImg"><img src="p1.jpg"  /></div>	
-    <div class="PName">BBL-3DP-V4NORMAL</div>
-    <div class="pNozzel"><input type="checkbox" model="BBL-3DP-V5NORMAL" nozzel="0.4" vendor="BBL" />0.4mm nozzle</div>
-	<div class="pNozzel"><input type="checkbox" model="BBL-3DP-V5NORMAL" nozzel="0.2" vendor="BBL" />0.2mm nozzle</div>
-	<div class="pNozzel"><input type="checkbox" model="BBL-3DP-V5NORMAL" nozzel="0.1" vendor="BBL" />0.1mm nozzle</div>
-</div>
-	
-</div>		
-
-</div>
-	
-
-<div class="OneVendorBlock" Vendor="BAMBU">	
-<div class="BlockBanner">
-	<div class="BannerBtns">
-		<div class="Banner-Btn-green" onClick="SelectPrinterAll('BAMBU')">所有</div>
-		<div class="Banner-Btn" onClick="SelectPrinterNone('BAMBU')">无</div>
+	<div class="PrinterArea">
+		<div class="PrinterBlock" onClick="ChooseModel('VendorName','ModelName')" >
+			<div class="PImg" >
+			<img class="ModelThumbnail" src="CoverPath" />
+			</div>
+			<div class="PrinterInfoMark">?</div>
+			<div class="PrinterInfo">
+				<div class="title trans">Nozzle</div>
+				<div class="value">nozzleInfo</div>
+			</div>
+			<div style="display: flex;">
+				<div class="ModelCheckBox" vendor="' +vendor+ '" model="'+OneModel['model']+'"></div>
+				<div class="PName">modelName</div>
+			</div>
+		</div>
 	</div>
-	
-	<a>BBL-3DP</a>	
 </div>
-	
-<div class="PrinterArea">	
-	
-<div class="PrinterBlock">
-	<div class="PImg"><img src="p2.jpg"  /></div>	
-    <div class="PName">BBL-3DP-V4NORMAL</div>
-    <div class="pNozzel"><input type="checkbox" model="BBL-3DP-V4NORMAL" nozzel="0.4" vendor="BAMBU" />0.4mm nozzle</div>
-	<div class="pNozzel"><input type="checkbox" model="BBL-3DP-V4NORMAL" nozzel="0.1" vendor="BAMBU" />0.1mm nozzle</div>
-</div>
-<div class="PrinterBlock">
-	<div class="PImg"><img src="p1.jpg"  /></div>	
-    <div class="PName">BBL-3DP-V4NORMAL</div>
-    <div class="pNozzel"><input type="checkbox" model="BBL-3DP-V5NORMAL" nozzel="0.4" vendor="BAMBU" />0.4mm nozzle</div>
-	<div class="pNozzel"><input type="checkbox" model="BBL-3DP-V5NORMAL" nozzel="0.2" vendor="BAMBU" />0.2mm nozzle</div>
-	<div class="pNozzel"><input type="checkbox" model="BBL-3DP-V5NORMAL" nozzel="0.1" vendor="BAMBU" />0.1mm nozzle</div>
-</div>		
-</div>		
-
-</div>-->
+-->
 	
 </div>
 <div id="AcceptArea">
+	<div class="ButtonStyleRegular ButtonTypeChoice trans"           id="CreateBtn"  onclick="CreateNewPrinter()">Create</div>
 	<div class="ButtonStyleConfirm ButtonTypeChoice trans" tid="t39" id="AcceptBtn"  onclick="ConfirmSelect()">Confirm</div>	
 	<div class="ButtonStyleRegular ButtonTypeChoice trans" tid="t38" id="PreBtn"  onclick="CancelSelect()">Cancel</div>
 </div>
@@ -107,25 +96,10 @@
 	</div>
 	</div>
 </div>	
-	
-	
+
 </body>
 <script>
-	document.onkeydown = function (event) {
-		var e = event || window.event || arguments.callee.caller.arguments[0];
-
-		if (e.keyCode == 27)
-			ClosePage();
-
-		if (window.event) {
-			try { e.keyCode = 0; } catch (e) { }
-			e.returnValue = true;
-		}
-	};
-	let pModel = {};
-	let ModelNozzleSelected = {};
-	function textInput(obj) {
-		FilterModelList(obj.value);
-	}
+	initKeyEvents(true); // close on ESC
+	InitGlobalVariables();
 </script>
 </html>

@@ -902,20 +902,7 @@ void PageMaterials::update_lists(int sel_type, int sel_vendor, int last_selected
 	wxArrayInt sel_printers;
 	int sel_printers_count = list_printer->GetSelections(sel_printers);
 
-    // Does our wxWidgets version support operator== for wxArrayInt ?
-#if wxCHECK_VERSION(3, 1, 1)
     if (sel_printers != sel_printers_prev) {
-#else
-    auto are_equal = [](const wxArrayInt& arr_first, const wxArrayInt& arr_second) {
-        if (arr_first.GetCount() != arr_second.GetCount())
-            return false;
-        for (size_t i = 0; i < arr_first.GetCount(); i++)
-            if (arr_first[i] != arr_second[i])
-                return false;
-        return true;
-    };
-    if (!are_equal(sel_printers, sel_printers_prev)) {
-#endif
 
         // Refresh type list
 		list_type->Clear();
@@ -1266,9 +1253,19 @@ PageFirmware::PageFirmware(ConfigWizard *parent)
 void PageFirmware::apply_custom_config(DynamicPrintConfig &config)
 {
     auto sel = gcode_picker->GetSelection();
-    if (sel >= 0 && (size_t)sel < gcode_opt.enum_labels.size()) {
-        auto *opt = new ConfigOptionEnum<GCodeFlavor>(static_cast<GCodeFlavor>(sel));
-        config.set_key_value("gcode_flavor", opt);
+
+    // Safety check: ensure selection index is within bounds
+    if (sel >= 0 && (size_t) sel < gcode_opt.enum_values.size()) {
+        std::string selected_flavor_str = gcode_opt.enum_values[sel];
+        // Ensure the default value exists to prevent null pointer crashes
+        if (gcode_opt.default_value) {
+            //Clone the fully initialized option (preserves the dictionary map)
+            ConfigOption* opt = gcode_opt.default_value->clone();
+            // Deserialize the string safely
+            opt->deserialize(selected_flavor_str);
+            // Save it to the printer configuration
+            config.set_key_value("gcode_flavor", opt);
+        }
     }
 }
 
@@ -1443,7 +1440,7 @@ PageTemperatures::PageTemperatures(ConfigWizard *parent)
     spin_bed->SetValue(default_bed != nullptr && default_bed->size() > 0 ? default_bed->get_at(0) : 0);
 
     append_text(_L("Enter the nozzle_temperature needed for extruding your filament."));
-    append_text(_L("A rule of thumb is 160 to 230 °C for PLA, and 215 to 250 °C for ABS."));
+    append_text(_L("A rule of thumb is 160 to 230℃ for PLA, and 215 to 250℃ for ABS."));
 #endif
 
     auto *sizer_extr = new wxFlexGridSizer(3, 5, 5);
@@ -1458,7 +1455,7 @@ PageTemperatures::PageTemperatures(ConfigWizard *parent)
     append_spacer(VERTICAL_SPACING);
 
     append_text(_L("Enter the bed temperature needed for getting your filament to stick to your heated bed."));
-    append_text(_L("A rule of thumb is 60 °C for PLA and 110 °C for ABS. Leave zero if you have no heated bed."));
+    append_text(_L("A rule of thumb is 60℃ for PLA and 110℃ for ABS. Leave zero if you have no heated bed."));
 
     auto *sizer_bed = new wxFlexGridSizer(3, 5, 5);
     auto *text_bed = new wxStaticText(this, wxID_ANY, _L("Bed Temperature:"));
@@ -1879,12 +1876,6 @@ void ConfigWizard::priv::load_vendors()
 				    for (auto &bundle : bundles) {
 				    	const PresetCollection &materials = bundle.second.preset_bundle->materials(technology);
 				    	const Preset           *preset    = materials.find_preset(material_name);
-				    	if (preset == nullptr) {
-				    		// Not found. Maybe the material preset is there, bu it was was renamed?
-							const std::string *new_name = materials.get_preset_name_renamed(material_name);
-							if (new_name != nullptr)
-								preset = materials.find_preset(*new_name);
-				    	}
                         if (preset != nullptr) {
                             // Materal preset was found, mark it as installed.
                             section_new[preset->name] = "true";

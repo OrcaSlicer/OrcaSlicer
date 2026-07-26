@@ -51,7 +51,6 @@ public:
     float icon_height;
     bool is_display_scrollbar;
     bool show_stats_item{ false };
-    bool is_render_finish{false};
     IMToolbar() {
         icon_width = DEFAULT_TOOLBAR_BUTTON_WIDTH;
         icon_height = DEFAULT_TOOLBAR_BUTTON_HEIGHT;

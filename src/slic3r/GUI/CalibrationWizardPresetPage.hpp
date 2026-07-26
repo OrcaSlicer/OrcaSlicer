@@ -265,6 +265,7 @@ protected:
     void update_combobox_filaments(MachineObject* obj);
     void update_show_status();
     void update_sync_button_status();
+    bool is_nozzle_info_synced() const;
     void show_status(CaliPresetPageStatus status);
     void Enable_Send_Button(bool enable);
     bool is_blocking_printing();

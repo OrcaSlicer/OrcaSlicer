@@ -188,6 +188,18 @@ ExPolygons offset_ex_2(const ExPolygons &expolygons, double delta)
     return results;
 }
 
+ExPolygons offset_ex_2(const ExPolygons &expolygons, double delta, Clipper2Lib::JoinType joinType)
+{
+    Clipper2Lib::Paths64 subject = Slic3rExPolygons_to_Paths64(expolygons);
+    Clipper2Lib::ClipperOffset offsetter;
+    offsetter.AddPaths(subject, joinType, Clipper2Lib::EndType::Polygon);
+    Clipper2Lib::PolyPath64 polytree;
+    offsetter.Execute(delta, polytree);
+    ExPolygons results = PolyTreeToExPolygons(std::move(polytree));
+
+    return results;
+}
+
 ExPolygons offset2_ex_2(const ExPolygons& expolygons, double delta1, double delta2)
 {
     // 1st offset

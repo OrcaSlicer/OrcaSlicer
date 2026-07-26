@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "QIDI PETG Rapido @Qidi Q2C 0.4 nozzle",
+	"inherits": "QIDI PETG Rapido@Q2C-Series",
+	"from": "system",
+	"setting_id": "aPlfkb8XVHh2ImCZ",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Qidi Q2C 0.4 nozzle"
+	]
+}

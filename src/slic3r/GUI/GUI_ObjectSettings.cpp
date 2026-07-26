@@ -86,6 +86,9 @@ bool ObjectSettings::update_settings_list()
     m_settings_list_sizer->Clear(true);
     m_og_settings.resize(0);
 
+    if (wxGetApp().is_closing())
+        return false;
+
     auto objects_ctrl   = wxGetApp().obj_list();
     auto objects_model  = wxGetApp().obj_list()->GetModel();
     auto config         = wxGetApp().obj_list()->config();
@@ -403,7 +406,7 @@ void ObjectSettings::update_config_values(ModelConfig* config)
     printer_technology == ptFFF  ?  config_manipulation.update_print_fff_config(&main_config) :
                                     config_manipulation.update_print_sla_config(&main_config) ;
 
-    printer_technology == ptFFF  ?  config_manipulation.toggle_print_fff_options(&main_config) :
+    printer_technology == ptFFF  ?  config_manipulation.toggle_print_fff_options(&main_config, 0) :
                                     config_manipulation.toggle_print_sla_options(&main_config) ;
 }
 

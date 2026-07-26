@@ -3,7 +3,9 @@
 		"display_name": "Bambu Lab P2S",
 		"print": {
 			"ipcam": {
-				"resolution_supported": [ "1080p" ],
+				"resolution_supported": [
+					"1080p"
+				],
 				"virtual_camera": "enabled",
 				"liveview": {
 					"remote": "tutk"
@@ -14,12 +16,18 @@
 					"model_download": "enabled"
 				}
 			},
-			"nozzle_temp_range": [ 0, 300 ],
+			"nozzle_temp_range": [
+				0,
+				300
+			],
 			"nozzle_replace_wiki": {
 				"zh": "https://wiki.bambulab.com/zh/h2/maintenance/replace-hotend",
 				"en": "https://wiki.bambulab.com/en/h2/maintenance/replace-hotend"
 			},
-			"bed_temp_range": [ 0, 110 ],
+			"bed_temp_range": [
+				0,
+				110
+			],
 			"support_motor_noise_cali": false,
 			"support_tunnel_mqtt": true,
 			"support_mqtt_alive": true,
@@ -56,22 +64,22 @@
 			"support_user_preset": false,
 			"support_ams_ext_mix_print": true
 		},
-		"fan" : {
-			"0" :
-			{
+		"fan": {
+			"0": {
 				"description": "",
 				"2": "Right(Aux)",
 				"10": "Left(Aux)"
 			},
-			"1" :
-			{
+			"1": {
 				"2": "Right(Filter)",
 				"10": "Left(Aux)"
 			},
-			"special_cooling_text" : "Cooling mode is suitable for printing PLA/PETG/TPU materials."
+			"special_cooling_text": "Cooling mode is suitable for printing PLA/PETG/TPU materials."
 		},
 		"model_id": "N7",
-		"subseries": ["N7-V2"],
+		"subseries": [
+			"N7-V2"
+		],
 		"auto_pa_cali_thumbnail_image": "fd_calibration_auto_n7",
 		"support_wrapping_detection": true,
 		"compatible_machine": [],
@@ -79,7 +87,9 @@
 		"printer_thumbnail_image": "printer_thumbnail_N7",
 		"printer_connect_help_image": "input_access_code_x1",
 		"printer_use_ams_image": "ams_icon",
-		"printer_ext_image": ["ext_image_n7"],
+		"printer_ext_image": [
+			"ext_image_n7"
+		],
 		"use_ams_type": "generic",
 		"printer_arch": "core_xy",
 		"printer_series": "series_x1",

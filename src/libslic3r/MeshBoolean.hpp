@@ -70,6 +70,9 @@ TriangleMesh merge(std::vector<TriangleMesh> meshes);
 
 bool does_bound_a_volume(const CGALMesh &mesh);
 bool empty(const CGALMesh &mesh);
+
+// Repair a mesh using CGAL. Returns true on success. Optionally returns a summary of repairs and an error string.
+bool repair(TriangleMesh &mesh, RepairedMeshErrors *repaired_errors = nullptr, std::string *error = nullptr);
 }
 
 namespace mcut {

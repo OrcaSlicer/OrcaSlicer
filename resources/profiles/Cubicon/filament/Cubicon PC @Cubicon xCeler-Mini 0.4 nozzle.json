@@ -1,0 +1,11 @@
+{
+	"type": "filament",
+	"name": "Cubicon PC @Cubicon xCeler-Mini 0.4 nozzle",
+	"inherits": "Cubicon PC @base",
+	"from": "system",
+	"setting_id": "XGXjHwuHUjtAJGl1",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Cubicon xCeler-Mini 0.4 nozzle"
+	]
+}

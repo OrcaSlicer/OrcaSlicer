@@ -1,0 +1,17 @@
+{
+	"type": "filament",
+	"name": "HATCHBOX ABS @Qidi Q2C 0.6 nozzle",
+	"inherits": "HATCHBOX ABS@Q2C-Series",
+	"from": "system",
+	"setting_id": "khy95fONrq7reiSC",
+	"instantiation": "true",
+	"nozzle_temperature": [
+		"250"
+	],
+	"pressure_advance": [
+		"0.014"
+	],
+	"compatible_printers": [
+		"Qidi Q2C 0.6 nozzle"
+	]
+}

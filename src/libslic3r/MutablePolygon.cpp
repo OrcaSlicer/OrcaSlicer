@@ -179,7 +179,7 @@ static bool clip_narrow_corner(
         bool blocked = forward == Blocked || backward == Blocked;
         assert(polygon.size() < 3 || 
             // Remaining triangle is CCW oriented. Both sides must be "blocked", but the other side may have not been
-            // updated after the the p02 / p22 became united into a single point.
+            // updated after the p02 / p22 became united into a single point.
             blocked ||
             // Remaining triangle is concave, however both of its arms are long.
             (forward == Far && backward == Far));

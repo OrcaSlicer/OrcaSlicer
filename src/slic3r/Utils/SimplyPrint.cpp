@@ -166,7 +166,7 @@ void SimplyPrint::save_oauth_credential(const GUI::OAuthResult& cred) const
     
     boost::nowide::ofstream c;
     c.open(cred_file, std::ios::out | std::ios::trunc);
-    c << std::setw(4) << j << std::endl;
+    c << j.dump(1, '\t') << std::endl;
     c.close();
 }
 

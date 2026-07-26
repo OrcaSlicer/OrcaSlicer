@@ -1,0 +1,13 @@
+{
+	"type": "machine_model",
+	"name": "Creality SPARKX i7",
+	"nozzle_diameter": "0.8;0.6;0.4;0.2",
+	"bed_model": "creality_SPARKX_buildplate_model.stl",
+	"default_bed_type": "Textured PEI Plate",
+	"bed_texture": "creality_hi_buildplate_texture.svg",
+	"family": "Creality",
+	"hotend_model": "",
+	"machine_tech": "FFF",
+	"model_id": "Creality_SPARKX_i7",
+	"default_materials": "Generic PETG @SPARKX i7-all;Generic PLA @SPARKX i7-all;CR-PLA Matte @SPARKX i7-all;Generic PLA Silk @SPARKX i7-all"
+}

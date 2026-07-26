@@ -91,6 +91,13 @@ public:
     //
     void toggle_top_layer_only_view_range();
     //
+    // Dim previous layers (ORCA, ported from preFlight)
+    // Whether the layers below the current top layer are rendered darkened while
+    // scrubbing below the full print, so only the current layer is shown at full brightness.
+    //
+    bool is_dim_previous_layers() const;
+    void set_dim_previous_layers(bool value);
+    //
     // Returns true if the given option is visible.
     //
     bool is_option_visible(EOptionType type) const;
@@ -169,6 +176,12 @@ public:
     // EViewType::ActualSpeed
     // EViewType::FanSpeed
     // EViewType::Temperature
+    // ORCA: Add Pressure Advance visualization support
+    // EViewType::PressureAdvance
+    // ORCA: Add Acceleration visualization support
+    // EViewType::Acceleration
+    // ORCA: Add Jerk visualization support
+    // EViewType::Jerk
     // EViewType::VolumetricFlowRate
     // EViewType::ActualVolumetricFlowRate
     // EViewType::LayerTimeLinear
@@ -185,6 +198,12 @@ public:
     // EViewType::ActualSpeed
     // EViewType::FanSpeed
     // EViewType::Temperature
+    // ORCA: Add Pressure Advance visualization support
+    // EViewType::PressureAdvance
+    // ORCA: Add Acceleration visualization support
+    // EViewType::Acceleration
+    // ORCA: Add Jerk visualization support
+    // EViewType::Jerk
     // EViewType::VolumetricFlowRate
     // EViewType::ActualVolumetricFlowRate
     // EViewType::LayerTimeLinear

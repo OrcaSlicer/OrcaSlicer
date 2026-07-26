@@ -1,0 +1,37 @@
+{
+	"type": "filament",
+	"name": "Elegoo PETG @EN3 Series",
+	"inherits": "Elegoo PETG @base",
+	"from": "system",
+	"setting_id": "ij2hYApjrIsKHJyr",
+	"instantiation": "true",
+	"pressure_advance": [
+		"0.024"
+	],
+	"overhang_fan_threshold": [
+		"50%"
+	],
+	"nozzle_temperature": [
+		"250"
+	],
+	"nozzle_temperature_initial_layer": [
+		"250"
+	],
+	"filament_max_volumetric_speed": [
+		"11"
+	],
+	"compatible_printers": [
+		"Elegoo Neptune 3 Pro 0.4 nozzle",
+		"Elegoo Neptune 3 Pro 0.6 nozzle",
+		"Elegoo Neptune 3 Pro 0.8 nozzle",
+		"Elegoo Neptune 3 Pro 1.0 nozzle",
+		"Elegoo Neptune 3 Plus 0.4 nozzle",
+		"Elegoo Neptune 3 Plus 0.6 nozzle",
+		"Elegoo Neptune 3 Plus 0.8 nozzle",
+		"Elegoo Neptune 3 Plus 1.0 nozzle",
+		"Elegoo Neptune 3 Max 0.4 nozzle",
+		"Elegoo Neptune 3 Max 0.6 nozzle",
+		"Elegoo Neptune 3 Max 0.8 nozzle",
+		"Elegoo Neptune 3 Max 1.0 nozzle"
+	]
+}

@@ -31,7 +31,8 @@ public:
     WipeTower::ToolChangeResult construct_tcr(WipeTowerWriter2& writer,
                                    bool priming,
                                    size_t old_tool,
-								   bool is_finish) const;
+								   bool is_finish,
+                                   bool is_contact = false) const;
 
 	// x			-- x coordinates of wipe tower in mm ( left bottom corner )
 	// y			-- y coordinates of wipe tower in mm ( left bottom corner )
@@ -60,16 +61,19 @@ public:
 	float get_wipe_tower_height() const { return m_wipe_tower_height; }
     // ORCA: Match WipeTower API used by Print skirt/brim planning.
     // Returned bounding box is in WIPE-TOWER-LOCAL coordinates (before placement on the bed).
-    // Include brim and y-shift to match what WT gcode actually prints.
-    BoundingBoxf get_bbx() const{
+    // Computed from the actual first-layer polygon (including brim), like WipeTower::get_bbx().
+    BoundingBoxf get_bbx() const {
+        if (m_first_layer_bbx.defined)
+            return m_first_layer_bbx;
+        // Fallback: nominal rectangle (used if generate() hasn't run yet)
         const float brim = m_wipe_tower_brim_width_real;
-        const Vec2d min(-brim, -brim + double(m_y_shift));
-        const Vec2d max(double(m_wipe_tower_width) + brim, double(m_wipe_tower_depth) + brim + double(m_y_shift));
-        return BoundingBoxf(min, max);
+        return BoundingBoxf(Vec2d(-brim, -brim), Vec2d(double(m_wipe_tower_width) + brim, double(m_wipe_tower_depth) + brim));
     }
     // WT2 doesn't currently compute a rib-origin compensation like WipeTower (m_rib_offset),
     // so expose a zero offset for consistency purposes (to maintain API parity).
     Vec2f get_rib_offset() const { return Vec2f::Zero(); }
+    float get_rib_width() const { return m_rib_width; }
+    float get_rib_length() const { return m_rib_length; }
 
 	// Switch to a next layer.
 	void set_layer(
@@ -88,11 +92,13 @@ public:
 		m_layer_height			= layer_height;
 		m_depth_traversed  = 0.f;
         m_current_layer_finished = false;
+        m_prev_layer_had_interface = m_current_layer_has_interface;
 
 		
         // Advance m_layer_info iterator, making sure we got it right
 		while (!m_plan.empty() && m_layer_info->z < print_z - WT_EPSILON && m_layer_info+1 != m_plan.end())
 			++m_layer_info;
+        m_current_layer_has_interface = (m_layer_info != m_plan.end()) && (m_layer_info->toolchanges_depth() > WT_EPSILON);
 
 		//m_current_shape = (! this->is_first_layer() && m_current_shape == SHAPE_NORMAL) ? SHAPE_REVERSED : SHAPE_NORMAL;
         m_current_shape = SHAPE_NORMAL;
@@ -145,6 +151,7 @@ public:
         bool                is_soluble = false;
         int  			    temperature = 0;
         int  			    first_layer_temperature = 0;
+        int                 interface_print_temperature = 0;
         float               loading_speed = 0.f;
         float               loading_speed_start = 0.f;
         float               unloading_speed = 0.f;
@@ -168,6 +175,10 @@ public:
 		float               filament_minimal_purge_on_wipe_tower = 0.f;
         float               retract_length;
         float               retract_speed;
+        float               tower_interface_pre_extrusion_dist = 0.f;
+        float               tower_interface_pre_extrusion_length = 0.f;
+        float               tower_ironing_area = 4.f;
+        float               tower_interface_purge_length = 0.f;
     };
 
 private:
@@ -187,6 +198,7 @@ private:
 	bool   m_semm               = true; // Are we using a single extruder multimaterial printer?
 	bool   m_enable_filament_ramming = true;
 	bool   m_is_mk4mmu3         = false;
+    int    m_wipe_tower_filament = 0;   // 1-based config value, 0 means auto
     Vec2f  m_wipe_tower_pos; 			// Left front corner of the wipe tower in mm.
 	float  m_wipe_tower_width; 			// Width of the wipe tower.
 	float  m_wipe_tower_depth 	= 0.f; 	// Depth of the wipe tower
@@ -194,6 +206,7 @@ private:
 	float  m_wipe_tower_cone_angle = 0.f;
     float  m_wipe_tower_brim_width      = 0.f; 	// Width of brim (mm) from config
     float  m_wipe_tower_brim_width_real = 0.f; 	// Width of brim (mm) after generation
+    BoundingBoxf m_first_layer_bbx;              // Actual first-layer bounding box (incl. brim/ribs)
 	float  m_wipe_tower_rotation_angle = 0.f; // Wipe tower rotation angle in degrees (with respect to x axis)
     float  m_internal_rotation  = 0.f;
 	float  m_y_shift			= 0.f;  // y shift passed to writer
@@ -207,6 +220,11 @@ private:
 	float  m_perimeter_speed    = 0.f;
     float  m_first_layer_speed  = 0.f;
     size_t m_first_layer_idx    = size_t(-1);
+    bool   m_flat_ironing       = false;
+    bool   m_enable_tower_interface_features = false;
+    bool   m_enable_tower_interface_cooldown_during_tower = false;
+    bool   m_prev_layer_had_interface = false;
+    bool   m_current_layer_has_interface = false;
 
 	int m_wall_type;
     bool   m_used_fillet                  = true;
@@ -334,7 +352,8 @@ private:
 	void toolchange_Wipe(
 		WipeTowerWriter2 &writer,
 		const WipeTower::box_coordinates  &cleaning_box,
-		float wipe_volume);
+		float wipe_volume,
+        bool interface_layer);
 
 
     Polygon generate_support_rib_wall(WipeTowerWriter2&                 writer,

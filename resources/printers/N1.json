@@ -3,13 +3,18 @@
 		"display_name": "Bambu Lab A1 mini",
 		"print": {
 			"ipcam": {
-				"resolution_supported": [ "720p" ],
+				"resolution_supported": [
+					"720p"
+				],
 				"liveview": {
 					"local": "local",
 					"remote": "tutk"
 				}
 			},
-			"nozzle_temp_range": [ 0, 300 ],
+			"nozzle_temp_range": [
+				0,
+				300
+			],
 			"nozzle_replace_wiki": {
 				"zh": "https://wiki.bambulab.com/zh/a1-mini/maintenance/hotend-heating-assembly-replacement",
 				"en": "https://wiki.bambulab.com/en/a1-mini/maintenance/hotend-heating-assembly-replacement"
@@ -48,13 +53,18 @@
 		"support_wrapping_detection": false,
 		"auto_pa_cali_thumbnail_image": "fd_calibration_auto_i3",
 		"compatible_machine": [],
-		"auto_cali_not_support_filaments": [ "GFU03", "GFU04" ],
+		"auto_cali_not_support_filaments": [
+			"GFU03",
+			"GFU04"
+		],
 		"printer_type": "N1",
 		"ftp_folder": "sdcard/",
 		"printer_thumbnail_image": "printer_thumbnail_n1",
 		"printer_connect_help_image": "input_access_code_n1",
 		"printer_use_ams_image": "extra_icon",
-		"printer_ext_image": ["ext_image_n1"],
+		"printer_ext_image": [
+			"ext_image_n1"
+		],
 		"use_ams_type": "f1",
 		"printer_arch": "i3",
 		"printer_series": "series_n",

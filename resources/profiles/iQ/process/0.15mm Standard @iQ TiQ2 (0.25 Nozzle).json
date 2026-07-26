@@ -1,0 +1,26 @@
+{
+	"type": "process",
+	"name": "0.15mm Standard @iQ TiQ2 (0.25 Nozzle)",
+	"inherits": "fdm_process_tiq_common",
+	"from": "system",
+	"setting_id": "PNxZXC0peOlGlKwG",
+	"instantiation": "true",
+	"compatible_printers": [
+		"iQ TiQ2 0.25 Nozzle"
+	],
+	"layer_height": "0.15",
+	"line_width": "0.25",
+	"outer_wall_line_width": "0.25",
+	"inner_wall_line_width": "0.25",
+	"sparse_infill_line_width": "0.25",
+	"internal_solid_infill_line_width": "0.25",
+	"top_surface_line_width": "0.25",
+	"inner_wall_speed": "150",
+	"internal_solid_infill_speed": "150",
+	"sparse_infill_speed": "100",
+	"gap_infill_speed": "50",
+	"initial_layer_speed": "35",
+	"initial_layer_infill_speed": "55",
+	"bridge_speed": "30",
+	"print_settings_id": "0.15mm Standard @iQ TiQ2 (0.25 Nozzle)"
+}

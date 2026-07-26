@@ -33,7 +33,7 @@ LayerNumberTextInput::LayerNumberTextInput(wxWindow* parent, int layer_number, w
 {
     GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_DIGITS));
     GetTextCtrl()->SetFont(::Label::Body_14);
-    Append(_L("End"));
+    Append(_L_CONTEXT("End", "Layer range"));
     Append(_L("Customize"));
     if (m_value_type == ValueType::End)
         SetSelection(0);
@@ -45,7 +45,7 @@ LayerNumberTextInput::LayerNumberTextInput(wxWindow* parent, int layer_number, w
     Bind(wxEVT_TEXT, [this](auto& evt) {
             if (m_value_type == ValueType::End) {
                 // TextCtrl->SetValue() will generate a wxEVT_TEXT event
-                GetTextCtrl()->ChangeValue(_L("End"));
+                GetTextCtrl()->ChangeValue(_L_CONTEXT("End", "Layer range"));
                 return;
             }
             evt.Skip();
@@ -313,7 +313,7 @@ void OtherLayersSeqPanel::append_layer(const LayerSeqInfo* layer_info)
     single_layer_input_sizer->Add(end_layer_input, 0, wxLEFT | wxRIGHT | wxALIGN_CENTER, FromDIP(5));
     single_layer_input_sizer->AddStretchSpacer();
     single_layer_input_sizer->Add(drag_canvas, 0, wxLEFT | wxALIGN_CENTER, FromDIP(5));
-    layer_panel_sizer->Add(single_layer_input_sizer, 0, wxEXPAND | wxALIGN_CENTER | wxBOTTOM, FromDIP(10));
+    layer_panel_sizer->Add(single_layer_input_sizer, 0, wxEXPAND | wxBOTTOM, FromDIP(10));
     m_layer_input_sizer_list.push_back(single_layer_input_sizer);
     m_begin_layer_input_list.push_back(begin_layer_input);
     m_end_layer_input_list.push_back(end_layer_input);
@@ -598,7 +598,7 @@ wxString PlateSettingsDialog::to_bed_type_name(BedType bed_type) {
         return _(bed_type_def->enum_labels[size_t(bed_type) - 1]);
         }
     }
-    return _L("Same as Global Bed Type");
+    return _L("Same as Global Plate Type");
 }
 
 wxString PlateSettingsDialog::to_print_sequence_name(PrintSequence print_seq) {

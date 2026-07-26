@@ -966,9 +966,18 @@ static void extract_pos_and_or_hwa(const std::vector<PathVertex>& vertices, floa
                 height = v.height;
                 width = v.width;
             }
+            
+            // ORCA: Set bias for wipes and options to avoid z-fighting
+            float bias = 0.0f;
+            if (v.is_wipe())
+                bias = 0.05f;
+            else if (v.is_option())
+                bias = 0.1f;
+
             // the last component is a dummy float to comply with GL_RGBA32F format
+            // ORCA: Pass bias to shader
             heights_widths_angles->push_back({ height, width,
-                std::atan2(prev_line[0] * this_line[1] - prev_line[1] * this_line[0], dot(prev_line, this_line)), 0.0f });
+                std::atan2(prev_line[0] * this_line[1] - prev_line[1] * this_line[0], dot(prev_line, this_line)), bias });
         }
     }
 }
@@ -1214,6 +1223,20 @@ static float encode_color(const Color& color) {
     return static_cast<float>(i_color);
 }
 
+// ORCA: how much the layers below the current top layer are darkened when
+// Settings::dim_previous_layers is enabled (ported from preFlight). 0.0 = no change, 1.0 = black.
+static constexpr float PREVIOUS_LAYER_DARKEN_FACTOR = 0.60f;
+
+// ORCA: returns the encoded color scaled towards black by 'factor', preserving its hue
+static float encode_color_darkened(const Color& color, float factor) {
+    const float keep = 1.0f - factor;
+    const int r = static_cast<int>(color[0] * keep);
+    const int g = static_cast<int>(color[1] * keep);
+    const int b = static_cast<int>(color[2] * keep);
+    const int i_color = r << 16 | g << 8 | b;
+    return static_cast<float>(i_color);
+}
+
 
 void ViewerImpl::update_colors_texture()
 {
@@ -1225,14 +1248,30 @@ void ViewerImpl::update_colors_texture()
     const size_t top_layer_id = m_settings.top_layer_only_view_range ? m_layers.get_view_range()[1] : 0;
     const bool color_top_layer_only = m_view_range.get_full()[1] != m_view_range.get_visible()[1];
 
+    // ORCA: when dim_previous_layers is enabled, darken every layer below the current top layer
+    // (keeping its color) whenever we are not rendering the whole print, so that only the layer
+    // being scrubbed to is shown at full brightness (ported from preFlight). This shares
+    // top_layer_id with the greying path, so it only applies while in top-layer-only mode - that
+    // way the moves slider still animates normally across all layers when that mode is disabled.
+    const bool dim_previous_layers = m_settings.dim_previous_layers && !m_layers.empty();
+    const bool full_render = (m_layers.get_view_range()[0] == 0) &&
+                             (m_layers.get_view_range()[1] >= static_cast<uint32_t>(m_layers.count()) - 1) &&
+                             (m_view_range.get_visible()[1] == m_view_range.get_full()[1]);
+
     // Based on current settings and slider position, we might want to render some
-    // vertices as dark grey. Use either that or the normal color (from the cache).
+    // vertices as dark grey (or darkened, see above). Use either that or the normal color (from the cache).
     std::vector<float> colors(m_vertices_colors.size());
     assert(colors.size() == m_vertices.size() && m_vertices_colors.size() == m_vertices.size());
-    for (size_t i=0; i<m_vertices.size(); ++i)
-        colors[i] = (color_top_layer_only && m_vertices[i].layer_id < top_layer_id &&
-                    (!m_settings.spiral_vase_mode || i != m_view_range.get_enabled()[0])) ?
-                    encode_color(DUMMY_COLOR) : m_vertices_colors[i];
+    for (size_t i=0; i<m_vertices.size(); ++i) {
+        const PathVertex& v = m_vertices[i];
+        const bool keep_spiral_seam = m_settings.spiral_vase_mode && i == m_view_range.get_enabled()[0];
+        if (dim_previous_layers && !full_render && v.layer_id < top_layer_id && !keep_spiral_seam)
+            colors[i] = encode_color_darkened(get_vertex_color(v), PREVIOUS_LAYER_DARKEN_FACTOR);
+        else if (color_top_layer_only && v.layer_id < top_layer_id && !keep_spiral_seam)
+            colors[i] = encode_color(DUMMY_COLOR);
+        else
+            colors[i] = m_vertices_colors[i];
+    }
 
     #ifdef ENABLE_OPENGL_ES
         if (!colors.empty())
@@ -1338,6 +1377,17 @@ void ViewerImpl::toggle_top_layer_only_view_range()
     m_settings.update_enabled_entities = true;
     //m_settings.update_colors = true;
     update_colors_texture();
+}
+
+// ORCA: enable/disable darkening of the layers below the current top layer (ported from preFlight)
+void ViewerImpl::set_dim_previous_layers(bool value)
+{
+    if (m_settings.dim_previous_layers == value)
+        return;
+    m_settings.dim_previous_layers = value;
+    // defer the actual color/texture rebuild to the next render(), when the GL context is current
+    // (this may be toggled from the Preferences dialog, outside the canvas context)
+    m_settings.update_colors = true;
 }
 
 std::vector<ETimeMode> ViewerImpl::get_time_modes() const
@@ -1460,7 +1510,7 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     if (v.type == EMoveType::Noop)
         return DUMMY_COLOR;
 
-    if ((v.is_wipe() && (m_settings.view_type != EViewType::Speed && m_settings.view_type != EViewType::ActualSpeed)) || v.is_option())
+    if ((v.is_wipe() && (m_settings.view_type != EViewType::Speed && m_settings.view_type != EViewType::ActualSpeed && m_settings.view_type != EViewType::Acceleration && m_settings.view_type != EViewType::Jerk)) || v.is_option())
         return get_option_color(move_type_to_option(v.type));
 
     switch (m_settings.view_type)
@@ -1492,6 +1542,21 @@ Color ViewerImpl::get_vertex_color(const PathVertex& v) const
     case EViewType::Temperature:
     {
         return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_temperature_range.get_color_at(v.temperature);
+    }
+// ORCA: Add Pressure Advance visualization support
+    case EViewType::PressureAdvance:
+    {
+        return v.is_travel() ? get_option_color(move_type_to_option(v.type)) : m_pressure_advance_range.get_color_at(v.pressure_advance);
+    }
+    // ORCA: Add Acceleration visualization support
+    case EViewType::Acceleration:
+    {
+        return m_acceleration_range.get_color_at(v.acceleration);
+    }
+    // ORCA: Add Jerk visualization support
+    case EViewType::Jerk:
+    {
+        return m_jerk_range.get_color_at(v.jerk);
     }
     case EViewType::VolumetricFlowRate:
     {
@@ -1582,6 +1647,12 @@ const ColorRange& ViewerImpl::get_color_range(EViewType type) const
     case EViewType::ActualSpeed:              { return m_actual_speed_range; }
     case EViewType::FanSpeed:                 { return m_fan_speed_range; }
     case EViewType::Temperature:              { return m_temperature_range; }
+// ORCA: Add Pressure Advance visualization support
+    case EViewType::PressureAdvance:          { return m_pressure_advance_range; }
+    // ORCA: Add Acceleration visualization support
+    case EViewType::Acceleration:             { return m_acceleration_range; }
+    // ORCA: Add Jerk visualization support
+    case EViewType::Jerk:                     { return m_jerk_range; }
     case EViewType::VolumetricFlowRate:       { return m_volumetric_rate_range; }
     case EViewType::ActualVolumetricFlowRate: { return m_actual_volumetric_rate_range; }
     case EViewType::LayerTimeLinear:          { return m_layer_time_range[0]; }
@@ -1600,6 +1671,12 @@ void ViewerImpl::set_color_range_palette(EViewType type, const Palette& palette)
     case EViewType::ActualSpeed:              { m_actual_speed_range.set_palette(palette);    break; }
     case EViewType::FanSpeed:                 { m_fan_speed_range.set_palette(palette);       break; }
     case EViewType::Temperature:              { m_temperature_range.set_palette(palette);     break; }
+// ORCA: Add Pressure Advance visualization support
+    case EViewType::PressureAdvance:          { m_pressure_advance_range.set_palette(palette); break; }
+    // ORCA: Add Acceleration visualization support
+    case EViewType::Acceleration:             { m_acceleration_range.set_palette(palette);     break; }
+    // ORCA: Add Jerk visualization support
+    case EViewType::Jerk:                     { m_jerk_range.set_palette(palette);             break; }
     case EViewType::VolumetricFlowRate:       { m_volumetric_rate_range.set_palette(palette); break; }
     case EViewType::ActualVolumetricFlowRate: { m_actual_volumetric_rate_range.set_palette(palette); break; }
     case EViewType::LayerTimeLinear:          { m_layer_time_range[0].set_palette(palette);   break; }
@@ -1637,6 +1714,12 @@ size_t ViewerImpl::get_used_cpu_memory() const
     ret += m_actual_speed_range.size_in_bytes_cpu();
     ret += m_fan_speed_range.size_in_bytes_cpu();
     ret += m_temperature_range.size_in_bytes_cpu();
+    // ORCA: Add Pressure Advance visualization support
+    ret += m_pressure_advance_range.size_in_bytes_cpu();
+    // ORCA: Add Acceleration visualization support
+    ret += m_acceleration_range.size_in_bytes_cpu();
+    // ORCA: Add Jerk visualization support
+    ret += m_jerk_range.size_in_bytes_cpu();
     ret += m_volumetric_rate_range.size_in_bytes_cpu();
     ret += m_actual_volumetric_rate_range.size_in_bytes_cpu();
     for (size_t i = 0; i < COLOR_RANGE_TYPES_COUNT; ++i) {
@@ -1787,6 +1870,12 @@ void ViewerImpl::update_color_ranges()
     m_actual_speed_range.reset();
     m_fan_speed_range.reset();
     m_temperature_range.reset();
+    // ORCA: Add Pressure Advance visualization support
+    m_pressure_advance_range.reset();
+    // ORCA: Add Acceleration visualization support
+    m_acceleration_range.reset();
+    // ORCA: Add Jerk visualization support
+    m_jerk_range.reset();
     m_volumetric_rate_range.reset();
     m_actual_volumetric_rate_range.reset();
     m_layer_time_range[0].reset(); // ColorRange::EType::Linear
@@ -1803,12 +1892,19 @@ void ViewerImpl::update_color_ranges()
             }
             m_fan_speed_range.update(round_to_bin(v.fan_speed));
             m_temperature_range.update(round_to_bin(v.temperature));
+            // ORCA: Add Pressure Advance visualization support
+            if (v.pressure_advance >= 0.0f)
+                m_pressure_advance_range.update(v.pressure_advance);
         }
         if ((v.is_travel() && m_settings.options_visibility[size_t(EOptionType::Travels)]) ||
             (v.is_wipe() && m_settings.options_visibility[size_t(EOptionType::Wipes)]) ||
              v.is_extrusion()) {
             m_speed_range.update(v.feedrate);
             m_actual_speed_range.update(v.actual_feedrate);
+            // ORCA: Add Acceleration visualization support
+            m_acceleration_range.update(v.acceleration);
+            // ORCA: Add Jerk visualization support
+            m_jerk_range.update(v.jerk);
         }
     }
 

@@ -10,8 +10,9 @@
 #include "slic3r/GUI/GUI_ObjectList.hpp"
 #include "slic3r/GUI/GUI.hpp"
 #include "slic3r/Utils/UndoRedo.hpp"
+#include "GLGizmoUtils.hpp"
 
-#include <GL/glew.h>
+#include <glad/gl.h>
 
 
 namespace Slic3r::GUI {
@@ -29,27 +30,28 @@ bool GLGizmoSeam::on_init()
 {
     m_shortcut_key = WXK_CONTROL_P;
 
-    // FIXME: maybe should be using GUI::shortkey_ctrl_prefix() or equivalent?
-    const wxString ctrl  = _L("Ctrl+");
-    // FIXME: maybe should be using GUI::shortkey_alt_prefix() or equivalent?
-    const wxString alt   = _L("Alt+");
-    const wxString shift = _L("Shift+");
+    const wxString ctrl  = GUI::shortkey_ctrl_prefix();
+    const wxString alt   = GUI::shortkey_alt_prefix();
+    const wxString shift = GUI::shortkey_shift_prefix();
 
-    m_desc["clipping_of_view_caption"] = alt + _L("Mouse wheel");
     m_desc["clipping_of_view"] = _L("Section view");
     m_desc["reset_direction"]  = _L("Reset direction");
-    m_desc["cursor_size_caption"] = ctrl + _L("Mouse wheel");
     m_desc["cursor_size"]      = _L("Brush size");
-    m_desc["cursor_type"]      = _L("Brush shape");
-    m_desc["enforce_caption"]  = _L("Left mouse button");
+    m_desc["tool_type"]        = _L("Tool type");
     m_desc["enforce"]          = _L("Enforce seam");
-    m_desc["block_caption"]    = _L("Right mouse button");
     m_desc["block"]            = _L("Block seam");
-    m_desc["remove_caption"]   = shift + _L("Left mouse button");
     m_desc["remove"]           = _L("Erase");
-    m_desc["remove_all"]       = _L("Erase all painting");
+    m_desc["remove_all"]       = _L("Erase all");
     m_desc["circle"]           = _L("Circle");
     m_desc["sphere"]           = _L("Sphere");
+
+    m_shortcuts = {
+        {_L("Left mouse button"),           m_desc["enforce"]},
+        {_L("Right mouse button"),          m_desc["block"]},
+        {shift + _L("Left mouse button"),   m_desc["remove"]},
+        {ctrl + _L("Mouse wheel"),          m_desc["cursor_size"]},
+        {alt + _L("Mouse wheel"),           m_desc["clipping_of_view"]}
+    };
 
     return true;
 }
@@ -101,36 +103,6 @@ bool GLGizmoSeam::on_key_down_select_tool_type(int keyCode) {
     return true;
 }
 
-void GLGizmoSeam::show_tooltip_information(float caption_max, float x, float y)
-{
-    ImTextureID normal_id = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP);
-    ImTextureID hover_id  = m_parent.get_gizmos_manager().get_icon_texture_id(GLGizmosManager::MENU_ICON_NAME::IC_TOOLBAR_TOOLTIP_HOVER);
-
-    caption_max += m_imgui->calc_text_size(std::string_view{": "}).x + 35.f;
-
-    float  scale       = m_parent.get_scale();
-    #ifdef WIN32
-        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
-        scale *= (float) dpi / (float) DPI_DEFAULT;
-    #endif // WIN32
-    ImVec2 button_size = ImVec2(25 * scale, 25 * scale); // ORCA: Use exact resolution will prevent blur on icon
-    ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0, 0}); // ORCA: Dont add padding
-    ImGui::ImageButton3(normal_id, hover_id, button_size);
-
-    if (ImGui::IsItemHovered()) {
-        ImGui::BeginTooltip2(ImVec2(x, y));
-        auto draw_text_with_caption = [this, &caption_max](const wxString &caption, const wxString &text) {
-            m_imgui->text_colored(ImGuiWrapper::COL_ACTIVE, caption);
-            ImGui::SameLine(caption_max);
-            m_imgui->text_colored(ImGuiWrapper::COL_WINDOW_BG, text);
-        };
-
-        for (const auto &t : std::array<std::string, 5>{"enforce", "block", "remove", "cursor_size", "clipping_of_view"}) draw_text_with_caption(m_desc.at(t + "_caption") + ": ", m_desc.at(t));
-        ImGui::EndTooltip();
-    }
-    ImGui::PopStyleVar(2);
-}
 
 void GLGizmoSeam::tool_changed(wchar_t old_tool, wchar_t new_tool)
 {
@@ -149,6 +121,12 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     if (! m_c->selection_info()->model_object())
         return;
 
+    float  scale       = m_parent.get_scale();
+    #ifdef WIN32
+        int dpi = get_dpi_for_window(wxGetApp().GetTopWindow());
+        scale *= (float) dpi / (float) DPI_DEFAULT;
+    #endif // WIN32
+
     const float approx_height = m_imgui->scaled(12.5f);
     y = std::min(y, bottom_limit - approx_height);
     //BBS: GUI refactor: move gizmo to the right
@@ -162,6 +140,8 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     wchar_t old_tool = m_current_tool;
     //BBS
     ImGuiWrapper::push_toolbar_style(m_parent.get_scale());
+    float f_scale = m_parent.get_gizmos_manager().get_layout_scale();
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
 
     GizmoImguiBegin(get_name(), ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
@@ -184,12 +164,12 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     const float slider_icon_width  = m_imgui->get_slider_icon_size().x;
 
     const float sliders_width = m_imgui->scaled(7.0f);
-    const float drag_left_width = ImGui::GetStyle().WindowPadding.x + sliders_left_width + sliders_width - space_size;
+    const float drag_left_width = ImGui::GetStyle().WindowPadding.x + sliders_width - space_size;
 
     const float max_tooltip_width = ImGui::GetFontSize() * 20.0f;
 
     ImGui::AlignTextToFramePadding();
-    m_imgui->text(m_desc.at("cursor_type"));
+    m_imgui->text(m_desc.at("tool_type"));
     std::array<wchar_t, 2> tool_ids = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon };
     std::array<wchar_t, 2> icons;
     if (m_is_dark_mode)
@@ -198,29 +178,25 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
         icons = { ImGui::CircleButtonIcon, ImGui::SphereButtonIcon };
     std::array<wxString, 2> tool_tips = { _L("Circle"), _L("Sphere")};
     for (int i = 0; i < tool_ids.size(); i++) {
-        std::string  str_label = std::string("##");
-        std::wstring btn_name = icons[i] + boost::nowide::widen(str_label);
+        //std::string  str_label = std::string("##");
+        //std::wstring btn_name = icons[i] + boost::nowide::widen(str_label);
 
         if (i != 0) ImGui::SameLine((empty_button_width + m_imgui->scaled(1.75f)) * i + m_imgui->scaled(1.3f));
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0);
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.f, 0.f, 0.f, 0.f));                     // ORCA Removes button background on dark mode
-        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 1.f, 1.f, 1.f));                       // ORCA: Fixes icon rendered without colors while using Light theme
-        if (m_current_tool == tool_ids[i]) {
-            ImGui::PushStyleColor(ImGuiCol_Button,          ImVec4(0.f, 0.59f, 0.53f, 0.25f));  // ORCA use orca color for selected tool / brush
-            ImGui::PushStyleColor(ImGuiCol_ButtonHovered,   ImVec4(0.f, 0.59f, 0.53f, 0.25f));  // ORCA use orca color for selected tool / brush
-            ImGui::PushStyleColor(ImGuiCol_ButtonActive,    ImVec4(0.f, 0.59f, 0.53f, 0.30f));  // ORCA use orca color for selected tool / brush
-            ImGui::PushStyleColor(ImGuiCol_Border,          ImGuiWrapper::COL_ORCA);            // ORCA use orca color for border on selected tool / brush
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.0);
-            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 1.0);
-        }
-        bool btn_clicked = ImGui::Button(into_u8(btn_name).c_str());
-        if (m_current_tool == tool_ids[i])
-        {
-            ImGui::PopStyleColor(4);
-            ImGui::PopStyleVar(2);
-        }
-        ImGui::PopStyleColor(2);
-        ImGui::PopStyleVar(1);
+
+        bool is_active = m_current_tool == tool_ids[i];
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding  , 3.f * scale);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding   , ImVec2(4.f * scale, 4.f * scale));
+        ImGui::PushStyleColor(ImGuiCol_Text         , ImVec4(1,1,1,1)); // ORCA Fixes icon rendered without colors while using Light theme
+        ImGui::PushStyleColor(ImGuiCol_Button       , is_active ? ImVec4(0.f, .59f, .53f, .25f) : ImVec4(0,0,0,0));         // ORCA
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, is_active ? ImVec4(0.f, .59f, .53f, .25f) : ImVec4(.6f,.6f,.6f,.2f)); // ORCA
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive , is_active ? ImVec4(0.f, .59f, .53f, .30f) : ImVec4(0,0,0,0));         // ORCA
+        ImGui::PushStyleColor(ImGuiCol_Border       , is_active ? ImGuiWrapper::COL_ORCA        : ImVec4(0,0,0,0));         // ORCA
+        ImGui::PushStyleColor(ImGuiCol_BorderActive , is_active ? ImGuiWrapper::COL_ORCA        : ImVec4(0,0,0,0));         // ORCA matched color for fixing flicker on click
+        bool btn_clicked = m_imgui->glyph_button(icons[i], ImVec2(16.f  * scale, 16.f  * scale)); // ORCA glyph_button for fixing unequal paddings
+        ImGui::PopStyleColor(6);
+        ImGui::PopStyleVar(3);
+
         if (btn_clicked && m_current_tool != tool_ids[i]) {
             m_current_tool = tool_ids[i];
             for (auto& triangle_selector : m_triangle_selectors) {
@@ -250,12 +226,13 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
     ImGui::AlignTextToFramePadding();
     m_imgui->text(m_desc.at("cursor_size"));
     ImGui::SameLine(sliders_left_width);
-
     ImGui::PushItemWidth(sliders_width);
     m_imgui->bbl_slider_float_style("##cursor_radius", &m_cursor_radius, CursorRadiusMin, CursorRadiusMax, "%.2f", 1.0f, true);
-    ImGui::SameLine(drag_left_width);
+    ImGui::SameLine(drag_left_width + sliders_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     ImGui::BBLDragFloat("##cursor_radius_input", &m_cursor_radius, 0.05f, 0.0f, 0.0f, "%.2f");
+
+    m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only);
 
     ImGui::Separator();
     if (m_c->object_clipper()->get_position() == 0.f) {
@@ -272,29 +249,19 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
 
     auto clp_dist = float(m_c->object_clipper()->get_position());
     ImGui::SameLine(sliders_left_width);
-
     ImGui::PushItemWidth(sliders_width);
     bool slider_clp_dist = m_imgui->bbl_slider_float_style("##clp_dist", &clp_dist, 0.f, 1.f, "%.2f", 1.0f, true);
-
-    ImGui::SameLine(drag_left_width);
+    ImGui::SameLine(drag_left_width + sliders_left_width);
     ImGui::PushItemWidth(1.5 * slider_icon_width);
     bool b_clp_dist_input = ImGui::BBLDragFloat("##clp_dist_input", &clp_dist, 0.05f, 0.0f, 0.0f, "%.2f");
     if (slider_clp_dist || b_clp_dist_input) { m_c->object_clipper()->set_position_by_ratio(clp_dist, true); }
 
     ImGui::Separator();
-    m_imgui->bbl_checkbox(_L("Vertical"), m_vertical_only);
 
-    ImGui::Separator();
-
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(6.0f, 10.0f));
-    float get_cur_y = ImGui::GetContentRegionMax().y + ImGui::GetFrameHeight() + y;
-    show_tooltip_information(caption_max, x, get_cur_y);
-
-    float f_scale =m_parent.get_gizmos_manager().get_layout_scale();
-    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(6.0f, 4.0f * f_scale));
+    GLGizmoUtils::render_tooltip_button(m_imgui, m_parent, m_shortcuts, x, y);
 
     ImGui::SameLine();
-
+    m_imgui->disabled_begin(m_c->selection_info()->model_object()->is_seam_painted() == false);
     if (m_imgui->button(m_desc.at("remove_all"))) {
         Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Reset selection", UndoRedo::SnapshotType::GizmoAction);
         ModelObject         *mo  = m_c->selection_info()->model_object();
@@ -309,7 +276,15 @@ void GLGizmoSeam::on_render_input_window(float x, float y, float bottom_limit)
         update_model_object();
         m_parent.set_as_dirty();
     }
-    ImGui::PopStyleVar(2);
+    m_imgui->disabled_end();
+
+    ImGui::SameLine();
+    GLGizmoUtils::begin_right_aligned_buttons({_L("Done")});
+    if (m_imgui->button(_L("Done"))) {
+        m_parent.reset_all_gizmos();
+    }
+
+    ImGui::PopStyleVar(1); // ImGuiStyleVar_FramePadding
     GizmoImguiEnd();
 
     //BBS

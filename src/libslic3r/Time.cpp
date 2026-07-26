@@ -6,6 +6,8 @@
 #include <cassert>
 #include <ctime>
 #include <cstdio>
+#include <cctype>
+#include <cstring>
 
 #ifdef _MSC_VER
 #include <map>
@@ -228,6 +230,77 @@ time_t str2time(const std::string &str, TimeZone zone, TimeFormat fmt)
 
     ss.imbue(std::locale("C"));
     return str2time(ss, zone, fmtstr.c_str());
+}
+
+// /////////////////////////////////////////////////////////////////////////////
+// Millisecond timestamps for cloud sync protocol
+
+std::string millis_to_iso8601(long long unix_millis)
+{
+    time_t seconds = static_cast<time_t>(unix_millis / 1000);
+    int millis = static_cast<int>(unix_millis % 1000);
+
+    std::tm tms = {};
+    _gmtime_r(&seconds, &tms);
+
+    char buf[32];
+    std::snprintf(buf, sizeof(buf), "%04d-%02d-%02dT%02d:%02d:%02d.%03dZ",
+        tms.tm_year + 1900,
+        tms.tm_mon + 1,
+        tms.tm_mday,
+        tms.tm_hour,
+        tms.tm_min,
+        tms.tm_sec,
+        millis);
+
+    return std::string(buf);
+}
+
+long long iso8601_to_millis(const std::string& iso_time)
+{
+    if (iso_time.empty()) return -1;
+
+    int y, M, d, h, m, s, ms = 0;
+
+    // Try parsing with milliseconds: "2025-11-28T14:30:00.123Z"
+    int parsed = sscanf(iso_time.c_str(), "%d-%d-%dT%d:%d:%d.%dZ",
+        &y, &M, &d, &h, &m, &s, &ms);
+
+    if (parsed < 6) {
+        // Try without milliseconds: "2025-11-28T14:30:00Z"
+        parsed = sscanf(iso_time.c_str(), "%d-%d-%dT%d:%d:%dZ",
+            &y, &M, &d, &h, &m, &s);
+        ms = 0;
+    }
+
+    if (parsed < 6) return -1;
+
+    // Normalize milliseconds (handle .1, .12, .123, .1234, etc.)
+    if (parsed >= 7) {
+        // Count digits in the fractional part to normalize
+        const char* dot = strchr(iso_time.c_str(), '.');
+        if (dot) {
+            int digits = 0;
+            for (const char* p = dot + 1; *p && *p != 'Z' && std::isdigit(*p); ++p)
+                digits++;
+            // Normalize to 3 digits (milliseconds)
+            while (digits < 3) { ms *= 10; digits++; }
+            while (digits > 3) { ms /= 10; digits--; }
+        }
+    }
+
+    std::tm tms = {};
+    tms.tm_year = y - 1900;
+    tms.tm_mon  = M - 1;
+    tms.tm_mday = d;
+    tms.tm_hour = h;
+    tms.tm_min  = m;
+    tms.tm_sec  = s;
+
+    time_t seconds = _timegm(&tms);
+    if (seconds == time_t(-1)) return -1;
+
+    return static_cast<long long>(seconds) * 1000 + ms;
 }
 
 }; // namespace Utils

@@ -1,6 +1,8 @@
 #include "Point.hpp"
+#include "Exception.hpp"
 #include "Line.hpp"
 #include "MultiPoint.hpp"
+#include "Polyline.hpp"
 #include "Int128.hpp"
 #include "BoundingBox.hpp"
 #include <algorithm>
@@ -255,6 +257,93 @@ int cross(const Vec2crd &v1, const Vec2crd &v2)
     return Int128::sign_determinant_2x2_filtered(v1.x(), v1.y(), v2.x(), v2.y());
 }
 
+}
+
+// Point3 utility functions for ZAA (Z Anti-Aliasing)
+Polyline to_polyline(const Points &points) { return Polyline(points); }
+Polyline3 to_polyline(const Points3 &points) { return Polyline3(points); }
+
+Points to_points(const Points3 &points3) {
+    Points points2;
+    points2.reserve(points3.size());
+    for (const Point3 &pt : points3) {
+        points2.emplace_back(pt.to_point());
+    }
+    return points2;
+}
+
+Points3 to_points3(const Points& points)
+{
+    Points3 points3;
+    points3.reserve(points.size());
+    for (const Point& pt : points) {
+        points3.emplace_back(pt);
+    }
+    return points3;
+}
+
+// Point3 method implementations
+void Point3::rotate(double angle, const Point3 &center) {
+    Vec3crd diff = *this - center;
+    Point3 temp(diff.x(), diff.y(), diff.z());
+    temp.rotate(angle);
+    Vec3crd sum = temp + center;
+    *this = Point3(sum.x(), sum.y(), sum.z());
+}
+
+int Point3::nearest_point_index(const Points &points) const {
+    return this->to_point().nearest_point_index(points);
+}
+
+bool Point3::nearest_point(const Points &points, Point3* point) const {
+    Point pt2d;
+    bool result = this->to_point().nearest_point(points, &pt2d);
+    if (result && point) {
+        *point = Point3(pt2d, this->z());
+    }
+    return result;
+}
+
+double Point3::ccw(const Point3 &p1, const Point3 &p2) const {
+    return this->to_point().ccw(p1.to_point(), p2.to_point());
+}
+
+double Point3::ccw(const Line3 &line) const {
+    // Convert to 2D and use existing Point ccw implementation
+    Point a2d(line.a.x(), line.a.y());
+    Point b2d(line.b.x(), line.b.y());
+    return this->to_point().ccw(Line(a2d, b2d));
+}
+
+double Point3::ccw_angle(const Point3 &p1, const Point3 &p2) const {
+    return this->to_point().ccw_angle(p1.to_point(), p2.to_point());
+}
+
+Point3 Point3::projection_onto(const MultiPoint3 &poly) const {
+    // TODO: Implement proper 3D projection when MultiPoint3 conversion methods are ready
+    // For now, stub implementation
+    throw RuntimeError("Point3::projection_onto(MultiPoint3) not implemented yet");
+    return *this;
+}
+
+Point3 Point3::projection_onto(const Line3 &line) const {
+    // Project in 2D plane and interpolate Z
+    Point pt2d = this->to_point();
+    Point line_a(line.a.x(), line.a.y());
+    Point line_b(line.b.x(), line.b.y());
+    Line line2d(line_a, line_b);
+    Point proj2d = pt2d.projection_onto(line2d);
+
+    // Interpolate Z coordinate
+    double line_len = line.length();
+    if (line_len < EPSILON) {
+        return Point3(proj2d, line.a.z());
+    }
+    double dist_from_a = (proj2d - line_a).cast<double>().norm();
+    double t = dist_from_a / line_len;
+    t = std::clamp(t, 0.0, 1.0);
+    coord_t z = coord_t(line.a.z() + t * (line.b.z() - line.a.z()));
+    return Point3(proj2d, z);
 }
 
 }

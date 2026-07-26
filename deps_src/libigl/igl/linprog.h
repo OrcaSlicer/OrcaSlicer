@@ -11,45 +11,47 @@
 #include <Eigen/Core>
 namespace igl
 {
-  // Solve a linear program given in "standard form"
-  //
-  // min  f'x
-  // s.t. A(    1:k,:) x <= b(1:k)
-  //      A(k+1:end,:) x = b(k+1:end)
-  //   ** x >= 0 **
-  //
-  // In contrast to other APIs the entries in b may be negative.
-  //
-  // Inputs:
-  //   c  #x list of linear coefficients
-  //   A  #A by #x matrix of linear constraint coefficients
-  //   b  #A list of linear constraint right-hand sides
-  //   k  number of inequality constraints as first rows of A,b
-  // Outputs:
-  //   x  #x solution vector
-  //
+  /// Solve a linear program given in "standard form"
+  ///
+  ///      min  c'x
+  ///      s.t. A(    1:k,:) x <= b(1:k)
+  ///           A(k+1:end,:) x = b(k+1:end)
+  ///        ** x >= 0 **
+  ///
+  /// In contrast to other APIs the entries in b may be negative.
+  ///
+  /// @param[in] c  #x list of linear coefficients
+  /// @param[in] A  #A by #x matrix of linear constraint coefficients
+  /// @param[in] b  #A list of linear constraint right-hand sides
+  /// @param[in] k  number of inequality constraints as first rows of A,b
+  /// @param[out] x  #x solution vector
+  /// @return false on failure or detected infeasibility, returns true on termination
+  ///
+  /// \note It appears that this implementation does not detect all infeasibile
+  /// problems (e.g., https://github.com/libigl/libigl/issues/2051). Therefor,
+  /// it's worth double-checking that the output actually satisfies the
+  /// constraints even if the return value is `true`.
   IGL_INLINE bool linprog(
     const Eigen::VectorXd & c,
     const Eigen::MatrixXd & A,
     const Eigen::VectorXd & b,
     const int k,
-    Eigen::VectorXd & f);
-  
-  // Wrapper in friendlier general form (no implicit bounds on x)
-  //
-  // min  f'x
-  // s.t. A x <= b
-  //      B x = c
-  //
-  // Inputs:
-  //   f  #x list of linear coefficients
-  //   A  #A by #x matrix of linear inequality constraint coefficients
-  //   b  #A list of linear constraint right-hand sides
-  //   B  #B by #x matrix of linear equality constraint coefficients
-  //   c  #B list of linear constraint right-hand sides
-  // Outputs:
-  //   x  #x solution vector
-  //
+    Eigen::VectorXd & x);
+  /// \overload
+  /// \brief Wrapper in friendlier general form (no implicit bounds on x)
+  ///
+  ///     min  f'x
+  ///     s.t. A x <= b
+  ///          B x = c
+  ///
+  /// @param[in] f  #x list of linear coefficients
+  /// @param[in] A  #A by #x matrix of linear inequality constraint coefficients
+  /// @param[in] b  #A list of linear constraint right-hand sides
+  /// @param[in] B  #B by #x matrix of linear equality constraint coefficients
+  /// @param[in] c  #B list of linear constraint right-hand sides
+  /// @param[out] x  #x solution vector
+  /// @return false on failure or detected infeasibility, returns true on termination
+  ///
   IGL_INLINE bool linprog(
     const Eigen::VectorXd & f,
     const Eigen::MatrixXd & A,

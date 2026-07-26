@@ -219,7 +219,7 @@ void create_volume(TriangleMesh &&mesh, const ObjectID& object_id, const ModelVo
 /// Create projection for cut surface from mesh
 /// </summary>
 /// <param name="tr">Volume transformation in object</param>
-/// <param name="shape_scale">Convert shape to milimeters</param>
+/// <param name="shape_scale">Convert shape to millimeters</param>
 /// <param name="z_range">Bounding box 3d of model volume for projection ranges</param> 
 /// <returns>Orthogonal cut_projection</returns>
 OrthoProject create_projection_for_cut(Transform3d tr, double shape_scale, const std::pair<float, float> &z_range);
@@ -299,7 +299,7 @@ CreateObjectJob::CreateObjectJob(DataCreateObject &&input): m_input(std::move(in
 void CreateObjectJob::process(Ctl &ctl) 
 {
     if (!check(m_input))
-        throw JobException("Bad input data for EmbossCreateObjectJob.");
+        throw JobException(_u8L("Bad input data for EmbossCreateObjectJob."));
 
     // can't create new object with using surface
     if (m_input.base->shape.projection.use_surface)
@@ -398,13 +398,13 @@ UpdateJob::UpdateJob(DataUpdate&& input): m_input(std::move(input)){ assert(chec
 void UpdateJob::process(Ctl &ctl)
 {
     if (!check(m_input))
-        throw JobException("Bad input data for EmbossUpdateJob.");
+        throw JobException(_u8L("Bad input data for EmbossUpdateJob."));
 
     auto was_canceled = ::was_canceled(ctl, *m_input.base);
     m_result = ::try_create_mesh(*m_input.base, was_canceled);
     if (was_canceled()) return;
     if (m_result.its.empty())
-        throw JobException("Created text volume is empty. Change text or font.");
+        throw JobException(_u8L("Created text volume is empty. Change text or font."));
 }
 
 void UpdateJob::finalize(bool canceled, std::exception_ptr &eptr)
@@ -462,7 +462,7 @@ CreateSurfaceVolumeJob::CreateSurfaceVolumeJob(CreateSurfaceVolumeData &&input)
 
 void CreateSurfaceVolumeJob::process(Ctl &ctl) {
     if (!check(m_input)) 
-        throw JobException("Bad input data for CreateSurfaceVolumeJob.");
+        throw JobException(_u8L("Bad input data for CreateSurfaceVolumeJob."));
     m_result = cut_surface(*m_input.base, m_input, was_canceled(ctl, *m_input.base));
 }
 
@@ -484,7 +484,7 @@ UpdateSurfaceVolumeJob::UpdateSurfaceVolumeJob(UpdateSurfaceVolumeData &&input)
 void UpdateSurfaceVolumeJob::process(Ctl &ctl)
 {
     if (!check(m_input)) 
-        throw JobException("Bad input data for UseSurfaceJob.");
+        throw JobException(_u8L("Bad input data for UseSurfaceJob."));
     m_result = cut_surface(*m_input.base, m_input, was_canceled(ctl, *m_input.base));
 }
 

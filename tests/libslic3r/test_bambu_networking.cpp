@@ -2,7 +2,7 @@
 
 #include "slic3r/Utils/bambu_networking.hpp"
 
-using namespace BBL;
+using namespace Slic3r;
 
 TEST_CASE("extract_base_version", "[BambuNetworking]") {
     SECTION("version without suffix returns unchanged") {
@@ -59,7 +59,9 @@ TEST_CASE("NetworkLibraryVersionInfo::from_static", "[BambuNetworking]") {
         REQUIRE(info.suffix == "");
         REQUIRE(info.display_name == "02.03.00.62");
         REQUIRE(info.url_override == "");
-        REQUIRE(info.is_latest == true);
+        // from_static no longer propagates the static is_latest flag; it is a placeholder
+        // that get_all_available_versions() assigns once the list is sorted newest-first.
+        REQUIRE(info.is_latest == false);
         REQUIRE(info.warning == "");
         REQUIRE(info.is_discovered == false);
     }

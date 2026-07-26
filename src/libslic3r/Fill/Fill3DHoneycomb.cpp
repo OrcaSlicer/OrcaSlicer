@@ -224,7 +224,9 @@ void Fill3DHoneycomb::_fill_surface_single(
     // This means that the resultant infill won't be an ideal truncated octahedron,
     // but it should look better than the equivalent quantised version
 
-    coordf_t layerHeight = scale_(thickness_layers);
+    //Orca: uses a fixed layer height to avoid inconsistent bridges and variable layer height artifacts.
+    //coordf_t layerHeight = scale_(thickness_layers);
+    coordf_t layerHeight = scale_(1.0);
     // ceiling to an integer value of layers per Z
     // (with a little nudge in case it's close to perfect)
     coordf_t layersPerModule = floor((gridSize * 2) / (zScale * layerHeight) + 0.05);
@@ -275,7 +277,7 @@ void Fill3DHoneycomb::_fill_surface_single(
     multiline_fill(polylines, params, spacing);
 
     // clip pattern to boundaries, chain the clipped polylines
-    polylines = intersection_pl(polylines, to_polygons(expolygon));
+    polylines = intersection_pl(std::move(polylines), to_polygons(expolygon));
 
     if (! polylines.empty()) {
     // Remove very small bits, but be careful to not remove infill lines connecting thin walls!

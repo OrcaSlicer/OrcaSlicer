@@ -9,7 +9,7 @@ namespace Slic3r::Feature::FuzzySkin {
 
 void fuzzy_polyline(Points& poly, bool closed, coordf_t slice_z, const FuzzySkinConfig& cfg);
 
-void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg);
+void fuzzy_extrusion_line(Arachne::ExtrusionJunctions& ext_lines, coordf_t slice_z, const FuzzySkinConfig& cfg, bool closed = true);
 
 void group_region_by_fuzzify(PerimeterGenerator& g);
 

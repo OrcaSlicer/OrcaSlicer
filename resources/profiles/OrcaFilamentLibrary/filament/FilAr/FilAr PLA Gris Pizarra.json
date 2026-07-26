@@ -1,0 +1,15 @@
+{
+    "type": "filament",
+    "name": "FilAr PLA Gris Pizarra",
+    "inherits": "FilAr PLA @base",
+    "from": "system",
+    "setting_id": "SeePXOShT3cge6TS",
+    "filament_id": "FILAR0024",
+    "instantiation": "true",
+    "filament_vendor": [
+        "FilAr"
+    ],
+    "default_filament_colour": [
+        "#4B4B4B"
+    ]
+}

@@ -1,0 +1,26 @@
+{
+	"type": "process",
+	"setting_id": "z8J2jOmdssB8DCBO",
+	"name": "0.26 Standard",
+	"renamed_from": "0.26mm Standard @re3D fdm 0.4",
+	"from": "system",
+	"instantiation": "true",
+	"inherits": "fdm_process_re3D_common",
+	"compatible_printers": [
+		"re3D Gigabot 4 0.4 nozzle",
+		"re3D Gigabot 4 XLT 0.4 nozzle",
+		"re3D Terabot 4 0.4 nozzle"
+	],
+	"layer_height": "0.26",
+	"initial_layer_print_height": "0.4",
+	"line_width": "0.48",
+	"outer_wall_line_width": "0.48",
+	"inner_wall_line_width": "0.48",
+	"initial_layer_line_width": "0.6",
+	"sparse_infill_line_width": "0.48",
+	"internal_solid_infill_line_width": "0.48",
+	"top_surface_line_width": "0.48",
+	"support_line_width": "0.48",
+	"support_top_z_distance": "0.2",
+	"support_bottom_z_distance": "0.2"
+}

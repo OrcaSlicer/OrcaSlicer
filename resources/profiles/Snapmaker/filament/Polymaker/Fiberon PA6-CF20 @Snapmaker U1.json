@@ -1,0 +1,27 @@
+{
+	"type": "filament",
+	"name": "Fiberon PA6-CF20 @Snapmaker U1",
+	"inherits": "Fiberon PA6-CF20 @Snapmaker U1 base",
+	"from": "system",
+	"setting_id": "AMQyOXYNdWpVXmvK",
+	"instantiation": "true",
+	"compatible_printers": [
+		"Snapmaker U1 (0.4 nozzle)"
+	],
+	"filament_minimal_purge_on_wipe_tower": [
+		"15"
+	],
+	"filament_retraction_length": [
+		"1.0"
+	],
+	"filament_z_hop": [
+		"0.0"
+	],
+
+	"enable_pressure_advance": [
+		"1"
+	],
+	"pressure_advance": [
+		"0.08"
+	]
+}

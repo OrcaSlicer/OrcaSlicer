@@ -25,7 +25,7 @@ wxString get_calibration_type_name(CalibMode cali_mode)
     case CalibMode::Calib_PA_Line:
         return _L("Flow Dynamics");
     case CalibMode::Calib_Flow_Rate:
-        return _L("Flow Rate");
+        return _L("Flow ratio");
     case CalibMode::Calib_Vol_speed_Tower:
         return _L("Max Volumetric Speed");
     case CalibMode::Calib_Temp_Tower:
@@ -244,13 +244,14 @@ void SelectMObjectPopup::Popup(wxWindow* WXUNUSED(focus))
         m_refresh_timer->Start(MACHINE_LIST_REFRESH_INTERVAL);
     }
 
-    if (wxGetApp().is_user_login()) {
+    const std::string provider = wxGetApp().get_printer_cloud_provider();
+    if (wxGetApp().is_user_login(provider)) {
         if (!get_print_info_thread) {
-            get_print_info_thread = new boost::thread(Slic3r::create_thread([this, token = std::weak_ptr<int>(m_token)] {
+            get_print_info_thread = new boost::thread(Slic3r::create_thread([this, token = std::weak_ptr<int>(m_token), provider] {
                 NetworkAgent* agent = wxGetApp().getAgent();
                 unsigned int http_code;
                 std::string body;
-                int result = agent->get_user_print_info(&http_code, &body);
+                int result = agent->get_user_print_info(&http_code, &body, provider);
 
                 wxGetApp().CallAfter([token, this, result, body]() {
                     if (token.expired()) {return;}
@@ -475,7 +476,7 @@ void CalibrationPanel::init_tabpanel() {
 
     m_tabpanel = new Tabbook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, sizer_side_tools, wxNB_LEFT | wxTAB_TRAVERSAL | wxNB_NOPAGETHEME);
     m_side_tools->set_table_panel(m_tabpanel);
-    m_tabpanel->SetBackgroundColour(*wxWHITE);
+    m_tabpanel->SetBackgroundColour(wxColour("#FEFFFF")); // ORCA match sidebar background color
 
     m_cali_panels[0] = new PressureAdvanceWizard(m_tabpanel);
     m_cali_panels[1] = new FlowRateWizard(m_tabpanel);
@@ -491,11 +492,12 @@ void CalibrationPanel::init_tabpanel() {
             selected);
     }
 
-    for (int i = 0; i < (int)CALI_MODE_COUNT; i++)
-        m_tabpanel->SetPageImage(i, "");
+    // ORCA use standard paddings and keep arrow icon for consistent look between sidebars
+    //for (int i = 0; i < (int)CALI_MODE_COUNT; i++)
+    //    m_tabpanel->SetPageImage(i, "");
 
-    auto padding_size = m_tabpanel->GetBtnsListCtrl()->GetPaddingSize(0);
-    m_tabpanel->GetBtnsListCtrl()->SetPaddingSize({ FromDIP(15), padding_size.y });
+    //auto padding_size = m_tabpanel->GetBtnsListCtrl()->GetPaddingSize(0);
+    //m_tabpanel->GetBtnsListCtrl()->SetPaddingSize({ FromDIP(15), padding_size.y });
 
     m_initialized = true;
 }
@@ -584,7 +586,7 @@ void CalibrationPanel::update_all() {
         // only disconnected server in cloud mode
         if (obj->connection_type() != "lan") {
             if (m_agent) {
-                server_status = m_agent->is_server_connected() ? 0 : (int)MONITOR_DISCONNECTED_SERVER;
+                server_status = m_agent->is_server_connected(wxGetApp().get_printer_cloud_provider()) ? 0 : (int)MONITOR_DISCONNECTED_SERVER;
             }
         }
         show_status((int)MONITOR_DISCONNECTED + server_status);

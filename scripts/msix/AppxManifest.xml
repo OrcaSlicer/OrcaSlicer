@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  xmlns:rescap3="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities/3"
+  xmlns:desktop6="http://schemas.microsoft.com/appx/manifest/desktop/windows10/6"
+  xmlns:virtualization="http://schemas.microsoft.com/appx/manifest/virtualization/windows10"
+  IgnorableNamespaces="uap rescap rescap3 desktop6 virtualization">
+
+  <Identity Name="@MSIX_IDENTITY_NAME@"
+            Publisher="@MSIX_PUBLISHER@"
+            Version="@MSIX_VERSION@"
+            ProcessorArchitecture="@MSIX_ARCH@" />
+
+  <Properties>
+    <DisplayName>OrcaSlicer</DisplayName>
+    <PublisherDisplayName>@MSIX_PUBLISHER_DISPLAY_NAME@</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <!-- Keep config in the real %APPDATA%\OrcaSlicer so it survives uninstall and
+         is shared with the classic (NSIS/portable) install.
+         Win10 1903+: coarse switch disables AppData write virtualization entirely.
+         Win11+: fine-grained exclusion below takes precedence over the coarse switch. -->
+    <desktop6:FileSystemWriteVirtualization>disabled</desktop6:FileSystemWriteVirtualization>
+    <virtualization:FileSystemWriteVirtualization>
+      <virtualization:ExcludedDirectories>
+        <virtualization:ExcludedDirectory>$(KnownFolder:RoamingAppData)\OrcaSlicer</virtualization:ExcludedDirectory>
+      </virtualization:ExcludedDirectories>
+    </virtualization:FileSystemWriteVirtualization>
+  </Properties>
+
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.18362.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="OrcaSlicer" Executable="orca-slicer.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="OrcaSlicer"
+        Description="Open-source slicer for FDM 3D printers"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png" />
+      <Extensions>
+        <uap:Extension Category="windows.fileTypeAssociation">
+          <uap:FileTypeAssociation Name="orcaslicer-models">
+            <uap:SupportedFileTypes>
+              <uap:FileType>.3mf</uap:FileType>
+              <uap:FileType>.stl</uap:FileType>
+              <uap:FileType>.step</uap:FileType>
+              <uap:FileType>.stp</uap:FileType>
+              <uap:FileType>.gcode</uap:FileType>
+              <uap:FileType>.drc</uap:FileType>
+            </uap:SupportedFileTypes>
+            <rescap3:MigrationProgIds>
+              <rescap3:MigrationProgId>Orca.Slicer.1</rescap3:MigrationProgId>
+            </rescap3:MigrationProgIds>
+          </uap:FileTypeAssociation>
+        </uap:Extension>
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="orcaslicer" />
+        </uap:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <rescap:Capability Name="runFullTrust" />
+    <rescap:Capability Name="unvirtualizedResources" />
+  </Capabilities>
+</Package>

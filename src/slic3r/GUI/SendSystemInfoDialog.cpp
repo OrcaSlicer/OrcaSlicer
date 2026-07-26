@@ -17,6 +17,9 @@
 #include "GUI_App.hpp"
 #include "GUI_Utils.hpp"
 #include "I18N.hpp"
+#ifdef __WXGTK__
+#include "LinuxDisplayBackend.hpp"
+#endif
 #include "MainFrame.hpp"
 #include "MsgDialog.hpp"
 #include "OpenGLManager.hpp"
@@ -28,7 +31,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/uuid/detail/md5.hpp>
 
-#include "GL/glew.h"
+#include <glad/gl.h>
 
 #include <wx/display.h>
 #include <wx/htmllbox.h>
@@ -420,6 +423,28 @@ static std::string generate_system_info_json()
     data_node.put("Linux_DistroID", distro_id);
     data_node.put("Linux_DistroVer", distro_ver);
     data_node.put("Linux_Wayland", wxGetEnv("WAYLAND_DISPLAY", nullptr));
+#ifdef __WXGTK__
+    const LinuxDisplayBackend display_backend = get_linux_display_backend();
+    const char* display_backend_name = "unknown";
+    const char* gl_backend_hint = "Unknown";
+    switch (display_backend) {
+    case LinuxDisplayBackend::Wayland:
+        display_backend_name = "wayland";
+        gl_backend_hint = "EGL";
+        break;
+    case LinuxDisplayBackend::X11:
+        display_backend_name = "x11";
+        gl_backend_hint = "GLX";
+        break;
+    default:
+        break;
+    }
+    data_node.put("Linux_DisplayBackend", display_backend_name);
+    data_node.put("Linux_GLBackendHint", gl_backend_hint);
+#else
+    data_node.put("Linux_DisplayBackend", "unknown");
+    data_node.put("Linux_GLBackendHint", "Unknown");
+#endif
 #endif
     data_node.put("wxWidgets", wxVERSION_NUM_DOT_STRING);
 #ifdef __WXGTK__
@@ -481,7 +506,7 @@ static std::string generate_system_info_json()
         monitor_node.put("height", display.GetGeometry().GetHeight());
 
         // Only get the scaling on Win, it is not reliable on other platforms.
-        #if defined(_WIN32) && wxCHECK_VERSION(3, 1, 2)
+        #if defined(_WIN32)
             double scaling = display.GetPPI().GetWidth() / 96.;
             std::stringstream ss;
             ss << std::setprecision(3) << scaling;

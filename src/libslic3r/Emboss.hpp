@@ -443,9 +443,9 @@ namespace Emboss
     /// Sample slice polygon by bounding boxes centers
     /// slice start point has shape_center_x coor
     /// </summary>
-    /// <param name="slice">Polygon and start point[Slic3r scaled milimeters]</param>
+    /// <param name="slice">Polygon and start point[Slic3r scaled millimeters]</param>
     /// <param name="bbs">Bounding boxes of letter on one line[in font scales]</param>
-    /// <param name="scale">Scale for bbs (after multiply bb is in milimeters)</param>
+    /// <param name="scale">Scale for bbs (after multiply bb is in millimeters)</param>
     /// <returns>Sampled polygon by bounding boxes</returns>
     PolygonPoints sample_slice(const TextLine &slice, const BoundingBoxes &bbs, double scale);
 
