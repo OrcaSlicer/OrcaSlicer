@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 15:24-0300\n"
+"POT-Creation-Date: 2026-07-26 18:41-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -4896,12 +4896,12 @@ msgstr "Kształt stołu"
 # AI Translated
 #, c-format, boost-format
 msgid "A minimum temperature above %d℃ is recommended for %s.\n"
-msgstr "Dla %s zalecana jest temperatura minimalna powyżej %d℃.\n"
+msgstr "Zalecana jest minimalna temperatura powyżej %d℃ dla %s.\n"
 
 # AI Translated
 #, c-format, boost-format
 msgid "A maximum temperature below %d℃ is recommended for %s.\n"
-msgstr "Dla %s zalecana jest temperatura maksymalna poniżej %d℃.\n"
+msgstr "Zalecana jest maksymalna temperatura poniżej %d℃ dla %s.\n"
 
 msgid "The recommended minimum temperature cannot be higher than the recommended maximum temperature.\n"
 msgstr "Minimalna zalecana temperatura nie może być wyższa niż zalecana temperatura maksymalna.\n"
@@ -16824,7 +16824,7 @@ msgid "Retract amount after wipe"
 msgstr "Wartość retrakcji po czyszczeniu"
 
 # AI Translated
-#, c-format
+#, no-c-format, no-boost-format
 msgid ""
 "The length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."

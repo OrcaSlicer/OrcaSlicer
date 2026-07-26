@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 15:24-0300\n"
+"POT-Creation-Date: 2026-07-26 18:41-0300\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -16658,7 +16658,7 @@ msgid "Retract amount after wipe"
 msgstr "Величина втягування після протирання"
 
 # AI Translated
-#, c-format
+#, no-c-format, no-boost-format
 msgid ""
 "The length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
@@ -22157,7 +22157,8 @@ msgstr ""
 "Чи знаєте ви, що можна розділити модель з великою кількістю деталей на окремі столи, готові до друку? Це спростить процес відстеження всіхдеталей."
 
 # TODO: Review, changed by lang refactor. PR 14254
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -22234,7 +22235,8 @@ msgstr ""
 "Чи знаєте ви, що для підвищення міцності моделі можна використовувати більшепериметрів та вищу щільність заповнення?"
 
 # TODO: Review, changed by lang refactor. PR 14254
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."

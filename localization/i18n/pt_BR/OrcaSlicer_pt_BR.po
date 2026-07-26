@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 15:24-0300\n"
+"POT-Creation-Date: 2026-07-26 18:41-0300\n"
 "PO-Revision-Date: 2026-07-26 11:14-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -992,11 +992,11 @@ msgstr "Conector"
 #, boost-format
 msgid ""
 "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
-"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Please report to the OrcaSlicer team in which scenario this issue happened.\n"
 "Thank you."
 msgstr ""
 "Os objetos(%1%) têm conectores duplicados. Alguns conectores podem estar faltando no resultado do fatiamento.\n"
-"Por favor, informe à equipe do PrusaSlicer em qual cenário esse problema ocorreu.\n"
+"Por favor, informe à equipe do OrcaSlicer em qual cenário esse problema ocorreu.\n"
 "Obrigado."
 
 msgid "Cut by Plane"
@@ -15676,7 +15676,7 @@ msgstr "Este é o comprimento da retração rápida antes de uma limpeza, em rel
 msgid "Retract amount after wipe"
 msgstr "Quantidade de retração depois da limpeza"
 
-#, c-format
+#, no-c-format, no-boost-format
 msgid ""
 "The length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
@@ -20887,7 +20887,8 @@ msgstr ""
 "Divida suas impressões em placas\n"
 "Você sabia que pode dividir um modelo que tem diversas peças em placas individuais distintas prontas para imprimir? Isso simplifica o processo de manter o controle de todas as peças."
 
-#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer Height]
+#: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
+#: Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
@@ -20959,7 +20960,8 @@ msgstr ""
 "Melhorar a resistência\n"
 "Você sabia que pode usar mais voltas de parede e maior densidade de preenchimento esparso mais alta para melhorar a resistência do modelo?"
 
-#: resources/data/hints.ini: [hint:When do you need to print with the printer door opened]
+#: resources/data/hints.ini: [hint:When do you need to print with the printer
+#: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
@@ -20974,6 +20976,17 @@ msgid ""
 msgstr ""
 "Evitar empenamento\n"
 "Você sabia que ao imprimir materiais propensos ao empenamento como ABS, aumentar adequadamente a temperatura da mesa aquecida pode reduzir a probabilidade de empenamento?"
+
+# AI Translated
+#, boost-format
+#~ msgid ""
+#~ "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
+#~ "Please report to PrusaSlicer team in which scenario this issue happened.\n"
+#~ "Thank you."
+#~ msgstr ""
+#~ "Os objetos(%1%) têm conectores duplicados. Alguns conectores podem estar faltando no resultado do fatiamento.\n"
+#~ "Por favor, informe à equipe do PrusaSlicer em qual cenário esse problema ocorreu.\n"
+#~ "Obrigado."
 
 #~ msgid "Skip for Now"
 #~ msgstr "Pular por Enquanto"
