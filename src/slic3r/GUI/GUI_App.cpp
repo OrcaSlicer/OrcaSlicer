@@ -309,7 +309,16 @@ public:
     {
         this->SetPosition(pos);
         this->CenterOnScreen();
-
+		
+		#if defined(__WXGTK__)
+        if (Slic3r::GUI::is_running_on_wayland()) {
+            GtkWidget *empty = gtk_fixed_new();
+            gtk_widget_set_size_request(empty, 0, 0);
+            gtk_window_set_titlebar(GTK_WINDOW(GetHandle()), empty);
+            gtk_window_set_decorated(GTK_WINDOW(GetHandle()), false);
+        }
+		#endif
+		
         scale_font(m_font_version, 1.65f); // only scale this one since it hasnt a preloaded font like Label::Body_24;
 
         m_bg_color = StateColor::darkModeColorFor(wxColour("#FFFFFF"));
