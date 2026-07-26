@@ -8087,12 +8087,25 @@ void DesignPanel::refresh_preview()
 {
     if (m_active == Tool::None) { m_viewport->clear_preview(); return; }
 
-    if (m_active == Tool::Sketch || m_active == Tool::Plane) {
-        // A sketch / datum plane carries no 3D solid; there is no ghost to show. Always
-        // valid, so just enable Confirm and clear any stale ghost.
+    // Features that produce NO solid: a sketch, the three datums, a helix curve, and Project
+    // (which emits sketch entities). They have no ghost to build, so they must not go through
+    // the solid-preview path below — it finds nothing and reports "invalid: preview produced
+    // no geometry", which is what Axis / CoordSys / Helix / Project did on an empty document.
+    // route_feature() skips these for the same reason, so the two agree on what is not a solid.
+    if (m_active == Tool::Sketch  || m_active == Tool::Plane   || m_active == Tool::Axis ||
+        m_active == Tool::CoordSys || m_active == Tool::Helix   || m_active == Tool::Project) {
         m_viewport->clear_preview();
         m_status->SetForegroundColour(wxColour(120, 210, 120));
-        m_status->SetLabel(m_active == Tool::Plane ? _L("Plane ready") : _L("Sketch ready"));
+        wxString ready;
+        switch (m_active) {
+        case Tool::Plane:    ready = _L("Plane ready");     break;
+        case Tool::Axis:     ready = _L("Axis ready");      break;
+        case Tool::CoordSys: ready = _L("Coord Sys ready"); break;
+        case Tool::Helix:    ready = _L("Helix ready");     break;
+        case Tool::Project:  ready = _L("Project ready");   break;
+        default:             ready = _L("Sketch ready");    break;
+        }
+        m_status->SetLabel(ready);
         for (wxButton* b : m_confirm_btns) if (b) b->Enable(true);
         m_status->Refresh();
         update_datum_gizmo();   // Plane card: show/refresh the in-canvas resize handles
