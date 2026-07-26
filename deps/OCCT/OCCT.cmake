@@ -5,9 +5,20 @@ else()
 endif()
 
 # The parametric Design/CAD tab is the only consumer of OCCT's ModelingAlgorithms
-# module (fillet/offset/loft). With it OFF the deps prefix matches upstream exactly;
-# with it ON the delta is TKFillet + TKOffset (3.77 MiB, Windows only -- OCCT links
-# statically on macOS/Linux). Must match the SLIC3R_CAD passed to the main project.
+# module (fillet/offset/loft). With it OFF the deps prefix matches upstream exactly.
+#
+# With it ON the delta is THREE toolkits, not two: TKFillet (7.40 MiB archive, used via
+# BRepFilletAPI), TKOffset (5.38 MiB, used via BRepOffsetAPI) and TKFeat (4.42 MiB), which
+# nothing here references but which the module flag builds anyway -- it is all-or-nothing
+# per module. The module's other nine toolkits are built either way, because DataExchange
+# (the STEP path upstream already ships) depends on them.
+#
+# On macOS/Linux OCCT links statically, so an unreferenced toolkit costs build time and no
+# shipped bytes. The Windows figure is a real DLL cost and has NOT been measured -- an
+# earlier "3.77 MiB, Windows only" note here covered only two of the three toolkits and is
+# not a number to quote. See docs/cad_dependency_weight.md.
+#
+# Must match the SLIC3R_CAD passed to the main project.
 option(SLIC3R_CAD "Build OCCT's ModelingAlgorithms module (required by the Design/CAD tab)" ON)
 
 if (IN_GIT_REPO)
