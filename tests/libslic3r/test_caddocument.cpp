@@ -2396,18 +2396,61 @@ TEST_CASE("datum axis: degenerate two identical points fails cleanly", "[CadDocu
 TEST_CASE("datum axis: two parallel planes fail with error", "[CadDocument]")
 {
     CadDocument doc;
-    // Two offset XY planes are parallel -> no intersection
+    // Two offset XY planes are parallel -> no intersection.
+    // 3 and 4, not 0 and 1: axis_plane_a/b use the same encoding as plane_base — 0/1/2 are the
+    // XY/XZ/YZ base planes and datums start at 3 — because the GUI fills these from
+    // populate_plane_choices() and stores the row verbatim.
     doc.add_plane(0 /*XY*/, 10.0, 0.0, 0, "PlaneA");
     doc.add_plane(0 /*XY*/, 30.0, 0.0, 0, "PlaneB");
 
     int ax = doc.add_axis(AxisType::TwoPoints, "Parallel");
     doc.features[ax].axis_type      = AxisType::PlaneIntersection;
-    doc.features[ax].axis_plane_a   = 0;
-    doc.features[ax].axis_plane_b   = 1;
+    doc.features[ax].axis_plane_a   = 3;
+    doc.features[ax].axis_plane_b   = 4;
 
     auto axes = doc.resolve_datum_axes();
     REQUIRE(axes.size() == 1);
     REQUIRE_FALSE(axes[0].error.empty());
+}
+
+// The case the GUI actually produces most often, and which could not work before: the two refs
+// are rows of the plane picker, whose first three entries are the base planes. XY x XZ is the
+// X axis. Previously ref 0 was read as "datum plane 0", so this silently resolved to the wrong
+// plane or failed with "plane ref not found".
+TEST_CASE("datum axis: intersection of two BASE planes gives the expected axis", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    int ax = doc.add_axis(AxisType::PlaneIntersection, "XAxis");
+    doc.features[ax].axis_plane_a = 0;   // XY
+    doc.features[ax].axis_plane_b = 1;   // XZ
+
+    auto axes = doc.resolve_datum_axes();
+    REQUIRE(axes.size() == 1);
+    REQUIRE(axes[0].error.empty());
+    // XY normal is Z, XZ normal is Y; Z x Y is +/-X.
+    CHECK_THAT(std::abs(axes[0].direction.x()), WithinAbs(1.0, 1e-12));
+    CHECK_THAT(axes[0].direction.y(),           WithinAbs(0.0, 1e-12));
+    CHECK_THAT(axes[0].direction.z(),           WithinAbs(0.0, 1e-12));
+}
+
+// A datum plane crossed with a base plane — the mixed case, which pins the +3 offset.
+TEST_CASE("datum axis: base plane crossed with a datum plane", "[CadDocument]")
+{
+    using Catch::Matchers::WithinAbs;
+
+    CadDocument doc;
+    doc.add_plane(1 /*XZ*/, 5.0, 0.0, 0, "OffsetXZ");   // datum 0 -> row 3
+
+    int ax = doc.add_axis(AxisType::PlaneIntersection, "MixedAxis");
+    doc.features[ax].axis_plane_a = 0;   // XY base
+    doc.features[ax].axis_plane_b = 3;   // the datum above
+
+    auto axes = doc.resolve_datum_axes();
+    REQUIRE(axes.size() == 1);
+    REQUIRE(axes[0].error.empty());
+    CHECK_THAT(std::abs(axes[0].direction.x()), WithinAbs(1.0, 1e-12));
 }
 
 TEST_CASE("datum axis: cylinder centreline from extruded circle", "[CadDocument]")

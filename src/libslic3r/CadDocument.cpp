@@ -1589,26 +1589,27 @@ std::vector<CadDocument::DatumAxis> CadDocument::resolve_datum_axes() const
             break;
         }
         case AxisType::PlaneIntersection: {
-            auto find_plane = [&](int ref) -> const SketchPlane* {
-                if (ref >= 0 && ref < int(datum_planes.size()))
-                    return &datum_planes[ref].second;
-                if (ref >= 3) { // base plane offset: 0=XY,1=XZ,2=YZ
-                    da.error = "plane ref index out of range (datum planes not found)";
-                    return nullptr;
-                }
-                return nullptr;
-            };
-            // For base planes we handle directly.
+            // Same reference encoding as CadFeature::plane_base, because the GUI fills these
+            // two fields from populate_plane_choices() — whose rows are XY/XZ/YZ followed by
+            // the datum planes — and stores the row verbatim. Indexing datum_planes[ref]
+            // directly, as this did, is off by three: picking XY resolved to datum plane 0 and
+            // picking the first datum ran off the end with "plane ref not found", so the
+            // PlaneIntersection axis type could not work at all. Two base planes are also a
+            // perfectly ordinary way to define an axis (XY x XZ = the X axis), so they must
+            // resolve rather than be rejected as out of scope.
             auto base_plane = [&](int ref, Vec3d& origin, Vec3d& normal) -> bool {
-                if (ref >= 0 && ref < int(datum_planes.size())) {
-                    origin = datum_planes[ref].second.origin;
-                    normal = datum_planes[ref].second.normal;
-                    return true;
-                }
-                return false;
+                SketchPlane p;
+                if      (ref == 0) { p = SketchPlane::XY(); p.origin += modeling_origin; }
+                else if (ref == 1) { p = SketchPlane::XZ(); p.origin += modeling_origin; }
+                else if (ref == 2) { p = SketchPlane::YZ(); p.origin += modeling_origin; }
+                else if (ref >= 3 && ref - 3 < int(datum_planes.size()))
+                    p = datum_planes[ref - 3].second;      // datums are already world-space
+                else
+                    return false;
+                origin = p.origin;
+                normal = p.normal;
+                return true;
             };
-            // Both refs reference datum plane indices in the resolved list.
-            // Supporting cross-base-plane where ref < 0 isn't in scope.
             bool ok0 = base_plane(f.axis_plane_a, da.origin, da.direction); // direction reused as normal0
             Vec3d origin1, normal1;
             bool ok1 = base_plane(f.axis_plane_b, origin1, normal1);
