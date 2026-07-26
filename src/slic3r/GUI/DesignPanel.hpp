@@ -238,6 +238,7 @@ private:
     // plane + centroid + live depths while the Extrude card is open (self-gates on m_active).
     void       update_extrude_gizmo();
     void       update_fillet_gizmo();     // edge-anchored radius arrow (Dressup card)
+    void       sync_dressup_target();     // Dressup card: show picked edge vs group, gate the combo
     void       update_hole_gizmo();       // footprint circle + diameter/depth arrows (Hole card)
     void       update_thread_gizmo();     // footprint circle + radius/length arrows (Thread card)
     void       update_shell_gizmo();      // inward thickness arrow on the picked face (Shell card)
@@ -592,6 +593,7 @@ private:
     ComboBox*         m_dressup_type{nullptr};
     ComboBox*         m_face_group{nullptr};
     wxSpinCtrlDouble* m_dressup_size{nullptr};
+    wxStaticText*     m_dressup_edge_label{nullptr}; // shows the picked edge, or the group fallback
 
     ComboBox*         m_hole_plane{nullptr};
     wxSpinCtrlDouble* m_hole_diameter{nullptr};

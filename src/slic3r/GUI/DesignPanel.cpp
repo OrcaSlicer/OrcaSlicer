@@ -1529,6 +1529,15 @@ DesignPanel::DesignPanel(wxWindow* parent)
     dform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Dress-up")), 0, wxALIGN_CENTER_VERTICAL);
     dform->Add(m_dressup_type, 0, wxEXPAND);
 
+    // The card can dress ONE picked edge or a whole face-group, and which one it will do is
+    // decided by a viewport pick the card previously said nothing about — so a user who had not
+    // picked an edge saw only the group combo and concluded per-edge rounding did not exist,
+    // while a user who HAD picked one saw the combo still reading "All" and was told the opposite
+    // of what Confirm would do. This row states the actual target, as Shell and Draft already do.
+    m_dressup_edge_label = new wxStaticText(m_cards, wxID_ANY, _L("(no edge picked — group below)"));
+    dform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Target")), 0, wxALIGN_CENTER_VERTICAL);
+    dform->Add(m_dressup_edge_label, 0, wxALIGN_CENTER_VERTICAL);
+
     m_face_group = make_combo(m_cards);
     m_face_group->Append(_L("Top"));      // index 0 -> FaceGroup::Top
     m_face_group->Append(_L("Bottom"));   // 1 -> Bottom
@@ -3126,7 +3135,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         }
         // If the Fillet/Chamfer card is open, re-anchor (or drop) the radius arrow on the new pick
         // and rebuild the ghost — once an edge is picked the preview-only mode hides the base body.
-        if (m_active == Tool::Dressup) { update_fillet_gizmo(); refresh_preview(); }
+        if (m_active == Tool::Dressup) { sync_dressup_target(); update_fillet_gizmo(); refresh_preview(); }
         // If the Shell card is open, a face pick chooses the open face: update the label + gizmo
         // + ghost so the hollow updates live.
         if (m_active == Tool::Shell) {
@@ -6892,6 +6901,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_face_group->SetSelection(static_cast<int>(f.face_group));
         m_sel_solid_edge = f.dressup_edge;   // preserve edge-targeting on re-edit
         m_sel_solid_body = f.target_body;    // preserve which body on re-edit
+        sync_dressup_target();               // and say which of the two the re-edit is targeting
         break;
     case CadFeatureType::Hole:
         m_hole_plane->SetSelection(index_from_plane(f.plane));
@@ -7769,6 +7779,21 @@ CadFeature DesignPanel::build_candidate(Tool t) const
 
 // Resolve the active Extrude's profile plane + a representative 2D centroid (arrow anchor)
 // and push them to the viewport gizmo. Self-gates: clears the gizmo unless Extrude is open.
+// Keep the Dress-up card honest about what Confirm will actually round: the single edge the
+// user picked in the viewport, or the face-group. build_dressup reads m_sel_solid_edge first and
+// only falls back to the group, so when an edge is picked the group combo is inert — grey it out
+// rather than leave it showing a value it will not use.
+void DesignPanel::sync_dressup_target()
+{
+    if (m_dressup_edge_label == nullptr) return;
+    const bool have_edge = (m_sel_solid_edge >= 0);
+    m_dressup_edge_label->SetLabel(have_edge
+        ? wxString::Format(_L("Edge %d"), m_sel_solid_edge)
+        : _L("(no edge picked — group below)"));
+    if (m_face_group != nullptr) m_face_group->Enable(!have_edge);
+    m_dressup_edge_label->Refresh();
+}
+
 void DesignPanel::update_fillet_gizmo()
 {
     if (!m_viewport) return;
@@ -8466,6 +8491,10 @@ void DesignPanel::open_tool(Tool t)
     // and performed another. Initialise from the current selection here, exactly as Extrude does
     // with m_extrude_face_src below. Skipped while re-editing, because load_feature_into_dialog
     // has already written the label from the feature's own stored face and runs before this.
+    // Same reasoning for Dress-up, whose target is the picked EDGE (falling back to the group).
+    if (t == Tool::Dressup && m_edit_index < 0)
+        sync_dressup_target();
+
     if (t == Tool::Shell && m_edit_index < 0)
         m_shell_face_label->SetLabel(m_sel_solid_face >= 0
             ? wxString::Format(_L("Face %d"), m_sel_solid_face)
