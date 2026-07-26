@@ -613,8 +613,18 @@ set(OCCT_LIBS
 )
 # The CAD kernel is the only consumer of OCCT's ModelingAlgorithms module. Upstream's
 # DataExchange already pulls TKBool in transitively, so the true delta is these two.
+#
+# PREPEND, never append: this list is single-pass static link order, dependents before
+# dependencies — note TKernel, which everything needs, is deliberately last. TKOffset
+# references BRepAlgo_Loop, which TKBool defines, so TKOffset must come BEFORE TKBool.
+# Appending put it after, and the Snapmaker fork's Flatpak build — the one configuration
+# whose linker is strictly single-pass — failed with
+#     libTKOffset.a(BRepOffset_MakeLoops.cxx.o): undefined reference to
+#     `BRepAlgo_Loop::BRepAlgo_Loop()'
+# while the ordinary Linux, macOS and Windows links resolved it anyway. Use set() rather
+# than list(PREPEND), which needs CMake 3.15 and this project supports 3.13.
 if (SLIC3R_CAD)
-    list(APPEND OCCT_LIBS TKFillet TKOffset)
+    set(OCCT_LIBS TKFillet TKOffset ${OCCT_LIBS})
 endif ()
 # Publish the link list so the Windows packaging step can assert it ships a DLL for
 # every toolkit we link, instead of shipping whatever the deps prefix happens to hold.
