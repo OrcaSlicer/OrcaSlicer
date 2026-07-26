@@ -36,7 +36,6 @@
 #include <memory>
 #include <functional>
 #include <cmath>
-#include <cstdio>
 #include <algorithm>
 #include <thread>
 #include <atomic>
@@ -103,6 +102,24 @@ static ComboBox* make_combo(wxWindow* parent)
                            wxSize(parent->FromDIP(90), parent->FromDIP(24)), 0, nullptr, wxCB_READONLY);
     c->SetMinSize(wxSize(parent->FromDIP(90), parent->FromDIP(24)));
     return c;
+}
+
+// Append a row that carries a feature/body index as client data.
+//
+// It must go through SetClientData(), not Append()'s clientData argument. Orca's ComboBox keeps
+// client data in its own vector and its Append() writes that vector directly, never routing
+// through wxItemContainer — so the container's m_clientDataItemsType stays wxClientData_None.
+// wxItemContainer::GetClientData() opens with
+//     wxCHECK_MSG( HasClientUntypedData(), NULL, ... );
+// and wxCHECK_MSG is an early RETURN, not a debug-only assert. So the read handed back NULL for
+// every row and every caller resolved it to index 0 no matter what the user had picked — silently,
+// because index 0 is a legal answer. SetClientData() flips the type to wxClientData_Void, after
+// which the value survives the round trip.
+static int combo_append_index(ComboBox* c, const wxString& label, int index)
+{
+    const int row = c->Append(label, wxNullBitmap);
+    c->SetClientData(unsigned(row), reinterpret_cast<void*>(intptr_t(index)));
+    return row;
 }
 
 // Format a value with the international ('.') decimal separator regardless of the
@@ -600,8 +617,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                         // just like a drawn sketch, so a projected body edge is a valid path.
                         if (m_doc.features[i].type == CadFeatureType::Sketch ||
                             m_doc.features[i].type == CadFeatureType::Project)
-                            m_rib_sketch->Append(wxString::FromUTF8(m_doc.features[i].name), wxNullBitmap,
-                                                 reinterpret_cast<void*>(intptr_t(i)));
+                            combo_append_index(m_rib_sketch, wxString::FromUTF8(m_doc.features[i].name), i);
                     }
                     if (m_rib_sketch->GetCount() > 0) m_rib_sketch->SetSelection(0);
                     else {
@@ -2668,6 +2684,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_box_constraints->Add(m_constraint_rows, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 12);
     cards->Add(m_box_constraints, 0, wxEXPAND);
 
+    // Wrap every card label now that the whole stack exists. wxStaticText never wraps on its
+    // own, so a one-sentence help line under a card sets that card's sizer min width to the
+    // width of the entire sentence — the same failure make_combo's explicit width fixes above,
+    // and with the same symptom: the card is wider than the sidebar, so every control in it is
+    // clipped at the panel's right edge. Found by click-testing Transform, Mirror and Coord Sys,
+    // whose hints are the longest. 240 px sits under m_form's 264 px minimum, so a wrapped hint
+    // always fits; the short two-column labels are far below it and Wrap() leaves them alone.
+    for (wxWindow* w : m_cards->GetChildren())
+        if (auto* t = dynamic_cast<wxStaticText*>(w))
+            t->Wrap(240);
+
     // Feature tree card. Same idiom as Prepare's sections (icon + Head_14 title + rule) via the
     // shared card_header helper, instead of the bare micro-label this used to be; the row-edit
     // actions live in the header, as Prepare puts its section actions.
@@ -4615,8 +4642,8 @@ void DesignPanel::populate_sheet_body_choices(ComboBox* c) const
     for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
         if (!CadDocument::is_sheet_shape(m_doc.bodies[i].shape)) continue;
         const std::string& n = m_doc.bodies[i].name;
-        c->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n),
-                  wxNullBitmap, reinterpret_cast<void*>(intptr_t(i)));
+        combo_append_index(c, n.empty() ? wxString::Format(_L("Body %zu"), i + 1)
+                                        : wxString::FromUTF8(n), int(i));
     }
     if (c->GetCount() > 0)
         c->SetSelection(std::min(std::max(keep, 0), int(c->GetCount()) - 1));
@@ -7067,8 +7094,8 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
             int pre_sel = wxNOT_FOUND;
             for (int i = 0; i < int(m_doc.features.size()); ++i) {
                 if (m_doc.features[i].type == CadFeatureType::Sketch) {
-                    const int pos = m_rib_sketch->Append(wxString::FromUTF8(m_doc.features[i].name), wxNullBitmap,
-                                                         reinterpret_cast<void*>(intptr_t(i)));
+                    const int pos = combo_append_index(m_rib_sketch,
+                                                       wxString::FromUTF8(m_doc.features[i].name), i);
                     if (i == f.rib_sketch_ref) pre_sel = pos;
                 }
             }
@@ -7727,10 +7754,15 @@ CadFeature DesignPanel::build_candidate(Tool t) const
     // extrude mutate it). -1 when nothing is picked => auto (last body).
     // Targeting the picked body is an ADD-time concern; while editing, the original feature's
     // target_body is preserved from the seed (the card did not re-pick a body).
+    // HAZARD: this is a negative list, so a tool that picks its own body is broken by OMISSION —
+    // the card computes target_body and this line then throws it away. SurfaceOffset and
+    // ThickenSurface were missing: both read a SHEET body from their own combo and both had it
+    // overwritten with the picked SOLID's index. Any new card that picks a body belongs here.
     if (!editing && m_active != Tool::Boolean && m_active != Tool::Cut
         && m_active != Tool::Transform && m_active != Tool::Mirror && m_active != Tool::Thicken
         && m_active != Tool::DeleteFace && m_active != Tool::Rib && m_active != Tool::Project
-        && m_active != Tool::Helix)
+        && m_active != Tool::Helix && m_active != Tool::SurfaceOffset
+        && m_active != Tool::ThickenSurface)
         f.target_body = m_sel_solid_body;
     return f;
 }
@@ -8348,9 +8380,8 @@ void DesignPanel::open_tool(Tool t)
         for (int i = 0; i < int(m_doc.features.size()); ++i) {
             if (m_doc.features[i].type != CadFeatureType::CoordSys) continue;
             const wxString nm = wxString::FromUTF8(m_doc.features[i].name);
-            void* const cd = reinterpret_cast<void*>(intptr_t(i));
-            const int pos_a = m_mate_cs_a->Append(nm, wxNullBitmap, cd);
-            const int pos_b = m_mate_cs_b->Append(nm, wxNullBitmap, cd);
+            const int pos_a = combo_append_index(m_mate_cs_a, nm, i);
+            const int pos_b = combo_append_index(m_mate_cs_b, nm, i);
             if (i == keep_a) m_mate_cs_a->SetSelection(pos_a);
             if (i == keep_b) m_mate_cs_b->SetSelection(pos_b);
         }
@@ -8375,10 +8406,7 @@ void DesignPanel::open_tool(Tool t)
         for (int i = 0; i < int(m_doc.features.size()); ++i) {
             const CadFeature& sf = m_doc.features[i];
             if (sf.type != CadFeatureType::Sketch || i == m_sweep_profile_ref) continue;
-            // ComboBox's own Append(text, bitmap) hides wxItemContainer's (text, void*),
-            // so the client data goes through the 3-arg form.
-            const int pos = m_sweep_path->Append(wxString::FromUTF8(sf.name), wxNullBitmap,
-                                                 reinterpret_cast<void*>(intptr_t(i)));
+            const int pos = combo_append_index(m_sweep_path, wxString::FromUTF8(sf.name), i);
             if (i == m_sweep_path_ref) sel_idx = pos;
         }
         if (sel_idx != wxNOT_FOUND) m_sweep_path->SetSelection(sel_idx);
@@ -8430,6 +8458,23 @@ void DesignPanel::open_tool(Tool t)
             m_surf_fill_sketch_label->SetLabel(_L("Sketch: ") +
                 wxString::FromUTF8(m_doc.features[m_surf_fill_sketch_ref].name));
     }
+
+    // Shell and Draft both take their face from the live pick at Confirm time, but until now
+    // only the PICK handler wrote their labels. So the natural order — pick the face, then open
+    // the card — left Shell reading "(all faces — closed hollow)" and Draft "(pick a side face)"
+    // while Confirm went on to use m_sel_solid_face regardless: the card described one operation
+    // and performed another. Initialise from the current selection here, exactly as Extrude does
+    // with m_extrude_face_src below. Skipped while re-editing, because load_feature_into_dialog
+    // has already written the label from the feature's own stored face and runs before this.
+    if (t == Tool::Shell && m_edit_index < 0)
+        m_shell_face_label->SetLabel(m_sel_solid_face >= 0
+            ? wxString::Format(_L("Face %d"), m_sel_solid_face)
+            : _L("(all faces — closed hollow)"));
+
+    if (t == Tool::Draft && m_edit_index < 0)
+        m_draft_face_label->SetLabel(m_sel_solid_face >= 0
+            ? wxString::Format(_L("Face %d"), m_sel_solid_face)
+            : _L("(pick a side face)"));
 
     if (t == Tool::Extrude) {
         if (m_extrude_face_src >= 0)
