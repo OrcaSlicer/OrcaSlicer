@@ -333,6 +333,15 @@ static SketchSolveResult solve_impl(std::vector<SketchEntity>& entities,
     }
 
     // ---- Read solved geometry back --------------------------------------------------
+    // ONLY on success. A failed solve leaves libslvs' params holding its last Newton
+    // iterate — geometry that satisfies nothing and is usually wildly deformed. Writing
+    // that back made every rejected attempt destructive: the caller rolls the constraints
+    // back, but the sketch it rolls back to is already wreckage, so the next attempt starts
+    // from the corpse. The fillet degrade ladder hit this on every corner — rung 1 (a
+    // tangent on each leg) is legitimately over-constrained against the legs' own H/V, and
+    // its wreckage then failed rungs 2 and 3, which solve cleanly on their own. The arc
+    // ended up with no constraints at all and the solver snapped the corner shut. snaporca-pl5.
+    if (!out.ok) return out;
     for (size_t i = 0; i < entities.size(); ++i) {
         SketchEntity& e = entities[i];
         const Slots&  s = slot[i];

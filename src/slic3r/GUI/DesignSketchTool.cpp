@@ -205,6 +205,16 @@ void DesignSketchTool::rebuild_features_from_entities()
 
 void DesignSketchTool::set_tool(Mode mode)
 {
+    // A READY edit-op carries the user's typed or dragged value, so switching tools commits it
+    // rather than dropping it — the same rule Tab follows in the dimension editor. Discarding it
+    // here is most of why Fillet looked like it simply did not work: every documented route (type
+    // the radius, or drag the arrow) left the op ready-but-pending, and the next tool click threw
+    // the value away and reverted the corner to sharp, with nothing on screen saying so.
+    // This MUST run before m_mode is reassigned: op_ready() and confirm_op() both switch on
+    // m_mode, so after the assignment they would test the tool being switched TO. That read
+    // op_ready()==0 with a=0 b=3 val=28.205 sitting right there — picked, valued, and dropped.
+    if (op_ready()) confirm_op();
+
     // Switch the active drawing tool without dropping accumulated entities.
     m_mode = mode;
     m_points.clear();
@@ -212,7 +222,12 @@ void DesignSketchTool::set_tool(Mode mode)
     m_awaiting_length = false;
     m_autoedit_seen = int(m_entities.size());   // resync baseline so a switch never fires
     m_autoedit_pending = false;
-    reset_op();                 // drop any in-progress edit-op gizmo
+    // A READY edit-op carries the user's typed or dragged value, so switching tools commits it
+    // rather than dropping it — the same rule Tab follows in the dimension editor. Discarding it
+    // here is most of why Fillet looked like it simply did not work: every documented route (type
+    // the radius, or drag the arrow) left the op ready-but-pending, and the next tool click threw
+    // the value away and reverted the corner to sharp, with nothing on screen saying so.
+    reset_op();                 // drop any in-progress (not yet ready) edit-op gizmo
     reset_tf();                 // drop any in-progress transform gizmo
     m_selection.clear();
     if (on_selection_changed) on_selection_changed(0);
@@ -250,7 +265,9 @@ void DesignSketchTool::cancel()
 void DesignSketchTool::request_exit()
 {
     if (!m_points.empty()) { m_points.clear(); m_has_cursor = false; return; }
-    if (m_mode != Mode::Select) { set_tool(Mode::Select); return; }
+    // Drop any pending edit-op BEFORE the downgrade: set_tool commits a ready one, and Esc must
+    // cancel it, never apply it. Right-click already discards it through its own branch.
+    if (m_mode != Mode::Select) { reset_op(); set_tool(Mode::Select); return; }
     if (on_exit) on_exit(); else cancel();
 }
 
@@ -2096,7 +2113,9 @@ bool DesignSketchTool::try_add_constraints(const std::vector<SketchEntityConstra
     if (solve_sketch_entities(m_entities, m_constraints))
         return true;
     m_constraints.resize(mark);                 // roll back the conflicting batch
-    solve_sketch_entities(m_entities, m_constraints);   // restore prior solved state
+    // No re-solve to "restore": a failed solve no longer touches the geometry
+    // (SketchSolver.cpp only writes back on success), so m_entities still holds the
+    // prior solved state exactly. snaporca-pl5.
     return false;
 }
 
@@ -6125,7 +6144,12 @@ void DesignSketchTool::open_op_editor()
     on_inline_edit(px, std::abs(m_op_value), "",
         [this, sign](double v) {
             m_op_value = (m_mode == Mode::Offset) ? sign * std::abs(v) : std::max(0.001, v);
-            recompute_op_ghost();
+            // Entering a radius IS the commit. Leaving it as a preview meant the most obvious
+            // route of all — click the radius, type it, press Return — ended with the value set,
+            // the ghost drawn, and no geometry written; the only paths that ever applied it were
+            // finishing the whole sketch or clicking empty space, neither of which is signposted.
+            if (op_ready()) confirm_op();
+            else            recompute_op_ghost();
         },
         []() {});
 }

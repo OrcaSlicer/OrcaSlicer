@@ -6620,3 +6620,80 @@ TEST_CASE("CadDocument filleted solid tessellates watertight", "[CadDocument]")
     REQUIRE(doc.display_tri_face.size() == doc.display_mesh.its.indices.size());
     REQUIRE(doc.display_tri_body.size() == doc.display_mesh.its.indices.size());
 }
+
+// A rejected solve must leave the sketch untouched. libslvs writes its last Newton iterate
+// into the params whether or not it converged, so reading geometry back unconditionally made
+// every failed attempt destructive -- and the fillet degrade ladder tries a deliberately
+// over-constrained rung FIRST, so a filleted corner was wrecked before the rung that works
+// ever got a chance. snaporca-pl5.
+TEST_CASE("Failed sketch solve leaves geometry untouched", "[CadDocument]")
+{
+    using R  = SketchPointRole;
+    using CT = SketchConstraintType;
+    auto line = [](Vec2d p0, Vec2d p1) {
+        SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = p0; e.p1 = p1; return e; };
+    auto coinc = [](int ea, R ra, int eb, R rb) {
+        SketchEntityConstraintDef d; d.type = CT::Coincident; d.ea = ea; d.ra = ra; d.eb = eb; d.rb = rb; return d; };
+    auto axis = [](CT t, int e) {
+        SketchEntityConstraintDef d; d.type = t; d.ea = e; d.ra = R::P0; d.eb = e; d.rb = R::P1; return d; };
+
+    // Axis-aligned rectangle, drawn as four lines with the constraints the sketch tool
+    // infers: a Coincident at each corner and H/V per leg.
+    std::vector<SketchEntity> ents = {
+        line(Vec2d(-89.32,  72.05), Vec2d( 52.00,  72.05)),   // 0 top    (H)
+        line(Vec2d( 52.00,  72.05), Vec2d( 52.00, -68.97)),   // 1 right  (V)
+        line(Vec2d( 52.00, -68.97), Vec2d(-89.32, -68.97)),   // 2 bottom (H)
+        line(Vec2d(-89.32, -68.97), Vec2d(-89.32,  72.05)),   // 3 left   (V)
+    };
+    std::vector<SketchEntityConstraintDef> cs = {
+        coinc(0, R::P1, 1, R::P0), coinc(0, R::P0, 3, R::P1),
+        coinc(1, R::P1, 2, R::P0), coinc(2, R::P1, 3, R::P0),
+        axis(CT::Horizontal, 0), axis(CT::Vertical, 1),
+        axis(CT::Horizontal, 2), axis(CT::Vertical, 3),
+    };
+    REQUIRE(solve_sketch_entities(ents, cs));
+
+    // Fillet the top-left corner: trim both legs, drop the stale corner Coincident.
+    const int a = 0, b = 3;
+    SketchEntity a_out, b_out, arc;
+    REQUIRE(SketchEngine::fillet_lines(ents[a], ents[b], 28.205, a_out, b_out, arc));
+    ents[a] = a_out; ents[b] = b_out;
+    const int xi = int(ents.size());
+    ents.push_back(arc);
+    cs.erase(std::remove_if(cs.begin(), cs.end(), [&](const SketchEntityConstraintDef& d) {
+        return d.type == CT::Coincident && d.ea == a && d.ra == R::P0 && d.eb == b && d.rb == R::P1;
+    }), cs.end());
+    const std::vector<SketchEntity> trimmed = ents;
+
+    auto coin = [&](R xr, int ln, R lr) { return coinc(xi, xr, ln, lr); };
+    auto tang = [&](int ln) {
+        SketchEntityConstraintDef d; d.type = CT::Tangent; d.ea = xi; d.eb = ln; return d; };
+
+    // Rung 1 of the ladder: a tangent on each leg. Over-constrained against the legs'
+    // own H/V, so it must be rejected -- and must not move a single point.
+    {
+        std::vector<SketchEntityConstraintDef> pc = cs;
+        for (const auto& c : { coin(R::P0, a, R::P0), coin(R::P1, b, R::P1), tang(a), tang(b) })
+            pc.push_back(c);
+        std::vector<SketchEntity> e = ents;
+        REQUIRE_FALSE(solve_sketch_entities(e, pc));
+        for (size_t i = 0; i < e.size(); ++i) {
+            CHECK((e[i].p0 - trimmed[i].p0).norm() == Approx(0.0).margin(1e-9));
+            CHECK((e[i].p1 - trimmed[i].p1).norm() == Approx(0.0).margin(1e-9));
+            CHECK((e[i].center - trimmed[i].center).norm() == Approx(0.0).margin(1e-9));
+        }
+    }
+
+    // Rung 2 (one tangent) solves, and the arc keeps the radius the fillet gave it.
+    {
+        std::vector<SketchEntityConstraintDef> pc = cs;
+        for (const auto& c : { coin(R::P0, a, R::P0), coin(R::P1, b, R::P1), tang(a) })
+            pc.push_back(c);
+        REQUIRE(solve_sketch_entities(ents, pc));
+        CHECK(ents[xi].radius == Approx(28.205).margin(1e-6));
+        // Corner stays open: the legs end on the arc, they do not meet each other.
+        CHECK((ents[a].p0 - ents[b].p1).norm() > 1.0);
+        CHECK((ents[a].p0 - ents[xi].p0).norm() == Approx(0.0).margin(1e-6));
+        CHECK((ents[b].p1 - ents[xi].p1).norm() == Approx(0.0).margin(1e-6));
+    }
+}
