@@ -46,6 +46,4 @@ test.js
 internal_docs/
 *.flatpak
 /flatpak-repo/
-# Python bytecode
-__pycache__/
-*.pyc
+free-cloud-code/*

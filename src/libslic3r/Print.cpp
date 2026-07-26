@@ -1433,8 +1433,11 @@ StringObjectException Print::validate(std::vector<StringObjectException> *warnin
                 print_object.config().support_style.value == smsDefault) &&
             print_object.model_object()->has_custom_layering()) {
             if (const std::vector<coordf_t> &layers = layer_height_profile(print_object_idx); ! layers.empty())
-                if (! check_object_layers_fixed(print_object.slicing_parameters(), layers))
-                    return {_u8L("Variable layer height is not supported with Organic supports.") };
+                if (!check_object_layers_fixed(print_object.slicing_parameters(), layers))
+                {
+                    // return {_u8L("Variable layer height is not supported with Organic supports.") };
+                }
+                    
         }
 
     if (this->has_wipe_tower() && ! m_objects.empty()) {
