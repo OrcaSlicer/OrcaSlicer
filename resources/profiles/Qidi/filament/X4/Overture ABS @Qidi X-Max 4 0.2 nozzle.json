@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSA04",
 	"name": "Overture ABS @Qidi X-Max 4 0.2 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Overture ABS@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "GCuVY57NORejEknS",
+	"instantiation": "true",
 	"chamber_temperature": [
 		"0"
 	],

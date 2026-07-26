@@ -1,6 +1,6 @@
 {
 	"name": "Afinia",
-	"version": "02.04.00.00",
+	"version": "02.04.00.02",
 	"force_update": "0",
 	"description": "Afinia configurations",
 	"machine_model_list": [
@@ -125,14 +125,6 @@
 			"sub_path": "filament/fdm_filament_tpu.json"
 		},
 		{
-			"name": "Afinia ABS",
-			"sub_path": "filament/Afinia ABS.json"
-		},
-		{
-			"name": "Afinia ABS+",
-			"sub_path": "filament/Afinia ABS+.json"
-		},
-		{
 			"name": "Afinia ABS+@HS",
 			"sub_path": "filament/Afinia ABS+@HS.json"
 		},
@@ -141,32 +133,16 @@
 			"sub_path": "filament/Afinia ABS@HS.json"
 		},
 		{
-			"name": "Afinia Value ABS",
-			"sub_path": "filament/Afinia Value ABS.json"
-		},
-		{
 			"name": "Afinia Value ABS@HS",
 			"sub_path": "filament/Afinia Value ABS@HS.json"
-		},
-		{
-			"name": "Afinia PLA",
-			"sub_path": "filament/Afinia PLA.json"
 		},
 		{
 			"name": "Afinia PLA@HS",
 			"sub_path": "filament/Afinia PLA@HS.json"
 		},
 		{
-			"name": "Afinia Value PLA",
-			"sub_path": "filament/Afinia Value PLA.json"
-		},
-		{
 			"name": "Afinia Value PLA@HS",
 			"sub_path": "filament/Afinia Value PLA@HS.json"
-		},
-		{
-			"name": "Afinia TPU",
-			"sub_path": "filament/Afinia TPU.json"
 		},
 		{
 			"name": "Afinia TPU@HS",

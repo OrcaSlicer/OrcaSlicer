@@ -3,7 +3,7 @@
 	"name": "Creality Hi 0.6 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "kcNwxPo5XPc0xEuO",
 	"instantiation": "true",
 	"printer_model": "Creality Hi",
 	"gcode_flavor": "klipper",

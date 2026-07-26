@@ -1,11 +1,10 @@
 {
 	"type": "filament",
-	"filament_id": "QD_3_1_50",
-	"setting_id": "GFSR99",
 	"name": "QIDI TPU 95A-HF@X-Max 4-Series",
-	"from": "system",
-	"instantiation": "false",
 	"inherits": "fdm_filament_x4_common",
+	"from": "system",
+	"filament_id": "QD_3_1_50",
+	"instantiation": "false",
 	"fan_cooling_layer_time": [
 		"100"
 	],

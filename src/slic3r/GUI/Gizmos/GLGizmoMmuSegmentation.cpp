@@ -102,7 +102,7 @@ bool GLGizmoMmuSegmentation::on_init()
     m_desc["shortcut_key"]     = _L("Choose filament");
     m_desc["edge_detection"]   = _L("Edge detection");
     m_desc["gap_area"]         = _L("Gap area");
-    m_desc["perform"]          = _L("Perform");
+    m_desc["perform"]          = _L("Apply");
     m_desc["remove_all"]       = _L("Erase all");
     m_desc["circle"]           = _L("Circle");
     m_desc["sphere"]           = _L("Sphere");
@@ -122,7 +122,7 @@ bool GLGizmoMmuSegmentation::on_init()
     std::pair<wxString, wxString> paint_shortcut            = {_L("Left mouse button"),         m_desc["paint"]};
     std::pair<wxString, wxString> erase_shortcut            = {shift + _L("Left mouse button"), m_desc["erase"]};
     std::pair<wxString, wxString> clipping_shortcut         = {alt + _L("Mouse wheel"),         m_desc["clipping_of_view"]};
-    std::pair<wxString, wxString> toggle_wireframe_shortcut = {alt + shift + _L("Enter"),       m_desc["toggle_wireframe"]};
+    std::pair<wxString, wxString> toggle_wireframe_shortcut = {alt + shift + _L_CONTEXT("Enter", "Keyboard Shortcut"),       m_desc["toggle_wireframe"]};
 
     m_shortcuts_brush = {
         paint_shortcut,

@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Creality Ender-5 Max 0.4mm nozzle",
 	"inherits": "fdm_process_common_klipper",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "AIGw5RfsGTHUTvDV",
 	"instantiation": "true",
 	"accel_to_decel_enable": "1",
 	"accel_to_decel_factor": "25%",

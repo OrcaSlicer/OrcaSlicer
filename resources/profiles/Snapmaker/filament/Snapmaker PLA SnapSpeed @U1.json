@@ -3,7 +3,7 @@
 	"name": "Snapmaker PLA SnapSpeed @U1",
 	"inherits": "Snapmaker PLA SnapSpeed @U1 base",
 	"from": "system",
-	"setting_id": "119531393501",
+	"setting_id": "en6Pvvbc1P9TKm8I",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker U1 (0.4 nozzle)"

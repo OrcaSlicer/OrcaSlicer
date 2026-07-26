@@ -3,7 +3,7 @@
 	"name": "Anycubic PLA High Speed @Anycubic Kobra S1 Max 0.8 nozzle",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "2Rk0UA3rtW53ECqo",
 	"filament_id": "GFPLA High Speed",
 	"instantiation": "true",
 	"filament_settings_id": [

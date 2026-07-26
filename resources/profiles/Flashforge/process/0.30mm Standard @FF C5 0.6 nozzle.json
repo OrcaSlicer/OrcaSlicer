@@ -3,6 +3,7 @@
 	"name": "0.30mm Standard @FF C5 0.6 nozzle",
 	"inherits": "0.20mm Standard @Flashforge AD5M Pro 0.4 Nozzle",
 	"from": "system",
+	"setting_id": "VbgpUmBZySYfOWFM",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Creator 5 0.6 nozzle",

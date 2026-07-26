@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido Matte @Qidi X-Plus 4 0.2 nozzle",
 	"inherits": "QIDI PLA Rapido Matte",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "9YVeedSIviWv3n9F",
 	"filament_id": "QD_0_1_2",
 	"instantiation": "true",
 	"activate_air_filtration": [

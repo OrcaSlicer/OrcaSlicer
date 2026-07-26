@@ -3,6 +3,7 @@
 	"name": "FlashForge PPS-CF @FF G4 0.6 nozzle",
 	"inherits": "FusRock Generic PET-CF @G3U 0.6 Nozzle",
 	"from": "system",
+	"setting_id": "4w0oK3F50O1DUqsu",
 	"instantiation": "true",
 	"close_fan_the_first_x_layers": [
 		"2"

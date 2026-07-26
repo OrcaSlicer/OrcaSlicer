@@ -3,7 +3,7 @@
 	"name": "HATCHBOX PETG @Qidi X-Plus 4 0.8 nozzle",
 	"inherits": "HATCHBOX PETG @Qidi",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "9otX3aWO4xQA72DT",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_max_speed": [

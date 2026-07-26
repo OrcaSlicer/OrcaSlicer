@@ -3,6 +3,7 @@
 	"name": "0.20mm Fine @SeeMeCNC RostockMAX v3.2 0.5",
 	"inherits": "SeeMeCNC process base 0.5mm",
 	"from": "System",
+	"setting_id": "DLMnI7xqZA6QqcDm",
 	"instantiation": "true",
 	"print_settings_id": "0.20mm Fine @SeeMeCNC RostockMAX v3.2 0.5",
 	"compatible_printers": [

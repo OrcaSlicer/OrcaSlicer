@@ -3,6 +3,7 @@
     "name": "FilAr PLA Cobre",
     "inherits": "FilAr PLA @base",
     "from": "system",
+    "setting_id": "BpYgVH5d3LOdib3U",
     "filament_id": "FILAR0003",
     "instantiation": "true",
     "filament_vendor": [

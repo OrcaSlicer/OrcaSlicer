@@ -1,9 +1,9 @@
-// Bridge-perimeter parameter sweeps.
+﻿// Bridge-perimeter parameter sweeps.
 //
 // These tests slice the same geometry under different print parameters and
 // measure erBridgePerimeter coverage, to determine which parameters break /
 // strip the bridge-spanning perimeters. They double as regression guards for
-// the cases enumerated in BRIDGE_PERIMETERS.md §3.
+// the cases enumerated in BRIDGE_PERIMETERS.md Â§3.
 //
 // Diagnostic counts are printed to stderr ([PARAM] lines) so a run shows the
 // effect of each parameter at a glance; the REQUIREs encode only the
@@ -18,7 +18,7 @@
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
-#include "test_data.hpp"
+#include "test_helpers.hpp"
 #include "test_bridge_helpers.hpp"
 
 using namespace Slic3r;
@@ -81,7 +81,7 @@ void dump(const char *tag, const BridgeStats &s)
 } // namespace
 
 // ============================================================================
-// 3a. Counterbore holes (process_no_bridge) — does it strip bridge perimeters?
+// 3a. Counterbore holes (process_no_bridge) â€” does it strip bridge perimeters?
 // ============================================================================
 
 SCENARIO("Counterbore bridging mode effect on bridge perimeters", "[Bridge][Param][Counterbore]")
@@ -145,7 +145,7 @@ SCENARIO("Bridge perimeters under both wall generators", "[Bridge][Param][WallGe
 }
 
 // ============================================================================
-// 3c. Curled-perimeter slowdown on/off — must not change ROLE tagging
+// 3c. Curled-perimeter slowdown on/off â€” must not change ROLE tagging
 // ============================================================================
 
 SCENARIO("Curled-perimeter slowdown does not change bridge perimeter roles", "[Bridge][Param][Curled]")
@@ -172,7 +172,7 @@ SCENARIO("Curled-perimeter slowdown does not change bridge perimeter roles", "[B
 SCENARIO("Scenario 1: bridged hole in a connected body", "[Bridge][Param][Scenario1]")
 {
     // bridge_with_hole = a bridge span containing a supported island/hole, i.e.
-    // a bridged region surrounded by other extrusion — the scenario-1 topology.
+    // a bridged region surrounded by other extrusion â€” the scenario-1 topology.
     // (cube_with_hole does not produce a bottom bridge: its hole is supported.)
     GIVEN("A bridge_with_hole mesh (bridged region surrounded by structure)")
     {

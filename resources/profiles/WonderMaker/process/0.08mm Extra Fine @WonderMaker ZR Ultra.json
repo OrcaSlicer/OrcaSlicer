@@ -3,7 +3,7 @@
 	"name": "0.08mm Extra Fine @WonderMaker ZR Ultra",
 	"inherits": "fdm_process_wm_0.08",
 	"from": "system",
-	"setting_id": "GP018",
+	"setting_id": "S9bZmEeAYQKyQW6v",
 	"instantiation": "true",
 	"description": "Compared with the default profile of a 0.4 mm nozzle, it has a smaller layer height, and results in almost negligible layer lines and longer printing time.",
 	"smooth_coefficient": "150",

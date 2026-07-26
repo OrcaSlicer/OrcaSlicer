@@ -3,7 +3,7 @@
     "name": "Hyper ABS @K2 Plus-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "lGXmZiCrrwfTeERC",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"
@@ -51,7 +51,7 @@
         "0"
     ],
     "filament_max_volumetric_speed": [
-        "2"
+        "23"
     ],
     "filament_minimal_purge_on_wipe_tower": [
         "15"

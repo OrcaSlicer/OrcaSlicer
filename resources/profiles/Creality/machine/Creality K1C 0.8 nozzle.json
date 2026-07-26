@@ -3,7 +3,7 @@
 	"name": "Creality K1C 0.8 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "F9LWshBdIbw0Ygf8",
 	"instantiation": "true",
 	"printer_model": "Creality K1C",
 	"gcode_flavor": "klipper",

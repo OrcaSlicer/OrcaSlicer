@@ -202,7 +202,7 @@ void DailyTipsDataRenderer::render_text(const ImVec2& start_pos, const ImVec2& s
 
     // wiki
     if (!m_data.wiki_url.empty()) {
-        std::string tips_line = _u8L("For more information, please check out Wiki");
+        std::string tips_line = _u8L("For more information, please check out our Wiki");
         std::string wiki_part_text = _u8L("Wiki");
         std::string first_part_text = tips_line.substr(0, tips_line.find(wiki_part_text));
         ImVec2 wiki_part_size = ImGui::CalcTextSize(wiki_part_text.c_str());

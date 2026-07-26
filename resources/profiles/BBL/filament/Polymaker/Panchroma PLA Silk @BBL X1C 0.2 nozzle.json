@@ -1,7 +1,7 @@
 {
 	"type": "filament",
 	"name": "Panchroma PLA Silk @BBL X1C 0.2 nozzle",
-	"inherits": "Panchroma PLA @base",
+	"inherits": "Panchroma PLA Silk @base",
 	"from": "system",
 	"setting_id": "GFSPM004_09",
 	"instantiation": "true",

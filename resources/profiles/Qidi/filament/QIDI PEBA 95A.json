@@ -1,11 +1,11 @@
 {
 	"type": "filament",
-	"filament_id": "QD_0_1_36",
-	"setting_id": "GFSR98",
 	"name": "QIDI PEBA 95A",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_filament_tpu",
+	"from": "system",
+	"setting_id": "qkErLCeMU5ufGB0k",
+	"filament_id": "QD_0_1_36",
+	"instantiation": "true",
 	"fan_cooling_layer_time": [
 		"100"
 	],

@@ -3,7 +3,7 @@
     "name": "Hyper ABS @Ender-3 V4-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "utCV4AwQPV4Ums35",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

@@ -3,7 +3,7 @@
 	"name": "Elegoo OrangeStorm Giga 0.8 nozzle",
 	"inherits": "Elegoo OrangeStorm Giga 0.4 nozzle",
 	"from": "system",
-	"setting_id": "EOSG08",
+	"setting_id": "pdXtGNJKHmtMAO1x",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.8"

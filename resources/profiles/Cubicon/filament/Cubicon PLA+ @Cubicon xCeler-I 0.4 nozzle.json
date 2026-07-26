@@ -3,6 +3,7 @@
 	"name": "Cubicon PLA+ @Cubicon xCeler-I 0.4 nozzle",
 	"inherits": "Cubicon PLA+ @base",
 	"from": "system",
+	"setting_id": "fNR2Bw3e4TGcWhq0",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Cubicon xCeler-I 0.4 nozzle"

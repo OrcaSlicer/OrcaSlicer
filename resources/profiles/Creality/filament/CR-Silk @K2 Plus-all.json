@@ -3,7 +3,7 @@
     "name": "CR-Silk @K2 Plus-all",
     "inherits": "fdm_filament_pla",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "8mKZzYS3ykGEMqjH",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"
@@ -48,7 +48,7 @@
         "0"
     ],
     "filament_max_volumetric_speed": [
-        "1"
+        "12"
     ],
     "filament_minimal_purge_on_wipe_tower": [
         "15"

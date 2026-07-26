@@ -3,7 +3,7 @@
 	"name": "0.15mm Optimal @TwoTrees",
 	"inherits": "fdm_process_common",
 	"from": "system",
-	"setting_id": "GP003",
+	"setting_id": "KViBpFjvYqMyhXOw",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

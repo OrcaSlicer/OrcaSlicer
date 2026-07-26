@@ -26,10 +26,18 @@ struct OrientMesh {
     TriangleMesh mesh;              /// The real mesh data
     double overhang_angle = 30;
     double angle{ 0 };
+    double angle_vertical{ 0 };
     Vec3d axis{ 0,0,1 };
+    Vec3d axis_vertical{ 0,0,1 };
     Vec3d orientation{ 0,0,1 };
-    Matrix3d rotation_matrix;
-    Vec3d euler_angles;
+    Vec3d orientation_vertical{ -1,0,0 };
+    Matrix3d rotation_matrix = Matrix3d::Identity();
+    Matrix3d rotation_matrix_vertical = Matrix3d::Identity();
+    Vec3d euler_angles = {0, 0, 0};
+    Vec3d euler_angles_vertical = {0, 0, 0};
+    Vec3d cooling_direction = {0, 0, 0};
+    bool has_cooling_fan{false};
+
     std::string name;
 
     /// Optional setter function which can store arbitrary data in its closure
@@ -153,6 +161,9 @@ void orient(OrientMeshs &items, const OrientMeshs &excludes, const OrientParams 
 void orient(ModelObject* obj);
 
 void orient(ModelInstance* instance);
+
+// rotate z axis for cooling
+void orient_for_cooling(TriangleMesh& mesh, const FanDirection& fan_dir);
 
 }} // namespace Slic3r::orientment
 

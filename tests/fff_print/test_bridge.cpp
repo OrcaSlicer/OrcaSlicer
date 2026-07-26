@@ -1,11 +1,11 @@
-#include <catch2/catch_all.hpp>
+﻿#include <catch2/catch_all.hpp>
 #include <set>
 
 #include "libslic3r/Layer.hpp"
 #include "libslic3r/Print.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
-#include "test_data.hpp"
+#include "test_helpers.hpp"
 #include "test_bridge_helpers.hpp"
 
 using namespace Slic3r;
@@ -481,7 +481,7 @@ SCENARIO("Extra bridge layer with external_bridge_only mode", "[Bridge][ExtraBri
                     auto types = collect_surface_types_at_z(print, extra_z);
                     REQUIRE_FALSE(contains_surface_type(types, stSecondInternalBridge));
                 } else {
-                    SUCCEED("No internal bridges in this geometry — negative test trivially passes");
+                    SUCCEED("No internal bridges in this geometry â€” negative test trivially passes");
                 }
             }
         }
@@ -551,7 +551,7 @@ SCENARIO("Extra bridge layer with internal_bridge_only mode", "[Bridge][ExtraBri
                     REQUIRE_FALSE(roles.empty());
                     REQUIRE(contains_erBridgePerimeter(roles));
                 } else {
-                    SUCCEED("No internal bridges in this geometry — cannot test extra layer");
+                    SUCCEED("No internal bridges in this geometry â€” cannot test extra layer");
                 }
             }
         }
@@ -564,7 +564,7 @@ SCENARIO("Extra bridge layer with internal_bridge_only mode", "[Bridge][ExtraBri
 //
 // Regression test for the over-tagging bug: the original implementation grew
 // the bridge fill region by the full perimeter stack width, causing EVERY
-// perimeter on a bridge layer to be tagged as erBridgePerimeter — including
+// perimeter on a bridge layer to be tagged as erBridgePerimeter â€” including
 // the supported pillar walls that have solid material below them.
 //
 // The bridge mesh has two solid pillars (X: 0-5 and X: 45-50) and a span
@@ -624,7 +624,7 @@ SCENARIO("Bridge perimeter tagging is partial: supported walls keep normal roles
 // Slic3r::Test::slice() with cooling/fan config causes a pre-existing
 // segfault in G-code export that is unrelated to bridge perimeter retagging.
 // Bridge perimeter fan/speed behaviour is verified via the perimeter role
-// tests above — the G-code exporter respects erBridgePerimeter natively.
+// tests above â€” the G-code exporter respects erBridgePerimeter natively.
 
 // ============================================================================
 // Scenario 14: Second bridge layer perimeters have parity with the first
@@ -633,13 +633,13 @@ SCENARIO("Bridge perimeter tagging is partial: supported walls keep normal roles
 // Regression test for the "extra bridge layer" perimeter promotion.  When an
 // extra (second) bridging layer is generated above a bridge, its perimeters
 // that continue over the bridged void must also be promoted to
-// erBridgePerimeter — with coverage comparable to the first bridge layer
+// erBridgePerimeter â€” with coverage comparable to the first bridge layer
 // directly below.  The real-world failure (opengrid model) was that the first
 // bridge layer got N bridge perimeters while the second layer above it got 0.
 //
 // Uses bridge_with_hole, whose bridge contains a supported island, so the layer
 // has BOTH spanning perimeters (which must be promoted) and supported
-// perimeters around the hole (which must stay normal) — closer to a multi-cell
+// perimeters around the hole (which must stay normal) â€” closer to a multi-cell
 // topology than the single-span `bridge` mesh.
 
 SCENARIO("Second bridge layer perimeters reach parity with the first", "[Bridge][ExtraBridge][Perimeter][Parity]")
@@ -700,9 +700,9 @@ SCENARIO("Second bridge layer perimeters reach parity with the first", "[Bridge]
 // Scenario 15: Stacked bridge layers do not shrink (no compounded inset)
 // ============================================================================
 //
-// Regression test for BRIDGE_PERIMETERS.md §5c. The extra-bridge tagging must
+// Regression test for BRIDGE_PERIMETERS.md Â§5c. The extra-bridge tagging must
 // classify every stacked bridge layer against the SAME base support, so the
-// bridge-perimeter coverage (length) is stable up the stack — it must not
+// bridge-perimeter coverage (length) is stable up the stack â€” it must not
 // shrink layer by layer from a compounded half-nozzle inset.
 
 SCENARIO("Stacked bridge layers keep stable bridge-perimeter coverage", "[Bridge][ExtraBridge][Perimeter][Inset]")

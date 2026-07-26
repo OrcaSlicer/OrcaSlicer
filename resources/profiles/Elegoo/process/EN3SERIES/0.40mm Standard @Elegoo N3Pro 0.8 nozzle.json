@@ -3,7 +3,7 @@
 	"name": "0.40mm Standard @Elegoo N3Pro 0.8 nozzle",
 	"inherits": "fdm_process_elegoo_08040",
 	"from": "system",
-	"setting_id": "PEN3Pro08040",
+	"setting_id": "gj5ZiVs0wSyLTN5a",
 	"instantiation": "true",
 	"filename_format": "EN3Pro_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
 	"default_acceleration": "1000",

@@ -3,7 +3,7 @@
 	"name": "Generic TPU 85A @FF AD5X 0.6 nozzle",
 	"inherits": "Flashforge Generic TPU",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "WQyJHZpkl9Dz6Yo3",
 	"instantiation": "true",
 	"cool_plate_temp": [
 		"45"

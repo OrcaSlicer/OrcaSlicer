@@ -4,7 +4,7 @@
 	"inherits": "fdm_common_Rook MK1 LDO",
 	"from": "system",
 	"instantiation": "true",
-	"setting_id": "RDFR_01",
+	"setting_id": "xRvK2POOU8rx7dLH",
 	"bed_custom_model": "",
 	"printer_structure": "delta",
 	"deretraction_speed": [

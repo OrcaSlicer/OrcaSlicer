@@ -3,7 +3,7 @@
 	"name": "Qidi X-CF Pro 0.4 nozzle",
 	"inherits": "fdm_qidi_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "WPVxrQhAgGqjT11Q",
 	"instantiation": "true",
 	"printer_model": "Qidi X-CF Pro",
 	"default_print_profile": "0.20mm Standard @Qidi XCFPro",

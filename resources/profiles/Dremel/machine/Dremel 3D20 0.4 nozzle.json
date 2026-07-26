@@ -3,7 +3,7 @@
 	"name": "Dremel 3D20 0.4 nozzle",
 	"inherits": "fdm_dremel_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "7irNPRvRXZYx348l",
 	"instantiation": "true",
 	"printer_model": "Dremel 3D20",
 	"printer_variant": "0.4",

@@ -3,7 +3,7 @@
 	"name": "Anycubic PLA @Anycubic Kobra Neo 0.4 nozzle",
 	"inherits": "Anycubic Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04_kobra_neo",
+	"setting_id": "GblA3LvgCL63V7Qx",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_vendor": [

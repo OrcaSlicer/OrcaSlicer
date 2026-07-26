@@ -3,7 +3,7 @@
     "name": "Generic ASA @K1 Max_CFS-C-all",
     "inherits": "fdm_filament_asa",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "JS8oDrWmlTmmZ9VJ",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

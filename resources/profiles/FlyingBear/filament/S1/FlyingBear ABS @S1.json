@@ -3,7 +3,7 @@
 	"name": "FlyingBear ABS @S1",
 	"inherits": "fdm_filament_abs @S1",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "7dtepGnoDDAdPtUh",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

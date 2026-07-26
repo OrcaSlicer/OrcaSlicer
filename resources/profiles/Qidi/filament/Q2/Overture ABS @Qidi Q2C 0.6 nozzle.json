@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSA04",
 	"name": "Overture ABS @Qidi Q2C 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "Overture ABS@Q2C-Series",
+	"from": "system",
+	"setting_id": "zfd7hNsD4gyvYjmL",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.02"
 	],

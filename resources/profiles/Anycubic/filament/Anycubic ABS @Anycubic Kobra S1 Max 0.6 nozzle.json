@@ -3,7 +3,7 @@
 	"name": "Anycubic ABS @Anycubic Kobra S1 Max 0.6 nozzle",
 	"inherits": "fdm_filament_abs",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "AbB6JtoPRsNgmxyy",
 	"filament_id": "GFABS",
 	"instantiation": "true",
 	"filament_settings_id": [

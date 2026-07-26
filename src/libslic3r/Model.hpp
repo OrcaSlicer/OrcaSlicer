@@ -920,6 +920,13 @@ public:
     // Extruder ID is only valid for FFF. Returns -1 for SLA or if the extruder ID is not applicable (support volumes).
     int                 extruder_id() const;
 
+    //Orca: cache clearing procedure to ensure that the shape is positioned accurately when manipulating it
+    void clear_cache() {
+        m_cached_trans_matrix = Transform3d::Identity().inverse(); // get unvelivable matrix
+        m_convex_hull_2d.clear();
+        m_cached_2d_polygon.clear();
+    };
+
     bool                is_splittable() const;
 
     // BBS
@@ -966,34 +973,34 @@ public:
     static std::string  type_to_string(const ModelVolumeType t);
 
     const Geometry::Transformation& get_transformation() const { return m_transformation; }
-    void set_transformation(const Geometry::Transformation& transformation) { m_transformation = transformation; }
-    void set_transformation(const Transform3d& trafo) { m_transformation.set_matrix(trafo); }
+    void set_transformation(const Geometry::Transformation& transformation) { clear_cache(); m_transformation = transformation; }
+    void set_transformation(const Transform3d& trafo) { clear_cache(); m_transformation.set_matrix(trafo); }
 
     Vec3d get_offset() const { return m_transformation.get_offset(); }
 
     double get_offset(Axis axis) const { return m_transformation.get_offset(axis); }
 
-    void set_offset(const Vec3d& offset) { m_transformation.set_offset(offset); }
-    void set_offset(Axis axis, double offset) { m_transformation.set_offset(axis, offset); }
+    void set_offset(const Vec3d& offset) { clear_cache(); m_transformation.set_offset(offset); }
+    void set_offset(Axis axis, double offset) { clear_cache(); m_transformation.set_offset(axis, offset); }
 
     Vec3d get_rotation() const { return m_transformation.get_rotation(); }
     double get_rotation(Axis axis) const { return m_transformation.get_rotation(axis); }
 
-    void set_rotation(const Vec3d& rotation) { m_transformation.set_rotation(rotation); }
-    void set_rotation(Axis axis, double rotation) { m_transformation.set_rotation(axis, rotation); }
+    void set_rotation(const Vec3d& rotation) { clear_cache(); m_transformation.set_rotation(rotation); }
+    void set_rotation(Axis axis, double rotation) { clear_cache(); m_transformation.set_rotation(axis, rotation); }
 
     Vec3d get_scaling_factor() const { return m_transformation.get_scaling_factor(); }
     double get_scaling_factor(Axis axis) const { return m_transformation.get_scaling_factor(axis); }
 
-    void set_scaling_factor(const Vec3d& scaling_factor) { m_transformation.set_scaling_factor(scaling_factor); }
-    void set_scaling_factor(Axis axis, double scaling_factor) { m_transformation.set_scaling_factor(axis, scaling_factor); }
+    void set_scaling_factor(const Vec3d& scaling_factor) { clear_cache(); m_transformation.set_scaling_factor(scaling_factor); }
+    void set_scaling_factor(Axis axis, double scaling_factor) {clear_cache(); m_transformation.set_scaling_factor(axis, scaling_factor); }
 
     Vec3d get_mirror() const { return m_transformation.get_mirror(); }
     double get_mirror(Axis axis) const { return m_transformation.get_mirror(axis); }
     bool is_left_handed() const { return m_transformation.is_left_handed(); }
 
-    void set_mirror(const Vec3d& mirror) { m_transformation.set_mirror(mirror); }
-    void set_mirror(Axis axis, double mirror) { m_transformation.set_mirror(axis, mirror); }
+    void set_mirror(const Vec3d& mirror) { clear_cache(); m_transformation.set_mirror(mirror); }
+    void set_mirror(Axis axis, double mirror) { clear_cache(); m_transformation.set_mirror(axis, mirror); }
     void convert_from_imperial_units();
     void convert_from_meters();
 
@@ -1467,6 +1474,7 @@ struct GlobalSpeedMap
     double topSolidInfillSpeed;
     double supportSpeed;
     double smallPerimeterSpeed;
+    double smallSupportPerimeterSpeed;
     double maxSpeed;
     Polygon bed_poly;
 };
@@ -1588,8 +1596,8 @@ public:
                                 ImportStepProgressFn                                    stepFn,
                                 StepIsUtf8Fn                                            stepIsUtf8Fn,
                                 std::function<int(Slic3r::Step&, double&, double&, bool&)>     step_mesh_fn,
-                                double                                                  linear_defletion,
-                                double                                                  angle_defletion,
+                                double                                                  linear_deflection,
+                                double                                                  angle_deflection,
                                 bool                                                    is_split_compound);
 
     //BBS: add part plate related logic

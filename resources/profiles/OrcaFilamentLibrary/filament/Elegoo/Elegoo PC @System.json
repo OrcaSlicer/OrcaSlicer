@@ -3,7 +3,7 @@
 	"name": "Elegoo PC @System",
 	"inherits": "Elegoo PC @base",
 	"from": "system",
-	"setting_id": "OEPCS00",
+	"setting_id": "NlNHcKHlkiq8khIf",
 	"instantiation": "true",
 	"renamed_from": "Elegoo PC",
 	"pressure_advance": [

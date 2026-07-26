@@ -3,7 +3,7 @@
 	"name": "Bambu PLA Marble @System",
 	"inherits": "Bambu PLA Marble @base",
 	"from": "system",
-	"setting_id": "OGFSA07_00",
+	"setting_id": "oNGmbbdba2aULYwQ",
 	"instantiation": "true",
 	"filament_long_retractions_when_cut": [
 		"1"

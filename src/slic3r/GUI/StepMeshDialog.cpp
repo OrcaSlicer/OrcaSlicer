@@ -30,7 +30,7 @@ static int _ITEM_WIDTH() { return _scale(30); }
 #define SLIDER_SCALE_10(val)    ((val) / 0.01)
 #define SLIDER_UNSCALE_10(val)  ((val) * 0.01)
 #define LEFT_RIGHT_PADING       FromDIP(20)
-#define FONT_COLOR              wxColour("#262E30")
+#define FONT_COLOR              wxColour("#363636") // label color
 
 wxDEFINE_EVENT(wxEVT_THREAD_DONE, wxCommandEvent);
 
@@ -144,7 +144,7 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     linear_sizer->Add(linear_title, 0, wxALIGN_LEFT);
     linear_sizer->AddStretchSpacer(1);
     wxSlider* linear_slider = new wxSlider(this, wxID_ANY,
-                                           SLIDER_SCALE(get_linear_defletion()),
+                                           SLIDER_SCALE(get_linear_deflection()),
                                            1, 100, wxDefaultPosition,
                                            wxSize(SLIDER_WIDTH, SLIDER_HEIGHT),
                                            wxSL_HORIZONTAL);
@@ -199,7 +199,7 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     angle_sizer->Add(angle_title, 0, wxALIGN_LEFT);
     angle_sizer->AddStretchSpacer(1);
     wxSlider* angle_slider = new wxSlider(this, wxID_ANY,
-                                           SLIDER_SCALE_10(get_angle_defletion()),
+                                           SLIDER_SCALE_10(get_angle_deflection()),
                                            1, 100, wxDefaultPosition,
                                            wxSize(SLIDER_WIDTH, SLIDER_HEIGHT),
                                            wxSL_HORIZONTAL);
@@ -265,6 +265,14 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
     mesh_face_number_sizer->Add(mesh_face_number_text, 0, wxALIGN_LEFT);
     bSizer->Add(mesh_face_number_sizer, 0, wxEXPAND | wxALL, LEFT_RIGHT_PADING);
 
+    wxBoxSizer* save_default_sizer = new wxBoxSizer(wxHORIZONTAL);
+    m_save_default_checkbox = new wxCheckBox(this, wxID_ANY, _L("Save these settings as default"), wxDefaultPosition, wxDefaultSize, 0);
+    m_save_default_checkbox->SetFont(::Label::Body_14);
+    m_save_default_checkbox->SetForegroundColour(StateColor::darkModeColorFor(FONT_COLOR));
+    m_save_default_checkbox->SetToolTip(_L("If enabled, the values above are stored as the defaults used for future STEP imports (and shown in Preferences)."));
+    save_default_sizer->Add(m_save_default_checkbox, 0, wxALIGN_LEFT);
+    bSizer->Add(save_default_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, LEFT_RIGHT_PADING);
+
     wxBoxSizer* bSizer_button = new wxBoxSizer(wxHORIZONTAL);
     bSizer_button->SetMinSize(wxSize(FromDIP(100), -1));
     m_checkbox = new wxCheckBox(this, wxID_ANY, _L("Don't show again"), wxDefaultPosition, wxDefaultSize, 0);
@@ -284,9 +292,11 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
             if (m_checkbox->IsChecked()) {
                 wxGetApp().app_config->set_bool("enable_step_mesh_setting", false);
             }
-            wxGetApp().app_config->set_bool("is_split_compound", m_split_compound_checkbox->GetValue());
-            wxGetApp().app_config->set("linear_defletion", float_to_string_decimal_point(get_linear_defletion(), 3));
-            wxGetApp().app_config->set("angle_defletion", float_to_string_decimal_point(get_angle_defletion(), 2));
+            if (m_save_default_checkbox->IsChecked()) {
+                wxGetApp().app_config->set_bool("is_split_compound", m_split_compound_checkbox->GetValue());
+                wxGetApp().app_config->set("linear_deflection", float_to_string_decimal_point(get_linear_deflection(), 3));
+                wxGetApp().app_config->set("angle_deflection", float_to_string_decimal_point(get_angle_deflection(), 2));
+            }
 
             EndModal(wxID_OK);
         }
@@ -354,21 +364,21 @@ void StepMeshDialog::stop_task()
 
 void StepMeshDialog::update_mesh_number_text()
 {
-    if ((m_last_linear == get_linear_defletion()) && (m_last_angle == get_angle_defletion()) && (m_mesh_number != 0))
+    if ((m_last_linear == get_linear_deflection()) && (m_last_angle == get_angle_deflection()) && (m_mesh_number != 0))
         return;
     wxString newText = wxString::Format(_L("Calculating, please wait..."));
     mesh_face_number_text->SetLabel(newText);
     stop_task();
     if (!m_task) {
         m_task = new boost::thread(Slic3r::create_thread([this]() -> void {
-            m_mesh_number = m_file.get_triangle_num(get_linear_defletion(), get_angle_defletion());
+            m_mesh_number = m_file.get_triangle_num(get_linear_deflection(), get_angle_deflection());
             if (m_mesh_number != 0) {
                 wxString number_text = wxString::Format("%d", m_mesh_number);
                 wxCommandEvent event(wxEVT_THREAD_DONE);
                 event.SetString(number_text);
                 wxPostEvent(this, event);
-                m_last_linear = get_linear_defletion();
-                m_last_angle  = get_angle_defletion();
+                m_last_linear = get_linear_deflection();
+                m_last_angle  = get_angle_deflection();
             }
         }));
     }

@@ -43,6 +43,9 @@ public:
 
     void SetCornerRadius(double radius);
 
+    // Only meant to be used by inspector, not public API
+    int GetCornerRadius() const { return static_cast<int>(radius); }
+
     void SetLabel(const wxString& label);
 
     void SetStaticTips(const wxString& tips, const wxBitmap& bitmap);

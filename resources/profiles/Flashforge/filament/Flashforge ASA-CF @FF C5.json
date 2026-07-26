@@ -3,6 +3,7 @@
 	"name": "Flashforge ASA-CF @FF C5",
 	"inherits": "Generic ABS @System",
 	"from": "system",
+	"setting_id": "TqU1elqwuVr9EhTA",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Flashforge Creator 5 0.4 nozzle",

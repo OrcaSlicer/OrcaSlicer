@@ -3,7 +3,7 @@
     "name": "Generic BVOH @K1C-all",
     "inherits": "fdm_filament_common",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "sBNRrUUShVPgFlD2",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

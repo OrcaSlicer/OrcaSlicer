@@ -1,6 +1,6 @@
 {
 	"name": "SeeMeCNC",
-	"version": "2.4.0.01",
+	"version": "2.4.0.02",
 	"force_update": "1",
 	"description": "SeeMeCNC configurations - Full profile set for Artemis, BOSSdelta, and RostockMAX printers",
 	"machine_model_list": [

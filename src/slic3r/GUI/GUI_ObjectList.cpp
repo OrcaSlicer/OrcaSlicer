@@ -38,6 +38,7 @@
 
 #include "slic3r/Utils/FixModelByCgal.hpp"
 #include "libslic3r/Format/bbs_3mf.hpp"
+#include "libslic3r/Orient.hpp"
 #include "libslic3r/PrintConfig.hpp"
 
 #ifdef __WXMSW__
@@ -669,16 +670,16 @@ void ObjectList::set_tooltip_for_item(const wxPoint& pt)
     if (col->GetModelColumn() == (unsigned int)colEditing) {
         if (node->IsActionEnabled())
 #ifdef __WXOSX__
-            tooltip = _(L("Right button click the icon to drop the object settings"));
+            tooltip = _(L("Right click the icon to drop the object settings"));
 #else
             tooltip = _(L("Click the icon to reset all settings of the object"));
 #endif //__WXMSW__
     }
     else if (col->GetModelColumn() == (unsigned int)colPrint)
 #ifdef __WXOSX__
-        tooltip = _(L("Right button click the icon to drop the object printable property"));
+        tooltip = _(L("Right click the icon to drop the object printable property"));
 #else
-        tooltip = _(L("Click the icon to toggle printable property of the object"));
+        tooltip = _(L("Click the icon to toggle printable properties of the object"));
 #endif //__WXMSW__
     // BBS
     else if (col->GetModelColumn() == (unsigned int)colSupportPaint) {
@@ -688,7 +689,7 @@ void ObjectList::set_tooltip_for_item(const wxPoint& pt)
     }
     else if (col->GetModelColumn() == (unsigned int)colColorPaint) {
         if (node->HasColorPainting())
-            tooltip = _(L("Click the icon to edit color painting of the object"));
+            tooltip = _(L("Click the icon to edit color painting for the object"));
     }
     else if (col->GetModelColumn() == (unsigned int)colSinking) {
         if (node->HasSinking())
@@ -1154,7 +1155,7 @@ void ObjectList::update_filament_in_config(const wxDataViewItem& item)
 
     m_config = config;
 
-    take_snapshot("Change Filament");
+    take_snapshot(_u8L("Change Filament"));
 
     const int extruder = m_objects_model->GetExtruderNumber(item);
     m_config->set_key_value("extruder", new ConfigOptionInt(extruder));
@@ -1192,7 +1193,7 @@ void ObjectList::update_name_in_model(const wxDataViewItem& item) const
     if (obj_idx < 0) return;
     const int volume_id = m_objects_model->GetVolumeIdByItem(item);
 
-    take_snapshot(volume_id < 0 ? "Rename Object" : "Rename Part");
+    take_snapshot(volume_id < 0 ? _u8L("Rename Object") : _u8L("Rename Part"));
 
     ModelObject* obj = object(obj_idx);
     if (m_objects_model->GetItemType(item) & itObject) {
@@ -1360,7 +1361,7 @@ void ObjectList::paste_settings_into_list()
 {
     wxDataViewItemArray sels;
     GetSelections(sels);
-    take_snapshot("Paste settings");
+    take_snapshot(_u8L("Paste settings"));
 
     std::unique_ptr<t_config_option_keys> global_keys; // need copy from global
 
@@ -1578,7 +1579,7 @@ void ObjectList::list_manipulation(const wxPoint& mouse_pos, bool evt_context_me
             int obj_idx, vol_idx;
             get_selected_item_indexes(obj_idx, vol_idx, item);
             if (obj_idx != -1) {
-                Plater::TakeSnapshot(plater, "Shift objects to bed");
+                Plater::TakeSnapshot(plater, _u8L("Shift objects to bed"));
                 (*m_objects)[obj_idx]->ensure_on_bed();
                 cnv->reload_scene(true, true);
                 update_info_items(obj_idx);
@@ -2001,7 +2002,7 @@ void ObjectList::OnDrop(wxDataViewEvent &event)
     }
 
 //#if 1
-    take_snapshot("Object order changed");
+    take_snapshot(_u8L("Object order changed"));
 
     if(m_dragged_data.type() & itObject){
         int delta = dest_obj_id < src_obj_id ? -1 : 1;
@@ -2065,9 +2066,9 @@ void ObjectList::add_category_to_settings_from_selection(const std::vector< std:
     assert(m_config);
     auto opt_keys = m_config->keys();
 
-    const std::string snapshot_text =  item_type & itLayer   ? "Layer setting added" :
-                                    item_type & itVolume  ? "Part setting added" :
-                                                            "Object setting added";
+    const std::string snapshot_text =  item_type & itLayer   ? _u8L("Layer setting added") :
+                                    item_type & itVolume  ? _u8L("Part setting added") :
+                                                            _u8L("Object setting added");
     take_snapshot(snapshot_text);
 
     const DynamicPrintConfig& from_config = printer_technology() == ptFFF ?
@@ -2106,9 +2107,9 @@ void ObjectList::add_category_to_settings_from_frequent(const std::vector<std::s
     assert(m_config);
     auto opt_keys = m_config->keys();
 
-    const std::string snapshot_text = item_type & itLayer  ? "Height range settings added" :
-                                   item_type & itVolume ? "Part settings added" :
-                                                          "Object settings added";
+    const std::string snapshot_text = item_type & itLayer  ? _u8L("Height range settings added") :
+                                   item_type & itVolume ? _u8L("Part settings added") :
+                                                          _u8L("Object settings added");
     take_snapshot(snapshot_text);
 
     const DynamicPrintConfig& from_config = wxGetApp().preset_bundle->prints.get_edited_preset().config;
@@ -2176,7 +2177,7 @@ void ObjectList::load_subobject(ModelVolumeType type, bool from_galery/* = false
     if (input_files.IsEmpty())
         return;
 
-    take_snapshot((type == ModelVolumeType::MODEL_PART) ? "Load Part" : "Load Modifier");
+    take_snapshot((type == ModelVolumeType::MODEL_PART) ? _u8L("Load Part") : _u8L("Load Modifier"));
 
     std::vector<ModelVolume*> volumes;
     // ! ysFIXME - delete commented code after testing and rename "load_modifier" to something common
@@ -2316,9 +2317,9 @@ void ObjectList::load_modifier(const wxArrayString& input_files, ModelObject& mo
         try {
             if (boost::iends_with(input_file, ".stp") ||
                 boost::iends_with(input_file, ".step")) {
-                double linear  = string_to_double_decimal_point(wxGetApp().app_config->get("linear_defletion"));
+                double linear  = string_to_double_decimal_point(wxGetApp().app_config->get("linear_deflection"));
                 if (linear <= 0) linear = 0.003;
-                double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_defletion"));
+                double angle = string_to_double_decimal_point(wxGetApp().app_config->get("angle_deflection"));
                 if (angle <= 0) angle = 0.5;
                 bool split_compound = wxGetApp().app_config->get_bool("is_split_compound");
                 model = Model::read_from_step(
@@ -2328,8 +2329,8 @@ void ObjectList::load_modifier(const wxArrayString& input_files, ModelObject& mo
                         if (wxGetApp().app_config->get_bool("enable_step_mesh_setting")) {
                             StepMeshDialog mesh_dlg(nullptr, file, linear, angle);
                             if (mesh_dlg.ShowModal() == wxID_OK) {
-                                linear_value = mesh_dlg.get_linear_defletion();
-                                angle_value  = mesh_dlg.get_angle_defletion();
+                                linear_value = mesh_dlg.get_linear_deflection();
+                                angle_value  = mesh_dlg.get_angle_deflection();
                                 is_split     = mesh_dlg.get_split_compound_value();
                                 return 1;
                             }
@@ -2463,7 +2464,7 @@ void ObjectList::load_generic_subobject(const std::string& type_name, const Mode
     if (instance_idx == -1)
         return;
 
-    take_snapshot("Add primitive");
+    take_snapshot(_u8L("Add primitive"));
 
     // Selected object
     ModelObject  &model_object = *(*m_objects)[obj_idx];
@@ -2555,11 +2556,20 @@ void ObjectList::load_shape_object(const std::string &type_name)
     if (obj_idx < 0)
         return;
 
-    Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Add Primitive");
+    Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Add Primitive"));
 
     // Create mesh
     BoundingBoxf3 bb;
     TriangleMesh mesh = create_mesh(type_name, bb);
+    // Rotate the largest overhang area toward the part cooling fan so new shapes start in a
+    // cooling friendly orientation. Skip the plain cube: the pressure advance pattern
+    // calibration reuses it as an axis-aligned anchor and scales it by its bounding box,
+    // so its orientation must stay fixed.
+    const Slic3r::DynamicPrintConfig& full_config = wxGetApp().preset_bundle->full_config();
+    if (type_name != "Cube" && full_config.has("fan_direction") && full_config.has("auxiliary_fan")) {
+        FanDirection config_dir = full_config.option<ConfigOptionEnum<FanDirection>>("fan_direction")->value;
+        orientation::orient_for_cooling(mesh, config_dir);
+    }
     // BBS: remove "Shape" prefix
     load_mesh_object(mesh, _(type_name));
     wxGetApp().mainframe->update_title();
@@ -2716,7 +2726,7 @@ void ObjectList::del_settings_from_config(const wxDataViewItem& parent_item)
         (is_layer_settings && opt_cnt == 2 && m_config->has("extruder") && m_config->has("layer_height")))
         return;
 
-    take_snapshot("Delete Settings");
+    take_snapshot(_u8L("Delete Settings"));
 
     int extruder = m_config->has("extruder") ? m_config->extruder() : -1;
 
@@ -2757,7 +2767,7 @@ void ObjectList::del_layer_from_object(const int obj_idx, const t_layer_height_r
     if (del_range == object(obj_idx)->layer_config_ranges.end())
         return;
 
-    take_snapshot("Remove height range");
+    take_snapshot(_u8L("Remove height range"));
 
     object(obj_idx)->layer_config_ranges.erase(del_range);
 
@@ -2782,10 +2792,7 @@ bool ObjectList::del_from_cut_object(bool is_cut_connector, bool is_model_part/*
     const wxString msg_end   = is_cut_connector   ? ("\n" + _L("To save cut correspondence you can delete all connectors from all related objects.")) : "";
 
     InfoDialog dialog(wxGetApp().plater(), title,
-                      (_L("This action will break a cut correspondence.\n"
-                         "After that model consistency can't be guaranteed.\n"
-                         "\n"
-                         "To manipulate with solid parts or negative volumes you have to invalidate cut information first.") + msg_end ),
+                      (_L("This action will break a cut correspondence.\nAfter that, model consistency can\'t be guaranteed.\n\nTo manipulate with solid parts or negative volumes you have to invalidate cut information first.") + msg_end ),
                       false, buttons_style | wxCANCEL_DEFAULT | wxICON_WARNING);
 
     dialog.SetButtonLabel(wxID_YES, _L("Invalidate cut info"));
@@ -2833,7 +2840,7 @@ bool ObjectList::del_subobject_from_object(const int obj_idx, const int idx, con
             return false;
         }
 
-        take_snapshot("Delete part");
+        take_snapshot(_u8L("Delete part"));
 
         object->delete_volume(idx);
 
@@ -2898,7 +2905,7 @@ void ObjectList::split()
         return;
     }
 
-    take_snapshot("Split to parts");
+    take_snapshot(_u8L("Split to parts"));
 
     volume->split(filament_cnt, wxGetApp().app_config->get_bool("keep_painting"));
 
@@ -3031,7 +3038,7 @@ void ObjectList::merge(bool to_multipart_object)
         GetSelections(sels);
         assert(!sels.IsEmpty());
 
-        Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Assemble");
+        Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Assemble"));
 
         get_object_idxs(obj_idxs, sels);
 
@@ -3179,7 +3186,7 @@ void ObjectList::merge(bool to_multipart_object)
         if (obj_idx == -1)
             return;
 
-        Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Merge parts to an object");
+        Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Merge parts to an object"));
 
         ModelObject* model_object = (*m_objects)[obj_idx];
         model_object->merge();
@@ -3246,7 +3253,7 @@ void ObjectList::layers_editing()
         // set some default value
         if (ranges.empty()) {
             // BBS: remove snapshot name "Add layers"
-            take_snapshot("Add layers");
+            take_snapshot(_u8L("Add layers"));
             ranges[{ 0.0f, 2.0f }].assign_config(get_default_layer_config(obj_idx));
         }
 
@@ -3718,16 +3725,16 @@ void ObjectList::part_selection_changed()
             else {
                 if (type & itSettings) {
                     if (parent_type & itObject) {
-                        og_name  = _L("Object Settings to modify");
+                        og_name  = _L("Object Settings to Modify");
                         m_config = &(*m_objects)[obj_idx]->config;
                     }
                     else if (parent_type & itVolume) {
-                        og_name   = _L("Part Settings to modify");
+                        og_name   = _L("Part Settings to Modify");
                         volume_id = m_objects_model->GetVolumeIdByItem(parent);
                         m_config = &(*m_objects)[obj_idx]->volumes[volume_id]->config;
                     }
                     else if (parent_type & itLayer) {
-                        og_name  = _L("Layer range Settings to modify");
+                        og_name  = _L("Layer Range Settings to Modify");
                         m_config = &get_item_config(parent);
                     }
                     update_and_show_settings = true;
@@ -4237,7 +4244,7 @@ void ObjectList::delete_from_model_and_list(const ItemType type, const int obj_i
     if (!(type&(itObject|itVolume|itInstance)))
         return;
 
-    take_snapshot("Delete selected");
+    take_snapshot(_u8L("Delete selected"));
 
     if (type&itObject) {
         bool was_cut = object(obj_idx)->is_cut();
@@ -4470,7 +4477,7 @@ void ObjectList::remove()
         UnselectAll();
         update_selection(sels, sels_mode, m_objects_model);
 
-        Plater::TakeSnapshot snapshot = Plater::TakeSnapshot(wxGetApp().plater(), "Delete selected");
+        Plater::TakeSnapshot snapshot = Plater::TakeSnapshot(wxGetApp().plater(), _u8L("Delete selected"));
 
         for (auto& item : sels)
         {
@@ -5506,7 +5513,7 @@ void ObjectList::change_part_type()
       }
 
       if (model_part_cnt == 1) {
-        Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part is not to be changed.")));
+        Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part cannot be changed.")));
         return;
       }
     }
@@ -5528,7 +5535,7 @@ void ObjectList::change_part_type()
       return;
     }
 
-    take_snapshot("Change part type");
+    take_snapshot(_u8L("Change part type"));
 
     volume->set_type(new_type);
     wxDataViewItemArray sel = reorder_volumes_and_get_selection(obj_idx, [volume](const ModelVolume* vol) { return vol == volume; });
@@ -5619,7 +5626,7 @@ void ObjectList::change_part_type()
     }
 
     if (would_remove_all_for_any) {
-      Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part is not to be changed.")));
+      Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part cannot be changed.")));
       return;
     }
   }
@@ -5796,13 +5803,13 @@ void ObjectList::set_volume_type(ModelVolumeType new_type)
         for (const auto& sel : selected_part_cnt) {
             auto it = total_part_cnt.find(sel.first);
             if (it != total_part_cnt.end() && it->second > 0 && sel.second == it->second) {
-                Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part is not to be changed.")));
+                Slic3r::GUI::show_error(nullptr, _(L("The type of the last solid object part cannot be changed.")));
                 return;
             }
         }
     }
 
-    take_snapshot("Change part type");
+    take_snapshot(_u8L("Change part type"));
 
     std::set<const ModelVolume*> changed_volumes;
     std::set<int>                touched_objects;
@@ -6036,7 +6043,7 @@ void ObjectList::split_instances()
     if (obj_idx == -1)
         return;
 
-    Plater::TakeSnapshot snapshot(wxGetApp().plater(), "Instances to Separated Objects");
+    Plater::TakeSnapshot snapshot(wxGetApp().plater(), _u8L("Instances to Separated Objects"));
 
     if (selection.is_single_full_object())
     {
@@ -6167,7 +6174,7 @@ void ObjectList::fix_through_cgal()
         return true;
     };
 
-    Plater::TakeSnapshot snapshot(plater, "Repairing model object");
+    Plater::TakeSnapshot snapshot(plater, _u8L("Repairing model object"));
 
     // Open a progress dialog.
     ProgressDialog progress_dlg(_L("Repairing model object"), "", 100, find_toplevel_parent(plater),
@@ -6200,13 +6207,13 @@ void ObjectList::fix_through_cgal()
     wxString msg;
     wxString bullet_suf = "\n   - ";
     if (!succes_models.empty()) {
-        msg = _L_PLURAL("Following model object has been repaired", "Following model objects have been repaired", succes_models.size()) + ":";
+        msg = _L_PLURAL("The following model object has been repaired", "The following model objects have been repaired", succes_models.size()) + ":";
         for (auto& model : succes_models)
             msg += bullet_suf + from_u8(model);
         msg += "\n\n";
     }
     if (!failed_models.empty()) {
-        msg += _L_PLURAL("Failed to repair following model object", "Failed to repair following model objects", failed_models.size()) + ":\n";
+        msg += _L_PLURAL("Failed to repair the following model object", "Failed to repair the following model objects", failed_models.size()) + ":\n";
         for (auto& model : failed_models)
             msg += bullet_suf + from_u8(model.first) + ": " + _(model.second);
     }
@@ -6498,7 +6505,7 @@ void ObjectList::OnEditingStarted(wxDataViewEvent &event)
     else if (col == colSinking) {
         Plater *    plater = wxGetApp().plater();
         GLCanvas3D *cnv    = plater->canvas3D();
-        Plater::TakeSnapshot(plater, "Shift objects to bed");
+        Plater::TakeSnapshot(plater, _u8L("Shift objects to bed"));
         int obj_idx, vol_idx;
         get_selected_item_indexes(obj_idx, vol_idx, item);
         (*m_objects)[obj_idx]->ensure_on_bed();
@@ -6585,7 +6592,7 @@ void ObjectList::set_extruder_for_selected_items(const int extruder)
     if (sels.empty())
         return;
 
-    take_snapshot("Change Filaments");
+    take_snapshot(_u8L("Change Filaments"));
 
     for (const wxDataViewItem& sel_item : sels)
     {

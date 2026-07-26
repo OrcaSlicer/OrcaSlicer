@@ -16,29 +16,36 @@
 	],
 	"filament_deretraction_speed": [
 		"nil",
+		"nil",
 		"nil"
 	],
 	"filament_flow_ratio": [
+		"1",
 		"1",
 		"1"
 	],
 	"filament_flush_temp": [
 		"0",
+		"0",
 		"0"
 	],
 	"filament_flush_volumetric_speed": [
+		"0",
 		"0",
 		"0"
 	],
 	"filament_long_retractions_when_cut": [
 		"nil",
+		"nil",
 		"nil"
 	],
 	"filament_max_volumetric_speed": [
 		"3.2",
+		"3.2",
 		"3.2"
 	],
 	"filament_ramming_volumetric_speed": [
+		"0.8",
 		"0.8",
 		"0.8"
 	],
@@ -47,81 +54,101 @@
 	],
 	"filament_retract_before_wipe": [
 		"nil",
+		"nil",
 		"nil"
 	],
 	"filament_retract_restart_extra": [
+		"nil",
 		"nil",
 		"nil"
 	],
 	"filament_retract_when_changing_layer": [
 		"nil",
+		"nil",
 		"nil"
 	],
 	"filament_retraction_distances_when_cut": [
+		"nil",
 		"nil",
 		"nil"
 	],
 	"filament_retraction_length": [
 		"nil",
+		"nil",
 		"nil"
 	],
 	"filament_retraction_minimum_travel": [
+		"nil",
 		"nil",
 		"nil"
 	],
 	"filament_retraction_speed": [
 		"nil",
+		"nil",
 		"nil"
 	],
 	"filament_wipe": [
+		"nil",
 		"nil",
 		"nil"
 	],
 	"filament_wipe_distance": [
 		"nil",
+		"nil",
 		"nil"
 	],
 	"filament_z_hop": [
+		"nil",
 		"nil",
 		"nil"
 	],
 	"filament_z_hop_types": [
 		"nil",
+		"nil",
 		"nil"
 	],
 	"filament_extruder_variant": [
 		"Direct Drive Standard",
-		"Direct Drive High Flow"
+		"Direct Drive High Flow",
+		"Direct Drive TPU High Flow"
 	],
 	"filament_pre_cooling_temperature": [
+		"210",
 		"210",
 		"210"
 	],
 	"filament_ramming_travel_time": [
 		"20",
+		"20",
 		"20"
 	],
 	"filament_adaptive_volumetric_speed": [
+		"0",
 		"0",
 		"0"
 	],
 	"long_retractions_when_ec": [
 		"1",
+		"1",
 		"1"
 	],
 	"nozzle_temperature": [
+		"240",
 		"240",
 		"240"
 	],
 	"nozzle_temperature_initial_layer": [
 		"240",
+		"240",
 		"240"
 	],
 	"retraction_distances_when_ec": [
 		"0",
+		"0",
 		"0"
 	],
 	"volumetric_speed_coefficients": [
+		"0 0 0 0 0 0",
 		"0 0 0 0 0 0",
 		"0 0 0 0 0 0"
 	],

@@ -3,7 +3,7 @@
 	"name": "Anycubic PLA Slik @Anycubic Kobra 3 0.4 nozzle",
 	"inherits": "Anycubic Generic PLA",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "zAUNjIY9cGOO3Np5",
 	"filament_id": "GFL94",
 	"instantiation": "true",
 	"filament_vendor": [

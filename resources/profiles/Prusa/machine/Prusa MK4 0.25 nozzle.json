@@ -3,7 +3,7 @@
 	"name": "Prusa MK4 0.25 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM004",
+	"setting_id": "mDpNu9NqPH9iPcU2",
 	"instantiation": "true",
 	"gcode_flavor": "marlin2",
 	"printer_model": "Prusa MK4",

@@ -3,7 +3,7 @@
 	"name": "Chuanying HS PLA @Chuanying X1 0.25 Nozzle",
 	"inherits": "Chuanying Generic HS PLA",
 	"from": "system",
-	"setting_id": "GFSA04_09",
+	"setting_id": "CAdli5S8JIFafvRG",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"compatible_printers": [

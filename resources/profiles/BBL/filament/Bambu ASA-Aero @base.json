@@ -42,8 +42,8 @@
 	"filament_z_hop_types": [
 		"Normal Lift"
 	],
-	"filament_scarf_seam_type": [
-		"none"
+	"filament_dev_drying_cooling_temperature": [
+		"70"
 	],
 	"impact_strength_z": [
 		"3.4"

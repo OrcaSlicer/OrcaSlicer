@@ -3,7 +3,7 @@
     "name": "CR-PETG @K2 Plus-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "L9YgZiTMEbGueIUB",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"
@@ -48,7 +48,7 @@
         "0"
     ],
     "filament_max_volumetric_speed": [
-        "1"
+        "12"
     ],
     "filament_retraction_length": [
         "0.8"

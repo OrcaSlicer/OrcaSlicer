@@ -67,6 +67,10 @@ struct MsgDialog : DPIDialog
 	bool get_checkbox_state();
 	virtual void on_dpi_changed(const wxRect& suggested_rect);
 	void SetButtonLabel(wxWindowID btn_id, const wxString& label, bool set_focus = false);
+	// Public wrapper around add_button — lets callers append custom-labelled choice buttons to an
+	// already-constructed dialog (used by the H2C rack hotend "Jump to the upgrade page" prompt).
+	// Purely additive; existing dialogs are unaffected.
+	void AddButton(wxWindowID btn_id, const wxString& label, bool set_focus = false) { add_button(btn_id, set_focus, label); }
 
 protected:
 	enum {
@@ -432,6 +436,32 @@ private:
 
 public:
     bool m_show_again{false};
+};
+
+// Multi-item filament-blacklist warning dialog with per-item wiki links. Replaces the plain
+// MessageDialog used for warnings so stacked accumulate-all warnings render with their own
+// optional Wiki link.
+struct FilamentWarningInfo
+{
+   wxString info_msg;
+   wxString wiki_url;
+};
+
+class FilamentWarningDialog : public MsgDialog
+{
+public:
+    FilamentWarningDialog(wxWindow *parent, const wxString &title, std::vector<FilamentWarningInfo> infos);
+    FilamentWarningDialog(FilamentWarningDialog &&)                 = delete;
+    FilamentWarningDialog(const FilamentWarningDialog &)            = delete;
+    FilamentWarningDialog &operator=(FilamentWarningDialog &&)      = delete;
+    FilamentWarningDialog &operator=(const FilamentWarningDialog &) = delete;
+    virtual ~FilamentWarningDialog()                                = default;
+
+private:
+    void BuildContent();
+
+private:
+    std::vector<FilamentWarningInfo> m_messages;
 };
 
 }

@@ -3,7 +3,7 @@
 	"name": "QIDI WOOD Rapido @0.6 nozzle",
 	"inherits": "QIDI WOOD Rapido",
 	"from": "system",
-	"setting_id": "GFSL99",
+	"setting_id": "y4aq26TNkKEafwbN",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"slow_down_layer_time": [
@@ -16,9 +16,6 @@
 		"0.02"
 	],
 	"compatible_printers": [
-		"Qidi X-Plus 0.6 nozzle",
-		"Qidi X-Max 0.6 nozzle",
-		"Qidi X-CF Pro 0.6 nozzle",
 		"Qidi X-Smart 3 0.6 nozzle",
 		"Qidi X-Plus 3 0.6 nozzle",
 		"Qidi X-Max 3 0.6 nozzle"

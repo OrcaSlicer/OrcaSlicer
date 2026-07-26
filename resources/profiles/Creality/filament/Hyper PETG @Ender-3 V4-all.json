@@ -3,7 +3,7 @@
     "name": "Hyper PETG @Ender-3 V4-all",
     "inherits": "fdm_filament_petg",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "EDl8nfZRP1T8CBOs",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

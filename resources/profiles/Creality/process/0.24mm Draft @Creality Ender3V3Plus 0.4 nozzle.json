@@ -3,7 +3,7 @@
 	"name": "0.24mm Draft @Creality Ender-3 V3 Plus",
 	"inherits": "fdm_process_common_klipper",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "lH3j14miQE62zlSj",
 	"instantiation": "true",
 	"adaptive_layer_height": "0",
 	"reduce_crossing_wall": "0",

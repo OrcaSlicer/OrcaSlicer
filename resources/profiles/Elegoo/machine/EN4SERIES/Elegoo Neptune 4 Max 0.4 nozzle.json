@@ -2,7 +2,7 @@
 	"type": "machine",
 	"name": "Elegoo Neptune 4 Max 0.4 nozzle",
 	"from": "system",
-	"setting_id": "EN4MAX04",
+	"setting_id": "Ie1QF4p1mjA7QqZf",
 	"instantiation": "true",
 	"inherits": "Elegoo Neptune 4 0.4 nozzle",
 	"host_type": "elegoolink",

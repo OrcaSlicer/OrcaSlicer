@@ -32,13 +32,13 @@ std::string GLGizmoAssembly::on_get_name() const
 {
     if (!on_is_activable() && m_state == EState::Off) {
         if (wxGetApp().plater()->canvas3D()->get_canvas_type() == GLCanvas3D::ECanvasType::CanvasAssembleView) {
-            return _u8L("Assemble") + ":\n" + _u8L("Please confirm explosion ratio = 1 and select at least two volumes.");
+            return _u8L_CONTEXT("Assemble", "Assembly tool") + ":\n" + _u8L("Please confirm explosion ratio = 1 and select at least two volumes.");
         }
         else {
-            return _u8L("Assemble") + ":\n" + _u8L("Please select at least two volumes.");
+            return _u8L_CONTEXT("Assemble", "Assembly tool") + ":\n" + _u8L("Please select at least two volumes.");
         }
     } else {
-        return _u8L("Assemble");
+        return _u8L_CONTEXT("Assemble", "Assembly tool");
     }
 }
 
@@ -162,7 +162,7 @@ void GLGizmoAssembly::render_input_window_warning(bool same_model_object)
     if (not_assembled_warning) {
         m_imgui->warning_text(
             _L("Warning") + ": " +
-            _L("It is recommended to assemble the objects first,\nbecause the objects is restriced to bed \nand only parts can be lifted.")
+            _L("It is recommended to assemble objects first,\nbecause they are restricted to the bed \nand only parts can be lifted.")
         );
     }
 }

@@ -3,7 +3,7 @@
 	"name": "Anycubic PAHT-CF @Anycubic Kobra S1 Max 0.8 nozzle",
 	"inherits": "fdm_filament_pa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "jzrflGdwy9U8kl1c",
 	"filament_id": "GFPAHT-CF",
 	"instantiation": "true",
 	"filament_settings_id": [

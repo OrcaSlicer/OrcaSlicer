@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Creality Hi",
 	"inherits": "fdm_process_creality_common",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "bcq9UBvpf9Ye1RX3",
 	"instantiation": "true",
 	"reduce_crossing_wall": "0",
 	"max_travel_detour_distance": "0",

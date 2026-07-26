@@ -3,7 +3,7 @@
 	"name": "0.30mm Standard @Elegoo N3Plus 0.6 nozzle",
 	"inherits": "fdm_process_elegoo_06030",
 	"from": "system",
-	"setting_id": "PEN3Plus06030",
+	"setting_id": "RQWF0SuJbkGyjytK",
 	"instantiation": "true",
 	"filename_format": "EN3Plus_{nozzle_diameter[0]}_{input_filename_base}_{filament_name}_{layer_height}_{print_time}.gcode",
 	"default_acceleration": "1000",

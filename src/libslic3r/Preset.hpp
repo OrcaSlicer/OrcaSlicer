@@ -72,6 +72,7 @@
 #define BBL_JSON_KEY_BOTTOM_TEXTURE_END_NAME    "bottom_texture_end_name"
 #define BBL_JSON_KEY_USE_DOUBLE_EXTRUDER_DEFAULT_TEXTURE  "use_double_extruder_default_texture"
 #define BBL_JSON_KEY_BOTTOM_TEXTURE_RECT        "bottom_texture_rect"
+#define BBL_JSON_KEY_BOTTOM_TEXTURE_RECT_LONGER  "bottom_texture_rect_longer"
 #define BBL_JSON_KEY_MIDDLE_TEXTURE_RECT        "middle_texture_rect"
 
 #define BBL_JSON_KEY_HOTEND_MODEL               "hotend_model"
@@ -89,6 +90,16 @@ namespace Slic3r {
 
 class AppConfig;
 class PresetBundle;
+
+// Deterministic preset setting_id: uuid5(vendor/type/name) -> 16 base62 chars.
+// Pure function of a system preset's identity, so the value can be assigned by
+// scripts/assign_vendor_setting_ids.py and recomputed here when a profile ships
+// without it. MUST stay byte-identical to scripts/assign_vendor_setting_ids.py.
+// This is NOT the per-user cloud-sync setting_id
+// (OrcaCloudServiceAgent::generate_uuid_for_setting_id) - do not conflate them.
+std::string generate_preset_setting_id(const std::string& vendor,
+                                       const std::string& type,
+                                       const std::string& name);
 
 enum ConfigFileType
 {
@@ -140,6 +151,7 @@ public:
         std::string                 bottom_texture_end_name;
         std::string                 use_double_extruder_default_texture;
         std::string                 bottom_texture_rect;
+        std::string                 bottom_texture_rect_longer;
         std::string                 middle_texture_rect;
         std::string                 hotend_model;
         PrinterVariant*       variant(const std::string &name) {
@@ -310,6 +322,20 @@ public:
     std::string&        inherits() { return Preset::inherits(this->config); }
     const std::string&  inherits() const { return Preset::inherits(const_cast<Preset*>(this)->config); }
 
+    // Rewrite cfg's "inherits" to the resolved parent's canonical name. find_preset2 may
+    // resolve a renamed parent, or a removed vendor profile auto-matched to the
+    // OrcaFilamentLibrary; persisting the canonical name lets later plain find_preset()
+    // callers (e.g. get_preset_parent) walk the inheritance chain without the fuzzy match.
+    // No-op when the parent could not be resolved or the name is already canonical.
+    static void normalize_inherits(DynamicPrintConfig &cfg, const Preset *resolved_parent)
+    {
+        if (resolved_parent == nullptr)
+            return;
+        std::string &inherits = Preset::inherits(cfg);
+        if (inherits != resolved_parent->name)
+            inherits = resolved_parent->name;
+    }
+
     // Returns the "compatible_prints_condition".
     static std::string& compatible_prints_condition(DynamicPrintConfig &cfg) { return cfg.option<ConfigOptionString>("compatible_prints_condition", true)->value; }
     std::string&        compatible_prints_condition() {
@@ -380,6 +406,11 @@ public:
     static const std::vector<std::string>&  nozzle_options();
     // Printer machine limits, those are contained in printer_options().
     static const std::vector<std::string>&  machine_limits_options();
+
+    // Option key holding this preset type's plugin capability overrides. Each type has its own key so
+    // the values survive the merge into a single full config; print is the fallback for the types with
+    // no plugin-backed options.
+    static const char*                      plugin_overrides_key(Type type);
 
     static const std::vector<std::string>&  sla_printer_options();
     static const std::vector<std::string>&  sla_material_options();
@@ -778,6 +809,9 @@ public:
     // Generate a file path from a profile name. Add the ".ini" suffix if it is missing.
     std::string     path_from_name(const std::string &new_name, bool detach = false) const;
     std::string     path_for_preset(const Preset & preset) const;
+
+    // Get the alias of a preset, setting it if it's empty
+    std::string     get_preset_alias(Preset &preset, bool force = false);
 
     size_t num_default_presets() { return m_num_default_presets; }
 

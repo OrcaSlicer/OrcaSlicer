@@ -3,7 +3,7 @@
     "name": "CR-ABS @K2 Plus-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "5CD3YjRfabJ1lA6a",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"
@@ -45,7 +45,7 @@
         "0"
     ],
     "filament_max_volumetric_speed": [
-        "1"
+        "10"
     ],
     "filament_minimal_purge_on_wipe_tower": [
         "15"

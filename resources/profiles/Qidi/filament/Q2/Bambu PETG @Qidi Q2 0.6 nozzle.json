@@ -3,7 +3,7 @@
 	"name": "Bambu PETG @Qidi Q2 0.6 nozzle",
 	"inherits": "Bambu PETG@Q2-Series",
 	"from": "system",
-	"setting_id": "GFSG99",
+	"setting_id": "yKVcpVja9ajirE24",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
