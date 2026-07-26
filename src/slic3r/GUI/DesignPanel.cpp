@@ -3285,7 +3285,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_draw_plane->SetSelection(base);
             const char* nm = (base == 0) ? "XY" : (base == 1) ? "XZ" : (base == 2) ? "YZ" : "datum";
             m_status->SetForegroundColour(wxColour(120, 210, 120));
-            m_status->SetLabel(wxString::Format(_L("%s plane selected — press Sketch to draw on it"), nm));
+            // The "press Sketch" half is only true in Feature mode, where that button exists.
+            // Inside sketch mode it told the user to press a button that isn't on screen; there
+            // the next step is arming a tool (toolbar flyout or its single-letter key). snaporca-d9i.
+            m_status->SetLabel(m_ui_mode == UiMode::Sketch
+                ? wxString::Format(_L("%s plane selected — pick a sketch tool to draw on it"), nm)
+                : wxString::Format(_L("%s plane selected — press Sketch to draw on it"), nm));
             m_status->Refresh();
         }
     });
@@ -3395,11 +3400,27 @@ DesignPanel::DesignPanel(wxWindow* parent)
         const int  key  = e.GetKeyCode();
         const bool ctrl = e.ControlDown() || e.CmdDown();
         const bool sketching = (m_ui_mode == UiMode::Sketch) && m_viewport && m_viewport->is_sketching();
+        // Which key MAP applies is a question about the MODE, not about whether a session is
+        // already running. Gating the sketch map on is_sketching() made it unreachable by
+        // keyboard: is_sketching() only turns true inside select_tool()'s begin_sketch(), and
+        // select_tool() is what the sketch keys call — so the first letter after entering
+        // sketch mode fell through to the feature map, matched nothing (feature keys are
+        // Shift+letter), and did nothing. The mouse worked only because the toolbar flyout
+        // reaches select_tool() directly. That is why all 17 keys read as dead. snaporca-0ud.
+        const bool sketch_mode = (m_ui_mode == UiMode::Sketch);
         // Never steal editing keys from a focused text field or an open in-canvas value field —
         // Delete/Ctrl+Z there must edit the text, not the model.
         const bool in_text = (dynamic_cast<wxTextCtrl*>(wxWindow::FindFocus()) != nullptr)
                              || (m_viewport && m_viewport->inline_busy());
 
+        if (getenv("SNAPORCA_KEYTRACE")) {
+            wxWindow* fw = wxWindow::FindFocus();
+            fprintf(stderr, "[KEYTRACE] key=%d ui_mode=%d is_sketching=%d in_text=%d inline_busy=%d focus=%s\n",
+                    key, int(m_ui_mode), (m_viewport && m_viewport->is_sketching()) ? 1 : 0, in_text ? 1 : 0,
+                    (m_viewport && m_viewport->inline_busy()) ? 1 : 0,
+                    fw ? (const char*) fw->GetClassInfo()->GetClassName() : "(none)");
+            fflush(stderr);
+        }
         const bool dismissable = m_active != Tool::None || (m_viewport && m_viewport->moving_body());
         if (key == WXK_ESCAPE && dismissable) { tool_cancel(); return; }
 
@@ -3422,7 +3443,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Section view controls while it is on (Alt+Wheel is unreliable under remote desktops / is
         // grabbed by GLCanvas3D, so the keyboard drives it): PageUp/PageDown move the plane, F flips
         // which half is kept (so you can inspect the opposite part).
-        if (!in_text && !sketching && m_section_on) {
+        if (!in_text && !sketch_mode && m_section_on) {
             if (key == WXK_PAGEUP || key == WXK_PAGEDOWN) {
                 m_section_cut_z += (key == WXK_PAGEUP ? 2.0 : -2.0);
                 if (m_viewport) m_viewport->set_section_plane(true, m_section_cut_z, m_section_upper);
@@ -3435,7 +3456,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // toggles / section. Ctrl-combos and focused text fields are never intercepted.
         if (!in_text && !ctrl) {
             const int up = (key >= 'a' && key <= 'z') ? key - 'a' + 'A' : key;   // normalise case
-            if (sketching) {
+            if (sketch_mode) {
                 auto it = m_keys_sketch.find(up);
                 if (it != m_keys_sketch.end()) { it->second(); return; }
             } else {
