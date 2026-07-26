@@ -1408,6 +1408,42 @@ TEST_CASE("draft tapers a solid face about the body base", "[CadDocument]")
     REQUIRE_FALSE(bad.recompute());
 }
 
+TEST_CASE("a split renumbers the bodies a later feature indexes", "[CadDocument][cut]")
+{
+    // Pins the invariant the Design tab's re-edit path depends on (snaporca-oz7): a stored
+    // target_body indexes the body list AS IT WAS when that feature ran, and a Cut placed
+    // later in the tree changes that list. If this test ever fails, the GUI's
+    // fill_body_choice() replay-to-timeline-slot assumption needs revisiting with it.
+    using Catch::Matchers::WithinRel;
+
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 20.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    // Cut the single body in half, keeping BOTH pieces — what the Cut card always does.
+    doc.add_cut(SketchPlane::XY(), 10.0, false, true, true, 0, "Split");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+    REQUIRE(doc.bodies.size() == 2);           // one body became two
+
+    // Body index 1 did not exist before the Cut. A feature recorded BEFORE the Cut could
+    // never have referred to it, which is exactly why re-edit must list the earlier set.
+    const double half = 20.0 * 20.0 * 10.0;
+    double v0 = double(SketchEngine::tessellate(doc.bodies[0].shape).volume());
+    double v1 = double(SketchEngine::tessellate(doc.bodies[1].shape).volume());
+    CHECK_THAT(v0 + v1, WithinRel(2.0 * half, 1e-3));
+
+    // Replaying to just before the Cut yields the pre-split list — the one a feature sitting
+    // there indexes into. This is the operation fill_body_choice() performs.
+    CadDocument as_of = doc;
+    as_of.features.resize(as_of.features.size() - 1);   // drop the Cut
+    REQUIRE(as_of.recompute());
+    REQUIRE(as_of.bodies.size() == 1);
+    CHECK(as_of.bodies.size() < doc.bodies.size());
+}
+
 TEST_CASE("cut splits a body with a plane", "[cut]")
 {
     using Catch::Matchers::WithinRel;

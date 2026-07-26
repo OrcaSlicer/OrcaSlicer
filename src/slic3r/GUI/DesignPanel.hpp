@@ -122,6 +122,10 @@ private:
     // >= 0 = the bodies as they existed just before that feature index (Boolean re-edit, so a
     // consumed tool body still appears and its saved selection round-trips).
     void populate_body_choices(int as_of_feature = -1);
+    // Fill `c` with the bodies as they existed just before `as_of_feature` and select
+    // `want`. Re-editing any feature that stores a body index needs this: the index was
+    // recorded against the body list at that point in the timeline, not the final one.
+    void fill_body_choice(ComboBox* c, int as_of_feature, int want);
     void populate_sheet_body_choices(ComboBox* c) const;   // bodies where is_sheet_shape() is true
     // Rows of a sheet-filtered picker are not body indices; go through these two, never
     // GetSelection()/SetSelection() directly.

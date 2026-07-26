@@ -4693,6 +4693,30 @@ void DesignPanel::populate_body_choices(int as_of_feature)
     fill(m_cut_target, 0);  // Cut tool: default to the first body
 }
 
+void DesignPanel::fill_body_choice(ComboBox* c, int as_of_feature, int want)
+{
+    if (!c) return;
+    // Same replay as populate_body_choices, for the single-combo tools. A stored target_body
+    // indexes the body list AS IT WAS just before that feature ran; listing the final bodies
+    // instead makes the saved index select whatever now sits at that position, which is a
+    // different body as soon as a later Cut splits one (indices shift up) or a later Boolean
+    // consumes its tool body (indices shift down).
+    const std::vector<CadBody>* src = &m_doc.bodies;
+    std::vector<CadBody> as_of;
+    if (as_of_feature >= 0 && as_of_feature <= int(m_doc.features.size())) {
+        CadDocument tmp = m_doc;
+        tmp.features.resize(as_of_feature);
+        if (tmp.recompute() && !tmp.bodies.empty()) { as_of = tmp.bodies; src = &as_of; }
+    }
+    c->Clear();
+    for (size_t i = 0; i < src->size(); ++i) {
+        const std::string& n = (*src)[i].name;
+        c->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
+    }
+    if (want >= 0 && want < int(c->GetCount())) c->SetSelection(want);
+    else if (c->GetCount() > 0)                 c->SetSelection(0);
+}
+
 void DesignPanel::on_add_boolean()
 {
     if (m_doc.bodies.size() < 2) {
@@ -7006,16 +7030,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         select_sheet_choice(m_surf_thicken_body, f.target_body);
         break;
     case CadFeatureType::Transform: {
-        {
-            m_xf_body->Clear();
-            for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
-                const std::string& n = m_doc.bodies[i].name;
-                m_xf_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
-            }
-            if (f.target_body >= 0 && f.target_body < int(m_xf_body->GetCount()))
-                m_xf_body->SetSelection(f.target_body);
-            else if (m_xf_body->GetCount() > 0) m_xf_body->SetSelection(0);
-        }
+        fill_body_choice(m_xf_body, m_edit_index, f.target_body);
         m_xf_dx->SetValue(f.xf_translate.x());
         m_xf_dy->SetValue(f.xf_translate.y());
         m_xf_dz->SetValue(f.xf_translate.z());
@@ -7029,32 +7044,14 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         break;
     }
     case CadFeatureType::Mirror: {
-        {
-            m_mirror_body->Clear();
-            for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
-                const std::string& n = m_doc.bodies[i].name;
-                m_mirror_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
-            }
-            if (f.target_body >= 0 && f.target_body < int(m_mirror_body->GetCount()))
-                m_mirror_body->SetSelection(f.target_body);
-            else if (m_mirror_body->GetCount() > 0) m_mirror_body->SetSelection(0);
-        }
+        fill_body_choice(m_mirror_body, m_edit_index, f.target_body);
         populate_plane_choices(m_mirror_plane);
         m_mirror_plane->SetSelection(index_from_plane(f.plane));
         m_mirror_keep->SetValue(f.mirror_keep_original);
         break;
     }
     case CadFeatureType::Thicken: {
-        {
-            m_thicken_body->Clear();
-            for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
-                const std::string& n = m_doc.bodies[i].name;
-                m_thicken_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
-            }
-            if (f.target_body >= 0 && f.target_body < int(m_thicken_body->GetCount()))
-                m_thicken_body->SetSelection(f.target_body);
-            else if (m_thicken_body->GetCount() > 0) m_thicken_body->SetSelection(0);
-        }
+        fill_body_choice(m_thicken_body, m_edit_index, f.target_body);
         m_sel_solid_face = f.thicken_face;
         m_thicken_face_label->SetLabel(f.thicken_face >= 0
             ? wxString::Format(_L("Face %d"), f.thicken_face)
@@ -7064,16 +7061,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         break;
     }
     case CadFeatureType::Rib: {
-        {
-            m_rib_body->Clear();
-            for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
-                const std::string& n = m_doc.bodies[i].name;
-                m_rib_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
-            }
-            if (f.target_body >= 0 && f.target_body < int(m_rib_body->GetCount()))
-                m_rib_body->SetSelection(f.target_body);
-            else if (m_rib_body->GetCount() > 0) m_rib_body->SetSelection(0);
-        }
+        fill_body_choice(m_rib_body, m_edit_index, f.target_body);
         {
             m_rib_sketch->Clear();
             int pre_sel = wxNOT_FOUND;
@@ -7093,16 +7081,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         break;
     }
     case CadFeatureType::Project: {
-        {
-            m_proj_source_body->Clear();
-            for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
-                const std::string& n = m_doc.bodies[i].name;
-                m_proj_source_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
-            }
-            if (f.project_source_body >= 0 && f.project_source_body < int(m_proj_source_body->GetCount()))
-                m_proj_source_body->SetSelection(f.project_source_body);
-            else if (m_proj_source_body->GetCount() > 0) m_proj_source_body->SetSelection(0);
-        }
+        fill_body_choice(m_proj_source_body, m_edit_index, f.project_source_body);
         populate_plane_choices(m_proj_plane);
         m_proj_plane->SetSelection(index_from_plane(f.plane));
         m_sel_solid_face = f.project_face;
@@ -7112,16 +7091,7 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         break;
     }
     case CadFeatureType::DeleteFace: {
-        {
-            m_del_face_body->Clear();
-            for (size_t i = 0; i < m_doc.bodies.size(); ++i) {
-                const std::string& n = m_doc.bodies[i].name;
-                m_del_face_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
-            }
-            if (f.target_body >= 0 && f.target_body < int(m_del_face_body->GetCount()))
-                m_del_face_body->SetSelection(f.target_body);
-            else if (m_del_face_body->GetCount() > 0) m_del_face_body->SetSelection(0);
-        }
+        fill_body_choice(m_del_face_body, m_edit_index, f.target_body);
         m_del_faces = f.delete_faces;
         {
             wxString s;
