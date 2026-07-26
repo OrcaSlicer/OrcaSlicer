@@ -25,6 +25,15 @@ class wxStaticLine;
 class Button;      // Orca-styled button (Widgets/Button.hpp)
 class CheckBox;    // Orca teal checkbox (Widgets/CheckBox.hpp)
 class wxSizer;
+// wxBoxSizer, wxTextCtrl and wxListCtrl are used here as pointers only, so a forward
+// declaration is enough — but they must be declared. Every ordinary build happened to pull
+// them in transitively through the wx/panel.h + wx/scrolwin.h chain. The Snapmaker fork's
+// Flatpak build does not, and it failed to compile this header with "'wxTextCtrl' does not
+// name a type; did you mean 'wxTreeCtrl'?". Declaring them keeps the header self-contained
+// instead of relying on whatever a particular wx configuration happens to include.
+class wxBoxSizer;
+class wxTextCtrl;
+class wxListCtrl;
 class wxButton;
 class wxPanel;
 class ScalableButton;
