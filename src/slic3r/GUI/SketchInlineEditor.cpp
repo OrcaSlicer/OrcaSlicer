@@ -62,6 +62,12 @@ SketchInlineEditor::SketchInlineEditor(wxWindow* parent_canvas)
     m_ctrl->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { do_commit(); });
     m_ctrl->Bind(wxEVT_KEY_DOWN, [this](wxKeyEvent& e) {
         if (e.GetKeyCode() == WXK_ESCAPE) do_cancel();
+        // Tab commits, exactly like Enter — the caller's on_commit is what walks to the next
+        // dimension. Left to wx's default handling it navigated within this one-control popup,
+        // i.e. back to the same field with the text re-selected: typing 60, Tab, 40 looked like
+        // two dimensions entered and silently kept only the 40. Losing typed input with no
+        // visible difference from a committed field is the part that made this worth a key case.
+        else if (e.GetKeyCode() == WXK_TAB) do_commit();
         else                             e.Skip();
     });
 }
