@@ -3365,6 +3365,31 @@ TEST_CASE("project a cylinder top edge to 1 circle, extrudable", "[CadDocument][
     REQUIRE_THAT(v, WithinRel(M_PI * 36.0 * 4.0, 1e-2));
 }
 
+TEST_CASE("project with no face and no edge selection projects every edge", "[CadDocument][project]")
+{
+    // This is the state the Project card opens in — its label reads "(all edges)". Before the
+    // all-edges branch existed it threw "no edges or face selected", so the card's default
+    // could never be confirmed.
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Box");
+    doc.add_extrude(sk, 10.0, false, BooleanMode::New, "Ext");
+    REQUIRE(doc.recompute());
+
+    int proj = doc.add_project_edges(0, {}, -1, SketchPlane::XY(), "ProjAll");
+    REQUIRE(proj >= 0);
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.error.empty());
+
+    // A box has 12 edges; the 4 running along Z collapse to points on XY and are dropped,
+    // leaving the 4 bottom and 4 top edges.
+    const auto& pf = doc.features[proj];
+    REQUIRE(pf.entities.size() == 8);
+    for (const auto& e : pf.entities) {
+        REQUIRE(e.type == SketchEntity::Type::Line);
+        REQUIRE((e.p1 - e.p0).norm() > 1e-6);
+    }
+}
+
 TEST_CASE("project bad face id returns error", "[CadDocument][project]")
 {
     CadDocument doc;

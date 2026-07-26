@@ -642,7 +642,7 @@ json import_step(DesignPanel* panel, const json& params)
         doc.features.push_back(f);
     }
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"imported", int(solids.size())}, {"first_feature", first},
                 {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
@@ -687,7 +687,7 @@ json import_mesh(DesignPanel* panel, const json& params)
     doc.features.push_back(f);
 
     const bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"first_feature", first}, {"bodies", int(doc.bodies.size())},
                 {"input_triangles", st.input_tris}, {"kept_triangles", st.kept_tris},
@@ -788,7 +788,7 @@ json action_extrude(DesignPanel* panel, const json& params)
     else if (end == "up_to_face")  { fe.extrude_end = ExtrudeEnd::UpToFace; fe.up_to_face = params.value("up_to_face", -1); }
     else                            fe.extrude_end = ExtrudeEnd::Blind;
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"sketch_index", s}, {"extrude_index", e}, {"end", end},
                 {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
@@ -815,7 +815,7 @@ json action_revolve(DesignPanel* panel, const json& params)
                      : doc.add_sketch(SketchShape::Rectangle, pl, w, h, 0.0, "Sketch");
     int r = doc.add_revolve(s, angle, axis, flip, mode, "Revolve");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"sketch_index", s}, {"revolve_index", r},
                 {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
@@ -843,7 +843,7 @@ json action_fillet(DesignPanel* panel, const json& params)
     int f = doc.add_fillet(radius, params["edge"].get<int>(), "Fillet");
     if (bi >= 0) doc.features[f].target_body = bi;   // edge id resolved against THIS body's shape
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"fillet_index", f}, {"body", bi < 0 ? int(doc.bodies.size()) - 1 : bi},
                 {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
@@ -861,7 +861,7 @@ json action_chamfer(DesignPanel* panel, const json& params)
     int c = doc.add_chamfer(dist, params["edge"].get<int>(), "Chamfer");
     if (bi >= 0) doc.features[c].target_body = bi;   // edge id resolved against THIS body's shape
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"chamfer_index", c}, {"body", bi < 0 ? int(doc.bodies.size()) - 1 : bi},
                 {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
@@ -880,7 +880,7 @@ json action_hole(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int h = doc.add_hole(dia, depth, thru, x, y, pl, "Hole");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"hole_index", h}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -906,7 +906,7 @@ json action_hole_styled(DesignPanel* panel, const json& params)
                                 cbore_diameter, cbore_depth,
                                 csink_diameter, csink_angle, standard, "Hole");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"hole_index", h}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -926,7 +926,7 @@ json action_hole_standard(DesignPanel* panel, const json& params)
     try {
         int h = doc.add_hole_standard(desig, style, thru, depth, x, y, pl, "Hole");
         bool ok = doc.recompute();
-        if (!ok) doc.undo();
+        if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
         panel->mcp_after_change();
         return json{{"ok", ok}, {"hole_index", h}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
     } catch (const std::exception& ex) {
@@ -952,7 +952,7 @@ json action_boolean(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int b = doc.add_boolean(m, target, tool, keep, tol, -1, -1, "Boolean");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"boolean_index", b}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -972,7 +972,7 @@ json action_pattern(DesignPanel* panel, const json& params)
     int p = doc.add_pattern(circular, count, spacing, dir, angle, bi, "Pattern");
     doc.features[p].plane = plane_from(params, doc);   // axis (circular) / step dirs (linear)
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"pattern_index", p}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -991,7 +991,7 @@ json action_pattern_on_curve(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int p = doc.add_pattern_on_curve(count, sketch, entity, bi, "PatternOnCurve");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"pattern_index", p}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1007,7 +1007,7 @@ json action_shell(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int s = doc.add_shell(thickness, face, bi, "Shell");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"shell_index", s}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1026,7 +1026,7 @@ json action_rib(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int idx = doc.add_rib(sketch, entity, thickness, depth, bi, "Rib");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"rib_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1040,7 +1040,7 @@ json action_surface_extrude(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int idx = doc.add_surface_extrude(sketch, distance, "SurfaceExtrude");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1055,7 +1055,7 @@ json action_surface_revolve(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int idx = doc.add_surface_revolve(sketch, angle, axis, "SurfaceRevolve");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1070,7 +1070,7 @@ json action_thicken_surface(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int idx = doc.add_thicken_surface(bi, thickness, flip, "ThickenSurface");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1084,7 +1084,7 @@ json action_surface_offset(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int idx = doc.add_surface_offset(bi, offset, "SurfaceOffset");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1100,7 +1100,7 @@ json action_surface_loft(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int idx = doc.add_surface_loft(profiles, ruled, "SurfaceLoft");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1113,7 +1113,7 @@ json action_surface_fill(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int idx = doc.add_surface_fill(sketch, "SurfaceFill");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1128,7 +1128,7 @@ json action_draft(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int d = doc.add_draft(angle, params["face"].get<int>(), bi, "Draft");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"draft_index", d}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1145,7 +1145,7 @@ json action_mirror(DesignPanel* panel, const json& params)
     int idx = doc.add_mirror(plane_from(params, doc), bi, m, "Mirror");
     doc.features[idx].mirror_keep_original = keep;
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"mirror_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1163,7 +1163,7 @@ json action_transform(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int idx = doc.add_transform(bi, translate, axis, pivot, angle, copy, "Transform");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"transform_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1180,7 +1180,7 @@ json action_thicken(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int idx = doc.add_thicken(bi, face, thickness, flip, "Thicken");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"thicken_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1198,7 +1198,7 @@ json action_split(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int idx = doc.add_split_by_face(bi, face_body, face, keep_upper, keep_lower, "Split");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"split_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1216,7 +1216,7 @@ json action_project(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int idx = doc.add_project_edges(source_body, edges, face, pl, "Project");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"project_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1233,7 +1233,7 @@ json action_delete_face(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int idx = doc.add_delete_face(bi, faces, "DeleteFace");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"feature_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }
@@ -1252,7 +1252,7 @@ json action_bridge(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int ei = doc.add_bridge(sketch, ent_a, end_a, ent_b, end_b, "Bridge");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"sketch_index", sketch}, {"entity_index", ei},
                 {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
@@ -1343,7 +1343,7 @@ json action_mate(DesignPanel* panel, const json& params)
     doc.checkpoint();
     int idx = doc.add_mate(kind, cs_a, cs_b, offset, angle, flip, "Mate");
     bool ok = doc.recompute();
-    if (!ok) doc.undo();
+    if (!ok) { const std::string why = doc.error; doc.undo(); doc.error = why; }
     panel->mcp_after_change();
     return json{{"ok", ok}, {"mate_index", idx}, {"bodies", int(doc.bodies.size())}, {"error", doc.error}};
 }

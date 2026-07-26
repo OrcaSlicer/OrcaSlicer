@@ -2831,7 +2831,11 @@ void CadDocument::apply_project(const std::vector<CadBody>& bodies, CadFeature& 
         if (fc.IsNull()) throw std::runtime_error("project: face not found");
         edges = GeometryEngine::edges_of_face(fc);
     } else {
-        throw std::runtime_error("project: no edges or face selected");
+        // No face and no explicit selection means "all edges" — the state the Project card
+        // starts in, and its label says so. Edges perpendicular to the target plane collapse
+        // to a point when projected; they are dropped below rather than emitted as
+        // zero-length lines.
+        edges = GeometryEngine::edges_of(shape);
     }
     if (edges.empty()) throw std::runtime_error("project: no edges to project");
 
@@ -2840,15 +2844,23 @@ void CadDocument::apply_project(const std::vector<CadBody>& bodies, CadFeature& 
         return Vec2d(d.dot(f.plane.x_axis), d.dot(f.plane.y_axis));
     };
 
+    // A segment whose endpoints coincide after projection carries no geometry: that is what
+    // an edge perpendicular to the target plane becomes. Emitting it as a zero-length line
+    // would poison the sketch downstream, so drop it here.
+    auto push_line = [&](const Vec2d& a, const Vec2d& b) {
+        if ((b - a).norm() < 1e-7) return;
+        SketchEntity se; se.type = SketchEntity::Type::Line;
+        se.p0 = a; se.p1 = b;
+        f.entities.push_back(se);
+    };
+
     for (const TopoDS_Edge& e : edges) {
         BRepAdaptor_Curve ac(e);
         const GeomAbs_CurveType ct = ac.GetType();
         if (ct == GeomAbs_Line) {
             gp_Pnt a = ac.Value(ac.FirstParameter());
             gp_Pnt b = ac.Value(ac.LastParameter());
-            SketchEntity se; se.type = SketchEntity::Type::Line;
-            se.p0 = to2d(a); se.p1 = to2d(b);
-            f.entities.push_back(se);
+            push_line(to2d(a), to2d(b));
         } else if (ct == GeomAbs_Circle) {
             gp_Circ c = ac.Circle();
             gp_Dir cn = c.Axis().Direction();
@@ -2876,20 +2888,14 @@ void CadDocument::apply_project(const std::vector<CadBody>& bodies, CadFeature& 
                 continue;
             }
             std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
-            for (size_t i = 1; i < pts.size(); ++i) {
-                SketchEntity se; se.type = SketchEntity::Type::Line;
-                se.p0 = to2d(gp_Pnt(pts[i-1].x(), pts[i-1].y(), pts[i-1].z()));
-                se.p1 = to2d(gp_Pnt(pts[i].x(),   pts[i].y(),   pts[i].z()));
-                f.entities.push_back(se);
-            }
+            for (size_t i = 1; i < pts.size(); ++i)
+                push_line(to2d(gp_Pnt(pts[i-1].x(), pts[i-1].y(), pts[i-1].z())),
+                          to2d(gp_Pnt(pts[i].x(),   pts[i].y(),   pts[i].z())));
         } else {
             std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
-            for (size_t i = 1; i < pts.size(); ++i) {
-                SketchEntity se; se.type = SketchEntity::Type::Line;
-                se.p0 = to2d(gp_Pnt(pts[i-1].x(), pts[i-1].y(), pts[i-1].z()));
-                se.p1 = to2d(gp_Pnt(pts[i].x(),   pts[i].y(),   pts[i].z()));
-                f.entities.push_back(se);
-            }
+            for (size_t i = 1; i < pts.size(); ++i)
+                push_line(to2d(gp_Pnt(pts[i-1].x(), pts[i-1].y(), pts[i-1].z())),
+                          to2d(gp_Pnt(pts[i].x(),   pts[i].y(),   pts[i].z())));
         }
     }
     if (f.entities.empty()) throw std::runtime_error("project: produced no entities");
