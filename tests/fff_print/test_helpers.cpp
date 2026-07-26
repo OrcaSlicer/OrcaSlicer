@@ -7,7 +7,9 @@
 #include "libslic3r/Format/OBJ.hpp"
 #include "libslic3r/Format/STL.hpp"
 
+#include <cctype>
 #include <cstdlib>
+#include <map>
 #include <string>
 
 #include <boost/filesystem.hpp>
@@ -428,6 +430,39 @@ std::set<double> layers_with_role(const std::string &gcode, const std::string &r
             layers.insert(self.z());
     });
     return layers;
+}
+
+std::map<std::string, std::set<int>> tools_by_feature(const std::string &gcode)
+{
+    std::map<std::string, std::set<int>> features;
+    int current_tool = 0;
+    std::string current_feature;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        const std::string cmd(line.cmd());
+        const std::string comment(line.comment());
+        if (cmd.size() >= 2 && cmd[0] == 'T' && std::isdigit((unsigned char)cmd[1]))
+            current_tool = std::stoi(cmd.substr(1));
+        else if (const std::string bbl_tag = " FEATURE: "; comment.rfind(bbl_tag, 0) == 0)
+            current_feature = comment.substr(bbl_tag.size());
+        else if (const std::string tag = "TYPE:"; comment.rfind(tag, 0) == 0)
+            current_feature = comment.substr(tag.size());
+        else if (line.extruding(self) && line.dist_XY(self) > 0 && !current_feature.empty())
+            features[current_feature].insert(current_tool);
+    });
+    return features;
+}
+
+std::set<int> selected_tools(const std::string &gcode)
+{
+    std::set<int> tools{ 0 };
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &, const GCodeReader::GCodeLine &line) {
+        const std::string cmd(line.cmd());
+        if (cmd.size() >= 2 && cmd[0] == 'T' && std::isdigit((unsigned char)cmd[1]))
+            tools.insert(std::stoi(cmd.substr(1)));
+    });
+    return tools;
 }
 
 double max_z(const std::string &gcode)

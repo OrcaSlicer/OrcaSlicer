@@ -6064,7 +6064,8 @@ LayerResult GCode::process_layer(
         if (print.config().print_sequence == PrintSequence::ByLayer && m_enable_exclude_object && print.config().support_object_skip_flush.value) {
             std::vector<size_t> filament_instances_id;
             for (InstanceToPrint &instance : filament_to_print_instances[extruder_id]) filament_instances_id.emplace_back(instance.label_object_id);
-            m_filament_instances_code = _encode_label_ids_to_base64(filament_instances_id);
+            // Orca: tool ordering may schedule a filament with no object instance on this layer, emit no skip-flush object list for it instead of failing the export.
+            m_filament_instances_code = filament_instances_id.empty() ? std::string() : _encode_label_ids_to_base64(filament_instances_id);
         }
 
         // The inline _extrude hook may already have taken the snapshot mid-extrusion on a

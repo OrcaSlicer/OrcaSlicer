@@ -115,7 +115,11 @@ unsigned int LayerTools::extruder(const ExtrusionEntityCollection &extrusions, c
     if (this->extruder_override == 0) {
         if (extrusions.has_infill()) {
             if (extrusions.has_solid_infill()) {
-                ExtrusionRole role = extrusions.role();
+                // Classify ignoring gap fill: Fill::_create_gap_fill() appends erGapFill entities into the surface's own collection, which would turn role() into erMixed and misroute e.g. a top surface to the internal solid filament.
+                ExtrusionRole role = erNone;
+                for (const ExtrusionEntity *ee : extrusions.entities)
+                    if (ExtrusionRole er = ee->role(); er != erGapFill)
+                        role = (role == erNone || role == er) ? er : erMixed;
                 if (role == erTopSolidInfill || role == erIroning)
                     extruder = region.config().top_surface_filament_id;
                 else if (role == erBottomSurface)
@@ -755,7 +759,19 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
 
                 if (something_nonoverriddable){
                		layer_tools.extruders.emplace_back((extruder_override == 0) ? region.config().outer_wall_filament_id.value : extruder_override);
-                    if (extruder_override == 0 && region.config().wall_loops.value > 1)
+                    // Schedule the inner wall filament only when an inner wall actually exists: narrow regions may fit a single loop no matter the wall_loops setting (see GCode::process_layer split_mixed_perimeters for the matching assignment).
+                    bool has_inner_wall = false;
+                    for (const ExtrusionEntity *eec : layerm->perimeters.entities) {
+                        const auto *island = dynamic_cast<const ExtrusionEntityCollection*>(eec);
+                        for (const ExtrusionEntity *ee : island->entities)
+                            if (is_internal_perimeter(ee->role())) {
+                                has_inner_wall = true;
+                                break;
+                            }
+                        if (has_inner_wall)
+                            break;
+                    }
+                    if (extruder_override == 0 && has_inner_wall)
                         layer_tools.extruders.emplace_back(region.config().inner_wall_filament_id.value);
                     if (layerCount == 0) {
                         firstLayerExtruders.emplace_back((extruder_override == 0) ? region.config().outer_wall_filament_id.value : extruder_override);
@@ -769,17 +785,25 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
             bool has_internal_solid     = false;
             bool has_top_solid_surface  = false;
             bool has_bottom_surface     = false;
+            bool has_gap_fill           = false;
+            // Any fill extrusion regardless of role. Drives has_object and override scheduling, which care about existence, not about which filament the role maps to.
+            bool has_fills              = false;
             bool something_nonoverriddable = false;
             for (const ExtrusionEntity *ee : layerm->fills.entities) {
                 // fill represents infill extrusions of a single island.
                 const auto *fill = dynamic_cast<const ExtrusionEntityCollection*>(ee);
                 ExtrusionRole role = fill->entities.empty() ? erNone : fill->entities.front()->role();
+                if (role != erNone)
+                    has_fills = true;
                 if (role == erTopSolidInfill || role == erIroning)
                     has_top_solid_surface = true;
                 else if (role == erBottomSurface)
                     has_bottom_surface = true;
                 else if (is_solid_infill(role))
                     has_internal_solid = true;
+                else if (role == erGapFill)
+                    // Gap fill is printed with the wall filament (see LayerTools::extruder()), so it must not schedule the sparse infill filament.
+                    has_gap_fill = true;
                 else if (role != erNone)
                     has_infill = true;
 
@@ -799,10 +823,12 @@ void ToolOrdering::collect_extruders(const PrintObject &object, const std::vecto
                         layer_tools.extruders.emplace_back(region.config().bottom_surface_filament_id);
 	                if (has_infill)
 	                    layer_tools.extruders.emplace_back(region.config().sparse_infill_filament_id);
-                } else if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
+                    if (has_gap_fill)
+                        layer_tools.extruders.emplace_back(region.config().outer_wall_filament_id);
+                } else if (has_fills)
             		layer_tools.extruders.emplace_back(extruder_override);
             }
-            if (has_internal_solid || has_top_solid_surface || has_bottom_surface || has_infill)
+            if (has_fills)
                 layer_tools.has_object = true;
         }
         layerCount++;

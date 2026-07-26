@@ -8,6 +8,7 @@
 #include "libslic3r/Print.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 
+#include <map>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -123,6 +124,12 @@ int role_passes(const std::string &gcode, const std::string &role);
 
 // The `roles` in the order their extrusion blocks first appear, consecutive repeats collapsed.
 std::vector<std::string> role_sequence(const std::string &gcode, const std::vector<std::string> &roles);
+
+// 0-based tool indices extruding within each role-tag block ("; FEATURE: <name>" or ";TYPE:<name>"), keyed by feature name.
+std::map<std::string, std::set<int>> tools_by_feature(const std::string &gcode);
+
+// All 0-based tools ever selected by a T command (the initial implicit tool 0 included).
+std::set<int> selected_tools(const std::string &gcode);
 
 } } // namespace Slic3r::Test
 
