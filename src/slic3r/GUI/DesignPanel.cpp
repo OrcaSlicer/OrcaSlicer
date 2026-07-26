@@ -6954,6 +6954,19 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
         m_bool_keep->SetValue(f.bool_keep_tool);
         m_bool_tol->SetValue(f.bool_tolerance);
         break;
+    case CadFeatureType::Cut:
+        // Same as-of-timeline reasoning as Boolean: a Cut splits one body into two, so the
+        // live body list does not match the one this feature's target index was recorded
+        // against. Replay to just before it and the stored index lands on the right entry.
+        populate_body_choices(m_edit_index);
+        if (f.target_body >= 0 && f.target_body < int(m_cut_target->GetCount()))
+            m_cut_target->SetSelection(f.target_body);
+        else if (m_cut_target->GetCount() > 0)
+            m_cut_target->SetSelection(0);
+        populate_plane_choices(m_cut_plane);
+        m_cut_plane->SetSelection(index_from_plane(f.plane));
+        m_cut_offset->SetValue(f.cut_offset);
+        break;
     case CadFeatureType::SurfaceExtrude:
         m_surf_extrude_distance->SetValue(f.distance);
         m_surf_extrude_sketch_ref = f.sketch_ref;
@@ -7342,9 +7355,24 @@ void DesignPanel::on_edit_feature()
             if (pre_b != wxNOT_FOUND) m_mate_cs_b->SetSelection(pre_b);
         }
         break;
+    case CadFeatureType::Cut:
+        m_edit_index = sel;
+        load_feature_into_dialog(f);
+        open_tool(Tool::Cut);
+        break;
+    case CadFeatureType::Import:
+        // An imported solid has no parameters to re-edit: its geometry is rigid data read
+        // from the file, not something rebuilt from numbers. Repositioning it is Transform's
+        // job, and that feature already exists — so point there rather than invent a dialog
+        // that would only duplicate it. (Imported 2D Text/SVG art is different and IS
+        // re-editable; it arrives as a Sketch feature with imported_regions, handled above.)
+        m_status->SetForegroundColour(wxNullColour);
+        m_status->SetLabel(_L("An imported solid has no parameters — use Transform to move or rotate it"));
+        m_status->Refresh();
+        break;
     default:
-        // Import / Cut have no parametric edit dialog yet (follow-up
-        // snaporca-nu9). Don't silently swallow the Edit click — tell the user.
+        // Every CadFeatureType now has a case. Kept as a guard so a type added later
+        // announces itself instead of silently swallowing the Edit click.
         m_status->SetForegroundColour(wxNullColour);
         m_status->SetLabel(_L("This feature type can't be edited yet"));
         m_status->Refresh();
