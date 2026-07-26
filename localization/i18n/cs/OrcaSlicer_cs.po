@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Jakub Hencl\n"
 "Language-Team: \n"
@@ -554,6 +554,7 @@ msgstr "Přemapovat"
 msgid "Reset"
 msgstr "Obnovit"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
 msgstr ""
 
@@ -891,8 +892,9 @@ msgstr "Odstranit konektor z výběru"
 msgid "Select all connectors"
 msgstr "Vybrat všechny konektory"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Řezat"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Otočit rovinu řezu"
@@ -1761,12 +1763,14 @@ msgstr "Vybrat"
 msgid "Select point"
 msgstr "Vyberte bod"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Smazat"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Restartovat výběr"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -1873,8 +1877,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Sestavit"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Potvrďte, že poměr rozložení = 1, a vyberte alespoň dva objemy."
@@ -2412,6 +2417,9 @@ msgstr "Nelze zahájit stahování URL. Cílová složka není nastavena. Vybert
 msgid "Import File"
 msgstr "Importovat soubor"
 
+msgid "Delete"
+msgstr "Smazat"
+
 msgid "Choose files"
 msgstr "Vyberte soubory"
 
@@ -2541,12 +2549,14 @@ msgstr "Skrýt"
 msgid "Show"
 msgstr "Zobrazit"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
 msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Smazat vybraný objekt"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr ""
 
@@ -2746,6 +2756,9 @@ msgstr "Převést z metrů"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Obnovit na metry"
+
+msgid "Assemble"
+msgstr "Sestavit"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Sestavit vybrané objekty do objektu s více částmi"
@@ -3528,8 +3541,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Levý (Aux)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Hotend"
+msgstr ""
 
 msgid "Parts"
 msgstr "Díly"
@@ -4285,6 +4299,14 @@ msgstr "Tisk z materiálů umístěných na zadní straně krytu"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "Tisk s filamenty v AMS"
+
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Když dojde aktuální materiál, tiskárna bude pokračovat v tisku v tomto pořadí."
@@ -5602,8 +5624,9 @@ msgstr "Adaptivní"
 msgid "Quality / Speed"
 msgstr "Kvalita / Rychlost"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Vyhladit"
+msgstr ""
 
 msgid "Radius"
 msgstr "Poloměr"
@@ -6224,6 +6247,9 @@ msgstr "Zpět"
 msgid "Redo"
 msgstr "Znovu provést"
 
+msgid "Cut"
+msgstr "Řezat"
+
 msgid "Cut selection to clipboard"
 msgstr "Vyjmout výběr do schránky"
 
@@ -6324,6 +6350,10 @@ msgstr "Zobrazit obrys kolem vybraného objektu ve 3D scéně."
 
 msgid "Preferences"
 msgstr "Předvolby"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Zobrazit"
@@ -9009,6 +9039,15 @@ msgstr ""
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr ""
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Oblast přihlášení"
 
@@ -9301,8 +9340,9 @@ msgstr "Nekompatibilní"
 msgid "The selected preset is null!"
 msgstr "Zvolená předvolba je nulová!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Konec"
+msgstr ""
 
 msgid "Customize"
 msgstr "Přizpůsobit"
@@ -9593,6 +9633,9 @@ msgstr "Při zapnutém režimu spirálové vázy nebudou stroje s konstrukcí I3
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "Aktuální tiskárna nepodporuje časosběr v tradičním režimu při tisku „Podle objektu“."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "Chyby"
@@ -11304,29 +11347,33 @@ msgstr "Vyberte více objektů"
 msgid "Select objects by rectangle"
 msgstr "Vyberte objekty obdélníkem"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Šipka nahoru"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Přesuňte výběr o 10 mm v kladném směru osy Y"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Šipka dolů"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Přesuňte výběr o 10 mm v záporném směru osy Y"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Šipka vlevo"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Přesuňte výběr o 10 mm v záporném směru osy X"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Šipka vpravo"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11412,8 +11459,16 @@ msgstr "Oddálit"
 msgid "Toggle printable for object/part"
 msgstr "Přepnout tisknutelnost objektu/části"
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Přepnout mezi Přípravou/Náhledem"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11473,8 +11528,16 @@ msgstr "Zapnout/vypnout okno G-code"
 msgid "Move slider 5x faster"
 msgstr "Posouvejte posuvník 5× rychleji"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Vodorovný posuvník – přesunout na začátek"
+
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Vodorovný posuvník – přesunout na poslední pozici"
@@ -16055,6 +16118,9 @@ msgstr "Pokud je vybrán plynulý nebo tradiční režim, bude pro každý tisk 
 msgid "Traditional"
 msgstr "Tradiční"
 
+msgid "Smooth"
+msgstr "Vyhladit"
+
 msgid "Farthest point timelapse"
 msgstr ""
 
@@ -17033,6 +17099,12 @@ msgid "Support fast purge mode"
 msgstr ""
 
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
+
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
 msgstr ""
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
@@ -20251,13 +20323,13 @@ msgstr ""
 msgid "Show details"
 msgstr ""
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr ""
 
 msgid "Download and Install"
-msgstr ""
-
-msgid "Skip for Now"
 msgstr ""
 
 msgid "A new version of the Bambu Network Plug-in is available."
@@ -20270,16 +20342,10 @@ msgstr ""
 msgid "Update to version:"
 msgstr ""
 
-msgid "Update Now"
-msgstr ""
-
-msgid "Remind Later"
-msgstr ""
-
-msgid "Skip Version"
-msgstr ""
-
 msgid "Don't Ask Again"
+msgstr ""
+
+msgid "Update Now"
 msgstr ""
 
 msgid "(Latest)"
@@ -20295,9 +20361,6 @@ msgid "A restart is required to load the new plug-in. Would you like to restart 
 msgstr ""
 
 msgid "Restart Now"
-msgstr ""
-
-msgid "Restart Later"
 msgstr ""
 
 msgid "NO RAMMING AT ALL"
@@ -20882,6 +20945,24 @@ msgid ""
 msgstr ""
 "Zamezte kroucení\n"
 "Víte, že při tisku materiálů náchylných ke kroucení, jako je ABS, může vhodné zvýšení teploty vyhřívané desky snížit pravděpodobnost kroucení?"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Šipka nahoru"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Šipka dolů"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Šipka vlevo"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Šipka vpravo"
+
+#~ msgid "End"
+#~ msgstr "Konec"
+
+#~ msgid "Hotend"
+#~ msgstr "Hotend"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Vyberte filament nainstalovaný v levé trysce"

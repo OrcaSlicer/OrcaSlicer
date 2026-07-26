@@ -1081,16 +1081,21 @@ void PrintConfigDef::init_common_params()
         def->set_default_value(new ConfigOptionString());
     }
 
-    def = this->add("plugin_config_overrides", coString);
-    def->label = L("Capabilities");
-    def->tooltip = L("Configuration for the plugin capabilities this preset uses, overriding the global "
-                     "Capabilities configuration. Stored as a raw JSON array and edited through the dialog "
-                     "behind the button, never typed in directly.");
-    // Never shown as a text field: GUIType::plugin_config renders a button that opens PluginsConfigDialog.
-    def->gui_type = ConfigOptionDef::GUIType::plugin_config;
-    def->mode = comAdvanced;
-    def->cli = ConfigOptionDef::nocli;
-    def->set_default_value(new ConfigOptionString(""));
+    // One key per preset type (Preset::plugin_overrides_key), so the print, printer and filament
+    // overrides don't clobber each other when the presets merge into one full config. No handle_legacy
+    // migration from the shared "plugin_config_overrides" they replace: it only ever shipped in
+    // nightlies. Never a text field — GUIType::plugin_config renders a button opening PluginsConfigDialog.
+    for (const char* key : {"print_plugin_config_overrides", "printer_plugin_config_overrides", "filament_plugin_config_overrides"}) {
+        def = this->add(key, coString);
+        def->label = L("Capabilities");
+        def->tooltip = L("Configuration for the plugin capabilities this preset uses, overriding the global "
+                         "Capabilities configuration. Stored as a raw JSON array and edited through the dialog "
+                         "behind the button, never typed in directly.");
+        def->gui_type = ConfigOptionDef::GUIType::plugin_config;
+        def->mode = comAdvanced;
+        def->cli = ConfigOptionDef::nocli;
+        def->set_default_value(new ConfigOptionString(""));
+    }
 }
 
 void PrintConfigDef::init_fff_params()
@@ -7384,7 +7389,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("The flush multiplier used in fast purge mode.");
     def->set_default_value(new ConfigOptionFloats{1.2});
 
-    // BBS
+    // Orca: used by the generic (Type2) wipe tower; also the fallback for filament_prime_volume on Type1.
     def = this->add("prime_volume", coFloat);
     def->label = L("Prime volume");
     def->tooltip = L("This is the volume of material to prime the extruder with on the tower.");
@@ -8029,6 +8034,16 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Whether this printer supports fast purge mode with optimized temperature and multiplier.");
     def->mode = comDevelop;
     def->set_default_value(new ConfigOptionBool(false));
+
+    // Used by the Type1 wipe tower: filament_prime_volume on a filament change,
+    // filament_prime_volume_nc on a hotend/nozzle change. Type2 uses prime_volume instead.
+    def           = this->add("filament_prime_volume", coFloats);
+    def->label    = L("Filament change");
+    def->tooltip  = L("The volume of material required to prime the extruder on the tower, excluding a hotend change.");
+    def->sidetext = L("mm³");
+    def->min      = 1.0;
+    def->mode     = comSimple;
+    def->set_default_value(new ConfigOptionFloats{45.});
 
     def           = this->add("filament_prime_volume_nc", coFloats);
     def->label    = L("Hotend change");
@@ -9050,7 +9065,7 @@ void PrintConfigDef::handle_legacy(t_config_option_key &opt_key, std::string &va
         "retraction_distance_when_cut",
         "internal_bridge_support_thickness", "top_area_threshold", "reduce_wall_solid_infill","filament_load_time","filament_unload_time",
         "smooth_coefficient", "overhang_totally_speed", "silent_mode",
-        "overhang_speed_classic", "filament_prime_volume",
+        "overhang_speed_classic",
         "anisotropic_surfaces", // superseded by top_surface_fill_order / bottom_surface_fill_order
     };
 

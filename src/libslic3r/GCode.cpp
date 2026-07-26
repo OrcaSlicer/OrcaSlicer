@@ -730,6 +730,42 @@ static std::vector<Vec2d> get_path_of_change_filament(const Print& print)
         return temp_set_by_gcode;
     }
 
+    struct CustomGCodeMotionStateChanges
+    {
+        bool acceleration = false;
+        bool jerk         = false;
+    };
+
+    static bool custom_gcode_line_has_xy_parameter(const std::string &raw)
+    {
+        const size_t comment_pos = raw.find(';');
+        const std::string_view code(raw.data(), comment_pos == std::string::npos ? raw.size() : comment_pos);
+        return code.find_first_of("XxYy") != std::string_view::npos;
+    }
+
+    static CustomGCodeMotionStateChanges custom_gcode_motion_state_changes(const std::string &gcode)
+    {
+        CustomGCodeMotionStateChanges changes;
+        GCodeReader parser;
+        parser.parse_buffer(gcode, [&changes](GCodeReader &parser, const GCodeReader::GCodeLine &line) {
+            const std::string_view cmd = line.cmd();
+            if (boost::iequals(cmd, "M204") || boost::iequals(cmd, "M201") ||
+                boost::iequals(cmd, "M202"))
+                changes.acceleration = true;
+            else if ((boost::iequals(cmd, "M205") || boost::iequals(cmd, "M207") || boost::iequals(cmd, "M566")) &&
+                     custom_gcode_line_has_xy_parameter(line.raw()))
+                changes.jerk = true;
+            else if (boost::iequals(cmd, "SET_VELOCITY_LIMIT")) {
+                changes.acceleration |= boost::icontains(line.raw(), "ACCEL=");
+                changes.jerk         |= boost::icontains(line.raw(), "SQUARE_CORNER_VELOCITY=");
+            }
+
+            if (changes.acceleration && changes.jerk)
+                parser.quit_parsing();
+        });
+        return changes;
+    }
+
     // BBS
     // start_pos refers to the last position before the wipe_tower.
     // end_pos refers to the wipe tower's start_pos.
@@ -4335,6 +4371,11 @@ PlaceholderParserIntegration &ppi = m_placeholder_parser_integration;
         ppi.update_from_gcodewriter(m_writer);
         std::string output = ppi.parser.process(templ, current_filament_id, config_override, &ppi.output_config, &ppi.context);
         ppi.validate_output_vector_variables();
+        const CustomGCodeMotionStateChanges motion_state_changes = custom_gcode_motion_state_changes(output);
+        if (motion_state_changes.acceleration)
+            m_writer.invalidate_acceleration();
+        if (motion_state_changes.jerk)
+            m_writer.invalidate_jerk();
 
         if (const std::vector<double> &pos = ppi.opt_position->values; ppi.position != pos) {
             // Update G-code writer.
@@ -5640,10 +5681,17 @@ LayerResult GCode::process_layer(
     for (const auto &layer_to_print : layers) {
         if (layer_to_print.object_layer) {
             const auto& regions = layer_to_print.object_layer->regions();
-            const bool  enable_overhang_speed = std::any_of(regions.begin(), regions.end(), [this](const LayerRegion* r) {
+            const bool has_extrusions = std::any_of(regions.begin(), regions.end(), [](const LayerRegion* r) {
+                return r->has_extrusions();
+            });
+            const bool enable_overhang_speed = std::any_of(regions.begin(), regions.end(), [this](const LayerRegion* r) {
                 return r->has_extrusions() && r->region().config().enable_overhang_speed.get_at(get_nozzle_config_index(m_writer.filament()->id()));
             });
-            if (enable_overhang_speed) {
+            const bool enable_overhang_fan = m_enable_cooling_markers && has_extrusions &&
+                std::any_of(m_config.enable_overhang_bridge_fan.values.begin(),
+                            m_config.enable_overhang_bridge_fan.values.end(),
+                            [](unsigned char value) { return value != 0; });
+            if (enable_overhang_speed || enable_overhang_fan) {
                 m_extrusion_quality_estimator.prepare_for_new_layer(layer_to_print.original_object,
                                                                     layer_to_print.object_layer);
             }
@@ -7482,7 +7530,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     bool variable_speed = false;
     std::vector<ProcessedPoint> new_points {};
 
-    if (NOZZLE_CONFIG(enable_overhang_speed) && !this->on_first_layer() && !object_layer_over_raft() &&
+    const bool need_overhang_detection = NOZZLE_CONFIG(enable_overhang_speed) ||
+        (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers);
+
+    if (need_overhang_detection && !this->on_first_layer() && !object_layer_over_raft() &&
         (is_bridge(path.role()) || is_perimeter(path.role()))) {
             bool is_external = is_external_perimeter(path.role());
             double ref_speed   = is_external ? NOZZLE_CONFIG(outer_wall_speed) : NOZZLE_CONFIG(inner_wall_speed);
@@ -7541,6 +7592,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             }
             variable_speed = std::any_of(new_points.begin(), new_points.end(),
                                          [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
+            if (!NOZZLE_CONFIG(enable_overhang_speed) && FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers) {
+                for (ProcessedPoint &point : new_points)
+                    point.speed = speed;
+                variable_speed = new_points.size() > 1;
+            }
     }
 
     double F = speed * 60;  // convert mm/sec to mm/min

@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -551,8 +551,9 @@ msgstr "Réassigner"
 msgid "Reset"
 msgstr "Réinitialiser"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
-msgstr "Entrée"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Raccourci "
@@ -881,8 +882,9 @@ msgstr "Retirer le connecteur de la sélection"
 msgid "Select all connectors"
 msgstr "Sélectionner tous les connecteurs"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Couper"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Rotation du plan de coupe"
@@ -1746,14 +1748,16 @@ msgstr "Sélectionner"
 msgid "Select point"
 msgstr "Sélectionner un point"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Supprimer"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Recommencer la sélection"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
-msgstr "Échap"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Annuler une fonction jusqu’à ce qu’on la quitte"
@@ -1858,8 +1862,9 @@ msgstr "Entrée dans l’outil Mesurer"
 msgid "Leaving Measure gizmo"
 msgstr "Quitter l’outil Mesurer"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Assembler"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Veuillez confirmer que le ratio d'explosion = 1 et sélectionner au moins deux volumes."
@@ -2412,6 +2417,9 @@ msgstr "Impossible de lancer le téléchargement de l’URL. Le dossier de desti
 msgid "Import File"
 msgstr "Importer un Fichier"
 
+msgid "Delete"
+msgstr "Supprimer"
+
 msgid "Choose files"
 msgstr "Choisir des fichiers"
 
@@ -2530,14 +2538,16 @@ msgstr "Masquer"
 msgid "Show"
 msgstr "Afficher"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Eff"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Supprimer l'objet sélectionné"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
-msgstr "Retour arrière"
+msgstr ""
 
 msgid "Load..."
 msgstr "Charger…"
@@ -2725,6 +2735,9 @@ msgstr "Convertir en mètre"
 
 msgid "Restore to Meter"
 msgstr "Restaurer en mètres"
+
+msgid "Assemble"
+msgstr "Assembler"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Assembler les objets sélectionnés à un objet en plusieurs parties"
@@ -3475,8 +3488,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Gauche (Aux)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Hotend"
+msgstr ""
 
 msgid "Parts"
 msgstr "Pièces"
@@ -4214,6 +4228,14 @@ msgstr "Imprimez en utilisant le filament de la bobine externe"
 
 msgid "Print with filament in AMS"
 msgstr "Imprimer avec du filament de l'AMS"
+
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Lorsque le filament actuel est épuisé, l’imprimante continue d’imprimer dans l’ordre suivant."
@@ -5502,8 +5524,9 @@ msgstr "Adaptatif"
 msgid "Quality / Speed"
 msgstr "Qualité / Vitesse"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Lisse"
+msgstr ""
 
 msgid "Radius"
 msgstr "Rayon"
@@ -6116,6 +6139,9 @@ msgstr "Annuler"
 msgid "Redo"
 msgstr "Recommencer"
 
+msgid "Cut"
+msgstr "Couper"
+
 msgid "Cut selection to clipboard"
 msgstr "Couper la sélection dans le presse-papiers"
 
@@ -6214,6 +6240,10 @@ msgstr "Afficher le tracé contour de l’objet sélectionné dans la scène 3D.
 
 msgid "Preferences"
 msgstr "Préférences"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Affichage"
@@ -8869,6 +8899,15 @@ msgstr "Afficher la superposition des FPS"
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr "Affiche les FPS actuels de la vue dans le coin supérieur droit."
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Région d'origine"
 
@@ -9157,8 +9196,9 @@ msgstr "Incompatible"
 msgid "The selected preset is null!"
 msgstr "Le préréglage sélectionné est invalide !"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Fin"
+msgstr ""
 
 msgid "Customize"
 msgstr "Personnaliser"
@@ -9445,6 +9485,9 @@ msgstr "Lorsque vous activez le mode vase, les machines avec une structure I3 ne
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "L'imprimante actuelle ne prend pas en charge le timelapse en mode traditionnel lors de l'impression par objet."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "Erreurs"
@@ -11146,26 +11189,30 @@ msgstr "Sélectionner plusieurs objets"
 msgid "Select objects by rectangle"
 msgstr "Sélectionner les objets par rectangle"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Flèche Haut"
+msgstr ""
 
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Déplacer la sélection de 10 mm dans la direction positive Y"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Flèche Bas"
+msgstr ""
 
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Déplacer la sélection de 10 mm dans la direction négative Y"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Flèche Gauche"
+msgstr ""
 
 msgid "Move selection 10mm in negative X direction"
 msgstr "Déplacer la sélection de 10 mm dans la direction négative X"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Flèche Droite"
+msgstr ""
 
 msgid "Move selection 10mm in positive X direction"
 msgstr "Déplacer la sélection de 10 mm dans la direction positive X"
@@ -11248,8 +11295,16 @@ msgstr "Zoom arrière"
 msgid "Toggle printable for object/part"
 msgstr "Basculer l’état imprimable de l’objet/de la pièce"
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Basculer entre Préparer/Aperçu"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11308,8 +11363,16 @@ msgstr "On/Off Fenêtre G-code"
 msgid "Move slider 5x faster"
 msgstr "Déplacez le curseur 5 fois plus vite"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Curseur horizontal - Déplacement vers la position de départ"
+
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Curseur horizontal - Déplacer vers la dernière position"
@@ -15848,6 +15911,9 @@ msgstr "Si le mode fluide ou traditionnel est sélectionné, une vidéo en timel
 msgid "Traditional"
 msgstr "Traditionnel"
 
+msgid "Smooth"
+msgstr "Lisse"
+
 msgid "Farthest point timelapse"
 msgstr ""
 
@@ -16806,6 +16872,12 @@ msgid "Support fast purge mode"
 msgstr ""
 
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
+
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
 msgstr ""
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
@@ -19994,14 +20066,14 @@ msgstr "Erreur : %s"
 msgid "Show details"
 msgstr "Afficher les détails"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Version à installer :"
 
 msgid "Download and Install"
 msgstr "Télécharger et installer"
-
-msgid "Skip for Now"
-msgstr "Ignorer pour le moment"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Une nouvelle version du plug-in réseau Bambu est disponible."
@@ -20013,17 +20085,11 @@ msgstr "Version actuelle : %s"
 msgid "Update to version:"
 msgstr "Mettre à jour vers la version :"
 
-msgid "Update Now"
-msgstr "Mettre à jour maintenant"
-
-msgid "Remind Later"
-msgstr "Rappeler plus tard"
-
-msgid "Skip Version"
-msgstr "Ignorer la version"
-
 msgid "Don't Ask Again"
 msgstr "Ne plus demander"
+
+msgid "Update Now"
+msgstr "Mettre à jour maintenant"
 
 msgid "(Latest)"
 msgstr "(Dernière)"
@@ -20039,9 +20105,6 @@ msgstr "Un redémarrage est nécessaire pour charger le nouveau plug-in. Souhait
 
 msgid "Restart Now"
 msgstr "Redémarrer maintenant"
-
-msgid "Restart Later"
-msgstr "Redémarrer plus tard"
 
 msgid "NO RAMMING AT ALL"
 msgstr "AUCUN BOURRAGE"
@@ -20621,6 +20684,48 @@ msgid ""
 msgstr ""
 "Éviter la déformation\n"
 "Saviez-vous que lors de l’impression de matériaux susceptibles de se déformer, tels que l’ABS, une augmentation appropriée de la température du plateau chauffant peut réduire la probabilité de déformation?"
+
+#~ msgid "Enter"
+#~ msgstr "Entrée"
+
+#~ msgid "Esc"
+#~ msgstr "Échap"
+
+#~ msgid "Del"
+#~ msgstr "Eff"
+
+#~ msgid "Backspace"
+#~ msgstr "Retour arrière"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Flèche Haut"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Flèche Bas"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Flèche Gauche"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Flèche Droite"
+
+#~ msgid "End"
+#~ msgstr "Fin"
+
+#~ msgid "Hotend"
+#~ msgstr "Hotend"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Ignorer pour le moment"
+
+#~ msgid "Remind Later"
+#~ msgstr "Rappeler plus tard"
+
+#~ msgid "Skip Version"
+#~ msgstr "Ignorer la version"
+
+#~ msgid "Restart Later"
+#~ msgstr "Redémarrer plus tard"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Sélectionner le filament installé sur la buse gauche"

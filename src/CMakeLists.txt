@@ -88,6 +88,10 @@ if (SLIC3R_GUI)
     list(FILTER wxWidgets_LIBRARIES EXCLUDE REGEX OpenGL)
 
 #    list(REMOVE_ITEM wxWidgets_LIBRARIES oleacc)
+
+    find_package(wxInspector REQUIRED)
+    list(APPEND wxWidgets_LIBRARIES "wxInspector::wxInspector")
+
     message(STATUS "wx libs: ${wxWidgets_LIBRARIES}")
 
     add_subdirectory(slic3r)
@@ -281,10 +285,6 @@ else ()
         # On OSX, the name of the binary matches the name of the Application.
         add_custom_command(TARGET OrcaSlicer POST_BUILD
             COMMAND ln -sf OrcaSlicer orca-slicer
-            WORKING_DIRECTORY "$<TARGET_FILE_DIR:OrcaSlicer>"
-            VERBATIM)
-    else ()
-        add_custom_command(TARGET OrcaSlicer POST_BUILD
             WORKING_DIRECTORY "$<TARGET_FILE_DIR:OrcaSlicer>"
             VERBATIM)
     endif ()

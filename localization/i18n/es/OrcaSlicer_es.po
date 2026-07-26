@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -15,22 +15,22 @@ msgstr ""
 "X-Generator: Poedit 3.9\n"
 
 msgid "Main Extruder"
-msgstr ""
+msgstr "Extrusor principal"
 
 msgid "Main extruder"
-msgstr ""
+msgstr "Extrusor principal"
 
 msgid "main extruder"
-msgstr ""
+msgstr "extrusor principal"
 
 msgid "Auxiliary Extruder"
-msgstr ""
+msgstr "Extrusor auxiliar"
 
 msgid "Auxiliary extruder"
-msgstr ""
+msgstr "Extrusor auxiliar"
 
 msgid "auxiliary extruder"
-msgstr ""
+msgstr "extrusor auxiliar"
 
 msgid "Left Extruder"
 msgstr "Extrusor izquierdo"
@@ -51,22 +51,22 @@ msgid "right extruder"
 msgstr "extrusor derecho"
 
 msgid "Main Nozzle"
-msgstr ""
+msgstr "Boquilla principal"
 
 msgid "Main nozzle"
-msgstr ""
+msgstr "Boquilla principal"
 
 msgid "main nozzle"
-msgstr ""
+msgstr "boquilla principal"
 
 msgid "Auxiliary Nozzle"
-msgstr ""
+msgstr "Boquilla auxiliar"
 
 msgid "Auxiliary nozzle"
-msgstr ""
+msgstr "Boquilla auxiliar"
 
 msgid "auxiliary nozzle"
-msgstr ""
+msgstr "boquilla auxiliar"
 
 msgid "Left Nozzle"
 msgstr "Boquilla izquierda"
@@ -87,52 +87,52 @@ msgid "right nozzle"
 msgstr "boquilla derecha"
 
 msgid "Main Hotend"
-msgstr ""
+msgstr "Hotend principal"
 
 msgid "Main hotend"
-msgstr ""
+msgstr "Hotend principal"
 
 msgid "main hotend"
-msgstr ""
+msgstr "hotend principal"
 
 msgid "Auxiliary Hotend"
-msgstr ""
+msgstr "Hotend auxiliar"
 
 msgid "Auxiliary hotend"
-msgstr ""
+msgstr "Hotend auxiliar"
 
 msgid "auxiliary hotend"
-msgstr ""
+msgstr "hotend auxiliar"
 
 msgid "Left Hotend"
-msgstr ""
+msgstr "Hotend izquierdo"
 
 msgid "Left hotend"
-msgstr ""
+msgstr "Hotend izquierdo"
 
 msgid "left hotend"
-msgstr ""
+msgstr "hotend izquierdo"
 
 msgid "Right Hotend"
-msgstr ""
+msgstr "Hotend derecho"
 
 msgid "Right hotend"
-msgstr ""
+msgstr "Hotend derecho"
 
 msgid "right hotend"
-msgstr ""
+msgstr "hotend derecho"
 
 msgid "main"
-msgstr ""
+msgstr "principal"
 
 msgid "auxiliary"
-msgstr ""
+msgstr "auxiliar"
 
 msgid "Main"
-msgstr ""
+msgstr "Principal"
 
 msgid "Auxiliary"
-msgstr ""
+msgstr "Auxiliar"
 
 msgid "left"
 msgstr "izquierda"
@@ -258,7 +258,7 @@ msgid "Tungsten Carbide"
 msgstr "Carburo de tungsteno"
 
 msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
-msgstr "Es posible que el cabezal y el rack del hotend se muevan. Mantenga las manos alejadas de la cámara."
+msgstr "Es posible que el cabezal y el rack del hotend se muevan. Mantenga las manos alejadas de la recámara."
 
 msgid "Warning"
 msgstr "Advertencia"
@@ -276,7 +276,7 @@ msgid "Reading the hotends, please wait."
 msgstr "Leyendo los hotends, por favor espere."
 
 msgid "During the hotend upgrade, the toolhead will move. Don't reach into the chamber."
-msgstr "Durante la actualización del hotend, el cabezal se moverá. No meta la mano en la cámara."
+msgstr "Durante la actualización del hotend, el cabezal se moverá. No meta la mano en la recámara."
 
 msgid "Update"
 msgstr "Actualizar"
@@ -342,7 +342,7 @@ msgid "Please wait"
 msgstr "Espere por favor"
 
 msgid "Reading"
-msgstr ""
+msgstr "Leyendo"
 
 msgid "Running..."
 msgstr "En ejecución..."
@@ -548,8 +548,9 @@ msgstr "Remapear"
 msgid "Reset"
 msgstr "Reiniciar"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
-msgstr "Enter"
+msgstr "Intro"
 
 msgid "Shortcut Key "
 msgstr "Tecla de acceso directo "
@@ -878,6 +879,7 @@ msgstr "Borrar conector de la selección"
 msgid "Select all connectors"
 msgstr "Seleccionar todos los conectores"
 
+msgctxt "Cut tool"
 msgid "Cut"
 msgstr "Cortar"
 
@@ -1745,12 +1747,14 @@ msgstr "Seleccionar"
 msgid "Select point"
 msgstr "Seleccionar punto"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Borrar"
+msgstr "Supr"
 
 msgid "Restart selection"
 msgstr "Reiniciar selección"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr "Esc"
 
@@ -1857,8 +1861,9 @@ msgstr "Entrando al mecanismo de medición"
 msgid "Leaving Measure gizmo"
 msgstr "Saliendo del mecanismo de medición"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Agrupar"
+msgstr "Ensamblar"
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Confirme que la relación de explosión es 1 y seleccione al menos dos volúmenes."
@@ -2027,15 +2032,15 @@ msgid "Learn more"
 msgstr "Más información"
 
 msgid "Reloading network plug-in..."
-msgstr "Recargando el complemento de red..."
+msgstr "Recargando el plugin de red..."
 
 msgid "Downloading Network Plug-in"
-msgstr "Descarga del complemento de red"
+msgstr "Descarga del plugin de red"
 
 # msgid "OrcaSlicer got an unhandled exception: %1%"
 # msgstr "OrcaSlicer obtuvo una excepción no manejada: %1%"
 msgid "Downloading Bambu Network Plug-in"
-msgstr "Descarga del complemento de red Bambu Network"
+msgstr "Descarga del plugin de red Bambu Network"
 
 msgid "Login information expired. Please login again."
 msgstr "La sesión ha caducado. Por favor, inicie sesión de nuevo."
@@ -2278,7 +2283,7 @@ msgstr ""
 "El modo desarrollador permite que la impresora funcione exclusivamente a través del acceso a la red local, lo que habilita todas las funciones con OrcaSlicer."
 
 msgid "Network Plug-in Restriction"
-msgstr "Restricción del complemento de red"
+msgstr "Restricción del plugin de red"
 
 msgid "Privacy Policy Update"
 msgstr "Actualización de política de privacidad"
@@ -2415,6 +2420,9 @@ msgstr "No se pudo iniciar la descarga del URL. La carpeta de destino no se sele
 msgid "Import File"
 msgstr "Importar archivo"
 
+msgid "Delete"
+msgstr "Borrar"
+
 msgid "Choose files"
 msgstr "Elija los archivos"
 
@@ -2533,12 +2541,14 @@ msgstr "Ocultar"
 msgid "Show"
 msgstr "Mostrar"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Borrar"
+msgstr "Supr"
 
 msgid "Delete the selected object"
 msgstr "Eliminar el objeto seleccionado"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr "Retroceso"
 
@@ -2728,6 +2738,9 @@ msgstr "Convertir de metros"
 
 msgid "Restore to Meter"
 msgstr "Restaurar a metros"
+
+msgid "Assemble"
+msgstr "Agrupar"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Ensamblar los objetos seleccionados en un objeto con múltiples piezas"
@@ -3454,7 +3467,7 @@ msgid "The fan controls the temperature during printing to improve print quality
 msgstr "El ventilador controla la temperatura durante la impresión para mejorar la calidad de impresión. El sistema ajusta automáticamente el encendido y la velocidad del ventilador según los diferentes materiales de impresión."
 
 msgid "Cooling mode is suitable for printing PLA/PETG/TPU materials and filters the chamber air."
-msgstr "El modo de refrigeración es adecuado para imprimir materiales PLA/PETG/TPU y filtra el aire de la cámara."
+msgstr "El modo de refrigeración es adecuado para imprimir materiales PLA/PETG/TPU y filtra el aire de la recámara."
 
 msgid "Heating mode is suitable for printing ABS/ASA/PC/PA materials and circulates filters the chamber air."
 msgstr "El modo de calefacción es adecuado para imprimir materiales ABS/ASA/PC/PA y hace circular y filtra el aire de la recámara."
@@ -3477,6 +3490,7 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Izquierda (Auxiliar)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
 msgstr "Hotend"
 
@@ -4148,7 +4162,7 @@ msgstr "Seleccione uno de los siguientes filamentos"
 
 #, c-format, boost-format
 msgid "Select filament that installed to the %s"
-msgstr ""
+msgstr "Seleccione el filamento instalado en %s"
 
 msgid "Left AMS"
 msgstr "AMS izquierdo"
@@ -4168,18 +4182,18 @@ msgstr "La impresión con la boquilla actual puede producir un extra de %0.2f g 
 
 #, c-format, boost-format
 msgid "Tips: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
-msgstr ""
+msgstr "Consejo: el tipo de filamento (%s) no coincide con el tipo de filamento (%s) del archivo laminado. Si desea usar esta ranura, puede instalar %s en lugar de %s y cambiar la información de la ranura en la página «Dispositivo»."
 
 #, c-format, boost-format
 msgid "Cannot select: the filament type(%s) does not match with the filament type(%s) in the slicing file. If you want to use this slot, you can install %s instead of %s and change slot information on the 'Device' page."
-msgstr ""
+msgstr "No se puede seleccionar: el tipo de filamento (%s) no coincide con el tipo de filamento (%s) del archivo laminado. Si desea usar esta ranura, puede instalar %s en lugar de %s y cambiar la información de la ranura en la página «Dispositivo»."
 
 #, c-format, boost-format
 msgid "Cannot select: the slot is empty or undefined. If you want to use this slot, you can install %s and change slot information on the 'Device' page."
-msgstr ""
+msgstr "No se puede seleccionar: la ranura está vacía o sin definir. Si desea usar esta ranura, puede instalar %s y cambiar la información de la ranura en la página «Dispositivo»."
 
 msgid "Cannot select: No filament loaded in current slot."
-msgstr ""
+msgstr "No se puede seleccionar: no hay filamento cargado en la ranura actual."
 
 msgid "Enable AMS"
 msgstr "Activar AMS"
@@ -4216,6 +4230,14 @@ msgstr "Imprimir utilizando filamento de una bobina externa."
 
 msgid "Print with filament in AMS"
 msgstr "Imprimir usando filamentos en AMS"
+
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr "Izquierda"
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr "Derecha"
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Cuando se termine el filamento actual, la impresora continuará imprimiendo en el siguiente orden."
@@ -4318,16 +4340,16 @@ msgid "Calibration"
 msgstr "Calibración"
 
 msgid "Failed to download the plug-in. Please check your firewall settings and VPN software and retry."
-msgstr "Fallo al descargar el complemento. Por favor, compruebe el cortafuegos y la vpn, e inténtelo de nuevo."
+msgstr "Fallo al descargar el plugin. Por favor, compruebe el cortafuegos y la vpn, e inténtelo de nuevo."
 
 msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
-msgstr "No se ha podido instalar el complemento. Es posible que el archivo del complemento esté en uso. Reinicie OrcaSlicer e inténtelo de nuevo. Compruebe también si está bloqueado o ha sido eliminado por el software antivirus."
+msgstr "No se ha podido instalar el plugin. Es posible que el archivo del plugin esté en uso. Reinicie OrcaSlicer e inténtelo de nuevo. Compruebe también si está bloqueado o ha sido eliminado por el software antivirus."
 
 msgid "Click here to see more info"
 msgstr "Presiona aquí para mostrar más información"
 
 msgid "The network plug-in was installed but could not be loaded. Please restart the application."
-msgstr "El complemento de red se instaló, pero no se pudo cargar. Reinicie la aplicación."
+msgstr "El plugin de red se instaló, pero no se pudo cargar. Reinicie la aplicación."
 
 msgid "Restart Required"
 msgstr "Se requiere reiniciar"
@@ -4533,11 +4555,11 @@ msgstr ""
 
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
-msgstr "La temperatura actual de la cámara es superior a la temperatura de seguridad del material, puede provocar que el material se ablande y se atasque. La temperatura máxima de seguridad para el material es %d"
+msgstr "La temperatura actual de la recámara es superior a la temperatura de seguridad del material, puede provocar que el material se ablande y se atasque. La temperatura máxima de seguridad para el material es %d"
 
 #, c-format, boost-format
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
-msgstr "La temperatura mínima de la cámara (%d℃) es superior a la temperatura objetivo de la cámara (%d℃). El valor mínimo es el umbral en el que comienza la impresión mientras la cámara continúa calentándose hacia el objetivo, por lo que no debería superarlo. Se ajustará al valor objetivo."
+msgstr "La temperatura mínima de la recámara (%d℃) es superior a la temperatura objetivo de la recámara (%d℃). El valor mínimo es el umbral en el que comienza la impresión mientras la recámara continúa calentándose hacia el objetivo, por lo que no debería superarlo. Se ajustará al valor objetivo."
 
 msgid ""
 "Layer height too small\n"
@@ -4762,7 +4784,7 @@ msgid "Pause (chamber temperature control problem)"
 msgstr "Pausa (problema con el control de temperatura de la recámara)"
 
 msgid "Cooling chamber"
-msgstr "Enfriando cámara"
+msgstr "Enfriando recámara"
 
 msgid "Pause (G-code inserted by user)"
 msgstr "Pausa (código G insertado por el usuario)"
@@ -4880,20 +4902,20 @@ msgstr "Para garantizar su seguridad, ciertas tareas de procesamiento (como el l
 
 #, c-format, boost-format
 msgid "The chamber temperature is too high, which may cause the filament to soften. Please wait until the chamber temperature drops below %d℃. You may open the front door or enable fans to cool down."
-msgstr "La temperatura de la cámara es demasiado alta, lo que puede hacer que el filamento se ablande. Espere hasta que la temperatura de la cámara baje por debajo de %d℃. Puede abrir la puerta frontal o activar los ventiladores para enfriar."
+msgstr "La temperatura de la recámara es demasiado alta, lo que puede hacer que el filamento se ablande. Espere hasta que la temperatura de la recámara baje por debajo de %d℃. Puede abrir la puerta frontal o activar los ventiladores para enfriar."
 
 #, c-format, boost-format
 msgid "AMS temperature is too high, which may cause the filament to soften. Please wait until the AMS temperature drops below %d℃."
 msgstr "La temperatura del AMS es demasiado alta, lo que puede hacer que el filamento se ablande. Espere hasta que la temperatura del AMS baje por debajo de %d℃."
 
 msgid "The current chamber temperature or the target chamber temperature exceeds 45℃. In order to avoid extruder clogging, low temperature filament(PLA/PETG/TPU) is not allowed to be loaded."
-msgstr "La temperatura actual de la cámara o la temperatura objetivo de la cámara supera los 45℃. Para evitar atascos del extrusor, no está permitido cargar filamento de baja temperatura (PLA/PETG/TPU)."
+msgstr "La temperatura actual de la recámara o la temperatura objetivo de la recámara supera los 45℃. Para evitar atascos del extrusor, no está permitido cargar filamento de baja temperatura (PLA/PETG/TPU)."
 
 msgid "Low temperature filament(PLA/PETG/TPU) is loaded in the extruder. In order to avoid extruder clogging, it is not allowed to set the chamber temperature."
-msgstr "Se ha cargado filamento de baja temperatura (PLA/PETG/TPU) en el extrusor. Para evitar atascos del extrusor, no está permitido ajustar la temperatura de la cámara."
+msgstr "Se ha cargado filamento de baja temperatura (PLA/PETG/TPU) en el extrusor. Para evitar atascos del extrusor, no está permitido ajustar la temperatura de la recámara."
 
 msgid "When you set the chamber temperature below 40℃, the chamber temperature control will not be activated, and the target chamber temperature will automatically be set to 0℃."
-msgstr "Cuando se ajusta la temperatura de la cámara por debajo de 40℃, el control de la temperatura de la cámara no será activado. La temperatura objetivo de la cámara se ajustará automáticamente a 0℃."
+msgstr "Cuando se ajusta la temperatura de la recámara por debajo de 40℃, el control de la temperatura de la recámara no será activado. La temperatura objetivo de la recámara se ajustará automáticamente a 0℃."
 
 msgid "Failed to start print job"
 msgstr "Fallo iniciando el trabajo de impresión"
@@ -4914,7 +4936,7 @@ msgid "Calibration error"
 msgstr "Error de calibración"
 
 msgid "Network unavailable"
-msgstr ""
+msgstr "Red no disponible"
 
 msgid "Resume Printing"
 msgstr "Continuar Imprimiendo"
@@ -4950,7 +4972,7 @@ msgid "No Reminder Next Time"
 msgstr "No recordar la próxima vez"
 
 msgid "Recheck"
-msgstr ""
+msgstr "Volver a comprobar"
 
 msgid "Ignore. Don't Remind Next Time"
 msgstr "Ignorar. No recordar la próxima vez"
@@ -4974,13 +4996,13 @@ msgid "Proceed"
 msgstr "Continuar"
 
 msgid "Abort"
-msgstr ""
+msgstr "Abortar"
 
 msgid "Disable Purification for This Print"
-msgstr ""
+msgstr "Desactivar la purificación para esta impresión"
 
 msgid "Don't Remind Me"
-msgstr ""
+msgstr "No recordármelo"
 
 msgid "Retry"
 msgstr "Reintentar"
@@ -4992,7 +5014,7 @@ msgid "Unknown error."
 msgstr "Error desconocido."
 
 msgid "Loading ..."
-msgstr ""
+msgstr "Cargando ..."
 
 msgid "default"
 msgstr "por defecto"
@@ -5507,8 +5529,9 @@ msgstr "Adaptativo"
 msgid "Quality / Speed"
 msgstr "Calidad / Velocidad"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Suave"
+msgstr "Suavizar"
 
 msgid "Radius"
 msgstr "Radio"
@@ -6121,6 +6144,9 @@ msgstr "Deshacer"
 msgid "Redo"
 msgstr "Rehacer"
 
+msgid "Cut"
+msgstr "Cortar"
+
 msgid "Cut selection to clipboard"
 msgstr "Cortar selección al portapapeles"
 
@@ -6219,6 +6245,10 @@ msgstr "Mostrar el contorno alrededor del objeto seleccionado en la escena 3D."
 
 msgid "Preferences"
 msgstr "Preferencias"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr "Edición"
 
 msgid "View"
 msgstr "Vista"
@@ -6900,10 +6930,10 @@ msgid "Please heat the nozzle to above 170℃ before loading or unloading filame
 msgstr "Por favor, caliente la boquilla por encima de 170℃ antes de cargar o descargar filamento."
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
-msgstr "No se puede cambiar la temperatura de la cámara en modo de refrigeración mientras se imprime."
+msgstr "No se puede cambiar la temperatura de la recámara en modo de refrigeración mientras se imprime."
 
 msgid "If the chamber temperature exceeds 40℃, the system will automatically switch to heating mode. Please confirm whether to switch."
-msgstr "Si la temperatura de la cámara excede los 40℃, el sistema cambiará automáticamente al modo de calefacción. Confirme si desea cambiar."
+msgstr "Si la temperatura de la recámara excede los 40℃, el sistema cambiará automáticamente al modo de calefacción. Confirme si desea cambiar."
 
 msgid "Please select an AMS slot before calibration"
 msgstr "Seleccione una ranura AMS antes de la calibración"
@@ -7158,7 +7188,7 @@ msgid "Undo integration was successful."
 msgstr "La operación de deshacer se ha realizado con éxito."
 
 msgid "New network plug-in available."
-msgstr "Nuevo complemento de red disponible."
+msgstr "Nuevo plugin de red disponible."
 
 msgid "Details"
 msgstr "Detalles"
@@ -7310,16 +7340,16 @@ msgstr ""
 "Active o instale alguna para usarla."
 
 msgid "There is stringing-prone filament in the current print job. Enabling nozzle clumping detection now may degrade print quality. Are you sure you want to enable it?"
-msgstr ""
+msgstr "El trabajo de impresión actual contiene filamento propenso a formar hilos. Habilitar ahora la detección de acumulación en la boquilla puede reducir la calidad de impresión. ¿Seguro que desea habilitarla?"
 
 msgid "Enable Nozzle Clumping Detection"
-msgstr ""
+msgstr "Habilitar la detección de acumulación en la boquilla"
 
 msgid "When enabled, the printer will automatically capture photos of printed parts and upload them to the cloud. Would you like to enable this option?"
-msgstr ""
+msgstr "Cuando está habilitada, la impresora capturará automáticamente fotos de las piezas impresas y las subirá a la nube. ¿Desea habilitar esta opción?"
 
 msgid "Confirm Enable Print Status Snapshot"
-msgstr ""
+msgstr "Confirmar la activación de la captura del estado de impresión"
 
 msgid "Enable detection of build plate position"
 msgstr "Activar detección de posición de cama"
@@ -7334,19 +7364,19 @@ msgid "Identifies the type and position of the build plate on the heatbed. Pausi
 msgstr "Identifica el tipo y la posición de la placa de construcción sobre la cama calefactada. Pausa la impresión si se detecta una discrepancia."
 
 msgid "Purifies the chamber air as the print finishes, based on the selected mode."
-msgstr ""
+msgstr "Purifica el aire de la recámara al finalizar la impresión, según el modo seleccionado."
 
 msgid "Purifies the chamber air through internal circulation as each print finishes."
-msgstr ""
+msgstr "Purifica el aire de la recámara mediante circulación interna al finalizar cada impresión."
 
 msgid "Automatically match the corresponding switch strategy for leak-prone filaments (disable blob detection) and regular filaments (enable blob detection)."
-msgstr ""
+msgstr "Aplica automáticamente la estrategia de conmutación correspondiente para filamentos propensos a fugas (desactiva la detección de acumulación) y filamentos normales (activa la detección de acumulación)."
 
 msgid "Detect whether the nozzle is wrapped by filament or other foreign matter."
-msgstr ""
+msgstr "Detecta si la boquilla está envuelta por filamento u otro material extraño."
 
 msgid "After disabling, nozzle wrapping cannot be detected, which may lead to print failure or nozzle damage."
-msgstr ""
+msgstr "Tras desactivarla, no se podrá detectar el envolvimiento de la boquilla, lo que puede provocar fallos de impresión o daños en la boquilla."
 
 msgid "AI Detections"
 msgstr "Detecciones de IA"
@@ -7391,7 +7421,7 @@ msgid "Store Sent Files on External Storage"
 msgstr "Guardar archivos enviados en almacenamiento externo"
 
 msgid "Save the printing files sent from the slicer and other apps on External Storage"
-msgstr ""
+msgstr "Guardar en el almacenamiento externo los archivos de impresión enviados desde el laminador y otras aplicaciones"
 
 msgid "Allow Prompt Sound"
 msgstr "Permitir Sonido de Aviso"
@@ -7403,31 +7433,31 @@ msgid "Check if the nozzle is clumping by filament or other foreign objects."
 msgstr "Comprobar si la boquilla está obstruida por filamento u otros objetos extraños.Compruebe si la boquilla está atascada por el filamento u otros objetos extraños."
 
 msgid "Purify Air at Print End"
-msgstr ""
+msgstr "Purificar el aire al finalizar la impresión"
 
 msgid "Internal Circulation"
-msgstr ""
+msgstr "Circulación interna"
 
 msgid "Alignment Detection"
-msgstr ""
+msgstr "Detección de alineación"
 
 msgid "Pauses printing when build plate misalignment is detected."
-msgstr ""
+msgstr "Pausa la impresión cuando se detecta una desalineación de la cama."
 
 msgid "Foreign Object Detection"
-msgstr ""
+msgstr "Detección de objetos extraños"
 
 msgid "Checks for any objects on the build plate at the start of a print to avoid collisions."
-msgstr ""
+msgstr "Comprueba si hay objetos en la cama al inicio de la impresión para evitar colisiones."
 
 msgid "Printed Part Displacement Detection"
-msgstr ""
+msgstr "Detección de desplazamiento de la pieza impresa"
 
 msgid "Monitors the printed part during printing and alerts immediately if it shifts or collapses."
-msgstr ""
+msgstr "Supervisa la pieza impresa durante la impresión y avisa de inmediato si se desplaza o se derrumba."
 
 msgid "Checks if the nozzle is clumping by filament or other foreign objects."
-msgstr ""
+msgstr "Comprueba si la boquilla acumula filamento u otros objetos extraños."
 
 msgid "On"
 msgstr "Activado"
@@ -7442,10 +7472,10 @@ msgid "Pause printing"
 msgstr "Pausar impresión"
 
 msgid "Print Status Snapshot"
-msgstr ""
+msgstr "Captura del estado de impresión"
 
 msgid "Automatically capture and upload print photos, showing defects during printing and the final result for remote viewing."
-msgstr ""
+msgstr "Captura y sube automáticamente fotos de la impresión, mostrando los defectos durante el proceso y el resultado final para verlos de forma remota."
 
 msgctxt "Nozzle Type"
 msgid "Type"
@@ -8021,7 +8051,7 @@ msgid "Failed to load network plug-in. Please restart the application."
 msgstr "Error al cargar el plugin de red. Por favor, reinicie la aplicación."
 
 msgid "The network plug-in was not detected. Network related features are unavailable."
-msgstr "Complemento de red no detectado. Características de red no disponibles."
+msgstr "Plugin de red no detectado. Características de red no disponibles."
 
 msgid ""
 "Preview only mode:\n"
@@ -8881,6 +8911,15 @@ msgstr "Mostrar FPS en pantalla"
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr "Muestra los FPS en la esquina superior derecha."
 
+msgid "G-code Preview"
+msgstr "Vista previa del G-code"
+
+msgid "Dim lower layers"
+msgstr "Atenuar las capas inferiores"
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr "Al desplazar el control deslizante de capas en la vista previa laminada, oscurece las capas inferiores a la actual para que solo la capa visualizada se muestre a pleno brillo."
+
 msgid "Login region"
 msgstr "Región de inicio de sesión"
 
@@ -9169,8 +9208,9 @@ msgstr "Incompatible"
 msgid "The selected preset is null!"
 msgstr "¡El ajuste seleccionado es nulo!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Final"
+msgstr "Fin"
 
 msgid "Customize"
 msgstr "Personalizar"
@@ -9356,7 +9396,7 @@ msgid "To ensure print quality, the drying temperature will be lowered during pr
 msgstr "Para garantizar la calidad de impresión, la temperatura de secado se reducirá durante la impresión."
 
 msgid "Select timelapse storage location"
-msgstr ""
+msgstr "Seleccionar la ubicación de almacenamiento del timelapse"
 
 msgid "Auto Bed Leveling"
 msgstr "Nivelado automático de cama"
@@ -9389,10 +9429,10 @@ msgstr ""
 "*Modo automático: Compruebe la calibración antes de imprimir. Omitir si no es necesario."
 
 msgid "Shared PA Profile"
-msgstr ""
+msgstr "Perfil PA compartido"
 
 msgid "Nozzles and filaments of the same type share the same PA profile."
-msgstr ""
+msgstr "Las boquillas y los filamentos del mismo tipo comparten el mismo perfil PA."
 
 msgid "Send complete"
 msgstr "Envío completo"
@@ -9439,7 +9479,7 @@ msgstr "El mapeo de boquillas actual puede producir %0.2f g adicionales de resid
 
 #, c-format, boost-format
 msgid "Recommended filament arrangement saves %s->"
-msgstr ""
+msgstr "La disposición de filamento recomendada ahorra %s->"
 
 #, c-format, boost-format
 msgid "Filament %s does not match the filament in AMS slot %s. Please update the printer firmware to support AMS slot assignment."
@@ -9457,6 +9497,9 @@ msgstr "Cuando active el modo vaso en espiral, las máquinas con estructura I3 n
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "La impresora actual no admite timelapse en Modo Tradicional al imprimir Por Objeto."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr "He comprobado la boquilla instalada y quiero imprimir de todos modos."
 
 msgid "Errors"
 msgstr "Errores"
@@ -9493,31 +9536,31 @@ msgstr "Interno"
 
 #, c-format, boost-format
 msgid "%s space less than 20MB. Timelapse may not save properly. You can turn it off or"
-msgstr ""
+msgstr "Espacio de %s inferior a 20 MB. Es posible que el timelapse no se guarde correctamente. Puede desactivarlo o"
 
 msgid "Clean up files"
-msgstr ""
+msgstr "Limpiar archivos"
 
 msgid "Low internal storage. This timelapse will overwrite the oldest video files."
-msgstr ""
+msgstr "Almacenamiento interno bajo. Este timelapse sobrescribirá los archivos de vídeo más antiguos."
 
 msgid "Low external storage. This timelapse will overwrite the oldest video files."
-msgstr ""
+msgstr "Almacenamiento externo bajo. Este timelapse sobrescribirá los archivos de vídeo más antiguos."
 
 msgid "Insufficient external storage for time-lapse photography. Connect to computer to delete files, or use a larger memory card."
-msgstr ""
+msgstr "Almacenamiento externo insuficiente para la fotografía timelapse. Conecte el equipo para eliminar archivos o use una tarjeta de memoria más grande."
 
 msgid "Storage Space Not Enough"
-msgstr ""
+msgstr "Espacio de almacenamiento insuficiente"
 
 msgid "Confirm & Print"
-msgstr ""
+msgstr "Confirmar e imprimir"
 
 msgid "Cancel Timelapse & Print"
-msgstr ""
+msgstr "Cancelar timelapse e imprimir"
 
 msgid "Clean Up"
-msgstr ""
+msgstr "Limpiar"
 
 msgid "Preparing print job"
 msgstr "Preparando el trabajo de impresión"
@@ -9584,20 +9627,20 @@ msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). Ple
 msgstr "La dureza del material actual (%s) supera la dureza de %s(%s). Verifique la boquilla o la configuración del material e inténtelo de nuevo."
 
 msgid "Your current firmware version cannot start this print job. Please update to the latest version and try again."
-msgstr ""
+msgstr "La versión actual del firmware no puede iniciar este trabajo de impresión. Actualice a la última versión e inténtelo de nuevo."
 
 #, c-format, boost-format
 msgid "The hardness of current material (%s) exceeds the hardness of %s(%s). It may cause nozzle wear, leading to material leakage and unstable flow. Please exercise caution when using it."
 msgstr "La dureza del material actual (%s) supera la dureza de %s(%s). Puede provocar el desgaste de la boquilla, dando lugar a fugas de material y flujo inestable. Tenga precaución al utilizarlo."
 
 msgid "Some filaments may switch between extruders during printing. Manual K-value calibration cannot be applied throughout the entire print, which may affect print quality. Enabling Flow Dynamics Calibration is recommended."
-msgstr ""
+msgstr "Algunos filamentos pueden cambiar de extrusor durante la impresión. La calibración manual del valor K no puede aplicarse durante toda la impresión, lo que puede afectar a la calidad de impresión. Se recomienda habilitar la Calibración de Dinámica de Flujo."
 
 msgid "There is stringing-prone filament in this file. For best print quality, we recommend switching nozzle clumping detection to Auto mode."
-msgstr ""
+msgstr "Este archivo contiene filamento propenso a formar hilos. Para obtener la mejor calidad de impresión, recomendamos cambiar la detección de acumulación en la boquilla al modo automático."
 
 msgid "If 'Dynamic Flow Calibration' is set to Auto/On, the system will use the manual calibration value or the default value and skip the flow calibration process. You can perform a manual flow calibration for TPU filament on the 'Calibration' page."
-msgstr ""
+msgstr "Si «Calibración de Flujo Dinámico» está en Auto/Activado, el sistema usará el valor de calibración manual o el valor predeterminado y omitirá el proceso de calibración de flujo. Puede realizar una calibración de flujo manual para el filamento TPU en la página «Calibración»."
 
 #, c-format, boost-format
 msgid "[ %s ] requires printing in a high-temperature environment. Please close the door."
@@ -9704,16 +9747,16 @@ msgstr "Esta impresora no soporta la impresión de todas las camas."
 
 #, c-format, boost-format
 msgid "The current firmware supports a maximum of %s materials. You can either reduce the number of materials to %s or fewer on the Preparation Page, or try updating the firmware. If you are still restricted after the update, please wait for subsequent firmware support."
-msgstr ""
+msgstr "El firmware actual admite un máximo de %s materiales. Puede reducir el número de materiales a %s o menos en la página de Preparación, o intentar actualizar el firmware. Si tras la actualización sigue estando limitado, espere a que el firmware lo admita en el futuro."
 
 msgid "The type of external filament is unknown or does not match with the filament type in the slicing file. Please make sure you have installed the correct filament in the external spool."
 msgstr "Se desconoce el tipo de filamento externo o no coincide con el tipo de filamento indicado en el archivo de corte. Asegúrate de haber colocado el filamento correcto en la bobina externa."
 
 msgid "TPU 90A/TPU 85A are too soft. It is recommended to perform manual flow calibration on the 'Calibration' page. If 'Dynamic Flow Calibration' is set to auto/on, the system will use the previous calibration value and skip the flow calibration process."
-msgstr ""
+msgstr "El TPU 90A/TPU 85A son demasiado blandos. Se recomienda realizar una calibración de flujo manual en la página «Calibración». Si «Calibración de Flujo Dinámico» está en auto/activado, el sistema usará el valor de calibración anterior y omitirá el proceso de calibración de flujo."
 
 msgid "The filament in the AMS may be insufficient for this print. Please refill or replace it."
-msgstr ""
+msgstr "Puede que el filamento del AMS sea insuficiente para esta impresión. Recárguelo o reemplácelo."
 
 msgid "Current firmware does not support file transfer to internal storage."
 msgstr "El firmware actual no admite la transferencia de archivos al almacenamiento interno."
@@ -10178,13 +10221,13 @@ msgid "Flow ratio and Pressure Advance"
 msgstr "Factor de flujo y Pressure advance"
 
 msgid "Print chamber temperature"
-msgstr "Temperatura de la cámara"
+msgstr "Temperatura de la recámara"
 
 msgid "Chamber temperature"
-msgstr "Temperatura de cámara"
+msgstr "Temperatura de recámara"
 
 msgid "Target chamber temperature, and the minimal chamber temperature at which printing should start"
-msgstr "Temperatura objetivo de la cámara y temperatura mínima de la cámara a la que debe comenzar la impresión"
+msgstr "Temperatura objetivo de la recámara y temperatura mínima de la recámara a la que debe comenzar la impresión"
 
 msgid "Target"
 msgstr "Objetivo"
@@ -11043,7 +11086,7 @@ msgid "Please choose the filament colour"
 msgstr "Por favor, elija el color del filamento"
 
 msgid "Native Wayland liveview requires the GStreamer GTK video sink. Please install the gtksink plugin for GStreamer, then restart OrcaSlicer."
-msgstr "La función de visualización en directo nativa de Wayland requiere el receptor de vídeo GTK de GStreamer. Instale el complemento gtksink para GStreamer y, a continuación, reinicie OrcaSlicer."
+msgstr "La función de visualización en directo nativa de Wayland requiere el receptor de vídeo GTK de GStreamer. Instale el plugin gtksink para GStreamer y, a continuación, reinicie OrcaSlicer."
 
 msgid "Failed to initialize the native Wayland GStreamer video sink. Please check your GStreamer GTK plugin installation."
 msgstr "No se pudo inicializar el receptor de vídeo nativo de Wayland GStreamer. Compruebe la instalación del plugin GTK de GStreamer."
@@ -11153,26 +11196,30 @@ msgstr "Seleccionar varios objetos"
 msgid "Select objects by rectangle"
 msgstr "Seleccionar objetos por rectángulo"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Flecha hacia arriba"
+msgstr "Flecha arriba"
 
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Mover la selección 10 mm en dirección Y positiva"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Flecha hacia abajo"
+msgstr "Flecha abajo"
 
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Mover la selección 10 mm en dirección Y negativa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Flecha hacia izquierda"
+msgstr "Flecha izquierda"
 
 msgid "Move selection 10mm in negative X direction"
 msgstr "Mover la selección 10 mm en dirección X negativa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Flecha hacia derecha"
+msgstr "Flecha derecha"
 
 msgid "Move selection 10mm in positive X direction"
 msgstr "Mover la selección 10 mm en dirección X positiva"
@@ -11255,8 +11302,16 @@ msgstr "Alejar"
 msgid "Toggle printable for object/part"
 msgstr "Activar/desactivar la impresión para el objeto/pieza"
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr "Tab"
+
 msgid "Switch between Prepare/Preview"
 msgstr "Cambiar entre Preparar/Previsualizar"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr "Espacio"
 
 msgid "Open actions speed dial"
 msgstr "Abrir el menú rápido de acciones"
@@ -11315,8 +11370,16 @@ msgstr "Activar/Desactivar ventana de G-Code"
 msgid "Move slider 5x faster"
 msgstr "Mover el deslizador 5 veces más rápido"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr "Inicio"
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Deslizador horizontal - Desplazarse a la posición inicial"
+
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr "Fin"
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Deslizador horizontal - Desplazarse a la última posición"
@@ -11332,10 +11395,10 @@ msgid "Network plug-in update"
 msgstr "Actualizar plug-in de red"
 
 msgid "Click OK to update the Network plug-in now. If a file is in use, the update will be applied the next time Orca Slicer launches."
-msgstr ""
+msgstr "Haga clic en Aceptar para actualizar ahora el plugin de red. Si hay un archivo en uso, la actualización se aplicará la próxima vez que se inicie Orca Slicer."
 
 msgid "A new Network plug-in is available. Do you want to install it?"
-msgstr ""
+msgstr "Hay disponible un nuevo plugin de red. ¿Desea instalarlo?"
 
 #, c-format, boost-format
 msgid "A new Network plug-in (%s) is available. Do you want to install it?"
@@ -14394,12 +14457,12 @@ msgid "money/h"
 msgstr "dinero/hora"
 
 msgid "Support controlling chamber temperature"
-msgstr "Función de control de temperatura de cámara"
+msgstr "Función de control de temperatura de recámara"
 
 msgid ""
 "This option is enabled if machine support controlling chamber temperature\n"
 "G-code command: M141 S(0-255)"
-msgstr "Esta opción se activa si la máquina admite el control de la temperatura de la cámara"
+msgstr "Esta opción se activa si la máquina admite el control de la temperatura de la recámara"
 
 msgid "Support air filtration"
 msgstr "Función de filtración de aire"
@@ -15632,77 +15695,77 @@ msgstr ""
 "Esta cantidad puede especificarse en milímetros o como porcentaje del diámetro actual del extrusor. El valor por defecto de este parámetro es 10%."
 
 msgid "Scarf joint seam (beta)"
-msgstr "Unión de bufanda en costuras (beta)"
+msgstr "Costura en bisel en costuras (beta)"
 
 msgid "Use scarf joint to minimize seam visibility and increase seam strength."
-msgstr "Utilice la unión de bufanda para minimizar la visibilidad de la costura y aumentar su resistencia."
+msgstr "Utilice la costura en bisel para minimizar la visibilidad de la costura y aumentar su resistencia."
 
 msgid "Conditional scarf joint"
-msgstr "Unión de bufanda condicional"
+msgstr "Costura en bisel condicional"
 
 msgid "Apply scarf joints only to smooth perimeters where traditional seams do not conceal the seams at sharp corners effectively."
-msgstr "Aplique juntas de bufanda sólo en perímetros lisos en los que las juntas tradicionales no oculten eficazmente las juntas en vértices pronunciados."
+msgstr "Aplique costuras en bisel sólo en perímetros lisos en los que las juntas tradicionales no oculten eficazmente las juntas en vértices pronunciados."
 
 msgid "Conditional angle threshold"
-msgstr "Umbral angular para union de bufanda condicional"
+msgstr "Umbral angular para costura en bisel condicional"
 
 msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
 "If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
 msgstr ""
-"Esta opción establece el ángulo umbral para aplicar una costura de junta de bufanda condicional.\n"
-"Si el ángulo máximo dentro del bucle perimetral supera este valor (indicando la ausencia de esquinas afiladas), se utilizará una costura de junta de bufanda. El valor por defecto es 155°."
+"Esta opción establece el ángulo umbral para aplicar una costura en bisel condicional.\n"
+"Si el ángulo máximo dentro del bucle perimetral supera este valor (indicando la ausencia de esquinas afiladas), se utilizará una costura en bisel. El valor por defecto es 155°."
 
 msgid "Conditional overhang threshold"
-msgstr "Umbral de voladizo para unión de bufanda condicional"
+msgstr "Umbral de voladizo para costura en bisel condicional"
 
 #, no-c-format, no-boost-format
 msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Esta opción establece el umbral de voladizo para aplicar una costura de unión de bufanda condicional. Si el área sin soporte del perémetro es menor a este valor se utilizará una costura de unión de bufanda. El valor por defecto está configurado como un 40% del grosor del perímetro exterior. El ángulo de voladizo es estimado automáticamente por razones de optimización."
+msgstr "Esta opción establece el umbral de voladizo para aplicar una costura en bisel condicional. Si el área sin soporte del perémetro es menor a este valor se utilizará una costura en bisel. El valor por defecto está configurado como un 40% del grosor del perímetro exterior. El ángulo de voladizo es estimado automáticamente por razones de optimización."
 
 msgid "Scarf joint speed"
-msgstr "Velocidad de unión de bufanda"
+msgstr "Velocidad de costura en bisel"
 
 msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Esta opción ajusta la velocidad de impresión para las uniones de bufanda. Se recomienda imprimir las uniones de bufanda a una velocidad lenta (inferior a 100 mm/s). También es aconsejable activar la opción \"Suavizado de la velocidad de extrusión\" si la velocidad configurada varía significativamente de la velocidad de los perímetros exteriores o interiores. Si la velocidad especificada aquí es superior a la velocidad de los perímetros exteriores o interiores, la impresora utilizará por defecto la velocidad más lenta de las dos. Si se especifica como porcentaje (por ejemplo, 80%), la velocidad se calcula en función de la velocidad del perímetro exterior o interior. El valor predeterminado es 100%."
+msgstr "Esta opción ajusta la velocidad de impresión para las costuras en bisel. Se recomienda imprimir las costuras en bisel a una velocidad lenta (inferior a 100 mm/s). También es aconsejable activar la opción \"Suavizado de la velocidad de extrusión\" si la velocidad configurada varía significativamente de la velocidad de los perímetros exteriores o interiores. Si la velocidad especificada aquí es superior a la velocidad de los perímetros exteriores o interiores, la impresora utilizará por defecto la velocidad más lenta de las dos. Si se especifica como porcentaje (por ejemplo, 80%), la velocidad se calcula en función de la velocidad del perímetro exterior o interior. El valor predeterminado es 100%."
 
 msgid "Scarf joint flow ratio"
-msgstr "Factor de flujo de la unión de bufanda"
+msgstr "Factor de flujo de la costura en bisel"
 
 msgid "This factor affects the amount of material for scarf joints."
-msgstr "Este factor afecta a la cantidad de material para las uniones de bufanda."
+msgstr "Este factor afecta a la cantidad de material para las costuras en bisel."
 
 msgid "Scarf start height"
-msgstr "Altura de inicio de la bufanda"
+msgstr "Altura de inicio del bisel"
 
 msgid ""
 "Start height of the scarf.\n"
 "This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
-msgstr "Altura inicial de la bufanda . Esta cantidad puede especificarse en milímetros o como porcentaje de la altura de la capa actual. El valor por defecto de este parámetro es 0."
+msgstr "Altura inicial del bisel . Esta cantidad puede especificarse en milímetros o como porcentaje de la altura de la capa actual. El valor por defecto de este parámetro es 0."
 
 msgid "Scarf around entire wall"
-msgstr "Bufanda en todo el perímetro"
+msgstr "Bisel en todo el perímetro"
 
 msgid "The scarf extends to the entire length of the wall."
-msgstr "La bufanda se extiende a lo largo de todo el perímetro."
+msgstr "El bisel se extiende a lo largo de todo el perímetro."
 
 msgid "Scarf length"
-msgstr "Largo de la bufanda"
+msgstr "Largo del bisel"
 
 msgid "Length of the scarf. Setting this parameter to zero effectively disables the scarf."
-msgstr "Longitud de la bufanda. Si este parámetro se pone a cero, se desactiva la bufanda."
+msgstr "Longitud del bisel. Si este parámetro se pone a cero, se desactiva el bisel."
 
 msgid "Scarf steps"
-msgstr "Pasos de la bufanda"
+msgstr "Pasos del bisel"
 
 msgid "Minimum number of segments of each scarf."
-msgstr "Número mínimo de segmentos de cada bufanda."
+msgstr "Número mínimo de segmentos de cada bisel."
 
 msgid "Scarf joint for inner walls"
-msgstr "Unión de bufanda para perímetros interiores"
+msgstr "Costura en bisel para perímetros interiores"
 
 msgid "Use scarf joint for inner walls as well."
-msgstr "Utilice también una unión de bufanda para perímetros internos."
+msgstr "Utilice también una costura en bisel para perímetros internos."
 
 msgid "Role base wipe speed"
 msgstr "Velocidad de purga según tipo de línea"
@@ -15881,6 +15944,9 @@ msgstr "Si se selecciona el modo suave o tradicional, se generará un vídeo tim
 
 msgid "Traditional"
 msgstr "Tradicional"
+
+msgid "Smooth"
+msgstr "Suave"
 
 msgid "Farthest point timelapse"
 msgstr "Timelapse del punto más lejano"
@@ -16349,10 +16415,10 @@ msgid ""
 "\n"
 "This option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed."
 msgstr ""
-"Habilite esta función para usar un control automático de la temperatura de la cámara. Cuando está habilitada, se emitirá un comando M191 antes de \"machine_start_gcode\".\n"
-"Este comando especifica la temperatura objetivo de la cámara y mantendrá la impresora en espera hasta que se alcance dicha temperatura. Adicionalmente, se emite un comando M141 al finalizar la impresión para apagar el sistema de calentamiento de cámara, en caso de existir.\n"
+"Habilite esta función para usar un control automático de la temperatura de la recámara. Cuando está habilitada, se emitirá un comando M191 antes de \"machine_start_gcode\".\n"
+"Este comando especifica la temperatura objetivo de la recámara y mantendrá la impresora en espera hasta que se alcance dicha temperatura. Adicionalmente, se emite un comando M141 al finalizar la impresión para apagar el sistema de calentamiento de recámara, en caso de existir.\n"
 "\n"
-"Esta función requiere de que el firmware de la impresora sea compatible con los comandos M191 y M141, ya sea nativamente o mediante el uso de macros. Esta función se usa generalmente con impresoras con sistema de calentamiento de cámara activo."
+"Esta función requiere de que el firmware de la impresora sea compatible con los comandos M191 y M141, ya sea nativamente o mediante el uso de macros. Esta función se usa generalmente con impresoras con sistema de calentamiento de recámara activo."
 
 msgid ""
 "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\n"
@@ -16361,13 +16427,13 @@ msgid ""
 "\n"
 "If enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed."
 msgstr ""
-"Una mayor temperatura de la cámara puede ayudar a suprimir o reducir la deformación y potencialmente conducir a una mayor resistencia de unión entre capas para materiales de alta temperatura como ABS, ASA, PC, PA, etc. Al mismo tiempo, la filtración de aire de ABS y ASA empeorará.\n"
+"Una mayor temperatura de la recámara puede ayudar a suprimir o reducir la deformación y potencialmente conducir a una mayor resistencia de unión entre capas para materiales de alta temperatura como ABS, ASA, PC, PA, etc. Al mismo tiempo, la filtración de aire de ABS y ASA empeorará.\n"
 "\n"
-"Por otro lado, materiales como PLA, PETG, TPU, PVA y otros materiales de baja temperatura, la temperatura real de la cámara no debe ser alta para evitar obstrucciones causadas por reblandecimiento del filamento en el disipador.\n"
+"Por otro lado, materiales como PLA, PETG, TPU, PVA y otros materiales de baja temperatura, la temperatura real de la recámara no debe ser alta para evitar obstrucciones causadas por reblandecimiento del filamento en el disipador.\n"
 "\n"
-"Cuando se activa, este parámetro crea una variable de G-Code llamada chamber_temperature, que puede ser utilizada en macros personalizados, por ejemplo el macro de PRINT_START, para controlar el precalentamiento en impresoras encapsuladas que cuenten con un sensor de temperatura de cámara. Ejemplo de uso: \n"
+"Cuando se activa, este parámetro crea una variable de G-Code llamada chamber_temperature, que puede ser utilizada en macros personalizados, por ejemplo el macro de PRINT_START, para controlar el precalentamiento en impresoras encapsuladas que cuenten con un sensor de temperatura de recámara. Ejemplo de uso: \n"
 "PRINT_START (otras variables) CHAMBER_TEMP=[chamber_temperature] \n"
-"Esta funciuón es útil para imrpesoras no compatibles con los comandos M141 o M191, o si prefiere realizar un precalentamiento usando un macro si no dispone de un sistema de calentamiento activo de cámara."
+"Esta funciuón es útil para imrpesoras no compatibles con los comandos M141 o M191, o si prefiere realizar un precalentamiento usando un macro si no dispone de un sistema de calentamiento activo de recámara."
 
 msgid ""
 "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \"Target\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\n"
@@ -16376,14 +16442,14 @@ msgid ""
 "\n"
 "Unlike the \"Target\" chamber temperature, this option does not emit any M141/M191 commands; it only exposes the value to your custom G-code. It should not exceed the \"Target\" chamber temperature."
 msgstr ""
-"Esta es la temperatura de la cámara a la que debe comenzar la impresión, mientras la cámara continúa calentándose hacia la temperatura objetivo (\"Objetivo\") de la cámara. Por ejemplo, ajuste «Objetivo» a 60 y «Mínima» a 50 para empezar a imprimir cuando la cámara alcance los 50 °C, sin esperar a los 60 °C completos.\n"
+"Esta es la temperatura de la recámara a la que debe comenzar la impresión, mientras la recámara continúa calentándose hacia la temperatura objetivo (\"Objetivo\") de la recámara. Por ejemplo, ajuste «Objetivo» a 60 y «Mínima» a 50 para empezar a imprimir cuando la recámara alcance los 50 °C, sin esperar a los 60 °C completos.\n"
 "\n"
 "Crea una variable de G-code llamada chamber_minimal_temperature, que puede pasarse a su macro de inicio de impresión o a una macro de precalentamiento, de esta forma: PRINT_START (otras variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\n"
 "\n"
-"A diferencia de la temperatura objetivo (\"Objetivo\") de la cámara, esta opción no emite ningún comando M141/M191; solo expone el valor a su G-code personalizado. No debería superar la temperatura objetivo (\"Objetivo\") de la cámara."
+"A diferencia de la temperatura objetivo (\"Objetivo\") de la recámara, esta opción no emite ningún comando M141/M191; solo expone el valor a su G-code personalizado. No debería superar la temperatura objetivo (\"Objetivo\") de la recámara."
 
 msgid "Chamber minimal temperature"
-msgstr "Temperatura mínima de cámara"
+msgstr "Temperatura mínima de recámara"
 
 msgid "Nozzle temperature after the first layer"
 msgstr "Temperatura de la boquilla después de la primera capa"
@@ -16487,7 +16553,7 @@ msgstr ""
 "Fijando un valor en la cantidad de retracción antes del purgado se realizará cualquier exceso de retracción antes del purgado, de lo contrario se realizará después."
 
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
-msgstr "La torre de purga puede utilizarse para limpiar los residuos de la boquilla y estabilizar la presión de la cámara en el interior de la boquilla, con el fin de evitar defectos visuales al imprimir objetos."
+msgstr "La torre de purga puede utilizarse para limpiar los residuos de la boquilla y estabilizar la presión de la recámara en el interior de la boquilla, con el fin de evitar defectos visuales al imprimir objetos."
 
 msgid "Internal ribs"
 msgstr "Refuerzos internos"
@@ -16856,6 +16922,12 @@ msgstr "Compatible con el modo de purga rápida"
 
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr "Indica si esta impresora es compatible con el modo de purga rápida con temperatura y multiplicador optimizados."
+
+msgid "Filament change"
+msgstr "Cambio de filamento"
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr "El volumen de material necesario para cebar el extrusor en la torre, sin incluir un cambio de hotend."
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr "El volumen de material necesario para cebar el extrusor al cambiar el Hotend en la torre."
@@ -20042,14 +20114,14 @@ msgstr "Error: %s"
 msgid "Show details"
 msgstr "Mostrar detalles"
 
+msgid "Hide details"
+msgstr "Ocultar detalles"
+
 msgid "Version to install:"
 msgstr "Versión a instalar:"
 
 msgid "Download and Install"
 msgstr "Descargar e instalar"
-
-msgid "Skip for Now"
-msgstr "Omitir por ahora"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Hay disponible una nueva versión del plug-in Bambu Network."
@@ -20061,23 +20133,17 @@ msgstr "Versión actual: %s"
 msgid "Update to version:"
 msgstr "Actualización a la versión:"
 
-msgid "Update Now"
-msgstr "Actualizar ahora"
-
-msgid "Remind Later"
-msgstr "Recordar más tarde"
-
-msgid "Skip Version"
-msgstr "Omitir versión"
-
 msgid "Don't Ask Again"
 msgstr "No volver a preguntar"
+
+msgid "Update Now"
+msgstr "Actualizar ahora"
 
 msgid "(Latest)"
 msgstr "(Última)"
 
 msgid "(installed)"
-msgstr ""
+msgstr "(instalado)"
 
 msgid "The Bambu Network Plug-in has been installed successfully."
 msgstr "El Plug-in de Bambu Network se ha instalado correctamente."
@@ -20087,9 +20153,6 @@ msgstr "Es necesario reiniciar el sistema para cargar el nuevo plug-in. ¿Desea 
 
 msgid "Restart Now"
 msgstr "Reiniciar ahora"
-
-msgid "Restart Later"
-msgstr "Reiniciar más tarde"
 
 msgid "NO RAMMING AT ALL"
 msgstr "NO CHOCAR EN ABSOLUTO"
@@ -20391,8 +20454,8 @@ msgid ""
 "Chamber temperature\n"
 "Did you know that OrcaSlicer supports chamber temperature?"
 msgstr ""
-"Temperatura de la cámara \n"
-"¿Sabías que OrcaSlicer tiene la función de control de temperatura de cámara?"
+"Temperatura de la recámara \n"
+"¿Sabías que OrcaSlicer tiene la función de control de temperatura de recámara?"
 
 #: resources/data/hints.ini: [hint:Calibration]
 msgid ""
@@ -20669,6 +20732,48 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+#~ msgid "Enter"
+#~ msgstr "Enter"
+
+#~ msgid "Esc"
+#~ msgstr "Esc"
+
+#~ msgid "Del"
+#~ msgstr "Borrar"
+
+#~ msgid "Backspace"
+#~ msgstr "Retroceso"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Flecha hacia arriba"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Flecha hacia abajo"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Flecha hacia izquierda"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Flecha hacia derecha"
+
+#~ msgid "End"
+#~ msgstr "Final"
+
+#~ msgid "Hotend"
+#~ msgstr "Hotend"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Omitir por ahora"
+
+#~ msgid "Remind Later"
+#~ msgstr "Recordar más tarde"
+
+#~ msgid "Skip Version"
+#~ msgstr "Omitir versión"
+
+#~ msgid "Restart Later"
+#~ msgstr "Reiniciar más tarde"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Selecciona el filamento instalado en la boquilla izquierda"

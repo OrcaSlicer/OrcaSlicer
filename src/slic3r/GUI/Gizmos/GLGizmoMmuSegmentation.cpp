@@ -122,7 +122,7 @@ bool GLGizmoMmuSegmentation::on_init()
     std::pair<wxString, wxString> paint_shortcut            = {_L("Left mouse button"),         m_desc["paint"]};
     std::pair<wxString, wxString> erase_shortcut            = {shift + _L("Left mouse button"), m_desc["erase"]};
     std::pair<wxString, wxString> clipping_shortcut         = {alt + _L("Mouse wheel"),         m_desc["clipping_of_view"]};
-    std::pair<wxString, wxString> toggle_wireframe_shortcut = {alt + shift + _L("Enter"),       m_desc["toggle_wireframe"]};
+    std::pair<wxString, wxString> toggle_wireframe_shortcut = {alt + shift + _L_CONTEXT("Enter", "Keyboard Shortcut"),       m_desc["toggle_wireframe"]};
 
     m_shortcuts_brush = {
         paint_shortcut,
