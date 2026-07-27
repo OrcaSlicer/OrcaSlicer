@@ -1783,8 +1783,10 @@ void PrintObject::detect_surfaces_type()
                     // as-is. Never claims a bottom surface.
                     const PrintRegionConfig &region_config  = layerm->region().config();
                     const double             top_expansion  = region_config.top_surface_expansion.value;
-                    // A top surface density of 0% leaves the top layer with walls only - no fill to expand.
-                    if (top_expansion > 0. && region_config.top_surface_density.value > 0. && ! top.empty()) {
+                    // Nothing to expand without a top fill: a 0% top surface density leaves the top layer with
+                    // walls only, and zero top shell layers retypes it as internal in prepare_fill_surfaces().
+                    if (top_expansion > 0. && region_config.top_shell_layers.value > 0 &&
+                        region_config.top_surface_density.value > 0. && ! top.empty()) {
                         const double     d = scale_(top_expansion);
                         const ExPolygons T = union_ex(to_expolygons(top));
                         // Walls are laid out on spacing, not width; and only_one_wall_top leaves a single wall over

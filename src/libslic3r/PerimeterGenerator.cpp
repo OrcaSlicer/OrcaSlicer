@@ -580,42 +580,49 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
 }
 
 // ORCA: the reworked only_one_wall_top generates the inner walls from the real geometry and then removes the
-// parts that fall over the top surface, handing that space over to the (expandable) top solid fill. With
-// top_surface_density == 0 there is no top fill to take it over, so the removed walls would simply print as a
-// void. In that case keep the original generation, which re-onions the not-top region and therefore keeps
-// walls right up to the top boundary.
+// parts that fall over the top surface, handing that space over to the (expandable) top solid fill. Without a
+// top fill to take it over the removed walls would simply print as a void, so in that case keep the original
+// generation, which re-onions the not-top region and therefore keeps walls right up to the top boundary. There
+// is no top fill either when the top surface density is 0% or when no top shell is requested at all - zero top
+// shell layers retypes every top fill surface as internal (LayerRegion::prepare_fill_surfaces).
 static bool top_fill_replaces_inner_walls(const PrintRegionConfig &config)
 {
-    return config.top_surface_density.value > 0;
+    return config.top_shell_layers.value > 0 && config.top_surface_density.value > 0;
 }
 
 // ORCA: only_one_wall_top keeps a single wall on top surfaces. The walls are generated from the real geometry
 // (as when the feature is off) and the parts that fall over the top surface are then removed, so no wall is
-// ever invented along the top/non-top boundary. This is the cheap first pass: a wall is a candidate for removal
-// as soon as one of its vertices lands on the top (a segment crossing the top with no vertex inside is rare
-// enough to ignore). How much of it is actually removed is decided by the caller.
-static bool loop_kept_for_one_wall_top(const Points &pts, const ExPolygons &top_region, const BoundingBox &top_region_bbox)
+// ever invented along the top/non-top boundary. This is the cheap per-vertex classification both wall
+// generators start from: None and Full are decided here, and only Partial needs the geometry clipped or
+// measured (a segment crossing the top with no vertex inside is rare enough to ignore).
+enum class TopOverlap { None, Partial, Full };
+
+static bool point_over_top(const Point &p, const ExPolygons &top_region, const BoundingBox &top_region_bbox)
 {
-    for (const Point &p : pts) {
-        if (! top_region_bbox.contains(p))
-            continue;
-        for (const ExPolygon &ex : top_region)
-            if (ex.contains(p, false))
-                return false;
-    }
-    return true;
+    if (! top_region_bbox.contains(p))
+        return false;
+    for (const ExPolygon &ex : top_region)
+        if (ex.contains(p, false))
+            return true;
+    return false;
 }
 
-static bool loop_kept_for_one_wall_top(const Arachne::ExtrusionLine &el, const ExPolygons &top_region, const BoundingBox &top_region_bbox)
+static TopOverlap classify_over_top(const Points &pts, const ExPolygons &top_region, const BoundingBox &top_region_bbox)
 {
-    for (const Arachne::ExtrusionJunction &j : el.junctions) {
-        if (! top_region_bbox.contains(j.p))
-            continue;
-        for (const ExPolygon &ex : top_region)
-            if (ex.contains(j.p, false))
-                return false;
-    }
-    return true;
+    size_t inside = 0;
+    for (const Point &p : pts)
+        if (point_over_top(p, top_region, top_region_bbox))
+            ++ inside;
+    return inside == 0 ? TopOverlap::None : inside == pts.size() ? TopOverlap::Full : TopOverlap::Partial;
+}
+
+static TopOverlap classify_over_top(const Arachne::ExtrusionLine &el, const ExPolygons &top_region, const BoundingBox &top_region_bbox)
+{
+    size_t inside = 0;
+    for (const Arachne::ExtrusionJunction &j : el.junctions)
+        if (point_over_top(j.p, top_region, top_region_bbox))
+            ++ inside;
+    return inside == 0 ? TopOverlap::None : inside == el.junctions.size() ? TopOverlap::Full : TopOverlap::Partial;
 }
 
 // ORCA: only_one_wall_top for Arachne - remove from the already generated inner walls the parts that run over the
@@ -651,10 +658,13 @@ static void clip_inner_walls_over_top(std::vector<Arachne::VariableWidthLines> &
         for (Arachne::ExtrusionLine &el : inner_perimeter) {
             if (el.empty())
                 continue;
-            if (loop_kept_for_one_wall_top(el, top_region, top_region_bbox)) {
+            const TopOverlap overlap = classify_over_top(el, top_region, top_region_bbox);
+            if (overlap == TopOverlap::None) {
                 kept.emplace_back(std::move(el));
                 continue;
             }
+            if (overlap == TopOverlap::Full)
+                continue; // entirely over the top - the clip below would return nothing anyway
             ClipperLib_Z::Path subject;
             subject.reserve(el.size());
             for (const Arachne::ExtrusionJunction &j : el.junctions)
@@ -1566,9 +1576,12 @@ void PerimeterGenerator::process_classic()
                 Polygons dropped_wall_bands;
                 auto reduce_over_top = [&](PerimeterGeneratorLoops &loops) {
                     loops.erase(std::remove_if(loops.begin(), loops.end(), [&](const PerimeterGeneratorLoop &loop) {
-                        if (loop_kept_for_one_wall_top(loop.polygon.points, one_wall_top_region, top_region_bbox))
+                        const TopOverlap overlap = classify_over_top(loop.polygon.points, one_wall_top_region, top_region_bbox);
+                        if (overlap == TopOverlap::None)
                             return false;
-                        if (total_length(intersection_pl(Polylines{ loop.polygon.split_at_first_point() }, one_wall_top_region)) < grazing_tolerance) {
+                        // Only a wall straddling the boundary is worth measuring; one lying wholly over the top goes.
+                        if (overlap == TopOverlap::Partial &&
+                            total_length(intersection_pl(Polylines{ loop.polygon.split_at_first_point() }, one_wall_top_region)) < grazing_tolerance) {
                             append(one_wall_top_kept_bands, wall_band(loop.polygon));
                             return false;
                         }

@@ -706,7 +706,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool has_top_shell_layers = config->opt_int("top_shell_layers") > 0 || (has_spiral_vase && config->opt_int("bottom_shell_layers") > 1);
     bool has_top_shell    = has_top_shell_layers && config->option<ConfigOptionPercent>("top_surface_density")->value > 0;
     bool has_bottom_shell = config->opt_int("bottom_shell_layers") > 0;
-    bool has_solid_infill = has_top_shell || has_bottom_shell;
+    bool has_solid_infill = has_top_shell_layers || has_bottom_shell;
     toggle_field("top_surface_pattern", has_top_shell);
     toggle_field("bottom_surface_pattern", has_bottom_shell);
     toggle_field("top_surface_density", has_top_shell_layers);
