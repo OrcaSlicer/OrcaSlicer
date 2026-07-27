@@ -2294,7 +2294,6 @@ void PerimeterGenerator::process_arachne()
                 upper_slices_clipped = ClipperUtils::clip_clipper_polygons_with_subject_bbox(*upper_slices, infill_contour_bbox);
 
             top_expolygons = diff_ex(infill_contour, upper_slices_clipped);
-            top_expolygons = fill_enclosed_top_feature_holes(top_expolygons, upper_slices_clipped, infill_contour);
 
             if (!top_expolygons.empty()) {
                 if (lower_slices != nullptr) {
