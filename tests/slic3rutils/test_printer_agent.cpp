@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include <slic3r/Utils/MoonrakerPrinterAgent.hpp>
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
 #include <slic3r/plugin/PythonPluginBridge.hpp>
 
@@ -11,6 +12,15 @@
 
 using namespace Slic3r;
 namespace py = pybind11;
+
+TEST_CASE("unit: Moonraker light name matching", "[unit][moonraker]")
+{
+    CHECK(moonraker_is_light_name("caselight"));
+    CHECK(moonraker_is_light_name("LED_STRIP"));
+    CHECK_FALSE(moonraker_is_light_name("beeper"));
+    CHECK(moonraker_is_light_name("FLASHLIGHT_SWITCH"));
+    CHECK(moonraker_is_light_name("MODLELIGHT_SWITCH"));
+}
 
 // ===========================================================================
 // UNIT - printer-agent registry duplicate handling.

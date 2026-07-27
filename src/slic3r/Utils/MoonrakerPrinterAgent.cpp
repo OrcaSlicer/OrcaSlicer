@@ -94,6 +94,25 @@ namespace Slic3r {
 
 const std::string MoonrakerPrinterAgent_VERSION = "1.0.0";
 
+bool moonraker_is_light_name(const std::string& name)
+{
+    std::string lower_name = name;
+    std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+    size_t pos = lower_name.find("led");
+    while (pos != std::string::npos) {
+        const bool   at_start = pos == 0 || lower_name[pos - 1] == '_' || lower_name[pos - 1] == '-';
+        const size_t end      = pos + 3;
+        const bool   at_end   = end == lower_name.size() || lower_name[end] == '_' || lower_name[end] == '-';
+        if (at_start && at_end) {
+            return true;
+        }
+        pos = lower_name.find("led", pos + 1);
+    }
+    return lower_name.find("light") != std::string::npos;
+}
+
 MoonrakerPrinterAgent::MoonrakerPrinterAgent(std::string log_dir) : m_cloud_agent(nullptr) { (void) log_dir; }
 
 MoonrakerPrinterAgent::~MoonrakerPrinterAgent()
@@ -1023,31 +1042,28 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
                 !system["led_mode"].is_string()) {
                 return BAMBU_NETWORK_ERR_INVALID_RESULT;
             }
+            const std::string led_node = system["led_node"].get<std::string>();
+            // why: DevLamp::CtrlSetChamberLight publishes chamber_light and chamber_light2 per click.
+            // That is idempotent for absolute writes, but toggle macros fired twice are a net no-op.
+            if (led_node != "chamber_light") {
+                return BAMBU_NETWORK_SUCCESS;
+            }
             const std::string led_mode = system["led_mode"].get<std::string>();
             // why: Klipper has no flash primitive, so flashing collapses to full brightness.
             const std::string value = (led_mode == "on" || led_mode == "flashing") ? "1" : "0";
+            const bool        requested_light_on = value == "1";
             std::string       gcode;
             {
                 std::lock_guard<std::recursive_mutex> lock(payload_mutex);
-                // why: only light-named objects may be driven - available_objects is alphabetical, so an
-                // unqualified "first output_pin" match would happily toggle a beeper or a fan power pin.
-                const auto is_light = [](const std::string& name) {
-                    size_t pos = name.find("led");
-                    while (pos != std::string::npos) {
-                        const bool at_start = pos == 0 || name[pos - 1] == '_' || name[pos - 1] == '-';
-                        const size_t end = pos + 3;
-                        const bool at_end = end == name.size() || name[end] == '_' || name[end] == '-';
-                        if (at_start && at_end) {
-                            return true;
-                        }
-                        pos = name.find("led", pos + 1);
-                    }
-                    return name.find("light") != std::string::npos;
-                };
+                if (requested_light_on == assumed_light_on) {
+                    return BAMBU_NETWORK_SUCCESS;
+                }
+                // why: available_objects is a std::set, so first-match-and-break means alphabetical priority.
+                // That deliberately prefers FLASHLIGHT_SWITCH over MODLELIGHT_SWITCH on Elegoo Neptune 4.
                 for (const auto& object : available_objects) {
                     // why: Klipper wants the bare pin name, not the "output_pin " section prefix.
                     const size_t prefix = object.rfind("output_pin ", 0) == 0 ? 11 : 0;
-                    if (prefix != 0 && object.size() > prefix && is_light(object.substr(prefix))) {
+                    if (prefix != 0 && object.size() > prefix && moonraker_is_light_name(object.substr(prefix))) {
                         gcode = "SET_PIN PIN=" + object.substr(prefix) + " VALUE=" + value;
                         break;
                     }
@@ -1055,9 +1071,18 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
                 if (gcode.empty()) {
                     for (const auto& object : available_objects) {
                         const size_t prefix = object.rfind("led ", 0) == 0 ? 4 : object.rfind("neopixel ", 0) == 0 ? 9 : 0;
-                        if (prefix != 0 && object.size() > prefix && is_light(object.substr(prefix))) {
+                        if (prefix != 0 && object.size() > prefix && moonraker_is_light_name(object.substr(prefix))) {
                             gcode = "SET_LED LED=" + object.substr(prefix) + " RED=" + value + " GREEN=" + value +
                                     " BLUE=" + value + " WHITE=" + value;
+                            break;
+                        }
+                    }
+                }
+                if (gcode.empty()) {
+                    for (const auto& object : available_objects) {
+                        const size_t prefix = object.rfind("gcode_macro ", 0) == 0 ? 12 : 0;
+                        if (prefix != 0 && object.size() > prefix && moonraker_is_light_name(object.substr(prefix))) {
+                            gcode = object.substr(prefix);
                             break;
                         }
                     }
@@ -1068,7 +1093,14 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
                 BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: ledctrl - no light object found, dropping";
                 return BAMBU_NETWORK_SUCCESS;
             }
-            return send_gcode(dev_id, gcode) ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECTION_TO_PRINTER_FAILED;
+            if (!send_gcode(dev_id, gcode)) {
+                return BAMBU_NETWORK_ERR_CONNECTION_TO_PRINTER_FAILED;
+            }
+            {
+                std::lock_guard<std::recursive_mutex> lock(payload_mutex);
+                assumed_light_on = requested_light_on;
+            }
+            return BAMBU_NETWORK_SUCCESS;
         }
     }
 
@@ -2051,6 +2083,7 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
     // Default to 0 (not supported) if neither object exists
     bool has_bed_leveling                    = (available_objects.count("bed_mesh") != 0 || available_objects.count("probe") != 0);
     payload["print"]["support_bed_leveling"] = has_bed_leveling ? 1 : 0;
+    payload["print"]["lights_report"] = {{{"node", "chamber_light"}, {"mode", assumed_light_on ? "on" : "off"}}};
 
     const nlohmann::json* extruder = nullptr;
     if (status_cache.contains("extruder") && status_cache["extruder"].is_object()) {

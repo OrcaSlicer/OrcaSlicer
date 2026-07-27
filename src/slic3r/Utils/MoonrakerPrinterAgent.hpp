@@ -14,6 +14,8 @@
 
 namespace Slic3r {
 
+bool moonraker_is_light_name(const std::string& name);
+
 class MoonrakerPrinterAgent : public IPrinterAgent
 {
 public:
@@ -201,6 +203,7 @@ private:
 
     std::atomic<int>       next_jsonrpc_id{1};
     std::set<std::string>  available_objects;  // Track for feature detection
+    bool                   assumed_light_on = false;
 
     std::atomic<bool>   ws_stop{false};
     std::atomic<bool>   ws_reconnect_requested{false};  // Flag to trigger reconnection
