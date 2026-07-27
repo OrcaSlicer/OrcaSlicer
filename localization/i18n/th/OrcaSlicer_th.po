@@ -16873,7 +16873,7 @@ msgstr ""
 
 # AI Translated
 msgid "Center surface pattern on"
-msgstr "จัดกึ่งกลางลวดลายพื้นผิวบน"
+msgstr "จัดกึ่งกลางรูปแบบพื้นผิวบน"
 
 # AI Translated
 msgid ""

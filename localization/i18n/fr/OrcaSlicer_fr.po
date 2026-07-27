@@ -15024,8 +15024,9 @@ msgstr "Surface la plus élevée"
 msgid "All solid layers"
 msgstr "Toutes les couches pleines"
 
+# AI Translated
 msgid "Ironing Pattern"
-msgstr "Modèle de lissage"
+msgstr "Motif de lissage"
 
 msgid "The pattern that will be used when ironing."
 msgstr "Motif qui sera utilisé lors du lissage"

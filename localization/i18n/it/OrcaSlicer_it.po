@@ -16928,8 +16928,9 @@ msgstr "Stiratura interfaccia supporto"
 msgid "Ironing is using small flow to print on same height of support interface again to make it more smooth. This setting controls whether support interface being ironed. When enabled, support interface will be extruded as solid too."
 msgstr "La stiratura utilizza un flusso ridotto per stampare nuovamente alla stessa altezza dell'interfaccia di supporto per renderla più liscia. Questa impostazione controlla se l'interfaccia di supporto viene stirata. Quando abilitata, anche l'interfaccia di supporto verrà estrusa come solida."
 
+# AI Translated
 msgid "Support Ironing Pattern"
-msgstr "Trama stiratura supporto"
+msgstr "Motivo stiratura supporto"
 
 msgid "Support Ironing flow"
 msgstr "Flusso stiratura supporto"

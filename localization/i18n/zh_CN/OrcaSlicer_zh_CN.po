@@ -14905,8 +14905,9 @@ msgstr "最顶面"
 msgid "All solid layers"
 msgstr "所有实心层"
 
+# AI Translated
 msgid "Ironing Pattern"
-msgstr "熨烫模式"
+msgstr "熨烫图案"
 
 msgid "The pattern that will be used when ironing."
 msgstr "熨烫时将使用的图案"
@@ -16248,8 +16249,9 @@ msgstr "支撑/对象首层间距"
 msgid "XY separation between an object and its support at the first layer."
 msgstr "物体与其首层支撑之间的 XY 间隔。"
 
+# AI Translated
 msgid "Pattern angle"
-msgstr "模式角度"
+msgstr "图案角度"
 
 msgid "Use this setting to rotate the support pattern on the horizontal plane."
 msgstr "设置支撑图案在水平面的旋转角度。"

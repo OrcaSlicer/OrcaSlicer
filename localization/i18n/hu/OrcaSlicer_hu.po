@@ -13645,8 +13645,9 @@ msgstr ""
 "A Befelé minden felületet a szélesebb külső ívekkel kezd, ami javítja az első réteg tapadását azokon az asztalokon, ahol a középen lévő szűk ívek nem tapadnak meg jól. A Kifelé a közepén kezd, a felesleges anyagot a szélek felé tolva.\n"
 "Az Alapértelmezett a legrövidebb útvonal szerinti sorrendet használja, amely bármelyik irányba haladhat."
 
+# AI Translated
 msgid "Internal solid infill pattern"
-msgstr "Belső tömör kitöltés mintája"
+msgstr "Belső tömör kitöltés mintázata"
 
 msgid "Line pattern of internal solid infill. if the detect narrow internal solid infill be enabled, the concentric pattern will be used for the small area."
 msgstr "A belső tömör kitöltés vonalmintája. Ha a keskeny belső tömör kitöltés érzékelése engedélyezve van, a kis területeken koncentrikus mintázat lesz használva."
@@ -15271,8 +15272,9 @@ msgstr "Legfelső felület"
 msgid "All solid layers"
 msgstr "Összes szilárd réteg"
 
+# AI Translated
 msgid "Ironing Pattern"
-msgstr "Vasalási minta"
+msgstr "Vasalási mintázat"
 
 msgid "The pattern that will be used when ironing."
 msgstr "A vasaláskor használt minta."
