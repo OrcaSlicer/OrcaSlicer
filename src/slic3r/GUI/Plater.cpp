@@ -1107,6 +1107,7 @@ struct DynamicFilamentList : DynamicList
     bool physical_only;
     std::vector<std::pair<wxString, wxBitmap *>> items; // every combo entry, "Default" included
     std::vector<int> slot_map;                          // combo index -> config value: 1-based filament slot, 0 is "Default"
+    std::vector<int> shown_slot_map;                    // slot_map the combos on screen were built from
 
     int index_of_slot(int slot) const
     {
@@ -1127,10 +1128,13 @@ struct DynamicFilamentList : DynamicList
             return;
         wxString old_selection = cb->GetStringSelection();
         int old_index  = cb->GetSelection();
-        // slot_map is already rebuilt here: restoring through it keeps the index of every slot
-        // still listed and sends a vanished slot to the fallback below.
+        // The combo still holds the entries of the previous update(), so the old selection has to be
+        // read through shown_slot_map: slot_map is already rebuilt, and entries added or removed since
+        // (a slot, or the leading "Auto" of DynamicSupportFilamentList) shift every index. Restoring by
+        // config value then keeps the index of every slot still listed and sends a vanished one to the
+        // fallback below.
         static constexpr int no_slot = INT_MIN;
-        int old_slot = old_index >= 0 && old_index < int(slot_map.size()) ? slot_map[old_index] : no_slot;
+        int old_slot = old_index >= 0 && old_index < int(shown_slot_map.size()) ? shown_slot_map[old_index] : no_slot;
         cb->Clear();
         for (auto i : items) {
             cb->Append(i.first, i.second ? *i.second : wxNullBitmap);
@@ -1186,7 +1190,8 @@ struct DynamicFilamentList : DynamicList
             items.push_back({str, i < icons.size() ? icons[i] : nullptr});
             slot_map.push_back(i + 1);
         }
-        DynamicList::update();
+        DynamicList::update(); // rebuilds every registered combo through apply_on()
+        shown_slot_map = slot_map;
     }
     // Hook for subclasses listing entries ahead of "Default" (see DynamicSupportFilamentList).
     virtual void prepend_extra_items() {}
