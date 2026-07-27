@@ -5681,10 +5681,17 @@ LayerResult GCode::process_layer(
     for (const auto &layer_to_print : layers) {
         if (layer_to_print.object_layer) {
             const auto& regions = layer_to_print.object_layer->regions();
-            const bool  enable_overhang_speed = std::any_of(regions.begin(), regions.end(), [this](const LayerRegion* r) {
+            const bool has_extrusions = std::any_of(regions.begin(), regions.end(), [](const LayerRegion* r) {
+                return r->has_extrusions();
+            });
+            const bool enable_overhang_speed = std::any_of(regions.begin(), regions.end(), [this](const LayerRegion* r) {
                 return r->has_extrusions() && r->region().config().enable_overhang_speed.get_at(get_nozzle_config_index(m_writer.filament()->id()));
             });
-            if (enable_overhang_speed) {
+            const bool enable_overhang_fan = m_enable_cooling_markers && has_extrusions &&
+                std::any_of(m_config.enable_overhang_bridge_fan.values.begin(),
+                            m_config.enable_overhang_bridge_fan.values.end(),
+                            [](unsigned char value) { return value != 0; });
+            if (enable_overhang_speed || enable_overhang_fan) {
                 m_extrusion_quality_estimator.prepare_for_new_layer(layer_to_print.original_object,
                                                                     layer_to_print.object_layer);
             }
@@ -7523,7 +7530,10 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
     bool variable_speed = false;
     std::vector<ProcessedPoint> new_points {};
 
-    if (NOZZLE_CONFIG(enable_overhang_speed) && !this->on_first_layer() && !object_layer_over_raft() &&
+    const bool need_overhang_detection = NOZZLE_CONFIG(enable_overhang_speed) ||
+        (FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers);
+
+    if (need_overhang_detection && !this->on_first_layer() && !object_layer_over_raft() &&
         (is_bridge(path.role()) || is_perimeter(path.role()))) {
             bool is_external = is_external_perimeter(path.role());
             double ref_speed   = is_external ? NOZZLE_CONFIG(outer_wall_speed) : NOZZLE_CONFIG(inner_wall_speed);
@@ -7582,6 +7592,11 @@ std::string GCode::_extrude(const ExtrusionPath &path, std::string description, 
             }
             variable_speed = std::any_of(new_points.begin(), new_points.end(),
                                          [speed](const ProcessedPoint &p) { return fabs(double(p.speed) - speed) > 1; }); // Ignore small speed variations (under 1mm/sec)
+            if (!NOZZLE_CONFIG(enable_overhang_speed) && FILAMENT_CONFIG(enable_overhang_bridge_fan) && m_enable_cooling_markers) {
+                for (ProcessedPoint &point : new_points)
+                    point.speed = speed;
+                variable_speed = new_points.size() > 1;
+            }
     }
 
     double F = speed * 60;  // convert mm/sec to mm/min

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -553,8 +553,9 @@ msgstr "Berriro esleitu"
 msgid "Reset"
 msgstr "Berrezarri"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
-msgstr "Sartu"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Lasterbideko tekla "
@@ -883,8 +884,9 @@ msgstr "Hautaketatik konektorea ezabatu"
 msgid "Select all connectors"
 msgstr "Hautatu konektore guztiak"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Ebaki"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Ebaketa-planoa biratu"
@@ -1748,14 +1750,16 @@ msgstr "Hautatu"
 msgid "Select point"
 msgstr "Hautatu puntua"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Ezabatu"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Berrabiarazi hautaketa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Ezaugarri bat bertan behera utzi irten arte"
@@ -1860,8 +1864,9 @@ msgstr "Neurketa tresnan sartzen"
 msgid "Leaving Measure gizmo"
 msgstr "Neurketa tresna irteten"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Multzokatu"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Mesedez, baieztatu esplosio-erlazioa = 1 dela, eta hautatu objektu bat gutxienez."
@@ -2416,6 +2421,9 @@ msgstr "Ezin izan da URLa deskargatzen hasi. Helburuko karpeta ez dago ezarrita.
 msgid "Import File"
 msgstr "Inportatu fitxategia"
 
+msgid "Delete"
+msgstr "Ezabatu"
+
 msgid "Choose files"
 msgstr "Hautatu fitxategiak"
 
@@ -2534,14 +2542,16 @@ msgstr "Eskutatu"
 msgid "Show"
 msgstr "Erakutsi"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Ezabatu"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Ezabatu hautatutako elementuak"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
-msgstr "Atzera-tekla"
+msgstr ""
 
 msgid "Load..."
 msgstr "Kargatu..."
@@ -2729,6 +2739,9 @@ msgstr "Bihurtu metroetatik"
 
 msgid "Restore to Meter"
 msgstr "Leheneratu metroetara"
+
+msgid "Assemble"
+msgstr "Multzokatu"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Multzokatu hautatutako objektuak pieza ugariko objektu bakarrean"
@@ -3478,8 +3491,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Ezkerrekoa (Osag.)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Hotend-a"
+msgstr ""
 
 msgid "Parts"
 msgstr "Piezak"
@@ -4217,6 +4231,14 @@ msgstr "Inprimatu kanpoko harileko filamentua erabiliz."
 
 msgid "Print with filament in AMS"
 msgstr "AMSko filamentuarekin inprimatu"
+
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Uneko materiala agortzen denean, inprimagailuak hurrengo ordenean inprimatzen jarraituko du."
@@ -5504,8 +5526,9 @@ msgstr "Egokigarria"
 msgid "Quality / Speed"
 msgstr "Kalitatea / Abiadura"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Leuna"
+msgstr ""
 
 msgid "Radius"
 msgstr "Erradioa"
@@ -6114,6 +6137,9 @@ msgstr "Desegin"
 msgid "Redo"
 msgstr "Berregin"
 
+msgid "Cut"
+msgstr "Ebaki"
+
 msgid "Cut selection to clipboard"
 msgstr "Ebaki hautaketa arbelean"
 
@@ -6212,6 +6238,10 @@ msgstr "Erakutsi hautatutako objektuaren inguruko ingerada 3D eszenan."
 
 msgid "Preferences"
 msgstr "Hobespenak"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Bista"
@@ -8871,6 +8901,15 @@ msgstr "Erakutsi FPS gainjartzea"
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr "Uneko ikuspegiaren FPSa goiko eskuineko izkinan erakusten du."
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Saio-hasierako eskualdea"
 
@@ -9159,8 +9198,9 @@ msgstr "Bateraezina"
 msgid "The selected preset is null!"
 msgstr "Hautatutako aurrezarpena hutsa da!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Amaiera"
+msgstr ""
 
 msgid "Customize"
 msgstr "Pertsonalizatu"
@@ -9447,6 +9487,9 @@ msgstr "Espiral formako loreontziaren modua gaituta dagoenean, I3 egitura duten 
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "Uneko inprimagailuak ez du timelapsea onartzen Modu tradizionalean objektuz objektu inprimatzean."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "Erroreak"
@@ -11143,26 +11186,30 @@ msgstr "Hautatu objektu bat baino gehiago"
 msgid "Select objects by rectangle"
 msgstr "Hautatu objektuak laukizuzen bidez"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Gora gezia"
+msgstr ""
 
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Mugitu hautapena 10 mm Y noranzko positiboan"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Behera gezia"
+msgstr ""
 
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Mugitu hautapena 10 mm Y noranzko negatiboan"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Ezker gezia"
+msgstr ""
 
 msgid "Move selection 10mm in negative X direction"
 msgstr "Mugitu hautapena 10 mm X noranzko negatiboan"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Eskuin gezia"
+msgstr ""
 
 msgid "Move selection 10mm in positive X direction"
 msgstr "Mugitu hautapena 10 mm X noranzko positiboan"
@@ -11245,8 +11292,16 @@ msgstr "Txikiagotu zooma"
 msgid "Toggle printable for object/part"
 msgstr "Txandakatu objektuaren/piezaren inprimagarritasuna"
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Aldatu Prestatu/Aurrebista artean"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr "Ekintzen markatze azkarra ireki"
@@ -11305,8 +11360,16 @@ msgstr "G-code leihoa aktibatu/desaktibatu"
 msgid "Move slider 5x faster"
 msgstr "Mugitu graduatzailea 5 aldiz azkarrago"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Graduatzaile horizontala - Mugitu hasierako posiziora"
+
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Graduatzaile horizontala - Mugitu azken posiziora"
@@ -15623,16 +15686,16 @@ msgstr ""
 "Kantitate hau milimetrotan edo uneko estrusorearen diametroaren ehuneko gisa zehaztu daiteke. Parametro honen balio lehenetsia %10 da."
 
 msgid "Scarf joint seam (beta)"
-msgstr "Bufanda junturako jostura (beta)"
+msgstr "Alaka junturako jostura (beta)"
 
 msgid "Use scarf joint to minimize seam visibility and increase seam strength."
-msgstr "Erabili bufanda junturako josturaren ikusgarritasuna minimizatzeko etajosturaren sendotasuna handitzeko."
+msgstr "Erabili alaka junturako josturaren ikusgarritasuna minimizatzeko etajosturaren sendotasuna handitzeko."
 
 msgid "Conditional scarf joint"
-msgstr "Baldintzapeko bufanda-juntura"
+msgstr "Baldintzapeko alaka-juntura"
 
 msgid "Apply scarf joints only to smooth perimeters where traditional seams do not conceal the seams at sharp corners effectively."
-msgstr "Aplikatu bufanda junturak perimetro leunetan bakarrik, jostura tradizionalek izkina zorrotzetako josturak ondo ezkutatzen ez dituztenean."
+msgstr "Aplikatu alaka junturak perimetro leunetan bakarrik, jostura tradizionalek izkina zorrotzetako josturak ondo ezkutatzen ez dituztenean."
 
 msgid "Conditional angle threshold"
 msgstr "Baldintzapeko angeluaren atalasea"
@@ -15641,7 +15704,7 @@ msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
 "If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
 msgstr ""
-"Aukera honek baldintzapeko bufanda junturako jostura aplikatzeko angelu-atalasea ezartzen du.\n"
+"Aukera honek baldintzapeko alaka junturako jostura aplikatzeko angelu-atalasea ezartzen du.\n"
 "Perimetro-begiztaren barruko gehieneko angelua balio hau baino handiagoa bada (izkina zorrotzik ez dagoela adieraziz), juntura zeiharreko jostura erabiliko da. Balio lehenetsia 155° da."
 
 msgid "Conditional overhang threshold"
@@ -15652,19 +15715,19 @@ msgid "This option determines the overhang threshold for the application of scar
 msgstr "Aukera honek juntura zeiharreko josturak aplikatzeko irtenguneen atalasea zehazten du. Perimetroaren euskarririk gabeko zatia atalase hau baino txikiagoa bada, juntura zeiharreko josturak aplikatuko dira. Atalase lehenetsia kanpoko hormaren zabaleraren %40 da. Errendimendu-arrazoiengatik, irtengunearen maila estimatu egiten da."
 
 msgid "Scarf joint speed"
-msgstr "Bufanda junturako abiadura"
+msgstr "Alaka junturako abiadura"
 
 msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Aukera honek bufanda junturako inprimatze-abiadura ezartzen du. Gomendagarria da juntura zeiharrak abiadura motelean inprimatzea (100 mm/s baino gutxiago). 'Estrusio-tasaren leuntzea' gaitzea ere komeni da ezarritako abiadura kanpoko edo barruko hormen abiaduratik nabarmen aldentzen bada. Hemen zehaztutako abiadura kanpoko edo barruko hormen abiadura baino handiagoa bada, inprimagailuak bietako motelena erabiliko du. Ehuneko gisa zehazten bada (adibidez, %80), abiadura dagokion kanpoko edo barruko hormaren abiaduraren arabera kalkulatuko da. Balio lehenetsia %100 da."
+msgstr "Aukera honek alaka junturako inprimatze-abiadura ezartzen du. Gomendagarria da juntura zeiharrak abiadura motelean inprimatzea (100 mm/s baino gutxiago). 'Estrusio-tasaren leuntzea' gaitzea ere komeni da ezarritako abiadura kanpoko edo barruko hormen abiaduratik nabarmen aldentzen bada. Hemen zehaztutako abiadura kanpoko edo barruko hormen abiadura baino handiagoa bada, inprimagailuak bietako motelena erabiliko du. Ehuneko gisa zehazten bada (adibidez, %80), abiadura dagokion kanpoko edo barruko hormaren abiaduraren arabera kalkulatuko da. Balio lehenetsia %100 da."
 
 msgid "Scarf joint flow ratio"
-msgstr "Bufanda junturako fluxu-erlazioa"
+msgstr "Alaka junturako fluxu-erlazioa"
 
 msgid "This factor affects the amount of material for scarf joints."
-msgstr "Faktore honek bufanda junturako material kantitateari eragiten dio."
+msgstr "Faktore honek alaka junturako material kantitateari eragiten dio."
 
 msgid "Scarf start height"
-msgstr "Bufandaren hasierako altuera"
+msgstr "Alakaren hasierako altuera"
 
 msgid ""
 "Start height of the scarf.\n"
@@ -15674,7 +15737,7 @@ msgstr ""
 "Kantitate hau milimetrotan edo uneko geruza-altueraren ehuneko gisa zehaztu daiteke. Parametro honen balio lehenetsia 0 da."
 
 msgid "Scarf around entire wall"
-msgstr "Bufanda horma osoan zehar"
+msgstr "Alaka horma osoan zehar"
 
 msgid "The scarf extends to the entire length of the wall."
 msgstr "Juntura hormaren luzera osora hedatzen da."
@@ -15692,10 +15755,10 @@ msgid "Minimum number of segments of each scarf."
 msgstr "Juntura bakoitzaren gutxieneko segmentu kopurua."
 
 msgid "Scarf joint for inner walls"
-msgstr "Barruko hormetarako bufanda juntura"
+msgstr "Barruko hormetarako alaka juntura"
 
 msgid "Use scarf joint for inner walls as well."
-msgstr "Erabili bufanda juntura barruko hormetan ere."
+msgstr "Erabili alaka juntura barruko hormetan ere."
 
 msgid "Role base wipe speed"
 msgstr "Eginkizunaren araberako purgatze-abiadura"
@@ -15874,6 +15937,9 @@ msgstr "Modu leuna edo tradizionala hautatzen bada, timelapse bideo bat sortuko 
 
 msgid "Traditional"
 msgstr "Tradizionala"
+
+msgid "Smooth"
+msgstr "Leuna"
 
 msgid "Farthest point timelapse"
 msgstr "Puntu urruneneko timelapsea"
@@ -16845,6 +16911,12 @@ msgstr "Euskarriaren purgatze-modu azkarra"
 
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
 msgstr "Inprimagailu honek tenperatura eta biderkatzaile optimizatuak dituen purgatze azkarreko modua onartzen duen."
+
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
+msgstr ""
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
 msgstr "Hotenda aldatzean estrusorea dorrean prestatzeko behar den material-bolumena."
@@ -20029,14 +20101,14 @@ msgstr "Errorea: %s"
 msgid "Show details"
 msgstr "Erakutsi xehetasunak"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Instalatu beharreko bertsioa:"
 
 msgid "Download and Install"
 msgstr "Deskargatu eta instalatu"
-
-msgid "Skip for Now"
-msgstr "Saltatu oraingoz"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Bambu Network Plug-inaren bertsio berria erabilgarri dago."
@@ -20048,17 +20120,11 @@ msgstr "Uneko Bertsioa: %s"
 msgid "Update to version:"
 msgstr "Eguneratu bertsio honetara:"
 
-msgid "Update Now"
-msgstr "Eguneratu orain"
-
-msgid "Remind Later"
-msgstr "Gogorarazi geroago"
-
-msgid "Skip Version"
-msgstr "Saltatu bertsioa"
-
 msgid "Don't Ask Again"
 msgstr "Ez galdetu berriro"
+
+msgid "Update Now"
+msgstr "Eguneratu orain"
 
 msgid "(Latest)"
 msgstr "(Berriena)"
@@ -20074,9 +20140,6 @@ msgstr "Berrabiarazi egin behar da plugin berria kargatzeko. Orain berrabiarazi 
 
 msgid "Restart Now"
 msgstr "Berrabiarazi orain"
-
-msgid "Restart Later"
-msgstr "Berrabiarazi geroago"
 
 msgid "NO RAMMING AT ALL"
 msgstr "MUTURRAREN MOLDAKETARIK EZ INONDIK INORA"
@@ -20656,6 +20719,48 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+#~ msgid "Enter"
+#~ msgstr "Sartu"
+
+#~ msgid "Esc"
+#~ msgstr "Esc"
+
+#~ msgid "Del"
+#~ msgstr "Ezabatu"
+
+#~ msgid "Backspace"
+#~ msgstr "Atzera-tekla"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Gora gezia"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Behera gezia"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Ezker gezia"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Eskuin gezia"
+
+#~ msgid "End"
+#~ msgstr "Amaiera"
+
+#~ msgid "Hotend"
+#~ msgstr "Hotend-a"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Saltatu oraingoz"
+
+#~ msgid "Remind Later"
+#~ msgstr "Gogorarazi geroago"
+
+#~ msgid "Skip Version"
+#~ msgstr "Saltatu bertsioa"
+
+#~ msgid "Restart Later"
+#~ msgstr "Berrabiarazi geroago"
 
 #~ msgid "Invalid spacing supplied to Flow::with_spacing(), check your layer height and extrusion width."
 #~ msgstr "Flow::with_spacing() funtzioari tarte baliogabea eman zaio; egiaztatu geruza-altuera eta estrusio-zabalera"

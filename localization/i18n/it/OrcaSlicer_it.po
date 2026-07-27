@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -554,8 +554,9 @@ msgstr "Rimappa"
 msgid "Reset"
 msgstr "Reimposta"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
-msgstr "Invio"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Tasto di scelta rapida "
@@ -891,8 +892,9 @@ msgstr "Rimuovi connettore dalla selezione"
 msgid "Select all connectors"
 msgstr "Seleziona tutti i connettori"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Taglia"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Ruota il piano di taglio"
@@ -1759,12 +1761,14 @@ msgstr "Seleziona"
 msgid "Select point"
 msgstr "Seleziona punto"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Elimina"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Riavvio della selezione"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -1871,8 +1875,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Assembla"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Confermare il rapporto di esplosione = 1 e selezionare almeno due volumi."
@@ -2409,6 +2414,9 @@ msgstr "Impossibile avviare il download dell'URL. La cartella di destinazione no
 msgid "Import File"
 msgstr "Importa File"
 
+msgid "Delete"
+msgstr "Elimina"
+
 msgid "Choose files"
 msgstr "Scegli file"
 
@@ -2539,12 +2547,14 @@ msgstr "Nascondi"
 msgid "Show"
 msgstr "Mostra"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Elimina"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Elimina l'oggetto selezionato"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr ""
 
@@ -2744,6 +2754,9 @@ msgstr "Converti da metri"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Ripristina in metri"
+
+msgid "Assemble"
+msgstr "Assembla"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Assembla gli oggetti selezionati in un oggetto composto da più parti"
@@ -3521,8 +3534,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Sinistra (Aux)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Hotend"
+msgstr ""
 
 msgid "Parts"
 msgstr "Parti"
@@ -4280,6 +4294,14 @@ msgstr "Stampa filamento con bobina esterna"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "Stampa con filamento nell'AMS"
+
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Quando si esaurisce il materiale corrente, la stampante continuerà a stampare nel seguente ordine."
@@ -5597,8 +5619,9 @@ msgstr "Adattiva"
 msgid "Quality / Speed"
 msgstr "Qualità / Velocità"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Leviga"
+msgstr ""
 
 msgid "Radius"
 msgstr "Raggio"
@@ -6219,6 +6242,9 @@ msgstr "Annulla"
 msgid "Redo"
 msgstr "Ripeti"
 
+msgid "Cut"
+msgstr "Taglia"
+
 msgid "Cut selection to clipboard"
 msgstr "Taglia la selezione negli appunti"
 
@@ -6319,6 +6345,10 @@ msgstr "Mostra il contorno attorno all'oggetto selezionato nella scena 3D."
 
 msgid "Preferences"
 msgstr "Preferenze"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Vista"
@@ -9002,6 +9032,15 @@ msgstr ""
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr ""
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Regione di accesso"
 
@@ -9294,8 +9333,9 @@ msgstr "Non compatibile"
 msgid "The selected preset is null!"
 msgstr "Il profilo selezionato è nullo!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Fine"
+msgstr ""
 
 msgid "Customize"
 msgstr "Personalizza"
@@ -9586,6 +9626,9 @@ msgstr "Quando si abilita la modalità vaso a spirale, le macchine con struttura
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "La stampante corrente non supporta il timelapse in modalità tradizionale quando si stampa per oggetto."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "Errori"
@@ -11298,29 +11341,33 @@ msgstr "Seleziona più oggetti"
 msgid "Select objects by rectangle"
 msgstr "Seleziona oggetti per rettangolo"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Freccia Su"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Sposta selezione di 10 mm in direzione Y positiva"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Freccia Giù"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Sposta selezione di 10 mm in direzione Y negativa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Freccia Sinistra"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Sposta selezione di 10 mm in direzione X negativa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Freccia Destra"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11406,8 +11453,16 @@ msgstr "Rimpicciolisci"
 msgid "Toggle printable for object/part"
 msgstr "Attiva/disattiva stampa per oggetto/parte"
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Passa tra Prepara e Anteprima"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11467,8 +11522,16 @@ msgstr "Attiva/Disattiva finestra G-code"
 msgid "Move slider 5x faster"
 msgstr "Sposta il cursore 5 volte più velocemente"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Cursore di scorrimento orizzontale - Sposta alla posizione iniziale"
+
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Cursore di scorrimento orizzontale - Sposta alla posizione finale"
@@ -15801,16 +15864,16 @@ msgstr ""
 "Questa quantità può essere specificata in millimetri o come percentuale del diametro corrente dell'estrusore. Il valore predefinito per questo parametro è 10%."
 
 msgid "Scarf joint seam (beta)"
-msgstr "Cucitura a sciarpa (beta)"
+msgstr "Cucitura obliqua (beta)"
 
 msgid "Use scarf joint to minimize seam visibility and increase seam strength."
-msgstr "Utilizza il giunto a sciarpa per ridurre al minimo la visibilità della cucitura e aumentarne la resistenza."
+msgstr "Utilizza il giunto obliquo per ridurre al minimo la visibilità della cucitura e aumentarne la resistenza."
 
 msgid "Conditional scarf joint"
-msgstr "Cucitura a sciarpa condizionale"
+msgstr "Cucitura obliqua condizionale"
 
 msgid "Apply scarf joints only to smooth perimeters where traditional seams do not conceal the seams at sharp corners effectively."
-msgstr "Applica le cuciture a sciarpa solo sui perimetri lisci e curvi, dove le cuciture tradizionali risulterebbero molto evidenti. Gli angoli netti continueranno a utilizzare le cuciture normali per mantenere la precisione dimensionale."
+msgstr "Applica le cuciture oblique solo sui perimetri lisci e curvi, dove le cuciture tradizionali risulterebbero molto evidenti. Gli angoli netti continueranno a utilizzare le cuciture normali per mantenere la precisione dimensionale."
 
 msgid "Conditional angle threshold"
 msgstr "Soglia angolo condizionale"
@@ -15819,61 +15882,61 @@ msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
 "If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
 msgstr ""
-"Questa opzione imposta la soglia dell'angolo per l'applicazione di una cucitura a sciarpa condizionale.\n"
-"Se l'angolo massimo all'interno dell'anello perimetrale supera questo valore (che indica l'assenza di spigoli vivi), si utilizzerà una cucitura a sciarpa. Il valore predefinito è 155°."
+"Questa opzione imposta la soglia dell'angolo per l'applicazione di una cucitura obliqua condizionale.\n"
+"Se l'angolo massimo all'interno dell'anello perimetrale supera questo valore (che indica l'assenza di spigoli vivi), si utilizzerà una cucitura obliqua. Il valore predefinito è 155°."
 
 msgid "Conditional overhang threshold"
 msgstr "Soglia di sporgenza condizionale"
 
 #, no-c-format, no-boost-format
 msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Questa opzione determina la soglia di sporgenza per l'applicazione di cuciture a sciarpa. Se la porzione non supportata del perimetro è inferiore a questa soglia, verranno applicate cuciture a sciarpa. La soglia predefinita è impostata al 40% della larghezza della parete esterna. Per motivi di prestazioni, il grado di sporgenza viene stimato."
+msgstr "Questa opzione determina la soglia di sporgenza per l'applicazione di cuciture oblique. Se la porzione non supportata del perimetro è inferiore a questa soglia, verranno applicate cuciture oblique. La soglia predefinita è impostata al 40% della larghezza della parete esterna. Per motivi di prestazioni, il grado di sporgenza viene stimato."
 
 msgid "Scarf joint speed"
-msgstr "Velocità cucitura a sciarpa"
+msgstr "Velocità cucitura obliqua"
 
 msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Questa opzione imposta la velocità di stampa per le cuciture a sciarpa. È consigliabile stampare le cuciture a a sciarpa a una velocità bassa (inferiore a 100 mm/s). È anche opportuno attivare l'opzione 'Livellamento velocità di estrusione' se la velocità impostata varia in modo significativo rispetto alla velocità delle pareti esterne o interne. Se la velocità specificata qui è superiore alla velocità delle pareti esterne o interne, la stampante utilizzerà per impostazione predefinita la velocità più lenta delle due. Se specificata come percentuale (ad esempio 80%), la velocità viene calcolata in base alla velocità della parete esterna o interna. Il valore predefinito è impostato su 100%."
+msgstr "Questa opzione imposta la velocità di stampa per le cuciture oblique. È consigliabile stampare le cuciture oblique a una velocità bassa (inferiore a 100 mm/s). È anche opportuno attivare l'opzione 'Livellamento velocità di estrusione' se la velocità impostata varia in modo significativo rispetto alla velocità delle pareti esterne o interne. Se la velocità specificata qui è superiore alla velocità delle pareti esterne o interne, la stampante utilizzerà per impostazione predefinita la velocità più lenta delle due. Se specificata come percentuale (ad esempio 80%), la velocità viene calcolata in base alla velocità della parete esterna o interna. Il valore predefinito è impostato su 100%."
 
 msgid "Scarf joint flow ratio"
-msgstr "Flusso di stampa cucitura a sciarpa"
+msgstr "Flusso di stampa cucitura obliqua"
 
 msgid "This factor affects the amount of material for scarf joints."
-msgstr "Questo fattore influisce sulla quantità di materiale utilizzata per le cucitura a sciarpa."
+msgstr "Questo fattore influisce sulla quantità di materiale utilizzata per le cucitura obliqua."
 
 msgid "Scarf start height"
-msgstr "Altezza iniziale cucitura a sciarpa"
+msgstr "Altezza iniziale cucitura obliqua"
 
 msgid ""
 "Start height of the scarf.\n"
 "This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
 msgstr ""
-"Altezza iniziale della cucitura a sciarpa.\n"
+"Altezza iniziale della cucitura obliqua.\n"
 "Questo valore può essere specificato in millimetri o come percentuale dell'altezza dello strato corrente. Il valore predefinito per questo parametro è 0."
 
 msgid "Scarf around entire wall"
-msgstr "Cucitura a sciarpa su intera parete"
+msgstr "Cucitura obliqua su intera parete"
 
 msgid "The scarf extends to the entire length of the wall."
-msgstr "La cucitura a sciarpa si estende lungo tutto il perimetro della parete."
+msgstr "La cucitura obliqua si estende lungo tutto il perimetro della parete."
 
 msgid "Scarf length"
-msgstr "Lunghezza cucitura a sciarpa"
+msgstr "Lunghezza cucitura obliqua"
 
 msgid "Length of the scarf. Setting this parameter to zero effectively disables the scarf."
-msgstr "Lunghezza della cucitura a sciarpa. Impostando questo parametro su zero, la cucitura a sciarpa viene disabilitata."
+msgstr "Lunghezza della cucitura obliqua. Impostando questo parametro su zero, la cucitura obliqua viene disabilitata."
 
 msgid "Scarf steps"
-msgstr "Incrementi cucitura a sciarpa"
+msgstr "Incrementi cucitura obliqua"
 
 msgid "Minimum number of segments of each scarf."
-msgstr "Numero minimo di segmenti utilizzati per la creazione della sfumatura della cucitura a sciarpa."
+msgstr "Numero minimo di segmenti utilizzati per la creazione della sfumatura della cucitura obliqua."
 
 msgid "Scarf joint for inner walls"
-msgstr "Cucitura a sciarpa per pareti interne"
+msgstr "Cucitura obliqua per pareti interne"
 
 msgid "Use scarf joint for inner walls as well."
-msgstr "Utilizza la cucitura a sciarpa anche per le pareti interne."
+msgstr "Utilizza la cucitura obliqua anche per le pareti interne."
 
 msgid "Role base wipe speed"
 msgstr "Velocità di spurgo basata su ruolo"
@@ -16053,6 +16116,9 @@ msgstr "Se si seleziona la modalità fluida o tradizionale, per ogni stampa verr
 
 msgid "Traditional"
 msgstr "Tradizionale"
+
+msgid "Smooth"
+msgstr "Leviga"
 
 msgid "Farthest point timelapse"
 msgstr ""
@@ -17038,6 +17104,12 @@ msgid "Support fast purge mode"
 msgstr ""
 
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
+
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
 msgstr ""
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
@@ -20262,14 +20334,14 @@ msgstr "Errore: %s"
 msgid "Show details"
 msgstr "Mostra dettagli"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Versione da installare:"
 
 msgid "Download and Install"
 msgstr "Scarica e installa"
-
-msgid "Skip for Now"
-msgstr "Salta per ora"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "È disponibile una nuova versione del modulo di rete Bambu."
@@ -20281,17 +20353,11 @@ msgstr "Versione corrente: %s"
 msgid "Update to version:"
 msgstr "Aggiorna alla versione:"
 
-msgid "Update Now"
-msgstr "Aggiorna ora"
-
-msgid "Remind Later"
-msgstr "Ricorda più tardi"
-
-msgid "Skip Version"
-msgstr "Salta versione"
-
 msgid "Don't Ask Again"
 msgstr "Non chiedere più"
+
+msgid "Update Now"
+msgstr "Aggiorna ora"
 
 msgid "(Latest)"
 msgstr "(Ultima)"
@@ -20307,9 +20373,6 @@ msgstr "È necessario un riavvio per caricare il nuovo modulo. Vuoi riavviare or
 
 msgid "Restart Now"
 msgstr "Riavvia ora"
-
-msgid "Restart Later"
-msgstr "Riavvia più tardi"
 
 msgid "NO RAMMING AT ALL"
 msgstr "NESSUNA SPINTA"
@@ -20893,6 +20956,42 @@ msgid ""
 msgstr ""
 "Evita le deformazioni\n"
 "Sapevi che quando si stampano materiali soggetti a deformazioni come l'ABS, aumentare in modo appropriato la temperatura del piano riscaldato può ridurre la probabilità di deformazione?"
+
+#~ msgid "Enter"
+#~ msgstr "Invio"
+
+#~ msgid "Del"
+#~ msgstr "Elimina"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Freccia Su"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Freccia Giù"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Freccia Sinistra"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Freccia Destra"
+
+#~ msgid "End"
+#~ msgstr "Fine"
+
+#~ msgid "Hotend"
+#~ msgstr "Hotend"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Salta per ora"
+
+#~ msgid "Remind Later"
+#~ msgstr "Ricorda più tardi"
+
+#~ msgid "Skip Version"
+#~ msgstr "Salta versione"
+
+#~ msgid "Restart Later"
+#~ msgstr "Riavvia più tardi"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Selezionare il filamento installato nell'ugello sinistro"

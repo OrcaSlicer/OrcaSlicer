@@ -306,6 +306,12 @@ modules:
         sha256: c08bc65a81971c1dd5783182826503369466c7e67374d1646519adf05207b684
         dest: external-packages/python3
 
+      # wxInspector 1.0.0
+      - type: file
+        url: https://github.com/Noisyfox/wxInspector/archive/refs/tags/v1.0.0.zip
+        sha256: 0ba163956f2d468b19a91b96c5aba66ee9610843ea41dda628ea44cdafde7db7
+        dest: external-packages/wxInspector
+
       # ---------------------------------------------------------------
       # Fallback archives for deps normally provided by the GNOME SDK.
       # These are only used if find_package() fails to locate them.

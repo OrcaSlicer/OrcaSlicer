@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -554,6 +554,7 @@ msgstr "Yeniden eşleştir"
 msgid "Reset"
 msgstr "Sıfırla"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
 msgstr ""
 
@@ -891,8 +892,9 @@ msgstr "Bağlayıcıyı seçimden kaldır"
 msgid "Select all connectors"
 msgstr "Tüm bağlayıcıları seç"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Kes"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Kesim düzlemini döndür"
@@ -1759,12 +1761,14 @@ msgstr "Seç"
 msgid "Select point"
 msgstr "Nokta seç"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Sil"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Seçimi sıfırla"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -1871,8 +1875,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Birleştir"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Lütfen patlama oranının = 1 olduğunu doğrulayın ve en az iki cilt seçin."
@@ -2406,6 +2411,9 @@ msgstr "URL indirme işlemi başlatılamadı. Hedef klasör ayarlanmamış. Lüt
 msgid "Import File"
 msgstr "Dosya İçe Aktar"
 
+msgid "Delete"
+msgstr "Sil"
+
 msgid "Choose files"
 msgstr "Dosyaları seç"
 
@@ -2536,12 +2544,14 @@ msgstr "Gizle"
 msgid "Show"
 msgstr "Göster"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Sil"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Seçilen nesneyi sil"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr ""
 
@@ -2741,6 +2751,9 @@ msgstr "Metreden dönüştür"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Metreye geri çevir"
+
+msgid "Assemble"
+msgstr "Birleştir"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Seçilen nesneleri birden çok parçalı bir nesneyle birleştirin"
@@ -3518,8 +3531,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Sol (Yardımcı)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Hotend"
+msgstr ""
 
 msgid "Parts"
 msgstr "Parçalar"
@@ -4278,6 +4292,14 @@ msgstr "Kasanın arkasına monte edilen malzemeleri kullanarak yazdırma"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "AMS içerisindeki filamentlerle yazdırma"
+
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Mevcut malzeme bittiğinde yazıcı aşağıdaki sırayla yazdırmaya devam edecektir."
@@ -5597,8 +5619,9 @@ msgstr "Uyarlanabilir"
 msgid "Quality / Speed"
 msgstr "Kalite / Hız"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Pürüzsüz"
+msgstr ""
 
 msgid "Radius"
 msgstr "Yarıçap"
@@ -6219,6 +6242,9 @@ msgstr "Geri al"
 msgid "Redo"
 msgstr "İleri Al"
 
+msgid "Cut"
+msgstr "Kes"
+
 msgid "Cut selection to clipboard"
 msgstr "Seçimi panoya kes"
 
@@ -6319,6 +6345,10 @@ msgstr "3D sahnede seçilen nesnenin etrafındaki ana hatları göster."
 
 msgid "Preferences"
 msgstr "Tercihler"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Görünüm"
@@ -8995,6 +9025,15 @@ msgstr ""
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr ""
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Giriş bölgesi"
 
@@ -9287,8 +9326,9 @@ msgstr "Uyumsuz"
 msgid "The selected preset is null!"
 msgstr "Seçilen ön ayar boş!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Son"
+msgstr ""
 
 msgid "Customize"
 msgstr "Özelleştir"
@@ -9579,6 +9619,9 @@ msgstr "Spiral vazo modu etkinleştirildiğinde, I3 yapısına sahip makineler z
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "Geçerli yazıcı, Nesneye Göre yazdırırken Geleneksel Modda hızlandırılmış geçişi desteklememektedir."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "Hatalar"
@@ -11281,29 +11324,33 @@ msgstr "Birden fazla nesne seç"
 msgid "Select objects by rectangle"
 msgstr "Nesneleri dikdörtgene göre seç"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Yukarı ok"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Seçimi pozitif Y yönünde 10 mm taşı"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Aşağı ok"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Seçimi negatif Y yönünde 10 mm taşı"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Sol Yön Tuşu"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Seçimi negatif X yönünde 10 mm taşı"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Sağ Yön Tuşu"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11389,8 +11436,16 @@ msgstr "Uzaklaştır"
 msgid "Toggle printable for object/part"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Hazırlama/Önizleme arasında geçiş yap"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11450,8 +11505,16 @@ msgstr "G-kodu penceresini aç/kapat"
 msgid "Move slider 5x faster"
 msgstr "Kaydırıcıyı 5 kat daha hızlı hareket ettirin"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Yatay kaydırıcı - Başlangıç konumuna taşıyın"
+
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Yatay kaydırıcı - Son konuma git"
@@ -15723,16 +15786,16 @@ msgstr ""
 "Bu miktar milimetre cinsinden veya mevcut ekstruder çapının yüzdesi olarak belirtilebilir. Bu parametrenin varsayılan değeri %10'dur."
 
 msgid "Scarf joint seam (beta)"
-msgstr "Atkı birleşim dikişi (beta)"
+msgstr "Eğik birleşim dikişi (beta)"
 
 msgid "Use scarf joint to minimize seam visibility and increase seam strength."
-msgstr "Dikiş görünürlüğünü en aza indirmek ve dikiş mukavemetini arttırmak için atkı birleşimini kullanın."
+msgstr "Dikiş görünürlüğünü en aza indirmek ve dikiş mukavemetini arttırmak için eğik birleşimini kullanın."
 
 msgid "Conditional scarf joint"
-msgstr "Koşullu atkı birleşimi"
+msgstr "Koşullu eğik birleşimi"
 
 msgid "Apply scarf joints only to smooth perimeters where traditional seams do not conceal the seams at sharp corners effectively."
-msgstr "Atkı bağlantılarını yalnızca geleneksel dikişlerin keskin köşelerdeki dikişleri etkili bir şekilde gizleyemediği düzgün kenarlara uygulayın."
+msgstr "Eğik bağlantılarını yalnızca geleneksel dikişlerin keskin köşelerdeki dikişleri etkili bir şekilde gizleyemediği düzgün kenarlara uygulayın."
 
 msgid "Conditional angle threshold"
 msgstr "Koşullu açı eşiği"
@@ -15741,61 +15804,61 @@ msgid ""
 "This option sets the threshold angle for applying a conditional scarf joint seam.\n"
 "If the maximum angle within the perimeter loop exceeds this value (indicating the absence of sharp corners), a scarf joint seam will be used. The default value is 155°."
 msgstr ""
-"Bu seçenek, koşullu bir atkı eklem dikişi uygulamak için eşik açısını ayarlar.\n"
-"Çevre halkası içindeki maksimum açı bu değeri aşarsa (keskin köşelerin bulunmadığını gösterir), bir atkı birleştirme dikişi kullanılacaktır. Varsayılan değer 155°'dir."
+"Bu seçenek, koşullu bir eğik eklem dikişi uygulamak için eşik açısını ayarlar.\n"
+"Çevre halkası içindeki maksimum açı bu değeri aşarsa (keskin köşelerin bulunmadığını gösterir), bir eğik birleştirme dikişi kullanılacaktır. Varsayılan değer 155°'dir."
 
 msgid "Conditional overhang threshold"
 msgstr "Koşullu çıkıntı eşiği"
 
 #, no-c-format, no-boost-format
 msgid "This option determines the overhang threshold for the application of scarf joint seams. If the unsupported portion of the perimeter is less than this threshold, scarf joint seams will be applied. The default threshold is set at 40% of the external wall's width. Due to performance considerations, the degree of overhang is estimated."
-msgstr "Bu seçenek, atkı bağlantı dikişlerinin uygulanması için sarkma eşiğini belirler. Çevrenin desteklenmeyen kısmı bu eşikten az ise atkı birleştirme dikişleri uygulanacaktır. Varsayılan eşik, dış duvar genişliğinin %40'ına ayarlanmıştır. Performans değerlendirmeleri nedeniyle çıkıntının derecesi tahmin edilir."
+msgstr "Bu seçenek, eğik bağlantı dikişlerinin uygulanması için sarkma eşiğini belirler. Çevrenin desteklenmeyen kısmı bu eşikten az ise eğik birleştirme dikişleri uygulanacaktır. Varsayılan eşik, dış duvar genişliğinin %40'ına ayarlanmıştır. Performans değerlendirmeleri nedeniyle çıkıntının derecesi tahmin edilir."
 
 msgid "Scarf joint speed"
-msgstr "Atkı birleşim hızı"
+msgstr "Eğik birleşim hızı"
 
 msgid "This option sets the printing speed for scarf joints. It is recommended to print scarf joints at a slow speed (less than 100 mm/s). It's also advisable to enable 'Extrusion rate smoothing' if the set speed varies significantly from the speed of the outer or inner walls. If the speed specified here is higher than the speed of the outer or inner walls, the printer will default to the slower of the two speeds. When specified as a percentage (e.g., 80%), the speed is calculated based on the respective outer or inner wall speed. The default value is set to 100%."
-msgstr "Bu seçenek, atkı bağlantılarının yazdırma hızını ayarlar. Atkı bağlantılarının yavaş bir hızda (100 mm/s'den az) yazdırılması tavsiye edilir. Ayarlanan hızın dış veya iç duvarların hızından önemli ölçüde farklı olması durumunda 'Ekstrüzyon hızı yumuşatma' seçeneğinin etkinleştirilmesi de tavsiye edilir. Burada belirtilen hız, dış veya iç duvarların hızından daha yüksekse, yazıcı varsayılan olarak iki hızdan daha yavaş olanı seçecektir. Yüzde olarak belirtildiğinde (örn. %80), hız, ilgili dış veya iç duvar hızına göre hesaplanır. Varsayılan değer %100 olarak ayarlanmıştır."
+msgstr "Bu seçenek, eğik bağlantılarının yazdırma hızını ayarlar. Eğik bağlantılarının yavaş bir hızda (100 mm/s'den az) yazdırılması tavsiye edilir. Ayarlanan hızın dış veya iç duvarların hızından önemli ölçüde farklı olması durumunda 'Ekstrüzyon hızı yumuşatma' seçeneğinin etkinleştirilmesi de tavsiye edilir. Burada belirtilen hız, dış veya iç duvarların hızından daha yüksekse, yazıcı varsayılan olarak iki hızdan daha yavaş olanı seçecektir. Yüzde olarak belirtildiğinde (örn. %80), hız, ilgili dış veya iç duvar hızına göre hesaplanır. Varsayılan değer %100 olarak ayarlanmıştır."
 
 msgid "Scarf joint flow ratio"
-msgstr "Atkı birleşimi akış oranı"
+msgstr "Eğik birleşimi akış oranı"
 
 msgid "This factor affects the amount of material for scarf joints."
-msgstr "Bu faktör atkı birleşimlerinde kullanılacak materyal miktarını değiştirir."
+msgstr "Bu faktör eğik birleşimlerinde kullanılacak materyal miktarını değiştirir."
 
 msgid "Scarf start height"
-msgstr "Atkı başlangıç yüksekliği"
+msgstr "Eğik başlangıç yüksekliği"
 
 msgid ""
 "Start height of the scarf.\n"
 "This amount can be specified in millimeters or as a percentage of the current layer height. The default value for this parameter is 0."
 msgstr ""
-"Atkı başlangıç yüksekliği.\n"
+"Eğik başlangıç yüksekliği.\n"
 "Bu miktar milimetre cinsinden veya geçerli katman yüksekliğinin yüzdesi olarak belirtilebilir. Bu parametrenin varsayılan değeri 0'dır."
 
 msgid "Scarf around entire wall"
 msgstr "Tüm duvarın etrafına atkıla"
 
 msgid "The scarf extends to the entire length of the wall."
-msgstr "Atkı duvarın tüm uzunluğu boyunca uzanır."
+msgstr "Eğik duvarın tüm uzunluğu boyunca uzanır."
 
 msgid "Scarf length"
-msgstr "Atkı uzunluğu"
+msgstr "Eğik uzunluğu"
 
 msgid "Length of the scarf. Setting this parameter to zero effectively disables the scarf."
 msgstr "Atkının uzunluğu. Bu parametrenin 0 a ayarlanması atkıyı dolaylı yoldan devre dışı bırakır."
 
 msgid "Scarf steps"
-msgstr "Atkı kademesi"
+msgstr "Eğik kademesi"
 
 msgid "Minimum number of segments of each scarf."
 msgstr "Her atkının minimum segment sayısı."
 
 msgid "Scarf joint for inner walls"
-msgstr "İç duvarlar için atkı birleşimi"
+msgstr "İç duvarlar için eğik birleşimi"
 
 msgid "Use scarf joint for inner walls as well."
-msgstr "İç duvarlar için de atkı birleşimini kullanın."
+msgstr "İç duvarlar için de eğik birleşimini kullanın."
 
 msgid "Role base wipe speed"
 msgstr "Otomatik temizleme hızı"
@@ -15975,6 +16038,9 @@ msgstr "Düzgün veya geleneksel mod seçilirse her baskı için bir hızlandır
 
 msgid "Traditional"
 msgstr "Geleneksel"
+
+msgid "Smooth"
+msgstr "Pürüzsüz"
 
 msgid "Farthest point timelapse"
 msgstr ""
@@ -16960,6 +17026,12 @@ msgid "Support fast purge mode"
 msgstr ""
 
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
+
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
 msgstr ""
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
@@ -20180,14 +20252,14 @@ msgstr "Hata: %s"
 msgid "Show details"
 msgstr "Ayrıntıları göster"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Yüklenecek sürüm:"
 
 msgid "Download and Install"
 msgstr "İndirin ve Yükleyin"
-
-msgid "Skip for Now"
-msgstr "Şimdilik Atla"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Bambu Ağ Eklentisinin yeni bir sürümü mevcut."
@@ -20199,17 +20271,11 @@ msgstr "Güncel sürüm: %s"
 msgid "Update to version:"
 msgstr "Sürüme güncelleme:"
 
-msgid "Update Now"
-msgstr "Şimdi Güncelle"
-
-msgid "Remind Later"
-msgstr "Daha Sonra Hatırlat"
-
-msgid "Skip Version"
-msgstr "Sürümü Atla"
-
 msgid "Don't Ask Again"
 msgstr "Bir daha sorma"
+
+msgid "Update Now"
+msgstr "Şimdi Güncelle"
 
 msgid "(Latest)"
 msgstr "(En sonuncu)"
@@ -20225,9 +20291,6 @@ msgstr "Yeni eklentiyi yüklemek için yeniden başlatma gerekiyor. Şimdi yenid
 
 msgid "Restart Now"
 msgstr "Şimdi Yeniden Başlat"
-
-msgid "Restart Later"
-msgstr "Daha Sonra Yeniden Başlat"
 
 msgid "NO RAMMING AT ALL"
 msgstr "HİÇBİR ŞEKİLDE ÇARPMA YOK"
@@ -20811,6 +20874,39 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+#~ msgid "Del"
+#~ msgstr "Sil"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Yukarı ok"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Aşağı ok"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Sol Yön Tuşu"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Sağ Yön Tuşu"
+
+#~ msgid "End"
+#~ msgstr "Son"
+
+#~ msgid "Hotend"
+#~ msgstr "Hotend"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Şimdilik Atla"
+
+#~ msgid "Remind Later"
+#~ msgstr "Daha Sonra Hatırlat"
+
+#~ msgid "Skip Version"
+#~ msgstr "Sürümü Atla"
+
+#~ msgid "Restart Later"
+#~ msgstr "Daha Sonra Yeniden Başlat"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Sol nozüle takılan filamanı seçin"

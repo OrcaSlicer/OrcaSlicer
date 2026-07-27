@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -559,8 +559,9 @@ msgstr "Remapa"
 msgid "Reset"
 msgstr "Restablir"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
-msgstr "Retorn"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Tecla de drecera "
@@ -896,8 +897,9 @@ msgstr "Suprimeix el connector de la selecció"
 msgid "Select all connectors"
 msgstr "Seleccioneu tots els connectors"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Retalla"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Girar el pla tallat"
@@ -1765,12 +1767,14 @@ msgstr "Seleccionar"
 msgid "Select point"
 msgstr "Seleccionar el punt"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Esborrar"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Reinicia la selecció"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -1877,8 +1881,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Ensamblar"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Confirmeu que la proporció d'explosió = 1 i seleccioneu almenys dos volums."
@@ -2414,6 +2419,9 @@ msgstr "No s'ha pogut iniciar la descàrrega d'URL. La carpeta de destinació no
 msgid "Import File"
 msgstr "Importar arxiu"
 
+msgid "Delete"
+msgstr "Esborrar"
+
 msgid "Choose files"
 msgstr "Trieu fitxers"
 
@@ -2544,14 +2552,16 @@ msgstr "Amagar"
 msgid "Show"
 msgstr "Mostrar"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Esborrar"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Eliminar l'objecte seleccionat"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
-msgstr "Retrocés"
+msgstr ""
 
 msgid "Load..."
 msgstr "Carregar..."
@@ -2749,6 +2759,9 @@ msgstr "Convertir des de metres"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Restaurar a metres"
+
+msgid "Assemble"
+msgstr "Ensamblar"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Ensamblar els objectes seleccionats a un objecte amb diverses peces"
@@ -3527,8 +3540,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Esquerra (Aux)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Hotend"
+msgstr ""
 
 msgid "Parts"
 msgstr ""
@@ -4286,6 +4300,14 @@ msgstr "Imprimir amb materials muntats a la part posterior de la carcassa"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "Imprimir amb filaments en ams"
+
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Quan s'esgoti el material actual, la impressora continuarà imprimint en l'ordre següent."
@@ -5605,8 +5627,9 @@ msgstr "Adaptativa"
 msgid "Quality / Speed"
 msgstr "Qualitat / Velocitat"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Suau"
+msgstr ""
 
 msgid "Radius"
 msgstr "Radi"
@@ -6228,6 +6251,9 @@ msgstr "Desfer"
 msgid "Redo"
 msgstr "Refer"
 
+msgid "Cut"
+msgstr "Retalla"
+
 msgid "Cut selection to clipboard"
 msgstr "Tallar la selecció al porta-retalls"
 
@@ -6328,6 +6354,10 @@ msgstr "Mostrar el contorn al voltant de l'objecte seleccionat a l'escena 3D"
 
 msgid "Preferences"
 msgstr "Preferències"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Vista"
@@ -9012,6 +9042,15 @@ msgstr ""
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr ""
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Regió d'inici de sessió"
 
@@ -9307,8 +9346,9 @@ msgstr ""
 msgid "The selected preset is null!"
 msgstr "El perfil seleccionat és nul!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Final"
+msgstr ""
 
 msgid "Customize"
 msgstr "Personalitzar"
@@ -9599,6 +9639,9 @@ msgstr "Quan s'habilita el mode Gerro Espiral, les màquines amb estructura I3 n
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "La impressora actual no admet el timelapse en mode tradicional quan s'imprimeix per objecte."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr ""
@@ -11302,29 +11345,33 @@ msgstr "Seleccionar múltiples objectes"
 msgid "Select objects by rectangle"
 msgstr "Seleccionar objectes per rectangle"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Fletxa cap amunt"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Moure la selecció 10 mm en direcció Y positiva"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Fletxa cap avall"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Moure la selecció 10 mm en direcció Y negativa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Fletxa cap a l’esquerra"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Moure la selecció 10 mm en direcció X negativa"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Fletxa cap a la dreta"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11410,8 +11457,16 @@ msgstr "Reduir zoom"
 msgid "Toggle printable for object/part"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Canviar entre Preparar/Previsualitzar"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11471,8 +11526,16 @@ msgstr "Activar/Desactivar finestra de Codi-G"
 msgid "Move slider 5x faster"
 msgstr "Moure la barra de desplaçament 5 vegades més ràpid"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Control lliscant horitzontal - Mou fins a la posició inicial"
+
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Control lliscant horitzontal - Mou a l'última posició"
@@ -16006,6 +16069,9 @@ msgstr "Si se selecciona el mode suau o tradicional, es generarà un vídeo time
 msgid "Traditional"
 msgstr "Tradicional"
 
+msgid "Smooth"
+msgstr "Suau"
+
 msgid "Farthest point timelapse"
 msgstr ""
 
@@ -16992,6 +17058,12 @@ msgid "Support fast purge mode"
 msgstr ""
 
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
+
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
 msgstr ""
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
@@ -20217,14 +20289,14 @@ msgstr ""
 msgid "Show details"
 msgstr "Mostra detalls"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Versió a instal·lar:"
 
 msgid "Download and Install"
 msgstr "Descarrega i instal·la"
-
-msgid "Skip for Now"
-msgstr "Omet per ara"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Hi ha disponible una nova versió del connector de xarxa Bambu."
@@ -20236,17 +20308,11 @@ msgstr "Versió actual: %s"
 msgid "Update to version:"
 msgstr "Actualitza a la versió:"
 
-msgid "Update Now"
-msgstr "Actualitza ara"
-
-msgid "Remind Later"
-msgstr "Recorda més tard"
-
-msgid "Skip Version"
-msgstr "Omet versió"
-
 msgid "Don't Ask Again"
 msgstr "No tornis a preguntar"
+
+msgid "Update Now"
+msgstr "Actualitza ara"
 
 msgid "(Latest)"
 msgstr "(Última)"
@@ -20262,9 +20328,6 @@ msgstr "Cal un reinici per carregar el nou connector. Voleu reiniciar ara?"
 
 msgid "Restart Now"
 msgstr "Reinicia ara"
-
-msgid "Restart Later"
-msgstr "Reinicia més tard"
 
 msgid "NO RAMMING AT ALL"
 msgstr "SENSE EMPENTA"
@@ -20848,6 +20911,45 @@ msgid ""
 msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
+
+#~ msgid "Enter"
+#~ msgstr "Retorn"
+
+#~ msgid "Del"
+#~ msgstr "Esborrar"
+
+#~ msgid "Backspace"
+#~ msgstr "Retrocés"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Fletxa cap amunt"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Fletxa cap avall"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Fletxa cap a l’esquerra"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Fletxa cap a la dreta"
+
+#~ msgid "End"
+#~ msgstr "Final"
+
+#~ msgid "Hotend"
+#~ msgstr "Hotend"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Omet per ara"
+
+#~ msgid "Remind Later"
+#~ msgstr "Recorda més tard"
+
+#~ msgid "Skip Version"
+#~ msgstr "Omet versió"
+
+#~ msgid "Restart Later"
+#~ msgstr "Reinicia més tard"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Seleccioneu el filament instal·lat al broquet esquerre"

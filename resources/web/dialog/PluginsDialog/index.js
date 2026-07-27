@@ -90,6 +90,7 @@ function OnInit() {
   // OnCustomConfigMessage matches on the frame's contentWindow, not the origin ("null" when
   // sandboxed), and ignores anything else.
   window.addEventListener("message", OnCustomConfigMessage);
+  OrcaWatchThemeForFrame("configCustom");
 
   document.addEventListener("click", (event) => {
     if (!event.target.closest(".ctx"))
@@ -1077,7 +1078,7 @@ function ApplyCapabilityConfig(payload) {
   if (html) {
     if (custom) {
       custom.hidden = false;
-      custom.srcdoc = BuildCustomConfigDocument(html, config);
+      custom.srcdoc = BuildCustomConfigDocument(html, config, OrcaConfigContext(payload, "global"));
     }
     if (editor)
       editor.hidden = true;
@@ -1176,39 +1177,6 @@ function ApplyCapabilityConfigSaved(payload) {
     text.value = JSON.stringify(config, null, 2);
 
   SetConfigValidation("");
-}
-
-// The whole host surface a custom config UI gets: read the config, save one, restore the plugin's
-// defaults, and be told when either lands. The frame is sandboxed into an opaque origin, so this
-// bridge is its only channel.
-function BuildCustomConfigDocument(html, config) {
-  // Inlined into a <script>: a stored "</script>" would close the tag early, so escape "<" — the
-  // literal stays valid JSON.
-  const seed = JSON.stringify(config).replace(/</g, "\\u003c");
-  const bridge = `<script>
-(function () {
-  var handlers = [];
-  var current = ${seed};
-  window.orca = {
-    getConfig: function () { return current; },
-    saveConfig: function (cfg) { parent.postMessage({ __orca: "save", config: cfg }, "*"); },
-    restoreDefaults: function () { parent.postMessage({ __orca: "restore" }, "*"); },
-    onConfig: function (cb) {
-      if (typeof cb !== "function") return;
-      handlers.push(cb);
-      try { cb(current); } catch (e) {}
-    }
-  };
-  window.addEventListener("message", function (event) {
-    if (!event.data || event.data.__orca !== "config") return;
-    current = event.data.config || {};
-    handlers.forEach(function (handler) {
-      try { handler(current); } catch (e) {}
-    });
-  });
-})();
-<\/script>`;
-  return bridge + html;
 }
 
 function OnCustomConfigMessage(event) {

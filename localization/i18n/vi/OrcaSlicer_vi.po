@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: 2025-10-02 17:43+0700\n"
 "Last-Translator: \n"
 "Language-Team: hainguyen.ts13@gmail.com\n"
@@ -555,6 +555,7 @@ msgstr "Ánh xạ lại"
 msgid "Reset"
 msgstr "Đặt lại"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
 msgstr ""
 
@@ -892,8 +893,9 @@ msgstr "Xóa connector khỏi lựa chọn"
 msgid "Select all connectors"
 msgstr "Chọn tất cả connector"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Cắt"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Xoay mặt cắt"
@@ -1760,12 +1762,14 @@ msgstr "Chọn"
 msgid "Select point"
 msgstr "Chọn điểm"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Xóa"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Khởi động lại lựa chọn"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -1872,8 +1876,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Lắp ráp"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr ""
@@ -2399,6 +2404,9 @@ msgstr "Không thể bắt đầu tải URL. Thư mục đích chưa được đ
 msgid "Import File"
 msgstr "Nhập file"
 
+msgid "Delete"
+msgstr "Xóa"
+
 msgid "Choose files"
 msgstr "Chọn file"
 
@@ -2528,12 +2536,14 @@ msgstr "Ẩn"
 msgid "Show"
 msgstr "Hiện"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
 msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Xóa vật thể đã chọn"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr ""
 
@@ -2733,6 +2743,9 @@ msgstr "Chuyển đổi từ mét"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Khôi phục về mét"
+
+msgid "Assemble"
+msgstr "Lắp ráp"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Lắp ráp các vật thể đã chọn thành vật thể có nhiều phần"
@@ -3506,8 +3519,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr ""
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Hotend"
+msgstr ""
 
 msgid "Parts"
 msgstr ""
@@ -4255,6 +4269,14 @@ msgstr "In bằng vật liệu gắn ở mặt sau của vỏ"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "In với filament trong AMS"
+
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Khi vật liệu hiện tại hết, máy in sẽ tiếp tục in theo thứ tự sau."
@@ -5569,8 +5591,9 @@ msgstr "Thích ứng"
 msgid "Quality / Speed"
 msgstr "Chất lượng / Tốc độ"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Mượt"
+msgstr ""
 
 msgid "Radius"
 msgstr "Bán kính"
@@ -6187,6 +6210,9 @@ msgstr "Hoàn tác"
 msgid "Redo"
 msgstr "Làm lại"
 
+msgid "Cut"
+msgstr "Cắt"
+
 msgid "Cut selection to clipboard"
 msgstr "Cắt lựa chọn vào clipboard"
 
@@ -6287,6 +6313,10 @@ msgstr "Hiện đường viền xung quanh vật thể đã chọn trong cảnh 
 
 msgid "Preferences"
 msgstr "Tùy chọn"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Xem"
@@ -8944,6 +8974,15 @@ msgstr ""
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr ""
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr ""
 
@@ -9234,8 +9273,9 @@ msgstr "Không tương thích"
 msgid "The selected preset is null!"
 msgstr "Preset đã chọn rỗng!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Kết thúc"
+msgstr ""
 
 msgid "Customize"
 msgstr "Tùy chỉnh"
@@ -9519,6 +9559,9 @@ msgid "When spiral vase mode is enabled, machines with I3 structure will not gen
 msgstr "Khi bật chế độ bình xoắn ốc, máy có cấu trúc I3 sẽ không tạo video timelapse."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
+msgstr ""
+
+msgid "I have checked the installed nozzle and want to print anyway."
 msgstr ""
 
 msgid "Errors"
@@ -11204,29 +11247,33 @@ msgstr "Chọn nhiều đối tượng"
 msgid "Select objects by rectangle"
 msgstr "Chọn đối tượng bằng hình chữ nhật"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Mũi tên lên"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Di chuyển lựa chọn 10 mm theo hướng Y dương"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Mũi tên xuống"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Di chuyển lựa chọn 10 mm theo hướng Y âm"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Mũi tên trái"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Di chuyển lựa chọn 10 mm theo hướng X âm"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Mũi tên phải"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11312,8 +11359,16 @@ msgstr "Thu nhỏ"
 msgid "Toggle printable for object/part"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Chuyển đổi giữa Chuẩn bị/Xem trước"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11373,8 +11428,16 @@ msgstr "Bật/Tắt cửa sổ G-code"
 msgid "Move slider 5x faster"
 msgstr "Di chuyển thanh trượt nhanh hơn 5 lần"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Thanh trượt ngang - Di chuyển đến vị trí bắt đầu"
+
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Thanh trượt ngang - Di chuyển đến vị trí cuối cùng"
@@ -15868,6 +15931,9 @@ msgstr "Nếu chế độ mịn hoặc truyền thống được chọn, video t
 msgid "Traditional"
 msgstr "Truyền thống"
 
+msgid "Smooth"
+msgstr "Mượt"
+
 msgid "Farthest point timelapse"
 msgstr ""
 
@@ -16848,6 +16914,12 @@ msgid "Support fast purge mode"
 msgstr ""
 
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
+
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
 msgstr ""
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
@@ -20045,13 +20117,13 @@ msgstr ""
 msgid "Show details"
 msgstr ""
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr ""
 
 msgid "Download and Install"
-msgstr ""
-
-msgid "Skip for Now"
 msgstr ""
 
 msgid "A new version of the Bambu Network Plug-in is available."
@@ -20064,16 +20136,10 @@ msgstr ""
 msgid "Update to version:"
 msgstr ""
 
-msgid "Update Now"
-msgstr ""
-
-msgid "Remind Later"
-msgstr ""
-
-msgid "Skip Version"
-msgstr ""
-
 msgid "Don't Ask Again"
+msgstr ""
+
+msgid "Update Now"
 msgstr ""
 
 msgid "(Latest)"
@@ -20089,9 +20155,6 @@ msgid "A restart is required to load the new plug-in. Would you like to restart 
 msgstr ""
 
 msgid "Restart Now"
-msgstr ""
-
-msgid "Restart Later"
 msgstr ""
 
 msgid "NO RAMMING AT ALL"
@@ -20676,6 +20739,24 @@ msgid ""
 msgstr ""
 "Tránh cong vênh\n"
 "Bạn có biết rằng khi in vật liệu dễ cong vênh như ABS, tăng nhiệt độ bàn nóng một cách thích hợp có thể giảm xác suất cong vênh không?"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Mũi tên lên"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Mũi tên xuống"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Mũi tên trái"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Mũi tên phải"
+
+#~ msgid "End"
+#~ msgstr "Kết thúc"
+
+#~ msgid "Hotend"
+#~ msgstr "Hotend"
 
 # TODO: Review, changed by lang refactor. PR 14254
 #~ msgid "Click OK to update the Network plug-in the next time Orca Slicer launches."

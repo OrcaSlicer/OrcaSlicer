@@ -1081,16 +1081,21 @@ void PrintConfigDef::init_common_params()
         def->set_default_value(new ConfigOptionString());
     }
 
-    def = this->add("plugin_config_overrides", coString);
-    def->label = L("Capabilities");
-    def->tooltip = L("Configuration for the plugin capabilities this preset uses, overriding the global "
-                     "Capabilities configuration. Stored as a raw JSON array and edited through the dialog "
-                     "behind the button, never typed in directly.");
-    // Never shown as a text field: GUIType::plugin_config renders a button that opens PluginsConfigDialog.
-    def->gui_type = ConfigOptionDef::GUIType::plugin_config;
-    def->mode = comAdvanced;
-    def->cli = ConfigOptionDef::nocli;
-    def->set_default_value(new ConfigOptionString(""));
+    // One key per preset type (Preset::plugin_overrides_key), so the print, printer and filament
+    // overrides don't clobber each other when the presets merge into one full config. No handle_legacy
+    // migration from the shared "plugin_config_overrides" they replace: it only ever shipped in
+    // nightlies. Never a text field — GUIType::plugin_config renders a button opening PluginsConfigDialog.
+    for (const char* key : {"print_plugin_config_overrides", "printer_plugin_config_overrides", "filament_plugin_config_overrides"}) {
+        def = this->add(key, coString);
+        def->label = L("Capabilities");
+        def->tooltip = L("Configuration for the plugin capabilities this preset uses, overriding the global "
+                         "Capabilities configuration. Stored as a raw JSON array and edited through the dialog "
+                         "behind the button, never typed in directly.");
+        def->gui_type = ConfigOptionDef::GUIType::plugin_config;
+        def->mode = comAdvanced;
+        def->cli = ConfigOptionDef::nocli;
+        def->set_default_value(new ConfigOptionString(""));
+    }
 }
 
 void PrintConfigDef::init_fff_params()
