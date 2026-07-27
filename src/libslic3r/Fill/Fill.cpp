@@ -1596,17 +1596,10 @@ Polylines Layer::generate_sparse_infill_polylines_for_anchoring(FillAdaptive::Oc
     return sparse_infill_polylines;
 }
 
-// Create ironing extrusions over top surfaces.
-// Selects the extruder used for ironing the given region (1-based filament id),
-// or -1 if ironing is disabled by config. Pure routing decision extracted from
-// make_ironing so it can be unit-tested without running a full slice — and so
-// downstream code can ask "would this region be ironed, and on what extruder?"
-// without re-implementing the gating logic.
-//
-// The gating mirrors the original conditional in make_ironing: AllSolid always
-// irons; TopSurfaces and TopmostOnly require either some top shells or
-// (in spiral mode) more than one bottom shell, and TopmostOnly additionally
-// requires being on the topmost layer.
+// Returns the filament id (1-based) the region is ironed with, or -1 when the
+// region is not ironed. AllSolid always irons. TopSurfaces and TopmostOnly need
+// either some top shells or, in spiral mode, more than one bottom shell, and
+// TopmostOnly additionally needs the layer to be the topmost one.
 int Layer::choose_ironing_extruder(const PrintRegionConfig &cfg,
                                    bool spiral_mode,
                                    bool is_topmost_layer)
@@ -1622,6 +1615,7 @@ int Layer::choose_ironing_extruder(const PrintRegionConfig &cfg,
     return cfg.top_surface_filament_id;
 }
 
+// Create ironing extrusions over top surfaces.
 void Layer::make_ironing()
 {
 	// LayerRegion::slices contains surfaces marked with SurfaceType.

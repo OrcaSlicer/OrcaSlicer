@@ -201,9 +201,8 @@ public:
                                                                            FillAdaptive::Octree *support_fill_octree,
                                                                            FillLightning::Generator* lightning_generator) const;
     void 					make_ironing();
-    // Selects the extruder used for ironing the given region (1-based filament id),
-    // or -1 if ironing is disabled by config. Extracted from make_ironing so the
-    // routing decision is unit-testable without running a full slice.
+    // Returns the filament id (1-based) the region is ironed with, or -1 when the
+    // region is not ironed.
     static int              choose_ironing_extruder(const PrintRegionConfig &cfg,
                                                     bool spiral_mode,
                                                     bool is_topmost_layer);
