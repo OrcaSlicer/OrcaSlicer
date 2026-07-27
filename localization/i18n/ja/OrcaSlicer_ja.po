@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3617,7 +3617,6 @@ msgstr "チャンバー"
 msgid "Innerloop"
 msgstr "内部循環"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "トップ"
 
@@ -5836,9 +5835,26 @@ msgstr "押出しキャリブレーション領域を避ける"
 msgid "Align to Y axis"
 msgstr "Y軸に整列"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "正面"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "背面"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "トップ"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "底面"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6225,19 +6241,14 @@ msgstr "デフォルトビュー"
 msgid "Top View"
 msgstr "トップ"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "底面"
-
 msgid "Bottom View"
 msgstr "底面"
-
-msgid "Front"
-msgstr "正面"
 
 msgid "Front View"
 msgstr "正面"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
 msgstr "背面"
 
@@ -22065,6 +22076,15 @@ msgid ""
 msgstr ""
 "反りを避ける\n"
 "ABSのような反りやすい素材を印刷する場合、ヒートベッドの温度を適切に上げることで、反りが発生する確率を下げることができることをご存知ですか？"
+
+#~ msgid "Bottom"
+#~ msgstr "底面"
+
+#~ msgid "Front"
+#~ msgstr "正面"
+
+#~ msgid "Rear"
+#~ msgstr "背面"
 
 #~ msgid "Arrow Up"
 #~ msgstr "↑"

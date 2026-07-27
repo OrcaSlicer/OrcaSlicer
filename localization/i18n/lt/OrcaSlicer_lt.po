@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -3592,7 +3592,6 @@ msgstr "Kamera"
 msgid "Innerloop"
 msgstr "Vidinė cirkuliacija"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "Viršutinis"
 
@@ -5811,9 +5810,27 @@ msgstr "Vengti ekstruzijos kalibravimo srities"
 msgid "Align to Y axis"
 msgstr "Išlygiuoti pagal Y ašį"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "Priekis"
+
+# AI Translated
 msgctxt "Camera View"
 msgid "Back"
-msgstr "Atgal"
+msgstr "Galas"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "Viršus"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "Apačia"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6201,19 +6218,14 @@ msgstr "Numatytasis vaizdas"
 msgid "Top View"
 msgstr "Vaizdas iš viršaus"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "Apačia"
-
 msgid "Bottom View"
 msgstr "Vaizdas iš apačios"
-
-msgid "Front"
-msgstr "Priekis"
 
 msgid "Front View"
 msgstr "Vaizdas iš priekio"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
 msgstr "Galas"
 
@@ -21206,6 +21218,15 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+#~ msgid "Bottom"
+#~ msgstr "Apačia"
+
+#~ msgid "Front"
+#~ msgstr "Priekis"
+
+#~ msgid "Rear"
+#~ msgstr "Galas"
 
 #~ msgid "Enter"
 #~ msgstr "Įvesti"

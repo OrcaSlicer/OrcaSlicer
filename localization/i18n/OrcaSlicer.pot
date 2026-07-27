@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3385,7 +3385,6 @@ msgstr ""
 msgid "Innerloop"
 msgstr ""
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr ""
 
@@ -5471,7 +5470,21 @@ msgid "Align to Y axis"
 msgstr ""
 
 msgctxt "Camera View"
+msgid "Front"
+msgstr ""
+
+msgctxt "Camera View"
 msgid "Back"
+msgstr ""
+
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr ""
+
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
 msgstr ""
 
 msgctxt "Camera View"
@@ -5854,19 +5867,13 @@ msgstr ""
 msgid "Top View"
 msgstr ""
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr ""
-
 msgid "Bottom View"
-msgstr ""
-
-msgid "Front"
 msgstr ""
 
 msgid "Front View"
 msgstr ""
 
+msgctxt "Camera View"
 msgid "Rear"
 msgstr ""
 

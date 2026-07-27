@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Heiko Liebscher <hliebschergmail.com>\n"
 "Language-Team: \n"
@@ -3568,7 +3568,6 @@ msgstr "Kammer"
 msgid "Innerloop"
 msgstr "Innenkreislauf"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "Oben"
 
@@ -5772,9 +5771,27 @@ msgstr "Vermeiden Sie den Bereich der Extrusionskalibrierung"
 msgid "Align to Y axis"
 msgstr "An Y-Achse ausrichten"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "Vorne"
+
+# AI Translated
 msgctxt "Camera View"
 msgid "Back"
-msgstr "Zurück"
+msgstr "Hinten"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "Oben"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "Unten"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6162,19 +6179,14 @@ msgstr "Standardansicht"
 msgid "Top View"
 msgstr "Ansicht von oben"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "Unten"
-
 msgid "Bottom View"
 msgstr "Ansicht von unten"
-
-msgid "Front"
-msgstr "Vorne"
 
 msgid "Front View"
 msgstr "Frontalansicht"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
 msgstr "Hinten"
 
@@ -21156,6 +21168,15 @@ msgid ""
 msgstr ""
 "Verwerfungen vermeiden\n"
 "Wussten Sie, dass beim Drucken von Materialien, die zu Verwerfungen neigen, wie z.B. ABS, durch eine entsprechende Erhöhung der Heizbetttemperatur die Wahrscheinlichkeit von Verwerfungen verringert werden kann?"
+
+#~ msgid "Bottom"
+#~ msgstr "Unten"
+
+#~ msgid "Front"
+#~ msgstr "Vorne"
+
+#~ msgid "Rear"
+#~ msgstr "Hinten"
 
 #~ msgid "Enter"
 #~ msgstr "Eingabe"

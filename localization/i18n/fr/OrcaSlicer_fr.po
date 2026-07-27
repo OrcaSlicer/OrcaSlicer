@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -3525,7 +3525,6 @@ msgstr "Chambre"
 msgid "Innerloop"
 msgstr "Boucle interne"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "Haut"
 
@@ -5722,9 +5721,26 @@ msgstr "Éviter la région de calibration de l'extrusion"
 msgid "Align to Y axis"
 msgstr "Aligner sur l’axe Y"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "Avant"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "Arrière"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "Haut"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "Dessous"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6112,19 +6128,14 @@ msgstr "Vue par défaut"
 msgid "Top View"
 msgstr "Vue du Dessus"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "Dessous"
-
 msgid "Bottom View"
 msgstr "Vue du Dessous"
-
-msgid "Front"
-msgstr "Avant"
 
 msgid "Front View"
 msgstr "Vue Avant"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
 msgstr "Arrière"
 
@@ -21047,6 +21058,15 @@ msgid ""
 msgstr ""
 "Éviter la déformation\n"
 "Saviez-vous que lors de l’impression de matériaux susceptibles de se déformer, tels que l’ABS, une augmentation appropriée de la température du plateau chauffant peut réduire la probabilité de déformation?"
+
+#~ msgid "Bottom"
+#~ msgstr "Dessous"
+
+#~ msgid "Front"
+#~ msgstr "Avant"
+
+#~ msgid "Rear"
+#~ msgstr "Arrière"
 
 #~ msgid "Enter"
 #~ msgstr "Entrée"

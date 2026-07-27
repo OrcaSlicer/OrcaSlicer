@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3909,7 +3909,6 @@ msgstr "Kamer"
 msgid "Innerloop"
 msgstr "Binnenlus"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "Bovenste"
 
@@ -6356,9 +6355,26 @@ msgstr "Vermijd het extrusie kalibratie gebied"
 msgid "Align to Y axis"
 msgstr "Uitlijnen op Y-as"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "Voorkant"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "Achterzijde"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "Bovenste"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "Onderkant"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6777,21 +6793,16 @@ msgstr "Standaard weergave"
 msgid "Top View"
 msgstr "Bovenaanzicht"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "Onderkant"
-
 msgid "Bottom View"
 msgstr "Onderaanzicht"
-
-msgid "Front"
-msgstr "Voorkant"
 
 msgid "Front View"
 msgstr "Vooraanzicht"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
-msgstr "Achterkant"
+msgstr "Achterzijde"
 
 msgid "Rear View"
 msgstr "Achteraanzicht"
@@ -23653,6 +23664,15 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+#~ msgid "Bottom"
+#~ msgstr "Onderkant"
+
+#~ msgid "Front"
+#~ msgstr "Voorkant"
+
+#~ msgid "Rear"
+#~ msgstr "Achterkant"
 
 #~ msgid "Arrow Up"
 #~ msgstr "Pijl naar boven"

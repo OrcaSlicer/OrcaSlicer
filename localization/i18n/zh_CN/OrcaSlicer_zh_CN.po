@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -3468,7 +3468,6 @@ msgstr "打印舱"
 msgid "Innerloop"
 msgstr "内环"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "顶部"
 
@@ -5657,9 +5656,26 @@ msgstr "避开挤出校准区域"
 msgid "Align to Y axis"
 msgstr "对齐到Y轴"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "前面"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "背面"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "顶部"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "底部"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6048,21 +6064,16 @@ msgstr "默认视图"
 msgid "Top View"
 msgstr "顶部视图"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "底部"
-
 msgid "Bottom View"
 msgstr "底部视图"
-
-msgid "Front"
-msgstr "前面"
 
 msgid "Front View"
 msgstr "前视图"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
-msgstr "后"
+msgstr "背面"
 
 msgid "Rear View"
 msgstr "后视图"
@@ -20982,6 +20993,15 @@ msgid ""
 msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
+
+#~ msgid "Bottom"
+#~ msgstr "底部"
+
+#~ msgid "Front"
+#~ msgstr "前面"
+
+#~ msgid "Rear"
+#~ msgstr "后"
 
 #~ msgid "Enter"
 #~ msgstr "回车"

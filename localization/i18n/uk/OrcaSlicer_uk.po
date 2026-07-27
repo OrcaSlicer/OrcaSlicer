@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: orcaslicerua\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: 2026-07-17 16:25+0300\n"
 "Last-Translator: Andrij Mizyk <andm1zyk@proton.me>\n"
 "Language-Team: Ukrainian\n"
@@ -3555,7 +3555,6 @@ msgstr "Термокамера"
 msgid "Innerloop"
 msgstr "Внутрішній контур"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "Верх"
 
@@ -5826,9 +5825,26 @@ msgstr "Уникайте області калібрування екструз�
 msgid "Align to Y axis"
 msgstr "Розташувати вздовж осі Y"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "Перед"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "Ззаду"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "Верх"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "Низ"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6230,21 +6246,16 @@ msgstr "Типовий вигляд"
 msgid "Top View"
 msgstr "Вигляд зверху"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "Низ"
-
 msgid "Bottom View"
 msgstr "Вигляд знизу"
-
-msgid "Front"
-msgstr "Перед"
 
 msgid "Front View"
 msgstr "Вигляд спереду"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
-msgstr "Зад"
+msgstr "Ззаду"
 
 msgid "Rear View"
 msgstr "Вигляд ззаду"
@@ -21850,6 +21861,15 @@ msgid ""
 msgstr ""
 "Уникнення деформації\n"
 "Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
+
+#~ msgid "Bottom"
+#~ msgstr "Низ"
+
+#~ msgid "Front"
+#~ msgstr "Перед"
+
+#~ msgid "Rear"
+#~ msgstr "Зад"
 
 #~ msgid "Enter"
 #~ msgstr "Ввести"

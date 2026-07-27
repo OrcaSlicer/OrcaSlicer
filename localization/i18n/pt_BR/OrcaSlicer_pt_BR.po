@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: 2026-07-26 11:14-0300\n"
 "Last-Translator: Alexandre Folle de Menezes\n"
 "Language-Team: Portuguese, Brazilian\n"
@@ -3470,7 +3470,6 @@ msgstr "Câmara"
 msgid "Innerloop"
 msgstr "Circuito Interno"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "Topo"
 
@@ -5648,9 +5647,26 @@ msgstr "Evitar a região de calibração da extrusão"
 msgid "Align to Y axis"
 msgstr "Alinhar com o eixo Y"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "Frente"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "Atrás"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "Topo"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "Inferior"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6039,21 +6055,16 @@ msgstr "Vista Padrão"
 msgid "Top View"
 msgstr "Vista Superior"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "Inferior"
-
 msgid "Bottom View"
 msgstr "Vista Inferior"
-
-msgid "Front"
-msgstr "Frente"
 
 msgid "Front View"
 msgstr "Vista Frontal"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
-msgstr "Traseira"
+msgstr "Atrás"
 
 msgid "Rear View"
 msgstr "Vista Traseira"
@@ -20936,6 +20947,15 @@ msgid ""
 msgstr ""
 "Evitar empenamento\n"
 "Você sabia que ao imprimir materiais propensos ao empenamento como ABS, aumentar adequadamente a temperatura da mesa aquecida pode reduzir a probabilidade de empenamento?"
+
+#~ msgid "Bottom"
+#~ msgstr "Inferior"
+
+#~ msgid "Front"
+#~ msgstr "Frente"
+
+#~ msgid "Rear"
+#~ msgstr "Traseira"
 
 # AI Translated
 #, boost-format

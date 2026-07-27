@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: 2026-06-19 13:40+0700\n"
 "Last-Translator: Icezaza\n"
 "Language-Team: Thai\n"
@@ -3586,7 +3586,6 @@ msgstr "ห้องพิมพ์"
 msgid "Innerloop"
 msgstr "อินเนอร์ลูป"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "บน"
 
@@ -5800,9 +5799,27 @@ msgstr "หลีกเลี่ยงบริเวณการสอบเท
 msgid "Align to Y axis"
 msgstr "จัดแนวตามแกน Y"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "ด้านหน้า"
+
+# AI Translated
 msgctxt "Camera View"
 msgid "Back"
-msgstr "กลับ"
+msgstr "ด้านหลัง"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "บน"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "ล่าง"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6192,19 +6209,14 @@ msgstr "มุมมองเริ่มต้น"
 msgid "Top View"
 msgstr "มุมมองด้านบน"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "ล่าง"
-
 msgid "Bottom View"
 msgstr "มุมมองด้านล่าง"
-
-msgid "Front"
-msgstr "ด้านหน้า"
 
 msgid "Front View"
 msgstr "มุมมองด้านหน้า"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
 msgstr "ด้านหลัง"
 
@@ -21231,6 +21243,15 @@ msgid ""
 msgstr ""
 "หลีกเลี่ยงการบิดเบี้ยว\n"
 "คุณรู้หรือไม่ว่าเมื่อพิมพ์วัสดุที่มีแนวโน้มที่จะเกิดการบิดเบี้ยว เช่น ABS การเพิ่มอุณหภูมิฐานพิมพ์อย่างเหมาะสมสามารถลดความน่าจะเป็นของการบิดเบี้ยวได้"
+
+#~ msgid "Bottom"
+#~ msgstr "ล่าง"
+
+#~ msgid "Front"
+#~ msgstr "ด้านหน้า"
+
+#~ msgid "Rear"
+#~ msgstr "ด้านหลัง"
 
 #~ msgid "Enter"
 #~ msgstr "เข้า"

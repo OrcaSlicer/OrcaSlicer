@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -3617,7 +3617,6 @@ msgstr "챔버"
 msgid "Innerloop"
 msgstr "내부 순환"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "위"
 
@@ -5849,9 +5848,26 @@ msgstr "압출 교정 영역을 피하세요"
 msgid "Align to Y axis"
 msgstr "Y축에 정렬"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "앞"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "뒷면"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "위"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "아래"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6239,21 +6255,16 @@ msgstr "기본 보기"
 msgid "Top View"
 msgstr "위에서 보기"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "아래"
-
 msgid "Bottom View"
 msgstr "아래에서 보기"
-
-msgid "Front"
-msgstr "앞"
 
 msgid "Front View"
 msgstr "앞에서 보기"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
-msgstr "뒤"
+msgstr "뒷면"
 
 msgid "Rear View"
 msgstr "뒤에서 보기"
@@ -21928,6 +21939,15 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+#~ msgid "Bottom"
+#~ msgstr "아래"
+
+#~ msgid "Front"
+#~ msgstr "앞"
+
+#~ msgid "Rear"
+#~ msgstr "뒤"
 
 #~ msgid "Arrow Up"
 #~ msgstr "화살표 위로"

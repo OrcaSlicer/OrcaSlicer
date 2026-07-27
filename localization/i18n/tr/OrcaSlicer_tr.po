@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -3653,7 +3653,6 @@ msgstr "Oda"
 msgid "Innerloop"
 msgstr "İç döngü"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "Üst"
 
@@ -5898,9 +5897,26 @@ msgstr "Ekstrüzyon kalibrasyon bölgesinden kaçın"
 msgid "Align to Y axis"
 msgstr "Y eksenine hizala"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "Ön"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "Arka"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "Üst"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "Alt"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6293,19 +6309,14 @@ msgstr "Varsayılan görünüm"
 msgid "Top View"
 msgstr "Üstten görünüm"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "Alt"
-
 msgid "Bottom View"
 msgstr "Alttan görünüm"
-
-msgid "Front"
-msgstr "Ön"
 
 msgid "Front View"
 msgstr "Önden görünüm"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
 msgstr "Arka"
 
@@ -21730,6 +21741,15 @@ msgid ""
 msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
+
+#~ msgid "Bottom"
+#~ msgstr "Alt"
+
+#~ msgid "Front"
+#~ msgstr "Ön"
+
+#~ msgid "Rear"
+#~ msgstr "Arka"
 
 #~ msgid "Del"
 #~ msgstr "Sil"

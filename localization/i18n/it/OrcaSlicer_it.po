@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3603,7 +3603,6 @@ msgstr "Camera"
 msgid "Innerloop"
 msgstr "Ciclo interno"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "Superiore"
 
@@ -5820,9 +5819,26 @@ msgstr "Evitare la regione di calibrazione dell'estrusione"
 msgid "Align to Y axis"
 msgstr "Allinea all'asse Y"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "Frontale"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "Posteriore"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "Superiore"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "Inferiore"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6216,19 +6232,14 @@ msgstr "Vista predefinita"
 msgid "Top View"
 msgstr "Vista dall'alto"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "Inferiore"
-
 msgid "Bottom View"
 msgstr "Vista dal basso"
-
-msgid "Front"
-msgstr "Frontale"
 
 msgid "Front View"
 msgstr "Vista frontale"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
 msgstr "Posteriore"
 
@@ -21502,6 +21513,15 @@ msgid ""
 msgstr ""
 "Evita le deformazioni\n"
 "Sapevi che quando si stampano materiali soggetti a deformazioni come l'ABS, aumentare in modo appropriato la temperatura del piano riscaldato può ridurre la probabilità di deformazione?"
+
+#~ msgid "Bottom"
+#~ msgstr "Inferiore"
+
+#~ msgid "Front"
+#~ msgstr "Frontale"
+
+#~ msgid "Rear"
+#~ msgstr "Posteriore"
 
 #~ msgid "Enter"
 #~ msgstr "Invio"

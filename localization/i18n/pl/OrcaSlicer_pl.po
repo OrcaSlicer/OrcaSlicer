@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OrcaSlicer 2.3.0-rc\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Krzysztof Morga <<tlumaczeniebs@gmail.com>>\n"
 "Language-Team: \n"
@@ -3676,7 +3676,6 @@ msgstr "Komora"
 msgid "Innerloop"
 msgstr "Pętla wewnętrzna"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "Góra"
 
@@ -5947,9 +5946,26 @@ msgstr "Unikaj obszaru kalibracji ekstruzji"
 msgid "Align to Y axis"
 msgstr "Wyrównaj do osi Y"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "Przód"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "Tył"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "Góra"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "Dół"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6357,19 +6373,14 @@ msgstr "Domyślny widok"
 msgid "Top View"
 msgstr "Widok z góry"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "Dół"
-
 msgid "Bottom View"
 msgstr "Widok z dołu"
-
-msgid "Front"
-msgstr "Przód"
 
 msgid "Front View"
 msgstr "Widok z przodu"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
 msgstr "Tył"
 
@@ -22105,6 +22116,15 @@ msgid ""
 msgstr ""
 "Unikaj odkształceń\n"
 "Czy wiesz, że podczas drukowania filamentami podatnymi na odkształcenia, takimi jak ABS, odpowiednie zwiększenie temperatury podgrzewanej płyty może zmniejszyć prawdopodobieństwo odkształceń?"
+
+#~ msgid "Bottom"
+#~ msgstr "Dół"
+
+#~ msgid "Front"
+#~ msgstr "Przód"
+
+#~ msgid "Rear"
+#~ msgstr "Tył"
 
 #~ msgid "Enter"
 #~ msgstr "Drukarka"

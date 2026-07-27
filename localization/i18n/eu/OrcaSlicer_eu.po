@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: 2026-07-20 13:33+0200\n"
 "Last-Translator: Manu Goiogana <mgoiogana@gmail.com>\n"
 "Language-Team: \n"
@@ -3496,7 +3496,6 @@ msgstr "Ganbera"
 msgid "Innerloop"
 msgstr "Barruko begizta"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "Goikoa"
 
@@ -5679,9 +5678,26 @@ msgstr "Saihestu estrusioaren kalibraketa-eremua"
 msgid "Align to Y axis"
 msgstr "Lerrokatu Y ardatzarekin"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "Aurrekoa"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "Atzekoa"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "Goikoa"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "Behekoa"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6065,19 +6081,14 @@ msgstr "Lehenetsitako bista"
 msgid "Top View"
 msgstr "Goiko bista"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "Behekoa"
-
 msgid "Bottom View"
 msgstr "Beheko bista"
-
-msgid "Front"
-msgstr "Aurrekoa"
 
 msgid "Front View"
 msgstr "Aurreko bista"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
 msgstr "Atzekoa"
 
@@ -20887,6 +20898,15 @@ msgid ""
 msgstr ""
 "Saihestu okertzea\n"
 "Ba al zenekien ABS bezalako okertzeko joera duten materialak inprimatzean ohe beroaren tenperatura egoki igotzeak okertzeko probabilitatea murriztu dezakeela?"
+
+#~ msgid "Bottom"
+#~ msgstr "Behekoa"
+
+#~ msgid "Front"
+#~ msgstr "Aurrekoa"
+
+#~ msgid "Rear"
+#~ msgstr "Atzekoa"
 
 #~ msgid "Enter"
 #~ msgstr "Sartu"

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 18:41-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -3560,7 +3560,6 @@ msgstr "倉室"
 msgid "Innerloop"
 msgstr "內循環"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "頂部"
 
@@ -5786,9 +5785,26 @@ msgstr "避開擠出校正區域"
 msgid "Align to Y axis"
 msgstr "與 Y 軸對齊"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "前面"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "背面"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "頂部"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "底部"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6178,21 +6194,16 @@ msgstr "預設視圖"
 msgid "Top View"
 msgstr "頂部視圖"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "底部"
-
 msgid "Bottom View"
 msgstr "底部視圖"
-
-msgid "Front"
-msgstr "前面"
 
 msgid "Front View"
 msgstr "前視圖"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
-msgstr "後面"
+msgstr "背面"
 
 msgid "Rear View"
 msgstr "後視圖"
@@ -21194,6 +21205,15 @@ msgid ""
 msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
+
+#~ msgid "Bottom"
+#~ msgstr "底部"
+
+#~ msgid "Front"
+#~ msgstr "前面"
+
+#~ msgid "Rear"
+#~ msgstr "後面"
 
 #~ msgid "Enter"
 #~ msgstr "Enter"
