@@ -297,7 +297,7 @@ msgstr "Карбид вольфрама"
 
 # AI Translated
 msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
-msgstr "Печатающая головка и стойка хотэндов могут двигаться. Держите руки подальше от камеры."
+msgstr "Печатающая голова и стойка хотэндов могут двигаться. Держите руки подальше от камеры."
 
 msgid "Warning"
 msgstr "Предупреждение"
@@ -360,7 +360,7 @@ msgstr "Ряд B"
 
 # AI Translated
 msgid "Toolhead"
-msgstr "Печатающая головка"
+msgstr "Печатающая голова"
 
 msgid "Empty"
 msgstr "Пусто"
@@ -441,7 +441,7 @@ msgstr "Стойка хотэндов"
 
 # AI Translated
 msgid "ToolHead"
-msgstr "Печатающая головка"
+msgstr "Печатающая голова"
 
 # AI Translated
 msgid "Nozzle information needs to be read"
@@ -10117,7 +10117,7 @@ msgstr "Установите подходящее сопло в стойку х�
 
 # AI Translated
 msgid "The toolhead and hotend rack are full. Please remove at least one hotend before printing."
-msgstr "Печатающая головка и стойка хотэндов заполнены. Перед печатью снимите хотя бы один хотэнд."
+msgstr "Печатающая голова и стойка хотэндов заполнены. Перед печатью снимите хотя бы один хотэнд."
 
 #, c-format, boost-format
 msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
