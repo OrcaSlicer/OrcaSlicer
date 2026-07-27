@@ -20,11 +20,12 @@ add_executable(${_TEST_NAME}_tests
     test_preset_diff.cpp
     test_vendor_cache.cpp
     test_preset_options.cpp
-    test_choose_ironing_extruder.cpp
     test_elephant_foot_compensation.cpp
     test_fill_corner_smoothing.cpp
     test_filament_mixer.cpp
     test_fill_plane_path.cpp
+    test_fill.cpp
+    test_fill.cpp
     test_geometry.cpp
     test_multimaterial_segmentation.cpp
     test_placeholder_parser.cpp
