@@ -1135,10 +1135,14 @@ struct DynamicSupportFilamentList : DynamicFilamentList
     {
         if (items.empty())
             update(true);
-        m_show_auto = !printer_is_semm();
         auto cb = dynamic_cast<ComboBox *>(c->window);
         wxString old_selection = cb->GetStringSelection();
-        int old_index  = cb->GetSelection();
+        // Capture the current selection as an underlying config value using the PREVIOUS Auto state:
+        // toggling SEMM adds/removes the leading "Auto" entry, shifting every raw index by one, so the
+        // raw index cannot be reused directly. Round-trip through the value instead.
+        int      old_index = cb->GetSelection();
+        wxString old_value = old_index >= 0 ? get_value(old_index) : wxString();
+        m_show_auto = !printer_is_semm();
         cb->Clear();
         // Order: [Auto,] Default, then the filaments. "Default" (value 0) stays the default value.
         if (m_show_auto)
@@ -1147,11 +1151,9 @@ struct DynamicSupportFilamentList : DynamicFilamentList
         for (auto i : items)
             cb->Append(i.first, i.second ? *i.second : wxNullBitmap);
 
-        if (old_index >= 0 && (unsigned int) old_index < cb->GetCount()) {
-            cb->SetSelection(old_index);
-            return;
-        }
-        int new_index = cb->FindString(old_selection);
+        int new_index = old_value.empty() ? wxNOT_FOUND : index_of(old_value);
+        if (new_index == wxNOT_FOUND)
+            new_index = cb->FindString(old_selection);
         cb->SetSelection(new_index != wxNOT_FOUND ? new_index : (m_show_auto ? 1 : 0)); // fall back to "Default"
     }
     wxString get_value(int index) override
