@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <cmath>
 #define calib_pressure_advance_dd
 
 #include "GCodeWriter.hpp"
@@ -57,6 +58,18 @@ struct Calib_Params
 static constexpr int vfa_layers_per_block = 25;
 static constexpr double vfa_base_block_height = 5.0;
 static constexpr double vfa_base_nozzle_diameter = 0.4;
+
+// Number of discrete calibration bands for a [start, end] range stepped by `step`: the count of distinct
+// values, starting at `start`, that do not pass `end`. This is the single source of truth shared by the tower
+// geometry (block count / cut height) and the G-code stepping (interpolate_value_across_layers), so the two
+// cannot drift apart when the range is not an exact multiple of step. floor (not round) guarantees the top
+// band never overshoots `end`; the small epsilon keeps exact multiples from being lost to float error.
+inline int calib_band_count(double start, double end, double step)
+{
+    if (step <= 0.0)
+        return 1;
+    return static_cast<int>(std::floor(std::abs(end - start) / step + 1e-6)) + 1;
+}
 
 enum FlowRatioCalibrationType {
     COMPLETE_CALIBRATION = 0,

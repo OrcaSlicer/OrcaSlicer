@@ -831,7 +831,10 @@ void VFA_Test_Dlg::on_start(wxCommandEvent& event)
                 // largest candidate that still reaches the end speed to keep the change from the default minimal.
                 std::vector<double> candidates;
                 for (const auto& preset : preset_bundle->prints.get_presets()) {
-                    if (!preset.is_compatible || preset.is_default)
+                    // Don't skip the default preset: in single-preset installs it is the only visible process
+                    // preset, and its layer_height is a valid candidate — skipping it would needlessly empty the
+                    // list and disable the auto-adjust.
+                    if (!preset.is_compatible)
                         continue;
                     const auto* lh_opt = preset.config.option<ConfigOptionFloat>("layer_height");
                     if (lh_opt == nullptr || lh_opt->value <= 0.0)

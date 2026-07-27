@@ -14388,7 +14388,7 @@ void Plater::calib_VFA(const Calib_Params& params)
     // Subtract EPSILON (as the temperature tower does) so the cut lands just below the flat block surface instead
     // of exactly on it, which would otherwise add a degenerate extra layer.
     auto obj_bb = model().objects[0]->bounding_box_exact();
-    auto height = vfa_base_block_height * ((params.end - params.start) / params.step + 1) - EPSILON;
+    auto height = vfa_base_block_height * calib_band_count(params.start, params.end, params.step) - EPSILON;
     if (height < obj_bb.size().z()) {
         cut_horizontal(0, 0, height, ModelObjectCutAttribute::KeepLower);
     }
