@@ -85,7 +85,8 @@ TEST_CASE_METHOD(PluginFolderFixture, "Managed builds fold into the series; cust
 {
     add_plugin("02.08.01.55");          // managed, same series -> folded into the 02.08.01 row
     add_plugin("02.09.00.10");          // managed, unknown series -> not listed
-    add_plugin("02.03.00.62");          // managed, series no longer whitelisted -> not listed
+    add_plugin("02.03.00.62");          // managed, older whitelisted series -> folded into 02.03.00
+    add_plugin("02.01.01.52");          // managed, series with no ABI in this build -> not listed
     add_plugin("02.08.01_custom");      // custom, whitelisted series -> listed under it
     add_plugin("02.08.01.52-dev");      // custom (dash-suffixed), whitelisted series -> listed
 
@@ -96,16 +97,23 @@ TEST_CASE_METHOD(PluginFolderFixture, "Managed builds fold into the series; cust
     REQUIRE(count_version(versions, "02.08.01")    == 1);
     REQUIRE(count_version(versions, "02.09.00.10") == 0);
     REQUIRE(count_version(versions, "02.03.00.62") == 0);
+    REQUIRE(count_version(versions, "02.03.00")    == 1);
+    REQUIRE(count_version(versions, "02.01.01.52") == 0);
     // Custom-named builds are distinct files kept under their own name.
     REQUIRE(count_version(versions, "02.08.01_custom")  == 1);
     REQUIRE(count_version(versions, "02.08.01.52-dev")  == 1);
 
     // Newest series first, its customs nested under it (suffix sort: "" < ".52-dev" < "_custom"),
-    // legacy last.
+    // then older series, legacy last.
     REQUIRE(versions[0].version == "02.08.01");
     REQUIRE(versions[1].version == "02.08.01.52-dev");
     REQUIRE(versions[2].version == "02.08.01_custom");
+    REQUIRE(versions[3].version == "02.03.00");
     REQUIRE(versions.back().version == BAMBU_NETWORK_AGENT_VERSION_LEGACY);
+
+    // An older whitelisted series is a flat row of its own, and never holds "(Latest)".
+    REQUIRE(versions[3].suffix.empty());
+    REQUIRE_FALSE(versions[3].is_latest);
 
     // Customs sort/render nested under their series (non-empty suffix, base = the series).
     REQUIRE(versions[1].base_version == "02.08.01");
@@ -137,6 +145,16 @@ TEST_CASE_METHOD(PluginFolderFixture, "Only the loaded series is marked installe
         REQUIRE(marked == 1);
     }
 
+    // An older series is marked the same way, and never bleeds onto the latest row.
+    {
+        add_plugin("02.03.00.62");
+        auto versions = get_all_available_versions("02.03.00.62");
+        int marked = 0;
+        for (const auto& info : versions)
+            if (info.is_loaded) { ++marked; REQUIRE(info.version == "02.03.00"); }
+        REQUIRE(marked == 1);
+    }
+
     // A loaded custom build matches its own row, never the bare series.
     {
         auto versions = get_all_available_versions("02.08.01_custom");
@@ -153,18 +171,24 @@ TEST_CASE_METHOD(PluginFolderFixture, "Only the loaded series is marked installe
 
 TEST_CASE("Only whitelisted series pass the load gate", "[NetworkVersions]")
 {
-    // The whitelisted series, its builds, and custom-named builds of that series.
+    // Each whitelisted series, its builds, and custom-named builds of that series.
     REQUIRE(is_supported_network_version("02.08.01"));
     REQUIRE(is_supported_network_version("02.08.01.52"));
     REQUIRE(is_supported_network_version("02.08.01.55"));
     REQUIRE(is_supported_network_version("02.08.01_custom"));
     REQUIRE(is_supported_network_version("02.08.01.52-dev"));
+    REQUIRE(is_supported_network_version("02.03.00"));
+    REQUIRE(is_supported_network_version("02.03.00.62"));
+    REQUIRE(is_supported_network_version("02.03.00.70"));
+    REQUIRE(is_supported_network_version("02.03.00_custom"));
     REQUIRE(is_supported_network_version(BAMBU_NETWORK_AGENT_VERSION_LEGACY));
 
-    // Series whitelisted by previous Orca releases - their ABI no longer matches.
-    REQUIRE_FALSE(is_supported_network_version("02.03.00.62"));
+    // Series whitelisted by previous Orca releases that no generation here can call.
     REQUIRE_FALSE(is_supported_network_version("02.01.01.52"));
     REQUIRE_FALSE(is_supported_network_version("02.00.02.50"));
+
+    // A neighbouring series of a whitelisted one is still its own ABI.
+    REQUIRE_FALSE(is_supported_network_version("02.03.01.51"));
 
     // Unknown series, legacy siblings, and malformed values.
     REQUIRE_FALSE(is_supported_network_version("02.09.00.10"));
@@ -173,6 +197,30 @@ TEST_CASE("Only whitelisted series pass the load gate", "[NetworkVersions]")
     REQUIRE_FALSE(is_supported_network_version(legacy_sibling));
     REQUIRE_FALSE(is_supported_network_version(""));
     REQUIRE_FALSE(is_supported_network_version("02.08"));
+}
+
+TEST_CASE("Each version resolves to the ABI generation that can call it", "[NetworkVersions]")
+{
+    // The generation is keyed on the series, so every build of a series - including the
+    // custom-named ones - resolves to the same one.
+    CHECK(network_plugin_abi("02.08.01")        == NetworkAbi::Current);
+    CHECK(network_plugin_abi("02.08.01.55")     == NetworkAbi::Current);
+    CHECK(network_plugin_abi("02.08.01.52-dev") == NetworkAbi::Current);
+    CHECK(network_plugin_abi("02.03.00")        == NetworkAbi::V0203);
+    CHECK(network_plugin_abi("02.03.00.62")     == NetworkAbi::V0203);
+    CHECK(network_plugin_abi("02.03.00_custom") == NetworkAbi::V0203);
+    CHECK(network_plugin_abi(BAMBU_NETWORK_AGENT_VERSION_LEGACY) == NetworkAbi::Legacy);
+
+    // Anything the load gate rejects must dispatch through nothing at all, rather than
+    // defaulting to a layout it does not share.
+    CHECK(network_plugin_abi("02.01.01.52") == NetworkAbi::Unsupported);
+    CHECK(network_plugin_abi("02.00.02.50") == NetworkAbi::Unsupported);
+    CHECK(network_plugin_abi("02.09.00.10") == NetworkAbi::Unsupported);
+    CHECK(network_plugin_abi("")            == NetworkAbi::Unsupported);
+
+    // A series may only be offered once the dispatch layer implements its generation.
+    for (size_t i = 0; i < AVAILABLE_NETWORK_VERSIONS_COUNT; ++i)
+        CHECK(AVAILABLE_NETWORK_VERSIONS[i].abi != NetworkAbi::Unsupported);
 }
 
 TEST_CASE_METHOD(PluginFolderFixture, "Legacy series never adopts discovered builds", "[NetworkVersions]")

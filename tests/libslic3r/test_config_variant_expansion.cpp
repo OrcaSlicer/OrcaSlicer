@@ -58,6 +58,40 @@ TEST_CASE("apply_override fills nil entries from the 0-based default index", "[C
     }
 }
 
+TEST_CASE("support_different_extruders is true only when the printer defines more than one variant column", "[Config]")
+{
+    int extruder_count = 0;
+
+    SECTION("a non-Bambu dual-nozzle printer with one variant column reports false") {
+        DynamicPrintConfig config;
+        config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = {0.4, 0.4};
+        // Both extruders resolve to the same default variant, so there is only one column.
+        config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {"Direct Drive Standard",
+                                                                                     "Direct Drive Standard"};
+        REQUIRE(config.support_different_extruders(extruder_count) == false);
+        REQUIRE(extruder_count == 2);
+    }
+
+    SECTION("a Bambu H2D-style printer with distinct variants reports true") {
+        DynamicPrintConfig config;
+        config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = {0.4, 0.4};
+        config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {
+            "Direct Drive Standard,Direct Drive High Flow",
+            "Direct Drive Standard,Direct Drive High Flow,Direct Drive TPU High Flow"};
+        REQUIRE(config.support_different_extruders(extruder_count) == true);
+        REQUIRE(extruder_count == 2);
+    }
+
+    SECTION("a many-toolhead printer that never opts into variants reports false") {
+        // A Snapmaker U1 has four identical toolheads and never defines extruder_variant_list,
+        // so the config falls back to a single default variant token.
+        DynamicPrintConfig config;
+        config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = {0.4, 0.4, 0.4, 0.4};
+        REQUIRE(config.support_different_extruders(extruder_count) == false);
+        REQUIRE(extruder_count == 4);
+    }
+}
+
 TEST_CASE("get_config_index_base resolves (volume type, extruder type, id) to a slot", "[Config]")
 {
     const std::vector<std::string> variant_list = {"Direct Drive Standard", "Direct Drive High Flow",

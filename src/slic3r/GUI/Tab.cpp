@@ -8000,7 +8000,9 @@ void Tab::update_extruder_variants(int extruder_id, bool reload)
         m_actual_nozzle_volumes.resize(extruder_nums, NozzleVolumeType::nvtStandard);
         for (int i = 0; i < extruder_nums; i++) m_actual_nozzle_volumes[i] = (NozzleVolumeType)nozzle_volumes->values[i];
 
-        if (extruder_nums == 2) {
+        // Orca: a non-Bambu dual-nozzle printer has two extruders but a single variant column, so
+        // the nozzle switch and sync button have nothing to act on. Only enable with real variants.
+        if (extruder_nums == 2 && m_preset_bundle->support_different_extruders()) {
             auto options = generate_extruder_options();
             m_extruder_switch->SetOptions(options);
 
