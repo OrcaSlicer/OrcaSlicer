@@ -282,7 +282,7 @@ void GLCanvas3D::LayersEditing::render_variable_layer_height_dialog(GLCanvas3D& 
     ImGui::SetCursorPosX(input_align);
     ImGui::BBLDragFloat("##adaptive_input", &m_adaptive_quality, 0.05f, 0.0f, 0.0f, "%.2f");
 
-    if (imgui.button(_L("Smooth")))
+    if (imgui.button(_L_CONTEXT("Smooth", "Mesh action")))
         wxPostEvent((wxEvtHandler*)canvas.get_wxglcanvas(), HeightProfileSmoothEvent(EVT_GLCANVAS_SMOOTH_LAYER_HEIGHT_PROFILE, m_smooth_params));
     ImGui::SameLine();
     text_align = std::max(text_align, ImGui::GetCursorPosX());
@@ -6048,11 +6048,11 @@ void GLCanvas3D::_render_3d_navigator()
     strcpy(style.AxisLabels[ImGuizmo::Axis::Axis_Y], "Z"); // ORCA use uppercase to match text on tranform widgets
     strcpy(style.AxisLabels[ImGuizmo::Axis::Axis_Z], "X"); // ORCA use uppercase to match text on tranform widgets
     strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_FRONT], _utf8("Front").c_str());
-    strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_BACK], _CTX_utf8("Back", "Camera View").c_str());
+    strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_BACK], _u8L_CONTEXT("Back", "Camera View").c_str());
     strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_TOP], _utf8("Top").c_str());
     strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_BOTTOM], _utf8("Bottom").c_str());
-    strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_LEFT], _CTX_utf8("Left", "Camera View").c_str());
-    strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_RIGHT], _CTX_utf8("Right", "Camera View").c_str());
+    strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_LEFT], _u8L_CONTEXT("Left", "Camera View").c_str());
+    strcpy(style.FaceLabels[ImGuizmo::FACES::FACE_RIGHT], _u8L_CONTEXT("Right", "Camera View").c_str());
 
     float sc = get_scale();
 #ifdef WIN32

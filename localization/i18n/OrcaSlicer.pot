@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -552,6 +552,7 @@ msgstr ""
 msgid "Reset"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
 msgstr ""
 
@@ -877,6 +878,7 @@ msgstr ""
 msgid "Select all connectors"
 msgstr ""
 
+msgctxt "Cut tool"
 msgid "Cut"
 msgstr ""
 
@@ -1732,12 +1734,14 @@ msgstr ""
 msgid "Select point"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
 msgstr ""
 
 msgid "Restart selection"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -1838,6 +1842,7 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
 msgstr ""
 
@@ -2348,6 +2353,9 @@ msgstr ""
 msgid "Import File"
 msgstr ""
 
+msgid "Delete"
+msgstr ""
+
 msgid "Choose files"
 msgstr ""
 
@@ -2466,12 +2474,14 @@ msgstr ""
 msgid "Show"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
 msgstr ""
 
 msgid "Delete the selected object"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr ""
 
@@ -2657,6 +2667,9 @@ msgid "Convert from Meters"
 msgstr ""
 
 msgid "Restore to Meter"
+msgstr ""
+
+msgid "Assemble"
 msgstr ""
 
 msgid "Assemble the selected objects into an object with multiple parts"
@@ -3403,6 +3416,7 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr ""
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
 msgstr ""
 
@@ -4118,6 +4132,14 @@ msgid "Print using filament on external spool."
 msgstr ""
 
 msgid "Print with filament in AMS"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
 msgstr ""
 
 msgid "When the current material run out, the printer will continue to print in the following order."
@@ -5347,6 +5369,7 @@ msgstr ""
 msgid "Quality / Speed"
 msgstr ""
 
+msgctxt "Mesh action"
 msgid "Smooth"
 msgstr ""
 
@@ -5955,6 +5978,9 @@ msgstr ""
 msgid "Redo"
 msgstr ""
 
+msgid "Cut"
+msgstr ""
+
 msgid "Cut selection to clipboard"
 msgstr ""
 
@@ -6052,6 +6078,10 @@ msgid "Show outline around selected object in 3D scene."
 msgstr ""
 
 msgid "Preferences"
+msgstr ""
+
+msgctxt "Menu"
+msgid "Edit"
 msgstr ""
 
 msgid "View"
@@ -8615,6 +8645,15 @@ msgstr ""
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr ""
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr ""
 
@@ -8897,6 +8936,7 @@ msgstr ""
 msgid "The selected preset is null!"
 msgstr ""
 
+msgctxt "Layer range"
 msgid "End"
 msgstr ""
 
@@ -9178,6 +9218,9 @@ msgid "When spiral vase mode is enabled, machines with I3 structure will not gen
 msgstr ""
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
+msgstr ""
+
+msgid "I have checked the installed nozzle and want to print anyway."
 msgstr ""
 
 msgid "Errors"
@@ -10804,24 +10847,28 @@ msgstr ""
 msgid "Select objects by rectangle"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
 msgstr ""
 
 msgid "Move selection 10mm in positive Y direction"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
 msgstr ""
 
 msgid "Move selection 10mm in negative Y direction"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
 msgstr ""
 
 msgid "Move selection 10mm in negative X direction"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
 msgstr ""
 
@@ -10906,7 +10953,15 @@ msgstr ""
 msgid "Toggle printable for object/part"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
 msgstr ""
 
 msgid "Open actions speed dial"
@@ -10966,7 +11021,15 @@ msgstr ""
 msgid "Move slider 5x faster"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "End"
 msgstr ""
 
 msgid "Horizontal slider - Move to last position"
@@ -15098,6 +15161,9 @@ msgstr ""
 msgid "Traditional"
 msgstr ""
 
+msgid "Smooth"
+msgstr ""
+
 msgid "Farthest point timelapse"
 msgstr ""
 
@@ -15999,6 +16065,12 @@ msgid "Support fast purge mode"
 msgstr ""
 
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
+
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
 msgstr ""
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
@@ -19049,13 +19121,13 @@ msgstr ""
 msgid "Show details"
 msgstr ""
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr ""
 
 msgid "Download and Install"
-msgstr ""
-
-msgid "Skip for Now"
 msgstr ""
 
 msgid "A new version of the Bambu Network Plug-in is available."
@@ -19068,16 +19140,10 @@ msgstr ""
 msgid "Update to version:"
 msgstr ""
 
-msgid "Update Now"
-msgstr ""
-
-msgid "Remind Later"
-msgstr ""
-
-msgid "Skip Version"
-msgstr ""
-
 msgid "Don't Ask Again"
+msgstr ""
+
+msgid "Update Now"
 msgstr ""
 
 msgid "(Latest)"
@@ -19093,9 +19159,6 @@ msgid "A restart is required to load the new plug-in. Would you like to restart 
 msgstr ""
 
 msgid "Restart Now"
-msgstr ""
-
-msgid "Restart Later"
 msgstr ""
 
 msgid "NO RAMMING AT ALL"

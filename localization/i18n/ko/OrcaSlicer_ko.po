@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -558,6 +558,7 @@ msgstr "재매핑"
 msgid "Reset"
 msgstr "초기화"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
 msgstr ""
 
@@ -895,8 +896,9 @@ msgstr "선택 항목에서 커넥터 제거"
 msgid "Select all connectors"
 msgstr "모든 커넥터 선택"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "잘라내기"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "절단면 회전"
@@ -1763,12 +1765,14 @@ msgstr "선택"
 msgid "Select point"
 msgstr "위치 선택"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "삭제"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "다시 선택"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -1875,8 +1879,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "병합"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "분해 비율이 1인지 확인하고 최소 두 개의 볼륨을 선택하세요."
@@ -2409,6 +2414,9 @@ msgstr "URL 다운로드를 시작할 수 없습니다. 대상 폴더가 설정�
 msgid "Import File"
 msgstr "파일 가져오기"
 
+msgid "Delete"
+msgstr "삭제"
+
 msgid "Choose files"
 msgstr "파일 선택"
 
@@ -2539,13 +2547,14 @@ msgstr "숨기기"
 msgid "Show"
 msgstr "보이기"
 
-# 단축키
+msgctxt "Keyboard Shortcut"
 msgid "Del"
 msgstr ""
 
 msgid "Delete the selected object"
 msgstr "선택된 객체 삭제"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr ""
 
@@ -2745,6 +2754,9 @@ msgstr "미터에서 변환"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "미터로 복원"
+
+msgid "Assemble"
+msgstr "병합"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "선택한 객체를 여러 부품이 있는 객체로 조립"
@@ -3518,8 +3530,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "왼쪽(보조)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "핫엔드"
+msgstr ""
 
 msgid "Parts"
 msgstr "파트"
@@ -4278,6 +4291,14 @@ msgstr "케이스 뒷면에 장착된 재료를 사용하여 출력"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "AMS의 필라멘트로 출력"
+
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "현재 재료가 소진되면 프린터는 다음 순서로 계속 출력합니다."
@@ -5596,8 +5617,9 @@ msgstr "적응형"
 msgid "Quality / Speed"
 msgstr "품질 / 속도"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "유연"
+msgstr ""
 
 msgid "Radius"
 msgstr "반경"
@@ -6214,6 +6236,9 @@ msgstr "실행 취소"
 msgid "Redo"
 msgstr "다시 실행"
 
+msgid "Cut"
+msgstr "잘라내기"
+
 msgid "Cut selection to clipboard"
 msgstr "잘라낸 항목을 클립보드에 복사"
 
@@ -6314,6 +6339,10 @@ msgstr "3D 장면에서 선택한 객체 주변에 윤곽선 표시"
 
 msgid "Preferences"
 msgstr "기본 설정"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "시점"
@@ -8984,6 +9013,15 @@ msgstr ""
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr ""
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "로그인 지역"
 
@@ -9277,8 +9315,9 @@ msgstr "호환되지 않음"
 msgid "The selected preset is null!"
 msgstr "선택한 사전 설정의 값이 존재하지 않습니다!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "끝"
+msgstr ""
 
 msgid "Customize"
 msgstr "사용자 정의"
@@ -9569,6 +9608,9 @@ msgstr "나선형 꽃병 모드를 활성화하면 I3 구조의 장치는 타임
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "현재 프린터는 개체별 출력 시 기존 모드에서 타임랩스를 지원하지 않습니다."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "오류"
@@ -11264,29 +11306,33 @@ msgstr "여러 객체 선택"
 msgid "Select objects by rectangle"
 msgstr "사각형으로 객체 선택"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "화살표 위로"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "선택 항목을 +Y 방향으로 10mm 이동"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "화살표 아래로"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "선택 항목을 -Y 방향으로 10mm 이동"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "화살표 왼쪽으로"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "선택 항목을 -X 방향으로 10mm 이동"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "화살표 오른쪽으로"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11372,8 +11418,16 @@ msgstr "축소"
 msgid "Toggle printable for object/part"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "준비 하기/미리 보기 전환"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11433,8 +11487,16 @@ msgstr "Gcode 창 켜기/끄기"
 msgid "Move slider 5x faster"
 msgstr "슬라이더를 5배 빠르게 이동"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "수평 슬라이더 - 시작 위치로 이동"
+
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "수평 슬라이더 - 마지막 위치로 이동"
@@ -15921,6 +15983,9 @@ msgstr "유연 또는 기존 모드를 선택한 경우 각 출력에 대해 타
 msgid "Traditional"
 msgstr "기존"
 
+msgid "Smooth"
+msgstr "유연"
+
 msgid "Farthest point timelapse"
 msgstr ""
 
@@ -16897,6 +16962,12 @@ msgid "Support fast purge mode"
 msgstr ""
 
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
+
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
 msgstr ""
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
@@ -20098,13 +20169,13 @@ msgstr ""
 msgid "Show details"
 msgstr ""
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr ""
 
 msgid "Download and Install"
-msgstr ""
-
-msgid "Skip for Now"
 msgstr ""
 
 msgid "A new version of the Bambu Network Plug-in is available."
@@ -20117,16 +20188,10 @@ msgstr ""
 msgid "Update to version:"
 msgstr ""
 
-msgid "Update Now"
-msgstr ""
-
-msgid "Remind Later"
-msgstr ""
-
-msgid "Skip Version"
-msgstr ""
-
 msgid "Don't Ask Again"
+msgstr ""
+
+msgid "Update Now"
 msgstr ""
 
 msgid "(Latest)"
@@ -20142,9 +20207,6 @@ msgid "A restart is required to load the new plug-in. Would you like to restart 
 msgstr ""
 
 msgid "Restart Now"
-msgstr ""
-
-msgid "Restart Later"
 msgstr ""
 
 msgid "NO RAMMING AT ALL"
@@ -20729,6 +20791,24 @@ msgid ""
 msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
+
+#~ msgid "Arrow Up"
+#~ msgstr "화살표 위로"
+
+#~ msgid "Arrow Down"
+#~ msgstr "화살표 아래로"
+
+#~ msgid "Arrow Left"
+#~ msgstr "화살표 왼쪽으로"
+
+#~ msgid "Arrow Right"
+#~ msgstr "화살표 오른쪽으로"
+
+#~ msgid "End"
+#~ msgstr "끝"
+
+#~ msgid "Hotend"
+#~ msgstr "핫엔드"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "왼쪽 노즐에 설치된 필라멘트를 선택합니다"

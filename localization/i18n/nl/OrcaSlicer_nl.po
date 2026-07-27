@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -554,6 +554,7 @@ msgstr "Opnieuw toewijzen"
 msgid "Reset"
 msgstr "Terugzetten"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
 msgstr ""
 
@@ -886,8 +887,9 @@ msgstr "Verbinding verwijderen uit selectie"
 msgid "Select all connectors"
 msgstr "Selecteer alle verbindingen"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Knippen"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr ""
@@ -1748,12 +1750,14 @@ msgstr "Selecteren"
 msgid "Select point"
 msgstr "Kies punt"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Verwijderen"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Selectie herstarten"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
 msgstr ""
 
@@ -1856,8 +1860,9 @@ msgstr ""
 msgid "Leaving Measure gizmo"
 msgstr ""
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Monteren"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr ""
@@ -2380,6 +2385,9 @@ msgstr ""
 msgid "Import File"
 msgstr "Importeer bestand"
 
+msgid "Delete"
+msgstr "Verwijderen"
+
 msgid "Choose files"
 msgstr "Kies bestanden"
 
@@ -2510,12 +2518,14 @@ msgstr "Verbergen"
 msgid "Show"
 msgstr "Weergeven"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
 msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Verwijder het geselecteerde object"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
 msgstr ""
 
@@ -2712,6 +2722,9 @@ msgstr "Omzetten vanuit meter"
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Terugzetten naar meter"
+
+msgid "Assemble"
+msgstr "Monteren"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Monteer de geselecteerde objecten tot een object bestaande uit meerdere delen"
@@ -3490,8 +3503,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr ""
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Hotend"
+msgstr ""
 
 msgid "Parts"
 msgstr "Onderdelen"
@@ -4236,6 +4250,14 @@ msgstr "Print met filament op een externe spoel."
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "Printen met filament in AMS"
+
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Als het huidige materiaal op is, gaat de printer verder met afdrukken in de volgende volgorde."
@@ -5536,8 +5558,9 @@ msgstr "Adaptief"
 msgid "Quality / Speed"
 msgstr "Kwaliteit/snelheid"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Vloeiend"
+msgstr ""
 
 msgid "Radius"
 msgstr "Straal"
@@ -6154,6 +6177,9 @@ msgstr "Ongedaan maken"
 msgid "Redo"
 msgstr "Opnieuw doen"
 
+msgid "Cut"
+msgstr "Knippen"
+
 msgid "Cut selection to clipboard"
 msgstr "Selectie naar klembord knippen"
 
@@ -6254,6 +6280,10 @@ msgstr ""
 
 msgid "Preferences"
 msgstr "Voorkeuren"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Weergave"
@@ -8901,6 +8931,15 @@ msgstr ""
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr ""
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Inlogregio"
 
@@ -9194,8 +9233,9 @@ msgstr "Incompatibel"
 msgid "The selected preset is null!"
 msgstr "De geselecteerde preset is nul!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Einde"
+msgstr ""
 
 msgid "Customize"
 msgstr "Aanpassen"
@@ -9478,6 +9518,9 @@ msgid "When spiral vase mode is enabled, machines with I3 structure will not gen
 msgstr "When enable spiral vase mode, machines with I3 structure will not generate timelapse videos."
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
+msgstr ""
+
+msgid "I have checked the installed nozzle and want to print anyway."
 msgstr ""
 
 msgid "Errors"
@@ -11158,29 +11201,33 @@ msgstr "Selecteer meerdere objecten"
 msgid "Select objects by rectangle"
 msgstr "Objecten selecteren door rechthoek"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Pijl naar boven"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Verplaats de selectie 10mm in een positieve Y richting"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Pijl omlaag"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Verplaats de selectie 10mm in een negatieve Y richting"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Pijl naar links"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Verplaats de selectie 10mm in een negatieve X richting"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Pijl naar rechts"
+msgstr ""
 
 # TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
@@ -11266,7 +11313,15 @@ msgstr "Zoom uit"
 msgid "Toggle printable for object/part"
 msgstr ""
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
 msgstr ""
 
 msgid "Open actions speed dial"
@@ -11327,7 +11382,15 @@ msgstr ""
 msgid "Move slider 5x faster"
 msgstr "Schuifregelaar 5x sneller verplaatsen"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
+msgstr ""
+
+msgctxt "Keyboard Shortcut"
+msgid "End"
 msgstr ""
 
 msgid "Horizontal slider - Move to last position"
@@ -15610,6 +15673,9 @@ msgstr "Als de vloeiende of traditionele modus is geselecteerd, wordt voor elke 
 msgid "Traditional"
 msgstr "Traditioneel"
 
+msgid "Smooth"
+msgstr "Vloeiend"
+
 msgid "Farthest point timelapse"
 msgstr ""
 
@@ -16552,6 +16618,12 @@ msgid "Support fast purge mode"
 msgstr ""
 
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
+
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
 msgstr ""
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
@@ -19685,13 +19757,13 @@ msgstr "Fout: %s"
 msgid "Show details"
 msgstr ""
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr ""
 
 msgid "Download and Install"
-msgstr ""
-
-msgid "Skip for Now"
 msgstr ""
 
 msgid "A new version of the Bambu Network Plug-in is available."
@@ -19704,16 +19776,10 @@ msgstr "Huidige versie: %s"
 msgid "Update to version:"
 msgstr ""
 
-msgid "Update Now"
-msgstr ""
-
-msgid "Remind Later"
-msgstr ""
-
-msgid "Skip Version"
-msgstr ""
-
 msgid "Don't Ask Again"
+msgstr ""
+
+msgid "Update Now"
 msgstr ""
 
 msgid "(Latest)"
@@ -19729,9 +19795,6 @@ msgid "A restart is required to load the new plug-in. Would you like to restart 
 msgstr ""
 
 msgid "Restart Now"
-msgstr ""
-
-msgid "Restart Later"
 msgstr ""
 
 msgid "NO RAMMING AT ALL"
@@ -20316,6 +20379,24 @@ msgid ""
 msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Pijl naar boven"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Pijl omlaag"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Pijl naar links"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Pijl naar rechts"
+
+#~ msgid "End"
+#~ msgstr "Einde"
+
+#~ msgid "Hotend"
+#~ msgstr "Hotend"
 
 #~ msgid "Select Filament && Hotends"
 #~ msgstr "Selecteer Filament && hot-ends"

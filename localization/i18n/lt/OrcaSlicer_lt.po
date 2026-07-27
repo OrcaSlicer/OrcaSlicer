@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-20 10:39-0300\n"
+"POT-Creation-Date: 2026-07-23 15:24-0300\n"
 "PO-Revision-Date: 2026-07-02 14:13+0300\n"
 "Last-Translator: Gintaras Kučinskas <sharanchius@gmail.com>\n"
 "Language-Team: \n"
@@ -553,8 +553,9 @@ msgstr "Priskirti iš naujo"
 msgid "Reset"
 msgstr "Nustatyti iš naujo"
 
+msgctxt "Keyboard Shortcut"
 msgid "Enter"
-msgstr "Įvesti"
+msgstr ""
 
 msgid "Shortcut Key "
 msgstr "Spartusis klavišas "
@@ -883,8 +884,9 @@ msgstr "Pašalinti jungtį iš parinkties"
 msgid "Select all connectors"
 msgstr "Pasirinkti visas jungtis"
 
+msgctxt "Cut tool"
 msgid "Cut"
-msgstr "Iškirpti"
+msgstr ""
 
 msgid "Rotate cut plane"
 msgstr "Sukti pjovimo plokštumą"
@@ -1749,14 +1751,16 @@ msgstr "Pasirinkti"
 msgid "Select point"
 msgstr "Pasirinkti tašką"
 
+msgctxt "Keyboard Shortcut"
 msgid "Delete"
-msgstr "Ištrinti"
+msgstr ""
 
 msgid "Restart selection"
 msgstr "Pasirinkti iš naujo"
 
+msgctxt "Keyboard Shortcut"
 msgid "Esc"
-msgstr "Esc"
+msgstr ""
 
 msgid "Cancel a feature until exit"
 msgstr "Atmesti elementą iki išėjimo"
@@ -1861,8 +1865,9 @@ msgstr "Įjungiamas matavimo manipuliatorius"
 msgid "Leaving Measure gizmo"
 msgstr "Išjungiamas matavimo manipuliatorius"
 
+msgctxt "Assembly tool"
 msgid "Assemble"
-msgstr "Surinkti"
+msgstr ""
 
 msgid "Please confirm explosion ratio = 1 and select at least two volumes."
 msgstr "Įsitikinkite, kad išskaidymo koeficientas = 1, ir pasirinkite bent du tūrius."
@@ -2415,6 +2420,9 @@ msgstr "Nepavyko pradėti atsisiuntimo iš interneto adreso. Nėra nurodytas pas
 msgid "Import File"
 msgstr "Importuoti failą"
 
+msgid "Delete"
+msgstr "Ištrinti"
+
 msgid "Choose files"
 msgstr "Pasirinkite failus"
 
@@ -2533,14 +2541,16 @@ msgstr "Paslėpti"
 msgid "Show"
 msgstr "Rodyti"
 
+msgctxt "Keyboard Shortcut"
 msgid "Del"
-msgstr "Del"
+msgstr ""
 
 msgid "Delete the selected object"
 msgstr "Ištrinti pasirinktą objektą"
 
+msgctxt "Keyboard Shortcut"
 msgid "Backspace"
-msgstr "Backspace"
+msgstr ""
 
 msgid "Load..."
 msgstr "Įkelti..."
@@ -2729,6 +2739,9 @@ msgstr "Konvertuoti iš metrų"
 
 msgid "Restore to Meter"
 msgstr "Grąžinti į metrus"
+
+msgid "Assemble"
+msgstr "Surinkti"
 
 msgid "Assemble the selected objects into an object with multiple parts"
 msgstr "Sujungti pasirinktus objektus į objektą iš kelių detalių"
@@ -3483,8 +3496,9 @@ msgctxt "air_duct"
 msgid "Left(Aux)"
 msgstr "Kairysis (papildomas)"
 
+msgctxt "Hotend Heat Breaker Fan"
 msgid "Hotend"
-msgstr "Kaitinimo blokas (Hotend)"
+msgstr ""
 
 msgid "Parts"
 msgstr "Detalės"
@@ -4222,6 +4236,14 @@ msgstr "Spausdinti išorinės ritės gija"
 
 msgid "Print with filament in AMS"
 msgstr "Spausdinti AMS gijomis"
+
+msgctxt "Nozzle position"
+msgid "Left"
+msgstr ""
+
+msgctxt "Nozzle position"
+msgid "Right"
+msgstr ""
 
 msgid "When the current material run out, the printer will continue to print in the following order."
 msgstr "Pasibaigus esamai medžiagai, spausdintuvas toliau spausdins šia tvarka."
@@ -5514,8 +5536,9 @@ msgstr "Adaptyvus"
 msgid "Quality / Speed"
 msgstr "Kokybė / Greitis"
 
+msgctxt "Mesh action"
 msgid "Smooth"
-msgstr "Glotnus"
+msgstr ""
 
 msgid "Radius"
 msgstr "Spindulys"
@@ -6132,6 +6155,9 @@ msgstr "Atšaukti"
 msgid "Redo"
 msgstr "Perdaryti"
 
+msgid "Cut"
+msgstr "Iškirpti"
+
 msgid "Cut selection to clipboard"
 msgstr "Iškirpti pasirinkimą į mainų sritį"
 
@@ -6230,6 +6256,10 @@ msgstr "Rodyti kontūrą aplink pasirinktą objektą 3D scenoje."
 
 msgid "Preferences"
 msgstr "Parinktys"
+
+msgctxt "Menu"
+msgid "Edit"
+msgstr ""
 
 msgid "View"
 msgstr "Vaizdas"
@@ -8904,6 +8934,15 @@ msgstr "Rodyti KPS (FPS) indikatorių"
 msgid "Displays current viewport FPS in the top-right corner."
 msgstr "Viršutiniame dešiniajame kampe rodo esamą vaizdo srities kadrų dažnį."
 
+msgid "G-code Preview"
+msgstr ""
+
+msgid "Dim lower layers"
+msgstr ""
+
+msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
+msgstr ""
+
 msgid "Login region"
 msgstr "Prisijungimo regionas"
 
@@ -9192,8 +9231,9 @@ msgstr "Nesuderinama"
 msgid "The selected preset is null!"
 msgstr "Pasirinktas profilis yra tuščias (null)!"
 
+msgctxt "Layer range"
 msgid "End"
-msgstr "Pabaiga"
+msgstr ""
 
 msgid "Customize"
 msgstr "Pritaikyti"
@@ -9480,6 +9520,9 @@ msgstr "Įjungus spiralinės vazos režimą, I3 struktūros įrenginiai negeneru
 
 msgid "The current printer does not support timelapse in Traditional Mode when printing By-Object."
 msgstr "Dabartinis spausdintuvas nepalaiko laiko tarpų (timelapse) vaizdo įrašų tradiciniu režimu, kai spausdinama pagal objektą."
+
+msgid "I have checked the installed nozzle and want to print anyway."
+msgstr ""
 
 msgid "Errors"
 msgstr "Klaidos"
@@ -11182,26 +11225,30 @@ msgstr "Pasirinkite kelis objektus"
 msgid "Select objects by rectangle"
 msgstr "Pasirinkti objektus stačiakampio rėmeliu"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
-msgstr "Rodyklė aukštyn"
+msgstr ""
 
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Perkelti pasirinkimą 10 mm teigiama Y kryptimi"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
-msgstr "Rodyklė žemyn"
+msgstr ""
 
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Perkelti pasirinkimą 10 mm neigiama Y kryptimi"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
-msgstr "Rodyklė Kairėn"
+msgstr ""
 
 msgid "Move selection 10mm in negative X direction"
 msgstr "Perkelti pasirinkimą 10 mm neigiama X kryptimi"
 
+msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
-msgstr "Rodyklė dešinėn"
+msgstr ""
 
 msgid "Move selection 10mm in positive X direction"
 msgstr "Perkelti pasirinkimą 10 mm teigiama X kryptimi"
@@ -11284,8 +11331,16 @@ msgstr "Nutolinti"
 msgid "Toggle printable for object/part"
 msgstr "Perjungti objekto / dalies spausdinimą"
 
+msgctxt "Keyboard Shortcut"
+msgid "Tab"
+msgstr ""
+
 msgid "Switch between Prepare/Preview"
 msgstr "Perjungimas tarp Paruošti / Peržiūrėti"
+
+msgctxt "Keyboard Shortcut"
+msgid "Space"
+msgstr ""
 
 msgid "Open actions speed dial"
 msgstr ""
@@ -11344,8 +11399,16 @@ msgstr "G-kodo lango įjungimas / išjungimas"
 msgid "Move slider 5x faster"
 msgstr "Judinkite slankiklį 5 kartus greičiau"
 
+msgctxt "Keyboard Shortcut"
+msgid "Home"
+msgstr ""
+
 msgid "Horizontal slider - Move to start position"
 msgstr "Horizontalus slankiklis – perkelti į pradinę padėtį"
+
+msgctxt "Keyboard Shortcut"
+msgid "End"
+msgstr ""
 
 msgid "Horizontal slider - Move to last position"
 msgstr "Horizontalus slankiklis – perkelti į paskutinę padėtį"
@@ -15875,6 +15938,9 @@ msgstr "Jei pasirinktas sklandus (\"smooth\") arba tradicinis (\"traditional\") 
 msgid "Traditional"
 msgstr "Tradicinis"
 
+msgid "Smooth"
+msgstr "Glotnus"
+
 msgid "Farthest point timelapse"
 msgstr ""
 
@@ -16828,6 +16894,12 @@ msgid "Support fast purge mode"
 msgstr ""
 
 msgid "Whether this printer supports fast purge mode with optimized temperature and multiplier."
+msgstr ""
+
+msgid "Filament change"
+msgstr ""
+
+msgid "The volume of material required to prime the extruder on the tower, excluding a hotend change."
 msgstr ""
 
 msgid "The volume of material required to prime the extruder for a hotend change on the tower."
@@ -20022,14 +20094,14 @@ msgstr "Klaida: %s"
 msgid "Show details"
 msgstr "Rodyti išsamiau"
 
+msgid "Hide details"
+msgstr ""
+
 msgid "Version to install:"
 msgstr "Diegiama versija:"
 
 msgid "Download and Install"
 msgstr "Atsisiųsti ir įdiegti"
-
-msgid "Skip for Now"
-msgstr "Kol kas praleisti"
 
 msgid "A new version of the Bambu Network Plug-in is available."
 msgstr "Išleista nauja „Bambu“ tinklo papildinio versija."
@@ -20041,17 +20113,11 @@ msgstr "Dabartinė versija: %s"
 msgid "Update to version:"
 msgstr "Atnaujinti iki versijos:"
 
-msgid "Update Now"
-msgstr "Atnaujinti dabar"
-
-msgid "Remind Later"
-msgstr "Priminti vėliau"
-
-msgid "Skip Version"
-msgstr "Praleisti šią versiją"
-
 msgid "Don't Ask Again"
 msgstr "Daugiau neklausti"
+
+msgid "Update Now"
+msgstr "Atnaujinti dabar"
 
 msgid "(Latest)"
 msgstr "(Naujausia)"
@@ -20067,9 +20133,6 @@ msgstr "Norint įkelti naują papildinį, programą reikia paleisti iš naujo. A
 
 msgid "Restart Now"
 msgstr "Paleisti iš naujo dabar"
-
-msgid "Restart Later"
-msgstr "Paleisti iš naujo vėliau"
 
 msgid "NO RAMMING AT ALL"
 msgstr "VISIŠKAI NENAUDOTI SUTANKINIMO"
@@ -20649,6 +20712,48 @@ msgid ""
 msgstr ""
 "Venkite deformacijų (warping)\n"
 "Ar žinojote, kad spausdinant medžiagas, kurios yra linkusios trauktis ir riestis (pvz., ABS), tinkamas kaitinamojo pagrindo temperatūros padidinimas gali sumažinti deformacijų (warping) tikimybę?"
+
+#~ msgid "Enter"
+#~ msgstr "Įvesti"
+
+#~ msgid "Esc"
+#~ msgstr "Esc"
+
+#~ msgid "Del"
+#~ msgstr "Del"
+
+#~ msgid "Backspace"
+#~ msgstr "Backspace"
+
+#~ msgid "Arrow Up"
+#~ msgstr "Rodyklė aukštyn"
+
+#~ msgid "Arrow Down"
+#~ msgstr "Rodyklė žemyn"
+
+#~ msgid "Arrow Left"
+#~ msgstr "Rodyklė Kairėn"
+
+#~ msgid "Arrow Right"
+#~ msgstr "Rodyklė dešinėn"
+
+#~ msgid "End"
+#~ msgstr "Pabaiga"
+
+#~ msgid "Hotend"
+#~ msgstr "Kaitinimo blokas (Hotend)"
+
+#~ msgid "Skip for Now"
+#~ msgstr "Kol kas praleisti"
+
+#~ msgid "Remind Later"
+#~ msgstr "Priminti vėliau"
+
+#~ msgid "Skip Version"
+#~ msgstr "Praleisti šią versiją"
+
+#~ msgid "Restart Later"
+#~ msgstr "Paleisti iš naujo vėliau"
 
 #~ msgid "Select filament that installed to the left nozzle"
 #~ msgstr "Pasirinkite giją, įstatytą į kairįjį purkštuką"
