@@ -548,7 +548,7 @@ DeleteConfirmDialog::DeleteConfirmDialog(wxWindow *parent, const wxString &title
     m_del_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { EndModal(wxID_OK); });
     m_cancel_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { EndModal(wxID_CANCEL); });
 
-    SetSizer(m_main_sizer);
+    SetSizerAndFit(m_main_sizer);
     Layout();
     Fit();
     wxGetApp().UpdateDlgDarkUI(this);
@@ -583,7 +583,7 @@ Newer3mfVersionDialog::Newer3mfVersionDialog(wxWindow *parent, const Semver *fil
     main_sizer->Add(content_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
     main_sizer->Add(get_btn_sizer(), 0, wxEXPAND | wxALL, FromDIP(5));
 
-    this->SetSizer(main_sizer);
+    this->SetSizerAndFit(main_sizer);
     Layout();
     Fit();
     wxGetApp().UpdateDlgDarkUI(this);
@@ -746,9 +746,8 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
     sizer_main->Add(sizer_button, 1, wxEXPAND | wxLEFT | wxRIGHT, 15);
     sizer_main->Add(0, 0, 0, wxTOP, 18);
 
-    SetSizer(sizer_main);
+    SetSizerAndFit(sizer_main);
     Layout();
-    sizer_main->Fit(this);
     Centre(wxBOTH);
 }
 
