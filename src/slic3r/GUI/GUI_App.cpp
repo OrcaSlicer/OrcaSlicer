@@ -3708,13 +3708,13 @@ bool GUI_App::on_init_network(bool try_backup)
             }
         } else {
             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << ": on_init_network, load dll failed";
-            // A failed install can leave the config naming a build that never made it to
-            // disk (download_plugin() adopts the downloaded version up front so that
-            // install_plugin() can name the library after it). If the whitelisted latest
-            // is still installed, fall back to it instead of dropping the user into the
-            // re-download flow without networking.
+            // A failed install can leave the config naming a build that never made it to disk;
+            // fall back to the installed latest instead of dropping the user into the re-download
+            // flow. Only when the configured library is genuinely absent, though - a pinned series
+            // that is on disk but failed to load once must keep its pin, not be rewritten for good.
             std::string latest = get_latest_network_version();
-            if (config_version != latest && BBLNetworkPlugin::versioned_library_exists(latest)) {
+            if (config_version != latest && !BBLNetworkPlugin::versioned_library_exists(config_version)
+                && BBLNetworkPlugin::versioned_library_exists(latest)) {
                 BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": falling back to installed " << latest;
                 config_version = latest;
                 app_config->set_network_plugin_version(latest);
@@ -3818,7 +3818,14 @@ bool GUI_App::on_init_network(bool try_backup)
             m_user_manager = new Slic3r::UserManager();
     }
 
-    if (should_load_networking_plugin && m_networking_compatible && !use_legacy_network_plugin()) {
+    // A version pinned to something other than the latest series is a deliberate choice, so it
+    // is exempt from the upgrade prompt the same way the legacy pin already is - otherwise the
+    // dialog reappears on every launch for as long as the pin is held.
+    const std::string pinned_version = app_config->get_network_plugin_version();
+    const bool pinned_to_older_series = !pinned_version.empty() &&
+        network_plugin_series(pinned_version) != network_plugin_series(get_latest_network_version());
+
+    if (should_load_networking_plugin && m_networking_compatible && !pinned_to_older_series) {
         app_config->clear_remind_network_update_later();
 
         if (has_network_update_available()) {
