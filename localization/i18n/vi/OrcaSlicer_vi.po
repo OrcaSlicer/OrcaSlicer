@@ -487,11 +487,9 @@ msgstr "Đầu công cụ"
 msgid "Nozzle information needs to be read"
 msgstr "Cần đọc thông tin đầu phun"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support Painting"
 msgstr "Vẽ support"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Apply"
 msgstr "Áp dụng"
 
@@ -502,7 +500,6 @@ msgstr "Chỉ trên các overhang được làm nổi bật"
 msgid "Erase all"
 msgstr "Xóa tất cả"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Highlight overhangs"
 msgstr "Tô sáng vùng overhang"
 
@@ -579,7 +576,6 @@ msgstr "Không tự động support"
 msgid "Done"
 msgstr "Hoàn thành"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support generated"
 msgstr "Đã tạo support"
 
@@ -598,7 +594,6 @@ msgstr "Chỉnh sửa support bằng vẽ"
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo - Đặt lên mặt"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Lay on Face"
 msgstr "Đặt lên mặt"
 
@@ -606,7 +601,6 @@ msgstr "Đặt lên mặt"
 msgid "Filament count exceeds the maximum number that painting tool supports. Only the first %1% filaments will be available in painting tool."
 msgstr "Số lượng filament vượt quá số tối đa mà công cụ vẽ hỗ trợ. Chỉ %1% filament đầu tiên sẽ khả dụng trong công cụ vẽ."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Color Painting"
 msgstr "Vẽ màu"
 
@@ -786,37 +780,30 @@ msgstr "Xoay (tương đối)"
 msgid "Scale ratios"
 msgstr "Tỷ lệ co giãn"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Thao tác vật thể"
 
 msgid "Scale"
 msgstr "Tỷ lệ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
 msgstr "Thao tác thể tích"
 
 msgid "Translate"
 msgstr "Dịch chuyển"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Group operations"
 msgstr "Thao tác nhóm"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set orientation"
 msgstr "Đặt định hướng"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set scale"
 msgstr "Đặt tỷ lệ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset position"
 msgstr "Đặt lại vị trí"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset rotation"
 msgstr "Đặt lại xoay"
 
@@ -1129,7 +1116,6 @@ msgstr ""
 msgid "Cut by Plane"
 msgstr "Cắt bằng mặt phẳng"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
 msgstr "cạnh non-manifold được tạo bởi công cụ cắt, bạn có muốn sửa ngay không?"
 
@@ -1198,7 +1184,6 @@ msgstr "%d tam giác"
 msgid "Show wireframe"
 msgstr "Hiện khung dây"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to apply when processing preview"
 msgstr "Không thể áp dụng khi đang xử lý xem trước."
 
@@ -1223,7 +1208,6 @@ msgstr "Vẽ seam"
 msgid "Remove selection"
 msgstr "Xóa lựa chọn"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Entering seam painting"
 msgstr "Đang vào vẽ seam"
 
@@ -1248,11 +1232,9 @@ msgstr "Khoảng cách chữ"
 msgid "Angle"
 msgstr "Góc"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Embedded depth"
-msgstr ""
-"Độ sâu\n"
-"nhúng"
+msgstr "Độ sâu nhúng"
 
 msgid "Input text"
 msgstr "Nhập chữ"
@@ -1776,7 +1758,6 @@ msgstr "Tải lại file SVG từ ổ đĩa."
 msgid "Change file"
 msgstr "Đổi file"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Change to another SVG file."
 msgstr "Đổi sang file .svg khác"
 
@@ -1804,7 +1785,6 @@ msgstr "Lưu thành"
 msgid "Save SVG file"
 msgstr "Lưu file SVG"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Save as SVG file."
 msgstr "Lưu thành file '.svg'"
 
@@ -2082,7 +2062,6 @@ msgstr "Alt+"
 msgid "Notice"
 msgstr "Thông báo"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Undefined"
 msgstr "Không xác định"
 
@@ -2107,11 +2086,9 @@ msgstr "Filament"
 msgid "Machine"
 msgstr "Máy"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "Gói cấu hình đã được tải, nhưng một số giá trị không được nhận diện."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "File cấu hình \"%1%\" đã được tải, nhưng một số giá trị không được nhận diện."
@@ -2282,7 +2259,6 @@ msgstr "Ghi nhớ lựa chọn của tôi"
 msgid "Click to download new version in default browser: %s"
 msgstr "Nhấn để tải phiên bản mới trong trình duyệt mặc định: %s"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "OrcaSlicer needs an update"
 msgstr "Orca Slicer cần nâng cấp"
 
@@ -2362,7 +2338,6 @@ msgstr "Ext"
 msgid "Some presets are modified."
 msgstr "Một số preset đã được sửa đổi."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Bạn có thể giữ preset đã sửa cho dự án mới, hủy hoặc lưu thay đổi thành preset mới."
 
@@ -2682,7 +2657,6 @@ msgstr "Đổi tên"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "Khởi tạo giao diện Orca Slicer thất bại"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "Fatal error, exception: %1%"
 msgstr "Lỗi nghiêm trọng, ngoại lệ bắt được: %1%"
@@ -2711,22 +2685,18 @@ msgstr "Tốc độ"
 msgid "Strength"
 msgstr "Độ bền"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top solid layers"
 msgstr "Lớp đặc trên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top minimum shell thickness"
 msgstr "Độ dày shell tối thiểu trên"
 
 msgid "Top Surface Density"
 msgstr "Mật độ bề mặt trên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom solid layers"
 msgstr "Lớp rắn dưới"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom minimum shell thickness"
 msgstr "Độ dày shell tối thiểu dưới"
 
@@ -2744,7 +2714,6 @@ msgstr "Fuzzy skin"
 msgid "Extruders"
 msgstr "Extruder"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Extrusion width"
 msgstr "Độ rộng đùn"
 
@@ -2754,23 +2723,18 @@ msgstr "Tùy chọn wipe"
 msgid "Bed adhesion"
 msgstr "Bám dính đế"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Part"
 msgstr "Thêm phần"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Negative Part"
 msgstr "Thêm phần âm"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Modifier"
 msgstr "Thêm modifier"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Blocker"
 msgstr "Thêm chặn support"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Enforcer"
 msgstr "Thêm bắt buộc support"
 
@@ -2884,15 +2848,12 @@ msgstr "Gợi ý"
 msgid "Text"
 msgstr "Chữ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Height Range Modifier"
 msgstr "Modifier phạm vi chiều cao"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Settings"
 msgstr "Thêm cài đặt"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Change Type"
 msgstr "Đổi loại"
 
@@ -2909,11 +2870,9 @@ msgstr "Bắt buộc support"
 msgid "Change part type"
 msgstr "Đổi loại phần"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as An Individual Object"
 msgstr "Đặt làm vật thể riêng lẻ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as Individual Objects"
 msgstr "Đặt làm các vật thể riêng lẻ"
 
@@ -2934,7 +2893,6 @@ msgstr "Tự động thả"
 msgid "Automatically drops the selected object to the build plate."
 msgstr "Tự động thả vật thể đã chọn xuống bàn in."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fix Model"
 msgstr "Sửa model"
 
@@ -3012,19 +2970,15 @@ msgstr "Flush vào support của vật thể"
 msgid "Edit in Parameter Table"
 msgstr "Chỉnh sửa trong bảng tham số"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Inches"
 msgstr "Chuyển đổi từ inch"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Inch"
 msgstr "Khôi phục về inch"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Meters"
 msgstr "Chuyển đổi từ mét"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Khôi phục về mét"
 
@@ -3044,31 +2998,24 @@ msgstr "Boolean lưới"
 msgid "Mesh boolean operations including union and subtraction"
 msgstr "Các thao tác mesh boolean bao gồm hợp và trừ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along X Axis"
 msgstr "Dọc trục X"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the X Axis"
 msgstr "Lật dọc trục X"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Y Axis"
 msgstr "Dọc trục Y"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Y Axis"
 msgstr "Lật dọc trục Y"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Z Axis"
 msgstr "Dọc trục Z"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Z Axis"
 msgstr "Lật dọc trục Z"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror object"
 msgstr "Lật vật thể"
 
@@ -3099,14 +3046,12 @@ msgstr "Thêm model"
 msgid "Show Labels"
 msgstr "Hiện nhãn"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Objects"
 msgstr "Thành vật thể"
 
 msgid "Split the selected object into multiple objects"
 msgstr "Tách vật thể đã chọn thành nhiều vật thể"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Parts"
 msgstr "Thành phần"
 
@@ -3136,7 +3081,6 @@ msgstr "Gộp với"
 msgid "Delete this filament"
 msgstr "Xóa filament này"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Select All"
 msgstr "Chọn tất cả"
 
@@ -3151,7 +3095,6 @@ msgstr "Chọn tất cả plate"
 msgid "Select all objects on all plates"
 msgstr "Chọn tất cả vật thể trên mọi plate"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete All"
 msgstr "Xóa tất cả"
 
@@ -3295,25 +3238,21 @@ msgstr[0] "%1$d cạnh non-manifold"
 msgid "Click the icon to repair model object"
 msgstr "Nhấn biểu tượng để sửa vật thể model"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object settings"
 msgstr "Nhấn chuột phải vào biểu tượng để hủy cài đặt vật thể"
 
 msgid "Click the icon to reset all settings of the object"
 msgstr "Nhấn biểu tượng để đặt lại tất cả cài đặt của vật thể"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object printable property"
 msgstr "Nhấn chuột phải vào biểu tượng để hủy thuộc tính có thể in của vật thể"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to toggle printable properties of the object"
 msgstr "Nhấn biểu tượng để bật/tắt thuộc tính có thể in của vật thể"
 
 msgid "Click the icon to edit support painting of the object"
 msgstr "Nhấn biểu tượng để chỉnh sửa vẽ support của vật thể"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to edit color painting for the object"
 msgstr "Nhấn biểu tượng để chỉnh sửa vẽ màu của vật thể"
 
@@ -3416,7 +3355,6 @@ msgstr "Xóa thể tích âm khỏi vật thể là một phần của cắt"
 msgid "To save cut correspondence you can delete all connectors from all related objects."
 msgstr "Để lưu sự tương ứng cắt, bạn có thể xóa tất cả connector từ tất cả vật thể liên quan."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed.\n"
@@ -3464,15 +3402,12 @@ msgstr "Thao tác vật thể"
 msgid "Group manipulation"
 msgstr "Thao tác nhóm"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object Settings to Modify"
 msgstr "Cài đặt vật thể để sửa đổi"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Part Settings to Modify"
 msgstr "Cài đặt phần để sửa đổi"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer Range Settings to Modify"
 msgstr "Cài đặt phạm vi lớp để sửa đổi"
 
@@ -3504,7 +3439,6 @@ msgstr "Nếu mục đầu tiên được chọn là vật thể, mục thứ ha
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "Nếu mục đầu tiên được chọn là phần, mục thứ hai phải là phần trong cùng vật thể."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The type of the last solid object part cannot be changed."
 msgstr "Loại của phần vật thể rắn cuối cùng không được thay đổi."
 
@@ -3564,7 +3498,6 @@ msgstr "Thêm phạm vi chiều cao"
 msgid "Invalid numeric."
 msgstr "Số không hợp lệ."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "một ô chỉ có thể sao chép vào một hoặc nhiều ô trong cùng cột"
 
@@ -3633,19 +3566,15 @@ msgstr "Loại đường"
 msgid "1x1 Grid: %d mm"
 msgstr "Lưới 1x1: %d mm"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "More"
 msgstr "Thêm"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open Preferences"
 msgstr "Mở tùy chọn."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open next tip"
 msgstr "Mở mẹo tiếp theo."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open documentation in web browser"
 msgstr "Mở tài liệu trong trình duyệt web."
 
@@ -3676,11 +3605,9 @@ msgstr "G-code tùy chỉnh"
 msgid "Enter Custom G-code used on current layer:"
 msgstr "Nhập G-code tùy chỉnh dùng trên lớp hiện tại:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Jump to layer"
 msgstr "Nhảy đến lớp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the layer number."
 msgstr "Vui lòng nhập số lớp"
 
@@ -3760,14 +3687,12 @@ msgstr "Đang kết nối..."
 msgid "Auto Refill"
 msgstr "Tự động cấp lại"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Load"
 msgstr "Nạp"
 
 msgid "Unload"
 msgstr "Tháo"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "Chọn một khe AMS rồi nhấn nút \"Nạp\" hoặc \"Tháo\" để tự động nạp hoặc tháo filament."
 
@@ -3905,7 +3830,6 @@ msgstr "Nung nóng vòi phun"
 msgid "Cut filament"
 msgstr "Cắt filament"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Pull back the current filament"
 msgstr "Kéo filament hiện tại ra"
 
@@ -3975,7 +3899,6 @@ msgstr "Đã chọn tất cả mục..."
 msgid "No matching items..."
 msgstr "Không có mục nào khớp..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deselect All"
 msgstr "Bỏ chọn tất cả"
 
@@ -4007,7 +3930,6 @@ msgstr "Cài đặt nâng cao"
 msgid "Expert settings"
 msgstr "Cài đặt chuyên gia"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Developer mode"
 msgstr "Chế độ phát triển"
 
@@ -4113,7 +4035,6 @@ msgstr "Đang sắp xếp"
 msgid "Arranging canceled."
 msgstr "Hủy sắp xếp."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "Sắp xếp hoàn tất nhưng có vật chưa đóng gói. Giảm khoảng cách và thử lại."
 
@@ -4181,7 +4102,6 @@ msgstr "Đăng nhập thất bại"
 msgid "Please check the printer network connection."
 msgstr "Vui lòng kiểm tra kết nối mạng của máy in."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Abnormal print file data: please slice again."
 msgstr "Dữ liệu file in bất thường. Vui lòng slice lại."
 
@@ -4194,7 +4114,6 @@ msgstr "Tác vụ tải lên hết thời gian. Vui lòng kiểm tra trạng th�
 msgid "Cloud service connection failed. Please try again."
 msgstr "Kết nối dịch vụ cloud thất bại. Vui lòng thử lại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice again."
 msgstr "Không tìm thấy file in. Vui lòng slice lại."
 
@@ -4207,18 +4126,15 @@ msgstr "Gửi công việc in thất bại. Vui lòng thử lại."
 msgid "Failed to upload file to ftp. Please try again."
 msgstr "Tải file lên ftp thất bại. Vui lòng thử lại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "Kiểm tra trạng thái hiện tại của bambu server bằng cách nhấn vào link ở trên."
 
 msgid "The size of the print file is too large. Please adjust the file size and try again."
 msgstr "Kích thước file in quá lớn. Vui lòng điều chỉnh kích thước file và thử lại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice it again and send it for printing."
 msgstr "Không tìm thấy file in, vui lòng slice lại và gửi để in."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "Tải file in lên FTP thất bại. Vui lòng kiểm tra trạng thái mạng và thử lại."
 
@@ -4275,7 +4191,6 @@ msgstr "Gặp lỗi không xác định với trạng thái Bộ nhớ. Vui lòn
 msgid "Sending G-code file over LAN"
 msgstr "Đang gửi file G-code qua LAN"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sending G-code file to SD card"
 msgstr "Đang gửi file G-code đến thẻ SD"
 
@@ -4365,7 +4280,6 @@ msgstr "Thời gian còn lại: %d phút %d giây"
 msgid "Importing SLA archive"
 msgstr "Đang nhập lưu trữ SLA"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "Lưu trữ SLA không chứa preset nào. Vui lòng kích hoạt một số preset máy in SLA trước khi nhập lưu trữ SLA đó."
 
@@ -4378,7 +4292,6 @@ msgstr "Nhập hoàn tất."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "Lưu trữ SLA đã nhập không chứa preset nào. Preset SLA hiện tại được dùng làm dự phòng."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "Bạn không thể tải dự án SLA với vật thể nhiều phần trên đế"
 
@@ -4406,9 +4319,9 @@ msgstr "Đang cài đặt"
 msgid "Install failed"
 msgstr "Cài đặt thất bại"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "License Info"
-msgstr "Bản quyền một phần"
+msgstr "Thông tin giấy phép"
 
 msgid "Copyright"
 msgstr "Bản quyền"
@@ -4524,7 +4437,6 @@ msgstr "Màu khác"
 msgid "Custom Color"
 msgstr "Màu tùy chỉnh"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Dynamic flow calibration"
 msgstr "Hiệu chỉnh flow động"
 
@@ -4534,7 +4446,6 @@ msgstr "Nhiệt độ vòi phun và tốc độ thể tích tối đa sẽ ảnh
 msgid "Nozzle Diameter"
 msgstr "Đường kính vòi phun"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate Type"
 msgstr "Loại bàn"
 
@@ -4556,9 +4467,9 @@ msgstr "Nhiệt độ đế"
 msgid "mm³"
 msgstr "mm³"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Start"
-msgstr "Bắt đầu hiệu chỉnh"
+msgstr "Bắt đầu"
 
 msgid "Next"
 msgstr "Tiếp theo"
@@ -4676,18 +4587,16 @@ msgstr "Không thể chọn: Không có filament nào được nạp trong khe h
 msgid "Enable AMS"
 msgstr "Bật AMS"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in the AMS"
 msgstr "In với filament trong AMS"
 
 msgid "Disable AMS"
 msgstr "Tắt AMS"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Print with filament on external spool"
-msgstr "In với filament gắn ở mặt sau khung"
+msgstr "In với filament trên cuộn ngoài"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
 msgstr "Vui lòng thay chất hút ẩm khi nó quá ướt. Chỉ báo có thể không biểu thị chính xác trong các trường hợp sau: khi nắp mở hoặc gói chất hút ẩm được thay. Phải mất hàng giờ để hấp thụ độ ẩm, và nhiệt độ thấp cũng làm chậm quá trình."
 
@@ -4706,11 +4615,10 @@ msgstr "Nhấn để chọn khe AMS thủ công"
 msgid "Do not Enable AMS"
 msgstr "Không bật AMS"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Print using filament on external spool."
-msgstr "In bằng vật liệu gắn ở mặt sau của vỏ"
+msgstr "In bằng filament trên cuộn ngoài."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "In với filament trong AMS"
 
@@ -4741,7 +4649,6 @@ msgstr "Khi vật liệu hiện tại hết, máy in sẽ dùng filament giống
 msgid "The printer does not currently support auto refill."
 msgstr "Máy in hiện không hỗ trợ tự động cấp lại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
 msgstr "Sao lưu filament AMS chưa được bật, vui lòng bật nó trong cài đặt AMS."
 
@@ -4765,7 +4672,6 @@ msgstr "Cài đặt AMS"
 msgid "Insertion update"
 msgstr "Cập nhật khi cắm"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
 msgstr "AMS sẽ tự động đọc thông tin filament khi cắm filament Bambu Lab mới. Điều này mất khoảng 20 giây."
 
@@ -4775,11 +4681,9 @@ msgstr "Lưu ý: nếu filament mới được cắm trong khi in, AMS sẽ khô
 msgid "When inserting a new filament, the AMS will not automatically read its information, leaving it blank for you to enter manually."
 msgstr "Khi cắm filament mới, AMS sẽ không tự động đọc thông tin của nó, để trống để bạn nhập thủ công."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update on startup"
 msgstr "Cập nhật khi bật nguồn"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
 msgstr "AMS sẽ tự động đọc thông tin của filament đã cắm khi khởi động. Sẽ mất khoảng 1 phút. Quá trình đọc sẽ cuộn các cuộn filament."
 
@@ -4843,9 +4747,9 @@ msgstr "Hiệu chỉnh"
 msgid "Failed to download the plug-in. Please check your firewall settings and VPN software and retry."
 msgstr "Tải plug-in thất bại. Vui lòng kiểm tra cài đặt firewall và phần mềm vpn , kiểm tra và thử lại."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
-msgstr "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or deleted by anti-virus software."
+msgstr "Cài đặt plug-in thất bại. File plug-in có thể đang được sử dụng. Vui lòng khởi động lại OrcaSlicer và thử lại. Ngoài ra, hãy kiểm tra xem nó có bị chặn hoặc đã bị xóa bởi phần mềm diệt virus không."
 
 msgid "Click here to see more info"
 msgstr "nhấn vào đây để xem thêm thông tin"
@@ -4867,7 +4771,6 @@ msgstr ") để xác định vị trí của đầu công cụ. Điều này ng�
 msgid "Go Home"
 msgstr "Về gốc"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Xảy ra lỗi. Có thể bộ nhớ của hệ thống không đủ hoặc đây là lỗi của chương trình"
 
@@ -4875,11 +4778,9 @@ msgstr "Xảy ra lỗi. Có thể bộ nhớ của hệ thống không đủ ho�
 msgid "A fatal error occurred: \"%1%\""
 msgstr "Xảy ra lỗi nghiêm trọng: \"%1%\""
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please save your project and restart the application."
 msgstr "Vui lòng lưu dự án và khởi động lại chương trình."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing G-Code from previous file…"
 msgstr "Đang xử lý G-code từ file trước..."
 
@@ -4944,7 +4845,6 @@ msgstr "Sao chép G-code tạm thời đã hoàn tất nhưng code đã xuất k
 msgid "G-code file exported to %1%"
 msgstr "File G-code đã xuất ra %1%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown error with G-code export"
 msgstr "Lỗi không xác định khi xuất G-code."
 
@@ -4958,7 +4858,6 @@ msgstr ""
 "Thông báo lỗi: %1%.\n"
 "File nguồn %2%."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Sao chép G-code tạm thời sang G-code đầu ra thất bại"
 
@@ -5006,14 +4905,12 @@ msgstr "Chọn file STL để nhập hình dạng đế từ:"
 msgid "Invalid file format."
 msgstr "Định dạng file không hợp lệ."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error: invalid model"
 msgstr "Lỗi! Model không hợp lệ"
 
 msgid "The selected file contains no geometry."
 msgstr "File đã chọn không chứa hình học."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "File đã chọn chứa nhiều vùng rời nhau. Điều này không được hỗ trợ."
 
@@ -5042,7 +4939,6 @@ msgstr "Nhiệt độ tối thiểu khuyến nghị không thể cao hơn nhiệ
 msgid "Please check.\n"
 msgstr "Vui lòng kiểm tra.\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
@@ -5060,7 +4956,6 @@ msgstr "Nhiệt độ vòi phun khuyến nghị cho loại filament này là [%d
 msgid "Adaptive Pressure Advance model validation failed:\n"
 msgstr "Kiểm tra mô hình Adaptive Pressure Advance thất bại:\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
@@ -5068,7 +4963,6 @@ msgstr ""
 "Tốc độ thể tích tối đa quá nhỏ.\n"
 "Đặt lại về 0.5."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Nhiệt độ buồng hiện tại cao hơn nhiệt độ an toàn của vật liệu, điều này có thể dẫn đến vật liệu mềm và tắc nghẽn. Nhiệt độ an toàn tối đa cho vật liệu là %d"
@@ -5078,7 +4972,6 @@ msgstr "Nhiệt độ buồng hiện tại cao hơn nhiệt độ an toàn của
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "Nhiệt độ buồng tối thiểu (%d℃) cao hơn nhiệt độ buồng mục tiêu (%d℃). Giá trị tối thiểu là ngưỡng để bắt đầu in trong khi buồng vẫn tiếp tục gia nhiệt tới mục tiêu, nên nó không được vượt quá giá trị mục tiêu. Nó sẽ được giới hạn về mức mục tiêu."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -5086,7 +4979,6 @@ msgstr ""
 "Chiều cao lớp quá nhỏ.\n"
 "Đặt lại về 0.2."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
@@ -5103,20 +4995,18 @@ msgstr ""
 "\n"
 "Chiều cao lớp đầu tiên sẽ được đặt lại về 0.2."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
 "\n"
 "The value will be reset to 0."
 msgstr ""
-"Cài đặt này chỉ dùng để điều chỉnh kích thước model với giá trị nhỏ trong một số trường hợp.\n"
-"Ví dụ, khi kích thước model có lỗi nhỏ và khó lắp ráp.\n"
-"Để điều chỉnh kích thước lớn, vui lòng dùng chức năng co giãn model.\n"
+"Cài đặt này chỉ dùng để điều chỉnh kích thước model với lượng nhỏ.\n"
+"Ví dụ, khi kích thước model có lỗi nhỏ hoặc khi dung sai không chính xác. Để điều chỉnh lớn, vui lòng dùng chức năng co giãn model.\n"
 "\n"
 "Giá trị sẽ được đặt lại về 0."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -5182,7 +5072,6 @@ msgstr ""
 "seam_slope_start_height cần nhỏ hơn layer_height.\n"
 "Đặt lại về 0."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, no-c-format, no-boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
@@ -5210,7 +5099,6 @@ msgstr "Chế độ xoắn ốc chỉ hoạt động khi vòng wall bằng 1, su
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " Nhưng máy có cấu trúc I3 sẽ không tạo video timelapse."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
@@ -5661,7 +5549,6 @@ msgstr "Preset"
 msgid "Print settings"
 msgstr "Cài đặt in"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament settings"
 msgstr "Cài đặt filament"
 
@@ -5686,7 +5573,6 @@ msgstr "Chuỗi rỗng"
 msgid "Value is out of range."
 msgstr "Giá trị nằm ngoài phạm vi."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "%s can’t be a percentage"
 msgstr "%s không thể là phần trăm"
@@ -5967,7 +5853,6 @@ msgstr "Tháp"
 msgid "Total"
 msgstr "Tổng"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Total estimation"
 msgstr "Ước tính tổng"
 
@@ -6050,11 +5935,9 @@ msgstr "từ"
 msgid "Usage"
 msgstr "Sử dụng"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height (mm)"
 msgstr "Chiều cao lớp (mm)"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width (mm)"
 msgstr "Độ rộng đường (mm)"
 
@@ -6071,7 +5954,6 @@ msgstr "Gia tốc (mm/s²)"
 msgid "Jerk (mm/s)"
 msgstr "Jerk (mm/s)"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fan speed (%)"
 msgstr "Tốc độ quạt (%)"
 
@@ -6087,7 +5969,6 @@ msgstr "Lưu lượng thể tích thực tế (mm³/s)"
 msgid "Seams"
 msgstr "Đường nối"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament changes"
 msgstr "Thay filament"
 
@@ -6111,7 +5992,6 @@ msgctxt "Noun"
 msgid "Print"
 msgstr "In"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printer"
 msgstr "Máy in"
 
@@ -6236,18 +6116,15 @@ msgstr "Đầu phun trái: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Đầu phun phải: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Tool move"
 msgstr "Công cụ di chuyển"
 
 msgid "Tool Rotate"
 msgstr "Công cụ xoay"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move object"
 msgstr "Di chuyển vật thể"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto orientation options"
 msgstr "Tùy chọn tự động định hướng"
 
@@ -6402,7 +6279,6 @@ msgstr "Tỷ lệ nổ"
 msgid "Section View"
 msgstr "Chế độ xem mặt cắt"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Assembly Control"
 msgstr "Điều khiển lắp ráp"
 
@@ -6431,7 +6307,6 @@ msgstr "Một vật thể nằm vượt ra ngoài ranh giới plate."
 msgid "A G-code path goes beyond the max print height."
 msgstr "Đường đi G-code vượt quá chiều cao in tối đa."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A G-code path goes beyond plate boundaries."
 msgstr "Đường đi G-code vượt ra ngoài ranh giới plate."
 
@@ -6506,7 +6381,6 @@ msgstr "Chọn bước hiệu chỉnh"
 msgid "Micro lidar calibration"
 msgstr "Hiệu chỉnh micro lidar"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bed leveling"
 msgstr "San bằng đế"
 
@@ -6589,7 +6463,6 @@ msgstr ""
 "Bạn có thể tìm thấy nó trong \"Cài đặt > Cài đặt > Chỉ LAN > Mã truy cập\"\n"
 "trên máy in, như trong hình:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Invalid input"
 msgstr "Đầu vào không hợp lệ."
 
@@ -6599,7 +6472,6 @@ msgstr "Cửa sổ mới"
 msgid "Open a new window"
 msgstr "Mở cửa sổ mới"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Closing application"
 msgstr "Ứng dụng đang đóng"
 
@@ -6850,7 +6722,6 @@ msgstr "Dán"
 msgid "Paste clipboard"
 msgstr "Dán clipboard"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete Selected"
 msgstr "Xóa đã chọn"
 
@@ -6860,7 +6731,6 @@ msgstr "Xóa lựa chọn hiện tại"
 msgid "Deletes all objects"
 msgstr "Xóa tất cả vật thể"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clone Selected"
 msgstr "Nhân bản đã chọn"
 
@@ -7048,12 +6918,10 @@ msgstr "&Xem"
 msgid "&Help"
 msgstr "&Trợ giúp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "File đã tồn tại với cùng tên: %s, bạn có muốn ghi đè nó?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Cấu hình đã tồn tại với cùng tên: %s, bạn có muốn ghi đè nó?"
@@ -7078,7 +6946,6 @@ msgid "There is %d config exported. (Only non-system configs)"
 msgid_plural "There are %d configs exported. (Only non-system configs)"
 msgstr[0] "Có %d cấu hình đã xuất. (Chỉ cấu hình không phải hệ thống)"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export Result"
 msgstr "Kết quả xuất"
 
@@ -7133,7 +7000,6 @@ msgstr "Thiết bị không thể xử lý thêm cuộc trò chuyện. Vui lòng
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "Trình phát đang trục trặc. Vui lòng cài đặt lại trình phát hệ thống."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "Trình phát chưa được tải, vui lòng nhấn nút \"phát\" để thử lại."
 
@@ -7156,7 +7022,6 @@ msgstr "Xảy ra vấn đề. Vui lòng cập nhật firmware máy in và thử 
 msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "Xem trực tiếp chỉ LAN đang tắt. Vui lòng bật xem trực tiếp trên màn hình máy in."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the IP of the printer to connect."
 msgstr "Vui lòng nhập IP của máy in để kết nối."
 
@@ -7244,7 +7109,6 @@ msgstr "Video"
 msgid "Switch to video files."
 msgstr "Chuyển sang file video."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Switch to 3MF model files."
 msgstr "Chuyển sang file model 3MF."
 
@@ -7474,9 +7338,9 @@ msgstr "Trực tuyến"
 msgid "Input access code"
 msgstr "Nhập mã truy cập"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Can't find devices?"
-msgstr "Can't find my devices?"
+msgstr "Không tìm thấy thiết bị?"
 
 msgid "Log out successful."
 msgstr "Đăng xuất thành công."
@@ -7500,15 +7364,12 @@ msgstr "ký tự không hợp lệ:"
 msgid "illegal suffix:"
 msgstr "hậu tố không hợp lệ:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name field is not allowed to be empty."
 msgstr "Tên không được để trống."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to start with a space."
 msgstr "Tên không được bắt đầu bằng ký tự khoảng trắng."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to end with a space."
 msgstr "Tên không được kết thúc bằng ký tự khoảng trắng."
 
@@ -7535,7 +7396,6 @@ msgstr "Đang chuyển..."
 msgid "Switching failed"
 msgstr "Chuyển thất bại"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printing progress"
 msgstr "Tiến trình in"
 
@@ -7556,7 +7416,6 @@ msgstr "Nhấn để xem giải thích về điều hòa nhiệt sơ bộ"
 msgid "Clear"
 msgstr "Xóa"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "You have completed printing the mall model, \n"
 "but synchronizing rating information has failed."
@@ -7666,7 +7525,6 @@ msgstr "Đang tải xuống..."
 msgid "Cloud Slicing..."
 msgstr "Đang slice trên Cloud..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr "Trong hàng đợi Slice trên Cloud, có %s tác vụ phía trước."
@@ -7693,7 +7551,6 @@ msgstr "Nếu nhiệt độ buồng vượt quá 40℃, hệ thống sẽ tự �
 msgid "Please select an AMS slot before calibration"
 msgstr "Vui lòng chọn một khe AMS trước khi hiệu chỉnh"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
 msgstr "Không thể đọc thông tin filament: filament đã được nạp vào đầu công cụ, vui lòng tháo filament và thử lại."
 
@@ -7891,11 +7748,9 @@ msgstr "%s thông tin"
 msgid "Skip"
 msgstr "Bỏ qua"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Newer 3MF version"
 msgstr "Phiên bản 3MF mới hơn"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The 3MF file version is in Beta and it is newer than the current OrcaSlicer version."
 msgstr "Phiên bản file 3MF đang ở chế độ Beta và mới hơn phiên bản OrcaSlicer hiện tại."
 
@@ -7905,11 +7760,9 @@ msgstr "Nếu bạn muốn dùng thử Orca Slicer Beta, bạn có thể nhấp 
 msgid "Download Beta Version"
 msgstr "Tải phiên bản Beta"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr "Phiên bản file 3MF mới hơn phiên bản Orca Slicer hiện tại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr "Cập nhật Orca Slicer của bạn có thể kích hoạt tất cả chức năng trong file 3MF."
 
@@ -7948,9 +7801,9 @@ msgstr "Vui lòng tham khảo Wiki trước khi dùng->"
 msgid "3D Mouse disconnected."
 msgstr "Chuột 3D đã ngắt kết nối."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "A new configuration is available. Update now?"
-msgstr "Cấu hình có thể cập nhật ngay bây giờ."
+msgstr "Đã có cấu hình mới. Cập nhật ngay bây giờ?"
 
 msgid "Integration was successful."
 msgstr "Tích hợp thành công."
@@ -7973,15 +7826,12 @@ msgstr "Có cấu hình máy in mới."
 msgid "Undo integration failed."
 msgstr "Hoàn tác tích hợp thất bại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Exporting"
 msgstr "Đang xuất."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An update is available!"
 msgstr "Phần mềm có phiên bản mới."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Go to download page"
 msgstr "Đến trang tải xuống."
 
@@ -8138,7 +7988,6 @@ msgstr "Xác nhận bật Ảnh chụp trạng thái in"
 msgid "Enable detection of build plate position"
 msgstr "Bật phát hiện vị trí bàn in"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "Thẻ định vị của bàn in được phát hiện, và việc in sẽ tạm dừng nếu thẻ không nằm trong phạm vi được xác định trước."
 
@@ -8214,7 +8063,6 @@ msgstr "Phát hiện tình trạng in trong không khí do tắc đầu phun ho�
 msgid "First Layer Inspection"
 msgstr "Kiểm tra lớp đầu tiên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto-recover from step loss"
 msgstr "Tự động phục hồi từ mất bước"
 
@@ -8229,7 +8077,6 @@ msgstr "Lưu các file in được gửi từ phần mềm slice và ứng dụn
 msgid "Allow Prompt Sound"
 msgstr "Cho phép âm thanh nhắc nhở"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament Tangle Detection"
 msgstr "Phát hiện filament rối"
 
@@ -8577,18 +8424,15 @@ msgstr "Ngắt kết nối thành công. Thiết bị %s (%s) giờ có thể đ
 msgid "Ejecting of device %s (%s) has failed."
 msgstr "Tháo thiết bị %s (%s) đã thất bại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
 msgstr "Phát hiện dự án chưa lưu trước đó, bạn có muốn khôi phục nó?"
 
 msgid "Restore"
 msgstr "Khôi phục"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr "Nhiệt độ bàn nóng hiện tại tương đối cao. Đầu phun có thể bị tắc khi in filament này trong vỏ kín. Vui lòng mở cửa trước và/hoặc tháo kính trên."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
 msgstr "Độ cứng đầu phun yêu cầu bởi filament cao hơn độ cứng đầu phun mặc định của máy in. Vui lòng thay thế đầu phun cứng hoặc filament, nếu không, đầu phun sẽ bị mài mòn hoặc hư hỏng."
 
@@ -8613,7 +8457,6 @@ msgstr "Tab"
 msgid "Loading file: %s"
 msgstr "Đang tải file: %s"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Load 3MF"
 msgstr "Tải 3MF"
 
@@ -8621,7 +8464,6 @@ msgstr "Tải 3MF"
 msgid "BambuStudio Project"
 msgstr "Dự án BambuStudio"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
 msgstr "File 3MF không được hỗ trợ bởi OrcaSlicer, chỉ tải dữ liệu hình học."
 
@@ -8643,16 +8485,13 @@ msgstr "Dự án này được tạo với OrcaSlicer 2.3.1-alpha và sử dụn
 msgid "Would you like OrcaSlicer to automatically fix this by clearing the rotation template settings?"
 msgstr "Bạn có muốn OrcaSlicer tự động sửa lỗi này bằng cách xóa cài đặt mẫu xoay không?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "Phiên bản 3MF %s mới hơn phiên bản %s của %s, tìm thấy các khóa không được nhận dạng sau:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You should update your software.\n"
 msgstr "Bạn nên nâng cấp phần mềm của mình.\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "The 3MF file version %s is newer than %s's version %s, we suggest to upgrade your software."
 msgstr "Phiên bản 3MF %s mới hơn phiên bản %s của %s, khuyến nghị nâng cấp phần mềm của bạn."
@@ -8674,7 +8513,6 @@ msgstr "File 3MF được tạo bởi BambuStudio. Một số cài đặt có th
 msgid "Invalid values found in the 3MF:"
 msgstr "Tìm thấy giá trị không hợp lệ trong file 3MF:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please correct them in the Param tabs"
 msgstr "Vui lòng sửa chúng trong tab tham số"
 
@@ -8696,13 +8534,12 @@ msgstr "Vui lòng xác nhận G-code trong các preset này an toàn để ngăn
 msgid "Customized Preset"
 msgstr "Preset tùy chỉnh"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "Tên của các thành phần bên trong file STEP không phải định dạng UTF8!"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Because of unsupported text encoding, garbage characters may appear!"
-msgstr "Tên có thể hiển thị ký tự rác!"
+msgstr "Do mã hóa văn bản không được hỗ trợ, có thể xuất hiện ký tự rác!"
 
 msgid "Remember my choice."
 msgstr "Nhớ lựa chọn của tôi."
@@ -8717,7 +8554,6 @@ msgstr "Đã xóa các đối tượng có thể tích bằng không"
 msgid "The volume of the object is zero"
 msgstr "Thể tích của đối tượng bằng không"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
@@ -8729,7 +8565,6 @@ msgstr ""
 msgid "Object too small"
 msgstr "Đối tượng quá nhỏ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
@@ -8745,7 +8580,6 @@ msgstr "Phát hiện đối tượng nhiều phần"
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Tải các file này như một đối tượng đơn với nhiều phần?\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An object with multiple parts was detected"
 msgstr "Đã phát hiện đối tượng với nhiều phần"
 
@@ -8781,14 +8615,12 @@ msgstr "Xuất file Draco:"
 msgid "Export AMF file:"
 msgstr "Xuất file AMF:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Save file as"
 msgstr "Lưu file dưới dạng:"
 
 msgid "Export OBJ file:"
 msgstr "Xuất file OBJ:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
@@ -8803,7 +8635,6 @@ msgstr "Xác nhận lưu dưới dạng"
 msgid "Delete object which is a part of cut object"
 msgstr "Xóa đối tượng là một phần của đối tượng cắt"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
@@ -8846,7 +8677,6 @@ msgstr "Một tác vụ xuất khác đang chạy."
 msgid "Unable to replace with more than one volume"
 msgstr "Không thể thay thế bằng nhiều hơn một khối"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error during replacement"
 msgstr "Lỗi trong quá trình thay thế"
 
@@ -8856,7 +8686,6 @@ msgstr "Thay thế từ:"
 msgid "Select a new file"
 msgstr "Chọn file mới"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "Chưa chọn file để thay thế"
 
@@ -8977,7 +8806,6 @@ msgstr ""
 msgid "Sync now"
 msgstr "Đồng bộ ngay"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Bạn có thể giữ các preset đã chỉnh sửa cho dự án mới hoặc loại bỏ chúng"
 
@@ -8987,7 +8815,6 @@ msgstr "Đang tạo dự án mới"
 msgid "Load project"
 msgstr "Tải dự án"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
@@ -9001,18 +8828,15 @@ msgstr "Lưu dự án"
 msgid "Importing Model"
 msgstr "Đang nhập model"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preparing 3MF file..."
 msgstr "chuẩn bị file 3MF..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; unknown file format."
 msgstr "Tải xuống thất bại, định dạng file không xác định."
 
 msgid "Downloading project..."
 msgstr "đang tải dự án xuống..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; File size exception."
 msgstr "Tải xuống thất bại, kích thước file bất thường."
 
@@ -9038,11 +8862,9 @@ msgstr "Nhập lưu trữ SLA"
 msgid "The selected file"
 msgstr "File đã chọn"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Does not contain valid G-code."
 msgstr "không chứa G-code hợp lệ."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An Error has occurred while loading the G-code file."
 msgstr "Lỗi xảy ra khi tải file G-code"
 
@@ -9072,25 +8894,21 @@ msgstr "Mở như dự án"
 msgid "Import geometry only"
 msgstr "Chỉ nhập hình học"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only one G-code file can be opened at a time."
 msgstr "Chỉ có thể mở một file G-code tại một thời điểm."
 
 msgid "G-code loading"
 msgstr "Đang tải G-code"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code files and models cannot be loaded together!"
 msgstr "File G-code không thể được tải cùng với model!"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to add models in preview mode"
 msgstr "Không thể thêm model khi đang ở chế độ xem trước!"
 
 msgid "All objects will be removed, continue?"
 msgstr "Tất cả đối tượng sẽ bị xóa, tiếp tục?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "Dự án hiện tại có thay đổi chưa lưu, lưu trước khi tiếp tục?"
 
@@ -9166,7 +8984,6 @@ msgstr "Tải lên và in"
 msgid "Abnormal print file data. Please slice again"
 msgstr "Dữ liệu file in bất thường. Vui lòng slice lại"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -9305,7 +9122,6 @@ msgstr "Tam giác: %1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr "Dùng \"Sửa mô hình\" để sửa lưới."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "Bản %d: %s không được khuyến nghị sử dụng để in filament %s (%s). Nếu bạn vẫn muốn thực hiện công việc in này, vui lòng đặt nhiệt độ bàn của filament này khác không."
@@ -9342,7 +9158,6 @@ msgstr "front"
 msgid "rear"
 msgstr "rear"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Switching languages requires the application to restart.\n"
 msgstr "Chuyển đổi ngôn ngữ yêu cầu khởi động lại ứng dụng.\n"
 
@@ -9370,7 +9185,6 @@ msgstr "Bắc Mỹ"
 msgid "Others"
 msgstr "Khác"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Changing the region will log you out of your account.\n"
 msgstr "Thay đổi khu vực sẽ đăng xuất tài khoản của bạn.\n"
 
@@ -9548,7 +9362,6 @@ msgstr "Có nên tải cài đặt máy in/filament/quy trình khi mở file 3MF
 msgid "Auto backup"
 msgstr "Tự động sao lưu"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "Sao lưu dự án của bạn định kỳ để khôi phục từ sự cố thỉnh thoảng."
 
@@ -10022,7 +9835,6 @@ msgstr "Sợi và Màu sắc"
 msgid "Color only"
 msgstr "Chỉ màu"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update built-in presets automatically."
 msgstr "Cập nhật preset tích hợp tự động."
 
@@ -10064,7 +9876,6 @@ msgstr "Mở Cài đặt ứng dụng mặc định của Windows"
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Liên kết file 3MF với OrcaSlicer"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
 msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file 3MF."
 
@@ -10079,14 +9890,12 @@ msgstr "Nếu bật, đặt OrcaSlicer làm ứng dụng mặc định để m�
 msgid "Associate STL files to OrcaSlicer"
 msgstr "Liên kết file STL với OrcaSlicer"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
 msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file STL."
 
 msgid "Associate STEP files to OrcaSlicer"
 msgstr "Liên kết file STEP với OrcaSlicer"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
 msgstr "Nếu được bật, đặt OrcaSlicer làm ứng dụng mặc định để mở file STEP."
 
@@ -10200,11 +10009,9 @@ msgstr "nút lưu gỡ lỗi"
 msgid "Save debug settings"
 msgstr "lưu cài đặt gỡ lỗi"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Debug settings have been saved successfully!"
 msgstr "Cài đặt GỠ LỖI đã được lưu thành công!"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cloud environment switched; please login again!"
 msgstr "Đã chuyển môi trường đám mây, vui lòng đăng nhập lại!"
 
@@ -10229,7 +10036,6 @@ msgstr "Filament trong AMS"
 msgid "Left filaments"
 msgstr "Filament bên trái"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament"
 msgstr "Filament AMS"
 
@@ -10272,7 +10078,6 @@ msgstr "Cài đặt sẵn không được hỗ trợ"
 msgid "Unsupported"
 msgstr "Không được hỗ trợ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add/Remove filament"
 msgstr "Thêm/Xóa filament"
 
@@ -10308,7 +10113,6 @@ msgstr "Vui lòng nhập giá trị lớp (>= 2)."
 msgid "Plate name"
 msgstr "Tên bản"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Same as Global Plate Type"
 msgstr "Giống như loại bản toàn cục"
 
@@ -10345,7 +10149,6 @@ msgstr "Chấp nhận"
 msgid "Log Out"
 msgstr "Đăng xuất"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice all plates to obtain time and filament estimation"
 msgstr "Slice tất cả bản để có ước tính thời gian và filament"
 
@@ -10408,7 +10211,6 @@ msgstr "Preset \"%1%\" đã tồn tại."
 msgid "Preset \"%1%\" already exists and is incompatible with the current printer."
 msgstr "Preset \"%1%\" đã tồn tại và không tương thích với máy in hiện tại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Vui lòng lưu ý rằng việc lưu sẽ ghi đè preset này."
 
@@ -10606,7 +10408,6 @@ msgstr "Filament không khớp với filament trong khe AMS. Vui lòng cập nh�
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "Máy in đã chọn (%s) không tương thích với cấu hình của file in (%s). Vui lòng điều chỉnh cài đặt sẵn máy in ở trang chuẩn bị hoặc chọn một máy in tương thích trên trang này."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Khi bật chế độ bình xoắn ốc, máy có cấu trúc I3 sẽ không tạo video timelapse."
 
@@ -10632,7 +10433,6 @@ msgstr "Cài đặt loại filament của cuộn ngoài khác với filament tro
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "Loại máy in được chọn khi tạo G-code không nhất quán với máy in hiện được chọn. Khuyến nghị bạn sử dụng cùng loại máy in để slice."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Có một số filament không xác định trong ánh xạ AMS. Vui lòng kiểm tra xem chúng có phải là filament cần thiết không. Nếu không sao, nhấn \"Xác nhận\" để bắt đầu in."
 
@@ -10891,7 +10691,6 @@ msgstr "Bộ nhớ đang ở trạng thái bất thường hoặc ở chế đ�
 msgid "Storage needs to be inserted before printing."
 msgstr "Cần lắp bộ nhớ trước khi in."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Không thể gửi công việc in đến máy in có firmware cần được cập nhật."
 
@@ -10966,7 +10765,6 @@ msgstr "Hết thời gian kết nối, vui lòng kiểm tra mạng của bạn."
 msgid "Connection failed. Click the icon to retry"
 msgstr "Kết nối thất bại. Nhấn vào biểu tượng để thử lại"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send print tasks when an update is in progress"
 msgstr "Không thể gửi tác vụ in khi đang nâng cấp"
 
@@ -10977,7 +10775,6 @@ msgstr "Máy in đã chọn không tương thích với preset máy in đã ch�
 msgid "Storage needs to be inserted before send to printer."
 msgstr "Cần lắp bộ nhớ trước khi gửi đến máy in."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Máy in cần phải ở cùng LAN với Orca Slicer."
 
@@ -10997,7 +10794,6 @@ msgstr "Hết thời gian tải file lên. Vui lòng kiểm tra xem phiên bản
 msgid "Sending failed, please try again!"
 msgstr "Gửi thất bại, vui lòng thử lại!"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice complete"
 msgstr "Slice hoàn tất."
 
@@ -11013,11 +10809,9 @@ msgstr "Không thể kết nối socket"
 msgid "Failed to publish login request"
 msgstr "Không thể xuất bản yêu cầu đăng nhập"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from device"
 msgstr "Lấy ticket từ thiết bị hết thời gian"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from server"
 msgstr "Lấy ticket từ máy chủ hết thời gian"
 
@@ -11136,7 +10930,6 @@ msgstr "Nhấp để đặt lại tất cả cài đặt về preset đã lưu c
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgstr "Prime tower là bắt buộc khi đổi đầu phun. Nếu không có prime tower, mô hình có thể bị lỗi. Bạn có chắc muốn tắt prime tower không?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "Cần có prime tower để timelapse mượt. Có thể có khuyết điểm trên model nếu không có prime tower. Bạn có chắc chắn muốn tắt prime tower?"
 
@@ -11154,7 +10947,6 @@ msgstr "Prime tower là bắt buộc để phát hiện vón cục. Nếu không
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "Bật cả chiều cao Z chính xác và tháp mồi có thể gây ra lỗi cắt lớp. Bạn vẫn muốn bật chiều cao Z chính xác?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Cần có prime tower để timelapse mượt. Có thể có khuyết điểm trên model nếu không có prime tower. Bạn có muốn bật prime tower?"
 
@@ -11176,7 +10968,6 @@ msgstr ""
 "Khi sử dụng vật liệu support cho giao diện support, chúng tôi khuyến nghị các cài đặt sau:\n"
 "Khoảng cách Z trên 0, khoảng cách giao diện 0, mẫu thẳng hàng xen kẽ và tắt chiều cao lớp support độc lập."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings automatically.\n"
@@ -11326,7 +11117,6 @@ msgstr "Thành"
 msgid "Top/bottom shells"
 msgstr "Vỏ trên/dưới"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer speed"
 msgstr "Tốc độ lớp đầu tiên"
 
@@ -11354,7 +11144,6 @@ msgstr "Giật(XY)"
 msgid "Raft"
 msgstr "Bè"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament for Supports"
 msgstr "Filament support"
 
@@ -11422,7 +11211,6 @@ msgstr "Thông tin cơ bản"
 msgid "Recommended nozzle temperature"
 msgstr "Nhiệt độ đầu phun khuyến nghị"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "Phạm vi nhiệt độ đầu phun khuyến nghị của filament này. 0 có nghĩa là không đặt"
 
@@ -11459,29 +11247,24 @@ msgstr "Nhiệt độ bàn khi bản Cool SuperTack được lắp. Giá trị 0
 msgid "Cool Plate"
 msgstr "Bản Cool"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Nhiệt độ bàn khi bản Cool được lắp. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Cool."
 
 msgid "Textured Cool Plate"
 msgstr "Bản Textured Cool"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Nhiệt độ bàn khi bản Textured Cool được lắp. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Textured Cool."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Nhiệt độ bàn khi bản Engineering được lắp. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Engineering."
 
 msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "Bản Smooth PEI / Bản nhiệt độ cao"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "Nhiệt độ bàn khi bản Smooth PEI/Bản nhiệt độ cao được lắp. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Smooth PEI/Bản nhiệt độ cao."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Nhiệt độ bàn khi bản Textured PEI được lắp. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Textured PEI."
 
@@ -11497,14 +11280,13 @@ msgstr "Quạt làm mát phần"
 msgid "Min fan speed threshold"
 msgstr "Ngưỡng tốc độ quạt tối thiểu"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
-msgstr "Tốc độ quạt làm mát phần sẽ bắt đầu chạy ở tốc độ tối thiểu khi thời gian lớp ước tính không dài hơn thời gian lớp trong cài đặt. Khi thời gian lớp ngắn hơn ngưỡng, tốc độ quạt được nội suy giữa tốc độ quạt tối thiểu và tối đa theo thời gian in lớp"
+msgstr "Quạt làm mát phần sẽ chạy ở tốc độ quạt tối thiểu khi thời gian lớp ước tính dài hơn giá trị ngưỡng. Khi thời gian lớp ngắn hơn ngưỡng, tốc độ quạt được nội suy giữa tốc độ quạt tối thiểu và tối đa theo thời gian in lớp."
 
 msgid "Max fan speed threshold"
 msgstr "Ngưỡng tốc độ quạt tối đa"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "Tốc độ quạt làm mát phần sẽ ở mức tối đa khi thời gian lớp ước tính ngắn hơn giá trị cài đặt"
 
@@ -11740,7 +11522,6 @@ msgstr ""
 "Bạn có chắc chắn xóa cài đặt sẵn đã chọn không?\n"
 "Nếu cài đặt sẵn tương ứng với filament hiện đang được sử dụng trên máy in của bạn, vui lòng đặt lại thông tin filament cho vị trí đó."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Bạn có chắc chắn %1% preset đã chọn?"
@@ -11829,21 +11610,18 @@ msgstr "Bạn có muốn sửa các tham số sau của %s thành tham số củ
 msgid "Click to reset current value and attach to the global value."
 msgstr "Nhấp để đặt lại giá trị hiện tại và đính kèm với giá trị toàn cục."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Nhấp để bỏ thay đổi hiện tại và đặt lại về giá trị đã lưu."
 
 msgid "Process Settings"
 msgstr "Cài đặt quy trình"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "unsaved changes"
 msgstr "Thay đổi chưa lưu"
 
 msgid "Transfer or discard changes"
 msgstr "Chuyển hoặc loại bỏ thay đổi"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Old Value"
 msgstr "Giá trị cũ"
 
@@ -11903,7 +11681,6 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Nhấp chuột phải để hiển thị toàn bộ văn bản."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "No changes will be saved."
 msgstr "Tất cả thay đổi sẽ không được lưu"
 
@@ -12518,7 +12295,6 @@ msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
 msgstr "Mũi tên lên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Di chuyển lựa chọn 10 mm theo hướng Y dương"
 
@@ -12527,7 +12303,6 @@ msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
 msgstr "Mũi tên xuống"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Di chuyển lựa chọn 10 mm theo hướng Y âm"
 
@@ -12536,7 +12311,6 @@ msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
 msgstr "Mũi tên trái"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Di chuyển lựa chọn 10 mm theo hướng X âm"
 
@@ -12545,15 +12319,12 @@ msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
 msgstr "Mũi tên phải"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
 msgstr "Di chuyển lựa chọn 10 mm theo hướng X dương"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Movement step set to 1mm"
 msgstr "Bước di chuyển được đặt thành 1 mm"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "bàn phím 1-9: đặt filament cho đối tượng/phần"
 
@@ -12667,7 +12438,6 @@ msgstr "Gizmo"
 msgid "Set extruder number for the objects and parts"
 msgstr "Đặt số extruder cho đối tượng và phần"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete objects, parts, modifiers"
 msgstr "Xóa đối tượng, phần, modifier"
 
@@ -12907,11 +12677,9 @@ msgstr "Hotend trên giá"
 msgid "Are you sure you want to update? This will take about 10 minutes. Do not turn off the power while the printer is updating."
 msgstr "Bạn có chắc chắn muốn cập nhật? Điều này sẽ mất khoảng 10 phút. Không tắt nguồn trong khi máy in đang cập nhật."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "Phát hiện cập nhật quan trọng và cần được chạy trước khi việc in có thể tiếp tục. Bạn có muốn cập nhật ngay bây giờ? Bạn cũng có thể cập nhật sau từ 'Nâng cấp firmware'."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
 msgstr "Phiên bản firmware bất thường. Cần sửa chữa và cập nhật trước khi in. Bạn có muốn cập nhật ngay bây giờ? Bạn cũng có thể cập nhật sau trên máy in hoặc cập nhật lần sau khi khởi động Orca."
 
@@ -12926,7 +12694,6 @@ msgstr "Tách thành %1% phần"
 msgid "Repair finished"
 msgstr "Sửa chữa hoàn tất"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Repair failed"
 msgstr "Sửa chữa thất bại."
 
@@ -12937,7 +12704,6 @@ msgstr "Sửa chữa đã hủy"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Sao chép file %1% sang %2% thất bại: %3%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Cần kiểm tra các thay đổi chưa lưu trước khi cập nhật cấu hình."
 
@@ -12953,7 +12719,6 @@ msgstr "Mở file G-code:"
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "Một đối tượng có lớp đầu tiên trống và không thể in. Vui lòng cắt phần dưới hoặc bật support."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "The object has empty layers between %1% and %2% and can’t be printed."
 msgstr "Đối tượng không thể in do lớp trống giữa %1% và %2%."
@@ -12962,7 +12727,6 @@ msgstr "Đối tượng không thể in do lớp trống giữa %1% và %2%."
 msgid "Object: %1%"
 msgstr "Đối tượng: %1%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Có thể các phần của đối tượng ở chiều cao này quá mỏng, hoặc đối tượng có mesh lỗi"
 
@@ -12974,7 +12738,6 @@ msgstr "G-code đổi vai trò đùn (process)"
 msgid "Filament change extrusion role G-code"
 msgstr "G-code đổi vai trò đùn (filament)"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "No object can be printed. It may be too small."
 msgstr "Không có đối tượng nào có thể in. Có thể quá nhỏ"
 
@@ -13036,7 +12799,6 @@ msgstr "lỗi không xác định"
 msgid "too many files"
 msgstr "quá nhiều file"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "File too large"
 msgstr "file quá lớn"
 
@@ -13058,9 +12820,9 @@ msgstr "không phải lưu trữ ZIP"
 msgid "invalid header or corrupted"
 msgstr "tiêu đề không hợp lệ hoặc bị hỏng"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Saving to RAID is not supported."
-msgstr "đa đĩa không được hỗ trợ"
+msgstr "Không hỗ trợ lưu vào RAID."
 
 msgid "decompression failed"
 msgstr "giải nén thất bại"
@@ -13107,7 +12869,6 @@ msgstr "tham số không hợp lệ"
 msgid "invalid filename"
 msgstr "tên file không hợp lệ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Buffer too small"
 msgstr "bộ đệm quá nhỏ"
 
@@ -13117,7 +12878,6 @@ msgstr "lỗi nội bộ"
 msgid "file not found"
 msgstr "không tìm thấy file"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Archive too large"
 msgstr "lưu trữ quá lớn"
 
@@ -13127,7 +12887,6 @@ msgstr "xác thực thất bại"
 msgid "write callback failed"
 msgstr "gọi lại ghi thất bại"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% quá gần vùng loại trừ, có thể có va chạm khi in."
@@ -13154,7 +12913,6 @@ msgstr "Prime Tower"
 msgid " is too close to others, and collisions may be caused.\n"
 msgstr " quá gần các đối tượng khác, và có thể gây va chạm.\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr " quá gần vùng loại trừ, và sẽ gây va chạm.\n"
 
@@ -13194,7 +12952,6 @@ msgstr "Prime tower là bắt buộc để phát hiện vón cục; nếu không
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Vui lòng chọn trình tự in \"Theo đối tượng\" để in nhiều đối tượng trong chế độ bình xoắn ốc."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "Chế độ bình xoắn ốc không hoạt động khi đối tượng chứa nhiều hơn một vật liệu."
 
@@ -13228,30 +12985,24 @@ msgstr "Ngăn chảy nhựa chỉ được hỗ trợ với wipe tower khi 'sing
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
 msgstr "Prime tower hiện chỉ được hỗ trợ cho các kiểu G-code Marlin, RepRap/Sprinter, RepRapFirmware và Repetier."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported in “By object” print."
 msgstr "Prime tower không được hỗ trợ trong in \"Theo đối tượng\"."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "Prime tower không được hỗ trợ khi chiều cao lớp thích ứng được bật. Nó yêu cầu tất cả đối tượng có cùng chiều cao lớp."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "Prime tower yêu cầu \"khoảng cách support\" là bội số của chiều cao lớp."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "Prime tower yêu cầu tất cả đối tượng có cùng chiều cao lớp."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "Prime tower yêu cầu tất cả đối tượng được in trên cùng số lớp bè."
 
 msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
 msgstr "Prime tower chỉ được hỗ trợ cho nhiều đối tượng nếu chúng được in với cùng support_top_z_distance."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "Prime tower yêu cầu tất cả đối tượng được slice với cùng chiều cao lớp."
 
@@ -13261,18 +13012,15 @@ msgstr "Prime tower chỉ được hỗ trợ nếu tất cả đối tượng c
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Một hoặc nhiều đối tượng được gán extruder mà máy in không có."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too small"
 msgstr "Độ rộng đường quá nhỏ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too large"
 msgstr "Độ rộng đường quá lớn"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "In với nhiều extruder có đường kính đầu phun khác nhau. Nếu support được in với filament hiện tại (support_filament == 0 hoặc support_interface_filament == 0), tất cả đầu phun phải có cùng đường kính."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "Prime tower yêu cầu support có cùng chiều cao lớp với đối tượng."
 
@@ -13299,7 +13047,6 @@ msgstr "Mẫu đế rỗng không được hỗ trợ bởi loại hỗ trợ n�
 msgid "Support enforcers are used but support is not enabled. Please enable support."
 msgstr "Trình tạo support được sử dụng nhưng support không được bật. Vui lòng bật support."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "Chiều cao lớp không thể vượt quá đường kính đầu phun."
 
@@ -13398,7 +13145,6 @@ msgstr "Đang xuất G-code"
 msgid "Generating G-code"
 msgstr "Đang tạo G-code"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing of the filename_format template failed."
 msgstr "Không thể xử lý mẫu filename_format."
 
@@ -13436,7 +13182,6 @@ msgstr "Vùng loại trừ trên bàn in cho đầu in song song"
 msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 applies to one printhead, item 2 to two printheads, and so on. Leave an item empty for no excluded area."
 msgstr "Danh sách có thứ tự các vùng loại trừ trên bàn in theo số lượng đầu in song song. Mục 1 áp dụng cho một đầu in, mục 2 cho hai đầu in, v.v. Để trống một mục nếu không có vùng loại trừ."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Excluded bed area"
 msgstr "Vùng loại trừ bàn in"
 
@@ -13452,7 +13197,6 @@ msgstr "Model bàn in tùy chỉnh"
 msgid "Elephant foot compensation"
 msgstr "Bù chân voi"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "Co lớp đầu tiên trên bàn in để bù hiệu ứng chân voi."
 
@@ -13476,16 +13220,15 @@ msgstr ""
 "Giá trị ban đầu được đặt cho lớp thứ hai.\n"
 "Các lớp tiếp theo sẽ đặc dần theo tuyến tính trong khoảng chiều cao được chỉ định ở elefant_foot_compensation_layers."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "Chiều cao slice cho mỗi lớp. Chiều cao lớp nhỏ hơn có nghĩa là chính xác hơn và thời gian in nhiều hơn."
 
 msgid "Printable height"
 msgstr "Chiều cao có thể in"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the maximum printable height which is limited by the height of the build area."
-msgstr "Chiều cao có thể in tối đa bị giới hạn bởi cơ chế của máy in."
+msgstr "Chiều cao có thể in tối đa, bị giới hạn bởi chiều cao của vùng in."
 
 # AI Translated
 msgid "Extruder printable height"
@@ -13570,7 +13313,6 @@ msgstr "Mật khẩu"
 msgid "Ignore HTTPS certificate revocation checks"
 msgstr "Bỏ qua kiểm tra thu hồi chứng chỉ HTTPS"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgstr "Bỏ qua kiểm tra thu hồi chứng chỉ HTTPS trong trường hợp thiếu hoặc ngoại tuyến điểm phân phối. Bạn có thể muốn bật tùy chọn này cho chứng chỉ tự ký nếu kết nối thất bại."
 
@@ -13594,14 +13336,12 @@ msgstr "Cấu hình cho các khả năng plugin mà cài đặt sẵn này sử 
 msgid "Avoid crossing walls"
 msgstr "Tránh đi qua thành"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "Đi vòng để tránh di chuyển qua thành, có thể gây ra cục trên bề mặt."
 
 msgid "Avoid crossing walls - Max detour length"
 msgstr "Tránh đi qua thành - Độ dài vòng tối đa"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "Khoảng cách vòng tối đa để tránh đi qua thành. Không đi vòng nếu khoảng cách vòng lớn hơn giá trị này. Độ dài vòng có thể được chỉ định dưới dạng giá trị tuyệt đối hoặc phần trăm (ví dụ 50%) của đường di chuyển trực tiếp. Không để tắt."
 
@@ -13614,59 +13354,45 @@ msgstr "Lớp khác"
 msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Nhiệt độ bàn cho các lớp ngoại trừ lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Cool SuperTack."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Nhiệt độ bàn cho các lớp ngoại trừ lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Cool."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Nhiệt độ bàn cho các lớp ngoại trừ lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Textured Cool."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Nhiệt độ bàn cho các lớp ngoại trừ lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Engineering."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Nhiệt độ bàn cho các lớp ngoại trừ lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản nhiệt độ cao."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Nhiệt độ bàn cho các lớp ngoại trừ lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Textured PEI."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer"
 msgstr "Lớp đầu tiên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer bed temperature"
 msgstr "Nhiệt độ bàn lớp đầu tiên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Nhiệt độ bàn của lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Cool SuperTack."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Nhiệt độ bàn của lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Cool."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Nhiệt độ bàn của lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Textured Cool."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Nhiệt độ bàn của lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Engineering."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Nhiệt độ bàn của lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản nhiệt độ cao."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Nhiệt độ bàn của lớp đầu tiên. Giá trị 0 có nghĩa là filament không hỗ trợ in trên bản Textured PEI."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate types supported by the printer"
 msgstr "Loại bàn in được hỗ trợ bởi máy in."
 
@@ -13700,7 +13426,6 @@ msgstr "Đây là số lượng lớp đặc của vỏ dưới, bao gồm lớp
 msgid "Bottom shell thickness"
 msgstr "Độ dày vỏ dưới"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Số lượng lớp đặc dưới được tăng lên khi slice nếu độ dày tính bằng lớp vỏ dưới mỏng hơn giá trị này. Điều này có thể tránh vỏ quá mỏng khi chiều cao lớp nhỏ. 0 có nghĩa là cài đặt này bị tắt và độ dày vỏ dưới được xác định tuyệt đối bởi lớp vỏ dưới."
 
@@ -14189,13 +13914,12 @@ msgstr ""
 "Giá trị 0 bật đảo ngược trên mọi lớp chẵn bất kể.\n"
 "Khi phát hiện thành nhô không được bật, tùy chọn này bị bỏ qua và đảo ngược xảy ra trên mọi lớp chẵn bất kể."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slow down for overhangs"
 msgstr "Giảm tốc cho phần nhô"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
-msgstr "Bật tùy chọn này để giảm tốc độ in cho mức độ nhô khác nhau."
+msgstr "Bật tùy chọn này để giảm tốc khi in phần nhô. Tốc độ cho các mức phần trăm nhô khác nhau được đặt bên dưới."
 
 msgid "Slow down for curled perimeters"
 msgstr "Giảm tốc cho chu vi cong"
@@ -14251,7 +13975,6 @@ msgstr "Tốc độ của cầu bên trong. Nếu giá trị được biểu th�
 msgid "Brim width"
 msgstr "Độ rộng brim"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Khoảng cách từ model đến đường brim ngoài cùng."
 
@@ -14264,7 +13987,6 @@ msgstr "Điều này điều khiển việc tạo brim ở bên ngoài và/hoặ
 msgid "Brim-object gap"
 msgstr "Khoảng cách brim-đối tượng"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "Khoảng cách giữa đường brim trong cùng và đối tượng có thể làm cho brim dễ dàng tháo hơn."
 
@@ -14286,11 +14008,9 @@ msgstr ""
 "\n"
 "Lưu ý: Giá trị kết quả sẽ không bị ảnh hưởng bởi tỷ lệ lưu lượng lớp đầu tiên."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Brim follows compensated outline"
 msgstr "Brim tuân theo phác thảo được bù đắp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
@@ -14344,15 +14064,12 @@ msgstr "máy tương thích ngược"
 msgid "Condition"
 msgstr "Điều kiện"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Một biểu thức boolean sử dụng giá trị cấu hình của hồ sơ máy in đang hoạt động. Nếu biểu thức này đánh giá là đúng, hồ sơ này được coi là tương thích với hồ sơ máy in đang hoạt động."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "Một biểu thức boolean sử dụng giá trị cấu hình của hồ sơ in đang hoạt động. Nếu biểu thức này đánh giá là đúng, hồ sơ này được coi là tương thích với hồ sơ in đang hoạt động."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "Trình tự in, từng lớp hoặc từng đối tượng."
 
@@ -14374,14 +14091,13 @@ msgstr "Như danh sách đối tượng"
 msgid "Slow printing down for better layer cooling"
 msgstr "Giảm tốc độ in để làm mát lớp tốt hơn"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
-msgstr "Bật tùy chọn này để giảm tốc độ in xuống để làm cho thời gian lớp cuối cùng không ngắn hơn ngưỡng thời gian lớp trong \"Ngưỡng tốc độ quạt tối đa\", để lớp có thể được làm mát lâu hơn. Điều này có thể cải thiện chất lượng làm mát  cho kim và chi tiết nhỏ."
+msgstr "Bật tùy chọn này để giảm tốc độ in nhằm đảm bảo thời gian lớp cuối cùng không ngắn hơn ngưỡng thời gian lớp trong \"Ngưỡng tốc độ quạt tối đa\", để lớp có thể được làm mát lâu hơn. Điều này có thể cải thiện chất lượng cho các chi tiết nhỏ."
 
 msgid "Normal printing"
 msgstr "In bình thường"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Gia tốc mặc định của cả in bình thường và di chuyển ngoại trừ lớp đầu tiên."
 
@@ -14451,9 +14167,9 @@ msgstr "Tắt tất cả quạt làm mát cho vài lớp đầu tiên. Điều n
 msgid "Don't support bridges"
 msgstr "Không hỗ trợ cầu"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
-msgstr "Không hỗ trợ toàn bộ vùng cầu làm cho support rất lớn. Cầu thường có thể được in trực tiếp mà không cần support nếu không quá dài."
+msgstr "Tùy chọn này tắt việc tạo support cho cầu, giúp giảm lượng support cần thiết. Cầu thường có thể được in trực tiếp mà không cần support trong một khoảng cách hợp lý."
 
 msgid "Thick external bridges"
 msgstr "Cầu bên ngoài dày"
@@ -14547,14 +14263,12 @@ msgstr "Không lọc"
 msgid "Max bridge length"
 msgstr "Độ dài cầu tối đa"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "Độ dài tối đa của cầu không cần support. Đặt thành 0 nếu bạn muốn tất cả cầu được hỗ trợ, và đặt thành giá trị rất lớn nếu bạn không muốn bất kỳ cầu nào được hỗ trợ."
 
 msgid "End G-code"
 msgstr "G-code kết thúc"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-Code when finishing the entire print."
 msgstr "G-code kết thúc khi hoàn thành toàn bộ bản in."
 
@@ -14564,7 +14278,6 @@ msgstr "G-code giữa đối tượng"
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
 msgstr "Chèn G-code giữa các đối tượng. Tham số này sẽ chỉ có hiệu lực khi bạn in model của mình từng đối tượng."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "G-code kết thúc khi hoàn thành in filament này."
 
@@ -14595,7 +14308,6 @@ msgstr "Vừa phải"
 msgid "Top surface pattern"
 msgstr "Mẫu bề mặt trên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for top surface infill."
 msgstr "Mẫu đường của infill bề mặt trên."
 
@@ -14686,7 +14398,6 @@ msgstr "Ra ngoài"
 msgid "Bottom surface pattern"
 msgstr "Mẫu bề mặt dưới"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Mẫu đường của infill bề mặt dưới, không phải infill cầu."
 
@@ -14737,7 +14448,6 @@ msgstr "Mẫu đường của infill đặc bên trong. nếu phát hiện infil
 msgid "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Độ rộng đường của thành ngoài. Nếu được biểu thị dưới dạng %, nó sẽ được tính trên đường kính đầu phun."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
 msgstr "Tốc độ của thành ngoài là ngoài cùng và nhìn thấy được. Nó được sử dụng để chậm hơn tốc độ thành trong để có chất lượng tốt hơn."
 
@@ -14834,18 +14544,15 @@ msgstr "Cùng chiều kim đồng hồ"
 msgid "Height to rod"
 msgstr "Chiều cao đến thanh"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "Khoảng cách từ đầu phun đến thanh dưới. Được sử dụng để tránh va chạm trong in theo đối tượng."
 
 msgid "Height to lid"
 msgstr "Chiều cao đến nắp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "Khoảng cách từ đầu phun đến nắp. Được sử dụng để tránh va chạm trong in theo đối tượng."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "Bán kính khoảng trống xung quanh extruder. Được sử dụng để tránh va chạm trong in theo đối tượng."
 
@@ -14999,7 +14706,6 @@ msgstr "Độ rộng đường mặc định nếu độ rộng đường khác 
 msgid "Keep fan always on"
 msgstr "Giữ quạt luôn bật"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "Bật cài đặt này có nghĩa là quạt làm mát phần sẽ không bao giờ dừng hoàn toàn và sẽ chạy ít nhất ở tốc độ tối thiểu để giảm tần suất khởi động và dừng."
 
@@ -15020,7 +14726,6 @@ msgstr ""
 msgid "Layer time"
 msgstr "Thời gian lớp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "Quạt làm mát phần sẽ được bật cho các lớp có thời gian ước tính ngắn hơn giá trị này. Tốc độ quạt được nội suy giữa tốc độ quạt tối thiểu và tối đa theo thời gian in lớp."
 
@@ -15046,9 +14751,9 @@ msgstr "Bạn có thể đặt ghi chú về filament ở đây."
 msgid "Required nozzle HRC"
 msgstr "HRC đầu phun yêu cầu"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
-msgstr "HRC tối thiểu của đầu phun cần để in filament. Không có nghĩa là không kiểm tra HRC của đầu phun."
+msgstr "HRC tối thiểu của đầu phun cần để in filament. Giá trị 0 có nghĩa là không kiểm tra HRC của đầu phun."
 
 # AI Translated
 msgid "Filament map to extruder"
@@ -15090,7 +14795,6 @@ msgstr "Tốc độ thể tích khi xả"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "Tốc độ thể tích khi xả filament. Giá trị 0 nghĩa là dùng tốc độ thể tích tối đa."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Cài đặt này biểu thị bao nhiêu thể tích filament có thể được nóng chảy và đùn mỗi giây. Tốc độ in bị giới hạn bởi tốc độ thể tích tối đa, trong trường hợp cài đặt tốc độ quá cao và không hợp lý. Không thể bằng không."
 
@@ -15128,7 +14832,6 @@ msgstr "Theo filament đầu tiên"
 msgid "By Highest Temp"
 msgstr "Theo nhiệt độ cao nhất"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "Đường kính filament được sử dụng để tính toán đùn trong G-code, vì vậy nó quan trọng và phải chính xác."
 
@@ -15207,7 +14910,6 @@ msgstr "Tốc độ được sử dụng ở đầu giai đoạn nạp."
 msgid "Unloading speed"
 msgstr "Tốc độ tháo"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "Tốc độ được sử dụng để tháo filament trên wipe tower (không ảnh hưởng phần đầu của tháo ngay sau ramming)."
 
@@ -15337,14 +15039,12 @@ msgstr "Lưu lượng được sử dụng để ram filament trước khi thay 
 msgid "Density"
 msgstr "Mật độ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament density, for statistical purposes only."
 msgstr "Mật độ filament. Chỉ cho thống kê."
 
 msgid "g/cm³"
 msgstr "g/cm³"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament material type"
 msgstr "Loại vật liệu của filament."
 
@@ -15387,14 +15087,12 @@ msgstr "Một số nguyên 32-bit mã hóa mức độ tương thích của mộ
 msgid "Softening temperature"
 msgstr "Nhiệt độ làm mềm"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr "Vật liệu làm mềm ở nhiệt độ này, vì vậy khi nhiệt độ bàn bằng hoặc lớn hơn điều này, rất khuyến nghị mở cửa trước và/hoặc tháo kính trên để tránh tắc nghẽn."
 
 msgid "Price"
 msgstr "Giá"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament price, for statistical purposes only."
 msgstr "Giá filament. Chỉ cho thống kê."
 
@@ -15413,7 +15111,6 @@ msgstr "(Không xác định)"
 msgid "Sparse infill direction"
 msgstr "Hướng infill thưa"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "Góc cho mẫu infill thưa, điều khiển hướng bắt đầu hoặc chính của đường."
 
@@ -15490,7 +15187,6 @@ msgstr "Thu hẹp sóng gyroid dọc theo trục Z (thẳng đứng) ở mật �
 msgid "Sparse infill pattern"
 msgstr "Mẫu infill thưa"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for internal sparse infill."
 msgstr "Mẫu đường cho infill thưa bên trong."
 
@@ -15554,11 +15250,9 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Gyroid"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Gia tốc của infill bề mặt trên. Sử dụng giá trị thấp hơn có thể cải thiện chất lượng bề mặt trên."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Gia tốc của thành ngoài. Sử dụng giá trị thấp hơn có thể cải thiện chất lượng."
 
@@ -15571,7 +15265,6 @@ msgstr "Gia tốc của infill thưa. Nếu giá trị được biểu thị dư
 msgid "Acceleration of internal solid infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Gia tốc của infill đặc bên trong. Nếu giá trị được biểu thị dưới dạng phần trăm (ví dụ 100%), nó sẽ được tính dựa trên gia tốc mặc định."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Gia tốc của lớp đầu tiên. Sử dụng giá trị thấp hơn có thể cải thiện độ bám dính bàn in."
 
@@ -15623,23 +15316,18 @@ msgstr ""
 msgid "Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Độ rộng đường của lớp đầu tiên. Nếu được biểu thị dưới dạng %, nó sẽ được tính trên đường kính đầu phun."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer height"
 msgstr "Chiều cao lớp đầu tiên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Chiều cao của lớp đầu tiên. Làm cho chiều cao lớp đầu tiên dày một chút có thể cải thiện độ bám dính bàn in."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "Tốc độ của lớp đầu tiên ngoại trừ phần infill đặc."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer infill"
 msgstr "Infill lớp đầu tiên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "Tốc độ của phần infill đặc của lớp đầu tiên."
 
@@ -15656,11 +15344,9 @@ msgstr "Số lớp in chậm"
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Vài lớp đầu tiên được in chậm hơn bình thường. Tốc độ được tăng dần theo cách tuyến tính qua số lượng lớp được chỉ định."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer nozzle temperature"
 msgstr "Nhiệt độ đầu phun lớp đầu tiên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "Nhiệt độ đầu phun để in lớp đầu tiên khi sử dụng filament này."
 
@@ -15753,7 +15439,6 @@ msgstr "Tốc độ ủi"
 msgid "Filament-specific override for ironing speed. This allows you to customize the print speed of ironing lines for each filament type."
 msgstr "Ghi đè riêng theo filament cho tốc độ ủi. Điều này cho phép bạn tùy chỉnh tốc độ in của các đường ủi cho từng loại filament."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
 msgstr "Rung ngẫu nhiên trong khi in thành, để bề mặt có vẻ thô. Cài đặt này điều khiển vị trí fuzzy."
 
@@ -15775,7 +15460,6 @@ msgstr "Tất cả thành"
 msgid "Fuzzy skin thickness"
 msgstr "Độ dày fuzzy skin"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "Độ rộng để rung. Khuyến nghị dưới độ rộng đường thành ngoài."
 
@@ -15930,7 +15614,6 @@ msgstr "Lớp và chu vi"
 msgid "Don't print gap fill with a length is smaller than the threshold specified (in mm). This setting applies to top, bottom and solid infill and, if using the classic perimeter generator, to wall gap fill."
 msgstr "Không in lấp khe có độ dài nhỏ hơn ngưỡng được chỉ định (tính bằng mm). Cài đặt này áp dụng cho infill đặc trên, dưới và, nếu sử dụng trình tạo chu vi cổ điển, cho lấp khe thành."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "Tốc độ của infill khe. Khe thường có độ rộng đường không đều và nên được in chậm hơn."
 
@@ -15961,7 +15644,6 @@ msgstr "Bật điều này để thêm số dòng(Nx) vào đầu mỗi dòng G-
 msgid "Scan first layer"
 msgstr "Quét lớp đầu tiên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "Bật điều này để bật camera trên máy in để kiểm tra chất lượng lớp đầu tiên."
 
@@ -15980,7 +15662,6 @@ msgstr "Cấu hình máy in"
 msgid "Nozzle type"
 msgstr "Loại đầu phun"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "Vật liệu kim loại của đầu phun. Điều này xác định khả năng chống mài mòn của đầu phun, và loại filament nào có thể được in."
 
@@ -15997,9 +15678,9 @@ msgstr "Cacbua vonfram"
 msgid "Nozzle HRC"
 msgstr "HRC đầu phun"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
-msgstr "Độ cứng của đầu phun. Không có nghĩa là không kiểm tra độ cứng của đầu phun trong quá trình slice."
+msgstr "Độ cứng của đầu phun. Giá trị 0 có nghĩa là không kiểm tra độ cứng đầu phun trong quá trình slice."
 
 msgid "HRC"
 msgstr "HRC"
@@ -16095,7 +15776,6 @@ msgstr "Chi phí máy in mỗi giờ."
 msgid "money/h"
 msgstr "tiền/giờ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support controlling chamber temperature"
 msgstr "Hỗ trợ điều khiển nhiệt độ buồng"
 
@@ -16166,7 +15846,6 @@ msgstr "Bật điều này để có file G-code có chú thích, với mỗi d�
 msgid "Infill combination"
 msgstr "Kết hợp infill"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "Tự động kết hợp infill thưa của nhiều lớp để in cùng nhau để giảm thời gian. Thành vẫn được in với chiều cao lớp ban đầu."
 
@@ -16356,11 +16035,9 @@ msgstr ""
 msgid "Line width of internal sparse infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Độ rộng đường của infill thưa bên trong. Nếu được biểu thị dưới dạng %, nó sẽ được tính trên đường kính đầu phun."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Infill/wall overlap"
 msgstr "Chồng lấp infill/Thành"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "Vùng infill được mở rộng một chút để chồng lấp với thành để liên kết tốt hơn. Giá trị phần trăm tương đối với độ rộng đường của infill thưa. Đặt giá trị này thành ~10-15% để giảm thiểu đùn dư tiềm ẩn và tích tụ vật liệu dẫn đến bề mặt trên thô."
@@ -16372,7 +16049,6 @@ msgstr "Chồng lấp infill đặc/thành trên/dưới"
 msgid "Top solid infill area is enlarged slightly to overlap with wall for better bonding and to minimize the appearance of pinholes where the top infill meets the walls. A value of 25-30% is a good starting point, minimizing the appearance of pinholes. The percentage value is relative to line width of sparse infill."
 msgstr "Vùng infill đặc trên được mở rộng một chút để chồng lấp với thành để liên kết tốt hơn và giảm thiểu sự xuất hiện của lỗ kim nơi infill trên gặp thành. Giá trị 25-30% là điểm khởi đầu tốt, giảm thiểu sự xuất hiện của lỗ kim. Giá trị phần trăm tương đối với độ rộng đường của infill thưa."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal sparse infill."
 msgstr "Tốc độ của infill thưa bên trong."
 
@@ -16391,9 +16067,9 @@ msgstr "Ép buộc tạo vỏ đặc giữa các vật liệu/khối lượng li
 msgid "Maximum width of a segmented region"
 msgstr "Độ rộng tối đa của vùng phân đoạn"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
-msgstr "Độ rộng tối đa của vùng phân đoạn. Không vô hiệu hóa tính năng này."
+msgstr "Độ rộng tối đa của vùng phân đoạn. Giá trị 0 vô hiệu hóa tính năng này."
 
 msgid "Interlocking depth of a segmented region"
 msgstr "Độ sâu lồng ghép của vùng phân đoạn"
@@ -16437,26 +16113,21 @@ msgstr "Tránh ranh giới lồng ghép"
 msgid "The distance from the outside of a model where interlocking structures will not be generated, measured in cells."
 msgstr "Khoảng cách từ bên ngoài model nơi cấu trúc lồng ghép sẽ không được tạo, đo bằng ô."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing type"
 msgstr "Loại ủi"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "Ủi là sử dụng lưu lượng nhỏ để in lại trên cùng chiều cao của bề mặt để làm cho bề mặt phẳng mịn hơn. Cài đặt này điều khiển lớp nào được ủi."
 
 msgid "No ironing"
 msgstr "Không ủi"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "All top surfaces"
 msgstr "Bề mặt trên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Topmost surface only"
 msgstr "Bề mặt trên cùng"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "All solid layers"
 msgstr "Tất cả lớp đặc"
 
@@ -16466,18 +16137,15 @@ msgstr "Mẫu ủi"
 msgid "The pattern that will be used when ironing."
 msgstr "Mẫu sẽ được sử dụng khi ủi."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "Lượng vật liệu để đùn trong khi ủi. Tương đối với lưu lượng của chiều cao lớp bình thường. Giá trị quá cao dẫn đến đùn dư trên bề mặt."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance between the lines used for ironing."
 msgstr "Khoảng cách giữa các đường ủi."
 
 msgid "The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter."
 msgstr "Khoảng cách để giữ từ các cạnh. Giá trị 0 đặt điều này thành một nửa đường kính đầu phun."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the print speed for ironing lines."
 msgstr "Tốc độ in của các đường ủi."
 
@@ -16554,11 +16222,10 @@ msgstr "G-code này được chèn vào mỗi lần thay đổi lớp sau khi n�
 msgid "Clumping detection G-code"
 msgstr "G-code phát hiện vón cục"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Silent Mode"
-msgstr "Hỗ trợ chế độ im lặng"
+msgstr "Chế độ im lặng"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "Máy có hỗ trợ chế độ im lặng trong đó máy sử dụng gia tốc thấp hơn để in hay không."
 
@@ -16872,7 +16539,6 @@ msgstr ""
 "Giá trị không sẽ dùng tỷ số giảm chấn của firmware.\n"
 "Để tắt input shaping, hãy dùng loại Tắt."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "Tốc độ quạt làm mát phần có thể được tăng lên khi tự động làm mát được bật. Đây là tốc độ tối đa cho quạt làm mát phần."
 
@@ -16993,7 +16659,6 @@ msgstr "Orca Slicer có thể tải file G-code lên máy chủ máy in. Trườ
 msgid "Nozzle volume"
 msgstr "Thể tích đầu phun"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "Thể tích đầu phun giữa dao cắt và cuối đầu phun."
 
@@ -17030,16 +16695,15 @@ msgstr "Khi đặt thành không, khoảng cách filament được di chuyển t
 msgid "Start end points"
 msgstr "Điểm bắt đầu kết thúc"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "Các điểm bắt đầu và kết thúc từ vùng dao cắt đến thùng rác."
 
 msgid "Reduce infill retraction"
 msgstr "Giảm rút infill"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr "Không rút khi di chuyển ở vùng infill hoàn toàn. Điều đó có nghĩa là chảy nhựa không thể nhìn thấy. Điều này có thể giảm số lần rút cho model phức tạp và tiết kiệm thời gian in, nhưng làm cho slice và tạo G-code chậm hơn."
+msgstr "Không rút khi di chuyển ở vùng infill hoàn toàn. Điều đó có nghĩa là chảy nhựa không thể nhìn thấy. Điều này có thể giảm số lần rút cho model phức tạp và tiết kiệm thời gian in, nhưng làm cho slice và tạo G-code chậm hơn. Lưu ý rằng z-hop cũng không được thực hiện ở những vùng bỏ qua việc rút."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Tùy chọn này sẽ giảm nhiệt độ của các extruder không hoạt động để ngăn chảy nhựa."
@@ -17047,7 +16711,6 @@ msgstr "Tùy chọn này sẽ giảm nhiệt độ của các extruder không ho
 msgid "Filename format"
 msgstr "Định dạng tên file"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Users can decide project file names when exporting."
 msgstr "Người dùng có thể xác định tên file dự án khi xuất."
 
@@ -17069,11 +16732,9 @@ msgstr "Làm cho phần nhô có thể in - Vùng lỗ"
 msgid "Maximum area of a hole in the base of the model before it's filled by conical material. A value of 0 will fill all the holes in the model base."
 msgstr "Diện tích tối đa của lỗ ở đáy model trước khi nó được lấp bởi vật liệu hình nón. Giá trị 0 sẽ lấp tất cả các lỗ ở đáy model."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect overhang walls"
 msgstr "Phát hiện thành nhô"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Phát hiện phần trăm nhô tương đối với độ rộng đường và sử dụng tốc độ khác nhau để in. Đối với phần nhô 100%%, tốc độ cầu được sử dụng."
@@ -17105,11 +16766,9 @@ msgstr ""
 msgid "Line width of inner wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Độ rộng đường của thành trong. Nếu được biểu thị dưới dạng %, nó sẽ được tính trên đường kính đầu phun."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for inner walls."
 msgstr "Tốc độ của thành trong."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of walls per layer."
 msgstr "Số lượng thành của mỗi lớp."
 
@@ -17170,30 +16829,24 @@ msgstr "Biến thể máy in"
 msgid "Raft contact Z distance"
 msgstr "Khoảng cách Z tiếp xúc raft"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "Khoảng cách Z giữa bè và vật thể. Nếu khoảng cách Z trên của hỗ trợ bằng 0, giá trị này sẽ bị bỏ qua và vật thể được in tiếp xúc trực tiếp với bè (không có khe hở)."
 
 msgid "Raft expansion"
 msgstr "Mở rộng raft"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands all raft layers in XY plane."
 msgstr "Mở rộng tất cả lớp raft trên mặt phẳng XY."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer density"
 msgstr "Mật độ lớp đầu tiên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the density of the first raft or support layer."
 msgstr "Mật độ của lớp raft hoặc support đầu tiên."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer expansion"
 msgstr "Mở rộng lớp đầu tiên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "Mở rộng lớp raft hoặc support đầu tiên để cải thiện độ bám dính bàn in."
 
@@ -17203,7 +16856,6 @@ msgstr "Lớp raft"
 msgid "Object will be raised by this number of support layers. Use this function to avoid warping when printing ABS."
 msgstr "Đối tượng sẽ được nâng lên bởi số lớp support này. Sử dụng chức năng này để tránh cong vênh khi in ABS."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "Đường dẫn G-code được tạo sau khi đơn giản hóa đường viền của model để tránh quá nhiều điểm và dòng G-code. Giá trị nhỏ hơn có nghĩa là độ phân giải cao hơn và nhiều thời gian hơn để slice."
 
@@ -17216,7 +16868,6 @@ msgstr "Chỉ kích hoạt rút khi khoảng cách di chuyển dài hơn ngưỡ
 msgid "Retract amount before wipe"
 msgstr "Lượng rút trước khi lau"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "Độ dài của rút nhanh trước khi lau, tương đối với độ dài rút."
 
@@ -17233,11 +16884,9 @@ msgstr ""
 "Độ dài rút nhanh sau khi lau, tương đối so với độ dài rút.\n"
 "Giá trị sẽ bị giới hạn bởi 100% trừ đi giá trị lượng rút trước khi lau."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retract on layer change"
 msgstr "Rút khi thay đổi lớp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This forces a retraction on layer changes."
 msgstr "Ép buộc rút khi thay đổi lớp."
 
@@ -17247,7 +16896,6 @@ msgstr "Độ dài rút"
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
 msgstr "Một lượng vật liệu trong extruder được kéo lại để tránh chảy nhựa trong di chuyển dài. Đặt không để tắt rút."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Long retraction when cut (beta)"
 msgstr "Rút dài khi cắt (beta)"
 
@@ -17271,7 +16919,6 @@ msgstr "Khoảng cách rút khi đổi extruder"
 msgid "Z-hop height"
 msgstr "Chiều cao Z-hop"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "Bất cứ khi nào rút được thực hiện, đầu phun được nâng lên một chút để tạo khoảng trống giữa đầu phun và bản in. Nó ngăn đầu phun va vào bản in khi di chuyển. Sử dụng đường xoắn ốc để nâng Z có thể ngăn dây kéo."
 
@@ -17370,14 +17017,12 @@ msgstr "Khi rút được bù sau khi di chuyển, extruder sẽ đẩy lượng
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Khi rút được bù sau khi thay công cụ, extruder sẽ đẩy lượng filament bổ sung này."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retraction speed"
 msgstr "Tốc độ rút"
 
 msgid "Speed for retracting filament from the nozzle."
 msgstr "Tốc độ để rút filament khỏi đầu phun."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deretraction speed"
 msgstr "Tốc độ bỏ rút"
 
@@ -17410,7 +17055,6 @@ msgstr "Tắt tạo M73: Đặt thời gian in còn lại trong G-code cuối c�
 msgid "Seam position"
 msgstr "Vị trí đường nối"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the starting position for each part of the outer wall."
 msgstr "Vị trí bắt đầu để in mỗi phần của thành ngoài."
 
@@ -17423,7 +17067,6 @@ msgstr "Căn chỉnh"
 msgid "Aligned back"
 msgstr "Căn chỉnh sau"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Back"
 msgstr "Sau"
 
@@ -17554,7 +17197,6 @@ msgstr "Tốc độ lau được xác định bởi cài đặt tốc độ đư
 msgid "Skirt distance"
 msgstr "Khoảng cách viền"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "Khoảng cách từ viền đến vành hoặc đối tượng."
 
@@ -17567,7 +17209,6 @@ msgstr "Góc từ trung tâm đối tượng đến điểm bắt đầu viền.
 msgid "Skirt height"
 msgstr "Chiều cao viền"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Number of skirt layers: usually only one"
 msgstr "Bao nhiêu lớp viền. Thường chỉ một lớp."
 
@@ -17606,9 +17247,9 @@ msgstr "Theo đối tượng"
 msgid "Skirt loops"
 msgstr "Vòng viền"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
-msgstr "Số lượng vòng cho viền. Không có nghĩa là tắt viền."
+msgstr "Số lượng vòng cho viền. Giá trị 0 có nghĩa là tắt viền."
 
 msgid "Skirt speed"
 msgstr "Tốc độ viền"
@@ -17636,7 +17277,6 @@ msgstr "Tốc độ in trong G-code được xuất sẽ bị làm chậm lại 
 msgid "Minimum sparse infill threshold"
 msgstr "Ngưỡng infill thưa tối thiểu"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "Vùng infill thưa nhỏ hơn giá trị ngưỡng được thay thế bằng infill đặc bên trong."
 
@@ -17667,11 +17307,9 @@ msgstr ""
 msgid "Line width of internal solid infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Độ rộng đường của infill đặc bên trong. Nếu được biểu thị dưới dạng %, nó sẽ được tính trên đường kính đầu phun."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "Tốc độ của infill đặc bên trong, không phải bề mặt trên và dưới."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "Xoắn ốc hóa làm mịn chuyển động z của đường viền ngoài. Và biến một model đặc thành bản in thành đơn với các lớp dưới đặc. Model được tạo cuối cùng không có đường nối."
 
@@ -17702,7 +17340,6 @@ msgstr "Tỷ lệ lưu lượng kết thúc xoắn ốc"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "Đặt tỷ lệ lưu lượng kết thúc trong khi kết thúc xoắn ốc. Thông thường xoắn ốc chuyển đổi tỷ lệ tỷ lệ lưu lượng từ 100% đến 0% trong vòng cuối cùng có thể  trong một số trường hợp dẫn đến đùn thiếu ở cuối xoắn ốc."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "Nếu chế độ mịn hoặc truyền thống được chọn, video timelapse sẽ được tạo cho mỗi bản in. Sau mỗi lớp được in, ảnh chụp nhanh được chụp bằng camera buồng. Tất cả các ảnh chụp nhanh này được soạn thành video timelapse khi in hoàn thành. Nếu chế độ mịn được chọn, đầu công cụ sẽ di chuyển đến máng dư thừa sau mỗi lớp được in và sau đó chụp ảnh nhanh. Vì filament nóng chảy có thể rò rỉ từ đầu phun trong quá trình chụp ảnh nhanh, prime tower là cần thiết cho chế độ mịn để lau đầu phun."
 
@@ -17749,11 +17386,9 @@ msgstr "G-code được ghi ở ngay đầu file xuất, trước mọi nội du
 msgid "Start G-code"
 msgstr "G-code bắt đầu"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when starting a print."
 msgstr "G-code bắt đầu khi bắt đầu toàn bộ bản in."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when the printer starts using this filament"
 msgstr "G-code bắt đầu khi bắt đầu in filament này."
 
@@ -17862,7 +17497,6 @@ msgstr "Giá trị này sẽ được cộng (hoặc trừ) từ tất cả tọ
 msgid "Enable support"
 msgstr "Bật support"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables support generation."
 msgstr "Bật tạo support."
 
@@ -17884,7 +17518,6 @@ msgstr "Cây (thủ công)"
 msgid "Support/object XY distance"
 msgstr "Khoảng cách XY support/đối tượng"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This controls the XY separation between an object and its support."
 msgstr "Phân cách XY giữa đối tượng và support của nó."
 
@@ -17903,7 +17536,6 @@ msgstr "Sử dụng cài đặt này để xoay mẫu support trên mặt phẳn
 msgid "On build plate only"
 msgstr "Chỉ trên bàn in"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting only generates supports that begin on the build plate."
 msgstr "Không tạo support trên bề mặt model, chỉ trên bàn in."
 
@@ -17924,25 +17556,25 @@ msgstr "Bỏ qua các phần nhô nhỏ có thể không cần support."
 msgid "Top Z distance"
 msgstr "Khoảng cách Z trên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the support's top and object."
 msgstr "Khoảng cách Z giữa mặt trên của hỗ trợ và vật thể."
 
 msgid "Bottom Z distance"
 msgstr "Khoảng cách Z dưới"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "Khoảng cách Z giữa vật thể và phần đáy của hỗ trợ. Nếu khoảng cách Z trên của hỗ trợ bằng 0 và phần đáy có các lớp giao diện, giá trị này sẽ bị bỏ qua và hỗ trợ được in tiếp xúc trực tiếp với vật thể (không có khe hở)."
 
 msgid "Support/raft base"
 msgstr "Đế support/raft"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Filament to print support base and raft.\n"
 "\"Default\" means no specific filament for support and current filament is used."
-msgstr "Filament để in đế support và raft. \"Mặc định\" có nghĩa là không có filament cụ thể cho support và filament hiện tại được sử dụng."
+msgstr ""
+"Filament để in đế support và raft.\n"
+"\"Mặc định\" có nghĩa là không có filament cụ thể cho support và filament hiện tại được sử dụng."
 
 msgid "Avoid interface filament for base"
 msgstr "Tránh filament giao diện cho đế"
@@ -17953,29 +17585,29 @@ msgstr "Tránh sử dụng filament giao diện support để in đế support n
 msgid "Line width of support. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Độ rộng đường của support. Nếu được biểu thị dưới dạng %, nó sẽ được tính trên đường kính đầu phun."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Loop pattern interface"
 msgstr "Giao diện sử dụng mẫu vòng"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "Bao phủ lớp tiếp xúc trên của support bằng vòng. Bị tắt theo mặc định."
 
 msgid "Support/raft interface"
 msgstr "Giao diện support/raft"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Filament to print support interface.\n"
 "\"Default\" means no specific filament for support interface and current filament is used."
-msgstr "Filament để in giao diện support. \"Mặc định\" có nghĩa là không có filament cụ thể cho giao diện support và filament hiện tại được sử dụng."
+msgstr ""
+"Filament để in giao diện support.\n"
+"\"Mặc định\" có nghĩa là không có filament cụ thể cho giao diện support và filament hiện tại được sử dụng."
 
 msgid "Top interface layers"
 msgstr "Lớp giao diện trên"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the number of top interface layers."
-msgstr "Số lượng lớp chậm"
+msgstr "Số lượng lớp giao diện trên."
 
 msgid "Bottom interface layers"
 msgstr "Lớp giao diện dưới"
@@ -17999,11 +17631,10 @@ msgstr ""
 msgid "Bottom interface spacing"
 msgstr "Khoảng cách giao diện dưới"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
-msgstr "Khoảng cách của các đường giao diện dưới. Không có nghĩa là giao diện đặc."
+msgstr "Khoảng cách của các đường giao diện dưới. Giá trị 0 có nghĩa là giao diện đặc."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support interfaces."
 msgstr "Tốc độ của giao diện support."
 
@@ -18033,7 +17664,6 @@ msgstr "Rỗng"
 msgid "Interface pattern"
 msgstr "Mẫu giao diện"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr "Mẫu đường của giao diện support. Mẫu mặc định cho giao diện support không hòa tan  là Thẳng, trong khi mẫu mặc định cho giao diện support hòa tan  là Đồng tâm."
 
@@ -18043,18 +17673,15 @@ msgstr "Thẳng xen kẽ"
 msgid "Base pattern spacing"
 msgstr "Khoảng cách mẫu đế"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the spacing between support lines."
 msgstr "Khoảng cách giữa các đường support."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Normal support expansion"
 msgstr "Mở rộng support thông thường"
 
 msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "Mở rộng (+) hoặc co lại (-) phạm vi ngang của support thông thường."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support."
 msgstr "Tốc độ của support."
 
@@ -18092,7 +17719,6 @@ msgstr "Lớp support sử dụng chiều cao lớp độc lập với lớp đ�
 msgid "Threshold angle"
 msgstr "Góc ngưỡng"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
@@ -18240,15 +17866,12 @@ msgstr ""
 msgid "Chamber minimal temperature"
 msgstr "Nhiệt độ buồng tối thiểu"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
 msgstr "Nhiệt độ đầu phun cho các lớp sau lớp đầu tiên."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect thin walls"
 msgstr "Phát hiện thành mỏng"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "Phát hiện thành mỏng không thể chứa hai độ rộng đường. Và sử dụng đường đơn để in. Có thể in không tốt lắm, vì nó không phải vòng kín."
 
@@ -18269,21 +17892,18 @@ msgstr "G-code này được chèn khi vai trò đùn thay đổi đối với f
 msgid "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Độ rộng đường cho bề mặt trên. Nếu được biểu thị dưới dạng %, nó sẽ được tính trên đường kính đầu phun."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid top surface infill."
 msgstr "Tốc độ của infill bề mặt trên là đặc."
 
 msgid "Top shell layers"
 msgstr "Lớp vỏ trên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "Đây là số lượng lớp đặc của vỏ trên, bao gồm lớp bề mặt trên. Khi độ dày được tính bởi giá trị này mỏng hơn độ dày vỏ trên, các lớp vỏ trên sẽ được tăng lên."
 
 msgid "Top shell thickness"
 msgstr "Độ dày vỏ trên"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "Số lượng lớp đặc trên được tăng lên khi slice nếu độ dày được tính bởi lớp vỏ trên mỏng hơn giá trị này. Điều này có thể tránh vỏ quá mỏng khi chiều cao lớp nhỏ. 0 có nghĩa là cài đặt này bị tắt và độ dày vỏ trên được xác định tuyệt đối bởi lớp vỏ trên."
 
@@ -18331,18 +17951,15 @@ msgstr "Mỗi mô hình"
 msgid "Each Assembly"
 msgstr "Mỗi cụm lắp ráp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
 msgstr "Tốc độ di chuyển nhanh hơn và không có đùn."
 
 msgid "Wipe while retracting"
 msgstr "Lau trong khi rút"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "Di chuyển đầu phun dọc theo đường đùn cuối cùng khi rút để làm sạch bất kỳ vật liệu rò rỉ nào trên đầu phun. Điều này có thể giảm thiểu cục nhỏ khi in phần mới sau khi di chuyển."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Wipe distance"
 msgstr "Khoảng cách lau"
 
@@ -18359,7 +17976,6 @@ msgstr ""
 "\n"
 "Đặt giá trị trong cài đặt lượng rút trước khi lau bên dưới sẽ thực hiện bất kỳ rút dư nào trước khi lau, nếu không nó sẽ được thực hiện sau."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "Wipe tower có thể được sử dụng để làm sạch cặn trên đầu phun và ổn định áp suất buồng bên trong đầu phun, để tránh khuyết điểm bề ngoài khi in đối tượng."
 
@@ -18377,7 +17993,6 @@ msgstr "Khối lượng xả"
 msgid "Flush multiplier"
 msgstr "Hệ số xả"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "Khối lượng xả thực tế bằng hệ số xả nhân với khối lượng xả trong bảng."
 
@@ -18392,7 +18007,6 @@ msgstr "Hệ số nhân xả dùng trong chế độ xả nhanh."
 msgid "Prime volume"
 msgstr "Khối lượng nạp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Khối lượng vật liệu để nạp extruder trên tower."
 
@@ -18412,7 +18026,6 @@ msgstr "Tiết kiệm"
 msgid "Fast"
 msgstr "Nhanh"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the width of prime towers."
 msgstr "Độ rộng của prime tower."
 
@@ -18537,11 +18150,9 @@ msgstr "Khe infill"
 msgid "Infill gap."
 msgstr "Khe infill."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "Xả sau khi thay filament sẽ được thực hiện bên trong infill của đối tượng. Điều này có thể giảm lượng chất thải và giảm thời gian in. Nếu thành được in bằng filament trong suốt, infill màu trộn sẽ được nhìn thấy bên ngoài. Nó sẽ không có hiệu lực, trừ khi prime tower được bật."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "Xả sau khi thay filament sẽ được thực hiện bên trong support của đối tượng. Điều này có thể giảm lượng chất thải và giảm thời gian in. Nó sẽ không có hiệu lực, trừ khi prime tower được bật."
 
@@ -18575,14 +18186,12 @@ msgstr "Nhiệt độ đầu phun khi công cụ hiện không được sử d�
 msgid "X-Y hole compensation"
 msgstr "Bù lỗ X-Y"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Lỗ trong đối tượng sẽ mở rộng hoặc co lại trong mặt phẳng XY theo giá trị được cấu hình. Giá trị dương làm lỗ lớn hơn, giá trị âm làm lỗ nhỏ hơn. Chức năng này được sử dụng để điều chỉnh kích thước một chút khi đối tượng có vấn đề lắp ráp."
 
 msgid "X-Y contour compensation"
 msgstr "Bù đường viền X-Y"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Đường viền của đối tượng sẽ mở rộng hoặc co lại trong mặt phẳng XY theo giá trị được cấu hình. Giá trị dương làm đường viền lớn hơn, giá trị âm làm đường viền nhỏ hơn. Chức năng này được sử dụng để điều chỉnh kích thước một chút khi đối tượng có vấn đề lắp ráp."
 
@@ -18645,7 +18254,6 @@ msgstr "Sử dụng khoảng cách E tương đối"
 msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
 msgstr "Đùn tương đối được khuyến nghị khi sử dụng tùy chọn \"label_objects\". Một số extruder hoạt động tốt hơn khi tùy chọn này không được chọn (chế độ đùn tuyệt đối). Wipe tower chỉ tương thích với chế độ tương đối. Nó được khuyến nghị trên hầu hết máy in. Mặc định được chọn."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "Trình tạo thành cổ điển tạo ra thành với độ rộng đùn không đổi và cho vùng rất mỏng được sử dụng lấp khe. Engine Arachne tạo ra thành với độ rộng đùn thay đổi."
 
@@ -18655,7 +18263,6 @@ msgstr "Arachne"
 msgid "Wall transition length"
 msgstr "Độ dài chuyển đổi thành"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "Khi chuyển đổi giữa số lượng thành khác nhau khi phần trở nên mỏng hơn, một lượng không gian nhất định được phân bổ để chia hoặc nối các đoạn thành. Nó được biểu thị dưới dạng phần trăm trên đường kính đầu phun."
 
@@ -18799,7 +18406,6 @@ msgstr "Chênh lệch nhiệt độ làm nóng trước"
 msgid "Temperature delta applied during pre-heating before tool change."
 msgstr "Chênh lệch nhiệt độ áp dụng khi làm nóng trước lúc đổi công cụ."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect narrow internal solid infills"
 msgstr "Phát hiện infill đặc bên trong hẹp"
 
@@ -18825,14 +18431,12 @@ msgstr " không trong phạm vi "
 msgid "Export 3MF"
 msgstr "Xuất 3MF"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports the project as a 3MF file."
 msgstr "Xuất dự án dưới dạng 3MF."
 
 msgid "Export slicing data"
 msgstr "Xuất dữ liệu slice"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export slicing data to a folder"
 msgstr "Xuất dữ liệu slice vào thư mục."
 
@@ -18857,7 +18461,6 @@ msgstr "Xuất các đối tượng dưới dạng nhiều STL vào thư mục."
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Slice các bản: 0-tất cả bản, i-bản i, khác-không hợp lệ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shows command help."
 msgstr "Hiển thị trợ giúp lệnh."
 
@@ -18882,14 +18485,12 @@ msgstr "xuất 3MF với kích thước tối thiểu."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "max triangle count per plate for slicing"
 msgstr "số lượng tam giác tối đa trên mỗi bản để slice."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "max slicing time per plate in seconds"
 msgstr "thời gian slice tối đa trên mỗi bản tính bằng giây."
 
@@ -18908,14 +18509,12 @@ msgstr "Kiểm tra các mục quy chuẩn."
 msgid "Output Model Info"
 msgstr "Xuất thông tin model"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This outputs the model’s information."
 msgstr "Xuất thông tin của model."
 
 msgid "Export Settings"
 msgstr "Xuất cài đặt"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports settings to a file."
 msgstr "Xuất cài đặt vào file."
 
@@ -19003,7 +18602,6 @@ msgstr "Sao chép đối tượng trong danh sách nạp."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Nạp cài đặt quy trình/máy cập nhật khi sử dụng cập nhật"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "Nạp cài đặt quy trình/máy cập nhật từ file được chỉ định khi sử dụng cập nhật."
 
@@ -19040,7 +18638,6 @@ msgstr "Nạp và lưu trữ cài đặt tại thư mục đã cho. Điều này
 msgid "Output directory"
 msgstr "Thư mục đầu ra"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the output directory for exported files."
 msgstr "Thư mục đầu ra cho các file được xuất."
 
@@ -19097,43 +18694,36 @@ msgstr "Nếu được bật, Sắp xếp sẽ tránh vùng hiệu chỉnh đùn
 msgid "Skip modified G-code in 3MF"
 msgstr "Bỏ qua G-code đã sửa đổi trong 3MF"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Skip the modified G-code in 3MF from printer or filament presets."
 msgstr "Bỏ qua G-code đã sửa đổi trong 3MF từ Máy in hoặc cài đặt sẵn filament."
 
 msgid "MakerLab name"
 msgstr "Tên MakerLab"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "MakerLab name to generate this 3MF."
 msgstr "Tên MakerLab để tạo 3MF này."
 
 msgid "MakerLab version"
 msgstr "Phiên bản MakerLab"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "MakerLab version to generate this 3MF."
 msgstr "Phiên bản MakerLab để tạo 3MF này."
 
 msgid "Metadata name list"
 msgstr "Danh sách tên metadata"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Metadata name list added into 3MF."
 msgstr "Danh sách tên metadata được thêm vào 3MF."
 
 msgid "Metadata value list"
 msgstr "Danh sách giá trị metadata"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Metadata value list added into 3MF."
 msgstr "Danh sách giá trị metadata được thêm vào 3MF."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Allow 3MF with newer version to be sliced"
 msgstr "Cho phép 3MF với phiên bản mới hơn được slice"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Allow 3MF with newer version to be sliced."
 msgstr "Cho phép 3MF với phiên bản mới hơn được slice."
 
@@ -19337,11 +18927,9 @@ msgstr "Tên file đầu vào không có phần mở rộng"
 msgid "Source filename of the first object, without extension."
 msgstr "Tên file nguồn của đối tượng đầu tiên, không có phần mở rộng."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vector has two elements: X and Y coordinate of the point. Values in mm."
 msgstr "Vector có hai phần tử: tọa độ x và y của điểm. Giá trị tính bằng mm."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vector has two elements: X and Y dimension of the bounding box. Values in mm."
 msgstr "Vector có hai phần tử: kích thước x và y của hộp giới hạn. Giá trị tính bằng mm."
 
@@ -19505,15 +19093,12 @@ msgstr "Nạp file model thất bại."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Tạo lưới cho file mô hình thất bại hoặc không có hình dạng hợp lệ."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "File được cung cấp không thể đọc được vì nó trống"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Định dạng file không xác định. File đầu vào phải có phần mở rộng .stl, .obj, .amf(.xml)."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Định dạng file không xác định. File đầu vào phải có phần mở rộng .3mf hoặc .zip.amf."
 
@@ -19565,7 +19150,6 @@ msgstr "Hiệu chỉnh"
 msgid "Finish"
 msgstr "Hoàn thành"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "How can I use calibration results?"
 msgstr "Cách sử dụng kết quả hiệu chỉnh?"
 
@@ -19638,7 +19222,6 @@ msgstr "Vui lòng chọn filament để hiệu chỉnh."
 msgid "The input value size must be 3."
 msgstr "Kích thước giá trị đầu vào phải là 3."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
@@ -19651,7 +19234,6 @@ msgstr ""
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "Chỉ một trong các kết quả cùng tên: %s sẽ được lưu. Bạn có chắc muốn ghi đè các kết quả còn lại không?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "Đã có kết quả hiệu chỉnh lịch sử với cùng tên: %s. Chỉ một trong các kết quả có cùng tên được lưu. Bạn có chắc chắn muốn ghi đè kết quả lịch sử không?"
@@ -19665,7 +19247,6 @@ msgstr ""
 "Trong cùng một extruder, tên(%s) phải là duy nhất khi loại filament, đường kính đầu phun và lưu lượng đầu phun giống nhau.\n"
 "Bạn có chắc muốn ghi đè kết quả lịch sử không?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Loại máy này chỉ có thể giữ %d kết quả lịch sử trên mỗi đầu phun. Kết quả này sẽ không được lưu."
@@ -19747,7 +19328,6 @@ msgstr "Ngoài ra, hiệu chỉnh tốc độ lưu lượng rất quan trọng �
 msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion volumes. The default setting works well in Bambu Lab printers and official filaments as they were pre-calibrated and fine-tuned. For a regular filament, you usually won't need to perform a Flow Rate Calibration unless you still see the listed defects after you have done other calibrations. For more details, please check out the wiki article."
 msgstr "Hiệu chỉnh tốc độ lưu lượng đo tỷ lệ khối lượng đùn dự kiến so với thực tế . Cài đặt mặc định hoạt động tốt trong máy in Bambu Lab và filament chính thức vì chúng đã được hiệu chỉnh trước và tinh chỉnh. Đối với filament thông thường, bạn thường sẽ không cần thực hiện hiệu chỉnh tốc độ lưu lượng trừ khi bạn vẫn thấy các khuyết điểm được liệt kê sau khi bạn đã thực hiện hiệu chỉnh khác. Để biết thêm chi tiết, vui lòng xem bài viết wiki."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -19802,7 +19382,6 @@ msgstr "Lưu lượng tiêu chuẩn"
 msgid "Please find the best line on your plate"
 msgstr "Vui lòng tìm đường tốt nhất trên bàn của bạn"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Vui lòng tìm góc có mức độ đùn hoàn hảo"
 
@@ -19967,7 +19546,6 @@ msgstr "Không có kết quả lịch sử"
 msgid "Success to get history result"
 msgstr "Lấy kết quả lịch sử thành công"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "Đang làm mới các bản ghi hiệu chỉnh động lực lưu lượng lịch sử"
 
@@ -19979,7 +19557,6 @@ msgstr "Lưu ý: Số hiệu hotend trên %s gắn với giá đỡ. Khi hotend 
 msgid "Action"
 msgstr "Hành động"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Loại máy này chỉ có thể giữ %d kết quả lịch sử trên mỗi đầu phun."
@@ -20652,11 +20229,9 @@ msgstr "Cài đặt sẵn filament"
 msgid "Create"
 msgstr "Tạo"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor is not selected; please reselect vendor."
 msgstr "Nhà cung cấp không được chọn, vui lòng chọn lại nhà cung cấp."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Custom vendor missing; please input custom vendor."
 msgstr "Nhà cung cấp tùy chỉnh không được nhập, vui lòng nhập nhà cung cấp tùy chỉnh."
 
@@ -20666,25 +20241,22 @@ msgstr "\"Bambu\" hoặc \"Generic\" không thể được sử dụng làm nhà
 msgid "Filament type is not selected, please reselect type."
 msgstr "Loại filament không được chọn, vui lòng chọn lại loại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament serial missing; please input serial."
 msgstr "Serial filament không được nhập, vui lòng nhập serial."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
-msgstr "Có thể có ký tự thoát trong đầu vào nhà cung cấp hoặc serial của filament. Vui lòng xóa và nhập lại."
+msgstr "Có thể có ký tự không được phép trong đầu vào nhà cung cấp hoặc serial của filament. Vui lòng xóa và nhập lại."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Tất cả đầu vào trong nhà cung cấp tùy chỉnh hoặc serial là khoảng trắng. Vui lòng nhập lại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vendor cannot be a number; please re-enter."
 msgstr "Nhà cung cấp không thể là số. Vui lòng nhập lại."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "Bạn chưa chọn máy in hoặc cài đặt sẵn. Vui lòng chọn ít nhất một."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
@@ -20731,7 +20303,6 @@ msgstr "Nhập cài đặt sẵn"
 msgid "Create Type"
 msgstr "Loại tạo"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The model was not found; please reselect vendor."
 msgstr "Model không tìm thấy, vui lòng chọn lại nhà cung cấp."
 
@@ -20774,18 +20345,15 @@ msgstr "File vượt quá %d MB, vui lòng nhập lại."
 msgid "Exception in obtaining file size, please import again."
 msgstr "Ngoại lệ trong việc lấy kích thước file, vui lòng nhập lại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preset path was not found; please reselect vendor."
 msgstr "Đường dẫn cài đặt sẵn không tìm thấy, vui lòng chọn lại nhà cung cấp."
 
 msgid "The printer model was not found, please reselect."
 msgstr "Model máy in không tìm thấy, vui lòng chọn lại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle diameter was not found; please reselect."
 msgstr "Đường kính đầu phun không tìm thấy, vui lòng chọn lại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer preset was not found; please reselect."
 msgstr "Cài đặt sẵn máy in không tìm thấy, vui lòng chọn lại."
 
@@ -20801,11 +20369,10 @@ msgstr "Mẫu cài đặt sẵn quy trình"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "Bạn chưa chọn cài đặt sẵn máy in nào để tạo dựa trên. Vui lòng chọn nhà cung cấp và model của máy in"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
-msgstr "Bạn đã nhập đầu vào không hợp lệ trong phần vùng có thể in trên trang đầu tiên. Vui lòng kiểm tra trước khi tạo."
+msgstr "Bạn đã nhập ký tự không được phép trong phần vùng có thể in trên trang đầu tiên. Vui lòng chỉ dùng số."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -20829,14 +20396,12 @@ msgstr "Tạo cài đặt sẵn filament thất bại. Như sau:\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "Tạo cài đặt sẵn quy trình thất bại. Như sau:\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor was not found; please reselect."
 msgstr "Nhà cung cấp không tìm thấy, vui lòng chọn lại."
 
 msgid "Current vendor has no models, please reselect."
 msgstr "Nhà cung cấp hiện tại không có model, vui lòng chọn lại."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "Bạn chưa chọn nhà cung cấp và model hoặc nhập nhà cung cấp tùy chỉnh và model."
 
@@ -20849,7 +20414,6 @@ msgstr "Tất cả đầu vào trong nhà cung cấp máy in tùy chỉnh hoặc
 msgid "Please check bed printable shape and origin input."
 msgstr "Vui lòng kiểm tra hình dạng có thể in của bàn và đầu vào gốc."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Bạn chưa chọn máy in để thay thế đầu phun, vui lòng chọn."
 
@@ -20900,7 +20464,6 @@ msgstr "Vui lòng đến cài đặt máy in để chỉnh sửa cài đặt s�
 msgid "Filament Created"
 msgstr "Filament đã được tạo"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
@@ -20955,7 +20518,6 @@ msgstr "mở zip đã ghi thất bại"
 msgid "Export successful"
 msgstr "Xuất thành công"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
@@ -20988,7 +20550,6 @@ msgstr ""
 "Bộ cài đặt sẵn filament của người dùng.\n"
 "Có thể chia sẻ với người khác."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "Chỉ hiển thị tên máy in có thay đổi đối với cài đặt sẵn máy in, filament và quy trình."
 
@@ -21015,7 +20576,6 @@ msgstr ""
 msgid "Please select at least one printer or filament."
 msgstr "Vui lòng chọn ít nhất một máy in hoặc filament."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please select a preset type you want to export"
 msgstr "Vui lòng chọn loại bạn muốn xuất"
 
@@ -21078,7 +20638,6 @@ msgstr "[Yêu cầu xóa]"
 msgid "Edit Preset"
 msgstr "Chỉnh sửa cài đặt sẵn"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "For more information, please check out our Wiki"
 msgstr "Để biết thêm thông tin, vui lòng xem Wiki"
 
@@ -21798,7 +21357,6 @@ msgstr "máy in cùng lúc. (Tùy thuộc vào số lượng thiết bị có th
 msgid "Wait"
 msgstr "Chờ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "phút mỗi đợt. (Tùy thuộc vào thời gian cần để hoàn thành nung nóng.)"
 
@@ -22177,7 +21735,6 @@ msgstr "Cảnh báo: Loại vành không được đặt thành \"được vẽ\
 msgid "Set the brim type of this object to \"painted\""
 msgstr "Đặt loại vành của đối tượng này thành \"được vẽ\""
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "invalid brim ears"
 msgstr " tai vành không hợp lệ"
 
@@ -22821,7 +22378,6 @@ msgstr ""
 "Timelapse\n"
 "Bạn có biết rằng bạn có thể tạo video timelapse trong mỗi lần in không?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
@@ -22830,7 +22386,6 @@ msgstr ""
 "Tự động sắp xếp\n"
 "Bạn có biết rằng bạn có thể tự động sắp xếp tất cả các đối tượng trong dự án của bạn không?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
@@ -22929,7 +22484,6 @@ msgstr ""
 "Chia bản in thành các bản\n"
 "Bạn có biết rằng bạn có thể chia model có nhiều phần thành các bản riêng lẻ sẵn sàng in không? Điều này sẽ đơn giản hóa quy trình theo dõi tất cả các phần."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
 msgid ""
@@ -22947,7 +22501,6 @@ msgstr ""
 "Vẽ support\n"
 "Bạn có biết rằng bạn có thể vẽ vị trí của support không? Tính năng này giúp dễ dàng đặt vật liệu support chỉ trên các phần của model thực sự cần nó."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
@@ -22956,7 +22509,6 @@ msgstr ""
 "Các loại support khác nhau\n"
 "Bạn có biết rằng bạn có thể chọn từ nhiều loại support không? Support cây hoạt động tuyệt vời cho model hữu cơ, đồng thời tiết kiệm filament và cải thiện tốc độ in. Hãy xem chúng!"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
@@ -22973,7 +22525,6 @@ msgstr ""
 "Vành để bám dính tốt hơn\n"
 "Bạn có biết rằng khi model được in có giao diện tiếp xúc nhỏ với bề mặt in, khuyến nghị sử dụng vành không?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
@@ -22990,7 +22541,6 @@ msgstr ""
 "Xếp chồng đối tượng\n"
 "Bạn có biết rằng bạn có thể xếp chồng đối tượng thành một đối tượng nguyên không?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
@@ -23007,7 +22557,6 @@ msgstr ""
 "Cải thiện độ bền\n"
 "Bạn có biết rằng bạn có thể sử dụng nhiều vòng thành hơn và mật độ infill thưa cao hơn để cải thiện độ bền của model không?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
 msgid ""
@@ -23017,7 +22566,6 @@ msgstr ""
 "Khi nào bạn cần in với cửa máy in mở?\n"
 "Bạn có biết rằng mở cửa máy in có thể giảm xác suất tắc extruder/hotend khi in filament nhiệt độ thấp hơn với nhiệt độ vỏ bọc cao hơn không? Thêm thông tin về điều này trong Wiki."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"

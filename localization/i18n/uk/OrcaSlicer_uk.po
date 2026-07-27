@@ -440,11 +440,9 @@ msgstr "Головка"
 msgid "Nozzle information needs to be read"
 msgstr "Інформація про сопло, яку потрібно прочитати"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support Painting"
 msgstr "Малювання підтримок"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Apply"
 msgstr "Застосувати"
 
@@ -454,7 +452,6 @@ msgstr "Тільки на підсвічених нависанняхх"
 msgid "Erase all"
 msgstr "Очистити все"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Highlight overhangs"
 msgstr "Підсвічувати нависання"
 
@@ -531,7 +528,6 @@ msgstr "Без автоматичної підтримки"
 msgid "Done"
 msgstr "Виконано"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support generated"
 msgstr "Підтримки згенеровані"
 
@@ -547,7 +543,6 @@ msgstr "Зміна малювання підтримок"
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo - Покласти на грань"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Lay on Face"
 msgstr "Покласти на грань"
 
@@ -555,7 +550,6 @@ msgstr "Покласти на грань"
 msgid "Filament count exceeds the maximum number that painting tool supports. Only the first %1% filaments will be available in painting tool."
 msgstr "Кількість філаменту перевищує максимальну кількість, яку підтримує інструмент малювання. Лише перші %1% філаменту будуть доступні в інструменті малювання."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Color Painting"
 msgstr "Фарбування"
 
@@ -720,37 +714,31 @@ msgstr "Повернути (відносно)"
 msgid "Scale ratios"
 msgstr "Коефіцієнти масштабування"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Операції з обʼєктами"
 
 msgid "Scale"
 msgstr "Масштаб"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
 msgstr "Операції з об’ємом"
 
 msgid "Translate"
 msgstr "Перемістити"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Group operations"
-msgstr "Групова орієнтація"
+msgstr "Групові операції"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set orientation"
 msgstr "Задати орієнтацію"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set scale"
 msgstr "Вказати масштаб"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset position"
 msgstr "Скинути позицію"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset rotation"
 msgstr "Скинути обертання"
 
@@ -1059,9 +1047,9 @@ msgstr ""
 msgid "Cut by Plane"
 msgstr "Вирізати площиною"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
-msgstr "Нерізні краї спричинені різальним інструментом: хочете виправити зараз?"
+msgstr "Неманіфолдні краї, спричинені різальним інструментом: хочете виправити зараз?"
 
 msgid "Repairing model object"
 msgstr "Відновлення обʼєкта моделі"
@@ -1125,7 +1113,6 @@ msgstr "%d трикутники"
 msgid "Show wireframe"
 msgstr "Показати каркас"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to apply when processing preview"
 msgstr "Не можна застосовувати під час попереднього перегляду процесу."
 
@@ -1173,7 +1160,6 @@ msgstr "Пробіл у тексті"
 msgid "Angle"
 msgstr "Кут"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Embedded depth"
 msgstr "Вбудована глибина"
 
@@ -1689,7 +1675,6 @@ msgstr "Перезавантажте файл SVG з диска."
 msgid "Change file"
 msgstr "Змінити файл"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Change to another SVG file."
 msgstr "Змінити на інший файл .svg"
 
@@ -1984,7 +1969,6 @@ msgstr "Alt+"
 msgid "Notice"
 msgstr "Повідомлення"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Undefined"
 msgstr "Не визначено"
 
@@ -2007,11 +1991,9 @@ msgstr "Філамент"
 msgid "Machine"
 msgstr "Машина"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "Пакет конфігурації був завантажений, але деякі значення не розпізнано."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "Файл конфігурації “%1%” був завантажений, але деякі значення не були розпізнані."
@@ -2161,7 +2143,6 @@ msgstr "Запамʼятати мій вибір"
 msgid "Click to download new version in default browser: %s"
 msgstr "Клацніть, щоб завантажити нову версію у типовому браузері: %s"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "OrcaSlicer needs an update"
 msgstr "Orca Slicer потребує оновлення"
 
@@ -2236,7 +2217,6 @@ msgstr "Екст"
 msgid "Some presets are modified."
 msgstr "Деякі пресети змінено."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Ви можете зберегти модифіковані пресети в новому проекті, відмінити або зберегти зміни як нові пресети."
 
@@ -2530,7 +2510,6 @@ msgstr "Перейменувати"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "Помилка ініціалізації графічного інтерфейсу Orca Slicer"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "Fatal error, exception: %1%"
 msgstr "Критична помилка, виявлено виняток: %1%"
@@ -2556,22 +2535,18 @@ msgstr "Швидкість"
 msgid "Strength"
 msgstr "Міцність"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top solid layers"
 msgstr "Верхові суцільні шари"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top minimum shell thickness"
 msgstr "Мінімальна товщина верхньої оболонки"
 
 msgid "Top Surface Density"
 msgstr "Щільність верхньої поверхні"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom solid layers"
 msgstr "Нижніх Суцільних Шарів"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom minimum shell thickness"
 msgstr "Мінімальна товщина нижньої оболонки"
 
@@ -2581,14 +2556,12 @@ msgstr "Щільність нижньої поверхні"
 msgid "Ironing"
 msgstr "Розгладжування"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fuzzy skin"
 msgstr "Шорстка Поверхня"
 
 msgid "Extruders"
 msgstr "Екструдери"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Extrusion width"
 msgstr "Ширина екструзії"
 
@@ -2598,23 +2571,18 @@ msgstr "Параметри протирання"
 msgid "Bed adhesion"
 msgstr "Прилипання до столу"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Part"
 msgstr "Додати елемент"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Negative Part"
 msgstr "Додати обʼєм для віднімання"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Modifier"
 msgstr "Додавання модифікатора"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Blocker"
 msgstr "Додати блокувальник підтримки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Enforcer"
 msgstr "Додати примусові підтримки"
 
@@ -2721,15 +2689,12 @@ msgstr "Пропозиція"
 msgid "Text"
 msgstr "Текст"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Height Range Modifier"
 msgstr "Модифікатор діапазону висоти шарів"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Settings"
 msgstr "Додати налаштування"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Change Type"
 msgstr "Змінити тип"
 
@@ -2745,11 +2710,9 @@ msgstr "Примусова підтримка"
 msgid "Change part type"
 msgstr "Змінити тип частини"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as An Individual Object"
 msgstr "Встановити як окремий обʼєкт"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as Individual Objects"
 msgstr "Встановити як окремі обʼєкти"
 
@@ -2768,7 +2731,6 @@ msgstr "Авто-кидання"
 msgid "Automatically drops the selected object to the build plate."
 msgstr "Автоматично кидає вибраний обʼєкт на робочу пластину."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fix Model"
 msgstr "Виправити модель"
 
@@ -2839,19 +2801,15 @@ msgstr "Промивати у підтримки обʼєкта"
 msgid "Edit in Parameter Table"
 msgstr "Змінити в таблиці параметрів"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Inches"
 msgstr "Конвертувати з дюймів"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Inch"
 msgstr "Відновити до дюймів"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Meters"
 msgstr "Конвертувати з метричної"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Відновити в метричну"
 
@@ -2870,31 +2828,24 @@ msgstr "Логічна сітка"
 msgid "Mesh boolean operations including union and subtraction"
 msgstr "Булеві операції з сіткою, включаючи обʼєднання та віднімання"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along X Axis"
 msgstr "Вздовж осі X"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the X Axis"
 msgstr "Відобразити по осі X"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Y Axis"
 msgstr "По осі Y"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Y Axis"
 msgstr "Відобразити по осі Y"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Z Axis"
 msgstr "По осі Z"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Z Axis"
 msgstr "Відобразити осі Z"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror object"
 msgstr "Відобразити модель"
 
@@ -2925,14 +2876,12 @@ msgstr "Додати модель"
 msgid "Show Labels"
 msgstr "Показати підписи"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Objects"
 msgstr "На моделі"
 
 msgid "Split the selected object into multiple objects"
 msgstr "Розділити вибраний обʼєкт на кілька обʼєктів"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Parts"
 msgstr "На частини"
 
@@ -2960,7 +2909,6 @@ msgstr "Обʼєднати з"
 msgid "Delete this filament"
 msgstr "Видалити цей філамент"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Select All"
 msgstr "Вибрати все"
 
@@ -2973,7 +2921,6 @@ msgstr "Вибрати всі пластини"
 msgid "Select all objects on all plates"
 msgstr "Вибрати всі обʼєкти на всіх пластинах"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete All"
 msgstr "Видалити все"
 
@@ -3114,25 +3061,23 @@ msgstr[3] "%1$d відкритого ребра"
 msgid "Click the icon to repair model object"
 msgstr "Клацніть на значок, щоб виправити модель обʼєкта"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Right click the icon to drop the object settings"
-msgstr "Натисніть правою кнопкою миші на значок, щоб змінити налаштування моделі"
+msgstr "Натисніть правою кнопкою миші на значок, щоб скинути налаштування моделі"
 
 msgid "Click the icon to reset all settings of the object"
 msgstr "Натисніть значок, щоб скинути всі налаштування моделі"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object printable property"
 msgstr "Натисніть правою кнопкою миші на значок, щоб дозволити/заборонити друк моделі"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Click the icon to toggle printable properties of the object"
-msgstr "Натисніть , щоб дозволити/заборонити друк моделі"
+msgstr "Натисніть на значок, щоб перемкнути можливість друку моделі"
 
 msgid "Click the icon to edit support painting of the object"
 msgstr "Натисніть значок, щоб відредагувати малюнок підтримки цієї моделі"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to edit color painting for the object"
 msgstr "Клацніть на значок, щоб змінити фарбування обʼєкту"
 
@@ -3220,7 +3165,6 @@ msgstr "Видалення обʼєму для віднімання з моде�
 msgid "To save cut correspondence you can delete all connectors from all related objects."
 msgstr "Щоб зберегти інформацію про розріз, можна видалити всі зʼєднання з усіх повʼязаних обʼєктів."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed.\n"
@@ -3265,15 +3209,12 @@ msgstr "Маніпуляції з обʼєктами"
 msgid "Group manipulation"
 msgstr "Групові маніпуляції"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object Settings to Modify"
 msgstr "Параметри моделі для зміни"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Part Settings to Modify"
 msgstr "Параметри елемента для редагування"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer Range Settings to Modify"
 msgstr "Зміна параметрів діапазону шарів"
 
@@ -3306,7 +3247,6 @@ msgstr ""
 "Якщо перший обраний елемент є частиною, другий має бути частиноютого ж\n"
 "обʼєкту."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The type of the last solid object part cannot be changed."
 msgstr "Тип останньої твердотільної частини обʼєкта не можна змінювати."
 
@@ -3369,7 +3309,6 @@ msgstr "Додавання діапазон висот шарів"
 msgid "Invalid numeric."
 msgstr "Неприпустиме числове значення."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "одну клітинку можна скопіювати лише в одну або декілька клітинок у тому самому стовпці"
 
@@ -3434,19 +3373,15 @@ msgstr "Тип лінії"
 msgid "1x1 Grid: %d mm"
 msgstr "Сітка 1x1: %d мм"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "More"
 msgstr "Більше"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open Preferences"
 msgstr "Відкрийте налаштування."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open next tip"
 msgstr "Відкрийте наступну пораду."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open documentation in web browser"
 msgstr "Відкрийте документацію у веб-браузері."
 
@@ -3477,11 +3412,9 @@ msgstr "Власний G-код"
 msgid "Enter Custom G-code used on current layer:"
 msgstr "Введіть власний G-код, що використовується в поточному шарі:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Jump to layer"
 msgstr "Перейти до шару"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the layer number."
 msgstr "Будь ласка, введіть номер шару"
 
@@ -3560,14 +3493,12 @@ msgstr "Підключення..."
 msgid "Auto Refill"
 msgstr "Автоматична заміна"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Load"
 msgstr "Завантажити"
 
 msgid "Unload"
 msgstr "Вивантаження"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "Виберіть слот AMS, а потім натисніть кнопку “Завантажити” або “Вивантажити”, щоб автоматично завантажити або вивантажити філаменти."
 
@@ -3691,7 +3622,6 @@ msgstr "Нагрійте сопло"
 msgid "Cut filament"
 msgstr "Відрізати філамент"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Pull back the current filament"
 msgstr "Відтягніть поточний філамент"
 
@@ -3752,7 +3682,6 @@ msgstr "Усі елементи вибрано..."
 msgid "No matching items..."
 msgstr "Нема відповідних елементів..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deselect All"
 msgstr "Скасувати вибір всіх"
 
@@ -3777,7 +3706,6 @@ msgstr "Розширені налаштування"
 msgid "Expert settings"
 msgstr "Експертні налаштування"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Developer mode"
 msgstr "Режим розробника"
 
@@ -3872,7 +3800,6 @@ msgstr "Організація"
 msgid "Arranging canceled."
 msgstr "Організацію скасовано."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "Розташування завершено, але не все вмістилося на столі. Зменште інтервал розміщення та спробуйте ще раз."
 
@@ -3940,7 +3867,6 @@ msgstr "Помилка входу"
 msgid "Please check the printer network connection."
 msgstr "Будь ласка, перевірте підключення принтера до мережі."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Abnormal print file data: please slice again."
 msgstr "Неправильний друк даних файлу. Будь ласка, наріжте ще раз."
 
@@ -3953,7 +3879,6 @@ msgstr "Тайм-аут завантаження завдання. Будь ла
 msgid "Cloud service connection failed. Please try again."
 msgstr "Не вдалося підключитися до хмарного сервісу. Будь ласка, спробуйте ще раз."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice again."
 msgstr "Файл друку не знайдено, наріжте ще раз."
 
@@ -3966,18 +3891,15 @@ msgstr "Не вдалося надіслати завдання на друк. �
 msgid "Failed to upload file to ftp. Please try again."
 msgstr "Не вдалося завантажити файл на FTP. Спробуйте ще раз."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "Перевірте поточний стан сервера Bambu Lab, натиснувши на посилання вище."
 
 msgid "The size of the print file is too large. Please adjust the file size and try again."
 msgstr "Розмір файлу друку занадто великий. Будь ласка, зменште розмір файлу і спробуйте ще раз."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice it again and send it for printing."
 msgstr "Файл друку не знайдено; будь ласка, знову наріжте його і відправте для друку."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "Не вдалося завантажити файл друку на FTP. Будь ласка, перевірте стан мережі і спробуйте ще раз."
 
@@ -4027,11 +3949,9 @@ msgstr "Сховище в принтері лише для читання. Бу�
 msgid "Encountered an unknown error with the Storage status. Please try again."
 msgstr "Виникла невідома помилка зі станом сховища. Будь ласка, спробуйте ще раз."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sending G-code file over LAN"
 msgstr "Надсилання файлу G-коду по локальній мережі"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sending G-code file to SD card"
 msgstr "Надсилання файлу G-коду на SD-карту"
 
@@ -4103,11 +4023,9 @@ msgstr "Час, що залишився: %dхв%dс"
 msgid "Importing SLA archive"
 msgstr "Імпорт архіву SLA"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
-msgstr ""
-"Архів SLA не містить пресетів. Будь ласка, активуйте SLA\n"
-"Перед встановленням принтера, перш ніж імпортувати цей архів SLA."
+msgstr "Архів SLA не містить пресетів. Будь ласка, спочатку активуйте пресети SLA-принтера, перш ніж імпортувати цей архів SLA."
 
 msgid "Importing canceled."
 msgstr "Імпорт скасовано."
@@ -4118,7 +4036,6 @@ msgstr "Імпорт виконано."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "Імпортований архів SLA не містить жодних профілів. Поточні профілі SLA використовувалися в якості резервних."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "Ви не можете завантажити проект SLA зі складеним обʼєктом на столі"
 
@@ -4146,9 +4063,9 @@ msgstr "Встановлення"
 msgid "Install failed"
 msgstr "Встановлення не вдалося"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "License Info"
-msgstr "З використанням розробок"
+msgstr "Інформація про ліцензію"
 
 msgid "Copyright"
 msgstr "Авторські права"
@@ -4264,7 +4181,6 @@ msgstr "Інший колір"
 msgid "Custom Color"
 msgstr "Власний колір"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Dynamic flow calibration"
 msgstr "Калібрування динамічного потоку"
 
@@ -4274,7 +4190,6 @@ msgstr "Температура сопла та максимальна обʼєм
 msgid "Nozzle Diameter"
 msgstr "Діаметр сопла"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate Type"
 msgstr "Тип Пластини"
 
@@ -4296,9 +4211,9 @@ msgstr "Температура столу"
 msgid "mm³"
 msgstr "мм³"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Start"
-msgstr "Почати калібрування"
+msgstr "Почати"
 
 msgid "Next"
 msgstr "Наступний"
@@ -4413,18 +4328,16 @@ msgstr "Неможливо вибрати: у поточному слоті не
 msgid "Enable AMS"
 msgstr "Дозволити AMS"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in the AMS"
 msgstr "Друк філаментами в AMS"
 
 msgid "Disable AMS"
 msgstr "Вимкнути AMS"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Print with filament on external spool"
-msgstr "Друкувати філаментом, встановленим на задній частині корпусу"
+msgstr "Друк філаментом із зовнішньої котушки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
 msgstr "Будь ласка, змініть осушувач, коли він стає занадто вологим. Індикатор може не відображати точно в наступних випадках: коли кришка відкрита або пакет з осушувачем змінено. На поглинання вологи може знадобитися кілька годин, низькі температури також сповільнюють процес."
 
@@ -4443,13 +4356,13 @@ msgstr "Натисніть, щоб вибрати слот AMS вручну"
 msgid "Do not Enable AMS"
 msgstr "Не вмикати АМS"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Print using filament on external spool."
-msgstr "Друк із використанням матеріалів, закріплених на задній частині корпусу"
+msgstr "Друк із використанням філаменту, встановленого на зовнішній котушці"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Print with filament in AMS"
-msgstr "Друк філаментами в ams"
+msgstr "Друк філаментами в AMS"
 
 # AI Translated
 msgctxt "Nozzle position"
@@ -4477,9 +4390,9 @@ msgstr "Коли поточний матеріал закінчиться, пр�
 msgid "The printer does not currently support auto refill."
 msgstr "Принтер не підтримує функцію автозаправлення."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
-msgstr "Функція резервного копіювання філаменту в AMS вимкнена, будь ласка, активуйте її у налаштуваннях Автоматичного заправлення."
+msgstr "Резервне копіювання філаменту в AMS не увімкнено, будь ласка, увімкніть його в налаштуваннях AMS."
 
 # AI Translated
 msgid ""
@@ -4501,7 +4414,6 @@ msgstr "Налаштування AMS"
 msgid "Insertion update"
 msgstr "Оновлювати дані при вставці матеріалу"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
 msgstr "AMS автоматично зчитає інформацію про філамент при вставці нового філаменту Bambu Lab. Це займає близько 20 секунд."
 
@@ -4511,13 +4423,12 @@ msgstr "Примітка: якщо під час друку вставляєть
 msgid "When inserting a new filament, the AMS will not automatically read its information, leaving it blank for you to enter manually."
 msgstr "При вставці нової пластикової нитки, AMS не буде автоматично зчитуватиме інформацію про неї, залишаючи поле порожнім, щоб користувач міг ввести дані про неї вручну."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update on startup"
 msgstr "Оновити дані при увімкненні принтера"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
-msgstr "AMS автоматично зчитує інформацію про вставлений філамент. Це займе близько 1 хвилини. У процесі зчитування крутиться котушка."
+msgstr "AMS автоматично зчитає інформацію про вставлений філамент під час запуску. Це займе близько 1 хвилини. У процесі зчитування котушки з філаментом обертатимуться."
 
 msgid "The AMS will not automatically read information from inserted filament during startup and will continue to use the information recorded before the last shutdown."
 msgstr ""
@@ -4602,19 +4513,17 @@ msgstr ") для визначення положення друкованої г
 msgid "Go Home"
 msgstr "На головну"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
-msgstr "Відбулася помилка. Можливо не вистачає системноъ памʼяті або це баг самої програми"
+msgstr "Сталася помилка. Можливо, у системі закінчилася памʼять або виникла помилка програми."
 
 #, boost-format
 msgid "A fatal error occurred: \"%1%\""
 msgstr "Відбулася фатальна помилка: \"%1%\""
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please save your project and restart the application."
 msgstr "Збережіть проект і перезапустіть програму."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing G-Code from previous file…"
 msgstr "Обробка G-коду з попереднього файлу..."
 
@@ -4679,11 +4588,9 @@ msgstr "Копіювання тимчасового G-коду завершен�
 msgid "G-code file exported to %1%"
 msgstr "Файл G-коду експортується до %1%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown error with G-code export"
 msgstr "Невідома помилка під час експорту G-коду."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid ""
 "Failed to save G-code file.\n"
@@ -4694,7 +4601,6 @@ msgstr ""
 "Повідомлення про помилку: %1%.\n"
 "Початковий файл %2%."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Не вдалося скопіювати тимчасовий G-код у вихідний G-код"
 
@@ -4741,14 +4647,12 @@ msgstr "Виберіть файл STL для імпорту форми стол�
 msgid "Invalid file format."
 msgstr "Неприпустимий формат файлу."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error: invalid model"
 msgstr "Помилка! Неприпустима модель"
 
 msgid "The selected file contains no geometry."
 msgstr "Вибраний файл не містить геометрії."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "Вибраний файл містить кілька областей, що не перетинаються. Такі файли не підтримуються."
 
@@ -4775,14 +4679,14 @@ msgstr "Мінімальна рекомендована температура �
 msgid "Please check.\n"
 msgstr "Будь ласка, перевірте.\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
 "\n"
 msgstr ""
-"Сопло може бути заблокована, коли температура виходить за межі рекомендованого діапазону.\n"
-"Переконайтеся, що для друку використовується температура.\n"
+"Сопло може засмітитися, якщо температура виходить за межі рекомендованого діапазону.\n"
+"Переконайтеся, що ви дійсно хочете друкувати за цієї температури.\n"
 "\n"
 
 #, c-format, boost-format
@@ -4793,7 +4697,6 @@ msgstr "Рекомендована температура сопла для ць
 msgid "Adaptive Pressure Advance model validation failed:\n"
 msgstr "Не вдалося перевірити модель адаптивного Pressure Advance:\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
@@ -4801,7 +4704,6 @@ msgstr ""
 "Надто маленька максимальна обʼємна швидкість.\n"
 "Скинути до 0,5"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "Поточна температура камери вища, ніж безпечна температура матеріалу, це може призвести до розм’якшення матеріалу та його забивання. Максимально безпечна температура для цього матеріалу становить %d"
@@ -4811,7 +4713,6 @@ msgstr "Поточна температура камери вища, ніж бе
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "Мінімальна температура камери (%d℃) вища за цільову температуру камери (%d℃). Мінімальне значення — це поріг, за якого починається друк, поки камера продовжує нагріватися до цільової температури, тому воно не повинно її перевищувати. Значення буде обмежено цільовим."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4819,7 +4720,6 @@ msgstr ""
 "Надто маленька висота шару.\n"
 "Скинути на 0.2"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
@@ -4836,20 +4736,18 @@ msgstr ""
 "\n"
 "Висота першого шару буде скинуто до 0,2."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
 "\n"
 "The value will be reset to 0."
 msgstr ""
-"Цей параметр використовується лише для точного налаштування розміру моделі у певних випадках.\n"
-"Наприклад, коли є невелика похибка у розмірах моделі та її важко зібрати.\n"
-"Для більшого налаштування розмірів використовуйте функцію масштабування моделі.\n"
+"Цей параметр призначений лише для незначного коригування розміру моделі.\n"
+"Наприклад, коли розміри моделі мають невеликі похибки або допуски неточні. Для великих змін використовуйте функцію масштабування моделі.\n"
 "\n"
 "Це значення буде скинуто на 0."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -4945,7 +4843,6 @@ msgstr "Спіральний режим працює лише тоді, коли
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " Но принтери з кінематикою I3 не будуть писати таймлапс."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
@@ -5348,7 +5245,6 @@ msgstr "Пресети"
 msgid "Print settings"
 msgstr "Параметри друку"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament settings"
 msgstr "Налаштування філаменту"
 
@@ -5373,7 +5269,6 @@ msgstr "Порожній рядок"
 msgid "Value is out of range."
 msgstr "Значення поза допустимим діапазоном."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "%s can’t be a percentage"
 msgstr "%s не може бути відсотком"
@@ -5643,7 +5538,6 @@ msgstr "Вежа"
 msgid "Total"
 msgstr "Всього"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Total estimation"
 msgstr "Загальна оцінка"
 
@@ -5721,11 +5615,9 @@ msgstr "від"
 msgid "Usage"
 msgstr "Використання"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height (mm)"
 msgstr "Висота Шару (мм)"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width (mm)"
 msgstr "Ширина лінії (мм)"
 
@@ -5741,7 +5633,6 @@ msgstr "Прискорення (мм/с²)"
 msgid "Jerk (mm/s)"
 msgstr "Jerk (mm/s)"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fan speed (%)"
 msgstr "Швидкість Вентилятора (%)"
 
@@ -5757,7 +5648,6 @@ msgstr "Фактична обʼємна швидкість потоку (мм³/
 msgid "Seams"
 msgstr "Шви"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament changes"
 msgstr "Зміни філаменту"
 
@@ -5780,7 +5670,6 @@ msgctxt "Noun"
 msgid "Print"
 msgstr "Друк"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printer"
 msgstr "Принтер"
 
@@ -5898,18 +5787,15 @@ msgstr "Ліве сопло: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Праве сопло: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Tool move"
 msgstr "Інструмент Переміщення"
 
 msgid "Tool Rotate"
 msgstr "Інструмент обертання"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move object"
 msgstr "Перемістити обʼєкт"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto orientation options"
 msgstr "Параметри Автоорієнтації"
 
@@ -6052,9 +5938,9 @@ msgstr "Коефіцієнт вибуху"
 msgid "Section View"
 msgstr "Розріз"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Assembly Control"
-msgstr "Складання керування"
+msgstr "Керування складанням"
 
 msgid "Selection Mode"
 msgstr "Режим вибору"
@@ -6071,12 +5957,10 @@ msgstr "Обʼєм:"
 msgid "Size:"
 msgstr "Розмір:"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #, c-format, boost-format
 msgid "Conflicts of G-code paths have been found at layer %d, Z = %.2lfmm. Please separate the conflicted objects farther (%s <-> %s)."
-msgstr ""
-"Виявлено конфлікти шляхів gcode на рівні %d, Z = %.2lf мм. Будь ласка \n"
-"розділити конфліктуючі обʼєкти далі (%s <-> %s)."
+msgstr "Виявлено конфлікти шляхів G-коду на шарі %d, Z = %.2lf мм. Будь ласка, рознесіть конфліктуючі обʼєкти далі один від одного (%s <-> %s)."
 
 msgid "An object is laid over the plate boundaries."
 msgstr "Обʼєкт виходить за межі пластини."
@@ -6084,7 +5968,6 @@ msgstr "Обʼєкт виходить за межі пластини."
 msgid "A G-code path goes beyond the max print height."
 msgstr "Шлях G-коду виходить за максимально допустиму висоту друку."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A G-code path goes beyond plate boundaries."
 msgstr "Шлях G-коду виходить за межі пластини."
 
@@ -6152,7 +6035,6 @@ msgstr "Вибір кроку калібрування"
 msgid "Micro lidar calibration"
 msgstr "Калібрування мікролідара"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bed leveling"
 msgstr "Вирівнювання столу"
 
@@ -6235,7 +6117,6 @@ msgstr ""
 "Ви можете знайти його в \"Налаштування > Налаштування > Лише LAN > Код доступу\"\n"
 "на принтері, як показано на малюнку:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Invalid input"
 msgstr "Помилка введення."
 
@@ -6245,7 +6126,6 @@ msgstr "Нове вікно"
 msgid "Open a new window"
 msgstr "Відкрити нове вікно"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Closing application"
 msgstr "Додаток закривається"
 
@@ -6492,7 +6372,6 @@ msgstr "Вставити"
 msgid "Paste clipboard"
 msgstr "Вставити буфер обміну"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete Selected"
 msgstr "Видалити вибране"
 
@@ -6502,7 +6381,6 @@ msgstr "Видаляє поточний вибір"
 msgid "Deletes all objects"
 msgstr "Видаляє всі обʼєкти"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clone Selected"
 msgstr "Клонувати вибране"
 
@@ -6682,12 +6560,10 @@ msgstr "&Вигляд"
 msgid "&Help"
 msgstr "&Допомога"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Файл з такою назвою вже існує: %s, хочете перезаписати його?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Існує конфігурація з таким ж назвою: %s, хочете її перезаписати?"
@@ -6716,7 +6592,6 @@ msgstr[1] "Експортовано %d конфігурації. (Тільки �
 msgstr[2] "Експортовано %d конфігурацій. (Тільки несистемні конфігурації)"
 msgstr[3] "Експортовано %d конфігурації. (Тільки несистемні конфігурації)"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export Result"
 msgstr "Експорт результату"
 
@@ -6773,7 +6648,6 @@ msgstr "Пристрій не може обробляти більше розм�
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "Програвач несправний. Будь ласка, перевстановіть систему програвача."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "Програвач не завантажений, будь ласка, натисніть кнопку “Відтворити”, щоб спробувати ще раз."
 
@@ -6795,7 +6669,6 @@ msgstr "Виникла проблема. Будь ласка, оновіть п�
 msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "Режим прямого підключення до мережі вимкнений. Будь ласка, увімкніть режим прямого перегляду на екрані принтера."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the IP of the printer to connect."
 msgstr "Будь ласка, введіть IP-адресу принтера для підключення."
 
@@ -6883,7 +6756,6 @@ msgstr "Відео"
 msgid "Switch to video files."
 msgstr "Перехід до відеофайлів."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Switch to 3MF model files."
 msgstr "Переключитися на файли моделей 3MF."
 
@@ -7098,7 +6970,6 @@ msgstr "У мережі"
 msgid "Input access code"
 msgstr "Введіть код доступу"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Can't find devices?"
 msgstr "Не можу знайти пристрої?"
 
@@ -7123,15 +6994,12 @@ msgstr "неприпустимі символи:"
 msgid "illegal suffix:"
 msgstr "неприпустимий суфікс:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name field is not allowed to be empty."
 msgstr "Назва не може бути порожньою."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to start with a space."
 msgstr "Назва не може починатися з пробілу."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to end with a space."
 msgstr "Назва не може закінчуватися пробілом."
 
@@ -7154,7 +7022,6 @@ msgstr "Перемикання..."
 msgid "Switching failed"
 msgstr "Не вдалося перемкнути"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printing progress"
 msgstr "Хід друку"
 
@@ -7173,7 +7040,6 @@ msgstr "Клацніть, щоб переглянути пояснення те�
 msgid "Clear"
 msgstr "Очищення"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "You have completed printing the mall model, \n"
 "but synchronizing rating information has failed."
@@ -7273,7 +7139,6 @@ msgstr "Завантаження..."
 msgid "Cloud Slicing..."
 msgstr "Поділ хмари..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr "У черзі Cloud Slicing Queue попереду %s завдань."
@@ -7286,9 +7151,9 @@ msgstr "Шар: %s"
 msgid "Layer: %d/%d"
 msgstr "Шар: %d/%d"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Please heat the nozzle to above 170℃ before loading or unloading filament."
-msgstr "Будь ласка, нагрійте насадку до понад 170 градусів перед завантаженням або вивантаженням філаменту."
+msgstr "Будь ласка, нагрійте сопло вище 170℃ перед завантаженням або вивантаженням філаменту."
 
 msgid "Chamber temperature cannot be changed in cooling mode while printing."
 msgstr "Температуру камери не можливо змінити в режимі охолодження під час друку."
@@ -7299,9 +7164,9 @@ msgstr "Якщо температура в камері перевищує 40℃
 msgid "Please select an AMS slot before calibration"
 msgstr "Будь ласка, виберіть слот AMS перед калібруванням"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
-msgstr "Неможливо прочитати інформацію про філамент: філамент завантажений у головкуІнструменту, будь ласка, вивантажте філамент і повторіть спробу."
+msgstr "Неможливо прочитати інформацію про філамент: філамент завантажено в головку інструмента. Будь ласка, вивантажте філамент і повторіть спробу."
 
 msgid "This only takes effect during printing"
 msgstr "Це діє лише під час друку"
@@ -7486,11 +7351,9 @@ msgstr "%s інформація"
 msgid "Skip"
 msgstr "Пропустити"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Newer 3MF version"
 msgstr "Нова версія 3mf"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The 3MF file version is in Beta and it is newer than the current OrcaSlicer version."
 msgstr "Версія 3mf-файлу знаходиться в стадії бета-тестування і є новішою за поточну версію OrcaSlicer."
 
@@ -7500,11 +7363,9 @@ msgstr "Якщо ви хочете спробувати бета-версію Or
 msgid "Download Beta Version"
 msgstr "Завантажити бета-версію"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The 3MF file version is newer than the current OrcaSlicer version."
 msgstr "Версія файлу 3MF новіша, ніж поточна версія Orca Slicer."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Updating your OrcaSlicer could enable all functionality in the 3MF file."
 msgstr "Оновлення вашого Orca Slicer може увімкнути всю функціональність у файлі 3MF."
 
@@ -7542,9 +7403,9 @@ msgstr "Зверніться до Вікі перед використанням
 msgid "3D Mouse disconnected."
 msgstr "3D-миша відʼєднана."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "A new configuration is available. Update now?"
-msgstr "Конфігурацію можна оновити зараз."
+msgstr "Доступна нова конфігурація. Оновити зараз?"
 
 msgid "Integration was successful."
 msgstr "Інтеграція пройшла успішно."
@@ -7567,15 +7428,12 @@ msgstr "Доступна нова конфігурація принтера."
 msgid "Undo integration failed."
 msgstr "Скасувати інтеграцію не вдалося."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Exporting"
 msgstr "Експорт."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An update is available!"
 msgstr "Програмне забезпечення має нову версію."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Go to download page"
 msgstr "Перейти до сторінки завантаження."
 
@@ -7676,7 +7534,6 @@ msgstr "ПОПЕРЕДЖЕННЯ:"
 msgid "Your model needs support! Please enable support material."
 msgstr "Вашій моделі потрібна підтримка! Увімкніть допоміжний матеріал."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code path overlap"
 msgstr "Перекриття шляху G-code"
 
@@ -7746,7 +7603,6 @@ msgstr "Підтвердьте увімкнення знімків стану д
 msgid "Enable detection of build plate position"
 msgstr "Увімкнути визначення положення робочої пластини"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "Виявлено тег локалізації робочої пластини, і друк припиняється, якщо тег не знаходиться в певному діапазоні."
 
@@ -7819,7 +7675,6 @@ msgstr "Виявляє друк у повітря, спричинений зас
 msgid "First Layer Inspection"
 msgstr "Перевірка першого шару"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto-recover from step loss"
 msgstr "Автоматичне відновлення після втрати кроку"
 
@@ -7834,7 +7689,6 @@ msgstr "Зберігати файли друку, надіслані зі сла
 msgid "Allow Prompt Sound"
 msgstr "Дозволити звук підказки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament Tangle Detection"
 msgstr "Виявлення заплутування філаменту"
 
@@ -8158,23 +8012,20 @@ msgstr "Успішно змонтовано. Тепер пристрій %s(%s) 
 msgid "Ejecting of device %s (%s) has failed."
 msgstr "Не вдалося витягнути пристрій %s (%s)."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
-msgstr "Виявлено попередній незбережений проект, відновити його?"
+msgstr "Виявлено раніше незбережені елементи. Бажаєте відновити їх?"
 
 msgid "Restore"
 msgstr "Відновити"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
-msgstr "Поточна температура гарячого ложа висока. При друку цим філаментом в закритому приміщенні може статися забивання сопла. Будь ласка, відкрийте передню дверцю та/або видаліть верхнє скло."
+msgstr "Поточна температура столу відносно висока. При друку цим філаментом у закритому середовищі може статися засмічення сопла. Будь ласка, відкрийте передню дверцю та/або зніміть верхнє скло."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
-msgstr ""
-"Твердість сопла, необхідна для нитки напруження, вища, ніж за замовчуванням.\n"
-"жорсткість сопла принтера. Будь ласка, замініть загартоване сопло або\n"
-"нитки розжарювання, інакше сопло буде зношене або пошкоджене."
+msgstr "Твердість сопла, необхідна для цього філаменту, вища за типову твердість сопла принтера. Будь ласка, замініть сопло на загартоване або змініть філамент, інакше сопло буде зношене або пошкоджене."
 
 msgid "Enabling traditional timelapse photography may cause surface imperfections. It is recommended to change to smooth mode."
 msgstr "Включення традиційної фотографії таймлапсу може призвести до дефектів на поверхні. Рекомендується перейти в режим згладжування."
@@ -8196,16 +8047,15 @@ msgstr "Табуляції"
 msgid "Loading file: %s"
 msgstr "Завантаження файлу: %s"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Load 3MF"
 msgstr "Завантажити 3MF"
 
 msgid "BambuStudio Project"
 msgstr "Проєкт BambuStudio"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The 3MF is not supported by OrcaSlicer, loading geometry data only."
-msgstr "3mf не від Orca Slicer, завантажуйте лише дані геометрії."
+msgstr "Цей 3MF не підтримується OrcaSlicer, завантажуються лише дані геометрії."
 
 # AI Translated
 msgid "The 3MF file was generated by an old OrcaSlicer version, loading geometry data only."
@@ -8227,19 +8077,18 @@ msgstr "Цей проєкт було створено в OrcaSlicer 2.3.1-alpha,
 msgid "Would you like OrcaSlicer to automatically fix this by clearing the rotation template settings?"
 msgstr "Бажаєте, щоб OrcaSlicer автоматично виправив це, очистивши налаштування шаблону обертання?"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #, c-format, boost-format
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
-msgstr "Версія 3MF %s новіша, ніж версія %s %s, знайдено наступні ключі:"
+msgstr "Версія файлу 3MF %s новіша, ніж версія %s %s, знайдено такі нерозпізнані ключі:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You should update your software.\n"
 msgstr "Вам краще оновити програмне забезпечення.\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #, c-format, boost-format
 msgid "The 3MF file version %s is newer than %s's version %s, we suggest to upgrade your software."
-msgstr "Версія 3MF %s новіша, ніж версія %s %s, запропонуйте оновити програмне забезпечення."
+msgstr "Версія файлу 3MF %s новіша, ніж версія %s %s, радимо оновити програмне забезпечення."
 
 # AI Translated
 #, c-format, boost-format
@@ -8258,7 +8107,6 @@ msgstr "Файл 3MF створено в BambuStudio. Деякі налашту�
 msgid "Invalid values found in the 3MF:"
 msgstr "У 3MF знайдено неприпустимі значення:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please correct them in the Param tabs"
 msgstr "Будь ласка, виправте їх у вкладках параметрів"
 
@@ -8280,11 +8128,10 @@ msgstr "Будь ласка, підтвердьте, що G-коди в цих �
 msgid "Customized Preset"
 msgstr "Пристосований пресет"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Component name(s) inside step file not in UTF8 format!"
-msgstr "Назва компонентів всередині крокового файлу не у форматі UTF8!"
+msgstr "Назви компонентів усередині файлу STEP не у форматі UTF8!"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Because of unsupported text encoding, garbage characters may appear!"
 msgstr "Через непідтримуване кодування тексту можуть зʼявлятися непотрібні символи!"
 
@@ -8301,7 +8148,6 @@ msgstr "Обʼєкти з нульовим обʼємом видалені"
 msgid "The volume of the object is zero"
 msgstr "Обʼєм обʼєкта дорівнює нулю"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
@@ -8313,15 +8159,15 @@ msgstr ""
 msgid "Object too small"
 msgstr "Обʼєкт занадто малий"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
 "the file be loaded as a single object with multiple parts?"
 msgstr ""
 "Цей файл містить декілька обʼєктів, розташованих на різних висотах.\n"
-"Замість того, щоб розглядати їх як кілька обʼєктів, слід \n"
-"файл завантажується як єдиний обʼєкт, що складається з кількох частин?"
+"Замість того, щоб розглядати їх як кілька обʼєктів, чи слід \n"
+"завантажити файл як єдиний обʼєкт, що складається з кількох частин?"
 
 msgid "Multi-part object detected"
 msgstr "Виявлено обʼєкт, що складається з кількох частин"
@@ -8329,7 +8175,6 @@ msgstr "Виявлено обʼєкт, що складається з кільк
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Завантажити ці файли як єдиний обʼєкт з кількома частинами?\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An object with multiple parts was detected"
 msgstr "Виявлено обʼєкт, що складається з кількох частин"
 
@@ -8365,14 +8210,12 @@ msgstr "Експорт файлу Draco:"
 msgid "Export AMF file:"
 msgstr "Експор файлу AMF:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Save file as"
 msgstr "Зберегти файл як:"
 
 msgid "Export OBJ file:"
 msgstr "Експор файлу OBJ:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
@@ -8387,14 +8230,14 @@ msgstr "Підтвердити збереження як"
 msgid "Delete object which is a part of cut object"
 msgstr "Видалити обʼєкт, який є частиною обрізаного обʼєкта"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed."
 msgstr ""
-"Ви намагаєтеся видалити обʼєкт, який є частиною обрізаного обʼєкта.\n"
-"Ця дія розірве обрізану кореспонденцію.\n"
+"Ви намагаєтеся видалити обʼєкт, який є частиною розрізаного обʼєкта.\n"
+"Ця дія призведе до видалення інформації про розріз.\n"
 "Після цього узгодженість моделі не може бути гарантована."
 
 msgid "Delete Object"
@@ -8424,7 +8267,6 @@ msgstr "Виконується інше завдання експорту."
 msgid "Unable to replace with more than one volume"
 msgstr "Неможливо замінити більше, ніж один об’єм"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error during replacement"
 msgstr "Помилка заміни"
 
@@ -8434,7 +8276,6 @@ msgstr "Замінити з:"
 msgid "Select a new file"
 msgstr "Виберіть новий файл"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "Не вибраний файл для заміни"
 
@@ -8541,7 +8382,6 @@ msgstr ""
 msgid "Sync now"
 msgstr "Синхронізувати зараз"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Ви можете зберегти змінені пресети у новому проекті або відмовитися від них"
 
@@ -8551,13 +8391,13 @@ msgstr "Створення нового проєкту"
 msgid "Load project"
 msgstr "Завантажити проект"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
 msgstr ""
 "Не вдалося зберегти проект.\n"
-"Будь ласка, перевірте, чи існує папка в мережі або інші програмивідкривають її файл проекту."
+"Будь ласка, перевірте, чи існує папка в мережі та чи не відкрито файл проекту іншими програмами."
 
 msgid "Save project"
 msgstr "Зберегти проект"
@@ -8565,18 +8405,15 @@ msgstr "Зберегти проект"
 msgid "Importing Model"
 msgstr "Імпорт моделі"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preparing 3MF file..."
 msgstr "підготувати файл 3MF..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; unknown file format."
 msgstr "Не вдалося завантажити, невідомий формат файлу."
 
 msgid "Downloading project..."
 msgstr "завантажую проект..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; File size exception."
 msgstr "Завантаження не вдалося через виняток розміру файлу."
 
@@ -8603,11 +8440,9 @@ msgstr "Імпорт SLА-архіву"
 msgid "The selected file"
 msgstr "Вибраний файл"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Does not contain valid G-code."
 msgstr "не містить дійсний gcode."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An Error has occurred while loading the G-code file."
 msgstr "Помилка під час завантаження файлу G-коду"
 
@@ -8637,27 +8472,24 @@ msgstr "Відкрити як проєкт"
 msgid "Import geometry only"
 msgstr "Імпортувати лише геометрію"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only one G-code file can be opened at a time."
 msgstr "Водночас можна відкрити лише один файл G-коду."
 
 msgid "G-code loading"
 msgstr "Завантаження G-коду"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code files and models cannot be loaded together!"
 msgstr "Файли G-коду не можна завантажувати разом із моделями!"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to add models in preview mode"
 msgstr "Неможливо додати моделі у режимі попереднього перегляду!"
 
 msgid "All objects will be removed, continue?"
 msgstr "Усі обʼєкти будуть видалені, продовжити?"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
-msgstr "У поточному проекті є незбережені зміни, зберегти їх, перш ніжпродовжити?"
+msgstr "У поточному проекті є незбережені зміни. Зберегти їх перед тим, як продовжити?"
 
 msgid "Number of copies:"
 msgstr "Кількість копій:"
@@ -8728,7 +8560,6 @@ msgstr "Завантажити і друкувати"
 msgid "Abnormal print file data. Please slice again"
 msgstr "Неправильні дані файлу друку. Будь ласка, наріжте знову"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -8892,7 +8723,6 @@ msgstr "перед"
 msgid "rear"
 msgstr "зад"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Switching languages requires the application to restart.\n"
 msgstr "Для перемикання мови потрібно перезапустити програму.\n"
 
@@ -8920,7 +8750,6 @@ msgstr "Північна Америка"
 msgid "Others"
 msgstr "Інші"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Changing the region will log you out of your account.\n"
 msgstr "Зміна регіону призведе до виходу з вашого облікового запису.\n"
 
@@ -9031,7 +8860,6 @@ msgstr "Типова сторінка"
 msgid "Set the page opened on startup."
 msgstr "Задати сторінку, яка відкривається при запуску."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable dark Mode"
 msgstr "Увімкнути темний режим"
 
@@ -9083,7 +8911,6 @@ msgstr "Чи повинні бути завантажені налаштуван
 msgid "Auto backup"
 msgstr "Автобекап"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "Періодично робіть резервну копію вашого проекту для відновлення після випадкового збою."
 
@@ -9517,7 +9344,6 @@ msgstr "Філамент і колір"
 msgid "Color only"
 msgstr "Лише колір"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update built-in presets automatically."
 msgstr "Оновити вбудовані пресети автоматично."
 
@@ -9548,13 +9374,12 @@ msgstr "Асоціації файлів для версії з Microsoft Strore 
 msgid "Open Windows Default Apps Settings"
 msgstr "Відкрити налаштування типових програм Windows"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "Асоціювати файли .3mf з OrcaSlicer"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
-msgstr "Якщо включено, встановлює OrcaSlicer як програму за замовчуваннямдля відкриття файлів .3mf"
+msgstr "Якщо ввімкнено, встановлює OrcaSlicer як програму за замовчуванням для відкриття файлів 3MF"
 
 msgid "Associate DRC files to OrcaSlicer"
 msgstr "Асоціювати файли DRC з OrcaSlicer"
@@ -9562,21 +9387,19 @@ msgstr "Асоціювати файли DRC з OrcaSlicer"
 msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
 msgstr "Якщо дозволено, зробити OrcaSlicer типовою програмою для відкривання файлів DRC."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Associate STL files to OrcaSlicer"
 msgstr "Асоціювати файли .stl з OrcaSlicer"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
-msgstr "Якщо включено, встановлює OrcaSlicer як програму за замовчуваннямдля відкриття файлів .stl"
+msgstr "Якщо ввімкнено, встановлює OrcaSlicer як програму за замовчуванням для відкриття файлів STL"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Associate STEP files to OrcaSlicer"
 msgstr "Асоціювати файли .step/.stp з OrcaSlicer"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
-msgstr "Якщо включено, встановлює OrcaSlicer як програму за замовчуваннямдля відкриття файлів .step"
+msgstr "Якщо ввімкнено, встановлює OrcaSlicer як програму за замовчуванням для відкриття файлів STEP"
 
 msgid "Associate web links to OrcaSlicer"
 msgstr "Асоціювати веб-посилання з OrcaSlicer"
@@ -9681,13 +9504,12 @@ msgstr "кнопка збереження налагодження"
 msgid "Save debug settings"
 msgstr "зберегти налаштування налагодження"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Debug settings have been saved successfully!"
 msgstr "Налаштування налагодження успішно збережено!"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Cloud environment switched; please login again!"
-msgstr "Перемкніть хмарне середовище, будь ласка, увійдіть знову!"
+msgstr "Хмарне середовище змінено, будь ласка, увійдіть знову!"
 
 msgid "System presets"
 msgstr "Системні профілі"
@@ -9707,7 +9529,6 @@ msgstr "Філаменти AMS"
 msgid "Left filaments"
 msgstr "Ліві філаменти"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament"
 msgstr "Філамент AMS"
 
@@ -9744,7 +9565,6 @@ msgstr "Не підтримувані пресети"
 msgid "Unsupported"
 msgstr "Не підтримувані"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add/Remove filament"
 msgstr "Додати/вилучити філамент"
 
@@ -9780,7 +9600,6 @@ msgstr "Будь ласка, введіть значення шару (≥ 2)."
 msgid "Plate name"
 msgstr "Назва пластини"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Same as Global Plate Type"
 msgstr "Так само, як Глобальний Тип Пластини"
 
@@ -9817,9 +9636,9 @@ msgstr "Приймати"
 msgid "Log Out"
 msgstr "Вийти"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Slice all plates to obtain time and filament estimation"
-msgstr "Розріжте всю пластину, щоб отримати оцінку часу та філаменту"
+msgstr "Наріжте всі пластини, щоб отримати оцінку часу та витрати філаменту"
 
 msgid "Packing project data into 3MF file"
 msgstr "Упаковка даних проекту у файл 3mf"
@@ -9879,7 +9698,6 @@ msgstr "Предустановка \\%1%\\ вже існує."
 msgid "Preset \"%1%\" already exists and is incompatible with the current printer."
 msgstr "Предустановка \\%1%\\ вже існує і несумісна з поточним принтером."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Зверніть увагу, що дія збереження замінить цей пресет"
 
@@ -10074,7 +9892,6 @@ msgstr "Філамент не відповідає філаменту в сло�
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "Вибраний принтер (%s) несумісний з конфігурацією файлу друку (%s). Скоригуйте пресет принтера на сторінці підготовки або виберіть сумісний принтер на цій сторінці."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "При увімкненні режиму спіралі для вази машини з I3 структурою не будуть створювати відео в режимі таймлапсу."
 
@@ -10100,9 +9917,9 @@ msgstr "Налаштування типу філаменту зовнішньо�
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "Тип принтера, вибраний під час створення G-коду, не відповідає поточному Вибраному принтеру. Рекомендується використовувати той самий тип принтера для нарізки."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
-msgstr "У порівнянні AMS є кілька невідомих філаментів. Будь ласка,перевірте, вони є необхідними нитками. Якщо вони гаразд, натисніть \"Подтвердити\", щоб почати друк."
+msgstr "У зіставленні AMS є кілька невідомих філаментів. Будь ласка, перевірте, чи це саме потрібні філаменти. Якщо все гаразд, натисніть «Підтвердити», щоб почати друк."
 
 msgid "Please check the following:"
 msgstr "Будь ласка, перевірте таке:"
@@ -10348,7 +10165,6 @@ msgstr "Сховище перебуває в нештатному стані а�
 msgid "Storage needs to be inserted before printing."
 msgstr "Перед друком потрібно вставити сховище."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Неможливо надіслати завдання друку на принтер, прошивка якого повинна бути оновлено."
 
@@ -10414,7 +10230,6 @@ msgstr "Час зʼєднання вийшов, перевірте свою ме
 msgid "Connection failed. Click the icon to retry"
 msgstr "Не вдале зʼєднання. Клацніть на значок, щоб повторити."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send print tasks when an update is in progress"
 msgstr "Не вдалося надіслати завдання на друк під час оновлення"
 
@@ -10424,7 +10239,6 @@ msgstr "Вибраний принтер несумісний зі встанов
 msgid "Storage needs to be inserted before send to printer."
 msgstr "Перед надсиланням на принтер потрібно вставити сховище."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "Принтер повинен бути підключений до тієї ж локальної мережі, що й Orca Slicer."
 
@@ -10441,9 +10255,9 @@ msgstr "Час очікування завантаження файлу виче
 msgid "Sending failed, please try again!"
 msgstr "Надсилання невдале, спробуйте ще раз!"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Slice complete"
-msgstr "Нарізка прибл."
+msgstr "Нарізку завершено"
 
 msgid "View all Daily tips"
 msgstr "Переглянути всі щоденні поради"
@@ -10457,11 +10271,9 @@ msgstr "Не вдалося підключити сокет"
 msgid "Failed to publish login request"
 msgstr "Не вдалося опублікувати запит на вхід"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from device"
 msgstr "Перевищено час очікування при отриманні квитка від пристрою"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from server"
 msgstr "Перевищено час очікування при отриманні квитка від сервера"
 
@@ -10580,7 +10392,6 @@ msgstr "Натисніть, щоб скинути всі налаштуванн�
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgstr "Для зміни сопла потрібна підготовча вежа. Без підготовчої вежі на моделі можуть зʼявитися дефекти. Ви впевнені, що хочете вимкнути підготовчу вежу?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "Для плавного таймлапсу потребується Підготовча вежа. Без Підготовчої вежі на моделі можуть виникати дефекти. Ви впевнені, що хочете вимкнути Підготовчу вежу?"
 
@@ -10600,9 +10411,9 @@ msgstr "Для виявлення налипання потрібна підго
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "Одночасне увімкнення точної висоти Z та підготовчої вежі може спричинити помилки нарізки. Ви все одно хочете увімкнути точну висоту Z?"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
-msgstr "Для плавного таймлапсу потребується підготовча вежа. Без підготовчої вежі в моделі можуть бути недоліки. Ви хочете включити головну вежу?"
+msgstr "Для плавного таймлапсу потрібна підготовча вежа. Без підготовчої вежі на моделі можуть виникати дефекти. Ви хочете увімкнути підготовчу вежу?"
 
 msgid "Still print by object?"
 msgstr "Все одно друкувати кожен обʼєкт окремо?"
@@ -10615,7 +10426,6 @@ msgstr ""
 "Нерозчинні матеріали підтримок не рекомендуються для основи підтримок.\n"
 "Ви впевнені, що хочете використати їх для основи підтримок?\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When using support material for the support interface, we recommend the following settings:\n"
 "0 top Z distance, 0 interface spacing, interlaced rectilinear pattern and disable independent support layer height."
@@ -10623,7 +10433,6 @@ msgstr ""
 "При використанні матеріалу підтримки для інтерфейсу підтримки ми рекомендуємо наступні налаштування:\n"
 "0 відстань верхнього шару Z, 0 відстань між інтерфейсами, перемежований прямокутний візерунок та вимкнена незалежна висота шару підтримки."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings automatically.\n"
@@ -10774,7 +10583,6 @@ msgstr "Стінки"
 msgid "Top/bottom shells"
 msgstr "Верхня/нижня оболонка"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer speed"
 msgstr "Швидкість першого шару"
 
@@ -10802,7 +10610,6 @@ msgstr "Ривок (XY)"
 msgid "Raft"
 msgstr "Підкладка"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament for Supports"
 msgstr "Філамент підтримки"
 
@@ -10880,7 +10687,6 @@ msgstr "Базова інформація"
 msgid "Recommended nozzle temperature"
 msgstr "Рекомендована температура сопла"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "Рекомендований діапазон температур сопла для цього філаменту. 0 означає відсутність установки"
 
@@ -10918,35 +10724,30 @@ msgstr "Температура столу, коли встановлено Cool 
 msgid "Cool Plate"
 msgstr "Холодна пластина"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
-msgstr ""
-"Температура шару при встановленій охолодній пластині. Значення 0 означає, що філамент\n"
-"не підтримує друк на Холодному столі"
+msgstr "Температура столу при встановленій Холодній пластині. Значення 0 означає, що філамент не підтримує друк на Холодній пластині."
 
 msgid "Textured Cool Plate"
 msgstr "Текстурована Холодна Пластина"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
-msgstr "Температура столу при встановленій холодній пластині. Значення 0 означає що філамент не підтримує друк на Холодній Пластині SuperTack"
+msgstr "Температура столу при встановленій Текстурованій холодній пластині. Значення 0 означає, що філамент не підтримує друк на Текстурованій холодній пластині."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
-msgstr ""
-"Температура стола при встановленій інженерній плиті. Значення 0 означає \n"
-"Філамент не підтримує друк на інженерній пластині"
+msgstr "Температура столу при встановленій Інженерній пластині. Значення 0 означає, що філамент не підтримує друк на Інженерній пластині."
 
 msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "Гладка ПЕІ пластина / Високотемпературна пластина"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "Температура столу, коли встановлена Гладка ПЕІ пластина / Високотемпературна пластина. Значення 0 означає, що філамент не підтримує друк на Гладкій ПЕІ пластині / Високотемпературній пластині"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
-msgstr "Температура шару під час встановлення пластини Текстурована PEI пластина. Значення 0 означає Філамент не підтримує друк на Текстурованій PEI пластині"
+msgstr "Температура столу при встановленій Текстурованій PEI пластині. Значення 0 означає, що філамент не підтримує друк на Текстурованій PEI пластині."
 
 msgid "Volumetric speed limitation"
 msgstr "Обʼємне обмеження швидкості"
@@ -10960,16 +10761,16 @@ msgstr "Вентилятор охолодження деталей"
 msgid "Min fan speed threshold"
 msgstr "Поріг мінімальної швидкості вентилятора"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
-msgstr "Швидкість вентилятора охолодження деталей почне працювати на мінімальнійшвидкості, коли розрахунковий час шару не більше, ніж час шару при налаштування. Коли час шару менше порогового значення, швидкість вентилятора інтерполюється між мінімальним і максимальна швидкість обертаннявентилятор залежно від часу друку шару"
+msgstr "Вентилятор охолодження деталей працюватиме на мінімальній швидкості, коли розрахунковий час шару довший за порогове значення. Коли час шару менший за поріг, швидкість вентилятора інтерполюється між мінімальною та максимальною швидкістю відповідно до часу друку шару."
 
 msgid "Max fan speed threshold"
 msgstr "Поріг максимальної швидкості вентилятора"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
-msgstr "Швидкість вентилятора охолодження деталі буде максимальною, якщо розрахунковечас шару менший за задане значення"
+msgstr "Вентилятор охолодження деталей працюватиме на максимальній швидкості, коли розрахунковий час шару менший за порогове значення."
 
 msgid "Auxiliary part cooling fan"
 msgstr "Вентилятор охолодження допоміжних деталей"
@@ -11208,7 +11009,6 @@ msgstr ""
 "Ви впевнені, що хочете видалити вибраний пресет?\n"
 "Якщо пресет відповідає філаменту, який в даний момент використовується на вашому принтері, будь ласка, скиньте інформацію про філамент для цього слоту."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Ви впевнені, що %1% вибраної установки?"
@@ -11292,21 +11092,19 @@ msgstr "Бажаєте змінити такі параметри %s на пар
 msgid "Click to reset current value and attach to the global value."
 msgstr "Натисніть, щоб скинути поточне значення та приєднати його до глобальногозначення."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Click to drop current modifications and reset to saved value."
-msgstr "Натисніть, щоб скасувати поточну зміну та повернутися до збереженоїзначення."
+msgstr "Натисніть, щоб скасувати поточні зміни та повернутися до збереженого значення."
 
 msgid "Process Settings"
 msgstr "Налаштування процесу"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "unsaved changes"
 msgstr "Незбережені зміни"
 
 msgid "Transfer or discard changes"
 msgstr "Відкинути або зберегти зміни"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Old Value"
 msgstr "Старе значення"
 
@@ -11365,7 +11163,6 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Натисніть праву кнопку миші, щоб відобразити повний текст."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "No changes will be saved."
 msgstr "Всі зміни не будуть збережені"
 
@@ -11944,7 +11741,6 @@ msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
 msgstr "Стрілка вгору"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Перемістити виділення на 10 мм у позитивному напрямку Y"
 
@@ -11953,7 +11749,6 @@ msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
 msgstr "Стрілка вниз"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Перемістити виділення на 10 мм у негативному напрямку Y"
 
@@ -11962,7 +11757,6 @@ msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
 msgstr "Стрілка вліво"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Перемістити виділення на 10 мм у негативному напрямку по осі X"
 
@@ -11971,15 +11765,12 @@ msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
 msgstr "Стрілка вправо"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
 msgstr "Перемістити виділення на 10 мм у позитивному напрямку X"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Movement step set to 1mm"
 msgstr "Крок переміщення встановлено на 1 мм"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "клавіатура 1-9: встановити філамент для обʼєкта/деталі"
 
@@ -12091,7 +11882,6 @@ msgstr "Gizmo"
 msgid "Set extruder number for the objects and parts"
 msgstr "Встановіть номер екструдера для обʼєктів та деталей"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete objects, parts, modifiers"
 msgstr "Видалення обʼєктів, частин, модифікаторів"
 
@@ -12318,11 +12108,9 @@ msgstr "Хотенд на стійці"
 msgid "Are you sure you want to update? This will take about 10 minutes. Do not turn off the power while the printer is updating."
 msgstr "Ви впевнені, що хочете оновитися? Це займе близько 10 хвилин. Не вимикайте живлення під час оновлення принтера."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "Було виявлено важливе оновлення, яке необхідно запустити перед друком. Ви хочете оновити зараз? Ви також можете оновити пізніше з розділу ‘Оновити прошивку’."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
 msgstr "Версія прошивки незвичайна. Потрібно виправити та оновити перед друком. Ви хочете оновити зараз? Ви також можете оновити пізніше на принтері або оновлення при наступному запуску програми."
 
@@ -12336,7 +12124,6 @@ msgstr "Розділити на %1% частин"
 msgid "Repair finished"
 msgstr "Ремонт завершено"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Repair failed"
 msgstr "Ремонт не вдалося."
 
@@ -12347,9 +12134,9 @@ msgstr "Ремонт скасовано"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "Копіювання %1% у %2% не вдалося: %3%"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Please check any unsaved changes before updating the configuration."
-msgstr "Необхідність перевірки незбережених змін перед оновленнямконфігурації."
+msgstr "Будь ласка, перевірте незбережені зміни перед оновленням конфігурації."
 
 msgid "Configuration package: "
 msgstr "Пакет конфігурації: "
@@ -12363,20 +12150,18 @@ msgstr "Відкрити файл G-коду:"
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "Один об'єкт має порожній початковий шар і не може бути надрукований. Будь ласка, обріжте нижню частину або увімкніть підтримки."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #, boost-format
 msgid "The object has empty layers between %1% and %2% and can’t be printed."
-msgstr "Обʼєкт не може бути надрукований для порожнього шару між %1% та %2%."
+msgstr "Обʼєкт має порожні шари між %1% та %2%, тому його не можна надрукувати."
 
 #, boost-format
 msgid "Object: %1%"
 msgstr "Обʼєкт: %1%"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
-msgstr ""
-"Можливо, частини обʼєкта на цій висоті надто тонкі, або обʼєкт має \n"
-"несправна сітка"
+msgstr "Можливо, частини обʼєкта на цих висотах надто тонкі, або обʼєкт має несправну сітку."
 
 msgid "Process change extrusion role G-code"
 msgstr "G-код ролі екструзіх зміни процесу"
@@ -12384,7 +12169,6 @@ msgstr "G-код ролі екструзіх зміни процесу"
 msgid "Filament change extrusion role G-code"
 msgstr "G-код ролі екструзіх зміни філаменту"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "No object can be printed. It may be too small."
 msgstr "Жодний обʼєкт не може бути надрукований. Можливо, занадто маленький"
 
@@ -12442,7 +12226,6 @@ msgstr "невизначена помилка"
 msgid "too many files"
 msgstr "занадто багато файлів"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "File too large"
 msgstr "занадто великий файл"
 
@@ -12464,9 +12247,9 @@ msgstr "не ZIP-архів"
 msgid "invalid header or corrupted"
 msgstr "недійсний або пошкоджений заголовок"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Saving to RAID is not supported."
-msgstr "непідтримуваний мультидиск"
+msgstr "Збереження на RAID не підтримується."
 
 msgid "decompression failed"
 msgstr "декомпресія не вдалася"
@@ -12513,7 +12296,6 @@ msgstr "неприпустимий параметр"
 msgid "invalid filename"
 msgstr "неприпустима назва файлу"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Buffer too small"
 msgstr "надто маленький буфер"
 
@@ -12523,7 +12305,6 @@ msgstr "внутрішня помилка"
 msgid "file not found"
 msgstr "файл не знайдено"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Archive too large"
 msgstr "великий архів"
 
@@ -12533,7 +12314,6 @@ msgstr "валідація не пройшла"
 msgid "write callback failed"
 msgstr "збій зворотного виклику запису"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% знаходиться надто близько до забороненої зони, можливі зіткнення при друку."
@@ -12559,7 +12339,6 @@ msgstr "Підготовча вежа"
 msgid " is too close to others, and collisions may be caused.\n"
 msgstr " залишається близько до інших, що може призвести до зіткнення.\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr " знаходиться надто близько до зони відчуження, що призведе до зіткнень.\n"
 
@@ -12600,9 +12379,9 @@ msgstr "Для виявлення налипання потрібна підго
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Будь ласка, виберіть послідовність друку \"По обʼєкту\" для друку кілька обʼєктів у режим спіральної вази."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
-msgstr "Режим спіральної вази не працює, якщо обʼєкт містить більше одногоматеріалу."
+msgstr "Режим спіральної вази не працює, якщо обʼєкт містить більше одного матеріалу."
 
 #, boost-format
 msgid "While the object %1% itself fits the build volume, it exceeds the maximum build volume height because of material shrinkage compensation."
@@ -12634,23 +12413,19 @@ msgstr "Запобігання витіканню підтримується т�
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
 msgstr "Вежа підготовки в даний момент підтримується лише для кодів Marlin, RepRap/Sprinter, RepRapFirmware і Repetier G-code."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported in “By object” print."
 msgstr "Під час друку \"По обʼєкту\" підготовча вежа не підтримується."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "Підготовча вежа не підтримується при включеній адаптивній висоті шару. Для цього потрібно, щоб усі обʼєкти мали однакову висоту шару."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
-msgstr "Підготовча вежа вимагає, щоб «опорний зазор» був крадений висотою шару"
+msgstr "Підготовча вежа вимагає, щоб «опорний зазор» був кратним висоті шару"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "Підготовча вежа вимагає, щоб усі обʼєкти мали однакову висоту шару"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "Підготовча вежа вимагає, щоб усі обʼєкти друкувалися на однаковій кількості шарів підкладки"
 
@@ -12658,9 +12433,9 @@ msgstr "Підготовча вежа вимагає, щоб усі обʼєкт
 msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
 msgstr "Підготовча вежа підтримується для кількох обʼєктів, лише якщо вони друкуються з однаковим support_top_z_distance."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "A prime tower requires that all objects are sliced with the same layer height."
-msgstr "Підготовча вежа вимагає, щоб усі обʼєкти були розрізані з однаковоювисотою шару."
+msgstr "Підготовча вежа вимагає, щоб усі обʼєкти були нарізані з однаковою висотою шару."
 
 msgid "The prime tower is only supported if all objects have the same variable layer height."
 msgstr "Підготовча вежа підтримується лише в тому випадку, якщо всі обʼєкти мають однакову змінну висоту шару"
@@ -12668,11 +12443,9 @@ msgstr "Підготовча вежа підтримується лише в т�
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Одному або декільком об’єктам було призначено екструдер, якого принтер не має."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too small"
 msgstr "Надто мала ширина лінії"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too large"
 msgstr "Занадто велика ширина лінії"
 
@@ -12680,7 +12453,6 @@ msgstr "Занадто велика ширина лінії"
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "Друк кількома екструдерами з різними діаметрами сопел. Якщо підтримки друкуються поточним філаментом (support_filament == 0 або support_interface_filament == 0), усі сопла мають бути однакового діаметра."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "Підготовча вежа вимагає, щоб підтримка мала однакову з обʼєктом висоту шару."
 
@@ -12708,7 +12480,6 @@ msgstr "Базовий шаблон «Порожній» не підтримує
 msgid "Support enforcers are used but support is not enabled. Please enable support."
 msgstr "Засоби підтримки використовуються, але підтримка не включена.Увімкніть підтримку."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "Висота шару не може перевищувати діаметр сопла"
 
@@ -12810,7 +12581,6 @@ msgstr "Експорт G-code"
 msgid "Generating G-code"
 msgstr "Генерація G-code"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing of the filename_format template failed."
 msgstr "Не вдалося обробити шаблон filename_format."
 
@@ -12845,7 +12615,6 @@ msgstr "Виключені зони столу для паралельних г�
 msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 applies to one printhead, item 2 to two printheads, and so on. Leave an item empty for no excluded area."
 msgstr "Упорядкований список виключених зон столу за кількістю паралельних головок. Елемент 1 застосовується до однієї головки, елемент 2 — до двох головок і так далі. Залиште елемент порожнім, якщо виключеної зони немає."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Excluded bed area"
 msgstr "Площа виключення столу"
 
@@ -12861,7 +12630,6 @@ msgstr "Індивідуальна модель стола"
 msgid "Elephant foot compensation"
 msgstr "Компенсація слонової стопи"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "Зменшення початкового шару на робочій пластині для компенсації ефекту слонової стопи"
 
@@ -12885,16 +12653,15 @@ msgstr ""
 "Задається початкове значення для другого шару.\n"
 "Наступні шари стають лінійно щільнішими на висоту, задану в elefant_foot_compensation_layers."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "Висота нарізки для кожного шару. Найменша висота шару означає більш точний друк, але більше часу на друк"
 
 msgid "Printable height"
 msgstr "Висота друку"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the maximum printable height which is limited by the height of the build area."
-msgstr "Максимальна висота друку, яка обмежена механізмом принтера"
+msgstr "Максимальна висота друку, яка обмежена висотою робочої зони"
 
 msgid "Extruder printable height"
 msgstr "Висота друку екструдера"
@@ -12978,9 +12745,9 @@ msgstr "Пароль"
 msgid "Ignore HTTPS certificate revocation checks"
 msgstr "Ігнорування перевірок відкликання сертифікатів HTTPS"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
-msgstr "Ігнорування перевірок відкликання сертифікатів HTTPS у разі відсутності або відключення від мережі точки розповсюдження. Можна увімкнути цю опцію для підписання сертифікатів під час невдалого підключення."
+msgstr "Ігнорувати перевірки відкликання сертифікатів HTTPS у разі відсутності або недоступності точок розповсюдження. Цю опцію можна увімкнути для самопідписаних сертифікатів, якщо підключення не вдається."
 
 msgid "Names of presets related to the physical printer."
 msgstr "Назви налаштувань, повʼязаних з фізичним принтером"
@@ -13001,14 +12768,12 @@ msgstr "Конфігурація можливостей плагінів, які
 msgid "Avoid crossing walls"
 msgstr "Уникати перетину стінок"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "Обʼїжджати та уникати проїзду через стінку, що може призвести до утворенню плям на поверхні"
 
 msgid "Avoid crossing walls - Max detour length"
 msgstr "Уникати перетину стінки - Максимальна довжина обʼїзду"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "Максимальна відстань об'їзду для уникнення перетину стінки. Не обʼїжджати, якщо відстань обʼїзду більша, ніж це значення. Довжина обʼїзду може бути задана або як абсолютне значення, або як відсоток (наприклад, 50%) від прямого шляху руху. Нуль для відключення"
 
@@ -13022,61 +12787,48 @@ msgstr "Інші шари"
 msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Температура столу для всіх шарів, крім першого. Значення 0 означає, що філамент не підтримує друк на Cool Plate SuperTack."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Температура столу для всіх шарів, крім першого. Значення 0 означає, що філамент не підтримує друк на Холодній Пластині"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Температура столу для всіх шарів, крім першого. Значення 0 означає, що філамент не підтримує друк на Текстурованій Холодній Пластині"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Температура столу для всіх шарів, крім першого. Значення 0 означає, що філамент не підтримує друк на Інженерній Пластині"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Температура столу для всіх шарів, крім першого. Значення 0 означає, що філамент не підтримує друк на Високотемпературній Пластині"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Температура столу для всіх шарів, крім першого. Значення 0 означає, що філамент не підтримує друк на Текстурованій Пластині PEI"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer"
 msgstr "Перший шар"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer bed temperature"
 msgstr "Температура першого шару"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "Температура столу першого шару. Значення 0 означає, що філамент не підтримує друк на Холодній Пластині SuperTack"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Температура столу першого шару. Значення 0 означає, що філамент не підтримує друк на Холодній Пластині"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Температура столу першого шару. Значення 0 означає, що філамент не підтримує друк на Текстурованій Холодній Пластині"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Температура столу першого шару. Значення 0 означає, що філамент не підтримує друк на Інженерній Пластині"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Температура столу першого шару. Значення 0 означає, що філамент не підтримує друк на Високотемпературній Пластині"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Температура столу першого шару. Значення 0 означає, що філамент не підтримує друк на Текстурованій Пластині PEI"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Plate types supported by the printer"
-msgstr "Типи ліжок, які підтримує принтер"
+msgstr "Типи пластин, які підтримує принтер"
 
 msgid "Default bed type"
 msgstr "Типовий тип столу"
@@ -13109,7 +12861,6 @@ msgstr "Це кількість суцільних шарів нижньої о�
 msgid "Bottom shell thickness"
 msgstr "Товщина нижньої оболонки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Якщо під час нарізання загальна товщина шарів нижньої оболонки виявиться меншою за це значення, буде додано більше суцільних нижніх шарів. Це дозволяє уникнути занадто тонкої оболонки при малій висоті шару. Якщо значення 0, це налаштування вимкнено, і товщина нижньої оболонки визначається лише кількістю шарів нижньої оболонки"
 
@@ -13599,13 +13350,12 @@ msgstr ""
 "Значення 0 увімкне реверсування на кожному парному шарі незалежно від умов.\n"
 "Якщо параметр 'Виявлення стінки з нависанням' не увімкнено, цей параметр ігнорується, і реверсування відбувається на кожному парному шарі незалежно."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slow down for overhangs"
 msgstr "Сповільнюватись для нависань"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
-msgstr "Увімкнути цей параметр для уповільнення друку при різних кутів нависань"
+msgstr "Увімкніть цей параметр, щоб сповільнювати друк нависань. Швидкості для різних відсотків нависання задаються нижче."
 
 msgid "Slow down for curled perimeters"
 msgstr "Уповільнення для нависаючих периметрів"
@@ -13661,7 +13411,6 @@ msgstr "Швидкість внутрішніх мостів. Якщо знач�
 msgid "Brim width"
 msgstr "Ширина кайми"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "Відстань від моделі до останньої зовнішньої лінії кайми"
 
@@ -13674,7 +13423,6 @@ msgstr "Керує генерацією кайми на зовнішніх та/
 msgid "Brim-object gap"
 msgstr "Зазор між каймою та обʼєктом"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "Зазор між першою внутрішньою лінією кайми та обʼєктом може сприяти легшому відокремленню кайми"
 
@@ -13696,21 +13444,20 @@ msgstr ""
 "\n"
 "Примітка: на отримане значення не впливає коефіцієнт потоку першого шару."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Brim follows compensated outline"
 msgstr "Кайма має компенсований контур"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
 "\n"
 "If your current setup already works well, enabling it may be unnecessary and can cause the brim to fuse with upper layers."
 msgstr ""
-"Якщо ввімкнено, кайма вирівнюється з геометрією периметра першого рівня після застосування Elephant Foot Compensation.\n"
-"Ця опція призначена для випадків компенсації слонячої стопи значно змінює поверхню першого шару.\n"
+"Якщо ввімкнено, кайма вирівнюється з геометрією периметра першого шару після застосування компенсації слонової стопи.\n"
+"Ця опція призначена для випадків, коли компенсація слонової стопи суттєво змінює обриси першого шару.\n"
 "\n"
-"Якщо ваші поточні налаштування вже працюють добре, увімкнення їх може бути непотрібним може призвести до злиття кайма з верхніми шарами."
+"Якщо ваші поточні налаштування вже працюють добре, вмикати її може бути непотрібно, і це може призвести до злипання кайми з верхніми шарами."
 
 # AI Translated
 msgid "Combine brims"
@@ -13755,15 +13502,12 @@ msgstr "висхідна сумісна машина"
 msgid "Condition"
 msgstr "Умова"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Логічний вираз, що використовує значення конфігурації активного профілю принтера. Якщо цей вираз оцінюється як Правда, цей профіль вважається сумісним з активним профілем принтера."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "Логічний вираз, що використовує значення конфігурації активного профілю друку. Якщо цей вираз оцінюється як Правда, цей профіль вважається сумісним з активним профілем друку."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "Послідовність друку, шар за шаром або обʼєкт за обʼєктом"
 
@@ -13785,14 +13529,13 @@ msgstr "За порядком у списку"
 msgid "Slow printing down for better layer cooling"
 msgstr "Сповільнювати друк для кращого охолодження шару"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
-msgstr "Увімкніть цю опцію, щоб уповільнити швидкість друку та зробити кінцевий час шару не коротше порога часу шару в \"Max fan speed threshold\", щоб шар міг охолоджуватися довше. Це може покращити якість охолодження голок та дрібних деталей"
+msgstr "Увімкніть цю опцію, щоб уповільнити швидкість друку та зробити кінцевий час шару не коротшим за поріг часу шару в «Max fan speed threshold», щоб шар міг охолоджуватися довше. Це може покращити якість дрібних деталей."
 
 msgid "Normal printing"
 msgstr "Звичайний друк"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Прискорення за умовчанням як для звичайного друку, так і для переміщення за виключенням першого шару"
 
@@ -13859,11 +13602,9 @@ msgstr "Вимкнути всі вентилятори охолодження д
 msgid "Don't support bridges"
 msgstr "Не підтримувати мости"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
-msgstr ""
-"Не підтримуйте всю площу мосту, тому що підтримка буде дуже великою.Міст\n"
-"зазвичай можна друкувати безпосередньо без підтримки, якщо не дуже довго"
+msgstr "Це вимикає підтримку мостів, що зменшує потрібну кількість підтримок. Мости зазвичай можна друкувати безпосередньо без підтримки на розумній відстані."
 
 msgid "Thick external bridges"
 msgstr "Товсті зовнішні мости"
@@ -13957,14 +13698,12 @@ msgstr "Без фільтрування"
 msgid "Max bridge length"
 msgstr "Максимальна довжина мосту"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "Макс. довжина мостів, які не потребують підтримки. Встановіть значення 0, якщо потрібна підтримка всіх мостів, і дуже велике значення, якщо підтримка мостів не потрібна."
 
 msgid "End G-code"
 msgstr "Завершальний G-code"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-Code when finishing the entire print."
 msgstr "Завершальний G-code, коли закінчити весь друк"
 
@@ -13974,7 +13713,6 @@ msgstr "Між G-кодами об’єктів"
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
 msgstr "Вставити G-код між об’єктами. Цей параметр буде врахований лише тоді, коли ви друкуєте свої моделі по об’єктах"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "Завершальний G-code, коли закінчите друк цієї нитки"
 
@@ -14005,7 +13743,6 @@ msgstr "Помірно"
 msgid "Top surface pattern"
 msgstr "Шаблон верхньої поверхні"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for top surface infill."
 msgstr "Шаблон ліній заповнення верхньої поверхні"
 
@@ -14094,7 +13831,6 @@ msgstr "Назовні"
 msgid "Bottom surface pattern"
 msgstr "Шаблон нижньої поверхні"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Шаблон ліній заповнення нижньої поверхні, крім заповнення мостів"
 
@@ -14146,9 +13882,9 @@ msgstr "Шаблон ліній внутрішнього суцільного з
 msgid "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина лінії зовнішньої стінки. Якщо виражена у %, буде розрахована по діаметру сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
-msgstr "Швидкість зовнішнього периметра, яка є найбільш віддаленою та видимою.Це раніше було повільніше, ніж швидкість внутрішнього периметра, щоботримати кращу якість."
+msgstr "Швидкість друку зовнішніх стінок деталей. Зазвичай їх друкують повільніше за внутрішні стінки для вищої якості."
 
 msgid "Small perimeters"
 msgstr "Маленькі периметри"
@@ -14243,18 +13979,15 @@ msgstr "За годинниковою стрілкою"
 msgid "Height to rod"
 msgstr "Висота до сопла"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "Відстань від кінчика сопла до нижнього штока. Використовується для уникнення зіткнення під час друку за об’єктами."
 
 msgid "Height to lid"
 msgstr "Висота до кришки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "Відстань від кінчика сопла до кришки. Використовується для уникнення зіткнення під час друку за обʼєктами."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "Радіус вільного простору навколо екструдера. Використовується для уникнення зіткнення під час друку за об’єктами."
 
@@ -14301,18 +14034,17 @@ msgstr "Використовується лише як візуальна доп
 msgid "Extruder offset"
 msgstr "Зміщення екструдера"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The material may have volumetric change after switching between molten and crystalline states. This setting changes all extrusion flow of this filament in G-code proportionally. The recommended value range is between 0.95 and 1.05. You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow."
-msgstr "Матеріал може мати обʼємну зміну після перемикання між розплавленим станом та кристалічним станом. Це налаштування пропорційно змінює весь екструзійний потік цієї нитки розжарювання в gcode. Рекомендований діапазон значень - від 0,95 до 1,05. Можливо, ви можете налаштувати це значення, щоб отримати хорошу плоску поверхню, коли є невелике переповнення або недолив"
+msgstr "Матеріал може змінювати обʼєм після переходу між розплавленим і кристалічним станом. Це налаштування пропорційно змінює весь потік екструзії цього філаменту в G-code. Рекомендований діапазон значень – від 0,95 до 1,05. Ви можете налаштувати це значення, щоб отримати рівну поверхню, якщо є невеликий надлишок або нестача матеріалу"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "The material may have volumetric change after switching between molten and crystalline states. This setting changes all extrusion flow of this filament in G-code proportionally. The recommended value range is between 0.95 and 1.05. You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow.\n"
 "\n"
 "The final object flow ratio is this value multiplied by the filament flow ratio."
 msgstr ""
-"Матеріал може змінювати обʼєм після переходу між розплавленим і кристалічним станом.\n"
-"Цей параметр пропорційно змінює весь потік екструзії для цього філаменту в G-code.Рекомендований діапазон значень – від 0.95 до 1.05. Ви можете налаштувати це значення, щоб отримати рівну поверхню в разі незначного переплаву або недоплаву.\n"
+"Матеріал може змінювати обʼєм після переходу між розплавленим і кристалічним станом. Цей параметр пропорційно змінює весь потік екструзії для цього філаменту в G-code. Рекомендований діапазон значень – від 0.95 до 1.05. Ви можете налаштувати це значення, щоб отримати рівну поверхню в разі незначного переплаву або недоплаву.\n"
 "\n"
 "Підсумковий коефіцієнт потоку обʼєкта дорівнює цьому значенню, помноженому на коефіцієнт потоку філаменту."
 
@@ -14411,11 +14143,9 @@ msgstr "Ширина лінії за замовчуванням, якщо інш
 msgid "Keep fan always on"
 msgstr "Тримати вентилятор завжди увімкненим"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
-msgstr ""
-"Якщо увімкнути цей параметр, вентилятор охолодження деталі ніколи не будезупинятиметься і працюватиме\n"
-"хоча б на мінімальній швидкості для зменшення частоти пусків та зупинок"
+msgstr "Якщо увімкнути цей параметр, вентилятор охолодження деталей ніколи не зупинятиметься повністю, а працюватиме принаймні на мінімальній швидкості, щоб зменшити частоту пусків та зупинок"
 
 msgid "Don't slow down outer walls"
 msgstr "Не сповільнюватись на зовнішніх стінках"
@@ -14434,9 +14164,9 @@ msgstr ""
 msgid "Layer time"
 msgstr "Час шару"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
-msgstr "Вентилятор охолодження деталі буде включений для шарів, розрахунковий часяких менше цього значення. Швидкість вентилятора інтерполюється між мінімальної та максимальної швидкості вентилятора відповідно до часудруку шару"
+msgstr "Вентилятор охолодження деталей вмикається для шарів, розрахунковий час яких менший за це значення. Швидкість вентилятора інтерполюється між мінімальною та максимальною швидкістю вентилятора відповідно до часу друку шару"
 
 msgid "s"
 msgstr "c"
@@ -14460,7 +14190,6 @@ msgstr "Ви можете залишити свої примітки щодо ф
 msgid "Required nozzle HRC"
 msgstr "Потрібний HRC сопла"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
 msgstr "Мінімальний HRC сопла, необхідний для друку філаменту. Нуль означає відсутність перевірки HRC сопла."
 
@@ -14500,7 +14229,6 @@ msgstr "Швидкість обʼємного змивання"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "Обʼємна швидкість під час промивки філаменту. 0 означає максимальну обʼємну швидкість."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Це налаштування визначає, скільки обсягу нитки може бути розплавлено та екструдовано за секунду. Швидкість друку обмежена максимальною обʼємною швидкістю, у разі надто високого та необґрунтованого налаштування швидкості. Не може бути нулем"
 
@@ -14535,7 +14263,6 @@ msgstr "За першим філаментом"
 msgid "By Highest Temp"
 msgstr "За вищою температурою"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "Діаметр філаменту використовується для розрахунку екструзії в gcode, тому він важливий і має бути точним"
 
@@ -14614,7 +14341,6 @@ msgstr "Швидкість, що використовується на само�
 msgid "Unloading speed"
 msgstr "Швидкість вивантаження"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "Швидкість, яка використовується для видавлення філаменту на вежі протирання (не впливає на початкову частину виведення безпосередньо після раммінгу)."
 
@@ -14744,14 +14470,12 @@ msgstr "Потік використовується для накату нитк
 msgid "Density"
 msgstr "Щільність"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament density, for statistical purposes only."
 msgstr "Щільність філаменту. Тільки для статистики"
 
 msgid "g/cm³"
 msgstr "г/см³"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament material type"
 msgstr "Тип матеріалу філаменту"
 
@@ -14791,14 +14515,12 @@ msgstr "Одне 32-бітне ціле число, що кодує рівень
 msgid "Softening temperature"
 msgstr "Температура розмʼякшення"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr "Матеріал м’якшує при цій температурі, тому, коли температура столу рівна або вища за цей показник, настійно рекомендується відкрити передні двері та/або видалити верхнє скло, щоб уникнути засмічення (clogging)."
 
 msgid "Price"
 msgstr "Ціна"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament price, for statistical purposes only."
 msgstr "Ціна філаменту. Тільки для статистики"
 
@@ -14817,7 +14539,6 @@ msgstr "(Невизначений)"
 msgid "Sparse infill direction"
 msgstr "Напрямок часткового заповнення"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "Кут для часткового заповнення, який контролює початок або основний напрямок лінії"
 
@@ -14895,7 +14616,6 @@ msgstr "Стискає гіроїдну хвилю вздовж осі Z (вер
 msgid "Sparse infill pattern"
 msgstr "Шаблон часткового заповнення"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for internal sparse infill."
 msgstr "Шаблон ліній внутрішнього часткового заповнення"
 
@@ -14959,11 +14679,9 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Гіроїд"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "Прискорення заповнення верхньої поверхні. Використання меншого значенняможе покращити якість верхньої поверхні"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Прискорення зовнішнього периметра. Використання меншого значення може поліпшити якість"
 
@@ -14976,7 +14694,6 @@ msgstr "Прискорення заповнення. Якщо значення �
 msgid "Acceleration of internal solid infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "Прискорення заповнення внутрішнього твердого тіла. Якщо значення виражено в процентах (наприклад, 100%), воно буде розраховане на основі прискорення по за замовчуванням."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "Прискорення першого шару. Використання меншого значення може покращити прилипання до робочої пластини"
 
@@ -15030,23 +14747,18 @@ msgstr ""
 msgid "Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина лінії першого шару. Якщо виражена у %, вона буде розрахована по діаметру сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer height"
 msgstr "Висота першого шару"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Висота першого шару. Невелике збільшення висоти першого шару може покращити прилипання до робочої пластини"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "Швидкість першого шару, за винятком зони суцільного заповнення"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer infill"
 msgstr "Заповнення першого шару"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "Швидкість зони суцільного заповнення першого шару"
 
@@ -15062,11 +14774,9 @@ msgstr "Кількість повільних шарів"
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Перші кілька шарів друкуються повільніше, ніж зазвичай. Швидкість поступовозбільшується лінійним чином за заданою кількістю шарів."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer nozzle temperature"
 msgstr "Температура сопла першого шару"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "Температура сопла для друку першого шару під час використання цього філаменту"
 
@@ -15161,9 +14871,9 @@ msgstr "Швидкість розглажування"
 msgid "Filament-specific override for ironing speed. This allows you to customize the print speed of ironing lines for each filament type."
 msgstr "Специфічне для філаменту перевизначення швидкості розгладжування. Це дає змогу налаштувати швидкість друку ліній розгладжування для кожного типу філаменту."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
-msgstr "Випадкове тремтіння під час друку зовнішнього периметра, так що поверхня була шорсткої. Цей параметр керує нечіткою оболонкою"
+msgstr "Цей параметр змушує друкувальну головку випадково тремтіти під час друку стінок, щоб поверхня мала шорсткий фактурний вигляд. Цей параметр керує розташуванням шорсткої поверхні"
 
 msgid "Painted only"
 msgstr "Тільки пофарбовані"
@@ -15183,9 +14893,9 @@ msgstr "Всі периметри"
 msgid "Fuzzy skin thickness"
 msgstr "Товщина Шорсткої Поверхні"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
-msgstr "Ширина, в межах якої відбувається тремтіння. Небажано бути нижчеширини лінії зовнішнього периметра"
+msgstr "Ширина тремтіння: рекомендується тримати її меншою за ширину лінії зовнішньої стінки"
 
 msgid "Fuzzy skin point distance"
 msgstr "Відстань між точками Шорсткої Поверхні"
@@ -15339,7 +15049,6 @@ msgstr "Шари та периметри"
 msgid "Don't print gap fill with a length is smaller than the threshold specified (in mm). This setting applies to top, bottom and solid infill and, if using the classic perimeter generator, to wall gap fill."
 msgstr "Не друкувати заповнення прогалин, якщо їхня довжина менша за вказаний поріг (у мм). Це налаштування застосовується до верхнього, нижнього та суцільного заповнення, а також, при використанні класичного генератора периметрів, до заповнення проміжків у стінках."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "Швидкість заповнення зазору. Зазор зазвичай має неправильну ширину лінії та має друкуватися повільніше"
 
@@ -15370,9 +15079,9 @@ msgstr "Ця опція використовується для додаванн
 msgid "Scan first layer"
 msgstr "Сканувати перший шар"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
-msgstr "Увімкнення цього параметра дозволяє камері на принтері перевіряти якістьпершого шару"
+msgstr "Увімкнення цього параметра дозволяє камері на принтері перевіряти якість першого шару"
 
 # AI Translated
 msgid "Power Loss Recovery"
@@ -15388,7 +15097,6 @@ msgstr "Конфігурація принтера"
 msgid "Nozzle type"
 msgstr "Тип сопла"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "Металевий матеріал сопла. Це визначає зносостійкість сопла та який тип нитки можна друкувати"
 
@@ -15405,9 +15113,9 @@ msgstr "Карбід вольфраму"
 msgid "Nozzle HRC"
 msgstr "HRC Сопла"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
-msgstr "Твердість сопла. Нуль означає відсутність перевірки жорсткості сопла під час нарізка."
+msgstr "Твердість сопла. Нуль означає відсутність перевірки твердості сопла під час нарізки."
 
 msgid "HRC"
 msgstr "HRC"
@@ -15448,7 +15156,7 @@ msgstr "Напрямок вентилятора охолодження для п
 msgid "Both"
 msgstr "Обидва"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Start the fan this number of seconds earlier than its target start time (you can use fractional seconds). It assumes infinite acceleration for this time estimation, and will only take into account G1 and G0 moves (arc fitting is unsupported).\n"
 "It won't move fan commands from custom G-code (they act as a sort of 'barrier').\n"
@@ -15456,8 +15164,8 @@ msgid ""
 "Use 0 to deactivate."
 msgstr ""
 "Запустіть вентилятор на таку кількість секунд раніше за цільовий час початку (можна використовувати дробові секунди). Він передбачає нескінченне прискорення для цієї оцінки часу і враховуватиме лише переміщення G1 і G0 (дуговий фітинг не підтримується).\n"
-"Він не буде переміщати команди вентиляторів з кодів користувача (вони діють як свого роду «бар'єр»).\n"
-"Він не переміщає команди вентиляторів у початковий gcode, якщо активовано«єдиний початковий gcode користувача».\n"
+"Він не буде переміщати команди вентиляторів з користувацького G-коду (вони діють як свого роду «бар'єр»).\n"
+"Він не переміщає команди вентиляторів у початковий G-код, якщо активовано «лише користувацький початковий G-код».\n"
 "Використовуйте 0 для деактивації."
 
 msgid "Only overhangs"
@@ -15501,9 +15209,9 @@ msgstr "Вартість друку за годину"
 msgid "money/h"
 msgstr "гроші/год"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Support controlling chamber temperature"
-msgstr "Керування температурою камери для підтримки"
+msgstr "Підтримує керування температурою термокамери"
 
 msgid ""
 "This option is enabled if machine support controlling chamber temperature\n"
@@ -15570,7 +15278,6 @@ msgstr "Увімкніть цей параметр, щоб отримати пр
 msgid "Infill combination"
 msgstr "Обʼєднання заповнення"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "Автоматично комбінуйте розріджене заповнення кількох шарів, щоб друкувати їх разом і зменшити час друку. Стіни все ще друкуються з оригінальною висотою шару."
 
@@ -15782,11 +15489,9 @@ msgstr ""
 msgid "Line width of internal sparse infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина лінії внутрішнього розрідженого заповнення. Якщо виражена у %, вона буде розрахована по діаметру сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Infill/wall overlap"
 msgstr "Накладання заповнення/стінки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "Область заповнення дещо збільшена, щоб перекривати стіну для кращого зчеплення. Значення у відсотках відносно ширини лінії розрідженого заповнення. Встановіть це значення на рівні ~10-15%, щоб мінімізувати можливість надмірного видавлювання та накопичення матеріалу, що призводить до шорсткості верхньої поверхні."
@@ -15798,7 +15503,6 @@ msgstr "Накладання суцільного заповнення на ст
 msgid "Top solid infill area is enlarged slightly to overlap with wall for better bonding and to minimize the appearance of pinholes where the top infill meets the walls. A value of 25-30% is a good starting point, minimizing the appearance of pinholes. The percentage value is relative to line width of sparse infill."
 msgstr "Площа верхнього суцільного заповнення злегка збільшується, щоб накладатися на стінку для кращого зчеплення та зменшення прогалин у місцях прилягання верхнього заповнення до стінок. Значення 25-30% є хорошим початком для мінімізації таких прогалин. Значення у відсотках відносно ширини лінії часткового заповнення"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal sparse infill."
 msgstr "Швидкість внутрішнього часткового заповнення"
 
@@ -15817,7 +15521,6 @@ msgstr "Примусове створення твердих оболонок м
 msgid "Maximum width of a segmented region"
 msgstr "Максимальна ширина сегментованої області"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "Максимальна ширина сегментованої області. Нуль вимикає цю функцію."
 
@@ -15867,28 +15570,27 @@ msgstr "Уникнення зчіпної межі"
 msgid "The distance from the outside of a model where interlocking structures will not be generated, measured in cells."
 msgstr "Відстань від зовнішнього краю моделі, в межах якої зчіпні структури не будуть створюватися, вимірюється в комірках."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing type"
 msgstr "Тип розгладжування"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
-msgstr "При розглажуванні використовується невеликий потік для повторного друку на тій самійвисота поверхні, щоб зробити плоску поверхню більш гладкою. Цей параметр визначає, який шар гладити."
+msgstr "При розгладжуванні використовується невеликий потік для друку на тій самій висоті поверхні, щоб зробити плоскі поверхні гладшими. Цей параметр визначає, які шари розгладжуються."
 
 msgid "No ironing"
 msgstr "Немає Розгладжування"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "All top surfaces"
-msgstr "Верхові поверхні"
+msgstr "Усі верхні поверхні"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Topmost surface only"
-msgstr "Найвища поверхня"
+msgstr "Лише найвища поверхня"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "All solid layers"
-msgstr "Весь суцільний шар"
+msgstr "Усі суцільні шари"
 
 msgid "Ironing Pattern"
 msgstr "Шаблон прасування"
@@ -15896,20 +15598,20 @@ msgstr "Шаблон прасування"
 msgid "The pattern that will be used when ironing."
 msgstr "Шаблон, який буде використовуватися під час прасування"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
-msgstr "Кількість матеріалу, що видавлюється під час розглажування. Щодо потокунормальної висоти шару. Надто високе значення призводить до надмірноїекструзії на поверхню"
+msgstr "Кількість матеріалу, що видавлюється під час розгладжування. Вона задається відносно потоку для нормальної висоти шару. Надто високе значення призведе до надмірної екструзії на поверхні"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the distance between the lines used for ironing."
-msgstr "Відстань між лініями розглажування"
+msgstr "Відстань між лініями розгладжування"
 
 msgid "The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter."
 msgstr "Відстань до збереження від країв. Значення 0 встановлює її рівною половині діаметра сопла"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the print speed for ironing lines."
-msgstr "Швидкість друку прасувальних ліній"
+msgstr "Швидкість друку ліній розгладжування"
 
 # AI Translated
 msgid "Ironing angle offset"
@@ -15983,13 +15685,13 @@ msgstr "Ця частина gcode вставляється при кожній �
 msgid "Clumping detection G-code"
 msgstr "G-код виявлення налипання"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Silent Mode"
-msgstr "Підтримує безшумний режим"
+msgstr "Безшумний режим"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
-msgstr "Чи підтримує машина безшумний режим, у якому машина використовує меншеприскорення для друку"
+msgstr "Чи підтримує машина безшумний режим, у якому вона використовує менше прискорення, щоб друкувати тихіше"
 
 msgid "Emit limits to G-code"
 msgstr "Обмеження на емітацію G-коду"
@@ -16004,9 +15706,9 @@ msgstr ""
 "Якщо увімкнено, ліміти машини будуть виводитися у файл G-коду.\n"
 "Цей параметр буде проігноровано, якщо у параметрах g-коду встановлено значення Klipper."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This G-code will be used as a code for the pause print. Users can insert pause G-code in the G-code viewer."
-msgstr "Цей G-код буде використовуватися як код для друку паузи.Користувач може вставити паузу G-коду в gcode viewer"
+msgstr "Цей G-код використовуватиметься як код для паузи друку. Користувачі можуть вставити G-код паузи у переглядачі G-коду"
 
 msgid "This G-code will be used as a custom code."
 msgstr "Цей G-код буде використовуватися як код користувача"
@@ -16301,9 +16003,9 @@ msgstr ""
 "Нуль означає використання коефіцієнта демпфування з прошивки.\n"
 "Щоб вимкнути Input Shaping, використовуйте тип «Вимкнути»."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
-msgstr "Швидкість вентилятора охолодження деталі може бути збільшена, якщо увімкненоавтоматичне охолодження. Це максимальне обмеження швидкості вентилятораохолодження деталі"
+msgstr "Швидкість вентилятора охолодження деталей може бути збільшена, якщо увімкнено автоматичне охолодження. Це максимальна швидкість вентилятора охолодження деталей"
 
 # AI Translated
 msgid "The highest printable layer height for the extruder. Used to limit the maximum layer height when enable adaptive layer height."
@@ -16312,7 +16014,6 @@ msgstr "Найбільша друкована висота шару для ек�
 msgid "Extrusion rate smoothing"
 msgstr "Вирівнювання швидкості екструзії"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This parameter smooths out sudden extrusion rate changes that happen when the printer transitions from printing a high flow (high speed/larger width) extrusion to a lower flow (lower speed/smaller width) extrusion and vice versa.\n"
 "\n"
@@ -16348,7 +16049,6 @@ msgstr "мм³/с²"
 msgid "Smoothing segment length"
 msgstr "Довжина сегмента згладжування"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "A lower value results in smoother extrusion rate transitions. However, this results in a significantly larger G-code file and more instructions for the printer to process.\n"
 "\n"
@@ -16426,7 +16126,6 @@ msgstr "Orca Slicer може завантажувати файли G-коду н
 msgid "Nozzle volume"
 msgstr "Обʼєм сопла"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "Обʼєм сопла між різцем та кінцем сопла"
 
@@ -16463,7 +16162,6 @@ msgstr "Якщо встановлено на нуль, відстань, на я
 msgid "Start end points"
 msgstr "Початкові кінцеві точки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "Початкова та кінцева точки від зони різання до сміттєвого бака."
 
@@ -16480,7 +16178,6 @@ msgstr "Цей параметр знижує температуру неакти
 msgid "Filename format"
 msgstr "Формат імені файлу"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Users can decide project file names when exporting."
 msgstr "Користувач може самостійно визначити назву файлу проекту під час експорту"
 
@@ -16502,11 +16199,9 @@ msgstr "Зробити нависання можливими для друку -
 msgid "Maximum area of a hole in the base of the model before it's filled by conical material. A value of 0 will fill all the holes in the model base."
 msgstr "Максимальна площа отвору в основі моделі перед заповненням його конічним матеріалом. Значення 0 заповнює всі отвори в основі моделі."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect overhang walls"
 msgstr "Виявлення стінок що нависають"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Визначити відсоток нависання відносно до ширини лінії та використовувати для друку іншу швидкість. Для 100%%-вого нависання використовується швидкість моста."
@@ -16538,11 +16233,9 @@ msgstr ""
 msgid "Line width of inner wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина лінії внутрішньої стінки. Якщо виражається у %, вона буде розрахована по діаметру сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for inner walls."
 msgstr "Швидкість внутрішнього периметра"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of walls per layer."
 msgstr "Кількість стінок кожного шару"
 
@@ -16603,30 +16296,24 @@ msgstr "Варіант принтера"
 msgid "Raft contact Z distance"
 msgstr "Відстань Z контакту підкладки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "Z-зазор між підкладкою та моделлю. Якщо верхній Z-зазор підтримки дорівнює 0, це значення ігнорується, і модель друкується в прямому контакті з підкладкою (без зазору)."
 
 msgid "Raft expansion"
 msgstr "Розширення підкладки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands all raft layers in XY plane."
 msgstr "Розширити всі шари підкладки в площині XY"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer density"
 msgstr "Початкова щільність шару"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the density of the first raft or support layer."
 msgstr "Щільність першого шару підкладки або підтримки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer expansion"
 msgstr "Розширення початкового шару"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "Розширити перший шар підкладки або підтримки, щоб покращити прилипання до робочої поверхні"
 
@@ -16636,7 +16323,6 @@ msgstr "Кількість шарів підкладки"
 msgid "Object will be raised by this number of support layers. Use this function to avoid warping when printing ABS."
 msgstr "Обʼєкт буде піднятий такою кількістю опорних шарів. Використовуйте цю функцію, щоб уникнути обтікання під час друку ABS"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "Контур G-коду генерується після спрощення контуру моделей, щоб уникнути надмірної кількості точок і ліній G-коду. Менші значення означають вищу роздільну здатність і більше часу, необхідного для нарізки"
 
@@ -16649,7 +16335,6 @@ msgstr "Втягувати тільки в тому випадку, якщо в�
 msgid "Retract amount before wipe"
 msgstr "Обсяг втягування перед протиранням"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "Довжина швидкого втягування перед протиранням, відносно довжини втягування"
 
@@ -16666,22 +16351,18 @@ msgstr ""
 "Довжина швидкого втягування після протирання, відносно довжини втягування.\n"
 "Значення буде обмежено 100% мінус величина втягування перед протиранням."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retract on layer change"
 msgstr "Втягування при зміні шару"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This forces a retraction on layer changes."
 msgstr "Примусове втягування при зміні шару"
 
 msgid "Retraction Length"
 msgstr "Довжина втягування"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
 msgstr "Деяка кількість матеріалу в екструдері витягується назад, щоб уникнути витікання під час тривалого переміщення. Встановіть нуль, щоб відключити втягування"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Long retraction when cut (beta)"
 msgstr "Довге втягування при відрізанні (експериментально)"
 
@@ -16705,7 +16386,6 @@ msgstr "Відстань втягування при зміні екструде
 msgid "Z-hop height"
 msgstr "Висота Z-підйому"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "Під час кожного втягування сопло трохи піднімається, щоб створити зазор між соплом та об’єктом друку. Це запобігає зіткненню сопла з об’єктом друку під час переміщення. Використання спіральної лінії підняття по осі Z може запобігти появі ниток"
 
@@ -16802,14 +16482,12 @@ msgstr "Коли втягування компенсується після пе
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Коли втягування компенсується після заміни інструменту, екструдерпроштовхує цю додаткову кількість нитки."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retraction speed"
 msgstr "Швидкість втягування"
 
 msgid "Speed for retracting filament from the nozzle."
 msgstr "Швидкість втягування філаменту зі сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deretraction speed"
 msgstr "Швидкість компенсуючого втягування"
 
@@ -16840,7 +16518,6 @@ msgstr "Вимкнути генерацію M73: Встановити час д�
 msgid "Seam position"
 msgstr "Розташування шва"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the starting position for each part of the outer wall."
 msgstr "Початкове положення для друку кожної частини зовнішнього периметра"
 
@@ -16854,7 +16531,6 @@ msgstr "Вирівняне"
 msgid "Aligned back"
 msgstr "Вирівняний ззаду"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Back"
 msgstr "Ззаду"
 
@@ -16985,7 +16661,6 @@ msgstr "Швидкість протирання визначається нал�
 msgid "Skirt distance"
 msgstr "Відступ спідниці"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "Відстань між спідницею та каймою або моделлю"
 
@@ -16998,7 +16673,6 @@ msgstr "Кут від центру обʼєкта до початкової то
 msgid "Skirt height"
 msgstr "Висота спідниці"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Number of skirt layers: usually only one"
 msgstr "Скільки буде шарів спідниці. Зазвичай лише один шар"
 
@@ -17039,7 +16713,6 @@ msgstr "Роздільна"
 msgid "Skirt loops"
 msgstr "Кількість контурів спідниці"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
 msgstr "Кількість контурів для спідниці. Нуль означає відключення спідниці"
 
@@ -17069,7 +16742,6 @@ msgstr "Швидкість друку в експортованому gcode бу
 msgid "Minimum sparse infill threshold"
 msgstr "Мінімальний поріг часткового заповнення"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "Ділянки часткового заповнення, менші за порогове значення, замінюються внутрішнім суцільним заповненням"
 
@@ -17100,13 +16772,12 @@ msgstr ""
 msgid "Line width of internal solid infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина лінії внутрішнього суцільного заповнення. Якщо виражена у %, вона буде розрахована по діаметру сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "Швидкість внутрішнього твердого заповнення, а не верхньої та нижньої поверхні"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
-msgstr "Перехід спіраллю згладжує рух z зовнішнього контуру. І перетворює твердотільна модель в одностінний друк із суцільними нижніми шарами.Кінічна згенерована модель не має шва"
+msgstr "Це вмикає спіральний режим, який згладжує рухи по Z зовнішнього контуру та перетворює твердотільну модель на одностінний друк із суцільними нижніми шарами. Кінцева згенерована модель не має шва"
 
 msgid "Smooth Spiral"
 msgstr "Плавна спіраль"
@@ -17136,9 +16807,9 @@ msgstr "Коефіцієнт подачі матеріалу для спірал
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "Задає кінцевий коефіцієнт потоку при завершенні спіралі. Зазвичай спіральний перехід плавно знижує коефіцієнт потоку від 100% до 0% під час проходу останнього контуру, що може призвести до недостатньої подачі філаменту у кінці спіралі."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
-msgstr "Якщо вибрано плавний або традиційний режим, для кожного друку буде згенеровано відео з часовим інтервалом. Після друку кожного шару Знімок камери робиться. Всі ці знімки створюються у вигляді відео з тимчасовим інтервалом після завершення друку. Якщо вибрано режим згладжування, то Після друку кожного шару головка інструментів переміщається до надмірного лотку, а потім знімається знімок. Оскільки філамент може просочуватися з сопла під час отримання знімка, для гладкого режиму очищення сопла потрібна вежа очищення."
+msgstr "Якщо вибрано плавний або традиційний режим, для кожного друку буде згенеровано таймлапс-відео. Після друку кожного шару камерою термокамери робиться знімок. Усі ці знімки поєднуються в таймлапс-відео після завершення друку. Якщо вибрано плавний режим, після друку кожного шару головка переміщається до лотка для відходів і лише потім робиться знімок. Оскільки під час зйомки з сопла може витікати розплавлений філамент, для плавного режиму потрібна підготовча вежа для очищення сопла."
 
 msgid "Traditional"
 msgstr "Традиційний"
@@ -17184,11 +16855,10 @@ msgstr "G-код, що записується на самому початку �
 msgid "Start G-code"
 msgstr "Початковий G-код"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "G-code added when starting a print."
-msgstr "Стартовий G-code під час запуску всієї печатки"
+msgstr "G-код, що додається на початку друку."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when the printer starts using this filament"
 msgstr "Стартовий G-code при запуску друку цим філаментом"
 
@@ -17224,7 +16894,6 @@ msgstr "Очищати на підготовчій вежі"
 msgid "Purge remaining filament into prime tower."
 msgstr "Очистити від залишків філаменту на підготовчій вежі"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable filament ramming"
 msgstr "Увімкнути накат нитки"
 
@@ -17298,7 +16967,6 @@ msgstr "Це значення буде додано/вилучено до/з у�
 msgid "Enable support"
 msgstr "Увімкнути підтримку"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables support generation."
 msgstr "Увімкнути генерацію підтримки."
 
@@ -17320,7 +16988,6 @@ msgstr "Дерево (ручні)"
 msgid "Support/object XY distance"
 msgstr "Підтримка/обʼєкт XY відстань"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This controls the XY separation between an object and its support."
 msgstr "Контролює відстань по XY між об’єктом та його опорою"
 
@@ -17339,9 +17006,9 @@ msgstr "Використовуйте цей параметр, щоб повер�
 msgid "On build plate only"
 msgstr "Тільки на робочій пластині"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This setting only generates supports that begin on the build plate."
-msgstr "Не створюйте опору на поверхні моделі лише від столу"
+msgstr "Цей параметр створює лише ті підтримки, що починаються від столу."
 
 msgid "Support critical regions only"
 msgstr "Підтримувати лише критичні області"
@@ -17360,25 +17027,25 @@ msgstr "Ігнорувати малі нависання, які, ймовірн
 msgid "Top Z distance"
 msgstr "Верхня відстань Z"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the support's top and object."
 msgstr "Z-зазор між верхом підтримки та моделлю."
 
 msgid "Bottom Z distance"
 msgstr "Нижня відстань Z"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "Z-зазор між моделлю та нижньою частиною підтримки. Якщо верхній Z-зазор підтримки дорівнює 0 і знизу є інтерфейсні шари, це значення ігнорується, і підтримка друкується в прямому контакті з моделлю (без зазору)."
 
 msgid "Support/raft base"
 msgstr "База підтримки/підкладки"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Filament to print support base and raft.\n"
 "\"Default\" means no specific filament for support and current filament is used."
-msgstr "Філамент для друку підтримок та підкладки. «За замовчуванням» означає відсутність конкретного філаменту для підтримок та використання поточного філаменту"
+msgstr ""
+"Філамент для друку основи підтримок та підкладки.\n"
+"«За замовчуванням» означає, що окремий філамент для підтримок не використовується, а береться поточний філамент"
 
 msgid "Avoid interface filament for base"
 msgstr "Уникати філаменту інтерфейсу для бази"
@@ -17389,29 +17056,29 @@ msgstr "Уникайте використання філаменту інтер�
 msgid "Line width of support. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина лінії підтримки. Якщо вона виражена у %, то буде розрахована по діаметру сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Loop pattern interface"
 msgstr "Інтерфейс використовує шаблон контуру"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "Накрийте петлями верхній контактний шар опор. Вимкнено за замовчуванням."
 
 msgid "Support/raft interface"
 msgstr "Інтерфейс підтримки/підкладки"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Filament to print support interface.\n"
 "\"Default\" means no specific filament for support interface and current filament is used."
-msgstr "Філамент для друку підтримки. «За замовчуванням» означає відсутність конкретного філаменту для друку підтримки, і використовується поточний філамент"
+msgstr ""
+"Філамент для друку інтерфейсу підтримок.\n"
+"«За замовчуванням» означає, що окремий філамент для інтерфейсу підтримок не використовується, а береться поточний філамент"
 
 msgid "Top interface layers"
 msgstr "Верхній шар підтримки"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the number of top interface layers."
-msgstr "Кількість повільних шарів"
+msgstr "Кількість верхніх інтерфейсних шарів."
 
 msgid "Bottom interface layers"
 msgstr "Нижні шари підтримки"
@@ -17436,13 +17103,13 @@ msgstr ""
 msgid "Bottom interface spacing"
 msgstr "Інтервал нижнього шару підтримки"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
-msgstr "Відстань між нижніми інтерфейсними лініями. Нуль означає суцільнийінтерфейс"
+msgstr "Відстань між нижніми інтерфейсними лініями. Нуль означає суцільний інтерфейс"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the speed for support interfaces."
-msgstr "Швидкість друку підтримки"
+msgstr "Швидкість друку інтерфейсу підтримок"
 
 msgid "Base pattern"
 msgstr "Основний шаблон"
@@ -17470,9 +17137,9 @@ msgstr "Порожній"
 msgid "Interface pattern"
 msgstr "Шаблон інтерфейсу"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
-msgstr "Шаблон підтримки. Шаблон за замовчуванням для нерозчинної підтримки - прямолінійний, у той час як шаблон за замовчуванням для розчинної підтримки- концентричний"
+msgstr "Шаблон ліній інтерфейсу підтримок. Типовий шаблон для нерозчинного інтерфейсу підтримок — прямолінійний, а для розчинного — концентричний"
 
 msgid "Rectilinear Interlaced"
 msgstr "Прямолінійний черезрядковий"
@@ -17480,18 +17147,15 @@ msgstr "Прямолінійний черезрядковий"
 msgid "Base pattern spacing"
 msgstr "Інтервал основного шаблону"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the spacing between support lines."
 msgstr "Відстань між лініями підтримки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Normal support expansion"
 msgstr "Нормальне розширення підтримки"
 
 msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "Розширити (+) або зменшити (-) горизонтальний проліт підтримки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support."
 msgstr "Швидкість підтримки"
 
@@ -17529,13 +17193,13 @@ msgstr "Опорний шар використовує висоту шару, щ
 msgid "Threshold angle"
 msgstr "Кут порога"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
 msgstr ""
-"Буде створена опора для нависань з кутом нахилу нижче порогу.Чим менше це значення, тим крутіше нависання можна надрукувати без підтримки.\n"
-"Примітка: Якщо встановлено значення 0, звичайні опори використовують перекриття порогу, тоді як опори дерев повертаються до значення за замовчуванням 30."
+"Буде створена підтримка для нависань з кутом нахилу нижче порогу. Чим менше це значення, тим крутіше нависання можна надрукувати без підтримки.\n"
+"Примітка: Якщо встановлено значення 0, звичайні підтримки використовують перекриття порогу, тоді як органічні підтримки повертаються до значення за замовчуванням 30."
 
 msgid "Threshold overlap"
 msgstr "Поріг накладання"
@@ -17683,15 +17347,12 @@ msgstr ""
 msgid "Chamber minimal temperature"
 msgstr "Мінімальна температура камери"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
 msgstr "Температура сопла для шарів після першого"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect thin walls"
 msgstr "Виявлення тонкої стінки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "Виявляти тонкі стінки, товщина яких менше ніж ширина двох ліній і використовувати лише одну лінію для друку. Можуть бути надруковані не дуже добре, оскільки вони не являються замкнутим контуром"
 
@@ -17712,23 +17373,22 @@ msgstr "Цей G-код вставляється при зміні ролі ек
 msgid "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Ширина лінії для верхніх поверхонь. Якщо виражено у %, вона буде розрахована по діаметру сопла."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid top surface infill."
 msgstr "Швидкість суцільного заповнення верхньої поверхні"
 
 msgid "Top shell layers"
 msgstr "Шари верхньої оболонки"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
-msgstr "Це кількість суцільних шарів верхньої оболонки, включаючи верхнійповерхневий шар. Якщо товщина, розрахована за цим значенням, меншатовщини верхньої оболонки, то верхні шари оболонки будуть збільшені"
+msgstr "Це кількість суцільних шарів верхньої оболонки, включаючи верхній поверхневий шар. Якщо товщина, розрахована за цим значенням, менша за товщину верхньої оболонки, то верхні шари оболонки будуть збільшені"
 
 msgid "Top shell thickness"
 msgstr "Товщина верхньої оболонки"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
-msgstr "Кількість верхніх суцільних шарів збільшується при розрізанні, якщо товщина, обчислена шарами верхньої оболонки, тонша за це значення. Це дозволяє уникнути занадто тонкої оболонки при невеликій висоті шару. 0 означає, що це налаштування вимкнено і товщина верхньої оболонки повністюобмежена верхніми шарами оболонки"
+msgstr "Кількість верхніх суцільних шарів збільшується при нарізанні, якщо товщина, обчислена за шарами верхньої оболонки, менша за це значення. Це дозволяє уникнути занадто тонкої оболонки при невеликій висоті шару. 0 означає, що це налаштування вимкнено і товщина верхньої оболонки визначається лише кількістю шарів верхньої оболонки"
 
 # AI Translated
 msgid "Separated infills"
@@ -17771,18 +17431,17 @@ msgstr "Кожна модель"
 msgid "Each Assembly"
 msgstr "Кожна збірка"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the speed at which traveling is done."
-msgstr "Швидкість переміщення, яка є швидшою і без екструзії."
+msgstr "Швидкість, з якою виконується переміщення."
 
 msgid "Wipe while retracting"
 msgstr "Протирати під час втягування"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
-msgstr "Переміщуйте насадку по останньому шляху видавлювання при збиранні для очищеннявитеклого матеріалу на насадці. Це може мінімізувати великий двійковийобʼєкт під час друку нової деталі після переміщення"
+msgstr "Переміщення сопла вздовж останнього шляху екструзії під час втягування, щоб очистити матеріал, який витік на соплі. Це дозволяє зменшити напливи під час друку нової деталі після переміщення"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Wipe distance"
 msgstr "Протяжність протирання"
 
@@ -17799,9 +17458,9 @@ msgstr ""
 "\n"
 "Якщо встановити значення у параметрі \"Кількість втягування перед витиранням\" нижче, надлишкове втягування буде виконано перед витиранням, інакше воно буде виконано після нього."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
-msgstr "Очисна колона може використовуватися для очищення залишку на соплі та стабілізації тиску в камері всередині сопла, щоб уникнути дефектівзовнішнього вигляду під час друку предметів."
+msgstr "Вежа протирання може використовуватися для очищення залишків на соплі та стабілізації тиску в камері всередині сопла, щоб уникнути дефектів зовнішнього вигляду під час друку обʼєктів."
 
 msgid "Internal ribs"
 msgstr "Внутрішні ребра"
@@ -17815,7 +17474,6 @@ msgstr "Обсяг очищення"
 msgid "Flush multiplier"
 msgstr "Множник промивки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "Фактичні обʼєми промивки дорівнюють множнику промивки, помноженому на обсяг промивки в таблиці."
 
@@ -17828,7 +17486,6 @@ msgstr "Множник змиву використовується у режим
 msgid "Prime volume"
 msgstr "Основний обʼєм"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Обʼєм матеріалу для підготовки екструдера на вежі."
 
@@ -17844,7 +17501,6 @@ msgstr "Зберігання"
 msgid "Fast"
 msgstr "Швидкий"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the width of prime towers."
 msgstr "Ширина підготовчої вежі"
 
@@ -17970,11 +17626,9 @@ msgstr "Зазор заповнення"
 msgid "Infill gap."
 msgstr "Зазор заповнення."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "Очищення після зміни філаменту буде виконуватися всередині заповнень об’єктів. Це може зменшити кількість відходів і скоротити час друку. Якщо стінки друкуються прозорим філаментом, заповнення зі змішаним кольором буде видимим. Це не буде мати впливу, якщо не ввімкнено вежу для підготовки філаменту."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "Очищення після зміни філаменту буде виконуватися всередині підтримки об’єктів. Це може зменшити кількість відходів і скоротити час друку. Це не буде мати впливу, якщо не ввімкнено вежу для підготовки філаменту."
 
@@ -18008,16 +17662,16 @@ msgstr "Температура сопла, коли інструмент нар�
 msgid "X-Y hole compensation"
 msgstr "Компенсація отвору XY"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
-msgstr "Отвори обʼєкта будуть вирощені або стиснуті в площині XY на задане Значення. Позитивне значення робить отвори більше. Негативне значення робить отвори меншими. Ця функція використовується для невеликої Корегування розміру, коли обʼєкт має проблему складання"
+msgstr "Отвори обʼєктів будуть розширені або звужені в площині XY на задане значення. Позитивні значення роблять отвори більшими, а негативні — меншими. Ця функція використовується для незначного коригування розмірів, коли обʼєкти мають проблеми зі складанням"
 
 msgid "X-Y contour compensation"
 msgstr "Компенсація контуру XY"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
-msgstr "Контур обʼєкта буде збільшено або зменшено у площині XY на задане Значення. Позитивне значення робить контур більше. Негативне Зменшення контуру. Ця функція використовується для невеликої Корегування розміру, коли обʼєкт має проблему складання"
+msgstr "Контури обʼєктів будуть розширені або звужені в площині XY на задане значення. Позитивні значення роблять контури більшими, а негативні — меншими. Ця функція використовується для незначного коригування розмірів, коли обʼєкти мають проблеми зі складанням"
 
 msgid "Convert holes to polyholes"
 msgstr "Перетворення отворів у поліотвори"
@@ -18078,7 +17732,6 @@ msgstr "Використовуйте відносні відстані E екс�
 msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
 msgstr "Відносна екструзія рекомендується при використанні опції \"label_objects\". Деякі екструдери працюють краще, якщо ця опція не включена (режим абсолютної екструзії). Витираюча вежа сумісна лише з відносним режимом. Він рекомендується для більшості принтерів. За замовчуванням увімкнено"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "Класичний генератор стін виробляє стіни з постійною шириною екструзії, а для дуже тонких ділянок використовується заповнення прогалин. Двигун Arachne виробляє стіни зі змінною шириною екструзії."
 
@@ -18088,9 +17741,9 @@ msgstr "Arachne"
 msgid "Wall transition length"
 msgstr "Довжина переходу до периметру"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
-msgstr "При переході між різними числами периметрів, коли деталь стає тонше, для поділу або зʼєднання сегментів периметрів виділяєтьсяпевна кількість простору. Він виражається у відсотках від діаметрасопла"
+msgstr "При переході між різними кількостями стінок, коли деталь стає тоншою, для розділення або зʼєднання сегментів стінок виділяється певна кількість простору. Вона виражається у відсотках від діаметра сопла"
 
 msgid "Wall transitioning filter margin"
 msgstr "Поле фільтра під час переходу між периметрами"
@@ -18225,7 +17878,6 @@ msgstr "Різниця температур попереднього нагрі�
 msgid "Temperature delta applied during pre-heating before tool change."
 msgstr "Різниця температур, що застосовується під час попереднього нагріву перед зміною інструмента."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect narrow internal solid infills"
 msgstr "Виявлення вузького внутрішнього суцільного заповнення"
 
@@ -18251,14 +17903,12 @@ msgstr " не в зоні "
 msgid "Export 3MF"
 msgstr "Експортувати 3MF"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports the project as a 3MF file."
 msgstr "Експортувати проєкт як 3MF."
 
 msgid "Export slicing data"
 msgstr "Експортувати дані нарізки"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export slicing data to a folder"
 msgstr "Експортувати дані нарізки у папку."
 
@@ -18283,7 +17933,6 @@ msgstr "Експортувати обʼєкти як декілька STL у п�
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Нарізати пластини: 0-всі пластини, i-пластина i, інші-неприпустимі"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shows command help."
 msgstr "Показати довідку про команду."
 
@@ -18308,23 +17957,21 @@ msgstr "Експортувати 3MF з мінімальним розміром.
 msgid "mtcpp"
 msgstr "mtcpp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "max triangle count per plate for slicing"
 msgstr "максимальна кількість трикутників на стіл для нарізки."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "max slicing time per plate in seconds"
 msgstr "максимальний час нарізки на стіл у секундах."
 
 msgid "No check"
 msgstr "Без перевірки"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Do not run any validity checks, such as G-code path conflicts check."
-msgstr "Не виконуйте перевірки дійсності, наприклад, перевірку конфліктів шляхуgcode."
+msgstr "Не виконувати жодних перевірок дійсності, наприклад перевірку конфліктів шляхів G-коду."
 
 msgid "Normative check"
 msgstr "Нормативна перевірка"
@@ -18335,14 +17982,12 @@ msgstr "Перевірте нормативні позиції."
 msgid "Output Model Info"
 msgstr "Вихідна інформація про модель"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This outputs the model’s information."
 msgstr "Виведіть інформацію про модель."
 
 msgid "Export Settings"
 msgstr "Експортувати налаштування"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports settings to a file."
 msgstr "Експортувати налаштування у файл."
 
@@ -18474,7 +18119,6 @@ msgstr "Завантажити та зберегти налаштування в
 msgid "Output directory"
 msgstr "Вихідний каталог"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the output directory for exported files."
 msgstr "Цільова папка для експортованих файлів."
 
@@ -18496,18 +18140,15 @@ msgstr "Увімкнути таймлапс для друку"
 msgid "If enabled, this slicing will be considered using timelapse."
 msgstr "Якщо ввімкнено, це нарізання враховуватиме використання таймлапсу"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Load custom G-code"
 msgstr "Завантажити користувацький gcode"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Load custom G-code from json."
 msgstr "Завантажити користувацький код з json"
 
 msgid "Load filament IDs"
 msgstr "Завантажувати id філаментів"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Load filament IDs for each object."
 msgstr "Завантажувати id філаментів для кожного обʼєкта"
 
@@ -18529,7 +18170,6 @@ msgstr "Уникати області калібрування екструзі�
 msgid "If enabled, Arrange will avoid extrusion calibrate region when placing objects."
 msgstr "Якщо ввімкнено, розташування моделей уникатиме області калібрування екструзії"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Skip modified G-code in 3MF"
 msgstr "Пропустити змінені gcodes в 3MF"
 
@@ -18540,36 +18180,30 @@ msgstr "Пропускати змінений G-код у 3MF із пресет�
 msgid "MakerLab name"
 msgstr "Назва MakerLab"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "MakerLab name to generate this 3MF."
 msgstr "Назва MakerLab для створення цього 3MF."
 
 msgid "MakerLab version"
 msgstr "Версія MakerLab"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "MakerLab version to generate this 3MF."
 msgstr "Версія MakerLab для створення цього 3MF."
 
 msgid "Metadata name list"
 msgstr "список назв метаданих"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Metadata name list added into 3MF."
 msgstr "список назв метаданих додано в 3MF."
 
 msgid "Metadata value list"
 msgstr "список значень метаданих"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Metadata value list added into 3MF."
 msgstr "список значень метаданих додано в 3MF."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Allow 3MF with newer version to be sliced"
 msgstr "Дозволити нарізання 3MF в новішій версії"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Allow 3MF with newer version to be sliced."
 msgstr "Дозволити нарізання 3MF в новішій версії."
 
@@ -18927,15 +18561,12 @@ msgstr "Не вдалося завантажити файл моделі."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "Не вдалося побудувати сітку файлу моделі, або відсутня коректна форма."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "Наданий файл не вдалося прочитати, оскільки він порожній"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Невідомий формат файлу: вхідний файл повинен мати розширення .stl, .obj або .amf (.xml)."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Невідомий формат файлу: вхідний файл повинен мати розширення .3mf або .zip.amf."
 
@@ -18987,7 +18618,6 @@ msgstr "Калібрувати"
 msgid "Finish"
 msgstr "Завершити"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "How can I use calibration results?"
 msgstr "Як використовувати результат калібрування?"
 
@@ -19060,7 +18690,6 @@ msgstr "Будь ласка, виберіть філамент для каліб
 msgid "The input value size must be 3."
 msgstr "Розмір введеного значення повинен бути 3."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
@@ -19073,7 +18702,6 @@ msgstr ""
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "Буде збережено лише один із результатів з однаковою назвою: %s. Ви впевнені, що хочете перезаписати інші результати?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "Вже існує історичний результат калібрування з такою самою назвою: %s. Зберігається лише один з результатів з такою самою назвою. Ви впевнені, що хочете перезаписати історичний результат?"
@@ -19087,7 +18715,6 @@ msgstr ""
 "У межах одного екструдера назва(%s) має бути унікальною, коли тип філаменту, діаметр сопла та потік сопла однакові.\n"
 "Ви впевнені, що хочете перезаписати попередній результат?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Цей тип машини може зберігати лише %d результатів історії на сопло. Цей результат не буде збережений."
@@ -19171,7 +18798,6 @@ msgstr "Крім того, калібрування рівня потоку є �
 msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion volumes. The default setting works well in Bambu Lab printers and official filaments as they were pre-calibrated and fine-tuned. For a regular filament, you usually won't need to perform a Flow Rate Calibration unless you still see the listed defects after you have done other calibrations. For more details, please check out the wiki article."
 msgstr "Калібрування потоку вимірює співвідношення очікуваного та фактичного об'єму екструзії. Налаштування за замовчуванням добре працює на принтерах Bambu Lab з офіційними філаментами, оскільки вони вже попередньо відкалібровані та точно налаштовані. Для звичайного філаменту калібрування потоку зазвичай не потрібне, окрім випадків коли після виконання інших калібрувань все ще залишаються перераховані дефекти. Детальніше ви можете ознайомитися в статті на вікі."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -19224,7 +18850,6 @@ msgstr "Стандартний потік"
 msgid "Please find the best line on your plate"
 msgstr "Будь ласка, знайдіть найкращу лінію на вашій пластині"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Будь ласка, знайдіть кут з ідеальним ступенем витіснення"
 
@@ -19385,7 +19010,6 @@ msgstr "Немає історії результатів"
 msgid "Success to get history result"
 msgstr "Успішно отримано історичний результат"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "Оновлення історичних записів калібрування динаміки потоку"
 
@@ -19396,7 +19020,6 @@ msgstr "Примітка: Номер хотенда на %s прив’язан�
 msgid "Action"
 msgstr "Дія"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Цей тип машини може зберігати лише %d результатів історії на сопло."
@@ -20062,11 +19685,9 @@ msgstr "Набір параметрів філаменту"
 msgid "Create"
 msgstr "Створити"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor is not selected; please reselect vendor."
 msgstr "Виробник не вибраний. Будь ласка, перевиберіть виробника."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Custom vendor missing; please input custom vendor."
 msgstr "Власного виробника не введено. Будь ласка, введіть інформацію про власного виробника."
 
@@ -20076,25 +19697,21 @@ msgstr "“Bambu” або “Generic” не може бути використ
 msgid "Filament type is not selected, please reselect type."
 msgstr "Тип філаменту не вибраний. Будь ласка, перевиберіть тип."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament serial missing; please input serial."
 msgstr "Серійний номер філаменту не введено. Будь ласка, введіть серійний номер."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
 msgstr "Можливо, введено спеціальні символи у виробника або серійний номер філаменту. Будь ласка, видаліть їх і введіть ще раз."
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Усі введені значення в полі власного виробника або серійного номера є пробіли. Будь ласка, введіть щось інше."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vendor cannot be a number; please re-enter."
 msgstr "Виробник не може бути числом. Будь ласка, введіть ще раз."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "Ви ще не вибрали принтер або пресет. Будь ласка, виберіть принаймні один з них."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
@@ -20141,7 +19758,6 @@ msgstr "Імпорт набору параметрів"
 msgid "Create Type"
 msgstr "Тип"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The model was not found; please reselect vendor."
 msgstr "Модель не знайдено. Будь ласка, перевиберіть виробника."
 
@@ -20182,18 +19798,15 @@ msgstr "Файл перевищує %d МБ, будь ласка, імпорту
 msgid "Exception in obtaining file size, please import again."
 msgstr "Виникла помилка під час визначення розміру файлу, будь ласка, імпортуйте знову."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preset path was not found; please reselect vendor."
 msgstr "Шлях до налаштувань не знайдено. Будь ласка, перевиберіть виробника."
 
 msgid "The printer model was not found, please reselect."
 msgstr "Модель принтера не було знайдено. Будь ласка, перевиберіть її."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle diameter was not found; please reselect."
 msgstr "Діаметр сопла не знайдено. Будь ласка, перевиберіть його."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer preset was not found; please reselect."
 msgstr "Налаштування принтера не знайдено. Будь ласка, перевиберіть його."
 
@@ -20209,11 +19822,10 @@ msgstr "Шаблон набору параметрів процесу"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "Ви ще не вибрали пресет принтера, на основі якого створювати. Будь ласка, виберіть виробника та модель принтера"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
-msgstr "Ви ввели недопустимий ввід у розділі “Друкована область” на першій сторінці. Будь ласка, перевірте перед створенням."
+msgstr "Ви ввели недопустимий символ у розділі “Друкована область” на першій сторінці. Будь ласка, використовуйте лише цифри."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -20237,14 +19849,12 @@ msgstr "Створення налаштувань філаменту не вда
 msgid "Create process presets failed. As follows:\n"
 msgstr "Створення налаштувань процесу не вдалося. Ось докладніше:\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor was not found; please reselect."
 msgstr "Виробника не знайдено, будь ласка, перевиберіть."
 
 msgid "Current vendor has no models, please reselect."
 msgstr "Поточний виробник не має моделей, будь ласка, перевиберіть."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "Ви не вибрали виробника та модель або не ввели власного виробника та модель."
 
@@ -20257,7 +19867,6 @@ msgstr "Усі введені дані в власному виробнику а
 msgid "Please check bed printable shape and origin input."
 msgstr "Будь ласка, перевірте введення форми друку на ліжку та початкову точку."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Ви ще не вибрали принтер, для якого потрібно замінити сопло. Будь ласка, оберіть."
 
@@ -20305,13 +19914,13 @@ msgstr "Будь ласка, перейдіть до налаштувань пр
 msgid "Filament Created"
 msgstr "Філамент створено"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
 msgstr ""
-"Будь ласка, перейдіть до налаштувань філаменту, щоб відредагувати свої налаштування, якщо потрібно.\n"
-"Зверніть увагу, що температура насадки, температура гарячого ліжка і максимальна об’ємна швидкість мають значний вплив на якість друку. Будь ласка, встановіть їх обережно."
+"Будь ласка, перейдіть до налаштувань філаменту, щоб відредагувати свої пресети, якщо потрібно.\n"
+"Зверніть увагу, що температура сопла, температура столу та максимальна обʼємна швидкість мають значний вплив на якість друку. Будь ласка, встановлюйте їх обережно."
 
 msgid ""
 "\n"
@@ -20360,7 +19969,6 @@ msgstr "помилка відкриття записаного файлу ZIP"
 msgid "Export successful"
 msgstr "Експорт успішний"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
@@ -20393,7 +20001,6 @@ msgstr ""
 "Налаштування філаменту користувача \n"
 "можна поділитися з іншими користувачами."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "Показувати лише назви принтерів зі змінами у пресетах принтера, філаменту та процесу."
 
@@ -20422,7 +20029,6 @@ msgstr ""
 msgid "Please select at least one printer or filament."
 msgstr "Будь ласка, виберіть принаймні один принтер або філамент."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please select a preset type you want to export"
 msgstr "Будь ласка, виберіть тип, який ви хочете експортувати"
 
@@ -20489,7 +20095,6 @@ msgstr "[Потрібно видалення]"
 msgid "Edit Preset"
 msgstr "Змінити пресет"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "For more information, please check out our Wiki"
 msgstr "Для отримання додаткової інформації, будь ласка, перевірте Вікі"
 
@@ -21147,7 +20752,6 @@ msgstr "друкувати одночасно (це залежить від то
 msgid "Wait"
 msgstr "Чекайте"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "хвилин на кожну партію. (Це залежить від того, скільки часу потрібно на нагрівання)."
 
@@ -21476,7 +21080,6 @@ msgstr "Попередження: Тип краєчка не встановле�
 msgid "Set the brim type of this object to \"painted\""
 msgstr "Встановити тип краєчка для цього обʼєкту на \"намальований\""
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "invalid brim ears"
 msgstr "неправильні краєчки"
 
@@ -22048,7 +21651,6 @@ msgstr ""
 "Таймлапс\n"
 "Ви знали, що можна генерувати відео під час кожного друку?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
@@ -22057,7 +21659,6 @@ msgstr ""
 "Автоматичне впорядкування\n"
 "Чи знаєте ви, що можна автоматично розташувати всі обʼєкти в проєкті?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
@@ -22156,7 +21757,6 @@ msgstr ""
 "Розбийте відбитки на пластини\n"
 "Чи знаєте ви, що можна розділити модель з великою кількістю деталей на окремі столи, готові до друку? Це спростить процес відстеження всіхдеталей."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
 msgid ""
@@ -22174,23 +21774,23 @@ msgstr ""
 "Опорне забарвлення\n"
 "Ти знав, що можеш намалювати розташування своїх опор? Ця функція спрощуєрозміщення матеріалу опори тільки на тих перерізах моделі, які в цьомупотребують."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
 msgstr ""
-"Різні типи опор\n"
-"Чи знаєте ви, що можна вибрати один із кількох типів опор? Підтримка Tree відмінно працює для органічних моделей, зберігаючи при цьому ниткинапруження і підвищуючи швидкість друку. Перевірте їх!"
+"Різні типи підтримок\n"
+"Чи знаєте ви, що можна вибрати один із кількох типів підтримок? Органічні підтримки чудово працюють для органічних моделей, заощаджуючи філамент і підвищуючи швидкість друку. Спробуйте!"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
 msgstr ""
 "Друк шовковим філаментом\n"
-"Чи знаєте ви, що шовковий іламент потребує особливої уваги, щоб її Успішно надрукувати? Для досягнення найкращих результатів завждирекомендується більш висока температура та нижча швидкість."
+"Чи знаєте ви, що шовковий філамент потребує особливої уваги, щоб надрукувати його успішно? Для досягнення найкращих результатів завжди рекомендується вища температура та нижча швидкість."
 
 #: resources/data/hints.ini: [hint:Brim for better adhesion]
 msgid ""
@@ -22200,14 +21800,14 @@ msgstr ""
 "Кайма для кращого прилипання\n"
 "Чи знаєте ви, що при друці моделей які мають невелику площу контакту з поверхнею друку, рекомендується використовувати кайму?"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
 "Did you know that you can set slicing parameters for all selected objects at once?"
 msgstr ""
 "Встановлення параметрів для кількох обʼєктів\n"
-"Чи знаєте ви, що можна встановити параметри нарізки для всіх вибранихобʼєктів одночасно?"
+"Чи знаєте ви, що можна встановити параметри нарізки для всіх вибраних обʼєктів одночасно?"
 
 #: resources/data/hints.ini: [hint:Stack objects]
 msgid ""
@@ -22217,7 +21817,6 @@ msgstr ""
 "Стек об’єктів\n"
 "Чи знаєте ви, що можна складати об’єкти як одне ціле?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
@@ -22234,7 +21833,6 @@ msgstr ""
 "Підвищення міцності\n"
 "Чи знаєте ви, що для підвищення міцності моделі можна використовувати більшепериметрів та вищу щільність заповнення?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
 msgid ""
@@ -22244,14 +21842,14 @@ msgstr ""
 "Коли потрібно друкувати з відкритими дверцятами принтера\n"
 "Чи знаєте ви, що відкриття дверцят принтера може знизити ймовірність засмічення екструдера/гарячого блока при друку низькотемпературного філаменту при вищій температурі усередині корпусу? Більше інформації знаходиться в Вікі."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
 msgstr ""
 "Уникнення деформації\n"
-"Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури гарячого ліжка може зменшити ймовірність деформації?"
+"Чи знаєте ви, що при друку матеріалами, схильними до деформації, такими як ABS, відповідне підвищення температури столу може зменшити ймовірність деформації?"
 
 #~ msgid "Enter"
 #~ msgstr "Ввести"

@@ -8101,7 +8101,6 @@ msgstr ""
 msgid "Sync now"
 msgstr "Sincronizar agora"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Você pode manter as predefinições modificadas no novo projeto ou descartá-las"
 
@@ -8111,7 +8110,6 @@ msgstr "Criando um novo projeto"
 msgid "Load project"
 msgstr "Carregar Projeto"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
@@ -8128,14 +8126,12 @@ msgstr "Importando Modelo"
 msgid "Preparing 3MF file..."
 msgstr "Preparando o arquivo 3MF…"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; unknown file format."
 msgstr "Baixar falhou, formato de arquivo desconhecido."
 
 msgid "Downloading project..."
 msgstr "Baixando projeto…"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; File size exception."
 msgstr "Baixar falhou, erro no tamanho do arquivo."
 
@@ -8193,14 +8189,12 @@ msgstr "Abrir como projeto"
 msgid "Import geometry only"
 msgstr "Importar apenas a geometria"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only one G-code file can be opened at a time."
 msgstr "Apenas um arquivo de G-code pode ser aberto de cada vez."
 
 msgid "G-code loading"
 msgstr "Carregamento do G-code"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code files and models cannot be loaded together!"
 msgstr "Arquivos de G-code não podem ser carregados junto com modelos!"
 
@@ -8210,7 +8204,6 @@ msgstr "Não é possível adicionar modelos no modo de pré-visualização"
 msgid "All objects will be removed, continue?"
 msgstr "Todos os objetos serão removidos, continuar?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "O projeto atual tem alterações não salvas, salvar antes de continuar?"
 
@@ -8282,7 +8275,6 @@ msgstr "Enviar e Imprimir"
 msgid "Abnormal print file data. Please slice again"
 msgstr "Dados de arquivo de impressão anormais. Por favor, fatie novamente"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -8406,7 +8398,6 @@ msgstr "Triângulos: %1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr "Usar \"Corrigir Modelo\" para reparar a malha."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "Placa %d: %s não é sugerida para ser usado para imprimir filamento %s (%s). Se você ainda quiser fazer esta impressão, por favor defina a temperatura de mesa deste filamento para diferente de zero."
@@ -8435,9 +8426,9 @@ msgstr "frente"
 msgid "rear"
 msgstr "trás"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Switching languages requires the application to restart.\n"
-msgstr "Alternanr o idioma requer reiniciar o aplicativo.\n"
+msgstr "Alternar o idioma requer reiniciar o aplicativo.\n"
 
 msgid "Do you want to continue?"
 msgstr "Você deseja continuar?"
@@ -8463,7 +8454,6 @@ msgstr "América do Norte"
 msgid "Others"
 msgstr "Outros"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Changing the region will log you out of your account.\n"
 msgstr "Mudar a região fará logout da sua conta.\n"
 
@@ -8571,7 +8561,6 @@ msgstr "Página padrão"
 msgid "Set the page opened on startup."
 msgstr "Define a página aberta na inicialização."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable dark Mode"
 msgstr "Ativar modo escuro"
 
@@ -8623,7 +8612,6 @@ msgstr "As configurações de impressora/filamento/processo devem ser carregadas
 msgid "Auto backup"
 msgstr "Backup automático"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "Faça backup do seu projeto periodicamente para restaurar de falhas ocasionais."
 
@@ -9031,7 +9019,6 @@ msgstr "Filamento e Cor"
 msgid "Color only"
 msgstr "Apenas Cor"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update built-in presets automatically."
 msgstr "Atualizar automaticamente Predefinições integradas."
 
@@ -9188,13 +9175,12 @@ msgstr "Botão de salvar depuração"
 msgid "Save debug settings"
 msgstr "Salvar configurações de depuração"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Debug settings have been saved successfully!"
 msgstr "As configurações de depuração foram salvas com sucesso!"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Cloud environment switched; please login again!"
-msgstr "Mudar o ambiente de nuvem, Por favor, faça login novamente!"
+msgstr "Ambiente de nuvem alterado; por favor, faça login novamente!"
 
 msgid "System presets"
 msgstr "Predefinições do sistema"
@@ -9214,7 +9200,6 @@ msgstr "Filamentos AMS"
 msgid "Left filaments"
 msgstr "Filamentos da esquerda"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament"
 msgstr "Filamentos AMS"
 
@@ -9251,7 +9236,6 @@ msgstr "Predefinições não suportadas"
 msgid "Unsupported"
 msgstr "Não suportado"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add/Remove filament"
 msgstr "Adicionar/Remover filamentos"
 
@@ -9286,7 +9270,6 @@ msgstr "Por favor insira o valor da camada (>= 2)."
 msgid "Plate name"
 msgstr "Nome da placa"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Same as Global Plate Type"
 msgstr "Mesmo que o Tipo de Placa Global"
 
@@ -9323,7 +9306,6 @@ msgstr "Aceitar"
 msgid "Log Out"
 msgstr "Sair"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice all plates to obtain time and filament estimation"
 msgstr "Fatiar todas as placas para obter estimativa de tempo e filamento"
 
@@ -9384,7 +9366,6 @@ msgstr "A predefinição \"%1%\" já existe."
 msgid "Preset \"%1%\" already exists and is incompatible with the current printer."
 msgstr "A predefinição \"%1%\" já existe e é incompatível com a impressora atual."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Por favor, note que a ação de salvar sobrescreverá esta predefinição."
 
@@ -9563,7 +9544,6 @@ msgstr "O filamento não corresponde ao filamento no espaço do AMS. Atualize o 
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "A impressora selecionada (%s) é incompatível com a configuração do arquivo de impressão (%s). Ajuste a predefinição da impressora na página de preparo ou escolha uma impressora compatível nesta página."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "Quando o modo vaso espiral está ativado, máquinas com estrutura I3 não irão gerar vídeos timelapse."
 
@@ -9586,7 +9566,6 @@ msgstr "A configuração do tipo de filamento do carretel externo é diferente d
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "O tipo de impressora selecionado ao gerar o G-code não está consistente com a impressora atualmente selecionada. É recomendado que você use o mesmo tipo de impressora para fatiar."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Há alguns filamentos desconhecidos nos mapeamentos AMS. Por favor, verifique se eles são os filamentos necessários. Se estiverem corretos, pressione \"Confirmar\" para iniciar a impressão."
 
@@ -9810,7 +9789,6 @@ msgstr "O armazenamento está em um estado anormal ou em modo apenas de leitura.
 msgid "Storage needs to be inserted before printing."
 msgstr "O armazenamento precisa estar inserido antes de imprimir."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Não é possível enviar o trabalho de impressão para uma impressora cujo firmware precisa ser atualizado."
 
@@ -10031,7 +10009,6 @@ msgstr "Clique para redefinir todas as configurações para a última predefini�
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgstr "A torre principal é necessária para a troca do bico. Pode haver falhas no modelo sem a torre principal. Tem certeza de que deseja desativar a torre principal?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "Uma torre de purga é necessária para um timelapse suave. Pode haver falhas no modelo sem a torre de purga. Tem certeza de que deseja desativar a torre de purga?"
 
@@ -10047,7 +10024,6 @@ msgstr "Uma torre de purga é necessária para a detecção de aglomeração. Po
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "Habilitar a altura Z precisa e a torre de preparação juntas pode causar erros de fatiamento. Deseja habilitar a altura Z precisa mesmo assim?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "Uma torre de purga é necessária para um timelapse suave. Pode haver falhas no modelo sem a torre de purga. Deseja ativar a torre de purga?"
 
@@ -10313,7 +10289,6 @@ msgstr "Informações básicas"
 msgid "Recommended nozzle temperature"
 msgstr "Temperatura recomendada do bico"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "Faixa de temperatura do bico recomendada para este filamento. 0 significa não definido"
 
@@ -10348,29 +10323,24 @@ msgstr "Temperatura da mesa quando a Placa Fria SuperTack está instalada. O val
 msgid "Cool Plate"
 msgstr "Placa Fria"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Temperatura da mesa quando a Placa Fria está instalada. O valor 0 significa que o filamento não suporta impressão na Placa Fria."
 
 msgid "Textured Cool Plate"
 msgstr "Placa Fria Texturizada"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Temperatura da mesa quando a Placa Fria Texturizada está instalada. O valor 0 significa que o filamento não suporta impressão na Placa Fria Texturizada."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Temperatura da mesa quando a Placa de Engenharia está instalada. O valor 0 significa que o filamento não suporta impressão na Placa de Engenharia."
 
 msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "Placa PEI Lisa / Placa de Alta Temperatura"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "Temperatura da mesa quando a Placa PEI Lisa/Placa de Alta Temperatura está instalado. O valor 0 significa que o filamento não suporta a impressão no Placa PEI Lisa/Placa de Alta Temperatura."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Temperatura da mesa quando a Placa PEI Texturizada está instalado. O valor 0 significa que o filamento não suporta impressão na Placa PEI Texturizada."
 
@@ -11959,30 +11929,24 @@ msgstr "A prevenção de vazamento só é suportada pela torre de purga quando '
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
 msgstr "A torre de purga atualmente só é suportada para os G-code do tipo Marlin, RepRap/Sprinter, RepRapFirmware e Repetier."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported in “By object” print."
 msgstr "A torre de purga não é suportada na impressão \"Por objeto\"."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "A torre de purga não é suportada quando a altura de camada adaptativa está ativa. Isso requer que todos os objetos tenham a mesma altura de camada."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "A torre de purga requer que o \"vão de suporte\" seja múltiplo da altura da camada."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "A torre de purga requer que todos os objetos tenham as mesmas alturas de camada."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "A torre de purga requer que todos os objetos sejam impressos sobre o mesmo número de camadas da jangada."
 
 msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
 msgstr "A torre de purga só é suportada para vários objetos se eles forem impressos com a mesma support_top_z_distance."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "A torre de purga requer que todos os objetos sejam fatiados com as mesmas alturas de camada."
 
@@ -11992,18 +11956,15 @@ msgstr "A torre de purga só é suportada se todos os objetos tiverem a mesma al
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Um ou mais objetos foram atribuídos a uma extrusora que a impressora não possui."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too small"
 msgstr "Largura de linha muito pequena"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too large"
 msgstr "Largura de linha muito grande"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "Impressão com múltiplas extrusoras de diferentes diâmetros de bicos. Se o suporte for impresso com o filamento atual (support_filament == 0 ou support_interface_filament == 0), todos os bicos devem ter o mesmo diâmetro."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "A torre de purga requer que o suporte tenha a mesma altura de camada do objeto."
 
@@ -12028,7 +11989,6 @@ msgstr "O padrão de base oca não é suportado por este tipo de suporte; Retil�
 msgid "Support enforcers are used but support is not enabled. Please enable support."
 msgstr "Os reforços de suporte são usados, mas o suporte não está habilitado. Por favor, habilite o suporte."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "A altura da camada não pode exceder o diâmetro do bico."
 

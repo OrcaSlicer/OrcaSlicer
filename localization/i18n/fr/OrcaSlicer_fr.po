@@ -14114,7 +14114,6 @@ msgstr "Utilisation de lignes multiples pour le motif de remplissage, si pris en
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "Optimisation du biais de flambage en Z (expérimental)"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "Resserre l’onde gyroïde le long de l’axe Z (vertical) à faible densité de remplissage afin de raccourcir la longueur effective des colonnes verticales et d’améliorer la résistance au flambage en compression selon l’axe Z. La consommation de filament est préservée. Aucun effet à partir d’environ 30 % de densité de remplissage. S’applique uniquement lorsque le motif de remplissage est réglé sur Gyroïde."

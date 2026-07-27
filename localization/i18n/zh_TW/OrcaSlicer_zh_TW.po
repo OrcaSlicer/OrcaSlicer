@@ -445,11 +445,9 @@ msgstr "工具頭"
 msgid "Nozzle information needs to be read"
 msgstr "需要讀取噴嘴資訊"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support Painting"
 msgstr "支撐筆刷"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Apply"
 msgstr "套用"
 
@@ -459,7 +457,6 @@ msgstr "僅對醒目標示懸空區生效"
 msgid "Erase all"
 msgstr "全部擦除"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Highlight overhangs"
 msgstr "突顯出懸空區域"
 
@@ -536,7 +533,6 @@ msgstr "無自動支撐"
 msgid "Done"
 msgstr "完成"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support generated"
 msgstr "已產生支撐"
 
@@ -552,7 +548,6 @@ msgstr "支撐筆刷編輯"
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo-放置在臉上"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Lay on Face"
 msgstr "選擇底面"
 
@@ -560,7 +555,6 @@ msgstr "選擇底面"
 msgid "Filament count exceeds the maximum number that painting tool supports. Only the first %1% filaments will be available in painting tool."
 msgstr "線材數量超過上色工具支援的最大值，僅前 %1% 個線材可在上色工具中使用。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Color Painting"
 msgstr "上色"
 
@@ -726,37 +720,30 @@ msgstr "旋轉（相對）"
 msgid "Scale ratios"
 msgstr "縮放比例"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "物件操作"
 
 msgid "Scale"
 msgstr "縮放"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
 msgstr "零件操作"
 
 msgid "Translate"
 msgstr "平移"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Group operations"
 msgstr "群組操作"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set orientation"
 msgstr "設定方向"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set scale"
 msgstr "設定縮放"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset position"
 msgstr "重設位置"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset rotation"
 msgstr "重設旋轉"
 
@@ -1065,7 +1052,6 @@ msgstr ""
 msgid "Cut by Plane"
 msgstr "用平面分割"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
 msgstr "切科後產生非流形邊，是否要修復？"
 
@@ -1131,7 +1117,6 @@ msgstr "%d 個三角形"
 msgid "Show wireframe"
 msgstr "顯示線框"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to apply when processing preview"
 msgstr "處理預覽的過程中無法套用。"
 
@@ -1156,7 +1141,6 @@ msgstr "Z 縫筆刷"
 msgid "Remove selection"
 msgstr "移除繪製"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Entering seam painting"
 msgstr "進入 Z 縫繪製模式"
 
@@ -1180,7 +1164,6 @@ msgstr "文字間距"
 msgid "Angle"
 msgstr "角度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Embedded depth"
 msgstr "內嵌深度"
 
@@ -1986,7 +1969,6 @@ msgstr "Alt+"
 msgid "Notice"
 msgstr "通知"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Undefined"
 msgstr "未定義"
 
@@ -2009,11 +1991,9 @@ msgstr "線材"
 msgid "Machine"
 msgstr "列印裝置"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "設定檔已被載入，但部分數值無法識別。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
 msgstr "設定檔「%1%」 已被載入，但部分數值無法識別。"
@@ -2236,9 +2216,9 @@ msgstr "擠出機"
 msgid "Some presets are modified."
 msgstr "部分預設已被修改。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
-msgstr "您可以保留尚未儲存修改的預設套用到新項目中，或者選擇忽略。"
+msgstr "您可以將修改後的預設保留給新專案、放棄修改，或將變更另存為新的預設。"
 
 msgid "User logged out"
 msgstr "使用者登出"
@@ -2534,7 +2514,6 @@ msgstr "重新命名"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "Orca Slicer 圖形介面初始化失敗"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "Fatal error, exception: %1%"
 msgstr "致命錯誤，遭遇到異常：%1%"
@@ -2560,22 +2539,18 @@ msgstr "速度"
 msgid "Strength"
 msgstr "結構"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top solid layers"
 msgstr "頂部外殼層數"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top minimum shell thickness"
 msgstr "頂部外殼最小厚度"
 
 msgid "Top Surface Density"
 msgstr "頂部表面密度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom solid layers"
 msgstr "底部實心層"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom minimum shell thickness"
 msgstr "底部外殼最小厚度"
 
@@ -2585,14 +2560,12 @@ msgstr "底部表面密度"
 msgid "Ironing"
 msgstr "熨燙"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fuzzy skin"
 msgstr "絨毛表面"
 
 msgid "Extruders"
 msgstr "擠出機"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Extrusion width"
 msgstr "擠出寬度"
 
@@ -2602,23 +2575,18 @@ msgstr "擦除選項"
 msgid "Bed adhesion"
 msgstr "熱床黏接"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Part"
 msgstr "新增零件"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Negative Part"
 msgstr "新增負零件"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Modifier"
 msgstr "新增修改器"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Blocker"
 msgstr "新增支撐遮蔽"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Enforcer"
 msgstr "新增支撐產生器"
 
@@ -2728,15 +2696,12 @@ msgstr "建議"
 msgid "Text"
 msgstr "文字"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Height Range Modifier"
 msgstr "高度範圍修改器"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Settings"
 msgstr "新增設定"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Change Type"
 msgstr "更改類型"
 
@@ -2752,11 +2717,9 @@ msgstr "支撐添加器"
 msgid "Change part type"
 msgstr "更換零件型別"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as An Individual Object"
 msgstr "設定為獨立物件"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as Individual Objects"
 msgstr "設定為獨立物件"
 
@@ -2775,7 +2738,6 @@ msgstr "自動落板"
 msgid "Automatically drops the selected object to the build plate."
 msgstr "自動將選取的物件放置到列印板上"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fix Model"
 msgstr "修復模型"
 
@@ -2846,19 +2808,15 @@ msgstr "將換料的廢料使用在物件的支撐"
 msgid "Edit in Parameter Table"
 msgstr "在參數表格中編輯"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Inches"
 msgstr "從英寸轉換"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Inch"
 msgstr "還原到英寸"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Meters"
 msgstr "從公尺轉換"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "還原到公尺"
 
@@ -2877,31 +2835,24 @@ msgstr "網格布林操作"
 msgid "Mesh boolean operations including union and subtraction"
 msgstr "包括併集和差集的網格布林運算"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along X Axis"
 msgstr "沿 X 軸"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the X Axis"
 msgstr "沿 X 軸鏡像"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Y Axis"
 msgstr "沿 Y 軸"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Y Axis"
 msgstr "沿 Y 軸鏡像"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Z Axis"
 msgstr "沿 Z 軸"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Z Axis"
 msgstr "沿 Z 軸鏡像"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror object"
 msgstr "鏡像物件"
 
@@ -2932,14 +2883,12 @@ msgstr "新增模型"
 msgid "Show Labels"
 msgstr "顯示標籤"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Objects"
 msgstr "拆分到物件"
 
 msgid "Split the selected object into multiple objects"
 msgstr "拆分所選物件為多個物件"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Parts"
 msgstr "到零件"
 
@@ -2967,7 +2916,6 @@ msgstr "合併到"
 msgid "Delete this filament"
 msgstr "刪除此線材"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Select All"
 msgstr "全選"
 
@@ -2980,7 +2928,6 @@ msgstr "全選所有列印板"
 msgid "Select all objects on all plates"
 msgstr "選擇所有列印板上的所有物件"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete All"
 msgstr "刪除所有"
 
@@ -3110,25 +3057,21 @@ msgstr[0] "%1$d 個非流形邊緣"
 msgid "Click the icon to repair model object"
 msgstr "點選圖示來修復模型"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object settings"
 msgstr "滑鼠右鍵點選此圖示以放棄物件的列印設定"
 
 msgid "Click the icon to reset all settings of the object"
 msgstr "滑鼠左鍵點選此圖示可重設物件的所有列印設定"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object printable property"
 msgstr "滑鼠右鍵點選此圖示以捨棄物件的可列印屬性"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to toggle printable properties of the object"
 msgstr "滑鼠左點選此圖示可切換這個物件的可列印屬性"
 
 msgid "Click the icon to edit support painting of the object"
 msgstr "滑鼠左鍵點選此圖示可編輯這個物件的支撐繪製"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to edit color painting for the object"
 msgstr "滑鼠左鍵點選此圖示可編輯這個物件的顏色繪製"
 
@@ -3231,7 +3174,7 @@ msgstr "刪除的負體積屬於切割物件的一部分"
 msgid "To save cut correspondence you can delete all connectors from all related objects."
 msgstr "為保證切割關係，您可以將所有關聯物件的連接件一起刪除。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed.\n"
@@ -3239,9 +3182,6 @@ msgid ""
 "To manipulate with solid parts or negative volumes you have to invalidate cut information first."
 msgstr ""
 "此操作將打破切割對應關係。\n"
-"模型一致性可能無法再保證。\n"
-"\n"
-"如果要操作子零件或者負體積，需要先解除切割關係。此操作將打破切割對應關係。\n"
 "模型一致性可能無法再保證。\n"
 "\n"
 "如果要操作子零件或者負體積，需要先解除切割關係。"
@@ -3282,15 +3222,12 @@ msgstr "物件操作"
 msgid "Group manipulation"
 msgstr "群組操作"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object Settings to Modify"
 msgstr "要修改的物件設定"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Part Settings to Modify"
 msgstr "要修改的零件設定"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer Range Settings to Modify"
 msgstr "要修改的圖層範圍設定"
 
@@ -3322,7 +3259,6 @@ msgstr "如果第一個選擇的是物件，那麼第二個選擇的也必須是
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "如果第一個選擇的是零件，那麼第二個選擇的也必須是同一個物件中的零件。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The type of the last solid object part cannot be changed."
 msgstr "不允許修改物件中最後一個實體零件的類型。"
 
@@ -3444,21 +3380,19 @@ msgstr "走線類型"
 msgid "1x1 Grid: %d mm"
 msgstr "1x1 網格：%d mm"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "More"
 msgstr "詳情"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Open Preferences"
-msgstr "偏好設定。"
+msgstr "開啟偏好設定"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open next tip"
 msgstr "開啟下一條提示。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Open documentation in web browser"
-msgstr "在網頁瀏覽器中開啟檔案。"
+msgstr "在網頁瀏覽器中開啟說明文件。"
 
 msgid "Color"
 msgstr "顏色"
@@ -3487,11 +3421,9 @@ msgstr "自訂 G-code"
 msgid "Enter Custom G-code used on current layer:"
 msgstr "輸入當層使用的自訂 G-code："
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Jump to layer"
 msgstr "跳至層"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the layer number."
 msgstr "請輸入層數"
 
@@ -3570,14 +3502,12 @@ msgstr "連線中..."
 msgid "Auto Refill"
 msgstr "自動補充"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Load"
 msgstr "匯入"
 
 msgid "Unload"
 msgstr "退料"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "選擇一個 AMS 槽，然後按下『上料』或『退料』按鈕來自動載入或卸載線材。"
 
@@ -3693,7 +3623,6 @@ msgstr "加熱噴嘴"
 msgid "Cut filament"
 msgstr "切斷線材"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Pull back the current filament"
 msgstr "抽回線材"
 
@@ -3757,7 +3686,6 @@ msgstr "已選取所有項目……"
 msgid "No matching items..."
 msgstr "沒有符合的項目..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deselect All"
 msgstr "取消全選"
 
@@ -3871,7 +3799,6 @@ msgstr "自動擺放"
 msgid "Arranging canceled."
 msgstr "已取消自動擺放。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "已完成自動擺放，但是有未被擺到列印板內的物件，可縮小物件間距後再重試。"
 
@@ -3939,7 +3866,6 @@ msgstr "登入失敗"
 msgid "Please check the printer network connection."
 msgstr "請檢查列印裝置的網路連線。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Abnormal print file data: please slice again."
 msgstr "列印檔案資料異常，請重新切片。"
 
@@ -3952,7 +3878,6 @@ msgstr "上傳任務逾時，請排查網路狀態後重試。"
 msgid "Cloud service connection failed. Please try again."
 msgstr "雲端服務連線失敗，請重試。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice again."
 msgstr "未找到列印檔案，請重新切片。"
 
@@ -3965,18 +3890,15 @@ msgstr "無法傳送列印作業，請重試。"
 msgid "Failed to upload file to ftp. Please try again."
 msgstr "上傳檔案至 FTP 失敗，請重試。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "點選上方的連結檢查 Bambu 伺服器的即時狀態。"
 
 msgid "The size of the print file is too large. Please adjust the file size and try again."
 msgstr "列印檔案過大，請調整檔案大小後重試。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice it again and send it for printing."
 msgstr "未找到列印檔案，請重新切片後再傳送列印。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "無法將列印檔案上傳至 FTP。請檢查網路狀態並重試。"
 
@@ -4028,7 +3950,6 @@ msgstr "儲存空間狀態出現未知錯誤。請重試。"
 msgid "Sending G-code file over LAN"
 msgstr "透過區域網路傳送 G-code 檔案"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sending G-code file to SD card"
 msgstr "傳送 G-code 檔案到 SD 記憶卡"
 
@@ -4099,9 +4020,9 @@ msgstr "剩餘時間：%d分%d秒"
 msgid "Importing SLA archive"
 msgstr "匯入 SLA 存檔"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
-msgstr "SLA 存檔不包含任何預設。在匯入該 SLA 存檔之前，請先啟用一些 SLA 列印裝置預設。SLA 存檔不包含任何預設。在匯入該 SLA 存檔之前，請先啟用一些 SLA 列印裝置預設。"
+msgstr "SLA 存檔不包含任何預設。在匯入該 SLA 存檔之前，請先啟用一些 SLA 列印裝置預設。"
 
 msgid "Importing canceled."
 msgstr "匯入已取消。"
@@ -4112,7 +4033,6 @@ msgstr "匯入完成。"
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "匯入的 SLA 存檔不包含任何預設。目前的 SLA 預設被用作備用選項。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "您無法在列印板上載入包含多部分物件的 SLA 項目"
 
@@ -4140,9 +4060,9 @@ msgstr "安裝中"
 msgid "Install failed"
 msgstr "安裝失敗"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "License Info"
-msgstr "部分版權"
+msgstr "授權資訊"
 
 msgid "Copyright"
 msgstr "版權"
@@ -4253,7 +4173,6 @@ msgstr "其他顏色"
 msgid "Custom Color"
 msgstr "自訂顏色"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Dynamic flow calibration"
 msgstr "動態流量校正"
 
@@ -4263,7 +4182,6 @@ msgstr "噴嘴溫度和最大體積速度會影響到校正結果，請填寫與
 msgid "Nozzle Diameter"
 msgstr "噴嘴直徑"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate Type"
 msgstr "熱床類型"
 
@@ -4285,7 +4203,6 @@ msgstr "床溫"
 msgid "mm³"
 msgstr "mm³"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Start"
 msgstr "開始"
 
@@ -4398,20 +4315,18 @@ msgstr "無法選擇：目前料槽未裝入線材。"
 msgid "Enable AMS"
 msgstr "使用 AMS"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in the AMS"
 msgstr "使用 AMS 裡的線材列印"
 
 msgid "Disable AMS"
 msgstr "停用 AMS"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament on external spool"
 msgstr "使用機箱背後掛載的線材列印"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
-msgstr "當乾燥劑過濕時，請更換乾燥劑。在以下情況下，指示器可能無法準確顯示：當蓋子打開或更換乾燥劑包時。吸收濕氣需要數小時，低溫會進一步減緩此過程。當乾燥劑過濕時，請更換乾燥劑。在以下情況下，指示器可能無法準確顯示：當蓋子打開或更換乾燥劑包時。吸收濕氣需要數小時，低溫會進一步減緩此過程。"
+msgstr "當乾燥劑過濕時，請更換乾燥劑。在以下情況下，指示器可能無法準確顯示：當蓋子打開或更換乾燥劑包時。吸收濕氣需要數小時，低溫會進一步減緩此過程。"
 
 msgid "Configure which AMS slot should be used for a filament used in the print job."
 msgstr "設定列印作業中所使用的線材應使用哪個 AMS 槽"
@@ -4428,11 +4343,9 @@ msgstr "滑鼠左鍵點選以手動選擇 AMS 槽位"
 msgid "Do not Enable AMS"
 msgstr "不使用 AMS"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print using filament on external spool."
 msgstr "使用安裝在機箱背面的線材進行列印"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "使用 AMS 裡的線材列印"
 
@@ -4461,7 +4374,6 @@ msgstr "當目前線材用完時，列印裝置將使用相同的線材繼續列
 msgid "The printer does not currently support auto refill."
 msgstr "此列印裝置目前不支援自動補料功能。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
 msgstr "AMS 線材備份功能尚未啟用，請在 AMS 設定中開啟。"
 
@@ -4484,9 +4396,9 @@ msgstr "AMS 設定"
 msgid "Insertion update"
 msgstr "插入線材時更新"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
-msgstr "當插入新的 Bambu Lab 官方線材的時候，AMS 會自動讀取線材資訊。這個過程大約需要20秒。當插入新的 Bambu Lab 官方線材的時候，AMS 會自動讀取線材資訊。這個過程大約需要20秒。"
+msgstr "當插入新的 Bambu Lab 官方線材的時候，AMS 會自動讀取線材資訊。這個過程大約需要 20 秒。"
 
 msgid "Note: if a new filament is inserted during printing, the AMS will not automatically read any information until printing is completed."
 msgstr "備註：若在列印過程中插入新的線材，AMS 會等到列印完成才會讀取線材資訊。"
@@ -4494,13 +4406,12 @@ msgstr "備註：若在列印過程中插入新的線材，AMS 會等到列印�
 msgid "When inserting a new filament, the AMS will not automatically read its information, leaving it blank for you to enter manually."
 msgstr "在插入一卷新線材時，AMS 將不會自動讀取線材資訊，預留一個空的線材資訊等待您手動輸入。在插入一卷新線材時，AMS 將不會自動讀取線材資訊，預留一個空的線材資訊等待您手動輸入。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update on startup"
 msgstr "開機時偵測"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
-msgstr "每次開機時，AMS 將會自動讀取有插入的線材資訊（讀取過程會轉動線卷）。需要花費大約1分鐘。每次開機時，AMS 將會自動讀取有插入的線材資訊（讀取過程會轉動線卷）。需要花費大約1分鐘。"
+msgstr "每次開機時，AMS 將會自動讀取有插入的線材資訊（讀取過程會轉動線卷）。需要花費大約 1 分鐘。"
 
 msgid "The AMS will not automatically read information from inserted filament during startup and will continue to use the information recorded before the last shutdown."
 msgstr "AMS 不會在啟動時自動讀取線材資訊。它會使用上次關機前記錄的資訊。"
@@ -4553,7 +4464,6 @@ msgstr "校正"
 msgid "Failed to download the plug-in. Please check your firewall settings and VPN software and retry."
 msgstr "外掛程式下載失敗。請檢查您的防火牆設定和 VPN 軟體，檢查後重試。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
 msgstr "外掛程式安裝失敗。外掛程式檔案可能正在使用中。請重新啟動 OrcaSlicer 並重試。同時檢查是否被防毒軟體封鎖或刪除。"
 
@@ -4575,7 +4485,6 @@ msgstr "）來定位工具頭的位置，這可防止裝置移動超出可列印
 msgid "Go Home"
 msgstr "回原點"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "發生錯誤。可能系統記憶體不足或者程式存在錯誤"
 
@@ -4583,13 +4492,12 @@ msgstr "發生錯誤。可能系統記憶體不足或者程式存在錯誤"
 msgid "A fatal error occurred: \"%1%\""
 msgstr "發生了致命錯誤：「%1%」"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please save your project and restart the application."
 msgstr "請儲存專案並重新啟動程式。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Processing G-Code from previous file…"
-msgstr "從之前的檔案載入 G-Code..."
+msgstr "正在處理之前檔案的 G-Code…"
 
 msgid "Slicing complete"
 msgstr "切片完成"
@@ -4653,7 +4561,6 @@ msgstr "臨時 G-code 的複製已完成，但匯出的 G-code 無法在複製�
 msgid "G-code file exported to %1%"
 msgstr "G-code 檔案已匯出為 %1%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown error with G-code export"
 msgstr "匯出 G-code 檔案發生未知錯誤。"
 
@@ -4669,7 +4576,6 @@ msgstr ""
 "錯誤資訊：%1%。\n"
 "原始檔 %2%。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "將臨時 G-Code 複製到輸出 G-Code 失敗"
 
@@ -4716,14 +4622,12 @@ msgstr "選擇熱床形狀的 STL 檔案："
 msgid "Invalid file format."
 msgstr "無效的檔案格式。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error: invalid model"
 msgstr "錯誤！無效模型"
 
 msgid "The selected file contains no geometry."
 msgstr "所選檔案不包含任何幾何資料。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "所選檔案包含多個不相連的區域。不支援這種類型。"
 
@@ -4750,16 +4654,14 @@ msgstr "推薦的最小溫度不能高於推薦的最大溫度。\n"
 msgid "Please check.\n"
 msgstr "請檢查。\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
 "\n"
 msgstr ""
-"噴嘴可能會堵塞當溫度超過建議的範圍時。\n"
-"請確認是否使用該溫度列印\n"
 "當溫度超過建議的範圍時，噴嘴可能會堵塞。\n"
-"請確認是否使用該溫度列印\n"
+"請確認是否使用該溫度列印。\n"
 "\n"
 
 #, c-format, boost-format
@@ -4769,16 +4671,14 @@ msgstr "該線材的推薦噴嘴溫度是攝氏 [%d, %d] 度"
 msgid "Adaptive Pressure Advance model validation failed:\n"
 msgstr "適應性壓力補償模型驗證失敗：\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
 msgstr ""
 "最大體積速度設定過小\n"
-"重設為 0.5最大體積速度設定過小\n"
 "重設為 0.5"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "目前列印裝置內部溫度高於線材的安全溫度，可能會導致線材軟化和堵塞。線材的最高安全溫度為：%d"
@@ -4788,7 +4688,6 @@ msgstr "目前列印裝置內部溫度高於線材的安全溫度，可能會導
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "最低倉室溫度（%d℃）高於目標倉室溫度（%d℃）。最低值是列印開始的門檻，此時倉室會持續朝目標溫度加熱，因此不應超過目標值。系統會將其限制在目標值。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4796,13 +4695,12 @@ msgstr ""
 "層高過小。\n"
 "將重設為 0.2"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
 msgstr ""
 "熨燙線距過小。\n"
-"將重設為 0.1熨燙線距過小。\n"
 "將重設為 0.1"
 
 msgid ""
@@ -4814,24 +4712,19 @@ msgstr ""
 "\n"
 "首層層高將被重設為 0.2。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
 "\n"
 "The value will be reset to 0."
 msgstr ""
-"此設定僅用於在特定情況下對模型尺寸進行微調。\n"
-"例如，當模型尺寸存在輕微誤差且難以組裝時。\n"
-"如需大幅調整尺寸，請使用模型縮放功能\n"
-"。\n"
-"該值將會重設為 0。此設定僅用於在特定情況下對模型尺寸進行微調。\n"
-"例如，當模型尺寸存在輕微誤差且難以組裝時。\n"
-"如需大幅調整尺寸，請使用模型縮放功能\n"
-"。\n"
+"此設定僅用於對模型尺寸進行微調。\n"
+"例如，當模型尺寸存在輕微誤差或公差不正確時。如需大幅調整尺寸，請使用模型縮放功能。\n"
+"\n"
 "該值將會重設為 0。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -4839,11 +4732,9 @@ msgid ""
 "\n"
 "The value will be reset to 0."
 msgstr ""
-"象腳補償設定過大是不合理的。如果確實有嚴重的象腳效應，請檢查其他設定。\n"
-"例如，檢查床溫是否設定過高。\n"
-"\n"
-"該值將會重設為 0。象腳補償設定過大是不合理的。如果確實有嚴重的象腳效應，請檢查其他設定。\n"
-"例如，檢查床溫是否設定過高。\n"
+"象腳補償設定值過大。\n"
+"如果確實有嚴重的象腳效應，請檢查其他設定。\n"
+"例如，熱床溫度可能設定過高。\n"
 "\n"
 "該值將會重設為 0。"
 
@@ -4937,7 +4828,6 @@ msgstr "花瓶模式僅適用於牆體圈數為 1、停用支撐、停用偵測�
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " 但採用 I3 結構的列印裝置無法產生延時影片。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
@@ -5329,7 +5219,6 @@ msgstr "預設"
 msgid "Print settings"
 msgstr "列印設定"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament settings"
 msgstr "線材設定"
 
@@ -5354,7 +5243,6 @@ msgstr "空字串"
 msgid "Value is out of range."
 msgstr "數值超出範圍。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "%s can’t be a percentage"
 msgstr "%s 不可以是百分比"
@@ -5621,7 +5509,6 @@ msgstr "塔"
 msgid "Total"
 msgstr "總計"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Total estimation"
 msgstr "總預估"
 
@@ -5691,11 +5578,9 @@ msgstr "從"
 msgid "Usage"
 msgstr "使用情況"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height (mm)"
 msgstr "層高（mm）"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width (mm)"
 msgstr "線寬（mm）"
 
@@ -5711,7 +5596,6 @@ msgstr "加速度 (mm/s²)"
 msgid "Jerk (mm/s)"
 msgstr "急衝速度 (mm/s)"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fan speed (%)"
 msgstr "風扇速度（%）"
 
@@ -5727,7 +5611,6 @@ msgstr "實際體積流量（mm³/s）"
 msgid "Seams"
 msgstr "縫"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament changes"
 msgstr "線材切換"
 
@@ -5750,7 +5633,6 @@ msgctxt "Noun"
 msgid "Print"
 msgstr "列印"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printer"
 msgstr "列印裝置"
 
@@ -5864,18 +5746,15 @@ msgstr "左噴嘴：X:%1%-%2%、Y:%3%-%4%、Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "右噴嘴：X:%1%-%2%、Y:%3%-%4%、Z:%5%-%6%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Tool move"
 msgstr "工具 移動"
 
 msgid "Tool Rotate"
 msgstr "工具 旋轉"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move object"
 msgstr "移動物件"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto orientation options"
 msgstr "自動定向選項"
 
@@ -6019,7 +5898,6 @@ msgstr "爆炸比例"
 msgid "Section View"
 msgstr "剖面檢視"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Assembly Control"
 msgstr "拼裝視角控制"
 
@@ -6048,7 +5926,6 @@ msgstr "偵測到有物件放在列印板的邊界上。"
 msgid "A G-code path goes beyond the max print height."
 msgstr "偵測到超出列印高度的 G-code 路徑。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A G-code path goes beyond plate boundaries."
 msgstr "偵測到超出熱床邊界的 G-code 路徑。"
 
@@ -6109,7 +5986,6 @@ msgstr "校正步驟選擇"
 msgid "Micro lidar calibration"
 msgstr "微型雷射雷達校正"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bed leveling"
 msgstr "熱床調平"
 
@@ -6189,7 +6065,6 @@ msgstr ""
 "您可以在列印裝置的「設定 > 設定 > 僅區域網路 > 存取代碼」中找到，\n"
 "如圖所示："
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Invalid input"
 msgstr "輸入無效。"
 
@@ -6199,7 +6074,6 @@ msgstr "新視窗"
 msgid "Open a new window"
 msgstr "開啟新視窗"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Closing application"
 msgstr "正在關閉應用程式"
 
@@ -6446,7 +6320,6 @@ msgstr "貼上"
 msgid "Paste clipboard"
 msgstr "從剪貼簿貼上"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete Selected"
 msgstr "刪除所選項目"
 
@@ -6456,7 +6329,6 @@ msgstr "刪除目前所選項目"
 msgid "Deletes all objects"
 msgstr "刪除所有物件"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clone Selected"
 msgstr "複製所選項目"
 
@@ -6634,12 +6506,10 @@ msgstr "視角"
 msgid "&Help"
 msgstr "幫助"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "已存在同名檔案：%s，是否要覆蓋？"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "已存在同名設定檔：%s，是否要覆蓋？"
@@ -6664,7 +6534,6 @@ msgid "There is %d config exported. (Only non-system configs)"
 msgid_plural "There are %d configs exported. (Only non-system configs)"
 msgstr[0] "共匯出 %d 組預設檔（僅包含目前使用的非系統的預設檔）"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export Result"
 msgstr "匯出結果"
 
@@ -6718,7 +6587,6 @@ msgstr "該裝置無法處理更多對話。請稍後再試。"
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "播放器故障。請重新安裝系統播放器。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "播放器未載入，請點選『播放』按鈕重試。"
 
@@ -6740,7 +6608,6 @@ msgstr "發生問題。請更新列印裝置韌體後再試一次。"
 msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "僅 LAN 模式的 LiveView 已關閉。請在列印裝置螢幕上開啟 LiveView。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the IP of the printer to connect."
 msgstr "請輸入列印裝置的 IP 以進行連線。"
 
@@ -7040,7 +6907,6 @@ msgstr "在線"
 msgid "Input access code"
 msgstr "輸入存取代碼"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Can't find devices?"
 msgstr "無法找到我的裝置？"
 
@@ -7065,15 +6931,12 @@ msgstr "非法字元："
 msgid "illegal suffix:"
 msgstr "非法字尾："
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name field is not allowed to be empty."
 msgstr "名稱不允許為空。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to start with a space."
 msgstr "名稱不允許以空格開頭。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to end with a space."
 msgstr "名稱不允許以空格結尾。"
 
@@ -7096,7 +6959,6 @@ msgstr "切換中..."
 msgid "Switching failed"
 msgstr "切換失敗"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printing progress"
 msgstr "列印進度"
 
@@ -7115,11 +6977,13 @@ msgstr "點選檢視熱預處理說明"
 msgid "Clear"
 msgstr "清除"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "You have completed printing the mall model, \n"
 "but synchronizing rating information has failed."
-msgstr "已經完成了 MakeWorld 模型的列印，但評論資料同步失敗。"
+msgstr ""
+"已經完成了 MakeWorld 模型的列印，\n"
+"但評論資料同步失敗。"
 
 msgid "How do you like this printing file?"
 msgstr "您覺得這個列印檔案怎麼樣？"
@@ -7213,7 +7077,6 @@ msgstr "下載中..."
 msgid "Cloud Slicing..."
 msgstr "雲端切片中..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "In Cloud Slicing Queue, there are %s tasks ahead of you."
 msgstr "雲端切片佇列中，前面還有 %s 個檔案。"
@@ -7238,7 +7101,6 @@ msgstr "如果列印裝置內部溫度超過 40℃，系統將自動切換到加
 msgid "Please select an AMS slot before calibration"
 msgstr "請先選擇一個 AMS 槽位後進行校正"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
 msgstr "無法讀取線材資訊：線材已經載入到工具頭，請退出線材後再重試。"
 
@@ -7478,9 +7340,9 @@ msgstr "使用前請參考 Wiki ->"
 msgid "3D Mouse disconnected."
 msgstr "3D 滑鼠已中斷連線。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "A new configuration is available. Update now?"
-msgstr "設定檔現在可以升級。"
+msgstr "有新的設定可用，現在更新嗎？"
 
 msgid "Integration was successful."
 msgstr "整合成功。"
@@ -7503,15 +7365,12 @@ msgstr "有新的列印裝置設定可用。"
 msgid "Undo integration failed."
 msgstr "整合取消失敗。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Exporting"
 msgstr "正在匯出。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An update is available!"
 msgstr "發現新的軟體版本。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Go to download page"
 msgstr "前往下載網站。"
 
@@ -7663,7 +7522,6 @@ msgstr "確認啟用列印狀態快照"
 msgid "Enable detection of build plate position"
 msgstr "啟用列印板位置偵測"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "偵測列印板的定位標記，如果標記不在預定義範圍內時暫停列印。"
 
@@ -7729,7 +7587,6 @@ msgstr "偵測由噴嘴堵塞或線材磨損導致的空印。"
 msgid "First Layer Inspection"
 msgstr "首層檢查"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto-recover from step loss"
 msgstr "自動從丟步中恢復"
 
@@ -7743,7 +7600,6 @@ msgstr "將切片軟體與其他應用程式傳送的列印檔案儲存到外部
 msgid "Allow Prompt Sound"
 msgstr "允許提示音效"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament Tangle Detection"
 msgstr "線材打結偵測"
 
@@ -8058,18 +7914,15 @@ msgstr "卸載成功。裝置 %s(%s) 現在可以安全移除。"
 msgid "Ejecting of device %s (%s) has failed."
 msgstr "彈出裝置 %s（%s）失敗。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
 msgstr "偵測到有未儲存的專案，是否還原此專案？"
 
 msgid "Restore"
 msgstr "還原"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr "目前熱床溫度比較高。在封閉的列印裝置中列印該線材時，噴嘴可能會堵塞。請打開前門和/或拆下上部玻璃。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
 msgstr "線材所要求的噴嘴硬度高於列印裝置預設的噴嘴硬度。請更換硬化噴嘴或線材，否則噴嘴可能被磨損或損壞。"
 
@@ -8120,7 +7973,6 @@ msgstr "您是否希望 OrcaSlicer 透過清除旋轉範本設定來自動修正
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "該 3MF 檔案版本 %s 比 %s 的版本 %s 新，發現以下無法識別的參數："
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You should update your software.\n"
 msgstr "建議升級您的軟體版本。\n"
 
@@ -8142,7 +7994,6 @@ msgstr "此 3MF 由 BambuStudio 建立。部分設定可能與 OrcaSlicer 不同
 msgid "Invalid values found in the 3MF:"
 msgstr "在 3MF 檔案中發現無效值："
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please correct them in the Param tabs"
 msgstr "請在參數設定頁更正它們"
 
@@ -8164,13 +8015,12 @@ msgstr "請確認這些預設中的 G-code 是安全的，以防止對列印裝�
 msgid "Customized Preset"
 msgstr "自訂預設"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "STEP 檔案內部元件的名稱不是 UTF-8 格式！"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Because of unsupported text encoding, garbage characters may appear!"
-msgstr "此名稱可能顯示亂碼字元！"
+msgstr "由於文字編碼不受支援，可能會出現亂碼字元！"
 
 msgid "Remember my choice."
 msgstr "記住我的選擇。"
@@ -8185,7 +8035,6 @@ msgstr "體積為零的物件已被移除"
 msgid "The volume of the object is zero"
 msgstr "物件的體積為零"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
@@ -8197,14 +8046,15 @@ msgstr ""
 msgid "Object too small"
 msgstr "物件尺寸過小"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
 "the file be loaded as a single object with multiple parts?"
 msgstr ""
 "該檔案包含多個位於不同高度的物件。\n"
-"是否將檔案載入為一個由多個零件組合而成的物件，而非多個單零件的物件？"
+"是否將檔案載入為一個由多個零件組合而成的物件，\n"
+"而非多個單獨的物件？"
 
 msgid "Multi-part object detected"
 msgstr "偵測到多部分物件"
@@ -8212,7 +8062,6 @@ msgstr "偵測到多部分物件"
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "將這些檔案載入為一個多零件物件？\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An object with multiple parts was detected"
 msgstr "偵測到多零件物件"
 
@@ -8244,14 +8093,12 @@ msgstr "匯出 Draco 檔案："
 msgid "Export AMF file:"
 msgstr "匯出 AMF 檔案："
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Save file as"
 msgstr "檔案另存為："
 
 msgid "Export OBJ file:"
 msgstr "匯出 OBJ 檔案："
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The file %s already exists.\n"
@@ -8266,7 +8113,6 @@ msgstr "確認另存為"
 msgid "Delete object which is a part of cut object"
 msgstr "刪除切割物件的一部分"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
@@ -8307,7 +8153,6 @@ msgstr "有其他匯出任務正在進行中。"
 msgid "Unable to replace with more than one volume"
 msgstr "無法取代超過一個體積"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error during replacement"
 msgstr "替換時發生錯誤"
 
@@ -8317,7 +8162,6 @@ msgstr "替換自："
 msgid "Select a new file"
 msgstr "選擇新檔案"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "未選擇替換檔案"
 
@@ -8425,7 +8269,6 @@ msgstr ""
 msgid "Sync now"
 msgstr "立即同步"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "您可以將修改後的預設檔保留到新專案中或者忽略這些修改"
 
@@ -8435,11 +8278,13 @@ msgstr "建立新專案"
 msgid "Load project"
 msgstr "載入專案"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
-msgstr "儲存檔案失敗。請檢查資料夾是否存在，以及是否有其他程式開啟了該專案檔案。"
+msgstr ""
+"儲存專案失敗。\n"
+"請檢查該資料夾是否存在，以及是否有其他程式開啟了該專案檔案。"
 
 msgid "Save project"
 msgstr "儲存專案"
@@ -8450,14 +8295,12 @@ msgstr "正在匯入模型"
 msgid "Preparing 3MF file..."
 msgstr "正在準備 3MF 檔案..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; unknown file format."
 msgstr "下載失敗，未知的檔案格式。"
 
 msgid "Downloading project..."
 msgstr "專案下載中..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; File size exception."
 msgstr "下載失敗，檔案大小異常。"
 
@@ -8483,11 +8326,9 @@ msgstr "匯入 SLA 存檔"
 msgid "The selected file"
 msgstr "已選擇的檔案"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Does not contain valid G-code."
 msgstr "不包含有效的 G-code 檔案。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An Error has occurred while loading the G-code file."
 msgstr "載入 G-code 檔案時遇到錯誤"
 
@@ -8517,25 +8358,21 @@ msgstr "作為專案開啟"
 msgid "Import geometry only"
 msgstr "僅匯入模型資料"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only one G-code file can be opened at a time."
 msgstr "只能同時開啟一個 G-code 檔案。"
 
 msgid "G-code loading"
 msgstr "正在載入 G-code 檔案"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code files and models cannot be loaded together!"
 msgstr "G-code 檔案不能和模型一起載入！"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to add models in preview mode"
 msgstr "在預覽模式不允許增加模型！"
 
 msgid "All objects will be removed, continue?"
 msgstr "即將刪除所有物件，是否繼續？"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "目前專案包含未儲存的修改，是否先儲存？"
 
@@ -8607,7 +8444,6 @@ msgstr "上傳並列印"
 msgid "Abnormal print file data. Please slice again"
 msgstr "列印檔案資料異常，請重新切片"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -8738,7 +8574,6 @@ msgstr "三角形：%1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr "使用「修復模型」來修復網格。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "列印板 %d：%s 不建議用於列印 %s（%s）線材。如果您仍想執行此列印，請將該線材的熱床溫度設為非零值。"
@@ -8767,7 +8602,6 @@ msgstr "前"
 msgid "rear"
 msgstr "後"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Switching languages requires the application to restart.\n"
 msgstr "切換語言要求重啟應用程式。\n"
 
@@ -8795,7 +8629,6 @@ msgstr "北美"
 msgid "Others"
 msgstr "其他"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Changing the region will log you out of your account.\n"
 msgstr "修改區域會自動登出您的帳號。\n"
 
@@ -8903,7 +8736,6 @@ msgstr "預設頁面"
 msgid "Set the page opened on startup."
 msgstr "設定為啟動頁面。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable dark Mode"
 msgstr "啟用深色模式"
 
@@ -8955,7 +8787,6 @@ msgstr "開啟 .3mf 檔案時，是否需要載入列印裝置、線材和參數
 msgid "Auto backup"
 msgstr "自動備份"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "定期備份專案，以便從未預期的錯誤中還原。"
 
@@ -9364,7 +9195,6 @@ msgstr "線材與顏色"
 msgid "Color only"
 msgstr "僅顏色"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update built-in presets automatically."
 msgstr "自動更新系統預設。"
 
@@ -9398,7 +9228,6 @@ msgstr "開啟 Windows 預設應用程式設定"
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr "將 3MF 檔案關聯到 OrcaSlicer"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
 msgstr "啟用後，將 OrcaSlicer 設定為開啟 3MF 檔案的預設應用程式。"
 
@@ -9411,14 +9240,12 @@ msgstr "啟用後，將 OrcaSlicer 設定為開啟 DRC 檔案的預設應用程�
 msgid "Associate STL files to OrcaSlicer"
 msgstr "將 STL 檔案關聯到 OrcaSlicer"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
 msgstr "啟用後，將 OrcaSlicer 設定為開啟 STL 檔案的預設應用程式。"
 
 msgid "Associate STEP files to OrcaSlicer"
 msgstr "將 STEP 檔案關聯到 OrcaSlicer"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
 msgstr "啟用後，將 OrcaSlicer 設定為開啟 STEP 檔案的預設應用程式。"
 
@@ -9525,11 +9352,9 @@ msgstr "儲存"
 msgid "Save debug settings"
 msgstr "儲存除錯設定"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Debug settings have been saved successfully!"
 msgstr "除錯模式生效!"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cloud environment switched; please login again!"
 msgstr "切換雲端環境，請重新登入!"
 
@@ -9552,7 +9377,6 @@ msgstr "AMS 線材"
 msgid "Left filaments"
 msgstr "左側線材"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament"
 msgstr "AMS 線材"
 
@@ -9590,7 +9414,6 @@ msgstr "不支援的預設"
 msgid "Unsupported"
 msgstr "不支援"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add/Remove filament"
 msgstr "新增/刪除線材"
 
@@ -9626,7 +9449,6 @@ msgstr "請輸入層數值（>= 2）"
 msgid "Plate name"
 msgstr "列印板名稱"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Same as Global Plate Type"
 msgstr "跟隨全域列印板設定"
 
@@ -9663,7 +9485,6 @@ msgstr "接受"
 msgid "Log Out"
 msgstr "登出"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice all plates to obtain time and filament estimation"
 msgstr "正在切片以取得切片資訊和預估列印時間"
 
@@ -9724,7 +9545,6 @@ msgstr "預設「%1%」已存在。"
 msgid "Preset \"%1%\" already exists and is incompatible with the current printer."
 msgstr "預設「%1%」已存在，並且和目前列印裝置不相容。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please note that saving will overwrite the current preset."
 msgstr "請注意，儲存將會覆蓋此預設。"
 
@@ -9911,7 +9731,6 @@ msgstr "材料編號和 AMS 槽位中的線材材質不相符，請更新列印�
 msgid "The selected printer (%s) is incompatible with the print file configuration (%s). Please adjust the printer preset in the prepare page or choose a compatible printer on this page."
 msgstr "選擇的列印裝置（%s）與列印檔案設定檔（%s）不相容。請在準備頁面中調整列印裝置預設，或在此頁面選擇相容的列印裝置。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "When spiral vase mode is enabled, machines with I3 structure will not generate timelapse videos."
 msgstr "當啟用螺旋花瓶模式時，龍門結構的裝置不會產生縮時攝影影片。"
 
@@ -9934,7 +9753,6 @@ msgstr "外部料盤的線材類型設定與切片檔案中的線材不同。"
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "產生 G-code 時選擇的列印裝置類型與目前選擇的列印裝置不一致。建議您使用相同的列印裝置類型進行切片。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "AMS 設定中存在一些未知的線材。請檢查是否符合所需的線材。如果符合，按『確定』以開始列印作業。"
 
@@ -10169,7 +9987,6 @@ msgstr "儲存空間處於異常狀態或為唯讀模式。"
 msgid "Storage needs to be inserted before printing."
 msgstr "列印前需要插入儲存空間。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "列印裝置需要更新韌體才能接收列印作業。"
 
@@ -10231,7 +10048,6 @@ msgstr "連線逾時，請檢查您的網路。"
 msgid "Connection failed. Click the icon to retry"
 msgstr "連線失敗。點選圖示以重試"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send print tasks when an update is in progress"
 msgstr "裝置升級中，無法傳送列印作業"
 
@@ -10241,7 +10057,6 @@ msgstr "所選列印裝置與選擇的列印裝置預設檔不相容。"
 msgid "Storage needs to be inserted before send to printer."
 msgstr "傳送至列印裝置前需要插入儲存空間。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer is required to be on the same LAN as Orca Slicer."
 msgstr "列印裝置需要與 Orca Slicer 在同一個區域網路內。"
 
@@ -10257,7 +10072,6 @@ msgstr "檔案上傳逾時。請檢查韌體版本是否支援此操作，或確
 msgid "Sending failed, please try again!"
 msgstr "傳送失敗，請重試！"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice complete"
 msgstr "切片完成。"
 
@@ -10273,11 +10087,9 @@ msgstr "無法連線網路端點"
 msgid "Failed to publish login request"
 msgstr "請求登陸失敗"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from device"
 msgstr "從裝置取得票證逾時"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from server"
 msgstr "從伺服器取得票證逾時"
 
@@ -10395,7 +10207,6 @@ msgstr "點選以將所有設定還原到最後一次儲存的版本。"
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgstr "切換噴嘴需要擦料塔，否則列印件上可能會有瑕疵。您確定要關閉擦料塔嗎？"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "平滑模式的縮時錄影需要換料塔，否則列印物件上可能會有瑕疵。您是否要關閉換料塔？"
 
@@ -10411,7 +10222,6 @@ msgstr "堵塞偵測需要換料塔。若沒有換料塔，列印物件上可能
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "同時啟用精確 Z 高度和擦拭塔可能會導致切片錯誤。您仍然要啟用精確 Z 高度嗎？"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "平滑模式的縮時錄影需要換料塔，否則列印物件上可能會有瑕疵。您是否要啟用換料塔？"
 
@@ -10432,7 +10242,6 @@ msgstr ""
 "當使用支撐材質作為支撐介面時，我們建議使用以下設定：\n"
 "頂部 Z 距離為 0、接觸面間距為 0、交錯直線填充模式，並停用獨立支撐層高。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings automatically.\n"
@@ -10580,7 +10389,6 @@ msgstr "牆"
 msgid "Top/bottom shells"
 msgstr "頂部/底部外殼"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer speed"
 msgstr "首層速度"
 
@@ -10608,7 +10416,6 @@ msgstr "抖動（XY軸）"
 msgid "Raft"
 msgstr "筏層"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament for Supports"
 msgstr "支撐線材"
 
@@ -10676,7 +10483,6 @@ msgstr "基本資訊"
 msgid "Recommended nozzle temperature"
 msgstr "建議噴嘴溫度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "該線材的建議噴嘴溫度範圍。0 表示未設定"
 
@@ -10713,29 +10519,24 @@ msgstr "使用低溫增穩列印板時，熱床設定溫度。其值為 0 ，表
 msgid "Cool Plate"
 msgstr "低溫列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "使用低溫列印板時，熱床設定溫度其值為 0 ，表示該線材不適用於低溫列印板"
 
 msgid "Textured Cool Plate"
 msgstr "低溫紋理列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "使用紋理低溫列印板時，熱床設定溫度其值為 0 ，表示該線材不適用於低溫紋理列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "使用工程列印板時，熱床設定溫度其值為 0 ，表示該線材不適用於工程列印板"
 
 msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "平滑 PEI 列印板 / 高溫列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "使用平滑 PEI 列印板 / 高溫列印板時，熱床設定溫度其值為 0 ，表示該線材不適用於平滑 PEI 列印板 / 高溫列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "使用紋理 PEI 列印板時，熱床設定溫度其值為 0 ，表示該線材不適用於紋理 PEI 列印板"
 
@@ -10751,14 +10552,13 @@ msgstr "物件冷卻風扇"
 msgid "Min fan speed threshold"
 msgstr "最小風扇速度臨界值"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
-msgstr "當預計的層時間小於設定的層時間時，物件冷卻風扇速度將開始以最小速度運轉。當層時間小於設定值時，風扇速度將根據該層列印時間在最小和最大風扇速度之間自動調整"
+msgstr "當預計的層列印時間長於臨界值時，物件冷卻風扇將以最小風扇轉速運轉。當層時間短於臨界值時，風扇轉速將根據該層列印時間在最小和最大風扇轉速之間自動調整"
 
 msgid "Max fan speed threshold"
 msgstr "最大風扇速度臨界值"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "當預計的層列印時間比設定值要小時，物件冷卻風扇轉速將達到最大值"
 
@@ -10983,7 +10783,6 @@ msgstr ""
 "您確定要刪除所選預設嗎？\n"
 "如果該預設對應的是列印裝置目前使用的線材，請重設該槽位的線材資訊。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "確認要 %1% 所選預設嗎？"
@@ -11065,21 +10864,18 @@ msgstr "您要將 %s 的下列參數修改為 %s 的參數嗎？"
 msgid "Click to reset current value and attach to the global value."
 msgstr "點選該圖示，還原到全域的設定數值，並與全域設定同步變化。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "放棄目前的修改，還原到上次儲存的數值。"
 
 msgid "Process Settings"
 msgstr "列印參數設定"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "unsaved changes"
 msgstr "未儲存的更改"
 
 msgid "Transfer or discard changes"
 msgstr "放棄或保留更改"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Old Value"
 msgstr "舊值"
 
@@ -11135,7 +10931,6 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "點選滑鼠右鍵顯示全文。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "No changes will be saved."
 msgstr "所有的修改都不會被儲存"
 
@@ -11692,42 +11487,40 @@ msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
 msgstr "Arrow Up"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Move selection 10mm in positive Y direction"
-msgstr "Y 方向移動 10mm"
+msgstr "將選取物件沿 Y 軸正方向移動 10mm"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
 msgstr "Arrow Down"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Move selection 10mm in negative Y direction"
-msgstr "Y 方向移動 10mm"
+msgstr "將選取物件沿 Y 軸負方向移動 10mm"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
 msgstr "Arrow Left"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Move selection 10mm in negative X direction"
-msgstr "X 方向移動 10mm"
+msgstr "將選取物件沿 X 軸負方向移動 10mm"
 
 # AI Translated
 msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
 msgstr "Arrow Right"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Move selection 10mm in positive X direction"
-msgstr "X 方向移動 10mm"
+msgstr "將選取物件沿 X 軸正方向移動 10mm"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Movement step set to 1mm"
 msgstr "沿 X、Y 軸以 1mm 為單位步進移動"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "按鍵 １～９：設定物件/零件的線材"
 
@@ -11838,7 +11631,6 @@ msgstr "浮雕"
 msgid "Set extruder number for the objects and parts"
 msgstr "設定物件、零件使用的擠出機編號"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete objects, parts, modifiers"
 msgstr "刪除物件、零件、修改器"
 
@@ -12061,11 +11853,9 @@ msgstr "熱端&掛架"
 msgid "Are you sure you want to update? This will take about 10 minutes. Do not turn off the power while the printer is updating."
 msgstr "確認要更新嗎？更新需要大約10分鐘，更新期間請勿關閉電源。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "偵測到重要更新，必須執行後才能繼續列印。您要現在更新嗎？或者稍後可在『升級韌體』中完成更新。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
 msgstr "韌體版本異常，必須修復並更新後才能列印。您要現在更新嗎？也可以稍後在列印裝置上更新，或在下次啟動 Orca 時進行更新。"
 
@@ -12089,7 +11879,6 @@ msgstr "修復被取消"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "從 %1% 複製檔案到 %2% 失敗：%3%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "在設定更新之前需要檢查未儲存的設定變更。"
 
@@ -12105,7 +11894,6 @@ msgstr "開啟 G-code 檔案："
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "模型出現空層無法列印。請切掉底部或開啟支撐。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "The object has empty layers between %1% and %2% and can’t be printed."
 msgstr "模型在 %1% 和 %2% 之間出現空層，無法列印。"
@@ -12114,7 +11902,6 @@ msgstr "模型在 %1% 和 %2% 之間出現空層，無法列印。"
 msgid "Object: %1%"
 msgstr "模型：%1%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "部分模型在這些高度可能過薄，或者模型存在缺陷"
 
@@ -12124,7 +11911,6 @@ msgstr "列印參數擠出模式變更 G-code"
 msgid "Filament change extrusion role G-code"
 msgstr "線材變更擠出模式 G-code"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "No object can be printed. It may be too small."
 msgstr "沒有可列印的物件。可能是因為尺寸過小"
 
@@ -12180,7 +11966,6 @@ msgstr "未定義的錯誤"
 msgid "too many files"
 msgstr "檔案過多"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "File too large"
 msgstr "檔案太大"
 
@@ -12202,7 +11987,6 @@ msgstr "不是一個 zip 壓縮檔"
 msgid "invalid header or corrupted"
 msgstr "無效檔案頭或檔案已損壞"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Saving to RAID is not supported."
 msgstr "不支援多硬碟儲存"
 
@@ -12251,7 +12035,6 @@ msgstr "無效參數"
 msgid "invalid filename"
 msgstr "無效的檔案名"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Buffer too small"
 msgstr "緩衝區太小"
 
@@ -12261,7 +12044,6 @@ msgstr "內部錯誤"
 msgid "file not found"
 msgstr "檔案未找到"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Archive too large"
 msgstr "存檔檔案太大"
 
@@ -12271,7 +12053,6 @@ msgstr "驗證失敗"
 msgid "write callback failed"
 msgstr "寫入回呼失敗"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% 離淨空區域太近，可能會發生碰撞。"
@@ -12296,7 +12077,6 @@ msgstr "換料塔"
 msgid " is too close to others, and collisions may be caused.\n"
 msgstr "離其它物件太近，可能會發生碰撞。\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr "離淨空區域太近，會發生碰撞。\n"
 
@@ -12330,7 +12110,6 @@ msgstr "結塊偵測需要 Prime 塔；否則，模型可能存在缺陷。"
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "請選擇『逐件列印』以支援在螺旋花瓶模式下列印多個物件。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "不支援在包含多個線材的列印中使用螺旋花瓶模式。"
 
@@ -12364,30 +12143,24 @@ msgstr "『防止漏料』功能僅在 ‘single_extruder_multi_material’ 關�
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
 msgstr "換料塔功能目前僅支援 Marlin、RepRap/Sprinter、RepRapFirmware 和 Repetier 的 G-code 格式。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported in “By object” print."
 msgstr "逐件列印模式下無法使用換料塔。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "可變層高啟用時無法使用換料塔。它要求所有物件擁有相同的層高。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "換料塔要求「支撐間隙」為層高的整數倍數"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "換料塔要求各個物件擁有同樣的層高"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "換料塔要求各個物件使用同樣的筏層數量"
 
 msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
 msgstr "只有當多個物件使用相同的支撐頂部 Z 距離 (support_top_z_distance) 列印時，才會支援換料塔"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "換料塔要求各個物件擁有同樣的層高。"
 
@@ -12397,18 +12170,15 @@ msgstr "各個物件的層高存在差異，無法啟用換料塔"
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "一個或多個物件被分配到的印表裝置沒有擠出機"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too small"
 msgstr "線寬太小"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too large"
 msgstr "線寬太大"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "使用不同噴嘴直徑的多個擠出機進行列印。如果支撐要使用目前的線材列印（support_filament == 0 或 support_interface_filament == 0），則所有噴嘴必須具有相同的直徑。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "換料塔要求支撐和物件採用同樣的層高。"
 
@@ -12433,7 +12203,6 @@ msgstr "此支撐類型不支援空心底座圖案；將改用直線填充。"
 msgid "Support enforcers are used but support is not enabled. Please enable support."
 msgstr "使用支撐添加器但沒有開啟支撐。請開啟支撐。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "層高不能超過噴嘴直徑"
 
@@ -12525,7 +12294,6 @@ msgstr "正在匯出 G-code"
 msgid "Generating G-code"
 msgstr "正在產生 G-code"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing of the filename_format template failed."
 msgstr "處理檔案名稱格式範本失敗。"
 
@@ -12556,7 +12324,6 @@ msgstr "並行列印頭列印板排除區域"
 msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 applies to one printhead, item 2 to two printheads, and so on. Leave an item empty for no excluded area."
 msgstr "依平行列印頭數量排序的熱床淨空區域列表。第 1 項適用於一個列印頭，第 2 項適用於兩個列印頭，依此類推。將項目留空表示無淨空區域。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Excluded bed area"
 msgstr "熱床淨空區域"
 
@@ -12572,7 +12339,6 @@ msgstr "自訂列印板模型"
 msgid "Elephant foot compensation"
 msgstr "象腳補償"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "將首層收縮用於補償象腳效應"
 
@@ -12594,14 +12360,12 @@ msgstr ""
 "設定第二層的初始值。\n"
 "後續層會依照 elefant_foot_compensation_layers 指定的高度線性增加密度。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "每一層的切片高度。越小的層高意味著更高的精度和更長的列印時間"
 
 msgid "Printable height"
 msgstr "可列印高度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum printable height which is limited by the height of the build area."
 msgstr "受列印裝置硬體限制的最大可列印高度"
 
@@ -12680,7 +12444,6 @@ msgstr "密碼"
 msgid "Ignore HTTPS certificate revocation checks"
 msgstr "忽略 HTTPS 憑證吊銷檢查"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgstr "在缺少或離線的情況下忽略 HTTPS 憑證吊銷檢查。如果連線失敗，可以啟用此選項來處理自簽名憑證。"
 
@@ -12703,14 +12466,12 @@ msgstr "此預設所使用外掛功能的設定，會覆寫全域的 Capabilitie
 msgid "Avoid crossing walls"
 msgstr "避免跨越外牆"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "空駛時繞過外牆以避免在模型外觀表面產生斑點"
 
 msgid "Avoid crossing walls - Max detour length"
 msgstr "避免跨越外牆-最大繞行長度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "避開穿越牆體時的最大繞行距離。若繞行距離超過此設定值，則不進行繞行。繞行距離可設為絕對值，或直接移動路徑的百分比（如 50%）。設為 0 以停用繞行功能"
 
@@ -12723,59 +12484,45 @@ msgstr "其它層"
 msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "除首層外的其他層的熱床溫度。0值表示該線材不支援在低溫增穩列印板上列印。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "首層之外各層的熱床溫度。值為 0 表示該線材不適用於低溫列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "首層之外各層的熱床溫度。值為 0 表示該線材不適用於低溫紋理列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "首層之外各層的熱床溫度。值為 0 表示該線材不適用於工程列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "首層之外各層的熱床溫度。值為 0 表示該線材不適用於高溫列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "首層之外各層的熱床溫度。值為 0 表示該線材不適用於紋理 PEI 列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer"
 msgstr "首層"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer bed temperature"
 msgstr "首層床溫"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於低溫增穩列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於低溫列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於低溫紋理列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於工程列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於高溫列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "首層的列印床溫度。值為 0 表示該線材不適用於紋理 PEI 列印板"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate types supported by the printer"
 msgstr "列印裝置所支援的列印板類型"
 
@@ -12809,7 +12556,6 @@ msgstr "底部外殼實心層層數，包括底面。當由該層數計算的厚
 msgid "Bottom shell thickness"
 msgstr "底部外殼厚度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "如果由底部殼體層數算出的厚度小於這個數值，那麼切片時將自動增加底部殼體層數。這能夠避免當層高很小時，底部殼體過薄。0 表示關閉這個設定，同時底部殼體的厚度完全由底部殼體層數決定"
 
@@ -13242,11 +12988,9 @@ msgstr ""
 "設為 0 時，反轉將在所有偶數層上無條件啟用。\n"
 "如果未啟用『偵測懸空外牆』，此選項將被忽略，並且反轉會無條件發生在所有偶數層上。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slow down for overhangs"
 msgstr "懸空處降速"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
 msgstr "開啟這個選項將降低不同懸空程度的走線的列印速度"
 
@@ -13303,7 +13047,6 @@ msgstr "內部橋接速度。如果該值以百分比表示，將基於 bridge_s
 msgid "Brim width"
 msgstr "Brim 寬度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "從模型到 Brim 最外圈的距離"
 
@@ -13316,7 +13059,6 @@ msgstr "該參數控制在模型的外側和/或內側產生 Brim 。自動是�
 msgid "Brim-object gap"
 msgstr "Brim 與模型的間隙"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "在 Brim 和模型之間設定間隙，能夠讓 Brim 更容易拆除"
 
@@ -13336,21 +13078,20 @@ msgstr ""
 "\n"
 "注意：計算結果不會受首層流量比例影響。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Brim follows compensated outline"
 msgstr "邊緣 遵循補償輪廓"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
 "\n"
 "If your current setup already works well, enabling it may be unnecessary and can cause the brim to fuse with upper layers."
 msgstr ""
-"啟用後，邊緣 與第一層周邊幾何體對齊 應用像腳補償後。\n"
-"此選項適用於像腳補償的情況 顯著改變第一層足跡。\n"
+"啟用後，邊緣將與套用象腳補償之後的第一層輪廓幾何對齊。\n"
+"此選項適用於象腳補償會明顯改變第一層輪廓的情況。\n"
 "\n"
-"如果您目前的設定已經運行良好，則可能沒有必要啟用它，並且 可以導致 邊緣 與上層融合。"
+"如果您目前的設定已經運作良好，則不一定需要啟用此選項，因為它可能導致邊緣與上方層黏合在一起。"
 
 msgid "Combine brims"
 msgstr "合併邊緣"
@@ -13392,15 +13133,12 @@ msgstr "向上相容的裝置"
 msgid "Condition"
 msgstr "條件"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "使用啟用的列印裝置設定值來進行布林運算的表示式。如果此表示式的結果為 true，則該設定檔將被視為與目前啟用的列印裝置設定檔相容。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "使用啟用的列印設定檔值來進行布林運算的表示式。如果此表示式的結果為 true，則該設定檔將被視為與目前啟用的列印設定檔相容。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "列印順序，逐層列印或者逐件列印"
 
@@ -13422,14 +13160,12 @@ msgstr "按照物件清單排序"
 msgid "Slow printing down for better layer cooling"
 msgstr "降低列印速度 以得到更好的冷卻"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
 msgstr "啟用此選項可降低列印速度，確保最終層的列印時間不少於「最大風扇速度臨界值」中的層時間設定值，以延長冷卻時間。此功能有助於提升針狀結構和細小細節的冷卻效果"
 
 msgid "Normal printing"
 msgstr "普通列印"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "除首層之外的預設的列印和空駛的加速度"
 
@@ -13494,7 +13230,6 @@ msgstr "對開始的一些層關閉所有的物件冷卻風扇。通常關閉首
 msgid "Don't support bridges"
 msgstr "不支撐橋接"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
 msgstr "不對整個橋接面進行支撐，否則支撐體會很大。不是很長的橋接通常可以無支撐直接列印"
 
@@ -13588,14 +13323,12 @@ msgstr "不篩選"
 msgid "Max bridge length"
 msgstr "最大橋接長度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "不需要支撐的橋接最大長度。如果希望支援所有橋接，請將其設定為 0；如果不希望支援任何橋接，請將其設定為非常大的值。"
 
 msgid "End G-code"
 msgstr "結尾 G-code"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-Code when finishing the entire print."
 msgstr "所有列印結束時的結尾 G-code"
 
@@ -13605,7 +13338,6 @@ msgstr "物件分隔"
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
 msgstr "在物件之間插入 G-code。此參數僅在逐次列印時生效"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "使用該線材列印結束時的結尾 G-code"
 
@@ -13636,7 +13368,6 @@ msgstr "適度"
 msgid "Top surface pattern"
 msgstr "頂面圖案"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for top surface infill."
 msgstr "頂面填充的走線圖案"
 
@@ -13727,7 +13458,6 @@ msgstr "向外"
 msgid "Bottom surface pattern"
 msgstr "底面圖案"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "除了橋接外的底面填充的走線圖案"
 
@@ -13778,7 +13508,6 @@ msgstr "內部實心填充的線型圖案。如果啟用了偵測狹窄的內部
 msgid "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "外牆的線寬。如果以 % 表示，將以噴嘴直徑為基準來計算。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
 msgstr "外牆的列印速度。它通常比內壁速度慢，以獲得更好的列印品質。"
 
@@ -13870,18 +13599,15 @@ msgstr "順時針"
 msgid "Height to rod"
 msgstr "到橫杆高度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "噴嘴尖端到下方滑杆的距離。用於在逐件列印中避免碰撞。"
 
 msgid "Height to lid"
 msgstr "到頂蓋高度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "噴嘴尖端到頂蓋的距離。用於在逐件列印中避免碰撞。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "擠出機四周的避讓半徑。用於在逐件列印中避免碰撞。"
 
@@ -14032,7 +13758,6 @@ msgstr "當線寬設定為 0 時走線的預設線寬。如果以 % 表示，將
 msgid "Keep fan always on"
 msgstr "保持風扇永遠開啟"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "如果勾選這個選項，物件冷卻風扇將不會停止，並且會以最小風扇轉速設定值運轉以減少風扇的頻繁開關"
 
@@ -14053,7 +13778,6 @@ msgstr ""
 msgid "Layer time"
 msgstr "每一層列印時間"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "當層預估列印時間小於該數值時，物件冷卻風扇將會被開啟。風扇轉速將根據層列印時間在最大和最小風扇轉速之間自動調整"
 
@@ -14079,7 +13803,6 @@ msgstr "您可以將有關線材的備註存放在這裡。"
 msgid "Required nozzle HRC"
 msgstr "噴嘴硬度要求"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
 msgstr "列印此線材的所需的最小噴嘴硬度。零值表示不檢查噴嘴硬度。"
 
@@ -14114,7 +13837,6 @@ msgstr "清理體積流量"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "清理線材時的體積流量。0 表示最大體積流量。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "這個設定表示每秒能夠融化和擠出的線材體積。列印速度會受限於到最大體積速度，防止設定過高和不合理的速度。不允許設定為 0"
 
@@ -14148,7 +13870,6 @@ msgstr "以第一種線材為準"
 msgid "By Highest Temp"
 msgstr "以最高溫度為準"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "線材直徑被用於計算 G-code 檔案中的擠出量。因此很重要，應盡可能精確"
 
@@ -14221,7 +13942,6 @@ msgstr "初始進料階段速度。"
 msgid "Unloading speed"
 msgstr "退料速度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "用於在換料塔上退料速度（不影響尖端成型之後初始部分的速度）。"
 
@@ -14339,14 +14059,12 @@ msgstr "換色前線材尖端成型的流量。"
 msgid "Density"
 msgstr "密度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament density, for statistical purposes only."
 msgstr "線材的密度。只用於統計資訊"
 
 msgid "g/cm³"
 msgstr "克/立方厘米"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament material type"
 msgstr "線材的材料類型"
 
@@ -14385,14 +14103,12 @@ msgstr "以單一 32 位元整數編碼一種線材在所有擠出機（最多 1
 msgid "Softening temperature"
 msgstr "線材軟化溫度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr "線材在此溫度下容易軟化，因此當熱床床溫等於或高於該溫度時，強烈建議打開前門和/或拆下上部玻璃以避免堵塞。"
 
 msgid "Price"
 msgstr "價格"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament price, for statistical purposes only."
 msgstr "線材的價格。只用於統計資訊"
 
@@ -14411,7 +14127,6 @@ msgstr "（未定義）"
 msgid "Sparse infill direction"
 msgstr "稀疏填充方向"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "稀疏填充圖案的角度，決定走線的開始或整體方向"
 
@@ -14479,7 +14194,6 @@ msgstr "為填充圖案使用多條線，如果填充圖案支援。"
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z 軸挫曲偏置最佳化（實驗性）"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
 msgstr "在低填充密度時，沿 Z（垂直）軸收緊螺旋體波形，以縮短有效垂直柱長度並提升 Z 軸抗壓挫曲能力。線材用量維持不變。在約 30% 稀疏填充密度及以上時無效果。僅在稀疏填充圖案設為螺旋體時適用。"
@@ -14487,7 +14201,6 @@ msgstr "在低填充密度時，沿 Z（垂直）軸收緊螺旋體波形，以�
 msgid "Sparse infill pattern"
 msgstr "稀疏填充圖案"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for internal sparse infill."
 msgstr "內部稀疏填充的走線圖案"
 
@@ -14548,11 +14261,9 @@ msgstr "TPMS-FK結構"
 msgid "Gyroid"
 msgstr "螺旋體"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "頂面填充的加速度。使用較低值可能會改善頂面列印品質"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "外牆加速度。使用較小的值可以提高列印品質"
 
@@ -14565,7 +14276,6 @@ msgstr "稀疏填充的加速度。如果該值表示為百分比（例如 100%�
 msgid "Acceleration of internal solid infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "內部實心填充加速度。 如果該值以百分比表示（例如 100%），則將根據預設加速度進行計算。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "首層加速度。使用較低值可以改善和列印板的黏附"
 
@@ -14616,23 +14326,18 @@ msgstr ""
 msgid "Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "首層的線寬。如果以 % 表示，它將以噴嘴直徑為基準來計算。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer height"
 msgstr "首層層高"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "首層層高。加厚首層層高有助於提高列印板附著力。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "首層除實心填充之外的其他部分的列印速度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer infill"
 msgstr "首層填充"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "首層實心填充的列印速度"
 
@@ -14648,11 +14353,9 @@ msgstr "慢速層數量"
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "減慢前幾層的列印速度。列印速度會逐漸加速到滿速。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer nozzle temperature"
 msgstr "首層列印溫度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "列印首層時的噴嘴溫度"
 
@@ -14741,7 +14444,6 @@ msgstr "熨燙速度"
 msgid "Filament-specific override for ironing speed. This allows you to customize the print speed of ironing lines for each filament type."
 msgstr "特定於線材的熨燙速度優先。這允許您自訂每種線材類型的熨燙線的列印速度。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
 msgstr "列印外牆時隨機抖動，使外表面產生絨毛效果。這個設定決定適用的位置"
 
@@ -14763,7 +14465,6 @@ msgstr "所有牆"
 msgid "Fuzzy skin thickness"
 msgstr "絨毛表面厚度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "產生絨毛的抖動的寬度。建議小於外圈牆的線寬"
 
@@ -14908,7 +14609,6 @@ msgstr "層和牆"
 msgid "Don't print gap fill with a length is smaller than the threshold specified (in mm). This setting applies to top, bottom and solid infill and, if using the classic perimeter generator, to wall gap fill."
 msgstr "若縫隙填充的長度小於設定的門檻值（以 mm 計），則不列印該填充。此設定適用於頂部、底部和實心填充，以及使用經典牆產生器時的牆體縫隙填充。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "填縫的速度。縫隙通常有不一致的線寬，應改用較慢速度列印"
 
@@ -14939,7 +14639,6 @@ msgstr "啟用此選項可在每行 G-Code 的開頭新增行號（Nx）"
 msgid "Scan first layer"
 msgstr "首層檢查"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "開啟這個設定將使用列印裝置上的鏡頭用於檢查首層列印品質"
 
@@ -14955,7 +14654,6 @@ msgstr "列印裝置設定"
 msgid "Nozzle type"
 msgstr "噴嘴類型"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "噴嘴的金屬材料。這將決定噴嘴的耐磨性，以及可列印線材的種類"
 
@@ -14971,7 +14669,6 @@ msgstr "碳化鎢"
 msgid "Nozzle HRC"
 msgstr "噴嘴洛氏硬度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
 msgstr "噴嘴硬度。零值表示在切片時不檢查噴嘴硬度。"
 
@@ -15069,7 +14766,6 @@ msgstr "列印裝置每小時的成本"
 msgid "money/h"
 msgstr "元/小時"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support controlling chamber temperature"
 msgstr "支援控制列印裝置內部溫度"
 
@@ -15138,7 +14834,6 @@ msgstr "啟用此選項可取得帶註釋的 G-code，其中每一行均由描�
 msgid "Infill combination"
 msgstr "合併填充"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "自動將多層稀疏填充合併列印，以縮短列印時間。同時，周邊仍保持原層高列印。"
 
@@ -15312,11 +15007,9 @@ msgstr ""
 msgid "Line width of internal sparse infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "內部稀疏填充的線寬。如果以%表示，它將以噴嘴直徑為基準來計算。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Infill/wall overlap"
 msgstr "填充/牆 重疊"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "為了增強填充與周邊的結合，填充區域會略微擴大，與周邊產生重疊。此百分比值是基於稀疏填充的線寬來計算的。建議將該值設定在 10-15% 左右，以減少過擠出或材料堆積的可能性從而避免列印出粗糙的頂部表面。"
@@ -15328,7 +15021,6 @@ msgstr "頂部/底部實心填充部分和周邊重疊區域設定"
 msgid "Top solid infill area is enlarged slightly to overlap with wall for better bonding and to minimize the appearance of pinholes where the top infill meets the walls. A value of 25-30% is a good starting point, minimizing the appearance of pinholes. The percentage value is relative to line width of sparse infill."
 msgstr "頂部實心填充的區域會略微擴大，與周邊部分重疊，以增強結合效果並減少填充與周邊接合處出現針孔的可能性。建議從 25-30% 的設定值開始，這通常能有效減少針孔現象。此百分比值是基於稀疏填充的線寬來計算的"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal sparse infill."
 msgstr "內部稀疏填充的列印速度"
 
@@ -15347,7 +15039,6 @@ msgstr "強制在相鄰材料/體積之間產生實體殼。 適用於使用半�
 msgid "Maximum width of a segmented region"
 msgstr "分隔區域的最大寬度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "分隔區域的最大寬度。零表示停用此功能。"
 
@@ -15397,22 +15088,18 @@ msgstr ""
 "設定模型外部距離範圍內不產生互鎖結構，此距離以單元數做計算\n"
 "譯者補充：此設定用於確保互鎖結構不干擾模型的外部區域，特別適用於需要精細外觀或保護特定結構的列印需求。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing type"
 msgstr "熨燙類型"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "熨燙是指使用小流量在表面相同高度再次列印，以使平面更加光滑。此設定控制哪些層進行熨燙"
 
 msgid "No ironing"
 msgstr "不熨燙"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "All top surfaces"
 msgstr "頂面"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Topmost surface only"
 msgstr "最頂面"
 
@@ -15425,18 +15112,15 @@ msgstr "熨燙模式"
 msgid "The pattern that will be used when ironing."
 msgstr "熨燙時將使用的圖案"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "熨燙時相對正常層高流量的材料量。過高的數值將會導致表面材料過擠出"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance between the lines used for ironing."
 msgstr "熨燙走線的間距"
 
 msgid "The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter."
 msgstr "與邊緣保持的距離。設定為 0 時，距離將自動設為噴嘴直徑的一半"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the print speed for ironing lines."
 msgstr "熨燙的列印速度"
 
@@ -15498,11 +15182,10 @@ msgstr "在每次換層抬升Z高度之後插入這段 G-code"
 msgid "Clumping detection G-code"
 msgstr "結塊偵測 G-code"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Silent Mode"
-msgstr "支援靜音模式"
+msgstr "靜音模式"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "裝置是否支援使用低加速度列印的靜音模式"
 
@@ -15805,7 +15488,6 @@ msgstr ""
 "設為零將使用韌體的阻尼比。\n"
 "若要停用輸入整形，請使用 Disable 類型。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "啟用自動冷卻時，可能會提高物件冷卻風扇的轉速。這是物件冷卻風扇的最大速度限制"
 
@@ -15922,7 +15604,6 @@ msgstr "Orca Slicer可以將 G-code 檔案上傳到列印裝置。此欄位必�
 msgid "Nozzle volume"
 msgstr "噴嘴內腔體積"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "噴嘴內從刀具到末端之間的體積"
 
@@ -15959,14 +15640,12 @@ msgstr "當設定為零時，線材的進料移動與退料移動的距離相同
 msgid "Start end points"
 msgstr "起始終止點"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "從切割區域到垃圾桶的起始和結束點。"
 
 msgid "Reduce infill retraction"
 msgstr "減小填充回抽"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
 msgstr "當空駛完全在填充區域內時不觸發回抽。這意味著即使漏料也是不可見的。對於複雜模型，該設定能夠減少回抽次數以及列印時長，但是會造成 G-code 產生變慢"
 
@@ -15976,7 +15655,6 @@ msgstr "這個選項會降低未使用噴頭的溫度，以防止材料滲出。
 msgid "Filename format"
 msgstr "檔案名稱格式"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Users can decide project file names when exporting."
 msgstr "使用者可以自訂匯出項目檔案的名稱"
 
@@ -16001,7 +15679,6 @@ msgstr "模型底部的孔洞在被圓錐形材料填充前所允許的最大面
 msgid "Detect overhang walls"
 msgstr "偵測懸空外牆"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "偵測懸空相對於線寬的百分比，並套用不同的速度列印。100%% 的懸空將使用橋接速度。"
@@ -16029,13 +15706,12 @@ msgstr ""
 msgid "Line width of inner wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "內牆的線寬。如果以 % 表示，它將以噴嘴直徑為基準來計算。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for inner walls."
 msgstr "內圈牆列印速度"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the number of walls per layer."
-msgstr "每一層的外牆"
+msgstr "每一層的牆層數"
 
 msgid "Alternate extra wall"
 msgstr "交錯額外牆壁"
@@ -16092,30 +15768,24 @@ msgstr "列印裝置型號"
 msgid "Raft contact Z distance"
 msgstr "筏層 Z 間距"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "筏層與模型之間的Z間隙。若支撐頂部Z距離為0，則忽略此值，模型與筏層直接接觸列印（無間隙）。"
 
 msgid "Raft expansion"
 msgstr "筏層擴展"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands all raft layers in XY plane."
 msgstr "在 XY 平面擴展所有筏層"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer density"
 msgstr "首層密度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the density of the first raft or support layer."
 msgstr "筏和支撐的首層密度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer expansion"
 msgstr "首層擴展"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "擴展筏和支撐的首層可以改善和熱床的黏附"
 
@@ -16125,7 +15795,6 @@ msgstr "筏層"
 msgid "Object will be raised by this number of support layers. Use this function to avoid warping when printing ABS."
 msgstr "模型會在相應層數的支撐上抬高進行列印。使用該功能通常用於列印 ABS 時翹曲"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "為了避免 G-code 檔案中過密集的點和走線，G-code走線通常是在簡化模型的外輪廓之後產生。越小的數值代表更高的解析度，同時需要更長的切片時間"
 
@@ -16138,7 +15807,6 @@ msgstr "只在空駛距離大於該數值時觸發回抽"
 msgid "Retract amount before wipe"
 msgstr "擦拭前的回抽量"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "擦拭之前的回抽長度，用總回抽長度的百分比表示"
 
@@ -16155,11 +15823,9 @@ msgstr ""
 "擦拭後快速回抽的長度，相對於回抽長度。\n"
 "此數值會被限制為 100% 減去擦拭前回抽量的值。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retract on layer change"
 msgstr "換層時回抽"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This forces a retraction on layer changes."
 msgstr "強制在換層時回抽"
 
@@ -16169,7 +15835,6 @@ msgstr "回抽長度"
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
 msgstr "擠出機中的一些材料被拉回，以避免在長行程期間滲出。設定為零以停用回抽。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Long retraction when cut (beta)"
 msgstr "切斷時的長回抽（實驗性功能）"
 
@@ -16191,7 +15856,6 @@ msgstr "更換擠出機時的回抽距離"
 msgid "Z-hop height"
 msgstr "Z 抬升高度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "回抽完成之後，噴嘴輕微抬升，和列印物件之間產生一定間隙。這能夠避免空駛時噴嘴和列印物件剮蹭和碰撞。使用螺旋線抬升z能夠減少拉絲"
 
@@ -16285,14 +15949,12 @@ msgstr "每當空駛後回抽被補償時，擠出機將推入額外長度的線
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "當換色後回抽被補償時，擠出機將推入額外長度的線材。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retraction speed"
 msgstr "回抽速度"
 
 msgid "Speed for retracting filament from the nozzle."
 msgstr "從噴嘴回抽線材的速度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deretraction speed"
 msgstr "裝填速度"
 
@@ -16327,7 +15989,6 @@ msgstr "停用在最終 G-code 中產生 M73 指令以設定剩餘列印時間"
 msgid "Seam position"
 msgstr "接縫位置"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the starting position for each part of the outer wall."
 msgstr "Z縫(外牆銜接)的位置"
 
@@ -16340,7 +16001,6 @@ msgstr "對齊"
 msgid "Aligned back"
 msgstr "背部對齊"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Back"
 msgstr "背面"
 
@@ -16464,7 +16124,6 @@ msgstr "擦拭速度取決於此配置中設定的速度值。若以百分比表
 msgid "Skirt distance"
 msgstr "Skirt 距離"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "從 Skirt 到模型或者 Brim 的距離"
 
@@ -16477,7 +16136,6 @@ msgstr "物件中心至 Skirt 起始點的角度。0 度表示最右側位置，
 msgid "Skirt height"
 msgstr "Skirt 高度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Number of skirt layers: usually only one"
 msgstr "Skirt 有多少層。通常只有一層"
 
@@ -16516,7 +16174,6 @@ msgstr "逐件"
 msgid "Skirt loops"
 msgstr "Skirt 圈數"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
 msgstr "Skirt 的圈數。0 表示關閉 Skirt"
 
@@ -16542,7 +16199,6 @@ msgstr "當預估的層列印時間低於該設定值時，匯出的 G-code 中�
 msgid "Minimum sparse infill threshold"
 msgstr "稀疏填充最小臨界值"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "小於設定門檻值的稀疏填充區域將替換為內部實心填充"
 
@@ -16570,11 +16226,9 @@ msgstr ""
 msgid "Line width of internal solid infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "內部實心填充的列印線寬。若以百分比表示，將根據噴嘴直徑進行計算。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "內部實心填充的列印速度，不適用於頂面和底面"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "平滑螺旋功能可平滑外輪廓的 Z 軸運動，並將實心模型轉換為具有實心底層的單壁列印。產生的最終模型不會有接縫"
 
@@ -16605,7 +16259,6 @@ msgstr "螺旋收尾擠出比率"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "設定螺旋結束時的最終流量比率。通常，螺旋過渡會在最後一圈內將流量比率從 100% 逐步減少到 0%，但在某些情況下，這可能會導致螺旋結束時發生擠出不足的問題。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "選擇平滑模式或傳統模式時，列印過程將產生縮時影片。每列印一層，相機會拍攝一張照片。列印完成後，這些照片會被合成為縮時影片。如果選擇了平滑模式，擠出機會在每層列印完成後移動到廢料槽拍攝一張照片。由於在拍攝過程中熔融的線材可能會從噴嘴洩漏，平滑模式需要使用換料塔來清潔噴嘴。"
 
@@ -16651,11 +16304,9 @@ msgstr "G-code 寫在輸出檔案的最頂部，位於任何其他內容之前�
 msgid "Start G-code"
 msgstr "起始 G-code"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when starting a print."
 msgstr "整個列印開始前的起始 G-code"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when the printer starts using this filament"
 msgstr "開始使用這個線材列印的起始 G-code"
 
@@ -16761,7 +16412,6 @@ msgstr "此值將被加至（或減去）輸出 G-code 中的所有 Z 坐標，�
 msgid "Enable support"
 msgstr "啟用支撐"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables support generation."
 msgstr "啟用支撐產生。"
 
@@ -16783,7 +16433,6 @@ msgstr "樹狀 (手動)"
 msgid "Support/object XY distance"
 msgstr "支撐/模型 XY 間距"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This controls the XY separation between an object and its support."
 msgstr "模型和支撐之間 XY 的間距"
 
@@ -16802,7 +16451,6 @@ msgstr "設定支撐圖形在水平面的旋轉角度。"
 msgid "On build plate only"
 msgstr "僅在列印板產生"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting only generates supports that begin on the build plate."
 msgstr "不在模型表面上產生支撐，只在列印板上產生"
 
@@ -16821,14 +16469,12 @@ msgstr "將幾乎不需要支撐的微小懸空忽略掉。"
 msgid "Top Z distance"
 msgstr "頂部 Z 間距"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the support's top and object."
 msgstr "支撐頂部與模型之間的Z間隙。"
 
 msgid "Bottom Z distance"
 msgstr "底部 Z 間距"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "模型與支撐底部之間的Z間隙。若支撐頂部Z距離為0且底部有介面層，則忽略此值，支撐與模型直接接觸列印（無間隙）。"
 
@@ -16851,11 +16497,9 @@ msgstr "如果可能，避免使用支撐介面線材來列印支撐底座。"
 msgid "Line width of support. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "支撐的線寬。如果以 % 表示，它將以噴嘴直徑為基準來計算。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Loop pattern interface"
 msgstr "接觸面採用圈形走線"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "使用圈形走線覆蓋頂部接觸面。預設關閉。"
 
@@ -16872,9 +16516,9 @@ msgstr ""
 msgid "Top interface layers"
 msgstr "頂部接觸面層數"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the number of top interface layers."
-msgstr "慢速列印層數"
+msgstr "頂部介面層的層數"
 
 msgid "Bottom interface layers"
 msgstr "底部接觸面層數"
@@ -16898,11 +16542,9 @@ msgstr ""
 msgid "Bottom interface spacing"
 msgstr "底部接觸面間距"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
 msgstr "底部接觸面走線的線距。0 表示實心接觸面"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support interfaces."
 msgstr "支撐面速度"
 
@@ -16931,7 +16573,6 @@ msgstr "空心"
 msgid "Interface pattern"
 msgstr "支撐面圖案"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr "支撐接觸面的走線圖案。非可溶支撐接觸面的預設圖案為直線，可溶支撐接觸面的預設圖案為同心"
 
@@ -16941,18 +16582,15 @@ msgstr "交錯直線"
 msgid "Base pattern spacing"
 msgstr "主體圖案線距"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the spacing between support lines."
 msgstr "支撐線距"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Normal support expansion"
 msgstr "普通支撐延伸"
 
 msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "在水平方向對普通支撐進行延伸（+）或收縮（-）"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support."
 msgstr "支撐列印速度"
 
@@ -16988,7 +16626,6 @@ msgstr "支撐層的層厚設定可獨立於物件層高度，允許自訂 Z 間
 msgid "Threshold angle"
 msgstr "臨界值角度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
@@ -17131,14 +16768,12 @@ msgstr ""
 msgid "Chamber minimal temperature"
 msgstr "最低倉室溫度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
 msgstr "除首層外的其它層的噴嘴溫度"
 
 msgid "Detect thin walls"
 msgstr "檢查薄壁"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "檢查無法容納兩條走線的薄壁。使用單條走線列印。可能會打地不是很好，因為走線不再閉合"
 
@@ -17157,21 +16792,18 @@ msgstr "當作用中線材的擠出模式變更時，會插入此 G-code。"
 msgid "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "頂面的線寬。如果以%表示，它將以噴嘴直徑為基準來計算。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid top surface infill."
 msgstr "頂面實心填充的速度"
 
 msgid "Top shell layers"
 msgstr "頂部外殼層數"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "頂部外殼實心層層數，包括頂面。當由該層數計算的厚度小於頂部外殼厚度，切片時會增加頂部外殼的層數"
 
 msgid "Top shell thickness"
 msgstr "頂部外殼厚度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "當切片時，如果透過頂部殼層計算的厚度小於設定值，將自動增加頂部實心層的數量，以避免層高較小時頂部殼層過薄。若設為 0，則停用此功能，頂部殼層厚度完全由設定的頂部殼層數決定"
 
@@ -17219,18 +16851,15 @@ msgstr "每個模型"
 msgid "Each Assembly"
 msgstr "每個組件"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
 msgstr "空駛的速度。空駛是無擠出量的快速移動"
 
 msgid "Wipe while retracting"
 msgstr "回抽時擦拭"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "回抽時讓噴嘴沿著最後的擠出路徑移動，清理噴嘴上的洩漏材料。此功能可減少移動後列印新區域時材料堆積的情況"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Wipe distance"
 msgstr "擦拭距離"
 
@@ -17247,7 +16876,6 @@ msgstr ""
 "\n"
 "在以下的『擦拭前的回抽量』設定中設定一個值，將在擦拭之前執行任何額外的回抽操作；否則，將在擦拭之後執行。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The wiping tower can be used to clean up residue on the nozzle and stabilize the chamber pressure inside the nozzle in order to avoid appearance defects when printing objects."
 msgstr "換料塔的功能是用於清除噴嘴上的殘留物，同時穩定噴嘴內的壓力，從而避免列印物件時出現外觀瑕疵。"
 
@@ -17263,7 +16891,6 @@ msgstr "沖刷體積"
 msgid "Flush multiplier"
 msgstr "沖刷量乘數"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "實際沖刷量等於沖刷量乘數乘以表格單元中的沖刷量。"
 
@@ -17278,7 +16905,6 @@ msgstr "快速清理模式所使用的清理倍率。"
 msgid "Prime volume"
 msgstr "清理量"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "換料塔上的清理量。"
 
@@ -17298,7 +16924,6 @@ msgstr "節省"
 msgid "Fast"
 msgstr "快速"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the width of prime towers."
 msgstr "換料塔寬度"
 
@@ -17412,11 +17037,9 @@ msgstr "填充間隙"
 msgid "Infill gap."
 msgstr "填充間隙"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "更換線材後的沖洗動作將在物件的填充區域內進行，可減少材料浪費並縮短列印時間。然而，如果牆體使用透明線材，混合色的填充可能會透過牆體被看到。此功能需啟用換料塔後才會生效。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "更換線材後的沖洗動作將在物件的支撐結構內進行，可減少材料浪費並縮短列印時間。然而，此功能需啟用換料塔後才會生效。"
 
@@ -17450,14 +17073,12 @@ msgstr "當工具頭在多工具頭設定中未使用時的噴嘴溫度。僅在
 msgid "X-Y hole compensation"
 msgstr "X-Y 孔洞尺寸補償"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "物件中的孔洞將在 XY 平面上依設定值擴大或縮小。正值使孔洞變大，負值使孔洞變小。此功能用於在物件有裝配問題時微調尺寸。"
 
 msgid "X-Y contour compensation"
 msgstr "X-Y 外輪廓尺寸補償"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "物件的外輪廓將在 XY 平面上依設定值擴大或縮小。正值使外輪廓變大，負值使外輪廓變小。此功能用於在物件有裝配問題時微調尺寸。"
 
@@ -17520,7 +17141,6 @@ msgstr "使用相對 E 距離"
 msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
 msgstr "使用『label_objects』選項時，建議啟用相對擠出模式。一些擠出機在使用絕對擠出模式（取消勾選）時運行效果會更好。換料塔僅支援相對擠出模式，這也是大多數列印裝置的建議模式。預設為啟用相對模式"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "經典牆產生器產生的牆走線具有一致的擠出寬度，對狹窄區域使用填縫。Arachne 引擎則產生變線寬的牆走線"
 
@@ -17530,7 +17150,6 @@ msgstr "Arachne"
 msgid "Wall transition length"
 msgstr "牆過渡長度"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "當零件變薄需要切換牆體數量時，系統會分配一定空間用於分割或合併牆段。此空間以噴嘴直徑的百分比表示"
 
@@ -17679,14 +17298,12 @@ msgstr " 不在合理的區間"
 msgid "Export 3MF"
 msgstr "匯出為 3MF 檔案"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports the project as a 3MF file."
 msgstr "將專案匯出為 3MF 檔案。"
 
 msgid "Export slicing data"
 msgstr "匯出切片資料"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export slicing data to a folder"
 msgstr "將列印切片資料匯出至指定資料夾。"
 
@@ -17711,7 +17328,6 @@ msgstr "將物件匯出為多個 STL 檔案至指定資料夾"
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "切片板選項：0 代表所有板，i 代表第 i 塊板，其餘則為無效輸入"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shows command help."
 msgstr "顯示指令使用說明。"
 
@@ -17736,14 +17352,12 @@ msgstr "匯出最小尺寸的 3mf。"
 msgid "mtcpp"
 msgstr "mtcpp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "max triangle count per plate for slicing"
 msgstr "每片板的最大切片三角形數量。"
 
 msgid "mstpp"
 msgstr "mstpp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "max slicing time per plate in seconds"
 msgstr "每片板的最大切片時間（秒）。"
 
@@ -17762,16 +17376,15 @@ msgstr "檢查符合規範的項目。"
 msgid "Output Model Info"
 msgstr "輸出模型資訊"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This outputs the model’s information."
 msgstr "輸出模型資訊。"
 
 msgid "Export Settings"
 msgstr "匯出設定"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This exports settings to a file."
-msgstr "將設定匯出至指定資料夾。"
+msgstr "將設定匯出至檔案。"
 
 msgid "Send progress to pipe"
 msgstr "將進度傳送到 Pipe"
@@ -17857,7 +17470,6 @@ msgstr "複製載入清單中的物件"
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "使用最新版本時載入最新的列印參數與裝置設定"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "當使用最新版本時，從指定檔案載入最新的參數與列印裝置設定"
 
@@ -17894,7 +17506,6 @@ msgstr "指定目錄用以載入或儲存設定檔。 這對於維護不同的�
 msgid "Output directory"
 msgstr "輸出資料夾"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the output directory for exported files."
 msgstr "用於存放匯出檔案的目錄。"
 
@@ -18331,15 +17942,12 @@ msgstr "載入模型檔案失敗。"
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "模型檔案網格化失敗或沒有有效形狀"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "無法讀取提供的檔案，因為該檔案為空"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "檔案格式未知。輸入的檔案必須是 .stl、.obj 或 .amf(.xml) 格式。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "未知的檔案格式。輸入檔案的副檔名必須為 .3mf 或 .zip .amf。"
 
@@ -18391,7 +17999,6 @@ msgstr "校正"
 msgid "Finish"
 msgstr "完成"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "How can I use calibration results?"
 msgstr "如何使用校正結果？"
 
@@ -18463,17 +18070,18 @@ msgstr "請選擇要校正的線材。"
 msgid "The input value size must be 3."
 msgstr "輸入值必須為 3。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
-msgstr "此機型每個噴嘴最多只能儲存 16 條歷史記錄。您可以刪除現有記錄後再開始校正，或者選擇繼續校正，但無法新增新的校正記錄。您確定要繼續校正嗎？"
+msgstr ""
+"此機型每個噴嘴最多只能儲存 16 條歷史記錄。您可以刪除現有記錄後再開始校正，或者選擇繼續校正，但無法新增新的校正記錄。\n"
+"您確定要繼續校正嗎？"
 
 #, c-format, boost-format
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "僅儲存一個同名結果：%s。您確認要覆蓋其他結果嗎？"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "已經有一個同名的歷史校正結果：%s。僅儲存同名結果中的其中一個。確定要覆寫歷史結果嗎？"
@@ -18486,7 +18094,6 @@ msgstr ""
 "在同一臺擠出機內，當線材類型、噴嘴直徑和噴嘴流量相同時，名稱（%s）必須是唯一的。\n"
 "您確定要覆蓋歷史結果嗎？"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "此機型每個噴嘴只能儲存 %d 筆歷史記錄。此結果將不會被儲存。"
@@ -18568,7 +18175,6 @@ msgstr "此外，對於像用於遙控飛機的輕質發泡 PLA（LW-PLA）這�
 msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion volumes. The default setting works well in Bambu Lab printers and official filaments as they were pre-calibrated and fine-tuned. For a regular filament, you usually won't need to perform a Flow Rate Calibration unless you still see the listed defects after you have done other calibrations. For more details, please check out the wiki article."
 msgstr "流量率校正測量預期擠出體積與實際擠出體積之間的比率。預設設定在 Bambu Lab 列印裝置和官方線材上表現良好，因為它們已經進行了預先校正和微調。對於普通的線材，通常情況下，您不需要執行流量率校正，除非在完成其他校正後仍然看到上述列出的缺陷。如需更多詳細資訊，請查閱 wiki 文章。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -18621,7 +18227,6 @@ msgstr "標準流量"
 msgid "Please find the best line on your plate"
 msgstr "請在您的列印板上找到最佳線條"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "請找到最完美的列印角度"
 
@@ -18778,7 +18383,6 @@ msgstr "無歷史結果"
 msgid "Success to get history result"
 msgstr "成功取得歷史結果"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "重整歷史流量動態校正記錄"
 
@@ -18789,7 +18393,6 @@ msgstr "注意：%s上的熱端編號與刀架繫結。當熱端移動至新刀�
 msgid "Action"
 msgstr "操作"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "此裝置型號每個噴嘴僅能儲存 %d 筆歷史結果。"
@@ -19412,11 +19015,9 @@ msgstr "線材預設"
 msgid "Create"
 msgstr "建立"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor is not selected; please reselect vendor."
 msgstr "廠牌尚未選擇，請重新選擇廠牌。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Custom vendor missing; please input custom vendor."
 msgstr "缺少自訂廠牌，請輸入自訂廠牌。"
 
@@ -19426,25 +19027,22 @@ msgstr "「Bambu」或「Generic」不能作為自訂線材的廠牌名稱。"
 msgid "Filament type is not selected, please reselect type."
 msgstr "線材類型尚未選擇，請重新選擇類型。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament serial missing; please input serial."
 msgstr "線材序號尚未輸入，請輸入序號。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "There may be disallowed characters in the vendor or serial input of the filament. Please delete and re-enter."
-msgstr "線材的廠牌或序號輸入中可能包含跳脫字元，請刪除並重新輸入。"
+msgstr "線材的廠牌或序號輸入中可能包含不允許的字元，請刪除並重新輸入。"
 
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "自訂廠牌或序號中的所有輸入都是空白，請重新輸入。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vendor cannot be a number; please re-enter."
 msgstr "廠牌不能為數字，請重新輸入。"
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "尚未選擇列印裝置或預設，請至少選擇一個。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
@@ -19491,7 +19089,6 @@ msgstr "匯入預設"
 msgid "Create Type"
 msgstr "建立類型"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The model was not found; please reselect vendor."
 msgstr "找不到該型號，請重新選擇廠牌。"
 
@@ -19532,18 +19129,15 @@ msgstr "檔案超過 %d MB，請重新匯入。"
 msgid "Exception in obtaining file size, please import again."
 msgstr "取得檔案大小時發生例外，請重新匯入。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preset path was not found; please reselect vendor."
 msgstr "找不到預設路徑，請重新選擇廠牌。"
 
 msgid "The printer model was not found, please reselect."
 msgstr "找不到列印裝置型號，請重新選擇。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle diameter was not found; please reselect."
 msgstr "找不到噴嘴直徑，請重新選擇。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The printer preset was not found; please reselect."
 msgstr "未找到列印裝置預設設定，請重新選擇。"
 
@@ -19559,11 +19153,11 @@ msgstr "處理預設設定範本"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "尚未選擇要基於哪個列印裝置預設設定來建立，請選擇列印裝置的廠牌和型號"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
-msgstr "在第一頁的可列印區域部分輸入了無效的設定，請在建立前檢查。"
+msgstr "您在第一頁的可列印區域中輸入了不允許的字元，請僅使用數字。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "The printer preset you created already has a preset with the same name. Do you want to overwrite it?\n"
 "\tYes: Overwrite the printer preset with the same name, and filament and process presets with the same preset name will be recreated \n"
@@ -19571,8 +19165,9 @@ msgid ""
 "\tCancel: Do not create a preset; return to the creation interface."
 msgstr ""
 "建立的列印裝置預設設定已經有相同名稱的預設設定。是否要覆蓋它？\n"
-"\t是：覆蓋相同名稱的列印裝置預設設定，並重新建立名稱相同的線材和處理預設設定，名稱不同的線材和處理預設設定將被保留。\n"
-"  \t取消：不建立預設設定，返回建立介面。"
+"\t是：覆蓋相同名稱的列印裝置預設設定，並重新建立名稱相同的線材和處理預設設定，\n"
+"名稱不同的線材和處理預設設定將被保留。\n"
+"\t取消：不建立預設設定，返回建立介面。"
 
 msgid "You need to select at least one filament preset."
 msgstr "需要至少選擇一個線材預設設定。"
@@ -19586,14 +19181,12 @@ msgstr "建立線材預設設定失敗，原因如下：\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "建立處理預設設定失敗，原因如下：\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor was not found; please reselect."
 msgstr "未找到廠牌，請重新選擇。"
 
 msgid "Current vendor has no models, please reselect."
 msgstr "目前廠牌沒有可用的型號，請重新選擇。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "您尚未選擇廠牌和型號，或未輸入自訂的廠牌和型號。"
 
@@ -19606,7 +19199,6 @@ msgstr "自訂列印裝置廠牌或型號的所有輸入為空格。請重新輸
 msgid "Please check bed printable shape and origin input."
 msgstr "請檢查熱床可列印區域形狀和原點設定。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "尚未選擇要更換噴嘴的列印裝置，請選擇。"
 
@@ -19651,7 +19243,6 @@ msgstr "請前往列印裝置設定編輯您的預設設定"
 msgid "Filament Created"
 msgstr "線材建立完成"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
@@ -19706,7 +19297,6 @@ msgstr "開啟 zip 檔案失敗"
 msgid "Export successful"
 msgstr "匯出成功"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The '%s' folder already exists in the current directory. Do you want to clear it and rebuild it?\n"
@@ -19739,7 +19329,6 @@ msgstr ""
 "使用者的線材預設設定。 \n"
 "可以與他人分享。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "僅顯示對列印裝置、線材和處理預設設定有變更的列印裝置名稱。"
 
@@ -19766,7 +19355,6 @@ msgstr ""
 msgid "Please select at least one printer or filament."
 msgstr "請至少選擇一個列印裝置或線材。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please select a preset type you want to export"
 msgstr "請選擇您要匯出的類型"
 
@@ -19829,7 +19417,6 @@ msgstr "「需要刪除」"
 msgid "Edit Preset"
 msgstr "編輯預設設定"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "For more information, please check out our Wiki"
 msgstr "如需更多資訊，請檢視 Wiki"
 
@@ -20501,7 +20088,6 @@ msgstr "可同時運行的列印裝置數量。（取決於能同時加熱的裝
 msgid "Wait"
 msgstr "等待"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "每批次需要的分鐘數。（具體取決於加熱完成所需的時間。）"
 
@@ -21393,7 +20979,6 @@ msgstr ""
 "縮時錄影\n"
 "您知道嗎？您可以每次列印時產生一段縮時錄影。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
@@ -21402,7 +20987,6 @@ msgstr ""
 "自動擺放\n"
 "您知道嗎？您可以自動擺放專案中的所有物件。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
@@ -21511,16 +21095,15 @@ msgstr ""
 "您知道嗎？您可以把一個有很多零件的模型安排到多個獨立的列印板，\n"
 "然後列印出來，這將簡化對所有零件的管理。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
 msgid ""
 "Speed up your print with Adaptive Layer Height\n"
 "Did you know that you can print a model even faster by using the Adaptive Layer Height option? Check it out!"
 msgstr ""
-"適應性層高度加速列印\n"
-"您知道嗎？您可以使用「適應性層高度」選項可以更快地列印模型。\n"
-"試試看！"
+"使用適應性層高加速列印\n"
+"您知道嗎？使用「適應性層高」選項可以更快地列印模型。試試看！"
 
 #: resources/data/hints.ini: [hint:Support painting]
 msgid ""
@@ -21531,25 +21114,23 @@ msgstr ""
 "您知道嗎？您可以手動繪製增加/隱藏支撐的位置，此功能使僅將支撐\n"
 "材料放置在實際需要的模型截面上變得容易。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
 "Did you know that you can choose from multiple types of supports? Tree supports work great for organic models while saving filament and improving print speed. Check them out!"
 msgstr ""
-"支撐類型\n"
-"您知道嗎？有多種可選的支撐類型，有機樹狀支撐非常適合人物/動物模型，\n"
-"同時可以節線材並提高列印速度。試試看！"
+"不同類型的支撐\n"
+"您知道嗎？有多種可選的支撐類型，樹狀支撐非常適合有機造型的模型，同時可以節省線材並提高列印速度。試試看！"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
 "Did you know that Silk filament needs special consideration to print successfully? A higher temperature and lower speed are always recommended for the best results."
 msgstr ""
 "列印絲綢線材\n"
-"您知道嗎？絲綢線材需要特別考慮才能成功列印。為了獲得最佳效果，\n"
-"通常建議使用較高的溫度和較低的速度。"
+"您知道嗎？絲綢線材需要特別考慮才能成功列印。為了獲得最佳效果，通常建議使用較高的溫度和較低的速度。"
 
 #: resources/data/hints.ini: [hint:Brim for better adhesion]
 msgid ""
@@ -21560,7 +21141,6 @@ msgstr ""
 "您知道嗎？當模型與熱床表面的接觸面積較小時，建議使用 Brim 以提\n"
 "高列印成功率。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
@@ -21577,15 +21157,14 @@ msgstr ""
 "組合物體\n"
 "您知道嗎？您可以把多個物件組合為一個整體。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
 "Did you know that you can reduce wasted filament by flushing it into support/objects/infill during filament changes?"
 msgstr ""
 "廢料運用到支撐/物件/填充中\n"
-"您知道嗎？您可以在換料時將廢料運用到支撐/物件/填充，以節省浪費\n"
-"的線材。"
+"您知道嗎？您可以在換料時將廢料運用到支撐/物件/填充，以節省浪費的線材。"
 
 #: resources/data/hints.ini: [hint:Improve strength]
 msgid ""
@@ -21596,7 +21175,6 @@ msgstr ""
 "您知道嗎？您可以使用更多的牆層數和更高的疏散填充密度來提高模型\n"
 "強度。"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
 msgid ""
@@ -21606,15 +21184,14 @@ msgstr ""
 "什麼時候需要打開列印裝置門列印？\n"
 "您知道嗎？在列印低溫線材且機箱內溫度較高的情況下，打開列印裝置門可以降低擠出機或熱端堵塞的機率。更多資訊請參閱 Wiki。"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
 "Did you know that when printing materials that are prone to warping such as ABS, appropriately increasing the heatbed temperature can reduce the probability of warping?"
 msgstr ""
 "避免翹曲\n"
-"您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度\n"
-"可以降低翹曲的機率。"
+"您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
 
 #~ msgid "Enter"
 #~ msgstr "Enter"

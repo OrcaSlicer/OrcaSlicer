@@ -438,11 +438,9 @@ msgstr "Szerszámfej"
 msgid "Nozzle information needs to be read"
 msgstr "A fúvókainformációkat be kell olvasni"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support Painting"
 msgstr "Támaszok festése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Apply"
 msgstr "Alkalmaz"
 
@@ -452,7 +450,6 @@ msgstr "Csak a kiemelt túlnyúlásokon"
 msgid "Erase all"
 msgstr "Az összes törlése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Highlight overhangs"
 msgstr "Túlnyúló területek kiemelése"
 
@@ -529,7 +526,6 @@ msgstr "Nincs automatikus támasz"
 msgid "Done"
 msgstr "Kész"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support generated"
 msgstr "Támasz legenerálva"
 
@@ -548,7 +544,6 @@ msgstr "Festett támaszok szerkesztése"
 msgid "Gizmo-Place on Face"
 msgstr "Gizmo-Felület Tárgyasztalra Illesztése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Lay on Face"
 msgstr "Felületre fektetés"
 
@@ -556,7 +551,6 @@ msgstr "Felületre fektetés"
 msgid "Filament count exceeds the maximum number that painting tool supports. Only the first %1% filaments will be available in painting tool."
 msgstr "A filamentek száma meghaladja a festés által támogatott maximális mennyiséget. Csak az első %1% filament lesz használható a festéshez."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Color Painting"
 msgstr "Színfestés"
 
@@ -728,37 +722,30 @@ msgstr "Forgatás (relatív)"
 msgid "Scale ratios"
 msgstr "Méretarányok"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object operations"
 msgstr "Objektum műveletek"
 
 msgid "Scale"
 msgstr "Átméretezés"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume operations"
 msgstr "Térfogat műveletek"
 
 msgid "Translate"
 msgstr "Fordítás"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Group operations"
 msgstr "Csoportos műveletek"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set orientation"
 msgstr "Orientáció beállítása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set scale"
 msgstr "Méretarány beállítása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset position"
 msgstr "Pozíció visszaállítása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Reset rotation"
 msgstr "Forgatás visszaállítása"
 
@@ -1070,7 +1057,6 @@ msgstr ""
 msgid "Cut by Plane"
 msgstr "Vágás Síkkal"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Non-manifold edges be caused by cut tool: do you want to fix now?"
 msgstr "A vágás után hibás élek keletkeztek, szeretnéd most javítani őket?"
 
@@ -1139,7 +1125,6 @@ msgstr "%d háromszög"
 msgid "Show wireframe"
 msgstr "Drótváz megjelenítése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to apply when processing preview"
 msgstr "Nem használható folyamat előnézetben."
 
@@ -1164,7 +1149,6 @@ msgstr "Varratfestés"
 msgid "Remove selection"
 msgstr "Kijelölés törlése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Entering seam painting"
 msgstr "Belépés varratfestő módba"
 
@@ -1188,11 +1172,9 @@ msgstr "Szövegköz"
 msgid "Angle"
 msgstr "Szög"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Embedded depth"
-msgstr ""
-"Beágyazási\n"
-"mélység"
+msgstr "Beágyazási mélység"
 
 msgid "Input text"
 msgstr "Szöveg"
@@ -2009,7 +1991,6 @@ msgstr "Alt+"
 msgid "Notice"
 msgstr "Megjegyzés"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Undefined"
 msgstr "Definiálatlan"
 
@@ -2033,14 +2014,13 @@ msgstr "Filament"
 msgid "Machine"
 msgstr "Gép"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The configuration package was loaded, but some values were not recognized."
 msgstr "A konfigurációs csomag betöltődött, de néhány értéket nem sikerült felismerni."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #, boost-format
 msgid "The configuration file “%1%” was loaded, but some values were not recognized."
-msgstr "A(z) \"%1%\" konfigurációs csomag betöltődött, de néhány értéket nem sikerült felismerni."
+msgstr "A(z) \"%1%\" konfigurációs fájl betöltődött, de néhány értéket nem sikerült felismerni."
 
 msgid "Loading configuration"
 msgstr "Konfiguráció betöltése"
@@ -2191,7 +2171,6 @@ msgstr "Emlékezz a választásomra"
 msgid "Click to download new version in default browser: %s"
 msgstr "Kattints az új verzió letöltéséhez az alapértelmezett böngészőben: %s"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "OrcaSlicer needs an update"
 msgstr "A Orca Slicert frissíteni kell"
 
@@ -2267,7 +2246,6 @@ msgstr "Kiterjesztés"
 msgid "Some presets are modified."
 msgstr "Néhány beállítás megváltozott."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project, discard, or save changes as new presets."
 msgstr "Megtarthatod az új projekt módosított beállításait, elvetheted őket, vagy elmentheted új beállításokként."
 
@@ -2571,7 +2549,6 @@ msgstr "Átnevezés"
 msgid "Orca Slicer GUI initialization failed"
 msgstr "Nem sikerült a Orca Slicer GUI inicializálása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "Fatal error, exception: %1%"
 msgstr "Súlyos hiba, a következő kivételt találtuk: %1%"
@@ -2597,22 +2574,18 @@ msgstr "Sebesség"
 msgid "Strength"
 msgstr "Szilárdság"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top solid layers"
 msgstr "Felső tömör rétegek"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Top minimum shell thickness"
 msgstr "Minimális fedőréteg vastagság"
 
 msgid "Top Surface Density"
 msgstr "Felső felületi sűrűség"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom solid layers"
 msgstr "Alsó tömör rétegek"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bottom minimum shell thickness"
 msgstr "Alsó minimális héjvastagság"
 
@@ -2622,14 +2595,12 @@ msgstr "Alsó felületi sűrűség"
 msgid "Ironing"
 msgstr "Vasalás"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fuzzy skin"
 msgstr "Barázdált felület"
 
 msgid "Extruders"
 msgstr "Extruderek"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Extrusion width"
 msgstr "Extrudálási szélesség"
 
@@ -2639,23 +2610,18 @@ msgstr "Törlés opciók"
 msgid "Bed adhesion"
 msgstr "Asztalra tapadás"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Part"
 msgstr "Tárgy hozzáadása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Negative Part"
 msgstr "Negatív tárgy hozzáadása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Modifier"
 msgstr "Módosító hozzáadása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Blocker"
 msgstr "Támasz blokkoló hozzáadása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Support Enforcer"
 msgstr "Támasz kényszerítő hozzáadása"
 
@@ -2764,15 +2730,12 @@ msgstr "Javaslat"
 msgid "Text"
 msgstr "Szöveg"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Height Range Modifier"
 msgstr "Magasságtartomány módosító"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add Settings"
 msgstr "Beállítások hozzáadása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Change Type"
 msgstr "Típus megváltoztatása"
 
@@ -2788,11 +2751,9 @@ msgstr "Támasz kényszerítő"
 msgid "Change part type"
 msgstr "Alkatrész típusának módosítsa"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as An Individual Object"
 msgstr "Beállítás különálló objektumként"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Set as Individual Objects"
 msgstr "Beállítás különálló objektumokként"
 
@@ -2811,7 +2772,6 @@ msgstr "Automatikus leejtés"
 msgid "Automatically drops the selected object to the build plate."
 msgstr "A kiválasztott objektumot automatikusan az építőlemezre ejti"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fix Model"
 msgstr "Model javítása"
 
@@ -2883,19 +2843,15 @@ msgstr "Öblítés a tárgyak támaszába"
 msgid "Edit in Parameter Table"
 msgstr "Szerkesztés a paramétertáblában"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Inches"
 msgstr "Átváltás hüvelykről"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Inch"
 msgstr "Visszaállítás hüvelykre"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Convert from Meters"
 msgstr "Átváltás méterről"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Restore to Meter"
 msgstr "Visszaállítás méterre"
 
@@ -2914,31 +2870,24 @@ msgstr "Modellháló logikai műveletek"
 msgid "Mesh boolean operations including union and subtraction"
 msgstr "Modellhálóval kapcsolatos logikai műveletek, mint például az egyesítés és kivonás"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along X Axis"
 msgstr "X-tengely mentén"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the X Axis"
 msgstr "Tükrözés az X-tengely mentén"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Y Axis"
 msgstr "Y-tengely mentén"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Y Axis"
 msgstr "Tükrözés az Y-tengely mentén"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Along Z Axis"
 msgstr "Z-tengely mentén"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror along the Z Axis"
 msgstr "Tükrözés a Z-tengely mentén"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Mirror object"
 msgstr "Objektum tükrözése"
 
@@ -2969,14 +2918,12 @@ msgstr "Modellek hozzáadása"
 msgid "Show Labels"
 msgstr "Címkék megjelenítése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Objects"
 msgstr "Objektumokra"
 
 msgid "Split the selected object into multiple objects"
 msgstr "Szétválasztja a kijelölt objektumot több objektumra"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "To Parts"
 msgstr "Tárgyakra"
 
@@ -3004,7 +2951,6 @@ msgstr "Egyesítés ezzel"
 msgid "Delete this filament"
 msgstr "Filament törlése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Select All"
 msgstr "Összes kijelölése"
 
@@ -3017,7 +2963,6 @@ msgstr "Összes tálca kijelölése"
 msgid "Select all objects on all plates"
 msgstr "Az összes tálca összes objektumának kijelölése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete All"
 msgstr "Összes törlése"
 
@@ -3151,25 +3096,21 @@ msgstr[1] "%1$d hibás él"
 msgid "Click the icon to repair model object"
 msgstr "Kattints az ikonra a modellobjektum javításához"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object settings"
 msgstr "Kattints jobb gombbal az ikonra az objektum beállításainak elvetéséhez"
 
 msgid "Click the icon to reset all settings of the object"
 msgstr "Kattints az ikonra az objektum összes beállításának visszaállításához"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Right click the icon to drop the object printable property"
 msgstr "Kattints jobb gombbal az ikonra az objektum nyomtatható tulajdonságának elvetéséhez"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to toggle printable properties of the object"
 msgstr "Kattints az ikonra az objektum nyomtatható tulajdonságának módosításához"
 
 msgid "Click the icon to edit support painting of the object"
 msgstr "Kattints az ikonra az objektum támasz festésének szerkesztéséhez"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click the icon to edit color painting for the object"
 msgstr "Kattints az ikonra az objektum színfestésének szerkesztéséhez"
 
@@ -3272,7 +3213,6 @@ msgstr "Negatív térfogat törlése a vágás részét képező objektumból"
 msgid "To save cut correspondence you can delete all connectors from all related objects."
 msgstr "A vágási megfeleltetés megőrzéséhez törölheted az összes connectort az összes kapcsolódó objektumból."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This action will break a cut correspondence.\n"
 "After that, model consistency can't be guaranteed.\n"
@@ -3320,15 +3260,12 @@ msgstr "Objektumkezelés"
 msgid "Group manipulation"
 msgstr "Csoportkezelés"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Object Settings to Modify"
 msgstr "Módosítandó objektumbeállítások"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Part Settings to Modify"
 msgstr "Módosítandó alkatrészbeállítások"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer Range Settings to Modify"
 msgstr "Módosítandó rétegtartomány-beállítások"
 
@@ -3360,7 +3297,6 @@ msgstr "Ha az első kiválasztott elem egy objektum, akkor a másodiknak is obje
 msgid "If the first selected item is a part, the second should be a part in the same object."
 msgstr "Ha az első kiválasztott elem egy tárgy, akkor a másodiknak is tárgynak kell lennie."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The type of the last solid object part cannot be changed."
 msgstr "Az utolsó tömör objektumrész típusa nem módosítható."
 
@@ -3420,7 +3356,6 @@ msgstr "Magasságtartomány hozzáadása"
 msgid "Invalid numeric."
 msgstr "Érvénytelen számjegy."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "One cell can only be copied to one or more cells in the same column."
 msgstr "Egy cellát csak az ugyanabban az oszlopban lévő egy vagy több cellába lehet másolni"
 
@@ -3485,19 +3420,15 @@ msgstr "Vonaltípus"
 msgid "1x1 Grid: %d mm"
 msgstr "1x1 rács: %d mm"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "More"
 msgstr "Több"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open Preferences"
 msgstr "Beállítások megnyitása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open next tip"
 msgstr "Következő tipp megnyitása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Open documentation in web browser"
 msgstr "Dokumentáció megnyitása webböngészőben"
 
@@ -3528,11 +3459,9 @@ msgstr "Egyedi G-kód"
 msgid "Enter Custom G-code used on current layer:"
 msgstr "Add meg az aktuális rétegnél használandó egyedi G-kódot:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Jump to layer"
 msgstr "Ugrás a rétegre"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the layer number."
 msgstr "Kérlek, add meg a réteg számát."
 
@@ -3612,14 +3541,12 @@ msgstr "Csatlakozás..."
 msgid "Auto Refill"
 msgstr "Automatikus utántöltés"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Load"
 msgstr "Betöltés"
 
 msgid "Unload"
 msgstr "Kitöltés"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Choose an AMS slot then press \"Load\" or \"Unload\" button to automatically load or unload filament."
 msgstr "Válassz ki egy AMS-helyet, majd nyomd meg a \"Betöltés\" vagy a \"Kitöltés\" gombot az filament automatikus betöltéséhez vagy eltávolításához."
 
@@ -3736,7 +3663,6 @@ msgstr "Fűtsd fel a fúvókát"
 msgid "Cut filament"
 msgstr "Filament vágása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Pull back the current filament"
 msgstr "Jelenlegi filament visszahúzása"
 
@@ -3804,7 +3730,6 @@ msgstr "Minden elem kijelölve..."
 msgid "No matching items..."
 msgstr "Nincs egyező elem..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deselect All"
 msgstr "Kijelölés megszüntetése"
 
@@ -3835,7 +3760,6 @@ msgstr "Előrehaladott beállítások"
 msgid "Expert settings"
 msgstr "Szakértői beállítások"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Developer mode"
 msgstr "Fejlesztői mód"
 
@@ -3928,7 +3852,6 @@ msgstr "Elrendezés"
 msgid "Arranging canceled."
 msgstr "Elrendezése törölve."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Arranging complete, but some items were not able to be arranged. Reduce spacing and try again."
 msgstr "Az elrendezés megtörtént, de maradtak összeragadt tárgyak. Csökkentsd a térközt, és próbáld meg újra."
 
@@ -3996,7 +3919,6 @@ msgstr "Sikertelen bejelentkezés"
 msgid "Please check the printer network connection."
 msgstr "Kérlek, ellenőrizd a nyomtató hálózati kapcsolatát."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Abnormal print file data: please slice again."
 msgstr "Rendellenes nyomtatási fájladatok. Szeletelj újra."
 
@@ -4009,7 +3931,6 @@ msgstr "A feltöltési feladat időtúllépéssel leállt. Ellenőrizd a hálóz
 msgid "Cloud service connection failed. Please try again."
 msgstr "A felhőszolgáltatáshoz való csatlakozás sikertelen. Kérlek, próbáld újra."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice again."
 msgstr "A nyomtatási fájl nem található. Szeletelj újra."
 
@@ -4022,18 +3943,15 @@ msgstr "Nem sikerült elküldeni a nyomtatási feladatot. Kérlek próbáld újr
 msgid "Failed to upload file to ftp. Please try again."
 msgstr "Nem sikerült feltölteni a fájlt FTP-re. Próbáld újra."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Check the current status of the Bambu Lab server by clicking on the link above."
 msgstr "A Bambu szerver aktuális állapotát a fenti hivatkozásra kattintva ellenőrizheted."
 
 msgid "The size of the print file is too large. Please adjust the file size and try again."
 msgstr "A nyomtatási fájl mérete túl nagy. Állítsd be a fájlméretet, és próbáld újra."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print file not found; please slice it again and send it for printing."
 msgstr "A nyomtatási fájl nem található, szeleteld újra, és küldd nyomtatásra."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to upload print file via FTP. Please check the network status and try again."
 msgstr "Nem sikerült feltölteni a nyomtatási fájlt FTP-re. Ellenőrizd a hálózati állapotot, majd próbáld újra."
 
@@ -4085,7 +4003,6 @@ msgstr "Ismeretlen hiba történt a tároló állapotával kapcsolatban. Próbá
 msgid "Sending G-code file over LAN"
 msgstr "G-kód fájl küldése LAN-on keresztül"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sending G-code file to SD card"
 msgstr "G-kód fájl küldése SD-kártyára"
 
@@ -4157,7 +4074,6 @@ msgstr "Hátralévő idő: %d perc %d mp"
 msgid "Importing SLA archive"
 msgstr "SLA archívum importálása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The SLA archive doesn't contain any presets. Please activate some SLA printer presets first before importing that SLA archive."
 msgstr "Az SLA archívum nem tartalmaz beállításokat. Az SLA archívum importálása előtt aktiválj egy SLA nyomtatóbeállítást."
 
@@ -4170,7 +4086,6 @@ msgstr "Importálás kész."
 msgid "The imported SLA archive did not contain any presets. The current SLA presets were used as fallback."
 msgstr "Az importált SLA archívum nem tartalmazott beállításokat. Tartalékként az aktuális SLA beállítások kerültek használatra."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You cannot load an SLA project with a multi-part object on the bed"
 msgstr "Nem tölthető be SLA projekt, ha a tárgyasztalon több részből álló objektum van"
 
@@ -4198,7 +4113,6 @@ msgstr "Telepítés"
 msgid "Install failed"
 msgstr "Sikertelen telepítés"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "License Info"
 msgstr "Szerzői jogok"
 
@@ -4312,7 +4226,6 @@ msgstr "Egyéb szín"
 msgid "Custom Color"
 msgstr "Egyéni szín"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Dynamic flow calibration"
 msgstr "Dinamikus anyagáramlás kalibráció"
 
@@ -4322,7 +4235,6 @@ msgstr "A fúvóka hőmérséklete és a maximális anyagáramlás sebessége be
 msgid "Nozzle Diameter"
 msgstr "Fúvóka átmérője"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate Type"
 msgstr "Tálcatípus"
 
@@ -4457,18 +4369,15 @@ msgstr "Nem választható ki: az aktuális helyen nincs betöltve filament."
 msgid "Enable AMS"
 msgstr "AMS engedélyezése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in the AMS"
 msgstr "Nyomtatás AMS-ben lévő filamenttel"
 
 msgid "Disable AMS"
 msgstr "AMS kikapcsolása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament on external spool"
 msgstr "Nyomtatás külső tartón lévő filamenttel"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please change the desiccant when it is too wet. The indicator may not represent accurately in following cases: when the lid is open or the desiccant pack is changed. It takes a few hours to absorb the moisture, and low temperatures also slow down the process."
 msgstr "Cseréld a nedvszívót, ha túl nedves. A jelző nem mindig pontos az alábbi esetekben: ha a fedél nyitva van, vagy ha a nedvszívó csomag cserélve lett. A nedvesség elnyelése órákat vesz igénybe, és az alacsony hőmérséklet tovább lassítja a folyamatot."
 
@@ -4487,11 +4396,9 @@ msgstr "Kattints az AMS-férőhely kézi kiválasztásához"
 msgid "Do not Enable AMS"
 msgstr "Ne engedélyezd az AMS-t"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print using filament on external spool."
 msgstr "Nyomtatás külső tartón lévő filamenttel."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Print with filament in AMS"
 msgstr "Nyomtatás az AMS-ben lévő filamentekkel"
 
@@ -4520,7 +4427,6 @@ msgstr "Ha az aktuális anyag elfogy, a nyomtató azonos filamenttel folytatja a
 msgid "The printer does not currently support auto refill."
 msgstr "A nyomtató jelenleg nem támogatja az automatikus újratöltést."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament backup is not enabled; please enable it in the AMS settings."
 msgstr "Az AMS filament tartalék funkció nincs engedélyezve, kapcsold be az AMS beállításokban."
 
@@ -4545,7 +4451,6 @@ msgstr "AMS beállítások"
 msgid "Insertion update"
 msgstr "Frissítés"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The AMS will automatically read the filament information when inserting a new Bambu Lab filament spool. This takes about 20 seconds."
 msgstr "Az AMS automatikusan kiolvassa a filament információkat egy új Bambu Lab filament tekercs behelyezésekor. Ez körülbelül 20 másodpercet vesz igénybe."
 
@@ -4555,11 +4460,9 @@ msgstr "Megjegyzés: ha nyomtatás során új filament kerül behelyezésre, az 
 msgid "When inserting a new filament, the AMS will not automatically read its information, leaving it blank for you to enter manually."
 msgstr "Új filament behelyezésekor az AMS nem fogja automatikusan kiolvasni az információkat, hanem üresen hagyja azokat, így kézzel kell megadnod."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update on startup"
 msgstr "Frissítés bekapcsoláskor"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The AMS will automatically read the information of inserted filament on start-up. It will take about 1 minute. The reading process will rotate the filament spools."
 msgstr "Az AMS indításkor automatikusan kiolvassa a behelyezett filament adatait. Ez körülbelül 1 percet vesz igénybe. A leolvasási folyamat során a filamenttekercsek feltekercselésre kerülnek."
 
@@ -4614,7 +4517,6 @@ msgstr "Kalibrálás"
 msgid "Failed to download the plug-in. Please check your firewall settings and VPN software and retry."
 msgstr "Nem sikerült letölteni a bővítményt. Kérlek, ellenőrizd a tűzfal beállításait és a VPN-szoftvert, majd próbálja meg újra."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Failed to install the plug-in. The plug-in file may be in use. Please restart OrcaSlicer and try again. Also check whether it is blocked or has been deleted by anti-virus software."
 msgstr "Nem sikerült telepíteni a bővítményt. Lehet, hogy a bővítményfájl használatban van. Indítsd újra az OrcaSlicert, majd próbáld újra. Ellenőrizd azt is, hogy vírusirtó szoftver nem blokkolta vagy törölte-e."
 
@@ -4636,7 +4538,6 @@ msgstr "). Ez megakadályozza, hogy a nyomtató megpróbálja a nyomtatható ter
 msgid "Go Home"
 msgstr "Alaphelyzet"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An error occurred. The system may have run out of memory, or a bug may have occurred."
 msgstr "Hiba történt. Lehet, hogy a rendszer memóriája nem elég, vagy a program hibás"
 
@@ -4644,11 +4545,9 @@ msgstr "Hiba történt. Lehet, hogy a rendszer memóriája nem elég, vagy a pro
 msgid "A fatal error occurred: \"%1%\""
 msgstr "Végzetes hiba történt: \"%1%\""
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please save your project and restart the application."
 msgstr "Kérlek, mentsd el a projektet és indítsd újra a programot."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Processing G-Code from previous file…"
 msgstr "G-kód feldolgozása egy előző fájlból..."
 
@@ -4713,7 +4612,6 @@ msgstr "Az ideiglenes G-kód másolása befejeződött, de az exportált kódot 
 msgid "G-code file exported to %1%"
 msgstr "G-kód fájl exportálva ide: %1%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown error with G-code export"
 msgstr "Ismeretlen hiba a G-kód exportálásakor."
 
@@ -4727,7 +4625,6 @@ msgstr ""
 "Hibaüzenet: %1%.\n"
 "Forrás fájl: %2%."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Copying of the temporary G-code to the output G-code failed."
 msgstr "Nem sikerült az ideiglenes G-kódot a kimeneti G-kódba másolni."
 
@@ -4774,14 +4671,12 @@ msgstr "Válassz egy STL fájlt az asztal alakjának importálásához (PNG/SVG)
 msgid "Invalid file format."
 msgstr "Érvénytelen fájl formátum."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error: invalid model"
 msgstr "Hiba! Érvénytelen modell"
 
 msgid "The selected file contains no geometry."
 msgstr "A kiválasztott fájl nem tartalmaz geometriát."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The selected file contains several disjointed areas. This is not supported."
 msgstr "A kiválasztott fájl több, egymástól elkülönülő területet tartalmaz. Ez nem támogatott."
 
@@ -4808,7 +4703,6 @@ msgstr "Az ajánlott minimális hőmérséklet nem lehet magasabb az ajánlott m
 msgid "Please check.\n"
 msgstr "Kérlek, ellenőrizd.\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The nozzle may become clogged when the temperature is out of the recommended range.\n"
 "Please make sure whether to use this temperature to print.\n"
@@ -4826,7 +4720,6 @@ msgstr "Az ajánlott fúvóka hőmérséklet ehhez a filament típushoz [%d, %d]
 msgid "Adaptive Pressure Advance model validation failed:\n"
 msgstr "Az adaptív nyomáselőtolás modell ellenőrzése sikertelen:\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
@@ -4834,7 +4727,6 @@ msgstr ""
 "Túl alacsony max. volumetrikus sebesség.\n"
 "Az értéke 0,5-re állt vissza"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "Current chamber temperature is higher than the material's safe temperature; this may result in material softening and nozzle clogs. The maximum safe temperature for the material is %d"
 msgstr "A kamra aktuális hőmérséklete magasabb az anyag biztonságos hőmérsékleténél, ez az anyag meglágyulásához és eltömődéshez vezethet. Az anyag maximális biztonságos hőmérséklete: %d"
@@ -4844,7 +4736,6 @@ msgstr "A kamra aktuális hőmérséklete magasabb az anyag biztonságos hőmér
 msgid "The minimal chamber temperature (%d℃) is higher than the target chamber temperature (%d℃). The minimal value is the threshold at which printing starts while the chamber keeps heating toward the target, so it should not exceed it. It will be clamped to the target."
 msgstr "A minimális kamrahőmérséklet (%d℃) magasabb a cél kamrahőmérsékletnél (%d℃). A minimális érték az a küszöb, amelynél a nyomtatás elindul, miközben a kamra tovább melegszik a célérték felé, ezért nem haladhatja meg azt. Az érték a célértékre lesz korlátozva."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Layer height too small\n"
 "It has been reset to 0.2"
@@ -4852,7 +4743,6 @@ msgstr ""
 "Túl alacsony rétegmagasság.\n"
 "Visszaállítva 0,2-re"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Ironing spacing too small\n"
 "It has been reset to 0.1"
@@ -4869,7 +4759,6 @@ msgstr ""
 "\n"
 "Az első réteg magassága 0.2-re lesz visszaállítva."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This setting is only used for tuning model size by small amounts.\n"
 "For example, when the model size has small errors or when tolerances are incorrect. For large adjustments, please use the model scale function.\n"
@@ -4881,7 +4770,6 @@ msgstr ""
 "\n"
 "Az érték 0-ra áll vissza."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "The elephant foot compensation value is too large.\n"
 "If there are significant elephant foot issues, please check other settings.\n"
@@ -4947,7 +4835,6 @@ msgstr ""
 "A seam_slope_start_height értékének kisebbnek kell lennie, mint a layer_height.\n"
 "Visszaállítás 0-ra."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, no-c-format, no-boost-format
 msgid ""
 "Lock depth should smaller than skin depth.\n"
@@ -4974,7 +4861,6 @@ msgstr "A spirál mód csak akkor működik, ha a falhurkok száma 1, a támasz 
 msgid " But machines with I3 structure will not generate timelapse videos."
 msgstr " Az I3-szerkezetű gépek azonban nem fognak időfelvétel videókat készíteni."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings and enable spiral/vase mode automatically\n"
@@ -5366,7 +5252,6 @@ msgstr "Beállítások"
 msgid "Print settings"
 msgstr "Nyomtatási beállítások"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament settings"
 msgstr "Filament beállítások"
 
@@ -5391,7 +5276,6 @@ msgstr "Üres karakterlánc"
 msgid "Value is out of range."
 msgstr "Az érték tartományon kívül esik."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "%s can’t be a percentage"
 msgstr "%s nem lehet százalék"
@@ -5659,7 +5543,6 @@ msgstr "Torony"
 msgid "Total"
 msgstr "Összesen"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Total estimation"
 msgstr "Összesített becslés"
 
@@ -5729,11 +5612,9 @@ msgstr "ettől"
 msgid "Usage"
 msgstr "Használat"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height (mm)"
 msgstr "Rétegmagasság (mm)"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width (mm)"
 msgstr "Vonalszélesség (mm)"
 
@@ -5749,7 +5630,6 @@ msgstr "Gyorsulás (mm/s²)"
 msgid "Jerk (mm/s)"
 msgstr "Rántás (mm/s)"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Fan speed (%)"
 msgstr "Ventilátor fordulatszám (%)"
 
@@ -5765,7 +5645,6 @@ msgstr "Tényleges volumetrikus áramlási sebesség (mm³/s)"
 msgid "Seams"
 msgstr "Varratok"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament changes"
 msgstr "Filamentcserék"
 
@@ -5788,7 +5667,6 @@ msgctxt "Noun"
 msgid "Print"
 msgstr "Nyomtatás"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printer"
 msgstr "Nyomtató"
 
@@ -5902,18 +5780,15 @@ msgstr "Bal fúvóka: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%\n"
 msgid "Right nozzle: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 msgstr "Jobb fúvóka: X:%1%-%2%, Y:%3%-%4%, Z:%5%-%6%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Tool move"
 msgstr "Fej mozgatása"
 
 msgid "Tool Rotate"
 msgstr "Eszköz forgatás"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move object"
 msgstr "Objektum mozgatása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto orientation options"
 msgstr "Automatikus orientáció beállításai"
 
@@ -6058,7 +5933,6 @@ msgstr "Robbantási arány"
 msgid "Section View"
 msgstr "Keresztmetszet nézet"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Assembly Control"
 msgstr "Összeállítás"
 
@@ -6087,7 +5961,6 @@ msgstr "Egy objektum a tálca határvonalán túlra került."
 msgid "A G-code path goes beyond the max print height."
 msgstr "A G-kód útvonala túlmegy a maximális nyomtatási magasságon."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A G-code path goes beyond plate boundaries."
 msgstr "A G-kód útvonala túlmegy a tálca peremén."
 
@@ -6148,7 +6021,6 @@ msgstr "Kalibrálási lépés kiválasztása"
 msgid "Micro lidar calibration"
 msgstr "Micro Lidar kalibrálás"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Bed leveling"
 msgstr "Asztalszintezés"
 
@@ -6227,7 +6099,6 @@ msgstr ""
 "A nyomtatón itt találod: \"Setting > Setting > LAN only > Access Code\",\n"
 "ahogy az ábrán is látható:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Invalid input"
 msgstr "Érvénytelen adat"
 
@@ -6237,7 +6108,6 @@ msgstr "Új ablak"
 msgid "Open a new window"
 msgstr "Új ablak megnyitása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Closing application"
 msgstr "Az alkalmazás bezárul"
 
@@ -6486,7 +6356,6 @@ msgstr "Beillesztés"
 msgid "Paste clipboard"
 msgstr "Beillesztés vágólapról"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete Selected"
 msgstr "Kijelölt törlése"
 
@@ -6496,7 +6365,6 @@ msgstr "Törli a jelenlegi kiválasztást"
 msgid "Deletes all objects"
 msgstr "Töröl minden objektumot"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clone Selected"
 msgstr "Kijelölt klónozása"
 
@@ -6674,12 +6542,10 @@ msgstr "&Nézet"
 msgid "&Help"
 msgstr "&Segítség"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "A file exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Már létezik azonos nevű fájl: %s. Felülírod?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "A config exists with the same name: %s. Do you want to overwrite it?"
 msgstr "Már létezik azonos nevű konfiguráció: %s. Felülírod?"
@@ -6705,7 +6571,6 @@ msgid_plural "There are %d configs exported. (Only non-system configs)"
 msgstr[0] "%d konfiguráció exportálva. (Csak nem rendszer konfigurációk)"
 msgstr[1] "%d konfiguráció exportálva. (Csak nem rendszer konfigurációk)"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export Result"
 msgstr "Exportálás eredménye"
 
@@ -6760,7 +6625,6 @@ msgstr "Az eszköz nem tud több kapcsolatot kezelni. Kérlek, próbálkozz kés
 msgid "Player is malfunctioning. Please reinstall the system player."
 msgstr "A lejátszó hibásan működik. Kérlek, telepítsd újra."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The player is not loaded; please click the \"play\" button to retry."
 msgstr "A lejátszó nem töltődött be; kérlek, kattints a \"lejátszás\" gombra az újra próbálkozáshoz."
 
@@ -6782,7 +6646,6 @@ msgstr "Probléma merült fel. Kérlek, frissítsd a nyomtató firmware-ét, és
 msgid "LAN Only Liveview is off. Please turn on the liveview on printer screen."
 msgstr "A csak LAN élőkép ki van kapcsolva. Kapcsold be az élőképet a nyomtató kijelzőjén."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please enter the IP of the printer to connect."
 msgstr "A csatlakozáshoz add meg a nyomtató IP-címét."
 
@@ -7083,7 +6946,6 @@ msgstr "Online"
 msgid "Input access code"
 msgstr "Add meg a hozzáférési kódot"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Can't find devices?"
 msgstr "Nem találod az eszközöket?"
 
@@ -7109,15 +6971,12 @@ msgstr "tiltott karakterek:"
 msgid "illegal suffix:"
 msgstr "tiltott utótag:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name field is not allowed to be empty."
 msgstr "A név mező nem lehet üres."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to start with a space."
 msgstr "A név nem kezdődhet szóközzel."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The name is not allowed to end with a space."
 msgstr "A név nem végződhet szóközzel."
 
@@ -7140,7 +6999,6 @@ msgstr "Váltás..."
 msgid "Switching failed"
 msgstr "Váltás sikertelen"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Printing progress"
 msgstr "Nyomtatás folyamata"
 
@@ -7159,12 +7017,12 @@ msgstr "Kattints a hőelőkészítés magyarázatának megtekintéséhez"
 msgid "Clear"
 msgstr "Törlés"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "You have completed printing the mall model, \n"
 "but synchronizing rating information has failed."
 msgstr ""
-"Befejezted a kis modell nyomtatását, \n"
+"Befejezted a Mall modell nyomtatását, \n"
 "de az értékelési információk szinkronizálása sikertelen."
 
 msgid "How do you like this printing file?"
@@ -7272,7 +7130,6 @@ msgstr "Réteg: %s"
 msgid "Layer: %d/%d"
 msgstr "Réteg: %d/%d"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please heat the nozzle to above 170℃ before loading or unloading filament."
 msgstr "Kérlek, melegítsd a fúvókát 170 fok fölé a filament betöltése vagy kihúzása előtt."
 
@@ -7285,7 +7142,6 @@ msgstr "Ha a kamrahőmérséklet meghaladja a 40℃-ot, a rendszer automatikusan
 msgid "Please select an AMS slot before calibration"
 msgstr "Válassz egy AMS-helyet a kalibrálás előtt"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot read filament info: the filament is loaded to the tool head. Please unload the filament and try again."
 msgstr "A filamentinformáció nem olvasható: a filament a nyomtatófejbe van betöltve. Kérlek, távolítsd el a filamentet és próbáld újra."
 
@@ -7526,9 +7382,9 @@ msgstr "Használat előtt nézd meg a Wikit ->"
 msgid "3D Mouse disconnected."
 msgstr "3D Mouse csatlakoztatva."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "A new configuration is available. Update now?"
-msgstr "A konfiguráció már frissíthető."
+msgstr "Új konfiguráció érhető el. Frissíted most?"
 
 msgid "Integration was successful."
 msgstr "Az integráció sikeres volt."
@@ -7551,15 +7407,12 @@ msgstr "Új nyomtatókonfiguráció érhető el."
 msgid "Undo integration failed."
 msgstr "Az integráció visszavonása nem sikerült."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Exporting"
 msgstr "Exportálás."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An update is available!"
 msgstr "Új szoftververzió érhető el."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Go to download page"
 msgstr "Látogass el a letöltési oldalra."
 
@@ -7717,7 +7570,6 @@ msgstr "Nyomtatási állapotpillanatkép bekapcsolásának megerősítése"
 msgid "Enable detection of build plate position"
 msgstr "Nyomtatótálca helyzetének érzékelése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The localization tag of the build plate will be detected, and printing will be paused if the tag is not in predefined range."
 msgstr "A nyomtató megkeresi a nyomtatótálca lokalizációs címkéjét, és szünetelteti a nyomtatást, ha az nem egy előre meghatározott tartományban van."
 
@@ -7783,7 +7635,6 @@ msgstr "Észleli a levegőbe nyomtatást, amelyet fúvókaeltömődés vagy fila
 msgid "First Layer Inspection"
 msgstr "Kezdőréteg ellenőrzése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Auto-recover from step loss"
 msgstr "Automatikus helyreállítás lépésvesztésből"
 
@@ -7797,7 +7648,6 @@ msgstr "A szeletelőből és más alkalmazásokból küldött nyomtatási fájlo
 msgid "Allow Prompt Sound"
 msgstr "Hangjelzés engedélyezése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament Tangle Detection"
 msgstr "Filament összegabalyodás észlelés"
 
@@ -8112,18 +7962,15 @@ msgstr "Sikeresen leválasztva. A(z) %s(%s) eszköz most már biztonságosan elt
 msgid "Ejecting of device %s (%s) has failed."
 msgstr "A(z) %s (%s) eszköz kiadása sikertelen."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Previously unsaved items have been detected. Do you want to restore them?"
 msgstr "Korábbi, nem mentett projekt észlelve, vissza szeretnéd állítani?"
 
 msgid "Restore"
 msgstr "Visszaállítás"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current heatbed temperature is relatively high. The nozzle may clog when printing this filament in a closed environment. Please open the front door and/or remove the upper glass."
 msgstr "A jelenlegi asztalhőmérséklet viszonylag magas. Zárt térben történő nyomtatásnál ez a filament fúvókaeltömődést okozhat. Nyisd ki az elülső ajtót és/vagy vedd le a felső üveglapot."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle hardness required by the filament is higher than the default nozzle hardness of the printer. Please replace the hardened nozzle or filament, otherwise, the nozzle will be worn down or damaged."
 msgstr "Ez a filament nagyobb keménységű fúvókát igényel. Kérlek, cseréld ki a fúvókát vagy válassz másik filamentet, különben előfordulhat, hogy a fúvóka idő előtt elhasználódik vagy megsérül."
 
@@ -8175,7 +8022,6 @@ msgstr "Szeretnéd, hogy az OrcaSlicer ezt automatikusan javítsa a forgatási s
 msgid "The 3MF file version %s is newer than %s's version %s, found the following unrecognized keys:"
 msgstr "A 3MF fájl %s verziója újabb, mint a(z) %s verziója %s, a következő ismeretlen kulcsokat találtuk:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You should update your software.\n"
 msgstr "Jobb lenne, ha frissítenéd a szoftvert.\n"
 
@@ -8197,7 +8043,6 @@ msgstr "A 3MF-et a BambuStudio készítette. Egyes beállítások eltérhetnek a
 msgid "Invalid values found in the 3MF:"
 msgstr "Érvénytelen értékek találhatók a 3MF-ben:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please correct them in the Param tabs"
 msgstr "Javítsd őket a paraméter füleken"
 
@@ -8219,13 +8064,12 @@ msgstr "Kérlek, győződj meg arról, hogy a beállításokban található G-k�
 msgid "Customized Preset"
 msgstr "Egyedi beállítás"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Component name(s) inside step file not in UTF8 format!"
 msgstr "A STEP fájlon belüli komponens neve nem UTF-8 formátumban van!"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Because of unsupported text encoding, garbage characters may appear!"
-msgstr "A név helytelen karaktereket mutathat!"
+msgstr "A nem támogatott szövegkódolás miatt hibás karakterek jelenhetnek meg!"
 
 msgid "Remember my choice."
 msgstr "Emlékezz a választásomra."
@@ -8240,22 +8084,27 @@ msgstr "Nulla térfogatú objektumok eltávolítva"
 msgid "The volume of the object is zero"
 msgstr "Az objektum térfogata nulla"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #, c-format, boost-format
 msgid ""
 "The object from file %s is too small, and may be in meters or inches.\n"
 " Do you want to scale to millimeters?"
-msgstr "A(z) %s fájlból származó objektum túl kicsi, lehet, hogy méterben vagy hüvelykben lett létrehozva. Szeretnéd milliméterre méretezni?"
+msgstr ""
+"A(z) %s fájlból származó objektum túl kicsi, lehet, hogy méterben vagy hüvelykben lett létrehozva.\n"
+" Szeretnéd milliméterre méretezni?"
 
 msgid "Object too small"
 msgstr "Objektum túl kicsi"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "This file contains several objects positioned at multiple heights.\n"
 "Instead of considering them as multiple objects, should \n"
 "the file be loaded as a single object with multiple parts?"
-msgstr "Ez a fájl több objektumot is tartalmaz különböző magasságban. Szeretnéd több objektum helyett több részből álló egyetlen objektumként betölteni?"
+msgstr ""
+"Ez a fájl több objektumot is tartalmaz különböző magasságban.\n"
+"Szeretnéd több objektum helyett \n"
+"égyetlen, több részből álló objektumként betölteni?"
 
 msgid "Multi-part object detected"
 msgstr "Több részből álló objektum észlelve"
@@ -8263,7 +8112,6 @@ msgstr "Több részből álló objektum észlelve"
 msgid "Load these files as a single object with multiple parts?\n"
 msgstr "Betöltöd ezeket a fájlokat több részből álló egyetlen objektumként?\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An object with multiple parts was detected"
 msgstr "Több részből álló objektumot észleltünk"
 
@@ -8280,7 +8128,6 @@ msgstr "Szeretnéd szinkronizálni a nyomtató adatait, és automatikusan átvá
 msgid "The file does not contain any geometry data."
 msgstr "A fájl nem tartalmaz geometriai adatokat."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Your object appears to be too large, do you want to scale it down to fit the print bed automatically?"
 msgstr "Úgy tűnik, hogy az objektum túl nagy. Szeretnéd átméretezni, hogy illeszkedjen a nyomtatótér méretéhez?"
 
@@ -8296,7 +8143,6 @@ msgstr "Draco fájl exportálása:"
 msgid "Export AMF file:"
 msgstr "AMF fájl exportálása:"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Save file as"
 msgstr "Fájl mentése mint:"
 
@@ -8318,7 +8164,6 @@ msgstr "Mentés másként megerősítése"
 msgid "Delete object which is a part of cut object"
 msgstr "A vágott objektum részét képező objektum törlése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "You are trying to delete an object which is a part of a cut object.\n"
 "This action will break a cut correspondence.\n"
@@ -8359,7 +8204,6 @@ msgstr "Egy másik exportálási feladat is fut."
 msgid "Unable to replace with more than one volume"
 msgstr "Nem lehet egynél több kötetre cserélni"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Error during replacement"
 msgstr "Hiba a csere során"
 
@@ -8369,7 +8213,6 @@ msgstr "Csere innen:"
 msgid "Select a new file"
 msgstr "Válassz egy új fájlt"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "File for the replacement wasn't selected"
 msgstr "A cserefájl nem lett kiválasztva"
 
@@ -8477,7 +8320,6 @@ msgstr ""
 msgid "Sync now"
 msgstr "Szinkronizálás most"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You can keep the modified presets for the new project or discard them"
 msgstr "Megtarthatod az új projekt módosított beállításait, vagy elvetheted őket"
 
@@ -8487,7 +8329,6 @@ msgstr "Új projekt létrehozása"
 msgid "Load project"
 msgstr "Projekt betöltése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Failed to save the project.\n"
 "Please check whether the folder exists online or if other programs have the project file open."
@@ -8501,18 +8342,15 @@ msgstr "Projekt mentése"
 msgid "Importing Model"
 msgstr "Modell importálása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preparing 3MF file..."
 msgstr "3mf fájl előkészítése..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; unknown file format."
 msgstr "Letöltés sikertelen, ismeretlen fájlformátum."
 
 msgid "Downloading project..."
 msgstr "projekt letöltése ..."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Download failed; File size exception."
 msgstr "Letöltés sikertelen, fájlméret kivétel."
 
@@ -8539,11 +8377,9 @@ msgstr "SLA archívum importálása"
 msgid "The selected file"
 msgstr "A kiválasztott fájl"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Does not contain valid G-code."
 msgstr "nem tartalmaz érvényes G-kódot."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An Error has occurred while loading the G-code file."
 msgstr "Hiba a G-kód betöltésének során"
 
@@ -8573,25 +8409,21 @@ msgstr "Megnyitás projektként"
 msgid "Import geometry only"
 msgstr "Csak a geometria importálása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only one G-code file can be opened at a time."
 msgstr "Egyszerre csak egy G-kód fájl nyitható meg."
 
 msgid "G-code loading"
 msgstr "G-code betöltése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code files and models cannot be loaded together!"
 msgstr "A G-code fájlokat nem lehet a modellekkel együtt betölteni!"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unable to add models in preview mode"
 msgstr "Előnézeti módban nem lehet modelleket hozzáadni!"
 
 msgid "All objects will be removed, continue?"
 msgstr "Minden tárgyat eltávolítunk, folytatod?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The current project has unsaved changes. Would you like to save before continuing?"
 msgstr "Az aktuális projektben el nem mentett módosítások vannak, mentsük el a folytatás előtt?"
 
@@ -8665,7 +8497,6 @@ msgstr "Feltöltés és Nyomtatás"
 msgid "Abnormal print file data. Please slice again"
 msgstr "Rendellenes nyomtatási fájladatok. Kérlek, szeleteld újra"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Print By Object: \n"
 "We suggest using auto-arrange to avoid collisions when printing."
@@ -8796,7 +8627,6 @@ msgstr "Háromszögek: %1%\n"
 msgid "Use \"Fix Model\" to repair the mesh."
 msgstr "A háló javításához használd a „Modell rögzítése” lehetőséget."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "Plate %d: %s is not suggested for use printing filament %s (%s). If you still want to do this print job, please set this filament's bed temperature to a number that is not zero."
 msgstr "%d. tálca: a(z) %s használata nem javasolt a(z) %s (%s) filament nyomtatásához. Ha mégis el szeretnéd indítani ezt a nyomtatást, állítsd a filament asztalhőmérsékletét nullánál nagyobb értékre."
@@ -8825,7 +8655,6 @@ msgstr "elöl"
 msgid "rear"
 msgstr "hátul"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Switching languages requires the application to restart.\n"
 msgstr "A nyelvváltáshoz az alkalmazás újraindítása szükséges.\n"
 
@@ -8853,7 +8682,6 @@ msgstr "Észak-Amerika"
 msgid "Others"
 msgstr "Egyéb"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Changing the region will log you out of your account.\n"
 msgstr "A régió megváltoztatásával a fiókod kijelentkezik.\n"
 
@@ -8961,7 +8789,6 @@ msgstr "Alapértelmezett oldal"
 msgid "Set the page opened on startup."
 msgstr "Az induláskor megnyitott oldal beállítása."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable dark Mode"
 msgstr "Sötét mód engedélyezése"
 
@@ -9013,7 +8840,6 @@ msgstr "Betöltődjenek-e a nyomtató/filament/folyamat beállítások 3MF fájl
 msgid "Auto backup"
 msgstr "Automatikus biztonsági mentés"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Backup your project periodically to help with restoring from an occasional crash."
 msgstr "A projekt időszakos mentése az esetleges összeomlás utáni helyreállításhoz."
 
@@ -9431,7 +9257,6 @@ msgstr "Filament és szín"
 msgid "Color only"
 msgstr "Csak szín"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Update built-in presets automatically."
 msgstr "Beépített beállítások automatikus frissítése."
 
@@ -9466,11 +9291,9 @@ msgstr "A Microsoft Store verzió fájltársításait a Windows beállításai k
 msgid "Open Windows Default Apps Settings"
 msgstr "A Windows alapértelmezett alkalmazások beállításainak megnyitása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Associate 3MF files to OrcaSlicer"
 msgstr ".3mf fájlok társítása a OrcaSlicerhoz"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open 3MF files."
 msgstr "Ha engedélyezve van, a OrcaSlicer-t állítja be alapértelmezett alkalmazásként a 3MF file fájlok megnyitásához"
 
@@ -9480,19 +9303,15 @@ msgstr "DRC fájlok társítása OrcaSlicerhez"
 msgid "If enabled, sets OrcaSlicer as default application to open DRC files."
 msgstr "Ha engedélyezve van, az OrcaSlicer lesz az alapértelmezett alkalmazás DRC fájlok megnyitásához."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Associate STL files to OrcaSlicer"
 msgstr ".stl fájlok társítása a OrcaSlicerhoz"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STL files."
 msgstr "Ha engedélyezve van, a OrcaSlicer-t állítja be alapértelmezett alkalmazásként az .stl fájlok megnyitásához"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Associate STEP files to OrcaSlicer"
 msgstr ".step/.stp fájlok társítása a OrcaSlicerhoz"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If enabled, this sets OrcaSlicer as the default application to open STEP files."
 msgstr "Ha engedélyezve van, a OrcaSlicer-t állítja be alapértelmezett alkalmazásként a .step fájlok megnyitásához"
 
@@ -9603,11 +9422,9 @@ msgstr "debug mentés gomb"
 msgid "Save debug settings"
 msgstr "hibakeresési beállítások mentése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Debug settings have been saved successfully!"
 msgstr "DEBUG beállítások sikeresen elmentve!"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cloud environment switched; please login again!"
 msgstr "Felhőkörnyezet megváltozott, kérlek, jelentkezz be újra!"
 
@@ -9630,7 +9447,6 @@ msgstr "AMS filamentek"
 msgid "Left filaments"
 msgstr "Bal oldali filamentek"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "AMS filament"
 msgstr "AMS filamentek"
 
@@ -9668,7 +9484,6 @@ msgstr "Nem támogatott beállítások"
 msgid "Unsupported"
 msgstr "Nem támogatott"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add/Remove filament"
 msgstr "Filament hozzáadása/eltávolítása"
 
@@ -9704,7 +9519,6 @@ msgstr "Adj meg egy rétegértéket (>= 2)."
 msgid "Plate name"
 msgstr "Tálca neve"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Same as Global Plate Type"
 msgstr "Ugyanaz, mint a globális tálcatípus"
 
@@ -9745,7 +9559,6 @@ msgstr "Elfogadás"
 msgid "Log Out"
 msgstr "Kijelentkezés"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice all plates to obtain time and filament estimation"
 msgstr "Szeleteld fel az összes tálcát az idő és a filament becsléséhez"
 
@@ -9806,7 +9619,6 @@ msgstr "A(z) \"%1%\" már létezik."
 msgid "Preset \"%1%\" already exists and is incompatible with the current printer."
 msgstr "A(z) \"%1%\" már létezik és nem kompatibilis a jelenlegi nyomtatóval."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please note that saving will overwrite the current preset."
 msgstr "Figyelem, a mentési művelet lecseréli ezt a beállítást"
 
@@ -10016,7 +9828,6 @@ msgstr "A külső tekercs filamenttípus-beállítása eltér a szeletelési fá
 msgid "The printer type selected when generating G-code is not consistent with the currently selected printer. It is recommended that you use the same printer type for slicing."
 msgstr "A G-kód létrehozásakor kiválasztott nyomtatótípus nem egyezik az aktuálisan kiválasztott nyomtatóval. Javasolt ugyanazt a nyomtatótípust használni a szeleteléshez."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "There are some unknown filaments in the AMS mappings. Please check whether they are the required filaments. If they are okay, click \"Confirm\" to start printing."
 msgstr "Van néhány ismeretlen filament az AMS kiosztásban. Győződj meg róla, hogy ezek a szükséges filamentek. Ha igen, kattints a \"Megerősítés\" gombra a nyomtatás megkezdéséhez."
 
@@ -10251,7 +10062,6 @@ msgstr "A tároló rendellenes állapotban van vagy csak olvasható módban van.
 msgid "Storage needs to be inserted before printing."
 msgstr "Nyomtatás előtt be kell helyezni a tárolót."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send the print job to a printer whose firmware must be updated."
 msgstr "Nem küldhetsz nyomtatási feladatot a nyomtatóra, mert annak firmware-jét frissíteni kell."
 
@@ -10313,7 +10123,6 @@ msgstr "Kapcsolat időtúllépés, ellenőrizd a hálózatot."
 msgid "Connection failed. Click the icon to retry"
 msgstr "Kapcsolódás sikertelen. Kattints az ikonra az újrapróbáláshoz."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Cannot send print tasks when an update is in progress"
 msgstr "Nem küldhető nyomtatási feladat a nyomtatóra, amikor frissítés van folyamatban"
 
@@ -10323,9 +10132,9 @@ msgstr "A nyomtató nem kompatibilis a kiválasztott nyomtatóbeállításokkal.
 msgid "Storage needs to be inserted before send to printer."
 msgstr "Nyomtatóra küldés előtt be kell helyezni a tárolót."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The printer is required to be on the same LAN as Orca Slicer."
-msgstr "A nyomtatónak ugyanazon a hálózaton kell lennie, mint a Bambu Studiónak."
+msgstr "A nyomtatónak ugyanazon a helyi hálózaton (LAN) kell lennie, mint az Orca Slicernek."
 
 msgid "The printer does not support sending to printer storage."
 msgstr "A nyomtató nem támogatja a nyomtató tárhelyére küldést."
@@ -10340,7 +10149,6 @@ msgstr "Fájlfeltöltés időtúllépés. Ellenőrizd, hogy a firmware verzió t
 msgid "Sending failed, please try again!"
 msgstr "A küldés sikertelen, kérlek, próbáld újra!"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slice complete"
 msgstr "Szeletelés kész."
 
@@ -10356,11 +10164,9 @@ msgstr "Socket csatlakozás sikertelen"
 msgid "Failed to publish login request"
 msgstr "Bejelentkezési kérés közzététele sikertelen"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from device"
 msgstr "Jegy lekérése az eszköztől időtúllépés miatt sikertelen"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Timeout getting ticket from server"
 msgstr "Jegy lekérése a szervertől időtúllépés miatt sikertelen"
 
@@ -10478,7 +10284,6 @@ msgstr "Kattints az összes beállítás utolsó mentett változatának visszaá
 msgid "Prime tower is required for nozzle changing. There may be flaws on the model without prime tower. Are you sure you want to disable prime tower?"
 msgstr "A fúvókacsere miatt szükség van a törlőtoronyra. Nélküle előfordulhatnak hibák a nyomtatott tárgyon. Biztos, hogy kikapcsolod a törlőtornyot?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without a prime tower. Are you sure you want to disable the prime tower?"
 msgstr "A sima időfelvétel miatt szükség van a törlőtoronyra. Nélküle előfordulhatnak hibák a nyomtatott tárgyon. Biztos, hogy kikapcsolod a törlőtornyot?"
 
@@ -10494,7 +10299,6 @@ msgstr "A csomósodás-észleléshez szükség van a törlőtoronyra. Nélküle 
 msgid "Enabling both precise Z height and the prime tower may cause slicing errors. Do you still want to enable precise Z height?"
 msgstr "A pontos Z magasság és a törlőtorony egyidejű engedélyezése szeletelési hibákat okozhat. Továbbra is engedélyezi a pontos Z magasságot?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is required for smooth timelapse mode. There may be flaws on the model without prime tower. Do you want to enable the prime tower?"
 msgstr "A sima időfelvétel miatt szükség van a törlőtoronyra. Nélküle előfordulhatnak hibák a nyomtatott tárgyon. Engedélyezed a törlőtornyot?"
 
@@ -10515,7 +10319,6 @@ msgstr ""
 "Ha támaszanyagot használsz a támasz érintkező felületéhez, a következő beállításokat javasoljuk:\n"
 "0 felső Z-távolság, 0 érintkező felület térköz, váltakozó egyenes vonalú mintázat, valamint a független támaszréteg-magasság kikapcsolása."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Change these settings automatically?\n"
 "Yes - Change these settings automatically.\n"
@@ -10661,7 +10464,6 @@ msgstr "Falak"
 msgid "Top/bottom shells"
 msgstr "Felső/alsó héjak"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer speed"
 msgstr "Kezdőréteg sebessége"
 
@@ -10689,7 +10491,6 @@ msgstr "Jerk(XY)"
 msgid "Raft"
 msgstr "Tutaj"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament for Supports"
 msgstr "Filament a támaszhoz"
 
@@ -10760,7 +10561,6 @@ msgstr "Alapinformációk"
 msgid "Recommended nozzle temperature"
 msgstr "Ajánlott fúvóka hőmérséklet"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Recommended nozzle temperature range of this filament. 0 means not set"
 msgstr "Az ajánlott fúvóka hőmérséklet-tartomány ehhez a filamenthez. A 0 azt jelenti, hogy nincs beállítva"
 
@@ -10798,7 +10598,6 @@ msgstr "Asztalhőmérséklet a Cool Plate SuperTack használatakor. A 0 érték 
 msgid "Cool Plate"
 msgstr "Hűvös tálca"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Cool Plate is installed. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Asztalhőmérséklet a hideg tálca használatával. A 0 érték azt jelenti, hogy a filament nem támogatja a Cool Plate-re történő nyomtatást"
 
@@ -10806,24 +10605,21 @@ msgstr "Asztalhőmérséklet a hideg tálca használatával. A 0 érték azt jel
 msgid "Textured Cool Plate"
 msgstr "Texturált hűvös tálca"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Textured Cool Plate is installed. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "Asztalhőmérséklet a Textured Cool Plate használatakor. A 0 érték azt jelenti, hogy a filament nem támogatja a Textured Cool Plate-re történő nyomtatást."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the engineering plate is installed. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Asztalhőmérséklet a mérnöki tálca használatával. A 0 érték azt jelenti, hogy a filament nem támogatja az Engineering Plate-re történő nyomtatást"
 
 msgid "Smooth PEI Plate / High Temp Plate"
 msgstr "Sima PEI tálca / magas hőmérsékletű tálca"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature when the Smooth PEI Plate/High Temperature Plate is installed. A value of 0 means the filament does not support printing on the Smooth PEI Plate/High Temp Plate."
 msgstr "Az asztal hőmérséklete Smooth PEI / High Temperature tálca használatakor. A 0 érték azt jelenti, hogy a filament nem támogatja Smooth PEI / High Temperature tálcára történő nyomtatást"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the bed temperature when the Textured PEI Plate is installed. A value of 0 means the filament does not support printing on the Textured PEI Plate."
-msgstr "Asztalhőmérséklet a texturált PEI tálca használatával. A 0 érték azt jelenti, hogy a filament nem támogatja a High Temp Plate-re történő nyomtatást"
+msgstr "Asztalhőmérséklet a texturált PEI tálca használatával. A 0 érték azt jelenti, hogy a filament nem támogatja a Textured PEI Plate-re történő nyomtatást"
 
 msgid "Volumetric speed limitation"
 msgstr "Volumetrikus sebességhatár"
@@ -10837,14 +10633,13 @@ msgstr "Tárgyhűtő ventilátor"
 msgid "Min fan speed threshold"
 msgstr "Min. ventilátor fordulatszám"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The part cooling fan will run at the minimum fan speed when the estimated layer time is longer than the threshold value. When the layer time is shorter than the threshold, the fan speed will be interpolated between the minimum and maximum fan speed according to layer printing time."
-msgstr "A tárgyhűtő ventilátor akkor kezd el min. fordulatszámon működni, amikor a becsült rétegidő nem hosszabb, mint a rétegidő a beállítoskban. Ha a rétegidő rövidebb a küszöbértéknél, a ventilátor fordulatszáma a rétegnyomtatási időnek megfelelően skálázódik a minimális és maximális ventilátor fordulatszám között"
+msgstr "A tárgyhűtő ventilátor a minimális fordulatszámon működik, ha a becsült rétegidő hosszabb a küszöbértéknél. Ha a rétegidő rövidebb a küszöbértéknél, a ventilátor fordulatszáma a rétegnyomtatási időnek megfelelően skálázódik a minimális és maximális ventilátor fordulatszám között"
 
 msgid "Max fan speed threshold"
 msgstr "Max. ventilátor fordulatszám"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will run at maximum speed when the estimated layer time is shorter than the threshold value."
 msgstr "A tárgyhűtő ventilátor fordulatszáma a maximális lesz, ha a becsült rétegidő rövidebb, mint a beállított érték"
 
@@ -11072,7 +10867,6 @@ msgstr ""
 "Biztosan törlöd a kiválasztott beállítást?\n"
 "Ha ez a filament jelenleg használatban van a nyomtatón, kérlek, töröld az adott férőhelyen a filamentadatokat."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "Are you sure you want to %1% the selected preset?"
 msgstr "Biztos, hogy %1% a kiválasztott beállítást?"
@@ -11154,21 +10948,18 @@ msgstr "Módosítani szeretnéd a(z) %s alábbi paramétereit a(z) %s paraméter
 msgid "Click to reset current value and attach to the global value."
 msgstr "Kattints ide az érték visszaállításához és a globális érték használatához."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Click to drop current modifications and reset to saved value."
 msgstr "Kattints a gombra az aktuális módosítás elvetéséhez és a mentett értékre való visszaállításhoz."
 
 msgid "Process Settings"
 msgstr "Folyamatbeállítások"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "unsaved changes"
 msgstr "Mentetlen változások"
 
 msgid "Transfer or discard changes"
 msgstr "Változások elvetése vagy megtartása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Old Value"
 msgstr "Régi érték"
 
@@ -11224,7 +11015,6 @@ msgstr ""
 msgid "Click the right mouse button to display the full text."
 msgstr "Kattints a jobb egérgombbal a teljes szöveg megjelenítéséhez."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "No changes will be saved."
 msgstr "A módosítások nem kerülnek mentésre"
 
@@ -11781,7 +11571,6 @@ msgctxt "Keyboard Shortcut"
 msgid "Arrow Up"
 msgstr "Felfelé nyíl"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive Y direction"
 msgstr "Kijelölés mozgatása 10 mm-rel pozitív Y irányban"
 
@@ -11790,7 +11579,6 @@ msgctxt "Keyboard Shortcut"
 msgid "Arrow Down"
 msgstr "Lefelé nyíl"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative Y direction"
 msgstr "Kijelölés mozgatása 10 mm-rel negatív Y irányban"
 
@@ -11799,7 +11587,6 @@ msgctxt "Keyboard Shortcut"
 msgid "Arrow Left"
 msgstr "Balra nyíl"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in negative X direction"
 msgstr "Kijelölés mozgatása 10 mm-rel negatív X irányban"
 
@@ -11808,15 +11595,12 @@ msgctxt "Keyboard Shortcut"
 msgid "Arrow Right"
 msgstr "Jobbra nyíl"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Move selection 10mm in positive X direction"
 msgstr "Kijelölés mozgatása 10 mm-rel pozitív X irányban"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Movement step set to 1mm"
 msgstr "Mozgatás lépéstávolsága 1mm-re állítva"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Keyboard 1-9: set filament for object/part"
 msgstr "filament hozzárendelése az objektumhoz/tárgyhoz"
 
@@ -11928,7 +11712,6 @@ msgstr "Gizmo"
 msgid "Set extruder number for the objects and parts"
 msgstr "Extruder szám beállítása az objektumok és tárgyak számára"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Delete objects, parts, modifiers"
 msgstr "Objektumok, tárgyak, módosítók törlése"
 
@@ -12154,13 +11937,12 @@ msgstr "Hotendek a tartón"
 msgid "Are you sure you want to update? This will take about 10 minutes. Do not turn off the power while the printer is updating."
 msgstr "Biztos, hogy frissíteni akarsz? Ez körülbelül 10 percet vesz igénybe. Ne kapcsold ki a nyomtatót, amíg a frissítés tart."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "An important update was detected and needs to be run before printing can continue. Do you want to update now? You can also update later from 'Update firmware'."
 msgstr "Fontos frissítést találtunk, amelyet a nyomtatás előtt telepíteni kell. Szeretnél most frissíteni? A frissítés később is elvégezhető a \"Firmware frissítése\" menüpontban."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "The firmware version is abnormal. Repairing and updating are required before printing. Do you want to update now? You can also update later on the printer or update next time you start Orca Slicer."
-msgstr "A firmware verziója rendellenes. A nyomtatás előtt javításra és frissítésre van szükség. Szeretnél frissíteni most? A frissítés később is elvégezhető a Orca Slicer következő indításakor."
+msgstr "A firmware verziója rendellenes. A nyomtatás előtt javításra és frissítésre van szükség. Szeretnél frissíteni most? A frissítés később a nyomtatón, vagy az Orca Slicer következő indításakor is elvégezhető."
 
 msgid "Extension Board"
 msgstr "Bővítőpanel"
@@ -12182,7 +11964,6 @@ msgstr "Javítás megszakítva"
 msgid "Copying of file %1% to %2% failed: %3%"
 msgstr "%1% fájl másolása sikertelen a következő helyre: %2% Hiba: %3%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please check any unsaved changes before updating the configuration."
 msgstr "Kérlek, ellenőrizd a nem mentett módosításokat a konfiguráció frissítése előtt."
 
@@ -12198,7 +11979,6 @@ msgstr "G-kód fájl megnyitása:"
 msgid "One object has an empty first layer and can't be printed. Please Cut the bottom or enable supports."
 msgstr "Az egyik objektum üres kezdőréteggel rendelkezik, ezért nem nyomtatható. Kérlek, vágd le az alját, vagy engedélyezd a támaszokat."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "The object has empty layers between %1% and %2% and can’t be printed."
 msgstr "Az objektumnak üres rétegei vannak %1% és %2% között, ezért nem nyomtatható."
@@ -12207,7 +11987,6 @@ msgstr "Az objektumnak üres rétegei vannak %1% és %2% között, ezért nem ny
 msgid "Object: %1%"
 msgstr "Objektum: %1%"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Parts of the object at these heights may be too thin or the object may have a faulty mesh."
 msgstr "Az objektum ezen magasságban lévő részei túl vékonyak lehetnek, vagy az objektum hibás hálóval rendelkezik."
 
@@ -12217,7 +11996,6 @@ msgstr "Folyamat módosítása extrudálási szerepkör G-kódja"
 msgid "Filament change extrusion role G-code"
 msgstr "Filament változás extrudálási szerepkör G-kódja"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "No object can be printed. It may be too small."
 msgstr "Objektum nem nyomtatható ki. Lehet, hogy túl kicsi."
 
@@ -12273,7 +12051,6 @@ msgstr "meghatározatlan hiba"
 msgid "too many files"
 msgstr "túl sok fájl"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "File too large"
 msgstr "fájl túl nagy"
 
@@ -12295,7 +12072,6 @@ msgstr "nem ZIP archívum"
 msgid "invalid header or corrupted"
 msgstr "érvénytelen fejléc vagy sérült"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Saving to RAID is not supported."
 msgstr "a többlemezes mentés nem támogatott"
 
@@ -12344,7 +12120,6 @@ msgstr "érvénytelen paraméter"
 msgid "invalid filename"
 msgstr "érvénytelen fájlnév"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Buffer too small"
 msgstr "túl kicsi puffer"
 
@@ -12354,7 +12129,6 @@ msgstr "belső hiba"
 msgid "file not found"
 msgstr "fájl nem található"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Archive too large"
 msgstr "archívum túl nagy"
 
@@ -12364,7 +12138,6 @@ msgstr "sikertelen érvényesítés"
 msgid "write callback failed"
 msgstr "írás callback sikertelen"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, boost-format
 msgid "%1% is too close to exclusion area. There may be collisions when printing."
 msgstr "%1% túl közel van a tiltott területhez, a nyomtatás során előfordulhatnak ütközések."
@@ -12389,7 +12162,6 @@ msgstr "Törlőtorony"
 msgid " is too close to others, and collisions may be caused.\n"
 msgstr " túl közel van más tárgyakhoz, a nyomtatás során előfordulhatnak ütközések.\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid " is too close to an exclusion area, and collisions will be caused.\n"
 msgstr " túl közel van a tiltott területhez, a nyomtatás során előfordulhatnak ütközések.\n"
 
@@ -12423,7 +12195,6 @@ msgstr "A csomósodásészleléshez törlőtorony szükséges; enélkül hibák 
 msgid "Please select \"By object\" print sequence to print multiple objects in spiral vase mode."
 msgstr "Kérlek, válaszd a \"Tárgyanként\" nyomtatási sorrendet több tárgy spirálváza módban történő nyomtatásához."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Spiral (vase) mode does not work when an object contains more than one material."
 msgstr "A spirál (váza) mód nem működik, ha egy objektum egynél több anyagot tartalmaz."
 
@@ -12457,30 +12228,24 @@ msgstr "A szivárgás megelőzése csak akkor támogatott a törlőtoronnyal, ha
 msgid "The prime tower is currently only supported for the Marlin, RepRap/Sprinter, RepRapFirmware and Repetier G-code flavors."
 msgstr "A törlőtorony jelenleg csak a Marlin, RepRap/Sprinter, RepRapFirmware és Repetier G-kód változatokkal használható."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported in “By object” print."
 msgstr "A törlőtorony nem támogatott \"Tárgyanként\" nyomtatás esetén."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower is not supported when adaptive layer height is on. It requires that all objects have the same layer height."
 msgstr "A törlőtorony nem támogatott, ha az adaptív rétegmagasság be van kapcsolva. Ehhez minden objektumnak azonos rétegmagassággal kell rendelkeznie."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires any “support gap” to be a multiple of layer height."
 msgstr "A törlőtorony használatához a \"támaszköznek\" a rétegmagasság többszörösének kell lennie."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects have the same layer height."
 msgstr "A törlőtorony használatához minden objektumnak azonos rétegmagassággal kell rendelkeznie."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are printed over the same number of raft layers."
 msgstr "A törlőtorony használatához minden objektumot azonos számú tutajréteggel kell nyomtatni."
 
 msgid "The prime tower is only supported for multiple objects if they are printed with the same support_top_z_distance."
 msgstr "A törlőtorony több objektum esetén csak akkor támogatott, ha azok azonos support_top_z_distance értékkel készülnek."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that all objects are sliced with the same layer height."
 msgstr "A törlőtorony használatához minden objektumot azonos rétegmagasságokkal kell szeletelni."
 
@@ -12490,18 +12255,15 @@ msgstr "A törlőtorony használatához minden objektumnak azonos változó rét
 msgid "One or more object were assigned an extruder that the printer does not have."
 msgstr "Egy vagy több objektum olyan extruderhez lett rendelve, amellyel a nyomtató nem rendelkezik."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too small"
 msgstr "Túl kicsi a vonalszélesség"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Line width too large"
 msgstr "Túl nagy vonalszélesség"
 
 msgid "Printing with multiple extruders of differing nozzle diameters. If support is to be printed with the current filament (support_filament == 0 or support_interface_filament == 0), all nozzles have to be of the same diameter."
 msgstr "Eltérő fúvókaátmérőjű több extruderrel történő nyomtatás. Ha a támaszt az aktuális filamenttel kell nyomtatni (support_filament == 0 vagy support_interface_filament == 0), akkor minden fúvókának azonos átmérőjűnek kell lennie."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A prime tower requires that support has the same layer height as the object."
 msgstr "A törlőtorony használatához a támasznak az objektummal azonos rétegmagassággal kell rendelkeznie."
 
@@ -12526,7 +12288,6 @@ msgstr "Az üreges alap mintát ez a támasztéktípus nem támogatja; helyette 
 msgid "Support enforcers are used but support is not enabled. Please enable support."
 msgstr "Támasz kényszerítőket használtál, de a támaszok nincsenek engedélyezve. Kérlek, engedélyezd a támaszokat."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Layer height cannot exceed nozzle diameter."
 msgstr "A rétegmagasság nem lehet nagyobb a fúvóka átmérőjénél."
 
@@ -12625,9 +12386,9 @@ msgstr "G-kód exportálása"
 msgid "Generating G-code"
 msgstr "G-kód generálása"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Processing of the filename_format template failed."
-msgstr "Nem sikerült feldolgozni a fájlnév_formátum sablont."
+msgstr "Nem sikerült feldolgozni a filename_format sablont."
 
 msgid "Printer technology"
 msgstr "Nyomtató technológia"
@@ -12662,7 +12423,6 @@ msgstr "Párhuzamos nyomtatófejek asztali kizárási területei"
 msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 applies to one printhead, item 2 to two printheads, and so on. Leave an item empty for no excluded area."
 msgstr "Az asztali kizárási területek rendezett listája a párhuzamos nyomtatófejek száma szerint. Az 1. elem egy nyomtatófejre, a 2. elem két nyomtatófejre vonatkozik, és így tovább. Hagyj üresen egy elemet, ha nincs kizárt terület."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Excluded bed area"
 msgstr "Asztal kizárási terület"
 
@@ -12678,7 +12438,6 @@ msgstr "Egyedi tárgyasztal modell"
 msgid "Elephant foot compensation"
 msgstr "Elefántláb kompenzáció"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shrinks the first layer on the build plate to compensate for elephant foot effect."
 msgstr "Zsugorítja a kezdőréteget a tárgyasztalon, hogy kompenzálja az elefántláb-hatást"
 
@@ -12700,16 +12459,15 @@ msgstr ""
 "A második réteg kezdeti értéke van állítva.\n"
 "A következő rétegek lineárisan sűrűbbé válnak az elefant_foot_compensation_layers paraméterben megadott magassággal."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the height for each layer. Smaller layer heights give greater accuracy but longer printing time."
 msgstr "Az egyes rétegek szeletelési magassága. A kisebb rétegmagasság pontosabb nyomtatást és több időt jelent"
 
 msgid "Printable height"
 msgstr "Nyomtatási magasság"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the maximum printable height which is limited by the height of the build area."
-msgstr "Maximális nyomtatható magasság a nyomtató mechanikája által korlátozva."
+msgstr "A maximális nyomtatható magasság, amelyet a nyomtatási tér magassága korlátoz."
 
 msgid "Extruder printable height"
 msgstr "Extruder nyomtatható magassága"
@@ -12790,7 +12548,6 @@ msgstr "Jelszó"
 msgid "Ignore HTTPS certificate revocation checks"
 msgstr "A HTTPS-tanúsítvány visszavonás ellenőrzésének figyelmen kívül hagyása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ignore HTTPS certificate revocation checks in the case of missing or offline distribution points. One may want to enable this option for self signed certificates if connection fails."
 msgstr "Hiányzó vagy offline terjesztési pontok esetén figyelmen kívül hagyja a HTTPS-tanúsítványok visszavonásának ellenőrzését. Ez az opció akkor lehet segítségedre, ha nem sikerül csatlakoznod egy általad aláírt tanúsítvánnyal."
 
@@ -12814,14 +12571,12 @@ msgstr "A beállítás által használt bővítményképességek konfigurációj
 msgid "Avoid crossing walls"
 msgstr "Kerülje a falak keresztezését"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detours to avoid traveling across walls, which may cause blobs on the surface."
 msgstr "Kerülje a falon keresztül való áthaladást, ami nyomot hagyhat a felületen"
 
 msgid "Avoid crossing walls - Max detour length"
 msgstr "Kerülje a falak keresztezését - Max kitérő hossza"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum detour distance for avoiding crossing wall: The printer won't detour if the detour distance is larger than this value. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. A value of 0 will disable this."
 msgstr "A kitérő maximális hossza a fal keresztezésének elkerüléséhez: a nyomtató figyelmen kívül hagyja a kitérést, ha az ehhez szükséges távolság nagyobb, mint ez az érték. A kitérő megadható abszolút értékként vagy a közvetlen útvonal százalékában (például 50%). Állítsd az értéket 0-ra, ha ki szeretnéd kapcsolni ezt az opciót."
 
@@ -12834,59 +12589,46 @@ msgstr "Többi réteg"
 msgid "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "A kezdőrétegen kívüli rétegek tárgyasztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a nyomtatást a SuperTac hűvös tálcán."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "Az asztal hőmérséklete a kezdőréteg kivételével. A 0 érték azt jelenti, hogy a filament nem támogatja a Cool Plate-re történő nyomtatást"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "A kezdőrétegen kívüli rétegek tárgyasztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a nyomtatást a texturált hűvös tálcán."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "Az asztal hőmérséklete a kezdeti réteg kivételével. A 0 érték azt jelenti, hogy a szál nem támogatja az Engineering Plate-re történő nyomtatást"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "Az asztal hőmérséklete a kezdeti réteg kivételével. A 0 érték azt jelenti, hogy a szál nem támogatja a High Temp Plate-re történő nyomtatást"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature for layers except for the first one. A value of 0 means the filament does not support printing on the Textured PEI Plate."
 msgstr "Asztalhőmérséklet az első réteg után. A 0 érték azt jelenti, hogy a filament nem támogatja texturált PEI tálcára történő nyomtatást."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer"
 msgstr "Kezdőréteg"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer bed temperature"
 msgstr "Első réteg asztalhőmérséklete"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack."
 msgstr "A kezdőréteg tárgyasztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a nyomtatást a SuperTac hűvös tálcán."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate."
 msgstr "A kezdőréteg asztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a Cool Plate-re történő nyomtatást"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate."
 msgstr "A kezdőréteg tárgyasztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a nyomtatást a texturált hűvös tálcán."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate."
 msgstr "A kezdőréteg asztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a Engineering Plate-re történő nyomtatást"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate."
 msgstr "A kezdőréteg asztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a High Temp Plate-re történő nyomtatást"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate."
-msgstr "Az első réteg asztalhőmérsékletének beállított 0 érték azt jelenti, hogy a filament nem támogatja texturált PEI tálcára történő nyomtatást."
+msgstr "A kezdőréteg asztalhőmérséklete. A 0 érték azt jelenti, hogy a filament nem támogatja a texturált PEI tálcára történő nyomtatást."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Plate types supported by the printer"
 msgstr "Nyomtató által támogatott asztaltípusok"
 
@@ -12920,7 +12662,6 @@ msgstr "Ez az alsó héj szilárd rétegeinek száma, beleértve az alsó felül
 msgid "Bottom shell thickness"
 msgstr "Alsó héj vastagság"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of bottom solid layers is increased when slicing if the thickness calculated by bottom shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and the thickness of the bottom shell is determined simply by the number of bottom shell layers."
 msgstr "Az alsó szilárd rétegek száma szeleteléskor megnő, ha az alsó héjrétegek vastagsága kisebb ennél az értéknél. Ezzel elkerülhető, hogy túl vékony legyen a héj, ha a rétegmagasság kicsi. A 0 azt jelenti, hogy ez a beállítás ki van kapcsolva, és az alsó héj vastagságát egyszerűen az alsó héjrétegek száma határozza meg."
 
@@ -13389,13 +13130,12 @@ msgstr ""
 "A 0 érték minden páros rétegen engedélyezi a megfordítást.\n"
 "Ha a túlnyúló fal érzékelése nincs engedélyezve, ez az opció figyelmen kívül marad, és a megfordítás minden páros rétegen megtörténik."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Slow down for overhangs"
 msgstr "Lassítás túlnyúlásoknál"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Enable this option to slow down when printing overhangs. The speeds for different overhang percentages are set below."
-msgstr "Engedélyezd ezt az opciót a nyomtatási sebesség lassításához különböző túlnyúlási szögeknél"
+msgstr "Engedélyezd ezt az opciót a túlnyúlások nyomtatásakor történő lassításhoz. A különböző túlnyúlási százalékokhoz tartozó sebességek alább állíthatók be."
 
 msgid "Slow down for curled perimeters"
 msgstr "Lassítás felkunkorodó kerületeknél"
@@ -13451,7 +13191,6 @@ msgstr "A belső hidak sebessége. Ha az érték százalékban van megadva, a br
 msgid "Brim width"
 msgstr "Perem szélessége"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the model to the outermost brim line."
 msgstr "A modell és a legkülső peremvonal közötti távolság"
 
@@ -13464,7 +13203,6 @@ msgstr "Ez a modellek külső és/vagy belső oldalán létrehozott perem gener�
 msgid "Brim-object gap"
 msgstr "Perem-tárgy közötti rés"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This creates a gap between the innermost brim line and the object and can make the brim easier to remove."
 msgstr "A legbelső peremvonal és a tárgy közötti rés, ami megkönnyítheti a perem eltávolítását"
 
@@ -13484,11 +13222,9 @@ msgstr ""
 "\n"
 "Megjegyzés: A kapott értéket nem befolyásolja az első réteg áramlási aránya."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Brim follows compensated outline"
 msgstr "A Perem a kompenzált körvonalat követi"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "When enabled, the brim is aligned with the first-layer perimeter geometry after Elephant Foot Compensation is applied.\n"
 "This option is intended for cases where Elephant Foot Compensation significantly alters the first-layer footprint.\n"
@@ -13540,15 +13276,12 @@ msgstr "felfelé kompatibilis gép"
 msgid "Condition"
 msgstr "Feltétel"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile."
 msgstr "Logikai kifejezés, amely egy aktív nyomtatóprofil konfigurációs értékeit használja. Ha ez a kifejezés igaz, akkor ez a profil kompatibilis az aktív nyomtatóprofillal."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "A Boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile."
 msgstr "Logikai kifejezés, amely egy aktív nyomtatási profil konfigurációs értékeit használja. Ha ez a kifejezés igaz, akkor ez a profil kompatibilis az aktív nyomtatási profillal."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the print sequence, allowing you to print layer-by-layer or object-by-object."
 msgstr "Nyomtatási sorrend, rétegenként vagy tárgyanként"
 
@@ -13570,16 +13303,13 @@ msgstr "Objektumlista szerint"
 msgid "Slow printing down for better layer cooling"
 msgstr "Nyomtatás lelassítása a jobb hűtés érdekében"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Enable this option to slow printing speed down to ensure that the final layer time is not shorter than the layer time threshold in \"Max fan speed threshold\", so that the layer can be cooled for a longer time. This can improve the quality for small details."
-msgstr ""
-"Engedélyezd ezt az opciót a nyomtatási sebesség lassításához, hogy a rétegidő ne lehessen kevesebb, mint a \"Max. ventilátor fordulatszám\"-nál megadott küszöbérték.\n"
-"Ezáltal a rétegnek több ideje marad visszahűlni és javulhat a kisebb részletek nyomtatási minősége"
+msgstr "Engedélyezd ezt az opciót a nyomtatási sebesség lassításához, hogy a rétegidő ne lehessen kevesebb, mint a \"Max. ventilátor fordulatszám\"-nál megadott küszöbérték. Ezáltal a rétegnek több ideje marad visszahűlni és javulhat a kisebb részletek nyomtatási minősége"
 
 msgid "Normal printing"
 msgstr "Normál nyomtatás"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the default acceleration for both normal printing and travel after the first layer."
 msgstr "Ez az alapértelmezett gyorsulás mind a normál nyomtatáshoz, mind az első réteg utáni mozgáshoz."
 
@@ -13644,7 +13374,6 @@ msgstr "Kikapcsolja a hűtést a megadott első pár rétegnél. A hűtés kikap
 msgid "Don't support bridges"
 msgstr "Ne támassza alá az áthidalásokat"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This disables supporting bridges, which decreases the amount of support required. Bridges can usually be printed directly without support over a reasonable distance."
 msgstr "Nem támasztja alá az áthidalásokat, ezáltal támaszanyagot spórolva. Az áthidalások általában támasz nélkül is jól nyomtathatók, ha nem túl hosszúak"
 
@@ -13740,14 +13469,12 @@ msgstr "Nincs szűrés"
 msgid "Max bridge length"
 msgstr "Maximum áthidalás hossza"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the maximum length of bridges that don't need support. Set it to 0 if you want all bridges to be supported, and set it to a very large value if you don't want any bridges to be supported."
 msgstr "Ez a maximális hossza azoknak az áthidalásoknak, amelyeknek nincs szükségük alátámasztásra. Állítsd 0-ra, ha azt szeretnéd, hogy minden áthidalás alá legyen támasztva, vagy állítsd egy nagyon nagy értékre, ha azt szeretnéd, hogy egyetlen áthidalás se legyen alátámasztva."
 
 msgid "End G-code"
 msgstr "Befejező G-kód"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-Code when finishing the entire print."
 msgstr "Befejező G-kód az egész nyomtatás befejezésekor"
 
@@ -13757,7 +13484,6 @@ msgstr "Objektumok közötti G-kód"
 msgid "Insert G-code between objects. This parameter will only come into effect when you print your models object by object."
 msgstr "A tárgyak nyomtatása között használt G-kód. Ez a paraméter csak akkor működik, ha a nyomtatás tárgyankénti sorrendben történik."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Add end G-code when finishing the printing of this filament."
 msgstr "Befejező G-kód a filament nyomtatásának befejezésekor"
 
@@ -13788,7 +13514,6 @@ msgstr "Mérsékelt"
 msgid "Top surface pattern"
 msgstr "Felső felület mintázata"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for top surface infill."
 msgstr "Ez a felső felület kitöltésének mintája."
 
@@ -13879,7 +13604,6 @@ msgstr "Kifelé"
 msgid "Bottom surface pattern"
 msgstr "Alsó felület mintázata"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern of bottom surface infill, not including bridge infill."
 msgstr "Ez az alsó felület kitöltésének mintája, kivéve az áthidalásokat."
 
@@ -13930,7 +13654,6 @@ msgstr "A belső tömör kitöltés vonalmintája. Ha a keskeny belső tömör k
 msgid "Line width of outer wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "A külső fal vonalszélessége. Ha százalékban van megadva, a fúvókaátmérő alapján lesz kiszámítva."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing speed for the outer walls of parts. These are generally printed slower than inner walls for higher quality."
 msgstr "A legkülső látható fal sebessége. A jobb minőség érdekében ez lassabb, mint a belső fal sebessége."
 
@@ -14026,18 +13749,15 @@ msgstr "Óramutató járásával megegyező"
 msgid "Height to rod"
 msgstr "Magasság a rúdig"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lower rod. Used for collision avoidance in by-object printing."
 msgstr "A fúvóka hegye és az alsó rúd közötti távolság. Objektumonként történő nyomtatás során az ütközések elkerülésére szolgál."
 
 msgid "Height to lid"
 msgstr "Magasság a fedélig"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Distance from the nozzle tip to the lid. Used for collision avoidance in by-object printing."
 msgstr "A fúvóka hegye és a fedél közötti távolság. Objektumonként történő nyomtatás során az ütközések elkerülésére szolgál."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Clearance radius around extruder: used for collision avoidance in by-object printing."
 msgstr "Az extruder körüli szabadon hagyott terület sugara. Objektumonként történő nyomtatás során az ütközések elkerülésére szolgál."
 
@@ -14190,7 +13910,6 @@ msgstr "Alapértelmezett vonalszélesség, ha a többi vonalszélesség 0-ra van
 msgid "Keep fan always on"
 msgstr "Ventilátor mindig bekapcsolva"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enabling this setting means that part cooling fan will never stop entirely and will instead run at least at minimum speed to reduce the frequency of starting and stopping."
 msgstr "Ezen beállítás engedélyezése esetén a tárgyhűtő ventilátor soha nem áll le, és legalább a minimális fordulatszámon fog járni, hogy csökkentse az indítás és leállítás gyakoriságát"
 
@@ -14211,7 +13930,6 @@ msgstr ""
 msgid "Layer time"
 msgstr "Rétegidő"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan will be enabled for layers where the estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time."
 msgstr "A tárgyhűtő ventilátor azon rétegek esetében lesz engedélyezve, amelyek becsült ideje rövidebb ennél az értéknél. A ventilátor fordulatszáma a rétegnyomtatási időnek megfelelően skálázódik a minimális és maximális ventilátor fordulatszám között"
 
@@ -14237,7 +13955,6 @@ msgstr "Ide írhatod a filamenttel kapcsolatos megjegyzéseidet."
 msgid "Required nozzle HRC"
 msgstr "Szükséges fúvóka HRC-érték"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Minimum HRC of nozzle required to print the filament. A value of 0 means no checking of the nozzle's HRC."
 msgstr "A filament nyomtatásához szükséges fúvóka minimum HRC értéke. A 0 azt jelenti, hogy nem ellenőrzi a fúvóka HRC értékét."
 
@@ -14273,7 +13990,6 @@ msgstr "Öblítési volumetrikus sebesség"
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
 msgstr "A filament öblítésekor használt volumetrikus sebesség. A 0 a maximális volumetrikus sebességet jelenti."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "Ezzel a beállítással adhatod meg a másodpercenként megolvasztható és extrudálható maximális filamentmennyiséget. A nyomtatási sebességet a maximális térfogatsebesség korlátozhatja, túl magas és ésszerűtlen sebesség esetén. Ez az érték nem lehet 0."
 
@@ -14307,7 +14023,6 @@ msgstr "Az első filament alapján"
 msgid "By Highest Temp"
 msgstr "A legmagasabb hőmérséklet alapján"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament diameter is used to calculate extrusion variables in G-code, so it is important that this is accurate and precise."
 msgstr "A filament átmérő a G-kódban az extrudálás kiszámításához szükséges, ezért fontos, hogy pontos legyen"
 
@@ -14381,7 +14096,6 @@ msgstr "A betöltési fázis legelején használt sebesség."
 msgid "Unloading speed"
 msgstr "Kiürítési sebesség"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming)."
 msgstr "A filament törlőtoronynál való kiürítéséhez használt sebesség (nem befolyásolja a kiürítés kezdeti részét közvetlenül a tömörítés után)."
 
@@ -14499,14 +14213,12 @@ msgstr "A filament tömörítéséhez használt áramlás a szerszámváltás el
 msgid "Density"
 msgstr "Sűrűség"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament density, for statistical purposes only."
 msgstr "Filament sűrűsége. Csak statisztikákhoz kerül felhasználásra"
 
 msgid "g/cm³"
 msgstr "g/cm³"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament material type"
 msgstr "Filament anyagának típusa"
 
@@ -14545,14 +14257,12 @@ msgstr "Egyetlen 32 bites egész szám, amely egy filament kompatibilitási szin
 msgid "Softening temperature"
 msgstr "Lágyulási hőmérséklet"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogs."
 msgstr "Az anyag ezen a hőmérsékleten kezd meglágyulni, ezért ha az asztal hőmérséklete ezt eléri vagy meghaladja, az eltömődés elkerülése érdekében erősen ajánlott kinyitni az első ajtót és/vagy eltávolítani a felső üveget."
 
 msgid "Price"
 msgstr "Költség"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Filament price, for statistical purposes only."
 msgstr "Filament költsége. Csak statisztikákhoz kerül felhasználásra"
 
@@ -14571,7 +14281,6 @@ msgstr "(Nincs meghatározva)"
 msgid "Sparse infill direction"
 msgstr "Ritka kitöltés iránya"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the angle for sparse infill pattern, which controls the start or main direction of lines."
 msgstr "A ritkás kitöltési minta szöge, amely a vonal kezdő- vagy fő irányát szabályozza"
 
@@ -14639,15 +14348,14 @@ msgstr "Több vonal használata a kitöltési mintához, ha azt a kitöltési mi
 msgid "Z-buckling bias optimization (experimental)"
 msgstr "Z-kihajlási torzítás optimalizálása (kísérleti)"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #, no-c-format, no-boost-format
 msgid "Tightens the gyroid wave along the Z (vertical) axis at low infill density to shorten the effective vertical column length and improve Z-axis compression buckling resistance. Filament use is preserved. No effect at ~30% sparse infill density and above. Only applies when Sparse infill pattern is set to Gyroid."
-msgstr "Alacsony feltöltési sűrűség mellett megfeszíti a gyroid hullámot a Z (függőleges) tengely mentén, hogy lerövidítse a tényleges függőleges oszlophosszt és javítsa a Z-tengely összenyomódási kihajlási ellenállását. A filamenthasználat megmarad. Nincs hatása ~30%-os és afeletti ritka kitöltési sűrűségnél. Csak akkor érvényes, ha a Ritka kitöltési minta Gyroid-ra van állítva."
+msgstr "Alacsony feltöltési sűrűség mellett megfeszíti a gyroid hullámot a Z (függőleges) tengely mentén, hogy lerövidítse a tényleges függőleges oszlophosszt és javítsa a Z-tengely összenyomódási kihajlási ellenállását. A filamenthasználat megmarad. Nincs hatása ~30% vagy annál nagyobb ritka kitöltési sűrűségnél. Csak akkor érvényes, ha a Ritka kitöltési minta Gyroid-ra van állítva."
 
 msgid "Sparse infill pattern"
 msgstr "Kitöltési mintázat"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for internal sparse infill."
 msgstr "Ez a belső ritkás kitöltés mintája."
 
@@ -14709,11 +14417,9 @@ msgstr "TPMS-FK"
 msgid "Gyroid"
 msgstr "Gyroid"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the acceleration of top surface infill. Using a lower value may improve top surface quality."
 msgstr "A felső felületi kitöltés gyorsulása. Alacsonyabb érték használata javíthatja a felső felület minőségét"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Acceleration of outer wall: using a lower value can improve quality."
 msgstr "Gyorsulás a külső falnál: alacsonyabb érték használata javíthatja a minőséget."
 
@@ -14726,7 +14432,6 @@ msgstr "Gyorsulás a ritkás kitöltéseknél. Ha az érték százalékban van m
 msgid "Acceleration of internal solid infill. If the value is expressed as a percentage (e.g. 100%), it will be calculated based on the default acceleration."
 msgstr "A belső tömör kitöltés gyorsulása. Ha az érték százalékban van megadva (pl. 100%), az alapértelmezett gyorsulás alapján lesz kiszámítva."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the printing acceleration for the first layer. Using limited acceleration can improve build plate adhesion."
 msgstr "A kezdőréteg gyorsulása. Alacsonyabb érték használata javíthatja a tárgyasztalhoz való tapadást"
 
@@ -14777,23 +14482,18 @@ msgstr ""
 msgid "Line width of the first layer. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "Az első réteg vonalszélessége. Ha százalékban van megadva, a fúvókaátmérő alapján lesz kiszámítva."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer height"
 msgstr "Kezdő rétegmagasság"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Height of the first layer. Making the first layer height thicker can improve build plate adhesion."
 msgstr "Kezdőréteg magassága. A vastagabb kezdőréteg javíthatja a tárgy asztalhoz való tapadását"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for the first layer except for solid infill sections."
 msgstr "A kezdőréteg nyomtatási sebessége a szilárd kitöltési rész kivételével"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer infill"
 msgstr "Kezdőréteg kitöltése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid infill parts of the first layer."
 msgstr "A kezdőréteg szilárd kitöltési részének sebessége"
 
@@ -14810,11 +14510,9 @@ msgstr "Lassú rétegek száma"
 msgid "The first few layers are printed slower than normal. The speed is gradually increased in a linear fashion over the specified number of layers."
 msgstr "Az első néhány réteg a normálnál lassabban nyomtatódik. A sebesség a megadott rétegszámon keresztül fokozatosan, lineárisan növekszik."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer nozzle temperature"
 msgstr "Az első réteg fúvóka hőmérséklete"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature for printing the first layer with this filament"
 msgstr "A fúvóka hőmérséklete az első réteg nyomtatásakor ezzel a filamenttel"
 
@@ -14903,9 +14601,9 @@ msgstr "Vasalás sebessége"
 msgid "Filament-specific override for ironing speed. This allows you to customize the print speed of ironing lines for each filament type."
 msgstr "Filament-specifikus felülbírálás a vasalási sebességhez. Lehetővé teszi a vasalási vonalak nyomtatási sebességének külön beállítását minden filamenttípushoz."
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This setting makes the toolhead randomly jitter while printing walls so that the surface has a rough textured look. This setting controls the fuzzy position."
-msgstr "A nyomtató véletlenszerűen vibrál a fal nyomtatása közben, így a felület durva megjelenésű lesz"
+msgstr "A szerszámfej véletlenszerűen vibrál a fal nyomtatása közben, így a felület durva, barázdált megjelenésű lesz. Ez a beállítás szabályozza a barázdálás helyét."
 
 msgid "Painted only"
 msgstr "Csak festett"
@@ -14925,7 +14623,6 @@ msgstr "Összes fal"
 msgid "Fuzzy skin thickness"
 msgstr "A bolyhos felület vastagsága"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The width of jittering: it’s recommended to keep this lower than the outer wall line width."
 msgstr "A rezgés szélessége: ezt ajánlott kisebbre állítani, mint a külső fal szélessége."
 
@@ -15072,7 +14769,6 @@ msgstr "Rétegek és peremek"
 msgid "Don't print gap fill with a length is smaller than the threshold specified (in mm). This setting applies to top, bottom and solid infill and, if using the classic perimeter generator, to wall gap fill."
 msgstr "Ne nyomtasson olyan réskitöltést, amelynek hossza kisebb a megadott küszöbértéknél (mm-ben). Ez a beállítás a felső, alsó és tömör kitöltésre vonatkozik, valamint klasszikus kerületgenerátor használata esetén a falréskitöltésre is."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for gap infill. Gaps usually have irregular line width and should be printed more slowly."
 msgstr "A hézagkitöltés nyomtatási sebessége. A rés általában szabálytalan vonalszélességű, és lassabban kell nyomtatni"
 
@@ -15103,7 +14799,6 @@ msgstr "Ha engedélyezed ezt a beállítást, minden G-kód sor elejére sorszá
 msgid "Scan first layer"
 msgstr "Az első réteg szkennelése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Enable this to allow the camera on the printer to check the quality of the first layer."
 msgstr "Engedélyezd ezt az opciót, hogy a nyomtató kamerája ellenőrizze az első réteg minőségét"
 
@@ -15119,7 +14814,6 @@ msgstr "Nyomtatókonfiguráció"
 msgid "Nozzle type"
 msgstr "Fúvóka típus"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The metallic material of the nozzle: This determines the abrasive resistance of the nozzle and what kind of filament can be printed."
 msgstr "A fúvóka anyaga: Ez határozza meg a fúvóka kopásállóságát és azt, hogy milyen filamentekkel képes nyomtatni."
 
@@ -15135,7 +14829,6 @@ msgstr "Volfrám-karbid"
 msgid "Nozzle HRC"
 msgstr "Fúvóka HRC értéke"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The nozzle's hardness. Zero means no checking for nozzle hardness during slicing."
 msgstr "A fúvóka keménysége. A 0 azt jelenti, hogy szeletelés során nem ellenőrzi a fúvóka HRC értékét."
 
@@ -15231,7 +14924,6 @@ msgstr "A nyomtató óránkénti költsége."
 msgid "money/h"
 msgstr "pénz/óra"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Support controlling chamber temperature"
 msgstr "Kamrahőmérséklet-szabályozás engedélyezése"
 
@@ -15300,7 +14992,6 @@ msgstr "Ha engedélyezi ezt a funkciót, akkor egy kommentezett G-kód fájlt ka
 msgid "Infill combination"
 msgstr "Kitöltés összevonása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Automatically combine sparse infill of several layers to print together in order to reduce time. Walls are still printed with original layer height."
 msgstr "Több réteg ritkás kitöltésének automatikus kombinálása a nyomtatási idő csökkentése érdekében. A fal továbbra is az eredeti rétegmagassággal kerül kinyomtatásra."
 
@@ -15485,11 +15176,9 @@ msgstr ""
 msgid "Line width of internal sparse infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "A belső ritka kitöltés vonalszélessége. Ha százalékban van megadva, a fúvókaátmérő alapján lesz kiszámítva."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Infill/wall overlap"
 msgstr "Kitöltés/fal átfedés"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, no-c-format, no-boost-format
 msgid "This allows the infill area to be enlarged slightly to overlap with walls for better bonding. The percentage value is relative to line width of sparse infill. Set this value to ~10-15% to minimize potential over extrusion and accumulation of material resulting in rough top surfaces."
 msgstr "A kitöltési terület kissé megnagyobbodik, hogy átfedésbe kerüljön a fallal a jobb kötés érdekében. A százalékos érték a ritka kitöltés vonalszélességéhez viszonyított. Állítsd ezt az értéket kb. 10-15%-ra a lehetséges túlextrudálás és az anyagfelhalmozódás minimalizálásához, amely érdes felső felületeket eredményezhet."
@@ -15501,7 +15190,6 @@ msgstr "Felső/alsó tömör kitöltés és fal átfedése"
 msgid "Top solid infill area is enlarged slightly to overlap with wall for better bonding and to minimize the appearance of pinholes where the top infill meets the walls. A value of 25-30% is a good starting point, minimizing the appearance of pinholes. The percentage value is relative to line width of sparse infill."
 msgstr "A felső tömör kitöltési terület kissé megnagyobbodik, hogy átfedésbe kerüljön a fallal a jobb kötés érdekében, és csökkentse a tűlyukszerű hibák megjelenését ott, ahol a felső kitöltés a falakkal találkozik. Jó kiindulási érték a 25-30%, amely segít minimalizálni a tűlyukak megjelenését. A százalékos érték a ritka kitöltés vonalszélességéhez viszonyított."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal sparse infill."
 msgstr "A belső ritkás kitöltés sebessége"
 
@@ -15520,7 +15208,6 @@ msgstr "Kikényszeríti a tömör héjak létrehozását a szomszédos anyagok/t
 msgid "Maximum width of a segmented region"
 msgstr "Szegmentált régió maximális szélessége"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Maximum width of a segmented region. A value of 0 disables this feature."
 msgstr "Szegmentált régió maximális szélessége. A 0 érték letiltja ezt a funkciót."
 
@@ -15566,26 +15253,21 @@ msgstr "Kapcsolódás peremkerülése"
 msgid "The distance from the outside of a model where interlocking structures will not be generated, measured in cells."
 msgstr "A modell külső peremétől mért távolság, ahol nem jön létre kapcsolódó szerkezet, cellákban megadva."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing type"
 msgstr "Vasalás típusa"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Ironing uses a small flow to print at the same height of a surface to make flat surfaces smoother. This setting controls which layers are being ironed."
 msgstr "A vasalás kis anyagáramlás használatával kisimítja a sík felületeket. Ez a beállítás szabályozza, hogy mely rétegeknél történik meg a vasalás."
 
 msgid "No ironing"
 msgstr "Nincs vasalás"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "All top surfaces"
 msgstr "Felső felületek"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Topmost surface only"
 msgstr "Legfelső felület"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "All solid layers"
 msgstr "Összes szilárd réteg"
 
@@ -15595,18 +15277,15 @@ msgstr "Vasalási minta"
 msgid "The pattern that will be used when ironing."
 msgstr "A vasaláskor használt minta."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the amount of material to be extruded during ironing. It is relative to the flow of normal layer height. Too high a value will result in overextrusion on the surface."
 msgstr "A vasalás során extrudálandó anyag mennyisége a normál anyagáramláshoz viszonyítva. A túl magas érték a felületen túlextrudálást eredményez."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance between the lines used for ironing."
 msgstr "A vasaláshoz használt vonalak közötti távolság."
 
 msgid "The distance to keep from the edges. A value of 0 sets this to half of the nozzle diameter."
 msgstr "Az élektől tartandó távolság. A 0 érték ezt a fúvókaátmérő felére állítja."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the print speed for ironing lines."
 msgstr "A vasalási vonalak nyomtatási sebessége"
 
@@ -15668,11 +15347,10 @@ msgstr "Ez a G-kód minden rétegváltásnál beillesztésre kerül a Z tengely 
 msgid "Clumping detection G-code"
 msgstr "Csomósodásészlelés G-kód"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Silent Mode"
-msgstr "Csendes mód támogatva"
+msgstr "Csendes mód"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whether the machine supports silent mode in which machine uses lower acceleration to print more quietly"
 msgstr "Csendes üzemmód támogatása, amelyben a gép kisebb gyorsulást használ a csendesebb nyomtatáshoz"
 
@@ -15973,7 +15651,6 @@ msgstr ""
 "A nulla érték a firmware csillapítási arányát fogja használni.\n"
 "A rezgéskompenzáció letiltásához használd a Letiltás típust."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan."
 msgstr "A tárgyhűtő ventilátor fordulatszáma növelhető, ha az automatikus hűtés engedélyezve van. Ez a tárgyhűtő ventilátor maximális fordulatszám-határa"
 
@@ -16090,7 +15767,6 @@ msgstr "A Orca Slicer képes G-kód fájlokat feltölteni a nyomtatóra. Ennek a
 msgid "Nozzle volume"
 msgstr "Fúvóka térfogata"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Volume of nozzle between the filament cutter and the end of the nozzle"
 msgstr "A fúvóka térfogata a filamentvágó és a fúvóka vége között"
 
@@ -16127,18 +15803,15 @@ msgstr "Ha nullára van állítva, akkor a filamentet a betöltés során a park
 msgid "Start end points"
 msgstr "Kezdő- és végpontok"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The start and end points which are from the cutter area to the excess chute."
 msgstr "A kezdő- és végpontok a vágási terület és a kidobónyílás között."
 
 msgid "Reduce infill retraction"
 msgstr "Csökkentett visszahúzás kitöltésnél"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Don't retract when the travel is entirely within an infill area. That means the oozing can't been seen. This can reduce times of retraction for complex model and save printing time, but make slicing and G-code generating slower. Note that z-hop is also not performed in areas where retraction is skipped."
-msgstr ""
-"Nem történik visszahúzás, amikor a fej csak kitöltés felett halad el, mert az itt történő szivárgás egyébként sem látható.\n"
-"Ez az opció lerövidítheti a nyomtatási időt a visszahúzások csökkentésével komplex modelleknél, de egyúttal lassabbá teszi a szeletelést és a G-kód generálást"
+msgstr "Nem történik visszahúzás, amikor a fej csak kitöltés felett halad el, mert az itt történő szivárgás egyébként sem látható. Ez az opció lerövidítheti a nyomtatási időt a visszahúzások csökkentésével komplex modelleknél, de egyúttal lassabbá teszi a szeletelést és a G-kód generálást. Vedd figyelembe, hogy a Z-emelés sem történik meg azokon a területeken, ahol a visszahúzás ki van hagyva."
 
 msgid "This option will drop the temperature of the inactive extruders to prevent oozing."
 msgstr "Ez az opció csökkenti az inaktív extruderek hőmérsékletét a szivárgás megelőzése érdekében."
@@ -16146,7 +15819,6 @@ msgstr "Ez az opció csökkenti az inaktív extruderek hőmérsékletét a sziv�
 msgid "Filename format"
 msgstr "Fájlnév formátum"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Users can decide project file names when exporting."
 msgstr "A felhasználó dönthet a projektfájlok nevéről exportáláskor."
 
@@ -16168,11 +15840,9 @@ msgstr "Túlnyúlások nyomtathatóvá tétele - lyuk területe"
 msgid "Maximum area of a hole in the base of the model before it's filled by conical material. A value of 0 will fill all the holes in the model base."
 msgstr "A modell alján lévő lyuk maximális területe, mielőtt kúpos anyag töltené ki. A 0 érték a modellalap összes lyukát kitölti."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect overhang walls"
 msgstr "Túlnyúló falak felismerése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This detects the overhang percentage relative to line width and uses a different speed to print. For 100%% overhang, bridging speed is used."
 msgstr "Felismeri a túlnyúlás százalékos arányát a vonalszélességhez viszonyítva, és más sebességet használ. A 100%%-os túlnyúlás esetén az áthidaláshoz beállított sebességet használja."
@@ -16204,11 +15874,9 @@ msgstr ""
 msgid "Line width of inner wall. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "A belső fal vonalszélessége. Ha százalékban van megadva, a fúvókaátmérő alapján lesz kiszámítva."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for inner walls."
 msgstr "A belső fal nyomtatási sebessége"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of walls per layer."
 msgstr "Ez a falak száma rétegenként."
 
@@ -16267,30 +15935,24 @@ msgstr "Nyomtató változat"
 msgid "Raft contact Z distance"
 msgstr "Tutaj érintkezési Z-távolság"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between raft and object. If Support Top Z Distance is 0, this value is ignored and the object is printed in direct contact with the raft (no gap)."
 msgstr "Z rés a tutaj és a tárgy között. Ha a támasz felső Z-távolsága 0, ez az érték figyelmen kívül lesz hagyva és a tárgy közvetlenül a tutajon kerül nyomtatásra (rés nélkül)."
 
 msgid "Raft expansion"
 msgstr "Tutaj kibővítése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands all raft layers in XY plane."
 msgstr "Az összes tutajréteg kiterjesztése az XY síkban"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer density"
 msgstr "Első réteg sűrűsége"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the density of the first raft or support layer."
 msgstr "Az első tutaj- vagy támaszréteg sűrűsége"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "First layer expansion"
 msgstr "Első réteg kiterjesztése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This expands the first raft or support layer to improve bed adhesion."
 msgstr "Az első tutaj- vagy támaszréteg kiterjesztése a tárgyasztalhoz való tapadás javítása érdekében."
 
@@ -16300,7 +15962,6 @@ msgstr "Tutajrétegek"
 msgid "Object will be raised by this number of support layers. Use this function to avoid warping when printing ABS."
 msgstr "A tárgy ennyi támaszréteggel kerül megemelésre. Ezzel a funkcióval elkerülheted a kunkorodást ABS nyomtatásakor."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice."
 msgstr "A G-kód útvonal a modell kontúrjának egyszerűsítése után jön létre, hogy elkerüljük a túl sok sort a G-kód fájlban. A kisebb érték nagyobb felbontást és több időt jelent a szeletelésnél"
 
@@ -16313,7 +15974,6 @@ msgstr "Csak akkor indít visszahúzást, ha a mozgási távolság nagyobb, mint
 msgid "Retract amount before wipe"
 msgstr "Visszahúzott mennyiség törlés előtt"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the length of fast retraction before a wipe, relative to retraction length."
 msgstr "Ez a törlés előtti gyors visszahúzás hossza a visszahúzási hosszhoz viszonyítva."
 
@@ -16330,11 +15990,9 @@ msgstr ""
 "A törlés utáni gyors visszahúzás hossza a visszahúzási hosszhoz viszonyítva.\n"
 "Az értéket a 100% mínusz a törlés előtti visszahúzás mértéke korlátozza."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retract on layer change"
 msgstr "Visszahúzás rétegváltáskor"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This forces a retraction on layer changes."
 msgstr "Kényszeríti a visszahúzást minden rétegváltáskor"
 
@@ -16344,7 +16002,6 @@ msgstr "Visszahúzás hossza"
 msgid "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction."
 msgstr "Az extruderben lévő anyag egy részét visszahúzza, hogy hosszabb mozgások közben elkerülje a szivárgást. A visszahúzás kikapcsolásához állítsd 0-ra."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Long retraction when cut (beta)"
 msgstr "Hosszú visszahúzás vágáskor (béta)"
 
@@ -16366,7 +16023,6 @@ msgstr "Visszahúzási távolság extruderváltáskor"
 msgid "Z-hop height"
 msgstr "Z-emelés magassága"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Whenever there is a retraction, the nozzle is lifted a little to create clearance between the nozzle and the print. This prevents the nozzle from hitting the print when traveling more. Using spiral lines to lift z can prevent stringing."
 msgstr "Visszahúzáskor a fúvóka egy kicsit megemelkedik, hogy a fúvóka és a nyomtatott tárgy között rés keletkezzen. Ez megakadályozza, hogy a fúvóka nagyobb mozgás közben a tárgynak ütközzön. A Z tengely emelésekor használt körkörös mozgás megelőzheti a szálazást."
 
@@ -16460,14 +16116,12 @@ msgstr "Amikor a visszahúzás kompenzálásra kerül utazási mozgás után, az
 msgid "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament."
 msgstr "Amikor a visszahúzás kompenzálásra kerül szerszámváltás után, az extruder ezt a további szálmennyiséget nyomja előre."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Retraction speed"
 msgstr "Visszahúzás sebessége"
 
 msgid "Speed for retracting filament from the nozzle."
 msgstr "A filament visszahúzásának sebessége a fúvókából."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Deretraction speed"
 msgstr "Betöltési sebesség"
 
@@ -16500,7 +16154,6 @@ msgstr "Az M73 parancs generálásának letiltása: a hátralévő nyomtatási i
 msgid "Seam position"
 msgstr "Varrat pozíció"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the starting position for each part of the outer wall."
 msgstr "A külső fal nyomtatásának kiindulási helyzete."
 
@@ -16513,7 +16166,6 @@ msgstr "Igazított"
 msgid "Aligned back"
 msgstr "Hátulra igazítva"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Back"
 msgstr "Hátul"
 
@@ -16644,7 +16296,6 @@ msgstr "A törlés sebességét az itt megadott beállítás határozza meg. Ha 
 msgid "Skirt distance"
 msgstr "Szoknya távolsága"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the distance from the skirt to the brim or the object."
 msgstr "A szoknyától a peremig vagy tárgyig mért távolság"
 
@@ -16657,7 +16308,6 @@ msgstr "Az objektum középpontjától a szoknya kezdőpontjáig mért szög. A 
 msgid "Skirt height"
 msgstr "Szoknya magassága"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Number of skirt layers: usually only one"
 msgstr "A szoknya rétegeinek száma. Általában csak egy réteg."
 
@@ -16696,13 +16346,9 @@ msgstr "Objektumonként"
 msgid "Skirt loops"
 msgstr "Szoknya hurkok száma"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the number of loops for the skirt. 0 means the skirt is disabled."
-msgstr ""
-"A szoknya hurkainak száma. A nulla a szoknya kikapcsolását jelenti.\n"
-"\n"
-"A szoknya (Skirt) egy körvonal, amit a tárgyasztalon lévő összes modell köré nyomtatnak.\n"
-"Még a tárgyak előtt kerül nyomtatásra és a feladata a fúvóka anyagáramlásának stabilizálása"
+msgstr "A szoknya hurkainak száma. A 0 érték a szoknya kikapcsolását jelenti."
 
 msgid "Skirt speed"
 msgstr "Szoknya sebessége"
@@ -16730,7 +16376,6 @@ msgstr "A nyomtatási sebesség az exportált G-kódban csökkentésre kerül, h
 msgid "Minimum sparse infill threshold"
 msgstr "Ritkás kitöltés küszöbértéke"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Sparse infill areas which are smaller than this threshold value are replaced by internal solid infill."
 msgstr "Az ennél a küszöbértéknél kisebb ritka kitöltési területek belső tömör kitöltéssel helyettesítődnek."
 
@@ -16761,11 +16406,9 @@ msgstr ""
 msgid "Line width of internal solid infill. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "A belső tömör kitöltés vonalszélessége. Ha százalékban van megadva, a fúvókaátmérő alapján lesz kiszámítva."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for internal solid infill, not including the top or bottom surface."
 msgstr "A belső szilárd kitöltés sebessége, de az az érték nem vonatkozik a felső és alsó felületre"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables spiraling, which smooths out the Z moves of the outer contour and turns a solid model into a single walled print with solid bottom layers. The final generated model has no seam."
 msgstr "A spirál mód kisimítja a külső kontúr Z mozgásait. A tömör modellt egyfalú nyomatokká alakítja, tömör alsó rétegekkel. A végső modellen nincsenek varratok"
 
@@ -16796,7 +16439,6 @@ msgstr "Spirál befejező áramlási aránya"
 msgid "Sets the finishing flow ratio while ending the spiral. Normally the spiral transition scales the flow ratio from 100% to 0% during the last loop which can in some cases lead to under extrusion at the end of the spiral."
 msgstr "Beállítja a befejező áramlási arányt a spirál lezárásakor. Normál esetben a spirál lezárása az utolsó hurok alatt 100%-ról 0%-ra skálázza az áramlási arányt, ami egyes esetekben alulextrudálást okozhat a spirál végén."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "If smooth or traditional mode is selected, a timelapse video will be generated for each print. After each layer is printed, a snapshot is taken with the chamber camera. All of these snapshots are composed into a timelapse video when printing completes. If smooth mode is selected, the toolhead will move to the excess chute after each layer is printed and then take a snapshot. Since the melt filament may leak from the nozzle during the process of taking a snapshot, a prime tower is required for smooth mode to wipe the nozzle."
 msgstr "Ha a sima vagy a hagyományos mód van kiválasztva, minden nyomtatásnál készül egy időfelvétel-videó. Az egyes rétegek kinyomtatása után a beépített kamera egy képet készít. A nyomtatás befejeződése után aztán ezeket a képeket a szoftver egy videóvá fűzi össze. Ha a sima mód van kiválasztva, a réteg nyomtatása után a nyomtatófej a kidobónyíláshoz mozog, majd a kamera egy képet készít. Mivel a kép készítése során szivároghat valamennyi olvadt filament a fúvókából, egy törlőtoronyra van szükség a fúvóka megtisztításához."
 
@@ -16842,11 +16484,9 @@ msgstr "A kimeneti fájl legelejére írt G-kód, minden más tartalom előtt. H
 msgid "Start G-code"
 msgstr "Kezdő G-kód"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when starting a print."
 msgstr "Kezdő G-kód az egész nyomtatás megkezdésekor"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "G-code added when the printer starts using this filament"
 msgstr "Kezdő G-kód a filament nyomtatásának megkezdésekor"
 
@@ -16952,11 +16592,9 @@ msgstr "Ez az érték hozzáadódik (vagy kivonásra kerül) az összes Z koordi
 msgid "Enable support"
 msgstr "Támasz engedélyezése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This enables support generation."
 msgstr "Engedélyezi a támasz generálását."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Normal (auto) and Tree (auto) are used to generate support automatically. If Normal (manual) or Tree (manual) is selected, only support enforcers are generated."
 msgstr "A normál (auto) és a fa (auto) a támaszok automatikus generálásához van használva. Ha a normál (kézi) vagy a fa (kézi) van kiválasztva, akkor csak a kényszerített támaszok kerülnek generálásra."
 
@@ -16975,7 +16613,6 @@ msgstr "fa (manuális)"
 msgid "Support/object XY distance"
 msgstr "Támasz/tárgy XY távolság"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This controls the XY separation between an object and its support."
 msgstr "Ez szabályozza a tárgy és a támasz közötti XY elválasztás távolságát."
 
@@ -16994,7 +16631,6 @@ msgstr "Ezzel a beállítással elforgathatod a támasz mintázatát a vízszint
 msgid "On build plate only"
 msgstr "Csak a tárgyasztaltól"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This setting only generates supports that begin on the build plate."
 msgstr "Nem generál támaszt a modell felületén, csak a tárgyasztalon"
 
@@ -17013,25 +16649,25 @@ msgstr "Azoknak a kis túlnyúlásoknak a mellőzése, amelyek valószínűleg n
 msgid "Top Z distance"
 msgstr "Z távolság"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the support's top and object."
 msgstr "Z rés a támasz teteje és a tárgy között."
 
 msgid "Bottom Z distance"
 msgstr "Alsó Z távolság"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Z gap between the object and the support bottom. If Support Top Z Distance is 0 and the bottom has interface layers, this value is ignored and the support is printed in direct contact with the object (no gap)."
 msgstr "Z rés a tárgy és a támasz alja között. Ha a támasz felső Z-távolsága 0 és az alján vannak interfész rétegek, ez az érték figyelmen kívül lesz hagyva, és a támasz közvetlenül a tárgyhoz lesz nyomtatva (rés nélkül)."
 
 msgid "Support/raft base"
 msgstr "Támasz/tutaj alap"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Filament to print support base and raft.\n"
 "\"Default\" means no specific filament for support and current filament is used."
-msgstr "A támasz alapjához és a tutaj nyomtatásához használt filament. Az \"Alapértelmezett\" beállítás választásakor a jelenleg használt filament kerül felhasználásra."
+msgstr ""
+"A támasz alapjához és a tutaj nyomtatásához használt filament.\n"
+"Az \"Alapértelmezett\" beállítás választásakor a jelenleg használt filament kerül felhasználásra."
 
 msgid "Avoid interface filament for base"
 msgstr "Kerülje a támaszanyag használatát az alaphoz"
@@ -17042,29 +16678,29 @@ msgstr "Ha lehetséges, kerüli a dedikált támaszanyag (filament) használatá
 msgid "Line width of support. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "A támasz vonalszélessége. Ha százalékban van megadva, a fúvókaátmérő alapján lesz kiszámítva."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Loop pattern interface"
 msgstr "Hurokminta felület"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This covers the top contact layer of the supports with loops. It is disabled by default."
 msgstr "Lefedi a támasz felső érintkező rétegét körökkel. Alapértelmezés szerint letiltva."
 
 msgid "Support/raft interface"
 msgstr "Támasz/tutaj interfész"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Filament to print support interface.\n"
 "\"Default\" means no specific filament for support interface and current filament is used."
-msgstr "Filament a támasz érintkező felületének nyomtatásához. Az \"Alapértelmezett\" beállítás választásakor a jelenleg használt filament kerül felhasználásra."
+msgstr ""
+"Filament a támasz érintkező felületének nyomtatásához.\n"
+"Az \"Alapértelmezett\" beállítás választásakor a jelenleg használt filament kerül felhasználásra."
 
 msgid "Top interface layers"
 msgstr "Felső érintkező rétegek"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the number of top interface layers."
-msgstr "Lassú rétegek száma"
+msgstr "A felső érintkező rétegek száma."
 
 msgid "Bottom interface layers"
 msgstr "Alsó érintkező rétegek"
@@ -17088,11 +16724,10 @@ msgstr ""
 msgid "Bottom interface spacing"
 msgstr "Alső érintkező réteg térköz"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "This is the spacing of bottom interface lines. 0 means solid interface."
-msgstr "Az érintkező réteg vonalai közötti távolság. A nulla szilárd kitöltést jelent"
+msgstr "Az alsó érintkező réteg vonalai közötti távolság. A nulla tömör érintkező réteget jelent"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support interfaces."
 msgstr "Támasz érintkező felületek sebessége"
 
@@ -17121,7 +16756,6 @@ msgstr "Üreges"
 msgid "Interface pattern"
 msgstr "Érintkező felület mintázata"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the line pattern for support interfaces. The default pattern for non-soluble support interfaces is Rectilinear while the default pattern for soluble support interfaces is Concentric."
 msgstr "A támasz érintkezési felületének vonalmintája. A nem oldható támaszfelület alapértelmezett mintázata egyenes vonalú, míg az oldható támaszfelület alapértelmezett mintázata koncentrikus"
 
@@ -17131,18 +16765,15 @@ msgstr "Váltott vonalrács"
 msgid "Base pattern spacing"
 msgstr "Alap mintázatának térköze"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This determines the spacing between support lines."
 msgstr "A támasz vonalai közötti távolság"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Normal support expansion"
 msgstr "Normál támasz kibővítése"
 
 msgid "Expand (+) or shrink (-) the horizontal span of normal support."
 msgstr "Megnöveli (+) vagy összehúzza (-) a normál támaszt vízszintes irányban"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for support."
 msgstr "Támaszok sebessége"
 
@@ -17180,7 +16811,6 @@ msgstr "A támaszréteg az objektum rétegeitől független rétegmagasságot ha
 msgid "Threshold angle"
 msgstr "Dőlésszög küszöbértéke"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Support will be generated for overhangs whose slope angle is below the threshold. The smaller this value is, the steeper the overhang that can be printed without support.\n"
 "Note: If set to 0, normal supports use the Threshold overlap instead, while tree supports fall back to a default value of 30."
@@ -17328,15 +16958,12 @@ msgstr ""
 msgid "Chamber minimal temperature"
 msgstr "Minimális kamrahőmérséklet"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Nozzle temperature after the first layer"
 msgstr "Fúvóka hőmérséklete az első réteg után"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect thin walls"
 msgstr "Vékony falak felismerése"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This detects thin walls which can’t contain two lines and uses a single line to print. It may not print as well because it’s not a closed loop."
 msgstr "Felismeri a vékony falakat, amellyeket nem lehet két vonalnyi szélességgel nyomtatni, és egyetlen vonalt használ. Lehet nem jó a nyomat minősége, mert nem zárt hurok."
 
@@ -17355,21 +16982,18 @@ msgstr "Ez a G-kód akkor kerül beillesztésre, amikor az aktív filament extru
 msgid "Line width for top surfaces. If expressed as a %, it will be computed over the nozzle diameter."
 msgstr "A felső felületek vonalszélessége. Ha %-ban van megadva, a rendszer a fúvóka átmérője alapján számítja ki."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed for solid top surface infill."
 msgstr "A felső felületi kitöltés sebessége, amely szilárd"
 
 msgid "Top shell layers"
 msgstr "Felső héj rétegek"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the number of solid layers of top shell, including the top surface layer. When the thickness calculated by this value is thinner than the top shell thickness, the top shell layers will be increased"
 msgstr "Ez a felső héj szilárd rétegeinek száma, beleértve a felső felület réteget. Ha az ezzel az értékkel számított vastagság vékonyabb, mint a felső héj vastagsága, akkor a felső héj rétegeit a program megnöveli"
 
 msgid "Top shell thickness"
 msgstr "Felső héj vastagság"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The number of top solid layers is increased when slicing if the thickness calculated by top shell layers is thinner than this value. This can avoid having too thin a shell when layer height is small. 0 means that this setting is disabled and thickness of top shell is determined simply by the number of top shell layers."
 msgstr "A felső szilárd rétegek száma szeleteléskor megnő, ha a felső héjrétegekből számított vastagság kisebb ennél az értéknél. Ezzel elkerülhető, hogy túl vékony legyen a héj kis rétegmagasságnál. A 0 azt jelenti, hogy ez a beállítás ki van kapcsolva, és a felső héj vastagságát egyszerűen a felső héjrétegek száma határozza meg."
 
@@ -17417,18 +17041,15 @@ msgstr "Minden modell"
 msgid "Each Assembly"
 msgstr "Minden összeállítás"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the speed at which traveling is done."
 msgstr "Mozgási sebesség, amikor nem történik extrudálás"
 
 msgid "Wipe while retracting"
 msgstr "Törlés visszahúzás közben"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This moves the nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling."
 msgstr "Ez visszahúzáskor a fúvókát az utolsó extrudálási útvonal mentén mozgatja, hogy a fúvókából szivárgott anyagot eltávolítsa. Ez minimálisra csökkentheti a pöttyöket, amikor a nyomtatófej a mozgást követően egy egy új alkatrész nyomtatásába kezd."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Wipe distance"
 msgstr "Törlési távolság"
 
@@ -17461,7 +17082,6 @@ msgstr "Kiürítési mennyiségek"
 msgid "Flush multiplier"
 msgstr "Öblítési szorzó"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The actual flushing volumes is equal to the flush multiplier value multiplied by the flushing volumes in the table."
 msgstr "A tényleges öblítési mennyiségek megegyeznek az öblítési szorzó értékével, szorozva a táblázatban szereplő öblítési mennyiségekkel."
 
@@ -17476,7 +17096,6 @@ msgstr "A gyors öblítési módban használt öblítési szorzó."
 msgid "Prime volume"
 msgstr "Előkészítési mennyiség"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the volume of material to prime the extruder with on the tower."
 msgstr "Az extruder toronyban történő előkészítéséhez szükséges anyagmennyiség."
 
@@ -17496,7 +17115,6 @@ msgstr "Takarékos"
 msgid "Fast"
 msgstr "Gyors"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the width of prime towers."
 msgstr "Ez a törlőtorony szélessége."
 
@@ -17610,11 +17228,9 @@ msgstr "Kitöltési hézag"
 msgid "Infill gap."
 msgstr "Kitöltési hézag."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' infills. This may lower the amount of waste and decrease the print time. If the walls are printed with transparent filament, the mixed color infill will be visible. It will not take effect unless the prime tower is enabled."
 msgstr "A filamentcsere utáni kiürítés az objektumok kitöltésén belül történik. Ez csökkentheti a hulladék mennyiségét és a nyomtatási időt. Ha a falakat átlátszó filamenttel nyomtatod, a vegyes színű kitöltés látható lesz. Ez az opció csak akkor működik, ha a törlőtorony engedélyezve van."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Purging after filament change will be done inside objects' support. This may lower the amount of waste and decrease the print time. It will not take effect unless a prime tower is enabled."
 msgstr "A filamentcsere utáni kiürítés az objektumok támaszain belül történik. Ez csökkentheti a hulladék mennyiségét és a nyomtatási időt. Ez az opció csak akkor működik, ha a törlőtorony engedélyezve van."
 
@@ -17648,16 +17264,13 @@ msgstr "A fúvóka hőmérséklete, amikor az eszköz éppen nincs használatban
 msgid "X-Y hole compensation"
 msgstr "X-Y furatkompenzáció"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid "Holes in objects will expand or contract in the XY plane by the set value. Positive values make holes bigger and negative values make holes smaller. This function is used to adjust sizes slightly when objects have assembly issues."
-msgstr ""
-"A tárgy furatai az XY síkban a beállított értékkel nőnek vagy zsugorodnak. Pozitív érték esetén a furatok nagyobbak lesznek, míg a negatív értéktől kisebbek.\n"
-"Ez a funkció a méret kismértékű módosítására szolgál, ha a tárgy összeszerelése során probléma merül fel"
+msgstr "A tárgy furatai az XY síkban a beállított értékkel nőnek vagy zsugorodnak. Pozitív érték esetén a furatok nagyobbak lesznek, míg a negatív értéktől kisebbek. Ez a funkció a méret kismértékű módosítására szolgál, ha a tárgy összeszerelése során probléma merül fel"
 
 msgid "X-Y contour compensation"
 msgstr "X-Y kontúrkompenzáció"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Contours of objects will expand or contract in the XY plane by the set value. Positive values make contours bigger and negative values make contours smaller. This function is used to adjust sizes slightly when objects have assembly issues."
 msgstr "Az objektumok körvonalai az XY síkban a beállított értékkel növekednek vagy zsugorodnak. Pozitív érték esetén a körvonalak nagyobbak lesznek, negatív érték esetén kisebbek. Ez a funkció a méret kismértékű módosítására szolgál, ha a nyomtatott tárgyakkal összeszerelési problémák adódnak."
 
@@ -17720,7 +17333,6 @@ msgstr "Relatív E távolságok használata"
 msgid "Relative extrusion is recommended when using \"label_objects\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked."
 msgstr "A relatív extrudálás használata ajánlott a \"label_objects\" opcióval. Bizonyos extruderek jobban működnek, ha ez az opció nincs bejelölve (abszolút extrudálási mód). A törlőtorony csak a relatív móddal kompatibilis. A legtöbb nyomtatón ajánlott. Alapértelmezés szerint be van jelölve."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The classic wall generator produces walls with constant extrusion width and for very thin areas, gap-fill is used. The Arachne engine produces walls with variable extrusion width."
 msgstr "A klasszikus falgenerátor állandó szélességű falakat generál, és a nagyon vékony területeknél hézagkitöltést használ. Az Arachne engine változó szélességű falakat generál."
 
@@ -17730,7 +17342,6 @@ msgstr "Arachne"
 msgid "Wall transition length"
 msgstr "Falátmenet hossza"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "When transitioning between different numbers of walls as the part becomes thinner, a certain amount of space is allotted to split or join the wall segments. It's expressed as a percentage over nozzle diameter."
 msgstr "A különböző vastagságú falak közötti átmenetkor, ahogy a tárgy vékonyabbá válik, egy bizonyos terület elkülönítésre kerül a falszegmensek összekapcsolására vagy épp elhatárolására. A fúvóka átmérőjének százalékában van kifejezve."
 
@@ -17855,7 +17466,6 @@ msgstr "Előmelegítési hőmérséklet delta"
 msgid "Temperature delta applied during pre-heating before tool change."
 msgstr "Hőmérséklet-különbség alkalmazása az eszközcsere előtti előmelegítés során."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Detect narrow internal solid infills"
 msgstr "Keskeny belső szilárd kitöltések felismerése"
 
@@ -17881,14 +17491,12 @@ msgstr " nincs a tartományban "
 msgid "Export 3MF"
 msgstr "3MF exportálása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports the project as a 3MF file."
 msgstr "Projekt exportálása 3MF formátumban."
 
 msgid "Export slicing data"
 msgstr "Szeletelési adatok exportálása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Export slicing data to a folder"
 msgstr "Szeletelési adatok exportálása egy mappába"
 
@@ -17913,7 +17521,6 @@ msgstr "Az objektumok exportálása több STL fájlként egy könyvtárba."
 msgid "Slice the plates: 0-all plates, i-plate i, others-invalid"
 msgstr "Tálcák szeletelése: 0 - összes tálca, i - i tálca, egyéb - érvénytelen"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This shows command help."
 msgstr "Parancs súgó megjelenítése."
 
@@ -17938,14 +17545,12 @@ msgstr "3MF exportálása minimális mérettel."
 msgid "mtcpp"
 msgstr "mtcpp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "max triangle count per plate for slicing"
 msgstr "tálcánkénti maximális háromszögszám szeleteléshez."
 
 msgid "mstpp"
 msgstr "mstpp"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "max slicing time per plate in seconds"
 msgstr "tálcánkénti maximális szeletelési idő másodpercben."
 
@@ -17964,14 +17569,12 @@ msgstr "A normatív elemek ellenőrzése."
 msgid "Output Model Info"
 msgstr "Kimeneti modell információ"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This outputs the model’s information."
 msgstr "Kimeneti modell információ."
 
 msgid "Export Settings"
 msgstr "Beállítások exportálása"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This exports settings to a file."
 msgstr "Beállítások exportálása egy fájlba."
 
@@ -18059,7 +17662,6 @@ msgstr "Objektumok klónozása a betöltési listában."
 msgid "Load uptodate process/machine settings when using uptodate"
 msgstr "Naprakész folyamat-/gépbeállítások betöltése naprakész használatakor"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "load up-to-date process/machine settings from the specified file when using up-to-date"
 msgstr "Naprakész folyamat-/gépbeállítások betöltése a megadott fájlból naprakész használatakor."
 
@@ -18096,7 +17698,6 @@ msgstr "A beállítások betöltése és tárolása a megadott könyvtárban. Ez
 msgid "Output directory"
 msgstr "Kimeneti mappa"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "This is the output directory for exported files."
 msgstr "Az exportált fájlok kimeneti mappája."
 
@@ -18535,15 +18136,12 @@ msgstr "A modellfájl betöltése sikertelen."
 msgid "Meshing of a model file failed or no valid shape."
 msgstr "A modellfájl hálósítása sikertelen volt, vagy nincs érvényes alakzat."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The supplied file couldn't be read because it's empty."
 msgstr "A megadott fájl nem olvasható be, mert üres"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .stl, .obj, or .amf(.xml) extension."
 msgstr "Ismeretlen fájlformátum. A bemeneti fájlnak .stl, .obj vagy .amf(.xml) kiterjesztésűnek kell lennie."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Unknown file format: input file must have .3mf or .zip.amf extension."
 msgstr "Ismeretlen fájlformátum. A bemeneti fájlnak .3mf vagy .zip.amf kiterjesztésűnek kell lennie."
 
@@ -18596,7 +18194,6 @@ msgstr "Kalibrálás"
 msgid "Finish"
 msgstr "Kész"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "How can I use calibration results?"
 msgstr "Hogyan használjam a kalibrálási eredményeket?"
 
@@ -18668,7 +18265,6 @@ msgstr "Kérlek, válaszd ki a kalibrálandó filamenteket."
 msgid "The input value size must be 3."
 msgstr "A bemeneti értéknek 3-nak kell lennie."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "This machine type can only hold 16 historical results per nozzle. You can delete the existing historical results and then start calibration. Or you can continue the calibration, but you cannot create new calibration historical results.\n"
 "Do you still want to continue the calibration?"
@@ -18680,7 +18276,6 @@ msgstr ""
 msgid "Only one of the results with the same name: %s will be saved. Are you sure you want to override the other results?"
 msgstr "Azonos nevű eredmények közül csak egy kerül mentésre: %s. Biztosan felül akarod írni a többi eredményt?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "There is already a previous calibration result with the same name: %s. Only one result with a name is saved. Are you sure you want to overwrite the previous result?"
 msgstr "Már létezik egy ugyanilyen nevű, korábbi kalibrálási eredmény: %s. Csak egy azonos nevű eredményt lehet elmenteni. Biztos, hogy felül akarod írni a korábbi eredményeket?"
@@ -18693,7 +18288,6 @@ msgstr ""
 "Ugyanazon az extruderen belül a névnek (%s) egyedinek kell lennie, ha a filament típusa, a fúvóka átmérője és a fúvóka anyagáramlása azonos.\n"
 "Biztosan felül akarod írni a korábbi eredményt?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle. This result will not be saved."
 msgstr "Ez a géptípus fúvókánként legfeljebb %d előzményeredményt tud tárolni. Ez az eredmény nem lesz elmentve."
@@ -18775,7 +18369,6 @@ msgstr "Ezenkívül az anyagáramlás kalibrálása létfontosságú az olyan ha
 msgid "Flow Rate Calibration measures the ratio of expected to actual extrusion volumes. The default setting works well in Bambu Lab printers and official filaments as they were pre-calibrated and fine-tuned. For a regular filament, you usually won't need to perform a Flow Rate Calibration unless you still see the listed defects after you have done other calibrations. For more details, please check out the wiki article."
 msgstr "Az anyagáramlás kalibrálása a várt és a tényleges extrudált mennyiségek arányát méri. Az alapértelmezett érték jól működik a Bambu Lab nyomtatókkal és gyári filamentekkel, mivel azokat előre kalibráltuk és finomhangoltuk. Egy hagyományos filament esetében általában nem kell anyagáramlás kalibrálását elvégezni, kivéve, ha más kalibrálások után még mindig látod a felsorolt hibákat. További részletekért kérlek, olvasd el a wiki cikkünket."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid ""
 "Auto Flow Rate Calibration utilizes Bambu Lab's Micro-Lidar technology, directly measuring the calibration patterns. However, please be advised that the efficacy and accuracy of this method may be compromised with specific types of materials. Particularly, filaments that are transparent or semi-transparent, have sparkles, or have a highly-reflective finish may not be suitable for this calibration and can produce less-than-desirable results.\n"
 "\n"
@@ -18828,7 +18421,6 @@ msgstr "Normál áramlás"
 msgid "Please find the best line on your plate"
 msgstr "Keresd meg a legjobb vonalat a tálcán"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please find the corner with the perfect degree of extrusion"
 msgstr "Keresd meg a tökéletesen extrudált sarkot"
 
@@ -18985,7 +18577,6 @@ msgstr "Nincs előzmény"
 msgid "Success to get history result"
 msgstr "Előzmények sikeresen lekérdezve"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Refreshing the previous Flow Dynamics Calibration records"
 msgstr "Az előző anyagáramlás-dinamikai kalibrációs rekordok frissítése"
 
@@ -18996,7 +18587,6 @@ msgstr "Megjegyzés: A hotend száma a tartóhoz van rendelve ezen: %s. Amikor a
 msgid "Action"
 msgstr "Művelet"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid "This machine type can only hold %d historical results per nozzle."
 msgstr "Ez a géptípus fúvókánként legfeljebb %d előzményeredményt tud tárolni."
@@ -19661,14 +19251,12 @@ msgstr "A filament gyártó vagy sorozatszám mezőjében nem engedélyezett kar
 msgid "All inputs in the custom vendor or serial are spaces. Please re-enter."
 msgstr "Az egyedi gyártó vagy sorozat értéke üres. Kérlek, írd be újra."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "The vendor cannot be a number; please re-enter."
 msgstr "A gyártó nem lehet szám. Add meg újra."
 
 msgid "You have not selected a printer or preset yet. Please select at least one."
 msgstr "Még nem választottál nyomtatót vagy beállítást. Kérlek, válassz ki legalább egyet."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #, c-format, boost-format
 msgid ""
 "The Filament name %s you created already exists.\n"
@@ -19756,7 +19344,6 @@ msgstr "A fájl mérete meghaladja a(z) %d MB-ot, kérlek ismételd meg az impor
 msgid "Exception in obtaining file size, please import again."
 msgstr "Kivétel történt a fájlméret megállapításakor, kérlek ismételd meg az importálást."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Preset path was not found; please reselect vendor."
 msgstr "Útvonal nem található. Kérlek, válaszd ki újra a gyártót."
 
@@ -19783,7 +19370,6 @@ msgstr "Folyamatbeállítás sablon"
 msgid "You have not yet chosen which printer preset to create based on. Please choose the vendor and model of the printer"
 msgstr "Még nem választottad ki, hogy melyik nyomtató beállításai alapján készüljön az új. Kérlek, válaszd ki a nyomtató gyártóját és modelljét"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have entered a disallowed character in the printable area section on the first page. Please use only numbers."
 msgstr "Tiltott karakter került be az első oldalon a nyomtatási terület részbe. Kérlek, csak számokat használj."
 
@@ -19811,14 +19397,12 @@ msgstr "A következő filamentbeállítások létrehozása nem sikerült:\n"
 msgid "Create process presets failed. As follows:\n"
 msgstr "A következő folyamatbeállítások létrehozása nem sikerült:\n"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Vendor was not found; please reselect."
 msgstr "Gyártó nem található. Kérlek, válaszd ki újból."
 
 msgid "Current vendor has no models, please reselect."
 msgstr "A kiválasztott gyártónak nincsenek modelljei. Kérlek, válassz másikat."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not selected the vendor and model or input the custom vendor and model."
 msgstr "Nem választottad ki a gyártót és modellt, vagy nem adtál meg egy egyedi gyártót és modellt."
 
@@ -19831,7 +19415,6 @@ msgstr "Az egyedi gyártó vagy modell értéke üres. Kérlek, írd be újra."
 msgid "Please check bed printable shape and origin input."
 msgstr "Kérlek, ellenőrizd az asztal alakját és a kezdőpont koordinátáit."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "You have not yet selected the printer to replace the nozzle for; please choose a printer."
 msgstr "Nem választottál nyomtatót a fúvókacseréhez. Kérlek, válassz egy nyomtatót."
 
@@ -19879,13 +19462,13 @@ msgstr "Kérlek, a beállítások szerkesztéséhez lépj be a nyomtató beáll�
 msgid "Filament Created"
 msgstr "Filament létrehozva"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 msgid ""
 "Please go to filament settings to edit your presets if you need to.\n"
 "Please note that nozzle temperature, hot bed temperature, and maximum volumetric speed each have a significant impact on printing quality. Please set them carefully."
 msgstr ""
-"Ha szükséges, lépj be az filamentbeállításokhoz az értékek szerkesztéséhez.\n"
-"Figyelem: a fúvóka hőmérséklete, a tárgyasztal hőmérséklete és a maximális volumetrikus sebesség jelentős hatással van a nyomtatási minőségre."
+"Ha szükséges, lépj be a filamentbeállításokhoz az értékek szerkesztéséhez.\n"
+"Figyelem: a fúvóka hőmérséklete, a tárgyasztal hőmérséklete és a maximális volumetrikus sebesség jelentős hatással van a nyomtatási minőségre. Kérlek, körültekintően állítsd be őket."
 
 msgid ""
 "\n"
@@ -19967,7 +19550,6 @@ msgstr ""
 "Felhasználói filamentbeállítások.\n"
 "Megosztható másokkal."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Only display printers with changes to printer, filament, and process presets are displayed."
 msgstr "Csak azok a nyomtatók jelennek meg, amelyeknél változtak a nyomtató-, filament- és folyamatbeállítások."
 
@@ -19990,7 +19572,6 @@ msgstr "Csak azok a nyomtatónevek jelennek meg, amelyeknél változtak a folyam
 msgid "Please select at least one printer or filament."
 msgstr "Kérlek, válassz ki legalább egy nyomtatót vagy filamentet."
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "Please select a preset type you want to export"
 msgstr "Válaszd ki az exportálandó beállítás típusát"
 
@@ -20741,7 +20322,6 @@ msgstr "nyomtatóra egyszerre. (Ez attól függ, hány eszköz tud egyszerre fel
 msgid "Wait"
 msgstr "Várakozás"
 
-# TODO: Review, changed by lang refactor. PR 14254
 msgid "minute each batch. (It depends on how long it takes to complete heating.)"
 msgstr "percet minden köteg között. (Ez attól függ, mennyi idő szükséges a felfűtés befejezéséhez.)"
 
@@ -21694,7 +21274,6 @@ msgstr ""
 "Időfelvétel\n"
 "Tudtad, hogy minden nyomtatáshoz időfelvétel-videót készíthetsz?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Arrange]
 msgid ""
 "Auto-Arrange\n"
@@ -21703,7 +21282,6 @@ msgstr ""
 "Automatikus elrendezés\n"
 "Tudtad, hogy automatikusan elrendezheted a projekt összes objektumát?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Auto-Orient]
 msgid ""
 "Auto-Orient\n"
@@ -21803,7 +21381,6 @@ msgstr ""
 "Oszd fel a nyomatokat több tálcára\n"
 "Tudtad, hogy a sok részből álló modellt nyomtatásra kész tálcákra oszthatod? Így egyszerűbben nyomon követheted a nyomtatásra váró tárgyakat."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Speed up your print with Adaptive Layer
 #: Height]
 msgid ""
@@ -21821,7 +21398,6 @@ msgstr ""
 "Támaszok festése\n"
 "Tudtad, hogy festéssel is kijelölheted a támaszok helyét? Ezzel az opcióval elérheted, hogy csak oda kerüljön támasz, ahol valóban szükség van rá."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Different types of supports]
 msgid ""
 "Different types of supports\n"
@@ -21830,7 +21406,6 @@ msgstr ""
 "Különböző típusú támaszok\n"
 "Tudtad, hogy többféle támasz közül választhatsz? A fatámaszok remekül működnek az organikus modelleknél, kevesebb filamentet igényelnek és elősegítik a gyorsabb nyomtatást. Próbáld ki!"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Printing Silk Filament]
 msgid ""
 "Printing Silk Filament\n"
@@ -21847,7 +21422,6 @@ msgstr ""
 "Perem a jobb tapadás érdekében\n"
 "Tudtad, hogy a ha a nyomtatott modell csak kis felületen érintkezik az asztallal, akkor ajánlott peremet használni?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Set parameters for multiple objects]
 msgid ""
 "Set parameters for multiple objects\n"
@@ -21864,7 +21438,6 @@ msgstr ""
 "Objektumok egymásra helyezése\n"
 "Tudtad, hogy több objektumot is egymásra rakhatsz, amit aztán egyben kinyomtathatsz?"
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Flush into support/objects/infill]
 msgid ""
 "Flush into support/objects/infill\n"
@@ -21881,17 +21454,16 @@ msgstr ""
 "Szilárdság javítása\n"
 "Tudtad, hogy több fal vagy nagyobb kitöltés használatával javíthatod a modell szilárdságát?"
 
-# TODO: Review, changed by lang refactor. PR 14254
+# AI Translated
 #: resources/data/hints.ini: [hint:When do you need to print with the printer
 #: door opened]
 msgid ""
 "When do you need to print with the printer door opened?\n"
 "Did you know that opening the printer door can reduce the probability of extruder/hotend clogging when printing lower temperature filament with a higher enclosure temperature? There is more info about this in the Wiki."
 msgstr ""
-"Mikor nyomtass nyitott ajtóval\n"
-"Tudtad, hogy a nyomtató ajtajának kinyitásával csökkentheted az extruder/fejegység eltömődésének valószínűségét, ha alacsonyabb hőmérsékletű filamentet nyomtatsz? További információ erről a Wikiben található."
+"Mikor nyomtass nyitott ajtóval?\n"
+"Tudtad, hogy a nyomtató ajtajának kinyitásával csökkentheted az extruder/fejegység eltömődésének valószínűségét, ha alacsonyabb hőmérsékletű filamentet nyomtatsz magasabb kamrahőmérséklet mellett? További információ erről a Wikiben található."
 
-# TODO: Review, changed by lang refactor. PR 14254
 #: resources/data/hints.ini: [hint:Avoid warping]
 msgid ""
 "Avoid warping\n"
