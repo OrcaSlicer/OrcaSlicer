@@ -1434,8 +1434,9 @@ bool PrintObject::invalidate_state_by_config_options(
                 steps.emplace_back(posPerimeters);
             steps.emplace_back(posPrepareInfill);
         } else if (opt_key == "top_surface_density") {
-            // ORCA: only_one_wall_top only removes the inner walls over a top surface when that top gets a solid
-            // fill to take their place, so switching the top fill on/off changes the perimeters too.
+            // ORCA: a 0% top surface density means no top solid fill at all, which switches off both the top
+            // surface expansion (detect_surfaces_type) and the wall removal over top surfaces (PerimeterGenerator
+            // only_one_wall_top). Only crossing zero matters - posPerimeters cascades to posPrepareInfill.
             const auto *old_density = old_config.option<ConfigOptionPercent>(opt_key);
             const auto *new_density = new_config.option<ConfigOptionPercent>(opt_key);
             assert(old_density && new_density);
@@ -1776,23 +1777,27 @@ void PrintObject::detect_surfaces_type()
                     // clipped to it - growing one island's top across the gap into another island (which may have
                     // no top surface, leaving a partially filled layer) is never allowed. The top infill sits
                     // inside the perimeters, so the margin is measured from the walls: the island is inset by the
-                    // band the walls consume (outer wall + inner walls) plus the configured margin, making that
-                    // value the real clearance between the expanded top and the walls (avoiding a hull line). The
-                    // original top is unioned back in, so where it already sits within that band it is kept as-is.
-                    // Never claims a bottom surface.
-                    const double top_expansion = layerm->region().config().top_surface_expansion.value;
-                    if (top_expansion > 0. && ! top.empty()) {
-                        const double     d        = scale_(top_expansion);
-                        const auto       jt       = Clipper2Lib::JoinType::Miter;
-                        const ExPolygons T        = union_ex(to_expolygons(top));
-                        const int    wall_loops = layerm->region().config().wall_loops.value;
+                    // band the walls consume (outer wall + inner walls) plus the configured margin, which is the
+                    // clearance between the expanded top and the walls over the top surface (avoiding a hull line).
+                    // The original top is unioned back in, so where it already sits within that band it is kept
+                    // as-is. Never claims a bottom surface.
+                    const PrintRegionConfig &region_config  = layerm->region().config();
+                    const double             top_expansion  = region_config.top_surface_expansion.value;
+                    // A top surface density of 0% leaves the top layer with walls only - no fill to expand.
+                    if (top_expansion > 0. && region_config.top_surface_density.value > 0. && ! top.empty()) {
+                        const double     d = scale_(top_expansion);
+                        const ExPolygons T = union_ex(to_expolygons(top));
+                        // Walls are laid out on spacing, not width; and only_one_wall_top leaves a single wall over
+                        // a top surface, which is exactly the situation handled here.
+                        const int    wall_loops = region_config.only_one_wall_top.value ? std::min(region_config.wall_loops.value, 1)
+                                                                                        : region_config.wall_loops.value;
                         const double wall_band  = wall_loops <= 0 ? 0. :
                             double(layerm->flow(frExternalPerimeter).scaled_width()) +
-                            double(layerm->flow(frPerimeter).scaled_width()) * double(wall_loops - 1);
-                        const double margin     = scale_(layerm->region().config().top_surface_expansion_margin.value);
+                            double(layerm->flow(frPerimeter).scaled_spacing()) * double(wall_loops - 1);
+                        const double margin     = scale_(region_config.top_surface_expansion_margin.value);
                         // minimum real top to act on: ignore anything thinner than ~2 top-infill lines
                         const float  min_top    = float(layerm->flow(frTopSolidInfill).scaled_width());
-                        const auto   direction  = layerm->region().config().top_surface_expansion_direction.value;
+                        const auto   direction  = region_config.top_surface_expansion_direction.value;
 
                         ExPolygons grown;
                         for (const ExPolygon &island : union_ex(layerm_slices_surfaces)) {
@@ -1801,8 +1806,12 @@ void PrintObject::detect_surfaces_type()
                             // exposed top lies in the wall band - i.e. a layer where the top is just the walls
                             // themselves - has no infill here and is skipped, instead of being flooded inward by
                             // the expansion. Thin slivers inside the infill region are dropped by the opening too.
+                            // Only this island's share of the layer's tops is relevant, so clip by its bounding box
+                            // first and keep the boolean ops proportional to the island rather than to the layer.
                             const ExPolygons infill_region = wall_band > 0. ? offset_ex(island, -float(wall_band)) : ExPolygons{ island };
-                            const ExPolygons island_top    = intersection_ex(T, infill_region);
+                            const ExPolygons island_top    = intersection_ex(
+                                ClipperUtils::clip_clipper_polygons_with_subject_bbox(T, get_extents(island).inflated(SCALED_EPSILON)),
+                                infill_region);
                             if (opening_ex(island_top, min_top).empty())
                                 continue; // no real top infill in this section - never expand into it
 
@@ -1810,7 +1819,7 @@ void PrintObject::detect_surfaces_type()
                             // the holes/gaps left by features (clip the growth back to the top's own filled outline,
                             // which leaves the outer edge fixed), outward grows the outer edge toward the walls (drop
                             // the growth that fell into the original holes), and inward+outward keeps both.
-                            ExPolygons expanded = offset_ex_2(island_top, d, jt);
+                            ExPolygons expanded = offset_ex_2(island_top, d, Clipper2Lib::JoinType::Miter);
                             if (direction != TopSurfaceExpansionDirection::InwardAndOutward) {
                                 ExPolygons outline; // the top with its holes filled (same outer edge)
                                 outline.reserve(island_top.size());
