@@ -1017,6 +1017,59 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
         if (command.is_string() && command.get<std::string>() == "get_access_code") {
             return send_access_code(dev_id);
         }
+        if (command.is_string() && command.get<std::string>() == "ledctrl") {
+            const auto& system = json["system"];
+            if (!system.contains("led_node") || !system["led_node"].is_string() || !system.contains("led_mode") ||
+                !system["led_mode"].is_string()) {
+                return BAMBU_NETWORK_ERR_INVALID_RESULT;
+            }
+            const std::string led_mode = system["led_mode"].get<std::string>();
+            // why: Klipper has no flash primitive, so flashing collapses to full brightness.
+            const std::string value = (led_mode == "on" || led_mode == "flashing") ? "1" : "0";
+            std::string       gcode;
+            {
+                std::lock_guard<std::recursive_mutex> lock(payload_mutex);
+                // why: only light-named objects may be driven - available_objects is alphabetical, so an
+                // unqualified "first output_pin" match would happily toggle a beeper or a fan power pin.
+                const auto is_light = [](const std::string& name) {
+                    size_t pos = name.find("led");
+                    while (pos != std::string::npos) {
+                        const bool at_start = pos == 0 || name[pos - 1] == '_' || name[pos - 1] == '-';
+                        const size_t end = pos + 3;
+                        const bool at_end = end == name.size() || name[end] == '_' || name[end] == '-';
+                        if (at_start && at_end) {
+                            return true;
+                        }
+                        pos = name.find("led", pos + 1);
+                    }
+                    return name.find("light") != std::string::npos;
+                };
+                for (const auto& object : available_objects) {
+                    // why: Klipper wants the bare pin name, not the "output_pin " section prefix.
+                    const size_t prefix = object.rfind("output_pin ", 0) == 0 ? 11 : 0;
+                    if (prefix != 0 && object.size() > prefix && is_light(object.substr(prefix))) {
+                        gcode = "SET_PIN PIN=" + object.substr(prefix) + " VALUE=" + value;
+                        break;
+                    }
+                }
+                if (gcode.empty()) {
+                    for (const auto& object : available_objects) {
+                        const size_t prefix = object.rfind("led ", 0) == 0 ? 4 : object.rfind("neopixel ", 0) == 0 ? 9 : 0;
+                        if (prefix != 0 && object.size() > prefix && is_light(object.substr(prefix))) {
+                            gcode = "SET_LED LED=" + object.substr(prefix) + " RED=" + value + " GREEN=" + value +
+                                    " BLUE=" + value + " WHITE=" + value;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (gcode.empty()) {
+                // why: match the other unmapped commands - the UI treats a failure code as a printer error dialog.
+                BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: ledctrl - no light object found, dropping";
+                return BAMBU_NETWORK_SUCCESS;
+            }
+            return send_gcode(dev_id, gcode) ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_CONNECTION_TO_PRINTER_FAILED;
+        }
     }
 
     // Handle print commands
@@ -1238,6 +1291,51 @@ bool MoonrakerPrinterAgent::query_printer_status(const std::string& base_url,
     }
 
     status = json["result"]["status"];
+    return true;
+}
+
+bool MoonrakerPrinterAgent::post_print_action(const std::string& action) const
+{
+    // why: /printer/print/{pause,resume,cancel} map to Klipper's pause_resume
+    // webhook (a direct interrupt). A raw PAUSE/RESUME/CANCEL_PRINT queued through
+    // /printer/gcode/script waits behind the gcode queue and can no-op while the
+    // printer is busy (long move, heating, inside a macro).
+    // note: empty JSON body avoids a body-less POST (curl would treat it as a
+    // streamed upload) - same reason start_print_file sends a body.
+    const std::string full_url = join_url(device_info.base_url, "/printer/print/" + action);
+    bool              success  = false;
+    std::string       http_error;
+
+    auto http = Http::post(full_url);
+    if (!device_info.api_key.empty()) {
+        http.header("X-Api-Key", device_info.api_key);
+    }
+    http.header("Content-Type", "application/json")
+        .set_post_body(std::string("{}"))
+        .timeout_connect(5)
+        .timeout_max(10)
+        .on_complete([&](std::string body, unsigned status_code) {
+            (void) body;
+            if (status_code == 200) {
+                success = true;
+            } else {
+                http_error = "HTTP error: " + std::to_string(status_code);
+            }
+        })
+        .on_error([&](std::string body, std::string err, unsigned status_code) {
+            (void) body;
+            http_error = err;
+            if (status_code > 0) {
+                http_error += " (HTTP " + std::to_string(status_code) + ")";
+            }
+        })
+        .perform_sync();
+
+    if (!success) {
+        BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: print/" << action << " failed: " << http_error;
+        return false;
+    }
+
     return true;
 }
 
@@ -1625,7 +1723,7 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
                     connection_lost = true;
                     break;
                 }
-                handle_ws_message(dev_id, beast::buffers_to_string(buffer.data()));
+                handle_ws_message(dev_id, beast::buffers_to_string(buffer.data()), base_url, api_key);
                 // Check if handle_ws_message triggered reconnection request
                 if (ws_reconnect_requested.exchange(false)) {
                     connection_lost = true;
@@ -1669,7 +1767,7 @@ void MoonrakerPrinterAgent::run_status_stream(std::string dev_id, std::string ba
     }
 }
 
-void MoonrakerPrinterAgent::handle_ws_message(const std::string& dev_id, const std::string& payload)
+void MoonrakerPrinterAgent::handle_ws_message(std::string dev_id, std::string payload, std::string base_url, std::string api_key)
 {
     auto json = nlohmann::json::parse(payload, nullptr, false);
     if (json.is_discarded()) {
@@ -1740,6 +1838,8 @@ void MoonrakerPrinterAgent::handle_ws_message(const std::string& dev_id, const s
     }
 
     if (updated) {
+        refresh_thumbnail_url(base_url, api_key);
+
         const auto now_ms = static_cast<uint64_t>(
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
         const auto last_dispatch_ms = ws_last_dispatch_ms.load();
@@ -1786,6 +1886,105 @@ void MoonrakerPrinterAgent::update_status_cache(const nlohmann::json& updates)
             status_cache[item.key()] = item.value();
         }
     }
+}
+
+// why: resolving a thumbnail is a blocking HTTP round-trip, so it must stay OUT of
+// build_print_payload_locked() - that runs on the ws thread holding payload_mutex, which the UI
+// thread also takes. Cached per filename, and a miss caches empty so a printer whose gcode has no
+// embedded thumbnail is not re-queried on every push.
+void MoonrakerPrinterAgent::refresh_thumbnail_url(std::string base_url, std::string api_key)
+{
+    std::string filename;
+    {
+        std::lock_guard<std::recursive_mutex> lock(payload_mutex);
+        if (status_cache.contains("print_stats") && status_cache["print_stats"].contains("filename") &&
+            status_cache["print_stats"]["filename"].is_string()) {
+            filename = status_cache["print_stats"]["filename"].get<std::string>();
+        }
+        if (filename.empty() || (filename == thumbnail_filename && (!thumbnail_url.empty() || thumbnail_lookup_attempts >= 3))) {
+            return;
+        }
+        if (filename != thumbnail_filename) {
+            // why: claim the filename on the FIRST attempt, not on give-up. Leaving it unclaimed made
+            // every transient failure look like a new file and reset the counter, so an unreachable
+            // printer re-issued this blocking lookup on every push instead of stopping after 3.
+            thumbnail_filename        = filename;
+            thumbnail_url.clear();
+            thumbnail_lookup_attempts = 0;
+        }
+        ++thumbnail_lookup_attempts;
+    }
+
+    std::string response_body;
+    bool        request_succeeded = false;
+    auto        http = Http::get(join_url(base_url, "/server/files/thumbnails?filename=" + Http::url_encode(filename)));
+    if (!api_key.empty()) {
+        http.header("X-Api-Key", api_key);
+    }
+    http.timeout_connect(2)
+        .timeout_max(4)
+        .on_complete([&](std::string body, unsigned status) {
+            if (status == 200) {
+                response_body = std::move(body);
+                request_succeeded = true;
+            }
+        })
+        .on_error([&](std::string, std::string, unsigned) { request_succeeded = false; })
+        .on_progress([this](Http::Progress, bool& cancel) { cancel = ws_stop.load(); })
+        .perform_sync();
+
+    // why: transient (connection refused, non-2xx, timeout, cancel) - leave the counter standing so the
+    // next push retries, and the >= 3 guard above stops it. Only a clean 200 caches a verdict.
+    if (!request_succeeded) {
+        return;
+    }
+
+    std::string path;
+    int         best_width = -1;
+    const auto  thumbnails = nlohmann::json::parse(response_body, nullptr, false, true);
+    if (!thumbnails.is_discarded() && thumbnails.contains("result") && thumbnails["result"].is_array()) {
+        for (const auto& item : thumbnails["result"]) {
+            if (!item.is_object()) {
+                continue;
+            }
+            // note: Moonraker renamed this key across versions; accept both spellings.
+            const char* key = item.contains("thumbnail_path") ? "thumbnail_path" : "relative_path";
+            if (!item.contains(key) || !item[key].is_string()) {
+                continue;
+            }
+            // why: the list is ordered smallest-first, so taking [0] would pick the 32x32 icon.
+            const int width = (item.contains("width") && item["width"].is_number()) ? item["width"].get<int>() : 0;
+            if (width > best_width) {
+                best_width = width;
+                path       = item[key].get<std::string>();
+            }
+        }
+    }
+
+    std::string url;
+    if (!path.empty()) {
+        // why: the returned path is relative to the gcodes root, which is served at /server/files/gcodes.
+        const std::string root = path.rfind("gcodes/", 0) == 0 ? "/server/files/" : "/server/files/gcodes/";
+        std::string encoded_path;
+        size_t      segment_start = 0;
+        while (segment_start <= path.size()) {
+            const size_t segment_end = path.find('/', segment_start);
+            if (!encoded_path.empty() || segment_start > 0) {
+                encoded_path += '/';
+            }
+            encoded_path += Http::url_encode(path.substr(segment_start, segment_end - segment_start));
+            if (segment_end == std::string::npos) {
+                break;
+            }
+            segment_start = segment_end + 1;
+        }
+        url = join_url(base_url, root + encoded_path);
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(payload_mutex);
+    thumbnail_filename = filename;
+    thumbnail_url      = url;
+    thumbnail_lookup_attempts = url.empty() ? 3 : 0;
 }
 
 nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
@@ -1913,6 +2112,23 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
 
     if (status_cache.contains("print_stats") && status_cache["print_stats"].contains("filename")) {
         payload["print"]["gcode_file"] = status_cache["print_stats"]["filename"];
+        if (status_cache["print_stats"]["filename"].is_string()) {
+            const std::string filename = status_cache["print_stats"]["filename"].get<std::string>();
+            payload["print"]["task_id"] = filename;
+            // why: url is resolved by refresh_thumbnail_url() off this lock - the lookup is a blocking
+            // HTTP round-trip and this builder runs on the ws thread holding payload_mutex.
+            if (thumbnail_filename == filename && !thumbnail_url.empty())
+                payload["print"]["thumbnail_url"] = thumbnail_url;
+        }
+    }
+
+    if (status_cache.contains("print_stats") && status_cache["print_stats"].contains("info") &&
+        status_cache["print_stats"]["info"].contains("current_layer") && status_cache["print_stats"]["info"]["current_layer"].is_number()) {
+        payload["print"]["layer_num"] = status_cache["print_stats"]["info"]["current_layer"];
+    }
+    if (status_cache.contains("print_stats") && status_cache["print_stats"].contains("info") &&
+        status_cache["print_stats"]["info"].contains("total_layer") && status_cache["print_stats"]["info"]["total_layer"].is_number()) {
+        payload["print"]["total_layer_num"] = status_cache["print_stats"]["info"]["total_layer"];
     }
 
     int mc_percent = -1;
@@ -1927,13 +2143,15 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
         payload["print"]["mc_percent"] = mc_percent;
     }
 
-    if (status_cache.contains("print_stats") && status_cache["print_stats"].contains("total_duration") &&
-        status_cache["print_stats"].contains("print_duration") && status_cache["print_stats"]["total_duration"].is_number() &&
-        status_cache["print_stats"]["print_duration"].is_number()) {
-        const double total   = status_cache["print_stats"]["total_duration"].get<double>();
-        const double elapsed = status_cache["print_stats"]["print_duration"].get<double>();
-        if (total > 0.0 && elapsed >= 0.0) {
-            const auto remaining_minutes          = std::max(0, static_cast<int>((total - elapsed) / 60.0));
+    // why: total_duration and print_duration are both elapsed counters; their difference is overhead, not ETA.
+    if (status_cache.contains("print_stats") && status_cache["print_stats"].contains("print_duration") &&
+        status_cache["print_stats"]["print_duration"].is_number() && status_cache.contains("virtual_sdcard") &&
+        status_cache["virtual_sdcard"].contains("progress") && status_cache["virtual_sdcard"]["progress"].is_number()) {
+        const double elapsed  = status_cache["print_stats"]["print_duration"].get<double>();
+        const double progress = status_cache["virtual_sdcard"]["progress"].get<double>();
+        // why: progress is file position and starts before the print, so ETA is garbage below 2%.
+        if (elapsed >= 0.0 && progress >= 0.02) {
+            const auto remaining_minutes = std::max(0, static_cast<int>((elapsed * (1.0 - progress) / progress) / 60.0));
             payload["print"]["mc_remaining_time"] = remaining_minutes;
         }
     }
@@ -2052,17 +2270,20 @@ bool MoonrakerPrinterAgent::upload_gcode(const std::string& local_path,
 
 int MoonrakerPrinterAgent::pause_print(const std::string& dev_id)
 {
-    return send_gcode(dev_id, "PAUSE") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
+    (void) dev_id;
+    return post_print_action("pause") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
 }
 
 int MoonrakerPrinterAgent::resume_print(const std::string& dev_id)
 {
-    return send_gcode(dev_id, "RESUME") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
+    (void) dev_id;
+    return post_print_action("resume") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
 }
 
 int MoonrakerPrinterAgent::cancel_print(const std::string& dev_id)
 {
-    return send_gcode(dev_id, "CANCEL_PRINT") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
+    (void) dev_id;
+    return post_print_action("cancel") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
 }
 
 bool MoonrakerPrinterAgent::start_print_file(const std::string& base_url,

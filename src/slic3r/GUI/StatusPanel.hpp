@@ -630,6 +630,7 @@ class StatusPanel : public StatusBasePanel
 {
 private:
     friend class MonitorPanel;
+    bool load_thumbnail_from_url(const wxString &url, MachineObject *obj);
 
 protected:
     std::shared_ptr<SliceInfoPopup> m_slice_info_popup;

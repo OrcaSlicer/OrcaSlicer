@@ -3470,6 +3470,9 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                             this->task_id_ = jj["task_id"].get<std::string>();
                         }
 
+                        if (jj.contains("thumbnail_url") && jj["thumbnail_url"].is_string())
+                            m_agent_thumbnail_url = jj["thumbnail_url"].get<std::string>();
+
                         if (jj.contains("job_attr")) {
                             int jobAttr = jj["job_attr"].get<int>();
                             jobState_ =  get_flag_bits(jobAttr, 4, 4);

@@ -702,6 +702,8 @@ public:
     std::string  subtask_id_;
     std::string  job_id_;
     std::string  last_subtask_id_;
+    // note: printer-agent-supplied thumbnail url, empty when the agent supplies none.
+    std::string  m_agent_thumbnail_url;
     BBLSliceInfo* slice_info {nullptr};
     boost::thread* get_slice_info_thread { nullptr };
     boost::thread* get_model_task_thread { nullptr };

@@ -70,7 +70,7 @@ public:
     int set_queue_on_main_fn(QueueOnMainFn fn) override;
 
     // Pull-mode agent (on-demand filament sync)
-    FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::subscription; }
+    FilamentSyncMode get_filament_sync_mode() const override { return FilamentSyncMode::pull; }
     bool fetch_filament_info(std::string dev_id) override;
 
 protected:
@@ -123,6 +123,7 @@ protected:
 
     // Send a G-code script via Moonraker (/printer/gcode/script)
     bool send_gcode(const std::string& dev_id, const std::string& gcode) const;
+    bool post_print_action(const std::string& action) const;
 
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
@@ -139,7 +140,8 @@ private:
     void start_status_stream(const std::string& dev_id, const std::string& base_url, const std::string& api_key);
     void stop_status_stream();
     void run_status_stream(std::string dev_id, std::string base_url, std::string api_key);
-    void handle_ws_message(const std::string& dev_id, const std::string& payload);
+    void handle_ws_message(std::string dev_id, std::string payload, std::string base_url, std::string api_key);
+    void refresh_thumbnail_url(std::string base_url, std::string api_key);
     void update_status_cache(const nlohmann::json& updates);
     nlohmann::json build_print_payload_locked() const;
 
@@ -192,6 +194,10 @@ private:
 
     mutable std::recursive_mutex payload_mutex;
     nlohmann::json     status_cache;
+    // note: guarded by payload_mutex; filled by refresh_thumbnail_url(), empty url = looked up, none found
+    std::string        thumbnail_filename;
+    std::string        thumbnail_url;
+    unsigned            thumbnail_lookup_attempts = 0;
 
     std::atomic<int>       next_jsonrpc_id{1};
     std::set<std::string>  available_objects;  // Track for feature detection

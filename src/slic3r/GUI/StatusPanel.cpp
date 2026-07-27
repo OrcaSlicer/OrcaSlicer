@@ -3920,39 +3920,61 @@ void StatusPanel::update_cloud_subtask(MachineObject *obj)
         update_calib_bitmap();
         if (obj->slice_info) {
             m_request_url = wxString(obj->slice_info->thumbnail_url);
-            if (!m_request_url.IsEmpty()) {
-                wxImage                               img;
-                std::map<wxString, wxImage>::iterator it = img_list.find(m_request_url);
-                if (it != img_list.end()) {
-                    if (m_current_print_mode != PrintingTaskType::CALIBRATION  ||(m_calib_mode == CalibMode::Calib_Flow_Rate && m_calib_method == CalibrationMethod::CALI_METHOD_MANUAL)) {
-                        img = it->second;
-                        wxImage resize_img = img.Scale(m_project_task_panel->get_bitmap_thumbnail()->GetSize().x, m_project_task_panel->get_bitmap_thumbnail()->GetSize().y);
-                        m_project_task_panel->set_thumbnail_img(resize_img, "");
-                        m_project_task_panel->set_brightness_value(get_brightness_value(resize_img));
-                    }
-                    if (this->obj) {
-                        m_project_task_panel->set_plate_index(obj->m_plate_index);
-                    } else {
-                        m_project_task_panel->set_plate_index(-1);
-                    }
-                    task_thumbnail_state = ThumbnailState::TASK_THUMBNAIL;
-                    BOOST_LOG_TRIVIAL(trace) << "web_request: use cache image";
-                } else {
-                    web_request = wxWebSession::GetDefault().CreateRequest(this, m_request_url);
-                    BOOST_LOG_TRIVIAL(trace) << "monitor: start request thumbnail, url = " << m_request_url;
-                    web_request.Start();
-                    m_start_loading_thumbnail = false;
-                }
-            }
+            load_thumbnail_from_url(m_request_url, obj);
         }
     }
+}
+
+bool StatusPanel::load_thumbnail_from_url(const wxString &url, MachineObject *obj)
+{
+    if (url.IsEmpty())
+        return false;
+
+    wxImage                               img;
+    std::map<wxString, wxImage>::iterator it = img_list.find(url);
+    if (it != img_list.end()) {
+        if (m_current_print_mode != PrintingTaskType::CALIBRATION  ||(m_calib_mode == CalibMode::Calib_Flow_Rate && m_calib_method == CalibrationMethod::CALI_METHOD_MANUAL)) {
+            img = it->second;
+            wxImage resize_img = img.Scale(m_project_task_panel->get_bitmap_thumbnail()->GetSize().x, m_project_task_panel->get_bitmap_thumbnail()->GetSize().y);
+            m_project_task_panel->set_thumbnail_img(resize_img, "");
+            m_project_task_panel->set_brightness_value(get_brightness_value(resize_img));
+        }
+        if (this->obj) {
+            m_project_task_panel->set_plate_index(obj->m_plate_index);
+        } else {
+            m_project_task_panel->set_plate_index(-1);
+        }
+        task_thumbnail_state = ThumbnailState::TASK_THUMBNAIL;
+        BOOST_LOG_TRIVIAL(trace) << "web_request: use cache image";
+    } else {
+        m_request_url = url;
+        web_request = wxWebSession::GetDefault().CreateRequest(this, m_request_url);
+        BOOST_LOG_TRIVIAL(trace) << "monitor: start request thumbnail, url = " << m_request_url;
+        web_request.Start();
+        m_start_loading_thumbnail = false;
+    }
+    return true;
 }
 
 void StatusPanel::update_sdcard_subtask(MachineObject *obj)
 {
     if (!obj) return;
 
-    if (!m_load_sdcard_thumbnail) {
+    const wxString thumbnail_url = wxString(obj->m_agent_thumbnail_url);
+    if (!thumbnail_url.IsEmpty()) {
+        // why: Moonraker has no prediction or weight data, so keep it on the sdcard path.
+        if (m_request_url != thumbnail_url || !m_load_sdcard_thumbnail) {
+            if (web_request.IsOk() && web_request.GetState() == wxWebRequest::State_Active)
+                web_request.Cancel();
+            update_calib_bitmap();
+            m_request_url = thumbnail_url;
+            load_thumbnail_from_url(thumbnail_url, obj);
+            m_load_sdcard_thumbnail = true;
+        }
+        return;
+    }
+
+    if (!m_load_sdcard_thumbnail || !m_request_url.IsEmpty()) {
         update_calib_bitmap();
         if (m_current_print_mode != PrintingTaskType::CALIBRATION) {
             m_project_task_panel->get_bitmap_thumbnail()->SetBitmap(m_thumbnail_sdcard.bmp());
@@ -3960,6 +3982,7 @@ void StatusPanel::update_sdcard_subtask(MachineObject *obj)
         }
         task_thumbnail_state = ThumbnailState::SDCARD_THUMBNAIL;
         m_load_sdcard_thumbnail = true;
+        m_request_url.clear();
     }
 }
 
