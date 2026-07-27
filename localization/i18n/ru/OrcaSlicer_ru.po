@@ -297,7 +297,7 @@ msgstr "Карбид вольфрама"
 
 # AI Translated
 msgid "The toolhead and hotend rack may move. Please keep your hands away from the chamber."
-msgstr "Печатающий инструмент и стойка хотэндов могут смещаться. Держите руки подальше от камеры."
+msgstr "Печатающая голова и стойка хотэндов могут смещаться. Держите руки подальше от камеры."
 
 msgid "Warning"
 msgstr "Предупреждение"
@@ -360,7 +360,7 @@ msgstr "Ряд B"
 
 # AI Translated
 msgid "Toolhead"
-msgstr "Печатающий инструмент"
+msgstr "Печатающая голова"
 
 msgid "Empty"
 msgstr "Пусто"
@@ -441,7 +441,7 @@ msgstr "Стойка хотэндов"
 
 # AI Translated
 msgid "ToolHead"
-msgstr "Печатающий инструмент"
+msgstr "Печатающая голова"
 
 # AI Translated
 msgid "Nozzle information needs to be read"
@@ -10117,7 +10117,7 @@ msgstr "Установите подходящее сопло в стойку х�
 
 # AI Translated
 msgid "The toolhead and hotend rack are full. Please remove at least one hotend before printing."
-msgstr "Печатающий инструмент и стойка хотэндов заполнены. Перед печатью снимите хотя бы один хотэнд."
+msgstr "Печатающая голова и стойка хотэндов заполнены. Перед печатью снимите хотя бы один хотэнд."
 
 #, c-format, boost-format
 msgid "The nozzle flow setting of %s(%s) doesn't match with the slicing file(%s). Please make sure the nozzle installed matches with settings in printer, then set the corresponding printer preset while slicing."
@@ -12645,7 +12645,7 @@ msgstr "Исключаемые зоны стола для параллельны
 
 # AI Translated
 msgid "Ordered list of bed exclude areas by parallel printhead count. Item 1 applies to one printhead, item 2 to two printheads, and so on. Leave an item empty for no excluded area."
-msgstr "Упорядоченный список исключаемых зон стола по количеству параллельных печатающих голов. Элемент 1 применяется к одной голове, элемент 2 — к двум и так далее. Оставьте элемент пустым, если исключаемой зоны нет."
+msgstr "Упорядоченный список исключаемых зон стола по количеству параллельных печатающих голов. Поле 1 применяется к одной голове, поле 2 — к двум, и так далее. Оставьте поле пустым, если исключаемые зоны отсутствуют."
 
 msgid "Excluded bed area"
 msgstr "Область исключения"
