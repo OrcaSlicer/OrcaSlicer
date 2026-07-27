@@ -8354,19 +8354,8 @@ std::string GCode::extrusion_role_to_string_for_parser(const ExtrusionRole & rol
 // Step = 0 means gradual interpolation finishing at last value.
 float GCode::interpolate_value_across_layers(float start_value, float end_value, float step) const
 {
-    if (m_layer_index <= 1) {
-        return start_value;
-    }
-    const float ratio = m_layer_index / (m_layer_count - 1.f);
-    if (step > 0.f) {
-        // Discrete equal-width bands. calib_band_count() uses floor (not round), so band * step never passes
-        // end_value; band is also clamped to the last band because at the top layer ratio * n_bands == n_bands,
-        // which would otherwise index one band past the end. Same band count the tower geometry is cut to.
-        const int n_bands = calib_band_count(start_value, end_value, step);
-        const int band    = std::min(n_bands - 1, static_cast<int>(ratio * n_bands));
-        return start_value + (end_value >= start_value ? 1.f : -1.f) * band * step;
-    }
-    return start_value + ratio * (end_value - start_value);
+    // Pure math lives in calib_interpolate_value() so it can be unit-tested without a GCode instance.
+    return calib_interpolate_value(start_value, end_value, step, m_layer_index, m_layer_count);
 }
 
 std::string encodeBase64(uint64_t value)

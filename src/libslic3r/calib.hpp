@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <cmath>
+#include <algorithm>
 #define calib_pressure_advance_dd
 
 #include "GCodeWriter.hpp"
@@ -69,6 +70,22 @@ inline int calib_band_count(double start, double end, double step)
     if (step <= 0.0)
         return 1;
     return static_cast<int>(std::floor(std::abs(end - start) / step + 1e-6)) + 1;
+}
+
+// Pure form of GCode::interpolate_value_across_layers: the calibration value for the given 0-based layer_index
+// out of layer_count total layers. step > 0 yields discrete equal-width bands (see calib_band_count); step == 0
+// yields a gradual interpolation ending at end_value. The result always stays within [start_value, end_value].
+inline float calib_interpolate_value(float start_value, float end_value, float step, int layer_index, unsigned int layer_count)
+{
+    if (layer_index <= 1)
+        return start_value;
+    const float ratio = layer_index / (layer_count - 1.f);
+    if (step > 0.f) {
+        const int n_bands = calib_band_count(start_value, end_value, step);
+        const int band    = std::min(n_bands - 1, static_cast<int>(ratio * n_bands));
+        return start_value + (end_value >= start_value ? 1.f : -1.f) * band * step;
+    }
+    return start_value + ratio * (end_value - start_value);
 }
 
 enum FlowRatioCalibrationType {
