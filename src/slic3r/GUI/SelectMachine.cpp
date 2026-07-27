@@ -4536,11 +4536,13 @@ bool SelectMachineDialog::CheckErrorExtruderNozzleWithSlicing(MachineObject* obj
 
             // check nozzle data valid
             {
-                if (installed_ext_nozzle.GetNozzleType() == NozzleType::ntUndefine ||
-                    installed_ext_nozzle.GetNozzleDiameter() <= 0.0f) {
-                    show_status(PrintDialogStatus::PrintStatusNozzleDataInvalid);
-                    return false;
-                }
+                // Commented out the following as ntUndefine and 0.0f are default values
+                // (signifying that the value is not given) that should PASS, not fail
+                // if (installed_ext_nozzle.GetNozzleType() == NozzleType::ntUndefine ||
+                //     installed_ext_nozzle.GetNozzleDiameter() <= 0.0f) {
+                //     show_status(PrintDialogStatus::PrintStatusNozzleDataInvalid);
+                //     return false;
+                // }
 
                 if (obj_->is_nozzle_flow_type_supported() &&
                     installed_ext_nozzle.GetNozzleFlowType() == NozzleFlowType::NONE_FLOWTYPE) {
@@ -4569,7 +4571,10 @@ bool SelectMachineDialog::CheckErrorExtruderNozzleWithSlicing(MachineObject* obj
 
             // check nozzle diameter
             {
-                if (slicing_ext.nozzle_diameter != installed_ext_nozzle.GetNozzleDiameter()) {
+                // 0.0f is default when there is no nozzle diameter is given.
+                // In nozzle_diameter == 0.0f case, it passes and does not require a comparison
+                if (installed_ext_nozzle.GetNozzleDiameter() > 0.0f &&
+                    slicing_ext.nozzle_diameter != installed_ext_nozzle.GetNozzleDiameter()) {
                     std::vector<wxString> msg_params;
                     if (ext_sys->GetTotalExtderCount() == 2) {
                         const wxString& mismatch_nozzle_str = _get_nozzle_name(ext_sys->GetTotalExtderCount(), slicing_ext_idx);
