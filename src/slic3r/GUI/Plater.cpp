@@ -13971,7 +13971,8 @@ void Plater::_calib_pa_select_added_objects() {
 // Adjust settings for flowrate calibration
 // For linear mode, pass 1 means normal version while pass 2 mean "for perfectionists" version
 // ORCA: Add pattern parameter
-void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, int pass, InfillPattern pattern)
+void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, int pass, InfillPattern pattern,
+                                        bool brim_enabled, double brim_width, double brim_extra_gap)
 {
     auto print_config = &wxGetApp().preset_bundle->prints.get_edited_preset().config;
     auto printer_config  = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
@@ -14073,6 +14074,54 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
         else
             _obj->config.set_key_value("print_flow_ratio", new ConfigOptionFloat(1.0f + modifier/100.f));
 
+        // ORCA: optional outer brim per block (helps with warp-prone filaments)
+        if (brim_enabled) {
+            _obj->config.set_key_value("brim_type", new ConfigOptionEnum<BrimType>(btOuterOnly));
+            _obj->config.set_key_value("brim_width", new ConfigOptionFloat(brim_width));
+            _obj->config.set_key_value("brim_object_gap", new ConfigOptionFloat(0.0));
+        }
+    }
+
+    // ORCA: when per-block brim is enabled, scale object positions outward from
+    // the layout centroid so adjacent brims don't merge. Uniform scaling preserves
+    // the prebuilt grid layout while widening every gap by the same delta.
+    if (brim_enabled && objects.size() >= 2) {
+        std::vector<Vec2d>          centers;
+        std::vector<BoundingBoxf3>  bbs;
+        centers.reserve(objects.size());
+        bbs.reserve(objects.size());
+        for (auto _obj : objects) {
+            const BoundingBoxf3 bb = _obj->instance_bounding_box(0);
+            bbs.push_back(bb);
+            centers.emplace_back(0.5 * (bb.min.x() + bb.max.x()), 0.5 * (bb.min.y() + bb.max.y()));
+        }
+        Vec2d centroid(0.0, 0.0);
+        for (const auto& c : centers) centroid += c;
+        centroid /= double(centers.size());
+
+        double min_center_dist = std::numeric_limits<double>::infinity();
+        double min_edge_gap    = std::numeric_limits<double>::infinity();
+        for (size_t i = 0; i < objects.size(); ++i) {
+            for (size_t j = i + 1; j < objects.size(); ++j) {
+                const double cd = (centers[i] - centers[j]).norm();
+                if (cd < min_center_dist) min_center_dist = cd;
+                const double dx = std::max(0.0, std::max(bbs[i].min.x() - bbs[j].max.x(), bbs[j].min.x() - bbs[i].max.x()));
+                const double dy = std::max(0.0, std::max(bbs[i].min.y() - bbs[j].max.y(), bbs[j].min.y() - bbs[i].max.y()));
+                const double eg = std::max(dx, dy); // axis-aligned grid: the larger axial gap is the actual gap
+                if (eg < min_edge_gap) min_edge_gap = eg;
+            }
+        }
+
+        const double required_gap = 2.0 * brim_width + brim_extra_gap;
+        if (min_center_dist > 0.0 && min_edge_gap < required_gap) {
+            const double extra_needed = required_gap - min_edge_gap;
+            const double scale = 1.0 + extra_needed / min_center_dist;
+            for (size_t i = 0; i < objects.size(); ++i) {
+                const Vec2d new_center = centroid + scale * (centers[i] - centroid);
+                const Vec2d delta      = new_center - centers[i];
+                objects[i]->translate_instances(Vec3d(delta.x(), delta.y(), 0.0));
+            }
+        }
     }
 
     print_config->set_key_value("layer_height", new ConfigOptionFloat(layer_height));
@@ -14089,8 +14138,9 @@ void adjust_settings_for_flowrate_calib(ModelObjectPtrs& objects, bool linear, i
     wxGetApp().get_tab(Preset::TYPE_PRINTER)->reload_config();
 }
 
-// ORCA: Add pattern parameter
-void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern) {
+// ORCA: Add pattern parameter and optional brim with auto-spacing
+void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern,
+                            bool brim_enabled, double brim_width, double brim_extra_gap) {
     if (pass != 1 && pass != 2)
         return;
     wxString calib_name;
@@ -14122,8 +14172,9 @@ void Plater::calib_flowrate(bool is_linear, int pass, InfillPattern pattern) {
                       (boost::filesystem::path(Slic3r::resources_dir()) / "calib" / "filament_flow" / "flowrate-test-pass2.3mf").string());
     }
 
-    // ORCA: pass the pattern
-    adjust_settings_for_flowrate_calib(model().objects, is_linear, pass, pattern);
+    // ORCA: pass the pattern and brim options
+    adjust_settings_for_flowrate_calib(model().objects, is_linear, pass, pattern,
+                                       brim_enabled, brim_width, brim_extra_gap);
     wxGetApp().get_tab(Preset::TYPE_PRINTER)->reload_config();
     auto printer_config = &wxGetApp().preset_bundle->printers.get_edited_preset().config;
     printer_config->set_key_value("resonance_avoidance", new ConfigOptionBool{false});

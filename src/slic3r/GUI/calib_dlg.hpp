@@ -190,10 +190,15 @@ public:
 
 protected:
     virtual void on_start(wxCommandEvent& event);
+    void on_brim_toggled();
 
     RadioGroup* m_rbType;
     // ORCA: use standard OrcaSlicer ComboBox instead of BitmapComboBox
     ComboBox* m_rbPattern;
+    // ORCA: optional outer brim with auto-spacing for warp-prone filaments
+    CheckBox*  m_cbBrim;
+    TextInput* m_tiBrimWidth;
+    TextInput* m_tiBrimGap;
     Plater* m_plater;
 };
 }} // namespace Slic3r::GUI

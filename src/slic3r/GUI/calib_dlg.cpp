@@ -6,8 +6,11 @@
 #include "MainFrame.hpp"
 #include "Widgets/DialogButtons.hpp"
 #include "Widgets/HyperLink.hpp"
+#include <algorithm>
+#include <cstdlib>
 #include <string>
 #include <vector>
+#include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Utils.hpp"
 
@@ -1517,6 +1520,58 @@ FlowRateCalibrationDialog::FlowRateCalibrationDialog(wxWindow* parent, wxWindowI
 
     v_sizer->Add(settings_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
 
+    // ORCA: optional outer brim with auto-spacing (helps with warp-prone filaments)
+    {
+        AppConfig* cfg = wxGetApp().app_config;
+        const bool   default_brim_enabled = cfg && cfg->get("calibration_flowrate", "brim_enabled") == "true";
+        const wxString default_brim_width = wxString::FromDouble(
+            cfg && !cfg->get("calibration_flowrate", "brim_width").empty()
+                ? std::atof(cfg->get("calibration_flowrate", "brim_width").c_str())
+                : 3.0);
+        const wxString default_brim_gap = wxString::FromDouble(
+            cfg && !cfg->get("calibration_flowrate", "brim_extra_gap").empty()
+                ? std::atof(cfg->get("calibration_flowrate", "brim_extra_gap").c_str())
+                : 2.0);
+
+        auto brim_sizer = new wxBoxSizer(wxVERTICAL);
+
+        auto cb_row = new wxBoxSizer(wxHORIZONTAL);
+        m_cbBrim = new CheckBox(this);
+        m_cbBrim->SetValue(default_brim_enabled);
+        auto cb_label = new wxStaticText(this, wxID_ANY, _L("Enable brim"));
+        cb_row->Add(m_cbBrim, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(6));
+        cb_row->Add(cb_label, 0, wxALIGN_CENTER_VERTICAL);
+        brim_sizer->Add(cb_row, 0, wxLEFT | wxBOTTOM, FromDIP(4));
+
+        const wxSize ti_size = wxSize(FromDIP(80), -1);
+        const wxSize lbl_size = wxSize(FromDIP(140), -1);
+
+        auto width_row = new wxBoxSizer(wxHORIZONTAL);
+        auto width_lbl = new wxStaticText(this, wxID_ANY, _L("Brim width (mm)"), wxDefaultPosition, lbl_size);
+        m_tiBrimWidth = new TextInput(this, default_brim_width, "", "", wxDefaultPosition, ti_size, wxTE_PROCESS_ENTER);
+        m_tiBrimWidth->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+        m_tiBrimWidth->SetToolTip(_L("Outer brim width applied to each calibration block."));
+        width_row->Add(FromDIP(20), 0); // indent under the checkbox
+        width_row->Add(width_lbl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+        width_row->Add(m_tiBrimWidth, 0, wxALIGN_CENTER_VERTICAL);
+        brim_sizer->Add(width_row, 0, wxLEFT | wxBOTTOM, FromDIP(4));
+
+        auto gap_row = new wxBoxSizer(wxHORIZONTAL);
+        auto gap_lbl = new wxStaticText(this, wxID_ANY, _L("Extra gap (mm)"), wxDefaultPosition, lbl_size);
+        m_tiBrimGap = new TextInput(this, default_brim_gap, "", "", wxDefaultPosition, ti_size, wxTE_PROCESS_ENTER);
+        m_tiBrimGap->GetTextCtrl()->SetValidator(wxTextValidator(wxFILTER_NUMERIC));
+        m_tiBrimGap->SetToolTip(_L("Safety margin between brims of adjacent blocks. Total spacing added is 2 * brim width + extra gap."));
+        gap_row->Add(FromDIP(20), 0);
+        gap_row->Add(gap_lbl, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, FromDIP(4));
+        gap_row->Add(m_tiBrimGap, 0, wxALIGN_CENTER_VERTICAL);
+        brim_sizer->Add(gap_row, 0, wxLEFT | wxBOTTOM, FromDIP(4));
+
+        v_sizer->Add(brim_sizer, 0, wxTOP | wxRIGHT | wxLEFT | wxEXPAND, FromDIP(10));
+
+        m_cbBrim->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) { on_brim_toggled(); e.Skip(); });
+        on_brim_toggled(); // sync enabled state with initial checkbox value
+    }
+
     v_sizer->AddSpacer(FromDIP(5));
 
     auto dlg_btns = new DialogButtons(this, {"OK"});
@@ -1544,15 +1599,36 @@ FlowRateCalibrationDialog::~FlowRateCalibrationDialog() {
 void FlowRateCalibrationDialog::on_start(wxCommandEvent& event) {
     int type = m_rbType->GetSelection();
     int patternIdx = m_rbPattern->GetSelection();
-    
+
     InfillPattern pattern = ipArchimedeanChords;
     if (patternIdx == 1) pattern = ipMonotonic;
-    
+
     bool is_linear = (type >= 2);
     int pass = (type % 2) + 1;
 
-    m_plater->calib_flowrate(is_linear, pass, pattern);
+    // ORCA: read brim toggle / values, clamp to sane bounds, persist for next session
+    const bool brim_enabled = m_cbBrim->GetValue();
+    double brim_width = 3.0;
+    double brim_gap   = 2.0;
+    m_tiBrimWidth->GetTextCtrl()->GetValue().ToDouble(&brim_width);
+    m_tiBrimGap->GetTextCtrl()->GetValue().ToDouble(&brim_gap);
+    brim_width = std::clamp(brim_width, 0.0, 20.0);
+    brim_gap   = std::clamp(brim_gap,   0.0, 20.0);
+
+    if (auto* cfg = wxGetApp().app_config) {
+        cfg->set("calibration_flowrate", "brim_enabled",   brim_enabled ? "true" : "false");
+        cfg->set("calibration_flowrate", "brim_width",     std::to_string(brim_width));
+        cfg->set("calibration_flowrate", "brim_extra_gap", std::to_string(brim_gap));
+    }
+
+    m_plater->calib_flowrate(is_linear, pass, pattern, brim_enabled, brim_width, brim_gap);
     EndModal(wxID_OK);
+}
+
+void FlowRateCalibrationDialog::on_brim_toggled() {
+    const bool enabled = m_cbBrim->GetValue();
+    m_tiBrimWidth->Enable(enabled);
+    m_tiBrimGap->Enable(enabled);
 }
 
 void FlowRateCalibrationDialog::on_dpi_changed(const wxRect& suggested_rect) {

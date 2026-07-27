@@ -341,7 +341,9 @@ public:
     // SoftFever
     void calib_pa(const Calib_Params& params);
     //ORCA: Add pattern parameter to calib_flowrate
-    void calib_flowrate(bool is_linear, int pass, InfillPattern pattern = ipArchimedeanChords);
+    //ORCA: Optional outer brim with auto-spacing (for warp-prone filaments like ASA)
+    void calib_flowrate(bool is_linear, int pass, InfillPattern pattern = ipArchimedeanChords,
+                        bool brim_enabled = false, double brim_width = 3.0, double brim_extra_gap = 2.0);
     void calib_temp(const Calib_Params& params);
     void calib_max_vol_speed(const Calib_Params& params);
     void calib_retraction(const Calib_Params& params);
