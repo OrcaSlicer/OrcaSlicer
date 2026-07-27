@@ -1671,11 +1671,9 @@ PrinterPartsDialog::PrinterPartsDialog(wxWindow* parent)
     /*inset data*/
     sizer->Add(single_panel, 0, wxEXPAND, 0);
     sizer->Add(multiple_panel, 0, wxEXPAND, 0);
+    single_panel->Hide();
     SetSizerAndFit(sizer);
     Layout();
-
-    single_panel->Hide();
-
     wxGetApp().UpdateDlgDarkUI(this);
 }
 
@@ -1752,6 +1750,7 @@ bool PrinterPartsDialog::Show(bool show)
             }
         }
 
+        GetSizer()->SetSizeHints(this);
         Layout();
         Fit();
     }
