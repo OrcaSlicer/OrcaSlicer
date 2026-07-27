@@ -3092,6 +3092,16 @@ void CadDocument::apply_mate(std::vector<CadBody>& bodies, const CadFeature& f) 
     bodies[tgt_body].shape = xform.Shape();
 }
 
+// Volume of a shape, 0 for anything that isn't a solid we can measure. Used to catch a
+// subtraction that removed nothing (snaporca-daf).
+static double solid_volume(const TopoDS_Shape& s)
+{
+    if (s.IsNull()) return 0.0;
+    GProp_GProps props;
+    BRepGProp::VolumeProperties(s, props);
+    return std::abs(props.Mass());
+}
+
 void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& f) const
 {
     if (f.type == CadFeatureType::Plane)   return;   // datum plane: not part of the body pipeline
@@ -3132,7 +3142,30 @@ void CadDocument::route_feature(std::vector<CadBody>& bodies, const CadFeature& 
         if (t < 0) throw std::runtime_error("feature needs a body");
         TopoDS_Shape result = bodies[t].shape;   // shallow handle; apply_feature mutates it
         bool have_body = true;
+        // A subtraction whose tool misses the target is a legal boolean that removes nothing, so
+        // OCCT reports IsDone() and the feature lands in the recipe reporting success. A caller —
+        // an agent especially — then has no signal at all that the hole it asked for was never
+        // drilled: same body, same volume, ok:true. Measure the volume across the op and refuse
+        // the no-op. Only for removals: every other feature type may legitimately leave the volume
+        // alone (a Transform certainly does). snaporca-daf.
+        const bool removes = f.type == CadFeatureType::Hole
+                          || f.type == CadFeatureType::Thread
+                          || ((f.type == CadFeatureType::Extrude || f.type == CadFeatureType::Revolve
+                               || f.type == CadFeatureType::Sweep  || f.type == CadFeatureType::Loft)
+                              && f.mode == BooleanMode::Cut);
+        const double before = removes ? solid_volume(result) : 0.0;
         apply_feature(result, have_body, context, f);
+        if (removes && before > 0.0) {
+            const double after = solid_volume(result);
+            // Relative tolerance: a cut that shaves a numerically invisible sliver is a miss too,
+            // and an absolute epsilon would be wrong across the mm-to-metre range of real parts.
+            if (after >= before - 1e-9 * std::max(1.0, before))
+                throw std::runtime_error(std::string(
+                    f.type == CadFeatureType::Hole   ? "hole" :
+                    f.type == CadFeatureType::Thread ? "thread" : "cut") +
+                    " removed no material — the tool does not intersect the target body"
+                    " (coordinates are in the sketch plane's frame, not world)");
+        }
         bodies[t].shape = result;
     }
 }

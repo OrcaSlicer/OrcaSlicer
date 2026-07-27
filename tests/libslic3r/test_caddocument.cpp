@@ -6697,3 +6697,58 @@ TEST_CASE("Failed sketch solve leaves geometry untouched", "[CadDocument]")
         CHECK((ents[b].p1 - ents[xi].p1).norm() == Approx(0.0).margin(1e-6));
     }
 }
+
+// A subtraction whose tool misses the target is a perfectly legal boolean that removes nothing,
+// so OCCT reports success and the feature lands in the recipe with ok:true and an unchanged body.
+// That is how a hole placed with world coordinates instead of plane-frame ones read as "drilled"
+// three times in a row while the volume never moved. snaporca-daf.
+TEST_CASE("A cut that removes no material is an error, not a silent success", "[CadDocument]")
+{
+    // 20 x 20 box, 20 tall, centred on the origin of the XY plane.
+    auto box = [] {
+        CadDocument d;
+        int sk = d.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Sketch");
+        d.add_extrude(sk, 20.0, false, BooleanMode::New, "Extrude");
+        return d;
+    };
+
+    SECTION("hole placed clear of the body is rejected") {
+        CadDocument doc = box();
+        REQUIRE(doc.recompute());
+        const double solid = doc.body_mass_properties(0).volume;
+
+        // 135 mm away — exactly the failure the issue reported (world centre passed for a
+        // plane-frame coordinate). The old behaviour: recompute() true, volume unchanged.
+        doc.add_hole(8.0, 20.0, true, 135.0, 0.0, SketchPlane::XY(), "Hole");
+        CHECK_FALSE(doc.recompute());
+        CHECK(doc.error.find("removed no material") != std::string::npos);
+
+        // And the body is left as it was, not half-applied.
+        CadDocument again = box();
+        REQUIRE(again.recompute());
+        CHECK(again.body_mass_properties(0).volume == Approx(solid).margin(1e-6));
+    }
+
+    SECTION("the same hole on the body still works") {
+        CadDocument doc = box();
+        REQUIRE(doc.recompute());
+        const double solid = doc.body_mass_properties(0).volume;
+        doc.add_hole(8.0, 20.0, true, 0.0, 0.0, SketchPlane::XY(), "Hole");
+        REQUIRE(doc.recompute());
+        CHECK(doc.body_mass_properties(0).volume
+              == Approx(solid - M_PI * 16.0 * 20.0).epsilon(0.01));
+    }
+
+    SECTION("a cut-mode extrude that misses is rejected too") {
+        CadDocument doc = box();
+        REQUIRE(doc.recompute());
+        // Same trick, on the sketch plane's origin: the profile sits far outside the box,
+        // so the subtraction is a legal no-op.
+        SketchPlane far_plane = SketchPlane::XY();
+        far_plane.origin = Vec3d(200.0, 0.0, 0.0);
+        int sk = doc.add_sketch(SketchShape::Rectangle, far_plane, 5, 5, 10, "Tool");
+        doc.add_extrude(sk, 30.0, false, BooleanMode::Cut, "Cut");
+        CHECK_FALSE(doc.recompute());
+        CHECK(doc.error.find("removed no material") != std::string::npos);
+    }
+}
