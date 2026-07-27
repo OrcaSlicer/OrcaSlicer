@@ -579,22 +579,16 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
     return extrusion_coll;
 }
 
-// ORCA: the reworked only_one_wall_top generates the inner walls from the real geometry and then removes the
-// parts that fall over the top surface, handing that space over to the (expandable) top solid fill. Without a
-// top fill to take it over the removed walls would simply print as a void, so in that case keep the original
-// generation, which re-onions the not-top region and therefore keeps walls right up to the top boundary. There
-// is no top fill either when the top surface density is 0% or when no top shell is requested at all - zero top
-// shell layers retypes every top fill surface as internal (LayerRegion::prepare_fill_surfaces).
+// ORCA: only_one_wall_top removes the inner walls over a top surface and lets the top fill take their space.
+// Without a top fill they would print as a void, so fall back to the original generation (re-onion the not-top
+// region). Zero top shell layers retypes the top fill as internal, see LayerRegion::prepare_fill_surfaces().
 static bool top_fill_replaces_inner_walls(const PrintRegionConfig &config)
 {
     return config.top_shell_layers.value > 0 && config.top_surface_density.value > 0;
 }
 
-// ORCA: only_one_wall_top keeps a single wall on top surfaces. The walls are generated from the real geometry
-// (as when the feature is off) and the parts that fall over the top surface are then removed, so no wall is
-// ever invented along the top/non-top boundary. This is the cheap per-vertex classification both wall
-// generators start from: None and Full are decided here, and only Partial needs the geometry clipped or
-// measured (a segment crossing the top with no vertex inside is rare enough to ignore).
+// ORCA: only_one_wall_top - cheap per-vertex classification of a wall against the top surface. Only Partial
+// needs the geometry clipped or measured; a segment crossing the top with no vertex inside is rare enough to ignore.
 enum class TopOverlap { None, Partial, Full };
 
 static bool point_over_top(const Point &p, const ExPolygons &top_region, const BoundingBox &top_region_bbox)
@@ -625,10 +619,9 @@ static TopOverlap classify_over_top(const Arachne::ExtrusionLine &el, const ExPo
     return inside == 0 ? TopOverlap::None : inside == el.junctions.size() ? TopOverlap::Full : TopOverlap::Partial;
 }
 
-// ORCA: only_one_wall_top for Arachne - remove from the already generated inner walls the parts that run over the
-// top surface. Walls that merely graze the top are clipped rather than dropped whole, so the geometry that continues
-// upward keeps its walls; only the pieces over the top disappear. A wall too short over the top to be worth slitting
-// open is left whole and its footprint reported in kept_over_top, for the caller to withhold from the top fill.
+// ORCA: only_one_wall_top for Arachne - cut out of the already generated inner walls the parts running over the top
+// surface, so geometry that continues upward keeps its walls. A wall too short over the top to be worth slitting open
+// is left whole, its footprint reported in kept_over_top for the caller to withhold from the top fill.
 static void clip_inner_walls_over_top(std::vector<Arachne::VariableWidthLines> &inner_perimeters, const ExPolygons &top_region, coord_t perimeter_width, Polygons &kept_over_top)
 {
     const BoundingBox top_region_bbox = get_extents(top_region).inflated(SCALED_EPSILON);
@@ -642,8 +635,8 @@ static void clip_inner_walls_over_top(std::vector<Arachne::VariableWidthLines> &
         }
         return offset(centerline, float(width) / 2.f);
     };
-    // The cut is pulled back by half a wall width: the clip severs the centerline, but the bead's
-    // rounded end extends half a width past its endpoint and would otherwise overlap the top fill.
+    // Pull the cut back by half a wall width: the clip severs the centerline, but the bead's rounded end
+    // extends half a width past its endpoint and would otherwise overlap the top fill.
     ClipperLib_Z::Paths top_paths_z;
     for (const Polygon &poly : to_polygons(offset_ex(top_region, float(perimeter_width) / 2.f))) {
         top_paths_z.emplace_back();
@@ -664,16 +657,15 @@ static void clip_inner_walls_over_top(std::vector<Arachne::VariableWidthLines> &
                 continue;
             }
             if (overlap == TopOverlap::Full)
-                continue; // entirely over the top - the clip below would return nothing anyway
+                continue; // the clip below would return nothing anyway
             ClipperLib_Z::Path subject;
             subject.reserve(el.size());
             for (const Arachne::ExtrusionJunction &j : el.junctions)
                 subject.emplace_back(j.p.x(), j.p.y(), j.w);
             ClipperLib_Z::Paths pieces = clip_extrusion(subject, top_paths_z, ClipperLib_Z::ctDifference);
 
-            // Clipper treats the subject as an open polyline: it also cuts a closed loop at its
-            // (arbitrary) start vertex and may reverse pieces. Stitch pieces that share an endpoint
-            // back together so the wall is only divided where it actually crosses the top surface.
+            // Clipper treats the subject as an open polyline, so it also cuts a closed loop at its (arbitrary)
+            // start vertex and may reverse pieces. Stitch pieces sharing an endpoint back together.
             auto same_pt = [](const ClipperLib_Z::IntPoint &p, const ClipperLib_Z::IntPoint &q) {
                 return std::abs(p.x() - q.x()) <= SCALED_EPSILON && std::abs(p.y() - q.y()) <= SCALED_EPSILON;
             };
@@ -688,16 +680,14 @@ static void clip_inner_walls_over_top(std::vector<Arachne::VariableWidthLines> &
                     if (same_pt(a.back(), b.front())) {
                         a.insert(a.end(), b.begin() + 1, b.end());
                         pieces.erase(pieces.begin() + j);
-                        // Restart the scan: the merged path has new endpoints.
-                        j = i + 1;
+                        j = i + 1; // the merged path has new endpoints, restart the scan
                     } else
                         ++ j;
                 }
             }
 
-            // If the clip removed next to nothing (the wall only grazed the expanded top margin),
-            // keep the loop untouched instead of slitting it open. The half-width pull-back above
-            // already costs about one width per crossing, hence the two-width threshold.
+            // If the clip removed next to nothing, keep the loop untouched instead of slitting it open. The
+            // half-width pull-back above already costs about one width per crossing, hence two widths.
             double kept_length = 0.;
             for (const ClipperLib_Z::Path &path : pieces)
                 kept_length += clipper_z_path_length(path);
@@ -1387,14 +1377,11 @@ void PerimeterGenerator::process_classic()
         ExPolygons gaps;
         ExPolygons top_fills;
         ExPolygons fill_clip;
-        // ORCA: only_one_wall_top - the top-surface region to keep clear of inner walls, applied in one post-onion
-        // reduction step (see below). Empty / false unless this island has a top surface on this layer.
+        // ORCA: only_one_wall_top, all empty unless this island has a top surface on this layer. See the
+        // post-onion reduction below: the region to keep clear of inner walls, the space freed by the dropped
+        // walls (goes to infill, not left as a void) and the space held by the kept ones (withheld from the fill).
         ExPolygons one_wall_top_region;
-        // ORCA: only_one_wall_top - footprint of the dropped walls that the top fill does not cover; handed over
-        // to the infill so a wall that merely grazed the top does not leave a void where it used to be.
         ExPolygons one_wall_top_reclaimed;
-        // ORCA: only_one_wall_top - footprint of the walls that were kept although they graze the top; withheld
-        // from the top fill so the two never claim the same space.
         Polygons   one_wall_top_kept_bands;
         bool       apply_one_wall_top = false;
         if (loop_number >= 0) {
@@ -1537,16 +1524,15 @@ void PerimeterGenerator::process_classic()
                 //store surface for top infill if only_one_wall_top
                 if (i == 0 && i!=loop_number && config->only_one_wall_top && !surface.is_bridge() && this->upper_slices != NULL) {
                     if (top_fill_replaces_inner_walls(*this->config)) {
-                        // ORCA: only_one_wall_top - compute the top fill and the top keep-out region, but leave `last`
-                        // as the real geometry; the walls/gaps over the top are reduced in one post-onion step below.
+                        // ORCA: take the top fill and the keep-out region but leave `last` as the real geometry,
+                        // so the onion follows it and the walls over the top are reduced in one step below.
                         ExPolygons non_top_polygons;
                         this->split_top_surfaces(last, top_fills, non_top_polygons, fill_clip);
                         apply_one_wall_top = !top_fills.empty();
                         if (apply_one_wall_top)
                             one_wall_top_region = diff_ex(last, non_top_polygons);
                     } else {
-                        // Reduce `last` to the not-top region, so the remaining walls are onioned from it and
-                        // stop at the top boundary.
+                        // Onion the not-top region only, so the remaining walls stop at the top boundary.
                         this->split_top_surfaces(last, top_fills, last, fill_clip);
                     }
                 }
@@ -1558,14 +1544,13 @@ void PerimeterGenerator::process_classic()
                 }
             }
 
-            // ORCA: only_one_wall_top reduction - drop the inner walls (depth > 0) that run over the top surface
-            // and take that space back from the gaps, leaving the top with just the outer wall and top infill.
-            // Classic perimeters are closed loops, so unlike the Arachne path a wall can only be kept or dropped
-            // whole; one that merely grazes the top (same tolerance as the Arachne clip) is kept, and its band is
-            // withheld from the top fill instead, so a kept wall and the fill never claim the same space.
+            // ORCA: only_one_wall_top reduction - drop the inner walls (depth > 0) running over the top surface and
+            // take that space back from the gaps, leaving the top with the outer wall and the top infill. Classic
+            // perimeters are closed loops, so a wall can only be kept or dropped whole; one that merely grazes the
+            // top (same tolerance as the Arachne clip) is kept and withheld from the top fill instead.
             if (apply_one_wall_top) {
-                const BoundingBox top_region_bbox     = get_extents(one_wall_top_region).inflated(SCALED_EPSILON);
-                const double      grazing_tolerance   = 2. * double(perimeter_width);
+                const BoundingBox top_region_bbox   = get_extents(one_wall_top_region).inflated(SCALED_EPSILON);
+                const double      grazing_tolerance = 2. * double(perimeter_width);
                 // The band a wall covers, taken around its centerline so the orientation of holes does not matter.
                 auto wall_band = [perimeter_spacing](const Polygon &poly) {
                     Polygon centerline = poly;
@@ -1579,14 +1564,12 @@ void PerimeterGenerator::process_classic()
                         const TopOverlap overlap = classify_over_top(loop.polygon.points, one_wall_top_region, top_region_bbox);
                         if (overlap == TopOverlap::None)
                             return false;
-                        // Only a wall straddling the boundary is worth measuring; one lying wholly over the top goes.
+                        // Only a wall straddling the boundary is worth measuring; a wall wholly over the top goes.
                         if (overlap == TopOverlap::Partial &&
                             total_length(intersection_pl(Polylines{ loop.polygon.split_at_first_point() }, one_wall_top_region)) < grazing_tolerance) {
                             append(one_wall_top_kept_bands, wall_band(loop.polygon));
                             return false;
                         }
-                        // Remember the band this wall would have covered; whatever ends up outside the top fill
-                        // must be filled by infill instead of being left as a void.
                         append(dropped_wall_bands, wall_band(loop.polygon));
                         return true;
                     }), loops.end());
@@ -1883,13 +1866,13 @@ void PerimeterGenerator::process_classic()
         // append infill areas to fill_surfaces
         //if any top_fills, grow them by ext_perimeter_spacing/2 to have the real un-anchored fill
         ExPolygons top_infill_exp = intersection_ex(fill_clip, offset_ex(top_fills, double(ext_perimeter_spacing / 2)));
-        // ORCA: only_one_wall_top - route the top fill around the walls that were kept despite grazing the top.
+        // ORCA: only_one_wall_top - route the top fill around the walls kept despite grazing the top.
         if (!one_wall_top_kept_bands.empty())
             top_infill_exp = diff_ex(top_infill_exp, one_wall_top_kept_bands);
         if (!top_fills.empty()) {
             infill_exp = union_ex(infill_exp, offset_ex(top_infill_exp, double(top_infill_peri_overlap)));
         }
-        // ORCA: only_one_wall_top - the space of the dropped walls that the top fill does not cover goes to infill.
+        // ORCA: only_one_wall_top - what the top fill does not cover of the dropped walls goes to infill.
         if (!one_wall_top_reclaimed.empty())
             infill_exp = union_ex(infill_exp, one_wall_top_reclaimed);
         this->fill_surfaces->append(infill_exp, stInternal);
@@ -2444,12 +2427,10 @@ void PerimeterGenerator::process_arachne()
                 // Get final top ExPolygons (bridges were excluded above, so they stay walled).
                 top_expolygons = intersection_ex(top_expolygons, infill_contour);
 
-                // ORCA: onion the real region (inside the outer wall) for the remaining walls so they follow the
-                // actual geometry, then remove the parts that fall over the top surface. This replaces re-onioning the
-                // non-top complement, which walled the top/non-top interface and ringed top-surface islands (e.g. a
-                // recess floor) with inner walls that don't exist when the feature is disabled. Without a top fill to
-                // take over the freed space the original complement onioning is used instead - see
-                // top_fill_replaces_inner_walls().
+                // ORCA: onion the real region (inside the outer wall) so the remaining walls follow the actual
+                // geometry, then cut away the parts over the top surface. Re-onioning the non-top complement
+                // instead - the fallback when there is no top fill - walls the top/non-top interface and rings
+                // top-surface islands with inner walls that don't exist when the feature is disabled.
                 const bool     clip_walls_over_top = top_fill_replaces_inner_walls(*this->config);
                 const Polygons inner_region        = to_polygons(offset_ex(clip_walls_over_top ? infill_contour
                                                                                                : diff_ex(infill_contour, top_expolygons),
@@ -2460,7 +2441,7 @@ void PerimeterGenerator::process_arachne()
                 if (clip_walls_over_top) {
                     Polygons kept_over_top;
                     clip_inner_walls_over_top(inner_perimeters, top_expolygons, perimeter_width, kept_over_top);
-                    // Route the top fill around the walls that were kept although they graze the top.
+                    // Route the top fill around the walls kept despite grazing the top.
                     if (! kept_over_top.empty())
                         top_expolygons = diff_ex(top_expolygons, kept_over_top);
                 }

@@ -1434,9 +1434,8 @@ bool PrintObject::invalidate_state_by_config_options(
                 steps.emplace_back(posPerimeters);
             steps.emplace_back(posPrepareInfill);
         } else if (opt_key == "top_surface_density") {
-            // ORCA: a 0% top surface density means no top solid fill at all, which switches off both the top
-            // surface expansion (detect_surfaces_type) and the wall removal over top surfaces (PerimeterGenerator
-            // only_one_wall_top). Only crossing zero matters - posPerimeters cascades to posPrepareInfill.
+            // ORCA: 0% means no top solid fill, which switches off both the top surface expansion and the wall
+            // removal over top surfaces. Only crossing zero matters; posPerimeters cascades to posPrepareInfill.
             const auto *old_density = old_config.option<ConfigOptionPercent>(opt_key);
             const auto *new_density = new_config.option<ConfigOptionPercent>(opt_key);
             assert(old_density && new_density);
@@ -1769,18 +1768,12 @@ void PrintObject::detect_surfaces_type()
                         }
                     }
 
-                    // ORCA: Expand the top surfaces outward by top_surface_expansion in every direction. This
-                    // enlarges the top solid infill and, in particular, grows it over the covered material left
-                    // by features rising from the middle of a top surface (filling holes and joining tops so the
-                    // features rest on it). The expansion stays inside the section it belongs to: each connected
-                    // solid island has its own outer wall, so the top is grown within each island separately and
-                    // clipped to it - growing one island's top across the gap into another island (which may have
-                    // no top surface, leaving a partially filled layer) is never allowed. The top infill sits
-                    // inside the perimeters, so the margin is measured from the walls: the island is inset by the
-                    // band the walls consume (outer wall + inner walls) plus the configured margin, which is the
-                    // clearance between the expanded top and the walls over the top surface (avoiding a hull line).
-                    // The original top is unioned back in, so where it already sits within that band it is kept
-                    // as-is. Never claims a bottom surface.
+                    // ORCA: Grow the top surfaces by top_surface_expansion, so the top solid infill also covers the
+                    // material left by features rising from the middle of a top surface (filling the holes and
+                    // joining the tops, so the features rest on solid infill). Each connected island is grown and
+                    // clipped separately: growing one island's top across a gap into another - which may have no top
+                    // surface at all, leaving a partially filled layer - is never allowed. The original top is
+                    // unioned back in and bottom surfaces are never claimed, so this can only add area.
                     const PrintRegionConfig &region_config  = layerm->region().config();
                     const double             top_expansion  = region_config.top_surface_expansion.value;
                     // Nothing to expand without a top fill: a 0% top surface density leaves the top layer with
@@ -1804,12 +1797,9 @@ void PrintObject::detect_surfaces_type()
                         ExPolygons grown;
                         for (const ExPolygon &island : union_ex(layerm_slices_surfaces)) {
                             // The top infill only exists inside the perimeters, so seed and measure from the infill
-                            // region (the island minus the wall band), not the raw slice. A section whose only
-                            // exposed top lies in the wall band - i.e. a layer where the top is just the walls
-                            // themselves - has no infill here and is skipped, instead of being flooded inward by
-                            // the expansion. Thin slivers inside the infill region are dropped by the opening too.
-                            // Only this island's share of the layer's tops is relevant, so clip by its bounding box
-                            // first and keep the boolean ops proportional to the island rather than to the layer.
+                            // region (the island minus the wall band), not the raw slice: a section whose exposed top
+                            // is just the walls themselves is then skipped instead of being flooded inward. Clip the
+                            // layer's tops to the island first, to keep the boolean ops proportional to the island.
                             const ExPolygons infill_region = wall_band > 0. ? offset_ex(island, -float(wall_band)) : ExPolygons{ island };
                             const ExPolygons island_top    = intersection_ex(
                                 ClipperUtils::clip_clipper_polygons_with_subject_bbox(T, get_extents(island).inflated(SCALED_EPSILON)),
@@ -1817,13 +1807,11 @@ void PrintObject::detect_surfaces_type()
                             if (opening_ex(island_top, min_top).empty())
                                 continue; // no real top infill in this section - never expand into it
 
-                            // grow by d, then keep only the part allowed by the configured direction: inward fills
-                            // the holes/gaps left by features (clip the growth back to the top's own filled outline,
-                            // which leaves the outer edge fixed), outward grows the outer edge toward the walls (drop
-                            // the growth that fell into the original holes), and inward+outward keeps both.
+                            // Grow, then keep only what the configured direction allows, using the top's own filled
+                            // outline (same outer edge, holes closed) to tell the two apart.
                             ExPolygons expanded = offset_ex_2(island_top, d, Clipper2Lib::JoinType::Miter);
                             if (direction != TopSurfaceExpansionDirection::InwardAndOutward) {
-                                ExPolygons outline; // the top with its holes filled (same outer edge)
+                                ExPolygons outline;
                                 outline.reserve(island_top.size());
                                 for (const ExPolygon &ex : island_top)
                                     outline.emplace_back(ex.contour);
