@@ -579,6 +579,16 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
     return extrusion_coll;
 }
 
+// ORCA: the reworked only_one_wall_top generates the inner walls from the real geometry and then removes the
+// parts that fall over the top surface, handing that space over to the (expandable) top solid fill. With
+// top_surface_density == 0 there is no top fill to take it over, so the removed walls would simply print as a
+// void. In that case keep the original generation, which re-onions the not-top region and therefore keeps
+// walls right up to the top boundary.
+static bool top_fill_replaces_inner_walls(const PrintRegionConfig &config)
+{
+    return config.top_surface_density.value > 0;
+}
+
 // ORCA: only_one_wall_top detects the top as "slice − upper", so a feature rising from the middle of a
 // top surface becomes an enclosed hole. Fill those holes back into the top so the top surface stays solid
 // (avoids leaving thin, unfillable slivers once the inner perimeters are removed). Only holes that are both
@@ -618,6 +628,87 @@ static bool loop_kept_for_one_wall_top(const Arachne::ExtrusionLine &el, const E
                 return false;
     }
     return true;
+}
+
+// ORCA: only_one_wall_top for Arachne - remove from the already generated inner walls the parts that run over the
+// top surface. Walls that merely graze the top are clipped rather than dropped whole, so the geometry that continues
+// upward keeps its walls; only the pieces over the top disappear.
+static void clip_inner_walls_over_top(std::vector<Arachne::VariableWidthLines> &inner_perimeters, const ExPolygons &top_region, coord_t perimeter_width)
+{
+    const BoundingBox top_region_bbox = get_extents(top_region).inflated(SCALED_EPSILON);
+    // The cut is pulled back by half a wall width: the clip severs the centerline, but the bead's
+    // rounded end extends half a width past its endpoint and would otherwise overlap the top fill.
+    ClipperLib_Z::Paths top_paths_z;
+    for (const Polygon &poly : to_polygons(offset_ex(top_region, float(perimeter_width) / 2.f))) {
+        top_paths_z.emplace_back();
+        ClipperLib_Z::Path &out = top_paths_z.back();
+        out.reserve(poly.points.size());
+        for (const Point &pt : poly.points)
+            out.emplace_back(pt.x(), pt.y(), 0);
+    }
+    for (Arachne::VariableWidthLines &inner_perimeter : inner_perimeters) {
+        Arachne::VariableWidthLines kept;
+        kept.reserve(inner_perimeter.size());
+        for (Arachne::ExtrusionLine &el : inner_perimeter) {
+            if (el.empty())
+                continue;
+            if (loop_kept_for_one_wall_top(el, top_region, top_region_bbox)) {
+                kept.emplace_back(std::move(el));
+                continue;
+            }
+            ClipperLib_Z::Path subject;
+            subject.reserve(el.size());
+            for (const Arachne::ExtrusionJunction &j : el.junctions)
+                subject.emplace_back(j.p.x(), j.p.y(), j.w);
+            ClipperLib_Z::Paths pieces = clip_extrusion(subject, top_paths_z, ClipperLib_Z::ctDifference);
+
+            // Clipper treats the subject as an open polyline: it also cuts a closed loop at its
+            // (arbitrary) start vertex and may reverse pieces. Stitch pieces that share an endpoint
+            // back together so the wall is only divided where it actually crosses the top surface.
+            auto same_pt = [](const ClipperLib_Z::IntPoint &p, const ClipperLib_Z::IntPoint &q) {
+                return std::abs(p.x() - q.x()) <= SCALED_EPSILON && std::abs(p.y() - q.y()) <= SCALED_EPSILON;
+            };
+            for (size_t i = 0; i < pieces.size(); ++ i) {
+                for (size_t j = i + 1; j < pieces.size();) {
+                    ClipperLib_Z::Path &a = pieces[i];
+                    ClipperLib_Z::Path &b = pieces[j];
+                    if (same_pt(a.front(), b.front()) || same_pt(a.front(), b.back()))
+                        std::reverse(a.begin(), a.end());
+                    if (same_pt(a.back(), b.back()))
+                        std::reverse(b.begin(), b.end());
+                    if (same_pt(a.back(), b.front())) {
+                        a.insert(a.end(), b.begin() + 1, b.end());
+                        pieces.erase(pieces.begin() + j);
+                        // Restart the scan: the merged path has new endpoints.
+                        j = i + 1;
+                    } else
+                        ++ j;
+                }
+            }
+
+            // If the clip removed next to nothing (the wall only grazed the expanded top margin),
+            // keep the loop untouched instead of slitting it open. The half-width pull-back above
+            // already costs about one width per crossing, hence the two-width threshold.
+            double kept_length = 0.;
+            for (const ClipperLib_Z::Path &path : pieces)
+                kept_length += clipper_z_path_length(path);
+            if (clipper_z_path_length(subject) - kept_length < 2. * double(perimeter_width)) {
+                kept.emplace_back(std::move(el));
+                continue;
+            }
+
+            for (const ClipperLib_Z::Path &path : pieces) {
+                Arachne::ExtrusionLine clipped(el.inset_idx, el.is_odd);
+                clipped.junctions.reserve(path.size());
+                for (const ClipperLib_Z::IntPoint &pt : path)
+                    clipped.junctions.emplace_back(Point(pt.x(), pt.y()), coord_t(pt.z()), el.inset_idx);
+                // Discard tiny leftovers that would print as zits.
+                if (clipped.size() >= 2 && clipped.getLength() >= perimeter_width)
+                    kept.emplace_back(std::move(clipped));
+            }
+        }
+        inner_perimeter = std::move(kept);
+    }
 }
 
 void PerimeterGenerator::split_top_surfaces(const ExPolygons &orig_polygons, ExPolygons &top_fills,
@@ -685,7 +776,8 @@ void PerimeterGenerator::split_top_surfaces(const ExPolygons &orig_polygons, ExP
     ExPolygons delete_bridge = diff_ex(orig_polygons, bridge_checker, ApplySafetyOffset::Yes);
 
     ExPolygons top_polygons = diff_ex(delete_bridge, upper_polygons_series_clipped, ApplySafetyOffset::Yes);
-    top_polygons = fill_enclosed_top_feature_holes(top_polygons, upper_polygons_series_clipped, orig_polygons);
+    if (top_fill_replaces_inner_walls(*this->config))
+        top_polygons = fill_enclosed_top_feature_holes(top_polygons, upper_polygons_series_clipped, orig_polygons);
 
     // get the not-top surface, from the "real top" but enlarged by external_infill_margin (and the
     // min_width_top_surface we removed a bit before)
@@ -1433,13 +1525,19 @@ void PerimeterGenerator::process_classic()
                 //BBS: refer to superslicer
                 //store surface for top infill if only_one_wall_top
                 if (i == 0 && i!=loop_number && config->only_one_wall_top && !surface.is_bridge() && this->upper_slices != NULL) {
-                    // ORCA: only_one_wall_top - compute the top fill and the top keep-out region, but leave `last`
-                    // as the real geometry; the walls/gaps over the top are reduced in one post-onion step below.
-                    ExPolygons non_top_polygons;
-                    this->split_top_surfaces(last, top_fills, non_top_polygons, fill_clip);
-                    apply_one_wall_top = !top_fills.empty();
-                    if (apply_one_wall_top)
-                        one_wall_top_region = diff_ex(last, non_top_polygons);
+                    if (top_fill_replaces_inner_walls(*this->config)) {
+                        // ORCA: only_one_wall_top - compute the top fill and the top keep-out region, but leave `last`
+                        // as the real geometry; the walls/gaps over the top are reduced in one post-onion step below.
+                        ExPolygons non_top_polygons;
+                        this->split_top_surfaces(last, top_fills, non_top_polygons, fill_clip);
+                        apply_one_wall_top = !top_fills.empty();
+                        if (apply_one_wall_top)
+                            one_wall_top_region = diff_ex(last, non_top_polygons);
+                    } else {
+                        // Reduce `last` to the not-top region, so the remaining walls are onioned from it and
+                        // stop at the top boundary.
+                        this->split_top_surfaces(last, top_fills, last, fill_clip);
+                    }
                 }
 
                 if (i == loop_number && (! has_gap_fill || this->config->sparse_infill_density.value == 0)) {
@@ -2320,87 +2418,18 @@ void PerimeterGenerator::process_arachne()
                 // ORCA: onion the real region (inside the outer wall) for the remaining walls so they follow the
                 // actual geometry, then remove the parts that fall over the top surface. This replaces re-onioning the
                 // non-top complement, which walled the top/non-top interface and ringed top-surface islands (e.g. a
-                // recess floor) with inner walls that don't exist when the feature is disabled.
-                const Polygons inner_region = to_polygons(offset_ex(infill_contour, wall_0_inset));
+                // recess floor) with inner walls that don't exist when the feature is disabled. Without a top fill to
+                // take over the freed space the original complement onioning is used instead - see
+                // top_fill_replaces_inner_walls().
+                const bool     clip_walls_over_top = top_fill_replaces_inner_walls(*this->config);
+                const Polygons inner_region        = to_polygons(offset_ex(clip_walls_over_top ? infill_contour
+                                                                                               : diff_ex(infill_contour, top_expolygons),
+                                                                          wall_0_inset));
                 Arachne::WallToolPaths inner_wall_tool_paths(inner_region, perimeter_spacing, perimeter_spacing, coord_t(inner_loop_number + 1), 0, layer_height, input_params_tmp);
                 std::vector<Arachne::VariableWidthLines> inner_perimeters = inner_wall_tool_paths.getToolPaths();
 
-                // Walls that merely graze the top surface are clipped against it rather than dropped whole, so the
-                // geometry that continues upward keeps its walls; only the pieces over the top disappear.
-                const BoundingBox top_region_bbox = get_extents(top_expolygons).inflated(SCALED_EPSILON);
-                // The cut is pulled back by half a wall width: the clip severs the centerline, but the bead's
-                // rounded end extends half a width past its endpoint and would otherwise overlap the top fill.
-                ClipperLib_Z::Paths top_paths_z;
-                for (const Polygon &poly : to_polygons(offset_ex(top_expolygons, float(perimeter_width) / 2.f))) {
-                    top_paths_z.emplace_back();
-                    ClipperLib_Z::Path &out = top_paths_z.back();
-                    out.reserve(poly.points.size());
-                    for (const Point &pt : poly.points)
-                        out.emplace_back(pt.x(), pt.y(), 0);
-                }
-                for (Arachne::VariableWidthLines &inner_perimeter : inner_perimeters) {
-                    Arachne::VariableWidthLines kept;
-                    kept.reserve(inner_perimeter.size());
-                    for (Arachne::ExtrusionLine &el : inner_perimeter) {
-                        if (el.empty())
-                            continue;
-                        if (loop_kept_for_one_wall_top(el, top_expolygons, top_region_bbox)) {
-                            kept.emplace_back(std::move(el));
-                            continue;
-                        }
-                        ClipperLib_Z::Path subject;
-                        subject.reserve(el.size());
-                        for (const Arachne::ExtrusionJunction &j : el.junctions)
-                            subject.emplace_back(j.p.x(), j.p.y(), j.w);
-                        ClipperLib_Z::Paths pieces = clip_extrusion(subject, top_paths_z, ClipperLib_Z::ctDifference);
-
-                        // Clipper treats the subject as an open polyline: it also cuts a closed loop at its
-                        // (arbitrary) start vertex and may reverse pieces. Stitch pieces that share an endpoint
-                        // back together so the wall is only divided where it actually crosses the top surface.
-                        auto same_pt = [](const ClipperLib_Z::IntPoint &p, const ClipperLib_Z::IntPoint &q) {
-                            return std::abs(p.x() - q.x()) <= SCALED_EPSILON && std::abs(p.y() - q.y()) <= SCALED_EPSILON;
-                        };
-                        for (size_t i = 0; i < pieces.size(); ++ i) {
-                            for (size_t j = i + 1; j < pieces.size();) {
-                                ClipperLib_Z::Path &a = pieces[i];
-                                ClipperLib_Z::Path &b = pieces[j];
-                                if (same_pt(a.front(), b.front()) || same_pt(a.front(), b.back()))
-                                    std::reverse(a.begin(), a.end());
-                                if (same_pt(a.back(), b.back()))
-                                    std::reverse(b.begin(), b.end());
-                                if (same_pt(a.back(), b.front())) {
-                                    a.insert(a.end(), b.begin() + 1, b.end());
-                                    pieces.erase(pieces.begin() + j);
-                                    // Restart the scan: the merged path has new endpoints.
-                                    j = i + 1;
-                                } else
-                                    ++ j;
-                            }
-                        }
-
-                        // If the clip removed next to nothing (the wall only grazed the expanded top margin),
-                        // keep the loop untouched instead of slitting it open. The half-width pull-back above
-                        // already costs about one width per crossing, hence the two-width threshold.
-                        double kept_length = 0.;
-                        for (const ClipperLib_Z::Path &path : pieces)
-                            kept_length += clipper_z_path_length(path);
-                        if (clipper_z_path_length(subject) - kept_length < 2. * double(perimeter_width)) {
-                            kept.emplace_back(std::move(el));
-                            continue;
-                        }
-
-                        for (const ClipperLib_Z::Path &path : pieces) {
-                            Arachne::ExtrusionLine clipped(el.inset_idx, el.is_odd);
-                            clipped.junctions.reserve(path.size());
-                            for (const ClipperLib_Z::IntPoint &pt : path)
-                                clipped.junctions.emplace_back(Point(pt.x(), pt.y()), coord_t(pt.z()), el.inset_idx);
-                            // Discard tiny leftovers that would print as zits.
-                            if (clipped.size() >= 2 && clipped.getLength() >= perimeter_width)
-                                kept.emplace_back(std::move(clipped));
-                        }
-                    }
-                    inner_perimeter = std::move(kept);
-                }
+                if (clip_walls_over_top)
+                    clip_inner_walls_over_top(inner_perimeters, top_expolygons, perimeter_width);
 
                 // Recalculate indexes of inner perimeters before merging them: they come after the single outer wall.
                 if (!perimeters.empty())

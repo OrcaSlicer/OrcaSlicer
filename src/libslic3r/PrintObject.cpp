@@ -1400,7 +1400,6 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_anchor"
             || opt_key == "infill_anchor_max"
             || opt_key == "top_surface_line_width"
-            || opt_key == "top_surface_density"
             || opt_key == "bottom_surface_density"
             || opt_key == "center_of_surface_pattern"
             || opt_key == "separated_infills" 
@@ -1434,6 +1433,15 @@ bool PrintObject::invalidate_state_by_config_options(
                 is_approx(new_density->value, 0.) || is_approx(new_density->value, 100.))
                 steps.emplace_back(posPerimeters);
             steps.emplace_back(posPrepareInfill);
+        } else if (opt_key == "top_surface_density") {
+            // ORCA: only_one_wall_top only removes the inner walls over a top surface when that top gets a solid
+            // fill to take their place, so switching the top fill on/off changes the perimeters too.
+            const auto *old_density = old_config.option<ConfigOptionPercent>(opt_key);
+            const auto *new_density = new_config.option<ConfigOptionPercent>(opt_key);
+            assert(old_density && new_density);
+            if (is_approx(old_density->value, 0.) || is_approx(new_density->value, 0.))
+                steps.emplace_back(posPerimeters);
+            steps.emplace_back(posInfill);
         } else if (opt_key == "internal_solid_infill_line_width") {
             // This value is used for calculating perimeter - infill overlap, thus perimeters need to be recalculated.
             steps.emplace_back(posPerimeters);
