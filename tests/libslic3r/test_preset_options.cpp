@@ -54,8 +54,16 @@ void check_keys_are_in_a_preset(const t_config_option_keys& keys, const std::str
 
 } // namespace
 
+// Bodies are laid out like the rest of the test suite rather than collapsed
+// onto the brace line.
+// clang-format off
 TEST_CASE("Every PrintRegionConfig field is registered in a preset key list", "[Preset][Config]")
-{ check_keys_are_in_a_preset(PrintRegionConfig::defaults().keys(), "PrintRegionConfig"); }
+{
+    check_keys_are_in_a_preset(PrintRegionConfig::defaults().keys(), "PrintRegionConfig");
+}
 
 TEST_CASE("Every PrintObjectConfig field is registered in a preset key list", "[Preset][Config]")
-{ check_keys_are_in_a_preset(PrintObjectConfig::defaults().keys(), "PrintObjectConfig"); }
+{
+    check_keys_are_in_a_preset(PrintObjectConfig::defaults().keys(), "PrintObjectConfig");
+}
+// clang-format on
