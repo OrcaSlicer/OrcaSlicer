@@ -1634,7 +1634,7 @@ int Layer::choose_ironing_extruder(const PrintRegionConfig &cfg,
     // surfaces are routed through surface_wall_override_filament. Iron with that same filament so the
     // cosmetic skin and the iron pass come from the same nozzle/material — and so the
     // per-filament filament_ironing_* settings looked up later pick up the outer-wall
-    // filament's overrides instead of solid_infill_filament's.
+    // filament's overrides instead of top_surface_filament_id's.
     const auto target = cfg.surface_wall_override_filament_target.value;
     const bool target_includes_surfaces =
         target == SurfaceWallOverrideFilamentTarget::Surfaces || target == SurfaceWallOverrideFilamentTarget::Both;
@@ -1872,7 +1872,7 @@ void Layer::make_ironing()
 		        // Orca: tag the ironing collection (and each path inside) with extruder_override
 		        // so LayerTools::extruder() routes it to the chosen ironing extruder, including the
 		        // surface_wall_override_filament_target ∈ {Surfaces, Both} case where the iron extruder differs from
-		        // solid_infill_filament. no_sort=true above makes the GCode bucket-split a no-op for
+		        // top_surface_filament_id. no_sort=true above makes the GCode bucket-split a no-op for
 		        // this collection, so the override on the collection itself is what matters.
 		        const int8_t iron_ov = (int8_t) ironing_params.extruder;
 		        eec->extruder_override = iron_ov;

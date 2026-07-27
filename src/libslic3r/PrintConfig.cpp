@@ -5509,9 +5509,9 @@ void PrintConfigDef::init_fff_params()
     def = this->add("outer_wall_count", coInt);
     def->label = L("Outer wall count");
     def->category = L("Extruders");
-    def->tooltip = L("Number of outermost perimeter loops (counted from the outside in) that use the outer wall "
-                     "filament. Only applies when 'Surface / outer wall override' differs from 'Walls' and 'Apply to' is set "
-                     "to 'Walls' or 'Both'.");
+    def->tooltip = L("Number of outermost perimeter loops (counted from the outside in) that use the override "
+                     "filament. Only applies when 'Surface / outer wall override' is set and differs from the outer "
+                     "wall filament, and 'Apply to' is set to 'Walls' or 'Both'.");
     def->min = 1;
     def->mode = comSimple;
     def->set_default_value(new ConfigOptionInt(1));

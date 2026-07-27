@@ -208,7 +208,7 @@ public:
     // When surface_wall_override_filament_target ∈ {Surfaces, Both} and surface_wall_override_filament is set,
     // returns surface_wall_override_filament so the iron pass uses the same nozzle as the cosmetic
     // top/bottom surface — and the same filament_ironing_* per-filament overrides are
-    // looked up against that index. Otherwise returns solid_infill_filament.
+    // looked up against that index. Otherwise returns top_surface_filament_id.
     static int              choose_ironing_extruder(const PrintRegionConfig &cfg,
                                                     bool spiral_mode,
                                                     bool is_topmost_layer);
