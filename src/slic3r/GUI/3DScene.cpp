@@ -519,7 +519,7 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     glsafe(::glDisable(GL_STENCIL_TEST));
     // render the outline using depth buffer and discard the pixels that are not on the outline
     // The outline silhouette is defined by a per-fragment discard mask derived from this depth
-    const bool  use_msaa_outline = GUI::wxGetApp().is_gl_version_greater_or_equal_to(3, 1);
+    const bool  use_msaa_outline = GUI::wxGetApp().is_gl_version_greater_or_equal_to(3, 2);
     const GLenum depth_tex_target = use_msaa_outline ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
     int aa_samples = 1;
     if (use_msaa_outline) {
