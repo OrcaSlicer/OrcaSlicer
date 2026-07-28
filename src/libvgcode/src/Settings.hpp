@@ -22,6 +22,8 @@ struct Settings
 		// ORCA: when enabled, all layers below the current top layer are rendered
 		// darkened (keeping their color) while scrubbing below the full print (ported from preFlight)
 		bool dim_previous_layers{ false };
+		// ORCA: how bright those layers are rendered, 1.0 = unchanged, 0.0 = black
+		float dim_previous_layers_brightness{ 0.4f };
 		bool spiral_vase_mode{ false };
 		//
 		// Required update flags

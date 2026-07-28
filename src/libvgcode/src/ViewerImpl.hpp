@@ -88,6 +88,8 @@ public:
     // ORCA: darken layers below the current top layer while scrubbing (ported from preFlight)
     bool is_dim_previous_layers() const { return m_settings.dim_previous_layers; }
     void set_dim_previous_layers(bool value);
+    float get_dim_previous_layers_brightness() const { return m_settings.dim_previous_layers_brightness; }
+    void set_dim_previous_layers_brightness(float value);
 
     bool is_spiral_vase_mode() const { return m_settings.spiral_vase_mode; }
 

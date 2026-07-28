@@ -95,8 +95,12 @@ public:
     // Whether the layers below the current top layer are rendered darkened while
     // scrubbing below the full print, so only the current layer is shown at full brightness.
     //
+    // How bright those layers are rendered, 1.0 = unchanged, 0.0 = black.
+    //
     bool is_dim_previous_layers() const;
     void set_dim_previous_layers(bool value);
+    float get_dim_previous_layers_brightness() const;
+    void set_dim_previous_layers_brightness(float value);
     //
     // Returns true if the given option is visible.
     //

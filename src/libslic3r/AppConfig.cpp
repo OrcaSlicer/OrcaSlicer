@@ -206,6 +206,20 @@ void AppConfig::set_defaults()
     if (get("preview_dim_previous_layers").empty())
         set_bool("preview_dim_previous_layers", false);
 
+    // ORCA: brightness of those dimmed layers, in percent. 100 = unchanged, 0 = black
+    if (get("preview_dim_previous_layers_brightness").empty())
+        set("preview_dim_previous_layers_brightness", "40");
+    else {
+        int brightness = 40;
+        try {
+            brightness = std::stoi(get("preview_dim_previous_layers_brightness"));
+        }
+        catch (...) {
+            brightness = 40;
+        }
+        set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 100))));
+    }
+
     if (get("filaments_area_preferred_count").empty())
         set("filaments_area_preferred_count", "10");
 

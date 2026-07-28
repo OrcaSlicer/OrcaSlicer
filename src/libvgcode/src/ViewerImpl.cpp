@@ -1223,16 +1223,12 @@ static float encode_color(const Color& color) {
     return static_cast<float>(i_color);
 }
 
-// ORCA: how much the layers below the current top layer are darkened when
-// Settings::dim_previous_layers is enabled (ported from preFlight). 0.0 = no change, 1.0 = black.
-static constexpr float PREVIOUS_LAYER_DARKEN_FACTOR = 0.60f;
-
-// ORCA: returns the encoded color scaled towards black by 'factor', preserving its hue
-static float encode_color_darkened(const Color& color, float factor) {
-    const float keep = 1.0f - factor;
-    const int r = static_cast<int>(color[0] * keep);
-    const int g = static_cast<int>(color[1] * keep);
-    const int b = static_cast<int>(color[2] * keep);
+// ORCA: returns the encoded color scaled towards black by 'brightness', preserving its hue.
+// 1.0 = no change, 0.0 = black.
+static float encode_color_dimmed(const Color& color, float brightness) {
+    const int r = static_cast<int>(color[0] * brightness);
+    const int g = static_cast<int>(color[1] * brightness);
+    const int b = static_cast<int>(color[2] * brightness);
     const int i_color = r << 16 | g << 8 | b;
     return static_cast<float>(i_color);
 }
@@ -1266,7 +1262,7 @@ void ViewerImpl::update_colors_texture()
         const PathVertex& v = m_vertices[i];
         const bool keep_spiral_seam = m_settings.spiral_vase_mode && i == m_view_range.get_enabled()[0];
         if (dim_previous_layers && !full_render && v.layer_id < top_layer_id && !keep_spiral_seam)
-            colors[i] = encode_color_darkened(get_vertex_color(v), PREVIOUS_LAYER_DARKEN_FACTOR);
+            colors[i] = encode_color_dimmed(get_vertex_color(v), m_settings.dim_previous_layers_brightness);
         else if (color_top_layer_only && v.layer_id < top_layer_id && !keep_spiral_seam)
             colors[i] = encode_color(DUMMY_COLOR);
         else
@@ -1387,6 +1383,16 @@ void ViewerImpl::set_dim_previous_layers(bool value)
     m_settings.dim_previous_layers = value;
     // defer the actual color/texture rebuild to the next render(), when the GL context is current
     // (this may be toggled from the Preferences dialog, outside the canvas context)
+    m_settings.update_colors = true;
+}
+
+// ORCA: set how bright the layers below the current top layer are rendered, 1.0 = unchanged, 0.0 = black
+void ViewerImpl::set_dim_previous_layers_brightness(float value)
+{
+    value = std::clamp(value, 0.0f, 1.0f);
+    if (m_settings.dim_previous_layers_brightness == value)
+        return;
+    m_settings.dim_previous_layers_brightness = value;
     m_settings.update_colors = true;
 }
 

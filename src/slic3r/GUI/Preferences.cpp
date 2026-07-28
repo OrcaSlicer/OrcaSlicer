@@ -1914,6 +1914,28 @@ void PreferencesDialog::create_items()
     );
     g_sizer->Add(item_dim_previous_layers);
 
+    auto item_dim_previous_layers_brightness = create_item_spinctrl(
+        _L("Lower layer brightness"),
+        "",
+        _L("%"),
+        _L("How brightly the layers below the current one are rendered when \"Dim lower layers\" is enabled.\n"
+           "100% leaves them fully illuminated, 0% renders them black."),
+        "preview_dim_previous_layers_brightness",
+        0,
+        100,
+        // ORCA: apply the new brightness immediately to the currently loaded preview
+        [](int value) {
+            if (Plater* plater = wxGetApp().plater()) {
+                if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
+                    canvas->get_gcode_viewer().set_dim_previous_layers_brightness(0.01f * value);
+                    canvas->set_as_dirty();
+                    canvas->request_extra_frame();
+                }
+            }
+        }
+    );
+    g_sizer->Add(item_dim_previous_layers_brightness);
+
     g_sizer->AddSpacer(FromDIP(10));
     sizer_page->Add(g_sizer, 0, wxEXPAND);
 
