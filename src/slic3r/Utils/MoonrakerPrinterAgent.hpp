@@ -134,6 +134,7 @@ private:
 
     bool fetch_object_list(const std::string& base_url, const std::string& api_key, std::set<std::string>& objects, std::string& error) const;
     bool query_printer_status(const std::string& base_url, const std::string& api_key, nlohmann::json& status, std::string& error) const;
+    bool fetch_webcam_info(const std::string& base_url, const std::string& api_key, uint64_t generation);
 
     void announce_printhost_device();
     void dispatch_local_connect(int state, const std::string& dev_id, const std::string& msg);
@@ -199,6 +200,7 @@ private:
     // note: guarded by payload_mutex; filled by refresh_thumbnail_url(), empty url = looked up, none found
     std::string        thumbnail_filename;
     std::string        thumbnail_url;
+    std::string        webcam_stream_url;
     unsigned            thumbnail_lookup_attempts = 0;
 
     std::atomic<int>       next_jsonrpc_id{1};

@@ -23,6 +23,34 @@ TEST_CASE("unit: Moonraker light name matching", "[unit][moonraker]")
 }
 
 // ===========================================================================
+// UNIT - handle_request's not-supported default.
+// The agent is the only thing that knows what it can translate, so an untranslated
+// command has to say so instead of returning success and letting the UI believe the
+// control worked. Guards the inverse too: the pushing namespace is genuinely
+// satisfied by the websocket status stream, and it re-fires from the keepalive timer
+// roughly once a second, so it must stay a success or it would raise a dialog on a
+// timer. Only branches that touch neither the network nor wx are exercised.
+// ===========================================================================
+TEST_CASE("unit: Moonraker reports untranslated commands as not supported", "[unit][moonraker]")
+{
+    MoonrakerPrinterAgent agent("");
+
+    CHECK(agent.send_message("dev", R"({"print":{"command":"ams_change_filament"}})", 0, 0) ==
+          ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    CHECK(agent.send_message("dev", R"({"system":{"command":"set_door_stat"}})", 0, 0) ==
+          ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    CHECK(agent.send_message("dev", R"({"xcam":{"command":"xcam_control_set"}})", 0, 0) ==
+          ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+
+    CHECK(agent.send_message("dev", R"({"pushing":{"command":"pushall"}})", 0, 0) == BAMBU_NETWORK_SUCCESS);
+    CHECK(agent.send_message("dev", R"({"pushing":{"command":"start"}})", 0, 0) == BAMBU_NETWORK_SUCCESS);
+
+    // why: malformed input is a different failure than an untranslated command, and the
+    // default must not swallow it into a misleading not-supported verdict.
+    CHECK(agent.send_message("dev", "{not json", 0, 0) == BAMBU_NETWORK_ERR_INVALID_RESULT);
+}
+
+// ===========================================================================
 // UNIT - printer-agent registry duplicate handling.
 // Confirms a duplicate agent id is rejected so a plugin cannot shadow a built-in
 // or previously registered agent.

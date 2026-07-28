@@ -2311,6 +2311,27 @@ void StatusPanel::update_camera_state(MachineObject* obj)
 {
     if (!obj) return;
 
+    const bool has_printer_webcam = !obj->webcam_stream_url.empty();
+    if (has_printer_webcam) {
+        if (m_printer_webcam_url != obj->webcam_stream_url) {
+            m_custom_camera_view->LoadURL(obj->webcam_stream_url);
+            m_custom_camera_view->Show();
+            m_media_ctrl->Hide();
+            m_media_play_ctrl->Hide();
+            m_printer_webcam_url = obj->webcam_stream_url;
+        }
+        m_camera_switch_button->Hide();
+        if (!m_custom_camera_view->IsShown()) {
+            // why: do not compare or reload the WebView URL per tick, or redirects can cause a reload loop.
+            m_custom_camera_view->Show();
+            m_media_ctrl->Hide();
+            m_media_play_ctrl->Hide();
+        }
+    } else if (!m_printer_webcam_url.empty()) {
+        handle_camera_source_change();
+        m_printer_webcam_url.clear();
+    }
+
     //sdcard
     auto sdcard_state = obj->GetStorage()->get_sdcard_state();
     if (m_last_sdcard != sdcard_state) {
@@ -2342,7 +2363,12 @@ void StatusPanel::update_camera_state(MachineObject* obj)
         m_last_recording = obj->is_recording() ? 1 : 0;
     }
 
-    if (!m_bitmap_recording_img->IsShown()) {
+    if (has_printer_webcam) {
+        if (m_bitmap_recording_img->IsShown()) {
+            m_bitmap_recording_img->Hide();
+            m_panel_monitoring_title->Layout();
+        }
+    } else if (!m_bitmap_recording_img->IsShown()) {
         m_bitmap_recording_img->Show();
         m_panel_monitoring_title->Layout();
     }
@@ -2399,6 +2425,8 @@ void StatusPanel::update_camera_state(MachineObject* obj)
         bool show_vcamera = m_media_play_ctrl->IsStreaming();
         m_camera_popup->update(show_vcamera);
     }
+
+    m_setting_button->Show(!has_printer_webcam);
 }
 
 StatusPanel::StatusPanel(wxWindow *parent, wxWindowID id, const wxPoint &pos, const wxSize &size, long style, const wxString &name)
@@ -5194,6 +5222,10 @@ bool StatusPanel::is_stage_list_info_changed(MachineObject *obj)
 void StatusPanel::set_default()
 {
     BOOST_LOG_TRIVIAL(trace) << "status_panel: set_default";
+    if (!m_printer_webcam_url.empty()) {
+        handle_camera_source_change();
+        m_printer_webcam_url.clear();
+    }
     obj                  = nullptr;
     last_subtask         = nullptr;
     last_tray_exist_bits = -1;

@@ -272,9 +272,11 @@ public:
     bool m_is_online;
     bool m_lan_mode_connection_state{false};
     bool m_set_ctt_dlg{ false };
+    bool m_unsupported_dlg_shown{ false };
     void set_lan_mode_connection_state(bool state) {m_lan_mode_connection_state = state;};
     bool get_lan_mode_connection_state() {return m_lan_mode_connection_state;};
     void set_ctt_dlg( wxString text);
+    void show_unsupported_dlg(int code);
     int  parse_msg_count = 0;
     int  keep_alive_count = 0;
     std::chrono::system_clock::time_point   last_update_time;   /* last received print data from machine */
@@ -541,6 +543,7 @@ public:
     bool xcam_first_layer_inspector { false };
     time_t  xcam_first_layer_hold_start = 0;
     std::string local_rtsp_url;
+    std::string webcam_stream_url;
     std::string tutk_state;
     enum LiveviewLocal {
         LVL_None,

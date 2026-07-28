@@ -1089,9 +1089,8 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
                 }
             }
             if (gcode.empty()) {
-                // why: match the other unmapped commands - the UI treats a failure code as a printer error dialog.
                 BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: ledctrl - no light object found, dropping";
-                return BAMBU_NETWORK_SUCCESS;
+                return ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE;
             }
             if (!send_gcode(dev_id, gcode)) {
                 return BAMBU_NETWORK_ERR_CONNECTION_TO_PRINTER_FAILED;
@@ -1102,6 +1101,15 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
             }
             return BAMBU_NETWORK_SUCCESS;
         }
+    }
+
+    // why: the whole "pushing" namespace asks the printer to (re)send status - pushall, start, stop.
+    // The ws status stream already pushes unsolicited, so every member of it is genuinely satisfied
+    // rather than dropped. Accepting the namespace instead of naming its members keeps this a
+    // handled case rather than a suppression list; it also fires from the DevManager keepalive
+    // timer roughly once a second, which the not-supported default below would otherwise warn on.
+    if (json.contains("pushing") && json["pushing"].contains("command")) {
+        return BAMBU_NETWORK_SUCCESS;
     }
 
     // Handle print commands
@@ -1188,7 +1196,29 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
         }
     }
 
-    return BAMBU_NETWORK_SUCCESS;
+    std::string command_namespace = "unknown";
+    std::string command_name      = "unknown";
+    if (json.is_object()) {
+        for (const char* namespace_name : {"info", "system", "print", "camera", "xcam", "upgrade", "pushing"}) {
+            if (!json.contains(namespace_name) || !json[namespace_name].is_object()) {
+                continue;
+            }
+            const auto& namespace_object = json[namespace_name];
+            if (!namespace_object.contains("command") || !namespace_object["command"].is_string()) {
+                continue;
+            }
+            command_namespace = namespace_name;
+            command_name      = namespace_object["command"].get<std::string>();
+            break;
+        }
+    }
+
+    // why: reaching here means no case claimed the command, which is the honest verdict for
+    // every control Klipper has no equivalent for. Returning SUCCESS instead made all of them
+    // look like they worked. Nothing surfaces this code to the user yet.
+    BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: no translation for " << command_namespace << "." << command_name
+                               << ", dropping";
+    return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED;
 }
 
 bool MoonrakerPrinterAgent::init_device_info(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
@@ -1204,6 +1234,7 @@ bool MoonrakerPrinterAgent::init_device_info(std::string dev_id, std::string dev
     device_info.dev_ip      = dev_ip;
 
     device_info.api_key    = password;
+    device_info.use_ssl    = use_ssl;
     device_info.model_name = printer_cfg.opt_string("printer_model");
     device_info.model_id   = preset.get_printer_type(preset_bundle);
     device_info.base_url   = use_ssl ? "https://" + dev_ip : "http://" + dev_ip;
@@ -1323,6 +1354,104 @@ bool MoonrakerPrinterAgent::query_printer_status(const std::string& base_url,
     }
 
     status = json["result"]["status"];
+    return true;
+}
+
+bool MoonrakerPrinterAgent::fetch_webcam_info(const std::string& base_url, const std::string& api_key, uint64_t generation)
+{
+    std::string stream_url;
+    std::string webcam_name;
+    std::string error;
+    try {
+        std::string response_body;
+        bool        success = false;
+        std::string http_error;
+
+        auto http = Http::get(join_url(base_url, "/server/webcams/list"));
+        if (!api_key.empty()) {
+            http.header("X-Api-Key", api_key);
+        }
+        http.timeout_connect(5)
+            .timeout_max(10)
+            .on_complete([&](std::string body, unsigned status_code) {
+                if (status_code == 200) {
+                    response_body = body;
+                    success       = true;
+                } else {
+                    http_error = "HTTP error: " + std::to_string(status_code);
+                }
+            })
+            .on_error([&](std::string body, std::string err, unsigned status_code) {
+                http_error = err;
+                if (status_code > 0) {
+                    http_error += " (HTTP " + std::to_string(status_code) + ")";
+                }
+            })
+            .perform_sync();
+
+        if (!success) {
+            error = http_error.empty() ? "Connection failed" : http_error;
+        } else {
+            auto json = nlohmann::json::parse(response_body, nullptr, false, true);
+            if (json.is_discarded()) {
+                error = "Invalid JSON response";
+            } else {
+                const auto result = json.contains("result") ? json["result"] : json;
+                if (!result.contains("webcams") || !result["webcams"].is_array()) {
+                    error = "Unexpected JSON structure";
+                } else {
+                    for (const auto& webcam : result["webcams"]) {
+                        if (webcam.is_object() && webcam.value("enabled", false) && webcam.contains("stream_url") &&
+                            webcam["stream_url"].is_string()) {
+                            stream_url = webcam["stream_url"].get<std::string>();
+                            if (webcam.contains("name") && webcam["name"].is_string()) {
+                                webcam_name = webcam["name"].get<std::string>();
+                            }
+                            break;
+                        }
+                    }
+                    if (stream_url.empty()) {
+                        error = "No enabled webcam";
+                    }
+                }
+            }
+        }
+
+        if (error.empty()) {
+            if (stream_url.rfind("http", 0) != 0 && !stream_url.empty() && stream_url.front() == '/') {
+                // why: Moonraker's API port serves a JSON 404 for /webcam; relative streams use the printer web root.
+                const size_t scheme_end = base_url.find("://");
+                const size_t authority_start = scheme_end == std::string::npos ? 0 : scheme_end + 3;
+                const size_t authority_end = base_url.find('/', authority_start);
+                const std::string scheme = scheme_end == std::string::npos ? "" : base_url.substr(0, scheme_end + 3);
+                std::string authority = base_url.substr(authority_start, authority_end - authority_start);
+                const size_t port_start = authority.rfind(':');
+                if (port_start != std::string::npos && port_start + 1 < authority.size() &&
+                    std::all_of(authority.begin() + port_start + 1, authority.end(), [](char c) { return c >= '0' && c <= '9'; })) {
+                    authority.erase(port_start);
+                }
+                stream_url = scheme + authority + stream_url;
+            } else if (stream_url.rfind("http", 0) != 0) {
+                error = "Unsupported webcam stream URL";
+            }
+        }
+    } catch (const std::exception& e) {
+        error = e.what();
+    } catch (...) {
+        error = "Unknown webcam discovery error";
+    }
+
+    {
+        std::lock_guard<std::recursive_mutex> lock(payload_mutex);
+        if (generation == connect_generation.load()) {
+            webcam_stream_url = error.empty() ? stream_url : "";
+        }
+    }
+    if (!error.empty()) {
+        BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: webcam discovery failed: " << error;
+        return false;
+    }
+    BOOST_LOG_TRIVIAL(info) << "MoonrakerPrinterAgent: selected webcam '" << webcam_name << "' with stream URL " << stream_url;
     return true;
 }
 
@@ -2079,6 +2208,12 @@ nlohmann::json MoonrakerPrinterAgent::build_print_payload_locked() const
     payload["print"]["bed_temp_range"]    = {0, 120};   // Typical bed range
 
     payload["print"]["support_send_to_sd"] = true;
+    if (!webcam_stream_url.empty()) {
+        payload["print"]["ipcam"]["ipcam_dev"] = "1";
+        payload["print"]["ipcam"]["stream_url"] = webcam_stream_url;
+    } else {
+        payload["print"]["ipcam"]["ipcam_dev"] = "0";
+    }
     // Detect bed_leveling support from available objects (bed_mesh or probe)
     // Default to 0 (not supported) if neither object exists
     bool has_bed_leveling                    = (available_objects.count("bed_mesh") != 0 || available_objects.count("probe") != 0);
@@ -2441,6 +2576,8 @@ void MoonrakerPrinterAgent::perform_connection_async(const std::string& dev_id, 
         } else {
             BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: Initial status query failed: " << error_msg;
         }
+
+        fetch_webcam_info(base_url, api_key, generation);
 
         // Start WebSocket status stream
         start_status_stream(dev_id, base_url, api_key);
