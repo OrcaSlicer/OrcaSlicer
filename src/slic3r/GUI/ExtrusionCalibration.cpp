@@ -261,7 +261,7 @@ void ExtrusionCalibration::create()
     top_sizer->Add(FromDIP(24), 0);
     top_sizer->Add(sizer_main, 1, wxEXPAND);
     top_sizer->Add(FromDIP(24), 0);
-    SetSizer(top_sizer);
+    SetSizerAndFit(top_sizer);
 
     // set default nozzle
     m_comboBox_nozzle_dia->SetSelection(1);
@@ -271,7 +271,6 @@ void ExtrusionCalibration::create()
     set_step(1);
 
     Layout();
-    Fit();
 
     m_k_val->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent& e) {
         input_value_finish();

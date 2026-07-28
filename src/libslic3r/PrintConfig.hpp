@@ -214,6 +214,8 @@ enum class PrintOrder
 {
     Default,
     AsObjectList,
+    BestOfStrategies,    // run all custom strategies, pick the shortest total path
+    Snake,               // snake-like row traversal (back-and-forth) + 2-opt
     Count,
 };
 
