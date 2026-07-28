@@ -42,6 +42,9 @@ namespace Slic3r {
 
 static const std::string VERSION_CHECK_URL = "https://check-version.orcaslicer.com/latest";
 static const std::string PROFILE_UPDATE_URL = "https://check-version.orcaslicer.com/profile";
+
+constexpr const char* CONFIG_ORCA_UPDATER_URL = "orca_updater_url";
+
 static const std::string MODELS_STR = "models";
 
 const std::string AppConfig::SECTION_FILAMENTS = "filaments";
@@ -1747,7 +1750,10 @@ std::string AppConfig::version_check_url() const
 
 std::string AppConfig::profile_update_url() const
 {
-    return PROFILE_UPDATE_URL;
+    std::string orca_updater_url = get(CONFIG_ORCA_UPDATER_URL);
+    if (orca_updater_url.empty())
+        return PROFILE_UPDATE_URL;
+    return orca_updater_url;
 }
 
 bool AppConfig::exists()
