@@ -1,5 +1,6 @@
 #include <catch2/catch_all.hpp>
 
+#include <slic3r/Utils/BBLPrinterAgent.hpp>
 #include <slic3r/Utils/MoonrakerPrinterAgent.hpp>
 #include <slic3r/Utils/NetworkAgentFactory.hpp>
 #include <slic3r/plugin/PythonPluginBridge.hpp>
@@ -12,6 +13,24 @@
 
 using namespace Slic3r;
 namespace py = pybind11;
+
+// why: these builders preserve the Bambu firmware dialect byte-for-byte, including its trailing space.
+TEST_CASE("unit: BBL AMS gcode builders preserve command bytes", "[unit][bbl]")
+{
+    CHECK(BBLPrinterAgent::ams_refresh_rfid_gcode("123") == "M620 R123 \n");
+    CHECK(BBLPrinterAgent::ams_calibrate_gcode(123) == "M620 C123 \n");
+    CHECK(BBLPrinterAgent::ams_select_tray_gcode("123") == "M620 P123 \n");
+}
+
+// why: an agent without a Bambu-dialect translation must refuse these commands before any network or wx path.
+TEST_CASE("unit: default AMS commands report not supported", "[unit][moonraker]")
+{
+    MoonrakerPrinterAgent agent("");
+
+    CHECK(agent.command_ams_refresh_rfid("dev", "123", 1, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    CHECK(agent.command_ams_calibrate("dev", 1, 2, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+    CHECK(agent.command_ams_select_tray("dev", "123", 3, false) == ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED);
+}
 
 TEST_CASE("unit: Moonraker light name matching", "[unit][moonraker]")
 {

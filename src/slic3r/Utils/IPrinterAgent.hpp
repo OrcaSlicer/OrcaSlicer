@@ -84,6 +84,16 @@ public:
      */
     virtual int send_message(std::string dev_id, std::string json_str, int qos, int flag) = 0;
 
+    // why: gcode is firmware dialect, not a waist concept - commands whose body is Bambu-dialect
+    // gcode live on the agent that speaks it; the default is an honest refusal that MachineObject's
+    // publish funnel turns into a dialog.
+    virtual int command_ams_refresh_rfid(std::string, std::string, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_ams_calibrate(std::string, int, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    virtual int command_ams_select_tray(std::string, std::string, int, bool)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+
     /**
      * Establish a direct LAN connection to a printer.
      */
