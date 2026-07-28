@@ -182,18 +182,21 @@ TEST_CASE("Top surface density does not affect a slice without a top shell", "[P
 }
 
 // On the ledge layer the inner walls are given up to the top fill, so that layer loses wall length.
-// At a top surface density of 0% there is no fill to take their place, so the original generation is
-// kept and the inner walls stay - putting that layer back above the one-wall slice.
+// The handover needs a top fill that reaches the freed space: at a top surface density of 0% there is
+// no top fill at all, and without top_surface_expansion the fill never grows over the walls. Either
+// way the original generation is kept and the inner walls stay - putting that layer back above the
+// one-wall slice.
 TEST_CASE("Only one wall on top surfaces drops inner walls only where a top fill replaces them", "[Perimeters]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
     CAPTURE(wall_generator);
 
-    auto ledge_perimeters_for = [wall_generator](bool only_one_wall_top, const char *top_surface_density) {
+    auto ledge_perimeters_for = [wall_generator](bool only_one_wall_top, const char *top_surface_density, double expansion) {
         DynamicPrintConfig config = base_config(wall_generator);
         config.set_deserialize_strict({
-            { "only_one_wall_top",   only_one_wall_top },
-            { "top_surface_density", top_surface_density },
+            { "only_one_wall_top",     only_one_wall_top },
+            { "top_surface_density",   top_surface_density },
+            { "top_surface_expansion", expansion },
         });
         Print print;
         init_and_process_print({ step_with_ledge() }, print, config);
@@ -201,11 +204,13 @@ TEST_CASE("Only one wall on top surfaces drops inner walls only where a top fill
         return perimeter_length_at(print, ledge_z);
     };
 
-    const double plain            = ledge_perimeters_for(false, "100%");
-    const double one_wall         = ledge_perimeters_for(true,  "100%");
-    const double one_wall_no_fill = ledge_perimeters_for(true,  "0%");
+    const double plain              = ledge_perimeters_for(false, "100%", 2.0);
+    const double one_wall           = ledge_perimeters_for(true,  "100%", 2.0);
+    const double one_wall_no_fill   = ledge_perimeters_for(true,  "0%",   2.0);
+    const double one_wall_no_expand = ledge_perimeters_for(true,  "100%", 0.0);
 
     REQUIRE(plain > 0.);
     CHECK(one_wall < plain);
     CHECK(one_wall_no_fill > one_wall);
+    CHECK(one_wall_no_expand > one_wall);
 }
