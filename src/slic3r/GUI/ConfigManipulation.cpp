@@ -916,7 +916,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_field("single_extruder_multi_material", !is_BBL_Printer);
 
     auto bSEMM = preset_bundle->printers.get_edited_preset().config.opt_bool("single_extruder_multi_material");
-    const bool supports_wipe_tower_2 = !is_BBL_Printer && preset_bundle->printers.get_edited_preset().config.opt_enum<WipeTowerType>("wipe_tower_type") == WipeTowerType::Type2;
+    const bool use_wipe_tower_2 = !is_BBL_Printer && preset_bundle->printers.get_edited_preset().config.opt_enum<WipeTowerType>("wipe_tower_type") == WipeTowerType::Type2;
 
     toggle_field("ooze_prevention", !bSEMM);
     bool have_ooze_prevention = config->opt_bool("ooze_prevention");
@@ -925,30 +925,36 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     int preheat_steps = config->opt_int("preheat_steps");
     toggle_line("preheat_steps", have_ooze_prevention && (preheat_steps > 0));
 
-    bool have_prime_tower = config->opt_bool("enable_prime_tower");
-    for (auto el : {"prime_tower_width", "prime_tower_brim_width", "prime_tower_skip_points", "wipe_tower_wall_type", "prime_tower_infill_gap","prime_tower_enable_framework", "enable_tower_interface_features"})
+    const bool have_prime_tower  = config->opt_bool("enable_prime_tower");
+    const bool have_wipe_tower_1 = have_prime_tower && !use_wipe_tower_2;
+    const bool have_wipe_tower_2 = have_prime_tower && use_wipe_tower_2;
+
+    for (auto el : {"prime_tower_width", "prime_tower_brim_width", "wipe_tower_wall_type",
+                    "enable_tower_interface_features", "wipe_tower_rotation_angle", "wipe_tower_no_sparse_layers"})
         toggle_line(el, have_prime_tower);
+
+    for (auto el : {"prime_tower_skip_points", "prime_tower_infill_gap", "prime_tower_enable_framework"})
+        toggle_line(el, have_wipe_tower_1);
+
+    for (auto el : {"wipe_tower_bridging", "wipe_tower_extra_spacing", "wipe_tower_extra_flow",
+                    "wipe_tower_max_purge_speed"})
+        toggle_line(el, have_wipe_tower_2);
 
     toggle_line("enable_tower_interface_cooldown_during_tower",
                 have_prime_tower && config->opt_bool("enable_tower_interface_features"));
 
     bool purge_in_primetower = preset_bundle->printers.get_edited_preset().config.opt_bool("purge_in_prime_tower");
 
-    for (auto el : {"wipe_tower_rotation_angle", "wipe_tower_cone_angle",
-                    "wipe_tower_extra_spacing", "wipe_tower_max_purge_speed",
-                    "wipe_tower_bridging", "wipe_tower_extra_flow",
-                    "wipe_tower_no_sparse_layers"})
-            toggle_line(el, have_prime_tower && supports_wipe_tower_2);
-
     WipeTowerWallType wipe_tower_wall_type = config->opt_enum<WipeTowerWallType>("wipe_tower_wall_type");
-    bool have_rib_wall = (wipe_tower_wall_type == WipeTowerWallType::wtwRib)&&have_prime_tower;
-    toggle_line("wipe_tower_cone_angle", have_prime_tower && supports_wipe_tower_2 && wipe_tower_wall_type == WipeTowerWallType::wtwCone);
+    bool have_rib_wall = wipe_tower_wall_type == WipeTowerWallType::wtwRib && have_prime_tower;
+    toggle_line("wipe_tower_cone_angle", have_wipe_tower_2 && wipe_tower_wall_type == WipeTowerWallType::wtwCone);
     toggle_line("wipe_tower_extra_rib_length", have_rib_wall);
     toggle_line("wipe_tower_rib_width", have_rib_wall);
     toggle_line("wipe_tower_fillet_wall", have_rib_wall);
-    toggle_field("prime_tower_width", have_prime_tower && !have_rib_wall);
+    const bool auto_sized_rib_tower = have_wipe_tower_1 && have_rib_wall;
+    toggle_field("prime_tower_width", have_prime_tower && !auto_sized_rib_tower);
 
-    toggle_line("single_extruder_multi_material_priming", !bSEMM && have_prime_tower && supports_wipe_tower_2);
+    toggle_line("single_extruder_multi_material_priming", !bSEMM && have_wipe_tower_2);
 
     toggle_line("prime_volume",have_prime_tower && (!purge_in_primetower || !bSEMM));
 

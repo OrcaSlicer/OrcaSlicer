@@ -1120,7 +1120,8 @@ static int construct_assemble_list(std::vector<assemble_plate_info_t> &assemble_
             }
         }
 
-        assemble_plate_info.filaments_count = used_filaments.size();
+        assemble_plate_info.filaments.assign(used_filaments.begin(), used_filaments.end());
+        assemble_plate_info.filaments_count = int(assemble_plate_info.filaments.size());
         assemble_plate_info.assemble_obj_list.clear();
         assemble_plate_info.assemble_obj_list.shrink_to_fit();
         assemble_plate_info.plate_params.clear();
@@ -3945,27 +3946,25 @@ int CLI::run(int argc, char **argv)
         plate_obj_size_info.wipe_x = wipe_x_option->get_at(plate_index);
         plate_obj_size_info.wipe_y = wipe_y_option->get_at(plate_index);
 
-        ConfigOptionFloat* width_option = print_config.option<ConfigOptionFloat>("prime_tower_width", true);
-        plate_obj_size_info.wipe_width = width_option->value;
+        const WipeTowerFootprint tower_footprint = plate->wipe_tower_preview(print_config, extruders, false, false).footprint;
+        const ConfigOptionFloat* rotation_opt = print_config.option<ConfigOptionFloat>("wipe_tower_rotation_angle");
+        const double rotation = rotation_opt != nullptr ? Geometry::deg2rad(rotation_opt->value) : 0.;
+        const Vec3d origin = plate->get_origin();
+        const Polygon outline = transformed_wipe_tower_outline(tower_footprint, rotation, Vec2d(origin.x() + plate_obj_size_info.wipe_x, origin.y() + plate_obj_size_info.wipe_y));
+        if (outline.points.empty()) {
+            plate_obj_size_info.has_wipe_tower = false;
+            return;
+        }
 
-        ConfigOptionFloat* brim_width_option = print_config.option<ConfigOptionFloat>("prime_tower_brim_width", true);
-        float brim_width = brim_width_option->value;
-        if (brim_width < 0) brim_width = WipeTower::get_auto_brim_by_height((float)plate_obj_size_info.obj_bbox.max.z());
+        const BoundingBox tower_bbox = get_extents(outline);
+        const Vec2d tower_min = unscale(tower_bbox.min);
+        const Vec2d tower_max = unscale(tower_bbox.max);
+        plate_obj_size_info.wipe_width = tower_max.x() - tower_min.x();
+        plate_obj_size_info.wipe_depth = tower_max.y() - tower_min.y();
 
-        ConfigOptionFloat* volume_option = print_config.option<ConfigOptionFloat>("prime_volume", true);
-        float wipe_volume = volume_option->value;
-
-        const ConfigOptionBool * wrapping_detection = print_config.option<ConfigOptionBool>("enable_wrapping_detection");
-        bool enable_wrapping = (wrapping_detection != nullptr) && wrapping_detection->value;
-
-        Vec3d wipe_tower_size = plate->estimate_wipe_tower_size(print_config, plate_obj_size_info.wipe_width, wipe_volume, new_extruder_count, filaments_cnt, false, enable_wrapping);
-        plate_obj_size_info.wipe_width = wipe_tower_size(0);
-        plate_obj_size_info.wipe_depth = wipe_tower_size(1);
-
-        Vec3d origin = plate->get_origin();
-        Vec3d start(origin(0) + plate_obj_size_info.wipe_x - brim_width, origin(1) + plate_obj_size_info.wipe_y, 0.f);
+        Vec3d start(tower_min.x(), tower_min.y(), 0.f);
         plate_obj_size_info.obj_bbox.merge(start);
-        Vec3d end(origin(0) + plate_obj_size_info.wipe_x + plate_obj_size_info.wipe_width + brim_width, origin(1) + plate_obj_size_info.wipe_y + plate_obj_size_info.wipe_depth, 0.f);
+        Vec3d end(tower_max.x(), tower_max.y(), 0.f);
         plate_obj_size_info.obj_bbox.merge(end);
         plate_obj_size_info.has_wipe_tower = true;
         BOOST_LOG_TRIVIAL(info) << boost::format("plate %1%, has wipe tower, wipe bbox: min {%2%, %3%, %4%} - max {%5%, %6%, %7%}")
@@ -4760,7 +4759,7 @@ int CLI::run(int argc, char **argv)
                     wipe_y_option->set_at(&wt_y_opt, i, 0);
 
                     Vec3d wipe_tower_size, wipe_tower_pos;
-                    ArrangePolygon wipe_tower_ap = cur_plate->estimate_wipe_tower_polygon(m_print_config, i, wipe_tower_pos, wipe_tower_size, new_extruder_count, assemble_plate.filaments_count, true);
+                    ArrangePolygon wipe_tower_ap = cur_plate->estimate_wipe_tower_polygon(m_print_config, i, wipe_tower_pos, wipe_tower_size, assemble_plate.filaments, true);
 
                     //update the new wp position
                     wt_x_opt.value = wipe_tower_pos(0);
@@ -5018,8 +5017,6 @@ int CLI::run(int argc, char **argv)
                     {
                         //prepare the wipe tower
                         int plate_count = partplate_list.get_plate_count();
-                        int extruder_size = used_filament_set.size();
-
                         auto printer_structure_opt = m_print_config.option<ConfigOptionEnum<PrinterStructure>>("printer_structure");
                         const float tower_brim_width      = m_print_config.option<ConfigOptionFloat>("prime_tower_width", true)->value;
                         const float tower_margin          = WIPE_TOWER_MARGIN + tower_brim_width;
@@ -5058,7 +5055,8 @@ int CLI::run(int argc, char **argv)
                             }
 
                             Vec3d wipe_tower_size, wipe_tower_pos;
-                            ArrangePolygon wipe_tower_ap = partplate_list.get_plate(plate_index_valid)->estimate_wipe_tower_polygon(m_print_config, plate_index_valid, wipe_tower_pos, wipe_tower_size, new_extruder_count, extruder_size, true);
+                            const std::vector<int> tower_filaments(used_filament_set.begin(), used_filament_set.end());
+                            ArrangePolygon wipe_tower_ap = partplate_list.get_plate(plate_index_valid)->estimate_wipe_tower_polygon(m_print_config, plate_index_valid, wipe_tower_pos, wipe_tower_size, tower_filaments, true);
 
                             //update the new wp position
                             if (bedid < plate_count) {
@@ -5134,17 +5132,20 @@ int CLI::run(int argc, char **argv)
                             x = dynamic_cast<const ConfigOptionFloats *>(m_print_config.option("wipe_tower_x"))->get_at(plate_to_slice-1);
                             y = dynamic_cast<const ConfigOptionFloats *>(m_print_config.option("wipe_tower_y"))->get_at(plate_to_slice-1);
                         }
-                        float w = dynamic_cast<const ConfigOptionFloat *>(m_print_config.option("prime_tower_width"))->value;
                         float a = dynamic_cast<const ConfigOptionFloat *>(m_print_config.option("wipe_tower_rotation_angle"))->value;
-                        float v = dynamic_cast<const ConfigOptionFloat *>(m_print_config.option("prime_volume"))->value;
-                        unsigned int filaments_cnt = plate_data_src[plate_to_slice-1]->slice_filaments_info.size();
-                        if ((filaments_cnt == 0) || need_skip)
-                        {
-                            // slice filaments info invalid
-                            std::vector<int> extruders = cur_plate->get_extruders_under_cli(true, m_print_config);
-                            filaments_cnt = extruders.size();
-                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange: slice filaments info invalid or need_skip, get from partplate: filament_count %1%")%filaments_cnt;
+                        // Prefer the current model/config mapping. Saved slice filament IDs may
+                        // be stale after CLI filament remapping or object filtering.
+                        std::vector<int> tower_filaments =
+                            cur_plate->get_extruders_under_cli(true, m_print_config);
+                        if (tower_filaments.empty()) {
+                            tower_filaments.reserve(plate_data_src[plate_to_slice-1]->slice_filaments_info.size());
+                            for (const FilamentInfo& filament : plate_data_src[plate_to_slice-1]->slice_filaments_info)
+                                tower_filaments.emplace_back(filament.id + 1);
+                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__
+                                << boost::format("arrange: no current filament mapping, use saved slice info: filament_count %1%")
+                                    % tower_filaments.size();
                         }
+                        const size_t filaments_cnt = tower_filaments.size();
 
                         if ((filaments_cnt <= 1) && !is_smooth_timelapse && (!enable_wrapping_detect || current_wrapping_exclude_area.empty()))
                         {
@@ -5152,75 +5153,51 @@ int CLI::run(int argc, char **argv)
                         }
                         else
                         {
-                            float layer_height = 0.2;
-                            ConfigOption* layer_height_opt = m_print_config.option("layer_height");
-                            if (layer_height_opt)
-                                layer_height = layer_height_opt->getFloat();
+                            const WipeTowerFootprint tower_footprint = cur_plate->wipe_tower_preview(m_print_config, tower_filaments, false, false).footprint;
+                            if (tower_footprint.empty()) {
+                                BOOST_LOG_TRIVIAL(warning) << __FUNCTION__
+                                    << ": unable to build the wipe tower footprint before arrange.";
+                            } else {
+                                Polygon local_outline = transformed_wipe_tower_outline(
+                                    tower_footprint, Geometry::deg2rad(a));
+                                int plate_width, plate_depth, plate_height;
+                                partplate_list.get_plate_size(plate_width, plate_depth, plate_height);
+                                const float margin = 15.f;
+                                const BoundingBoxf local_bbox =
+                                    rotated_wipe_tower_bbox(tower_footprint, Geometry::deg2rad(a));
+                                const Vec2d clamped_position = clamp_wipe_tower_position(
+                                    local_bbox, BoundingBoxf(Vec2d::Zero(), Vec2d(plate_width, plate_depth)),
+                                    Vec2d(x, y), margin);
+                                x = float(clamped_position.x());
+                                y = float(clamped_position.y());
 
-                            //float depth = v * (filaments_cnt - 1) / (layer_height * w);
+                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: x=%1%, y=%2%, width=%3%, depth=%4%, angle=%5%, prime_volume=%6%, filaments_cnt=%7%, layer_height=%8%, plate_width=%9%, plate_depth=%10%")
+                                                                %x %y %local_bbox.size().x() %local_bbox.size().y() %a
+                                                                %m_print_config.opt_float("prime_volume") %filaments_cnt
+                                                                %m_print_config.opt_float("layer_height") %plate_width %plate_depth;
+                                //update wipe_tower_x and wipe_tower_y
+                                ConfigOptionFloat wt_x_opt(x);
+                                ConfigOptionFloat wt_y_opt(y);
+                                ConfigOptionFloats* wipe_x_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_x", true);
+                                ConfigOptionFloats* wipe_y_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_y", true);
 
-                            const ConfigOptionBool *wrapping_detection = m_print_config.option<ConfigOptionBool>("enable_wrapping_detection");
-                            bool   enable_wrapping    = (wrapping_detection != nullptr) && wrapping_detection->value;
+                                wipe_x_option->set_at(&wt_x_opt, plate_to_slice-1, 0);
+                                wipe_y_option->set_at(&wt_y_opt, plate_to_slice-1, 0);
 
-                            Vec3d wipe_tower_size = cur_plate->estimate_wipe_tower_size(m_print_config, w, v, new_extruder_count, filaments_cnt, false, enable_wrapping);
-                            Vec3d plate_origin = cur_plate->get_origin();
-                            int plate_width, plate_depth, plate_height;
-                            partplate_list.get_plate_size(plate_width, plate_depth, plate_height);
-                            float depth = wipe_tower_size(1);
-                            float margin = 15.f, wp_brim_width = 0.f;
-                            ConfigOption *wipe_tower_brim_width_opt = m_print_config.option("prime_tower_brim_width");
-                            if (wipe_tower_brim_width_opt ) {
-                                wp_brim_width = wipe_tower_brim_width_opt->getFloat();
-                                if (wp_brim_width < 0) wp_brim_width = WipeTower::get_auto_brim_by_height((float) wipe_tower_size.z());
-                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: wp_brim_width %1%")%wp_brim_width;
+                                ArrangePolygon wipe_tower_ap;
+
+                                local_outline.translate(Point(scale_(x), scale_(y)));
+                                wipe_tower_ap.bed_idx = 0;
+                                wipe_tower_ap.setter = NULL; // do not move wipe tower
+
+                                wipe_tower_ap.poly.contour = std::move(local_outline);
+                                wipe_tower_ap.translation  = {scaled(0.f), scaled(0.f)};
+                                wipe_tower_ap.name = "WipeTower";
+                                wipe_tower_ap.is_virt_object = true;
+                                wipe_tower_ap.is_wipe_tower = true;
+                                ++wipe_tower_ap.priority;
+                                unselected.emplace_back(std::move(wipe_tower_ap));
                             }
-                            w = wipe_tower_size(0);
-
-                            BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: x=%1%, y=%2%, width=%3%, depth=%4%, angle=%5%, prime_volume=%6%, filaments_cnt=%7%, layer_height=%8%, plate_width=%9%, plate_depth=%10%")
-                                                            %x %y %w %depth %a %v %filaments_cnt %layer_height %plate_width %plate_depth;
-                            if ((y + depth + margin + wp_brim_width) > (float)plate_depth) {
-                                y = (float)plate_depth - depth - margin - wp_brim_width;
-                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: exceeds the border, change y to %1%, plate_depth=%2%")%y %plate_depth;
-                            }
-
-                            if ((x + w + margin + wp_brim_width) > (float)plate_width) {
-                                x = (float)plate_width - w - margin - wp_brim_width;
-                                BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format("arrange wipe_tower: exceeds the border, change x to %1%, plate_width=%2%")%y %plate_width;
-                            }
-                            if (x < margin) {
-                                x = margin;
-                            }
-                            if (y < margin) {
-                                y = margin;
-                            }
-                            //update wipe_tower_x and wipe_tower_y
-                            ConfigOptionFloat wt_x_opt(x);
-                            ConfigOptionFloat wt_y_opt(y);
-                            ConfigOptionFloats* wipe_x_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_x", true);
-                            ConfigOptionFloats* wipe_y_option = m_print_config.option<ConfigOptionFloats>("wipe_tower_y", true);
-
-                            wipe_x_option->set_at(&wt_x_opt, plate_to_slice-1, 0);
-                            wipe_y_option->set_at(&wt_y_opt, plate_to_slice-1, 0);
-
-                            ArrangePolygon wipe_tower_ap;
-
-                            Polygon ap({
-                                {scaled(x - wp_brim_width), scaled(y - wp_brim_width)},
-                                {scaled(x + w + wp_brim_width), scaled(y - wp_brim_width)},
-                                {scaled(x + w + wp_brim_width), scaled(y + depth + wp_brim_width)},
-                                {scaled(x - wp_brim_width), scaled(y + depth + wp_brim_width)}
-                                });
-                            wipe_tower_ap.bed_idx = 0;
-                            wipe_tower_ap.setter = NULL; // do not move wipe tower
-
-                            wipe_tower_ap.poly.contour = std::move(ap);
-                            wipe_tower_ap.translation  = {scaled(0.f), scaled(0.f)};
-                            wipe_tower_ap.rotation     = a;
-                            wipe_tower_ap.name = "WipeTower";
-                            wipe_tower_ap.is_virt_object = true;
-                            wipe_tower_ap.is_wipe_tower = true;
-                            ++wipe_tower_ap.priority;
-                            unselected.emplace_back(std::move(wipe_tower_ap));
                         }
                     }
 

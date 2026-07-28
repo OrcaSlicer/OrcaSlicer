@@ -11,6 +11,7 @@
 
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "WipeTower.hpp"
 namespace Slic3r
 {
@@ -21,11 +22,19 @@ class PrintRegionConfig;
 class WipeTower2
 {
 public:
+    using Footprint = WipeTowerFootprint;
+
     static const std::string never_skip_tag() { return "_GCODE_WIPE_TOWER_NEVER_SKIP_TAG"; }
 	static std::pair<double, double> get_wipe_tower_cone_base(double width, double height, double depth, double angle_deg);
 	static std::vector<std::vector<float>> extract_wipe_volumes(const PrintConfig& config);
+    static Footprint make_conservative_footprint(const PrintConfig&              config,
+                                                 const PrintRegionConfig&        default_region_config,
+                                                 const std::vector<unsigned int>& used_filaments,
+                                                 float                           tower_height,
+                                                 float                           layer_height,
+                                                 bool                            force_tower);
 
-    
+
     // Construct ToolChangeResult from current state of WipeTower2 and WipeTowerWriter2.
     // WipeTowerWriter2 is moved from !
     WipeTower::ToolChangeResult construct_tcr(WipeTowerWriter2& writer,
@@ -69,6 +78,7 @@ public:
         const float brim = m_wipe_tower_brim_width_real;
         return BoundingBoxf(Vec2d(-brim, -brim), Vec2d(double(m_wipe_tower_width) + brim, double(m_wipe_tower_depth) + brim));
     }
+    const Footprint& footprint() const { return m_footprint; }
     // WT2 doesn't currently compute a rib-origin compensation like WipeTower (m_rib_offset),
     // so expose a zero offset for consistency purposes (to maintain API parity).
     Vec2f get_rib_offset() const { return Vec2f::Zero(); }
@@ -207,6 +217,7 @@ private:
     float  m_wipe_tower_brim_width      = 0.f; 	// Width of brim (mm) from config
     float  m_wipe_tower_brim_width_real = 0.f; 	// Width of brim (mm) after generation
     BoundingBoxf m_first_layer_bbx;              // Actual first-layer bounding box (incl. brim/ribs)
+    Footprint m_footprint;
 	float  m_wipe_tower_rotation_angle = 0.f; // Wipe tower rotation angle in degrees (with respect to x axis)
     float  m_internal_rotation  = 0.f;
 	float  m_y_shift			= 0.f;  // y shift passed to writer
@@ -290,6 +301,8 @@ private:
 	// Calculates depth for all layers and propagates them downwards
 	void plan_tower();
 
+    Footprint build_first_layer_footprint(Footprint::Accuracy accuracy) const;
+
     // Goes through m_plan, calculates border and finish_layer extrusions and subtracts them from last wipe
     void save_on_last_wipe();
 
@@ -359,7 +372,6 @@ private:
     Polygon generate_support_rib_wall(WipeTowerWriter2&                 writer,
                                       const WipeTower::box_coordinates& wt_box,
                                       double                 feedrate,
-                                      bool                   first_layer,
                                       bool                   rib_wall,
                                       bool                   extrude_perimeter,
                                       bool                   skip_points);
@@ -371,7 +383,28 @@ private:
 		bool infill_cone, 
 		float spacing);
 
-    Polygon generate_rib_polygon(const WipeTower::box_coordinates& wt_box);
+    enum class ConePointType {
+        Arc,
+        Corner,
+        ArcStart,
+        ArcEnd
+    };
+
+    struct ConeWallPoint {
+        Vec2f         position;
+        ConePointType type;
+    };
+
+    struct ConeWallGeometry {
+        std::vector<ConeWallPoint> boundary;
+        Polygon                    polygon;
+        Vec2f                      center = Vec2f::Zero();
+    };
+
+    Polygon build_rib_wall_polygon(const WipeTower::box_coordinates& wt_box, bool rib_wall,
+                                   float z, float y_shift) const;
+    ConeWallGeometry build_cone_wall_geometry(const WipeTower::box_coordinates& wt_box,
+                                              double z) const;
 };
 
 

@@ -339,8 +339,18 @@ public:
 
     Vec3d get_origin() { return m_origin; }
     //Vec3d calculate_wipe_tower_size(const DynamicPrintConfig &config, const double w, const double wipe_volume, int plate_extruder_size = 0, bool use_global_objects = false) const;
-    Vec3d estimate_wipe_tower_size(const DynamicPrintConfig & config, const double w, const double wipe_volume, int extruder_count = 1, int plate_extruder_size = 0, bool use_global_objects = false, bool enable_wrapping_detection = false) const;
-    arrangement::ArrangePolygon estimate_wipe_tower_polygon(const DynamicPrintConfig & config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, int extruder_count = 1, int plate_extruder_size = 0, bool use_global_objects = false) const;
+    struct WipeTowerPreview {
+        WipeTowerFootprint     footprint;
+        WipeTowerPreviewSource source = WipeTowerPreviewSource::None;
+    };
+
+    // Build the current GUI preview, preferring current sliced data and falling back to a
+    // Generated mesh from an estimated footprint. An empty footprint uses source == None.
+    WipeTowerPreview wipe_tower_preview() const;
+    // Shared preview implementation. plate_extruders contains 1-based IDs; allow_sliced_mesh
+    // controls whether current sliced geometry may be selected instead of a conservative estimate.
+    WipeTowerPreview wipe_tower_preview(const DynamicPrintConfig& full_config, const std::vector<int>& plate_extruders, bool use_global_objects, bool allow_sliced_mesh) const;
+    arrangement::ArrangePolygon estimate_wipe_tower_polygon(const DynamicPrintConfig& config, int plate_index, Vec3d& wt_pos, Vec3d& wt_size, const std::vector<int>& plate_extruders, bool use_global_objects = false) const;
     bool check_objects_empty_and_gcode3mf(std::vector<int> &result) const;
     // get used filaments from config, 1 based idx
     std::vector<int> get_extruders(bool conside_custom_gcode = false) const;

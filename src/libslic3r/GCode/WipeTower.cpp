@@ -12,6 +12,7 @@
 #include "BoundingBox.hpp"
 #include "ClipperUtils.hpp"
 #include "LocalesUtils.hpp"
+#include "PrintConfig.hpp"
 #include "Triangulation.hpp"
 
 
@@ -1689,6 +1690,195 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
     m_filpar[idx].wipe_dist      = config.wipe_distance.get_at(idx);
 }
 
+WipeTowerPreviewMeshes make_wipe_tower_preview_meshes(const WipeTowerFootprint& footprint)
+{
+    if (footprint.empty() || footprint.height < EPSILON)
+        return {};
+
+    return {
+        WipeTower::its_make_rib_brim(footprint.body_outline, footprint.height),
+        WipeTower::its_make_rib_brim(footprint.outer_outline, WIPE_TOWER_PREVIEW_BRIM_HEIGHT)
+    };
+}
+
+Polygon transformed_wipe_tower_outline(
+    const WipeTowerFootprint& footprint, double rotation, const Vec2d& translation)
+{
+    Polygon outline = footprint.outer_outline;
+    if (outline.points.empty())
+        return outline;
+
+    outline.rotate(rotation);
+    outline.translate(Point::new_scale(translation.x(), translation.y()));
+    return outline;
+}
+
+BoundingBoxf rotated_wipe_tower_bbox(const WipeTowerFootprint& footprint, double rotation)
+{
+    const Polygon outline = transformed_wipe_tower_outline(footprint, rotation);
+    if (outline.points.empty())
+        return {};
+
+    const BoundingBox bbox = get_extents(outline);
+    return BoundingBoxf(unscale(bbox.min), unscale(bbox.max));
+}
+
+Vec2f local_wipe_tower_offset(const Vec2f& post_rotation_offset, double rotation)
+{
+    return Eigen::Rotation2Df(float(-rotation)) * post_rotation_offset;
+}
+
+Vec2d clamp_wipe_tower_position(
+    const BoundingBoxf& local_bbox, const BoundingBoxf& allowed_bbox,
+    const Vec2d& requested_position, double margin)
+{
+    const double min_x = allowed_bbox.min.x() + margin - local_bbox.min.x();
+    const double max_x = allowed_bbox.max.x() - margin - local_bbox.max.x();
+    const double min_y = allowed_bbox.min.y() + margin - local_bbox.min.y();
+    const double max_y = allowed_bbox.max.y() - margin - local_bbox.max.y();
+
+    return Vec2d(max_x < min_x ? min_x : std::clamp(requested_position.x(), min_x, max_x),
+                 max_y < min_y ? min_y : std::clamp(requested_position.y(), min_y, max_y));
+}
+
+std::vector<unsigned int> normalize_wipe_tower_preview_filaments(
+    size_t filament_count, const std::vector<unsigned int>& used_filaments, bool force_tower)
+{
+    std::vector<unsigned int> filaments;
+    filaments.reserve(used_filaments.size());
+    for (const unsigned int filament : used_filaments)
+        if (filament < filament_count)
+            filaments.emplace_back(filament);
+
+    std::sort(filaments.begin(), filaments.end());
+    filaments.erase(std::unique(filaments.begin(), filaments.end()), filaments.end());
+    if (filaments.empty() && force_tower && filament_count > 0)
+        filaments.emplace_back(0);
+    if (filaments.size() == 1 && !force_tower)
+        filaments.clear();
+    return filaments;
+}
+
+WipeTowerFootprint finalize_wipe_tower_footprint(
+    Polygon body_outline, Polygon outer_outline, float height, float brim_width,
+    WipeTowerFootprint::Accuracy accuracy, float planned_depth)
+{
+    WipeTowerFootprint footprint;
+    footprint.body_outline  = std::move(body_outline);
+    footprint.outer_outline = std::move(outer_outline);
+    footprint.height        = height;
+    footprint.brim_width    = brim_width;
+    footprint.accuracy      = accuracy;
+    footprint.planned_depth = planned_depth;
+
+    if (!footprint.outer_outline.points.empty()) {
+        const BoundingBox box = get_extents(footprint.outer_outline);
+        footprint.bbox  = BoundingBoxf(unscale(box.min), unscale(box.max));
+        footprint.width = float(footprint.bbox.size().x());
+        footprint.depth = float(footprint.bbox.size().y());
+    }
+    if (footprint.planned_depth <= EPSILON && !footprint.body_outline.points.empty()) {
+        const BoundingBox body_box = get_extents(footprint.body_outline);
+        footprint.planned_depth =
+            float(unscale<double>(body_box.max.y() - body_box.min.y()));
+    }
+    return footprint;
+}
+
+WipeTowerFootprint make_wipe_tower_footprint_with_brim(
+    Polygon body_outline, float height, float brim_width,
+    WipeTowerFootprint::Accuracy accuracy, float planned_depth)
+{
+    Polygon outer_outline = body_outline;
+    brim_width = std::max(0.f, brim_width);
+    if (brim_width > EPSILON) {
+        const Polygons expanded = offset(body_outline, scale_(brim_width));
+        if (!expanded.empty())
+            outer_outline = expanded.front();
+    }
+
+    return finalize_wipe_tower_footprint(
+        std::move(body_outline), std::move(outer_outline), height, brim_width,
+        accuracy, planned_depth);
+}
+
+WipeTower::Footprint WipeTower::make_conservative_footprint(const PrintConfig&               config,
+                                                             const std::vector<unsigned int>& used_filaments,
+                                                             float                            tower_height,
+                                                             float                            layer_height,
+                                                             bool                             force_tower)
+{
+    const size_t filament_count = config.filament_type.size();
+    if (filament_count == 0)
+        return {};
+
+    const std::vector<unsigned int> filaments =
+        normalize_wipe_tower_preview_filaments(filament_count, used_filaments, force_tower);
+    if (filaments.empty())
+        return {};
+
+    const float nozzle_diameter = config.nozzle_diameter.values.empty() ?
+                                      0.4f :
+                                      float(*std::max_element(config.nozzle_diameter.values.begin(),
+                                                              config.nozzle_diameter.values.end()));
+    const float spacing = std::max(0.01f, nozzle_diameter * 1.25f);
+    const float width = std::max(float(config.prime_tower_width.value), 4.f * spacing);
+    const float effective_layer_height = std::max(layer_height, 0.01f);
+    const float height = std::max(tower_height,
+                                  float(config.initial_layer_print_height.value) + effective_layer_height);
+
+    float prime_volume = config.prime_volume_mode.value == PrimeVolumeMode::pvmSaving ?
+                             15.f :
+                             float(config.prime_volume.value);
+    if (config.prime_volume_mode.value != PrimeVolumeMode::pvmSaving) {
+        for (const unsigned int filament : filaments) {
+            if (filament < config.filament_prime_volume.values.size())
+                prime_volume = std::max(prime_volume, float(config.filament_prime_volume.values[filament]));
+            if (filament < config.filament_prime_volume_nc.values.size())
+                prime_volume = std::max(prime_volume, float(config.filament_prime_volume_nc.values[filament]));
+        }
+    }
+
+    // Keep the original Type1 preview model: N - 1 changes for a single nozzle,
+    // one section per filament for a dual nozzle, and one section for a forced single-filament tower.
+    size_t transition_count =
+        config.nozzle_diameter.size() == 2 ? filaments.size() : filaments.size() - 1;
+    if (filaments.size() == 1 && force_tower)
+        transition_count = 1;
+    const float extra_spacing = std::max(1.f, float(config.prime_tower_infill_gap.value) / 100.f);
+    const float volume = prime_volume * float(transition_count);
+    const float minimum_depth = get_limit_depth_by_height(height);
+
+    float body_width = width;
+    float body_depth = volume * extra_spacing / (effective_layer_height * width);
+    float planned_depth = std::max(body_depth, minimum_depth);
+    if (config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib) {
+        const float volume_depth = std::sqrt(volume * extra_spacing / effective_layer_height);
+        planned_depth = std::max(volume_depth, minimum_depth);
+        const float rib_width =
+            std::min(float(config.wipe_tower_rib_width.value), planned_depth / 2.f);
+        body_depth = rib_width / float(std::sqrt(2.)) + planned_depth +
+                     std::max(0.f, float(config.wipe_tower_extra_rib_length.value));
+        body_width = body_depth;
+    } else {
+        body_depth = planned_depth;
+    }
+
+    Polygon body_outline({
+        Point::new_scale(0.f, 0.f),
+        Point::new_scale(body_width, 0.f),
+        Point::new_scale(body_width, body_depth),
+        Point::new_scale(0.f, body_depth)
+    });
+    const float configured_brim_width =
+        config.prime_tower_brim_width.value < 0.f ?
+            get_auto_brim_by_height(height) :
+            float(config.prime_tower_brim_width.value);
+    return make_wipe_tower_footprint_with_brim(
+        std::move(body_outline), height, configured_brim_width,
+        Footprint::Accuracy::Estimated, planned_depth);
+}
+
 
 
 // Returns gcode to prime the nozzles at the front edge of the print bed.
@@ -3354,6 +3544,7 @@ WipeTower::ToolChangeResult WipeTower::finish_layer_new(bool extrude_perimeter, 
     //}
     Polygon outer_wall;
     outer_wall = generate_support_wall_new(writer, wt_box, feedrate, first_layer, m_use_rib_wall, extrude_perimeter, m_use_gap_wall);
+    const Polygon first_layer_body_outline = first_layer ? outer_wall : Polygon{};
     if (extrude_perimeter) {
         Polyline shift_polyline = to_polyline(outer_wall);
         shift_polyline.translate(0, scaled(m_y_shift));
@@ -3396,6 +3587,21 @@ WipeTower::ToolChangeResult WipeTower::finish_layer_new(bool extrude_perimeter, 
             //m_wipe_tower_brim_width_real = wt_box.ld.x() - box.ld.x() + spacing / 2.f;
         }
         //wt_box = box;
+    }
+
+    if (first_layer && !outer_wall.points.empty()) {
+        Polygon body_outline  = first_layer_body_outline;
+        Polygon outer_outline = outer_wall;
+        if (m_use_rib_wall) {
+            const Vec2f local_offset = local_wipe_tower_offset(
+                m_rib_offset, double(m_wipe_tower_rotation_angle) * M_PI / 180.);
+            const Point rib_translation = Point::new_scale(local_offset);
+            body_outline.translate(rib_translation);
+            outer_outline.translate(rib_translation);
+        }
+        m_footprint = finalize_wipe_tower_footprint(
+            std::move(body_outline), std::move(outer_outline), m_wipe_tower_height,
+            m_wipe_tower_brim_width_real, Footprint::Accuracy::Exact, m_wipe_tower_depth);
     }
 
     if (extrude_perimeter || loops_num > 0) {
@@ -4224,6 +4430,7 @@ void WipeTower::generate_new(std::vector<std::vector<WipeTower::ToolChangeResult
 {
     if (m_plan.empty())
         return;
+    m_footprint = {};
     //m_extra_spacing = 1.f;
     m_wipe_tower_height = m_plan.back().z;//real wipe_tower_height
     plan_tower_new();

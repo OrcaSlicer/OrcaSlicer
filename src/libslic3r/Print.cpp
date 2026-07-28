@@ -1021,34 +1021,21 @@ static StringObjectException layered_print_cleareance_valid(const Print &print, 
     const Vec3d         plate_origin = print.get_plate_origin();
     float               x            = config.wipe_tower_x.get_at(plate_index) + plate_origin(0);
     float               y            = config.wipe_tower_y.get_at(plate_index) + plate_origin(1);
-    float               width        = config.prime_tower_width.value;
     float               a            = config.wipe_tower_rotation_angle.value;
-    //float               v            = config.wiping_volume.value;
-
-    float        depth                     = print.wipe_tower_data(filaments_count).depth;
-    //float        brim_width                = print.wipe_tower_data(filaments_count).brim_width;
-
-    if (config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib)
-        width = depth;
 
     Polygons convex_hulls_temp;
     if (print.has_wipe_tower()) {
-        if (!print.is_step_done(psWipeTower)) {
-            Polygon wipe_tower_convex_hull;
-            wipe_tower_convex_hull.points.emplace_back(scale_(x), scale_(y));
-            wipe_tower_convex_hull.points.emplace_back(scale_(x + width), scale_(y));
-            wipe_tower_convex_hull.points.emplace_back(scale_(x + width), scale_(y + depth));
-            wipe_tower_convex_hull.points.emplace_back(scale_(x), scale_(y + depth));
-            wipe_tower_convex_hull.rotate(a);
-            convex_hulls_temp.push_back(wipe_tower_convex_hull);
-        } else {
-            //here, wipe_tower_polygon is not always convex.
-            Polygon wipe_tower_polygon;
-            if (print.wipe_tower_data().wipe_tower_mesh_data)
-                wipe_tower_polygon = print.wipe_tower_data().wipe_tower_mesh_data->bottom;
-            wipe_tower_polygon.translate(Point(scale_(x), scale_(y)));
-            convex_hulls_temp.push_back(wipe_tower_polygon);
+        const WipeTowerData& tower_data = print.wipe_tower_data(filaments_count);
+        Polygon wipe_tower_polygon = transformed_wipe_tower_outline(
+            tower_data.footprint, Geometry::deg2rad(a), Vec2d(x, y));
+        if (wipe_tower_polygon.points.empty() && tower_data.wipe_tower_mesh_data) {
+            // Preserve collision checking if a sliced tower cannot provide a footprint.
+            wipe_tower_polygon = tower_data.wipe_tower_mesh_data->bottom;
+            wipe_tower_polygon.rotate(Geometry::deg2rad(a));
+            wipe_tower_polygon.translate(Point::new_scale(x, y));
         }
+        if (!wipe_tower_polygon.points.empty())
+            convex_hulls_temp.push_back(std::move(wipe_tower_polygon));
     }
     if (!intersection(convex_hulls_other, convex_hulls_temp).empty()) {
         if (warning) {
@@ -3878,79 +3865,35 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
 {
     // If the wipe tower wasn't created yet, make sure the depth and brim_width members are set to default.
     double max_height = 0;
+    double preview_layer_height = std::numeric_limits<double>::max();
     for (size_t obj_idx = 0; obj_idx < m_objects.size(); obj_idx++) {
         double object_z = (double) m_objects[obj_idx]->size().z();
         max_height      = std::max(unscale_(object_z), max_height);
+        const double object_layer_height = m_objects[obj_idx]->config().layer_height.value;
+        if (object_layer_height > EPSILON)
+            preview_layer_height = std::min(preview_layer_height, object_layer_height);
     }
     if (max_height < EPSILON) return m_wipe_tower_data;
+    if (preview_layer_height == std::numeric_limits<double>::max())
+        preview_layer_height = m_config.initial_layer_print_height.value;
 
-    double layer_height                  = 0.08f; // hard code layer height
-    layer_height        = m_objects.front()->config().layer_height.value;
-
-    auto   timelapse_type  = config().option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
-    bool   need_wipe_tower = (timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false) | (m_config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib);
-    double extra_spacing = config().option("prime_tower_infill_gap")->getFloat() / 100.;
-    double rib_width     = config().option("wipe_tower_rib_width")->getFloat();
-
-    double filament_change_volume = 0.;
-    {
-        std::vector<double> filament_change_lengths;
-        auto                filament_change_lengths_opt = config().option<ConfigOptionFloats>("filament_change_length");
-        if (filament_change_lengths_opt) filament_change_lengths = filament_change_lengths_opt->values;
-        double              length   = filament_change_lengths.empty() ? 0 : *std::max_element(filament_change_lengths.begin(), filament_change_lengths.end());
-        double              diameter = 1.75;
-        std::vector<double> diameters;
-        auto                filament_diameter_opt = config().option<ConfigOptionFloats>("filament_diameter");
-        if (filament_diameter_opt) diameters = filament_diameter_opt->values;
-        diameter               = diameters.empty() ? diameter : *std::max_element(diameters.begin(), diameters.end());
-        filament_change_volume = length * PI * diameter * diameter / 4.;
-    }
-
-
-    if (! is_step_done(psWipeTower) && filaments_cnt !=0) {
-        double wipe_volume  = m_config.prime_volume;
-        int filament_depth_count = m_config.nozzle_diameter.values.size() == 2 ? filaments_cnt : filaments_cnt - 1;
-        if (filaments_cnt == 1 && enable_timelapse_print()) filament_depth_count = 1;
-        double volume = wipe_volume * filament_depth_count;
-        if (m_config.nozzle_diameter.values.size() == 2) volume += filament_change_volume * (int) (filaments_cnt / 2);
-
-        if (m_config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib) {
-            double depth = std::sqrt(volume / layer_height * extra_spacing);
-            if (need_wipe_tower || filaments_cnt > 1) {
-                float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
-                depth  = std::max((double) min_wipe_tower_depth, depth);
-                depth += rib_width / std::sqrt(2) + config().wipe_tower_extra_rib_length.value;
-                const_cast<Print *>(this)->m_wipe_tower_data.depth = depth;
-                const_cast<Print *>(this)->m_wipe_tower_data.brim_width = m_config.prime_tower_brim_width;
-            }
-        }
-        else {
-        double width        = m_config.prime_tower_width;
-        if (m_config.purge_in_prime_tower && m_config.single_extruder_multi_material) {
-            // Calculating depth should take into account currently set wiping volumes.
-            // For a long time, the initial preview would just use 900/width per toolchange (15mm on a 60mm wide tower)
-            // and it worked well enough. Let's try to do slightly better by accounting for the purging volumes.
-            std::vector<std::vector<float>> wipe_volumes = WipeTower2::extract_wipe_volumes(m_config);
-            std::vector<float>              max_wipe_volumes;
-            for (const std::vector<float> &v : wipe_volumes)
-                max_wipe_volumes.emplace_back(*std::max_element(v.begin(), v.end()));
-            float maximum = std::accumulate(max_wipe_volumes.begin(), max_wipe_volumes.end(), 0.f);
-            maximum       = maximum * filaments_cnt / max_wipe_volumes.size();
-            
-            // Orca: it's overshooting a bit, so let's reduce it a bit
-            maximum *= 0.6; 
-            const_cast<Print *>(this)->m_wipe_tower_data.depth = maximum / (layer_height * width);
-        } else {
-            double depth = volume / (layer_height * width) * extra_spacing;
-            if (need_wipe_tower || m_wipe_tower_data.depth > EPSILON) {
-                float min_wipe_tower_depth = WipeTower::get_limit_depth_by_height(max_height);
-                depth = std::max((double) min_wipe_tower_depth, depth);
-            }
-            const_cast<Print *>(this)->m_wipe_tower_data.depth = depth;
-        }
-        const_cast<Print *>(this)->m_wipe_tower_data.brim_width = m_config.prime_tower_brim_width;
-        }
-        if (m_config.prime_tower_brim_width < 0) const_cast<Print *>(this)->m_wipe_tower_data.brim_width = WipeTower::get_auto_brim_by_height(max_height);
+    if (!is_step_done(psWipeTower) && filaments_cnt != 0) {
+        const bool force_tower = enable_timelapse_print() ||
+                                 (m_config.enable_wrapping_detection.value && m_config.wrapping_exclude_area.values.size() > 2);
+        const std::vector<unsigned int> used_filaments = extruders(true);
+        WipeTowerFootprint footprint =
+            wipe_tower_type() == WipeTowerType::Type2 ?
+                WipeTower2::make_conservative_footprint(
+                    m_config, m_default_region_config, used_filaments,
+                    float(max_height), float(preview_layer_height), force_tower) :
+                WipeTower::make_conservative_footprint(
+                    m_config, used_filaments, float(max_height), float(preview_layer_height), force_tower);
+        WipeTowerData& data = const_cast<Print *>(this)->m_wipe_tower_data;
+        data.depth = footprint.planned_depth;
+        data.height = footprint.height;
+        data.brim_width = footprint.brim_width;
+        data.bbx = footprint.bbox;
+        data.construct_mesh(footprint);
     }
     return m_wipe_tower_data;
 }
@@ -4191,6 +4134,7 @@ void Print::_make_wipe_tower()
         m_wipe_tower_data.brim_width = wipe_tower.get_brim_width();
         m_wipe_tower_data.bbx = wipe_tower.get_bbx();
         m_wipe_tower_data.rib_offset = wipe_tower.get_rib_offset();
+        m_wipe_tower_data.footprint = wipe_tower.footprint();
 
         // Unload the current filament over the purge tower.
         coordf_t layer_height = m_objects.front()->config().layer_height.value;
@@ -4217,8 +4161,16 @@ void Print::_make_wipe_tower()
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
-        m_wipe_tower_data.construct_mesh(wipe_tower.width(), wipe_tower.get_depth(), wipe_tower.get_height(), wipe_tower.get_brim_width(), config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
-                                         wipe_tower.get_rib_width(), wipe_tower.get_rib_length(), config().wipe_tower_fillet_wall.value);
+        if (!m_wipe_tower_data.footprint.empty()) {
+            m_wipe_tower_data.construct_mesh(m_wipe_tower_data.footprint);
+        } else {
+            m_wipe_tower_data.construct_mesh(
+                wipe_tower.width(), wipe_tower.get_depth(), wipe_tower.get_height(),
+                wipe_tower.get_brim_width(),
+                config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
+                wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
+                config().wipe_tower_fillet_wall.value);
+        }
         const Vec3d origin                      = this->get_plate_origin();
         m_fake_wipe_tower.rib_offset = wipe_tower.get_rib_offset();
         m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position() + m_fake_wipe_tower.rib_offset, wipe_tower.width(), wipe_tower.get_height(), wipe_tower.get_layer_height(),
@@ -4332,11 +4284,7 @@ void Print::_make_wipe_tower()
 
         m_wipe_tower_data.used_filament         = wipe_tower.get_used_filament();
         m_wipe_tower_data.number_of_toolchanges = wipe_tower.get_number_of_toolchanges();
-        m_wipe_tower_data.construct_mesh(wipe_tower.width(), wipe_tower.get_depth(),
-                                         wipe_tower.get_wipe_tower_height(), wipe_tower.get_brim_width(),
-                                         config().wipe_tower_wall_type.value == WipeTowerWallType::wtwRib,
-                                         wipe_tower.get_rib_width(), wipe_tower.get_rib_length(),
-                                         config().wipe_tower_fillet_wall.value);
+        m_wipe_tower_data.construct_mesh(wipe_tower.footprint());
         const Vec3d origin                      = Vec3d::Zero();
         m_fake_wipe_tower.set_fake_extrusion_data(wipe_tower.position(), wipe_tower.width(), wipe_tower.get_wipe_tower_height(),
                                                   config().initial_layer_print_height, m_wipe_tower_data.depth,
@@ -5895,7 +5843,7 @@ ExtrusionLayers FakeWipeTower::getTrueExtrusionLayersFromWipeTower() const
 void WipeTowerData::construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length,bool fillet_wall)
 {
     wipe_tower_mesh_data = WipeTowerMeshData{};
-    float first_layer_height=0.08; //brim height
+    float first_layer_height=WIPE_TOWER_PREVIEW_BRIM_HEIGHT; //brim height
     if (width < EPSILON || depth < EPSILON || height < EPSILON) return;
     if (!is_rib_wipe_tower || rib_length < EPSILON) {
         wipe_tower_mesh_data->real_wipe_tower_mesh = make_cube(width, depth, height);
@@ -5916,6 +5864,19 @@ void WipeTowerData::construct_mesh(float width, float depth, float height, float
     }
     //wipe_tower_mesh_data->real_wipe_tower_mesh.write_ascii("../wipe_tower_mesh.obj");
    //wipe_tower_mesh_data->real_brim_mesh.write_ascii("../wipe_tower_brim_mesh.obj");
+}
+
+void WipeTowerData::construct_mesh(const WipeTowerFootprint& tower_footprint)
+{
+    footprint = tower_footprint;
+    wipe_tower_mesh_data = WipeTowerMeshData{};
+    if (footprint.empty() || footprint.height < EPSILON)
+        return;
+
+    WipeTowerPreviewMeshes preview_meshes = make_wipe_tower_preview_meshes(footprint);
+    wipe_tower_mesh_data->bottom = footprint.outer_outline;
+    wipe_tower_mesh_data->real_wipe_tower_mesh = std::move(preview_meshes.body);
+    wipe_tower_mesh_data->real_brim_mesh = std::move(preview_meshes.brim);
 }
 
 } // namespace Slic3r

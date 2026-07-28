@@ -55,6 +55,8 @@ class ExtrusionEntityCollection;
 class ModelObject;
 class ModelVolume;
 class GLShaderProgram;
+struct WipeTowerFootprint;
+enum class WipeTowerPreviewSource;
 enum ModelInstanceEPrintVolumeState : unsigned char;
 
 using ModelObjectPtrs = std::vector<ModelObject*>;
@@ -482,9 +484,8 @@ public:
         size_t                          timestamp);
 
     int load_wipe_tower_preview(
-        int obj_idx, float pos_x, float pos_y, float width, float depth, float height, float rotation_angle, bool size_unknown, float brim_width);
-    int load_real_wipe_tower_preview(
-    int obj_idx, float pos_x, float pos_y,const TriangleMesh& wt_mesh,const TriangleMesh &brim_mesh,bool render_brim, float rotation_angle, bool size_unknown,  bool opengl_initialized);
+        int obj_idx, float pos_x, float pos_y, const TriangleMesh& wt_mesh, const TriangleMesh& brim_mesh,
+        float rotation_angle, WipeTowerPreviewSource source, const WipeTowerFootprint& footprint);
     GLVolume* new_toolpath_volume(const ColorRGBA& rgba);
     GLVolume* new_nontoolpath_volume(const ColorRGBA& rgba);
 

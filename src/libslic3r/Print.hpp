@@ -774,6 +774,7 @@ struct WipeTowerData
     float                                                 height;
     BoundingBoxf                                          bbx;//including brim
     Vec2f                                                 rib_offset;
+    WipeTowerFootprint                                   footprint;
     std::optional<WipeTowerMeshData>                      wipe_tower_mesh_data;//added rib_offset
     void clear() {
         priming.reset(nullptr);
@@ -784,10 +785,14 @@ struct WipeTowerData
         depth = 0.f;
         brim_width = 0.f;
         height = 0.f;
+        z_and_depth_pairs.clear();
+        bbx = BoundingBoxf();
         rib_offset = Vec2f::Zero();
+        footprint = {};
         wipe_tower_mesh_data  = std::nullopt;
     }
     void construct_mesh(float width, float depth, float height, float brim_width, bool is_rib_wipe_tower, float rib_width, float rib_length, bool fillet_wall);
+    void construct_mesh(const WipeTowerFootprint& footprint);
 
 private:
 	// Only allow the WipeTowerData to be instantiated internally by Print, 

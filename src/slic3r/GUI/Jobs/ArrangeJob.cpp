@@ -261,12 +261,9 @@ arrangement::ArrangePolygon estimate_wipe_tower_info(int plate_index, std::set<i
     int plate_count = ppl.get_plate_count();
     int plate_index_valid = std::min(plate_index, plate_count - 1);
 
-    // we have to estimate the depth using the extruder number of all plates
-    int extruder_size = extruder_ids.size();
-
     Vec3d wipe_tower_size, wipe_tower_pos;
-    int nozzle_nums = wxGetApp().preset_bundle->get_printer_extruder_count();
-    auto arrange_poly = ppl.get_plate(plate_index_valid)->estimate_wipe_tower_polygon(full_config, plate_index, wipe_tower_pos, wipe_tower_size, nozzle_nums, extruder_size);
+    const std::vector<int> plate_extruders(extruder_ids.begin(), extruder_ids.end());
+    auto arrange_poly = ppl.get_plate(plate_index_valid)->estimate_wipe_tower_polygon(full_config, plate_index, wipe_tower_pos, wipe_tower_size, plate_extruders);
     arrange_poly.bed_idx = plate_index;
     return arrange_poly;
 }

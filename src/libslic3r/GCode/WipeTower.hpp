@@ -10,20 +10,96 @@
 #include "libslic3r/Point.hpp"
 #include "libslic3r/Polygon.hpp"
 #include "libslic3r/Polyline.hpp"
+#include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/TriangleMesh.hpp"
 #include <unordered_set>
 
 namespace Slic3r
 {
 
+inline constexpr float WIPE_TOWER_PREVIEW_BRIM_HEIGHT = 0.08f;
+
 class WipeTowerWriter;
 class PrintConfig;
 enum GCodeFlavor : unsigned char;
 
+struct WipeTowerFootprint
+{
+    // Tower-local XY before rotation and placement. Polygons are scaled; other values are in mm.
+    enum class Accuracy {
+        Estimated, // Conservative pre-slice outline.
+        Exact      // Outline captured from the generated first layer.
+    };
+
+    // Outlines bound path centerlines, not the full extruded bead width.
+    // First-layer body, including ribs/cone walls but excluding brim.
+    Polygon      body_outline;
+    // Complete first-layer outline, including generated brim.
+    Polygon      outer_outline;
+    // Unrotated AABB of outer_outline; undefined when empty.
+    BoundingBoxf bbox;
+    // bbox extents, including body features and brim.
+    float        width      = 0.f;
+    float        depth      = 0.f;
+    // Planned rectangular depth, excluding brim and rib/cone extensions.
+    float        planned_depth = 0.f;
+    // Preview Z extent.
+    float        height     = 0.f;
+    // Brim expansion represented by outer_outline.
+    float        brim_width = 0.f;
+    Accuracy     accuracy   = Accuracy::Estimated;
+
+    bool empty() const { return outer_outline.points.empty(); }
+};
+
+struct WipeTowerPreviewMeshes
+{
+    TriangleMesh body;
+    TriangleMesh brim;
+};
+
+// Origin of the 3D preview mesh; independent of footprint accuracy.
+enum class WipeTowerPreviewSource {
+    None,
+    Generated, // Extruded from the selected footprint.
+    Sliced     // Produced by wipe tower slicing.
+};
+
+// Extrudes separate display-only body and brim meshes from a footprint.
+WipeTowerPreviewMeshes make_wipe_tower_preview_meshes(const WipeTowerFootprint& footprint);
+
+// Transforms the outer outline to print coordinates; rotation is in radians.
+Polygon transformed_wipe_tower_outline(const WipeTowerFootprint& footprint, double rotation,
+                                        const Vec2d& translation = Vec2d::Zero());
+
+// AABB in mm of the rotated outer outline, without placement translation.
+BoundingBoxf rotated_wipe_tower_bbox(const WipeTowerFootprint& footprint, double rotation);
+
+// Converts a post-rotation G-code offset to tower-local coordinates.
+Vec2f local_wipe_tower_offset(const Vec2f& post_rotation_offset, double rotation);
+
+// Clamps the tower origin so local_bbox remains inside allowed_bbox; all values are in mm.
+Vec2d clamp_wipe_tower_position(const BoundingBoxf& local_bbox, const BoundingBoxf& allowed_bbox,
+                                const Vec2d& requested_position, double margin);
+
+// Normalizes filament ids for conservative preview planning.
+std::vector<unsigned int> normalize_wipe_tower_preview_filaments(
+    size_t filament_count, const std::vector<unsigned int>& used_filaments, bool force_tower);
+
+WipeTowerFootprint finalize_wipe_tower_footprint(
+    Polygon body_outline, Polygon outer_outline, float height, float brim_width,
+    WipeTowerFootprint::Accuracy accuracy, float planned_depth = 0.f);
+
+// Adds a fixed brim offset to an estimated body outline and completes its metadata.
+WipeTowerFootprint make_wipe_tower_footprint_with_brim(
+    Polygon body_outline, float height, float brim_width,
+    WipeTowerFootprint::Accuracy accuracy, float planned_depth = 0.f);
 
 class WipeTower
 {
 public:
+    using Footprint = WipeTowerFootprint;
+
     friend class WipeTowerWriter;
     static const std::string never_skip_tag() { return "_GCODE_WIPE_TOWER_NEVER_SKIP_TAG"; }
 
@@ -180,6 +256,12 @@ public:
 	// BBS: add partplate logic
 	WipeTower(const PrintConfig& config, int plate_idx, Vec3d plate_origin, size_t initial_tool, const float wipe_tower_height, const std::vector<unsigned int>& slice_used_filaments);
 
+    static Footprint make_conservative_footprint(const PrintConfig&               config,
+                                                 const std::vector<unsigned int>& used_filaments,
+                                                 float                            tower_height,
+                                                 float                            layer_height,
+                                                 bool                             force_tower);
+
 
 	// Set the extruder properties.
     void set_extruder(size_t idx, const PrintConfig& config);
@@ -198,6 +280,7 @@ public:
     Polygon generate_rib_polygon(const box_coordinates &wt_box);
     float get_depth() const { return m_wipe_tower_depth; }
     float get_brim_width() const { return m_wipe_tower_brim_width_real; }
+    const Footprint& footprint() const { return m_footprint; }
     BoundingBoxf get_bbx() const {
         if (m_outer_wall.empty()) return BoundingBoxf({Vec2d(0,0)});
         BoundingBox  box = get_extents(m_outer_wall.begin()->second);
@@ -469,6 +552,7 @@ private:
     bool               m_is_multi_extruder{false};
     bool               m_use_gap_wall{false};
     bool               m_use_rib_wall{false};
+    Footprint           m_footprint;
     float              m_rib_length=0.f;
     float              m_rib_width=0.f;
     float              m_extra_rib_length=0.f;

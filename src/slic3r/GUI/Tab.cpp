@@ -1874,7 +1874,7 @@ void Tab::on_value_change(const std::string& opt_key, const boost::any& value)
         wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
     }
 
-    if(opt_key == "purge_in_prime_tower")
+    if (opt_key == "purge_in_prime_tower" || opt_key == "wipe_tower_type")
         wxGetApp().get_tab(Preset::TYPE_PRINT)->update();
 
 
@@ -3269,8 +3269,11 @@ void TabPrint::update()
     m_update_cnt--;
 
     if (m_update_cnt==0) {
-        if (m_active_page && !(m_active_page->title() == "Dependencies"))
+        if (m_active_page && !(m_active_page->title() == "Dependencies")) {
             toggle_options();
+            m_active_page->update_visibility(m_mode, true);
+            m_parent->Layout();
+        }
         // update() could be called during undo/redo execution
         // Update of objectList can cause a crash in this case (because m_objects doesn't match ObjectList)
         if (m_type != Preset::TYPE_MODEL && !wxGetApp().plater()->inside_snapshot_capture())
