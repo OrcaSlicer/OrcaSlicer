@@ -2738,7 +2738,12 @@ std::vector<unsigned int> parse_cyclic_order(const std::string& str, unsigned in
     std::vector<unsigned int> order;
     for (const std::string& token : split_string(str, ',')) {
         try {
-            int filament = std::stoi(token); // stoi skips leading whitespace by itself
+            size_t pos      = 0;
+            int    filament = std::stoi(token, &pos); // stoi skips leading whitespace by itself
+            // stoi stops at the first non-digit, so "2x" would parse as 2. Require the whole token to be
+            // consumed (bar trailing whitespace) to drop it like any other garbage.
+            if (token.find_first_not_of(" \t\r\n", pos) != std::string::npos)
+                continue;
             if (filament >= 1 && (unsigned int)filament <= number_of_extruders
                 && std::find(order.begin(), order.end(), (unsigned int)(filament - 1)) == order.end())
                 order.emplace_back((unsigned int)(filament - 1));

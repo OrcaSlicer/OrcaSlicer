@@ -1006,6 +1006,11 @@ TEST_CASE("parse_cyclic_order parses user cyclic toolchange sequences", "[ToolOr
         REQUIRE(parse_cyclic_order("3,abc,,2,x1", 4) == std::vector<unsigned int>({2, 1}));
     }
 
+    SECTION("tokens that only start with a number are ignored") {
+        // "2x" must be dropped rather than parsed as filament 2.
+        REQUIRE(parse_cyclic_order("3,2x,1", 4) == std::vector<unsigned int>({2, 0}));
+    }
+
     SECTION("empty string yields an empty order") {
         REQUIRE(parse_cyclic_order("", 4).empty());
     }
