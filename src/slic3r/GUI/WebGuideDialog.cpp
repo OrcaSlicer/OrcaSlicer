@@ -1049,6 +1049,15 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
     std::string type;
     int         status = 0;
 
+    // why: two failures must stay distinct. INCOMPLETE (a base template with no
+    // type of its own) can still be completed once a descendant's inherited
+    // fields merge in; HARD_FAILURE (malformed/missing/unknown-parent JSON)
+    // never can. Both stay nonzero, so LoadProfileFamily still skips truly
+    // unresolved filaments; only the incomplete-then-completed case flips to OK.
+    constexpr int kResolveOk          = 0;
+    constexpr int kResolveIncomplete  = 1;
+    constexpr int kResolveHardFailure = -1;
+
     const auto cache_it = filament_info_cache.find(filepath);
     if (cache_it != filament_info_cache.end()) {
         vendor = cache_it->second.vendor;
@@ -1071,13 +1080,22 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
             else
                 BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains filament_type";
 
+            // why: completeness is judged on the MERGED result, not the last
+            // file visited. Requires a resolved type; applies the existing
+            // Generic vendor fallback only when the whole chain yielded none.
+            auto finalize_status = [&]() {
+                if (type.empty())   return kResolveIncomplete;
+                if (vendor.empty()) vendor = "Generic";
+                return kResolveOk;
+            };
+
             if (vendor == "" || type == "") {
                 if (jLocal.contains("inherits")) {
                     std::string FName = jLocal["inherits"];
 
                     if (!pFilaList.contains(FName)) {
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "pFilaList - Not Contains inherits filaments: " << FName;
-                        status = -1;
+                        status = kResolveHardFailure;
                     } else {
                         std::string FPath = pFilaList[FName]["sub_path"];
                         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " Before Format Inherits Path: VendorDirectory - " << VendorDirectory << ", sub_path - " << FPath;
@@ -1088,34 +1106,31 @@ int GuideFrame::GetFilamentInfo( std::string VendorDirectory, json & pFilaList, 
 
                         if (boost::filesystem::exists(inherits_path)) {
                             // Recurse with this file's own (vendor, type) as the chain accumulator.
-                            status = GetFilamentInfo(VendorDirectory, pFilaList, inherits_path.string(), vendor, type);
+                            int parent_status = GetFilamentInfo(VendorDirectory, pFilaList, inherits_path.string(), vendor, type);
+                            // why: a merely-incomplete parent must not sink a chain whose
+                            // vendor/type are now filled by the merge; re-judge on the merged
+                            // result. Only a hard parent failure stays fatal.
+                            status = (parent_status == kResolveHardFailure) ? kResolveHardFailure : finalize_status();
                         } else {
                             BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << " inherits File Not Exist: " << inherits_path;
-                            status = -1;
+                            status = kResolveHardFailure;
                         }
                     }
                 } else {
                     BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << filepath << " - Not Contains inherits";
-                    if (type == "") {
-                        BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << "sType is Empty";
-                        status = -1;
-                    } else {
-                        if (vendor == "")
-                            vendor = "Generic";
-                        status = 0;
-                    }
+                    status = finalize_status();
                 }
             } else {
-                status = 0;
+                status = kResolveOk;
             }
         }
         catch (nlohmann::detail::parse_error &err) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << filepath << " got a nlohmann::detail::parse_error, reason = " << err.what();
-            status = -1;
+            status = kResolveHardFailure;
         }
         catch (std::exception &e) {
             BOOST_LOG_TRIVIAL(error) << __FUNCTION__ << ": parse " << filepath << " got exception: " << e.what();
-            status = -1;
+            status = kResolveHardFailure;
         }
 
         filament_info_cache[filepath] = CachedFilamentInfo{status, vendor, type};
