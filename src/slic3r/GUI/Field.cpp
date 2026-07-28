@@ -1334,7 +1334,7 @@ void SpinCtrl::BUILD() {
         if (!parsed || value < INT_MIN || value > INT_MAX)
             tmp_value = UNDEF_VALUE;
         else {
-            tmp_value = std::min(std::max((int)value, temp->GetMin()), temp->GetMax());
+            tmp_value = std::min((int)value, temp->GetMax());
 #ifdef __WXOSX__
 #ifdef UNDEFINED__WXOSX__ // BBS
             // Forcibly set the input value for SpinControl, since the value
