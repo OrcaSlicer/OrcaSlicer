@@ -582,9 +582,11 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
 // ORCA: only_one_wall_top removes the inner walls over a top surface and lets the top fill take their space.
 // Without a top fill they would print as a void, so fall back to the original generation (re-onion the not-top
 // region). Zero top shell layers retypes the top fill as internal, see LayerRegion::prepare_fill_surfaces().
+// The top fill only reaches the freed space when top_surface_expansion grows it there, so without expansion the
+// original generation is kept as well - it is what users of only_one_wall_top alone have always got.
 static bool top_fill_replaces_inner_walls(const PrintRegionConfig &config)
 {
-    return config.top_shell_layers.value > 0 && config.top_surface_density.value > 0;
+    return config.top_shell_layers.value > 0 && config.top_surface_density.value > 0 && config.top_surface_expansion.value > 0;
 }
 
 // ORCA: only_one_wall_top - cheap per-vertex classification of a wall against the top surface. Only Partial

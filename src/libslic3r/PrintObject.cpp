@@ -1364,7 +1364,6 @@ bool PrintObject::invalidate_state_by_config_options(
             || opt_key == "infill_combination_max_layer_height"
             || opt_key == "bottom_shell_thickness"
             || opt_key == "top_shell_thickness"
-            || opt_key == "top_surface_expansion"
             || opt_key == "top_surface_expansion_margin"
             || opt_key == "top_surface_expansion_direction"
             || opt_key == "minimum_sparse_infill_area"
@@ -1442,6 +1441,15 @@ bool PrintObject::invalidate_state_by_config_options(
             if (is_approx(old_density->value, 0.) || is_approx(new_density->value, 0.))
                 steps.emplace_back(posPerimeters);
             steps.emplace_back(posInfill);
+        } else if (opt_key == "top_surface_expansion") {
+            // ORCA: without the expansion the top fill never reaches the space freed by only_one_wall_top, so the
+            // walls over top surfaces are kept. Only crossing zero matters; posPerimeters cascades to posPrepareInfill.
+            const auto *old_expansion = old_config.option<ConfigOptionFloat>(opt_key);
+            const auto *new_expansion = new_config.option<ConfigOptionFloat>(opt_key);
+            assert(old_expansion && new_expansion);
+            if (old_expansion->value <= 0. || new_expansion->value <= 0.)
+                steps.emplace_back(posPerimeters);
+            steps.emplace_back(posPrepareInfill);
         } else if (opt_key == "internal_solid_infill_line_width") {
             // This value is used for calculating perimeter - infill overlap, thus perimeters need to be recalculated.
             steps.emplace_back(posPerimeters);
