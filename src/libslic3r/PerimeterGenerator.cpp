@@ -579,14 +579,22 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
     return extrusion_coll;
 }
 
-// ORCA: only_one_wall_top removes the inner walls over a top surface and lets the top fill take their space.
-// Without a top fill they would print as a void, so fall back to the original generation (re-onion the not-top
-// region). Zero top shell layers retypes the top fill as internal, see LayerRegion::prepare_fill_surfaces().
-// The top fill only reaches the freed space when top_surface_expansion grows it there, so without expansion the
-// original generation is kept as well - it is what users of only_one_wall_top alone have always got.
+// ORCA: only_one_wall_top drops the inner walls over a top surface and lets the top solid infill take their space,
+// so it needs that fill to exist. Zero top shell layers retypes the top surfaces as internal (see
+// LayerRegion::prepare_fill_surfaces()) and a 0% top surface density leaves them unfilled; either way the walls
+// would be given up over a void, so the feature is off. ConfigManipulation::toggle_print_fff_options() hides the
+// option under the same condition, so a profile that left it enabled does not act behind a hidden checkbox.
+static bool top_surface_is_filled(const PrintRegionConfig &config)
+{
+    return config.top_shell_layers.value > 0 && config.top_surface_density.value > 0;
+}
+
+// ORCA: the walls can only be handed over where the top fill actually reaches, which is what top_surface_expansion
+// grows it to do. Without the expansion the original generation is kept (re-onion the not-top region) - that is what
+// users of only_one_wall_top alone have always got.
 static bool top_fill_replaces_inner_walls(const PrintRegionConfig &config)
 {
-    return config.top_shell_layers.value > 0 && config.top_surface_density.value > 0 && config.top_surface_expansion.value > 0;
+    return top_surface_is_filled(config) && config.top_surface_expansion.value > 0;
 }
 
 // ORCA: only_one_wall_top - cheap per-vertex classification of a wall against the top surface. Only Partial
@@ -1362,6 +1370,9 @@ void PerimeterGenerator::process_classic()
     for (const Surface &surface : all_surfaces)
         surface_exp.push_back(surface.expolygon);
     std::vector<size_t> surface_order = chain_expolygons(surface_exp);
+    // ORCA: only_one_wall_top has no top fill to give the inner walls to unless the region gets one, see
+    // top_surface_is_filled(). Gated here so every use below - including the topmost layer - sees the same answer.
+    const bool only_one_wall_top = this->config->only_one_wall_top && top_surface_is_filled(*this->config);
     for (size_t order_idx = 0; order_idx < surface_order.size(); order_idx++) {
         const Surface &surface = all_surfaces[surface_order[order_idx]];
         // detect how many perimeters must be generated for this island
@@ -1372,7 +1383,7 @@ void PerimeterGenerator::process_classic()
         if (this->layer_id == object_config->raft_layers && this->config->only_one_wall_first_layer)
             loop_number = 0;
         // Set the topmost layer to be one wall
-        if (loop_number > 0 && config->only_one_wall_top && this->upper_slices == nullptr)
+        if (loop_number > 0 && only_one_wall_top && this->upper_slices == nullptr)
             loop_number = 0;
 
         ExPolygons last        = union_ex(surface.expolygon.simplify_p(surface_simplify_resolution));
@@ -1524,7 +1535,7 @@ void PerimeterGenerator::process_classic()
 
                 //BBS: refer to superslicer
                 //store surface for top infill if only_one_wall_top
-                if (i == 0 && i!=loop_number && config->only_one_wall_top && !surface.is_bridge() && this->upper_slices != NULL) {
+                if (i == 0 && i!=loop_number && only_one_wall_top && !surface.is_bridge() && this->upper_slices != NULL) {
                     if (top_fill_replaces_inner_walls(*this->config)) {
                         // ORCA: take the top fill and the keep-out region but leave `last` as the real geometry,
                         // so the onion follows it and the walls over the top are reduced in one step below.
@@ -2335,6 +2346,9 @@ void PerimeterGenerator::process_arachne()
     process_no_bridge(all_surfaces, perimeter_spacing, ext_perimeter_width);
     // BBS: don't simplify too much which influence arc fitting when export gcode if arc_fitting is enabled
     double surface_simplify_resolution = (print_config->enable_arc_fitting && !this->has_fuzzy_skin) ? 0.2 * m_scaled_resolution : m_scaled_resolution;
+    // ORCA: only_one_wall_top has no top fill to give the inner walls to unless the region gets one, see
+    // top_surface_is_filled(). Gated here so every use below - including the topmost layer - sees the same answer.
+    const bool only_one_wall_top = this->config->only_one_wall_top && top_surface_is_filled(*this->config);
     // we need to process each island separately because we might have different
     // extra perimeters for each one
     for (const Surface& surface : all_surfaces) {
@@ -2352,7 +2366,7 @@ void PerimeterGenerator::process_arachne()
 
         // Orca: set the topmost layer to be one wall according to the config
         const bool is_topmost_layer = (this->upper_slices == nullptr) ? true : false;
-        if (is_topmost_layer && loop_number > 0 && config->only_one_wall_top)
+        if (is_topmost_layer && loop_number > 0 && only_one_wall_top)
             loop_number = 0;
         
         auto apply_precise_outer_wall = config->precise_outer_wall && config->wall_sequence == WallSequence::InnerOuter;
@@ -2372,10 +2386,10 @@ void PerimeterGenerator::process_arachne()
         //PS: One wall top surface for Arachne
         ExPolygons top_expolygons;
         // Calculate how many inner loops remain when TopSurfaces is selected.
-        const int inner_loop_number = (config->only_one_wall_top && upper_slices != nullptr) ? loop_number - 1 : -1;
+        const int inner_loop_number = (only_one_wall_top && upper_slices != nullptr) ? loop_number - 1 : -1;
 
         // Set one perimeter when TopSurfaces is selected.
-        if (config->only_one_wall_top && loop_number > 0)
+        if (only_one_wall_top && loop_number > 0)
             loop_number = 0;
 
         Arachne::WallToolPathsParams input_params_tmp = input_params;

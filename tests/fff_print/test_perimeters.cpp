@@ -155,7 +155,7 @@ TEST_CASE("Top surface expansion only acts where there is a top fill", "[Perimet
 }
 
 // With no top shell the top surfaces are retyped as internal, so the top surface density has nothing
-// left to control - neither the fill nor, through top_fill_replaces_inner_walls(), the perimeters.
+// left to control - neither the fill nor, through top_surface_is_filled(), the perimeters.
 TEST_CASE("Top surface density does not affect a slice without a top shell", "[Perimeters]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
@@ -182,10 +182,12 @@ TEST_CASE("Top surface density does not affect a slice without a top shell", "[P
 }
 
 // On the ledge layer the inner walls are given up to the top fill, so that layer loses wall length.
-// The handover needs a top fill that reaches the freed space: at a top surface density of 0% there is
-// no top fill at all, and without top_surface_expansion the fill never grows over the walls. Either
-// way the original generation is kept and the inner walls stay - putting that layer back above the
-// one-wall slice.
+// The handover needs a top fill that reaches the freed space, and the two ways it can be missing are
+// not the same. At a top surface density of 0% there is no top fill at all, so the feature is off and
+// the ledge is walled exactly as if it were unchecked - the GUI hides the option in that state, and a
+// profile that left it enabled must not act behind the hidden checkbox. With a top fill but no
+// top_surface_expansion the feature still runs, only through the original generation, which keeps the
+// inner walls up to the top boundary - between the two.
 TEST_CASE("Only one wall on top surfaces drops inner walls only where a top fill replaces them", "[Perimeters]")
 {
     const char *wall_generator = GENERATE("classic", "arachne");
@@ -211,6 +213,9 @@ TEST_CASE("Only one wall on top surfaces drops inner walls only where a top fill
 
     REQUIRE(plain > 0.);
     CHECK(one_wall < plain);
-    CHECK(one_wall_no_fill > one_wall);
+    // No top fill: the option is inert, down to the same walls an unchecked box gives.
+    CHECK_THAT(one_wall_no_fill, Catch::Matchers::WithinAbs(plain, 1.0));
+    // A top fill that does not expand: the walls are still cut back to the top boundary, just not past it.
     CHECK(one_wall_no_expand > one_wall);
+    CHECK(one_wall_no_expand < plain);
 }
