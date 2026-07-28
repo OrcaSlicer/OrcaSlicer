@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 15:24-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -983,11 +983,11 @@ msgstr "Conector"
 #, boost-format
 msgid ""
 "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
-"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Please report to the OrcaSlicer team in which scenario this issue happened.\n"
 "Thank you."
 msgstr ""
 "Los objetos(%1%) tienen conectores duplicados. Es posible que falten algunos conectores en el resultado del laminado.\n"
-"Informe al equipo de PrusaSlicer sobre el escenario en el que se produjo este problema.\n"
+"Informe al equipo de OrcaSlicer sobre el escenario en el que se produjo este problema.\n"
 "Gracias."
 
 msgid "Cut by Plane"
@@ -3459,7 +3459,6 @@ msgstr "Recámara"
 msgid "Innerloop"
 msgstr "Bucle interno"
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr "Superior"
 
@@ -5630,9 +5629,26 @@ msgstr "Evitar la zona de calibración del extrusor"
 msgid "Align to Y axis"
 msgstr "Alinear con el eje Y"
 
+# AI Translated
+msgctxt "Camera View"
+msgid "Front"
+msgstr "Frontal"
+
 msgctxt "Camera View"
 msgid "Back"
 msgstr "Posterior"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr "Superior"
+
+# AI Translated
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
+msgstr "Inferior"
 
 msgctxt "Camera View"
 msgid "Left"
@@ -6020,19 +6036,14 @@ msgstr "Vista por Defecto"
 msgid "Top View"
 msgstr "Vista superior"
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr "Inferior"
-
 msgid "Bottom View"
 msgstr "Vista inferior"
-
-msgid "Front"
-msgstr "Frontal"
 
 msgid "Front View"
 msgstr "Vista frontal"
 
+# AI Translated
+msgctxt "Camera View"
 msgid "Rear"
 msgstr "Posterior"
 
@@ -15490,7 +15501,7 @@ msgstr "La longitud de la retracción rápida antes de la purga, en relación co
 msgid "Retract amount after wipe"
 msgstr "Cantidad de retracción después de la limpieza"
 
-#, c-format
+#, no-c-format, no-boost-format
 msgid ""
 "The length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
@@ -20732,6 +20743,15 @@ msgid ""
 msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
+
+#~ msgid "Bottom"
+#~ msgstr "Inferior"
+
+#~ msgid "Front"
+#~ msgstr "Frontal"
+
+#~ msgid "Rear"
+#~ msgstr "Posterior"
 
 #~ msgid "Enter"
 #~ msgstr "Enter"

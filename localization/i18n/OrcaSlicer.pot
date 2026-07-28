@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-23 15:24-0300\n"
+"POT-Creation-Date: 2026-07-26 21:59-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -982,7 +982,7 @@ msgstr ""
 #, possible-boost-format
 msgid ""
 "Objects(%1%) have duplicated connectors. Some connectors may be missing in slicing result.\n"
-"Please report to PrusaSlicer team in which scenario this issue happened.\n"
+"Please report to the OrcaSlicer team in which scenario this issue happened.\n"
 "Thank you."
 msgstr ""
 
@@ -3385,7 +3385,6 @@ msgstr ""
 msgid "Innerloop"
 msgstr ""
 
-#. TRN To be shown in the main menu View->Top
 msgid "Top"
 msgstr ""
 
@@ -5471,7 +5470,21 @@ msgid "Align to Y axis"
 msgstr ""
 
 msgctxt "Camera View"
+msgid "Front"
+msgstr ""
+
+msgctxt "Camera View"
 msgid "Back"
+msgstr ""
+
+#. TRN To be shown in the main menu View->Top
+msgctxt "Camera View"
+msgid "Top"
+msgstr ""
+
+#. TRN To be shown in the main menu View->Bottom
+msgctxt "Camera View"
+msgid "Bottom"
 msgstr ""
 
 msgctxt "Camera View"
@@ -5854,19 +5867,13 @@ msgstr ""
 msgid "Top View"
 msgstr ""
 
-#. TRN To be shown in the main menu View->Bottom
-msgid "Bottom"
-msgstr ""
-
 msgid "Bottom View"
-msgstr ""
-
-msgid "Front"
 msgstr ""
 
 msgid "Front View"
 msgstr ""
 
+msgctxt "Camera View"
 msgid "Rear"
 msgstr ""
 
@@ -14729,7 +14736,7 @@ msgstr ""
 msgid "Retract amount after wipe"
 msgstr ""
 
-#, possible-c-format
+#, no-c-format, no-boost-format
 msgid ""
 "The length of fast retraction after wipe, relative to retraction length.\n"
 "The value will be clamped by 100% minus the retract amount before the wipe value."
