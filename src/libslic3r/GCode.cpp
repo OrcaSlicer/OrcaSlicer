@@ -5187,32 +5187,45 @@ std::string GCode::generate_object_brim(const Print &print, const PrintObject &o
     return gcode;
 }
 
-// Get support exclusion polygons at the given Z for one object, in object-local coords.
-// Uses support_islands (full footprint) for normal supports so the brim is excluded
-// from the entire support area. For tree supports, also subtracts lslices.
-static Polygons get_support_exclusion(const PrintObject &object, coordf_t bottom_z)
+// Collect support exclusion polygons at the given Z from ALL objects in the print,
+// shifted to plate coordinates. This ensures brim from object A does not
+// overlap with support from a neighboring object B.
+static Polygons get_all_support_exclusions(const Print &print, coordf_t bottom_z)
 {
-    if (object.support_layers().empty())
-        return {};
+    Polygons exclusions;
+    for (const PrintObject *object : print.objects()) {
+        if (object->support_layers().empty())
+            continue;
 
-    // Find the support layer closest to the given Z.
-    const SupportLayer *sl = nullptr;
-    coordf_t min_dist = std::numeric_limits<coordf_t>::max();
-    for (const SupportLayer *layer : object.support_layers())
-        if (layer && abs(layer->bottom_z() - bottom_z) < min_dist) {
-            min_dist = abs(layer->bottom_z() - bottom_z);
-            sl = layer;
+        // Find the support layer closest to the given Z.
+        const SupportLayer *sl = nullptr;
+        coordf_t min_dist = std::numeric_limits<coordf_t>::max();
+        for (const SupportLayer *layer : object->support_layers())
+            if (layer && abs(layer->bottom_z() - bottom_z) < min_dist) {
+                min_dist = abs(layer->bottom_z() - bottom_z);
+                sl = layer;
+            }
+        if (!sl)
+            continue;
+
+        // Collect support polygons in object-local coords.
+        Polygons obj_support;
+        for (const ExPolygon &ex : sl->support_islands)
+            obj_support.push_back(ex.contour);
+        if (sl->support_type == stInnerTree)
+            for (const ExPolygon &ex : sl->lslices)
+                obj_support.push_back(ex.contour);
+
+        // Shift to plate coords for each instance of that object.
+        for (const PrintInstance &instance : object->instances()) {
+            for (const Polygon &p : obj_support) {
+                Polygon shifted = p;
+                shifted.translate(instance.shift_without_plate_offset());
+                exclusions.push_back(std::move(shifted));
+            }
         }
-    if (!sl)
-        return {};
-
-    Polygons exclusion;
-    for (const ExPolygon &ex : sl->support_islands)
-        exclusion.push_back(ex.contour);
-    if (sl->support_type == stInnerTree)
-        for (const ExPolygon &ex : sl->lslices)
-            exclusion.push_back(ex.contour);
-    return exclusion;
+    }
+    return exclusions;
 }
 
 // Compute brim entities for a non-first brim layer from the current layer's outlines.
@@ -5245,13 +5258,11 @@ static ExtrusionEntityCollection compute_instance_brim_entities(
     if (brim_area.empty())
         return {};
 
-    // Subtract support geometry so brim doesn't overlap supports.
-    Polygons support_exclusion = get_support_exclusion(object, layer.bottom_z());
-    if (!support_exclusion.empty()) {
-        // Shift support exclusion by instance offset and subtract.
-        for (Polygon &p : support_exclusion)
-            p.translate(instance_shift);
-        brim_area = diff_ex(brim_area, support_exclusion);
+    // Subtract support geometry from ALL objects so brim doesn't overlap
+    // with support from neighboring objects.
+    Polygons all_support = get_all_support_exclusions(print, layer.bottom_z());
+    if (!all_support.empty()) {
+        brim_area = diff_ex(brim_area, all_support);
         if (brim_area.empty())
             return {};
     }
@@ -5285,14 +5296,12 @@ static ExtrusionEntityCollection compute_instance_brim_entities(
 
             if (other_area.empty()) continue;
 
-            // Subtract support geometry for this instance.
-            Polygons other_support = get_support_exclusion(*obj, inst_layer->bottom_z());
-            if (!other_support.empty()) {
-                for (Polygon &p : other_support)
-                    p.translate(other_shift);
-                other_area = diff_ex(other_area, other_support);
+            // Subtract support from ALL objects (not just this one).
+            Polygons all_support = get_all_support_exclusions(print, inst_layer->bottom_z());
+            if (!all_support.empty()) {
+                other_area = diff_ex(other_area, all_support);
+                if (other_area.empty()) continue;
             }
-            if (other_area.empty()) continue;
 
             if (!combined_area.empty() &&
                 !intersection_ex(offset_ex(other_area, brim_contact_distance, jtRound, SCALED_RESOLUTION),
