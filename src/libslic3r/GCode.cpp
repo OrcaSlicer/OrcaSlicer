@@ -14,6 +14,7 @@
 #include "GCode/Thumbnails.hpp"
 #include "GCode/WipeTower.hpp"
 #include "ShortestPath.hpp"
+#include "GCode/OrderingStrategies.hpp"
 #include "Print.hpp"
 #include "Utils.hpp"
 #include "ClipperUtils.hpp"
@@ -2804,6 +2805,7 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
     m_role_based_fan_marker_layer.fill(-1);
 
     m_fan_mover.release();
+    m_ordering_cache.clear();
     
     m_writer.set_is_bbl_machine(is_bbl_printers);
 
@@ -3124,11 +3126,20 @@ void GCode::_do_export(Print& print, GCodeOutputStream &file, ThumbnailsGenerato
         // In non-sequential print, the printing extruders may have been modified by the extruder switches stored in Model::custom_gcode_per_print_z.
         // Therefore initialize the printing extruders from there.
         this->set_extruders(tool_ordering.all_extruders());
-        print_object_instances_ordering = 
-            // By default, order object instances using a nearest neighbor search.
-            print.config().print_order == PrintOrder::Default ? chain_print_object_instances(print)
+        print_object_instances_ordering =
+            // By default, order object instances using nearest-neighbor chaining plus
+            // 2-opt and crossing-removal post-processing.
+            (print.config().print_order == PrintOrder::Default ? chain_print_object_instances(print)
+            // Snake: serpentine row traversal + 2-opt
+            : (print.config().print_order == PrintOrder::Snake ? chain_print_object_instances_snake(print)
+            // Best of all: run every strategy, pick the shortest total path
+            : (print.config().print_order == PrintOrder::BestOfStrategies ? chain_print_object_instances_best_of(print)
             // Otherwise same order as the object list
-            : sort_object_instances_by_model_order(print);
+            : sort_object_instances_by_model_order(print))));
+
+
+
+
     }
     if (initial_extruder_id == (unsigned int)-1) {
         // Nothing to print!
@@ -5519,7 +5530,9 @@ LayerResult GCode::process_layer(
     //Calibration Layer-specific GCode
     switch (print.calib_mode()) {
         case CalibMode::Calib_PA_Tower: {
-            gcode += writer().set_pressure_advance(print.calib_params().start + static_cast<int>(print_z) * print.calib_params().step);
+            gcode += writer().set_pressure_advance(this->interpolate_value_across_layers(static_cast<float>(print.calib_params().start),
+                                                                                         static_cast<float>(print.calib_params().end),
+                                                                                         static_cast<float>(print.calib_params().step)));
             break;
         }
         case CalibMode::Calib_Temp_Tower: {
@@ -5527,7 +5540,12 @@ LayerResult GCode::process_layer(
             break;
         }
         case CalibMode::Calib_VFA_Tower: {
-            auto _speed = print.calib_params().start + std::floor(print_z / 5.0) * print.calib_params().step;
+            // Step the outer wall speed from start to end across the tower's layers. Plater::calib_VFA sizes the
+            // geometry so each speed step spans one visual block (a fixed number of layers), so the layer-based
+            // stepping stays aligned with the blocks regardless of nozzle size / layer height.
+            float _speed = this->interpolate_value_across_layers(static_cast<float>(print.calib_params().start),
+                                                                 static_cast<float>(print.calib_params().end),
+                                                                 static_cast<float>(print.calib_params().step));
             m_calib_config.set_key_value("outer_wall_speed", new ConfigOptionFloatsNullable({std::round(_speed)}));
             break;
         }
@@ -5959,41 +5977,128 @@ LayerResult GCode::process_layer(
     if (m_farthest_point_timelapse.enabled)
         compute_farthest_point(layers, most_used_extruder, support_filaments);
 
-    std::map<unsigned int, std::vector<InstanceToPrint>> filament_to_print_instances;
+    // Per filament: instances to print, and the visit sequence over them. Island-level ordering
+    // may visit an instance more than once per layer; otherwise one visit per instance.
+    std::map<unsigned int, std::pair<std::vector<InstanceToPrint>, std::vector<InstanceVisit>>> filament_to_print_instances;
     {
+        // Order individual islands rather than whole instances. Off for by-object sequencing,
+        // sequential printing, and the explicit AsObjectList order, which tour whole instances.
+        const bool island_level_ordering = print.config().print_sequence != PrintSequence::ByObject &&
+            single_object_instance_idx == size_t(-1) &&
+            print.config().print_order != PrintOrder::AsObjectList;
         for (unsigned int filament_id : layer_tools.extruders) {
             auto objects_by_extruder_it = by_extruder.find(filament_id);
             if (objects_by_extruder_it == by_extruder.end()) continue;
 
+            auto &filament_plan = filament_to_print_instances[filament_id];
+
+            if (!island_level_ordering) {
+                // One visit per instance, printing all of its islands.
+                filament_plan.first = sort_print_object_instances(objects_by_extruder_it->second, layers, ordering, single_object_instance_idx);
+                filament_plan.second.reserve(filament_plan.first.size());
+                for (size_t i = 0; i < filament_plan.first.size(); ++i)
+                    filament_plan.second.push_back({i, {}, true});
+                continue;
+            }
+
             int   plate_idx = print.get_plate_index();
             Point wt_pos(print.config().wipe_tower_x.get_at(plate_idx), print.config().wipe_tower_y.get_at(plate_idx));
 
+            // Build the instances and one tour node per non-empty island (a single node for
+            // instances without chainable islands). Positions quantized to 1 mm so small
+            // centroid drift between layers still hits the tour cache below.
             std::vector<GCode::ObjectByExtruder> &objects_by_extruder = objects_by_extruder_it->second;
-            std::vector<const PrintObject *>      print_objects;
-            for (int obj_idx = 0; obj_idx < objects_by_extruder.size(); obj_idx++) {
-                auto &object_by_extruder = objects_by_extruder[obj_idx];
+            std::vector<InstanceToPrint> &instances = filament_plan.first;
+            std::vector<IslandOrderNode> nodes;
+            std::vector<size_t>          node_instances;
+            auto quantize_to_mm = [](const Point &pt) -> Point {
+                const coord_t grid = coord_t(scale_(1.));
+                // Round to the nearest 1 mm symmetrically (integer division truncates toward
+                // zero, which would make the bucket straddling the origin twice as wide).
+                auto q = [grid](coord_t v) -> coord_t {
+                    return ((v >= 0 ? v + grid / 2 : v - grid / 2) / grid) * grid;
+                };
+                return Point(q(pt.x()), q(pt.y()));
+            };
+            for (ObjectByExtruder &object_by_extruder : objects_by_extruder) {
                 if (object_by_extruder.islands.empty() && (object_by_extruder.support == nullptr || object_by_extruder.support->empty())) continue;
 
-                print_objects.push_back(print.get_object(obj_idx));
+                const size_t       layer_id     = &object_by_extruder - objects_by_extruder.data();
+                const PrintObject *print_object = layers[layer_id].original_object;
+                if (print_object == nullptr)
+                    continue;
+                const Layer *obj_layer = layers[layer_id].object_layer;
+                std::vector<ObjectByExtruder::Island> &islands = object_by_extruder.islands;
+                const bool islands_chainable = obj_layer != nullptr && islands.size() == obj_layer->lslices.size() + 1;
+                for (size_t instance_id = 0; instance_id < print_object->instances().size(); ++instance_id) {
+                    const size_t instance_idx = instances.size();
+                    instances.emplace_back(object_by_extruder, layer_id, *print_object, instance_id,
+                                           print_object->instances()[instance_id].model_instance->get_labeled_id());
+                    const Point &shift = print_object->instances()[instance_id].shift;
+                    const size_t first_node = nodes.size();
+                    if (islands_chainable)
+                        for (size_t i = 0; i + 1 < islands.size(); ++i)
+                            if (!islands[i].by_region.empty()) {
+                                nodes.push_back({print_object->id(), instance_id, i,
+                                                 quantize_to_mm(obj_layer->lslices[i].contour.centroid() + shift)});
+                                node_instances.emplace_back(instance_idx);
+                            }
+                    if (nodes.size() == first_node) {
+                        // No chainable islands: tour the whole instance as one stop.
+                        nodes.push_back({print_object->id(), instance_id, size_t(-1), quantize_to_mm(shift)});
+                        node_instances.emplace_back(instance_idx);
+                    }
+                }
             }
 
-            std::vector<const PrintInstance *> new_ordering = chain_print_object_instances(print_objects, &wt_pos);
-            std::reverse(new_ordering.begin(), new_ordering.end());
+            // Reuse the cached tour while this filament's island layout is unchanged.
+            auto &cache_entry = m_ordering_cache[filament_id];
+            if (!(cache_entry.first == nodes)) {
+                cache_entry.first = nodes;
+                Points node_points;
+                node_points.reserve(nodes.size());
+                for (const IslandOrderNode &node : nodes)
+                    node_points.emplace_back(node.pos);
+                std::vector<size_t> tour = order_points_with_strategy(node_points, print.config().print_order, &wt_pos);
+                // Chained starting near the wipe tower, reversed so the layer ends near it.
+                std::reverse(tour.begin(), tour.end());
 
-            if (print.config().print_sequence == PrintSequence::ByObject) {
-                filament_to_print_instances[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, ordering, single_object_instance_idx);
-            } else {
-                
-                // PrintSequence::ByLayer to use global ordering ( per object ordering ) if intra-layer order PrintOrder::AsObjectList is specified while keeping behaviour of PrintSequence::ByLayer
-                const std::vector<const PrintInstance*>* ordering_for_filament = (print.config().print_order == PrintOrder::AsObjectList && ordering != nullptr) ? ordering: &new_ordering;
-                filament_to_print_instances[filament_id] = sort_print_object_instances(objects_by_extruder_it->second, layers, ordering_for_filament, single_object_instance_idx);
+                // Group consecutive tour stops of the same instance into visits.
+                std::vector<InstanceVisit> visits;
+                std::vector<bool> instance_seen(instances.size(), false);
+                std::vector<int>  last_visit_of_instance(instances.size(), -1);
+                for (size_t node_idx : tour) {
+                    const size_t instance_idx = node_instances[node_idx];
+                    if (visits.empty() || visits.back().instance_idx != instance_idx) {
+                        visits.push_back({instance_idx, {}, !instance_seen[instance_idx]});
+                        instance_seen[instance_idx] = true;
+                    }
+                    if (nodes[node_idx].island_idx != size_t(-1))
+                        visits.back().islands.emplace_back(nodes[node_idx].island_idx);
+                    last_visit_of_instance[instance_idx] = int(visits.size()) - 1;
+                }
+                // The trailing catch-all island has no geometry to chain by; append it to the
+                // instance's last visit.
+                for (size_t i = 0; i < instances.size(); ++i) {
+                    if (last_visit_of_instance[i] < 0)
+                        continue;
+                    InstanceVisit &last_visit = visits[size_t(last_visit_of_instance[i])];
+                    if (last_visit.islands.empty())
+                        // A visit without explicit islands already prints everything.
+                        continue;
+                    std::vector<ObjectByExtruder::Island> &islands = instances[i].object_by_extruder.islands;
+                    if (!islands.back().by_region.empty())
+                        last_visit.islands.emplace_back(islands.size() - 1);
+                }
+                cache_entry.second = std::move(visits);
             }
+            filament_plan.second = cache_entry.second;
         }
     }
 
     std::set<size_t> layer_object_label_ids;
     for (auto iter = filament_to_print_instances.begin(); iter != filament_to_print_instances.end(); ++iter) {
-        for (const InstanceToPrint &instance : iter->second) {
+        for (const InstanceToPrint &instance : iter->second.first) {
             layer_object_label_ids.insert(instance.label_object_id);
         }
     }
@@ -6063,7 +6168,7 @@ LayerResult GCode::process_layer(
 
         if (print.config().print_sequence == PrintSequence::ByLayer && m_enable_exclude_object && print.config().support_object_skip_flush.value) {
             std::vector<size_t> filament_instances_id;
-            for (InstanceToPrint &instance : filament_to_print_instances[extruder_id]) filament_instances_id.emplace_back(instance.label_object_id);
+            for (InstanceToPrint &instance : filament_to_print_instances[extruder_id].first) filament_instances_id.emplace_back(instance.label_object_id);
             m_filament_instances_code = _encode_label_ids_to_base64(filament_instances_id);
         }
 
@@ -6144,7 +6249,9 @@ LayerResult GCode::process_layer(
         if (layer_tools.has_wipe_tower && m_wipe_tower)
             m_last_processor_extrusion_role = erWipeTower;
 
-        std::vector<InstanceToPrint> &instances_to_print = filament_to_print_instances[extruder_id];
+        auto &filament_plan = filament_to_print_instances[extruder_id];
+        std::vector<InstanceToPrint>     &instances_to_print = filament_plan.first;
+        const std::vector<InstanceVisit> &instance_visits    = filament_plan.second;
 
         // We are almost ready to print. However, we must go through all the objects twice to print the overridden extrusions first (infill/perimeter wiping feature):
         std::vector<ObjectByExtruder::Island::Region> by_region_per_copy_cache;
@@ -6152,10 +6259,11 @@ LayerResult GCode::process_layer(
             if (is_anything_overridden && print_wipe_extrusions == 0)
                 gcode+="; PURGING FINISHED\n";
 
-            for (InstanceToPrint &instance_to_print : instances_to_print) {
+            for (const InstanceVisit &visit : instance_visits) {
+                InstanceToPrint &instance_to_print = instances_to_print[visit.instance_idx];
                 const auto& inst = instance_to_print.print_object.instances()[instance_to_print.instance_id];
                 const LayerToPrint &layer_to_print = layers[instance_to_print.layer_id];
-                if (print_wipe_extrusions == (is_anything_overridden ? 1 : 0)) {
+                if (visit.first_visit && print_wipe_extrusions == (is_anything_overridden ? 1 : 0)) {
                     gcode += generate_object_skirt_group(print, instance_to_print.print_object, instance_to_print.instance_id, layer_tools, layer, extruder_id);
                     gcode += generate_object_brim(print, instance_to_print.print_object, instance_to_print.instance_id, first_layer);
                 }
@@ -6208,7 +6316,7 @@ LayerResult GCode::process_layer(
                     m_avoid_crossing_perimeters.use_external_mp_once();
                 m_last_obj_copy = this_object_copy;
                 this->set_origin(unscale(offset));
-                if (instance_to_print.object_by_extruder.support != nullptr) {
+                if (visit.first_visit && instance_to_print.object_by_extruder.support != nullptr) {
                     m_layer = layers[instance_to_print.layer_id].support_layer;
                     m_object_layer_over_raft = false;
 
@@ -6242,9 +6350,42 @@ LayerResult GCode::process_layer(
                     m_layer = layer_to_print.layer();
                     m_object_layer_over_raft = object_layer_over_raft;
                 }
-                //FIXME order islands?
                 // Sequential tool path ordering of multiple parts within the same object, aka. perimeter tracking (#5511)
-                for (ObjectByExtruder::Island &island : instance_to_print.object_by_extruder.islands) {
+                // Island print order. Use the islands the tour assigned to this visit; if none,
+                // chain all islands nearest-neighbor from the current nozzle position (last_pos(),
+                // in this instance's frame after set_origin() above). Empty islands are skipped;
+                // the trailing catch-all island has no centroid to chain by and always goes last.
+                std::vector<ObjectByExtruder::Island> &islands = instance_to_print.object_by_extruder.islands;
+                std::vector<size_t> island_order = visit.islands;
+                if (island_order.empty()) {
+                    island_order.reserve(islands.size());
+                    if (layer_to_print.object_layer != nullptr && islands.size() == layer_to_print.object_layer->lslices.size() + 1) {
+                        for (size_t i = 0; i + 1 < islands.size(); ++i)
+                            if (!islands[i].by_region.empty())
+                                island_order.emplace_back(i);
+                        if (island_order.size() > 1) {
+                            Points island_centroids;
+                            island_centroids.reserve(island_order.size());
+                            for (size_t i : island_order)
+                                island_centroids.emplace_back(layer_to_print.object_layer->lslices[i].contour.centroid());
+                            const Point start_near = this->last_pos();
+                            std::vector<size_t> chain = chain_points(island_centroids, this->last_pos_defined() ? &start_near : nullptr);
+                            std::vector<size_t> ordered;
+                            ordered.reserve(island_order.size());
+                            for (size_t k : chain)
+                                ordered.emplace_back(island_order[k]);
+                            island_order = std::move(ordered);
+                        }
+                        if (!islands.back().by_region.empty())
+                            island_order.emplace_back(islands.size() - 1);
+                    } else {
+                        // Unexpected islands layout, keep the stored order.
+                        for (size_t i = 0; i < islands.size(); ++i)
+                            island_order.emplace_back(i);
+                    }
+                }
+                for (size_t island_idx : island_order) {
+                    ObjectByExtruder::Island &island = islands[island_idx];
                     const auto& by_region_specific = is_anything_overridden ? island.by_region_per_copy(by_region_per_copy_cache, static_cast<unsigned int>(instance_to_print.instance_id), extruder_id, print_wipe_extrusions != 0) : island.by_region;
                     // When starting a new object, use the external motion planner for the first travel move.
                     const Point& offset = instance_to_print.print_object.instances()[instance_to_print.instance_id].shift;
@@ -8209,29 +8350,22 @@ std::string GCode::extrusion_role_to_string_for_parser(const ExtrusionRole & rol
 }
 
 // Calculate the interpolated value for the current layer between start_value and end_value.
-// Step will create equal layers steps from first to last value.
+// Step > 0 splits the range into equal-width bands from first to last value (both inclusive).
 // Step = 0 means gradual interpolation finishing at last value.
 float GCode::interpolate_value_across_layers(float start_value, float end_value, float step) const
 {
     if (m_layer_index <= 1) {
         return start_value;
     }
-    else {
-        bool use_steps = step > 0.f;
-        if (use_steps) {
-            if (start_value > end_value) {
-                start_value += step;
-            } else {
-                end_value += step;
-            }
-        }
-        float ratio = m_layer_index / (m_layer_count - 1.f);
-        float value = start_value + ratio * (end_value - start_value);
-        if (use_steps) {
-            value = trunc(value / step) * step;
-        }
-        return value;
+    const float ratio = m_layer_index / (m_layer_count - 1.f);
+    if (step > 0.f) {
+        // Discrete equal-width bands. band is clamped to the last band so the result can't overshoot the range:
+        // at the top layer ratio * n_bands == n_bands, which would otherwise index one band past the end.
+        const int n_bands = std::lround(std::abs(end_value - start_value) / step) + 1;
+        const int band    = std::min(n_bands - 1, static_cast<int>(ratio * n_bands));
+        return start_value + (end_value >= start_value ? 1.f : -1.f) * band * step;
     }
+    return start_value + ratio * (end_value - start_value);
 }
 
 std::string encodeBase64(uint64_t value)
