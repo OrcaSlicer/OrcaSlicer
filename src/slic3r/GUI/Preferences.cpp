@@ -1919,10 +1919,10 @@ void PreferencesDialog::create_items()
         "",
         _L("%"),
         _L("How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
-           "100% leaves them fully illuminated, 0% renders them black."),
+           "99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."),
         "preview_dim_previous_layers_brightness",
         0,
-        100,
+        99,
         // ORCA: apply the new brightness immediately to the currently loaded preview
         [](int value) {
             if (Plater* plater = wxGetApp().plater()) {

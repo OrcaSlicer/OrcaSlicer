@@ -206,7 +206,8 @@ void AppConfig::set_defaults()
     if (get("preview_dim_previous_layers").empty())
         set_bool("preview_dim_previous_layers", false);
 
-    // ORCA: brightness of those dimmed layers, in percent. 100 = unchanged, 0 = black
+    // ORCA: brightness of those dimmed layers, in percent. 0 = black, capped at 99 because
+    // 100 would render them unchanged, which is what disabling the option already does
     if (get("preview_dim_previous_layers_brightness").empty())
         set("preview_dim_previous_layers_brightness", "40");
     else {
@@ -217,7 +218,7 @@ void AppConfig::set_defaults()
         catch (...) {
             brightness = 40;
         }
-        set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 100))));
+        set("preview_dim_previous_layers_brightness", std::to_string(std::max(0, std::min(brightness, 99))));
     }
 
     if (get("filaments_area_preferred_count").empty())
