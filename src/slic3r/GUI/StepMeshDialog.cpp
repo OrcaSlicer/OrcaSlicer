@@ -310,10 +310,9 @@ StepMeshDialog::StepMeshDialog(wxWindow* parent, Slic3r::Step& file, double line
 
     bSizer->Add(bSizer_button, 1, wxEXPAND);
 
-    this->SetSizer(bSizer);
+    this->SetSizerAndFit(bSizer);
     update_mesh_number_text();
     this->Layout();
-    bSizer->Fit(this);
 
     this->Bind(wxEVT_LEFT_DOWN, [this](auto& e) {
         SetFocusIgnoringChildren();
