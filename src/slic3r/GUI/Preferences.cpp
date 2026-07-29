@@ -700,6 +700,12 @@ wxBoxSizer *PreferencesDialog::create_item_spinctrl(wxString title, wxString tit
     auto input = new SpinInput(m_parent, wxEmptyString, side_label, wxDefaultPosition, DESIGN_INPUT_SIZE, wxSP_ARROW_KEYS, min, max, stoi(app_config->get(param)));
     input->SetToolTip(tip);
 
+    // ORCA: this one is only meaningful while the dimming it controls is enabled
+    if (param == "preview_dim_previous_layers_brightness") {
+        m_dim_previous_layers_brightness_input = input;
+        input->Enable(app_config->get_bool("preview_dim_previous_layers"));
+    }
+
     m_sizer->Add(input, 0, wxALIGN_CENTER_VERTICAL);
 
     if(!title2.empty()){
@@ -1052,6 +1058,8 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
         }
         // ORCA: apply the preview dimming change immediately to the currently loaded preview (ported from preFlight)
         else if (param == "preview_dim_previous_layers") {
+            if (m_dim_previous_layers_brightness_input)
+                m_dim_previous_layers_brightness_input->Enable(app_config->get_bool(param));
             if (Plater* plater = wxGetApp().plater()) {
                 if (GLCanvas3D* canvas = plater->get_preview_canvas3D()) {
                     canvas->get_gcode_viewer().set_dim_previous_layers(app_config->get_bool(param));
