@@ -333,10 +333,10 @@ public:
 
     libvgcode::EViewType get_view_type() const { return m_viewer.get_view_type(); }
 
-    // ORCA: darken layers below the current top layer while scrubbing the preview (ported from preFlight)
+    // ORCA: darken the layers not scrubbed to while using the preview layer slider (ported from preFlight)
     void set_dim_previous_layers(bool value) { m_viewer.set_dim_previous_layers(value); }
     bool is_dim_previous_layers() const { return m_viewer.is_dim_previous_layers(); }
-    // ORCA: brightness of those layers, 1.0 = unchanged, 0.0 = black
+    // ORCA: brightness of those darkened layers, 1.0 = unchanged, 0.0 = black
     void set_dim_previous_layers_brightness(float value) { m_viewer.set_dim_previous_layers_brightness(value); }
     float get_dim_previous_layers_brightness() const { return m_viewer.get_dim_previous_layers_brightness(); }
 

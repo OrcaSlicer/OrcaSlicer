@@ -1915,10 +1915,10 @@ void PreferencesDialog::create_items()
     g_sizer->Add(item_dim_previous_layers);
 
     auto item_dim_previous_layers_brightness = create_item_spinctrl(
-        _L("Lower layer brightness"),
+        _L("Dimmed layer brightness"),
         "",
         _L("%"),
-        _L("How brightly the layers below the current one are rendered when \"Dim lower layers\" is enabled.\n"
+        _L("How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
            "100% leaves them fully illuminated, 0% renders them black."),
         "preview_dim_previous_layers_brightness",
         0,
