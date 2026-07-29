@@ -579,22 +579,23 @@ static ExtrusionEntityCollection traverse_extrusions(const PerimeterGenerator& p
     return extrusion_coll;
 }
 
-// ORCA: only_one_wall_top drops the inner walls over a top surface and lets the top solid infill take their space,
-// so it needs that fill to exist. Zero top shell layers retypes the top surfaces as internal (see
-// LayerRegion::prepare_fill_surfaces()) and a 0% top surface density leaves them unfilled; either way the walls
-// would be given up over a void, so the feature is off. ConfigManipulation::toggle_print_fff_options() hides the
-// option under the same condition, so a profile that left it enabled does not act behind a hidden checkbox.
-static bool top_surface_is_filled(const PrintRegionConfig &config)
+// ORCA: only_one_wall_top acts on top surfaces, so without a top shell there is nothing for it to act on: zero top
+// shell layers retype the top surfaces as internal, see LayerRegion::prepare_fill_surfaces(). A 0% top surface
+// density does leave a top surface - just an unfilled one - so it does not disable the feature.
+// ConfigManipulation::toggle_print_fff_options() hides the option under the same condition, so a profile that left
+// it enabled does not act behind a hidden checkbox.
+static bool has_top_shell_layers(const PrintRegionConfig &config)
 {
-    return config.top_shell_layers.value > 0 && config.top_surface_density.value > 0;
+    return config.top_shell_layers.value > 0;
 }
 
-// ORCA: the walls can only be handed over where the top fill actually reaches, which is what top_surface_expansion
-// grows it to do. Without the expansion the original generation is kept (re-onion the not-top region) - that is what
-// users of only_one_wall_top alone have always got.
+// ORCA: the inner walls are only given up when a top fill takes their space, and it has to actually reach it -
+// a 0% top surface density leaves no fill at all, and without top_surface_expansion the fill never grows over
+// them. Either way the original generation is kept (re-onion the not-top region), which is what users of
+// only_one_wall_top alone have always got.
 static bool top_fill_replaces_inner_walls(const PrintRegionConfig &config)
 {
-    return top_surface_is_filled(config) && config.top_surface_expansion.value > 0;
+    return has_top_shell_layers(config) && config.top_surface_density.value > 0 && config.top_surface_expansion.value > 0;
 }
 
 // ORCA: only_one_wall_top - cheap per-vertex classification of a wall against the top surface. Only Partial
@@ -1370,9 +1371,9 @@ void PerimeterGenerator::process_classic()
     for (const Surface &surface : all_surfaces)
         surface_exp.push_back(surface.expolygon);
     std::vector<size_t> surface_order = chain_expolygons(surface_exp);
-    // ORCA: only_one_wall_top has no top fill to give the inner walls to unless the region gets one, see
-    // top_surface_is_filled(). Gated here so every use below - including the topmost layer - sees the same answer.
-    const bool only_one_wall_top = this->config->only_one_wall_top && top_surface_is_filled(*this->config);
+    // ORCA: only_one_wall_top has no top surface to act on without a top shell, see has_top_shell_layers().
+    // Gated here so every use below - including the topmost layer - sees the same answer.
+    const bool only_one_wall_top = this->config->only_one_wall_top && has_top_shell_layers(*this->config);
     for (size_t order_idx = 0; order_idx < surface_order.size(); order_idx++) {
         const Surface &surface = all_surfaces[surface_order[order_idx]];
         // detect how many perimeters must be generated for this island
@@ -2346,9 +2347,9 @@ void PerimeterGenerator::process_arachne()
     process_no_bridge(all_surfaces, perimeter_spacing, ext_perimeter_width);
     // BBS: don't simplify too much which influence arc fitting when export gcode if arc_fitting is enabled
     double surface_simplify_resolution = (print_config->enable_arc_fitting && !this->has_fuzzy_skin) ? 0.2 * m_scaled_resolution : m_scaled_resolution;
-    // ORCA: only_one_wall_top has no top fill to give the inner walls to unless the region gets one, see
-    // top_surface_is_filled(). Gated here so every use below - including the topmost layer - sees the same answer.
-    const bool only_one_wall_top = this->config->only_one_wall_top && top_surface_is_filled(*this->config);
+    // ORCA: only_one_wall_top has no top surface to act on without a top shell, see has_top_shell_layers().
+    // Gated here so every use below - including the topmost layer - sees the same answer.
+    const bool only_one_wall_top = this->config->only_one_wall_top && has_top_shell_layers(*this->config);
     // we need to process each island separately because we might have different
     // extra perimeters for each one
     for (const Surface& surface : all_surfaces) {
