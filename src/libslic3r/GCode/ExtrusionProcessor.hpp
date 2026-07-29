@@ -130,12 +130,16 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
             const double line_len = (next.position - curr.position).norm();
 
             // A lower boundary near an endpoint can hide a less-supported span in the middle,
-            // for example where vertical walls cage an overhang.
-            if (line_len >= 2.f) {
+            // for example where vertical walls cage an overhang. Only probe the midpoint when
+            // both endpoints appear supported; if either already exceeds min_distance the
+            // segmentation pass below handles the span without the extra query.
+            if (line_len >= 2.f &&
+                std::abs(curr.distance) <= min_distance &&
+                std::abs(next.distance) <= min_distance) {
                 const Vec midpoint = 0.5 * (curr.position + next.position);
                 auto [midpoint_dist, midpoint_near_l, midpoint_x] =
                     unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(midpoint.template cast<AABBScalar>());
-                if (midpoint_dist + boundary_offset > min_distance &&
+                if (std::abs(midpoint_dist + boundary_offset) > min_distance &&
                     (midpoint - curr.position).norm() > min_spacing &&
                     (next.position - midpoint).norm() > min_spacing)
                     sampled_points.push_back({midpoint, float(midpoint_dist + boundary_offset)});
