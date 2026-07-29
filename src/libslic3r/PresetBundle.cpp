@@ -210,10 +210,19 @@ DynamicPrintConfig PresetBundle::construct_full_config(
                         std::vector<const ConfigOption *> filament_opts(num_filaments, nullptr);
                         // Setting a vector value from all filament_configs.
                         for (size_t i = 0; i < filament_opts.size(); ++i) filament_opts[i] = filament_temp_configs[i].option(key);
-                        opt_vec_dst->set(filament_opts);
+                        // Skip if any filament option has no values (old preset missing this key).
+                        const bool any_empty = std::any_of(filament_opts.begin(), filament_opts.end(),
+                            [](const ConfigOption *opt) {
+                                const auto *vec = dynamic_cast<const ConfigOptionVectorBase *>(opt);
+                                return vec && vec->size() == 0;
+                            });
+                        if (!any_empty)
+                            opt_vec_dst->set(filament_opts);
                     } else {
                         for (size_t i = 0; i < num_filaments; ++i) {
                             const ConfigOptionVectorBase *filament_option = static_cast<const ConfigOptionVectorBase *>(filament_temp_configs[i].option(key));
+                            // Skip if option has no values (old preset missing this key).
+                            if (filament_option && filament_option->size() == 0) continue;
                             if (i == 0)
                                 opt_vec_dst->set(filament_option);
                             else
@@ -4220,11 +4229,20 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
                         // Setting a vector value from all filament_configs.
                         for (size_t i = 0; i < filament_opts.size(); ++i)
                             filament_opts[i] = filament_temp_configs[i].option(key);
-                        opt_vec_dst->set(filament_opts);
+                        // Skip if any filament option has no values (old preset missing this key).
+                        const bool any_empty = std::any_of(filament_opts.begin(), filament_opts.end(),
+                            [](const ConfigOption *opt) {
+                                const auto *vec = dynamic_cast<const ConfigOptionVectorBase *>(opt);
+                                return vec && vec->size() == 0;
+                            });
+                        if (!any_empty)
+                            opt_vec_dst->set(filament_opts);
                     }
                     else {
                         for (size_t i = 0; i < num_filaments; ++i) {
                             const ConfigOptionVectorBase* filament_option = static_cast<const ConfigOptionVectorBase*>(filament_temp_configs[i].option(key));
+                            // Skip if option has no values (old preset missing this key).
+                            if (filament_option && filament_option->size() == 0) continue;
                             if (i == 0)
                                 opt_vec_dst->set(filament_option);
                             else
