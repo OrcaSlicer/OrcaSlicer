@@ -589,6 +589,15 @@ static bool has_top_shell_layers(const PrintRegionConfig &config)
     return config.top_shell_layers.value > 0;
 }
 
+// ORCA: only_one_wall_first_layer thins the first layer to a single wall, the bottom counterpart of the above and
+// gated the same way: zero bottom shell layers retype the bottom surfaces as internal, so that wall would ring
+// sparse infill on the bed. The bottom surface density plays no part - an unfilled bottom surface is still a bottom
+// surface, exactly as for the top - and it cannot reach zero anyway, being capped at a 10% minimum.
+static bool has_bottom_shell_layers(const PrintRegionConfig &config)
+{
+    return config.bottom_shell_layers.value > 0;
+}
+
 // ORCA: the inner walls are only given up when a top fill takes their space, and it has to actually reach it -
 // a 0% top surface density leaves no fill at all, and without top_surface_expansion the fill never grows over
 // them. Either way the original generation is kept (re-onion the not-top region), which is what users of
@@ -1371,9 +1380,11 @@ void PerimeterGenerator::process_classic()
     for (const Surface &surface : all_surfaces)
         surface_exp.push_back(surface.expolygon);
     std::vector<size_t> surface_order = chain_expolygons(surface_exp);
-    // ORCA: only_one_wall_top has no top surface to act on without a top shell, see has_top_shell_layers().
-    // Gated here so every use below - including the topmost layer - sees the same answer.
-    const bool only_one_wall_top = this->config->only_one_wall_top && has_top_shell_layers(*this->config);
+    // ORCA: neither one-wall option has a surface to act on without the shell behind it, see
+    // has_top_shell_layers() / has_bottom_shell_layers(). Gated here so every use below - including the
+    // topmost and first layers - sees the same answer.
+    const bool only_one_wall_top         = this->config->only_one_wall_top && has_top_shell_layers(*this->config);
+    const bool only_one_wall_first_layer = this->config->only_one_wall_first_layer && has_bottom_shell_layers(*this->config);
     for (size_t order_idx = 0; order_idx < surface_order.size(); order_idx++) {
         const Surface &surface = all_surfaces[surface_order[order_idx]];
         // detect how many perimeters must be generated for this island
@@ -1381,7 +1392,7 @@ void PerimeterGenerator::process_classic()
         int sparse_infill_density = this->config->sparse_infill_density.value;
         if (this->config->alternate_extra_wall && this->layer_id % 2 == 1 && !m_spiral_vase && sparse_infill_density > 0) // add alternating extra wall
             loop_number++;
-        if (this->layer_id == object_config->raft_layers && this->config->only_one_wall_first_layer)
+        if (this->layer_id == object_config->raft_layers && only_one_wall_first_layer)
             loop_number = 0;
         // Set the topmost layer to be one wall
         if (loop_number > 0 && only_one_wall_top && this->upper_slices == nullptr)
@@ -2347,9 +2358,11 @@ void PerimeterGenerator::process_arachne()
     process_no_bridge(all_surfaces, perimeter_spacing, ext_perimeter_width);
     // BBS: don't simplify too much which influence arc fitting when export gcode if arc_fitting is enabled
     double surface_simplify_resolution = (print_config->enable_arc_fitting && !this->has_fuzzy_skin) ? 0.2 * m_scaled_resolution : m_scaled_resolution;
-    // ORCA: only_one_wall_top has no top surface to act on without a top shell, see has_top_shell_layers().
-    // Gated here so every use below - including the topmost layer - sees the same answer.
-    const bool only_one_wall_top = this->config->only_one_wall_top && has_top_shell_layers(*this->config);
+    // ORCA: neither one-wall option has a surface to act on without the shell behind it, see
+    // has_top_shell_layers() / has_bottom_shell_layers(). Gated here so every use below - including the
+    // topmost and first layers - sees the same answer.
+    const bool only_one_wall_top         = this->config->only_one_wall_top && has_top_shell_layers(*this->config);
+    const bool only_one_wall_first_layer = this->config->only_one_wall_first_layer && has_bottom_shell_layers(*this->config);
     // we need to process each island separately because we might have different
     // extra perimeters for each one
     for (const Surface& surface : all_surfaces) {
@@ -2362,7 +2375,7 @@ void PerimeterGenerator::process_arachne()
 
         // Set the bottommost layer to be one wall
         const bool is_bottom_layer = (this->layer_id == object_config->raft_layers) ? true : false;
-        if (is_bottom_layer && this->config->only_one_wall_first_layer)
+        if (is_bottom_layer && only_one_wall_first_layer)
             loop_number = 0;
 
         // Orca: set the topmost layer to be one wall according to the config

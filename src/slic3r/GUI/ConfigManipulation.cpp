@@ -1009,8 +1009,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     toggle_line("make_overhang_printable_angle", have_make_overhang_printable);
     toggle_line("make_overhang_printable_hole_size", have_make_overhang_printable);
 
-    // Orca: only_one_wall_top acts on top surfaces, which exist only with a top shell. An unfilled top surface
-    // (0% top surface density) is still a top surface, so this is gated on the layer count alone.
+    // Orca: the one-wall options act on top/bottom surfaces, which exist only with a shell. An unfilled surface
+    // (0% surface density) is still a surface, so these are gated on the layer counts alone.
+    toggle_line("only_one_wall_first_layer", has_bottom_shell);
     toggle_line("only_one_wall_top", has_top_shell_layers);
     toggle_line("min_width_top_surface", (has_top_shell_layers && config->opt_bool("only_one_wall_top")) || ((config->opt_float("min_length_factor") > 0.5f) && have_arachne)); // 0.5 is default value
 

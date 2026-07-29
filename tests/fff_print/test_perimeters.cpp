@@ -19,6 +19,9 @@ namespace {
 // The layer at this Z is the last one of the base, so its top surface is the ledge.
 const double ledge_z = 5.0;
 
+// The first layer, at initial_layer_print_height.
+const double first_layer_z = 0.2;
+
 // TestMesh::step scaled 3x in X/Y: a 60x60x5 base carrying a 54x54 column up to z=10, leaving a 3mm
 // top ledge around a feature that keeps rising. That is the geometry both only_one_wall_top and the
 // top surface expansion act on. The ledge has to stay wider than the wall band plus two top-infill
@@ -45,6 +48,7 @@ DynamicPrintConfig base_config(const char *wall_generator)
         { "top_surface_density",        "100%" },
         { "top_surface_expansion",      0.0 },
         { "only_one_wall_top",          false },
+        { "only_one_wall_first_layer",  false },
         // Do not let the one-wall threshold discard the 3mm ledge before the feature sees it.
         { "min_width_top_surface",      0.0 },
     });
@@ -217,4 +221,37 @@ TEST_CASE("Only one wall on top surfaces drops inner walls only where a top fill
     CHECK(one_wall_no_fill < plain);
     CHECK(one_wall_no_expand > one_wall);
     CHECK(one_wall_no_expand < plain);
+}
+
+// The bottom counterpart: the first layer is thinned to a single wall only where a bottom shell fills the
+// space behind it. With no bottom shell layers the bottom surfaces are retyped as internal, so that wall
+// would ring sparse infill on the bed - the option is switched off instead, and the GUI hides it in that
+// state so a profile that left it enabled cannot act behind a hidden checkbox.
+TEST_CASE("Only one wall on the first layer needs a bottom shell", "[Perimeters]")
+{
+    const char *wall_generator = GENERATE("classic", "arachne");
+    CAPTURE(wall_generator);
+
+    auto first_layer_perimeters_for = [wall_generator](bool only_one_wall_first_layer, int bottom_shell_layers) {
+        DynamicPrintConfig config = base_config(wall_generator);
+        config.set_deserialize_strict({
+            { "only_one_wall_first_layer", only_one_wall_first_layer },
+            { "bottom_shell_layers",       bottom_shell_layers },
+        });
+        Print print;
+        init_and_process_print({ step_with_ledge() }, print, config);
+        REQUIRE_FALSE(print.objects().empty());
+        return perimeter_length_at(print, first_layer_z);
+    };
+
+    const double plain             = first_layer_perimeters_for(false, 3);
+    const double one_wall          = first_layer_perimeters_for(true,  3);
+    // Both at zero bottom shell layers, so everything else that setting changes cancels out between them.
+    const double plain_no_shell    = first_layer_perimeters_for(false, 0);
+    const double one_wall_no_shell = first_layer_perimeters_for(true,  0);
+
+    REQUIRE(plain > 0.);
+    CHECK(one_wall < plain);
+    // No bottom shell: the option is inert, down to the same walls an unchecked box gives.
+    CHECK_THAT(one_wall_no_shell, Catch::Matchers::WithinAbs(plain_no_shell, 1.0));
 }
