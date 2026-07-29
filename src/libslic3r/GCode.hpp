@@ -469,9 +469,8 @@ protected:
     std::string generate_object_brim(const Print &print,
         const PrintObject &object,
         size_t instance_id,
-        bool first_layer,
-        unsigned int extruder_id,
-        const Layer *object_layer);
+        const Layer *layer,
+        unsigned int extruder_id);
 
     // Belt printers: emit one brim-only apron layer.  These print below the
     // object's first layer, so there is no object or support layer for the normal
