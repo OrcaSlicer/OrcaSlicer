@@ -1056,7 +1056,7 @@ wxBoxSizer *PreferencesDialog::create_item_checkbox(wxString title, wxString too
                 wxGetApp().mainframe->m_webview->SendCloudProvidersInfo();
             }
         }
-        // ORCA: apply the preview dimming change immediately to the currently loaded preview (ported from preFlight)
+        // ORCA: apply the preview dimming change immediately to the currently loaded preview
         else if (param == "preview_dim_previous_layers") {
             if (m_dim_previous_layers_brightness_input)
                 m_dim_previous_layers_brightness_input->Enable(app_config->get_bool(param));

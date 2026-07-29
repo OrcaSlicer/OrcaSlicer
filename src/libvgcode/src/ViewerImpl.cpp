@@ -1245,9 +1245,9 @@ void ViewerImpl::update_colors_texture()
     const bool color_top_layer_only = m_view_range.get_full()[1] != m_view_range.get_visible()[1];
 
     // ORCA: when dim_previous_layers is enabled, darken every layer (keeping its color) except the
-    // one(s) the layer slider is being scrubbed to, so that only those are shown at full brightness
-    // (ported from preFlight). A slider thumb marks a layer as inspected only once it is moved away
-    // from its end of the print: the upper one while it is below the last layer (or while the moves
+    // one(s) the layer slider is being scrubbed to, so that only those are shown at full brightness.
+    // A slider thumb marks a layer as inspected only once it is moved away from
+    // its end of the print: the upper one while it is below the last layer (or while the moves
     // slider is not at the end of the layer), the lower one while it is above the first layer, so
     // trimming the print from the bottom lights up the lowest visible layer and using the slider as
     // a range lights up both ends. When neither thumb is moved the whole print is rendered normally.
@@ -1384,7 +1384,7 @@ void ViewerImpl::toggle_top_layer_only_view_range()
     update_colors_texture();
 }
 
-// ORCA: enable/disable darkening of the layers the layer slider is not scrubbed to (ported from preFlight)
+// ORCA: enable/disable darkening of the layers the layer slider is not scrubbed to
 void ViewerImpl::set_dim_previous_layers(bool value)
 {
     if (m_settings.dim_previous_layers == value)

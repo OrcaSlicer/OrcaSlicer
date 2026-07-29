@@ -91,7 +91,7 @@ public:
     //
     void toggle_top_layer_only_view_range();
     //
-    // Dim previous layers (ORCA, ported from preFlight)
+    // Dim previous layers (ORCA)
     // Whether the layers the layer slider is not scrubbed to are rendered darkened while
     // showing less than the full print, so only the inspected layer(s) are at full brightness.
     // How bright those darkened layers are rendered, 1.0 = unchanged, 0.0 = black.
