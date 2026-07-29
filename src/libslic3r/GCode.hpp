@@ -369,7 +369,7 @@ private:
     std::string generate_object_brim(const Print &print,
         const PrintObject &object,
         size_t instance_id,
-        bool first_layer);
+        const Layer *layer);
 
     LayerResult process_layer(
         const Print                     &print,

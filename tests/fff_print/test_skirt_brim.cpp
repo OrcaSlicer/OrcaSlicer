@@ -9,6 +9,9 @@
 #include <boost/algorithm/string.hpp>
 
 #include <cmath>
+#include <iterator>
+#include <limits>
+#include <map>
 
 #include "test_helpers.hpp" // get access to init_print, etc
 
@@ -629,6 +632,116 @@ TEST_CASE("Per-object brim layers are honored independently", "[SkirtBrim]") {
     REQUIRE(layers_with_role(gcode, "brim").size() == 1u);
 }
 
+// Accumulate total brim extrusion length per layer Z.
+static std::map<double, double> brim_length_per_layer(const std::string &gcode)
+{
+    std::map<double, double> lengths;
+    GCodeReader parser;
+    parser.parse_buffer(gcode, [&](GCodeReader &self, const GCodeReader::GCodeLine &line) {
+        if (! line.extruding(self) || line.dist_XY(self) <= 0)
+            return;
+        if (line.comment().find("brim") == std::string_view::npos)
+            return;
+        lengths[self.z()] += line.dist_XY(self);
+    });
+    return lengths;
+}
+
+// Build an inverted truncated pyramid — narrow at the base, wide at the top.
+TriangleMesh make_inverted_frustum(double bottom_size, double top_size, double height)
+{
+    float hb = float(bottom_size) / 2, ht = float(top_size) / 2, h = float(height);
+    // 0-3: bottom square (z=0), 4-7: top square (z=height)
+    std::vector<Vec3f> verts {
+        { -hb, -hb, 0.f }, {  hb, -hb, 0.f }, {  hb,  hb, 0.f }, { -hb,  hb, 0.f },
+        { -ht, -ht, h }, {  ht, -ht, h }, {  ht,  ht, h }, { -ht,  ht, h },
+    };
+    // 12 triangles: bottom (2) + top (2) + 4 sides × 2
+    std::vector<Vec3i32> faces {
+        // bottom
+        { 0, 1, 2 }, { 0, 2, 3 },
+        // top
+        { 4, 6, 5 }, { 4, 7, 6 },
+        { 0, 5, 1 }, { 0, 4, 5 },
+        { 1, 5, 6 }, { 1, 6, 2 },
+        { 2, 6, 7 }, { 2, 7, 3 },
+        { 3, 7, 4 }, { 3, 4, 0 },
+    };
+    return TriangleMesh(std::move(verts), std::move(faces));
+}
+
+TEST_CASE("Brim adapts to widening object on upper brim layers", "[SkirtBrim]") {
+    // An inverted pyramid widens from 10mm at the base to 30mm at the top.
+    // With brim_layers=3, brims should be emitted on layers 0, 1, 2.
+    // Because the object widens, the brim on layer 1 must have a larger
+    // inner boundary (and thus a longer total length) than the brim on layer 0.
+    const double layer_height = 0.2;
+    const int    brim_layers  = 3;
+
+    auto frustum = make_inverted_frustum(10, 30, 20); // 10mm base, 30mm top, 20mm tall
+    const std::string gcode = slice({ frustum }, {
+        { "brim_type",                "outer_only" },
+        { "brim_width",               5 },
+        { "brim_layers",              brim_layers },
+        { "brim_object_gap",          0.4 },
+        { "skirt_loops",              0 },
+        { "layer_height",             layer_height },
+        { "initial_layer_line_width", 0.4 },
+        { "wall_loops",               1 },
+    });
+
+    auto lengths = brim_length_per_layer(gcode);
+    REQUIRE(lengths.size() == (size_t) brim_layers);
+
+    // The object widens from 10mm to 30mm over 100 layers.
+    // At layer 1 (z=0.2), the cross-section is ~10.4mm; at layer 2 (z=0.4), ~10.8mm.
+    // The brim inner boundary (outline + gap) is longer on upper layers,
+    // so total brim length must be strictly greater on layer 1 than layer 0.
+    double layer0 = lengths.begin()->second;
+    REQUIRE(layer0 > 0.0);
+
+    auto it1 = std::next(lengths.begin());
+    REQUIRE(it1 != lengths.end());
+    double layer1 = it1->second;
+    REQUIRE(layer1 > 0.0);
+
+    CHECK(layer1 > layer0);
+}
+
+TEST_CASE("Brim avoids overlap when object widens on brim layers", "[SkirtBrim]") {
+    // Sharply widening frustum (10mm -> 50mm) over 20mm height.
+    // Each brim layer is generated from the current outline, so the brim perimeter grows as the object widens.
+    const double layer_height = 0.2;
+    const int    brim_layers  = 4;
+
+    auto frustum = make_inverted_frustum(10, 50, 20);
+    const std::string gcode = slice({ frustum }, {
+        { "brim_type",                "outer_only" },
+        { "brim_width",               5 },
+        { "brim_layers",              brim_layers },
+        { "brim_object_gap",          0.4 },
+        { "skirt_loops",              0 },
+        { "layer_height",             layer_height },
+        { "initial_layer_line_width", 0.4 },
+        { "initial_layer_print_height", layer_height },
+        { "wall_loops",               1 },
+        { "slow_down_for_layer_cooling", false },
+    });
+
+    auto lengths = brim_length_per_layer(gcode);
+    REQUIRE(lengths.size() == (size_t) brim_layers);
+
+    // Each successive brim layer should be longer (object widens -> brim inner
+    // boundary grows -> total brim perimeter grows).
+    double prev = 0;
+    for (const auto &[z, len] : lengths) {
+        REQUIRE(len > 0.0);
+        if (prev > 0)
+            CHECK(len > prev);
+        prev = len;
+    }
+}
+
 TEST_CASE("Per-object brim layers via object overrides", "[SkirtBrim]") {
     DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
     config.set_num_extruders(4);
@@ -641,7 +754,7 @@ TEST_CASE("Per-object brim layers via object overrides", "[SkirtBrim]") {
         { "print_sequence", "by layer" },
     });
 
-    // Override: object 0 gets 1 layer, object 1 gets 3 layers
+    // object 0 gets 1 layer, object 1 gets 3 layers
     const std::vector<std::vector<ConfigBase::SetDeserializeItem>> per_object_overrides{
         { { "brim_layers", 1 } },
         { { "brim_layers", 3 } },
@@ -653,6 +766,160 @@ TEST_CASE("Per-object brim layers via object overrides", "[SkirtBrim]") {
     // brim appears on max(1,3) = 3 distinct Z heights
     REQUIRE(layers_with_role(gcode, "brim").size() == 3u);
 
-    // Layer 0: both objects emit brim (2 passes), layers 1-2: object 1 only (1 pass each) → 4 total
+    // Layer 0: both objects emit brim (2 passes), layers 1-2: object 1 only (1 pass each) -> 4 total
     REQUIRE(role_passes(gcode, "brim") == 4);
+}
+
+// Inverted test: a cone that narrows on upper layers should produce shorter brim perimeters.
+TEST_CASE("Brim shrinks on narrowing object on upper brim layers", "[SkirtBrim]") {
+    // Brim perimeter should decrease on each successive brim layer.
+    const double layer_height = 0.2;
+    const int    brim_layers  = 4;
+
+    auto frustum = make_inverted_frustum(30, 10, 20); // 30mm base, 10mm top
+    const std::string gcode = slice({ frustum }, {
+        { "brim_type",                "outer_only" },
+        { "brim_width",               5 },
+        { "brim_layers",              brim_layers },
+        { "brim_object_gap",          0.4 },
+        { "skirt_loops",              0 },
+        { "layer_height",             layer_height },
+        { "initial_layer_line_width", 0.4 },
+        { "initial_layer_print_height", layer_height },
+        { "wall_loops",               1 },
+        { "slow_down_for_layer_cooling", false },
+    });
+
+    auto lengths = brim_length_per_layer(gcode);
+    REQUIRE(lengths.size() == (size_t) brim_layers);
+
+    // Each successive brim layer should be shorter.
+    double prev = std::numeric_limits<double>::max();
+    for (const auto &[z, len] : lengths) {
+        REQUIRE(len > 0.0);
+        if (prev < std::numeric_limits<double>::max())
+            CHECK(len < prev);
+        prev = len;
+    }
+}
+
+// Two objects with different shapes: one widening (inverted frustum), one constant (cube).
+// Brim should adapt independently to each object's geometry on upper layers.
+TEST_CASE("Per-object brim adapts to different shapes on upper layers", "[SkirtBrim]") {
+    // Cube (constant cross-section) placed far from inverted frustum (widening).
+    // Both get brim_layers=3. Cube brim length stays constant; frustum brim grows.
+    auto frustum = make_inverted_frustum(10, 30, 20);
+
+    const std::string gcode = slice({ cube(20), frustum }, {
+        { "brim_type",                "outer_only" },
+        { "brim_width",               5 },
+        { "brim_layers",              3 },
+        { "brim_object_gap",          0.4 },
+        { "combine_brims",            0 },
+        { "skirt_loops",              0 },
+        { "layer_height",             0.2 },
+        { "initial_layer_line_width", 0.4 },
+        { "wall_loops",               1 },
+        { "slow_down_for_layer_cooling", false },
+    });
+
+    auto lengths = brim_length_per_layer(gcode);
+    REQUIRE(lengths.size() == 3u);
+
+    // Total brim length across both objects should increase on upper layers
+    // because the frustum widens (cube stays constant, so growth is purely from frustum).
+    double prev = 0;
+    for (const auto &[z, len] : lengths) {
+        REQUIRE(len > 0.0);
+        if (prev > 0)
+            CHECK(len > prev);
+        prev = len;
+    }
+}
+
+// Verify that brim and normal support can coexist on upper layers
+// without crashing (the brim code path subtracts support_islands from brim area).
+TEST_CASE("Brim with support enabled on upper brim layers", "[SkirtBrim]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_num_extruders(4);
+    config.set_deserialize_strict({
+        { "layer_height",               0.4 },
+        { "initial_layer_print_height", 0.4 },
+        { "brim_type",                  "outer_only" },
+        { "brim_width",                 5 },
+        { "brim_layers",                3 },
+        { "brim_object_gap",            0.5 },
+        { "skirt_loops",                0 },
+        { "enable_support",             1 },
+        { "support_type",               "normal" },
+        { "gcode_comments",             true },
+        { "wall_loops",                 1 },
+    });
+
+    const std::string gcode = slice({ TestMesh::overhang }, config);
+
+    // Brim should be present on all 3 requested brim layers.
+    REQUIRE(layers_with_role(gcode, "brim").size() == (size_t) 3);
+
+    auto lengths = brim_length_per_layer(gcode);
+    for (const auto &[z, len] : lengths) {
+        REQUIRE(len > 0.0);
+    }
+}
+
+// Verify that brim and tree support can coexist on upper layers
+// without crashing (the brim code path subtracts tree lslices from brim area).
+TEST_CASE("Brim with tree support enabled on upper brim layers", "[SkirtBrim]") {
+    DynamicPrintConfig config = DynamicPrintConfig::full_print_config();
+    config.set_num_extruders(4);
+    config.set_deserialize_strict({
+        { "layer_height",               0.4 },
+        { "initial_layer_print_height", 0.4 },
+        { "brim_type",                  "outer_only" },
+        { "brim_width",                 5 },
+        { "brim_layers",                3 },
+        { "brim_object_gap",            0.5 },
+        { "skirt_loops",                0 },
+        { "enable_support",             1 },
+        { "support_type",               "tree" },
+        { "gcode_comments",             true },
+        { "wall_loops",                 1 },
+    });
+
+    const std::string gcode = slice({ TestMesh::overhang }, config);
+
+    // Brim should be present on all 3 requested brim layers.
+    REQUIRE(layers_with_role(gcode, "brim").size() == (size_t) 3);
+
+    auto lengths = brim_length_per_layer(gcode);
+    for (const auto &[z, len] : lengths) {
+        REQUIRE(len > 0.0);
+    }
+}
+
+// Verify that brim is not emitted when the object has no geometry on a given layer
+// (e.g., the object ends before all brim layers are consumed).
+TEST_CASE("Brim stops when object ends before all brim layers", "[SkirtBrim]") {
+    // Object is 1mm tall (5 layers at 0.2mm), but brim_layers=10 wants 10.
+    // Brim should only be emitted on the 5 layers the object actually occupies.
+    auto short_cube = cube(1);
+
+    const std::string gcode = slice({ short_cube }, {
+        { "brim_type",                "outer_only" },
+        { "brim_width",               5 },
+        { "brim_layers",              10 },
+        { "brim_object_gap",          0.4 },
+        { "skirt_loops",              0 },
+        { "layer_height",             0.2 },
+        { "initial_layer_line_width", 0.4 },
+        { "wall_loops",               1 },
+    });
+
+    auto lengths = brim_length_per_layer(gcode);
+    // Brim should appear on exactly 5 layers (the object height), not all 10 requested.
+    REQUIRE(lengths.size() == 5u);
+
+    for (const auto &[z, len] : lengths) {
+        REQUIRE(len > 0.0);
+    }
 }

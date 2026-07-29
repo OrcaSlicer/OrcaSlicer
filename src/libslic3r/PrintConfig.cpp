@@ -1857,7 +1857,7 @@ void PrintConfigDef::init_fff_params()
     def->tooltip = L("Number of layers for the brim.");
     def->sidetext = L("layers");
     def->min     = 1;
-    def->max     = 20;
+    def->max     = 10;
     def->mode    = comSimple;
     def->set_default_value(new ConfigOptionInt(1));
 
