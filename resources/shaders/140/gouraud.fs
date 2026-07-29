@@ -1,7 +1,7 @@
 #version 140
 // Multisample depth texture for the anti-aliased outline (see 3DScene.cpp render_with_outline).
-// Core in GLSL 150 / OpenGL 3.2; required as an extension on the 3.1 path this shader targets.
-#extension GL_ARB_texture_multisample : require
+// Optional on the GLSL 140 path: if unavailable, fallback to a non-multisample depth texture.
+#extension GL_ARB_texture_multisample : enable
 
 const vec3 ZERO = vec3(0.0, 0.0, 0.0);
 //BBS: add grey and orange
@@ -41,9 +41,13 @@ uniform SlopeDetection slope;
 uniform bool is_outline;
 // Multisample depth buffer of the outlined model. The outline shape is a per-fragment discard mask
 // (below), which the framebuffer MSAA cannot smooth, so the silhouette is resolved per sample here.
+#ifdef GL_ARB_texture_multisample
 uniform sampler2DMS depth_tex;
 // Number of samples in depth_tex (== SETTING_OPENGL_AA_SAMPLES, or 1 when MSAA is disabled).
 uniform int msaa_samples;
+#else
+uniform sampler2D depth_tex;
+#endif
 uniform vec2 screen_size;
 
 #ifdef ENABLE_ENVIRONMENT_MAP
@@ -106,6 +110,7 @@ float GetTolerance(float d, float k)
     return -k*(d+A)*(d+A)/B;   
 }
 
+#ifdef GL_ARB_texture_multisample
 // Silhouette response for a single MSAA sample of the depth texture.
 float DetectSilhoSample(ivec2 coord, ivec2 dir, int s, ivec2 sz)
 {
@@ -150,6 +155,25 @@ float DetectSilho(vec2 fragCoord, vec2 dir)
         acc += DetectSilhoSample(coord, idir, s, sz);
     return acc / float(n);
 }
+#else
+float DetectSilho(vec2 fragCoord, vec2 dir)
+{
+    float x0 = abs(texture(depth_tex, (fragCoord + dir*-2.0) / screen_size).r);
+    float x1 = abs(texture(depth_tex, (fragCoord + dir*-1.0) / screen_size).r);
+    float x2 = abs(texture(depth_tex, (fragCoord + dir* 0.0) / screen_size).r);
+    float x3 = abs(texture(depth_tex, (fragCoord + dir* 1.0) / screen_size).r);
+
+    float d0 = (x1-x0);
+    float d1 = (x2-x3);
+
+    float r0 = x1 + d0 - x2;
+    float r1 = x2 + d1 - x1;
+
+    float tol = GetTolerance(x2, 0.04);
+
+    return smoothstep(0.0, tol*tol, max( - r0*r1, 0.0));
+}
+#endif
 
 float DetectSilho(vec2 fragCoord)
 {
