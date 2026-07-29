@@ -192,7 +192,7 @@ PingCodeBindDialog::PingCodeBindDialog(Plater* plater /*= nullptr*/)
 
 
 
-    SetSizer(sizer_main);
+    SetSizerAndFit(sizer_main);
     Layout();
     Fit();
 
@@ -670,7 +670,7 @@ PingCodeBindDialog::~PingCodeBindDialog() {
      m_sizer_main->Add(m_sw_bind_failed_info, 0, wxALIGN_CENTER, 0);
      m_sizer_main->Add(m_simplebook, 0, wxALIGN_RIGHT | wxRIGHT | wxBOTTOM, ButtonProps::ChoiceButtonGap());
 
-     SetSizer(m_sizer_main);
+     SetSizerAndFit(m_sizer_main);
      Layout();
      Fit();
      Centre(wxBOTH);
@@ -992,7 +992,7 @@ UnBindMachineDialog::UnBindMachineDialog(Plater *plater /*= nullptr*/)
      m_sizer_main->Add(m_sizer_button, 0, wxALIGN_RIGHT | wxRIGHT, ButtonProps::ChoiceButtonGap());
      m_sizer_main->Add(0, 0, 0, wxTOP, FromDIP(20));
 
-     SetSizer(m_sizer_main);
+     SetSizerAndFit(m_sizer_main);
      Layout();
      Fit();
      Centre(wxBOTH);
