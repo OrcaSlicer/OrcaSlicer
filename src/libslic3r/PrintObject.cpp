@@ -1198,6 +1198,7 @@ bool PrintObject::invalidate_state_by_config_options(
             }
         } else if (
                opt_key == "wall_loops"
+            || opt_key == "seamless_modifier_boundary"
             || opt_key == "alternate_extra_wall"
             || opt_key == "top_one_wall_type"
             || opt_key == "min_width_top_surface"
@@ -1611,10 +1612,15 @@ void PrintObject::detect_surfaces_type()
     // This is useful if one of the parts is to be dissolved, or if it is transparent and the internal shells
     // should be visible.
     bool spiral_mode      = this->print()->config().spiral_mode.value;
-    bool interface_shells = ! spiral_mode && m_config.interface_shells.value;
+    bool interface_shells_object = ! spiral_mode && m_config.interface_shells.value;
     size_t num_layers     = spiral_mode ? std::min(size_t(this->printing_region(0).config().bottom_shell_layers), m_layers.size()) : m_layers.size();
 
     for (size_t region_id = 0; region_id < this->num_printing_regions(); ++ region_id) {
+        // ORCA: a seamless modifier boundary must not build top / bottom shells against its neighbours -
+        // that is the solid-cap half of the artefact the flag removes. This is a no-op at the default
+        // interface_shells = 0, which is why a density-only modifier already slices clean today.
+        const bool interface_shells = interface_shells_object &&
+            ! this->printing_region(region_id).config().seamless_modifier_boundary.value;
         BOOST_LOG_TRIVIAL(debug) << "Detecting solid surfaces for region " << region_id << " in parallel - start";
 #ifdef SLIC3R_DEBUG_SLICE_PROCESSING
         for (Layer *layer : m_layers)

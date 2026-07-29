@@ -3358,6 +3358,17 @@ void PrintConfigDef::init_fff_params()
     def->max = 100;
     def->set_default_value(new ConfigOptionPercent(20));
 
+    def = this->add("seamless_modifier_boundary", coBool);
+    def->label = L("Seamless modifier boundary");
+    def->category = L("Strength");
+    def->tooltip = L("Set this on a modifier volume to make it a pure parameter mask: it overrides infill and "
+                     "solid-layer settings inside its volume but never grows wall loops of its own, sharing the "
+                     "walls of the surrounding region instead. Intended for flexible filaments, where a wall loop "
+                     "at the modifier boundary creates a rigid internal shell. While this is enabled the "
+                     "modifier's own wall settings are ignored.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def           = this->add("align_infill_direction_to_model", coBool);
     def->label    = L("Align directions to model");
     def->category = L("Strength");

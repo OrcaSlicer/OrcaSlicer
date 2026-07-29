@@ -141,6 +141,18 @@ bool Layer::is_perimeter_compatible(const Print& print, const PrintRegion& a, co
     const PrintRegionConfig& config       = a.config();
     const PrintRegionConfig& other_config = b.config();
 
+    // ORCA: exactly one side declares itself a pure parameter mask (seamless modifier boundary).
+    // It wants no walls of its own, so folding it into the neighbouring region's make_perimeters()
+    // call IS the requested behaviour and the per-option comparison below must not veto it.
+    // Two guards: if BOTH sides are flagged there is no parent region to inherit walls from, so we
+    // fall through and compare normally (two masks with different wall settings must not silently
+    // share loops); and we never merge across a wall filament change, or the mask's share of the
+    // walls would be printed in the other region's material.
+    if (config.seamless_modifier_boundary.value != other_config.seamless_modifier_boundary.value
+        && config.outer_wall_filament_id == other_config.outer_wall_filament_id
+        && config.inner_wall_filament_id == other_config.inner_wall_filament_id)
+        return true;
+
         return config.outer_wall_filament_id       == other_config.outer_wall_filament_id
 		&& config.inner_wall_filament_id       == other_config.inner_wall_filament_id
 		&& config.wall_loops                  == other_config.wall_loops
@@ -231,12 +243,27 @@ void Layer::make_perimeters()
 	            {
 	                // group slices (surfaces) according to number of extra perimeters
 	                std::map<unsigned short, Surfaces> slices;  // extra_perimeters => [ surface, surface... ]
+	                // ORCA: a seamless_modifier_boundary region is a parameter mask, not a wall owner, so it
+	                // must never donate the perimeter configuration - otherwise the merged loops would adopt
+	                // the modifier's wall settings, the opposite of "inherit the parent's walls". Among the
+	                // regions that do own walls, keep the original heuristic (highest infill density).
+	                LayerRegion *layerm_wall_owner = nullptr;
 	                for (LayerRegion *layerm : layerms) {
 	                    for (const Surface &surface : layerm->slices.surfaces)
 	                        slices[surface.extra_perimeters].emplace_back(surface);
 	                    if (layerm->region().config().sparse_infill_density > layerm_config->region().config().sparse_infill_density)
 	                    	layerm_config = layerm;
+	                    if (! layerm->region().config().seamless_modifier_boundary.value &&
+	                        (layerm_wall_owner == nullptr ||
+	                         layerm->region().config().sparse_infill_density >
+	                             layerm_wall_owner->region().config().sparse_infill_density))
+	                        layerm_wall_owner = layerm;
 	                }
+	                // If every region in the group opted out - the parent region vanished on this layer
+	                // because the modifier spans the whole cross section - fall back to the original rule so
+	                // the layer still gets its outer wall.
+	                if (layerm_wall_owner != nullptr)
+	                    layerm_config = layerm_wall_owner;
 	                // merge the surfaces assigned to each group
 	                for (std::pair<const unsigned short,Surfaces> &surfaces_with_extra_perimeters : slices)
 	                    new_slices.append(offset_ex(surfaces_with_extra_perimeters.second, ClipperSafetyOffset), surfaces_with_extra_perimeters.second.front());

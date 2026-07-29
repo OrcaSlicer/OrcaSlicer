@@ -58,7 +58,7 @@ static SettingsFactory::Bundle FREQ_SETTINGS_BUNDLE_FFF =
     //BBS
     { L("Quality"), { "layer_height" } },
     { L("Shell"), { "wall_loops", "top_shell_layers", "bottom_shell_layers"} },
-    { L("Infill")               , { "sparse_infill_density", "sparse_infill_pattern" } },
+    { L("Infill")               , { "sparse_infill_density", "sparse_infill_pattern", "seamless_modifier_boundary" } },
     // BBS
     { L("Support")     , { "enable_support", "support_type", "support_threshold_angle", "support_threshold_overlap",
                                     "support_base_pattern", "support_on_build_plate_only","support_critical_regions_only",
