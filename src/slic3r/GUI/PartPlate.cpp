@@ -2246,9 +2246,7 @@ PartPlate::WipeTowerPreview PartPlate::wipe_tower_preview(const DynamicPrintConf
         m_print != nullptr ? m_print->default_region_config() : PrintRegionConfig{};
     preview_region_config.apply(full_config, true);
 
-    const bool is_bbl_printer =
-        m_print != nullptr ? m_print->is_BBL_printer() :
-        wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
+    const bool is_bbl_printer = wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
     const bool is_type2 = !is_bbl_printer && preview_config.wipe_tower_type.value == WipeTowerType::Type2;
 
     float tower_height = 0.f;
