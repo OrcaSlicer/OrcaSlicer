@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: 2025-03-15 10:55+0100\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -3930,6 +3930,10 @@ msgstr "Organitzant..."
 
 msgid "Arranging"
 msgstr "Organitzant"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Organitzant "
 
 msgid "Arranging canceled."
 msgstr "S'ha cancel·lat l'ordenació."
@@ -9350,6 +9354,21 @@ msgstr "Enfosquir les capes inferiors"
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "En desplaçar el control lliscant de capes a la previsualització laminada, mostra enfosquides les capes per sota de l'actual, de manera que només la capa que s'està visualitzant es vegi amb la lluminositat completa."
 
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Brillantor de les capes enfosquides"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Amb quina brillantor es mostren les capes enfosquides quan \"Enfosquir les capes inferiors\" està activat.\n"
+"99% amb prou feines s'enfosqueix, 0% les mostra negres. Limitat al 99% perquè el 100% seria el mateix que desactivar l'opció."
+
 msgid "Login region"
 msgstr "Regió d'inici de sessió"
 
@@ -13494,11 +13513,36 @@ msgstr "Objecte"
 msgid "Intra-layer order"
 msgstr "Ordre intracapa"
 
-msgid "Print order within a single layer."
-msgstr "Ordre d'impressió dins d'una sola capa"
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"Ordre en què es visiten les instàncies dels objectes dins d'una mateixa capa, que determina quant recorregut es dedica a moure's entre elles.\n"
+"\n"
+"Per defecte: encadenament pel veí més proper, refinat amb 2-opt i eliminació de creuaments. Una bona opció general.\n"
+"Com a llista d'objectes: les instàncies s'imprimeixen en el mateix ordre que la llista d'objectes, sense cap optimització del recorregut. Feu-lo servir quan necessiteu un ordre previsible i controlat manualment.\n"
+"La millor de totes (camí més curt): s'avaluen totes les estratègies i s'utilitza la més curta. L'ordre de les instàncies dels objectes es decideix una sola vegada per a tota la impressió, mentre que l'ordre de les illes individuals es decideix per capa, de manera que capes diferents poden acabar utilitzant estratègies diferents. El laminat és una mica més lent.\n"
+"Serpentí: recorregut en serpentina, fila per fila, refinat amb 2-opt. Adequat per a graelles regulars de moltes peces petites.\n"
+"\n"
+"Amb diversos filaments o eines a la mateixa capa, minimitzar els canvis d'eina té prioritat: els objectes s'agrupen primer per filament i aquest paràmetre només ordena les instàncies dins de cada grup de filament, de manera que la seqüència global pot no semblar el camí més curt per la safata."
 
 msgid "As object list"
 msgstr "Com a llista d'objectes"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "La millor de totes (camí més curt)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Serpentí"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Reduir la velocitat d'impressió per millorar la refrigeració de les capes"
@@ -18927,6 +18971,20 @@ msgstr ""
 "Hi ha diverses adreces IP que responen al nom d'amfitrió( host ) %1%.\n"
 "Seleccioneu-ne la que s'hagi d'utilitzar."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Escala automàtica segons el broquet"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Aquest model està dissenyat per a un broquet de 0,4 mm amb una alçada de capa de 0,2 mm. \n"
+"Quan l'opció d'escalat està activada (recomanat), es redimensiona dinàmicament per adaptar-se al diàmetre del broquet actual i a una alçada de capa adequada, cosa que fa que la prova sigui precisa i fàcil de llegir.\n"
+"Desactiveu l'escalat només si voleu imprimir el model de referència exactament tal com és."
+
 msgid "PA Calibration"
 msgstr "Calibratge PA( Pressure Advance )"
 
@@ -19063,6 +19121,14 @@ msgstr "Velocitat d'inici: "
 msgid "End speed: "
 msgstr "Velocitat final: "
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Ajust automàtic a la velocitat volumètrica màxima"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Si la velocitat final superés la velocitat volumètrica màxima del filament, redueix automàticament l'alçada de capa (mantenint valors estàndard i respectant els límits de la màquina) per assolir-la. Si ni tan sols l'alçada de capa mínima és suficient, redueix la velocitat final."
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -19073,6 +19139,57 @@ msgstr ""
 "Inici > 10 \n"
 "pas >= 0\n"
 "final >inici + pas )"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"La velocitat final (%.0f mm/s) supera la velocitat volumètrica màxima del filament (%.1f mm³/s), cosa que limita el perímetre exterior a uns %.0f mm/s amb aquesta amplada de línia i alçada de capa.\n"
+" Les velocitats superiors es retallaran, de manera que els blocs superiors de la torre no s'imprimiran a la velocitat sol·licitada.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"La velocitat final (%.0f mm/s) supera la velocitat volumètrica màxima del filament (%.1f mm³/s) amb l'alçada de capa per defecte (%.2f mm).\n"
+"\n"
+"L'alçada de capa s'ha reduït a %.2f mm (un valor utilitzat pels perfils d'aquesta impressora) perquè la torre pugui assolir la velocitat sol·licitada."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"Fins i tot amb l'alçada de capa més petita utilitzada pels perfils d'aquesta impressora (%.2f mm), la velocitat final (%.0f mm/s) supera la velocitat volumètrica màxima del filament (%.1f mm³/s).\n"
+"\n"
+"L'alçada de capa s'establirà a %.2f mm i la velocitat final es reduirà a %.0f mm/s.\n"
+"\n"
+"Voleu continuar?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "Voleu continuar igualment?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Voleu activar \"Ajust automàtic\" per corregir-ho automàticament o continuar igualment?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Voleu activar \"Escala automàtica segons el broquet\" i \"Ajust automàtic\" per corregir-ho automàticament o continuar igualment?"
 
 msgid "Start retraction length: "
 msgstr "Longitud de la retracció d'inici: "
@@ -21770,6 +21887,9 @@ msgstr ""
 "Evitar la deformació( warping )\n"
 "Sabíeu que quan imprimiu materials propensos a deformar-se, com ara l'ABS, augmentar adequadament la temperatura del llit pot reduir la probabilitat de deformació?"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "Ordre d'impressió dins d'una sola capa"
+
 #~ msgid "Bottom"
 #~ msgstr "Inferior"
 
@@ -21855,9 +21975,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "Continua sincronitzant filaments"

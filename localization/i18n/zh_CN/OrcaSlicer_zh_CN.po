@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Slic3rPE\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: 2026-06-11 12:37-0300\n"
 "Last-Translator: Handle <mail@bysb.net>\n"
 "Language-Team: \n"
@@ -3693,6 +3693,10 @@ msgstr "自动摆放中..."
 
 msgid "Arranging"
 msgstr "自动摆放"
+
+# AI Translated
+msgid "Arranging "
+msgstr "自动摆放 "
 
 msgid "Arranging canceled."
 msgstr "已取消自动摆放。"
@@ -8978,6 +8982,21 @@ msgstr "调暗下方图层"
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "在切片预览中拖动图层滑块时，将当前图层下方的图层渲染为变暗状态，以便只有正在查看的图层以完整亮度显示。"
 
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "调暗图层的亮度"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"启用“调暗下方图层”时，被调暗的图层以多高的亮度显示。\n"
+"99% 表示几乎不变暗，0% 表示显示为纯黑。上限为 99%，因为 100% 与关闭该选项的效果相同。"
+
 msgid "Login region"
 msgstr "登录区域"
 
@@ -12949,11 +12968,36 @@ msgstr "逐件"
 msgid "Intra-layer order"
 msgstr "层内打印顺序"
 
-msgid "Print order within a single layer."
-msgstr "同一层内的打印顺序"
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"在同一层内访问各对象实例的顺序，它决定了在实例之间移动所花费的空驶量。\n"
+"\n"
+"默认：以最近邻方式串联，并通过 2-opt 和交叉消除进行优化。通常是较好的选择。\n"
+"按对象列表中的顺序：不做任何路径优化，按对象列表中的顺序打印各实例。需要可预测、手动控制的顺序时使用。\n"
+"全部比较（最短路径）：评估所有策略并采用最短的一种。对象实例的顺序在整个打印任务中只确定一次，而各个岛的排序则逐层确定，因此不同层可能采用不同的策略。切片速度略慢。\n"
+"蛇形：逐行往复的蛇形遍历，并通过 2-opt 进行优化。非常适合由大量小零件组成的规则阵列。\n"
+"\n"
+"当同一层中使用多种耗材丝或工具时，优先减少换料次数：对象会先按耗材丝分组，本设置仅决定每个耗材丝分组内实例的顺序，因此整体顺序看起来可能不是整个热床上的最短路径。"
 
 msgid "As object list"
 msgstr "按对象列表中的顺序"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "全部比较（最短路径）"
+
+# AI Translated
+msgid "Snake"
+msgstr "蛇形"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "降低打印速度 以得到更好的冷却"
@@ -18278,6 +18322,20 @@ msgstr ""
 "主机名 %1% 指向了多个IP地址\n"
 "请在其中选择一个正在使用的地址。"
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "根据喷嘴自动缩放"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"该模型是按 0.4 mm 喷嘴和 0.2 mm 层高设计的。 \n"
+"启用缩放选项后（推荐），模型会根据当前喷嘴直径和合适的层高动态调整尺寸，使测试既准确又易于读取。\n"
+"只有当您希望完全按原样打印参考模型时，才关闭缩放。"
+
 msgid "PA Calibration"
 msgstr "压力提前/PA校准"
 
@@ -18412,6 +18470,14 @@ msgstr "起始速度"
 msgid "End speed: "
 msgstr "结束速度"
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "自动调整以适应最大体积流量"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "如果结束速度会超过耗材丝的最大体积流量，则自动降低层高（保持标准数值并处于机器限制范围内）以达到该速度。如果连最小层高也不够，则改为降低结束速度。"
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -18422,6 +18488,57 @@ msgstr ""
 "开始 > 10\n"
 "步进长度 >= 0\n"
 "结束 > 开始 + 步进长度）"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"结束速度（%.0f mm/s）超过了耗材丝的最大体积流量（%.1f mm³/s），在当前线宽和层高下，外墙被限制在约 %.0f mm/s。\n"
+" 超过该值的速度会被钳制，因此塔的上部区块不会以请求的速度打印。\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"结束速度（%.0f mm/s）超过了耗材丝的最大体积流量（%.1f mm³/s）（默认层高 %.2f mm 时）。\n"
+"\n"
+"层高已降至 %.2f mm（该打印机配置中使用的数值），以便塔能够达到请求的速度。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"即使采用该打印机配置中使用的最小层高（%.2f mm），结束速度（%.0f mm/s）仍超过耗材丝的最大体积流量（%.1f mm³/s）。\n"
+"\n"
+"层高将设为 %.2f mm，结束速度将降至 %.0f mm/s。\n"
+"\n"
+"是否继续？"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "仍要继续吗？"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "启用“自动调整”可自动解决该问题，或者仍要继续？"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "启用“根据喷嘴自动缩放”和“自动调整”可自动解决该问题，或者仍要继续？"
 
 msgid "Start retraction length: "
 msgstr "起始回抽长度"
@@ -20994,6 +21111,9 @@ msgstr ""
 "避免翘曲\n"
 "您知道吗？打印ABS这类易翘曲材料时，适当提高热床温度可以降低翘曲的概率。"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "同一层内的打印顺序"
+
 #~ msgid "Bottom"
 #~ msgstr "底部"
 
@@ -21085,9 +21205,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "Renders cast shadows on the plate in realistic view."
 #~ msgstr "在写实渲染中渲染投射到打印板上的阴影。"

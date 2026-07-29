@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: Guislain Cyril, Thomas Lété\n"
@@ -3759,6 +3759,10 @@ msgstr "Agencement…"
 
 msgid "Arranging"
 msgstr "Agencement"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Agencement "
 
 msgid "Arranging canceled."
 msgstr "Agencement annulé."
@@ -9068,6 +9072,21 @@ msgstr "Assombrir les couches inférieures"
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "Lors du défilement du curseur de couche dans l'aperçu découpé, affiche les couches situées sous la couche actuelle assombries, de sorte que seule la couche visualisée soit affichée en pleine luminosité."
 
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Luminosité des couches assombries"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Luminosité de rendu des couches assombries lorsque « Assombrir les couches inférieures » est activé.\n"
+"99% correspond à un assombrissement à peine perceptible, 0% les affiche en noir. Limité à 99% car 100% reviendrait à désactiver l’option."
+
 msgid "Login region"
 msgstr "Région d'origine"
 
@@ -13087,11 +13106,36 @@ msgstr "Par objet"
 msgid "Intra-layer order"
 msgstr "Ordre intra-couche"
 
-msgid "Print order within a single layer."
-msgstr "Ordre d’impression au sein d’une même couche"
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"Ordre dans lequel les instances d’objets sont parcourues au sein d’une même couche, ce qui détermine la quantité de déplacements effectués entre elles.\n"
+"\n"
+"Par défaut : chaînage par plus proche voisin, affiné par 2-opt et suppression des croisements. Un bon choix général.\n"
+"En tant que liste d’objets : les instances sont imprimées dans le même ordre que la liste d’objets, sans aucune optimisation de trajet. À utiliser lorsque vous avez besoin d’un ordre prévisible et contrôlé manuellement.\n"
+"Meilleur de tous (trajet le plus court) : toutes les stratégies sont évaluées et la plus courte est retenue. L’ordre des instances d’objets est déterminé une seule fois pour toute l’impression, tandis que l’ordre des îlots individuels est déterminé couche par couche ; différentes couches peuvent donc utiliser des stratégies différentes. Découpage légèrement plus lent.\n"
+"Serpentin : parcours en serpentin, rangée par rangée, affiné par 2-opt. Bien adapté aux grilles régulières de nombreuses petites pièces.\n"
+"\n"
+"Avec plusieurs filaments ou outils dans la même couche, la réduction des changements d’outil est prioritaire : les objets sont d’abord regroupés par filament et ce réglage n’ordonne que les instances au sein de chaque groupe de filament ; la séquence globale peut donc ne pas ressembler au trajet le plus court sur la plaque."
 
 msgid "As object list"
 msgstr "En tant que liste d’objets"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "Meilleur de tous (trajet le plus court)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Serpentin"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Impression lente pour un meilleur refroidissement des couches"
@@ -18381,6 +18425,20 @@ msgstr ""
 "Il existe plusieurs adresses IP résolues par le nom d’hôte %1%.\n"
 "Veuillez en sélectionner une qui doit être utilisée."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Mise à l’échelle automatique selon la buse"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Ce modèle est conçu pour une buse de 0,4 mm avec une hauteur de couche de 0,2 mm. \n"
+"Lorsque l’option de mise à l’échelle est activée (recommandé), il est redimensionné dynamiquement pour correspondre au diamètre de buse actuel et à une hauteur de couche appropriée, ce qui rend le test à la fois précis et facile à lire.\n"
+"Ne désactivez la mise à l’échelle que si vous souhaitez imprimer le modèle de référence exactement tel quel."
+
 msgid "PA Calibration"
 msgstr "Calibration Pressure Advance"
 
@@ -18517,6 +18575,14 @@ msgstr "Vitesse de début: "
 msgid "End speed: "
 msgstr "Vitesse de fin: "
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Ajustement automatique à la vitesse volumétrique maximale"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Si la vitesse finale devait dépasser la vitesse volumétrique maximale du filament, la hauteur de couche est automatiquement réduite (en conservant des valeurs standard et en restant dans les limites de la machine) pour l’atteindre. Si même la hauteur de couche minimale ne suffit pas, c’est la vitesse finale qui est réduite."
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -18527,6 +18593,57 @@ msgstr ""
 "Début > 10 \n"
 "intervalles >= 0\n"
 "Fin > Début + Intervalle"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"La vitesse finale (%.0f mm/s) dépasse la vitesse volumétrique maximale du filament (%.1f mm³/s), ce qui limite la paroi extérieure à environ %.0f mm/s pour cette largeur de ligne et cette hauteur de couche.\n"
+" Les vitesses supérieures seront bridées : les blocs supérieurs de la tour ne seront donc pas imprimés à la vitesse demandée.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"La vitesse finale (%.0f mm/s) dépasse la vitesse volumétrique maximale du filament (%.1f mm³/s) avec la hauteur de couche par défaut (%.2f mm).\n"
+"\n"
+"La hauteur de couche a été réduite à %.2f mm (une valeur utilisée par les profils de cette imprimante) afin que la tour puisse atteindre la vitesse demandée."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"Même avec la plus petite hauteur de couche utilisée par les profils de cette imprimante (%.2f mm), la vitesse finale (%.0f mm/s) dépasse la vitesse volumétrique maximale du filament (%.1f mm³/s).\n"
+"\n"
+"La hauteur de couche sera réglée sur %.2f mm et la vitesse finale abaissée à %.0f mm/s.\n"
+"\n"
+"Continuer ?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "Continuer quand même ?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Activer « Ajustement automatique » pour corriger cela automatiquement, ou continuer quand même ?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Activer « Mise à l’échelle automatique selon la buse » et « Ajustement automatique » pour corriger cela automatiquement, ou continuer quand même ?"
 
 msgid "Start retraction length: "
 msgstr "Longueur de rétraction de début: "
@@ -21059,6 +21176,9 @@ msgstr ""
 "Éviter la déformation\n"
 "Saviez-vous que lors de l’impression de matériaux susceptibles de se déformer, tels que l’ABS, une augmentation appropriée de la température du plateau chauffant peut réduire la probabilité de déformation?"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "Ordre d’impression au sein d’une même couche"
+
 #~ msgid "Bottom"
 #~ msgstr "Dessous"
 
@@ -21148,9 +21268,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "Renders cast shadows on the plate in realistic view."
 #~ msgstr "Affiche les ombres portées sur la plaque dans la vue réaliste."
