@@ -17,7 +17,17 @@ namespace Slic3r
 {
 
 class WipeTowerWriter2;
+class PrintConfig;
 class PrintRegionConfig;
+enum class WipeTowerType;
+
+WipeTowerFootprint make_conservative_wipe_tower_footprint(WipeTowerType wipe_tower_type,
+                                                          const PrintConfig& config,
+                                                          const PrintRegionConfig& default_region_config,
+                                                          const std::vector<unsigned int>& used_filaments,
+                                                          float tower_height,
+                                                          float layer_height,
+                                                          bool force_tower);
 
 class WipeTower2
 {

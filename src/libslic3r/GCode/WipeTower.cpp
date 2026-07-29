@@ -1849,27 +1849,29 @@ WipeTower::Footprint WipeTower::make_conservative_footprint(const PrintConfig&  
     const float volume = prime_volume * float(transition_count);
     const float minimum_depth = get_limit_depth_by_height(height);
 
-    float body_width = width;
-    float body_depth = volume * extra_spacing / (effective_layer_height * width);
-    float planned_depth = std::max(body_depth, minimum_depth);
+    const float rectangular_depth = volume * extra_spacing / (effective_layer_height * width);
+    float planned_depth = std::max(rectangular_depth, minimum_depth);
+    Polygon body_outline;
     if (config.wipe_tower_wall_type.value == WipeTowerWallType::wtwRib) {
         const float volume_depth = std::sqrt(volume * extra_spacing / effective_layer_height);
         planned_depth = std::max(volume_depth, minimum_depth);
         const float rib_width =
             std::min(float(config.wipe_tower_rib_width.value), planned_depth / 2.f);
-        body_depth = rib_width / float(std::sqrt(2.)) + planned_depth +
-                     std::max(0.f, float(config.wipe_tower_extra_rib_length.value));
-        body_width = body_depth;
+        const float rib_length =
+            std::hypot(planned_depth, planned_depth) +
+            std::max(0.f, float(config.wipe_tower_extra_rib_length.value));
+        body_outline = rib_section(
+            planned_depth, planned_depth, rib_length, rib_width,
+            config.wipe_tower_fillet_wall.value);
     } else {
-        body_depth = planned_depth;
+        body_outline = Polygon({
+            Point::new_scale(0.f, 0.f),
+            Point::new_scale(width, 0.f),
+            Point::new_scale(width, planned_depth),
+            Point::new_scale(0.f, planned_depth)
+        });
     }
 
-    Polygon body_outline({
-        Point::new_scale(0.f, 0.f),
-        Point::new_scale(body_width, 0.f),
-        Point::new_scale(body_width, body_depth),
-        Point::new_scale(0.f, body_depth)
-    });
     const float configured_brim_width =
         config.prime_tower_brim_width.value < 0.f ?
             get_auto_brim_by_height(height) :

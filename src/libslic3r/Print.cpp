@@ -3881,13 +3881,9 @@ const WipeTowerData &Print::wipe_tower_data(size_t filaments_cnt) const
         const bool force_tower = enable_timelapse_print() ||
                                  (m_config.enable_wrapping_detection.value && m_config.wrapping_exclude_area.values.size() > 2);
         const std::vector<unsigned int> used_filaments = extruders(true);
-        WipeTowerFootprint footprint =
-            wipe_tower_type() == WipeTowerType::Type2 ?
-                WipeTower2::make_conservative_footprint(
-                    m_config, m_default_region_config, used_filaments,
-                    float(max_height), float(preview_layer_height), force_tower) :
-                WipeTower::make_conservative_footprint(
-                    m_config, used_filaments, float(max_height), float(preview_layer_height), force_tower);
+        WipeTowerFootprint footprint = make_conservative_wipe_tower_footprint(
+            wipe_tower_type(), m_config, m_default_region_config, used_filaments,
+            float(max_height), float(preview_layer_height), force_tower);
         WipeTowerData& data = const_cast<Print *>(this)->m_wipe_tower_data;
         data.depth = footprint.planned_depth;
         data.height = footprint.height;

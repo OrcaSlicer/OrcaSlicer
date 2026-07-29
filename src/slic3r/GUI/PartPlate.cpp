@@ -2239,15 +2239,13 @@ PartPlate::WipeTowerPreview PartPlate::wipe_tower_preview(const DynamicPrintConf
     used_filaments.erase(std::unique(used_filaments.begin(), used_filaments.end()),
                          used_filaments.end());
 
-    PrintConfig preview_config = m_print != nullptr ? m_print->config() : PrintConfig{};
+    PrintConfig preview_config;
     preview_config.apply(full_config, true);
 
-    PrintRegionConfig preview_region_config =
-        m_print != nullptr ? m_print->default_region_config() : PrintRegionConfig{};
+    PrintRegionConfig preview_region_config;
     preview_region_config.apply(full_config, true);
 
-    const bool is_bbl_printer = wxGetApp().preset_bundle != nullptr && wxGetApp().preset_bundle->is_bbl_vendor();
-    const bool is_type2 = !is_bbl_printer && preview_config.wipe_tower_type.value == WipeTowerType::Type2;
+    const bool is_type2 = preview_config.wipe_tower_type.value == WipeTowerType::Type2;
 
     float tower_height = 0.f;
     if (m_model != nullptr) {
@@ -2276,12 +2274,10 @@ PartPlate::WipeTowerPreview PartPlate::wipe_tower_preview(const DynamicPrintConf
     if (tower_data != nullptr &&
         tower_data->footprint.accuracy == WipeTowerFootprint::Accuracy::Exact) {
         result.footprint = tower_data->footprint;
-    } else if (is_type2) {
-        result.footprint = WipeTower2::make_conservative_footprint(
-            preview_config, preview_region_config, used_filaments, tower_height, layer_height, force_tower);
     } else {
-        result.footprint = WipeTower::make_conservative_footprint(
-            preview_config, used_filaments, tower_height, layer_height, force_tower);
+        result.footprint = make_conservative_wipe_tower_footprint(
+            preview_config.wipe_tower_type.value, preview_config, preview_region_config,
+            used_filaments, tower_height, layer_height, force_tower);
     }
     const bool use_sliced_mesh =
         tower_data != nullptr &&

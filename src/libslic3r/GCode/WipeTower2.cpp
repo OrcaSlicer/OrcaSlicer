@@ -2281,6 +2281,20 @@ WipeTower2::Footprint WipeTower2::make_conservative_footprint(const PrintConfig&
     return wipe_tower.m_footprint;
 }
 
+WipeTowerFootprint make_conservative_wipe_tower_footprint(WipeTowerType wipe_tower_type,
+                                                          const PrintConfig& config,
+                                                          const PrintRegionConfig& default_region_config,
+                                                          const std::vector<unsigned int>& used_filaments,
+                                                          float tower_height,
+                                                          float layer_height,
+                                                          bool force_tower)
+{
+    return wipe_tower_type == WipeTowerType::Type2 ?
+               WipeTower2::make_conservative_footprint(config, default_region_config, used_filaments, tower_height, layer_height,
+                                                       force_tower) :
+               WipeTower::make_conservative_footprint(config, used_filaments, tower_height, layer_height, force_tower);
+}
+
 // Appends a toolchange into m_plan and calculates neccessary depth of the corresponding box
 void WipeTower2::plan_toolchange(float z_par, float layer_height_par, unsigned int old_tool,
                                 unsigned int new_tool, float wipe_volume)

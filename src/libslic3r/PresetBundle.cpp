@@ -653,7 +653,7 @@ Semver PresetBundle::get_vendor_profile_version(std::string vendor_name)
     return result_ver;
 }
 
-VendorType PresetBundle::get_current_vendor_type()
+VendorType PresetBundle::get_current_vendor_type() const
 {
     auto        t      = VendorType::Unknown;
     auto        config = &printers.get_edited_preset().config;
@@ -4318,6 +4318,12 @@ DynamicPrintConfig PresetBundle::full_fff_config(bool apply_extruder, std::optio
     add_if_some_non_empty(std::move(different_settings),            "different_settings_to_system");
     add_if_some_non_empty(std::move(print_compatible_printers),     "print_compatible_printers");
     out.option<ConfigOptionStrings>("extruder_ams_count", true)->values   = save_extruder_ams_count_to_string(this->extruder_ams_counts);
+
+    // Bambu profiles historically relied on Print::is_BBL_printer() to force the Type1
+    // implementation even though the generic option defaults to Type2. Resolve that policy
+    // while composing the effective config so preview and slicing consumers see one value.
+    if (is_bbl_vendor())
+        out.option<ConfigOptionEnum<WipeTowerType>>("wipe_tower_type", true)->value = WipeTowerType::Type1;
 
 	out.option<ConfigOptionEnumGeneric>("printer_technology", true)->value = ptFFF;
     return out;
