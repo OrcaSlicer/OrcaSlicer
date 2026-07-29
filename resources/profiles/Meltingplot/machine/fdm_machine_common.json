@@ -63,7 +63,7 @@
 	"default_print_profile": "",
 	"change_filament_gcode": "",
 	"machine_pause_gcode": "M226",
-	"machine_end_gcode": "M98 P\"0:/sys/meltingplot/print_end\"",
+	"machine_end_gcode": "G90\nG1 Z{min(max_layer_z + 5, printable_height)} F600\nM98 P\"0:/sys/meltingplot/print_end\"",
 	"layer_change_gcode": ";AFTER_LAYER_CHANGE\n;[layer_z]",
 	"before_layer_change_gcode": ";BEFORE_LAYER_CHANGE\n;[layer_z]\n"
 }
