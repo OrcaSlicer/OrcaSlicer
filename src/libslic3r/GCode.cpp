@@ -6133,6 +6133,11 @@ std::string GCode::generate_object_brim(
         if (!should_emit)
             continue;
 
+        // For combined brims, generate_object_brim is called once per object per layer.
+        // Skip if this brim was already emitted this layer by another object.
+        if (!m_brim_emitted_this_layer.insert(&brim).second)
+            continue;
+
         ExtrusionEntityCollection brim_entities;
         if (first_layer) {
             // Layer 0: use the pre-computed brim (preserves ears, EFC, auto-brim, combined logic).
@@ -7649,6 +7654,7 @@ LayerResult GCode::process_layer(
         return this->emit_belt_brim_bands(print, layers, single_object_instance_idx, extruder_id);
     };
 
+    m_brim_emitted_this_layer.clear();
     for (unsigned int extruder_id : layer_tools.extruders)
     {
         if (print.config().skirt_type == stCombined && !print.skirt_brim_groups().empty()) {
