@@ -77,7 +77,8 @@ and spin fields.
 
 The canonical gesture: **select a face or plane in the viewport, then click the
 sketch tool.** Never: click the sketch tool, then choose a plane from a list.
-The tool consumes what you pointed at.
+The tool consumes what you pointed at — and, better still, the thing you pointed
+at offers the tool itself (§4).
 
 > **Test.** Can the operation be performed start to finish without the pointer
 > leaving the viewport, except to press the tool itself? If a control had to be
@@ -114,8 +115,9 @@ first and asks for its input afterwards.
 
 Dialogs belong to document-level actions: open, save, import, export, preferences.
 Modelling never opens one. A feature that needs three values gets three labels on
-the geometry, not a form; a feature that needs a confirmation gets a ghost preview
-and a click in empty space.
+the geometry, not a form; a feature that needs confirming gets a ghost preview and
+a confirm/cancel puck in the scene beside it (§4.2) — an object, not a window: the
+camera still orbits, the values are still editable, nothing is blocked.
 
 > **Test.** Between starting an operation and seeing its result, does a window
 > appear that must be dismissed? If yes, redesign.
@@ -202,17 +204,74 @@ gets all of it.
 > network cable pulled and no account ever created: does this feature work, and
 > is it usable at an honest frame rate? Any "no" is a defect, not a limitation.
 
-## 4. Interaction grammar
+## 4. Interaction grammar — object-driven
 
 The rules above compose into one sentence the whole product obeys:
 
-> **Point at geometry → press a tool → manipulate handles → type exact values →
-> click empty space to commit.**
+> **Point at geometry → the geometry offers what can be done to it → choose the
+> tool → manipulate handles and type exact values → confirm or cancel.**
 
-Consequences worth stating explicitly:
+The selection does not merely feed the tool. **The selection determines which
+tools exist.** Pick a planar face and the product shows you the small set of
+things a planar face can become — sketch on it, extrude it, hole it, shell it,
+put a datum on it. Pick an edge and that set is fillet, chamfer, and the sketch
+tools that can use it as a reference. Nothing else is offered, because nothing
+else is possible.
 
-- **Empty space commits.** Escape cancels. These two never change meaning
-  between tools.
+This is the single largest thing we can do for a first-time user, and it is
+worth stating as the reason: a beginner's difficulty is not operating a tool,
+it is **not knowing which tools apply to what they are looking at**. A palette
+of sixty icons answers a question they cannot yet ask. A face that offers its
+own five verbs teaches the model of the product by using it. It also removes an
+entire class of failure — a tool that silently does nothing because the
+selection was wrong can no longer be reached.
+
+### 4.1 The offer
+
+- **It appears at the selection**, in the viewport, as a compact ring or strip
+  of icons with names — not a list in a panel, not a dropdown, not a menu bar.
+- **It is filtered, ordered and small.** Only what applies; most-used first for
+  that kind of selection; if it does not fit in one glance it is too long, and
+  the tail belongs behind one "more" affordance.
+- **It is an accelerator, not a toll gate.** The toolbar and the single-letter
+  shortcuts keep working exactly as they do now, and pressing a tool directly
+  consumes the same selection (L3). An expert never has to look at the offer;
+  a beginner never has to know the toolbar exists. Both routes land in the same
+  place — this is the only way one interface serves §2's three audiences.
+- **It is a teaching surface.** Icon *and* word, the drawing-office word (L10),
+  so the offer is where the vocabulary is learned.
+- **It never blocks the view of what it acts on**, and it dismisses the moment
+  the selection changes.
+
+### 4.2 Confirm and cancel are objects, not gestures
+
+The old rule — click empty space to commit — is withdrawn. It was an invisible
+gesture with a destructive meaning: nothing on screen said it, and a stray click
+committed a feature the user was still adjusting. That is exactly what L5
+forbids, and it is hostile to the audience §6.1 exists for.
+
+- **A pending feature carries a confirm/cancel puck**, attached to the geometry
+  it is editing, next to its handles: ✓ commits, ✗ discards. Enter and Escape
+  mirror them for the keyboard (L9). It is drawn where the user's attention
+  already is, and it is the only thing in the viewport that commits.
+- **Empty space now means "clear the selection"** — the safe meaning, and the
+  same meaning everywhere.
+- **This is not a dialog** (L4). It is two objects in the scene, on the
+  geometry, non-modal: the camera still orbits, the tree is still there, the
+  values are still editable while it waits.
+- **Continuous tools do not ask.** Drawing a line, a rectangle, a circle commits
+  each entity as its own gesture completes — a ✓ per line would destroy the
+  inner loop. The puck belongs to *features* (extrude, fillet, hole, pattern,
+  mate) and to sketch edits that hold a pending state. Enter/Escape end a
+  continuous tool rather than confirming an entity.
+- **Ambiguity resolves toward keeping work, never toward losing it.** Starting
+  another operation while a valid feature is pending commits it rather than
+  discarding it; if it is not valid, the product says why (L7) and keeps it
+  pending. Since undo reaches everything (§6.1), the recoverable direction is
+  always the right default.
+
+### 4.3 The rest of the grammar
+
 - **The status line is one imperative sentence** naming what the tool wants
   next, and it names the target when the target came from a selection
   ("Circle — click centre, then radius · on the picked face"). It is the
@@ -223,7 +282,7 @@ Consequences worth stating explicitly:
   consumes a selection clears it, so the next feature cannot silently inherit it.
 - **Every gesture is undoable**, and the feature tree is editable history, not a
   log. Re-editing a feature re-enters the same on-geometry interaction that
-  created it.
+  created it — including its offer and its puck.
 
 ## 5. Layout and screen budget
 
@@ -364,6 +423,8 @@ A "no" that is not accompanied by an argument is a request for changes.
 1. Which law (L1–L11) does the change most directly serve?
 2. Can the whole operation be completed without the pointer leaving the
    viewport? If not, why is this the exception?
+   And: does the relevant selection *offer* this tool (§4.1), or must the user
+   already know it exists?
 3. Are the values draggable *and* typable?
 4. Screenshot of the state after **exactly one** click of the new gesture,
    performed as a first-time user.
@@ -406,6 +467,12 @@ Violating them, with removal scheduled:
 - Hole is positioned by X/Y fields rather than by a point on a face.
 - Booleans and cuts pick their operands from lists rather than in 3D.
 - Fillet/chamfer edge selection still requires the click cycle L5 forbids.
+- **Selecting geometry offers nothing.** There is no contextual offer (§4.1):
+  the user faces the full toolbar whatever they have picked, and finds out that
+  a tool did not apply by it doing nothing. This is the largest single item of
+  new work the charter asks for.
+- **Committing is an invisible click in empty space** rather than the
+  confirm/cancel puck of §4.2 — the exact gesture that rule withdraws.
 
 Nothing on the violating list is defended. The only open question for each is
 what its on-geometry replacement should be.
