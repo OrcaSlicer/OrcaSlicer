@@ -47,7 +47,7 @@ NetworkTestDialog::NetworkTestDialog(wxWindow* parent, wxWindowID id, const wxSt
 
 	init_bind();
 
-	this->SetSizer(main_sizer);
+	this->SetSizerAndFit(main_sizer);
 	this->Layout();
 
 	this->Centre(wxBOTH);

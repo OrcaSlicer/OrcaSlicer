@@ -464,3 +464,27 @@ TEST_CASE("Profile validator flags dangling and renamed preset references", "[Pr
     }
 }
 
+// Under a shared override key, the last preset merged into the full config overwrote the others', so an
+// edited slicing-pipeline override never reached Print::apply's diff and re-configuring a plugin never
+// re-sliced. Per-type keys make that collision impossible; guard the scoping here.
+TEST_CASE("Plugin capability override keys are scoped per preset type", "[Preset][Plugin]")
+{
+    // Pin the key names: presets and 3mf files store them verbatim, so a rename is a format change.
+    CHECK(Preset::plugin_overrides_key(Preset::TYPE_PRINT)    == std::string("print_plugin_config_overrides"));
+    CHECK(Preset::plugin_overrides_key(Preset::TYPE_PRINTER)  == std::string("printer_plugin_config_overrides"));
+    CHECK(Preset::plugin_overrides_key(Preset::TYPE_FILAMENT) == std::string("filament_plugin_config_overrides"));
+
+    // ...and each key lives on exactly its own preset type's option list, so no two ever share a slot.
+    const std::pair<Preset::Type, const std::vector<std::string>*> scopes[] = {
+        {Preset::TYPE_PRINT,    &Preset::print_options()},
+        {Preset::TYPE_PRINTER,  &Preset::printer_options()},
+        {Preset::TYPE_FILAMENT, &Preset::filament_options()},
+    };
+    for (const auto &owner : scopes)
+        for (const auto &scoped : scopes) {
+            const std::string key = Preset::plugin_overrides_key(scoped.first);
+            CAPTURE(owner.first, key);
+            CHECK(contains(*owner.second, key) == (owner.first == scoped.first));
+        }
+}
+

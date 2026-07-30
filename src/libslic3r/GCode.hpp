@@ -539,6 +539,40 @@ private:
     // Cache for custom seam enforcers/blockers for each layer.
     SeamPlacer                          m_seam_placer;
 
+    // One stop of the island-level tour: consecutive islands of a single instance. An instance
+    // can have several visits per layer when its islands are toured non-consecutively.
+    struct InstanceVisit
+    {
+        // Index into the per-filament InstanceToPrint vector.
+        size_t              instance_idx;
+        // Islands to print, in order (indices into ObjectByExtruder::islands). Empty: print all
+        // islands, ordered at extrusion time.
+        std::vector<size_t> islands;
+        // First visit of this instance this layer; skirt, brim and support are emitted here.
+        bool                first_visit;
+    };
+
+    // One node of the island-level tour, also used as cache key: identity plus quantized position.
+    struct IslandOrderNode
+    {
+        ObjectID object_id;
+        size_t   instance_id;
+        // Index into ObjectByExtruder::islands, or size_t(-1) for an instance without chainable
+        // islands (e.g. support only), which is toured as a single stop.
+        size_t   island_idx;
+        // Island centroid in G-code coordinates, quantized to 1 mm for cache stability.
+        Point    pos;
+        bool operator==(const IslandOrderNode &rhs) const {
+            return object_id == rhs.object_id && instance_id == rhs.instance_id &&
+                   island_idx == rhs.island_idx && pos == rhs.pos;
+        }
+    };
+
+    // Cache the per-filament island tour to avoid recomputing while the layer's island layout is
+    // unchanged. Key: filament_id. Value: {nodes the tour was computed from, resulting visits}.
+    std::map<unsigned int, std::pair<std::vector<IslandOrderNode>, std::vector<InstanceVisit>>>
+                                        m_ordering_cache;
+
     ExtrusionQualityEstimator m_extrusion_quality_estimator;
 
 

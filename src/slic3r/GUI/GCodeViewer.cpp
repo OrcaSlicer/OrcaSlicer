@@ -1134,8 +1134,9 @@ void GCodeViewer::load_as_gcode(const GCodeProcessorResult& gcode_result, const 
     if (current_top_layer_only != required_top_layer_only)
         m_viewer.toggle_top_layer_only_view_range();
 
-    // ORCA: darken layers below the current one while scrubbing the preview (ported from preFlight)
+    // ORCA: darken the layers the preview layer slider is not scrubbed to
     m_viewer.set_dim_previous_layers(get_app_config()->get_bool("preview_dim_previous_layers"));
+    m_viewer.set_dim_previous_layers_brightness(0.01f * std::stoi(get_app_config()->get("preview_dim_previous_layers_brightness")));
 
     // avoid processing if called with the same gcode_result
     if (m_last_result_id == gcode_result.id && wxGetApp().is_editor()) {
@@ -4268,7 +4269,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
         };
 
         auto append_print = [&imgui, imperial_units](const ColorRGBA& color, const std::array<float, 4>& offsets, const Times& times, std::pair<double, double> used_filament) {
-            imgui.text(_CTX_utf8("Print", "Noun"));
+            imgui.text(_u8L_CONTEXT("Print", "Noun"));
             ImGui::SameLine();
 
             float icon_size = ImGui::GetTextLineHeight();
@@ -4302,7 +4303,7 @@ void GCodeViewer::render_legend(float &legend_height, int canvas_width, int canv
             for (const PartialTime& item : partial_times) {
                 switch (item.type)
                 {
-                case PartialTime::EType::Print:       { labels.push_back(_CTX_utf8("Print", "Noun")); break; }
+                case PartialTime::EType::Print:       { labels.push_back(_u8L_CONTEXT("Print", "Noun")); break; }
                 case PartialTime::EType::Pause:       { labels.push_back(_u8L("Pause")); break; }
                 case PartialTime::EType::ColorChange: { labels.push_back(_u8L("Color change")); break; }
                 }

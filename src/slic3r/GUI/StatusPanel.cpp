@@ -358,7 +358,7 @@ ExtruderSwithingStatus::ExtruderSwithingStatus(wxWindow *parent)
     { m_switching_status_label->SetBackgroundColour(parent->GetBackgroundColour());
     }
 
-    m_button_quit = new Button(this, _CTX(L_CONTEXT("Quit", "Quit_Switching"), "Quit_Switching"), "", 0, FromDIP(22));
+    m_button_quit = new Button(this, _L_CONTEXT(L_CONTEXT("Quit", "Quit_Switching"), "Quit_Switching"), "", 0, FromDIP(22));
     m_button_quit->SetStyle(ButtonStyle::Regular, ButtonType::Window);
     m_button_quit->Bind(wxEVT_BUTTON, &ExtruderSwithingStatus::on_quit, this);
 
@@ -1986,7 +1986,7 @@ wxBoxSizer *StatusBasePanel::create_extruder_control(wxWindow *parent)
     StateColor e_ctrl_bg(std::pair<wxColour, int>(BUTTON_PRESS_COL, StateColor::Pressed), std::pair<wxColour, int>(BUTTON_NORMAL1_COL, StateColor::Normal));
     StateColor e_ctrl_bd(std::pair<wxColour, int>(BUTTON_HOVER_COL, StateColor::Hovered), std::pair<wxColour, int>(BUTTON_NORMAL1_COL, StateColor::Normal));
 
-    m_nozzle_btn_panel = new SwitchBoard(panel, _L("Left"), _L("Right"), wxSize(FromDIP(126), FromDIP(26)));
+    m_nozzle_btn_panel = new SwitchBoard(panel, _L_CONTEXT("Left", "Nozzle position"), _L_CONTEXT("Right", "Nozzle position"), wxSize(FromDIP(126), FromDIP(26)));
     m_nozzle_btn_panel->SetAutoDisableWhenSwitch();
 
     m_bpButton_e_10 = new Button(panel, "", "monitor_extruder_up", 0, 22); // Orca Dont scale icon size 
