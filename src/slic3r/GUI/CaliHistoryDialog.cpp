@@ -632,9 +632,8 @@ EditCalibrationHistoryDialog::EditCalibrationHistoryDialog(wxWindow             
 
     main_sizer->Add(top_panel, 1, wxEXPAND | wxALL, FromDIP(20));
 
-    SetSizer(main_sizer);
+    SetSizerAndFit(main_sizer);
     Layout();
-    Fit();
     CenterOnParent();
 
     wxGetApp().UpdateDlgDarkUI(this);
@@ -910,9 +909,8 @@ NewCalibrationHistoryDialog::NewCalibrationHistoryDialog(wxWindow *parent, const
 
     main_sizer->Add(top_panel, 1, wxEXPAND | wxALL, FromDIP(20));
 
-    SetSizer(main_sizer);
+    SetSizerAndFit(main_sizer);
     Layout();
-    Fit();
     CenterOnParent();
 
     wxGetApp().UpdateDlgDarkUI(this);
