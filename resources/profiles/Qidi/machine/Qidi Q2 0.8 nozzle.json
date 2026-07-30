@@ -8,7 +8,7 @@
 	"default_filament_profile": [
 		"QIDI PLA Rapido"
 	],
-	"default_print_profile": "0.40mm Standard @Q2 0.8 nozzle",
+	"default_print_profile": "0.40mm Standard @Qidi Q2 0.8 nozzle",
 	"max_layer_height": [
 		"0.56"
 	],

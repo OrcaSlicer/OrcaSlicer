@@ -1,65 +1,64 @@
 {
 	"type": "process",
-	"name": "0.32mm Balanced Strength @X-Max 4 0.8 nozzle",
-	"inherits": "fdm_process_n_common",
-	"from": "system",
 	"setting_id": "U4yjBHhJwsHTIDHc",
+	"name": "0.32mm Balanced Strength @X-Max 4 0.8 nozzle",
+	"from": "system",
 	"instantiation": "true",
+	"inherits": "fdm_process_n_common",
 	"bridge_flow": "1",
 	"bridge_speed": [
-		"50"
+		"30"
 	],
 	"default_acceleration": [
 		"10000"
 	],
 	"elefant_foot_compensation": "0.15",
-	"enable_arc_fitting": "0",
+	"enable_arc_fitting": "1",
 	"gap_infill_speed": [
 		"50"
 	],
 	"initial_layer_infill_speed": [
-		"55"
+		"105"
 	],
 	"initial_layer_line_width": "0.82",
 	"initial_layer_print_height": "0.4",
 	"initial_layer_speed": [
-		"35"
+		"50"
 	],
 	"inner_wall_acceleration": [
-		"5000"
+		"0"
 	],
 	"inner_wall_line_width": "0.82",
 	"inner_wall_speed": [
-		"150"
+		"300"
 	],
 	"internal_solid_infill_line_width": "0.82",
 	"internal_solid_infill_speed": [
-		"150"
+		"250"
 	],
 	"layer_height": "0.32",
 	"line_width": "0.82",
 	"outer_wall_acceleration": [
-		"3000"
+		"5000"
 	],
 	"outer_wall_line_width": "0.82",
 	"outer_wall_speed": [
-		"120"
+		"200"
 	],
 	"overhang_3_4_speed": [
-		"25"
+		"30"
 	],
-	"overhang_4_4_speed": [
-		"5"
-	],
+	"prime_tower_width": "60",
+	"prime_tower_brim_width": "-1",
+	"prime_tower_flat_ironing": "1",
 	"skin_infill_line_width": "0.82",
 	"skeleton_infill_line_width": "0.82",
 	"small_perimeter_threshold": [
-		"4"
+		"0"
 	],
-	"smooth_coefficient": "4",
 	"sparse_infill_line_width": "0.82",
 	"sparse_infill_speed": [
-		"100"
+		"350"
 	],
 	"support_line_width": "0.82",
 	"top_surface_line_width": "0.82",

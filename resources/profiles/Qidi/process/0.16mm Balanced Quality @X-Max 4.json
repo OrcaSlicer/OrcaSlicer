@@ -1,10 +1,10 @@
 {
 	"type": "process",
-	"name": "0.16mm Balanced Quality @X-Max 4",
-	"inherits": "fdm_process_n_common",
-	"from": "system",
 	"setting_id": "AhcbXuW6Py1OlLEz",
+	"name": "0.16mm Balanced Quality @X-Max 4",
+	"from": "system",
 	"instantiation": "true",
+	"inherits": "fdm_process_n_common",
 	"bottom_color_penetration_layers": "4",
 	"bottom_shell_layers": "4",
 	"bridge_flow": "1",
@@ -12,16 +12,18 @@
 		"4000"
 	],
 	"elefant_foot_compensation": "0.15",
-	"enable_arc_fitting": "0",
+	"enable_arc_fitting": "1",
 	"gap_infill_speed": [
 		"250"
 	],
 	"inner_wall_acceleration": [
-		"5000"
+		"0"
 	],
 	"internal_solid_infill_speed": [
 		"200"
 	],
+	"ironing_flow": "25%",
+	"ironing_speed": "20",
 	"layer_height": "0.16",
 	"outer_wall_acceleration": [
 		"2000"
@@ -38,10 +40,12 @@
 	"overhang_3_4_speed": [
 		"10"
 	],
+	"prime_tower_width": "60",
+	"prime_tower_brim_width": "-1",
+	"prime_tower_flat_ironing": "1",
 	"small_perimeter_threshold": [
-		"4"
+		"0"
 	],
-	"smooth_coefficient": "4",
 	"sparse_infill_pattern": "gyroid",
 	"sparse_infill_speed": [
 		"200"

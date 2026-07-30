@@ -1,18 +1,18 @@
 {
 	"type": "process",
-	"name": "0.08mm Extra Fine @X-Max 4 0.2 nozzle",
-	"inherits": "fdm_process_n_common",
-	"from": "system",
 	"setting_id": "9aEE4QRwpA84OcRn",
+	"name": "0.08mm Extra Fine @X-Max 4 0.2 nozzle",
+	"from": "system",
 	"instantiation": "true",
+	"inherits": "fdm_process_n_common",
 	"bottom_color_penetration_layers": "5",
 	"bottom_shell_layers": "5",
 	"bridge_flow": "1",
 	"default_acceleration": [
-		"4000"
+		"10000"
 	],
 	"elefant_foot_compensation": "0.15",
-	"enable_arc_fitting": "0",
+	"enable_arc_fitting": "1",
 	"initial_layer_infill_speed": [
 		"70"
 	],
@@ -22,7 +22,7 @@
 		"40"
 	],
 	"inner_wall_acceleration": [
-		"5000"
+		"0"
 	],
 	"inner_wall_line_width": "0.22",
 	"inner_wall_speed": [
@@ -32,22 +32,25 @@
 	"layer_height": "0.08",
 	"line_width": "0.22",
 	"outer_wall_acceleration": [
-		"2000"
+		"5000"
 	],
 	"outer_wall_line_width": "0.22",
 	"outer_wall_speed": [
-		"60"
+		"100"
 	],
 	"overhang_1_4_speed": [
-		"0"
+		"60"
 	],
+	"prime_tower_width": "60",
+	"prime_tower_brim_width": "-1",
+	"prime_tower_flat_ironing": "1",
 	"skin_infill_line_width": "0.22",
 	"skeleton_infill_line_width": "0.22",
 	"small_perimeter_threshold": [
-		"4"
+		"0"
 	],
-	"smooth_coefficient": "4",
 	"sparse_infill_line_width": "0.22",
+	"sparse_infill_pattern": "gyroid",
 	"sparse_infill_speed": [
 		"100"
 	],

@@ -52,6 +52,7 @@
 	"print_settings_id": "",
 	"precise_outer_wall": "0",
 	"raft_layers": "0",
+	"seam_gap": "15%",
 	"seam_position": "nearest",
 	"skirt_distance": "2",
 	"skirt_height": "2",
