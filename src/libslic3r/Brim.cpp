@@ -883,6 +883,18 @@ ExPolygons make_brim_area_for_layer(const Print &print, const PrintObject &objec
     if (islands.empty())
         return {};
 
+    // For btEar, compute the ear positions once from layer 0 and reuse them
+    // on upper layers, projecting them to the current layer outline so the
+    // ear positions stay consistent even when the object shape changes.
+    const bool is_first_layer = (layer->id() == object.layers().front()->id());
+    const ExPolygons layer0_islands = [&]() {
+        ExPolygons out;
+        expolygons_append(out, object.layers().front()->lslices);
+        for (ExPolygon &ex : out)
+            ex.translate(instance_shift);
+        return out;
+    }();
+
     const BrimType  brim_type = object.config().brim_type.value;
     float           brim_offset = scale_(object.config().brim_object_gap.value);
     double          flow_width = print.brim_flow().scaled_spacing() * SCALING_FACTOR;
@@ -908,7 +920,35 @@ ExPolygons make_brim_area_for_layer(const Print &print, const PrintObject &objec
             outer = make_brim_ears_for_layer(&object, islands, flow_width, brim_offset, flow, true, instance_shift);
         } else if (use_auto_brim_ears) {
             coord_t size_ear = (brim_width - brim_offset - flow.scaled_spacing());
-            outer = make_brim_ears_auto(inner, size_ear, ear_detection_length, brim_ears_max_angle, true);
+            if (is_first_layer) {
+                // Layer 0: compute ears from layer 0 outline.
+                outer = make_brim_ears_auto(inner, size_ear, ear_detection_length, brim_ears_max_angle, true);
+            } else {
+                // Upper layers: compute ear positions from layer 0, then project
+                // them to the current layer outline so positions stay consistent.
+                ExPolygons layer0_inner = offset_ex(layer0_islands, brim_offset, jtRound, SCALED_RESOLUTION);
+                ExPolygons layer0_ears = make_brim_ears_auto(layer0_inner, size_ear, ear_detection_length, brim_ears_max_angle, true);
+                // Project each layer-0 ear center to the current layer outline.
+                ExPolygons projected_ears;
+                for (const ExPolygon &ear : layer0_ears) {
+                    Point center = ear.contour.bounding_box().center();
+                    Point projected = center;
+                    if (!islands.empty()) {
+                        Point closest;
+                        if (closest_point_on_expolygons(islands, center, closest))
+                            projected = closest;
+                    }
+                    Polygon ear_shape;
+                    for (size_t i = 0; i < POLY_SIDE_COUNT; i++) {
+                        double angle = (2.0 * PI * i) / POLY_SIDE_COUNT;
+                        ear_shape.points.emplace_back(size_ear * cos(angle), size_ear * sin(angle));
+                    }
+                    projected_ears.emplace_back();
+                    projected_ears.back().contour = ear_shape;
+                    projected_ears.back().contour.translate(projected);
+                }
+                outer = projected_ears;
+            }
         } else {
             outer = offset_ex(inner, brim_width, jtRound, SCALED_RESOLUTION);
         }
