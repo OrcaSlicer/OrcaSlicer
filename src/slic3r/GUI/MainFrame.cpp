@@ -1949,6 +1949,8 @@ wxBoxSizer* MainFrame::create_side_tools()
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_SLICED_FILE));
             else if (m_print_select == eExportAllSlicedFile)
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_ALL_SLICED_FILE));
+            else if (m_print_select == eExportAllGcode)
+                wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_EXPORT_ALL_GCODE));
             else if (m_print_select == eSendToPrinter)
                 wxPostEvent(m_plater, SimpleEvent(EVT_GLTOOLBAR_SEND_TO_PRINTER));
             else if (m_print_select == eSendToPrinterAll)
@@ -2048,6 +2050,19 @@ wxBoxSizer* MainFrame::create_side_tools()
                 }
 
                 p->append_button(export_gcode_btn);
+
+                SideButton* export_all_gcode_btn = new SideButton(p, _L("Export all G-code files"), "");
+                export_all_gcode_btn->SetCornerRadius(0);
+                export_all_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Export all G-code files"));
+                    m_print_select = eExportAllGcode;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    fit_tab_labels(); // ORCA on label change
+                    p->Dismiss();
+                });
+                p->append_button(export_all_gcode_btn);
             }
             else {
                 //Orca Slicer Buttons
@@ -2181,6 +2196,19 @@ wxBoxSizer* MainFrame::create_side_tools()
                     p->Dismiss();
                 });
                 p->append_button(export_gcode_btn);
+
+                SideButton* export_all_gcode_btn = new SideButton(p, _L("Export all G-code files"), "");
+                export_all_gcode_btn->SetCornerRadius(0);
+                export_all_gcode_btn->Bind(wxEVT_BUTTON, [this, p](wxCommandEvent&) {
+                    m_print_btn->SetLabel(_L("Export all G-code files"));
+                    m_print_select = eExportAllGcode;
+                    m_print_enable = get_enable_print_status();
+                    m_print_btn->Enable(m_print_enable);
+                    this->Layout();
+                    fit_tab_labels(); // ORCA on label change
+                    p->Dismiss();
+                });
+                p->append_button(export_all_gcode_btn);
             }
 
             p->Popup(m_print_btn);
@@ -2316,6 +2344,13 @@ bool MainFrame::get_enable_print_status()
         }
     }
     else if (m_print_select == eExportAllSlicedFile)
+    {
+        if (!part_plate_list.is_all_slice_result_ready_for_export())
+        {
+            enable = false;
+        }
+    }
+    else if (m_print_select == eExportAllGcode)
     {
         if (!part_plate_list.is_all_slice_result_ready_for_export())
         {

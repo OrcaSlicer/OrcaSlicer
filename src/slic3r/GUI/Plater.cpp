@@ -5269,6 +5269,12 @@ struct Plater::priv
     //BBS: m_slice_all in .gcode.3mf file case, set true when slice all
     bool m_slice_all_only_has_gcode{ false };
 
+    // Orca: "Export all G-code files" batch state. The plates are exported one at a time, each export
+    // being started from the completion event of the previous one - see start_next_export_gcode().
+    bool     m_export_all_gcode{ false };
+    int      m_cur_export_plate{ 0 };
+    fs::path m_export_all_dir;
+
     bool m_need_update{false};
     //BBS: add popup object table logic
     //ObjectTableDialog* m_popup_table{ nullptr };
@@ -5630,6 +5636,10 @@ struct Plater::priv
     void on_action_send_gcode(SimpleEvent&);
     void on_action_export_sliced_file(SimpleEvent&);
     void on_action_export_all_sliced_file(SimpleEvent&);
+    void on_action_export_all_gcode(SimpleEvent&);
+    // Orca: outcome of scheduling one plate of an "Export all G-code files" batch.
+    enum class ExportAllState { Scheduled, Finished, Failed };
+    ExportAllState start_next_export_gcode(int from_plate);
     void on_action_select_sliced_plate(wxCommandEvent& evt);
     //BBS: change dark/light mode
     void on_change_color_mode(SimpleEvent& evt);
@@ -6195,6 +6205,7 @@ Plater::priv::priv(Plater *q, MainFrame *main_frame)
         q->Bind(EVT_GLTOOLBAR_SEND_GCODE, &priv::on_action_send_gcode, this);
         q->Bind(EVT_GLTOOLBAR_EXPORT_SLICED_FILE, &priv::on_action_export_sliced_file, this);
         q->Bind(EVT_GLTOOLBAR_EXPORT_ALL_SLICED_FILE, &priv::on_action_export_all_sliced_file, this);
+        q->Bind(EVT_GLTOOLBAR_EXPORT_ALL_GCODE, &priv::on_action_export_all_gcode, this);
         q->Bind(EVT_GLTOOLBAR_SEND_TO_PRINTER, &priv::on_action_export_to_sdcard, this);
         q->Bind(EVT_GLTOOLBAR_SEND_TO_PRINTER_ALL, &priv::on_action_export_to_sdcard_all, this);
         q->Bind(EVT_GLTOOLBAR_PRINT_MULTI_MACHINE, &priv::on_action_send_to_multi_machine, this);
@@ -9214,6 +9225,10 @@ unsigned int Plater::priv::update_restart_background_process(bool force_update_s
     }
     // bitmask of UpdateBackgroundProcessReturnState
     unsigned int state = this->update_background_process(false, false, switch_print);
+    // Orca: this is the common entry point of every path that resolves `filename_format`, so keep the
+    // {plate_count} placeholder in sync with the plate list here rather than at each export call site.
+    if (Print *print = this->background_process.fff_print())
+        print->set_plate_count(partplate_list.get_plate_count());
     if (force_update_scene || (state & UPDATE_BACKGROUND_PROCESS_REFRESH_SCENE) != 0)
         view3D->reload_scene(false);
 
@@ -10961,7 +10976,9 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
                 platform_flavor() != PlatformFlavor::LinuxOnChromium);
             wxGetApp().removable_drive_manager()->set_exporting_finished(true);
         }else
-        if (exporting_status == ExportingStatus::EXPORTING_TO_LOCAL && !has_error)
+        // Orca: during an "Export all G-code files" batch a single notification is pushed once every
+        // plate is written out, instead of one per plate.
+        if (exporting_status == ExportingStatus::EXPORTING_TO_LOCAL && !has_error && !m_export_all_gcode)
             notification_manager->push_exporting_finished_notification(last_output_path, last_output_dir_path, false);
 
         // BBS, Generate calibration thumbnail for current plate
@@ -10980,8 +10997,23 @@ void Plater::priv::on_process_completed(SlicingProcessCompletedEvent &evt)
         }
     }
 
+    const bool was_exporting = exporting_status != ExportingStatus::NOT_EXPORTING;
     exporting_status = ExportingStatus::NOT_EXPORTING;
 
+    // Orca: "Export all G-code files" walks the plates from here - the export of the next plate can
+    // only be scheduled once the background process of the current one has been stopped above.
+    if (m_export_all_gcode && was_exporting) {
+        if (has_error || evt.cancelled()) {
+            m_export_all_gcode = false;
+        } else {
+            const ExportAllState next = start_next_export_gcode(m_cur_export_plate + 1);
+            if (next == ExportAllState::Scheduled)
+                // The completion event of that plate resumes the batch here.
+                return;
+            if (next == ExportAllState::Finished)
+                notification_manager->push_exporting_finished_notification(m_export_all_dir.string(), m_export_all_dir.string(), false);
+        }
+    }
 
     // BBS stop publishing if error occur
     //if (m_is_publishing) {
@@ -11315,6 +11347,92 @@ void Plater::priv::on_action_export_all_sliced_file(SimpleEvent &)
         BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received export all sliced file event\n";
         q->export_gcode_3mf(true);
     }
+}
+
+void Plater::priv::on_action_export_all_gcode(SimpleEvent &)
+{
+    if (q == nullptr)
+        return;
+
+    BOOST_LOG_TRIVIAL(debug) << __FUNCTION__ << ":received export all gcode event\n";
+
+    if (m_export_all_gcode) {
+        GUI::show_error(q, _L("Another export job is running."));
+        return;
+    }
+
+    AppConfig  &appconfig = *wxGetApp().app_config;
+    wxDirDialog dlg(q, _L("Choose a directory to export all G-code files"),
+                    from_u8(appconfig.get_last_output_dir("", false)),
+                    wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+    if (dlg.ShowModal() != wxID_OK)
+        return;
+
+    m_export_all_dir   = into_path(dlg.GetPath());
+    m_export_all_gcode = true;
+    if (start_next_export_gcode(0) == ExportAllState::Scheduled)
+        appconfig.update_last_output_dir(m_export_all_dir.string(), false);
+    else
+        BOOST_LOG_TRIVIAL(warning) << __FUNCTION__ << ": no plate holds a valid slicing result, nothing exported";
+}
+
+// Orca: schedule the G-code export of the first plate at or after `from_plate` that holds a valid
+// slicing result. Ends the batch and returns Finished when no such plate is left, or Failed when the
+// export of that plate could not be started.
+Plater::priv::ExportAllState Plater::priv::start_next_export_gcode(int from_plate)
+{
+    const int plate_count = partplate_list.get_plate_count();
+    for (m_cur_export_plate = from_plate; m_cur_export_plate < plate_count; ++m_cur_export_plate) {
+        const PartPlate *plate = partplate_list.get_plate(m_cur_export_plate);
+        if (plate != nullptr && plate->is_slice_result_valid())
+            break;
+    }
+    if (m_cur_export_plate >= plate_count) {
+        m_export_all_gcode = false;
+        return ExportAllState::Finished;
+    }
+
+    // Select the plate so that the background process picks up its print, and the placeholder parser
+    // resolves {plate_name} / {plate_number} against it.
+    q->select_plate(m_cur_export_plate);
+
+    fs::path output_path;
+    try {
+        const unsigned int state = update_restart_background_process(false, false);
+        if (state & priv::UPDATE_BACKGROUND_PROCESS_INVALID) {
+            m_export_all_gcode = false;
+            return ExportAllState::Failed;
+        }
+        // Only the output directory is imposed; the file name still goes through `filename_format`.
+        // The per-plate suffix of get_export_gcode_filename() feeds {input_filename_base}, so the
+        // default format already yields one file per plate.
+        output_path = fs::path(background_process.output_filepath_for_project(
+            m_export_all_dir / std::string(get_export_gcode_filename(".3mf", true).mb_str(wxConvUTF8))));
+    } catch (const Slic3r::PlaceholderParserError &ex) {
+        // Show the error with monospaced font.
+        show_error(q, ex.what(), true);
+        m_export_all_gcode = false;
+        return ExportAllState::Failed;
+    } catch (const std::exception &ex) {
+        show_error(q, ex.what(), false);
+        m_export_all_gcode = false;
+        return ExportAllState::Failed;
+    }
+    output_path = fs::path(Slic3r::fold_utf8_to_ascii(output_path.string()));
+
+    notification_manager->new_export_began(false);
+    exporting_status     = ExportingStatus::EXPORTING_TO_LOCAL;
+    last_output_path     = output_path.string();
+    last_output_dir_path = m_export_all_dir.string();
+    export_gcode(output_path, false);
+
+    if (!background_process.is_export_scheduled()) {
+        // export_gcode() bailed out - do not wait for a completion event that will never come.
+        exporting_status   = ExportingStatus::NOT_EXPORTING;
+        m_export_all_gcode = false;
+        return ExportAllState::Failed;
+    }
+    return ExportAllState::Scheduled;
 }
 
 void Plater::priv::on_action_export_to_sdcard(SimpleEvent&)
@@ -14850,6 +14968,8 @@ void Plater::force_update_all_plate_thumbnails()
 std::vector<size_t> Plater::load_files(const std::vector<fs::path>& input_files, LoadStrategy strategy, bool ask_multi) {
     //BBS: wish to reset state when load a new file
     p->m_slice_all_only_has_gcode = false;
+    // Orca: an "Export all G-code files" batch cannot outlive the project it was started on
+    p->m_export_all_gcode = false;
     //BBS: wish to reset all plates stats item selected state when load a new file
     p->preview->get_canvas3d()->reset_select_plate_toolbar_selection();
     return p->load_files(input_files, strategy, ask_multi);

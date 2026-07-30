@@ -516,6 +516,8 @@ public:
     //BBS: get/set plate id
     int get_plate_index() const { return m_plate_index; }
     void set_plate_index(int index) { m_plate_index = index; }
+    int get_plate_count() const { return m_plate_count; }
+    void set_plate_count(int count) { m_plate_count = count; }
     bool get_no_check_flag() const { return m_no_check; }
     void set_no_check_flag(bool no_check) { m_no_check = no_check; }
 
@@ -556,6 +558,7 @@ protected:
 
     //BBS: add plate id into print base
     int m_plate_index{ 0 };
+    int m_plate_count{ 1 };
     bool m_no_check = false;
 
     // SoftFever: current plate name
