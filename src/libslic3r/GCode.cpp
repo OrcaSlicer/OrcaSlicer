@@ -5165,16 +5165,17 @@ std::string GCode::generate_object_brim(const Print &print, const PrintObject &o
                 continue; // no geometry at this layer for this object
         }
 
-        if (brim_entities.empty())
-            continue;
-
-        this->set_origin(0., 0.);
-        m_avoid_crossing_perimeters.use_external_mp();
-        for (const ExtrusionEntity* ee : brim_entities.entities)
-            if (ee != nullptr)
-                gcode += this->extrude_entity(*ee, "brim", NOZZLE_CONFIG(support_speed));
-        m_avoid_crossing_perimeters.use_external_mp(false);
-        m_avoid_crossing_perimeters.disable_once();
+        if (!brim_entities.empty()) {
+            this->set_origin(0., 0.);
+            m_avoid_crossing_perimeters.use_external_mp();
+            for (const ExtrusionEntity* ee : brim_entities.entities)
+                if (ee != nullptr)
+                    gcode += this->extrude_entity(*ee, "brim", NOZZLE_CONFIG(support_speed));
+            m_avoid_crossing_perimeters.use_external_mp(false);
+            m_avoid_crossing_perimeters.disable_once();
+        }
+        // Always decrement brim layer counter even when brim is empty
+        // (e.g. btInnerOnly with no holes on this layer).
         for (const ObjectInstanceID& instance : brim.instances) {
             auto it = m_objsWithBrim.find(instance);
             if (it != m_objsWithBrim.end()) {
