@@ -511,10 +511,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
         auto* b_sketch = icon_btn("design_sketch", _L("Sketch"));
         std::function<void()> act_sketch = [this] {
-            populate_plane_choices(m_draw_plane);   // surface datum planes in the picker
             set_ui_mode(UiMode::Sketch);
             m_status->SetForegroundColour(wxNullColour);
-            m_status->SetLabel(_L("Pick a plane and a sketch tool, then draw"));
+            m_status->SetLabel(_L("Click a face or a reference plane in the viewport, then a sketch tool"));
             m_status->Refresh();
         };
         b_sketch->Bind(wxEVT_BUTTON, [act_sketch](wxCommandEvent&) { act_sketch(); });
@@ -2669,24 +2668,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
                               0, wxLEFT | wxRIGHT | wxTOP, 12);
     m_box_sketch_session->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
     {
-        auto* prow = new wxBoxSizer(wxHORIZONTAL);
-        prow->Add(new wxStaticText(m_cards, wxID_ANY, _L("Plane")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
-        m_draw_plane = make_combo(m_cards);
-        m_draw_plane->Append(_L("XY")); m_draw_plane->Append(_L("XZ")); m_draw_plane->Append(_L("YZ"));
-        m_draw_plane->SetSelection(0);
-        // Live re-plane: begin_sketch captures the plane only at first-tool-pick, so changing the
-        // dropdown afterwards used to be inert (sketch stayed on its original plane while the
-        // committed feature would silently land on the new one). Honour the change immediately —
-        // the 2D entities are re-lifted through the chosen plane, matching what Finish commits.
-        m_draw_plane->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent&) {
-            if (m_viewport && m_viewport->is_sketching())
-                m_viewport->set_sketch_plane(plane_from_choice(m_draw_plane->GetSelection()));
-        });
-        prow->AddStretchSpacer();   // label left, control right — same row idiom as the grids
-        prow->Add(m_draw_plane, 0, wxALIGN_CENTER_VERTICAL);
-        m_box_sketch_session->Add(prow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+        // NO plane dropdown. The sketch plane comes from what is picked in the VIEWPORT — a face
+        // on a solid, or one of the reference-plane ghosts — because that is where the user is
+        // looking and pointing. A combo duplicated that decision somewhere the geometry could not
+        // see it, and once a face could be picked it went further and displayed a stale row that
+        // contradicted the real target. snaporca-e1p.
         auto* hint = new wxStaticText(m_cards, wxID_ANY,
-            _L("Pick a plane, then draw. Finish (✓) when done."));
+            _L("Click a face or a reference plane, then a sketch tool."));
         hint->SetForegroundColour(dp_sec_text());
         m_box_sketch_session->Add(hint, 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, 12);
     }
@@ -3296,9 +3284,16 @@ DesignPanel::DesignPanel(wxWindow* parent)
             refresh_plane_labels();
             refresh_preview();   // re-resolve the frame + move the gizmo/ghosts to the new base
         } else {
-            // Fallback (no object yet): clicking a reference plane selects it as the sketch plane.
-            if (m_draw_plane && base >= 0 && base < int(m_draw_plane->GetCount()))
-                m_draw_plane->SetSelection(base);
+            // Clicking a reference plane in 3D IS how a sketch plane is chosen now. Record it and,
+            // when a session is already live, re-plane it immediately: begin_sketch captures the
+            // plane at first-tool-pick, so without this the entities would stay on the old plane
+            // while the committed feature landed on the new one.
+            if (base >= 0) {
+                m_ref_plane = base;
+                m_pick_face = m_pick_face_body = -1;   // last pick wins: a plane beats a stale face
+                if (m_viewport && m_viewport->is_sketching())
+                    m_viewport->set_sketch_plane(plane_from_choice(m_ref_plane));
+            }
             const char* nm = (base == 0) ? "XY" : (base == 1) ? "XZ" : (base == 2) ? "YZ" : "datum";
             m_status->SetForegroundColour(wxColour(120, 210, 120));
             // The "press Sketch" half is only true in Feature mode, where that button exists.
@@ -3967,8 +3962,7 @@ void DesignPanel::add_imported_sketch(
         }
     }
     if (!on_face) {
-        if (m_draw_plane) f.plane = plane_from_choice(m_draw_plane->GetSelection());
-        else { f.plane = SketchPlane::XY(); f.plane.origin += m_doc.modeling_origin; }
+        f.plane = plane_from_choice(m_ref_plane);
     }
 
     // Drop the live face selection (its body is now remembered on import_face_body): otherwise
@@ -4840,6 +4834,18 @@ void DesignPanel::populate_plane_choices(ComboBox* c) const
     c->SetSelection((keep >= 0 && keep < int(c->GetCount())) ? keep : 0);
 }
 
+wxString DesignPanel::ref_plane_name(int row) const
+{
+    if (row == 1) return "XZ";
+    if (row == 2) return "YZ";
+    if (row >= 3) {
+        const auto datums = m_doc.resolve_datum_planes();
+        const int di = row - 3;
+        if (di < int(datums.size())) return wxString::FromUTF8(datums[di].first);
+    }
+    return "XY";
+}
+
 SketchPlane DesignPanel::plane_from_choice(int row) const
 {
     if (row < 3) {                                // 0=XY,1=XZ,2=YZ through the modeling origin
@@ -4875,11 +4881,8 @@ SketchPlane DesignPanel::sketch_plane_from_selection(wxString& what) const
              : _L("the picked face");
         return p;
     }
-    const int row = m_draw_plane ? m_draw_plane->GetSelection() : 0;
-    what = (m_draw_plane && row >= 0 && row < int(m_draw_plane->GetCount()))
-         ? m_draw_plane->GetString(unsigned(row))
-         : wxString("XY");
-    return plane_from_choice(row);
+    what = ref_plane_name(m_ref_plane);
+    return plane_from_choice(m_ref_plane);
 }
 
 void DesignPanel::apply_plane_refs(CadFeature& f) const

@@ -229,6 +229,7 @@ private:
     // Plane pickers: fill a choice with XY/XZ/YZ + the document's datum planes, and
     // map a choice row back to the actual SketchPlane (rows 0-2 base, 3+ datum).
     void        populate_plane_choices(ComboBox* c) const;
+    wxString    ref_plane_name(int row) const;   // "XY" / a datum's name, for the on-geometry hint
     SketchPlane plane_from_choice(int row) const;
     // Where a new sketch goes, resolved from what is SELECTED IN THE VIEWPORT rather than from a
     // list: a picked planar face wins, otherwise the reference plane last clicked in 3D. `what`
@@ -392,7 +393,10 @@ private:
     wxSpinCtrl*       m_sides{nullptr};          // polygon sides
     CheckBox*         m_poly_circ{nullptr};      // polygon circumscribed toggle (Orca teal check)
 
-    ComboBox*         m_draw_plane{nullptr};
+    // Which reference plane a sketch falls back to when no face is picked: 0/1/2 = XY/XZ/YZ,
+    // >=3 indexes resolve_datum_planes(). Set by CLICKING a ghost plane in the viewport — there is
+    // deliberately no dropdown for it. snaporca-e1p.
+    int               m_ref_plane{0};
     ComboBox*         m_shape{nullptr};
     ComboBox*         m_plane{nullptr};
     ComboBox*         m_mode{nullptr};

@@ -424,7 +424,13 @@ public:
     // world 0). Not serialized — the GUI re-applies it from the live bed on every tab show.
     Vec3d modeling_origin{Vec3d::Zero()};
 
-    double linear_deflection{0.01};
+    // Tessellation quality, matched to Orca's OWN STEP importer (Format/STEP.hpp defaults:
+    // linear 0.003, angular 0.5 rad) so a body modelled here reaches the screen at the same
+    // density as the identical body imported through Prepare. It was 0.01 linear — 3.3x coarser
+    // than anything else in the app, which is why curved faces read as faceted next to an
+    // imported part. Angular already matched. Same BRepMesh_IncrementalMesh call, same GLVolume
+    // path, same shaders: the renderer was never the difference, the mesh fed to it was.
+    double linear_deflection{0.003};
     double angular_deflection{0.5};
 
     int  add_sketch(SketchShape shape, const SketchPlane& plane,
