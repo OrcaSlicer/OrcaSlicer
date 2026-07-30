@@ -186,7 +186,7 @@ TroubleshootDialog::TroubleshootDialog()
         Fit();
     });
 
-    auto link_wiki = new HyperLink(this, _L("Wiki Guide"));
+    auto link_wiki = new HyperLink(this, _L("Wiki Guide"), "https://www.orcaslicer.com/wiki/troubleshoot_center");
 
     // RIGHT SIZER //////////////////////
 
@@ -354,7 +354,7 @@ TroubleshootDialog::TroubleshootDialog()
     m_sizer->AddSpacer(FromDIP(20));
     m_sizer->Add(right_sizer, 0, wxEXPAND | wxTOP | wxBOTTOM | wxRIGHT, FromDIP(15));
 
-    SetSizer(m_sizer);
+    SetSizerAndFit(m_sizer);
     Layout();
     Fit();
     CenterOnParent();

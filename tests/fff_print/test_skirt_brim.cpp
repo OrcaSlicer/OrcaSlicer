@@ -153,6 +153,24 @@ TEST_CASE("Object brims are generated per instance", "[SkirtBrim]")
     }
 }
 
+TEST_CASE("Uncombined neighboring brims precede their respective objects", "[SkirtBrim]")
+{
+    Print print;
+    Model model;
+    place_two_cubes_apart(0, {
+        { "skirt_loops",   0 },
+        { "brim_type",     "outer_only" },
+        { "brim_width",    5 },
+        { "combine_brims", 0 },
+    }, print, model);
+    print.process();
+
+    REQUIRE(print.skirt_brim_groups().size() == 1);
+    REQUIRE(print.skirt_brim_groups().front().brims.size() == 2);
+    CHECK(role_sequence(gcode(print), { "brim", "perimeter" }) ==
+          std::vector<std::string>{ "brim", "perimeter", "brim", "perimeter" });
+}
+
 TEST_CASE("Combine brims merges neighboring object instances", "[SkirtBrim]")
 {
     Print print;

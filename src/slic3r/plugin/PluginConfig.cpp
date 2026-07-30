@@ -5,6 +5,7 @@
 #include <boost/log/trivial.hpp>
 #include <boost/nowide/fstream.hpp>
 
+#include <libslic3r/Config.hpp>
 #include <libslic3r/PresetBundle.hpp>
 #include <libslic3r/PrintConfig.hpp>
 #include <slic3r/GUI/GUI.hpp>
@@ -164,6 +165,20 @@ bool CapabilityConfigDocument::erase(const PluginCapabilityId& id)
     return erased;
 }
 
+bool CapabilityConfigDocument::prune_unreferenced(const std::set<std::pair<PluginCapabilityType, std::string>>& referenced)
+{
+    bool changed = false;
+    for (auto it = m_entries.begin(); it != m_entries.end();) {
+        if (referenced.count({it->first.type, it->first.name}) != 0) {
+            ++it;
+        } else {
+            it      = m_entries.erase(it);
+            changed = true;
+        }
+    }
+    return changed;
+}
+
 bool CapabilityConfigDocument::empty() const
 {
     return m_entries.empty() && m_opaque_entries.empty();
@@ -309,12 +324,6 @@ bool PluginConfig::dirty() const
     return m_dirty;
 }
 
-std::string plugin_overrides_of(const Preset& preset)
-{
-    const auto* opt = dynamic_cast<const ConfigOptionString*>(preset.config.option(PLUGIN_OVERRIDES_OPTION_KEY));
-    return opt == nullptr ? std::string() : opt->value;
-}
-
 bool parse_plugin_overrides(const std::string& raw, CapabilityConfigDocument& document, std::string& error)
 {
     document = CapabilityConfigDocument();
@@ -340,6 +349,50 @@ bool parse_plugin_overrides(const std::string& raw, CapabilityConfigDocument& do
 std::string serialize_plugin_overrides(const CapabilityConfigDocument& document)
 {
     return document.empty() ? std::string() : document.serialize_entries().dump();
+}
+
+bool prune_stale_plugin_overrides(DynamicConfig& config, const std::string& overrides_key)
+{
+    const auto* overrides_opt = dynamic_cast<const ConfigOptionString*>(config.option(overrides_key));
+    if (overrides_opt == nullptr || overrides_opt->value.empty())
+        return false;
+
+    CapabilityConfigDocument overrides;
+    std::string              error;
+    if (!parse_plugin_overrides(overrides_opt->value, overrides, error)) {
+        // Malformed text is not ours to fix up here: leave it untouched rather than risk
+        // discarding data the user might still be able to recover.
+        BOOST_LOG_TRIVIAL(error) << "prune_stale_plugin_overrides: " << error;
+        return false;
+    }
+
+    // Capability names currently referenced by a plugin-backed option's value(s) — e.g.
+    // slicing_pipeline_plugin's ConfigOptionStrings entries name SlicingPipeline capabilities
+    // directly, the same raw values save_plugin_collection() resolves into the "plugins" manifest.
+    std::set<std::pair<PluginCapabilityType, std::string>> referenced;
+    const ConfigDef* def = config.def();
+    for (const std::string& opt_key : config.keys()) {
+        const ConfigOptionDef* opt_def = def != nullptr ? def->get(opt_key) : nullptr;
+        if (opt_def == nullptr || !opt_def->is_plugin_backed())
+            continue;
+
+        const ConfigOption*        opt  = config.option(opt_key);
+        const PluginCapabilityType type = plugin_capability_type_from_string(opt_def->plugin_type);
+        if (const auto* string_opt = dynamic_cast<const ConfigOptionString*>(opt)) {
+            if (!string_opt->value.empty())
+                referenced.emplace(type, string_opt->value);
+        } else if (const auto* vector_opt = dynamic_cast<const ConfigOptionVectorBase*>(opt)) {
+            for (const std::string& value : vector_opt->vserialize())
+                if (!value.empty())
+                    referenced.emplace(type, value);
+        }
+    }
+
+    if (!overrides.prune_unreferenced(referenced))
+        return false;
+
+    config.set_key_value(overrides_key, new ConfigOptionString(serialize_plugin_overrides(overrides)));
+    return true;
 }
 
 EffectiveCapabilityConfig PresetPluginConfigService::get_effective_config(const CapabilityConfigDocument&   overrides,
@@ -411,27 +464,29 @@ EffectiveCapabilityConfig active_capability_config(const PluginCapabilityId& id)
 
     if (bundle != nullptr) {
         const std::string type_key = plugin_capability_type_to_string(id.type);
+        // The edited preset of each type that can hold plugin-backed options, keyed by its option list.
+        const std::pair<const std::vector<std::string>*, const Preset*> scopes[] = {
+            {&Preset::print_options(),    &bundle->prints.get_edited_preset()},
+            {&Preset::printer_options(),  &bundle->printers.get_edited_preset()},
+            {&Preset::filament_options(), &bundle->filaments.get_edited_preset()},
+        };
         for (const auto& [key, def] : print_config_def.options) {
             if (def.plugin_type != type_key)
                 continue;
-
-            const auto& print_options = Preset::print_options();
-            if (std::find(print_options.begin(), print_options.end(), key) != print_options.end()) {
-                preset = &bundle->prints.get_edited_preset();
+            for (const auto& [options, edited] : scopes)
+                if (contains(*options, key)) {
+                    preset = edited;
+                    break;
+                }
+            if (preset != nullptr)
                 break;
-            }
-
-            const auto& printer_options = Preset::printer_options();
-            if (std::find(printer_options.begin(), printer_options.end(), key) != printer_options.end()) {
-                preset = &bundle->printers.get_edited_preset();
-                break;
-            }
         }
     }
 
     if (preset != nullptr) {
+        const auto* stored = dynamic_cast<const ConfigOptionString*>(preset->config.option(Preset::plugin_overrides_key(preset->type)));
         std::string error;
-        if (!parse_plugin_overrides(plugin_overrides_of(*preset), overrides, error)) {
+        if (!parse_plugin_overrides(stored == nullptr ? std::string() : stored->value, overrides, error)) {
             // Text we cannot read is not an override: log it and resolve against the base config.
             BOOST_LOG_TRIVIAL(error) << "Preset \"" << preset->name << "\": " << error;
             overrides = CapabilityConfigDocument();

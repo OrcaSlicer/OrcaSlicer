@@ -96,6 +96,9 @@ std::string WebViewHostDialog::document_start_injector(const std::string& markup
     const std::string literal = nlohmann::json(markup).dump();
     std::string       s;
     s += "(function(){";
+    // wxWebView's AddUserScript runs in child frames too (including cross-origin
+    // frames on WebView2). Host theme state belongs only to the top-level page.
+    s += "if(window.top!==window.self)return;";
     s += prelude;
     s += "var css=" + literal + ";";
     s += "function inject(){";

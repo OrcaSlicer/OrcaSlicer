@@ -407,6 +407,11 @@ public:
     // Printer machine limits, those are contained in printer_options().
     static const std::vector<std::string>&  machine_limits_options();
 
+    // Option key holding this preset type's plugin capability overrides. Each type has its own key so
+    // the values survive the merge into a single full config; print is the fallback for the types with
+    // no plugin-backed options.
+    static const char*                      plugin_overrides_key(Type type);
+
     static const std::vector<std::string>&  sla_printer_options();
     static const std::vector<std::string>&  sla_material_options();
     static const std::vector<std::string>&  sla_print_options();

@@ -1609,6 +1609,64 @@ void WipeTower::set_extruder(size_t idx, const PrintConfig& config)
     if (max_vol_speed!= 0.f)
         m_filpar[idx].max_e_speed = (max_vol_speed / filament_area());
 
+    // Vortek H2C: carousel-specific ramming, precool, and reverse travel parameters
+    {
+        // Ramming speed: .first = extruder change, .second = nozzle change (carousel)
+        // Use the dedicated ramming volumetric speed, falling back to max_vol_speed only when
+        // the setting is nil/-1.
+        float ramming_vol_speed = float(config.filament_ramming_volumetric_speed.get_at(idx));
+        if (config.filament_ramming_volumetric_speed.is_nil(idx) || is_approx(config.filament_ramming_volumetric_speed.get_at(idx), -1.))
+            ramming_vol_speed = max_vol_speed;
+        m_filpar[idx].max_e_ramming_speed.first = (ramming_vol_speed / filament_area());
+
+        float ramming_vol_speed_nc = float(config.filament_ramming_volumetric_speed_nc.get_at(idx));
+        if (config.filament_ramming_volumetric_speed_nc.is_nil(idx) || is_approx(config.filament_ramming_volumetric_speed_nc.get_at(idx), -1.))
+            ramming_vol_speed_nc = max_vol_speed;
+        m_filpar[idx].max_e_ramming_speed.second = (ramming_vol_speed_nc / filament_area());
+    }
+    {
+        // Precool target temp: .first = extruder change, .second = nozzle change (carousel)
+        // Precool is only active when enable_pre_heating is on; otherwise no precool temp/timing is
+        // applied and the downstream precool_t stays 0, matching printers with pre-heating disabled.
+        m_filpar[idx].precool_target_temp = {0, 0};
+        if (config.enable_pre_heating.value) {
+            if (!config.filament_pre_cooling_temperature.is_nil(idx) && config.filament_pre_cooling_temperature.get_at(idx) != 0)
+                m_filpar[idx].precool_target_temp.first = config.filament_pre_cooling_temperature.get_at(idx);
+            if (!config.filament_pre_cooling_temperature_nc.is_nil(idx) && config.filament_pre_cooling_temperature_nc.get_at(idx) != 0)
+                m_filpar[idx].precool_target_temp.second = config.filament_pre_cooling_temperature_nc.get_at(idx);
+        }
+    }
+    {
+        // Precool timing: (nozzle_temp - precool_temp) / hotend_cooling_rate
+        int extruder_count = m_is_multi_extruder ? 2 : 1; // H2C = 2 extruders
+        float nozzle_temp = float(config.nozzle_temperature.is_nil(idx) ? 0 : config.nozzle_temperature.get_at(idx));
+        float nozzle_temp_fl = float(config.nozzle_temperature_initial_layer.is_nil(idx) ? nozzle_temp : config.nozzle_temperature_initial_layer.get_at(idx));
+        m_filpar[idx].precool_t.first.resize(extruder_count, 0.f);
+        m_filpar[idx].precool_t.second.resize(extruder_count, 0.f);
+        m_filpar[idx].precool_t_first_layer.first.resize(extruder_count, 0.f);
+        m_filpar[idx].precool_t_first_layer.second.resize(extruder_count, 0.f);
+        std::vector<double> cooling_rates = config.hotend_cooling_rate.values;
+        for (int i = 0; i < extruder_count && i < (int)cooling_rates.size(); i++) {
+            if (cooling_rates[i] < EPSILON) continue;
+            if (m_filpar[idx].precool_target_temp.first != 0) {
+                m_filpar[idx].precool_t.first[i] = std::max(0.f, nozzle_temp - float(m_filpar[idx].precool_target_temp.first)) / float(cooling_rates[i]);
+                m_filpar[idx].precool_t_first_layer.first[i] = std::max(0.f, nozzle_temp_fl - float(m_filpar[idx].precool_target_temp.first)) / float(cooling_rates[i]);
+            }
+            if (m_filpar[idx].precool_target_temp.second != 0) {
+                m_filpar[idx].precool_t.second[i] = std::max(0.f, nozzle_temp - float(m_filpar[idx].precool_target_temp.second)) / float(cooling_rates[i]);
+                m_filpar[idx].precool_t_first_layer.second[i] = std::max(0.f, nozzle_temp_fl - float(m_filpar[idx].precool_target_temp.second)) / float(cooling_rates[i]);
+            }
+        }
+    }
+    {
+        // Ramming travel time: .first = extruder change, .second = nozzle change (carousel)
+        m_filpar[idx].ramming_travel_time = {0.f, 0.f};
+        if (!config.filament_ramming_travel_time.is_nil(idx))
+            m_filpar[idx].ramming_travel_time.first = float(config.filament_ramming_travel_time.get_at(idx));
+        if (!config.filament_ramming_travel_time_nc.is_nil(idx))
+            m_filpar[idx].ramming_travel_time.second = float(config.filament_ramming_travel_time_nc.get_at(idx));
+    }
+
     m_perimeter_width = nozzle_diameter * Width_To_Nozzle_Ratio; // all extruders are now assumed to have the same diameter
     m_nozzle_change_perimeter_width = 2*m_perimeter_width;
     // BBS: remove useless config
@@ -1893,7 +1951,7 @@ WipeTower::NozzleChangeResult WipeTower::nozzle_change(int old_filament_id, int 
         .set_initial_tool(m_current_tool)
         .set_extrusion_flow(m_extrusion_flow)
         .set_y_shift(m_y_shift + (new_filament_id != (unsigned int) (-1) && (m_current_shape == SHAPE_REVERSED) ? m_layer_info->depth - m_layer_info->toolchanges_depth() : 0.f))
-        .append("; Nozzle change start\n");
+        .append(format_nozzle_change_tag(true, old_filament_id, new_filament_id));
 
     box_coordinates cleaning_box(Vec2f(m_perimeter_width, m_perimeter_width), m_wipe_tower_width - 2 * m_perimeter_width,
                                  (new_filament_id != (unsigned int) (-1) ? wipe_depth + m_depth_traversed - m_perimeter_width : m_wipe_tower_depth - m_perimeter_width));
@@ -1969,7 +2027,7 @@ WipeTower::NozzleChangeResult WipeTower::nozzle_change(int old_filament_id, int 
         }
     }
 
-    writer.append("; Nozzle change end\n");
+    writer.append(format_nozzle_change_tag(false, old_filament_id, new_filament_id));
 
     result.start_pos = writer.start_pos_rotated();
     result.end_pos   = writer.pos();
@@ -2546,6 +2604,19 @@ void WipeTower::plan_toolchange(float z_par, float layer_height_par, unsigned in
             nozzle_change_depth = nozzle_change_line_count * m_nozzle_change_perimeter_width;
         depth += nozzle_change_depth;
     }
+    if (nozzle_change_depth == 0
+        && !m_filament_nozzle_map.empty()
+        && old_tool < m_filament_nozzle_map.size() && new_tool < m_filament_nozzle_map.size()
+        && m_filament_nozzle_map[old_tool] != m_filament_nozzle_map[new_tool]) {
+        double e_flow                   = nozzle_change_extrusion_flow(layer_height_par);
+        double length                   = m_filaments_change_length[old_tool] / e_flow;
+        int    nozzle_change_line_count = length / (m_wipe_tower_width - 2*m_nozzle_change_perimeter_width) + 1;
+        if (has_tpu_filament())
+            nozzle_change_depth = m_tpu_fixed_spacing * nozzle_change_line_count * m_nozzle_change_perimeter_width;
+        else
+            nozzle_change_depth = nozzle_change_line_count * m_nozzle_change_perimeter_width;
+        depth += nozzle_change_depth;
+    }
     WipeTowerInfo::ToolChange tool_change = WipeTowerInfo::ToolChange(old_tool, new_tool, depth, 0.f, 0.f, wipe_volume, length_to_extrude, purge_volume);
     tool_change.nozzle_change_depth       = nozzle_change_depth;
     m_plan.back().tool_changes.push_back(tool_change);
@@ -2695,6 +2766,13 @@ bool WipeTower::is_petg_filament(int filament_id) const
     return m_filpar[filament_id].material == "PETG";
 }
 
+bool WipeTower::is_need_reverse_travel(int filament_id, bool extruder_change) const
+{
+    if (extruder_change)
+        return m_filpar[filament_id].ramming_travel_time.first > EPSILON;
+    return m_filpar[filament_id].ramming_travel_time.second > EPSILON;
+}
+
 // BBS: consider both soluable and support properties
 // Return index of first toolchange that switches to non-soluble and non-support extruder
 // ot -1 if there is no such toolchange.
@@ -2816,6 +2894,13 @@ WipeTower::ToolChangeResult WipeTower::tool_change_new(size_t new_tool, bool sol
     // Skip the cross-extruder nozzle change (ramming) on an extruder's final layer above its printable
     // height. is_valid_last_layer is inert unless multi-extruder near Z-max.
     if (!m_filament_map.empty() && new_tool < m_filament_map.size() && m_filament_map[m_current_tool] != m_filament_map[new_tool]
+        && is_valid_last_layer(m_current_tool, m_cur_layer_id, m_z_pos)) {
+        m_nozzle_change_result = nozzle_change_new(m_current_tool, new_tool, solid_nozzlechange);
+    }
+    if (m_nozzle_change_result.gcode.empty()
+        && !m_filament_nozzle_map.empty()
+        && m_current_tool < m_filament_nozzle_map.size() && new_tool < m_filament_nozzle_map.size()
+        && m_filament_nozzle_map[m_current_tool] != m_filament_nozzle_map[new_tool]
         && is_valid_last_layer(m_current_tool, m_cur_layer_id, m_z_pos)) {
         m_nozzle_change_result = nozzle_change_new(m_current_tool, new_tool, solid_nozzlechange);
     }
@@ -2983,20 +3068,40 @@ WipeTower::NozzleChangeResult WipeTower::nozzle_change_new(int old_filament_id, 
     }
 
     float nz_extrusion_flow = nozzle_change_extrusion_flow(m_layer_height);
-    float nozzle_change_speed = 60.0f * m_filpar[m_current_tool].max_e_speed / nz_extrusion_flow;
-    nozzle_change_speed       = solid_infill ? 40.f * 60.f : nozzle_change_speed;//If the contact layers belong to different categories, then reduce the speed.
+    bool extruder_change = !is_in_same_extruder(old_filament_id, new_filament_id);
+    float max_e_ramming = extruder_change
+        ? m_filpar[m_current_tool].max_e_ramming_speed.first
+        : m_filpar[m_current_tool].max_e_ramming_speed.second;
+    if (max_e_ramming < EPSILON) max_e_ramming = m_filpar[m_current_tool].max_e_speed; // fallback
+    float nozzle_change_speed = 60.0f * max_e_ramming / nz_extrusion_flow;
+    nozzle_change_speed       = solid_infill ? 40.f * 60.f : nozzle_change_speed;
 
     if (is_tpu_filament(m_current_tool)) {
         nozzle_change_speed *= 0.25;
     }
-    float bridge_speed = std::min(60.0f * m_filpar[m_current_tool].max_e_speed / nozzle_change_extrusion_flow(0.2), nozzle_change_speed); // limit the bridge speed by add flow
+    float bridge_speed = std::min(60.0f * max_e_ramming / nozzle_change_extrusion_flow(0.2), nozzle_change_speed);
 
     WipeTowerWriter writer(m_layer_height, m_nozzle_change_perimeter_width, m_gcode_flavor, m_filpar);
     writer.set_extrusion_flow(nz_extrusion_flow)
         .set_z(m_z_pos)
         .set_initial_tool(m_current_tool)
         .set_y_shift(m_y_shift + (new_filament_id != (unsigned int) (-1) && (m_current_shape == SHAPE_REVERSED) ? m_layer_info->depth - m_layer_info->toolchanges_depth() : 0.f))
-        .append("; Nozzle change start\n");
+        .append(format_nozzle_change_tag(true, old_filament_id, new_filament_id));
+
+    if (!extruder_change && m_is_multiple_nozzle) {
+        writer.append("M632 S" + std::to_string(new_filament_id) + " M N\n");
+        // Use m_physical_extruder_map for heater index (matches format_line_M104 in add_M104_by_requirement)
+        if (m_filpar[m_current_tool].precool_target_temp.second != 0) {
+            int logical_ext = m_filament_map.empty() ? 0 : m_filament_map[m_current_tool] - 1;
+            int phys_ext = (logical_ext >= 0 && logical_ext < (int)m_physical_extruder_map.size())
+                             ? m_physical_extruder_map[logical_ext] : logical_ext;
+            writer.append("M400\n");
+            writer.append("M104 T" + std::to_string(phys_ext) + " S" +
+                          std::to_string(m_filpar[m_current_tool].precool_target_temp.second) + " N0\n");
+            writer.append("M106 S255\n");
+        }
+        writer.append("M633\n");
+    }
 
     WipeTowerBlock* block = get_block_by_category(m_filpar[old_filament_id].category, false);
     if (!block) {
@@ -3021,6 +3126,23 @@ WipeTower::NozzleChangeResult WipeTower::nozzle_change_new(int old_filament_id, 
     dy              = solid_infill ? m_nozzle_change_perimeter_width : dy;
     nozzle_change_line_count = solid_infill ? std::numeric_limits<int>::max() : nozzle_change_line_count;
     m_left_to_right = true;
+
+    if (extruder_change) {
+        float ramming_length = nozzle_change_line_count * (xr - xl);
+        int   extruder_id    = m_filament_map.empty() ? 0 : m_filament_map[m_current_tool] - 1;
+        float precool_t      = (extruder_id >= 0 && extruder_id < (int)m_filpar[m_current_tool].precool_t.first.size())
+                                 ? m_filpar[m_current_tool].precool_t.first[extruder_id] : 0.f;
+        float precool_t_fl   = (extruder_id >= 0 && extruder_id < (int)m_filpar[m_current_tool].precool_t_first_layer.first.size())
+                                 ? m_filpar[m_current_tool].precool_t_first_layer.first[extruder_id] : 0.f;
+        float per_cooling_max_speed = nozzle_change_speed;
+        if (is_first_layer() && precool_t_fl > EPSILON)
+            per_cooling_max_speed = ramming_length / precool_t_fl * 60.f;
+        else if (precool_t > EPSILON)
+            per_cooling_max_speed = ramming_length / precool_t * 60.f;
+        if (nozzle_change_speed > per_cooling_max_speed) nozzle_change_speed = per_cooling_max_speed;
+        if (bridge_speed > per_cooling_max_speed)        bridge_speed = per_cooling_max_speed;
+    }
+
     int real_nozzle_change_line_count = 0;
     bool need_change_flow              = false;
     for (int i = 0; true; ++i) {
@@ -3053,9 +3175,40 @@ WipeTower::NozzleChangeResult WipeTower::nozzle_change_new(int old_filament_id, 
     block->last_nozzle_change_id = old_filament_id;
 
     NozzleChangeResult result;
-    if (is_tpu_filament(m_current_tool)) {
+    if (!extruder_change && m_is_multiple_nozzle) {
+        writer.append("M632 S" + std::to_string(new_filament_id) + " M N\n");
+    }
+
+    if (is_need_reverse_travel(m_current_tool, extruder_change)) {
         bool   left_to_right     = !m_left_to_right;
-        int  tpu_line_count = (real_nozzle_change_line_count + 2 - 1) / 2; // nozzle_change_line_count / 2 round up
+        int    tpu_line_count    = real_nozzle_change_line_count;
+        float  reverse_speed     = nozzle_change_speed * 2; // reverse travel runs at double the nozzle-change speed
+        float  rt_time           = extruder_change ? m_filpar[m_current_tool].ramming_travel_time.first
+                                                   : m_filpar[m_current_tool].ramming_travel_time.second;
+        float  need_reverse_travel_dis = rt_time * reverse_speed / 60.f;
+        float  real_travel_dis         = tpu_line_count * (xr - xl - 2 * m_perimeter_width);
+        if (real_travel_dis < need_reverse_travel_dis)
+            reverse_speed *= real_travel_dis / need_reverse_travel_dis;
+        writer.travel(writer.x(), writer.y() + dy/2);
+
+        for (int i = 0; true; ++i) {
+            need_reverse_travel_dis -= (xr - xl - 2 * m_perimeter_width);
+            float offset_dis = 0.f;
+            if (need_reverse_travel_dis < 0)
+                offset_dis = -need_reverse_travel_dis;
+            if (left_to_right)
+                writer.travel(xr - m_perimeter_width - offset_dis, writer.y(), reverse_speed);
+            else
+                writer.travel(xl + m_perimeter_width + offset_dis, writer.y(), reverse_speed);
+            if (need_reverse_travel_dis < EPSILON) break;
+            if (i == tpu_line_count - 1)
+                break;
+            writer.travel(writer.x(), writer.y() - dy);
+            left_to_right = !left_to_right;
+        }
+    } else if (is_tpu_filament(m_current_tool)) {
+        bool   left_to_right     = !m_left_to_right;
+        int  tpu_line_count = (real_nozzle_change_line_count + 2 - 1) / 2;
         nozzle_change_speed *= 2;
         writer.travel(writer.x(), writer.y() - m_nozzle_change_perimeter_width);
 
@@ -3080,12 +3233,15 @@ WipeTower::NozzleChangeResult WipeTower::nozzle_change_new(int old_filament_id, 
         }
     }
 
-    writer.append("; Nozzle change end\n");
+    if (!extruder_change && m_is_multiple_nozzle) writer.append("M633\n");
+
+    writer.append(format_nozzle_change_tag(false, old_filament_id, new_filament_id));
 
     result.start_pos = writer.start_pos_rotated();
     result.origin_start_pos = initial_position;
     result.end_pos   = writer.pos_rotated();
     result.gcode     = writer.gcode();
+    result.is_extruder_change = extruder_change;
     return result;
 }
 
@@ -3506,29 +3662,26 @@ void WipeTower::toolchange_wipe_new(WipeTowerWriter &writer, const box_coordinat
     // Emit the arriving-hotend pre-heat inside the M632/M633 nozzle-change barrier. `M632 S<tool>[ H<nozzle>]
     // M N` opens the barrier (M = firmware nozzle-change flag, N = slicer generated), the M104 sets the
     // arriving hotend temp, and `M633` closes it. H2C's grouping is static (no dynamic nozzle map), so the
-    // H<nozzle> field is omitted (a dynamic nozzle map would supply a real nozzle id, a static map -1 => no
+    // H<nozzle> field is omitted (a dynamic nozzle map would supply a real nozzle id, a static map -1 =>no
     // H). The counterproductive fan-on (M106 S255) used for departing-tool cooldown is intentionally
     // omitted, since this is a pre-HEAT of the arriving tool. The whole helper is only ever called from
     // add_M104_by_requirement, which is gated on m_is_multiple_nozzle (extruder_max_nozzle_count>1) => H2C
-    // only; every other printer's wipe tower is untouched. The M632 M-flag is itself a firmware barrier, so
-    // a preceding M400 wait is subsumed.
+    // only; every other printer's wipe tower is untouched.
+    // BBS: extruder change preheat uses M400 + M104 WITHOUT M632/M633 barrier.
+    // M632 barriers are only for carousel nozzle changes (emitted in nozzle_change_new/ramming).
     auto format_line_M104 = [this](int target_temp, int target_extruder = -1, bool wait_for_moves = true, const std::string &comment = "") {
         std::string buffer;
-        buffer += "M632 S" + std::to_string(m_current_tool) + " M N\n";
+        if (wait_for_moves)
+            buffer += "M400\n";
         buffer += "M104";
         if (target_extruder != -1 && target_extruder < (int) m_physical_extruder_map.size())
             buffer += (" T" + std::to_string(m_physical_extruder_map[target_extruder]));
         buffer += " S" + std::to_string(target_temp) + " N0"; // N0 means the gcode is generated by the slicer
         if (!comment.empty()) buffer += " ;" + comment;
         buffer += '\n';
-        buffer += "M633\n";
-        (void) wait_for_moves; // the M632 M-flag barrier replaces the former M400 wait
         return buffer;
     };
-    // Suppress the pre-heat M104 on the first layer and on solid (contact) toolchanges (should_heating).
-    // m_is_multiple_nozzle folds in the H2C gate so single-nozzle output is untouched.
-    // Orca: the arriving extruder id is resolved as m_filament_map[tool]-1 (layer-static) because Orca's
-    // wipe tower is extruder-level rather than tracking a per-layer nozzle map.
+    // m_is_multiple_nozzle gate needed because Orca calls toolchange_wipe_new for ALL printers (BBS has it H2C-only).
     bool should_heating = m_is_multiple_nozzle && m_filpar[m_current_tool].filament_cooling_before_tower > EPSILON &&
                           !solid_tool_toolchange && !is_first_layer();
     auto add_M104_by_requirement = [&writer, &format_line_M104, &should_heating, this]() {
@@ -3708,6 +3861,18 @@ bool WipeTower::is_in_same_extruder(int filament_id_1, int filament_id_2)
         return true;
 
     return m_filament_map[filament_id_1] == m_filament_map[filament_id_2];
+}
+
+std::string WipeTower::format_nozzle_change_tag(bool start, int old_filament_id, int new_filament_id) const
+{
+    const std::string &tag = start ? GCodeProcessor::Nozzle_Change_Start_Tag : GCodeProcessor::Nozzle_Change_End_Tag;
+    int old_nozzle = (old_filament_id >= 0 && old_filament_id < (int)m_filament_nozzle_map.size())
+                         ? m_filament_nozzle_map[old_filament_id] : -1;
+    int new_nozzle = (new_filament_id >= 0 && new_filament_id < (int)m_filament_nozzle_map.size())
+                         ? m_filament_nozzle_map[new_filament_id] : -1;
+    char buff[96];
+    snprintf(buff, sizeof(buff), ";%s OF%d NF%d ON%d NN%d\n", tag.c_str(), old_filament_id, new_filament_id, old_nozzle, new_nozzle);
+    return std::string(buff);
 }
 
 // Per-extruder printable-height clamp: is an extruder still allowed to print on this wipe-tower layer,
@@ -3899,6 +4064,19 @@ void WipeTower::plan_tower_new()
                 float depth               = std::ceil(length_to_extrude / width) * m_perimeter_width;
                 float nozzle_change_depth = 0;
                 if (!m_filament_map.empty() && m_filament_map[toolchange.old_tool] != m_filament_map[toolchange.new_tool]) {
+                    double e_flow                   = nozzle_change_extrusion_flow(m_plan[idx].height);
+                    double length                   = m_filaments_change_length[toolchange.old_tool] / e_flow;
+                    int    nozzle_change_line_count = length / (m_wipe_tower_width - 2*m_nozzle_change_perimeter_width) + 1;
+                    if (has_tpu_filament())
+                        nozzle_change_depth = m_tpu_fixed_spacing * nozzle_change_line_count * m_nozzle_change_perimeter_width;
+                    else
+                        nozzle_change_depth = nozzle_change_line_count * m_nozzle_change_perimeter_width;
+                    depth += nozzle_change_depth;
+                }
+                if (nozzle_change_depth == 0
+                    && !m_filament_nozzle_map.empty()
+                    && toolchange.old_tool < (int)m_filament_nozzle_map.size() && toolchange.new_tool < (int)m_filament_nozzle_map.size()
+                    && m_filament_nozzle_map[toolchange.old_tool] != m_filament_nozzle_map[toolchange.new_tool]) {
                     double e_flow                   = nozzle_change_extrusion_flow(m_plan[idx].height);
                     double length                   = m_filaments_change_length[toolchange.old_tool] / e_flow;
                     int    nozzle_change_line_count = length / (m_wipe_tower_width - 2*m_nozzle_change_perimeter_width) + 1;
