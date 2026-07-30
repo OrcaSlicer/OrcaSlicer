@@ -5144,6 +5144,11 @@ std::string GCode::generate_object_brim(const Print &print, const PrintObject &o
         if (!should_emit)
             continue;
 
+        // For combined brims, generate_object_brim is called once per object per layer.
+        // Skip if this brim was already emitted this layer by another object.
+        if (!m_brim_emitted_this_layer.insert(&brim).second)
+            continue;
+
         ExtrusionEntityCollection brim_entities;
 
         if (first_layer) {
@@ -6410,6 +6415,7 @@ LayerResult GCode::process_layer(
 
     // Extrude the skirt, brim, support, perimeters, infill ordered by the extruders.
     m_skirt_group_done.resize(print.skirt_brim_groups().size());
+    m_brim_emitted_this_layer.clear();
     for (unsigned int extruder_id : layer_tools.extruders)
     {
         if (print.config().skirt_type == stCombined && !print.skirt_brim_groups().empty()) {

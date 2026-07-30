@@ -540,6 +540,7 @@ private:
 
     std::map<ObjectInstanceID, unsigned int> m_objsWithBrim; // maps instance IDs to remaining brim layers
     std::set<ObjectID>              m_objSupportsWithBrim; // indicates the objs' supports with brim
+    std::set<const Print::SkirtBrimGroup::Brim*> m_brim_emitted_this_layer; // brims already emitted this layer
     // Cache for custom seam enforcers/blockers for each layer.
     SeamPlacer                          m_seam_placer;
 
