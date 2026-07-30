@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "Language: hu\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -3847,6 +3847,10 @@ msgstr "Elrendezés..."
 
 msgid "Arranging"
 msgstr "Elrendezés"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Elrendezés "
 
 msgid "Arranging canceled."
 msgstr "Elrendezése törölve."
@@ -9210,6 +9214,21 @@ msgstr "Alsó rétegek elhalványítása"
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "A rétegcsúszka mozgatásakor a szeletelt előnézetben az aktuális réteg alatti rétegeket sötétítve jeleníti meg, így csak az éppen megtekintett réteg látszik teljes fényerővel."
 
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Elhalványított rétegek fényereje"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Milyen fényesen jelenjenek meg az elhalványított rétegek, ha az \"Alsó rétegek elhalványítása\" be van kapcsolva.\n"
+"A 99% alig sötétít, a 0% feketére vált. A felső határ 99%, mert a 100% ugyanaz lenne, mint az opció kikapcsolása."
+
 msgid "Login region"
 msgstr "Régió"
 
@@ -13305,11 +13324,36 @@ msgstr "Tárgyanként"
 msgid "Intra-layer order"
 msgstr "Rétegen belüli sorrend"
 
-msgid "Print order within a single layer."
-msgstr "Nyomtatási sorrend egyetlen rétegen belül."
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"Az a sorrend, amelyben az objektumpéldányokat egyetlen rétegen belül bejárja a nyomtató, ami meghatározza, mennyi mozgás megy el a köztük való áthaladásra.\n"
+"\n"
+"Alapértelmezett: legközelebbi szomszéd szerinti láncolás, 2-opt eljárással és a keresztezések megszüntetésével finomítva. Jó általános választás.\n"
+"Objektumlista szerint: a példányok az objektumlista sorrendjében nyomtatódnak, bármilyen útvonal-optimalizálás nélkül. Akkor használd, ha kiszámítható, kézzel vezérelt sorrendre van szükséged.\n"
+"Legjobb az összes közül (legrövidebb útvonal): minden stratégia kiértékelésre kerül, és a legrövidebb kerül felhasználásra. Az objektumpéldányok sorrendje egyszer dől el az egész nyomtatásra, míg az egyes szigetek sorrendje rétegenként, így a különböző rétegek eltérő stratégiát is használhatnak. Kissé lassabb szeletelés.\n"
+"Kígyóvonal: kanyargós, soronkénti bejárás, 2-opt eljárással finomítva. Jól illik sok kis alkatrész szabályos rácsához.\n"
+"\n"
+"Ha egy rétegen belül több filament vagy szerszám szerepel, a szerszámcserék minimalizálása élvez elsőbbséget: az objektumok először filament szerint csoportosulnak, és ez a beállítás csak az egyes filamentcsoportokon belüli példánysorrendet szabja meg, így a teljes sorrend nem feltétlenül a tálcán átvezető legrövidebb útvonalnak tűnik."
 
 msgid "As object list"
 msgstr "Objektumlista szerint"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "Legjobb az összes közül (legrövidebb útvonal)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Kígyóvonal"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Nyomtatás lelassítása a jobb hűtés érdekében"
@@ -18655,6 +18699,20 @@ msgstr ""
 "A(z) %1% gazdagépnévhez több IP-cím is tartozik.\n"
 "Válaszd ki, melyik legyen használva."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Automatikus méretezés a fúvókához"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Ez a modell 0,4 mm-es fúvókához és 0,2 mm-es rétegmagassághoz készült. \n"
+"Ha a méretezési opció be van kapcsolva (ajánlott), a modell dinamikusan átméreteződik az aktuális fúvókaátmérőhöz és egy megfelelő rétegmagassághoz, így a teszt pontos és jól leolvasható lesz.\n"
+"Csak akkor kapcsold ki a méretezést, ha a referenciamodellt pontosan az eredeti formájában szeretnéd kinyomtatni."
+
 msgid "PA Calibration"
 msgstr "PA kalibrálás"
 
@@ -18791,6 +18849,14 @@ msgstr "Kezdősebesség: "
 msgid "End speed: "
 msgstr "Befejező sebesség: "
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Automatikus igazítás a max. volumetrikus sebességhez"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Ha a végsebesség meghaladná a filament maximális volumetrikus sebességét, automatikusan csökkenti a rétegmagasságot (szabványos értékeket megtartva és a gép korlátain belül maradva), hogy elérje azt. Ha még a legkisebb rétegmagasság sem elegendő, akkor inkább a végsebességet csökkenti."
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -18801,6 +18867,57 @@ msgstr ""
 "kezdő > 10\n"
 "lépés >= 0\n"
 "vég > kezdő + lépés"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"A végsebesség (%.0f mm/s) meghaladja a filament maximális volumetrikus sebességét (%.1f mm³/s), ami a külső falat ennél a vonalszélességnél és rétegmagasságnál körülbelül %.0f mm/s értékre korlátozza.\n"
+" Az ennél nagyobb sebességek le lesznek vágva, így a torony felső blokkjai nem a kért sebességgel nyomtatódnak.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"A végsebesség (%.0f mm/s) meghaladja a filament maximális volumetrikus sebességét (%.1f mm³/s) az alapértelmezett rétegmagasságnál (%.2f mm).\n"
+"\n"
+"A rétegmagasság %.2f mm értékre csökkent (ezt az értéket a nyomtató beállításai is használják), hogy a torony elérhesse a kért sebességet."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"Még a nyomtató beállításai által használt legkisebb rétegmagasságnál (%.2f mm) is meghaladja a végsebesség (%.0f mm/s) a filament maximális volumetrikus sebességét (%.1f mm³/s).\n"
+"\n"
+"A rétegmagasság %.2f mm értékre lesz állítva, a végsebesség pedig %.0f mm/s értékre csökken.\n"
+"\n"
+"Folytatod?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "Mindenképp folytatod?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Engedélyezd az \"Automatikus igazítás\" opciót ennek automatikus javításához, vagy mindenképp folytatod?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Engedélyezd az \"Automatikus méretezés a fúvókához\" és az \"Automatikus igazítás\" opciót ennek automatikus javításához, vagy mindenképp folytatod?"
 
 msgid "Start retraction length: "
 msgstr "Kezdő visszahúzás hossza: "
@@ -21485,6 +21602,9 @@ msgstr ""
 "Kunkorodás elkerülése\n"
 "Tudtad, hogy a kunkorodásra hajlamos anyagok (például ABS) nyomtatásakor a tárgyasztal hőmérsékletének növelése csökkentheti a kunkorodás valószínűségét?"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "Nyomtatási sorrend egyetlen rétegen belül."
+
 #~ msgid "Bottom"
 #~ msgstr "Alul"
 
@@ -21567,9 +21687,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "Filamentek szinkronizálásának folytatása"

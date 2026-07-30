@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: 2026-04-08 23:59+0300\n"
 "Last-Translator: GlauTech\n"
 "Language-Team: \n"
@@ -3912,6 +3912,10 @@ msgstr "Hizalanıyor..."
 
 msgid "Arranging"
 msgstr "Hizalanıyor"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Hizalanıyor "
 
 msgid "Arranging canceled."
 msgstr "Hizalama iptal edildi."
@@ -9321,6 +9325,21 @@ msgstr "Alt katmanları karart"
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "Dilimlenmiş önizlemede katman kaydırıcısı gezdirilirken, geçerli katmanın altındaki katmanları koyulaştırarak yalnızca görüntülenen katmanın tam parlaklıkta gösterilmesini sağlar."
 
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Karartılmış katman parlaklığı"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"\"Alt katmanları karart\" etkinleştirildiğinde karartılmış katmanların ne kadar parlak görüntüleneceği.\n"
+"%99 neredeyse hiç karartmaz, %0 ise tamamen siyah gösterir. Üst sınır %99 olarak belirlenmiştir, çünkü %100 seçeneği devre dışı bırakmakla aynı olurdu."
+
 msgid "Login region"
 msgstr "Giriş bölgesi"
 
@@ -13468,11 +13487,36 @@ msgstr "Nesneye göre"
 msgid "Intra-layer order"
 msgstr "Katman içi sıra"
 
-msgid "Print order within a single layer."
-msgstr "Tek bir katmanda yazdırma sırası."
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"Tek bir katman içinde nesne örneklerinin hangi sırayla ziyaret edileceği; bu da aralarında ne kadar seyahat harcanacağını belirler.\n"
+"\n"
+"Varsayılan: en yakın komşu zincirlemesi, 2-opt ve kesişim giderme ile iyileştirilir. İyi bir genel seçim.\n"
+"Nesne listesi olarak: örnekler, herhangi bir yol optimizasyonu olmadan nesne listesindeki sırayla yazdırılır. Öngörülebilir, elle denetlenen bir sıraya ihtiyacınız olduğunda kullanın.\n"
+"Hepsinin en iyisi (en kısa yol): her strateji değerlendirilir ve en kısa olanı kullanılır. Nesne örneklerinin sırası tüm baskı için bir kez belirlenir, tek tek adaların sırası ise her katman için ayrı belirlenir; bu nedenle farklı katmanlar farklı stratejiler kullanabilir. Dilimleme biraz daha yavaştır.\n"
+"Yılankavi: satır satır ilerleyen yılankavi geçiş, 2-opt ile iyileştirilir. Çok sayıda küçük parçadan oluşan düzenli ızgaralar için çok uygundur.\n"
+"\n"
+"Aynı katmanda birden fazla filament veya araç varsa, araç değişimlerini en aza indirmek önceliklidir: nesneler önce filamente göre gruplanır ve bu ayar yalnızca her filament grubu içindeki örnekleri sıralar; bu nedenle genel sıra, tabla genelindeki en kısa yol gibi görünmeyebilir."
 
 msgid "As object list"
 msgstr "Nesne listesi olarak"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "Hepsinin en iyisi (en kısa yol)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Yılankavi"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Daha iyi katman soğutması için baskıyı yavaşlat"
@@ -18899,6 +18943,20 @@ msgstr ""
 "%1% ana bilgisayar adına çözümlenen birkaç IP adresi var.\n"
 "Hangisinin kullanılacağını seçin."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Nozul için otomatik ölçekleme"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Bu model, 0,4 mm nozul ve 0,2 mm katman yüksekliği esas alınarak tasarlanmıştır. \n"
+"Ölçekleme seçeneği etkinleştirildiğinde (önerilir), model mevcut nozul çapınıza ve uygun bir katman yüksekliğine uyacak şekilde dinamik olarak yeniden boyutlandırılır; böylece test hem doğru hem de kolay okunur olur.\n"
+"Ölçeklemeyi yalnızca referans modeli olduğu gibi yazdırmak istiyorsanız kapatın."
+
 msgid "PA Calibration"
 msgstr "PA Kalibrasyonu"
 
@@ -19036,6 +19094,14 @@ msgstr "Başlangıç hızı: "
 msgid "End speed: "
 msgstr "Bitiş hızı: "
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Maksimum hacimsel hıza otomatik ayarlama"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Bitiş hızı filamentin maksimum hacimsel hızını aşacak olursa, bu hıza ulaşabilmek için katman yüksekliği otomatik olarak düşürülür (standart değerler korunarak ve makinenin sınırları içinde kalınarak). Minimum katman yüksekliği bile yeterli değilse, bunun yerine bitiş hızı düşürülür."
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -19046,6 +19112,57 @@ msgstr ""
 "başlangıç > 10 \n"
 "adım >= 0\n"
 "bitiş > başlangıç + adım)"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"Bitiş hızı (%.0f mm/s), filamentin maksimum hacimsel hızını (%.1f mm³/s) aşıyor; bu da dış duvarı bu çizgi genişliği ve katman yüksekliğinde yaklaşık %.0f mm/s ile sınırlıyor.\n"
+" Bunun üzerindeki hızlar sınırlanacağından, kulenin üst blokları istenen hızda yazdırılmayacak.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"Bitiş hızı (%.0f mm/s), filamentin maksimum hacimsel hızını (%.1f mm³/s) varsayılan katman yüksekliğinde (%.2f mm) aşıyor.\n"
+"\n"
+"Kulenin istenen hıza ulaşabilmesi için katman yüksekliği %.2f mm değerine düşürüldü (bu yazıcının ön ayarlarında kullanılan bir değer)."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"Bu yazıcının ön ayarlarında kullanılan en küçük katman yüksekliğinde bile (%.2f mm), bitiş hızı (%.0f mm/s) filamentin maksimum hacimsel hızını (%.1f mm³/s) aşıyor.\n"
+"\n"
+"Katman yüksekliği %.2f mm olarak ayarlanacak ve bitiş hızı %.0f mm/s değerine düşürülecek.\n"
+"\n"
+"Devam edilsin mi?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "Yine de devam edilsin mi?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Bunu otomatik olarak düzeltmek için \"Otomatik ayarlama\" seçeneğini etkinleştirin ya da yine de devam edilsin mi?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "Bunu otomatik olarak düzeltmek için \"Nozul için otomatik ölçekleme\" ve \"Otomatik ayarlama\" seçeneklerini etkinleştirin ya da yine de devam edilsin mi?"
 
 msgid "Start retraction length: "
 msgstr "Geri çekme uzunluğu başlangıcı: "
@@ -21742,6 +21859,9 @@ msgstr ""
 "Eğilmeyi önleyin\n"
 "ABS gibi bükülmeye yatkın malzemelere baskı yaparken, ısıtma yatağı sıcaklığının uygun şekilde arttırılmasının bükülme olasılığını azaltabileceğini biliyor muydunuz?"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "Tek bir katmanda yazdırma sırası."
+
 #~ msgid "Bottom"
 #~ msgstr "Alt"
 
@@ -21821,9 +21941,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "Filamentleri senkronize etmeye devam edin"

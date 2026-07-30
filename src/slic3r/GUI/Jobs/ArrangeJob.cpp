@@ -548,7 +548,7 @@ void ArrangeJob::process(Ctl &ctl)
     params.stopcondition = [&ctl]() { return ctl.was_canceled(); };
 
     params.progressind = [this, &ctl](unsigned num_finished, std::string str = "") {
-        ctl.update_status(num_finished * 100 / status_range(), _u8L("Arranging") + str);
+        ctl.update_status(num_finished * 100 / status_range(), _u8L("Arranging ") + str);
     };
 
     {
