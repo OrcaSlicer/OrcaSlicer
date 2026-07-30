@@ -1739,6 +1739,16 @@ void PresetCollection::load_presets(
                         preset.filament_id = inherit_preset->filament_id;
                         extend_default_config_length(config, false, {});
                         preset.config.update_diff_values_to_child_config(config, extruder_id_name, extruder_variant_name, *key_set1, *key_set2);
+                        // Re-apply scalar user overrides that the diff-merge above dropped
+                        // (gcode_flavor, machine_start_gcode, …). Vectors stay with the
+                        // diff-merge to preserve its extruder/variant striding.
+                        for (const std::string &key : config.keys()) {
+                            const ConfigOption *src = config.option(key);
+                            if (!src || !src->is_scalar()) continue;
+                            ConfigOption *dst = preset.config.option(key);
+                            if (dst && *dst != *src)
+                                dst->set(src);
+                        }
                     }
                     else {
                         auto inherits_config2 = dynamic_cast<ConfigOptionString *>(inherits_config);
