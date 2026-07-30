@@ -1930,7 +1930,18 @@ TopoDS_Wire CadDocument::build_sketch_wire(const CadFeature& sketch) const
     if (!sketch.entities.empty()) {
         TopoDS_Wire w = SketchEngine::entities_to_wire(sketch.entities, sketch.plane);
         if (!w.IsNull()) return w;
-        // fall through to legacy paths if entities produced nothing
+        // An entity sketch that yields no wire is an ERROR, not a cue to fall through. The
+        // legacy tail of this function ends in a default rectangle built from width/height,
+        // which for an entity sketch are whatever they happened to be initialised to — so a
+        // sketch entities_to_wire cannot handle (a circle coexisting with a line, two circles:
+        // snaporca-88v) used to extrude into a box the user never drew, silently. Failing here
+        // costs the caller an error message; falling through cost them wrong geometry that
+        // looked deliberate. The legacy profile/shape paths below are still reached by sketches
+        // that legitimately carry no entities at all.
+        throw std::runtime_error(
+            "sketch has entities but they do not form a single closed wire — a closed entity "
+            "(circle/ellipse) combined with other entities, or several closed entities, is not "
+            "supported yet");
     }
     if (!sketch.profile.points.empty()) {
         SketchProfile prof = sketch.profile;

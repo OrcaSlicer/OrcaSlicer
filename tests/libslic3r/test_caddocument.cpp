@@ -6726,7 +6726,8 @@ TEST_CASE("A cut that removes no material is an error, not a silent success", "[
         // And the body is left as it was, not half-applied.
         CadDocument again = box();
         REQUIRE(again.recompute());
-        CHECK(again.body_mass_properties(0).volume == Approx(solid).margin(1e-6));
+        CHECK_THAT(again.body_mass_properties(0).volume,
+                   Catch::Matchers::WithinAbs(solid, 1e-6));
     }
 
     SECTION("the same hole on the body still works") {
@@ -6735,8 +6736,8 @@ TEST_CASE("A cut that removes no material is an error, not a silent success", "[
         const double solid = doc.body_mass_properties(0).volume;
         doc.add_hole(8.0, 20.0, true, 0.0, 0.0, SketchPlane::XY(), "Hole");
         REQUIRE(doc.recompute());
-        CHECK(doc.body_mass_properties(0).volume
-              == Approx(solid - M_PI * 16.0 * 20.0).epsilon(0.01));
+        CHECK_THAT(doc.body_mass_properties(0).volume,
+                   Catch::Matchers::WithinRel(solid - M_PI * 16.0 * 20.0, 0.01));
     }
 
     SECTION("a cut-mode extrude that misses is rejected too") {
@@ -6750,5 +6751,50 @@ TEST_CASE("A cut that removes no material is an error, not a silent success", "[
         doc.add_extrude(sk, 30.0, false, BooleanMode::Cut, "Cut");
         CHECK_FALSE(doc.recompute());
         CHECK(doc.error.find("removed no material") != std::string::npos);
+    }
+}
+
+// entities_to_wire handles exactly two shapes: one lone closed entity, or a chain of open ones.
+// Anything else returns a null wire, and build_sketch_wire used to answer that by falling through
+// to its legacy tail — which ends in a rectangle built from width/height. For an entity sketch
+// those are whatever they were initialised to, so the extrude produced a box nobody drew.
+// snaporca-88v.
+TEST_CASE("An entity sketch that forms no wire fails instead of extruding a default box", "[CadDocument]")
+{
+    auto circle = [](Vec2d c, double r) {
+        SketchEntity e; e.type = SketchEntity::Type::Circle; e.center = c; e.p0 = c; e.radius = r;
+        return e;
+    };
+    auto line = [](Vec2d a, Vec2d b) {
+        SketchEntity e; e.type = SketchEntity::Type::Line; e.p0 = a; e.p1 = b;
+        return e;
+    };
+
+    SECTION("a lone circle still works — the supported case is untouched") {
+        CadDocument doc;
+        int sk = doc.add_sketch_entities({ circle({0, 0}, 10.0) }, SketchPlane::XY(), "Sketch");
+        doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
+        REQUIRE(doc.recompute());
+        CHECK_THAT(doc.body_mass_properties(0).volume,
+                   Catch::Matchers::WithinRel(M_PI * 100.0 * 5.0, 0.01));
+    }
+
+    SECTION("circle + stray line is rejected, not silently turned into a box") {
+        CadDocument doc;
+        int sk = doc.add_sketch_entities({ circle({0, 0}, 10.0), line({40, 40}, {60, 40}) },
+                                        SketchPlane::XY(), "Sketch");
+        doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
+        CHECK_FALSE(doc.recompute());
+        CHECK(doc.error.find("do not form a single closed wire") != std::string::npos);
+        CHECK(doc.bodies.empty());
+    }
+
+    SECTION("two circles are rejected too") {
+        CadDocument doc;
+        int sk = doc.add_sketch_entities({ circle({-20, 0}, 8.0), circle({20, 0}, 8.0) },
+                                        SketchPlane::XY(), "Sketch");
+        doc.add_extrude(sk, 5.0, false, BooleanMode::New, "Extrude");
+        CHECK_FALSE(doc.recompute());
+        CHECK(doc.error.find("do not form a single closed wire") != std::string::npos);
     }
 }
