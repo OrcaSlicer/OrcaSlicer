@@ -2328,9 +2328,19 @@ void StatusPanel::update_camera_state(MachineObject* obj)
             m_media_ctrl->Hide();
             m_media_play_ctrl->Hide();
         }
+        // why: printers like the U1 capture only while asked and retire the capture task ~362 s
+        // after each start, so the open camera view has to renew ahead of that. 300 s matches
+        // Snapmaker's own client. Agents that do not need it refuse the call silently.
+        const auto now = std::chrono::steady_clock::now();
+        if (m_camera_start_sent == std::chrono::steady_clock::time_point{} ||
+            now - m_camera_start_sent >= std::chrono::seconds(300)) {
+            obj->command_start_camera();
+            m_camera_start_sent = now;
+        }
     } else if (!m_printer_webcam_url.empty()) {
         handle_camera_source_change();
         m_printer_webcam_url.clear();
+        m_camera_start_sent = std::chrono::steady_clock::time_point{};
     }
 
     //sdcard

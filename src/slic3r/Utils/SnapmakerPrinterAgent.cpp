@@ -1,10 +1,14 @@
 #include "SnapmakerPrinterAgent.hpp"
 #include "Http.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/Utils.hpp"
 #include "slic3r/GUI/GUI_App.hpp"
 
 #include "nlohmann/json.hpp"
+#include <boost/filesystem.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/nowide/fstream.hpp>
+#include <thread>
 
 namespace Slic3r {
 
@@ -66,6 +70,69 @@ std::string find_closest_color_preset_by_vendor_and_type(const PresetCollection&
 } // anonymous namespace
 
 SnapmakerPrinterAgent::SnapmakerPrinterAgent(std::string log_dir) : MoonrakerPrinterAgent(std::move(log_dir)) {}
+
+int SnapmakerPrinterAgent::command_start_camera(std::string dev_id)
+{
+    (void) dev_id;
+    // why: the printer executes this over the websocket but answers only over MQTT, and the
+    // call itself blocks on socket I/O - it fires from the camera view's renew timer on the UI
+    // thread, so run it detached rather than block the caller on a reply that never comes.
+    // note: interval is dead time in SECONDS on top of a ~0.455 s capture, so 0 is the 2.15 fps
+    // ceiling (1 measures 0.63 fps), and it cannot be changed while a capture task is running.
+    std::thread([this] {
+        send_ws_rpc("camera.start_monitor",
+                    {{"domain", "lan"}, {"interval", 0}, {"expect_pw", false}});
+    }).detach();
+    return BAMBU_NETWORK_SUCCESS;
+}
+
+std::string SnapmakerPrinterAgent::webcam_stream_override(const std::string& base_url) const
+{
+    const std::string snapshot_url = join_url(base_url, "/server/files/camera/monitor.jpg");
+
+    // why: one wrapper file per printer - two U1s would otherwise overwrite each other's URL.
+    const boost::filesystem::path page = boost::filesystem::path(data_dir()) / "cache" /
+        ("snapmaker_camera_" + sanitize_filename(device_info.dev_ip) + ".html");
+
+    // why: the printer writes a still JPEG at ~2 fps, so the page polls it with a cache buster
+    // instead of consuming a stream. Chaining the next request off onload (never a bare
+    // setInterval) keeps requests from piling up when the printer is slow to answer.
+    const std::string html =
+        "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Camera</title><style>"
+        "html,body{margin:0;height:100%;background:#000;overflow:hidden}"
+        "img{width:100%;height:100%;object-fit:contain;display:block}</style></head>"
+        "<body><img id=\"frame\" alt=\"\"><script>\n"
+        "var src=\"" + snapshot_url + "\";\n"
+        "var img=document.getElementById(\"frame\");\n"
+        "function next(){img.src=src+\"?_nocache=\"+Date.now()+\"_\"+Math.floor(Math.random()*10000);}\n"
+        "img.onload=function(){setTimeout(next,250);};\n"
+        "img.onerror=function(){setTimeout(next,1000);};\n"
+        "next();\n"
+        "</script></body></html>\n";
+
+    std::string write_error;
+    try {
+        boost::filesystem::create_directories(page.parent_path());
+        boost::nowide::ofstream out(page.string().c_str(), std::ios::binary | std::ios::trunc);
+        out << html;
+        out.close();
+        // note: an ofstream reports a failed write in its state, not by throwing.
+        if (!out) {
+            write_error = "write failed";
+        }
+    } catch (const std::exception& e) {
+        write_error = e.what();
+    }
+    if (!write_error.empty()) {
+        // why: no wrapper means no camera - a raw monitor.jpg URL would render one frozen frame
+        // and read as a broken feed, so fall back to showing nothing and say why in the log.
+        BOOST_LOG_TRIVIAL(warning) << "SnapmakerPrinterAgent: could not write camera page " << page.string()
+                                   << ": " << write_error;
+        return {};
+    }
+
+    return "file://" + page.generic_string();
+}
 
 AgentInfo SnapmakerPrinterAgent::get_agent_info_static()
 {

@@ -117,7 +117,7 @@ protected:
     // Helpers
     bool        is_numeric(const std::string& value);
     std::string normalize_base_url(std::string host, const std::string& port);
-    std::string sanitize_filename(const std::string& filename);
+    std::string sanitize_filename(const std::string& filename) const;
     std::string join_url(const std::string& base_url, const std::string& path) const;
 
     // Trim whitespace and convert to uppercase
@@ -133,6 +133,14 @@ protected:
     bool post_print_action(const std::string& action) const;
     bool post_print_action(const std::string& action,
                            const std::string& base_url, const std::string& api_key) const;
+
+    // Send one JSON-RPC call over a short-lived Moonraker websocket. Returns true when the
+    // request was written; it never waits for a reply.
+    bool send_ws_rpc(const std::string& method, const nlohmann::json& params);
+
+    // why: a printer with no /server/webcams/list entry can still name its stream directly;
+    // returning empty (the default) keeps the normal Moonraker discovery path.
+    virtual std::string webcam_stream_override(const std::string& base_url) const { return {}; }
 
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);

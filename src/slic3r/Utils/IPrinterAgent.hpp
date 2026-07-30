@@ -93,6 +93,11 @@ public:
     { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
     virtual int command_ams_select_tray(std::string, std::string, int, bool)
     { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
+    // why: some printers emit camera frames only while explicitly asked, and retire the
+    // capture task on their own - the camera view starts it and renews it. Printers with an
+    // always-on stream need nothing here, hence the honest refusal by default.
+    virtual int command_start_camera(std::string)
+    { return ORCA_NETWORK_ERR_CMD_NOT_SUPPORTED; }
 
     /**
      * Establish a direct LAN connection to a printer.

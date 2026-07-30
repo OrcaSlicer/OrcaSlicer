@@ -145,6 +145,7 @@ public:
     int command_ams_refresh_rfid(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode);
     int command_ams_calibrate(std::string dev_id, int ams_id, int sequence_id, bool lan_mode);
     int command_ams_select_tray(std::string dev_id, std::string tray_id, int sequence_id, bool lan_mode);
+    int command_start_camera(std::string dev_id);
     int connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl);
     int disconnect_printer();
     int send_message_to_printer(std::string dev_id, std::string json_str, int qos, int flag);

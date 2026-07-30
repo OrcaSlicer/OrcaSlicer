@@ -1792,6 +1792,14 @@ int MachineObject::command_ams_refresh_rfid2(int ams_id,  int slot_id)
     return this->publish_json(j);
 }
 
+int MachineObject::command_start_camera()
+{
+    if (!m_agent) return -1;
+    // why: this fires from the camera view's renew timer, so a refusal must stay silent -
+    // show_unsupported_dlg() here would pop a dialog every ~5 min on every other printer.
+    return m_agent->command_start_camera(get_dev_id());
+}
+
 
 int MachineObject::command_ams_select_tray(std::string tray_id)
 {

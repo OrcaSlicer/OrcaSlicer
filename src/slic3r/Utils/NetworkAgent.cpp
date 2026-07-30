@@ -788,6 +788,13 @@ int NetworkAgent::command_ams_select_tray(std::string dev_id, std::string tray_i
     return -1;
 }
 
+int NetworkAgent::command_start_camera(std::string dev_id)
+{
+    if (m_printer_agent)
+        return m_printer_agent->command_start_camera(dev_id);
+    return -1;
+}
+
 int NetworkAgent::connect_printer(std::string dev_id, std::string dev_ip, std::string username, std::string password, bool use_ssl)
 {
     if (m_printer_agent)
