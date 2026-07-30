@@ -11,6 +11,7 @@
 namespace Slic3r {
 
 class Print;
+class PrintObject;
 class ExtrusionEntityCollection;
 class PrintTryCancel;
 
@@ -25,6 +26,13 @@ void make_brim(const Print& print, PrintTryCancel try_cancel,
 
 ExtrusionEntityCollection makeBrimInfill(const ExPolygons& singleBrimArea, const Print& print, const Polygons& islands_area);
 ExtrusionEntityCollection makeBrimInfillFromPlateCoordinates(const ExPolygons& singleBrimArea, const Print& print, const Polygons& islands_area);
+
+// Compute the brim area (outer and/or inner, respecting brim_type) for one
+// instance at the given layer. Returns ExPolygons in plate coordinates.
+// Does not handle EFC, volume groups, painted ears, auto-brim width, or
+// support exclusion — those are layer-0 only special cases handled by make_brim().
+ExPolygons make_brim_area_for_layer(const Print &print, const PrintObject &object,
+    size_t instance_id, size_t layer_idx);
 
 // BBS: automatically make brim
 ExtrusionEntityCollection make_brim_auto(const Print &print, PrintTryCancel try_cancel, Polygons &islands_area);

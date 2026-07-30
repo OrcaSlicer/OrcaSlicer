@@ -5228,32 +5228,16 @@ static Polygons get_all_support_exclusions(const Print &print, coordf_t bottom_z
     return exclusions;
 }
 
+
+
 // Compute brim entities for a non-first brim layer from the current layer's outlines.
 static ExtrusionEntityCollection compute_instance_brim_entities(
     const Print &print, const Layer &layer,
     const PrintObject &object, size_t instance_id,
     const Print::SkirtBrimGroup::Brim &brim_group)
 {
-    const PrintInstance &inst = object.instances()[instance_id];
-    Point instance_shift = inst.shift_without_plate_offset();
-
-    // Shift current layer's sliced outlines to instance position.
-    ExPolygons islands;
-    expolygons_append(islands, layer.lslices);
-    for (ExPolygon &ex : islands)
-        ex.translate(instance_shift);
-
-    if (islands.empty())
-        return {};
-
-    // Compute brim ring matching the original brim parameters.
-    double flow_width = print.brim_flow().scaled_spacing() * SCALING_FACTOR;
-    float brim_offset = scale_(object.config().brim_object_gap.value);
-    float brim_width  = scale_(floor(object.config().brim_width.value / flow_width / 2) * flow_width * 2);
-
-    ExPolygons inner = offset_ex(islands, brim_offset, jtRound, SCALED_RESOLUTION);
-    ExPolygons outer = offset_ex(inner, brim_width, jtRound, SCALED_RESOLUTION);
-    ExPolygons brim_area = diff_ex(outer, inner);
+    // Compute brim area for this instance respecting the configured brim type.
+    ExPolygons brim_area = make_brim_area_for_layer(print, object, instance_id, layer.id());
 
     if (brim_area.empty())
         return {};
@@ -5284,22 +5268,15 @@ static ExtrusionEntityCollection compute_instance_brim_entities(
                 }
             if (!inst_layer || inst_layer->lslices.empty()) continue;
 
-            // Build this instance's brim area.
-            ExPolygons other_islands;
-            expolygons_append(other_islands, inst_layer->lslices);
-            Point other_shift = obj->instances()[inst_id.instance_id].shift_without_plate_offset();
-            for (ExPolygon &ex : other_islands) ex.translate(other_shift);
-
-            ExPolygons other_inner = offset_ex(other_islands, brim_offset, jtRound, SCALED_RESOLUTION);
-            ExPolygons other_outer = offset_ex(other_inner, brim_width, jtRound, SCALED_RESOLUTION);
-            ExPolygons other_area = diff_ex(other_outer, other_inner);
+            // Build this instance's brim area respecting its brim type.
+            ExPolygons other_area = make_brim_area_for_layer(print, *obj, inst_id.instance_id, inst_layer->id());
 
             if (other_area.empty()) continue;
 
-            // Subtract support from ALL objects (not just this one).
-            Polygons all_support = get_all_support_exclusions(print, inst_layer->bottom_z());
-            if (!all_support.empty()) {
-                other_area = diff_ex(other_area, all_support);
+            // Subtract support from ALL objects.
+            Polygons other_support = get_all_support_exclusions(print, inst_layer->bottom_z());
+            if (!other_support.empty()) {
+                other_area = diff_ex(other_area, other_support);
                 if (other_area.empty()) continue;
             }
 
