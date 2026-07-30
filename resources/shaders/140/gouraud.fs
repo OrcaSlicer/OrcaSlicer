@@ -39,12 +39,11 @@ uniform SlopeDetection slope;
 
 //BBS: add outline_color
 uniform bool is_outline;
-// Multisample depth buffer of the outlined model. The outline shape is a per-fragment discard mask
-// (below), which the framebuffer MSAA cannot smooth, so the silhouette is resolved per sample here.
+// The outline is a per-fragment discard mask, which the framebuffer MSAA cannot smooth, so the
+// silhouette is resolved per sample from a multisample copy of the outlined model's depth buffer.
 #ifdef GL_ARB_texture_multisample
 uniform sampler2DMS depth_tex;
-// Number of samples in depth_tex (== SETTING_OPENGL_AA_SAMPLES, or 1 when MSAA is disabled).
-uniform int msaa_samples;
+uniform int msaa_samples; // samples in depth_tex, 1 when MSAA is off
 #else
 uniform sampler2D depth_tex;
 #endif
@@ -110,26 +109,38 @@ float GetTolerance(float d, float k)
     return -k*(d+A)*(d+A)/B;   
 }
 
+// Depth of sample s at integer pixel coord.
 #ifdef GL_ARB_texture_multisample
-// Silhouette response for a single MSAA sample of the depth texture.
-float DetectSilhoSample(ivec2 coord, ivec2 dir, int s, ivec2 sz)
+float FetchDepth(ivec2 coord, int s)
+{
+    // texelFetch has no wrap mode, so clamp to the edge texel (sampler2D used CLAMP_TO_EDGE).
+    ivec2 sz = textureSize(depth_tex);
+    return abs(texelFetch(depth_tex, clamp(coord, ivec2(0), sz - 1), s).r);
+}
+#else
+float FetchDepth(ivec2 coord, int s)
+{
+    return abs(texture(depth_tex, (vec2(coord) + 0.5) / screen_size).r);
+}
+#endif
+
+float DetectSilho(ivec2 coord, ivec2 dir, int s)
 {
     // -------------------------------------------
-    //   x0 ___ x1----o 
-    //          :\    : 
+    //   x0 ___ x1----o
+    //          :\    :
     //       r0 : \   : r1
-    //          :  \  : 
+    //          :  \  :
     //          o---x2 ___ x3
     //
     // r0 and r1 are the differences between actual
     // and expected (as if x0..3 where on the same
     // plane) depth values.
     // -------------------------------------------
-    // texelFetch has no wrap mode, so clamp to the edge texel (the previous sampler2D used CLAMP_TO_EDGE).
-    float x0 = abs(texelFetch(depth_tex, clamp(coord + dir*-2, ivec2(0), sz - 1), s).r);
-    float x1 = abs(texelFetch(depth_tex, clamp(coord + dir*-1, ivec2(0), sz - 1), s).r);
-    float x2 = abs(texelFetch(depth_tex, clamp(coord,          ivec2(0), sz - 1), s).r);
-    float x3 = abs(texelFetch(depth_tex, clamp(coord + dir* 1, ivec2(0), sz - 1), s).r);
+    float x0 = FetchDepth(coord + dir*-2, s);
+    float x1 = FetchDepth(coord + dir*-1, s);
+    float x2 = FetchDepth(coord,          s);
+    float x3 = FetchDepth(coord + dir* 1, s);
 
     float d0 = (x1-x0);
     float d1 = (x2-x3);
@@ -142,45 +153,41 @@ float DetectSilhoSample(ivec2 coord, ivec2 dir, int s, ivec2 sz)
     return smoothstep(0.0, tol*tol, max( - r0*r1, 0.0));
 }
 
-float DetectSilho(vec2 fragCoord, vec2 dir)
-{
-    // Average the silhouette response across all depth samples. Samples that fall inside vs outside
-    // the model produce fractional coverage at the edge, giving the outline sub-pixel MSAA.
-    ivec2 sz    = textureSize(depth_tex);
-    ivec2 coord = ivec2(fragCoord);
-    ivec2 idir  = ivec2(dir);
-    int   n     = max(msaa_samples, 1);
-    float acc   = 0.0;
-    for (int s = 0; s < n; ++s)
-        acc += DetectSilhoSample(coord, idir, s, sz);
-    return acc / float(n);
-}
-#else
-float DetectSilho(vec2 fragCoord, vec2 dir)
-{
-    float x0 = abs(texture(depth_tex, (fragCoord + dir*-2.0) / screen_size).r);
-    float x1 = abs(texture(depth_tex, (fragCoord + dir*-1.0) / screen_size).r);
-    float x2 = abs(texture(depth_tex, (fragCoord + dir* 0.0) / screen_size).r);
-    float x3 = abs(texture(depth_tex, (fragCoord + dir* 1.0) / screen_size).r);
-
-    float d0 = (x1-x0);
-    float d1 = (x2-x3);
-
-    float r0 = x1 + d0 - x2;
-    float r1 = x2 + d1 - x1;
-
-    float tol = GetTolerance(x2, 0.04);
-
-    return smoothstep(0.0, tol*tol, max( - r0*r1, 0.0));
-}
-#endif
-
-float DetectSilho(vec2 fragCoord)
+float DetectSilho(ivec2 coord, int s)
 {
     return max(
-        DetectSilho(fragCoord, vec2(1,0)), // Horizontal
-        DetectSilho(fragCoord, vec2(0,1))  // Vertical
+        DetectSilho(coord, ivec2(1,0), s), // Horizontal
+        DetectSilho(coord, ivec2(0,1), s)  // Vertical
         );
+}
+
+// Full response of one sample. Reduce the max() per sample and average only afterwards:
+// max(mean) <= mean(max), and averaging first hollows out diagonal and curved lines.
+float DetectSilhoSample(ivec2 coord, int s)
+{
+    float v = DetectSilho(coord, s);
+    // Makes silhouettes thicker.
+    for (int i = 1; i <= INFLATE; ++i)
+    {
+        v = max(v, DetectSilho(coord + ivec2(i, 0), s));
+        v = max(v, DetectSilho(coord + ivec2(0, i), s));
+    }
+    return v;
+}
+
+// Average the per-sample coverage into the sub-pixel anti-aliasing of the line.
+float DetectSilho(vec2 fragCoord)
+{
+    ivec2 coord = ivec2(fragCoord);
+#ifdef GL_ARB_texture_multisample
+    int n = max(msaa_samples, 1);
+#else
+    const int n = 1;
+#endif
+    float acc = 0.0;
+    for (int s = 0; s < n; ++s)
+        acc += DetectSilhoSample(coord, s);
+    return acc / float(n);
 }
 
 // Returns a lighting multiplier in [1 - shadow_intensity, 1]: < 1 where the fragment is
@@ -269,14 +276,7 @@ void main()
     //BBS: add outline_color
     if (is_outline) {
         color = vec4((vec3(intensity.y) + color.rgb * intensity.x) * shade, color.a);
-        vec2 fragCoord = gl_FragCoord.xy;
-        float s = DetectSilho(fragCoord);
-        // Makes silhouettes thicker.
-        for(int i=1;i<=INFLATE; i++)
-        {
-           s = max(s, DetectSilho(fragCoord.xy + vec2(i, 0)));
-           s = max(s, DetectSilho(fragCoord.xy + vec2(0, i)));
-        }
+        float s = DetectSilho(gl_FragCoord.xy);
         if (s < 0.01)
             discard;
         out_color = vec4(mix(color.rgb, getBackfaceColor(color.rgb), s), color.a);

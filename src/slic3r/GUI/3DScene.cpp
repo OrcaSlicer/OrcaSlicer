@@ -518,8 +518,12 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     glsafe(::glStencilMask(0xFF));
     glsafe(::glDisable(GL_STENCIL_TEST));
     // render the outline using depth buffer and discard the pixels that are not on the outline
-    // The outline silhouette is defined by a per-fragment discard mask derived from this depth
-    const bool  use_msaa_outline = GUI::wxGetApp().is_gl_version_greater_or_equal_to(3, 2);
+    // The silhouette is resolved per sample in the shader (see DetectSilho in gouraud.fs/phong.fs).
+    // That needs the GL 3.2 entry points and a shader that declares depth_tex as sampler2DMS, which
+    // only the 140 ones do and only under GL_ARB_texture_multisample - so ask the compiled program
+    // rather than the GL version, or a sampler2D ends up bound to a multisample texture.
+    const bool  use_msaa_outline = GUI::wxGetApp().is_gl_version_greater_or_equal_to(3, 2) &&
+                                   shader->get_uniform_location("msaa_samples") >= 0;
     const GLenum depth_tex_target = use_msaa_outline ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
     int aa_samples = 1;
     if (use_msaa_outline) {
