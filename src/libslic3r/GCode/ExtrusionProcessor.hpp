@@ -120,33 +120,39 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
         points.push_back(next_point);
     }
 
+    // ORCA: Midpoint sampling
+    // Segmentation below only interpolates from the endpoint distances, so a boundary close to both
+    // endpoints hides a less supported span between them - for example where vertical walls cage an
+    // overhang. Probe the middle of long segments to expose it, at one extra query per segment.
     if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && min_distance > 0) {
-        std::vector<ExtendedPoint<L::Dim>> sampled_points;
-        sampled_points.reserve(points.size() * 2);
-        sampled_points.push_back(points.front());
+        std::vector<ExtendedPoint<L::Dim>> sampled_points; // Populated lazily, on the first insertion
         for (size_t point_idx = 0; point_idx + 1 < points.size(); ++point_idx) {
             const ExtendedPoint<L::Dim>& curr = points[point_idx];
             const ExtendedPoint<L::Dim>& next = points[point_idx + 1];
             const double line_len = (next.position - curr.position).norm();
 
-            // A lower boundary near an endpoint can hide a less-supported span in the middle,
-            // for example where vertical walls cage an overhang. Only probe the midpoint when
-            // both endpoints appear supported; if either already exceeds min_distance the
-            // segmentation pass below handles the span without the extra query.
             if (line_len >= 2.f &&
                 std::abs(curr.distance) <= min_distance &&
                 std::abs(next.distance) <= min_distance) {
                 const Vec midpoint = 0.5 * (curr.position + next.position);
                 auto [midpoint_dist, midpoint_near_l, midpoint_x] =
                     unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(midpoint.template cast<AABBScalar>());
-                if (std::abs(midpoint_dist + boundary_offset) > min_distance &&
+                // ORCA: only a positive distance lowers the speed, an unsigned test would just split the segment
+                if (midpoint_dist + boundary_offset > min_distance &&
                     (midpoint - curr.position).norm() > min_spacing &&
-                    (next.position - midpoint).norm() > min_spacing)
+                    (next.position - midpoint).norm() > min_spacing) {
+                    if (sampled_points.empty()) {
+                        sampled_points.reserve(points.size() + 8);
+                        sampled_points.assign(points.begin(), points.begin() + point_idx + 1);
+                    }
                     sampled_points.push_back({midpoint, float(midpoint_dist + boundary_offset)});
+                }
             }
-            sampled_points.push_back(next);
+            if (!sampled_points.empty())
+                sampled_points.push_back(next);
         }
-        points = std::move(sampled_points);
+        if (!sampled_points.empty())
+            points = std::move(sampled_points);
     }
 
     // Segmentation handling
