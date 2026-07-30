@@ -307,17 +307,20 @@ public:
 #endif // !__APPLE__
         )
     {
+		// Some desktop environments ignore splash screen typed window properties
+		// when running the app through Wayland,resulting in the titlebar being shown 
+		// on the splash screen. The code below ensures hat even those environments 
+		// forcibly set their window decorations to false, making it so every 
+		// environment properly hides the titlebar for this window.
+		#if defined(__WXGTK__)
+		    gboolean is_decorated = gtk_window_get_decorated(GTK_WINDOW(GetHandle()));
+		    if (is_decorated) {
+		        gtk_window_set_decorated(GTK_WINDOW(GetHandle()), FALSE);
+		    }
+		#endif
+		
         this->SetPosition(pos);
         this->CenterOnScreen();
-		
-		#if defined(__WXGTK__)
-        if (Slic3r::GUI::is_running_on_wayland()) {
-            GtkWidget *empty = gtk_fixed_new();
-            gtk_widget_set_size_request(empty, 0, 0);
-            gtk_window_set_titlebar(GTK_WINDOW(GetHandle()), empty);
-            gtk_window_set_decorated(GTK_WINDOW(GetHandle()), false);
-        }
-		#endif
 		
         scale_font(m_font_version, 1.65f); // only scale this one since it hasnt a preloaded font like Label::Body_24;
 
