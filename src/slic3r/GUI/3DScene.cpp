@@ -522,9 +522,17 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     // That needs the GL 3.2 entry points and a shader that declares depth_tex as sampler2DMS, which
     // only the 140 ones do and only under GL_ARB_texture_multisample - so ask the compiled program
     // rather than the GL version, or a sampler2D ends up bound to a multisample texture.
-    const bool  use_msaa_outline = GUI::wxGetApp().is_gl_version_greater_or_equal_to(3, 2) &&
+    // Only the Arb branch below allocates a multisample texture, so keep the target consistent with it.
+    const bool  use_msaa_outline = framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb &&
+                                   GUI::wxGetApp().is_gl_version_greater_or_equal_to(3, 2) &&
                                    shader->get_uniform_location("msaa_samples") >= 0;
     const GLenum depth_tex_target = use_msaa_outline ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
+    // Keep the depth texture off image unit 0. The object shaders leave shadow_map (and
+    // environment_tex) at the default sampler value 0 whenever the shadow pass is skipped - which is
+    // the case with realistic view off - and GL forbids two sampler types referring to the same image
+    // unit. A sampler2DMS on unit 0 then makes every draw fail with INVALID_OPERATION on drivers that
+    // enforce it (Mesa), i.e. the model disappears entirely. Unit 5 is unused (shadow_map takes 4).
+    const int depth_tex_unit = 5;
     int aa_samples = 1;
     if (use_msaa_outline) {
         if (const AppConfig* app_config = GUI::wxGetApp().app_config; app_config != nullptr) {
@@ -548,7 +556,7 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
         glsafe(::glGenFramebuffers(1, &depth_fbo));
         glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, depth_fbo));
 
-        glActiveTexture(GL_TEXTURE0);
+        glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
         glsafe(::glGenTextures(1, &depth_tex));
         glsafe(::glBindTexture(depth_tex_target, depth_tex));
         if (use_msaa_outline) {
@@ -567,7 +575,7 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
         glsafe(::glGenFramebuffersEXT(1, &depth_fbo));
         glsafe(::glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, depth_fbo));
 
-        glActiveTexture(GL_TEXTURE0);
+        glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
         glsafe(::glGenTextures(1, &depth_tex));
         glsafe(::glBindTexture(GL_TEXTURE_2D, depth_tex));
         glsafe(::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE));
@@ -578,12 +586,15 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
 
         glsafe(::glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depth_tex, 0));
     }
+    // Unbind before drawing: the texture is this framebuffer's depth attachment, so leaving it bound
+    // to a sampled unit would be a feedback loop.
+    glsafe(::glBindTexture(depth_tex_target, 0));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
     glsafe(::glClear(GL_DEPTH_BUFFER_BIT));
     if (tverts_range == std::make_pair<size_t, size_t>(0, -1))
         model.render(shader);
     else
         model.render(this->tverts_range, shader);
-    glsafe(::glBindTexture(depth_tex_target, 0));
 
     // 2nd. render pass, just a normal render with the depth buffer passed as a texture
     if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
@@ -594,13 +605,16 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     shader->set_uniform("is_outline", true);
     shader->set_uniform("screen_size", Vec2f{cnv_size.get_width(), cnv_size.get_height()});
     shader->set_uniform("msaa_samples", aa_samples);
-    glActiveTexture(GL_TEXTURE0);
+    glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
     glsafe(::glBindTexture(depth_tex_target, depth_tex));
-    shader->set_uniform("depth_tex", 0);
+    glsafe(::glActiveTexture(GL_TEXTURE0));
+    shader->set_uniform("depth_tex", depth_tex_unit);
     simple_render(shader, model_objects, colors);
 
     // Some clean up to do
+    glsafe(::glActiveTexture(GL_TEXTURE0 + depth_tex_unit));
     glsafe(::glBindTexture(depth_tex_target, 0));
+    glsafe(::glActiveTexture(GL_TEXTURE0));
     shader->set_uniform("is_outline", false);
     if (framebuffers_type == GUI::OpenGLManager::EFramebufferType::Arb) {
         glsafe(::glBindFramebuffer(GL_FRAMEBUFFER, 0));
