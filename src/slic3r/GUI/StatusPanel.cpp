@@ -12,6 +12,7 @@
 
 #include "MsgDialog.hpp"
 #include "slic3r/Utils/Http.hpp"
+#include "slic3r/Utils/MoonrakerPrinterAgent.hpp"
 #include "libslic3r/Thread.hpp"
 #include "DeviceErrorDialog.hpp"
 
@@ -2714,13 +2715,21 @@ void StatusPanel::on_subtask_partskip(wxCommandEvent &event)
 void StatusPanel::on_subtask_pause_resume(wxCommandEvent &event)
 {
     if (obj) {
-        if (obj->can_resume()) {
+        const bool was_resume = obj->can_resume();
+        if (was_resume) {
             BOOST_LOG_TRIVIAL(info) << "monitor: resume current print task dev_id =" << obj->get_dev_id();
             obj->command_task_resume();
         }
         else {
             BOOST_LOG_TRIVIAL(info) << "monitor: pause current print task dev_id =" << obj->get_dev_id();
             obj->command_task_pause();
+        }
+        if (is_moonraker_agent()) {
+            m_pause_resume_pending = true;
+            m_pause_resume_was_resume = was_resume;
+            m_pause_resume_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(6);
+            m_pause_resume_machine_id = obj->get_dev_id();
+            m_project_task_panel->enable_pause_resume_button(false, was_resume ? "resume_disable" : "pause_disable");
         }
     }
 }
@@ -2733,6 +2742,12 @@ void StatusPanel::on_subtask_abort(wxCommandEvent &event)
             if (obj) {
                 BOOST_LOG_TRIVIAL(info) << "monitor: stop current print task dev_id =" << obj->get_dev_id();
                 obj->command_task_abort();
+                if (is_moonraker_agent()) {
+                    m_abort_pending = true;
+                    m_abort_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(6);
+                    m_abort_machine_id = obj->get_dev_id();
+                    m_project_task_panel->enable_abort_button(false);
+                }
             }
         });
     }
@@ -3706,6 +3721,25 @@ void StatusPanel::update_model_info()
 void StatusPanel::update_subtask(MachineObject *obj)
 {
     if (!obj) return;
+    const auto now = std::chrono::steady_clock::now();
+    if (m_pause_resume_pending) {
+        if (!is_moonraker_agent() || m_pause_resume_machine_id != obj->get_dev_id() ||
+            obj->can_resume() != m_pause_resume_was_resume) {
+            m_pause_resume_pending = false;
+        } else if (now >= m_pause_resume_deadline) {
+            BOOST_LOG_TRIVIAL(warning) << "StatusPanel: Moonraker pause/resume command did not change printer state";
+            m_pause_resume_pending = false;
+        }
+    }
+    if (m_abort_pending) {
+        if (!is_moonraker_agent() || m_abort_machine_id != obj->get_dev_id() || obj->print_status == "FAILED" ||
+            obj->print_status == "FINISH" || obj->print_status == "IDLE") {
+            m_abort_pending = false;
+        } else if (now >= m_abort_deadline) {
+            BOOST_LOG_TRIVIAL(warning) << "StatusPanel: Moonraker abort command did not change printer state";
+            m_abort_pending = false;
+        }
+    }
     if (m_current_print_mode != PRINGINT) {
         if (calib_bitmap == nullptr) {
             m_calib_mode = get_obj_calibration_mode(obj, m_calib_method, cali_stage);
@@ -3813,10 +3847,12 @@ void StatusPanel::update_subtask(MachineObject *obj)
             }
             update_basic_print_data(false);
         } else {
-            if (obj->can_resume()) {
-                m_project_task_panel->enable_pause_resume_button(true, "resume");
-            } else {
-                 m_project_task_panel->enable_pause_resume_button(true, "pause");
+            if (!m_pause_resume_pending) {
+                if (obj->can_resume()) {
+                    m_project_task_panel->enable_pause_resume_button(true, "resume");
+                } else {
+                     m_project_task_panel->enable_pause_resume_button(true, "pause");
+                }
             }
             m_project_task_panel->enable_partskip_button(obj, true);
             // update printing stage
@@ -3873,7 +3909,9 @@ void StatusPanel::update_subtask(MachineObject *obj)
                     m_project_task_panel->market_scoring_hide();
                 }
             } else { // model printing is not finished, hide scoring page
-                m_project_task_panel->enable_abort_button(true);
+                if (!m_abort_pending) {
+                    m_project_task_panel->enable_abort_button(true);
+                }
                 m_project_task_panel->market_scoring_hide();
                 m_project_task_panel->get_request_failed_panel()->Hide();
             }
@@ -4016,6 +4054,8 @@ void StatusPanel::update_sdcard_subtask(MachineObject *obj)
 
 void StatusPanel::reset_printing_values()
 {
+    m_pause_resume_pending = false;
+    m_abort_pending = false;
     m_project_task_panel->enable_partskip_button(nullptr, false);
     m_project_task_panel->enable_pause_resume_button(false, "pause_disable");
     m_project_task_panel->enable_abort_button(false);
@@ -4039,6 +4079,12 @@ void StatusPanel::reset_printing_values()
     m_load_sdcard_thumbnail   = false;
     skip_print_error = 0;
     this->Layout();
+}
+
+bool StatusPanel::is_moonraker_agent() const
+{
+    auto* agent = wxGetApp().getAgent();
+    return agent && std::dynamic_pointer_cast<Slic3r::MoonrakerPrinterAgent>(agent->get_printer_agent()) != nullptr;
 }
 
 void StatusPanel::on_axis_ctrl_xy(wxCommandEvent &event)

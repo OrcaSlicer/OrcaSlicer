@@ -126,6 +126,53 @@ MoonrakerPrinterAgent::~MoonrakerPrinterAgent()
         connect_thread.join();
     }
     stop_status_stream();
+    {
+        std::lock_guard<std::mutex> lock(cmd_mutex);
+        cmd_stop = true;
+        cmd_queue.clear();
+    }
+    cmd_cv.notify_one();
+    if (cmd_thread.joinable()) {
+        cmd_thread.join();
+    }
+}
+
+void MoonrakerPrinterAgent::enqueue_command(std::function<void()> fn)
+{
+    {
+        std::lock_guard<std::mutex> lock(cmd_mutex);
+        if (!cmd_thread.joinable()) {
+            cmd_thread = std::thread(&MoonrakerPrinterAgent::run_command_worker, this);
+        }
+        cmd_queue.emplace_back(std::move(fn));
+    }
+    cmd_cv.notify_one();
+}
+
+void MoonrakerPrinterAgent::run_command_worker()
+{
+    for (;;) {
+        std::function<void()> command;
+        {
+            std::unique_lock<std::mutex> lock(cmd_mutex);
+            cmd_cv.wait(lock, [this] { return cmd_stop || !cmd_queue.empty(); });
+            if (cmd_stop && cmd_queue.empty()) {
+                return;
+            }
+            command = std::move(cmd_queue.front());
+            cmd_queue.pop_front();
+        }
+        // why: an exception escaping a worker thread is std::terminate; the old synchronous
+        // path at least ran under wx's unhandled-exception hook. nlohmann dump() can throw
+        // on invalid UTF-8 smuggled in via custom g-code.
+        try {
+            command();
+        } catch (const std::exception& e) {
+            BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: queued command failed: " << e.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: queued command failed: unknown exception";
+        }
+    }
 }
 
 AgentInfo MoonrakerPrinterAgent::get_agent_info_static()
@@ -182,6 +229,10 @@ int MoonrakerPrinterAgent::connect_printer(std::string dev_id, std::string dev_i
     // Stop existing status stream and clear state
     stop_status_stream();
     {
+        std::lock_guard<std::mutex> lock(cmd_mutex);
+        cmd_queue.clear();
+    }
+    {
         std::lock_guard<std::recursive_mutex> lock(payload_mutex);
         status_cache = nlohmann::json::object();
     }
@@ -210,6 +261,10 @@ int MoonrakerPrinterAgent::disconnect_printer()
     }
 
     stop_status_stream();
+    {
+        std::lock_guard<std::mutex> lock(cmd_mutex);
+        cmd_queue.clear();
+    }
     return BAMBU_NETWORK_SUCCESS;
 }
 
@@ -1016,6 +1071,10 @@ bool MoonrakerPrinterAgent::fetch_hh_filament_info(std::vector<AmsTrayData>& tra
 
 int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::string& json_str)
 {
+    auto connection_snapshot = [this]() {
+        std::lock_guard<std::recursive_mutex> lock(connect_mutex);
+        return std::make_pair(device_info.base_url, device_info.api_key);
+    };
     auto json = nlohmann::json::parse(json_str, nullptr, false);
     if (json.is_discarded()) {
         BOOST_LOG_TRIVIAL(error) << "MoonrakerPrinterAgent: Invalid JSON request";
@@ -1092,13 +1151,14 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
                 BOOST_LOG_TRIVIAL(warning) << "MoonrakerPrinterAgent: ledctrl - no light object found, dropping";
                 return ORCA_NETWORK_ERR_CAP_NOT_AVAILABLE;
             }
-            if (!send_gcode(dev_id, gcode)) {
-                return BAMBU_NETWORK_ERR_CONNECTION_TO_PRINTER_FAILED;
-            }
-            {
-                std::lock_guard<std::recursive_mutex> lock(payload_mutex);
-                assumed_light_on = requested_light_on;
-            }
+            auto [base_url, api_key] = connection_snapshot();
+            enqueue_command([this, dev_id, gcode = std::move(gcode), base_url = std::move(base_url),
+                             api_key = std::move(api_key), requested_light_on]() {
+                if (send_gcode(dev_id, gcode, base_url, api_key)) {
+                    std::lock_guard<std::recursive_mutex> lock(payload_mutex);
+                    assumed_light_on = requested_light_on;
+                }
+            });
             return BAMBU_NETWORK_SUCCESS;
         }
     }
@@ -1143,25 +1203,38 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
             }
             response["print"]["param"] = gcode;
 
-            if (send_gcode(dev_id, gcode)) {
-                response["print"]["result"] = "success";
+            auto [base_url, api_key] = connection_snapshot();
+            enqueue_command([this, dev_id, response = std::move(response), base_url = std::move(base_url),
+                             api_key = std::move(api_key)]() mutable {
+                response["print"]["result"] = send_gcode(dev_id, response["print"]["param"].get<std::string>(), base_url, api_key)
+                    ? "success"
+                    : "failed";
                 dispatch_message(dev_id, response.dump());
-                return BAMBU_NETWORK_SUCCESS;
-            }
-            response["print"]["result"] = "failed";
-            dispatch_message(dev_id, response.dump());
-            return BAMBU_NETWORK_ERR_CONNECTION_TO_PRINTER_FAILED;
+            });
+            return BAMBU_NETWORK_SUCCESS;
         }
 
         // Print control commands
         if (cmd == "pause") {
-            return pause_print(dev_id);
+            auto [base_url, api_key] = connection_snapshot();
+            enqueue_command([this, base_url = std::move(base_url), api_key = std::move(api_key)] {
+                post_print_action("pause", base_url, api_key);
+            });
+            return BAMBU_NETWORK_SUCCESS;
         }
         if (cmd == "resume") {
-            return resume_print(dev_id);
+            auto [base_url, api_key] = connection_snapshot();
+            enqueue_command([this, base_url = std::move(base_url), api_key = std::move(api_key)] {
+                post_print_action("resume", base_url, api_key);
+            });
+            return BAMBU_NETWORK_SUCCESS;
         }
         if (cmd == "stop") {
-            return cancel_print(dev_id);
+            auto [base_url, api_key] = connection_snapshot();
+            enqueue_command([this, base_url = std::move(base_url), api_key = std::move(api_key)] {
+                post_print_action("cancel", base_url, api_key);
+            });
+            return BAMBU_NETWORK_SUCCESS;
         }
 
         // Bed temperature - UI sends "temp" field
@@ -1169,7 +1242,11 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
             if (json["print"].contains("temp") && json["print"]["temp"].is_number()) {
                 int         temp  = json["print"]["temp"].get<int>();
                 std::string gcode = "SET_HEATER_TEMPERATURE HEATER=heater_bed TARGET=" + std::to_string(temp);
-                send_gcode(dev_id, gcode);
+                auto [base_url, api_key] = connection_snapshot();
+                enqueue_command([this, dev_id, gcode = std::move(gcode), base_url = std::move(base_url),
+                                 api_key = std::move(api_key)] {
+                    send_gcode(dev_id, gcode, base_url, api_key);
+                });
                 return BAMBU_NETWORK_SUCCESS;
             }
         }
@@ -1184,7 +1261,11 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
                 }
                 std::string heater = (extruder_idx == 0) ? "extruder" : "extruder" + std::to_string(extruder_idx);
                 std::string gcode  = "SET_HEATER_TEMPERATURE HEATER=" + heater + " TARGET=" + std::to_string(temp);
-                send_gcode(dev_id, gcode);
+                auto [base_url, api_key] = connection_snapshot();
+                enqueue_command([this, dev_id, gcode = std::move(gcode), base_url = std::move(base_url),
+                                 api_key = std::move(api_key)] {
+                    send_gcode(dev_id, gcode, base_url, api_key);
+                });
                 return BAMBU_NETWORK_SUCCESS;
             }
         }
@@ -1192,7 +1273,11 @@ int MoonrakerPrinterAgent::handle_request(const std::string& dev_id, const std::
         // why: no current OrcaSlicer sender emits the "home" discriminator;
         // GUI homing uses gcode_line with G28 instead.
         if (cmd == "home") {
-            return send_gcode(dev_id, "G28") ? BAMBU_NETWORK_SUCCESS : BAMBU_NETWORK_ERR_SEND_MSG_FAILED;
+            auto [base_url, api_key] = connection_snapshot();
+            enqueue_command([this, dev_id, base_url = std::move(base_url), api_key = std::move(api_key)] {
+                send_gcode(dev_id, "G28", base_url, api_key);
+            });
+            return BAMBU_NETWORK_SUCCESS;
         }
     }
 
@@ -1457,19 +1542,34 @@ bool MoonrakerPrinterAgent::fetch_webcam_info(const std::string& base_url, const
 
 bool MoonrakerPrinterAgent::post_print_action(const std::string& action) const
 {
+    // why: snapshot then release - holding connect_mutex across the blocking HTTP call
+    // would stall any UI-thread handle_request waiting to take its own snapshot.
+    std::string base_url, api_key;
+    {
+        std::lock_guard<std::recursive_mutex> lock(connect_mutex);
+        base_url = device_info.base_url;
+        api_key  = device_info.api_key;
+    }
+    return post_print_action(action, base_url, api_key);
+}
+
+bool MoonrakerPrinterAgent::post_print_action(const std::string& action,
+                                              const std::string& base_url,
+                                              const std::string& api_key) const
+{
     // why: /printer/print/{pause,resume,cancel} map to Klipper's pause_resume
     // webhook (a direct interrupt). A raw PAUSE/RESUME/CANCEL_PRINT queued through
     // /printer/gcode/script waits behind the gcode queue and can no-op while the
     // printer is busy (long move, heating, inside a macro).
     // note: empty JSON body avoids a body-less POST (curl would treat it as a
     // streamed upload) - same reason start_print_file sends a body.
-    const std::string full_url = join_url(device_info.base_url, "/printer/print/" + action);
+    const std::string full_url = join_url(base_url, "/printer/print/" + action);
     bool              success  = false;
     std::string       http_error;
 
     auto http = Http::post(full_url);
-    if (!device_info.api_key.empty()) {
-        http.header("X-Api-Key", device_info.api_key);
+    if (!api_key.empty()) {
+        http.header("X-Api-Key", api_key);
     }
     http.header("Content-Type", "application/json")
         .set_post_body(std::string("{}"))
@@ -1502,6 +1602,19 @@ bool MoonrakerPrinterAgent::post_print_action(const std::string& action) const
 
 bool MoonrakerPrinterAgent::send_gcode(const std::string& dev_id, const std::string& gcode) const
 {
+    // why: snapshot then release - see post_print_action.
+    std::string base_url, api_key;
+    {
+        std::lock_guard<std::recursive_mutex> lock(connect_mutex);
+        base_url = device_info.base_url;
+        api_key  = device_info.api_key;
+    }
+    return send_gcode(dev_id, gcode, base_url, api_key);
+}
+
+bool MoonrakerPrinterAgent::send_gcode(const std::string& dev_id, const std::string& gcode,
+                                       const std::string& base_url, const std::string& api_key) const
+{
     nlohmann::json payload;
     payload["script"]       = gcode;
     std::string payload_str = payload.dump();
@@ -1510,10 +1623,10 @@ bool MoonrakerPrinterAgent::send_gcode(const std::string& dev_id, const std::str
     bool        success = false;
     std::string http_error;
 
-    auto full_url = join_url(device_info.base_url, "/printer/gcode/script");
+    auto full_url = join_url(base_url, "/printer/gcode/script");
     auto http = Http::post(full_url);
-    if (!device_info.api_key.empty()) {
-        http.header("X-Api-Key", device_info.api_key);
+    if (!api_key.empty()) {
+        http.header("X-Api-Key", api_key);
     }
     http.header("Content-Type", "application/json")
         .set_post_body(payload_str)

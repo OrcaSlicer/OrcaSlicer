@@ -9,6 +9,9 @@
 #include <set>
 #include <string>
 #include <thread>
+#include <condition_variable>
+#include <deque>
+#include <functional>
 
 #include <nlohmann/json.hpp>
 
@@ -125,7 +128,11 @@ protected:
 
     // Send a G-code script via Moonraker (/printer/gcode/script)
     bool send_gcode(const std::string& dev_id, const std::string& gcode) const;
+    bool send_gcode(const std::string& dev_id, const std::string& gcode,
+                    const std::string& base_url, const std::string& api_key) const;
     bool post_print_action(const std::string& action) const;
+    bool post_print_action(const std::string& action,
+                           const std::string& base_url, const std::string& api_key) const;
 
 private:
     int handle_request(const std::string& dev_id, const std::string& json_str);
@@ -221,7 +228,15 @@ private:
     // Connection thread management
     std::atomic<uint64_t>  connect_generation{0};
     std::thread            connect_thread;
-    std::recursive_mutex   connect_mutex;
+    mutable std::recursive_mutex connect_mutex;
+
+    void enqueue_command(std::function<void()> fn);
+    void run_command_worker();
+    std::thread cmd_thread;
+    std::deque<std::function<void()>> cmd_queue;
+    std::mutex cmd_mutex;
+    std::condition_variable cmd_cv;
+    bool cmd_stop = false;
 };
 
 } // namespace Slic3r

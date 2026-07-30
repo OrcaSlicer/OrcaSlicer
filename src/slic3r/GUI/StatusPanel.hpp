@@ -14,6 +14,7 @@
 #include <wx/sizer.h>
 #include <wx/gbsizer.h>
 #include <wx/webrequest.h>
+#include <chrono>
 #include "wxMediaCtrl2.h"
 #include "MediaPlayCtrl.h"
 #include "AMSSetting.hpp"
@@ -688,6 +689,13 @@ protected:
     CalibrationMethod m_calib_method;
     int cali_stage;
     PrintingTaskType m_current_print_mode = PrintingTaskType::NOT_CLEAR;
+    bool m_pause_resume_pending = false;
+    bool m_pause_resume_was_resume = false;
+    std::chrono::steady_clock::time_point m_pause_resume_deadline;
+    std::string m_pause_resume_machine_id;
+    bool m_abort_pending = false;
+    std::chrono::steady_clock::time_point m_abort_deadline;
+    std::string m_abort_machine_id;
 
     void init_scaled_buttons();
     void create_tasklist_info();
@@ -790,6 +798,7 @@ protected:
     void update_calib_bitmap();
 
     void reset_printing_values();
+    bool is_moonraker_agent() const;
     void on_webrequest_state(wxWebRequestEvent &evt);
     bool is_task_changed(MachineObject* obj);
 
