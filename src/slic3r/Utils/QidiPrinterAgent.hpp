@@ -2,6 +2,7 @@
 #define __QIDI_PRINTER_AGENT_HPP__
 
 #include "MoonrakerPrinterAgent.hpp"
+#include "nlohmann/json_fwd.hpp"
 
 #include <map>
 #include <string>
@@ -20,6 +21,11 @@ public:
 
     // Override filament sync (Qidi-specific implementation)
     bool fetch_filament_info(std::string dev_id) override;
+
+    static bool parse_slot_response(const std::string& response_body,
+                                    nlohmann::json&    status,
+                                    nlohmann::json&    variables,
+                                    std::string&       error);
 
     // Print operations — emit QiDi multi-color box config, then delegate to base.
     int start_print(PrintParams params, OnUpdateStatusFn update_fn, WasCancelledFn cancel_fn, OnWaitFn wait_fn) override;

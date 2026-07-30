@@ -193,20 +193,10 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
         return false;
     }
 
-    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
-    if (json.is_discarded()) {
-        error = "Invalid JSON response";
+    nlohmann::json status;
+    nlohmann::json variables;
+    if (!parse_slot_response(response_body, status, variables, error))
         return false;
-    }
-
-    if (!json.contains("result") || !json["result"].contains("status") || !json["result"]["status"].contains("save_variables") ||
-        !json["result"]["status"]["save_variables"].contains("variables")) {
-        error = "Unexpected JSON structure";
-        return false;
-    }
-
-    auto& variables = json["result"]["status"]["save_variables"]["variables"];
-    auto& status    = json["result"]["status"];
 
     box_count = variables.value("box_count", 1);
     if (box_count < 0) {
@@ -278,6 +268,31 @@ bool QidiPrinterAgent::fetch_slot_info(const std::string&        base_url,
         trays.push_back(tray);
     }
 
+    return true;
+}
+
+bool QidiPrinterAgent::parse_slot_response(const std::string& response_body,
+                                           nlohmann::json&    status,
+                                           nlohmann::json&    variables,
+                                           std::string&       error)
+{
+    auto json = nlohmann::json::parse(response_body, nullptr, false, true);
+    if (json.is_discarded()) {
+        error = "Invalid JSON response";
+        return false;
+    }
+
+    if (!json.is_object() || !json.contains("result") || !json["result"].is_object() || !json["result"].contains("status") ||
+        !json["result"]["status"].is_object() || !json["result"]["status"].contains("save_variables") ||
+        !json["result"]["status"]["save_variables"].is_object() || !json["result"]["status"]["save_variables"].contains("variables") ||
+        !json["result"]["status"]["save_variables"]["variables"].is_object()) {
+        // why: Qidi firmware may send null here, but json::value() throws for it.
+        error = "Unexpected JSON structure: save_variables.variables must be an object";
+        return false;
+    }
+
+    status    = json["result"]["status"];
+    variables = status["save_variables"]["variables"];
     return true;
 }
 

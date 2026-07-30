@@ -10,6 +10,7 @@ add_executable(${_TEST_NAME}_tests
     test_plugin_capabilities_in_use.cpp
     test_plugin_status.cpp
     test_printer_agent.cpp
+    test_qidi_printer_agent.cpp
     test_plugin_install.cpp
     test_plugin_lifecycle.cpp
     test_slicing_pipeline_bindings.cpp
