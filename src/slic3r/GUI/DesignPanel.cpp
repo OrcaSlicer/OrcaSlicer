@@ -341,16 +341,24 @@ DesignPanel::DesignPanel(wxWindow* parent)
     auto select_tool = [this](DesignSketchTool::Mode mode, const wxString& hint) {
         if (!m_viewport) return;
         if (!m_viewport->is_sketching()) {
-            const SketchPlane plane = plane_from_choice(m_draw_plane->GetSelection());
+            wxString on;
+            const SketchPlane plane = sketch_plane_from_selection(on);
             m_viewport->begin_sketch(plane, mode);
             m_construction->SetValue(false);   // a fresh session starts non-construction
+            m_sketch_on = on;                  // shown with the tool hint, so the target is visible
+            // The face has been CONSUMED as the sketch plane, so drop the pick. Leaving it live
+            // meant the next Extrude saw a selected face and push/pulled it instead of extruding
+            // the sketch just drawn — the same trap the imported-art path already guards against.
+            if (m_sel_solid_face >= 0)
+                m_sel_solid_face = m_sel_solid_edge = m_sel_solid_body = -1;
         } else {
             m_viewport->set_sketch_tool(mode);
         }
         m_viewport->set_sketch_construction(m_construction->GetValue());
         show_polygon_card(mode == DesignSketchTool::Mode::Polygon);
         m_status->SetForegroundColour(wxNullColour);
-        m_status->SetLabel(hint);
+        m_status->SetLabel(m_sketch_on.IsEmpty() ? hint
+                           : wxString::Format(_L("%s  ·  on %s"), hint, m_sketch_on));
         m_status->Refresh();
     };
 
@@ -3523,6 +3531,7 @@ void DesignPanel::set_active_tool_btn(ScalableButton* b)
 void DesignPanel::set_ui_mode(UiMode m)
 {
     m_ui_mode = m;
+    if (m != UiMode::Sketch) m_sketch_on.clear();   // no stale "on the picked face" on the next hint
     wxSizer* s = m_toolbar->GetSizer();
     s->Show(m_tb_feature,   m == UiMode::Feature,   true);
     s->Show(m_tb_sketch,    m == UiMode::Sketch,    true);
@@ -4835,6 +4844,29 @@ SketchPlane DesignPanel::plane_from_choice(int row) const
     const int di = row - 3;
     if (di >= 0 && di < int(datums.size())) return datums[di].second;
     SketchPlane p = SketchPlane::XY(); p.origin += m_doc.modeling_origin; return p;
+}
+
+// A sketch goes where the user pointed. A planar face picked in the viewport wins outright; only
+// when nothing is picked do we fall back to the reference plane, which itself is normally set by
+// clicking one of the ghost planes in 3D (on_datum_base_picked) rather than by opening the combo.
+// Before this, a picked face was ignored and the only way onto it was to build a Coincident datum
+// plane first and then find it in a dropdown — three steps and a junk feature in the tree for the
+// most common gesture in solid modelling. snaporca-3a2.
+SketchPlane DesignPanel::sketch_plane_from_selection(wxString& what) const
+{
+    SketchPlane p;
+    if (m_sel_solid_face >= 0 && m_sel_solid_body >= 0
+        && m_doc.plane_of_face(m_sel_solid_body, m_sel_solid_face, p)) {
+        what = (m_doc.bodies.size() > 1)
+             ? wxString::Format(_L("the picked face of Body %d"), m_sel_solid_body + 1)
+             : _L("the picked face");
+        return p;
+    }
+    const int row = m_draw_plane ? m_draw_plane->GetSelection() : 0;
+    what = (m_draw_plane && row >= 0 && row < int(m_draw_plane->GetCount()))
+         ? m_draw_plane->GetString(unsigned(row))
+         : wxString("XY");
+    return plane_from_choice(row);
 }
 
 void DesignPanel::apply_plane_refs(CadFeature& f) const

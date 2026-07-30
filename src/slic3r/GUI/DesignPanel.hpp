@@ -230,6 +230,10 @@ private:
     // map a choice row back to the actual SketchPlane (rows 0-2 base, 3+ datum).
     void        populate_plane_choices(ComboBox* c) const;
     SketchPlane plane_from_choice(int row) const;
+    // Where a new sketch goes, resolved from what is SELECTED IN THE VIEWPORT rather than from a
+    // list: a picked planar face wins, otherwise the reference plane last clicked in 3D. `what`
+    // comes back as something to show the user, so the choice is visible without a combo.
+    SketchPlane sketch_plane_from_selection(wxString& what) const;
     // True when Extrude should build only the click-selected loop (a region of the
     // resolved sketch is selected and it carries entities).
     bool       extrude_uses_loop() const;
@@ -585,6 +589,9 @@ private:
     int               m_sel_solid_body{-1};   // which body the face/edge selection is on
     int               m_sel_solid_face{-1};
     int               m_sel_solid_edge{-1};
+    // What the live sketch was actually opened on ("the picked face", "XY", a datum's name), so the
+    // hint can say it. Resolved from the selection at begin_sketch, not read back from a combo.
+    wxString          m_sketch_on;
     // Face-as-profile extrude (Onshape): when Extrude is opened on a picked solid face with
     // no sketch source, this carries that global face id so the kernel extrudes the face.
     // -1 = ordinary sketch/loop extrude. Set when opening the Extrude card, consumed on add.

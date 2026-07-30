@@ -32,6 +32,8 @@
 #include <BRepCheck_Analyzer.hxx>
 #include <BRepLib.hxx>
 #include <BRepAdaptor_Curve.hxx>
+#include <BRepAdaptor_Surface.hxx>   // plane_of_face: reject non-planar faces
+#include <GeomAbs_SurfaceType.hxx>
 #include <GeomAbs_CurveType.hxx>
 #include <BRep_Tool.hxx>
 #include <Geom_CylindricalSurface.hxx>
@@ -1374,6 +1376,20 @@ static SketchPlane frame_from(const Vec3d& origin, const Vec3d& normal)
     p.x_axis = x;
     p.y_axis = y;
     return p;
+}
+
+bool CadDocument::plane_of_face(int body_idx, int face_idx, SketchPlane& out) const
+{
+    if (face_idx < 0 || body_idx < 0 || body_idx >= int(bodies.size())) return false;
+    const TopoDS_Face f = GeometryEngine::face_by_index(bodies[body_idx].shape, face_idx);
+    if (f.IsNull()) return false;
+    // Planar only. face_normal_world evaluates the normal at the mid parameter, which on a cylinder
+    // or a fillet is a tangent plane at one arbitrary point — usable for a datum offset, wrong as a
+    // sketch plane. Refuse rather than sketch somewhere the user did not point at.
+    BRepAdaptor_Surface surf(f);
+    if (surf.GetType() != GeomAbs_Plane) return false;
+    out = frame_from(GeometryEngine::face_centroid_world(f), GeometryEngine::face_normal_world(f));
+    return true;
 }
 
 std::vector<std::pair<std::string, SketchPlane>> CadDocument::resolve_datum_planes() const

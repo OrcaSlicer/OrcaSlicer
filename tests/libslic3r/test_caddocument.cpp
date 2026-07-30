@@ -6798,3 +6798,58 @@ TEST_CASE("An entity sketch that forms no wire fails instead of extruding a defa
         CHECK(doc.error.find("do not form a single closed wire") != std::string::npos);
     }
 }
+
+// Sketching on a picked face is the most common gesture in solid modelling, and it was impossible:
+// the plane came from a combo of base + datum planes only, so the sole route onto a face was to
+// build a Coincident datum plane first. plane_of_face is the shared derivation that makes the
+// viewport selection usable directly. snaporca-3a2.
+TEST_CASE("plane_of_face gives a sketchable plane for a planar face only", "[CadDocument]")
+{
+    // 20 x 20 x 20 box on XY, so its top face sits at z = 20 with +Z normal.
+    CadDocument doc;
+    int sk = doc.add_sketch(SketchShape::Rectangle, SketchPlane::XY(), 20, 20, 10, "Sketch");
+    doc.add_extrude(sk, 20.0, false, BooleanMode::New, "Extrude");
+    REQUIRE(doc.recompute());
+    REQUIRE(doc.bodies.size() == 1);
+
+    SECTION("every planar face of the box resolves, and its normal is a unit axis") {
+        int resolved = 0, top = -1;
+        for (int fi = 0; fi < 64; ++fi) {
+            SketchPlane p;
+            if (!doc.plane_of_face(0, fi, p)) continue;
+            ++resolved;
+            CHECK_THAT(p.normal.norm(), Catch::Matchers::WithinAbs(1.0, 1e-9));
+            // The frame must be orthonormal or sketch coordinates on it would be skewed.
+            CHECK_THAT(p.x_axis.dot(p.y_axis), Catch::Matchers::WithinAbs(0.0, 1e-9));
+            CHECK_THAT(p.x_axis.dot(p.normal), Catch::Matchers::WithinAbs(0.0, 1e-9));
+            if (p.normal.z() > 0.99) top = fi;
+        }
+        CHECK(resolved == 6);                 // a box has exactly six planar faces
+        REQUIRE(top >= 0);                    // and one of them faces +Z
+        SketchPlane p;
+        REQUIRE(doc.plane_of_face(0, top, p));
+        CHECK_THAT(p.origin.z(), Catch::Matchers::WithinAbs(20.0, 1e-6));   // the top, not the base
+    }
+
+    SECTION("bad indices are refused rather than guessed") {
+        SketchPlane p;
+        CHECK_FALSE(doc.plane_of_face(0, -1, p));
+        CHECK_FALSE(doc.plane_of_face(-1, 0, p));
+        CHECK_FALSE(doc.plane_of_face(9, 0, p));
+        CHECK_FALSE(doc.plane_of_face(0, 999, p));
+    }
+
+    SECTION("a cylindrical face is refused — it has no single sketch plane") {
+        CadDocument cyl;
+        int c = cyl.add_sketch(SketchShape::Circle, SketchPlane::XY(), 0, 0, 10.0, "Sketch");
+        cyl.add_extrude(c, 20.0, false, BooleanMode::New, "Extrude");
+        REQUIRE(cyl.recompute());
+        int planar = 0, refused = 0;
+        for (int fi = 0; fi < 16; ++fi) {
+            SketchPlane p;
+            if (cyl.plane_of_face(0, fi, p)) ++planar; else ++refused;
+        }
+        CHECK(planar == 2);        // the two flat caps, and NOT the barrel
+        CHECK(refused > 0);
+    }
+}

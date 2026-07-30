@@ -553,6 +553,13 @@ public:
     // Every datum plane currently in the recipe, in feature order, as (name, plane).
     // Used by the GUI to populate plane pickers (after the 3 base planes).
     std::vector<std::pair<std::string, SketchPlane>> resolve_datum_planes() const;
+
+    // World-space sketch plane lying on a body's PLANAR face, so a face picked in the viewport can
+    // be sketched on directly — no datum plane in between and nothing to choose from a list.
+    // Returns false when the indices don't resolve or the face isn't planar (a cylinder or a fillet
+    // has no single plane, and guessing one from a mid-parameter normal would silently sketch on a
+    // tangent). Same derivation the Coincident datum method uses, shared so the two cannot drift.
+    bool plane_of_face(int body_idx, int face_idx, SketchPlane& out) const;
     // Resolved datum axes in feature order. axis_err is non-empty if construction failed.
     struct DatumAxis { std::string name; Vec3d origin{0,0,0}; Vec3d direction{0,0,1};
                        std::string error; };
