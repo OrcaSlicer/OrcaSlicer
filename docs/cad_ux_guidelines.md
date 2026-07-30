@@ -25,14 +25,27 @@ So we write the rule down first, and we make additions argue against it.
 **Orca-CAD is a modelling space for people who want a part, inside the tool that
 prints it.**
 
-Two audiences, one interface:
+Three audiences, one interface:
 
-- The maker who has an idea and a printer, and who has bounced off FreeCAD.
+- **The fourteen-year-old on a school laptop.** Free software, on the machine
+  they already have, with no account, no subscription, no licence and no
+  tutorial. They open the tab because they want a bracket for a bike light, and
+  an hour later it is printing. This is not the charity case at the bottom of
+  the list — it is the reason the project is worth doing. A CAD tool that only
+  the equipped can run is a tool for people who were already going to design
+  something; this one has to be a creative instrument in the hands of someone
+  who did not yet know they could make things. Everything in §6.1 exists to
+  keep that door open, and nothing gets to close it for the convenience of the
+  other two audiences.
+- **The maker** who has an idea and a printer, and who has bounced off FreeCAD.
   They should be modelling something real within ten minutes of first opening
   the tab, without a tutorial, without knowing the word "constraint".
-- The mechanical designer who needs assemblies, mates, exploded views,
+- **The mechanical designer** who needs assemblies, mates, exploded views,
   variables, and a feature history they can edit six months later. They should
   not have to leave for SolidWorks the moment the work gets serious.
+
+The order matters. When a decision helps one audience and hurts another, the
+earlier one wins unless there is a written argument for why not.
 
 The reference for *how it feels* is Shapr3D: direct, gestural, quiet, almost no
 chrome, depth revealed by what you touch rather than by what is on screen. The
@@ -157,7 +170,7 @@ the gesture people actually try.
 
 ### L9 — Accessible by construction, not by retrofit
 
-The floor, applied to every new interaction (details in §6): full keyboard
+The floor, applied to every new interaction (details in §6.2): full keyboard
 reach, no meaning carried by colour alone, hit targets that survive a shaky hand
 and a HiDPI screen, legible labels over an arbitrary 3D background, no gesture
 that depends on timing.
@@ -176,6 +189,18 @@ machinist has failed them.
 
 > **Test.** Would a shop-floor engineer recognise this word? Would a first-time
 > user be able to look it up and find a real definition?
+
+### L11 — The floor is a school laptop, and nothing is behind a door
+
+The product runs, completely, on a low-end laptop with integrated graphics and a
+small screen, offline, with no account, no subscription and no feature withheld.
+No capability in this document is reserved for a paid tier, a cloud service, a
+plugin, or a machine with a discrete GPU — there is one product and everybody
+gets all of it.
+
+> **Test.** On the reference low-end machine (§6.1), at 1366×768, with the
+> network cable pulled and no account ever created: does this feature work, and
+> is it usable at an honest frame rate? Any "no" is a defect, not a limitation.
 
 ## 4. Interaction grammar
 
@@ -214,10 +239,59 @@ The viewport is the application. Chrome is a tax on it.
   space, and print-domain warnings appear on the geometry that will fail.
 - **Nothing is added to permanent chrome without removing something**, or
   demonstrating that the addition is used in the majority of sessions.
+- **The budget is set by the smallest screen we serve**, 1366×768 (§6.1) — not
+  by the reviewer's monitor. Chrome that fits a 27-inch display and swallows a
+  laptop's has not fitted, it has just failed somewhere the author cannot see.
 
-## 6. Accessibility floor
+## 6. Accessibility — reach first, then the assistive floor
 
-Not a phase. A merge requirement.
+"Accessible" means two different things and the product owes both. §6.1 is about
+**who can get in at all**; §6.2 is about **who can operate it once inside**.
+Neither is a phase. Both are merge requirements.
+
+### 6.1 Reach — the door has to be open
+
+The premise of the whole project: someone with no money, no licence, no account,
+no fast machine and no teacher can open this and make a real thing. Free
+software on a school laptop is the only path to a CAD tool that reaches people
+who were never going to be handed one. If a design decision quietly raises the
+cost of entry, it has broken the premise, however elegant it is.
+
+- **The reference machine.** A 5-year-old laptop: dual/quad-core CPU,
+  **integrated graphics**, 8 GB RAM, **1366×768** screen, no discrete GPU. The
+  Design tab must be usable there, and any interaction that needs more is a
+  design failure to be solved, not a requirement to be documented. The GPU path
+  degrades gracefully to software rendering rather than refusing to start; the
+  viewport stays interactive while the kernel thinks.
+- **1366×768 is the layout target, not the stretch case.** A form-heavy side
+  panel is not merely inelegant on that screen — it takes the model off it.
+  This is the second, independent argument for the whole of L1 and §5.
+- **No account, no cloud, no connection.** The product works forever with the
+  network unplugged. Nothing is uploaded, no sign-in gates any feature, no
+  telemetry is required to use it. A school network that blocks everything must
+  not be able to block this.
+- **No tier, no plugin wall, no "pro".** Every feature named in this document is
+  in the product everyone downloads. Assemblies and exploded views are not the
+  paid half.
+- **Files belong to the user**, on their disk, in a format that outlives the
+  project: the design travels inside the ordinary project file, and the geometry
+  exports to STEP and mesh formats anyone can open.
+- **Learnable without instruction.** The first solid comes with no
+  documentation, no video and no tutorial mode — from noticing that a face can
+  be clicked. Tooltips teach the vocabulary (L10) at the moment it is needed;
+  nothing is explained in a manual the user will never open.
+- **Plain language at the entry tier.** The Make tier speaks in words a
+  thirteen-year-old reads without stopping. Precision comes with the tier that
+  needs it, and everything is translated, because "accessible" in English only
+  is not accessible.
+- **Exploration must be free.** Undo reaches everything, work is never lost to a
+  wrong click, and no dialog ever asks the user to be sure. A tool that punishes
+  experiments teaches people to stop experimenting, which is the one thing this
+  audience cannot afford to learn.
+- **The product never blames the user.** Failures are stated as what happened
+  and what to do (L7). "Invalid input" is not an acceptable sentence anywhere.
+
+### 6.2 Assistive floor
 
 - **Keyboard**: every operation reachable and completable without a pointer.
   Single-letter shortcuts for sketch tools, documented in the tool's own
@@ -287,7 +361,7 @@ Design-time knowledge the application already has, and must use:
 Every pull request that touches the Design tab UI answers these, in the PR body.
 A "no" that is not accompanied by an argument is a request for changes.
 
-1. Which law (L1–L10) does the change most directly serve?
+1. Which law (L1–L11) does the change most directly serve?
 2. Can the whole operation be completed without the pointer leaving the
    viewport? If not, why is this the exception?
 3. Are the values draggable *and* typable?
@@ -301,6 +375,9 @@ A "no" that is not accompanied by an argument is a request for changes.
    commit?
 10. Interaction cost: actions required for the canonical task it addresses,
     before and after.
+11. Reach (L11): screenshot at 1366×768 with the panel open — is the model still
+    on screen? Does it run on integrated graphics? Does it need the network, an
+    account, or a file the user cannot keep?
 
 ## 10. Where we stand today — honest inventory
 
@@ -321,7 +398,8 @@ Violating them, with removal scheduled:
 - **Every tool card is a two-column form** of combos and spin fields in the left
   panel. This is the single largest debt in the product and the reason this
   document exists. Tracked as an epic; each card is replaced by its on-geometry
-  equivalent, not improved in place.
+  equivalent, not improved in place. It fails L1 and it fails L11 twice over —
+  on a 1366×768 screen the cards leave the model a strip.
 - Seven remaining plane pickers still populate a combo instead of consuming a
   viewport selection.
 - Pattern has no on-geometry spacing arrow or count badge.
@@ -337,8 +415,17 @@ what its on-geometry replacement should be.
 **Roles.** Product/UX lead (owns this document and casts the tie-break vote on
 interaction questions); kernel maintainer; GUI maintainer; a print-domain
 reviewer; a mechanical-design reviewer who uses the product on real work; an
-accessibility reviewer. One person may hold more than one role; the UX lead and
-the mechanical-design reviewer should not be the same person.
+accessibility reviewer covering both senses of §6 — reach and assistive — who
+owns the reference machine and actually runs on it. One person may hold more
+than one role; the UX lead and the mechanical-design reviewer should not be the
+same person, and nobody reviews reach from a workstation.
+
+**The absent audience needs a seat.** The fourteen-year-old is not in the room
+and cannot file an issue. Someone in the group is accountable for B5 and B6, and
+the group watches real first-timers use the product on the reference machine at
+least once a quarter — school, makerspace, or a friend's kid. Everything else in
+this document can be argued from principle; approachability can only be
+observed.
 
 **Cadence.** A short weekly review of open interaction proposals. A monthly pass
 over the violating inventory in §10 — anything that has not moved in two months
@@ -376,11 +463,17 @@ and, periodically, with real users who have not seen the product.
 | **B2** | Change a hole diameter and the plate thickness, six features deep, and rebuild | Parametric editability |
 | **B3** | Take an imported STEP, delete a boss, close the face, thicken a wall to nozzle width | Direct editing + print awareness |
 | **B4** | Two parts, one revolute mate, check interference, produce an exploded view | The Mechanism tier |
-| **B5** | First-run: from opening the Design tab to a printed-ready solid, no documentation | Approachability |
+| **B5** | First-run: from opening the Design tab to a print-ready solid, no documentation | Approachability |
+| **B6** | B1 again, on the reference machine at 1366×768, offline, on a fresh account-less install | Reach (L11) |
 
-Targets are set once each task has been measured on the current build; B5's
-target is expressed in minutes-to-first-solid, and it is the number this project
-is ultimately judged by.
+Every task is run on the reference machine of §6.1, not on a workstation — a
+number measured on a fast desktop describes an experience most of our users will
+never have. B6 repeats the inner loop under the full entry conditions so that
+reach is a measured quantity and not an intention.
+
+Targets are set once each task has been measured on the current build. B5's
+target is expressed in minutes-to-first-solid **by someone who has never seen a
+CAD program**, and it is the number this project is ultimately judged by.
 
 ---
 
