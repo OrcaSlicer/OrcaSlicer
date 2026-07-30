@@ -70,6 +70,9 @@ float FullTransparentModdifiedToFixAlpha = 0.3f;
 // value like 0.18f could not because in C++ (int)(0.18f * 255) == 45 however in OpenGL it renders this as 46
 // which breaks the `SelectMachineDialog::record_edge_pixels_data()` function!
 float FULL_BLACK_THRESHOLD = 0.2f;
+// Keep depth_tex away from texture unit 0 to avoid sampler-type aliasing with
+// shadow/environment samplers when realistic view is disabled.
+static constexpr int OUTLINE_DEPTH_TEX_UNIT = 5;
 
 Slic3r::ColorRGBA adjust_color_for_rendering(const Slic3r::ColorRGBA &colors)
 {
@@ -532,7 +535,7 @@ void GLVolume::render_with_outline(const GUI::Size& cnv_size)
     // the case with realistic view off - and GL forbids two sampler types referring to the same image
     // unit. A sampler2DMS on unit 0 then makes every draw fail with INVALID_OPERATION on drivers that
     // enforce it (Mesa), i.e. the model disappears entirely. Unit 5 is unused (shadow_map takes 4).
-    const int depth_tex_unit = 5;
+    const int depth_tex_unit = OUTLINE_DEPTH_TEX_UNIT;
     int aa_samples = 1;
     if (use_msaa_outline) {
         if (const AppConfig* app_config = GUI::wxGetApp().app_config; app_config != nullptr) {
@@ -1117,6 +1120,10 @@ void GLVolumeCollection::render(GLVolumeCollection::ERenderType       type,
         glsafe(::glDisable(GL_CULL_FACE));
 
     const float support_normal_z = get_selection_support_normal_z();
+
+    // Prime depth_tex on every frame so non-outline draws do not keep the
+    // default sampler unit 0, which can conflict with other sampler types.
+    shader->set_uniform("depth_tex", OUTLINE_DEPTH_TEX_UNIT);
 
     for (GLVolumeWithIdAndZ& volume : to_render) {
 #if ENABLE_MODIFIERS_ALWAYS_TRANSPARENT
