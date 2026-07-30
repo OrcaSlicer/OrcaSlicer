@@ -349,8 +349,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
             // The face has been CONSUMED as the sketch plane, so drop the pick. Leaving it live
             // meant the next Extrude saw a selected face and push/pulled it instead of extruding
             // the sketch just drawn — the same trap the imported-art path already guards against.
-            if (m_sel_solid_face >= 0)
+            if (m_sel_solid_face >= 0 || m_pick_face >= 0) {
                 m_sel_solid_face = m_sel_solid_edge = m_sel_solid_body = -1;
+                m_pick_face = m_pick_face_body = -1;
+            }
         } else {
             m_viewport->set_sketch_tool(mode);
         }
@@ -2849,6 +2851,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_viewport->select_body(b);
         m_sel_solid_body = b;
         m_sel_solid_face = m_sel_solid_edge = -1;
+        m_pick_face = m_pick_face_body = -1;   // chosen from the list, no face was pointed at
         m_status->SetForegroundColour(wxNullColour);
         m_status->SetLabel(wxString::Format(_L("Body %d selected — next Extrude / Fillet acts on it"), b + 1));
         m_status->Refresh();
@@ -3097,6 +3100,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Last pick wins (symmetric with the solid-pick handler): selecting a sketch loop drops
         // any stale solid face/edge pick so Extrude treats this loop as the profile.
         m_sel_solid_face = m_sel_solid_edge = -1;
+        m_pick_face = m_pick_face_body = -1;
         set_tree_selection(feat);
         m_status->SetForegroundColour(wxNullColour);
         m_status->SetLabel(region >= 0
@@ -3119,6 +3123,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_sel_solid_body = (level >= 1) ? body : -1;
         m_sel_solid_face = (level >= 2) ? face : -1;
         m_sel_solid_edge = (level == 3) ? edge : -1;
+        // Keep the hit face even at whole-body level: the cycle's first click means "this body",
+        // but the user pointed AT a face and a sketch should be able to use it. snaporca-3a2.
+        m_pick_face_body = (level >= 1) ? body : -1;
+        m_pick_face      = (level >= 1) ? face : -1;
         // Last pick wins: selecting a solid drops any stale committed-sketch loop selection.
         // Otherwise a leftover loop keeps `m_sel_sketch_region >= 0`, which blocks the face
         // push/pull branch in Extrude (`m_sel_solid_face >= 0 && m_sel_sketch_region < 0`) and
@@ -4855,10 +4863,15 @@ SketchPlane DesignPanel::plane_from_choice(int row) const
 SketchPlane DesignPanel::sketch_plane_from_selection(wxString& what) const
 {
     SketchPlane p;
-    if (m_sel_solid_face >= 0 && m_sel_solid_body >= 0
-        && m_doc.plane_of_face(m_sel_solid_body, m_sel_solid_face, p)) {
+    // An explicitly face-level selection first, then the face merely CLICKED ON while the whole
+    // body was selected. The second case is the common one: one click on a face is what a user
+    // means by "select this face", and requiring the cycle's second click to make it count is the
+    // whole reason this looked unfixed.
+    const int fb = (m_sel_solid_face >= 0 && m_sel_solid_body >= 0) ? m_sel_solid_body : m_pick_face_body;
+    const int fi = (m_sel_solid_face >= 0 && m_sel_solid_body >= 0) ? m_sel_solid_face : m_pick_face;
+    if (fb >= 0 && fi >= 0 && m_doc.plane_of_face(fb, fi, p)) {
         what = (m_doc.bodies.size() > 1)
-             ? wxString::Format(_L("the picked face of Body %d"), m_sel_solid_body + 1)
+             ? wxString::Format(_L("the picked face of Body %d"), fb + 1)
              : _L("the picked face");
         return p;
     }
@@ -8892,6 +8905,7 @@ void DesignPanel::do_undo_redo(bool redo)
     // The solid whole/face/edge pick and any in-place edit reference ids that recompute()
     // invalidates — drop them before refreshing from the restored document.
     m_sel_solid_body = m_sel_solid_face = m_sel_solid_edge = -1;
+    m_pick_face = m_pick_face_body = -1;   // recompute() invalidated the face ids too
     reset_edit_state();
     after_tree_edit(true);   // refresh tree + viewport meshes + status from the restored doc
     m_status->SetForegroundColour(wxNullColour);
