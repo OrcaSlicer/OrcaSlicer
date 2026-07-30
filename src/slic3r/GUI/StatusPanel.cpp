@@ -2315,6 +2315,9 @@ void StatusPanel::update_camera_state(MachineObject* obj)
     const bool has_printer_webcam = !obj->webcam_stream_url.empty();
     if (has_printer_webcam) {
         if (m_printer_webcam_url != obj->webcam_stream_url) {
+            // why: start timing belongs to the loaded camera.
+            // carrying it across printers suppresses the new camera's initial start.
+            m_camera_start_sent = std::chrono::steady_clock::time_point{};
             m_custom_camera_view->LoadURL(obj->webcam_stream_url);
             m_custom_camera_view->Show();
             m_media_ctrl->Hide();
