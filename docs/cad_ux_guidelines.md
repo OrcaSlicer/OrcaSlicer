@@ -1,8 +1,7 @@
 # Orca-CAD — UX guidelines and design charter
 
-Status: proposed, v1. Owner: design working group. Applies to the Design tab in
-both forks (Orca-CAD on OrcaSlicer, SnapOrca-CAD on Snapmaker Orca) — the CAD
-sources are byte-identical across them, so the UX doctrine is one doctrine.
+Status: proposed, v1. Owner: design working group. Applies to the Design tab —
+the parametric CAD environment inside OrcaSlicer.
 
 This document is a **review instrument**, not an essay. Sections 3–9 are written
 so that a reviewer can hold a pull request against them and get a yes or a no.
