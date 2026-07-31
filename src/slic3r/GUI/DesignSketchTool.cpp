@@ -2820,38 +2820,75 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
     if (best_face < 0 || best_body < 0 || best_body >= int(m_solid_bodies->size()))
         return false;   // missed the solid
 
-    if (best_body != m_sel_body || best_face != m_sel_face) {
-        // First click on a (new) body/face selects the WHOLE solid; refine on repeat clicks.
-        m_sel_body = best_body; m_sel_face = best_face; m_sel_edge = -1; m_sel_edge_pts.clear();
-        m_solid_sel = SolidSel::Whole;
-    } else if (m_solid_sel == SolidSel::Whole) {
-        m_solid_sel = SolidSel::Face;
-    } else if (m_solid_sel == SolidSel::Face) {
-        // Advance to the face's edge nearest the click (deterministic cycle step).
+    // ---- one click, one deterministic result ---------------------------------------------
+    // NO CYCLE. A click selects the SMALLEST thing under the cursor: the edge if the pointer is
+    // within tolerance of one, otherwise the face. A DOUBLE-click takes the whole body.
+    //
+    // What this replaces: click 1 = whole body, click 2 = face, click 3 = nearest edge, click 4
+    // = back to whole. That made "click a face" a two-click gesture and "click an edge" a
+    // three-click one, neither discoverable — the L5 violation §10 of the charter already
+    // listed, and the real reason sketching on a face kept reading as broken however often the
+    // plane resolution was fixed. Selection is the foundation the tool offer stands on: the
+    // offer can only ever be as truthful as the selection beneath it.
+    //
+    // Tolerance is measured in SCREEN PIXELS. The old edge step compared a ray-to-segment
+    // distance in millimetres, so the same gesture meant different things at different zooms —
+    // the pointer is a screen object and its tolerance has to be one too.
+    const Camera& cam = wxGetApp().plater()->get_camera();
+    const wxPoint cursor(evt.GetX(), evt.GetY());
+    const double  kEdgeTolPx = 8.0;
+
+    auto seg_px = [](const wxPoint& p, const wxPoint& a, const wxPoint& b) {   // 2D point→segment, px
+        const double vx = b.x - a.x, vy = b.y - a.y;
+        const double wx = p.x - a.x, wy = p.y - a.y;
+        const double L2 = vx * vx + vy * vy;
+        double t = (L2 > 1e-12) ? (wx * vx + wy * vy) / L2 : 0.0;
+        t = std::max(0.0, std::min(1.0, t));
+        return std::hypot(wx - t * vx, wy - t * vy);
+    };
+
+    m_sel_body = best_body;
+    m_sel_face = best_face;
+    m_sel_edge = -1;
+    m_sel_edge_pts.clear();
+
+    // WHOLE-BODY selection is deliberately NOT bound here. Double-click is already zoom-to-fit
+    // (see the LeftDClick branch at the top of on_mouse) and this pick runs on LeftUp, where
+    // LeftDClick() is never true — a double-click branch here would be dead code that reads as
+    // a working feature. The body gesture is the rubber band, which is its own piece of work;
+    // until it lands, bodies are selected from the Bodies list. Written down rather than
+    // half-done, because a selection model with a silent hole in it is how we got the cycle.
+    {
         const TopoDS_Shape& bshape = (*m_solid_bodies)[m_sel_body].shape;
-        const TopoDS_Face face = GeometryEngine::face_by_index(bshape, m_sel_face);
-        int eid = -1; double best_ed = 1e30; std::vector<Vec3d> best_pts; TopoDS_Edge best_edge;
+        const TopoDS_Face  face    = GeometryEngine::face_by_index(bshape, m_sel_face);
+        double best_ed = 1e30; std::vector<Vec3d> ed_pts; TopoDS_Edge ed_edge; bool have_edge = false;
         if (!face.IsNull()) {
-            const std::vector<TopoDS_Edge> edges = GeometryEngine::edges_of_face(face);
-            for (int k = 0; k < int(edges.size()); ++k) {
-                std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(edges[k]);
+            for (const TopoDS_Edge& e : GeometryEngine::edges_of_face(face)) {
+                std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
                 for (Vec3d& q : pts) q = body_xform_pt(m_sel_body, q);   // follow a moved body
+                if (pts.size() < 2) continue;
                 double d = 1e30;
-                for (size_t s = 1; s < pts.size(); ++s)
-                    d = std::min(d, ray_segment_dist3(ro, rd, pts[s - 1], pts[s]));
-                if (d < best_ed) { best_ed = d; eid = k; best_pts = pts; best_edge = edges[k]; }
+                for (size_t s = 1; s < pts.size(); ++s) {
+                    const wxPoint a = world_to_screen_px(cam, pts[s - 1]);
+                    const wxPoint b = world_to_screen_px(cam, pts[s]);
+                    if (a.x < 0 || b.x < 0) continue;                    // behind the camera
+                    d = std::min(d, seg_px(cursor, a, b));
+                }
+                if (d < best_ed) { best_ed = d; ed_pts = pts; ed_edge = e; have_edge = true; }
             }
         }
-        if (eid >= 0) {
+        if (have_edge && best_ed <= kEdgeTolPx) {
             // Promote the face-relative pick to a STABLE GLOBAL edge id so dress-up ops
             // (fillet/chamfer) can target this exact edge across recomputes.
-            m_sel_edge     = GeometryEngine::edge_index_of(bshape, best_edge);
-            m_sel_edge_pts = std::move(best_pts);
+            m_sel_edge     = GeometryEngine::edge_index_of(bshape, ed_edge);
+            m_sel_edge_pts = std::move(ed_pts);
             m_solid_sel    = SolidSel::Edge;
-        } else { m_solid_sel = SolidSel::Whole; m_sel_edge = -1; m_sel_edge_pts.clear(); }
-    } else {   // Edge -> back to Whole
-        m_solid_sel = SolidSel::Whole; m_sel_edge = -1; m_sel_edge_pts.clear();
+        } else {
+            m_solid_sel = SolidSel::Face;
+        }
     }
+    dp_pick_trace("pick -> sel=%d body=%d face=%d edge=%d",
+                  int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
     if (on_solid_selection_changed)
         on_solid_selection_changed(int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
     return true;

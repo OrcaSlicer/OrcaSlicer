@@ -3138,9 +3138,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
             if (level <= 0)
                 m_status->SetLabel(_L("Selection cleared"));
             else if (level == 1)
-                m_status->SetLabel(wxString::Format(_L("Body %d selected — click again for a face"), body + 1));
+                m_status->SetLabel(wxString::Format(_L("Body %d selected"), body + 1));
             else if (level == 2)
-                m_status->SetLabel(wxString::Format(_L("Body %d, face %d — click again for an edge"), body + 1, face));
+                m_status->SetLabel(wxString::Format(_L("Body %d, face %d"), body + 1, face));
             else
                 m_status->SetLabel(wxString::Format(_L("Body %d, edge %d selected"), body + 1, edge));
             m_status->Refresh();
@@ -3240,9 +3240,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_status->SetForegroundColour(wxNullColour);
         const int nb = int(m_doc.bodies.size());
         const wxString bodytag = (nb > 1) ? wxString::Format(_L("Body %d "), body + 1) : wxString();
-        m_status->SetLabel(level == 1 ? bodytag + _L("selected (whole) — click again for a face")
-                         : level == 2 ? bodytag + wxString::Format(_L("face %d selected — Extrude to push/pull it, or click again for an edge"), face)
-                         : level == 3 ? bodytag + wxString::Format(_L("edge %d selected — open Fillet/Chamfer to dress it, or click again to reset"), edge)
+        m_status->SetLabel(level == 1 ? bodytag + _L("selected (whole body)")
+                         : level == 2 ? bodytag + wxString::Format(_L("face %d selected — Extrude to push/pull it"), face)
+                         : level == 3 ? bodytag + wxString::Format(_L("edge %d selected — Fillet/Chamfer to dress it"), edge)
                                       : _L("Nothing selected"));
         m_status->Refresh();
     });
@@ -5600,7 +5600,7 @@ bool DesignPanel::place_on_face()
     if (b < 0 || b >= int(m_doc.bodies.size()) || m_sel_solid_face < 0
         || b >= int(m_doc.display_body_meshes.size())) {
         m_status->SetForegroundColour(wxColour(235, 110, 110));
-        m_status->SetLabel(_L("Pick a body face first (click a solid, then click again to a face), then press F"));
+        m_status->SetLabel(_L("Click a face on the solid, then press F"));
         m_status->Refresh();
         return false;
     }
