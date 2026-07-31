@@ -7908,14 +7908,27 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             const Vec2d p8  = d.plane.project(ray8.a, ray8.vector());
             const double tol = std::max(1e-3, (p8 - p).norm());
             const std::vector<RegionLoop> loops = region_loops(d.entities);
-            for (int r = 0; r < int(loops.size()); ++r) {
-                for (int ei : loops[r].ents) {
-                    if (ei < 0 || ei >= int(d.entities.size())) continue;
-                    const double ed = entity_pick_dist(p, d.entities[ei]);
-                    if (ed <= tol * 3.0 && ed < edge_d) { edge_d = ed; edge_feat = d.feature; edge_reg = r; }
+            // region_loops exists to find EXTRUDABLE regions, and by design it discards open
+            // chains — its own walk comment says so. Using it as the pick index meant a
+            // committed sketch of open lines had no pickable geometry whatsoever: you could see
+            // the strokes and could not click one of them, so there was no way to select it, and
+            // therefore no way to edit or delete it either. Whether a stroke bounds a region has
+            // nothing to do with whether the user can point at it. Region membership decides
+            // what a hit REPORTS, not whether the hit can happen.
+            std::vector<int> ent_region(d.entities.size(), -1);
+            for (int r = 0; r < int(loops.size()); ++r)
+                for (int ei : loops[r].ents)
+                    if (ei >= 0 && ei < int(ent_region.size())) ent_region[ei] = r;
+
+            for (int ei = 0; ei < int(d.entities.size()); ++ei) {
+                if (d.entities[ei].construction) continue;   // as region_loops filters it
+                const double ed = entity_pick_dist(p, d.entities[ei]);
+                if (ed <= tol * 3.0 && ed < edge_d) {
+                    edge_d = ed; edge_feat = d.feature; edge_reg = ent_region[ei];
                 }
-                if (face_feat < 0 && point_in_poly(p, loops[r].poly)) { face_feat = d.feature; face_reg = r; }
             }
+            for (int r = 0; r < int(loops.size()); ++r)
+                if (face_feat < 0 && point_in_poly(p, loops[r].poly)) { face_feat = d.feature; face_reg = r; }
         }
         // A precise hit on a loop outline wins over the solid face beneath it.
         if (edge_feat >= 0) {
