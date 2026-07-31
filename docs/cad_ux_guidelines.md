@@ -226,22 +226,93 @@ own five verbs teaches the model of the product by using it. It also removes an
 entire class of failure — a tool that silently does nothing because the
 selection was wrong can no longer be reached.
 
-### 4.1 The offer
+### 4.1 The offer, and the one thing that makes it work
 
-- **It appears at the selection**, in the viewport, as a compact ring or strip
-  of icons with names — not a list in a panel, not a dropdown, not a menu bar.
-- **It is filtered, ordered and small.** Only what applies; most-used first for
-  that kind of selection; if it does not fit in one glance it is too long, and
-  the tail belongs behind one "more" affordance.
+The flow, in full:
+
+> **click a geometric object → an offer whose tools are always in the same
+> place, each with its icon and its shortcut → click.**
+
+- **It appears at the selection**, in the viewport, as a compact radial of icons
+  — not a list in a panel, not a dropdown, not a menu bar. Radial because a
+  *direction from where you clicked* is an absolute spatial address that
+  survives the offer appearing anywhere on screen, while "third item down"
+  does not.
+- **Position is fixed and it is the whole point.** A tool occupies one permanent
+  address in the offer, and that address is the same in every selection where
+  the tool appears. Fillet is down-right on an edge, on a face, on a body, on
+  the day the product ships and two years later. The hand learns the place; the
+  eye stops being needed.
 - **It is an accelerator, not a toll gate.** The toolbar and the single-letter
   shortcuts keep working exactly as they do now, and pressing a tool directly
   consumes the same selection (L3). An expert never has to look at the offer;
   a beginner never has to know the toolbar exists. Both routes land in the same
   place — this is the only way one interface serves §2's three audiences.
-- **It is a teaching surface.** Icon *and* word, the drawing-office word (L10),
-  so the offer is where the vocabulary is learned.
-- **It never blocks the view of what it acts on**, and it dismisses the moment
-  the selection changes.
+- **Every slot shows its keyboard shortcut**, next to the icon and the
+  drawing-office word (L10). This is deliberate: the offer is the path by which
+  a user stops needing the offer. You reach for fillet in its place, the place
+  says "F", and one day your hand types F before the ring has finished drawing.
+  A menu that teaches its own shortcut is how a beginner becomes the power user
+  who never opens it — the same interface, at two speeds, with no "advanced
+  mode" between them (§7).
+- **It is a teaching surface** in the other direction too: an empty slot says
+  *this cannot be done to this thing*, which is an answer, where a tool that
+  silently does nothing is not.
+- **It never blocks the view of what it acts on** — the centre is a hole, the
+  picked geometry stays visible through it — and it dismisses the moment the
+  selection changes.
+- **Click to open, click to choose.** A flick gesture may be added later as an
+  accelerator for people who want it, but nothing is ever *only* reachable by
+  drag or by timing (L9, §6.2).
+
+#### The slot-constancy invariant
+
+This is the rule that has to survive every future feature, so it is written as
+an invariant rather than as advice:
+
+> **Every tool has exactly one address in the offer. That address is identical
+> for every selection type in which the tool appears. Slots for tools that do
+> not apply to the current selection are left EMPTY — the offer is never
+> compacted, re-sorted or re-ordered. Adding a tool never changes the address of
+> an existing one.**
+
+Two consequences the group must accept together with the invariant:
+
+- **No adaptive ordering. Ever.** Not most-used-first, not recently-used-first,
+  not per-selection frequency. An offer that rearranges itself to be helpful
+  destroys the only thing that made it fast, and it does so precisely for the
+  user who has just started to learn it. (Office 2000's adaptive menus are the
+  textbook case; they were removed.)
+- **Empty slots are the price, and they are worth it.** A compacted offer is
+  denser and unlearnable. A sparse one wastes a few hundred square pixels and
+  is memorised in a week.
+
+#### Proposed slot map — for the group to ratify
+
+The invariant is not negotiable. The specific assignment below is a first
+proposal, and the group should argue about it *once*, then never again — every
+later change re-addresses somebody's muscle memory.
+
+Eight compass positions, grouped so the map itself has a logic (material grows,
+then is refined, then is repeated, then is moved):
+
+| Position | Family | On a face | On an edge | On a body | On text/art |
+|---|---|---|---|---|---|
+| **N** | Create | Sketch on it | — | — | Edit text |
+| **NE** | Add material | Extrude, boss | — | Thicken | Extrude |
+| **E** | Remove material | Hole, pocket | — | Shell, cut | — |
+| **SE** | Dress-up | — | Fillet, chamfer | Draft | — |
+| **S** | Repeat | Pattern | Pattern along it | Mirror, pattern | Pattern |
+| **SW** | Transform | Align to | — | Move, rotate, scale | Move, size |
+| **W** | Reference | Datum plane, measure | Datum axis, measure | Measure | — |
+| **NW** | Modify | Delete face, replace | — | Edit feature, delete | Replace art |
+
+Where a family holds more than one verb for a selection, the slot opens a
+secondary ring **with its own fixed addresses** — the same rule, one level down.
+A dash means the slot is drawn empty for that selection.
+
+The centre of the ring names what is selected ("Top face · Body 1"), because a
+user who mis-picked should find that out before choosing a verb, not after.
 
 ### 4.2 Confirm and cancel are objects, not gestures
 
@@ -353,9 +424,11 @@ cost of entry, it has broken the premise, however elegant it is.
 ### 6.2 Assistive floor
 
 - **Keyboard**: every operation reachable and completable without a pointer.
-  Single-letter shortcuts for sketch tools, documented in the tool's own
-  tooltip. A visible focus state on every focusable element. No shortcut that
-  only works while the pointer happens to be over the canvas.
+  Single-letter shortcuts for sketch tools, shown in the offer itself (§4.1) as
+  well as in the tooltip. The offer's eight positions are also addressable by
+  arrow/numpad direction, so the spatial map works for a keyboard user too. A
+  visible focus state on every focusable element. No shortcut that only works
+  while the pointer happens to be over the canvas.
 - **Colour**: never the sole carrier of meaning. Selection is colour *and*
   outline; an error is colour *and* an icon *and* text. Verify in greyscale.
 - **Contrast**: labels over the 3D viewport get a scrim or halo so 4.5:1 holds
@@ -439,6 +512,10 @@ A "no" that is not accompanied by an argument is a request for changes.
 11. Reach (L11): screenshot at 1366×768 with the panel open — is the model still
     on screen? Does it run on integrated graphics? Does it need the network, an
     account, or a file the user cannot keep?
+12. If the change adds or moves a tool in the offer: which slot, and is it that
+    tool's slot in **every** selection where it appears? Did any existing tool's
+    address change? (If yes, this is not a UI change, it is a breaking change to
+    every user's muscle memory, and it needs the group — see §4.1.)
 
 ## 10. Where we stand today — honest inventory
 
@@ -470,7 +547,9 @@ Violating them, with removal scheduled:
 - **Selecting geometry offers nothing.** There is no contextual offer (§4.1):
   the user faces the full toolbar whatever they have picked, and finds out that
   a tool did not apply by it doing nothing. This is the largest single item of
-  new work the charter asks for.
+  new work the charter asks for, and it has a prerequisite the group owes
+  itself first — ratifying the slot map, since every tool built before it lands
+  will have to be addressed afterwards anyway.
 - **Committing is an invisible click in empty space** rather than the
   confirm/cancel puck of §4.2 — the exact gesture that rule withdraws.
 
