@@ -593,6 +593,7 @@ private:
     int               m_sel_solid_body{-1};   // which body the face/edge selection is on
     int               m_sel_solid_face{-1};
     int               m_sel_solid_edge{-1};
+    bool              m_sel_solid_vertex{false};   // a corner is picked (body+point, no face/edge)
     // The face actually under the last solid click, INDEPENDENT of the whole/face/edge cycle level.
     // The first click on a solid selects the WHOLE body, but the ray has already resolved which face
     // it hit and the callback passes it. "Sketch on the face I clicked" must not require discovering

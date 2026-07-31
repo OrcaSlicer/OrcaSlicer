@@ -3117,8 +3117,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
         if (m_viewport->moving_body()) m_viewport->clear_move_gizmo();
         // Remember which body + face/edge so Extrude / dress-up target the RIGHT body.
         m_sel_solid_body = (level >= 1) ? body : -1;
-        m_sel_solid_face = (level >= 2) ? face : -1;
+        m_sel_solid_face = (level == 2) ? face : -1;   // 4 = Vertex: a corner is not its face
         m_sel_solid_edge = (level == 3) ? edge : -1;
+        m_sel_solid_vertex = (level == 4);
         // Keep the hit face even at whole-body level: the cycle's first click means "this body",
         // but the user pointed AT a face and a sketch should be able to use it. snaporca-3a2.
         m_pick_face_body = (level >= 1) ? body : -1;
@@ -3240,7 +3241,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_status->SetForegroundColour(wxNullColour);
         const int nb = int(m_doc.bodies.size());
         const wxString bodytag = (nb > 1) ? wxString::Format(_L("Body %d "), body + 1) : wxString();
-        m_status->SetLabel(level == 1 ? bodytag + _L("selected (whole body)")
+        m_status->SetLabel(level == 4 ? bodytag + _L("vertex selected")
+                         : level == 1 ? bodytag + _L("selected (whole body)")
                          : level == 2 ? bodytag + wxString::Format(_L("face %d selected — Extrude to push/pull it"), face)
                          : level == 3 ? bodytag + wxString::Format(_L("edge %d selected — Fillet/Chamfer to dress it"), edge)
                                       : _L("Nothing selected"));
@@ -4915,6 +4917,8 @@ int DesignPanel::offer_selection_kind() const
         return int(OfferSel::SkNone);
 
     const int nb = int(m_doc.bodies.size());
+    if (m_sel_solid_vertex && m_sel_solid_body >= 0 && m_sel_solid_body < nb)
+        return int(OfferSel::Vertex);
     if (m_sel_solid_edge >= 0 && m_sel_solid_body >= 0 && m_sel_solid_body < nb) {
         const TopoDS_Edge e = GeometryEngine::edge_by_index(m_doc.bodies[m_sel_solid_body].shape,
                                                             m_sel_solid_edge);

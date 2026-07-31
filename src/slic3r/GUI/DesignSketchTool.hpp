@@ -119,7 +119,9 @@ public:
     // Solid topology selection on the committed bodies: clicking a solid cycles
     // whole-solid -> face -> edge (Onshape-style) to target fillet/chamfer/extrude. With
     // multiple bodies the pick resolves WHICH body was hit (per-triangle body id).
-    enum class SolidSel { None, Whole, Face, Edge };
+    // Appended, never reordered: DesignPanel maps this to a level int (Whole=1, Face=2,
+    // Edge=3, Vertex=4) and the offer table keys off it.
+    enum class SolidSel { None, Whole, Face, Edge, Vertex };
     // Point the tool at the current bodies + their concatenated tessellation (non-owning;
     // pass nullptr to clear). Call after each recompute — selection resets (ids invalidate).
     // tri_face = per-triangle face id within its body; tri_body = per-triangle body index.
@@ -903,6 +905,7 @@ private:
     int                     m_sel_face{-1};
     int                     m_sel_edge{-1};
     std::vector<Vec3d>      m_sel_edge_pts;
+    Vec3d                   m_sel_vertex_pt{Vec3d::Zero()};   // world point of a picked vertex
     bool handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent& evt);  // cycle + notify
     void render_solid_highlight();
     void render_datum_planes();           // translucent rectangles for datum/reference planes
@@ -913,6 +916,7 @@ private:
     std::vector<Vec2d>       m_datum_sizes;   // per-plane (u,v) full extent; empty -> default
     GLModel m_solid_face_model;
     GLModel m_solid_edge_model;
+    GLModel m_solid_vertex_model;
     int m_display_pick_region{-1}; // selected closed-region index within that feature (-1 none)
 
     // Visual Extrude gizmo state (C5b). GUI-only; fed by the panel each refresh_preview.

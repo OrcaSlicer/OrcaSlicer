@@ -2836,7 +2836,11 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
     // the pointer is a screen object and its tolerance has to be one too.
     const Camera& cam = wxGetApp().plater()->get_camera();
     const wxPoint cursor(evt.GetX(), evt.GetY());
-    const double  kEdgeTolPx = 8.0;
+    // Vertex beats edge beats face, and the vertex tolerance is the larger of the two: a corner
+    // sits ON its edges, so an equal radius would make vertices unreachable — every click near
+    // one would resolve to the edge it lies on.
+    const double  kVertexTolPx = 11.0;
+    const double  kEdgeTolPx   = 8.0;
 
     auto seg_px = [](const wxPoint& p, const wxPoint& a, const wxPoint& b) {   // 2D point→segment, px
         const double vx = b.x - a.x, vy = b.y - a.y;
@@ -2862,11 +2866,20 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
         const TopoDS_Shape& bshape = (*m_solid_bodies)[m_sel_body].shape;
         const TopoDS_Face  face    = GeometryEngine::face_by_index(bshape, m_sel_face);
         double best_ed = 1e30; std::vector<Vec3d> ed_pts; TopoDS_Edge ed_edge; bool have_edge = false;
+        double best_vd = 1e30; Vec3d vtx = Vec3d::Zero(); bool have_vtx = false;
         if (!face.IsNull()) {
             for (const TopoDS_Edge& e : GeometryEngine::edges_of_face(face)) {
                 std::vector<Vec3d> pts = GeometryEngine::sample_edge_world(e);
                 for (Vec3d& q : pts) q = body_xform_pt(m_sel_body, q);   // follow a moved body
                 if (pts.size() < 2) continue;
+                // The polyline ends ARE the edge's vertices; every corner of the face is the
+                // end of one of its edges, so this covers them without a separate topology walk.
+                for (const Vec3d& v : {pts.front(), pts.back()}) {
+                    const wxPoint sp = world_to_screen_px(cam, v);
+                    if (sp.x < 0) continue;
+                    const double d = std::hypot(double(sp.x - cursor.x), double(sp.y - cursor.y));
+                    if (d < best_vd) { best_vd = d; vtx = v; have_vtx = true; }
+                }
                 double d = 1e30;
                 for (size_t s = 1; s < pts.size(); ++s) {
                     const wxPoint a = world_to_screen_px(cam, pts[s - 1]);
@@ -2877,7 +2890,10 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
                 if (d < best_ed) { best_ed = d; ed_pts = pts; ed_edge = e; have_edge = true; }
             }
         }
-        if (have_edge && best_ed <= kEdgeTolPx) {
+        if (have_vtx && best_vd <= kVertexTolPx) {
+            m_sel_vertex_pt = vtx;
+            m_solid_sel     = SolidSel::Vertex;
+        } else if (have_edge && best_ed <= kEdgeTolPx) {
             // Promote the face-relative pick to a STABLE GLOBAL edge id so dress-up ops
             // (fillet/chamfer) can target this exact edge across recomputes.
             m_sel_edge     = GeometryEngine::edge_index_of(bshape, ed_edge);
@@ -2960,6 +2976,28 @@ void DesignSketchTool::render_solid_highlight()
             m_solid_edge_model.set_color(cyan);
             m_solid_edge_model.render();
         }
+    } else if (m_solid_sel == SolidSel::Vertex) {
+        // A camera-facing square at the picked corner, sized in screen terms (the same
+        // 1/zoom trick the edge ribbon uses) so it stays a constant dot at every zoom. A
+        // selection you cannot see is not a selection (L5), which is why vertex picking waited
+        // for this rather than shipping without a highlight.
+        const Camera& cam = wxGetApp().plater()->get_camera();
+        Vec3d right = cam.get_dir_right(), up = cam.get_dir_up();
+        const double h = 4.5 / std::max(cam.get_zoom(), 1e-6);   // ~4.5 px half-size
+        right *= h; up *= h;
+        const Vec3d c = m_sel_vertex_pt;
+        GLModel::Geometry g; g.format = { EPT::Triangles, EVL::P3 };
+        g.add_vertex((Vec3f)(c - right - up).cast<float>());
+        g.add_vertex((Vec3f)(c + right - up).cast<float>());
+        g.add_vertex((Vec3f)(c + right + up).cast<float>());
+        g.add_vertex((Vec3f)(c - right + up).cast<float>());
+        g.add_triangle(0, 1, 2);
+        g.add_triangle(0, 2, 3);
+        glsafe(::glDisable(GL_DEPTH_TEST));
+        m_solid_vertex_model.reset();
+        m_solid_vertex_model.init_from(std::move(g));
+        m_solid_vertex_model.set_color(cyan);
+        m_solid_vertex_model.render();
     }
 }
 
