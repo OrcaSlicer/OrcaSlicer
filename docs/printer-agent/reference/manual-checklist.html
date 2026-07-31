@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Printer-agent manual checklist</title>
+  <style>
+    :root { color-scheme: light dark; --bg:#111827; --panel:#1f2937; --line:#4b5563;
+      --text:#f9fafb; --muted:#cbd5e1; --pass:#34d399; --fail:#f87171; --block:#fbbf24; }
+    * { box-sizing:border-box; }
+    body { max-width:960px; margin:0 auto; padding:24px; font:15px/1.5 system-ui,sans-serif;
+      color:var(--text); background:var(--bg); }
+    h1 { margin:0 0 4px; } h2 { margin-top:32px; } p, li { max-width:78ch; }
+    .muted { color:var(--muted); } .meta { display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:12px; margin:20px 0; } label { display:grid; gap:4px; }
+    input, textarea, button { font:inherit; } input, textarea { width:100%; padding:8px;
+      border:1px solid var(--line); border-radius:6px; color:inherit; background:var(--panel); }
+    textarea { min-height:58px; margin-top:8px; } .toolbar { display:flex; flex-wrap:wrap;
+      gap:8px; align-items:center; margin:16px 0; } button { border:1px solid var(--line);
+      border-radius:6px; padding:6px 10px; cursor:pointer; color:inherit; background:var(--panel); }
+    button[data-state="pass"].active { color:#062d1d; background:var(--pass); }
+    button[data-state="fail"].active { color:#3b0808; background:var(--fail); }
+    button[data-state="blocked"].active { color:#3b2600; background:var(--block); }
+    .progress { flex:1 1 240px; height:10px; overflow:hidden; border-radius:999px; background:var(--line); }
+    .progress > div { height:100%; width:0; background:var(--pass); transition:width .15s; }
+    .case { margin:10px 0; padding:12px; border:1px solid var(--line); border-left:4px solid var(--line);
+      border-radius:6px; background:var(--panel); } .case.pass { border-left-color:var(--pass); }
+    .case.fail { border-left-color:var(--fail); } .case.blocked { border-left-color:var(--block); }
+    .case-head { display:flex; justify-content:space-between; gap:12px; align-items:start; }
+    .case h3 { margin:0; font-size:1rem; } .actions { display:flex; gap:5px; white-space:nowrap; }
+    .restore-warning { padding:8px 10px; border:1px solid var(--block); border-radius:6px;
+      color:var(--block); background:var(--panel); }
+    code { overflow-wrap:anywhere; } @media (max-width:600px) { body { padding:16px; }
+      .meta { grid-template-columns:1fr; } .case-head { display:block; } .actions { margin-top:8px; } }
+  </style>
+</head>
+<body>
+  <h1>Printer-agent manual checklist</h1>
+  <p class="muted">Record what the printer did, not just what the UI displayed. Mark a case
+    blocked when the required printer, configuration, or safe test condition is unavailable.</p>
+
+  <section class="meta" aria-label="Test context">
+    <label>Agent and printer<input id="target" placeholder="for example: Moonraker - printer model"></label>
+    <label>Firmware and configuration<input id="environment" placeholder="firmware, MMU, camera, API key setup"></label>
+    <label>Build or package<input id="build" placeholder="version or build identifier"></label>
+    <label>Tester and date<input id="tester" placeholder="name and date"></label>
+  </section>
+
+  <div class="toolbar">
+    <strong id="summary">0 of 0 cases marked</strong>
+    <div class="progress" aria-label="Checklist progress"><div id="bar"></div></div>
+    <button id="export" type="button">Export Markdown</button>
+    <button id="reset" type="button">Reset checklist</button>
+  </div>
+
+  <p id="restore-warning" class="restore-warning" hidden>Saved checklist data could not be
+    restored. You can export the current blank checklist or use Reset to remove the saved data.</p>
+
+  <p class="muted">Use Pass only after observing the expected result. Fail needs enough evidence
+    to reproduce it. Include response text, log markers, or firmware behavior in the note.</p>
+
+  <section>
+    <h2>Connect and observe status</h2>
+    <div class="case" data-id="connect">
+      <div class="case-head"><div><h3>Connect to the selected printer</h3>
+        <p>Expected: the Device tab receives a fresh status update after connection. Do not use a
+          successful connection return alone as the result.</p></div><div class="actions"></div></div><textarea placeholder="Evidence, result, or blocker"></textarea></div>
+    <div class="case" data-id="status">
+      <div class="case-head"><div><h3>Observe live status changes</h3>
+        <p>Expected: temperature and target changes, fan state, print state, filename, progress,
+          elapsed time, and homing state reach the UI while the printer changes state.</p></div><div class="actions"></div></div><textarea placeholder="Evidence, result, or blocker"></textarea></div>
+    <div class="case" data-id="reconnect">
+      <div class="case-head"><div><h3>Disconnect and reconnect</h3>
+        <p>Expected: a second connection produces new status messages and does not create a duplicate
+          device. Record the post-reconnect status evidence.</p></div><div class="actions"></div></div><textarea placeholder="Evidence, result, or blocker"></textarea></div>
+    <div class="case" data-id="network-errors">
+      <div class="case-head"><div><h3>Handle network and response failures</h3>
+        <p>Expected: for discovery, status, G-code, upload, and print start, exercise controlled
+          HTTP 401, 404, and 500 responses, invalid JSON, and refused sockets. Each operation must
+          fail clearly or offer a retry, without a crash or a false success. Record the operation,
+          injected failure, UI result, and any retry.</p></div><div class="actions"></div></div><textarea placeholder="Operation, injected failure, UI result, retry, and evidence"></textarea></div>
+  </section>
+
+  <section>
+    <h2>Controls and printing</h2>
+    <div class="case" data-id="controls">
+      <div class="case-head"><div><h3>Exercise safe controls</h3>
+        <p>Expected: home, bed and nozzle temperature, and a harmless G-code command take effect on
+          the printer. Do not use Moonraker jog as a safe control test while it can leave relative
+          positioning active.</p></div><div class="actions"></div></div><textarea placeholder="Commands sent and printer-side result"></textarea></div>
+    <div class="case" data-id="fifo-order">
+      <div class="case-head"><div><h3>Verify queued command order under latency</h3>
+        <p>Expected: queue three harmless, uniquely marked commands while a proxy, network shaper,
+          or request log introduces or records latency. The printer-side log must show the markers in
+          the same order they were queued. Record the latency method and observed order.</p></div><div class="actions"></div></div><textarea placeholder="Queued markers, latency method, printer-side order, and result"></textarea></div>
+    <div class="case" data-id="send-only">
+      <div class="case-head"><div><h3>Send a file without starting it</h3>
+        <p>Expected: the file appears on the printer and no print starts.</p></div><div class="actions"></div></div><textarea placeholder="Filename and observed result"></textarea></div>
+    <div class="case" data-id="print">
+      <div class="case-head"><div><h3>Start a small print</h3>
+        <p>Expected: upload completes, the printer starts the selected file, and status transitions
+          to printing.</p></div><div class="actions"></div></div><textarea placeholder="Filename, response, and observed result"></textarea></div>
+    <div class="case" data-id="active-print-controls">
+      <div class="case-head"><div><h3>Pause, resume, and cancel an active print</h3>
+        <p>Expected: after the small print is actively printing, pause it and observe a paused state
+          on both printer and UI; resume it and observe printing again; then cancel it and observe the
+          printer stop and the UI leave the active or paused state.</p></div><div class="actions"></div></div><textarea placeholder="State transitions and printer-side result"></textarea></div>
+    <div class="case" data-id="print-failure">
+      <div class="case-head"><div><h3>Check upload failure handling</h3>
+        <p>Expected: cancellation during upload and a missing input fail clearly and do not begin a
+          partial or unintended print.</p></div><div class="actions"></div></div><textarea placeholder="Failure path and observed result"></textarea></div>
+  </section>
+
+  <section>
+    <h2>Filament, camera, and agent-specific checks</h2>
+    <div class="case" data-id="filament-read">
+      <div class="case-head"><div><h3>Refresh material-system data</h3>
+        <p>Expected: populated slots, empty slots, material, colour, and a live change are represented
+          correctly. Moonraker-family agents pull this data; do not expect a subscription callback.</p></div><div class="actions"></div></div><textarea placeholder="MMU or box configuration and observed result"></textarea></div>
+    <div class="case" data-id="filament-cleanup">
+      <div class="case-head"><div><h3>Clear material data when filament or the system is absent</h3>
+        <p>Expected: remove filament or disable the material system, refresh, and confirm the UI no
+          longer shows obsolete slots, material names, or colours.</p></div><div class="actions"></div></div><textarea placeholder="Change made, refresh evidence, and remaining or cleared data"></textarea></div>
+    <div class="case" data-id="filament-write">
+      <div class="case-head"><div><h3>Verify print-time mapping where supported</h3>
+        <p>Expected: only agents with a documented mapping implementation change printer-side mapping.
+          Do not attempt load, unload, or slot-setting macros unless their printer-specific contract is
+          known and safe.</p></div><div class="actions"></div></div><textarea placeholder="Mapping path, printer configuration, and result"></textarea></div>
+    <div class="case" data-id="qidi-nozzle-preflight">
+      <div class="case-head"><div><h3>Check Qidi Send preflight with missing nozzle identity</h3>
+        <p>Expected: on a Qidi agent and compatible single-nozzle slice, Send proceeds when the
+          Device tab has no reported nozzle diameter or type. It must not stop with
+          <code>PrintStatusNozzleDataInvalid</code>. Record any reported identity and any mismatch
+          result separately; this does not approve a known mismatch.</p></div><div class="actions"></div></div><textarea placeholder="Slice, reported nozzle data, preflight result, and printer-side result"></textarea></div>
+    <div class="case" data-id="camera">
+      <div class="case-head"><div><h3>Verify a camera feed</h3>
+        <p>Expected: frames advance and switching printers does not display a stale feed. For Snapmaker,
+          observe immediately before and after 300 seconds in one open view. The renewal result is
+          unknown until hardware evidence exists. Then swap agents and shut down the app to exercise
+          teardown around the detached callback's raw-<code>this</code> lifetime risk.</p></div><div class="actions"></div></div><textarea placeholder="Camera type, timestamps, agent swap or shutdown result, and evidence"></textarea></div>
+    <div class="case" data-id="thumbnail">
+      <div class="case-head"><div><h3>Verify the print thumbnail</h3>
+        <p>Expected: test a reused filename after its thumbnail changes, response payloads with both
+          <code>thumbnail_path</code> and <code>relative_path</code>, and a path below the G-code
+          root. The displayed image must match the current file in each case.</p></div><div class="actions"></div></div><textarea placeholder="Filename, endpoint key and path, displayed image, and observed result"></textarea></div>
+    <div class="case" data-id="plugin">
+      <div class="case-head"><div><h3>Reload a Python printer-agent plug-in</h3>
+        <p>Expected: the capability registers once, duplicate agent IDs are rejected visibly, and
+          disable or unload removes the agent cleanly.</p></div><div class="actions"></div></div><textarea placeholder="Plug-in identifier, actions, and observed result"></textarea></div>
+  </section>
+
+  <script>
+    const storageKey = 'orca-printer-agent-manual-checklist-v1';
+    const cases = [...document.querySelectorAll('.case')];
+    const inputs = [...document.querySelectorAll('input')];
+    const restoreWarning = document.querySelector('#restore-warning');
+
+    function emptyState() {
+      return { meta: {}, cases: {} };
+    }
+    function loadState() {
+      const saved = localStorage.getItem(storageKey);
+      if (!saved) return emptyState();
+      try {
+        const parsed = JSON.parse(saved);
+        if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object' ||
+            (parsed.meta !== undefined && (Array.isArray(parsed.meta) || typeof parsed.meta !== 'object')) ||
+            (parsed.cases !== undefined && (Array.isArray(parsed.cases) || typeof parsed.cases !== 'object'))) {
+          throw new Error('incompatible saved checklist state');
+        }
+        return { meta: parsed.meta || {}, cases: parsed.cases || {} };
+      } catch (error) {
+        restoreWarning.hidden = false;
+        return emptyState();
+      }
+    }
+    const state = loadState();
+
+    function caseText(caseElement) {
+      return caseElement.querySelector('h3').textContent.trim();
+    }
+    function caseCriteria(caseElement) {
+      return [...caseElement.querySelectorAll('.case-head p')]
+        .map(paragraph => markdownParagraph(paragraph.textContent))
+        .filter(Boolean)
+        .join('\n\n');
+    }
+    function save() {
+      const data = { meta: {}, cases: {} };
+      inputs.forEach(input => { data.meta[input.id] = input.value; });
+      cases.forEach(item => {
+        data.cases[item.dataset.id] = { status: item.dataset.status || '', note: item.querySelector('textarea').value };
+      });
+      localStorage.setItem(storageKey, JSON.stringify(data));
+      updateProgress();
+    }
+    function renderStatus(item, status) {
+      item.dataset.status = status;
+      item.classList.toggle('pass', status === 'pass');
+      item.classList.toggle('fail', status === 'fail');
+      item.classList.toggle('blocked', status === 'blocked');
+      item.querySelectorAll('button[data-state]').forEach(button => {
+        button.classList.toggle('active', button.dataset.state === status);
+      });
+    }
+    function applyStatus(item, status) {
+      renderStatus(item, status);
+      save();
+    }
+    function updateProgress() {
+      const marked = cases.filter(item => item.dataset.status).length;
+      document.querySelector('#summary').textContent = `${marked} of ${cases.length} cases marked`;
+      document.querySelector('#bar').style.width = `${cases.length ? marked * 100 / cases.length : 0}%`;
+    }
+    function markdown() {
+      const meta = stateFromInputs();
+      const lines = ['# Printer-agent manual verification', '',
+        `Target: ${markdownInline(meta.target) || 'not recorded'}`,
+        `Firmware and configuration: ${markdownInline(meta.environment) || 'not recorded'}`,
+        `Build or package: ${markdownInline(meta.build) || 'not recorded'}`,
+        `Tester and date: ${markdownInline(meta.tester) || 'not recorded'}`, ''];
+      cases.forEach(item => {
+        const status = item.dataset.status || 'unmarked';
+        const note = markdownInline(item.querySelector('textarea').value);
+        lines.push(`## ${markdownInline(caseText(item))}`, '',
+          `Status: ${status}`, '',
+          '### Test criteria and expected result', '',
+          caseCriteria(item) || 'Not recorded', '',
+          '### Notes', '', note || 'None', '');
+      });
+      return lines.join('\n');
+    }
+    function markdownParagraph(value) {
+      return markdownInline(value);
+    }
+    function markdownInline(value) {
+      return String(value || '').replace(/\r\n?|\n/g, ' ').replace(/[\\`*_{}[\]<>#+!|]/g, '\\$&')
+        .replace(/\s+/g, ' ').trim();
+    }
+    function stateFromInputs() {
+      return Object.fromEntries(inputs.map(input => [input.id, input.value]));
+    }
+    function downloadMarkdown() {
+      const blob = new Blob([markdown()], { type: 'text/markdown;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'printer-agent-manual-verification.md';
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    cases.forEach(item => {
+      const actions = item.querySelector('.actions');
+      ['pass', 'fail', 'blocked'].forEach(status => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.state = status;
+        button.textContent = status[0].toUpperCase() + status.slice(1);
+        button.addEventListener('click', () => applyStatus(item, status));
+        actions.appendChild(button);
+      });
+      const saved = state.cases[item.dataset.id] || {};
+      item.querySelector('textarea').value = typeof saved.note === 'string' ? saved.note : '';
+      if (['pass', 'fail', 'blocked'].includes(saved.status)) renderStatus(item, saved.status);
+      item.querySelector('textarea').addEventListener('input', save);
+    });
+    inputs.forEach(input => {
+      input.value = typeof state.meta[input.id] === 'string' ? state.meta[input.id] : '';
+      input.addEventListener('input', save);
+    });
+    document.querySelector('#export').addEventListener('click', downloadMarkdown);
+    document.querySelector('#reset').addEventListener('click', () => {
+      if (!confirm('Clear all saved checklist data for this browser?')) return;
+      localStorage.removeItem(storageKey);
+      location.reload();
+    });
+    updateProgress();
+  </script>
+</body>
+</html>
