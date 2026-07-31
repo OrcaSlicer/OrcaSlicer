@@ -36,6 +36,137 @@ TEST_CASE("Enforced support layers are generated", "[SupportMaterial]")
     REQUIRE(enforced.objects().front()->support_layers().size() > 0);
 }
 
+TEST_CASE("Conical grid support narrows toward the build plate", "[SupportMaterial]")
+{
+    // Model the same broad slab on a narrow central pillar used for manual
+    // verification. Grid support used to erase each small per-layer offset.
+    TriangleMesh pedestal = make_cube(8.2, 30., 62.6);
+    pedestal.translate(20.2f, 0.f, 0.f);
+    TriangleMesh overhang = make_cube(48.6, 30., 7.4);
+    overhang.translate(0.f, 0.f, 62.6f);
+    pedestal.merge(overhang);
+
+    auto support_layer_near_z = [](const Print &print, double print_z) {
+        const SupportLayer *nearest = nullptr;
+        for (const SupportLayer *layer : print.objects().front()->support_layers())
+            if (! layer->support_islands.empty() &&
+                (nearest == nullptr || std::abs(layer->print_z - print_z) < std::abs(nearest->print_z - print_z)))
+                nearest = layer;
+        return nearest;
+    };
+
+    const std::initializer_list<ConfigBase::SetDeserializeItem> common_config {
+        { "enable_support",                1 },
+        { "layer_height",                  0.2 },
+        { "support_on_build_plate_only",   1 },
+        { "support_remove_small_overhang", 0 },
+        { "support_conical_angle",         30 },
+        { "support_conical_min_width",     5 }
+    };
+
+    DynamicPrintConfig straight_config = DynamicPrintConfig::full_print_config();
+    straight_config.set_deserialize_strict(common_config);
+    straight_config.set_key_value("support_conical_enabled", new ConfigOptionBool(false));
+    Print straight;
+    init_and_process_print({ pedestal }, straight, straight_config);
+
+    DynamicPrintConfig conical_config = straight_config;
+    conical_config.set_key_value("support_conical_enabled", new ConfigOptionBool(true));
+    Print conical;
+    init_and_process_print({ pedestal }, conical, conical_config);
+
+    const SupportLayer *straight_low = support_layer_near_z(straight, 2.);
+    const SupportLayer *conical_low  = support_layer_near_z(conical, 2.);
+    const SupportLayer *conical_high = support_layer_near_z(conical, 58.);
+    REQUIRE(straight_low != nullptr);
+    REQUIRE(conical_low != nullptr);
+    REQUIRE(conical_high != nullptr);
+
+    const double straight_area_low = area(straight_low->support_islands);
+    const double conical_area_low  = area(conical_low->support_islands);
+    const double conical_area_high = area(conical_high->support_islands);
+    REQUIRE(straight_area_low > 0.);
+    REQUIRE(conical_area_low > 0.);
+    REQUIRE(conical_area_high > 0.);
+    REQUIRE(conical_area_low < 0.75 * straight_area_low);
+    REQUIRE(conical_area_low < conical_area_high);
+    REQUIRE(unscaled(unscaled(conical_area_low)) < 500.);
+    REQUIRE(conical_low->support_islands.size() == 2);
+
+    size_t sampled_layers = 0;
+    size_t changing_layers = 0;
+    double previous_area = 0.;
+    for (const SupportLayer *layer : conical.objects().front()->support_layers()) {
+        if (layer->support_islands.empty() || layer->print_z < 48. || layer->print_z > 58.)
+            continue;
+        const double current_area = area(layer->support_islands);
+        if (sampled_layers > 0 && std::abs(current_area - previous_area) > EPSILON)
+            ++ changing_layers;
+        previous_area = current_area;
+        ++ sampled_layers;
+    }
+    REQUIRE(sampled_layers > 20);
+    REQUIRE(changing_layers > 0.8 * (sampled_layers - 1));
+
+    double previous_top_area = 0.;
+    for (const SupportLayer *layer : conical.objects().front()->support_layers()) {
+        if (layer->support_islands.empty() || layer->print_z < 55. || layer->print_z > 63.)
+            continue;
+        const double current_area = area(layer->support_islands);
+        if (previous_top_area > 0.)
+            REQUIRE(current_area < 1.1 * previous_top_area);
+        previous_top_area = current_area;
+    }
+}
+
+TEST_CASE("Conical build plate support reaches around lower geometry", "[SupportMaterial]")
+{
+    // A roof is connected to the build plate by a post at its left edge. A
+    // shorter block below the middle of the roof leaves enough height for a
+    // conical support to move sideways and reach the build plate around it.
+    TriangleMesh model = make_cube(5., 20., 25.);
+    TriangleMesh lower_block = make_cube(20., 20., 10.);
+    lower_block.translate(10.f, 0.f, 0.f);
+    model.merge(lower_block);
+    TriangleMesh roof = make_cube(40., 20., 5.);
+    roof.translate(0.f, 0.f, 25.f);
+    model.merge(roof);
+
+    auto support_area_near_z = [](const Print &print, double print_z) {
+        const SupportLayer *nearest = nullptr;
+        for (const SupportLayer *layer : print.objects().front()->support_layers())
+            if (! layer->support_islands.empty() &&
+                (nearest == nullptr || std::abs(layer->print_z - print_z) < std::abs(nearest->print_z - print_z)))
+                nearest = layer;
+        return nearest == nullptr ? 0. : area(nearest->support_islands);
+    };
+
+    DynamicPrintConfig everywhere_config = DynamicPrintConfig::full_print_config();
+    everywhere_config.set_deserialize_strict({
+        { "enable_support",                1 },
+        { "layer_height",                  0.2 },
+        { "support_on_build_plate_only",   0 },
+        { "support_remove_small_overhang", 0 },
+        { "support_threshold_angle",       45 },
+        { "support_conical_enabled",       1 },
+        { "support_conical_angle",         30 },
+        { "support_conical_min_width",     5 }
+    });
+    Print everywhere;
+    init_and_process_print({ model }, everywhere, everywhere_config);
+
+    DynamicPrintConfig buildplate_config = everywhere_config;
+    buildplate_config.set_key_value("support_on_build_plate_only", new ConfigOptionBool(true));
+    Print buildplate;
+    init_and_process_print({ model }, buildplate, buildplate_config);
+
+    const double everywhere_area = support_area_near_z(everywhere, 20.);
+    const double buildplate_area = support_area_near_z(buildplate, 20.);
+    REQUIRE(everywhere_area > 0.);
+    REQUIRE(buildplate_area > 0.);
+    REQUIRE(buildplate_area > 0.75 * everywhere_area);
+}
+
 SCENARIO("Support layer Z honors contact distance", "[SupportMaterial]")
 {
     // Box h = 20mm, hole bottom at 5mm, hole height 10mm (top edge at 15mm).

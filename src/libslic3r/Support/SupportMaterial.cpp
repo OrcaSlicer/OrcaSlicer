@@ -1301,6 +1301,12 @@ std::vector<Polygons> PrintObjectSupportMaterial::buildplate_covered(const Print
     // Build support on a build plate only? If so, then collect and union all the surfaces below the current layer.
     // Unfortunately this is an inherently serial process.
     const bool            buildplate_only = this->build_plate_only();
+    const bool            conical_support = m_object_config->support_conical_enabled.value &&
+                                            m_object_config->support_conical_angle.value != 0.;
+    const coordf_t         conical_slope = conical_support ?
+        std::abs(std::tan(Geometry::deg2rad(std::clamp(
+            m_object_config->support_conical_angle.value, -89., 89.)))) :
+        0.;
     std::vector<Polygons> buildplate_covered;
     if (buildplate_only) {
         BOOST_LOG_TRIVIAL(debug) << "PrintObjectSupportMaterial::buildplate_covered() - start";
@@ -1314,7 +1320,20 @@ std::vector<Polygons> PrintObjectSupportMaterial::buildplate_covered(const Print
             // but don't apply the safety offset during the union operation as it would
             // inflate the polygons over and over.
             Polygons &covered = buildplate_covered[layer_id];
-            covered = buildplate_covered[layer_id - 1];
+            if (conical_support && ! buildplate_covered[layer_id - 1].empty()) {
+                // A conical support may move sideways while remaining connected
+                // to the build plate. Reduce the shadow cast by older slices by
+                // that permitted movement instead of extending it vertically
+                // forever. Vertical walls remain covered because their current
+                // slice is added again below.
+                const coordf_t layer_delta_z =
+                    object.layers()[layer_id]->print_z - lower_layer.print_z;
+                covered = offset(
+                    buildplate_covered[layer_id - 1],
+                    float(scale_(-conical_slope * layer_delta_z)));
+            } else {
+                covered = buildplate_covered[layer_id - 1];
+            }
             polygons_append(covered, offset(lower_layer.lslices, scale_(0.01)));
             covered = union_(covered);
         }
@@ -1842,7 +1861,12 @@ static inline void fill_contact_layer(
 #endif // SLIC3R_DEBUG
     )
 {
-    const SupportGridParams grid_params(object_config, support_material_flow);
+    SupportGridParams grid_params(object_config, support_material_flow);
+    const bool conical_support = object_config.enable_support.value &&
+                                 object_config.support_conical_enabled.value &&
+                                 object_config.support_conical_angle.value != 0.;
+    if (conical_support)
+        grid_params.style = smsSnug;
 
     Polygons lower_layer_polygons_for_dense_interface_cache;
     auto lower_layer_polygons_for_dense_interface = [&lower_layer_polygons_for_dense_interface_cache, &lower_layer_polygons, no_interface_offset]() -> const Polygons& {
@@ -1862,7 +1886,7 @@ static inline void fill_contact_layer(
 #endif // SLIC3R_DEBUG
         ));
     // 2) infill polygons, expand them by half the extrusion width + a tiny bit of extra.
-    bool reduce_interfaces = object_config.support_style.value != smsSnug && layer_id > 0 && !slicing_params.zero_gap_interface_top;
+    bool reduce_interfaces = grid_params.style != smsSnug && layer_id > 0 && !slicing_params.zero_gap_interface_top;
     if (reduce_interfaces) {
         // Reduce the amount of dense interfaces: Do not generate dense interfaces below overhangs with 60% overhang of the extrusions.
         Polygons dense_interface_polygons = diff(overhang_polygons, lower_layer_polygons_for_dense_interface());
@@ -2506,9 +2530,22 @@ static inline SupportGeneratorLayer* detect_bottom_contacts(
     return &layer_new;
 }
 
-// Returns polygons to print + polygons to propagate downwards.
+struct ProjectedSupport
+{
+    Polygons support;
+    Polygons gridded_projection;
+    Polygons raw_projection;
+};
+
+// Returns polygons to print, polygons to propagate downwards on the support grid,
+// and the cleaned projection before grid rasterization.
 // Called twice: First for normal supports, possibly trimmed by "on build plate only", second for support enforcers not trimmed by "on build plate only".
-static inline std::pair<Polygons, Polygons> project_support_to_grid(const Layer &layer, const SupportGridParams &grid_params, const Polygons &overhangs, Polygons *layer_buildplate_covered
+static inline ProjectedSupport project_support_to_grid(
+    const Layer             &layer,
+    const SupportGridParams &grid_params,
+    const Polygons          &overhangs,
+    Polygons                *layer_buildplate_covered,
+    bool                     preserve_projection_shape
 #ifdef SLIC3R_DEBUG 
     , size_t iRun, size_t layer_id, const char *debug_name
 #endif /* SLIC3R_DEBUG */
@@ -2534,10 +2571,13 @@ static inline std::pair<Polygons, Polygons> project_support_to_grid(const Layer 
           { { union_ex(overhangs_projection) },  { "overhangs_projection", "red", "black", "", scaled<coord_t>(0.1f), 0.5f } } });
 #endif /* SLIC3R_DEBUG */
 
-    SupportGridPattern support_grid_pattern(&overhangs_projection, &trimming, grid_params);
+    SupportGridParams projection_params = grid_params;
+    if (preserve_projection_shape)
+        projection_params.style = smsSnug;
+    SupportGridPattern support_grid_pattern(&overhangs_projection, &trimming, projection_params);
     tbb::task_group task_group_inner;
 
-    std::pair<Polygons, Polygons> out;
+    ProjectedSupport out;
 
     // 1) Cache the slice of a support volume. The support volume is expanded by 1/2 of support material flow spacing
     // to allow a placement of suppot zig-zag snake along the grid lines.
@@ -2546,7 +2586,7 @@ static inline std::pair<Polygons, Polygons> project_support_to_grid(const Layer 
         , &layer, layer_id, iRun, debug_name
 #endif /* SLIC3R_DEBUG */
     ] {
-            out.first = support_grid_pattern.extract_support(grid_params.expansion_to_slice, true
+            out.support = support_grid_pattern.extract_support(grid_params.expansion_to_slice, true
 #ifdef SLIC3R_DEBUG
                 , (std::string(debug_name) + "_support_area").c_str(), iRun, layer_id, layer.print_z
 #endif // SLIC3R_DEBUG
@@ -2554,17 +2594,18 @@ static inline std::pair<Polygons, Polygons> project_support_to_grid(const Layer 
 #ifdef SLIC3R_DEBUG
             Slic3r::SVG::export_expolygons(
                 debug_out_path("support-layer_support_area-gridded-%s-%d-%lf.svg", debug_name, iRun, layer.print_z),
-                union_ex(out.first));
+                union_ex(out.support));
 #endif /* SLIC3R_DEBUG */
         });
 
     // 2) Support polygons will be projected down. To keep the interface and base layers from growing, return a contour a tiny bit smaller than the grid cells.
-    task_group_inner.run([&grid_params, &support_grid_pattern, &out
+    if (! preserve_projection_shape)
+        task_group_inner.run([&grid_params, &support_grid_pattern, &out
 #ifdef SLIC3R_DEBUG 
-        , &layer, layer_id, &overhangs_projection, &trimming, iRun, debug_name
+            , &layer, layer_id, &overhangs_projection, &trimming, iRun, debug_name
 #endif /* SLIC3R_DEBUG */
-    ] {
-            out.second = support_grid_pattern.extract_support(grid_params.expansion_to_propagate, true
+        ] {
+            out.gridded_projection = support_grid_pattern.extract_support(grid_params.expansion_to_propagate, true
 #ifdef SLIC3R_DEBUG
                 , "support_projection", iRun, layer_id, layer.print_z
 #endif // SLIC3R_DEBUG
@@ -2572,18 +2613,49 @@ static inline std::pair<Polygons, Polygons> project_support_to_grid(const Layer 
 #ifdef SLIC3R_DEBUG
             Slic3r::SVG::export_expolygons(
                 debug_out_path("support-projection_new-gridded-%d-%lf.svg", iRun, layer.print_z),
-                union_ex(out.second));
+                union_ex(out.gridded_projection));
 #endif /* SLIC3R_DEBUG */
 #ifdef SLIC3R_DEBUG
             SVG::export_expolygons(debug_out_path("support-projection_new-gridded-%d-%lf.svg", iRun, layer.print_z),
                 { { { union_ex(trimming) },                             { "trimming",               "gray", 0.5f } },
                     { { union_safety_offset_ex(overhangs_projection) }, { "overhangs_projection",   "blue", 0.5f } },
-                    { { union_safety_offset_ex(out.second) },           { "projection_new", "red",  "black", "", scaled<coord_t>(0.1f), 0.5f } } });
+                    { { union_safety_offset_ex(out.gridded_projection) }, { "projection_new", "red", "black", "", scaled<coord_t>(0.1f), 0.5f } } });
 #endif /* SLIC3R_DEBUG */
         });
 
     task_group_inner.wait();
+    out.raw_projection = std::move(overhangs_projection);
     return out;
+}
+
+// Conical support is applied while support is projected downwards: each lower
+// slice is offset from the slice above according to the configured angle. Keep
+// features below the minimum width unchanged so shrinking a support column
+// cannot make a narrow island disappear.
+static Polygons apply_conical_support_offset(
+    const Polygons &polygons,
+    coordf_t        layer_delta_z,
+    coordf_t        angle_degrees,
+    coordf_t        minimum_width)
+{
+    if (polygons.empty() || layer_delta_z <= 0. || angle_degrees == 0.)
+        return polygons;
+
+    const coordf_t bounded_angle = std::clamp(angle_degrees, coordf_t(-89.), coordf_t(89.));
+    const float offset_scaled = float(scale_(-std::tan(Geometry::deg2rad(bounded_angle)) * layer_delta_z));
+    Polygons tapered = offset(polygons, offset_scaled);
+
+    if (offset_scaled < 0.f && minimum_width > 0.) {
+        const float half_minimum_width = float(scale_(0.5 * minimum_width));
+        Polygons inset = offset(polygons, -half_minimum_width);
+        // The tiny extra expansion avoids retaining boundary slivers produced
+        // by the two inverse offsets.
+        Polygons small_parts = diff(polygons, offset(inset, half_minimum_width + 20.f));
+        polygons_append(tapered, std::move(small_parts));
+        tapered = union_(tapered);
+    }
+
+    return tapered;
 }
 
 // Generate bottom contact layers supporting the top contact layers.
@@ -2619,11 +2691,27 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
     // Sum of unsupported enforcer contact areas above the current layer.print_z.
     // Only used if "supports on build plate only" is enabled and both automatic and support enforcers are enabled.
     Polygons  enforcers_projection;
+    const bool conical_support = m_object_config->enable_support.value &&
+                                 m_object_config->support_conical_enabled.value &&
+                                 m_object_config->support_conical_angle.value != 0.;
     // Last top contact layer visited when collecting the projection of contact areas.
     int       contact_idx = int(top_contacts.size()) - 1;
     for (int layer_id = int(object.total_layer_count()) - 2; layer_id >= 0; -- layer_id) {
         BOOST_LOG_TRIVIAL(trace) << "Support generator - bottom_contact_layers - layer " << layer_id;
         const Layer &layer = *object.get_layer(layer_id);
+        if (conical_support) {
+            const coordf_t layer_delta_z = object.get_layer(layer_id + 1)->print_z - layer.print_z;
+            if (! overhangs_projection.empty())
+                overhangs_projection = apply_conical_support_offset(
+                    overhangs_projection, layer_delta_z,
+                    m_object_config->support_conical_angle.value,
+                    m_object_config->support_conical_min_width.value);
+            if (! enforcers_projection.empty())
+                enforcers_projection = apply_conical_support_offset(
+                    enforcers_projection, layer_delta_z,
+                    m_object_config->support_conical_angle.value,
+                    m_object_config->support_conical_min_width.value);
+        }
         // Collect projections of all contact areas above or at the same level as this top surface.
 #ifdef SLIC3R_DEBUG
         Polygons polygons_new;
@@ -2643,9 +2731,11 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
             if (top_contact.enforcer_polygons)
                 polygons_append(enforcers_new, offset(*top_contact.enforcer_polygons, SCALED_EPSILON));
 #else
-            // Consume the contact_polygons. The contact polygons are already expanded into a grid form, and they are a tiny bit smaller
-            // than the grid cells.
-            polygons_append(polygons_new,  std::move(*top_contact.contact_polygons));
+            // Consume the contact_polygons. For conical support these have been
+            // generated without grid rasterization. Their propagation contour is
+            // slightly smaller than the printed contact contour, leaving a small
+            // removal ledge while the support body approaches it continuously.
+            polygons_append(polygons_new, std::move(*top_contact.contact_polygons));
             if (top_contact.enforcer_polygons)
                 polygons_append(enforcers_new, std::move(*top_contact.enforcer_polygons));
 #endif
@@ -2690,13 +2780,18 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
 #ifdef SLIC3R_DEBUG 
             , iRun, layer_id
 #endif /* SLIC3R_DEBUG */
-            ] {
+            , conical_support] {
                 // buildplate_covered[layer_id] will be consumed here.
-                std::tie(layer_support_area, overhangs_projection) = project_support_to_grid(layer, grid_params, overhangs_projection_raw, layer_buildplate_covered
+                ProjectedSupport projected = project_support_to_grid(
+                    layer, grid_params, overhangs_projection_raw, layer_buildplate_covered, conical_support
 #ifdef SLIC3R_DEBUG 
                     , iRun, layer_id, "general"
 #endif /* SLIC3R_DEBUG */
                 );
+                layer_support_area = std::move(projected.support);
+                overhangs_projection = conical_support ?
+                    std::move(projected.raw_projection) :
+                    std::move(projected.gridded_projection);
                 // When propagating support areas downwards, stop propagating the support column if it becomes too thin to be printable.
                 //overhangs_projection = opening(overhangs_projection, column_propagation_filtering_radius);
             });
@@ -2708,12 +2803,17 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
 #ifdef SLIC3R_DEBUG 
                 , iRun, layer_id
 #endif /* SLIC3R_DEBUG */
-            ]{
-                std::tie(layer_support_area_enforcers, enforcers_projection) = project_support_to_grid(layer, grid_params, enforcers_projection_raw, nullptr
+            , conical_support]{
+                ProjectedSupport projected = project_support_to_grid(
+                    layer, grid_params, enforcers_projection_raw, nullptr, conical_support
 #ifdef SLIC3R_DEBUG 
                     , iRun, layer_id, "enforcers"
 #endif /* SLIC3R_DEBUG */
                 );
+                layer_support_area_enforcers = std::move(projected.support);
+                enforcers_projection = conical_support ?
+                    std::move(projected.raw_projection) :
+                    std::move(projected.gridded_projection);
             });
 
         task_group.wait();

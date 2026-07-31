@@ -6896,6 +6896,33 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(0));
 
+    def = this->add("support_conical_enabled", coBool);
+    def->label = L("Enable conical support (experimental)");
+    def->category = L("Support");
+    def->tooltip = L("Make normal support narrower or wider toward the build plate. This experimental option does not apply to tree supports.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("support_conical_angle", coFloat);
+    def->label = L("Conical support angle");
+    def->category = L("Support");
+    def->tooltip = L("Tilt angle of conical support. Positive values make the support narrower toward the build plate; "
+                     "negative values make its base wider.");
+    def->sidetext = u8"°";
+    def->min = -89;
+    def->max = 89;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(30));
+
+    def = this->add("support_conical_min_width", coFloat);
+    def->label = L("Conical support minimum width");
+    def->category = L("Support");
+    def->tooltip = L("Minimum width preserved while conical support narrows toward the build plate.");
+    def->sidetext = L("mm");
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionFloat(5));
+
     def = this->add("support_speed", coFloats);
     def->label = L("Support");
     def->category = L("Speed");

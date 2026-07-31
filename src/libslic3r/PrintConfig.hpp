@@ -1129,6 +1129,9 @@ PRINT_CONFIG_CLASS_DEFINE(
     // Spacing between support material lines (the hatching distance).
     ((ConfigOptionFloat,               support_base_pattern_spacing))
     ((ConfigOptionFloat,               support_expansion))
+    ((ConfigOptionBool,                support_conical_enabled))
+    ((ConfigOptionFloat,               support_conical_angle))
+    ((ConfigOptionFloat,               support_conical_min_width))
     ((ConfigOptionFloatsNullable,      support_speed))
     ((ConfigOptionEnum<SupportMaterialStyle>, support_style))
 
