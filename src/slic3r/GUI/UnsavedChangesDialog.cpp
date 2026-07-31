@@ -773,7 +773,7 @@ std::vector<std::string> DiffViewCtrl::selected_options()
 
 static std::string none{"none"};
 #define UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE wxSize(FromDIP(490), FromDIP(374))
-#define UNSAVE_CHANGE_DIALOG_ACTION_LINE_SIZE wxSize(FromDIP(490), FromDIP(60))
+#define UNSAVE_CHANGE_DIALOG_ACTION_LINE_SIZE wxSize(FromDIP(490), -1)
 #define UNSAVE_CHANGE_DIALOG_FIRST_VALUE_WIDTH FromDIP(190)
 #define UNSAVE_CHANGE_DIALOG_VALUE_WIDTH FromDIP(150)
 #define UNSAVE_CHANGE_DIALOG_ITEM_HEIGHT FromDIP(24)
@@ -1075,11 +1075,6 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     m_sizer_main->Add(m_sizer_button, 0, wxEXPAND | wxTOP, 6);
     m_sizer_main->Add(0, 0, 1, wxTOP, 18);
 
-    SetSizer(m_sizer_main);
-    Layout();
-    Fit();
-    Centre(wxBOTH);
-
     if (params) {
         if (params->left_to_right)
             update_tree(type, params->config, params->from, params->to);
@@ -1095,6 +1090,11 @@ void UnsavedChangesDialog::build(Preset::Type type, PresetCollection *dependent_
     //topSizer->SetSizeHints(this);
 
     show_info_line(Action::Undef);
+
+    SetSizerAndFit(m_sizer_main);
+    Layout();
+    Fit();
+    // Centre(wxBOTH);
 }
 
 void UnsavedChangesDialog::show_info_line(Action action, std::string preset_name)
@@ -1499,6 +1499,7 @@ void UnsavedChangesDialog::update(Preset::Type type, PresetCollection* dependent
     }
 
     m_action_line->SetLabel(action_msg);
+    m_action_line->Wrap(UNSAVE_CHANGE_DIALOG_SCROLL_WINDOW_SIZE.x);
 
     update_tree(type, presets);
     update_list();
@@ -2281,7 +2282,7 @@ void DiffPresetDialog::update_tree()
         const Preset* left_preset  = presets->find_preset(get_selection(preset_combos.presets_left));
         const Preset* right_preset = presets->find_preset(get_selection(preset_combos.presets_right));
         if (!left_preset || !right_preset) {
-            bottom_info = "One of the presets does not exist";
+            bottom_info = _L("One of the presets does not exist");
             preset_combos.equal_bmp->SetBitmap_(ScalableBitmap(this, "question"));
             preset_combos.equal_bmp->SetToolTip(bottom_info);
             continue;
@@ -2292,7 +2293,7 @@ void DiffPresetDialog::update_tree()
         const DynamicPrintConfig& right_congig  = right_preset->config;
 
         if (left_pt != right_preset->printer_technology()) {
-            bottom_info = "Compared presets has different printer technology";
+            bottom_info = _L("Compared presets has different printer technology");
             preset_combos.equal_bmp->SetBitmap_(ScalableBitmap(this, "question"));
             preset_combos.equal_bmp->SetToolTip(bottom_info);
             continue;
@@ -2336,7 +2337,7 @@ void DiffPresetDialog::update_tree()
             wxString left_val = from_u8((boost::format("%1%") % left_config.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
             wxString right_val = from_u8((boost::format("%1%") % right_congig.opt<ConfigOptionStrings>("extruder_colour")->values.size()).str());
 
-            m_tree->Append("extruders_count", type, "General", "Capabilities", local_label, left_val, right_val,
+            m_tree->Append("extruders_count", type, _L("General"), _L("Capabilities"), local_label, left_val, right_val,
                 get_category_icon("Basic information"));
         }
 

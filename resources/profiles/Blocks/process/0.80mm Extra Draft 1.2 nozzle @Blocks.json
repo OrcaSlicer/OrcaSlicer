@@ -9,7 +9,6 @@
 	"top_shell_layers": "2",
 	"layer_height": "0.80",
 	"compatible_printers": [
-		"BLOCKS Pro S100",
 		"BLOCKS Pro S100 1.2 nozzle"
 	]
 }

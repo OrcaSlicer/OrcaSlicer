@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "xG2wymZpv7dQzfVO",
 	"name": "QIDI PETG Translucent @Qidi X-Max 4 0.8 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PETG Translucent@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "xG2wymZpv7dQzfVO",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
 	],

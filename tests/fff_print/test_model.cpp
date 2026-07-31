@@ -6,7 +6,7 @@
 
 #include <boost/filesystem.hpp>
 
-#include "test_data.hpp"
+#include "test_helpers.hpp"
 #include "test_utils.hpp"
 
 using namespace Slic3r;

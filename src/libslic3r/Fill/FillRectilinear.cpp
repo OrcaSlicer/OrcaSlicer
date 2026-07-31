@@ -2739,13 +2739,19 @@ static void polylines_from_paths(const std::vector<MonotonicRegionLink> &path, c
 
 // The extended bounding box of the whole object that covers any rotation of every layer.
 BoundingBox FillRectilinear::extended_object_bounding_box() const {
+    // Build the extension around the box center. The transpose merge and the sqrt(2.) scaling
+    // (which covers any possible rotation) are both defined about the origin, so a box that is not
+    // origin-centered — e.g. a separated-infill box re-centered on a single assembly part — would be
+    // distorted. Shift to the origin first and back afterwards; for the default origin-centered box
+    // the two translations cancel and this is identical to the original behavior.
+    const Point c   = this->bounding_box.center();
     BoundingBox out = this->bounding_box;
+    out.translate(-c.x(), -c.y());
     out.merge(Point(out.min.y(), out.min.x()));
     out.merge(Point(out.max.y(), out.max.x()));
-
-    // The bounding box is scaled by sqrt(2.) to ensure that the bounding box
-    // covers any possible rotations.
-    return out.scaled(sqrt(2.));
+    out = out.scaled(sqrt(2.));
+    out.translate(c.x(), c.y());
+    return out;
 }
 
 bool FillRectilinear::fill_surface_by_lines(const Surface *surface, const FillParams &params, float angleBase, float pattern_shift, Polylines &polylines_out)
@@ -3098,8 +3104,11 @@ bool FillRectilinear::fill_surface_trapezoidal(
         
         const coord_t d2 = coord_t(0.5 * period - d1);
 
-        //  Align bounding box to the grid
-        bb.merge(align_to_grid(bb.min, Point(period, period)));
+        //  Align bounding box to the grid, phased through the box center so separated infills align
+        //  each part on itself (grid_center is the origin for a standalone object / feature off).
+        //  Captured before the merge, which grows bb and would otherwise shift its center.
+        const Point grid_center = bb.center();
+        bb.merge(align_to_grid(bb.min, Point(period, period), grid_center));
         const coord_t xmin = bb.min.x();
         const coord_t xmax = bb.max.x();
         const coord_t ymin = bb.min.y();
@@ -3146,11 +3155,17 @@ bool FillRectilinear::fill_surface_trapezoidal(
             flip_vertical = !flip_vertical;
         }
 
-        // transpose points for odd infill layers (taking infill combination into account)
+        // transpose points for odd infill layers (taking infill combination into account).
+        // Orca: mirror across the diagonal through grid_center (not the origin), so the swapped
+        // layers stay aligned with the center-phased grid. For a standalone object / feature off,
+        // grid_center is the origin and this is a plain x/y swap.
         if (infill_layer_id % 2 == 1) {
             for (Polyline& pl : polylines) {
                 for (Point& p : pl.points) {
-                    std::swap(p.x(), p.y());
+                    const coord_t dx = p.x() - grid_center.x();
+                    const coord_t dy = p.y() - grid_center.y();
+                    p.x() = grid_center.x() + dy;
+                    p.y() = grid_center.y() + dx;
                 }
             }
         }
@@ -3340,6 +3355,14 @@ bool FillRectilinear::fill_surface_trapezoidal(
         // Handle unknown pattern type
         break;
     }
+
+    // Orca: cases 1 & 2 build the pattern symmetrically around the origin, so on their own they
+    // phase to the global origin and every part shares one grid. Shift the pattern onto the box
+    // center this->bounding_box carries, so separated infills align each part on itself. The center
+    // is the origin for a standalone object (or when the feature is off), making this a no-op there.
+    if (Pattern_type != 0)
+        for (Polyline &pl : polylines)
+            pl.translate(rotate_vector.second);
 
     // Apply multiline fill
     multiline_fill(polylines, params, spacing);

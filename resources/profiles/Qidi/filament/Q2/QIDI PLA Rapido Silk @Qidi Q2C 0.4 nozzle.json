@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "UiribWz6dXt3jzup",
 	"name": "QIDI PLA Rapido Silk @Qidi Q2C 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Rapido Silk@Q2C-Series",
+	"from": "system",
+	"setting_id": "UiribWz6dXt3jzup",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.034"
 	],

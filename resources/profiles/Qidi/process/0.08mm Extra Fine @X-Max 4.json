@@ -1,10 +1,10 @@
 {
 	"type": "process",
-	"setting_id": "669lYZL76CKm2XKo",
 	"name": "0.08mm Extra Fine @X-Max 4",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "fdm_process_n_common",
+	"from": "system",
+	"setting_id": "669lYZL76CKm2XKo",
+	"instantiation": "true",
 	"bottom_color_penetration_layers": "7",
 	"bottom_shell_layers": "7",
 	"bridge_flow": "1",

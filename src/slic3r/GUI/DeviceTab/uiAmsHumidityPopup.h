@@ -20,7 +20,7 @@ namespace Slic3r { namespace GUI {
 struct uiAmsHumidityInfo
 {
     std::string ams_id;
-    AMSModel ams_type;
+    AMSModel ams_type; // Orca: GUI-layer AMS enum; consumer (AMSItem.cpp) assigns an AMSModel
     int humidity_display_idx = -1;
     int humidity_percent = -1;
     float current_temperature;

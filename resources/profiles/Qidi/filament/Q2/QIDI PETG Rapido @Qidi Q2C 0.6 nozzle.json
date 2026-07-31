@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "JKLS99QCyNqP6HpN",
 	"name": "QIDI PETG Rapido @Qidi Q2C 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PETG Rapido@Q2C-Series",
+	"from": "system",
+	"setting_id": "JKLS99QCyNqP6HpN",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.04"
 	],

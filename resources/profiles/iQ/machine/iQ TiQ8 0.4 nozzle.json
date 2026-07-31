@@ -8,6 +8,7 @@
 	"printer_settings_id": "iQ TiQ8 0.4 Nozzle",
 	"printer_model": "TiQ8",
 	"printer_variant": "0.4",
+	"default_print_profile": "0.20mm Standard @iQ TiQ8 P1 - ABS Natur Material4Print (0.4 Nozzle)",
 	"change_filament_gcode": "G1 Z{layer_z+2} F900 ; safe distance while tool change\n{if next_extruder==0}G1 X30 Y-12 F9000{endif}\nM109 S{nozzle_temperature[next_extruder]} T[next_extruder] ; set new tool temperature so it can start heating while changing",
 	"deretraction_speed": [
 		"30",

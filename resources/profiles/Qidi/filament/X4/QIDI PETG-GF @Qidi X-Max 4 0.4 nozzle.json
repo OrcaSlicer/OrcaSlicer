@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "DfvA2AssIgxg2koP",
 	"name": "QIDI PETG-GF @Qidi X-Max 4 0.4 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PETG-GF@X-Max 4-Series",
+	"from": "system",
+	"setting_id": "DfvA2AssIgxg2koP",
+	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi X-Max 4 0.4 nozzle"
 	]

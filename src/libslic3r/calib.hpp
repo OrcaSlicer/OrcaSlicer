@@ -35,16 +35,28 @@ struct Calib_Params
 {
     Calib_Params() : mode(CalibMode::Calib_None){};
     int extruder_id = 0;
-    double    start, end, step;
-    bool      print_numbers;
-    double freqStartX, freqEndX, freqStartY, freqEndY;
-    int test_model;
+    double    start = 0.0, end = 1.0, step = 0.1;
+    bool      print_numbers = false;
+    double freqStartX = 0.0, freqEndX = 1.0, freqStartY = 0.0, freqEndY = 1.0;
+    int test_model = 0;
     std::string shaper_type;
     std::vector<double> accelerations;
     std::vector<double> speeds;
+    // Resolved layer height for the VFA tower (0 = auto: nozzle_diameter / 2). Each speed block is a
+    // fixed number of layers tall, so this also determines the physical block height / tower height.
+    double vfa_layer_height = 0.0;
+    // Scale the calibration model to the nozzle diameter and set the layer height accordingly (temp tower / VFA).
+    // When false the 0.4 mm / 0.2 mm reference model is printed as-is.
+    bool nozzle_based_resize = true;
 
     CalibMode mode;
 };
+
+// Number of printed layers per speed block in the VFA tower. The base model has 5 mm blocks designed
+// for a 0.2 mm layer height (0.4 mm nozzle), i.e. 25 layers per block.
+static constexpr int vfa_layers_per_block = 25;
+static constexpr double vfa_base_block_height = 5.0;
+static constexpr double vfa_base_nozzle_diameter = 0.4;
 
 enum FlowRatioCalibrationType {
     COMPLETE_CALIBRATION = 0,
@@ -83,6 +95,8 @@ public:
     NozzleVolumeType nozzle_volume_type;
     BedType     bed_type;
     float       nozzle_diameter;
+    int         nozzle_pos_id{-1};
+    std::string nozzle_sn;
     std::string filament_id;
     std::string setting_id;
     std::string name;
@@ -93,6 +107,8 @@ public:
         this->extruder_id     = other.extruder_id;
         this->nozzle_volume_type = other.nozzle_volume_type;
         this->nozzle_diameter = other.nozzle_diameter;
+        this->nozzle_pos_id   = other.nozzle_pos_id;
+        this->nozzle_sn       = other.nozzle_sn;
         this->filament_id     = other.filament_id;
         this->setting_id      = other.setting_id;
         this->name            = other.name;
@@ -123,7 +139,9 @@ public:
     int         ams_id = 0;
     int         slot_id = 0;
     int         cali_idx = -1;
+    int         nozzle_pos_id = -1; //-1 means no nozzle pos
     float       nozzle_diameter;
+    std::string nozzle_sn;
     std::string filament_id;
     std::string setting_id;
     std::string name;
@@ -140,7 +158,9 @@ struct PACalibIndexInfo
     int         ams_id = 0;
     int         slot_id = 0;
     int         cali_idx = -1; // -1 means default
+    int         nozzle_pos_id = -1; //-1 means no nozzle pos
     float       nozzle_diameter;
+    std::string nozzle_sn;
     std::string filament_id;
 };
 
@@ -148,7 +168,9 @@ struct PACalibExtruderInfo
 {
     int              extruder_id = 0;
     NozzleVolumeType nozzle_volume_type;
+    int              nozzle_pos_id = -1; //-1 means no nozzle pos
     float            nozzle_diameter;
+    std::string      nozzle_sn;
     std::string      filament_id = "";
     bool             use_extruder_id{true};
     bool             use_nozzle_volume_type{true};
@@ -244,6 +266,8 @@ class CalibPressureAdvanceLine : public CalibPressureAdvance
 public:
     CalibPressureAdvanceLine(GCode* gcodegen);
     ~CalibPressureAdvanceLine(){};
+    // Return the X‑bounds of the pattern on the given bed.
+    BoundingBoxf print_extents(const BoundingBoxf &bed_ext) const;
 
     std::string generate_test(double start_pa = 0, double step_pa = 0.002, int count = 50);
 

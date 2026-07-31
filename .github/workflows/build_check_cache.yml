@@ -26,7 +26,7 @@ jobs:
       valid-cache: ${{ steps.cache_deps.outputs.cache-hit }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           lfs: 'false'
         
@@ -46,7 +46,7 @@ jobs:
             
       - name: load cache
         id: cache_deps
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ steps.set_outputs.outputs.cache-path }}
           key: ${{ steps.set_outputs.outputs.cache-key }}

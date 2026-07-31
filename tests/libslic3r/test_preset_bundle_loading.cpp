@@ -3,6 +3,7 @@
 #include <boost/filesystem.hpp>
 
 #include "libslic3r/PresetBundle.hpp"
+#include "libslic3r/AppConfig.hpp"
 
 using namespace Slic3r;
 
@@ -296,5 +297,194 @@ TEST_CASE("Removed Generic parent is normalized into a loaded filament's inherit
     CHECK(child->inherits() == "Generic PLA @System");
     REQUIRE(bundle.filaments.get_preset_parent(*child) != nullptr);
     CHECK(bundle.filaments.get_preset_parent(*child)->name == "Generic PLA @System");
+}
+
+namespace {
+
+// A live reference to a preset's compatible_printers / compatible_prints list. Fetches the *stored*
+// preset (real=true) so writes and reads hit the same object; creates the option if absent.
+std::vector<std::string> &compatible_list(PresetCollection &coll, const std::string &preset_name, const char *field_key)
+{
+    Preset *preset = coll.find_preset(preset_name, /*first_visible_if_not_found=*/false, /*real=*/true);
+    REQUIRE(preset != nullptr);
+    return preset->config.option<ConfigOptionStrings>(field_key, true)->values;
+}
+
+} // namespace
+
+TEST_CASE("Renamed printer/process names are normalized into compatible lists on load", "[Preset][Rename]")
+{
+    PresetBundle bundle;
+
+    // Current printer + process, each renamed from an older name.
+    add_inmemory_preset(bundle.printers, "New Printer");
+    set_renamed_from(bundle.printers, "New Printer", { "Old Printer" });
+    add_inmemory_preset(bundle.prints, "New Process");
+    set_renamed_from(bundle.prints, "New Process", { "Old Process" });
+
+    // A user process still compatible with the OLD printer name.
+    add_inmemory_preset(bundle.prints, "My Process");
+    compatible_list(bundle.prints, "My Process", "compatible_printers") = { "Old Printer" };
+
+    // A user filament referencing the OLD printer AND OLD process names, plus an unknown printer.
+    add_inmemory_preset(bundle.filaments, "My Filament");
+    compatible_list(bundle.filaments, "My Filament", "compatible_printers") = { "Old Printer", "Unknown Printer" };
+    compatible_list(bundle.filaments, "My Filament", "compatible_prints")   = { "Old Process" };
+
+    // Build the rename maps (done during system load in the real pipeline), then normalize.
+    AppConfig app_config;
+    bundle.load_installed_printers(app_config); // rebuilds every collection's rename map
+    bundle.normalize_compatible_presets();
+
+    // The stale printer name in a process' compatible_printers is rewritten to the current name.
+    CHECK(compatible_list(bundle.prints, "My Process", "compatible_printers") == std::vector<std::string>{ "New Printer" });
+
+    // The stale process name in a filament's compatible_prints is rewritten (this field has no
+    // runtime rename fallback, so load-time normalization is the only fix).
+    CHECK(compatible_list(bundle.filaments, "My Filament", "compatible_prints") == std::vector<std::string>{ "New Process" });
+
+    // The renamed printer is rewritten while the unknown/deleted name is preserved as-is.
+    CHECK(compatible_list(bundle.filaments, "My Filament", "compatible_printers") ==
+          (std::vector<std::string>{ "New Printer", "Unknown Printer" }));
+
+    // Normalizing rewrites config in place without flagging the preset dirty.
+    CHECK_FALSE(bundle.prints.find_preset("My Process", false, true)->is_dirty);
+
+    // A system preset that already references the current name is left untouched (idempotent no-op).
+    bundle.normalize_compatible_presets();
+    CHECK(compatible_list(bundle.prints, "My Process", "compatible_printers") == std::vector<std::string>{ "New Printer" });
+}
+
+TEST_CASE("Renamed names are normalized into a SYSTEM preset's compatible lists", "[Preset][Rename]")
+{
+    PresetBundle bundle;
+
+    // Current printer + process, each renamed from an older name.
+    add_inmemory_preset(bundle.printers, "New Printer");
+    set_renamed_from(bundle.printers, "New Printer", { "Old Printer" });
+    add_inmemory_preset(bundle.prints, "New Process");
+    set_renamed_from(bundle.prints, "New Process", { "Old Process" });
+
+    // A *system* (vendor) filament whose own compatible lists still reference the OLD names. A vendor
+    // profile can point at a sibling preset that was later renamed, so system presets must be
+    // normalized too (they are skipped by neither collection walk).
+    add_inmemory_preset(bundle.filaments, "System Filament").is_system = true;
+    compatible_list(bundle.filaments, "System Filament", "compatible_printers") = { "Old Printer" };
+    compatible_list(bundle.filaments, "System Filament", "compatible_prints")   = { "Old Process" };
+
+    AppConfig app_config;
+    bundle.load_installed_printers(app_config); // build the rename maps
+    bundle.normalize_compatible_presets();
+
+    // The stale references in the system preset are rewritten to the current names.
+    CHECK(compatible_list(bundle.filaments, "System Filament", "compatible_printers") ==
+          std::vector<std::string>{ "New Printer" });
+    CHECK(compatible_list(bundle.filaments, "System Filament", "compatible_prints") ==
+          std::vector<std::string>{ "New Process" });
+
+    // The rewrite does not flag the system preset dirty, and is idempotent.
+    CHECK_FALSE(bundle.filaments.find_preset("System Filament", false, true)->is_dirty);
+    bundle.normalize_compatible_presets();
+    CHECK(compatible_list(bundle.filaments, "System Filament", "compatible_printers") ==
+          std::vector<std::string>{ "New Printer" });
+}
+
+TEST_CASE("compatible_prints on SLA materials resolves against sla_prints, not prints", "[Preset][Rename]")
+{
+    PresetBundle bundle;
+
+    // A renamed SLA process, and a same-named FFF process that must NOT be picked up: resolving the
+    // SLA material's compatible_prints against `prints` would wrongly rewrite to "Wrong FFF Process".
+    add_inmemory_preset(bundle.sla_prints, "New SLA Process");
+    set_renamed_from(bundle.sla_prints, "New SLA Process", { "Old SLA Process" });
+    add_inmemory_preset(bundle.prints, "Wrong FFF Process");
+    set_renamed_from(bundle.prints, "Wrong FFF Process", { "Old SLA Process" });
+
+    add_inmemory_preset(bundle.sla_materials, "My SLA Material");
+    compatible_list(bundle.sla_materials, "My SLA Material", "compatible_prints") = { "Old SLA Process" };
+
+    AppConfig app_config;
+    bundle.load_installed_printers(app_config);
+    bundle.normalize_compatible_presets();
+
+    CHECK(compatible_list(bundle.sla_materials, "My SLA Material", "compatible_prints") ==
+          std::vector<std::string>{ "New SLA Process" });
+}
+
+TEST_CASE("Profile validator flags dangling and renamed preset references", "[Preset][Validate]")
+{
+    PresetBundle bundle;
+
+    // Current printers: a real one, and a renamed one (its old name resolves via renamed_from).
+    add_inmemory_preset(bundle.printers, "Real Printer");
+    add_inmemory_preset(bundle.printers, "New Printer");
+    set_renamed_from(bundle.printers, "New Printer", { "Old Printer" });
+
+    // A real process, referenced from a filament's compatible_prints.
+    add_inmemory_preset(bundle.prints, "Real Process").is_system = true;
+
+    // A fully valid system filament: references only current names.
+    add_inmemory_preset(bundle.filaments, "Good Filament").is_system = true;
+    compatible_list(bundle.filaments, "Good Filament", "compatible_printers") = { "Real Printer" };
+    compatible_list(bundle.filaments, "Good Filament", "compatible_prints")   = { "Real Process" };
+
+    AppConfig app_config;
+    bundle.load_installed_printers(app_config); // build the rename maps
+
+    // With only valid references, the validator is clean.
+    CHECK_FALSE(bundle.check_preset_references());
+
+    SECTION("deleted compatible_printers is flagged") {
+        add_inmemory_preset(bundle.filaments, "Ghost Ref Filament").is_system = true;
+        compatible_list(bundle.filaments, "Ghost Ref Filament", "compatible_printers") = { "Ghost Printer" };
+        CHECK(bundle.check_preset_references());
+    }
+
+    SECTION("renamed compatible_printers (old name) is flagged") {
+        add_inmemory_preset(bundle.filaments, "Old Ref Filament").is_system = true;
+        compatible_list(bundle.filaments, "Old Ref Filament", "compatible_printers") = { "Old Printer" };
+        CHECK(bundle.check_preset_references());
+    }
+
+    SECTION("deleted compatible_prints is flagged") {
+        add_inmemory_preset(bundle.filaments, "Bad Process Ref").is_system = true;
+        compatible_list(bundle.filaments, "Bad Process Ref", "compatible_prints") = { "Ghost Process" };
+        CHECK(bundle.check_preset_references());
+    }
+
+    SECTION("deleted inherits parent is flagged") {
+        add_inmemory_preset(bundle.filaments, "Orphan Filament", "Ghost Parent").is_system = true;
+        CHECK(bundle.check_preset_references());
+    }
+
+    SECTION("non-system preset with a dangling reference is ignored") {
+        add_inmemory_preset(bundle.filaments, "User Filament"); // is_system stays false
+        compatible_list(bundle.filaments, "User Filament", "compatible_printers") = { "Ghost Printer" };
+        CHECK_FALSE(bundle.check_preset_references());
+    }
+}
+
+// Under a shared override key, the last preset merged into the full config overwrote the others', so an
+// edited slicing-pipeline override never reached Print::apply's diff and re-configuring a plugin never
+// re-sliced. Per-type keys make that collision impossible; guard the scoping here.
+TEST_CASE("Plugin capability override keys are scoped per preset type", "[Preset][Plugin]")
+{
+    // Pin the key names: presets and 3mf files store them verbatim, so a rename is a format change.
+    CHECK(Preset::plugin_overrides_key(Preset::TYPE_PRINT)    == std::string("print_plugin_config_overrides"));
+    CHECK(Preset::plugin_overrides_key(Preset::TYPE_PRINTER)  == std::string("printer_plugin_config_overrides"));
+    CHECK(Preset::plugin_overrides_key(Preset::TYPE_FILAMENT) == std::string("filament_plugin_config_overrides"));
+
+    // ...and each key lives on exactly its own preset type's option list, so no two ever share a slot.
+    const std::pair<Preset::Type, const std::vector<std::string>*> scopes[] = {
+        {Preset::TYPE_PRINT,    &Preset::print_options()},
+        {Preset::TYPE_PRINTER,  &Preset::printer_options()},
+        {Preset::TYPE_FILAMENT, &Preset::filament_options()},
+    };
+    for (const auto &owner : scopes)
+        for (const auto &scoped : scopes) {
+            const std::string key = Preset::plugin_overrides_key(scoped.first);
+            CAPTURE(owner.first, key);
+            CHECK(contains(*owner.second, key) == (owner.first == scoped.first));
+        }
 }
 
