@@ -269,6 +269,7 @@ private:
 
     std::function<void(const wxPoint&)> m_on_context_menu;
     bool        m_ctx_bound{false};   // bind the RIGHT_UP handler once, however often the cb is set
+    wxPoint     m_ctx_press{0, 0};    // right-press origin: a right-DRAG pans, it must not offer
 
     Bed3D       m_bed;
     Model       m_model;

@@ -2785,8 +2785,59 @@ static void dp_pick_trace(const char* fmt, ...)
     std::fflush(stderr);
 }
 
-// LeftDown on the solid cycles whole->face->edge. Returns true if the click hit the solid
-// (consumed); false otherwise so the caller can try committed-sketch loop picking.
+// Resolve a swept rubber band into a whole-body selection.
+//
+// Sample points are the display mesh's triangle vertices plus each triangle's centroid. That
+// mesh is already in world coordinates — the very points the ray pick tests — so no per-body
+// transform is needed here. A body counts as swept when any of its samples lands inside the
+// rectangle (crossing semantics: touching selects, which is the forgiving reading of a sweep),
+// and the body with the most samples inside wins because the selection callback downstream
+// carries exactly one body.
+//
+// ponytail: crossing over a triangle sample set. A rectangle small enough to sit entirely
+// inside one flat triangle selects nothing — drag a bigger one, or click. Real multi-body
+// selection (and the homogeneous-set rule that goes with it) is snaporca-9xw.
+void DesignSketchTool::pick_bodies_in_rectangle()
+{
+    if (m_solid_mesh == nullptr || m_solid_tri_body == nullptr || m_solid_bodies == nullptr)
+        return;
+    const indexed_triangle_set& its = m_solid_mesh->its;
+    std::vector<Vec3d> pts;
+    std::vector<int>   owner;
+    pts.reserve(its.indices.size() * 4);
+    owner.reserve(its.indices.size() * 4);
+    for (size_t i = 0; i < its.indices.size(); ++i) {
+        const int b = (i < m_solid_tri_body->size()) ? (*m_solid_tri_body)[i] : -1;
+        if (!body_pickable(b)) continue;          // hidden bodies aren't swept either
+        const auto& idx = its.indices[i];
+        Vec3d c = Vec3d::Zero();
+        for (int k = 0; k < 3; ++k) {
+            const Vec3d p = its.vertices[idx(k)].cast<double>();
+            pts.push_back(p); owner.push_back(b); c += p;
+        }
+        pts.push_back(c / 3.0); owner.push_back(b);
+    }
+
+    std::vector<int> hits(m_solid_bodies->size(), 0);
+    if (!pts.empty())
+        for (unsigned int i : m_rubber.contains(pts))
+            if (i < owner.size() && owner[i] >= 0 && owner[i] < int(hits.size()))
+                ++hits[owner[i]];
+
+    int best = -1, best_n = 0;
+    for (int b = 0; b < int(hits.size()); ++b)
+        if (hits[b] > best_n) { best_n = hits[b]; best = b; }
+
+    if (best < 0) clear_solid_selection();        // swept empty space -> drop the selection
+    else          select_body(best);
+    dp_pick_trace("rubber band -> body=%d (%d samples)", best, best_n);
+    if (on_solid_selection_changed)
+        on_solid_selection_changed(int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
+}
+
+// A click on the solid takes the smallest thing under the cursor (vertex/edge/face). Returns
+// true if the click hit the solid (consumed); false otherwise so the caller can try
+// committed-sketch loop picking. Whole bodies are taken by the rubber band, not by clicking.
 bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent& evt)
 {
     if (m_solid_bodies == nullptr || m_solid_mesh == nullptr) {
@@ -2822,7 +2873,8 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
 
     // ---- one click, one deterministic result ---------------------------------------------
     // NO CYCLE. A click selects the SMALLEST thing under the cursor: the edge if the pointer is
-    // within tolerance of one, otherwise the face. A DOUBLE-click takes the whole body.
+    // within tolerance of one, otherwise the face. The WHOLE body is taken by a left-drag
+    // rubber band (pick_bodies_in_rectangle) — a different gesture for a different scale.
     //
     // What this replaces: click 1 = whole body, click 2 = face, click 3 = nearest edge, click 4
     // = back to whole. That made "click a face" a two-click gesture and "click an edge" a
@@ -6737,6 +6789,9 @@ void DesignSketchTool::render(GLCanvas3D& canvas)
         return;
     }
     render_view_helpers();   // origin planes / world axes — drawn whenever their toggle is on
+    m_rubber.render(canvas); // left-drag rubber band (no-op unless one is being swept). Drawn
+                             // here, ahead of every early return below, so a band over an empty
+                             // plate is still visible.
     if (m_active && m_mode != Mode::Constrain && m_entities.empty() && m_points.empty()
         && m_display_sketches.empty()) {
         if (on_readout) on_readout(std::string());
@@ -7768,6 +7823,32 @@ bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
                 start_shell_drag(canvas, evt);
                 return true;
             }
+        }
+        // Left-drag rubber band -> whole body. Past the click budget the press becomes a sweep:
+        // the rectangle is anchored at the ORIGINAL press point (not at the frame where the
+        // threshold was crossed, which would lose the first few pixels) and the events are
+        // consumed from here on. Left-drag no longer orbits in this canvas — DesignCanvas puts
+        // orbit on middle-drag and pan on right-drag, the CAD convention — so nothing downstream
+        // is being starved of a gesture it used to own.
+        if (evt.Dragging() && evt.LeftIsDown() && m_pick_pending) {
+            if (!m_rubber.is_dragging()) {
+                if (std::max(std::abs(evt.GetX() - m_pick_press_x),
+                             std::abs(evt.GetY() - m_pick_press_y)) <= 8)
+                    return false;                    // still inside the click budget
+                m_rubber.start_dragging(Vec2d(m_pick_press_x, m_pick_press_y),
+                                        GLSelectionRectangle::Select);
+            }
+            m_rubber.dragging(Vec2d(evt.GetX(), evt.GetY()));
+            return true;
+        }
+        // Any event with the left button up ends a band — not just LeftUp. A release that lands
+        // outside the canvas never sends us one, and a band left running would then paint a
+        // rectangle that follows the cursor with no button held.
+        if (m_rubber.is_dragging() && !evt.LeftIsDown()) {
+            m_pick_pending = false;
+            if (evt.LeftUp()) pick_bodies_in_rectangle();   // a release elsewhere selects nothing
+            m_rubber.stop_dragging();
+            return evt.LeftUp();
         }
         // Click vs drag. Consuming the LeftDown here killed camera orbit/pan the moment a
         // solid was on screen: Orca starts a rotate drag on the press, so swallowing it meant

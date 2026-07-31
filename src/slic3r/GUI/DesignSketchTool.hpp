@@ -7,6 +7,7 @@
 #include "libslic3r/SketchInference.hpp"
 #include "libslic3r/SketchSolver.hpp"
 #include "GLModel.hpp"
+#include "GLSelectionRectangle.hpp"   // left-drag rubber band over the committed bodies
 #include <functional>
 #include <vector>
 #include <string>
@@ -906,7 +907,12 @@ private:
     int                     m_sel_edge{-1};
     std::vector<Vec3d>      m_sel_edge_pts;
     Vec3d                   m_sel_vertex_pt{Vec3d::Zero()};   // world point of a picked vertex
-    bool handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent& evt);  // cycle + notify
+    bool handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent& evt);  // pick + notify
+    // Left-drag rubber band: sweep a rectangle over the plate to take a whole body. Orbit
+    // moves to middle-drag in this canvas (DesignCanvas::set_cad_navigation) so the left
+    // button is free for it, which is the CAD convention (Onshape/SolidWorks).
+    GLSelectionRectangle m_rubber;
+    void pick_bodies_in_rectangle();       // resolve the swept rectangle -> whole-body selection
     void render_solid_highlight();
     void render_datum_planes();           // translucent rectangles for datum/reference planes
     void render_view_helpers();           // world origin planes + axis triad (P / A toggles)

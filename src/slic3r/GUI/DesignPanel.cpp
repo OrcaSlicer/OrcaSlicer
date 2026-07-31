@@ -3133,19 +3133,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // Say what got picked. Without this the ONLY feedback is the viewport highlight, so a
         // pick that registers but draws faintly is indistinguishable from one that never
         // happened — which is precisely how this failure was reported and why it resisted
-        // diagnosis. Cards that show their own labels still do.
-        if (m_status != nullptr) {
-            m_status->SetForegroundColour(wxNullColour);
-            if (level <= 0)
-                m_status->SetLabel(_L("Selection cleared"));
-            else if (level == 1)
-                m_status->SetLabel(wxString::Format(_L("Body %d selected"), body + 1));
-            else if (level == 2)
-                m_status->SetLabel(wxString::Format(_L("Body %d, face %d"), body + 1, face));
-            else
-                m_status->SetLabel(wxString::Format(_L("Body %d, edge %d selected"), body + 1, edge));
-            m_status->Refresh();
-        }
+        // diagnosis. Cards that show their own labels still do. The label itself is written
+        // ONCE, at the end of this handler — a second writer here only ever produced text that
+        // the later one overwrote before a frame was drawn, and reading it as the live string
+        // is how a vertex pick came to be "fixed" in a branch that never reaches the screen.
         // If the Fillet/Chamfer card is open, re-anchor (or drop) the radius arrow on the new pick
         // and rebuild the ghost — once an edge is picked the preview-only mode hides the base body.
         if (m_active == Tool::Dressup) { sync_dressup_target(); update_fillet_gizmo(); refresh_preview(); }

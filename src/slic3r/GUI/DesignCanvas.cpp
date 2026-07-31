@@ -12,6 +12,8 @@
 #include "MeshUtils.hpp"   // ClippingPlane (section view)
 #include "libslic3r/Config.hpp"
 #include <boost/algorithm/string/predicate.hpp>
+#include <algorithm>
+#include <cstdlib>
 
 #include <wx/glcanvas.h>
 #include <wx/sizer.h>
@@ -42,6 +44,12 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // Passing nullptr segfaults; this mirrors View3D/Preview/AssembleView.
     m_canvas->set_process(wxGetApp().plater()->get_background_process());
     m_canvas->set_type(GLCanvas3D::ECanvasType::CanvasView3D);
+
+    // CAD navigation, this canvas only: left-drag sweeps a selection rubber band, so orbit
+    // moves to middle-drag and pan to right-drag. Design is a different modality from
+    // Prepare/Preview and every CAD the user already knows maps the mouse this way; the other
+    // tabs are untouched.
+    m_canvas->set_cad_navigation(true);
 
     m_canvas->enable_picking(false);   // viewport face/edge picking is custom (TODO)
     m_canvas->enable_moving(false);
@@ -798,8 +806,18 @@ void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
     // Bound AFTER GLCanvas3D's own handlers, so this runs first and can consume the event.
     // It only consumes when it actually opens the offer; every other right-click still falls
     // through to the polyline-chain end and the move gizmo, which were there first.
+    // Right-drag pans. Without remembering where the press landed, every pan ended by popping
+    // the offer over wherever the camera stopped — the menu appearing as the reward for moving
+    // the view. The offer is the release of a STATIONARY right-click, at the same 8 px budget
+    // the left-click pick uses.
+    m_canvas_widget->Bind(wxEVT_RIGHT_DOWN, [this](wxMouseEvent& e) {
+        m_ctx_press = e.GetPosition();
+        e.Skip();     // the canvas still needs the press to seed the pan
+    });
     m_canvas_widget->Bind(wxEVT_RIGHT_UP, [this](wxMouseEvent& e) {
-        if (m_on_context_menu && !is_sketching() && !inline_busy()) {
+        const wxPoint d = e.GetPosition() - m_ctx_press;
+        if (m_on_context_menu && !is_sketching() && !inline_busy()
+            && std::max(std::abs(d.x), std::abs(d.y)) <= 8) {
             m_on_context_menu(m_canvas_widget->ClientToScreen(e.GetPosition()));
             return;   // consumed
         }
