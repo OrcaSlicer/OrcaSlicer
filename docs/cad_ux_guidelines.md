@@ -230,51 +230,78 @@ selection was wrong can no longer be reached.
 
 The flow, in full:
 
-> **click a geometric object → an offer whose tools are always in the same
-> place, each with its icon and its shortcut → click.**
+> **left-click the geometry to select it → right-click to open the offer → a
+> vertical list, always in the same order, each row an icon, a name and its
+> keyboard shortcut → click.**
 
-- **It appears at the selection**, in the viewport, as a compact radial of icons
-  — not a list in a panel, not a dropdown, not a menu bar. Radial because a
-  *direction from where you clicked* is an absolute spatial address that
-  survives the offer appearing anywhere on screen, while "third item down"
-  does not.
-- **Position is fixed and it is the whole point.** A tool occupies one permanent
-  address in the offer, and that address is the same in every selection where
-  the tool appears. Fillet is down-right on an edge, on a face, on a body, on
-  the day the product ships and two years later. The hand learns the place; the
-  eye stops being needed.
+- **Selecting and acting are separate gestures.** Left-click only ever selects,
+  so pointing at things is quiet — nothing pops up while you look around.
+  Right-click on the selection opens the offer, at the pointer, over the
+  geometry it acts on.
+- **Order is fixed and it is the whole point.** A verb occupies one permanent
+  row, and that row is the same in every selection where the verb appears.
+  Dress-up is the fourth row on an edge, on a face, on a body, on the day the
+  product ships and two years later. The hand learns the position; the eye stops
+  being needed.
+- **What does not apply is DISABLED IN PLACE, never removed.** This is the
+  single strongest thing the list does, and it is why it beat the radial we
+  drew first: a greyed row still carries its name *and the reason it is grey* —
+  "Create a sketch, or pick a solid face, first", "Create a solid body to
+  pattern first" — in the words the product already ships. On a first-run
+  document the offer is therefore not a mostly-empty control but a map of what
+  the product does and what you have to do first.
 - **It is an accelerator, not a toll gate.** The toolbar and the single-letter
   shortcuts keep working exactly as they do now, and pressing a tool directly
-  consumes the same selection (L3). An expert never has to look at the offer;
-  a beginner never has to know the toolbar exists. Both routes land in the same
+  consumes the same selection (L3). An expert never has to open the offer; a
+  beginner never has to know the toolbar exists. Both routes land in the same
   place — this is the only way one interface serves §2's three audiences.
-- **Every slot shows its keyboard shortcut**, next to the icon and the
+- **Every row shows its keyboard shortcut**, right-aligned so the keys stack
+  into a column the eye learns without trying, beside the icon and the
   drawing-office word (L10). This is deliberate: the offer is the path by which
-  a user stops needing the offer. You reach for fillet in its place, the place
-  says "F", and one day your hand types F before the ring has finished drawing.
-  A menu that teaches its own shortcut is how a beginner becomes the power user
-  who never opens it — the same interface, at two speeds, with no "advanced
-  mode" between them (§7).
-- **It is a teaching surface** in the other direction too: an empty slot says
-  *this cannot be done to this thing*, which is an answer, where a tool that
-  silently does nothing is not.
-- **It never blocks the view of what it acts on** — the centre is a hole, the
-  picked geometry stays visible through it — and it dismisses the moment the
-  selection changes.
-- **Click to open, click to choose.** A flick gesture may be added later as an
-  accelerator for people who want it, but nothing is ever *only* reachable by
-  drag or by timing (L9, §6.2).
+  a user stops needing the offer. You reach for fillet in its row, the row says
+  "F", and one day your hand types F before the menu has finished opening. A
+  menu that teaches its own shortcut is how a beginner becomes the power user
+  who never opens it — the same interface at two speeds, with no "advanced mode"
+  between them (§7).
+- **A family with more than one applicable verb opens a submenu** to the side,
+  in its own fixed order. A family with exactly one shows that verb directly, so
+  the common path is never one click longer than it needs to be.
+- **It never blocks the view of what it acts on**: it opens beside the pick,
+  never over it, with a thin leader back to the point it belongs to, and it
+  dismisses the moment the selection changes.
+- **The header names what is selected** ("Top face · Body 1"), because a user
+  who mis-picked should find that out before choosing a verb, not after.
 
-#### The slot-constancy invariant
+#### Opening the offer on every machine
+
+Right-click is the primary gesture and every platform must have a first-class
+equivalent — this is a reach requirement (L11), not a nicety:
+
+| Input | Gesture |
+|---|---|
+| Two-button mouse | right-click |
+| Trackpad | two-finger tap (the OS-standard secondary click) |
+| macOS, one-button mouse | **long-press**, and Ctrl-click, which is the platform convention |
+| Keyboard | the Menu key, or Shift+F10, on the current selection |
+| Touch / pen | long-press |
+
+The long-press is an **additional** route, never the only one — §6.2 forbids
+press-and-hold as a sole path to a function, and it stays forbidden. Every
+opening gesture is reachable at least two ways on every platform, and the
+keyboard route exists everywhere. A long-press must show that it is charging
+(a growing ring under the finger) so a user who holds too briefly learns why
+nothing happened rather than concluding the product is broken (L5).
+
+#### The row-constancy invariant
 
 This is the rule that has to survive every future feature, so it is written as
 an invariant rather than as advice:
 
-> **Every tool has exactly one address in the offer. That address is identical
-> for every selection type in which the tool appears. Slots for tools that do
-> not apply to the current selection are left EMPTY — the offer is never
-> compacted, re-sorted or re-ordered. Adding a tool never changes the address of
-> an existing one.**
+> **Every verb has exactly one row index in the offer. That index is identical
+> for every selection type in which the verb appears. Verbs that do not apply to
+> the current selection are DISABLED IN PLACE, with their reason — the offer is
+> never compacted, re-sorted or re-ordered. Adding a verb never changes the
+> index of an existing one.**
 
 Two consequences the group must accept together with the invariant:
 
@@ -283,36 +310,61 @@ Two consequences the group must accept together with the invariant:
   destroys the only thing that made it fast, and it does so precisely for the
   user who has just started to learn it. (Office 2000's adaptive menus are the
   textbook case; they were removed.)
-- **Empty slots are the price, and they are worth it.** A compacted offer is
-  denser and unlearnable. A sparse one wastes a few hundred square pixels and
-  is memorised in a week.
+- **Greyed rows are the price, and they are cheap.** A compacted menu is shorter
+  and unlearnable. A constant one is a few rows longer, teaches while it waits,
+  and is memorised in a week.
 
-#### Proposed slot map — for the group to ratify
+#### The map — for the group to ratify
 
 The invariant is not negotiable. The specific assignment below is a first
 proposal, and the group should argue about it *once*, then never again — every
 later change re-addresses somebody's muscle memory.
 
-Eight compass positions, grouped so the map itself has a logic (material grows,
-then is refined, then is repeated, then is moved):
+Eight families, ordered so the sequence itself has a logic: material is created,
+grows, is taken away, is refined, is repeated, is moved, is referred to, is
+edited.
 
-| Position | Family | On a face | On an edge | On a body | On text/art |
+| Row | Family | On a face | On an edge | On a body | On text/art |
 |---|---|---|---|---|---|
-| **N** | Create | Sketch on it | — | — | Edit text |
-| **NE** | Add material | Extrude, boss | — | Thicken | Extrude |
-| **E** | Remove material | Hole, pocket | — | Shell, cut | — |
-| **SE** | Dress-up | — | Fillet, chamfer | Draft | — |
-| **S** | Repeat | Pattern | Pattern along it | Mirror, pattern | Pattern |
-| **SW** | Transform | Align to | — | Move, rotate, scale | Move, size |
-| **W** | Reference | Datum plane, measure | Datum axis, measure | Measure | — |
-| **NW** | Modify | Delete face, replace | — | Edit feature, delete | Replace art |
+| **1** | Create | Sketch on it | — | — | Edit text |
+| **2** | Add material | Extrude, thicken | — | Combine, thicken | Extrude |
+| **3** | Remove | Hole, shell | Thread | Shell, cut, split | — |
+| **4** | Dress-up | Draft | Fillet, chamfer | Fillet, chamfer | — |
+| **5** | Repeat | Pattern | Pattern along it | Pattern, mirror | Pattern |
+| **6** | Transform | Align to, mate | — | Move, mate | Move, size |
+| **7** | Reference | Plane, axis, measure | Axis, measure | Project, measure, mass | — |
+| **8** | Modify | Delete face, edit | — | Edit, colour, delete | Replace art |
 
-Where a family holds more than one verb for a selection, the slot opens a
-secondary ring **with its own fixed addresses** — the same rule, one level down.
-A dash means the slot is drawn empty for that selection.
+A dash means the row is drawn greyed for that selection, with its reason.
 
-The centre of the ring names what is selected ("Top face · Body 1"), because a
-user who mis-picked should find that out before choosing a verb, not after.
+The authoritative version of this table is **`docs/ux/tool_atlas.json`**, which
+carries all 52 verbs with their preconditions and their refusal strings, taken
+from the code rather than from memory. Every state it produces — 20 selection
+kinds × 2 document states, 40 primary menus and 73 submenus — is rendered by
+`docs/ux/mockups/gen_offer_mockups.py` into `docs/ux/offer_atlas.html`. Read the
+atlas before proposing a change to the map; the generator refuses to render an
+address collision, so the map cannot silently rot.
+
+#### Rejected: the radial ring
+
+The first design put the eight families at eight compass points around the pick.
+It is recorded here because it is a good idea that loses on evidence, and
+someone will propose it again:
+
+- an inapplicable slot could only be drawn empty, and **an empty slot says
+  nothing** — the reason text above has nowhere to live;
+- the measured fill was **3.45 of 8 slots**, so most of the control was blank
+  most of the time, and on a fresh document only two of eight were live;
+- sketch-mode *Create* needs **nine** addresses; eight forced two primitives
+  behind a "More" slot, and a ninth position costs the 45° spacing that made the
+  ring worth having;
+- long translated names do not fit around a circle, and screen readers and arrow
+  keys need bespoke handling a list gets for free;
+- a 380 px disc over the model costs more on a 1366×768 screen than a 324 px
+  list beside it (§6.1).
+
+What it kept — equidistant targets and a future flick gesture — buys little in a
+product whose experts live on the keyboard by design.
 
 ### 4.2 Confirm and cancel are objects, not gestures
 
@@ -425,10 +477,11 @@ cost of entry, it has broken the premise, however elegant it is.
 
 - **Keyboard**: every operation reachable and completable without a pointer.
   Single-letter shortcuts for sketch tools, shown in the offer itself (§4.1) as
-  well as in the tooltip. The offer's eight positions are also addressable by
-  arrow/numpad direction, so the spatial map works for a keyboard user too. A
-  visible focus state on every focusable element. No shortcut that only works
-  while the pointer happens to be over the canvas.
+  well as in the tooltip. The offer opens from the keyboard (Menu key or
+  Shift+F10) and walks by arrow key and by type-ahead, so the row map works for
+  someone who never touches the pointer. A visible focus state on every
+  focusable element. No shortcut that only works while the pointer happens to be
+  over the canvas.
 - **Colour**: never the sole carrier of meaning. Selection is colour *and*
   outline; an error is colour *and* an icon *and* text. Verify in greyscale.
 - **Contrast**: labels over the 3D viewport get a scrim or halo so 4.5:1 holds
@@ -438,7 +491,10 @@ cost of entry, it has broken the premise, however elegant it is.
   with the OS factor; the grab tolerance is larger than the drawn glyph.
 - **Timing**: no double-click-to-mean-something-else, no press-and-hold as the
   only route to a function, no cycle that depends on repeated clicks
-  (see L5).
+  (see L5). The long-press that opens the offer on a one-button Mac and on touch
+  (§4.1) is explicitly an *additional* route — Ctrl-click, two-finger tap and
+  the keyboard all reach the same place — and it shows its own progress while
+  charging, so it never fails silently.
 - **Motion**: animation is functional (showing where a thing went), never
   decorative, and it respects the reduced-motion preference.
 - **Text**: no fixed-width assumptions; the UI holds together in German and in
@@ -512,10 +568,13 @@ A "no" that is not accompanied by an argument is a request for changes.
 11. Reach (L11): screenshot at 1366×768 with the panel open — is the model still
     on screen? Does it run on integrated graphics? Does it need the network, an
     account, or a file the user cannot keep?
-12. If the change adds or moves a tool in the offer: which slot, and is it that
-    tool's slot in **every** selection where it appears? Did any existing tool's
-    address change? (If yes, this is not a UI change, it is a breaking change to
-    every user's muscle memory, and it needs the group — see §4.1.)
+12. If the change adds or moves a verb in the offer: which row, and is it that
+    verb's row in **every** selection where it appears? Did any existing verb's
+    index change? (If yes, this is not a UI change, it is a breaking change to
+    every user's muscle memory, and it needs the group — see §4.1.) Was
+    `docs/ux/tool_atlas.json` updated and the atlas regenerated?
+13. If the change adds a pointer gesture: what is its keyboard equivalent, and
+    what does a one-button Mac, a trackpad and a touch screen do (§4.1)?
 
 ## 10. Where we stand today — honest inventory
 
@@ -547,9 +606,10 @@ Violating them, with removal scheduled:
 - **Selecting geometry offers nothing.** There is no contextual offer (§4.1):
   the user faces the full toolbar whatever they have picked, and finds out that
   a tool did not apply by it doing nothing. This is the largest single item of
-  new work the charter asks for, and it has a prerequisite the group owes
-  itself first — ratifying the slot map, since every tool built before it lands
-  will have to be addressed afterwards anyway.
+  new work the charter asks for. The map and every state of it are already
+  drawn (`docs/ux/offer_atlas.html`); what the group owes itself before the code
+  is ratifying the row order, since every verb built before that lands has to be
+  addressed afterwards anyway.
 - **Committing is an invisible click in empty space** rather than the
   confirm/cancel puck of §4.2 — the exact gesture that rule withdraws.
 
