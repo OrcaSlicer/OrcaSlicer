@@ -1458,7 +1458,8 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
 
     std::vector<PluginDescriptor> cloud_list{};
     std::vector<std::string> not_found{}, unauthorized{};
-    if (!m_cloud_service.fetch_manifests_into_descriptors(cloud_list, not_found, unauthorized)) {
+    const bool cloud_fetch_succeeded = m_cloud_service.fetch_manifests_into_descriptors(cloud_list, not_found, unauthorized);
+    if (!cloud_fetch_succeeded) {
         if (wxTheApp != nullptr) {
             GUI::wxGetApp().CallAfter([] {
                 if (GUI::wxGetApp().is_closing())
@@ -1473,9 +1474,10 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
         }
     }
 
-    update_cloud_metadata(cloud_list);
+    if (cloud_fetch_succeeded)
+        update_cloud_metadata(cloud_list);
 
-    {
+    if (cloud_fetch_succeeded) {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         // Clear the previous cloud verdicts before re-applying the fresh ones.
@@ -1484,19 +1486,28 @@ void PluginManager::fetch_plugins_from_cloud(std::vector<std::string>* out_not_f
             if (!entry.is_cloud_plugin())
                 continue;
             entry.set_unauthorized(false);
+            if (entry.cloud.has_value())
+                entry.cloud->orphaned = false;
             if (entry.normalized_error() == CLOUD_PLUGIN_NOT_FOUND_ERROR)
                 entry.clear_error();
         }
 
-        for (const std::string& uuid : not_found) {
-            for (Plugin& plugin : m_plugins) {
-                PluginDescriptor& entry = plugin.descriptor;
-                if (!entry.is_cloud_plugin() || entry.cloud_uuid() != uuid)
-                    continue;
-                if (!entry.has_local_package())
-                    entry.set_error(CLOUD_PLUGIN_NOT_FOUND_ERROR);
-                break;
-            }
+        // A successful subscriptions response may report missing UUIDs explicitly, or it may
+        // simply omit an unsubscribed plugin from `data`. Both cases leave a locally retained
+        // cloud package orphaned. Owned plugins are returned by the separate mine endpoint and
+        // must not be orphaned merely because they are not subscribed.
+        for (Plugin& plugin : m_plugins) {
+            PluginDescriptor& entry = plugin.descriptor;
+            if (!entry.is_cloud_plugin() || entry.cloud->is_mine)
+                continue;
+
+            const bool explicitly_not_found = std::find(not_found.begin(), not_found.end(), entry.cloud_uuid()) != not_found.end();
+            const bool returned_by_cloud = std::any_of(cloud_list.begin(), cloud_list.end(), [&entry](const PluginDescriptor& cloud_entry) {
+                return cloud_entry.cloud_uuid() == entry.cloud_uuid();
+            });
+            entry.cloud->orphaned = explicitly_not_found || !returned_by_cloud;
+            if (entry.cloud->orphaned)
+                entry.cloud->update_available = false;
         }
 
         for (const std::string& uuid : unauthorized) {
