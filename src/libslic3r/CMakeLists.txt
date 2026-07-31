@@ -248,6 +248,8 @@ set(lisbslic3r_sources
     GCode/Thumbnails.hpp
     GCode/ToolOrdering.cpp
     GCode/ToolOrdering.hpp
+    GCode/OrderingStrategies.cpp
+    GCode/OrderingStrategies.hpp
     GCode/WipeTower2.cpp
     GCode/WipeTower2.hpp
     GCode/WipeTower.cpp

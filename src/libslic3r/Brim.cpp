@@ -32,15 +32,13 @@ static void append_and_translate(ExPolygons &dst, const ExPolygons &src, const P
     for (; dst_idx < dst.size(); ++dst_idx)
         dst[dst_idx].translate(instance_shift);
 }
-// BBS: generate brim area by objs
-static void append_and_translate(ExPolygons& dst, const ExPolygons& src,
-    const PrintInstance& instance, size_t instance_idx, std::map<ObjectInstanceID, ExPolygons>& brimAreaMap) {
+// Orca: Translate the brim area into print coordinates and store it per instance.
+static void append_and_translate(const ExPolygons& src, const PrintInstance& instance,
+    size_t instance_idx, std::map<ObjectInstanceID, ExPolygons>& brimAreaMap) {
     ExPolygons srcShifted = src;
     Point instance_shift = instance.shift_without_plate_offset();
-    for (size_t src_idx = 0; src_idx < srcShifted.size(); ++src_idx)
-        srcShifted[src_idx].translate(instance_shift);
-    srcShifted = diff_ex(srcShifted, dst);
-    //expolygons_append(dst, temp2);
+    for (ExPolygon& expoly : srcShifted)
+        expoly.translate(instance_shift);
     expolygons_append(brimAreaMap[{ instance.print_object->id(), instance_idx }], std::move(srcShifted));
 }
 
@@ -572,7 +570,7 @@ static ExPolygons outer_inner_brim_area(const Print& print,
                 for (size_t instance_idx = 0; instance_idx < object->instances().size(); ++instance_idx) {
                     const PrintInstance& instance = object->instances()[instance_idx];
                     if (!brim_area_object.empty())
-                        append_and_translate(brim_area, brim_area_object, instance, instance_idx, brimAreaMap);
+                        append_and_translate(brim_area_object, instance, instance_idx, brimAreaMap);
                     append_and_translate(no_brim_area, no_brim_area_object, instance);
                     append_and_translate(holes, holes_object, instance);
                     append_and_translate(objectIslands, objectIsland, instance);
@@ -874,6 +872,14 @@ void make_brim(const Print& print, PrintTryCancel try_cancel, Polygons& islands_
     Flow                 flow = print.brim_flow();
     ExPolygons           islands_area_ex = outer_inner_brim_area(print,
         float(flow.scaled_spacing()), brimAreaMap, objPrintVec, printExtruders);
+
+    if (!print.config().combine_brims) {
+        ExPolygons claimed_area;
+        for (auto& [_, areas] : brimAreaMap) {
+            areas = diff_ex(areas, claimed_area);
+            expolygons_append(claimed_area, areas);
+        }
+    }
 
     // BBS: Find boundingbox of the first layer
     for (const ObjectID printObjID : print.print_object_ids()) {

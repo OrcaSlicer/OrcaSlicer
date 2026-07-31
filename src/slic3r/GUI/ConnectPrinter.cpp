@@ -80,9 +80,8 @@ ConnectPrinterDialog::ConnectPrinterDialog(wxWindow *parent, wxWindowID id, cons
 
     main_sizer->Add(sizer_top);
 
-    this->SetSizer(main_sizer);
+    this->SetSizerAndFit(main_sizer);
     this->Layout();
-    this->Fit();
     CentreOnParent();
 
     m_textCtrl_code->Bind(wxEVT_TEXT, &ConnectPrinterDialog::on_input_enter, this);

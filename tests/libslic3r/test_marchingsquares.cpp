@@ -191,22 +191,21 @@ static void test_expolys(Rst&& rst, const ExPolygons& ref, Vec2i32 window, const
     for (const ExPolygon& expoly : ref)
         rst.draw(expoly);
 
-    std::fstream out(name + ".png", std::ios::out);
-    out << rst.encode(sla::PNGRasterEncoder{});
-    out.close();
+    write_debug_stream("marchingsquares/" + name + ".png",
+                       [&] { return rst.encode(sla::PNGRasterEncoder{}); });
 
     const ExPolygons bmp = rstGetPolys(rst);
     const ExPolygons ext = sla::raster_to_polygons(rst, window);
 
-    SVG svg(name + ".svg", raster_bb);
-    svg.draw(bmp, "green");
-    if (pixel_size.x() >= scale_(0.5))
-        svg.draw_grid(raster_bb, "grey", scale_(0.05), pixel_size.x());
-    if (window_size.x() >= scale_(1.0))
-        svg.draw_grid(raster_bb, "grey", scale_(0.10), window_size.x());
-    svg.draw_outline(ref, "red", "red", scale_(0.3));
-    svg.draw_outline(ext, "blue", "blue");
-    svg.Close();
+    write_debug_svg("marchingsquares/" + name + ".svg", raster_bb, [&](SVG &svg) {
+        svg.draw(bmp, "green");
+        if (pixel_size.x() >= scale_(0.5))
+            svg.draw_grid(raster_bb, "grey", scale_(0.05), pixel_size.x());
+        if (window_size.x() >= scale_(1.0))
+            svg.draw_grid(raster_bb, "grey", scale_(0.10), window_size.x());
+        svg.draw_outline(ref, "red", "red", scale_(0.3));
+        svg.draw_outline(ext, "blue", "blue");
+    });
 
     // Note all these areas are unscaled back to mm^2.
     double raster_area    = unscaled(unscaled(area(bmp)));
@@ -432,9 +431,7 @@ static void recreate_object_from_rasters(const std::string& objname, float lh)
     double          disp_w = 120.96;
     double          disp_h = 68.04;
 
-#ifndef NDEBUG
     size_t cntr = 0;
-#endif
     for (ExPolygons& layer : layers) {
         auto rst = create_raster(res, disp_w, disp_h);
 
@@ -442,11 +439,8 @@ static void recreate_object_from_rasters(const std::string& objname, float lh)
             rst.draw(island);
         }
 
-#ifndef NDEBUG
-        std::fstream out(objname + std::to_string(cntr) + ".png", std::ios::out);
-        out << rst.encode(sla::PNGRasterEncoder{});
-        out.close();
-#endif
+        write_debug_stream("marchingsquares/" + objname + std::to_string(cntr) + ".png",
+                           [&] { return rst.encode(sla::PNGRasterEncoder{}); });
 
         ExPolygons layer_ = sla::raster_to_polygons(rst);
         //        float delta = scaled(std::min(rst.pixel_dimensions().h_mm,
@@ -454,21 +448,19 @@ static void recreate_object_from_rasters(const std::string& objname, float lh)
 
         //        layer_ = expolygons_simplify(layer_, delta);
 
-#ifndef NDEBUG
-        SVG svg(objname + std::to_string(cntr) + ".svg", rstBBox(rst));
-        svg.draw(layer_);
-        svg.draw(layer, "green");
-        svg.Close();
-#endif
+        write_debug_svg("marchingsquares/" + objname + std::to_string(cntr) + ".svg", rstBBox(rst),
+                        [&](SVG &svg) {
+            svg.draw(layer_);
+            svg.draw(layer, "green");
+        });
 
         double layera = 0., layera_ = 0.;
         for (auto& p : layer)
             layera += p.area();
         for (auto& p : layer_)
             layera_ += p.area();
-#ifndef NDEBUG
-        std::cout << cntr++ << std::endl;
-#endif
+        ++cntr;
+
         double diff = std::abs(layera_ - layera);
         REQUIRE((diff <= 0.1 * layera || diff < scaled<double>(1.) * scaled<double>(1.)));
 
@@ -477,7 +469,7 @@ static void recreate_object_from_rasters(const std::string& objname, float lh)
 
     indexed_triangle_set out = slices_to_mesh(layers, bb.min.z(), double(lh), double(lh));
 
-    its_write_obj(out, "out_from_rasters.obj");
+    write_debug_obj("marchingsquares/out_from_rasters.obj", out);
 }
 
 TEST_CASE("Recreate object from rasters", "[SL1Import]") { recreate_object_from_rasters("frog_legs.obj", 0.05f); }
