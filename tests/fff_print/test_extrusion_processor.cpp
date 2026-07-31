@@ -20,6 +20,9 @@ constexpr double caged_layer_height     = 0.2;  // mm
 constexpr double caged_wall_width       = 0.42; // mm, outer wall line width
 constexpr double caged_outer_wall_speed = 200.; // mm/s
 constexpr double caged_slow_speed       = 100.; // mm/s, between every configured overhang speed (<= 50) and the wall speed
+// A move that was not slowed at all runs at the full outer wall speed. Comparing against 90% of it
+// keeps the assertion about "was not slowed" rather than about an exact feed rate.
+constexpr double caged_unslowed_speed = 0.9 * caged_outer_wall_speed; // mm/s
 
 // A 40 x 20 x 20 mm box with a 45 degree overhang cut into the y = 0 side. The sloped face spans
 // x = 5.086 .. 34.914 only, so the full-height walls of the box cage both ends of every overhang
@@ -49,12 +52,26 @@ TriangleMesh caged_overhang_mesh()
 // Mesh geometry the wall filters below are derived from.
 constexpr double caged_box_depth      = 20.;       // mm, the box spans y = 0 .. 20
 constexpr double caged_slope_face_sum = 15.878796; // mm, y + z of the sloped face, from its corners
+// The sloped face spans this x range; outside it the box walls run full height.
+constexpr double caged_slope_x_min = 5.0859995;
+constexpr double caged_slope_x_max = 34.914257;
+constexpr double caged_slope_span  = caged_slope_x_max - caged_slope_x_min; // ~29.8 mm
+// The z range the sloped face occupies, from the same fixture vertices.
+constexpr double caged_slope_z_min = 5.711731;
+constexpr double caged_slope_z_max = 15.878796;
+// The lowest slope layer still sits on the solid body below the notch, so it is fully supported and
+// runs at the outer wall speed by design. The caged span proper begins one layer above it.
+constexpr double caged_span_z_min = caged_slope_z_min + caged_layer_height;
 
 // A layer printed at z is sliced at z - layer_height / 2, and the outer wall centreline sits half a
 // line width inside the contour, so the wall on the slope satisfies y + z = 16.189.
 constexpr double caged_slope_wall_sum = caged_slope_face_sum + 0.5 * caged_layer_height + 0.5 * caged_wall_width;
 // Same inset on the fully supported y = 20 face, vertical over the whole height.
 constexpr double caged_back_wall_y = caged_box_depth - 0.5 * caged_wall_width;
+// Arachne varies the wall width along a face, and the centreline inset is half that width, so a
+// wall sits within about half a line width of where the nominal inset alone would put it. The
+// faces being selected are millimetres apart, so this stays far from ambiguous.
+constexpr double caged_wall_tolerance = 0.5 * caged_wall_width;
 
 // Feed rates in mm/min of the long outer wall extrusions `keep_line` selects.
 template<typename KeepLine> std::vector<double> outer_wall_feed_rates(const std::string& gcode, KeepLine keep_line)
@@ -75,12 +92,22 @@ template<typename KeepLine> std::vector<double> outer_wall_feed_rates(const std:
     return feed_rates;
 }
 
-// The caged 45 degree overhang: walls that run along x at a constant y, on the sloped face.
+// The caged 45 degree overhang: outer walls crossing the sloped face for most of its width, on the
+// layers where the face genuinely overhangs.
+// Both ends are tested against the slope plane rather than requiring a constant Y. Arachne's
+// variable-width walls drift slightly in Y along the same slope (Y6.186 -> Y6.189 on one move), so
+// a constant-Y filter matches almost nothing under Arachne and silently reduces its coverage.
+// The length test excludes the cage walls: they are only as wide as the box is either side of the
+// slope, but being vertical their y + z sweeps through the slope plane as z rises, so a couple of
+// their fully supported moves would otherwise be counted as part of the span.
 std::vector<double> caged_slope_feed_rates(const std::string& gcode)
 {
     return outer_wall_feed_rates(gcode, [](const GCodeReader& self, const GCodeReader::GCodeLine& line) {
-        return std::abs(line.new_Y(self) - self.y()) < 0.001 &&
-               std::abs(line.new_Y(self) + self.z() - caged_slope_wall_sum) < 0.01;
+        const double z = line.new_Z(self);
+        return z > caged_span_z_min && z < caged_slope_z_max &&
+               line.dist_XY(self) > 0.5 * caged_slope_span &&
+               std::abs(self.y() + z - caged_slope_wall_sum) < caged_wall_tolerance &&
+               std::abs(line.new_Y(self) + z - caged_slope_wall_sum) < caged_wall_tolerance;
     });
 }
 
@@ -88,9 +115,9 @@ std::vector<double> caged_slope_feed_rates(const std::string& gcode)
 std::vector<double> back_wall_feed_rates(const std::string& gcode)
 {
     return outer_wall_feed_rates(gcode, [](const GCodeReader& self, const GCodeReader::GCodeLine& line) {
-        return self.z() > 1.5 * caged_layer_height &&
-               std::abs(line.new_Y(self) - self.y()) < 0.001 &&
-               std::abs(line.new_Y(self) - caged_back_wall_y) < 0.1;
+        return line.new_Z(self) > 1.5 * caged_layer_height &&
+               std::abs(self.y() - caged_back_wall_y) < caged_wall_tolerance &&
+               std::abs(line.new_Y(self) - caged_back_wall_y) < caged_wall_tolerance;
     });
 }
 
@@ -135,30 +162,57 @@ std::string caged_overhang_gcode(const char* wall_generator)
     return gcode(print);
 }
 
+// Reports the matched move count alongside the extremes, so a filter that selected nothing is
+// distinguishable from a span that simply was not slowed.
+void info_feed_rates(const char* span, const std::vector<double>& feed_rates)
+{
+    UNSCOPED_INFO("matched " << feed_rates.size() << " " << span << " moves");
+    if (!feed_rates.empty()) {
+        const auto extremes = std::minmax_element(feed_rates.begin(), feed_rates.end());
+        UNSCOPED_INFO("slowest " << *extremes.first / MM_PER_MIN << " mm/s, fastest " << *extremes.second / MM_PER_MIN << " mm/s");
+    }
+}
+
 } // namespace
 
+// Classic is what reproduces the caged-overhang bug: it emits the span as one long move whose two
+// endpoints both read as supported, so endpoint-only sampling never slows it. Arachne is covered as
+// a non-regression guard only. It places the perimeter ends slightly further out, so its endpoints
+// already read as overhanging and ordinary segmentation handles the span - it was never observed to
+// reproduce the bug, with or without the midpoint pass.
 TEST_CASE("Caged external overhangs are slowed along their span", "[ExtrusionProcessor][Regression]")
 {
     const char* wall_generator = GENERATE("classic", "arachne");
     INFO("wall generator: " << wall_generator);
 
     const std::vector<double> feed_rates = caged_slope_feed_rates(caged_overhang_gcode(wall_generator));
+    info_feed_rates("caged slope", feed_rates);
 
     REQUIRE_FALSE(feed_rates.empty());
-    REQUIRE(std::any_of(feed_rates.begin(), feed_rates.end(), [](double feed_rate) {
-        return feed_rate < caged_slow_speed * MM_PER_MIN;
-    }));
+
+    // The bug left the whole span at the full outer wall speed, so the binding assertion is that
+    // nothing on it ran unslowed - not merely that something somewhere got slower.
+    const double fastest = *std::max_element(feed_rates.begin(), feed_rates.end());
+    REQUIRE(fastest < caged_unslowed_speed * MM_PER_MIN);
+
+    // And the span has to reach a genuine overhang speed rather than being nudged just under it.
+    const double slowest = *std::min_element(feed_rates.begin(), feed_rates.end());
+    REQUIRE(slowest < caged_slow_speed * MM_PER_MIN);
 }
 
+// The other side of the fix: the midpoint probe fires on every long external perimeter, so a
+// regression that over-slows would leave the test above green. A fully supported wall must keep the
+// speed it was configured with.
 TEST_CASE("Supported vertical walls keep their normal speed", "[ExtrusionProcessor][Regression]")
 {
     const char* wall_generator = GENERATE("classic", "arachne");
     INFO("wall generator: " << wall_generator);
 
     const std::vector<double> feed_rates = back_wall_feed_rates(caged_overhang_gcode(wall_generator));
+    info_feed_rates("back wall", feed_rates);
 
     REQUIRE_FALSE(feed_rates.empty());
-    REQUIRE(std::none_of(feed_rates.begin(), feed_rates.end(), [](double feed_rate) {
-        return feed_rate < caged_slow_speed * MM_PER_MIN;
-    }));
+
+    const double slowest = *std::min_element(feed_rates.begin(), feed_rates.end());
+    REQUIRE(slowest >= caged_slow_speed * MM_PER_MIN);
 }
