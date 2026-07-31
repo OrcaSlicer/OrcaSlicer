@@ -10,6 +10,7 @@
 #include "libslic3r/BoundingBox.hpp"
 #include "libslic3r/PrintConfig.hpp"
 #include "libslic3r/Point.hpp"
+#include "libslic3r/Polygon.hpp"
 
 namespace Slic3r {
 
@@ -318,5 +319,12 @@ Transform3d imex_head_transform(int primary, int target, ImexRole role,
 Vec2d compute_imex_slice_offset(bool firmware_managed,
                                 const std::string& parallel_mode,
                                 const std::optional<BoundingBoxf>& primary_zone_box);
+
+// True if `hull` (scaled Clipper coords) overlaps any of `zones` (unscaled mm) —
+// the one definition of "overlap" shared by the object and prime-tower placement
+// checks. Area-based: Clipper yields no result for shapes sharing only an edge, so
+// a hull flush against a zone boundary is NOT reported, it has to cross. That
+// matches the long-standing object behaviour. An empty hull never violates.
+bool imex_hull_violates_zones(const std::vector<BoundingBoxf3>& zones, const Polygon& hull);
 
 } // namespace Slic3r

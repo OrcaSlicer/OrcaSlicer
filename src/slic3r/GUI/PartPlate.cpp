@@ -1346,30 +1346,109 @@ void PartPlate::update_imex_ghost_transforms(
     }
 }
 
-bool PartPlate::has_imex_placement_violations()
+// True if `hull` (scaled, plate-list coordinates) overlaps a secondary zone or a
+// carriage danger strip. Shared by the object and prime-tower checks so both use one
+// definition of "overlap" — see imex_hull_violates_zones() for those semantics.
+bool PartPlate::imex_hull_violates(const Polygon& hull) const
+{
+    return imex_hull_violates_zones(m_imex_secondary_zone_boxes, hull)
+        || imex_hull_violates_zones(m_imex_collision_zones, hull);
+}
+
+// The prime tower is not a ModelObject, so it is invisible to the instance loop
+// below. Reuse the footprint the scene already draws — GLCanvas3D sizes the tower
+// preview from estimate_wipe_tower_size(), and estimate_wipe_tower_polygon() wraps
+// that same estimate with the brim, so validating it matches what the user sees and
+// drags. Returns an empty polygon when the plate has no tower.
+Polygon PartPlate::imex_wipe_tower_hull() const
+{
+    // m_model is dereferenced by estimate_wipe_tower_size (it walks m_model->objects
+    // for the tower height), so guard it here — the instance loop below only reaches
+    // it behind valid_instance(), but this tail call runs even on an empty plate.
+    if (!m_plater || !m_print || !m_model)
+        return Polygon();
+    PresetBundle* preset_bundle = wxGetApp().preset_bundle;
+    if (!preset_bundle)
+        return Polygon();
+
+    const DynamicPrintConfig& print_cfg = preset_bundle->prints.get_edited_preset().config;
+    const ConfigOptionBool*   enable_opt = print_cfg.option<ConfigOptionBool>("enable_prime_tower");
+    if (!enable_opt || !enable_opt->value)
+        return Polygon();
+
+    // Close to, but not identical to, the reachability test the scene uses before it
+    // draws a tower (GLCanvas3D): a tower exists only for 2+ filaments, unless smooth
+    // timelapse or wrapping detection forces one. The scene additionally suppresses the
+    // tower for ByObject sequences and in gcode-preview mode; both omissions here fail
+    // conservatively (we validate a tower the scene may not draw, never the reverse).
+    // Without this gate a single-filament plate on a 2-extruder printer still yields a
+    // non-zero estimate (the extruder_count == 2 branch of estimate_wipe_tower_size
+    // multiplies by the filament count rather than count - 1) and we would block on a
+    // tower that is never printed.
+    auto timelapse_type = print_cfg.option<ConfigOptionEnum<TimelapseType>>("timelapse_type");
+    bool need_wipe_tower = timelapse_type ? (timelapse_type->value == TimelapseType::tlSmooth) : false;
+    // enable_wrapping_detection is a PRINT option, not a printer one. Reading it from
+    // the printer preset returns nullptr and silently leaves this false, which would
+    // skip validation for a tower the user can see and drag — a false negative on
+    // exactly the collision this check exists to catch.
+    if (auto wrapping_opt = print_cfg.option<ConfigOptionBool>("enable_wrapping_detection"))
+        need_wipe_tower |= wrapping_opt->value;
+    const int plate_extruder_size = (int) get_extruders(true).size();
+    if (!need_wipe_tower && plate_extruder_size < 2)
+        return Polygon();
+
+    Vec3d wt_pos, wt_size;
+    const int nozzle_nums = preset_bundle->get_printer_extruder_count();
+    // full_config() rather than the print preset: wipe_tower_x/y are PROJECT options
+    // (PresetBundle s_project_options), and estimate_wipe_tower_polygon dereferences
+    // them unchecked. Passing a print-only config null-derefs. apply_extruder=false
+    // skips three update_values_to_printer_extruders() passes we do not need — none of
+    // the keys the estimate reads are variant-keyed.
+    // plate_extruder_size is passed explicitly so the estimate does not walk every
+    // object and volume on the plate a second time to recompute what we just counted.
+    arrangement::ArrangePolygon ap = estimate_wipe_tower_polygon(preset_bundle->full_config(false), m_plate_index, wt_pos, wt_size, nozzle_nums, plate_extruder_size);
+    if (wt_size(0) <= 0. || wt_size(1) <= 0. || ap.poly.contour.points.empty())
+        return Polygon();
+
+    // NOTE: only the tower box and its brim are validated, and only as estimated. Three
+    // known gaps, all of them pre-slice limits rather than oversights:
+    //  - estimate_wipe_tower_size is a heuristic (hard-coded 0.08 layer height, closed-
+    //    form depth, no per-layer purge volumes), so the sliced tower can exceed it. The
+    //    true footprint is Print::first_layer_wipe_tower_corners(), which only exists
+    //    after slicing.
+    //  - A Cone-walled tower prints a stabilization cone past the box. Sizing it needs
+    //    the real tower height (m_wipe_tower_data.height), likewise post-slice;
+    //    approximating it from object height over-reserved space and blocked legal
+    //    placements. The default rib wall prints no cone.
+    //  - wipe_tower_rotation_angle is ignored (estimate_wipe_tower_polygon has it
+    //    commented out), so a rotated tower's true footprint differs from this hull.
+    // See also the unvalidated object brim / skirt / support gaps, which affect every
+    // print.
+    Polygon hull = ap.poly.contour;
+
+    // estimate_wipe_tower_polygon() works in plate-local mm; the zones and the
+    // instance hulls it is compared against are in plate-list coordinates.
+    hull.translate(Point(scaled(m_origin.x()), scaled(m_origin.y())));
+    return hull;
+}
+
+PartPlate::ImexPlacementViolation PartPlate::imex_placement_violation()
 {
     ensure_imex_zones();
     if (m_imex_secondary_zone_boxes.empty() && m_imex_collision_zones.empty())
-        return false;
+        return ImexPlacementViolation::None;
     for (const auto& pr : obj_to_instance_set) {
         int obj_id = pr.first;
         int instance_id = pr.second;
         if (!valid_instance(obj_id, instance_id))
             continue;
         ModelInstance* instance = m_model->objects[obj_id]->instances[instance_id];
-        Polygon hull = instance->convex_hull_2d();
-        if (hull.points.empty())
-            continue;
-        for (const auto& box : m_imex_secondary_zone_boxes) {
-            if (!intersection({box.polygon(true)}, {hull}).empty())
-                return true;
-        }
-        for (const auto& strip : m_imex_collision_zones) {
-            if (!intersection({strip.polygon(true)}, {hull}).empty())
-                return true;
-        }
+        if (imex_hull_violates(instance->convex_hull_2d()))
+            return ImexPlacementViolation::Object;
     }
-    return false;
+    if (imex_hull_violates(imex_wipe_tower_hull()))
+        return ImexPlacementViolation::PrimeTower;
+    return ImexPlacementViolation::None;
 }
 
 bool PartPlate::has_imex_multimaterial_conflict() const
@@ -3792,27 +3871,11 @@ bool PartPlate::check_outside(int obj_id, int instance_id, BoundingBoxf3* boundi
     // Block objects that overlap secondary (copy/mirror) zones or the carriage
     // danger strip at the primary zone boundary.  Reuses the existing
     // outside=true → instance_outside_set → update_states() → blocks slicing path.
-    if (!outside && (!m_imex_secondary_zone_boxes.empty() || !m_imex_collision_zones.empty())) {
-        Polygon obj_hull = instance->convex_hull_2d(); // scaled Clipper coords
-        // 1. Object must not touch any secondary zone.
-        for (const auto& box : m_imex_secondary_zone_boxes) {
-            Polygon p = box.polygon(true);
-            if (!intersection({ p }, { obj_hull }).empty()) {
-                outside = true;
-                break;
-            }
-        }
-        // 2. Object must not enter the carriage danger strip inside the primary zone.
-        if (!outside) {
-            for (const auto& strip : m_imex_collision_zones) {
-                Polygon strip_poly = strip.polygon(true);
-                if (!intersection({ strip_poly }, { obj_hull }).empty()) {
-                    outside = true;
-                    break;
-                }
-            }
-        }
-    }
+    // Reuse the hull computed above: ModelInstance::convex_hull_2d() is NOT cached
+    // (Model.cpp has the validity guard commented out), so recomputing it here would
+    // cost every user a per-instance hull rebuild, including on non-IMEX printers.
+    if (!outside && imex_hull_violates(hull))
+        outside = true;
 
 	return outside;
 }

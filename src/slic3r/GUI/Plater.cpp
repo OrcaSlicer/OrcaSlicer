@@ -8982,13 +8982,28 @@ unsigned int Plater::priv::update_background_process(bool force_validation, bool
         q->post_process_string_object_exception(err);
         BOOST_LOG_TRIVIAL(info) << __FUNCTION__ << boost::format(": validate err=%1%, warnings=%2%")%err.string%warnings.size();
 
-        // IDEX/IQEX placement check: if objects overlap secondary zones, treat it as a
+        // IDEX/IQEX placement check: if anything overlaps a reserved area, treat it as a
         // validation error so the standard pathway handles button state, notifications,
-        // and auto-slice blocking consistently.
+        // and auto-slice blocking consistently. The message names both kinds of reserved
+        // area because the check covers secondary zones AND the carriage clearance strips,
+        // and the strips sit INSIDE the primary zone — saying "secondary zone" alone sends
+        // the user looking in the wrong half of the bed.
         if (err.string.empty()) {
             PartPlate* imex_plate = partplate_list.get_curr_plate();
-            if (imex_plate && imex_plate->has_imex_placement_violations())
-                err.string = _u8L("Cannot slice: objects are in secondary zones reserved for IDEX/IQEX parallel printing.");
+            if (imex_plate) {
+                switch (imex_plate->imex_placement_violation()) {
+                case PartPlate::ImexPlacementViolation::Object:
+                    err.string = _u8L("Cannot slice: an object overlaps an area reserved for IMEX parallel printing "
+                                      "(a secondary zone, or a carriage clearance strip inside the primary zone).");
+                    break;
+                case PartPlate::ImexPlacementViolation::PrimeTower:
+                    err.string = _u8L("Cannot slice: the prime tower overlaps an area reserved for IMEX parallel printing "
+                                      "(a secondary zone, or a carriage clearance strip inside the primary zone).");
+                    break;
+                case PartPlate::ImexPlacementViolation::None:
+                    break;
+                }
+            }
         }
 
         if (err.string.empty()) {

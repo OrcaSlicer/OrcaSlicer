@@ -7,6 +7,7 @@
 #include <sstream>
 #include <unordered_set>
 
+#include "libslic3r/ClipperUtils.hpp"
 #include "libslic3r/PresetBundle.hpp"
 
 namespace Slic3r {
@@ -409,6 +410,17 @@ Vec2d compute_imex_slice_offset(bool firmware_managed,
     if (parallel_mode == kImexPrimaryMode)    return Vec2d::Zero();
     if (!primary_zone_box.has_value())        return Vec2d::Zero();
     return primary_zone_box->center();
+}
+
+bool imex_hull_violates_zones(const std::vector<BoundingBoxf3>& zones, const Polygon& hull)
+{
+    if (hull.points.empty())
+        return false;
+    for (const auto& box : zones) {
+        if (!intersection({box.polygon(true)}, {hull}).empty())
+            return true;
+    }
+    return false;
 }
 
 } // namespace Slic3r

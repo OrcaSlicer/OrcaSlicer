@@ -526,8 +526,19 @@ public:
     {
         return m_ready_for_slice && !m_apply_invalid;
     }
-    // Returns true if any instance on this plate overlaps an IDEX/IQEX secondary or collision zone.
-    bool has_imex_placement_violations();
+    // What (if anything) on this plate overlaps an IDEX/IQEX secondary or collision zone.
+    // Reported as a cause rather than a bool so the caller can name the offender; the
+    // message text lives at the Plater layer where it can be translated.
+    enum class ImexPlacementViolation { None, Object, PrimeTower };
+    ImexPlacementViolation imex_placement_violation();
+    // True if the given hull (scaled, plate-list coords) overlaps a secondary zone or
+    // collision strip. Shared by the object and prime-tower checks; overlap is
+    // area-based, so a hull flush against a boundary is legal — see
+    // imex_hull_violates_zones() in libslic3r/IMEXHelpers.hpp.
+    bool imex_hull_violates(const Polygon& hull) const;
+    // Footprint of the prime tower as the scene draws it, in scaled plate-list coords.
+    // Empty when the plate has no tower.
+    Polygon imex_wipe_tower_hull() const;
     // Returns true when IMEX parallel mode is active (non-primary) AND the plate
     // has objects assigned to more than one filament — a combination that warrants caution.
     bool has_imex_multimaterial_conflict() const;

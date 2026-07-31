@@ -798,3 +798,75 @@ TEST_CASE("compute_imex_slice_offset - center value tracks zone box position", "
     REQUIRE_THAT(z.y(), WithinAbs(0.0, 1e-9));
 }
 
+
+// ---------------------------------------------------------------------------
+// imex_hull_violates_zones
+//
+// The single predicate behind both the object and prime-tower placement checks.
+// Zones are unscaled mm (BoundingBoxf3); hulls are scaled Clipper coords, which is
+// what ModelInstance::convex_hull_2d() and PartPlate::imex_wipe_tower_hull() return.
+// ---------------------------------------------------------------------------
+
+// Axis-aligned rectangle in SCALED coords, from unscaled mm corners.
+static Polygon scaled_rect(double x0, double y0, double x1, double y1) {
+    Polygon p;
+    p.points = {Point(scaled(x0), scaled(y0)), Point(scaled(x1), scaled(y0)),
+                Point(scaled(x1), scaled(y1)), Point(scaled(x0), scaled(y1))};
+    return p;
+}
+
+// Zone in UNSCALED mm, as PartPlate stores them.
+static BoundingBoxf3 zone(double x0, double y0, double x1, double y1) {
+    return BoundingBoxf3(Vec3d(x0, y0, 0.0), Vec3d(x1, y1, 1.0));
+}
+
+TEST_CASE("imex_hull_violates_zones - empty hull never violates", "[IMEX]") {
+    // The tower helper returns an empty Polygon for "no tower"; that must not block.
+    std::vector<BoundingBoxf3> zones{zone(0, 0, 100, 100)};
+    REQUIRE_FALSE(imex_hull_violates_zones(zones, Polygon()));
+}
+
+TEST_CASE("imex_hull_violates_zones - empty zone list never violates", "[IMEX]") {
+    // Non-IMEX printers have no zones at all and must be unaffected.
+    REQUIRE_FALSE(imex_hull_violates_zones({}, scaled_rect(10, 10, 20, 20)));
+}
+
+TEST_CASE("imex_hull_violates_zones - hull fully inside a zone violates", "[IMEX]") {
+    std::vector<BoundingBoxf3> zones{zone(0, 0, 100, 100)};
+    REQUIRE(imex_hull_violates_zones(zones, scaled_rect(10, 10, 20, 20)));
+}
+
+TEST_CASE("imex_hull_violates_zones - hull straddling a zone edge violates", "[IMEX]") {
+    // The dragged-tower case: partly in the primary zone, partly in the reserved one.
+    std::vector<BoundingBoxf3> zones{zone(100, 0, 200, 100)};
+    REQUIRE(imex_hull_violates_zones(zones, scaled_rect(90, 10, 110, 20)));
+}
+
+TEST_CASE("imex_hull_violates_zones - hull enclosing a zone violates", "[IMEX]") {
+    // A small collision strip swallowed by a large hull still overlaps by area.
+    std::vector<BoundingBoxf3> zones{zone(45, 45, 55, 55)};
+    REQUIRE(imex_hull_violates_zones(zones, scaled_rect(0, 0, 100, 100)));
+}
+
+TEST_CASE("imex_hull_violates_zones - disjoint hull does not violate", "[IMEX]") {
+    std::vector<BoundingBoxf3> zones{zone(100, 0, 200, 100)};
+    REQUIRE_FALSE(imex_hull_violates_zones(zones, scaled_rect(0, 0, 50, 50)));
+}
+
+TEST_CASE("imex_hull_violates_zones - edge-flush hull does not violate", "[IMEX]") {
+    // Documented area-based semantics: Clipper returns nothing for shapes sharing only
+    // an edge, so a hull butted exactly against a zone boundary is legal. This matches
+    // the long-standing object behaviour and is what lets a tower sit flush against the
+    // primary-zone edge. Pinned because a switch to a touch-based test would silently
+    // start blocking placements users currently rely on.
+    std::vector<BoundingBoxf3> zones{zone(100, 0, 200, 100)};
+    REQUIRE_FALSE(imex_hull_violates_zones(zones, scaled_rect(0, 0, 100, 100)));
+}
+
+TEST_CASE("imex_hull_violates_zones - violating any one of several zones is enough", "[IMEX]") {
+    std::vector<BoundingBoxf3> zones{zone(0, 0, 10, 10), zone(20, 20, 30, 30), zone(40, 40, 50, 50)};
+    // Overlaps only the third.
+    REQUIRE(imex_hull_violates_zones(zones, scaled_rect(45, 45, 60, 60)));
+    // Overlaps none of the three (sits in the gaps between them).
+    REQUIRE_FALSE(imex_hull_violates_zones(zones, scaled_rect(12, 12, 18, 18)));
+}
