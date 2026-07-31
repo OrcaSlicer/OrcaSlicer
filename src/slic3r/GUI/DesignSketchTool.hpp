@@ -620,6 +620,10 @@ private:
     double measure_dim(const DimAnnot& a) const;                            // value from geometry
     std::string dimtype_title(DimType k) const;
     SketchEntityConstraintDef constraint_for(const DimAnnot& a) const;      // driving def
+    // One driving constraint (and one visible quote) per kind+operands: re-typing a value must
+    // UPDATE it, not append a rival asking for something else. Both return the index.
+    int upsert_constraint(const SketchEntityConstraintDef& c);
+    int upsert_dimension(const DimAnnot& a);
     int  place_dimension(DimAnnot a);                                       // create+drive+notify
     std::string dim_text(const DimAnnot& a) const;                          // rendered label string
     void render_dimensions(double unit_per_px);                            // quote lines + labels

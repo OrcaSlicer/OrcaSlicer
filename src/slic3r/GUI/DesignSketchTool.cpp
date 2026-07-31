@@ -912,6 +912,51 @@ double DesignSketchTool::measure_dim(const DimAnnot& a) const
     }
 }
 
+// One driving constraint per (kind, operands) — update it in place rather than appending a
+// second one every time its value is edited.
+//
+// Re-typing a quote used to push a duplicate alongside the original: draw a line and accept its
+// length, and you get Distance(P0,P1)=64.9; click the quote later and type 30, and you get a
+// SECOND Distance on the same two points asking for 30. That is over-constrained by
+// construction, so the solver reported "Conflicting constraints" and refused to move anything —
+// the number on screen changed and the geometry did not, which reads as the edit being ignored.
+// A line carrying no dimension yet was unaffected, which is what made it look intermittent.
+//
+// Operand order is ignored: a Distance from A to B is the same constraint as B to A, and so is
+// an Angle. Returns the index, so callers can keep the annotation's `con` link pointing at the
+// constraint that is actually live — which is what makes the next edit an update too.
+int DesignSketchTool::upsert_constraint(const SketchEntityConstraintDef& c)
+{
+    auto same_operands = [&](const SketchEntityConstraintDef& o) {
+        if (o.ea == c.ea && o.ra == c.ra && o.eb == c.eb && o.rb == c.rb) return true;
+        return o.ea == c.eb && o.ra == c.rb && o.eb == c.ea && o.rb == c.ra;
+    };
+    for (int i = 0; i < int(m_constraints.size()); ++i)
+        if (m_constraints[i].type == c.type && same_operands(m_constraints[i])) {
+            m_constraints[i] = c;
+            return i;
+        }
+    m_constraints.push_back(c);
+    return int(m_constraints.size()) - 1;
+}
+
+// The same rule for the visible annotation: one quote per (kind, operands), so repeated edits
+// do not stack labels on top of each other reading different values.
+int DesignSketchTool::upsert_dimension(const DimAnnot& a)
+{
+    for (int i = 0; i < int(m_dimensions.size()); ++i) {
+        const DimAnnot& o = m_dimensions[i];
+        if (o.kind == a.kind && ((o.ea == a.ea && o.eb == a.eb) || (o.ea == a.eb && o.eb == a.ea))) {
+            const Vec2d keep = m_dimensions[i].label_pos;   // don't teleport a placed label
+            m_dimensions[i] = a;
+            m_dimensions[i].label_pos = keep;
+            return i;
+        }
+    }
+    m_dimensions.push_back(a);
+    return int(m_dimensions.size()) - 1;
+}
+
 SketchEntityConstraintDef DesignSketchTool::constraint_for(const DimAnnot& a) const
 {
     SketchEntityConstraintDef c;
@@ -942,11 +987,10 @@ SketchEntityConstraintDef DesignSketchTool::constraint_for(const DimAnnot& a) co
 int DesignSketchTool::place_dimension(DimAnnot a)
 {
     a.value = measure_dim(a);
-    a.con   = int(m_constraints.size());
-    m_constraints.push_back(constraint_for(a));
-    m_dimensions.push_back(a);
+    a.con   = upsert_constraint(constraint_for(a));
+    const int di = upsert_dimension(a);
     resolve_live();
-    open_value_editor(int(m_dimensions.size()) - 1);
+    open_value_editor(di);
     return m_pending_dim;
 }
 
@@ -1158,9 +1202,8 @@ void DesignSketchTool::open_primary_autoedit()
         m_autoedit_dims.push_back({ a.label_pos, a.value,
             [this, a](double v) mutable {
                 a.value = v;
-                a.con   = int(m_constraints.size());
-                m_constraints.push_back(constraint_for(a));
-                m_dimensions.push_back(a);
+                a.con   = upsert_constraint(constraint_for(a));
+                upsert_dimension(a);
                 resolve_live();
             }, { a.ea, a.eb }, dimtype_title(a.kind) });
     }
