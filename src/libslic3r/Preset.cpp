@@ -3772,18 +3772,18 @@ void PresetCollection::update_map_alias_to_profile_name()
 void PresetCollection::update_library_profile_excluded_from()
 {
     // Orca: Collect all filament presets that has empty compatible_printers and belongs to the Orca Filament Library.
-    std::map<std::string, std::set<std::string>*> excluded_froms;
+    std::map<std::string, Preset*> library_generics;
     for (Preset& preset : m_presets) {
         if (preset.vendor != nullptr && preset.vendor->name == PresetBundle::ORCA_FILAMENT_LIBRARY) {
             // check if the preset has empty compatible_printers
             const auto* compatible_printers = dynamic_cast<const ConfigOptionStrings*>(preset.config.option("compatible_printers"));
             if (compatible_printers == nullptr || compatible_printers->values.empty())
-                excluded_froms[preset.alias] = &preset.m_excluded_from;
+                library_generics[preset.alias] = &preset;
         }
     }
 
     // Check all presets that has the same alias as the filament presets with empty compatible_printers in Orca Filament Library.
-    for (const Preset& preset : m_presets) {
+    for (Preset& preset : m_presets) {
         if (preset.vendor == nullptr || preset.vendor->name == PresetBundle::ORCA_FILAMENT_LIBRARY)
             continue;
 
@@ -3791,12 +3791,16 @@ void PresetCollection::update_library_profile_excluded_from()
         // All profiles in concrete vendor profile shouldn't have empty compatible_printers, but here we check it for safety.
         if (compatible_printers == nullptr || compatible_printers->values.empty())
             continue;
-        auto itr = excluded_froms.find(preset.alias);
-        if (itr != excluded_froms.end()) {
+        auto itr = library_generics.find(preset.alias);
+        if (itr != library_generics.end()) {
+            Preset* generic = itr->second;
             // Add the printer models to the excluded_from list.
             for (const std::string& printer_name : compatible_printers->values) {
-                itr->second->insert(printer_name);
+                generic->m_excluded_from.insert(printer_name);
             }
+            // Orca: keep the sibling visible if the generic was installed.
+            if (generic->is_visible)
+                preset.is_visible = true;
         }
     }
 }
