@@ -1,6 +1,7 @@
 #include "DesignPanel.hpp"
 #include "DesignCanvas.hpp"
 #include "DesignSketchTool.hpp"
+#include "DesignOffer.hpp"                // generated offer table — see docs/ux/tool_atlas.json
 #include "libslic3r/GeometryEngine.hpp"   // face_by_index for face-extrude gizmo anchor
 #include "libslic3r/TriangleMesh.hpp"     // mesh import: STL/OBJ -> indexed_triangle_set
 #include "libslic3r/Format/OBJ.hpp"
@@ -476,6 +477,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 fo->actions.push_back(std::move(v.action));
                 fo->icon_names.emplace_back(v.icon);
                 if (v.key) m_keys_feature[v.key] = fo->actions.back();   // key runs the same action
+                // …and the offer reaches the same action by its ratified address. Keyed on
+                // "fly:<family>#<row>" so the generated table can name it without the item
+                // struct growing a field at 26 call sites.
+                m_verb_actions["fly:" + std::string(id) + "#" +
+                               std::to_string(fo->actions.size() - 1)] = fo->actions.back();
             }
             fo->btn = b;
             fo->drop.Create(b);
@@ -868,6 +874,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* b_color = icon_btn("color_palette", _L("Color — set the selected body's display colour"));
         b_color->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_set_body_color(); });
         fadd("color", b_color);
+        m_verb_actions["btn:colour"] = [this] { on_set_body_color(); };
+        m_verb_actions["btn:delete"] = [this] { on_delete_feature(); };
 
         // Dress-up: finishing operations on the faces and edges of an existing solid — nothing
         // that moves a body (see the Placement drawer) and nothing that creates geometry.
@@ -3482,6 +3490,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // action bar (shown while moving) hides and the move state clears.
     m_viewport->set_on_move_exit([this]() { m_move_body = -1; show_move_card(false); update_action_bar(); });
 
+    // The offer (§4.1): right-click the geometry, get the verbs that apply to it. Left-click
+    // still only selects, so pointing at things stays quiet.
+    m_viewport->set_on_context_menu([this](const wxPoint& p) { show_offer_menu(p); });
+
     // The Line tool's length and the Dimension tool's value are both entered in-canvas now
     // (live quote labels + the floating SketchInlineEditor), so the old docked-card
     // callbacks (on_segment_drawn / on_dimension_pick_complete) are no longer wired.
@@ -4883,6 +4895,156 @@ SketchPlane DesignPanel::sketch_plane_from_selection(wxString& what) const
     }
     what = ref_plane_name(m_ref_plane);
     return plane_from_choice(m_ref_plane);
+}
+
+// ---------------------------------------------------------------------------------------------
+// The object-driven offer (charter §4.1). Right-click the geometry and get a vertical list in the
+// ratified row order, with the verbs that do not apply DISABLED IN PLACE carrying their reason.
+// The rows come from DesignOffer.hpp, generated from docs/ux/tool_atlas.json — the same file the
+// mockups are drawn from, so a drawing and the product cannot drift apart.
+// ---------------------------------------------------------------------------------------------
+
+// Which kind of thing is selected, as an OfferSel. Classified by the level the pick cycle has
+// actually REACHED, so the menu describes what is highlighted — a header that names a face while
+// the whole body is lit would be lying, and this menu's whole value is that it tells the truth
+// about the selection. (Sketching on the face you merely clicked is unaffected: that path is
+// sketch_plane_from_selection, which deliberately uses m_pick_face. snaporca-3a2.)
+int DesignPanel::offer_selection_kind() const
+{
+    if (m_viewport && m_viewport->is_sketching())
+        return int(OfferSel::SkNone);
+
+    const int nb = int(m_doc.bodies.size());
+    if (m_sel_solid_edge >= 0 && m_sel_solid_body >= 0 && m_sel_solid_body < nb) {
+        const TopoDS_Edge e = GeometryEngine::edge_by_index(m_doc.bodies[m_sel_solid_body].shape,
+                                                            m_sel_solid_edge);
+        return int(GeometryEngine::circle_of_edge(e).ok ? OfferSel::EdgeCirc : OfferSel::EdgeStr);
+    }
+    if (m_sel_solid_face >= 0 && m_sel_solid_body >= 0 && m_sel_solid_body < nb) {
+        SketchPlane p;
+        if (m_doc.plane_of_face(m_sel_solid_body, m_sel_solid_face, p))
+            return int(OfferSel::FacePlanar);
+        const TopoDS_Face f = GeometryEngine::face_by_index(m_doc.bodies[m_sel_solid_body].shape,
+                                                            m_sel_solid_face);
+        return int(GeometryEngine::cylinder_of_face(f).ok ? OfferSel::FaceCyl : OfferSel::FaceOther);
+    }
+    if (m_sel_sketch_region >= 0)
+        return int(OfferSel::SkLoop);
+    if (m_sel_solid_body >= 0 && m_sel_solid_body < nb)
+        return int(CadDocument::is_sheet_shape(m_doc.bodies[m_sel_solid_body].shape)
+                   ? OfferSel::BodySheet : OfferSel::BodySolid);
+    return int(OfferSel::None);
+}
+
+// Route a row to the code that already implements the verb. Nothing here re-implements a tool:
+// the offer is a second door onto the same room, which is what keeps the toolbar, the shortcuts
+// and the menu from drifting into three behaviours.
+void DesignPanel::run_offer_action(const char* action)
+{
+    if (!action || !*action)
+        return;
+    const std::string a(action);
+    if (a.rfind("key:", 0) == 0) {
+        const std::string k = a.substr(4);
+        if (k.size() >= 3 && k[0] == 'S' && k[1] == '+') {          // "S+E" -> Shift+E, model mode
+            auto it = m_keys_feature.find(int(k[2]) | SC_SHIFT);
+            if (it != m_keys_feature.end() && it->second) it->second();
+        } else if (!k.empty()) {                                     // "L" -> sketch-mode letter
+            auto it = m_keys_sketch.find(int(k[0]));
+            if (it != m_keys_sketch.end() && it->second) it->second();
+        }
+        return;
+    }
+    auto it = m_verb_actions.find(a);
+    if (it != m_verb_actions.end() && it->second)
+        it->second();
+}
+
+void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
+{
+    const int      kind = offer_selection_kind();
+    const uint32_t bit  = offer_bit(OfferSel(kind));
+    const bool     sketching = m_viewport && m_viewport->is_sketching();
+
+    const int bodies = int(m_doc.bodies.size());
+    int sketches = 0;
+    for (const auto& f : m_doc.features)
+        if (f.type == CadFeatureType::Sketch) ++sketches;
+    bool sheet = false;
+    for (const auto& b : m_doc.bodies)
+        if (CadDocument::is_sheet_shape(b.shape)) { sheet = true; break; }
+
+    auto applies = [&](const OfferVerb& v) {
+        return (v.accepts & bit) && v.need_bodies <= bodies && v.need_sketches <= sketches
+               && (!v.need_sheet || sheet);
+    };
+    // Names and reasons live in the generated table as plain literals; they are the same strings
+    // the toolbar already ships, so the catalogue already carries their translations.
+    auto tr = [](const char* s) { return wxGetTranslation(wxString::FromUTF8(s)); };
+    auto label = [&](const OfferVerb& v) {
+        wxString s = tr(v.name);
+        if (v.key && *v.key) s += "\t" + wxString::FromUTF8(v.key);
+        return s;
+    };
+
+    wxMenu menu;
+    std::vector<const OfferVerb*> bound;      // menu id offset -> verb
+    const int base = wxID_HIGHEST + 4200;
+
+    for (int row = 0; row < kOfferRowCount; ++row) {
+        std::vector<const OfferVerb*> live, family;
+        for (int i = 0; i < kOfferVerbCount; ++i) {
+            const OfferVerb& v = kOfferVerbs[i];
+            if (v.row != row || v.sketch_mode != sketching) continue;
+            family.push_back(&v);
+            if (applies(v)) live.push_back(&v);
+        }
+        if (family.empty())
+            continue;                                   // no verb of this family in this mode
+        const wxString fam = tr(kOfferRowNames[row]);
+
+        if (live.empty()) {
+            // DISABLED IN PLACE, with the reason. This is the row that makes the list worth
+            // having: a control that cannot be used still says what it is and what you would
+            // have to do first, in the product's own words (L7).
+            //
+            // The reason must be TRUE for the situation in front of the user. Taking the first
+            // refusal in the family printed "Transform needs a body — add or import one first"
+            // on a document that has a body, because the real obstacle was that nothing was
+            // selected. So: prefer the refusal of a verb that accepts THIS selection and fails
+            // only on document state — that message is about the actual blocker. If no verb in
+            // the family accepts this selection at all, the honest thing is to say so, or say
+            // nothing.
+            const char* why = nullptr;
+            for (const OfferVerb* v : family)
+                if ((v->accepts & bit) && v->refusal) { why = v->refusal; break; }
+            wxString s = fam;
+            if (why)
+                s += wxString::FromUTF8("   —   ") + tr(why);
+            else if (OfferSel(kind) == OfferSel::None)
+                s += wxString::FromUTF8("   —   ") + _L("select something first");
+            menu.Append(base + int(bound.size()), s)->Enable(false);
+            bound.push_back(nullptr);
+        } else if (live.size() == 1) {
+            menu.Append(base + int(bound.size()), label(*live[0]))
+                ->Enable(live[0]->action != nullptr);
+            bound.push_back(live[0]);
+        } else {
+            auto* sub = new wxMenu();
+            for (const OfferVerb* v : live) {
+                sub->Append(base + int(bound.size()), label(*v))->Enable(v->action != nullptr);
+                bound.push_back(v);
+            }
+            menu.AppendSubMenu(sub, fam);
+        }
+    }
+
+    menu.Bind(wxEVT_MENU, [this, &bound, base](wxCommandEvent& e) {
+        const int i = e.GetId() - base;
+        if (i >= 0 && i < int(bound.size()) && bound[i])
+            run_offer_action(bound[i]->action);
+    });
+    PopupMenu(&menu, ScreenToClient(screen_pos));
 }
 
 void DesignPanel::apply_plane_refs(CadFeature& f) const

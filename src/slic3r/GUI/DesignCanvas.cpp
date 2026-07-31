@@ -789,6 +789,24 @@ void DesignCanvas::set_on_move_exit(std::function<void()> cb)
     m_sketch_tool.on_move_exit = std::move(cb);
 }
 
+void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
+{
+    m_on_context_menu = std::move(cb);
+    if (!m_canvas_widget || m_ctx_bound)
+        return;
+    m_ctx_bound = true;
+    // Bound AFTER GLCanvas3D's own handlers, so this runs first and can consume the event.
+    // It only consumes when it actually opens the offer; every other right-click still falls
+    // through to the polyline-chain end and the move gizmo, which were there first.
+    m_canvas_widget->Bind(wxEVT_RIGHT_UP, [this](wxMouseEvent& e) {
+        if (m_on_context_menu && !is_sketching() && !inline_busy()) {
+            m_on_context_menu(m_canvas_widget->ClientToScreen(e.GetPosition()));
+            return;   // consumed
+        }
+        e.Skip();
+    });
+}
+
 void DesignCanvas::set_on_undo_redo(std::function<void(bool)> cb)
 {
     m_sketch_tool.on_undo_redo = std::move(cb);

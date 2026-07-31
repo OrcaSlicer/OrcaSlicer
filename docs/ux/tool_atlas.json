@@ -11,210 +11,1330 @@
     "gen_offer_mockups.py reads this file; the eventual C++ offer table is generated from it",
     "too, so the map exists once."
   ],
-
   "slots": [
-    {"id": "create",    "pos": "N",  "angle": 270, "label": "Create",        "why": "makes new geometry from nothing you have yet"},
-    {"id": "add",       "pos": "NE", "angle": 315, "label": "Add material",  "why": "grows solid or sheet material"},
-    {"id": "remove",    "pos": "E",  "angle": 0,   "label": "Remove",        "why": "takes material away"},
-    {"id": "dressup",   "pos": "SE", "angle": 45,  "label": "Dress-up",      "why": "finishes faces and edges without changing the shape's intent"},
-    {"id": "repeat",    "pos": "S",  "angle": 90,  "label": "Repeat",        "why": "copies what exists"},
-    {"id": "transform", "pos": "SW", "angle": 135, "label": "Transform",     "why": "moves without changing shape"},
-    {"id": "reference", "pos": "W",  "angle": 180, "label": "Reference",     "why": "makes datums, curves and measurements"},
-    {"id": "modify",    "pos": "NW", "angle": 225, "label": "Modify",        "why": "edits or removes what is already there"}
+    {
+      "id": "create",
+      "pos": "N",
+      "angle": 270,
+      "label": "Create",
+      "why": "makes new geometry from nothing you have yet"
+    },
+    {
+      "id": "add",
+      "pos": "NE",
+      "angle": 315,
+      "label": "Add material",
+      "why": "grows solid or sheet material"
+    },
+    {
+      "id": "remove",
+      "pos": "E",
+      "angle": 0,
+      "label": "Remove",
+      "why": "takes material away"
+    },
+    {
+      "id": "dressup",
+      "pos": "SE",
+      "angle": 45,
+      "label": "Dress-up",
+      "why": "finishes faces and edges without changing the shape's intent"
+    },
+    {
+      "id": "repeat",
+      "pos": "S",
+      "angle": 90,
+      "label": "Repeat",
+      "why": "copies what exists"
+    },
+    {
+      "id": "transform",
+      "pos": "SW",
+      "angle": 135,
+      "label": "Transform",
+      "why": "moves without changing shape"
+    },
+    {
+      "id": "reference",
+      "pos": "W",
+      "angle": 180,
+      "label": "Reference",
+      "why": "makes datums, curves and measurements"
+    },
+    {
+      "id": "modify",
+      "pos": "NW",
+      "angle": 225,
+      "label": "Modify",
+      "why": "edits or removes what is already there"
+    }
   ],
-
   "selections": [
-    {"id": "none",        "name": "Nothing selected",   "mode": "model",  "shape": "empty"},
-    {"id": "face_planar", "name": "Planar face",        "mode": "model",  "shape": "box_top"},
-    {"id": "face_cyl",    "name": "Cylindrical face",   "mode": "model",  "shape": "box_bore"},
-    {"id": "face_other",  "name": "Curved face",        "mode": "model",  "shape": "box_fillet_face"},
-    {"id": "edge_str",    "name": "Straight edge",      "mode": "model",  "shape": "box_edge"},
-    {"id": "edge_circ",   "name": "Circular edge",      "mode": "model",  "shape": "box_bore_rim"},
-    {"id": "vertex",      "name": "Vertex",             "mode": "model",  "shape": "box_vertex"},
-    {"id": "body_solid",  "name": "Solid body",         "mode": "model",  "shape": "box_whole"},
-    {"id": "body_sheet",  "name": "Sheet body",         "mode": "model",  "shape": "sheet"},
-    {"id": "bodies_2",    "name": "Two bodies",         "mode": "model",  "shape": "two_boxes"},
-    {"id": "datum_plane", "name": "Datum plane",        "mode": "model",  "shape": "datum"},
-    {"id": "datum_axis",  "name": "Datum axis",         "mode": "model",  "shape": "axis"},
-    {"id": "coordsys",    "name": "Coordinate system",  "mode": "model",  "shape": "csys"},
-    {"id": "art",         "name": "Text / imported art","mode": "model",  "shape": "art"},
-    {"id": "sk_loop",     "name": "Closed sketch loop", "mode": "model",  "shape": "loop"},
-    {"id": "sk_none",     "name": "Sketch, nothing picked", "mode": "sketch", "shape": "sk_empty"},
-    {"id": "sk_line",     "name": "Sketch line",        "mode": "sketch", "shape": "sk_line"},
-    {"id": "sk_arc",      "name": "Sketch arc or circle","mode": "sketch","shape": "sk_arc"},
-    {"id": "sk_point",    "name": "Sketch point",       "mode": "sketch", "shape": "sk_point"},
-    {"id": "sk_2ent",     "name": "Two sketch entities","mode": "sketch", "shape": "sk_two"}
+    {
+      "id": "none",
+      "name": "Nothing selected",
+      "mode": "model",
+      "shape": "empty"
+    },
+    {
+      "id": "face_planar",
+      "name": "Planar face",
+      "mode": "model",
+      "shape": "box_top"
+    },
+    {
+      "id": "face_cyl",
+      "name": "Cylindrical face",
+      "mode": "model",
+      "shape": "box_bore"
+    },
+    {
+      "id": "face_other",
+      "name": "Curved face",
+      "mode": "model",
+      "shape": "box_fillet_face"
+    },
+    {
+      "id": "edge_str",
+      "name": "Straight edge",
+      "mode": "model",
+      "shape": "box_edge"
+    },
+    {
+      "id": "edge_circ",
+      "name": "Circular edge",
+      "mode": "model",
+      "shape": "box_bore_rim"
+    },
+    {
+      "id": "vertex",
+      "name": "Vertex",
+      "mode": "model",
+      "shape": "box_vertex"
+    },
+    {
+      "id": "body_solid",
+      "name": "Solid body",
+      "mode": "model",
+      "shape": "box_whole"
+    },
+    {
+      "id": "body_sheet",
+      "name": "Sheet body",
+      "mode": "model",
+      "shape": "sheet"
+    },
+    {
+      "id": "bodies_2",
+      "name": "Two bodies",
+      "mode": "model",
+      "shape": "two_boxes"
+    },
+    {
+      "id": "datum_plane",
+      "name": "Datum plane",
+      "mode": "model",
+      "shape": "datum"
+    },
+    {
+      "id": "datum_axis",
+      "name": "Datum axis",
+      "mode": "model",
+      "shape": "axis"
+    },
+    {
+      "id": "coordsys",
+      "name": "Coordinate system",
+      "mode": "model",
+      "shape": "csys"
+    },
+    {
+      "id": "art",
+      "name": "Text / imported art",
+      "mode": "model",
+      "shape": "art"
+    },
+    {
+      "id": "sk_loop",
+      "name": "Closed sketch loop",
+      "mode": "model",
+      "shape": "loop"
+    },
+    {
+      "id": "sk_none",
+      "name": "Sketch, nothing picked",
+      "mode": "sketch",
+      "shape": "sk_empty"
+    },
+    {
+      "id": "sk_line",
+      "name": "Sketch line",
+      "mode": "sketch",
+      "shape": "sk_line"
+    },
+    {
+      "id": "sk_arc",
+      "name": "Sketch arc or circle",
+      "mode": "sketch",
+      "shape": "sk_arc"
+    },
+    {
+      "id": "sk_point",
+      "name": "Sketch point",
+      "mode": "sketch",
+      "shape": "sk_point"
+    },
+    {
+      "id": "sk_2ent",
+      "name": "Two sketch entities",
+      "mode": "sketch",
+      "shape": "sk_two"
+    }
   ],
-
   "doc_states": [
-    {"id": "rich",  "name": "Working document",  "bodies": 2, "sketches": 2, "sheet": true,
-     "note": "two solids, two sketches, one sheet body — everything doc-gated is legal"},
-    {"id": "fresh", "name": "Fresh document",    "bodies": 0, "sketches": 0, "sheet": false,
-     "note": "nothing built yet — shows how much of the ring is empty on first open"}
+    {
+      "id": "rich",
+      "name": "Working document",
+      "bodies": 2,
+      "sketches": 2,
+      "sheet": true,
+      "note": "two solids, two sketches, one sheet body — everything doc-gated is legal"
+    },
+    {
+      "id": "fresh",
+      "name": "Fresh document",
+      "bodies": 0,
+      "sketches": 0,
+      "sheet": false,
+      "note": "nothing built yet — shows how much of the ring is empty on first open"
+    }
   ],
-
   "verbs": [
-    {"id": "sketch",       "name": "Sketch",          "slot": "create",    "key": "Shift+S", "feature": "Sketch",        "mcp": null,
-     "accepts": ["face_planar", "datum_plane", "none"], "needs": {},
-     "refusal": "Click a face or a reference plane in the viewport, then a sketch tool", "gui": true},
-
-    {"id": "extrude",      "name": "Extrude",         "slot": "add",       "key": "Shift+E", "feature": "Extrude",       "mcp": "extrude",
-     "accepts": ["sk_loop", "face_planar"], "needs": {},
-     "refusal": "Create a sketch, or pick a solid face, first", "gui": true},
-    {"id": "revolve",      "name": "Revolve",         "slot": "add",       "key": "Shift+R", "feature": "Revolve",       "mcp": "revolve",
-     "accepts": ["sk_loop"], "needs": {},
-     "refusal": "Create a sketch profile to revolve first", "gui": true},
-    {"id": "sweep",        "name": "Sweep",           "slot": "add",       "key": "Shift+W", "feature": "Sweep",         "mcp": null,
-     "accepts": ["sk_loop"], "needs": {"sketches": 2},
-     "refusal": "Create a profile sketch to sweep first", "gui": true},
-    {"id": "loft",         "name": "Loft",            "slot": "add",       "key": "Shift+L", "feature": "Loft",          "mcp": null,
-     "accepts": ["sk_loop"], "needs": {"sketches": 2},
-     "refusal": "Create at least two profile sketches to loft", "gui": true},
-    {"id": "thicken",      "name": "Thicken",         "slot": "add",       "key": null,      "feature": "Thicken",       "mcp": "thicken",
-     "accepts": ["face_planar", "face_other"], "needs": {"bodies": 1},
-     "refusal": "Thicken needs a solid body — add or import one first", "gui": true},
-    {"id": "rib",          "name": "Rib",             "slot": "add",       "key": null,      "feature": "Rib",           "mcp": "rib",
-     "accepts": ["sk_line"], "needs": {"bodies": 1},
-     "refusal": "Rib needs a solid body — add or import one first", "gui": true},
-    {"id": "boolean",      "name": "Combine",         "slot": "add",       "key": "Shift+B", "feature": "Boolean",       "mcp": "boolean",
-     "accepts": ["bodies_2"], "needs": {"bodies": 2},
-     "refusal": "Boolean needs two bodies — create or import a second solid", "gui": true},
-    {"id": "surf_extrude", "name": "Surface Extrude", "slot": "add",       "key": "Shift+G", "feature": "SurfaceExtrude","mcp": "surface_extrude",
-     "accepts": ["sk_loop"], "needs": {}, "refusal": "Create a sketch first", "gui": true},
-    {"id": "surf_revolve", "name": "Surface Revolve", "slot": "add",       "key": null,      "feature": "SurfaceRevolve","mcp": "surface_revolve",
-     "accepts": ["sk_loop"], "needs": {}, "refusal": "Create a sketch profile to revolve first", "gui": true},
-    {"id": "surf_loft",    "name": "Surface Loft",    "slot": "add",       "key": null,      "feature": "SurfaceLoft",   "mcp": "surface_loft",
-     "accepts": ["sk_loop"], "needs": {"sketches": 2}, "refusal": "Create at least two profile sketches to loft", "gui": true},
-    {"id": "surf_fill",    "name": "Surface Fill",    "slot": "add",       "key": null,      "feature": "SurfaceFill",   "mcp": "surface_fill",
-     "accepts": ["sk_loop"], "needs": {}, "refusal": "Create a closed sketch first", "gui": true},
-    {"id": "thicken_surf", "name": "Thicken Surface", "slot": "add",       "key": null,      "feature": "ThickenSurface","mcp": "thicken_surface",
-     "accepts": ["body_sheet"], "needs": {"sheet": true}, "refusal": "target is not a sheet body", "gui": true},
-
-    {"id": "hole",         "name": "Hole",            "slot": "remove",    "key": "Shift+H", "feature": "Hole",          "mcp": "hole",
-     "accepts": ["face_planar", "datum_plane"], "needs": {"bodies": 1},
-     "refusal": "Pick a face or a plane to drill into", "gui": true},
-    {"id": "thread",       "name": "Thread",          "slot": "remove",    "key": "Shift+T", "feature": "Thread",        "mcp": null,
-     "accepts": ["face_cyl", "edge_circ"], "needs": {"bodies": 1},
-     "refusal": "Pick a cylindrical surface (bore / outer) or a circular edge for a thread", "gui": true},
-    {"id": "shell",        "name": "Shell",           "slot": "remove",    "key": "Shift+K", "feature": "Shell",         "mcp": "shell",
-     "accepts": ["face_planar", "body_solid"], "needs": {"bodies": 1},
-     "refusal": "Shell needs a solid body", "gui": true},
-    {"id": "cut",          "name": "Cut",             "slot": "remove",    "key": "Shift+X", "feature": "Cut",           "mcp": null,
-     "accepts": ["body_solid", "datum_plane"], "needs": {"bodies": 1},
-     "refusal": "Create a solid body to cut first", "gui": true},
-    {"id": "split",        "name": "Split",           "slot": "remove",    "key": null,      "feature": "Cut",           "mcp": "split",
-     "accepts": ["body_solid"], "needs": {"bodies": 1}, "refusal": "Split needs a solid body", "gui": false},
-
-    {"id": "fillet",       "name": "Fillet",          "slot": "dressup",   "key": "Shift+F", "feature": "Fillet",        "mcp": "fillet",
-     "accepts": ["edge_str", "edge_circ", "face_planar", "body_solid"], "needs": {"bodies": 1},
-     "refusal": "Pick an edge to round", "gui": true},
-    {"id": "chamfer",      "name": "Chamfer",         "slot": "dressup",   "key": null,      "feature": "Chamfer",       "mcp": "chamfer",
-     "accepts": ["edge_str", "edge_circ", "face_planar", "body_solid"], "needs": {"bodies": 1},
-     "refusal": "Pick an edge to bevel", "gui": true},
-    {"id": "draft",        "name": "Draft",           "slot": "dressup",   "key": "Shift+D", "feature": "Draft",         "mcp": "draft",
-     "accepts": ["face_planar", "face_other"], "needs": {"bodies": 1},
-     "refusal": "Pick a face to taper", "gui": true},
-    {"id": "surf_offset",  "name": "Surface Offset",  "slot": "dressup",   "key": null,      "feature": "SurfaceOffset", "mcp": "surface_offset",
-     "accepts": ["body_sheet"], "needs": {"sheet": true}, "refusal": "target is not a sheet body", "gui": true},
-
-    {"id": "pattern",      "name": "Pattern",         "slot": "repeat",    "key": "Shift+N", "feature": "Pattern",       "mcp": "pattern",
-     "accepts": ["body_solid", "face_planar", "sk_loop", "art"], "needs": {"bodies": 1},
-     "refusal": "Create a solid body to pattern first", "gui": true},
-    {"id": "mirror",       "name": "Mirror",          "slot": "repeat",    "key": "Shift+Z", "feature": "Mirror",        "mcp": "mirror",
-     "accepts": ["body_solid", "datum_plane"], "needs": {"bodies": 1},
-     "refusal": "Mirror needs a body — add or import one first", "gui": true},
-    {"id": "pat_curve",    "name": "Pattern on Curve","slot": "repeat",    "key": null,      "feature": "Pattern",       "mcp": "pattern_on_curve",
-     "accepts": ["body_solid", "edge_str"], "needs": {"bodies": 1},
-     "refusal": "Pattern on curve needs a body and a curve", "gui": false},
-
-    {"id": "transform",    "name": "Move",            "slot": "transform", "key": "Shift+Y", "feature": "Transform",     "mcp": "transform",
-     "accepts": ["body_solid", "body_sheet", "art"], "needs": {"bodies": 1},
-     "refusal": "Transform needs a body — add or import one first", "gui": true},
-    {"id": "mate",         "name": "Mate",            "slot": "transform", "key": null,      "feature": "Mate",          "mcp": "mate",
-     "accepts": ["coordsys", "bodies_2", "face_planar"], "needs": {"bodies": 2},
-     "refusal": "A mate needs two coordinate systems", "gui": true},
-    {"id": "align",        "name": "Align to",        "slot": "transform", "key": null,      "feature": "Transform",     "mcp": "transform",
-     "accepts": ["face_planar"], "needs": {"bodies": 1}, "refusal": "Align needs a body", "gui": false},
-
-    {"id": "plane",        "name": "Plane",           "slot": "reference", "key": "Shift+P", "feature": "Plane",         "mcp": null,
-     "accepts": ["none", "face_planar", "edge_str", "datum_plane", "vertex"], "needs": {},
-     "refusal": null, "gui": true},
-    {"id": "axis",         "name": "Axis",            "slot": "reference", "key": "Shift+A", "feature": "Axis",          "mcp": "axis",
-     "accepts": ["none", "face_planar", "face_cyl", "edge_str", "vertex"], "needs": {},
-     "refusal": null, "gui": true},
-    {"id": "coordsys_v",   "name": "Coord Sys",       "slot": "reference", "key": "Shift+C", "feature": "CoordSys",      "mcp": "coordsys",
-     "accepts": ["none", "face_planar", "vertex"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "helix",        "name": "Helix",           "slot": "reference", "key": null,      "feature": "Helix",         "mcp": "helix",
-     "accepts": ["none", "datum_plane", "face_cyl"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "project",      "name": "Project",         "slot": "reference", "key": null,      "feature": "Project",       "mcp": "project",
-     "accepts": ["body_solid", "face_planar", "datum_plane"], "needs": {"bodies": 1},
-     "refusal": "Project needs a body — add or import one first", "gui": true},
-    {"id": "measure",      "name": "Measure",         "slot": "reference", "key": null,      "feature": null,            "mcp": "measure",
-     "accepts": ["face_planar", "face_cyl", "face_other", "edge_str", "edge_circ", "vertex", "body_solid", "body_sheet", "bodies_2", "sk_line", "sk_arc", "sk_2ent"],
-     "needs": {}, "refusal": null, "gui": false},
-    {"id": "mass_props",   "name": "Mass",            "slot": "reference", "key": null,      "feature": null,            "mcp": "mass_properties",
-     "accepts": ["body_solid"], "needs": {"bodies": 1}, "refusal": null, "gui": false},
-    {"id": "interference", "name": "Interference",    "slot": "reference", "key": null,      "feature": null,            "mcp": "check_interference",
-     "accepts": ["bodies_2"], "needs": {"bodies": 2}, "refusal": null, "gui": false},
-
-    {"id": "edit_feature", "name": "Edit",            "slot": "modify",    "key": null,      "feature": null,            "mcp": "set_feature_expr",
-     "accepts": ["body_solid", "face_planar", "face_cyl", "face_other", "sk_loop", "art", "datum_plane", "datum_axis", "coordsys", "body_sheet"],
-     "needs": {}, "refusal": null, "gui": true},
-    {"id": "delete_face",  "name": "Delete Face",     "slot": "modify",    "key": null,      "feature": "DeleteFace",    "mcp": "delete_face",
-     "accepts": ["face_planar", "face_cyl", "face_other"], "needs": {"bodies": 1},
-     "refusal": "Delete Face needs a body — add or import one first", "gui": true},
-    {"id": "colour",       "name": "Colour",          "slot": "modify",    "key": null,      "feature": null,            "mcp": null,
-     "accepts": ["body_solid", "body_sheet"], "needs": {"bodies": 1}, "refusal": null, "gui": true},
-    {"id": "delete",       "name": "Delete",          "slot": "modify",    "key": "Del",     "feature": null,            "mcp": null,
-     "accepts": ["body_solid", "body_sheet", "sk_loop", "art", "datum_plane", "datum_axis", "coordsys", "bodies_2", "sk_line", "sk_arc", "sk_point", "sk_2ent"],
-     "needs": {}, "refusal": null, "gui": true},
-
-    {"id": "sk_line_t",    "name": "Line",            "slot": "create",    "key": "L", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_none", "sk_point", "sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_rect",      "name": "Rectangle",       "slot": "create",    "key": "R", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_none", "sk_point", "sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_circle",    "name": "Circle",          "slot": "create",    "key": "C", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_none", "sk_point", "sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_arc_t",     "name": "Arc",             "slot": "create",    "key": "A", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_none", "sk_point", "sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_slot",      "name": "Slot",            "slot": "create",    "key": "S", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_none", "sk_point", "sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_ellipse",   "name": "Ellipse",         "slot": "create",    "key": "E", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_none", "sk_point", "sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_spline",    "name": "Spline",          "slot": "create",    "key": "B", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_none", "sk_point", "sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_polygon",   "name": "Polygon",         "slot": "create",    "key": "G", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_none", "sk_point", "sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_point_t",   "name": "Point",           "slot": "create",    "key": "P", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_none", "sk_point", "sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-
-    {"id": "sk_offset",    "name": "Offset",          "slot": "add",       "key": "O", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_trim",      "name": "Trim",            "slot": "remove",    "key": "T", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_fillet",    "name": "Fillet",          "slot": "dressup",   "key": "F", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_line", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_chamfer",   "name": "Chamfer",         "slot": "dressup",   "key": "H", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_line", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_mirror",    "name": "Mirror",          "slot": "repeat",    "key": "M", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_move",      "name": "Move",            "slot": "transform", "key": null, "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_line", "sk_arc", "sk_point", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_dimension", "name": "Dimension",       "slot": "reference", "key": "D", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_none", "sk_line", "sk_arc", "sk_point", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_constrain", "name": "Constrain",       "slot": "reference", "key": "K", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_line", "sk_arc", "sk_point", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_construct", "name": "Construction",    "slot": "reference", "key": "Q", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_none", "sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_extend",    "name": "Extend",          "slot": "modify",    "key": "X", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_line", "sk_arc", "sk_2ent"], "needs": {}, "refusal": null, "gui": true},
-    {"id": "sk_delete",    "name": "Delete",          "slot": "modify",    "key": "Del", "feature": "Sketch", "mcp": null, "mode": "sketch",
-     "accepts": ["sk_line", "sk_arc", "sk_point", "sk_2ent"], "needs": {}, "refusal": null, "gui": true}
+    {
+      "id": "sketch",
+      "name": "Sketch",
+      "slot": "create",
+      "key": "Shift+S",
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "face_planar",
+        "datum_plane",
+        "none"
+      ],
+      "needs": {},
+      "refusal": "Click a face or a reference plane in the viewport, then a sketch tool",
+      "gui": true,
+      "action": "key:S+S"
+    },
+    {
+      "id": "extrude",
+      "name": "Extrude",
+      "slot": "add",
+      "key": "Shift+E",
+      "feature": "Extrude",
+      "mcp": "extrude",
+      "accepts": [
+        "sk_loop",
+        "face_planar"
+      ],
+      "needs": {},
+      "refusal": "Create a sketch, or pick a solid face, first",
+      "gui": true,
+      "action": "key:S+E"
+    },
+    {
+      "id": "revolve",
+      "name": "Revolve",
+      "slot": "add",
+      "key": "Shift+R",
+      "feature": "Revolve",
+      "mcp": "revolve",
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {},
+      "refusal": "Create a sketch profile to revolve first",
+      "gui": true,
+      "action": "key:S+R"
+    },
+    {
+      "id": "sweep",
+      "name": "Sweep",
+      "slot": "add",
+      "key": "Shift+W",
+      "feature": "Sweep",
+      "mcp": null,
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {
+        "sketches": 2
+      },
+      "refusal": "Create a profile sketch to sweep first",
+      "gui": true,
+      "action": "key:S+W"
+    },
+    {
+      "id": "loft",
+      "name": "Loft",
+      "slot": "add",
+      "key": "Shift+L",
+      "feature": "Loft",
+      "mcp": null,
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {
+        "sketches": 2
+      },
+      "refusal": "Create at least two profile sketches to loft",
+      "gui": true,
+      "action": "key:S+L"
+    },
+    {
+      "id": "thicken",
+      "name": "Thicken",
+      "slot": "add",
+      "key": null,
+      "feature": "Thicken",
+      "mcp": "thicken",
+      "accepts": [
+        "face_planar",
+        "face_other"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Thicken needs a solid body — add or import one first",
+      "gui": true,
+      "action": "fly:material#4"
+    },
+    {
+      "id": "rib",
+      "name": "Rib",
+      "slot": "add",
+      "key": null,
+      "feature": "Rib",
+      "mcp": "rib",
+      "accepts": [
+        "sk_line"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Rib needs a solid body — add or import one first",
+      "gui": true,
+      "action": "fly:material#5"
+    },
+    {
+      "id": "boolean",
+      "name": "Combine",
+      "slot": "add",
+      "key": "Shift+B",
+      "feature": "Boolean",
+      "mcp": "boolean",
+      "accepts": [
+        "bodies_2"
+      ],
+      "needs": {
+        "bodies": 2
+      },
+      "refusal": "Boolean needs two bodies — create or import a second solid",
+      "gui": true,
+      "action": "key:S+B"
+    },
+    {
+      "id": "surf_extrude",
+      "name": "Surface Extrude",
+      "slot": "add",
+      "key": "Shift+G",
+      "feature": "SurfaceExtrude",
+      "mcp": "surface_extrude",
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {},
+      "refusal": "Create a sketch first",
+      "gui": true,
+      "action": "key:S+G"
+    },
+    {
+      "id": "surf_revolve",
+      "name": "Surface Revolve",
+      "slot": "add",
+      "key": null,
+      "feature": "SurfaceRevolve",
+      "mcp": "surface_revolve",
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {},
+      "refusal": "Create a sketch profile to revolve first",
+      "gui": true,
+      "action": "fly:surface#1"
+    },
+    {
+      "id": "surf_loft",
+      "name": "Surface Loft",
+      "slot": "add",
+      "key": null,
+      "feature": "SurfaceLoft",
+      "mcp": "surface_loft",
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {
+        "sketches": 2
+      },
+      "refusal": "Create at least two profile sketches to loft",
+      "gui": true,
+      "action": "fly:surface#2"
+    },
+    {
+      "id": "surf_fill",
+      "name": "Surface Fill",
+      "slot": "add",
+      "key": null,
+      "feature": "SurfaceFill",
+      "mcp": "surface_fill",
+      "accepts": [
+        "sk_loop"
+      ],
+      "needs": {},
+      "refusal": "Create a closed sketch first",
+      "gui": true,
+      "action": "fly:surface#3"
+    },
+    {
+      "id": "thicken_surf",
+      "name": "Thicken Surface",
+      "slot": "add",
+      "key": null,
+      "feature": "ThickenSurface",
+      "mcp": "thicken_surface",
+      "accepts": [
+        "body_sheet"
+      ],
+      "needs": {
+        "sheet": true
+      },
+      "refusal": "target is not a sheet body",
+      "gui": true,
+      "action": "fly:surface#5"
+    },
+    {
+      "id": "hole",
+      "name": "Hole",
+      "slot": "remove",
+      "key": "Shift+H",
+      "feature": "Hole",
+      "mcp": "hole",
+      "accepts": [
+        "face_planar",
+        "datum_plane"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Pick a face or a plane to drill into",
+      "gui": true,
+      "action": "key:S+H"
+    },
+    {
+      "id": "thread",
+      "name": "Thread",
+      "slot": "remove",
+      "key": "Shift+T",
+      "feature": "Thread",
+      "mcp": null,
+      "accepts": [
+        "face_cyl",
+        "edge_circ"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Pick a cylindrical surface (bore / outer) or a circular edge for a thread",
+      "gui": true,
+      "action": "key:S+T"
+    },
+    {
+      "id": "shell",
+      "name": "Shell",
+      "slot": "remove",
+      "key": "Shift+K",
+      "feature": "Shell",
+      "mcp": "shell",
+      "accepts": [
+        "face_planar",
+        "body_solid"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Shell needs a solid body",
+      "gui": true,
+      "action": "key:S+K"
+    },
+    {
+      "id": "cut",
+      "name": "Cut",
+      "slot": "remove",
+      "key": "Shift+X",
+      "feature": "Cut",
+      "mcp": null,
+      "accepts": [
+        "body_solid",
+        "datum_plane"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Create a solid body to cut first",
+      "gui": true,
+      "action": "key:S+X"
+    },
+    {
+      "id": "split",
+      "name": "Split",
+      "slot": "remove",
+      "key": null,
+      "feature": "Cut",
+      "mcp": "split",
+      "accepts": [
+        "body_solid"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Split needs a solid body",
+      "gui": false,
+      "action": null
+    },
+    {
+      "id": "fillet",
+      "name": "Fillet",
+      "slot": "dressup",
+      "key": "Shift+F",
+      "feature": "Fillet",
+      "mcp": "fillet",
+      "accepts": [
+        "edge_str",
+        "edge_circ",
+        "face_planar",
+        "body_solid"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Pick an edge to round",
+      "gui": true,
+      "action": "key:S+F"
+    },
+    {
+      "id": "chamfer",
+      "name": "Chamfer",
+      "slot": "dressup",
+      "key": null,
+      "feature": "Chamfer",
+      "mcp": "chamfer",
+      "accepts": [
+        "edge_str",
+        "edge_circ",
+        "face_planar",
+        "body_solid"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Pick an edge to bevel",
+      "gui": true,
+      "action": "key:S+F"
+    },
+    {
+      "id": "draft",
+      "name": "Draft",
+      "slot": "dressup",
+      "key": "Shift+D",
+      "feature": "Draft",
+      "mcp": "draft",
+      "accepts": [
+        "face_planar",
+        "face_other"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Pick a face to taper",
+      "gui": true,
+      "action": "key:S+D"
+    },
+    {
+      "id": "surf_offset",
+      "name": "Surface Offset",
+      "slot": "dressup",
+      "key": null,
+      "feature": "SurfaceOffset",
+      "mcp": "surface_offset",
+      "accepts": [
+        "body_sheet"
+      ],
+      "needs": {
+        "sheet": true
+      },
+      "refusal": "target is not a sheet body",
+      "gui": true,
+      "action": "fly:surface#4"
+    },
+    {
+      "id": "pattern",
+      "name": "Pattern",
+      "slot": "repeat",
+      "key": "Shift+N",
+      "feature": "Pattern",
+      "mcp": "pattern",
+      "accepts": [
+        "body_solid",
+        "face_planar",
+        "sk_loop",
+        "art"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Create a solid body to pattern first",
+      "gui": true,
+      "action": "key:S+N"
+    },
+    {
+      "id": "mirror",
+      "name": "Mirror",
+      "slot": "repeat",
+      "key": "Shift+Z",
+      "feature": "Mirror",
+      "mcp": "mirror",
+      "accepts": [
+        "body_solid",
+        "datum_plane"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Mirror needs a body — add or import one first",
+      "gui": true,
+      "action": "key:S+Z"
+    },
+    {
+      "id": "pat_curve",
+      "name": "Pattern on Curve",
+      "slot": "repeat",
+      "key": null,
+      "feature": "Pattern",
+      "mcp": "pattern_on_curve",
+      "accepts": [
+        "body_solid",
+        "edge_str"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Pattern on curve needs a body and a curve",
+      "gui": false,
+      "action": null
+    },
+    {
+      "id": "transform",
+      "name": "Move",
+      "slot": "transform",
+      "key": "Shift+Y",
+      "feature": "Transform",
+      "mcp": "transform",
+      "accepts": [
+        "body_solid",
+        "body_sheet",
+        "art"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Transform needs a body — add or import one first",
+      "gui": true,
+      "action": "key:S+Y"
+    },
+    {
+      "id": "mate",
+      "name": "Mate",
+      "slot": "transform",
+      "key": null,
+      "feature": "Mate",
+      "mcp": "mate",
+      "accepts": [
+        "coordsys",
+        "bodies_2",
+        "face_planar"
+      ],
+      "needs": {
+        "bodies": 2
+      },
+      "refusal": "A mate needs two coordinate systems",
+      "gui": true,
+      "action": "fly:placement#2"
+    },
+    {
+      "id": "align",
+      "name": "Align to",
+      "slot": "transform",
+      "key": null,
+      "feature": "Transform",
+      "mcp": "transform",
+      "accepts": [
+        "face_planar"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Align needs a body",
+      "gui": false,
+      "action": null
+    },
+    {
+      "id": "plane",
+      "name": "Plane",
+      "slot": "reference",
+      "key": "Shift+P",
+      "feature": "Plane",
+      "mcp": null,
+      "accepts": [
+        "none",
+        "face_planar",
+        "edge_str",
+        "datum_plane",
+        "vertex"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:S+P"
+    },
+    {
+      "id": "axis",
+      "name": "Axis",
+      "slot": "reference",
+      "key": "Shift+A",
+      "feature": "Axis",
+      "mcp": "axis",
+      "accepts": [
+        "none",
+        "face_planar",
+        "face_cyl",
+        "edge_str",
+        "vertex"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:S+A"
+    },
+    {
+      "id": "coordsys_v",
+      "name": "Coord Sys",
+      "slot": "reference",
+      "key": "Shift+C",
+      "feature": "CoordSys",
+      "mcp": "coordsys",
+      "accepts": [
+        "none",
+        "face_planar",
+        "vertex"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:S+C"
+    },
+    {
+      "id": "helix",
+      "name": "Helix",
+      "slot": "reference",
+      "key": null,
+      "feature": "Helix",
+      "mcp": "helix",
+      "accepts": [
+        "none",
+        "datum_plane",
+        "face_cyl"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "fly:plane#3"
+    },
+    {
+      "id": "project",
+      "name": "Project",
+      "slot": "reference",
+      "key": null,
+      "feature": "Project",
+      "mcp": "project",
+      "accepts": [
+        "body_solid",
+        "face_planar",
+        "datum_plane"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Project needs a body — add or import one first",
+      "gui": true,
+      "action": "fly:plane#4"
+    },
+    {
+      "id": "measure",
+      "name": "Measure",
+      "slot": "reference",
+      "key": null,
+      "feature": null,
+      "mcp": "measure",
+      "accepts": [
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex",
+        "body_solid",
+        "body_sheet",
+        "bodies_2",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": false,
+      "action": null
+    },
+    {
+      "id": "mass_props",
+      "name": "Mass",
+      "slot": "reference",
+      "key": null,
+      "feature": null,
+      "mcp": "mass_properties",
+      "accepts": [
+        "body_solid"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": null,
+      "gui": false,
+      "action": null
+    },
+    {
+      "id": "interference",
+      "name": "Interference",
+      "slot": "reference",
+      "key": null,
+      "feature": null,
+      "mcp": "check_interference",
+      "accepts": [
+        "bodies_2"
+      ],
+      "needs": {
+        "bodies": 2
+      },
+      "refusal": null,
+      "gui": false,
+      "action": null
+    },
+    {
+      "id": "edit_feature",
+      "name": "Edit",
+      "slot": "modify",
+      "key": null,
+      "feature": null,
+      "mcp": "set_feature_expr",
+      "accepts": [
+        "body_solid",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "sk_loop",
+        "art",
+        "datum_plane",
+        "datum_axis",
+        "coordsys",
+        "body_sheet"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": null
+    },
+    {
+      "id": "delete_face",
+      "name": "Delete Face",
+      "slot": "modify",
+      "key": null,
+      "feature": "DeleteFace",
+      "mcp": "delete_face",
+      "accepts": [
+        "face_planar",
+        "face_cyl",
+        "face_other"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Delete Face needs a body — add or import one first",
+      "gui": true,
+      "action": "fly:dressup#3"
+    },
+    {
+      "id": "colour",
+      "name": "Colour",
+      "slot": "modify",
+      "key": null,
+      "feature": null,
+      "mcp": null,
+      "accepts": [
+        "body_solid",
+        "body_sheet"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": null,
+      "gui": true,
+      "action": "btn:colour"
+    },
+    {
+      "id": "delete",
+      "name": "Delete",
+      "slot": "modify",
+      "key": "Del",
+      "feature": null,
+      "mcp": null,
+      "accepts": [
+        "body_solid",
+        "body_sheet",
+        "sk_loop",
+        "art",
+        "datum_plane",
+        "datum_axis",
+        "coordsys",
+        "bodies_2",
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:delete"
+    },
+    {
+      "id": "sk_line_t",
+      "name": "Line",
+      "slot": "create",
+      "key": "L",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:L"
+    },
+    {
+      "id": "sk_rect",
+      "name": "Rectangle",
+      "slot": "create",
+      "key": "R",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:R"
+    },
+    {
+      "id": "sk_circle",
+      "name": "Circle",
+      "slot": "create",
+      "key": "C",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:C"
+    },
+    {
+      "id": "sk_arc_t",
+      "name": "Arc",
+      "slot": "create",
+      "key": "A",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:A"
+    },
+    {
+      "id": "sk_slot",
+      "name": "Slot",
+      "slot": "create",
+      "key": "S",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:S"
+    },
+    {
+      "id": "sk_ellipse",
+      "name": "Ellipse",
+      "slot": "create",
+      "key": "E",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:E"
+    },
+    {
+      "id": "sk_spline",
+      "name": "Spline",
+      "slot": "create",
+      "key": "B",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:B"
+    },
+    {
+      "id": "sk_polygon",
+      "name": "Polygon",
+      "slot": "create",
+      "key": "G",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:G"
+    },
+    {
+      "id": "sk_point_t",
+      "name": "Point",
+      "slot": "create",
+      "key": "P",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:P"
+    },
+    {
+      "id": "sk_offset",
+      "name": "Offset",
+      "slot": "add",
+      "key": "O",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:O"
+    },
+    {
+      "id": "sk_trim",
+      "name": "Trim",
+      "slot": "remove",
+      "key": "T",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:T"
+    },
+    {
+      "id": "sk_fillet",
+      "name": "Fillet",
+      "slot": "dressup",
+      "key": "F",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:F"
+    },
+    {
+      "id": "sk_chamfer",
+      "name": "Chamfer",
+      "slot": "dressup",
+      "key": "H",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:H"
+    },
+    {
+      "id": "sk_mirror",
+      "name": "Mirror",
+      "slot": "repeat",
+      "key": "M",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:M"
+    },
+    {
+      "id": "sk_move",
+      "name": "Move",
+      "slot": "transform",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": null
+    },
+    {
+      "id": "sk_dimension",
+      "name": "Dimension",
+      "slot": "reference",
+      "key": "D",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:D"
+    },
+    {
+      "id": "sk_constrain",
+      "name": "Constrain",
+      "slot": "reference",
+      "key": "K",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:K"
+    },
+    {
+      "id": "sk_construct",
+      "name": "Construction",
+      "slot": "reference",
+      "key": "Q",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_none",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:Q"
+    },
+    {
+      "id": "sk_extend",
+      "name": "Extend",
+      "slot": "modify",
+      "key": "X",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "key:X"
+    },
+    {
+      "id": "sk_delete",
+      "name": "Delete",
+      "slot": "modify",
+      "key": "Del",
+      "feature": "Sketch",
+      "mcp": null,
+      "mode": "sketch",
+      "accepts": [
+        "sk_line",
+        "sk_arc",
+        "sk_point",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:delete"
+    }
   ],
-
   "chrome_only": {
     "_why": "document-level actions act on the DOCUMENT, not on a selection, so they stay in chrome and never enter the offer (see 4.1)",
-    "items": ["Import STEP", "Import mesh", "Text", "SVG", "Export STEP", "Commit to Plate",
-              "Undo", "Redo", "Variables", "Section view", "Origin planes", "World axes"]
-  }
+    "items": [
+      "Import STEP",
+      "Import mesh",
+      "Text",
+      "SVG",
+      "Export STEP",
+      "Commit to Plate",
+      "Undo",
+      "Redo",
+      "Variables",
+      "Section view",
+      "Origin planes",
+      "World axes"
+    ]
+  },
+  "_ratified": "Row order ratified 2026-07-31 by Tommaso. Changing an index is a breaking change (charter 4.1)."
 }

@@ -182,6 +182,11 @@ public:
     void set_body_translucent(bool on); // render the solid see-through (fillet/chamfer preview)
     void set_body_hidden(bool on);      // preview-only: hide base bodies, show only the result ghost
     void set_on_move_exit(std::function<void()> cb);   // right-click finished the move-body gizmo
+    // Right-click (or its platform equivalent) on the viewport with no tool running: open the
+    // object-driven offer there. Fires with SCREEN coordinates. Deliberately NOT fired while a
+    // tool is live — right-click already ends a polyline chain and finishes the move gizmo, and
+    // taking those over would break two working interactions in order to add a third.
+    void set_on_context_menu(std::function<void(const wxPoint&)> cb);
     void delete_selected_sketch_entities();
     bool inline_busy() const;                         // a sketch value field is open (guard keys)
     bool undo_last_sketch_entity();                   // Ctrl+Z in a sketch: drop the last entity
@@ -261,6 +266,9 @@ private:
     wxGLCanvas* m_canvas_widget{nullptr};
     GLCanvas3D* m_canvas{nullptr};
     int         m_sw_gl{-1};   // -1 unknown, 0 hardware GL, 1 software GL
+
+    std::function<void(const wxPoint&)> m_on_context_menu;
+    bool        m_ctx_bound{false};   // bind the RIGHT_UP handler once, however often the cb is set
 
     Bed3D       m_bed;
     Model       m_model;

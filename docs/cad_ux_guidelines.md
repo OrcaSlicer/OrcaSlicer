@@ -314,11 +314,12 @@ Two consequences the group must accept together with the invariant:
   and unlearnable. A constant one is a few rows longer, teaches while it waits,
   and is memorised in a week.
 
-#### The map — for the group to ratify
+#### The map — RATIFIED 2026-07-31
 
-The invariant is not negotiable. The specific assignment below is a first
-proposal, and the group should argue about it *once*, then never again — every
-later change re-addresses somebody's muscle memory.
+The invariant is not negotiable, and as of 2026-07-31 neither is the assignment:
+the row order below is **ratified**. It was argued once; it is not argued again.
+Changing an index from here on is a breaking change to every user's muscle
+memory and needs the group, not a pull request (§9 q12).
 
 Eight families, ordered so the sequence itself has a logic: material is created,
 grows, is taken away, is refined, is repeated, is moved, is referred to, is

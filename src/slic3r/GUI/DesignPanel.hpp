@@ -602,6 +602,15 @@ private:
     // What the live sketch was actually opened on ("the picked face", "XY", a datum's name), so the
     // hint can say it. Resolved from the selection at begin_sketch, not read back from a combo.
     wxString          m_sketch_on;
+    // --- the object-driven offer (charter 4.1) ---------------------------------------------
+    // Right-click the geometry -> a vertical list in ratified row order, verbs that do not
+    // apply disabled IN PLACE with their reason. The rows come from the generated table in
+    // DesignOffer.hpp; this map is how a row reaches the code that already implements it, for
+    // the verbs that have no keyboard shortcut to route through.
+    std::map<std::string, std::function<void()>> m_verb_actions;
+    void show_offer_menu(const wxPoint& screen_pos);
+    int  offer_selection_kind() const;          // an OfferSel, as int to keep the header light
+    void run_offer_action(const char* action);
     // Face-as-profile extrude (Onshape): when Extrude is opened on a picked solid face with
     // no sketch source, this carries that global face id so the kernel extrudes the face.
     // -1 = ordinary sketch/loop extrude. Set when opening the Extrude card, consumed on add.
