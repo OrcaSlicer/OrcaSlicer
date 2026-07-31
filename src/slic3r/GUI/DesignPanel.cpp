@@ -3125,9 +3125,20 @@ DesignPanel::DesignPanel(wxWindow* parent)
         set_tree_selection(feat);
         m_status->SetForegroundColour(wxNullColour);
         m_status->SetLabel(region >= 0
-            ? _L("Loop selected — Extrude it, or Edit / Delete the sketch")
-            : _L("Sketch selected — Extrude it, or Edit / Delete from the tree"));
+            ? _L("Loop selected — Extrude it, or double-click to edit")
+            : _L("Sketch selected — Extrude it, or double-click to edit"));
         m_status->Refresh();
+    });
+
+    // Double-click a committed sketch stroke: open THAT sketch for editing, where its entities
+    // are individually selectable and their quotes editable. on_edit_feature already does the
+    // whole job — it was only ever reachable from the tree, which is precisely the side-panel
+    // dependency being retired. The pick has already lit the right tree row by the time the
+    // double-click arrives, but set it again so the path does not depend on that ordering.
+    m_viewport->set_on_display_sketch_activated([this](int feat) {
+        if (feat < 0 || feat >= int(m_doc.features.size())) return;
+        set_tree_selection(feat);
+        on_edit_feature();
     });
 
     // F key (Prepare's Place on Face): the tool forwards it here when the Design viewport

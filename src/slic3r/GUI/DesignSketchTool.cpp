@@ -31,6 +31,7 @@ static void translate_entity(SketchEntity& e, const Vec2d& d);
 // Pick-distance helpers (defined lower down; used earlier by the edit-op gizmo).
 static double point_segment_dist(const Vec2d& p, const Vec2d& a, const Vec2d& b);
 static double entity_pick_dist(const Vec2d& p, const SketchEntity& e);
+static bool   point_in_poly(const Vec2d& q, const std::vector<Vec2d>& poly);
 static bool   ray_triangle(const Vec3d& ro, const Vec3d& rd, const Vec3d& v0, const Vec3d& v1,
                            const Vec3d& v2, double& t);
 static double ray_segment_dist3(const Vec3d& ro, const Vec3d& rd, const Vec3d& a, const Vec3d& b);
@@ -2694,6 +2695,37 @@ DesignSketchTool::region_entity_indices(const std::vector<SketchEntity>& ents) c
     std::vector<std::vector<int>> out;
     for (RegionLoop& r : region_loops(ents)) out.push_back(std::move(r.ents));
     return out;
+}
+
+// Nearest stroke, and the enclosing region if the cursor is inside one, for ONE committed
+// sketch. Factored out so the single-click and double-click paths cannot drift apart: they must
+// agree about what is under the pointer or one of them will act on something else.
+//
+// region_loops exists to find EXTRUDABLE regions, and by design it discards open chains — its
+// own walk comment says so. Using it as the pick index meant a committed sketch of open lines
+// had no pickable geometry whatsoever: the strokes drew, and not one of them could be clicked,
+// so there was no way to select it and therefore none to edit or delete it. Whether a stroke
+// bounds a region has nothing to do with whether the user can point at it. Region membership
+// decides what a hit REPORTS, not whether the hit can happen.
+void DesignSketchTool::hit_display_sketch(const DisplaySketch& d, const Vec2d& p, double tol,
+                                          int& edge_feat, int& edge_reg, int& edge_ent,
+                                          double& edge_d, int& face_feat, int& face_reg) const
+{
+    const std::vector<RegionLoop> loops = region_loops(d.entities);
+    std::vector<int> ent_region(d.entities.size(), -1);
+    for (int r = 0; r < int(loops.size()); ++r)
+        for (int ei : loops[r].ents)
+            if (ei >= 0 && ei < int(ent_region.size())) ent_region[ei] = r;
+
+    for (int ei = 0; ei < int(d.entities.size()); ++ei) {
+        if (d.entities[ei].construction) continue;   // as region_loops filters it
+        const double ed = entity_pick_dist(p, d.entities[ei]);
+        if (ed <= tol * 3.0 && ed < edge_d) {
+            edge_d = ed; edge_feat = d.feature; edge_reg = ent_region[ei]; edge_ent = ei;
+        }
+    }
+    for (int r = 0; r < int(loops.size()); ++r)
+        if (face_feat < 0 && point_in_poly(p, loops[r].poly)) { face_feat = d.feature; face_reg = r; }
 }
 
 std::vector<SketchEntity> DesignSketchTool::selected_loop_entities() const
@@ -7609,9 +7641,29 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
     // is the ONLY interaction in display-only mode; everything else (drag/move/wheel/right)
     // falls through (return false) so the camera can still orbit the plate.
     if (!m_active) {
-        // Double-click anywhere fits the view (the bottom navigator orb does orientation; this
-        // is the fit shortcut). Handled before gizmo/pick so it always works on the idle plate.
-        if (evt.LeftDClick()) { canvas.zoom_to_volumes(); return true; }
+        // Double-click on a committed sketch stroke OPENS IT FOR EDITING; on empty space it
+        // still fits the view. A sketch line has to be editable from the line, not from a tree
+        // row — selecting it already lit the feature, but "now go and press Edit in the panel"
+        // is the side-panel dependency this tab exists to remove. Fit keeps the rest of the
+        // plate, so nothing is taken away.
+        if (evt.LeftDClick()) {
+            int f = -1, r = -1, e = -1, ff = -1, fr = -1; double dbest = 1e30;
+            const Linef3 dray  = canvas.mouse_ray(Point(evt.GetX(), evt.GetY()));
+            const Linef3 dray8 = canvas.mouse_ray(Point(evt.GetX() + 8, evt.GetY()));
+            for (const DisplaySketch& d : m_display_sketches) {
+                const Vec2d dp  = d.plane.project(dray.a,  dray.vector());
+                const Vec2d dp8 = d.plane.project(dray8.a, dray8.vector());
+                hit_display_sketch(d, dp, std::max(1e-3, (dp8 - dp).norm()), f, r, e, dbest, ff, fr);
+            }
+            const int target = (f >= 0) ? f : ff;
+            if (target >= 0 && on_display_sketch_activated) {
+                dp_pick_trace("double-click -> edit sketch feature %d (entity %d)", target, e);
+                on_display_sketch_activated(target);
+                return true;
+            }
+            canvas.zoom_to_volumes();
+            return true;
+        }
         // Visual Extrude gizmo (C5b): while the Extrude card is open the depth arrow is
         // grabbable — drag changes the depth live; a click (no drag) on the arrow opens the
         // inline depth editor. Intercept before the early no-LeftDown bailout so Dragging/
@@ -7901,34 +7953,13 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
         Point pos(evt.GetX(), evt.GetY());
         const Linef3 ray  = canvas.mouse_ray(pos);
         const Linef3 ray8 = canvas.mouse_ray(Point(evt.GetX() + 8, evt.GetY()));
-        int    edge_feat = -1, edge_reg = -1; double edge_d = 1e30;  // nearest loop stroke (wins)
+        int    edge_feat = -1, edge_reg = -1, edge_ent = -1; double edge_d = 1e30;  // nearest stroke
         int    face_feat = -1, face_reg = -1;                        // interior (fallback)
         for (const DisplaySketch& d : m_display_sketches) {
             const Vec2d p   = d.plane.project(ray.a,  ray.vector());
             const Vec2d p8  = d.plane.project(ray8.a, ray8.vector());
             const double tol = std::max(1e-3, (p8 - p).norm());
-            const std::vector<RegionLoop> loops = region_loops(d.entities);
-            // region_loops exists to find EXTRUDABLE regions, and by design it discards open
-            // chains — its own walk comment says so. Using it as the pick index meant a
-            // committed sketch of open lines had no pickable geometry whatsoever: you could see
-            // the strokes and could not click one of them, so there was no way to select it, and
-            // therefore no way to edit or delete it either. Whether a stroke bounds a region has
-            // nothing to do with whether the user can point at it. Region membership decides
-            // what a hit REPORTS, not whether the hit can happen.
-            std::vector<int> ent_region(d.entities.size(), -1);
-            for (int r = 0; r < int(loops.size()); ++r)
-                for (int ei : loops[r].ents)
-                    if (ei >= 0 && ei < int(ent_region.size())) ent_region[ei] = r;
-
-            for (int ei = 0; ei < int(d.entities.size()); ++ei) {
-                if (d.entities[ei].construction) continue;   // as region_loops filters it
-                const double ed = entity_pick_dist(p, d.entities[ei]);
-                if (ed <= tol * 3.0 && ed < edge_d) {
-                    edge_d = ed; edge_feat = d.feature; edge_reg = ent_region[ei];
-                }
-            }
-            for (int r = 0; r < int(loops.size()); ++r)
-                if (face_feat < 0 && point_in_poly(p, loops[r].poly)) { face_feat = d.feature; face_reg = r; }
+            hit_display_sketch(d, p, tol, edge_feat, edge_reg, edge_ent, edge_d, face_feat, face_reg);
         }
         // A precise hit on a loop outline wins over the solid face beneath it.
         if (edge_feat >= 0) {

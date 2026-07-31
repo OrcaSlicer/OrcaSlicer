@@ -158,6 +158,9 @@ public:
     // Click a committed sketch overlay (no live session) -> select that loop: the Sketch
     // feature index + the clicked closed-region index within it (-1 = no specific loop).
     std::function<void(int feature, int region)> on_display_sketch_selected;
+    // Double-click on a committed sketch stroke: open THAT feature for editing. Selecting a line
+    // and then hunting for an Edit button in a panel is the dependency this tab exists to remove.
+    std::function<void(int feature)> on_display_sketch_activated;
     // Entities forming the currently click-selected loop (for a per-loop extrude); empty
     // if no loop is selected.
     std::vector<SketchEntity> selected_loop_entities() const;
@@ -918,6 +921,11 @@ private:
     GLSelectionRectangle m_rubber;
     void pick_bodies_in_rectangle();       // resolve the swept rectangle -> whole-body selection
     bool on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas);   // the body; on_mouse wraps it
+    // Nearest stroke + enclosing region of ONE committed sketch. Shared by the click and
+    // double-click paths so they cannot disagree about what is under the pointer.
+    void hit_display_sketch(const DisplaySketch& d, const Vec2d& p, double tol,
+                            int& edge_feat, int& edge_reg, int& edge_ent,
+                            double& edge_d, int& face_feat, int& face_reg) const;
     bool m_right_consumed{false};          // last RightDown was a gesture terminator, not a menu
     void render_solid_highlight();
     void render_datum_planes();           // translucent rectangles for datum/reference planes
