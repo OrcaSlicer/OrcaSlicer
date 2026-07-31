@@ -2631,7 +2631,12 @@ void MachineObject::reset()
             vt_slot.erase(vt_slot.begin() + 1);
         }
     }
-    subtask_ = nullptr;
+    // why: reset reuses MachineObject, so release its lazy subtask
+    // before dropping the pointer to prevent reconnect leaks.
+    if (subtask_) {
+        delete subtask_;
+        subtask_ = nullptr;
+    }
     has_extra_flow_type = false;
     m_partskip_ids.clear();
 }
@@ -2639,6 +2644,20 @@ void MachineObject::reset()
 void MachineObject::set_print_state(std::string status)
 {
     print_status = status;
+}
+
+// why: printer agents can report progress without BBL cloud task identity.
+void MachineObject::update_print_progress(const json& value)
+{
+    if (value.is_string())
+        mc_print_percent = stoi(value.get<std::string>());
+    else if (value.is_number_integer())
+        mc_print_percent = value.get<int>();
+    else
+        return;
+
+    if (BBLSubTask* curr_task = get_subtask())
+        curr_task->task_progress = mc_print_percent;
 }
 
 int MachineObject::connect(bool use_openssl)
@@ -3319,10 +3338,7 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         print_type = jj["print_type"].get<std::string>();
                     }
                     if (jj.contains("mc_percent")) {
-                        if (jj["mc_percent"].is_string())
-                            mc_print_percent = stoi(j["print"]["mc_percent"].get<std::string>());
-                        else if (jj["mc_percent"].is_number_integer())
-                            mc_print_percent = j["print"]["mc_percent"].get<int>();
+                        update_print_progress(jj["mc_percent"]);
                     }
                     if (jj.contains("mc_print_sub_stage")) {
                         if (jj["mc_print_sub_stage"].is_number_integer())
@@ -3540,7 +3556,6 @@ int MachineObject::parse_json(std::string tunnel, std::string payload, bool key_
                         update_slice_info(jj["project_id"].get<std::string>(), jj["profile_id"].get<std::string>(), jj["subtask_id"].get<std::string>(), plate_index);
                         BBLSubTask* curr_task = get_subtask();
                         if (curr_task) {
-                            curr_task->task_progress = mc_print_percent;
                             curr_task->printing_status = print_status;
                             curr_task->task_id = jj["subtask_id"].get<std::string>();
                         }

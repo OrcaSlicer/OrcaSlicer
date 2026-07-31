@@ -894,6 +894,7 @@ public:
     static bool is_in_printing_status(std::string status);
 
     void set_print_state(std::string status);
+    void update_print_progress(const json& value);
 
     bool is_connected();
     bool is_connecting();
