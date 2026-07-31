@@ -235,6 +235,9 @@ private:
     // list: a picked planar face wins, otherwise the reference plane last clicked in 3D. `what`
     // comes back as something to show the user, so the choice is visible without a combo.
     SketchPlane sketch_plane_from_selection(wxString& what) const;
+    // Whether that resolution has anything the USER picked behind it, rather than the default
+    // reference plane. Lets a caller say "sketching on XZ" only when it is actually true.
+    bool sketch_plane_target(wxString& what) const;
     // True when Extrude should build only the click-selected loop (a region of the
     // resolved sketch is selected and it carries entities).
     bool       extrude_uses_loop() const;
@@ -328,6 +331,7 @@ private:
     // persists until Finish (Phase 3).
     wxSizer*      m_box_sketch_session{nullptr};
     wxStaticText* m_hdr_sketch_session{nullptr};
+    wxStaticText* m_sketch_hint{nullptr};   // "click a plane" / "drawing on X" — must match the status
     wxStaticText* m_hdr_extrude{nullptr};
     wxStaticText* m_hdr_dressup{nullptr};
     wxStaticText* m_hdr_hole{nullptr};
@@ -397,6 +401,9 @@ private:
     // >=3 indexes resolve_datum_planes(). Set by CLICKING a ghost plane in the viewport — there is
     // deliberately no dropdown for it. snaporca-e1p.
     int               m_ref_plane{0};
+    // m_ref_plane is always a VALID plane, so it cannot itself distinguish "the user chose XY"
+    // from "nobody has chosen anything yet". This does.
+    bool              m_plane_picked{false};
     ComboBox*         m_shape{nullptr};
     ComboBox*         m_plane{nullptr};
     ComboBox*         m_mode{nullptr};
@@ -611,6 +618,11 @@ private:
     std::map<std::string, std::function<void()>> m_verb_actions;
     void show_offer_menu(const wxPoint& screen_pos);
     int  offer_selection_kind() const;          // an OfferSel, as int to keep the header light
+    // Does the SKETCH half of the map apply? A mode question, not a session one: begin_sketch
+    // does not run until the first tool is armed, so between "press Sketch" and "pick a tool"
+    // is_sketching() is still false — precisely when the drawing tools must be on offer. The
+    // is_sketching() arm covers re-opening a committed sketch, which enters the session first.
+    bool sketch_map_applies() const;
     void run_offer_action(const char* action);
     // Face-as-profile extrude (Onshape): when Extrude is opened on a picked solid face with
     // no sketch source, this carries that global face id so the kernel extrudes the face.

@@ -7563,7 +7563,21 @@ std::vector<int> DesignSketchTool::connected_loop(int seed) const
     return out;
 }
 
+// Right-click has two jobs in a sketch, and they were resolved by giving one of them everything:
+// the offer was excluded in sketch mode wholesale so a right-click could end a polyline chain,
+// abandon an anchor or exit a tool. That made every sketch row in the atlas unreachable.
+// The honest test is not "which mode are we in" but "did the tool actually USE this right-click",
+// and only the tool knows. Wrapping on_mouse records that once, for every terminator, instead of
+// threading a flag through the twenty-odd sites that consume a RightDown.
 bool DesignSketchTool::on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas)
+{
+    const bool consumed = on_mouse_impl(evt, canvas);
+    if (evt.RightDown())
+        m_right_consumed = consumed;
+    return consumed;
+}
+
+bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
 {
     // Track the cursor in canvas client px so the in-canvas value editor can open right
     // where the user clicked (Onshape places the field at the click, not via a camera

@@ -89,6 +89,10 @@ public:
     bool is_active() const { return m_active; }
     bool has_entities() const { return !m_entities.empty(); }
     bool on_mouse(wxMouseEvent& evt, GLCanvas3D& canvas);
+    // True if the LAST right-press was consumed as a gesture terminator (end a polyline chain,
+    // abandon an anchor, exit a tool). Read-and-clear: the canvas asks on the matching release to
+    // decide whether that right-click was the user's, in which case it opens the offer.
+    bool take_right_consumed() { const bool b = m_right_consumed; m_right_consumed = false; return b; }
     void render(GLCanvas3D& canvas);
 
     // Persistent committed sketches to draw even when no session is active (e.g. an
@@ -913,6 +917,8 @@ private:
     // button is free for it, which is the CAD convention (Onshape/SolidWorks).
     GLSelectionRectangle m_rubber;
     void pick_bodies_in_rectangle();       // resolve the swept rectangle -> whole-body selection
+    bool on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas);   // the body; on_mouse wraps it
+    bool m_right_consumed{false};          // last RightDown was a gesture terminator, not a menu
     void render_solid_highlight();
     void render_datum_planes();           // translucent rectangles for datum/reference planes
     void render_view_helpers();           // world origin planes + axis triad (P / A toggles)

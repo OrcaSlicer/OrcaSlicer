@@ -816,7 +816,10 @@ void DesignCanvas::set_on_context_menu(std::function<void(const wxPoint&)> cb)
     });
     m_canvas_widget->Bind(wxEVT_RIGHT_UP, [this](wxMouseEvent& e) {
         const wxPoint d = e.GetPosition() - m_ctx_press;
-        if (m_on_context_menu && !is_sketching() && !inline_busy()
+        // Always read-and-clear, even when another guard already rules the offer out, or a
+        // terminator recorded under one condition would still be pending under the next.
+        const bool terminated = m_sketch_tool.take_right_consumed();
+        if (m_on_context_menu && !terminated && !inline_busy()
             && std::max(std::abs(d.x), std::abs(d.y)) <= 8) {
             m_on_context_menu(m_canvas_widget->ClientToScreen(e.GetPosition()));
             return;   // consumed

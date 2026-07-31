@@ -516,11 +516,33 @@ DesignPanel::DesignPanel(wxWindow* parent)
         };
 
         auto* b_sketch = icon_btn("design_sketch", _L("Sketch"));
+        // Sketch means a tool. Pressing it used to set the mode and then ask, unconditionally,
+        // for the very thing the user had just done — click XZ, read "XZ plane selected, press
+        // Sketch", press Sketch, and be told to click a reference plane. The plane was never
+        // lost (m_ref_plane holds it and begin_sketch captures it when the first tool is armed);
+        // the sentence was simply false, and with right-click excluded in sketch mode there was
+        // no door to the tools at all, so the only way on was the toolbar this tab is retiring.
         std::function<void()> act_sketch = [this] {
             set_ui_mode(UiMode::Sketch);
+            wxString where;
+            const bool have_plane = sketch_plane_target(where);
             m_status->SetForegroundColour(wxNullColour);
-            m_status->SetLabel(_L("Click a face or a reference plane in the viewport, then a sketch tool"));
+            m_status->SetLabel(have_plane
+                ? wxString::Format(_L("Sketching on %s — pick a tool"), where)
+                : _L("Click a face or a reference plane in the viewport, then a sketch tool"));
             m_status->Refresh();
+            if (m_sketch_hint) {   // the card must agree with the status line, not argue with it
+                m_sketch_hint->SetLabel(have_plane
+                    ? wxString::Format(_L("Drawing on %s.\nPick a tool, or right-click for the list."), where)
+                    : _L("Click a face or a reference plane, then a sketch tool."));
+                m_sketch_hint->Refresh();
+                m_cards->Layout();
+            }
+            // Hand over the tools rather than naming them in a status line. CallAfter so the
+            // mode change has settled before a modal menu takes the loop; the menu carries each
+            // tool's shortcut, so pressing the key instead of picking a row costs nothing.
+            if (have_plane)
+                CallAfter([this] { show_offer_menu(wxGetMousePosition()); });
         };
         b_sketch->Bind(wxEVT_BUTTON, [act_sketch](wxCommandEvent&) { act_sketch(); });
         m_keys_feature[SHIFT('S')] = act_sketch;
@@ -2681,10 +2703,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // looking and pointing. A combo duplicated that decision somewhere the geometry could not
         // see it, and once a face could be picked it went further and displayed a stale row that
         // contradicted the real target. snaporca-e1p.
-        auto* hint = new wxStaticText(m_cards, wxID_ANY,
+        // Kept as a member, not a local: the card has to be able to STOP saying this. It asked
+        // for a plane even when one had just been picked, directly contradicting the status line
+        // two inches below it, which by then read "Sketching on XZ".
+        m_sketch_hint = new wxStaticText(m_cards, wxID_ANY,
             _L("Click a face or a reference plane, then a sketch tool."));
-        hint->SetForegroundColour(dp_sec_text());
-        m_box_sketch_session->Add(hint, 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, 12);
+        m_sketch_hint->SetForegroundColour(dp_sec_text());
+        m_box_sketch_session->Add(m_sketch_hint, 0, wxLEFT | wxRIGHT | wxTOP | wxBOTTOM, 12);
     }
     cards->Add(m_box_sketch_session, 0, wxEXPAND);
 
@@ -3291,6 +3316,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             // while the committed feature landed on the new one.
             if (base >= 0) {
                 m_ref_plane = base;
+                m_plane_picked = true;                 // chosen, not merely defaulted to
                 m_pick_face = m_pick_face_body = -1;   // last pick wins: a plane beats a stale face
                 if (m_viewport && m_viewport->is_sketching())
                     m_viewport->set_sketch_plane(plane_from_choice(m_ref_plane));
@@ -4890,12 +4916,36 @@ SketchPlane DesignPanel::sketch_plane_from_selection(wxString& what) const
     return plane_from_choice(m_ref_plane);
 }
 
+// Is there a sketch target the USER chose, and what is it called? Distinct from
+// sketch_plane_from_selection, which always answers because it falls back to m_ref_plane —
+// a caller that wants to say "sketching on X" needs to know whether there is anything to fall
+// back FROM, so it can ask for a plane instead of claiming one the user never picked.
+bool DesignPanel::sketch_plane_target(wxString& what) const
+{
+    const int fb = (m_sel_solid_face >= 0 && m_sel_solid_body >= 0) ? m_sel_solid_body : m_pick_face_body;
+    const int fi = (m_sel_solid_face >= 0 && m_sel_solid_body >= 0) ? m_sel_solid_face : m_pick_face;
+    SketchPlane p;
+    if (fb >= 0 && fi >= 0 && m_doc.plane_of_face(fb, fi, p)) {
+        what = (m_doc.bodies.size() > 1)
+             ? wxString::Format(_L("the picked face of Body %d"), fb + 1)
+             : _L("the picked face");
+        return true;
+    }
+    if (m_plane_picked) { what = ref_plane_name(m_ref_plane); return true; }
+    return false;
+}
+
 // ---------------------------------------------------------------------------------------------
 // The object-driven offer (charter §4.1). Right-click the geometry and get a vertical list in the
 // ratified row order, with the verbs that do not apply DISABLED IN PLACE carrying their reason.
 // The rows come from DesignOffer.hpp, generated from docs/ux/tool_atlas.json — the same file the
 // mockups are drawn from, so a drawing and the product cannot drift apart.
 // ---------------------------------------------------------------------------------------------
+
+bool DesignPanel::sketch_map_applies() const
+{
+    return m_ui_mode == UiMode::Sketch || (m_viewport && m_viewport->is_sketching());
+}
 
 // Which kind of thing is selected, as an OfferSel. Classified by the level the pick cycle has
 // actually REACHED, so the menu describes what is highlighted — a header that names a face while
@@ -4904,7 +4954,7 @@ SketchPlane DesignPanel::sketch_plane_from_selection(wxString& what) const
 // sketch_plane_from_selection, which deliberately uses m_pick_face. snaporca-3a2.)
 int DesignPanel::offer_selection_kind() const
 {
-    if (m_viewport && m_viewport->is_sketching())
+    if (sketch_map_applies())
         return int(OfferSel::SkNone);
 
     const int nb = int(m_doc.bodies.size());
@@ -4959,7 +5009,11 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
 {
     const int      kind = offer_selection_kind();
     const uint32_t bit  = offer_bit(OfferSel(kind));
-    const bool     sketching = m_viewport && m_viewport->is_sketching();
+    // Which verb MAP applies is a question about the MODE, not about whether a session is
+    // running — the same distinction the keyboard already had to learn (snaporca-0ud). Gated on
+    // is_sketching() the offer opened on entering a sketch showing the FEATURE rows, every one
+    // of them refusing the sketch selection, so it read as a menu of nine dead entries.
+    const bool     sketching = sketch_map_applies();
 
     const int bodies = int(m_doc.bodies.size());
     int sketches = 0;
