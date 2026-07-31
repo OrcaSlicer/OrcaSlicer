@@ -491,12 +491,125 @@ def ring_items(A, grouped):
 
 
 # ---------------------------------------------------------------- rendering
+def menu(cx, cy, header, rows, submenu=None, sub_at=None):
+    """Vertical list form of the offer. rows: (glyph, name, key, count, enabled, reason).
+
+    The invariant is unchanged — a verb has one permanent row index, and rows that do not
+    apply are DISABLED IN PLACE, never removed. What changes against the ring is what an
+    unavailable slot can say: an empty circle says nothing, a greyed row says its own name
+    and the reason it is grey, in the words the product already ships.
+    """
+    RW, RH, HD = 324, 34, 38
+    # The reason line is the whole point of a disabled row, so it must FIT: at 10px italic a
+    # glyph is ~4.9px, and anything past the box edge is a promise the layout does not keep.
+    fit = int((RW - 62) / 4.9)
+    x, y = cx + 26, cy - 30
+    h = HD + len(rows) * RH + 10
+    if y + h > H - 44:
+        y = max(100, H - 44 - h)
+    g = [f'<rect x="{x+3}" y="{y+4}" width="{RW}" height="{h}" rx="12" fill="#000" opacity="0.35"/>',
+         f'<rect x="{x}" y="{y}" width="{RW}" height="{h}" rx="12" fill="{C["chrome"]}" '
+         f'stroke="{C["chip_line"]}"/>',
+         f'<text x="{x+16}" y="{y+24}" font-family="Inter,DejaVu Sans,sans-serif" font-size="11.5" '
+         f'letter-spacing="1.1" fill="{C["dim"]}">{header.upper()}</text>',
+         f'<line x1="{x+1}" y1="{y+HD-6}" x2="{x+RW-1}" y2="{y+HD-6}" stroke="{C["line"]}"/>']
+    # a leader from the pick point to the menu, so the list is visibly ABOUT that geometry
+    g.insert(0, f'<path d="M{cx} {cy} L{x} {y+HD+16}" stroke="{C["chip_line"]}" '
+                f'stroke-dasharray="2 3" fill="none"/>')
+    g.insert(0, f'<circle cx="{cx}" cy="{cy}" r="5" fill="none" stroke="{C["hi"]}" stroke-width="2"/>')
+    for i, (gl, name, key, count, on, reason) in enumerate(rows):
+        ry = y + HD + i * RH
+        op = "1" if on else "0.34"
+        if on and i == 0:
+            g.append(f'<rect x="{x+5}" y="{ry+2}" width="{RW-10}" height="{RH-4}" rx="7" '
+                     f'fill="{C["chip"]}"/>')
+        g.append(f'<g opacity="{op}">')
+        g.append(glyph(gl, x + 26, ry + RH / 2, C["text"], 0.72, 1.7))
+        g.append(f'<text x="{x+48}" y="{ry+RH/2+4.5}" font-family="Inter,DejaVu Sans,sans-serif" '
+                 f'font-size="13.5" fill="{C["text"]}">{name}</text>')
+        if key:
+            kw = 13 + len(key) * 6.6
+            g.append(f'<rect x="{x+RW-18-kw:.1f}" y="{ry+RH/2-9:.1f}" width="{kw:.1f}" height="18" '
+                     f'rx="4.5" fill="{C["key"]}"/>'
+                     f'<text x="{x+RW-18-kw/2:.1f}" y="{ry+RH/2+4:.1f}" text-anchor="middle" '
+                     f'font-family="Inter,DejaVu Sans,sans-serif" font-size="10.5" '
+                     f'fill="{C["text"]}">{key}</text>')
+        elif count and count > 1:
+            g.append(f'<path d="M{x+RW-24} {ry+RH/2-5} L{x+RW-19} {ry+RH/2} L{x+RW-24} {ry+RH/2+5}" '
+                     f'fill="none" stroke="{C["muted"]}" stroke-width="1.6" stroke-linecap="round"/>')
+            g.append(f'<text x="{x+RW-38}" y="{ry+RH/2+4}" text-anchor="end" '
+                     f'font-family="Inter,DejaVu Sans,sans-serif" font-size="11.5" '
+                     f'fill="{C["dim"]}">{count}</text>')
+        g.append('</g>')
+        if not on and reason:
+            r = reason if len(reason) <= fit else reason[:fit - 1].rstrip(" ,—-") + "…"
+            g.append(f'<text x="{x+48}" y="{ry+RH/2+16}" font-family="Inter,DejaVu Sans,sans-serif" '
+                     f'font-size="10" font-style="italic" fill="{C["dim"]}">{r}</text>')
+    if submenu:
+        sy = y + HD + (sub_at or 0) * RH - 6
+        sh = 12 + len(submenu) * RH
+        sx = x + RW + 8
+        g.append(f'<rect x="{sx+3}" y="{sy+4}" width="{RW-30}" height="{sh}" rx="12" fill="#000" opacity="0.35"/>')
+        g.append(f'<rect x="{sx}" y="{sy}" width="{RW-30}" height="{sh}" rx="12" '
+                 f'fill="{C["chrome"]}" stroke="{C["chip_line"]}"/>')
+        for i, (gl, name, key, _c, on, _r) in enumerate(submenu):
+            ry = sy + 6 + i * RH
+            g.append(f'<g opacity="{"1" if on else "0.34"}">')
+            g.append(glyph(gl, sx + 24, ry + RH / 2, C["text"], 0.72, 1.7))
+            g.append(f'<text x="{sx+44}" y="{ry+RH/2+4.5}" font-family="Inter,DejaVu Sans,sans-serif" '
+                     f'font-size="13.5" fill="{C["text"]}">{name}</text>')
+            if key:
+                kw = 13 + len(key) * 6.6
+                g.append(f'<rect x="{sx+RW-48-kw:.1f}" y="{ry+RH/2-9:.1f}" width="{kw:.1f}" height="18" '
+                         f'rx="4.5" fill="{C["key"]}"/>'
+                         f'<text x="{sx+RW-48-kw/2:.1f}" y="{ry+RH/2+4:.1f}" text-anchor="middle" '
+                         f'font-family="Inter,DejaVu Sans,sans-serif" font-size="10.5" '
+                         f'fill="{C["text"]}">{key}</text>')
+            g.append('</g>')
+    return "".join(g)
+
+
 OVERFLOWS = []   # (selection, doc state, family, verbs that did not fit the sub-ring)
 
 
 def svg_doc(inner):
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
             f'viewBox="0 0 {W} {H}">{inner}</svg>')
+
+
+def render_list_state(A, sel, doc, expand=None):
+    """The vertical-list form: every family row always present, in the same order, with the
+    ones that do not apply disabled and carrying their reason."""
+    verbs = eligible(A, sel["id"], doc)
+    grouped = by_slot(A, verbs)
+    fresh = doc["bodies"] == 0 and doc["sketches"] == 0
+    shape = "origin" if (fresh and sel["shape"] == "empty") else sel["shape"]
+    art, (ax, ay) = scene(shape, 620, 360)
+    rows, sub, sub_at = [], None, None
+    for idx, s in enumerate(A["slots"]):
+        vs = grouped.get(s["id"], [])
+        if len(vs) == 1:
+            v = vs[0]
+            rows.append((VERB_GLYPH.get(v["id"], "fam_" + s["id"]), v["name"], v.get("key"), 1, True, None))
+        elif len(vs) > 1:
+            rows.append(("fam_" + s["id"], s["label"], None, len(vs), True, None))
+            if expand == s["id"]:
+                sub_at = idx
+                sub = [(VERB_GLYPH.get(v["id"], "fam_" + s["id"]), v["name"], v.get("key"), 1, True, None)
+                       for v in vs]
+        else:
+            # Disabled in place, with the product's own refusal text — the thing an empty
+            # slot in the ring could never say.
+            cands = [v for v in A["verbs"]
+                     if v["slot"] == s["id"] and v.get("mode", "model") == sel["mode"]]
+            why = next((v["refusal"] for v in cands if v.get("refusal")), None)
+            rows.append(("fam_" + s["id"], s["label"], None, 0, False, why))
+    status = ("Right-click the geometry to see what you can do with it" if not expand
+              else f'{sel["name"]} — pick one')
+    inner = chrome(f'{doc["name"]} · vertical list', status, sel["mode"], empty_doc=fresh)
+    inner += art
+    inner += menu(ax, ay, sel["name"], rows, sub, sub_at)
+    return svg_doc(inner)
 
 
 def render_state(A, sel, doc, capacity=8, secondary=None):
@@ -576,6 +689,17 @@ def main():
                 "second": len(secondaries),
                 "detail": {sid: [v["name"] for v in vs] for sid, vs in grouped.items()},
             })
+
+    # Form-factor comparison: the SAME state as a ring and as a vertical list.
+    for sid in ("face_planar", "edge_str", "body_solid", "sk_line", "none"):
+        sel = next(s for s in A["selections"] if s["id"] == sid)
+        d = docs["fresh"] if sid == "none" else docs["rich"]
+        with open(os.path.join(outdir, f"list__{sid}.svg"), "w", encoding="utf-8") as f:
+            f.write(render_list_state(A, sel, d))
+    for sid, fam in (("face_planar", "add"), ("sk_none", "create")):
+        sel = next(s for s in A["selections"] if s["id"] == sid)
+        with open(os.path.join(outdir, f"list__{sid}__{fam}.svg"), "w", encoding="utf-8") as f:
+            f.write(render_list_state(A, sel, docs["rich"], expand=fam))
 
     # comparison sheet: 8 vs 12 slots on the same three selections
     for cap in (8, 12):
@@ -665,6 +789,16 @@ def write_atlas(A, rows, files, n_prim, n_sec, mean_fill):
  </div>
 </header>
 <main>
+ <h2>Decision 0 — ring or vertical list</h2>
+ <p>The live question. Both forms carry the SAME map and the same invariant — fixed order, never
+ re-sorted, nothing compacted; only the geometry differs. Left-click selects; right-click opens the
+ offer. What the list buys: a disabled row can state its own reason in the words the product
+ already ships, where an empty slot in a ring is mute; nine sketch primitives fit without an
+ overflow; shortcuts line up in a readable column; long translated names fit; and it is navigable
+ by arrow key and by screen reader, which a radial is not. What it costs: no equidistant flick
+ gesture, and travel to the last row is longer than to the nearest direction. Pairs below —
+ list first, the same state as a ring second.</p>
+
  <h2>Decision 1 — ring capacity</h2>
  <p>The same three selections at eight and at twelve. Eight keeps 45° between neighbours, which is
  the reliable eyes-free pointing threshold and maps 1:1 to the numpad; twelve buys direct addresses
@@ -710,7 +844,21 @@ def write_atlas(A, rows, files, n_prim, n_sec, mean_fill):
         s = open(p, encoding="utf-8").read()
         return s.replace("<svg ", '<svg style="width:100%;height:auto;display:block" ', 1)
 
-    picks = [(f'rich__{s["id"]}.svg', s["name"]) for s in A["selections"]]
+    # Form factor first: this is the live decision, so it opens the page.
+    picks = [
+        ("list__none.svg", "LIST · fresh document — every family present, the unavailable ones say why"),
+        ("fresh__none.svg", "RING · the same state — an empty slot cannot say anything"),
+        ("list__face_planar.svg", "LIST · planar face"),
+        ("rich__face_planar.svg", "RING · planar face"),
+        ("list__sk_none__create.svg", "LIST · sketch Create submenu — all 9 primitives fit, no overflow"),
+        ("rich__sk_none__create.svg", "RING · the same submenu — 2 verbs pushed behind “More”"),
+        ("list__face_planar__add.svg", "LIST · planar face, Add material submenu"),
+        ("rich__face_planar__add.svg", "RING · planar face, Add material sub-ring"),
+        ("list__body_solid.svg", "LIST · solid body"),
+        ("list__edge_str.svg", "LIST · straight edge"),
+        ("list__sk_line.svg", "LIST · sketch line"),
+    ]
+    picks += [(f'rich__{s["id"]}.svg', "RING · " + s["name"]) for s in A["selections"]]
     picks.insert(0, ("fresh__none.svg", "Fresh document, nothing selected — the first-run picture"))
     picks += [("rich__face_planar__add.svg", "Planar face · Add material sub-ring"),
               ("rich__face_planar__reference.svg", "Planar face · Reference sub-ring"),
