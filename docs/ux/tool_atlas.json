@@ -37,8 +37,8 @@
       "id": "dressup",
       "pos": "SE",
       "angle": 45,
-      "label": "Fillet / chamfer",
-      "why": "finishes faces and edges without changing the shape's intent; named for what it does, not for the trade word"
+      "label": "Fillet / chamfer / draft",
+      "why": "finishes faces and edges without changing the shape's intent; named for the tools it holds, not for the trade word. NOTE: Shell sits in Remove and Delete Face in Modify, so this row is NOT the same set as the toolbar's dressup dropdown."
     },
     {
       "id": "repeat",

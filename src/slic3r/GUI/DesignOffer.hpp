@@ -70,7 +70,7 @@ static const char* const kOfferRowNames[] = {
     "Create",
     "Add material",
     "Remove",
-    "Fillet / chamfer",
+    "Fillet / chamfer / draft",
     "Repeat",
     "Transform",
     "Reference",
