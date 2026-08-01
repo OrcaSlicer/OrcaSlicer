@@ -389,6 +389,14 @@ void DesignCanvas::set_sketch_construction(bool c)
     m_sketch_tool.set_construction(c);
 }
 
+bool DesignCanvas::add_sketch_regions(
+    const std::vector<std::vector<std::vector<Vec2d>>>& regions)
+{
+    const bool ok = m_sketch_tool.add_imported_regions(regions);
+    if (ok) request_repaint();
+    return ok;
+}
+
 void DesignCanvas::set_sketch_polygon_sides(int n)
 {
     m_sketch_tool.set_polygon_sides(n);

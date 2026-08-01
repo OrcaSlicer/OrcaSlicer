@@ -2317,6 +2317,29 @@ void DesignSketchTool::push_line(const Vec2d& a, const Vec2d& b)
     m_entities.push_back(e);
 }
 
+bool DesignSketchTool::add_imported_regions(
+    const std::vector<std::vector<std::vector<Vec2d>>>& regions)
+{
+    if (!m_active) return false;          // no session to draw into; caller makes a feature
+    const bool saved = m_construction;
+    m_construction = false;               // art is real geometry, never construction lines
+    size_t before = m_entities.size();
+    for (const auto& region : regions)
+        for (const auto& loop : region)
+            push_closed_lines(loop);      // every glyph contour, holes included
+    m_construction = saved;
+    if (m_entities.size() == before) return false;   // nothing importable — say so, do not lie
+    // Art is not "just drawn", so it must NOT enter the draw-then-edit queue. Without this the
+    // glyph contours are treated as fresh entities and a Length field opens on the first of
+    // them — on a word, that is one value editor per segment, and an open field freezes the
+    // canvas (snaporca-yce). reset_autoedit() marks every entity as already seen.
+    reset_autoedit();
+    // The new lines carry no constraints, so the solver has nothing to move; resolve anyway so
+    // the degrees-of-freedom readout counts them instead of going stale.
+    resolve_live();
+    return true;
+}
+
 void DesignSketchTool::push_closed_lines(const std::vector<Vec2d>& corners)
 {
     const size_t n = corners.size();

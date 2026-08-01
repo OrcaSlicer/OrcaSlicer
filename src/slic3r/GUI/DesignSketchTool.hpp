@@ -79,6 +79,13 @@ public:
     void begin_edit(const std::vector<SketchEntity>& entities,
                     const std::vector<SketchEntityConstraintDef>& constraints,
                     const SketchPlane& plane);
+    // Drop rigid 2D art (Text / SVG outlines) INTO the live sketch as ordinary line entities,
+    // so it joins the sketch being drawn instead of committing a separate Sketch feature.
+    // `regions` are loops in PLANE coordinates; every closed loop becomes a closed polyline, so
+    // the result is editable, constrainable and extrudable like anything else drawn by hand —
+    // unlike imported_regions, which are rigid and carry no solver entities.
+    // Returns false when no session is live, so the caller can fall back to a new feature.
+    bool add_imported_regions(const std::vector<std::vector<std::vector<Vec2d>>>& regions);
     void set_tool(Mode mode);                 // switch tool, keep accumulated entities
     void set_plane(const SketchPlane& plane) { m_plane = plane; }  // re-plane a live sketch (a reference plane was clicked mid-session); entities are 2D, re-lifted through the new plane
     void set_construction(bool c) { m_construction = c; }

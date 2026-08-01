@@ -1170,19 +1170,32 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // the sketch tools, not in the generic Features strip. Each places the art
         // in-canvas, then commits via the Insert card's Confirm.
         {
+            // In Sketch MODE the art must land in the sketch — but begin_sketch() does not run
+            // until the first tool is armed, so pressing Sketch and then Text would find no
+            // session and commit a separate feature. Arm Select first: it starts the session on
+            // the picked plane without drawing anything, so Text behaves the same whether or not
+            // you had already drawn a line. (MODE vs SESSION — the distinction that has bitten
+            // this panel before.)
+            auto ensure_sketch = [this, select_tool] {
+                if (m_ui_mode == UiMode::Sketch && m_viewport && !m_viewport->is_sketching())
+                    select_tool(DesignSketchTool::Mode::Select,
+                                _L("Select — click to select; Shift to add"));
+            };
             auto* b_text = icon_btn("design_text", _L("Text — emboss text as a profile"));
-            b_text->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_add_text(); });
+            b_text->Bind(wxEVT_BUTTON, [this, ensure_sketch](wxCommandEvent&) {
+                ensure_sketch(); on_add_text(); });
             sadd(b_text);
             auto* b_svg = icon_btn("design_svg", _L("SVG — import an outline as a profile"));
-            b_svg->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_import_svg(); });
+            b_svg->Bind(wxEVT_BUTTON, [this, ensure_sketch](wxCommandEvent&) {
+                ensure_sketch(); on_import_svg(); });
             sadd(b_svg);
             // …and reachable from the offer's Create row. These were on the atlas's chrome_only
             // list under "document-level actions act on the DOCUMENT, not on a selection" — which
             // is not what they do: both call add_imported_sketch(), which drops the art ON a
             // picked solid face (SketchPlane::from_face, centred on it) exactly as Sketch does.
             // Selection-consuming profile creators, so they belong with the other Create verbs.
-            m_verb_actions["btn:text"] = [this] { on_add_text(); };
-            m_verb_actions["btn:svg"]  = [this] { on_import_svg(); };
+            m_verb_actions["btn:text"] = [this, ensure_sketch] { ensure_sketch(); on_add_text(); };
+            m_verb_actions["btn:svg"]  = [this, ensure_sketch] { ensure_sketch(); on_import_svg(); };
         }
         add_sep(m_tb_sketch);
         // In-canvas edit-op tools (drag gizmo / click label), grouped by family.
@@ -4041,6 +4054,17 @@ void DesignPanel::add_imported_sketch(
     if (regions.empty()) {
         m_status->SetForegroundColour(wxColour(235, 110, 110));
         m_status->SetLabel(_L("No importable geometry found"));
+        m_status->Refresh();
+        return;
+    }
+    // DRAWING, not importing: if a sketch is open, the art belongs IN it. The outlines become
+    // ordinary line entities, so they can be constrained, trimmed and extruded with everything
+    // else on that plane. Committing a separate Sketch feature while the user is mid-sketch put
+    // the text on its own plane-origin feature and left the sketch they were drawing untouched.
+    if (m_viewport && m_viewport->is_sketching() && m_viewport->add_sketch_regions(regions)) {
+        m_status->SetForegroundColour(wxNullColour);
+        m_status->SetLabel(wxString::Format(_L("%s added to the sketch — Confirm to commit it"),
+                                            base_name));
         m_status->Refresh();
         return;
     }

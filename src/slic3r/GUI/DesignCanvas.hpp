@@ -53,6 +53,8 @@ public:
     void set_sketch_tool(DesignSketchTool::Mode mode);
     void set_sketch_plane(const SketchPlane& plane);   // re-plane the live sketch when a reference plane is clicked in 3D
     void set_sketch_construction(bool c);
+    // Text / SVG art into the LIVE sketch, as ordinary editable lines. False = no session.
+    bool add_sketch_regions(const std::vector<std::vector<std::vector<Vec2d>>>& regions);
     void set_sketch_polygon_sides(int n);
     void set_sketch_polygon_circumscribed(bool c);
     void finish_sketch();
