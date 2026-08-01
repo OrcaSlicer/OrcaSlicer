@@ -85,6 +85,13 @@ else ()
 endif ()
 
 find_package(Git)
+# Default fallback — overridden below if git is available.
+# NOTE: GIT_COMMIT_HASH is intentionally NOT passed via add_definitions().
+# It is substituted into git_commit_hash.h (see src/libslic3r/CMakeLists.txt)
+# so that changing branches (which changes the hash) only recompiles the few
+# files that include that header, instead of triggering a full project rebuild
+# via a changed preprocessor definition in every .vcxproj.
+set(GIT_COMMIT_HASH "0000000")
 if(DEFINED ENV{git_commit_hash} AND NOT "$ENV{git_commit_hash}" STREQUAL "")
     message(STATUS "Specified git commit hash: $ENV{git_commit_hash}")
     if(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
@@ -99,7 +106,6 @@ if(DEFINED ENV{git_commit_hash} AND NOT "$ENV{git_commit_hash}" STREQUAL "")
         # No .git directory (e.g., Flatpak sandbox) — truncate directly
         string(SUBSTRING "$ENV{git_commit_hash}" 0 7 GIT_COMMIT_HASH)
     endif()
-    add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
 elseif(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
     # Check current Git commit hash
     execute_process(
@@ -108,7 +114,6 @@ elseif(GIT_FOUND AND EXISTS "${CMAKE_SOURCE_DIR}/.git")
         OUTPUT_VARIABLE GIT_COMMIT_HASH
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-    add_definitions("-DGIT_COMMIT_HASH=\"${GIT_COMMIT_HASH}\"")
 endif()
 
 if(DEFINED ENV{SLIC3R_STATIC})

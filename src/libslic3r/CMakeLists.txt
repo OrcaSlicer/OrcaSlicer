@@ -8,6 +8,7 @@ if(NOT DEFINED ORCA_CHECK_GCODE_PLACEHOLDERS)
 endif()
 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libslic3r_version.h.in ${CMAKE_CURRENT_BINARY_DIR}/libslic3r_version.h @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/git_commit_hash.h.in ${CMAKE_CURRENT_BINARY_DIR}/git_commit_hash.h @ONLY)
 
 if (MINGW)
     add_compile_options(-Wa,-mbig-obj)

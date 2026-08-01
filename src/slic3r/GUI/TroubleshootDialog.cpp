@@ -13,6 +13,7 @@
 #include "libslic3r/Utils.hpp"
 #include "libslic3r/AppConfig.hpp"
 #include "libslic3r/PresetBundle.hpp"
+#include "git_commit_hash.h"
 #include "libslic3r/Preset.hpp"
 
 #include <nlohmann/json.hpp>

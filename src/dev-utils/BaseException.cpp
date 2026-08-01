@@ -10,6 +10,7 @@
 #include <mutex>
 
 #include "libslic3r_version.h"
+#include "git_commit_hash.h"
 
 static std::string g_log_folder;
 static std::atomic<int> g_crash_log_count = 0;

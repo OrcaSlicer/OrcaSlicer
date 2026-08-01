@@ -8,6 +8,7 @@
 #include "MainFrame.hpp"
 #include "format.hpp"
 #include "Widgets/Button.hpp"
+#include "git_commit_hash.h"
 
 #include <wx/clipbrd.h>
 
