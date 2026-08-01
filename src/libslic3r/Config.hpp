@@ -1003,6 +1003,7 @@ public:
     int                     getInt() const override { return this->value; }
     void                    setInt(int val) override { this->value = val; }
     ConfigOption*           clone()  const override { return new ConfigOptionInt(*this); }
+    using ConfigOptionSingle<int>::operator==;
     bool                    operator==(const ConfigOptionInt &rhs) const throw() { return this->value == rhs.value; }
 
     std::string serialize() const override
@@ -1045,6 +1046,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionIntsTempl(*this); }
     ConfigOptionIntsTempl&  operator= (const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionVector<int>::operator==;
     bool                    operator==(const ConfigOptionIntsTempl &rhs) const throw() { return this->values == rhs.values; }
     bool                    operator< (const ConfigOptionIntsTempl &rhs) const throw() { return this->values <  rhs.values; }
     // Could a special "nil" value be stored inside the vector, indicating undefined value?
@@ -1134,6 +1136,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionString(*this); }
     ConfigOptionString&     operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionSingle<std::string>::operator==;
     bool                    operator==(const ConfigOptionString &rhs) const throw() { return this->value == rhs.value; }
     bool                    operator< (const ConfigOptionString &rhs) const throw() { return this->value <  rhs.value; }
     bool 					empty() const { return this->value.empty(); }
@@ -1168,6 +1171,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionStrings(*this); }
     ConfigOptionStrings&    operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionVector<std::string>::operator==;
     bool                    operator==(const ConfigOptionStrings &rhs) const throw() { return this->values == rhs.values; }
     bool                    operator< (const ConfigOptionStrings &rhs) const throw() { return this->values <  rhs.values; }
     bool					is_nil(size_t) const override { return false; }
@@ -1212,6 +1216,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionPercent(*this); }
     ConfigOptionPercent&    operator= (const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionFloat::operator==;
     bool                    operator==(const ConfigOptionPercent &rhs) const throw() { return this->value == rhs.value; }
     bool                    operator< (const ConfigOptionPercent &rhs) const throw() { return this->value <  rhs.value; }
 
@@ -1254,6 +1259,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionPercentsTempl(*this); }
     ConfigOptionPercentsTempl& operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionFloatsTempl<NULLABLE>::operator==;
     bool                    operator==(const ConfigOptionPercentsTempl &rhs) const throw() { return ConfigOptionFloatsTempl<NULLABLE>::vectors_equal(this->values, rhs.values); }
     bool                    operator< (const ConfigOptionPercentsTempl &rhs) const throw() { return ConfigOptionFloatsTempl<NULLABLE>::vectors_lower(this->values, rhs.values); }
 
@@ -1499,6 +1505,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionPoint(*this); }
     ConfigOptionPoint&      operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionSingle<Vec2d>::operator==;
     bool                    operator==(const ConfigOptionPoint &rhs) const throw() { return this->value == rhs.value; }
     bool                    operator< (const ConfigOptionPoint &rhs) const throw() { return this->value <  rhs.value; }
 
@@ -1536,6 +1543,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionPoints(*this); }
     ConfigOptionPoints&     operator= (const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionVector<Vec2d>::operator==;
     bool                    operator==(const ConfigOptionPoints &rhs) const throw() { return this->values == rhs.values; }
     bool                    operator< (const ConfigOptionPoints &rhs) const throw()
         { return std::lexicographical_compare(this->values.begin(), this->values.end(), rhs.values.begin(), rhs.values.end(), [](const auto &l, const auto &r){ return l < r; }); }
@@ -1614,6 +1622,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionPoint3(*this); }
     ConfigOptionPoint3&     operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionSingle<Vec3d>::operator==;
     bool                    operator==(const ConfigOptionPoint3 &rhs) const throw() { return this->value == rhs.value; }
     bool                    operator< (const ConfigOptionPoint3 &rhs) const throw()
         { return this->value.x() < rhs.value.x() || (this->value.x() == rhs.value.x() && (this->value.y() < rhs.value.y() || (this->value.y() == rhs.value.y() && this->value.z() < rhs.value.z()))); }
@@ -1857,6 +1866,7 @@ public:
     bool                    getBool()   const override { return this->value; }
     ConfigOption*           clone()     const override { return new ConfigOptionBool(*this); }
     ConfigOptionBool&       operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionSingle<bool>::operator==;
     bool                    operator==(const ConfigOptionBool &rhs) const throw() { return this->value == rhs.value; }
     bool                    operator< (const ConfigOptionBool &rhs) const throw() { return int(this->value) < int(rhs.value); }
 
@@ -1908,6 +1918,7 @@ public:
     ConfigOptionType        type()  const override { return static_type(); }
     ConfigOption*           clone() const override { return new ConfigOptionBoolsTempl(*this); }
     ConfigOptionBoolsTempl& operator=(const ConfigOption *opt) { this->set(opt); return *this; }
+    using ConfigOptionVector<unsigned char>::operator==;
     bool                    operator==(const ConfigOptionBoolsTempl &rhs) const throw() { return this->values == rhs.values; }
     bool                    operator< (const ConfigOptionBoolsTempl &rhs) const throw() { return this->values <  rhs.values; }
     // Could a special "nil" value be stored inside the vector, indicating undefined value?
@@ -2160,6 +2171,7 @@ public:
     ConfigOptionEnumsGenericTempl& operator= (const ConfigOption* opt) { this->set(opt); return *this; }
     bool                        operator< (const ConfigOptionInts& rhs) const throw() { return this->values < rhs.values; }
 
+    using ConfigOptionInts::operator==;
     bool                        operator==(const ConfigOptionInts& rhs) const
     {
         if (rhs.type() != this->type())
