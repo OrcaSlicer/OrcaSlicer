@@ -70,6 +70,8 @@ static const ImU32 BACKGROUND_COLOR_LIGHT = IM_COL32(255, 255, 255, 255);
 static const ImU32 GROOVE_COLOR_DARK      = IM_COL32(45, 45, 49, 255);
 static const ImU32 GROOVE_COLOR_LIGHT     = IM_COL32(206, 206, 206, 255);
 static const ImU32 BRAND_COLOR            = IM_COL32(0, 150, 136, 255);
+static const ImU32 TICK_COLOR_DARK        = IM_COL32(196, 196, 202, 255);
+static const ImU32 TICK_COLOR_LIGHT       = IM_COL32(112, 112, 117, 255);
 
 static int m_tick_value = -1;
 static ImVec4 m_tick_rect;
@@ -526,11 +528,10 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
     ImGui::ItemSize(draw_region);
 
     // Leave room for the horizontal diamond to extend past the rail endpoint.
-    const float  handle_dummy_width  = 18.0f * m_scale;
+    const float  handle_dummy_width  = 20.0f * m_scale;
     const float  text_right_dummy    = 70.0f * scale * m_scale;
 
     const float  handle_extent       = 12.0f * m_scale;
-    const float  text_start_offset   = 8.0f * m_scale;
     const ImVec2 text_padding        = ImVec2(5.0f, 2.0f) * m_scale;
 
     const ImU32 handle_clr = BRAND_COLOR;
@@ -550,7 +551,6 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
     const ImVec2 groove_start = ImVec2(pos.x + handle_dummy_width, pos.y + size.y - ONE_LAYER_MARGIN.y * m_scale - (ONE_LAYER_BUTTON_SIZE.y / 2) * m_scale * 0.5f - GROOVE_WIDTH * m_scale * 0.5f);
     const ImVec2 groove_size = ImVec2(size.x - 2 * handle_dummy_width - text_right_dummy, GROOVE_WIDTH * m_scale);
     const ImRect groove = ImRect(groove_start, groove_start + groove_size);
-    const ImRect bg_rect = ImRect(groove.Min - ImVec2(6.0f, 6.0f) * m_scale, groove.Max + ImVec2(6.0f, 6.0f) * m_scale);
     const float mid_y = groove.GetCenter().y;
 
     // set mouse active region. active region.
@@ -561,10 +561,20 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
         ImGui::FocusWindow(window);
     }
 
-    // Keep the horizontal control aligned with the square vertical rail.
+    // Match the frame width and the end caps to the horizontal diamond.
     const ImU32 slider_bg_clr = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
     const ImU32 groove_bg_clr = m_is_dark ? GROOVE_COLOR_DARK : GROOVE_COLOR_LIGHT;
-    ImGui::RenderFrame(bg_rect.Min, bg_rect.Max, slider_bg_clr, false, 0.0f);
+    const float rail_frame_half_height = handle_extent * 1.1f + 2.0f * m_scale;
+    const float rail_cap_width         = handle_extent * 1.4f + 2.0f * m_scale;
+    const ImVec2 rail_frame[] = {
+        ImVec2(groove.Min.x - rail_cap_width, mid_y),
+        ImVec2(groove.Min.x, mid_y - rail_frame_half_height),
+        ImVec2(groove.Max.x, mid_y - rail_frame_half_height),
+        ImVec2(groove.Max.x + rail_cap_width, mid_y),
+        ImVec2(groove.Max.x, mid_y + rail_frame_half_height),
+        ImVec2(groove.Min.x, mid_y + rail_frame_half_height)
+    };
+    window->DrawList->AddConvexPolyFilled(rail_frame, IM_ARRAYSIZE(rail_frame), slider_bg_clr);
     ImGui::RenderFrame(groove.Min, groove.Max, groove_bg_clr, false, 0.0f);
     window->DrawList->AddRect(groove.Min, groove.Max, rail_border_clr, 0.0f, 0, 1.0f * m_scale);
     const ImRect rail_inner(groove.Min + ImVec2(2.0f, 2.0f) * m_scale, groove.Max - ImVec2(2.0f, 2.0f) * m_scale);
@@ -603,7 +613,8 @@ bool IMSlider::horizontal_slider(const char* str_id, int* value, int v_min, int 
     const std::string value_label = std::to_string(*value);
     const ImVec2 text_content_size = ImGui::CalcTextSize(value_label.c_str());
     ImVec2 text_size = text_content_size + text_padding * 2;
-    ImVec2 text_start = ImVec2(handle_center.x + handle_extent + text_start_offset, handle_center.y - 0.5 * text_size.y);
+    ImVec2 text_start = ImVec2(handle_center.x + diamond_half_width + 8.0f * m_scale,
+        handle_center.y - 0.5f * text_size.y);
     ImRect text_rect(text_start, text_start + text_size);
     const float label_rounding = 5.0f * m_scale;
     const ImVec2 shadow_offset = ImVec2(2.0f, 2.0f) * m_scale;
@@ -737,11 +748,13 @@ void IMSlider::draw_ticks(const ImRect& slideable_region) {
 
     ImVec2 tick_box      = ImVec2(52.0f, 16.0f) * m_scale;
     ImVec2 tick_offset   = ImVec2(22.0f, 14.0f) * m_scale;
+    // Keep the layer ticks in the gutters between the frame and inner rail.
+    ImVec2 tick_line_offset = ImVec2(15.0f, 7.0f) * m_scale;
     float  tick_width    = 1.0f * m_scale;
     ImVec2 icon_offset   = ImVec2(16.0f, 7.0f) * m_scale;
     ImVec2 icon_size     = ImVec2(14.0f, 14.0f) * m_scale;
 
-    const ImU32 tick_clr = IM_COL32(144, 144, 144, 255);
+    const ImU32 tick_clr = m_is_dark ? TICK_COLOR_DARK : TICK_COLOR_LIGHT;
     const ImU32 tick_hover_box_clr = m_is_dark ? IM_COL32(65, 65, 71, 255) : IM_COL32(219, 253, 231, 255);
 
     auto get_tick_pos = [this, slideable_region](int tick)
@@ -782,8 +795,8 @@ void IMSlider::draw_ticks(const ImRect& slideable_region) {
         float tick_pos = get_tick_pos(tick_it->tick);
 
         //draw ticks
-        ImRect tick_left  = ImRect(slideable_region.GetCenter().x - tick_offset.x, tick_pos - tick_width, slideable_region.GetCenter().x - tick_offset.y, tick_pos);
-        ImRect tick_right = ImRect(slideable_region.GetCenter().x + tick_offset.y, tick_pos - tick_width, slideable_region.GetCenter().x + tick_offset.x, tick_pos);
+        ImRect tick_left  = ImRect(slideable_region.GetCenter().x - tick_line_offset.x, tick_pos - tick_width, slideable_region.GetCenter().x - tick_line_offset.y, tick_pos);
+        ImRect tick_right = ImRect(slideable_region.GetCenter().x + tick_line_offset.y, tick_pos - tick_width, slideable_region.GetCenter().x + tick_line_offset.x, tick_pos);
         ImGui::RenderFrame(tick_left.Min, tick_left.Max, tick_clr, false);
         ImGui::RenderFrame(tick_right.Min, tick_right.Max, tick_clr, false);
 
@@ -896,14 +909,14 @@ void IMSlider::draw_tick_on_mouse_position(const ImRect& slideable_region) {
     int tick = get_tick_near_point(v_min, v_max, context.IO.MousePos, slideable_region);
     
     //draw tick
-    ImVec2 tick_offset   = ImVec2(22.0f, 14.0f) * m_scale;
+    ImVec2 tick_line_offset = ImVec2(15.0f, 7.0f) * m_scale;
     float  tick_width    = 1.0f * m_scale;
 
-    const ImU32 tick_clr = IM_COL32(144, 144, 144, 255);
+    const ImU32 tick_clr = m_is_dark ? TICK_COLOR_DARK : TICK_COLOR_LIGHT;
 
     float tick_pos = get_pos_from_value(v_min, v_max, tick, slideable_region);
-    ImRect tick_left  = ImRect(slideable_region.GetCenter().x - tick_offset.x, tick_pos - tick_width, slideable_region.GetCenter().x - tick_offset.y, tick_pos);
-    ImRect tick_right = ImRect(slideable_region.GetCenter().x + tick_offset.y, tick_pos - tick_width, slideable_region.GetCenter().x + tick_offset.x, tick_pos);
+    ImRect tick_left  = ImRect(slideable_region.GetCenter().x - tick_line_offset.x, tick_pos - tick_width, slideable_region.GetCenter().x - tick_line_offset.y, tick_pos);
+    ImRect tick_right = ImRect(slideable_region.GetCenter().x + tick_line_offset.y, tick_pos - tick_width, slideable_region.GetCenter().x + tick_line_offset.x, tick_pos);
     ImGui::RenderFrame(tick_left.Min, tick_left.Max, tick_clr, false);
     ImGui::RenderFrame(tick_right.Min, tick_right.Max, tick_clr, false);
     
@@ -955,7 +968,6 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
     const ImVec2 groove_start = ImVec2(pos.x + size.x - ONE_LAYER_MARGIN.x * m_scale - (ONE_LAYER_BUTTON_SIZE.x / 2) * m_scale * 0.5f - GROOVE_WIDTH * m_scale * 0.5f, pos.y + text_dummy_height);
     const ImVec2 groove_size = ImVec2(GROOVE_WIDTH * m_scale, size.y - 2 * text_dummy_height);
     const ImRect groove = ImRect(groove_start, groove_start + groove_size);
-    const ImRect bg_rect = ImRect(groove.Min - ImVec2(6.0f, 6.0f) * m_scale, groove.Max + ImVec2(6.0f, 6.0f) * m_scale);
     const float mid_x = groove.GetCenter().x;
     // ORCA: tune label box width to fit the slider window without overlapping the groove.
     const float label_width_margin = 10.0f * m_scale;
@@ -1089,10 +1101,22 @@ bool IMSlider::vertical_slider(const char* str_id, int* higher_value, int* lower
         ImGui::FocusWindow(window);
     }
 
-    // Draw a square track to match the directional handle geometry.
+    // Match the frame width and the end caps to the directional thumbs.
     const ImU32 slider_bg_clr = m_is_dark ? BACKGROUND_COLOR_DARK : BACKGROUND_COLOR_LIGHT;
     const ImU32 groove_bg_clr = m_is_dark ? GROOVE_COLOR_DARK : GROOVE_COLOR_LIGHT;
-    ImGui::RenderFrame(bg_rect.Min, bg_rect.Max, slider_bg_clr, false, 0.0f);
+    // The thumb outline extends one pixel beyond its geometry; leave one more
+    // pixel of clearance so the frame reads as the wider enclosing shape.
+    const float rail_frame_half_width = handle_extent * 1.1f + 2.0f * m_scale;
+    const float rail_cap_height       = handle_extent * 1.4f + 2.0f * m_scale;
+    const ImVec2 rail_frame[] = {
+        ImVec2(mid_x, groove.Min.y - rail_cap_height),
+        ImVec2(mid_x + rail_frame_half_width, groove.Min.y),
+        ImVec2(mid_x + rail_frame_half_width, groove.Max.y),
+        ImVec2(mid_x, groove.Max.y + rail_cap_height),
+        ImVec2(mid_x - rail_frame_half_width, groove.Max.y),
+        ImVec2(mid_x - rail_frame_half_width, groove.Min.y)
+    };
+    window->DrawList->AddConvexPolyFilled(rail_frame, IM_ARRAYSIZE(rail_frame), slider_bg_clr);
     ImGui::RenderFrame(groove.Min, groove.Max, groove_bg_clr, false, 0.0f);
     window->DrawList->AddRect(groove.Min, groove.Max, rail_border_clr, 0.0f, 0, 1.0f * m_scale);
     const ImRect rail_inner(groove.Min + rail_inset, groove.Max - rail_inset);
