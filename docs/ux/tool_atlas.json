@@ -829,8 +829,8 @@
         "bodies": 1
       },
       "refusal": null,
-      "gui": false,
-      "action": null
+      "gui": true,
+      "action": "btn:mass"
     },
     {
       "id": "interference",
@@ -871,7 +871,7 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": null
+      "action": "btn:edit"
     },
     {
       "id": "delete_face",

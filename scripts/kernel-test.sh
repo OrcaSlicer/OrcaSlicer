@@ -19,6 +19,7 @@
 # working tree to a per-volume staging dir on that host and re-runs this same script
 # there, so the verification contract is identical either way. Drop --host once the image
 # is present locally.
+# Rig build traps already paid for once each (stale project, NLopt cache, pybind11, OCCT_LIBS, SLIC3R_CAD gate): docs/rig_build_traps.md
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

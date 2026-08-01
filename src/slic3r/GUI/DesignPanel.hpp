@@ -127,6 +127,7 @@ private:
     void on_add_helix();
     void on_add_mate();
     void on_check_interference();
+    void on_mass_properties();          // read-only report on the selected solid; edits nothing
     // Fill m_bool_target / m_bool_tool / m_cut_target. as_of_feature < 0 = current bodies (add);
     // >= 0 = the bodies as they existed just before that feature index (Boolean re-edit, so a
     // consumed tool body still appears and its saved selection round-trips).
@@ -405,7 +406,6 @@ private:
     // from "nobody has chosen anything yet". This does.
     bool              m_plane_picked{false};
     ComboBox*         m_shape{nullptr};
-    ComboBox*         m_plane{nullptr};
     ComboBox*         m_mode{nullptr};
     wxSpinCtrlDouble* m_width{nullptr};
     wxSpinCtrlDouble* m_height{nullptr};
@@ -617,6 +617,11 @@ private:
     // the verbs that have no keyboard shortcut to route through.
     std::map<std::string, std::function<void()>> m_verb_actions;
     void show_offer_menu(const wxPoint& screen_pos);
+    // Where the offer opens when no mouse press anchors it: the keyboard route, and the automatic
+    // open on entering Sketch. The pointer if it is over the viewport, else the viewport's centre.
+    // A raw wxGetMousePosition() can be sitting on the toolbar, on the card column or on another
+    // monitor, and the menu would map there — detached from the geometry it is about.
+    wxPoint offer_anchor() const;
     int  offer_selection_kind() const;          // an OfferSel, as int to keep the header light
     // Does the SKETCH half of the map apply? A mode question, not a session one: begin_sketch
     // does not run until the first tool is armed, so between "press Sketch" and "pick a tool"

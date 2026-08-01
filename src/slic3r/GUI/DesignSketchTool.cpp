@@ -1256,7 +1256,7 @@ void DesignSketchTool::open_primary_autoedit()
         const double Lc = d.norm();
         double deg = std::atan2(d.y(), d.x()) * 180.0 / M_PI; if (deg < 0.0) deg += 360.0;
         m_autoedit_dims.push_back({ m_live_slot_len_label, Lc, [this, fi](double v){ const Feature& g = m_features[fi]; set_slot(fi, v, g.param); }, span(fi), "Length" });
-        m_autoedit_dims.push_back({ m_live_slot_w_label, f.param, [this, fi](double v){ const Feature& g = m_features[fi]; set_slot(fi, (g.c1-g.c0).norm(), std::max(1e-3, v)); }, span(fi), "Width" });
+        m_autoedit_dims.push_back({ m_live_slot_w_label, f.param, [this, fi](double v){ const Feature& g = m_features[fi]; set_slot(fi, (g.c1-g.c0).norm(), std::max(1e-3, v)); }, span(fi), "Radius" });
         m_autoedit_dims.push_back({ m_live_slot_angle_label, deg, [this, fi](double v){ set_slot_angle(fi, v); }, span(fi), "Angle" });
     }
     if (m_live_arc_ei >= 0) {   // arc Radius is already a scalar step above; add its sweep angle
@@ -1838,7 +1838,7 @@ void DesignSketchTool::open_slot_editor(int fi, int which)
     double deg = std::atan2(d.y(), d.x()) * 180.0 / M_PI; if (deg < 0.0) deg += 360.0;
     const double v = (which == 0) ? d.norm() : (which == 1) ? f.param : deg;
     const wxPoint px(m_last_mouse_x, m_last_mouse_y);
-    on_inline_edit(px, v, which == 0 ? "Length" : which == 1 ? "Width" : "Angle",
+    on_inline_edit(px, v, which == 0 ? "Length" : which == 1 ? "Radius" : "Angle",
         [this, fi, which](double nv) {
             const Feature& g = m_features[fi];
             if      (which == 0) set_slot(fi, nv, g.param);

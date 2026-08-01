@@ -375,7 +375,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     sk_key('R', DesignSketchTool::Mode::CornerRect,   _L("Rectangle — click two opposite corners"));
     sk_key('C', DesignSketchTool::Mode::CenterCircle, _L("Circle — click center, then radius"));
     sk_key('A', DesignSketchTool::Mode::ThreePointArc,_L("Arc — click start, end, then a point"));
-    sk_key('S', DesignSketchTool::Mode::Slot,         _L("Slot — two centerline ends, then width"));
+    sk_key('S', DesignSketchTool::Mode::Slot,         _L("Slot — two centerline ends, then end radius"));
     sk_key('E', DesignSketchTool::Mode::Ellipse,      _L("Ellipse — center, major end, minor point"));
     sk_key('B', DesignSketchTool::Mode::BSpline,      _L("Spline — click control points"));
     sk_key('P', DesignSketchTool::Mode::Point,        _L("Point — click to place"));
@@ -533,7 +533,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             m_status->Refresh();
             if (m_sketch_hint) {   // the card must agree with the status line, not argue with it
                 m_sketch_hint->SetLabel(have_plane
-                    ? wxString::Format(_L("Drawing on %s.\nPick a tool, or right-click for the list."), where)
+                    ? wxString::Format(_L("Drawing on %s.\nPick a tool, or press Menu for the list."), where)
                     : _L("Click a face or a reference plane, then a sketch tool."));
                 m_sketch_hint->Refresh();
                 m_cards->Layout();
@@ -542,7 +542,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             // mode change has settled before a modal menu takes the loop; the menu carries each
             // tool's shortcut, so pressing the key instead of picking a row costs nothing.
             if (have_plane)
-                CallAfter([this] { show_offer_menu(wxGetMousePosition()); });
+                CallAfter([this] { show_offer_menu(offer_anchor()); });
         };
         b_sketch->Bind(wxEVT_BUTTON, [act_sketch](wxCommandEvent&) { act_sketch(); });
         m_keys_feature[SHIFT('S')] = act_sketch;
@@ -898,6 +898,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         fadd("color", b_color);
         m_verb_actions["btn:colour"] = [this] { on_set_body_color(); };
         m_verb_actions["btn:delete"] = [this] { on_delete_feature(); };
+        m_verb_actions["btn:edit"]   = [this] { on_edit_feature(); };
+        m_verb_actions["btn:mass"]   = [this] { on_mass_properties(); };
 
         // Dress-up: finishing operations on the faces and edges of an existing solid — nothing
         // that moves a body (see the Placement drawer) and nothing that creates geometry.
@@ -1132,7 +1134,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             {"design_tangentarc", DesignSketchTool::Mode::TangentArc,    _L("Tangent arc"),      _L("Click start (on the last entity) then end")},
             {"design_arc_center", DesignSketchTool::Mode::CenterArc,     _L("Center-point arc"), _L("Click center, then start, then a point for the end angle")} });
         dropdown("design_slot", _L("Slot"), {
-            {"design_slot",     DesignSketchTool::Mode::Slot,    _L("Slot"),     _L("Click two centerline ends, then a point for width")},
+            {"design_slot",     DesignSketchTool::Mode::Slot,    _L("Slot"),     _L("Click two centerline ends, then a point for the end radius")},
             {"design_slot_arc", DesignSketchTool::Mode::ArcSlot, _L("Arc slot"), _L("Click center, start, end, then a point for the width")} });
         dropdown("design_ellipse", _L("Ellipse"), {
             {"design_ellipse",     DesignSketchTool::Mode::Ellipse,    _L("Ellipse"),        _L("Click center, a major-axis end, then a point for the minor axis")},
@@ -1419,13 +1421,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
     form->Add(new wxStaticText(m_cards, wxID_ANY, _L("Shape")), 0, wxALIGN_CENTER_VERTICAL);
     form->Add(m_shape, 0, wxEXPAND);
 
-    m_plane = make_combo(m_cards);
-    m_plane->Append(_L("XY"));
-    m_plane->Append(_L("XZ"));
-    m_plane->Append(_L("YZ"));
-    m_plane->SetSelection(0);
-    form->Add(new wxStaticText(m_cards, wxID_ANY, _L("Plane")), 0, wxALIGN_CENTER_VERTICAL);
-    form->Add(m_plane, 0, wxEXPAND);
+    // NO plane row. A sketch takes its plane from what is picked in the VIEWPORT — a planar face
+    // on a solid, or one of the reference-plane ghosts clicked in 3D — resolved by
+    // sketch_plane_from_selection(). A three-row XY/XZ/YZ combo could not express either of those
+    // targets, so it displayed a value that was at best redundant and at worst false. snaporca-e1p.
 
     m_width = make_spin(m_cards, 20);
     form->Add(new wxStaticText(m_cards, wxID_ANY, _L("Width / X")), 0, wxALIGN_CENTER_VERTICAL);
@@ -3473,6 +3472,20 @@ DesignPanel::DesignPanel(wxWindow* parent)
         const bool dismissable = m_active != Tool::None || (m_viewport && m_viewport->moving_body());
         if (key == WXK_ESCAPE && dismissable) { tool_cancel(); return; }
 
+        // The offer from the keyboard (charter 4.1): the Menu key, or Shift+F10 for keyboards that
+        // do not have one. Same menu the right-click opens — show_offer_menu already decides which
+        // half of the map applies via sketch_map_applies(), so nothing about the content is decided
+        // here. With no press to anchor it, offer_anchor() puts it on the viewport.
+        // WXK_MENU is the GTK code for the physical Menu key (GDK_KEY_Menu); wxMSW instead sends
+        // WXK_WINDOWS_MENU for VK_APPS and maps Alt to WXK_ALT, so accepting both is safe
+        // everywhere. CallAfter because the menu is modal: let the key event finish dispatching
+        // before a nested loop takes the queue, the same reason the Sketch entry does it.
+        if (!in_text && !ctrl
+            && (key == WXK_MENU || key == WXK_WINDOWS_MENU || (key == WXK_F10 && e.ShiftDown()))) {
+            CallAfter([this] { show_offer_menu(offer_anchor()); });
+            return;
+        }
+
         // Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y — undo/redo handled here (not only in the GL canvas) so
         // it works even when the canvas lost keyboard focus. In a sketch, undo drops the last entity.
         if (!in_text && ctrl && (key == 'Z' || key == 'z' || key == WXK_CONTROL_Z ||
@@ -4089,13 +4102,14 @@ void DesignPanel::on_add_sketch()
 {
     SketchShape shape = (m_shape->GetSelection() == 1) ? SketchShape::Circle
                                                         : SketchShape::Rectangle;
-    SketchPlane plane = plane_from_choice(m_plane->GetSelection());
+    wxString where;                                            // named for the status line
+    SketchPlane plane = sketch_plane_from_selection(where);    // picked face, else the 3D plane click
     m_feature_counter++;
     m_doc.add_sketch(shape, plane, m_width->GetValue(), m_height->GetValue(),
                      m_radius->GetValue(), "Sketch" + std::to_string(m_feature_counter));
     m_doc.recompute();  // a lone sketch yields an empty body; that is expected
     m_status->SetForegroundColour(wxNullColour);
-    m_status->SetLabel(_L("Sketch added — select it and Extrude"));
+    m_status->SetLabel(wxString::Format(_L("Sketch added on %s — select it and Extrude"), where));
     refresh_tree();
 }
 
@@ -4712,6 +4726,31 @@ void DesignPanel::on_check_interference()
     wxMessageBox(msg, _L("Interference"), wxOK, this);
 }
 
+// Mass properties of the selected solid. A report, not a feature: it never checkpoints, never
+// recomputes and never opens a card, which is why it sits beside the interference check rather
+// than in the on_add_* family. The caller only reaches us with m_sel_solid_body in range.
+void DesignPanel::on_mass_properties()
+{
+    const auto mp = GeometryEngine::mass_properties(m_doc.bodies[m_sel_solid_body].shape);
+    if (!mp.valid) {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        m_status->SetLabel(_L("Mass properties could not be computed for this body"));
+        m_status->Refresh();
+        return;
+    }
+    // 1-based, and the body's own name when it has one — the same wording the parts list uses.
+    wxString name = wxString::Format(_L("Body %d"), m_sel_solid_body + 1);
+    if (!m_doc.bodies[m_sel_solid_body].name.empty())
+        name = wxString::FromUTF8(m_doc.bodies[m_sel_solid_body].name);
+    m_status->SetForegroundColour(wxNullColour);
+    m_status->SetLabel(wxString::Format(_L("%s: %.3f cm³, %.2f cm²"),
+                                        name, mp.volume / 1000.0, mp.surface_area / 100.0));
+    m_status->Refresh();
+    wxMessageBox(wxString::Format(_L("%s\n\nVolume: %.3f cm³\nSurface area: %.2f cm²"),
+                                  name, mp.volume / 1000.0, mp.surface_area / 100.0),
+                 _L("Mass properties"), wxOK, this);
+}
+
 // The rows are only the SHEET bodies, so a row index is NOT a body index — with a solid at 0
 // and a sheet at 1 the single row is row 0 but body 1. Every caller must therefore read the
 // real body index out of the client data (3-arg Append; the 2-arg form takes a bitmap), never
@@ -5014,6 +5053,17 @@ void DesignPanel::run_offer_action(const char* action)
     auto it = m_verb_actions.find(a);
     if (it != m_verb_actions.end() && it->second)
         it->second();
+}
+
+wxPoint DesignPanel::offer_anchor() const
+{
+    const wxPoint mouse = wxGetMousePosition();
+    if (!m_viewport)
+        return mouse;
+    const wxRect r = m_viewport->GetScreenRect();
+    if (r.Contains(mouse))
+        return mouse;
+    return wxPoint(r.x + r.width / 2, r.y + r.height / 2);
 }
 
 void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
@@ -7167,7 +7217,6 @@ void DesignPanel::load_feature_into_dialog(const CadFeature& f)
     switch (f.type) {
     case CadFeatureType::Sketch:
         m_shape->SetSelection(f.shape == SketchShape::Circle ? 1 : 0);
-        m_plane->SetSelection(index_from_plane(f.plane));
         m_width->SetValue(f.width);
         m_height->SetValue(f.height);
         m_radius->SetValue(f.radius);
@@ -7770,7 +7819,11 @@ CadFeature DesignPanel::build_candidate(Tool t) const
     case Tool::Sketch:
         f.type   = CadFeatureType::Sketch;
         f.shape  = (m_shape->GetSelection() == 0) ? SketchShape::Rectangle : SketchShape::Circle;
-        f.plane  = plane_from_choice(m_plane->GetSelection());
+        // The plane is STRUCTURAL, like Extrude's profile source. While EDITING it is preserved
+        // from the seeded original — the card carries no plane control and the old combo silently
+        // collapsed a face plane to a base plane through the modeling origin. While ADDING it
+        // comes from what is picked in the viewport. snaporca-e1p.
+        if (!editing) { wxString where; f.plane = sketch_plane_from_selection(where); }
         f.width  = m_width->GetValue();
         f.height = m_height->GetValue();
         f.radius = m_radius->GetValue();

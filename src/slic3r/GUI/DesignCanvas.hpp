@@ -51,7 +51,7 @@ public:
                      const std::vector<SketchEntityConstraintDef>& constraints,
                      const SketchPlane& plane);
     void set_sketch_tool(DesignSketchTool::Mode mode);
-    void set_sketch_plane(const SketchPlane& plane);   // re-plane the live sketch when the Plane dropdown changes
+    void set_sketch_plane(const SketchPlane& plane);   // re-plane the live sketch when a reference plane is clicked in 3D
     void set_sketch_construction(bool c);
     void set_sketch_polygon_sides(int n);
     void set_sketch_polygon_circumscribed(bool c);

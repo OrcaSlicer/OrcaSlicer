@@ -15,6 +15,7 @@
 # On success the binary is inside the persistent volume at
 # /OrcaSlicer/build/package/bin/orca-slicer (copy it out with a follow-up
 # `docker run --rm -v orcacad_buildcache:/b alpine cp ...` or via this script's tail).
+# Rig build traps already paid for once each (stale project, NLopt cache, pybind11, OCCT_LIBS, SLIC3R_CAD gate): docs/rig_build_traps.md
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
