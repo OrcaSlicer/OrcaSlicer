@@ -635,6 +635,8 @@ private:
 class PointCtrl : public Field {
 	using Field::Field;
 public:
+	using Field::propagate_value;
+
 	PointCtrl(const ConfigOptionDef& opt, const t_config_option_key& id) : Field(opt, id) {}
 	PointCtrl(wxWindow* parent, const ConfigOptionDef& opt, const t_config_option_key& id) : Field(parent, opt, id) {}
 	~PointCtrl() {}
