@@ -236,6 +236,7 @@ void DesignSketchTool::set_tool(Mode mode)
 
 void DesignSketchTool::cancel()
 {
+    close_session_chrome();     // same orphaned-field freeze as finish() — see snaporca-yce
     m_active = false;
     m_points.clear();
     m_entities.clear();
@@ -2009,6 +2010,11 @@ void DesignSketchTool::keep_segment_as_drawn()
 
 void DesignSketchTool::finish()
 {
+    // A value field still open at commit time outlives the session — the editor is a top-level
+    // frame — and inline_busy stays set, so every later click is swallowed at on_mouse_impl's
+    // first branch and the viewport reads as dead. Dismiss it first (keep-as-drawn, the same
+    // contract as the polyline terminators) and drop any queued field with it.
+    close_session_chrome();
     if (op_ready()) confirm_op();      // apply a pending edit-op gizmo before committing
     if (tf_ready()) confirm_transform(); // apply a pending transform gizmo before committing
     auto cb = on_commit_entities;

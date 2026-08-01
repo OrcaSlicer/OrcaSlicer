@@ -357,6 +357,16 @@ public:
         m_autoedit_seen    = int(m_entities.size());
         m_live_quotes.clear();   // rebuilt from current geometry on the next render
     }
+    // Take down the session's floating chrome: the open value field (dismiss = keep-as-drawn),
+    // the queue of fields behind it, and the corner readout. All three are top-level windows fed
+    // only while the tool is live, so nothing else would ever clear them — reset_autoedit() alone
+    // clears the flag and leaves the frame on screen. Called by finish()/cancel(); safe when
+    // nothing is open.
+    void close_session_chrome() {
+        if (on_inline_dismiss) on_inline_dismiss();   // no-op when no field is open
+        reset_autoedit();
+        if (on_readout) on_readout(std::string());    // the HUD is not redrawn once the tool stops
+    }
     // Ctrl+Z while sketching: drop the last drawn entity (reuses delete_selected's remap).
     bool undo_last_entity() {
         if (!m_active || m_entities.empty()) return false;
