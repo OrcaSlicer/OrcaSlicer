@@ -11,6 +11,7 @@
 #include <Standard_Failure.hxx>
 
 #include <map>
+#include <set>
 #include <wx/sizer.h>
 #include <wx/button.h>
 #include <wx/stattext.h>
@@ -448,7 +449,19 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // user specified. fadd() records into tb_slot; the flush below the doc group emits them.
     // A dropdown occupies two entries (button + chevron) that must stay adjacent.
     std::map<std::string, std::vector<wxWindow*>> tb_slot;
-    auto fadd = [&tb_slot](const char* id, wxWindow* w) { tb_slot[id].push_back(w); };
+    // THE TOOLBAR IS CHROME. Every CAD verb is reached from the offer, so a tool's button is
+    // still BUILT — that is what registers its "fly:<family>#<row>" address and its Shift+key —
+    // but it is never placed on the bar. Hiding rather than skipping construction is deliberate:
+    // the addresses are created inside the widget-building loops, so not building would silently
+    // delete 42 verbs from the offer while they still rendered. snaporca-7ih records the cleanup
+    // that lets the construction go away too.
+    // What stays: the two doc-row imports (consumed by add_doc below) and the view controls,
+    // which are chrome_only in the atlas and so have no offer row to fall back on.
+    static const std::set<std::string> kBarKeep = { "step", "mesh", "place", "section", "flip" };
+    auto fadd = [&tb_slot](const char* id, wxWindow* w) {
+        if (kBarKeep.count(id) == 0) { w->Hide(); return; }
+        tb_slot[id].push_back(w);
+    };
     m_tb_feature->Add(caption(_L("FEATURES")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
     {
         // Onshape-style FEATURE flyouts: same themed-DropDown pattern as the sketch toolbar
@@ -1046,7 +1059,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_tb_sketch = new wxBoxSizer(wxHORIZONTAL);
     // Sketch carries the most tools of any mode: pack it tight (no inter-icon gap) so the
     // whole entity palette fits without crowding the right-hand actions.
-    auto sadd = [this](wxWindow* w) { m_tb_sketch->Add(w, 0, wxALIGN_CENTER_VERTICAL); };
+    // Same for the sketch bar: the drawing tools live in the offer. Only Delete selected stays,
+    // via sadd_bar. sadd() still runs so sk_key/fly: registrations and the flyout popups survive.
+    auto sadd     = [](wxWindow* w) { w->Hide(); };
+    auto sadd_bar = [this](wxWindow* w) { m_tb_sketch->Add(w, 0, wxALIGN_CENTER_VERTICAL); };
     m_tb_sketch->Add(caption(_L("SKETCH")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
     {
         // The plane/orientation choice lives in the docked Sketch card (Phase 3),
@@ -1131,14 +1147,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
             auto* chev = new wxStaticText(m_toolbar, wxID_ANY, wxString::FromUTF8("\xE2\x96\xBE"));
             chev->SetForegroundColour(dp_sec_text());
             chev->SetFont(Label::Body_9);
-            m_tb_sketch->Add(chev, 0, wxALIGN_BOTTOM | wxBOTTOM | wxRIGHT, 2);
+            sadd(chev);   // follows its button off the bar
             return b;
         };
         skbtn("design_select",    DesignSketchTool::Mode::Select,           _L("Select"),
               _L("Click to select; Shift to add; double-click for a whole loop"));
         skbtn("design_dimension", DesignSketchTool::Mode::Dimension, _L("Dimension"),
               _L("Click 2 points or a line / circle / arc to place a dimension"));
-        add_sep(m_tb_sketch);
+        // (separator dropped: the group it divided is now reached from the offer)
         dropdown("design_line", _L("Line / polyline"), {
             {"design_line",     DesignSketchTool::Mode::Line,     _L("Line"),     _L("Click start, then end — then set the exact length")},
             {"design_polyline", DesignSketchTool::Mode::Polyline, _L("Polyline"), _L("Click points; click first / right-click to close the loop")} });
@@ -1165,7 +1181,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
               _L("Click control points; double-click or right-click to finish"));
         skbtn("design_point",   DesignSketchTool::Mode::Point,   _L("Point"),
               _L("Click to place a point"));
-        add_sep(m_tb_sketch);
+        // (separator dropped: the group it divided is now reached from the offer)
         // Insert tools — Text / SVG produce a 2D profile (a sketch), so they belong with
         // the sketch tools, not in the generic Features strip. Each places the art
         // in-canvas, then commits via the Insert card's Confirm.
@@ -1197,7 +1213,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             m_verb_actions["btn:text"] = [this, ensure_sketch] { ensure_sketch(); on_add_text(); };
             m_verb_actions["btn:svg"]  = [this, ensure_sketch] { ensure_sketch(); on_import_svg(); };
         }
-        add_sep(m_tb_sketch);
+        // (separator dropped: the group it divided is now reached from the offer)
         // In-canvas edit-op tools (drag gizmo / click label), grouped by family.
         dropdown("design_filletedge", _L("Fillet / chamfer"), {
             {"design_filletedge", DesignSketchTool::Mode::Fillet,  _L("Fillet"),  _L("Pick two lines, then drag the arrow or click the radius to set it")},
@@ -1278,7 +1294,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* b_poly = icon_btn("design_polygon", _L("Polygon"));
         b_poly->Bind(wxEVT_BUTTON, [arm_polygon](wxCommandEvent&) { arm_polygon(); });
         sadd(b_poly);
-        add_sep(m_tb_sketch);
+        // (separator dropped: the group it divided is now reached from the offer)
         m_construction->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
             if (m_viewport && m_viewport->is_sketching())
                 m_viewport->set_sketch_construction(m_construction->GetValue()); });
@@ -1287,7 +1303,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         auto* b_del = icon_btn("design_delete", _L("Delete selected"));
         b_del->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
             if (m_viewport) m_viewport->delete_selected_sketch_entities(); });
-        sadd(b_del);
+        sadd_bar(b_del);   // keep-list: Delete selected stays on the bar
         // Finish sketch = the unified ✓ Confirm in the action bar (tool_confirm).
     }
 
