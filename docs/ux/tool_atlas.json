@@ -1538,6 +1538,46 @@
       "action": "key:P"
     },
     {
+      "id": "sk_text",
+      "name": "Text",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:text",
+      "mode": "sketch"
+    },
+    {
+      "id": "sk_svg",
+      "name": "SVG",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:svg",
+      "mode": "sketch"
+    },
+    {
       "id": "sk_offset",
       "name": "Offset",
       "slot": "add",
@@ -1820,12 +1860,10 @@
     }
   ],
   "chrome_only": {
-    "_why": "document-level actions act on the DOCUMENT, not on a selection, so they stay in chrome and never enter the offer (see 4.1)",
+    "_why": "document-level actions act on the DOCUMENT, not on a selection, so they stay in chrome and never enter the offer (see 4.1) Text and SVG were removed from this list 2026-08-01: they create a Sketch feature on the picked face, so they consume a selection like any other Create verb.",
     "items": [
       "Import STEP",
       "Import mesh",
-      "Text",
-      "SVG",
       "Export STEP",
       "Commit to Plate",
       "Undo",

@@ -1176,6 +1176,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
             auto* b_svg = icon_btn("design_svg", _L("SVG — import an outline as a profile"));
             b_svg->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { on_import_svg(); });
             sadd(b_svg);
+            // …and reachable from the offer's Create row. These were on the atlas's chrome_only
+            // list under "document-level actions act on the DOCUMENT, not on a selection" — which
+            // is not what they do: both call add_imported_sketch(), which drops the art ON a
+            // picked solid face (SketchPlane::from_face, centred on it) exactly as Sketch does.
+            // Selection-consuming profile creators, so they belong with the other Create verbs.
+            m_verb_actions["btn:text"] = [this] { on_add_text(); };
+            m_verb_actions["btn:svg"]  = [this] { on_import_svg(); };
         }
         add_sep(m_tb_sketch);
         // In-canvas edit-op tools (drag gizmo / click label), grouped by family.

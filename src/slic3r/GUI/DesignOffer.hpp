@@ -148,6 +148,8 @@ static const OfferVerb kOfferVerbs[] = {
     {"sk_poly_inscribed", "Inscribed", 0, nullptr, "btn:polyfit#0", nullptr, 0x000f8000u, 0, 0, false, true, "Polygon"},
     {"sk_poly_circumscribed", "Circumscribed", 0, nullptr, "btn:polyfit#1", nullptr, 0x000f8000u, 0, 0, false, true, "Polygon"},
     {"sk_point_t", "Point", 0, "P", "key:P", nullptr, 0x000f8000u, 0, 0, false, true, nullptr},
+    {"sk_text", "Text", 0, nullptr, "btn:text", nullptr, 0x000f8000u, 0, 0, false, true, nullptr},
+    {"sk_svg", "SVG", 0, nullptr, "btn:svg", nullptr, 0x000f8000u, 0, 0, false, true, nullptr},
     {"sk_offset", "Offset", 1, "O", "key:O", nullptr, 0x000b0000u, 0, 0, false, true, nullptr},
     {"sk_trim", "Trim", 2, "T", "key:T", nullptr, 0x000b0000u, 0, 0, false, true, nullptr},
     {"sk_fillet", "Fillet", 3, "F", "key:F", nullptr, 0x00090000u, 0, 0, false, true, nullptr},
@@ -164,7 +166,7 @@ static const OfferVerb kOfferVerbs[] = {
     {"sk_extend", "Extend", 7, "X", "key:X", nullptr, 0x000b0000u, 0, 0, false, true, nullptr},
     {"sk_delete", "Delete", 7, "Del", "btn:delete", nullptr, 0x000f0000u, 0, 0, false, true, nullptr},
 };
-static const int kOfferVerbCount = 84;
+static const int kOfferVerbCount = 86;
 
 }} // namespace Slic3r::GUI
 
