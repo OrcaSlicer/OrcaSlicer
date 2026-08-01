@@ -760,6 +760,9 @@ void Selection::clear()
 #endif
 
     // #et_FIXME fake KillFocus from sidebar
+    // Skip on shutdown: Plater's pImpl is already freed, so plater()->canvas3D() would use-after-free.
+    if (wxGetApp().is_closing())
+        return;
     wxGetApp().plater()->canvas3D()->handle_sidebar_focus_event("", false);
 }
 

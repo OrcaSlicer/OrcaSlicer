@@ -129,6 +129,7 @@ private:
     AnimaIcon*      m_switching_icon;
 };
 
+// Orca: the firmware AMS-reorder ("Arrange AMS Order") panel is intentionally not shipped.
 #if 0
 class AMSSettingArrangeAMSOrder : public wxPanel
 {

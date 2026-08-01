@@ -18,7 +18,6 @@
 	"enable_pressure_advance": [
 		"1"
 	],
-	"extruder_rotation_volume": "456",
 	"fan_cooling_layer_time": [
 		"100"
 	],
@@ -94,13 +93,6 @@
 	"hot_plate_temp_initial_layer": [
 		"50"
 	],
-	"mixing_stepper_rotation_volume": "8000",
-	"multi_zone_1_initial_layer": "200",
-	"multi_zone_1_temperature": "200",
-	"multi_zone_2_initial_layer": "200",
-	"multi_zone_2_temperature": "200",
-	"multi_zone_3_initial_layer": "200",
-	"multi_zone_3_temperature": "200",
 	"nozzle_temperature_range_high": [
 		"220"
 	],

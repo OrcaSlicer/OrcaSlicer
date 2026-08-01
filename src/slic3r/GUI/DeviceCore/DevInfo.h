@@ -8,6 +8,9 @@ namespace Slic3r {
 class MachineObject;
 
 /* some static info of machine*/ /*TODO*/
+// Orca: kept as a stub — connection_type/is_lan_mode_printer/is_cloud_mode_printer live inline on
+// MachineObject (DeviceManager.hpp). Adopting the reference's full DevInfo would duplicate those
+// definitions and require an m_dev_info member MachineObject does not have.
 class DevInfo
 {
 public:

@@ -1,12 +1,14 @@
 #include "PresetUpdater.hpp"
 
 #include <algorithm>
+#include <boost/filesystem/directory.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 #include <boost/nowide/fstream.hpp>
 #include <functional>
 #include <atomic>
-#include <mutex>
 #include <set>
+#include <string>
 #include <thread>
 #include <unordered_map>
 #include <ostream>
@@ -19,6 +21,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/log/trivial.hpp>
 
+#include <vector>
 #include <wx/app.h>
 #include <wx/msgdlg.h>
 
@@ -204,7 +207,6 @@ struct PresetUpdater::priv
 
     // Per-vendor update checking
     std::set<std::string> checked_vendors;
-    std::mutex vendor_check_mutex;
     std::vector<std::thread> vendor_check_threads;
     std::atomic<bool> vendor_check_cancel{false};
 
@@ -221,10 +223,10 @@ struct PresetUpdater::priv
     priv();
 
 	void set_download_prefs(AppConfig *app_config);
-	bool get_file(const std::string &url, const fs::path &target_path) const;
-	//BBS: refine preset update logic
+    bool get_file(const std::string &url, const fs::path &target_path) const;
+    //BBS: refine preset update logic
     bool extract_file(const fs::path &source_path, const fs::path &dest_path = {});
-	void prune_tmps() const;
+    void prune_tmp(const std::string& vendor_id) const;
 	void sync_version() const;
 	void parse_version_string(const std::string& body) const;
     void sync_resources(std::string http_url, std::map<std::string, Resource> &resources, bool check_patch = false,  std::string current_version="", std::string changelog_file="");
@@ -371,14 +373,14 @@ bool PresetUpdater::priv::extract_file(const fs::path &source_path, const fs::pa
 	return true;
 }
 
-// Remove leftover paritally downloaded files, if any.
-void PresetUpdater::priv::prune_tmps() const
+// Remove a leftover partial archive for the vendor about to be synchronized.
+void PresetUpdater::priv::prune_tmp(const std::string& vendor_id) const
 {
-    for (auto &dir_entry : boost::filesystem::directory_iterator(cache_path))
-		if (is_plain_file(dir_entry) && dir_entry.path().extension() == TMP_EXTENSION) {
-			BOOST_LOG_TRIVIAL(debug) << "[Orca Updater]remove old cached files: " << dir_entry.path().string();
-			fs::remove(dir_entry.path());
-		}
+    boost::system::error_code ec;
+    const fs::path tmp_path = cache_path / (vendor_id + TMP_EXTENSION);
+    fs::remove(tmp_path, ec);
+    if (ec)
+        BOOST_LOG_TRIVIAL(warning) << "[Orca Updater]failed to remove " << tmp_path.string() << ": " << ec.message();
 }
 
 //BBS: refine the Preset Updater logic
@@ -782,9 +784,9 @@ void PresetUpdater::priv::sync_tooltip(std::string http_url, std::string languag
 // return true means there are plugins files
 bool PresetUpdater::priv::get_cached_plugins_version(std::string& cached_version, bool &force)
 {
-    std::string data_dir_str = data_dir();
-    boost::filesystem::path data_dir_path(data_dir_str);
-    auto cache_folder = data_dir_path / "ota";
+    // The OTA plugin cache lives in its own ota/plugins subfolder; the update dialog
+    // (Plater::priv::update_plugin_when_launch) reads the changelog from the same place.
+    auto cache_folder = cache_path / "plugins";
     std::string network_library, player_library, live555_library;
     bool has_plugins = false;
 
@@ -838,6 +840,25 @@ void PresetUpdater::priv::sync_plugins(std::string http_url, std::string plugin_
     }
     std::string curr_version = GUI::wxGetApp().use_legacy_network_plugin() ? BAMBU_NETWORK_AGENT_VERSION_LEGACY : get_latest_network_version();
     std::string using_version = curr_version.substr(0, 9) + "00";
+    auto cache_plugin_folder = cache_path / "plugins";
+
+    // Orca: drop leftovers from the old flat ota/ cache layout (pre ota/plugins) so the
+    // stale files cannot linger forever after this layout migration.
+    {
+#if defined(_MSC_VER) || defined(_WIN32)
+        const char* legacy_names[] = {"bambu_networking.dll", "BambuSource.dll", "live555.dll", "network_plugins.json"};
+#elif defined(__WXMAC__)
+        const char* legacy_names[] = {"libbambu_networking.dylib", "libBambuSource.dylib", "liblive555.dylib", "network_plugins.json"};
+#else
+        const char* legacy_names[] = {"libbambu_networking.so", "libBambuSource.so", "liblive555.so", "network_plugins.json"};
+#endif
+        for (const char* name : legacy_names) {
+            boost::system::error_code ec;
+            auto legacy_file = cache_path / name;
+            if (boost::filesystem::exists(legacy_file, ec))
+                boost::filesystem::remove(legacy_file, ec);
+        }
+    }
 
     std::string cached_version;
     bool force_upgrade = false;
@@ -868,64 +889,11 @@ void PresetUpdater::priv::sync_plugins(std::string http_url, std::string plugin_
         }
 
         if (need_delete_cache) {
-            std::string data_dir_str = data_dir();
-            boost::filesystem::path data_dir_path(data_dir_str);
-            auto cache_folder = data_dir_path / "ota";
-
-#if defined(_MSC_VER) || defined(_WIN32)
-            auto network_library = cache_folder / "bambu_networking.dll";
-            auto player_library  = cache_folder / "BambuSource.dll";
-            auto live555_library  = cache_folder / "live555.dll";
-#elif defined(__WXMAC__)
-            auto network_library = cache_folder / "libbambu_networking.dylib";
-            auto player_library = cache_folder / "libBambuSource.dylib";
-            auto live555_library = cache_folder / "liblive555.dylib";
-#else
-            auto network_library = cache_folder / "libbambu_networking.so";
-            auto player_library = cache_folder / "libBambuSource.so";
-            auto live555_library = cache_folder / "liblive555.so";
-#endif
-            auto changelog_file = cache_folder / "network_plugins.json";
-
-            if (boost::filesystem::exists(network_library))
-            {
-
-                BOOST_LOG_TRIVIAL(info) << "[remove_old_networking_plugins] remove the file "<<network_library.string();
-                try {
-                    fs::remove(network_library);
-                } catch (...) {
-                    BOOST_LOG_TRIVIAL(error) << "Failed  removing the plugins file " << network_library.string();
-                }
-            }
-            if (boost::filesystem::exists(player_library))
-            {
-
-                BOOST_LOG_TRIVIAL(info) << "[remove_old_networking_plugins] remove the file "<<player_library.string();
-                try {
-                    fs::remove(player_library);
-                } catch (...) {
-                    BOOST_LOG_TRIVIAL(error) << "Failed  removing the plugins file " << player_library.string();
-                }
-            }
-            if (boost::filesystem::exists(live555_library))
-            {
-
-                BOOST_LOG_TRIVIAL(info) << "[remove_old_networking_plugins] remove the file " << live555_library.string();
-                try {
-                    fs::remove(live555_library);
-                } catch (...) {
-                    BOOST_LOG_TRIVIAL(error) << "Failed  removing the plugins file " << live555_library.string();
-                }
-            }
-            if (boost::filesystem::exists(changelog_file))
-            {
-
-                BOOST_LOG_TRIVIAL(info) << "[remove_old_networking_plugins] remove the file "<<changelog_file.string();
-                try {
-                    fs::remove(changelog_file);
-                } catch (...) {
-                    BOOST_LOG_TRIVIAL(error) << "Failed  removing the plugins file " << changelog_file.string();
-                }
+            BOOST_LOG_TRIVIAL(info) << "[remove_old_networking_plugins] remove the plugins directory " << cache_plugin_folder.string();
+            try {
+                fs::remove_all(cache_plugin_folder);
+            } catch (...) {
+                BOOST_LOG_TRIVIAL(error) << "Failed removing the plugins directory " << cache_plugin_folder.string();
             }
         }
     }
@@ -943,7 +911,7 @@ void PresetUpdater::priv::sync_plugins(std::string http_url, std::string plugin_
     try {
         std::map<std::string, Resource> resources
         {
-            {"slicer/plugins/cloud", { using_version, "", "", false, cache_path.string(), {"plugins"}}}
+            {"slicer/plugins/cloud", { using_version, "", "", false, cache_plugin_folder.string()}}
         };
         sync_resources(http_url, resources, true, plugin_version, "network_plugins.json");
     }
@@ -1094,10 +1062,9 @@ void PresetUpdater::priv::check_installed_vendor_profiles() const
                         Semver resource_ver = get_version_from_json(file_path);
                         Semver vendor_ver = get_version_from_json(path_in_vendor.string());
 
-                        bool version_match = ((resource_ver.maj() == vendor_ver.maj()) && (resource_ver.min() == vendor_ver.min()));
-
-                        if (!version_match || (vendor_ver < resource_ver)) {
-                            BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:found vendor "<<vendor_name<<" newer version "<<resource_ver.to_string() <<" from resource, old version "<<vendor_ver.to_string();
+                        if (vendor_ver < resource_ver) {
+                            BOOST_LOG_TRIVIAL(info) << "[Orca Updater]:found vendor " << vendor_name << " newer version "
+                                                    << resource_ver.to_string() << " from resource, old version " << vendor_ver.to_string();
                             bundles.insert(vendor_name);
                         }
                     }
@@ -1339,49 +1306,29 @@ PresetUpdater::~PresetUpdater()
 
 //BBS: change directories by design
 //BBS: refine the preset updater logic
-void PresetUpdater::sync(std::string http_url, std::string language, std::string plugin_version, PresetBundle *preset_bundle)
+void PresetUpdater::sync(std::string http_url, std::string language, std::string plugin_version, PresetBundle * /*preset_bundle*/)
 {
 	//p->set_download_prefs(GUI::wxGetApp().app_config);
 	if (!p->enabled_version_check && !p->enabled_config_update) { return; }
 
-	// Copy the whole vendors data for use in the background thread
-	// Unfortunatelly as of C++11, it needs to be copied again
-	// into the closure (but perhaps the compiler can elide this).
-    VendorMap vendors = preset_bundle ? preset_bundle->vendors : VendorMap{};
-
-    // Determine active vendor before entering the thread
-    std::string active_vendor;
-    if (preset_bundle) {
-        const Preset& printer = preset_bundle->printers.get_edited_preset();
-        if (printer.vendor)
-            active_vendor = printer.vendor->id;
-    }
-
-	p->thread = std::thread([this, vendors, active_vendor, http_url, language, plugin_version]() {
-		this->p->prune_tmps();
-		if (p->cancel)
-			return;
-		this->p->sync_version();
-		if (p->cancel)
-			return;
-        // Per-vendor config check for the active vendor at startup
-        if (!active_vendor.empty() && !vendors.empty()) {
-            this->p->sync_vendor_config(active_vendor);
-            if (p->cancel)
-                return;
-            {
-                std::lock_guard<std::mutex> lock(this->p->vendor_check_mutex);
-                this->p->checked_vendors.insert(active_vendor);
-            }
-        }
-		if (p->cancel)
-			return;
-        this->p->sync_plugins(http_url, plugin_version);
-        this->p->sync_printer_config(http_url);
-		//if (p->cancel)
-		//	return;
-		//remove the tooltip currently
-		//this->p->sync_tooltip(http_url, language);
+	p->thread = std::thread([this, http_url, language, plugin_version]() {
+		try {
+			this->p->sync_version();
+			if (p->cancel)
+				return;
+			// Vendor profile updates are triggered by check_vendor_update()
+			// after the startup printer preset has been restored.
+            this->p->sync_plugins(http_url, plugin_version);
+            this->p->sync_printer_config(http_url);
+			//if (p->cancel)
+			//	return;
+			//remove the tooltip currently
+			//this->p->sync_tooltip(http_url, language);
+		} catch (const std::exception &e) {
+			BOOST_LOG_TRIVIAL(error) << "[Orca Updater] background sync failed: " << e.what();
+		} catch (...) {
+			BOOST_LOG_TRIVIAL(error) << "[Orca Updater] background sync failed with an unknown exception";
+		}
 	});
 }
 
@@ -1390,16 +1337,17 @@ void PresetUpdater::check_vendor_update(const std::string& vendor_id)
     if (!p->enabled_config_update) return;
     if (vendor_id.empty()) return;
 
-    std::lock_guard<std::mutex> lock(p->vendor_check_mutex);
-
     if (!p->checked_vendors.insert(vendor_id).second)
         return;
 
     p->vendor_check_threads.emplace_back([this, vendor_id]() {
         try {
+            this->p->prune_tmp(vendor_id);
             this->p->sync_vendor_config(vendor_id);
         } catch (const std::exception& e) {
             BOOST_LOG_TRIVIAL(error) << "[Orca Updater] vendor update failed for " << vendor_id << ": " << e.what();
+        } catch (...) {
+            BOOST_LOG_TRIVIAL(error) << "[Orca Updater] vendor update failed for " << vendor_id << " with an unknown exception";
         }
     });
 }
