@@ -329,7 +329,7 @@
     },
     {
       "id": "boolean",
-      "name": "Combine",
+      "name": "Union",
       "slot": "add",
       "key": "Shift+B",
       "feature": "Boolean",
@@ -342,7 +342,43 @@
       },
       "refusal": "Boolean needs two bodies — create or import a second solid",
       "gui": true,
-      "action": "key:S+B"
+      "action": "btn:bool#0"
+    },
+    {
+      "id": "bool_subtract",
+      "name": "Subtract",
+      "slot": "add",
+      "key": null,
+      "feature": "Boolean",
+      "mcp": null,
+      "accepts": [
+        "bodies_2"
+      ],
+      "needs": {
+        "bodies": 2
+      },
+      "refusal": "Boolean needs two bodies — create or import a second solid",
+      "gui": true,
+      "action": "btn:bool#1",
+      "mode": null
+    },
+    {
+      "id": "bool_intersect",
+      "name": "Intersect",
+      "slot": "add",
+      "key": null,
+      "feature": "Boolean",
+      "mcp": null,
+      "accepts": [
+        "bodies_2"
+      ],
+      "needs": {
+        "bodies": 2
+      },
+      "refusal": "Boolean needs two bodies — create or import a second solid",
+      "gui": true,
+      "action": "btn:bool#2",
+      "mode": null
     },
     {
       "id": "surf_extrude",
@@ -530,7 +566,7 @@
       },
       "refusal": "Pick an edge to round",
       "gui": true,
-      "action": "key:S+F"
+      "action": "btn:dress#0"
     },
     {
       "id": "chamfer",
@@ -550,7 +586,7 @@
       },
       "refusal": "Pick an edge to bevel",
       "gui": true,
-      "action": "key:S+F"
+      "action": "btn:dress#1"
     },
     {
       "id": "draft",
@@ -589,7 +625,7 @@
     },
     {
       "id": "pattern",
-      "name": "Pattern",
+      "name": "Linear pattern",
       "slot": "repeat",
       "key": "Shift+N",
       "feature": "Pattern",
@@ -605,7 +641,28 @@
       },
       "refusal": "Create a solid body to pattern first",
       "gui": true,
-      "action": "key:S+N"
+      "action": "btn:pat#0"
+    },
+    {
+      "id": "pattern_circular",
+      "name": "Circular pattern",
+      "slot": "repeat",
+      "key": null,
+      "feature": "Pattern",
+      "mcp": null,
+      "accepts": [
+        "body_solid",
+        "face_planar",
+        "sk_loop",
+        "art"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "refusal": "Create a solid body to pattern first",
+      "gui": true,
+      "action": "btn:pat#1",
+      "mode": null
     },
     {
       "id": "mirror",
@@ -1293,8 +1350,71 @@
       "action": "key:B"
     },
     {
+      "id": "sk_poly_3",
+      "name": "Triangle",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:poly#3",
+      "mode": "sketch",
+      "family": "Polygon"
+    },
+    {
+      "id": "sk_poly_4",
+      "name": "Square",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:poly#4",
+      "mode": "sketch",
+      "family": "Polygon"
+    },
+    {
+      "id": "sk_poly_5",
+      "name": "Pentagon",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:poly#5",
+      "mode": "sketch",
+      "family": "Polygon"
+    },
+    {
       "id": "sk_polygon",
-      "name": "Polygon",
+      "name": "Hexagon",
       "slot": "create",
       "key": "G",
       "feature": "Sketch",
@@ -1310,7 +1430,92 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:G"
+      "action": "btn:poly#6",
+      "family": "Polygon"
+    },
+    {
+      "id": "sk_poly_8",
+      "name": "Octagon",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:poly#8",
+      "mode": "sketch",
+      "family": "Polygon"
+    },
+    {
+      "id": "sk_poly_12",
+      "name": "Dodecagon",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:poly#12",
+      "mode": "sketch",
+      "family": "Polygon"
+    },
+    {
+      "id": "sk_poly_inscribed",
+      "name": "Inscribed",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:polyfit#0",
+      "mode": "sketch",
+      "family": "Polygon"
+    },
+    {
+      "id": "sk_poly_circumscribed",
+      "name": "Circumscribed",
+      "slot": "create",
+      "key": null,
+      "feature": "Sketch",
+      "mcp": null,
+      "accepts": [
+        "sk_none",
+        "sk_point",
+        "sk_line",
+        "sk_arc",
+        "sk_2ent"
+      ],
+      "needs": {},
+      "refusal": null,
+      "gui": true,
+      "action": "btn:polyfit#1",
+      "mode": "sketch",
+      "family": "Polygon"
     },
     {
       "id": "sk_point_t",

@@ -358,7 +358,6 @@ DesignPanel::DesignPanel(wxWindow* parent)
             m_viewport->set_sketch_tool(mode);
         }
         m_viewport->set_sketch_construction(m_construction->GetValue());
-        show_polygon_card(mode == DesignSketchTool::Mode::Polygon);
         m_status->SetForegroundColour(wxNullColour);
         m_status->SetLabel(m_sketch_on.IsEmpty() ? hint
                            : wxString::Format(_L("%s  ·  on %s"), hint, m_sketch_on));
@@ -1196,12 +1195,53 @@ DesignPanel::DesignPanel(wxWindow* parent)
             {"design_array",      DesignSketchTool::Mode::Array,      _L("Linear array"),                 _L("Pick entities, drag the spacing handle, click the count; click empty to apply")},
             {"design_polararray", DesignSketchTool::Mode::PolarArray, _L("Polar array (about centroid)"), _L("Pick entities, drag the sweep handle, click the count; click empty to apply")} });
 
-        // Polygon's side count / circumscribed flag used to sit inline in this row; they are
-        // tool parameters, so they live in the sidebar card that opens with the tool.
-        auto* b_poly = icon_btn("design_polygon", _L("Polygon"));
-        b_poly->Bind(wxEVT_BUTTON, [this, select_tool](wxCommandEvent&) {
+        // Polygon's side count and fit are TOOL PARAMETERS, so they are chosen from the tool:
+        // the offer's Create > Polygon submenu. They used to sit inline in this row, then in a
+        // sidebar card; both put the choice somewhere you had to leave the geometry to reach,
+        // and the count cannot be recovered afterwards (a drawn polygon's inline editor offers
+        // Side and Angle, never the count). snaporca-e1p.
+        auto arm_polygon = [this, select_tool] {
             push_polygon_params();
-            select_tool(DesignSketchTool::Mode::Polygon, _L("Click center then a vertex")); });
+            select_tool(DesignSketchTool::Mode::Polygon,
+                        wxString::Format(_L("Click center then a vertex — %d sides, %s"),
+                                         m_poly_sides,
+                                         m_poly_circumscribed ? _L("circumscribed") : _L("inscribed")));
+        };
+        for (int n : {3, 4, 5, 6, 8, 12})
+            m_verb_actions["btn:poly#" + std::to_string(n)] =
+                [this, arm_polygon, n] { m_poly_sides = n; arm_polygon(); };
+        for (int c : {0, 1})
+            m_verb_actions["btn:polyfit#" + std::to_string(c)] =
+                [this, arm_polygon, c] { m_poly_circumscribed = (c == 1); arm_polygon(); };
+
+        // Same defect, one level up: a combo whose entries are different VERBS wearing a single
+        // name. "Dress-up" is Fillet or Chamfer; "Combine" is union, subtract or intersect;
+        // "Pattern" is linear or circular. The choice decides WHAT YOU ARE DOING, so it belongs
+        // where you chose the tool — not behind a card you must open to discover it existed.
+        // Each address opens the tool exactly as its shortcut does, then says which one.
+        // The members are read at INVOCATION, not capture: the cards are built after this row.
+        // snaporca-e1p.
+        auto open_feature = [this](int key) {
+            auto it = m_keys_feature.find(key);
+            if (it != m_keys_feature.end() && it->second) it->second();
+        };
+        // SHIFT() is a constructor-local helper, so resolve the codes here rather than inside
+        // the stored lambdas, which outlive it.
+        const int k_dress = SHIFT('F'), k_bool = SHIFT('B'), k_pat = SHIFT('N');
+        m_verb_actions["btn:dress#0"] = [this, open_feature, k_dress] {
+            open_feature(k_dress); if (m_dressup_type) m_dressup_type->SetSelection(0); };
+        m_verb_actions["btn:dress#1"] = [this, open_feature, k_dress] {
+            open_feature(k_dress); if (m_dressup_type) m_dressup_type->SetSelection(1); };
+        for (int op = 0; op < 3; ++op)
+            m_verb_actions["btn:bool#" + std::to_string(op)] = [this, open_feature, k_bool, op] {
+                open_feature(k_bool);
+                if (m_bool_op) { m_bool_op->SetSelection(op); refresh_preview(); } };
+        for (int t = 0; t < 2; ++t)
+            m_verb_actions["btn:pat#" + std::to_string(t)] = [this, open_feature, k_pat, t] {
+                open_feature(k_pat); if (m_pattern_type) m_pattern_type->SetSelection(t); };
+
+        auto* b_poly = icon_btn("design_polygon", _L("Polygon"));
+        b_poly->Bind(wxEVT_BUTTON, [arm_polygon](wxCommandEvent&) { arm_polygon(); });
         sadd(b_poly);
         add_sep(m_tb_sketch);
         m_construction->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
@@ -1494,28 +1534,11 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
     // --- Polygon (sketch tool options) ---
     {
-        auto* pform = two_col_form();
-        m_sides = new wxSpinCtrl(m_cards, wxID_ANY, "6", wxDefaultPosition, wxSize(90, -1));
-        m_sides->SetRange(3, 64);
-        m_sides->SetValue(6);
-        m_sides->Bind(wxEVT_SPINCTRL, [this](wxSpinEvent&) {
-            if (m_viewport) m_viewport->set_sketch_polygon_sides(m_sides->GetValue()); });
-        pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Sides")), 0, wxALIGN_CENTER_VERTICAL);
-        pform->Add(m_sides, 0, wxEXPAND);
-
-        m_poly_circ = new CheckBox(m_cards);
-        m_poly_circ->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent& e) {
-            if (m_viewport) m_viewport->set_sketch_polygon_circumscribed(m_poly_circ->GetValue());
-            e.Skip(); });
-        pform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Circumscribed")), 0, wxALIGN_CENTER_VERTICAL);
-        pform->Add(m_poly_circ, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
-
-        m_box_polygon = new wxBoxSizer(wxVERTICAL);
-        m_box_polygon->Add(card_header(m_cards, "design_polygon", _L("Polygon"), m_hdr_polygon), 0,
-                           wxLEFT | wxRIGHT | wxTOP, 12);
-        m_box_polygon->Add(new wxStaticLine(m_cards), 0, wxEXPAND | wxALL, 8);
-        m_box_polygon->Add(pform, 0, wxEXPAND | wxALL, 12);
-        cards->Add(m_box_polygon, 0, wxEXPAND);
+        // NO polygon card. Sides and Circumscribed are tool parameters and are chosen from the
+        // tool — the offer's Create > Polygon submenu names the common side counts and the two
+        // fits, and arming from there sets both. A spin field on the left could not be reached
+        // without leaving the geometry, and the count is unrecoverable afterwards: the inline
+        // editor a drawn polygon opens offers Side and Angle, never the count. snaporca-e1p.
     }
 
     // --- Extrude dialog (consumes the selected sketch) ---
@@ -2959,7 +2982,6 @@ DesignPanel::DesignPanel(wxWindow* parent)
     root->Show(m_parts_box, false, false);   // no bodies on a fresh document
     root->Show(m_cards,     false, false);   // no tool open yet: don't draw an empty frame
     cards->Show(m_box_sketch,  false, true);
-    cards->Show(m_box_polygon, false, true);
     cards->Show(m_box_move,    false, true);
     cards->Show(m_box_extrude, false, true);
     cards->Show(m_box_revolve, false, true);
@@ -8704,21 +8726,13 @@ void DesignPanel::show_move_card(bool show)
     if (m_form) { m_form->Layout(); m_form->FitInside(); }
 }
 
-// Polygon's options live in a sidebar card that is shown only while the tool is armed.
-void DesignPanel::show_polygon_card(bool show)
-{
-    if (m_box_polygon == nullptr || m_cards == nullptr || m_cards->GetSizer() == nullptr) return;
-    m_cards->GetSizer()->Show(m_box_polygon, show, true);
-    update_cards_frame();
-    if (m_form) { m_form->Layout(); m_form->FitInside(); }
-}
-
-// Push the card's current values into the live sketch tool before Polygon starts.
+// Push the tool's current parameters into the live sketch tool before Polygon starts. They
+// come from the offer's Polygon submenu (or from the last choice made there), never from a card.
 void DesignPanel::push_polygon_params()
 {
     if (m_viewport == nullptr) return;
-    m_viewport->set_sketch_polygon_sides(m_sides ? m_sides->GetValue() : 6);
-    m_viewport->set_sketch_polygon_circumscribed(m_poly_circ && m_poly_circ->GetValue());
+    m_viewport->set_sketch_polygon_sides(m_poly_sides);
+    m_viewport->set_sketch_polygon_circumscribed(m_poly_circumscribed);
 }
 
 void DesignPanel::open_tool(Tool t)

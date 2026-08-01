@@ -276,7 +276,6 @@ private:
     StaticBox* m_parts_box{nullptr};  // framed bodies section (hidden while empty)
     StaticBox* m_cards{nullptr};      // one framed panel holding every tool dialog (one visible at a time)
     void      update_cards_frame();     // show that frame iff some card inside it is visible
-    void      show_polygon_card(bool show);
     void      show_move_card(bool show);
     void      apply_move_card();       // numeric move/rotate -> same xform the gizmo builds
     void      push_polygon_params();
@@ -284,7 +283,6 @@ private:
     wxSizer*  m_tb_doc{nullptr};      // toolbar document/view actions (new, commit, export, section, place)
     CheckBox* m_show_bed{nullptr};    // view option: draw the printer bed + plate grid, or not
     wxSizer*  m_box_move{nullptr};      // Move/Rotate numeric options (distance, axis, angle)
-    wxSizer*  m_box_polygon{nullptr};   // Polygon tool options (sides / circumscribed)
     wxSizer*  m_box_sketch{nullptr};
     wxSizer*  m_box_extrude{nullptr};
     wxSizer*  m_box_dressup{nullptr};
@@ -325,7 +323,6 @@ private:
 
     // Onshape-style dialog-card title rows (icon + bold feature name), retitled
     // per tool in open_tool() (edit-mode shows the feature's actual name).
-    wxStaticText* m_hdr_polygon{nullptr};
     wxStaticText* m_hdr_move{nullptr};
     wxStaticText* m_hdr_sketch{nullptr};
     // Onshape sketch-entry card (plane/orientation) that opens on "New sketch" and
@@ -395,8 +392,12 @@ private:
     wxSpinCtrlDouble* m_move_dz{nullptr};
     ComboBox*         m_move_axis{nullptr};      // rotation axis: X/Y/Z
     wxSpinCtrlDouble* m_move_angle{nullptr};     // rotation angle (deg)
-    wxSpinCtrl*       m_sides{nullptr};          // polygon sides
-    CheckBox*         m_poly_circ{nullptr};      // polygon circumscribed toggle (Orca teal check)
+    // Polygon's two parameters are chosen FROM THE TOOL, in the offer's Polygon submenu, not
+    // from a card on the left: the side count cannot be edited after drawing (the inline editor
+    // offers Side and Angle only), so it has to be settled at the moment the tool is armed —
+    // which is exactly where the offer already is. snaporca-e1p.
+    int               m_poly_sides{6};           // 3..64; the submenu names the common ones
+    bool              m_poly_circumscribed{false};
 
     // Which reference plane a sketch falls back to when no face is picked: 0/1/2 = XY/XZ/YZ,
     // >=3 indexes resolve_datum_planes(). Set by CLICKING a ghost plane in the viewport — there is

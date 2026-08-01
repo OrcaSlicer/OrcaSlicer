@@ -86,7 +86,9 @@ static const OfferVerb kOfferVerbs[] = {
     {"loft", "Loft", 1, "Shift+L", "key:S+L", "Create at least two profile sketches to loft", 0x00004000u, 0, 2, false, false, nullptr},
     {"thicken", "Thicken", 1, nullptr, "fly:material#4", "Thicken needs a solid body — add or import one first", 0x0000000au, 1, 0, false, false, nullptr},
     {"rib", "Rib", 1, nullptr, "fly:material#5", "Rib needs a solid body — add or import one first", 0x00010000u, 1, 0, false, false, nullptr},
-    {"boolean", "Combine", 1, "Shift+B", "key:S+B", "Boolean needs two bodies — create or import a second solid", 0x00000200u, 2, 0, false, false, nullptr},
+    {"boolean", "Union", 1, "Shift+B", "btn:bool#0", "Boolean needs two bodies — create or import a second solid", 0x00000200u, 2, 0, false, false, nullptr},
+    {"bool_subtract", "Subtract", 1, nullptr, "btn:bool#1", "Boolean needs two bodies — create or import a second solid", 0x00000200u, 2, 0, false, false, nullptr},
+    {"bool_intersect", "Intersect", 1, nullptr, "btn:bool#2", "Boolean needs two bodies — create or import a second solid", 0x00000200u, 2, 0, false, false, nullptr},
     {"surf_extrude", "Surface Extrude", 1, "Shift+G", "key:S+G", "Create a sketch first", 0x00004000u, 0, 0, false, false, nullptr},
     {"surf_revolve", "Surface Revolve", 1, nullptr, "fly:surface#1", "Create a sketch profile to revolve first", 0x00004000u, 0, 0, false, false, nullptr},
     {"surf_loft", "Surface Loft", 1, nullptr, "fly:surface#2", "Create at least two profile sketches to loft", 0x00004000u, 0, 2, false, false, nullptr},
@@ -97,11 +99,12 @@ static const OfferVerb kOfferVerbs[] = {
     {"shell", "Shell", 2, "Shift+K", "key:S+K", "Shell needs a solid body", 0x00000082u, 1, 0, false, false, nullptr},
     {"cut", "Cut", 2, "Shift+X", "key:S+X", "Create a solid body to cut first", 0x00000480u, 1, 0, false, false, nullptr},
     {"split", "Split", 2, nullptr, nullptr, "Split needs a solid body", 0x00000080u, 1, 0, false, false, nullptr},
-    {"fillet", "Fillet", 3, "Shift+F", "key:S+F", "Pick an edge to round", 0x000000b2u, 1, 0, false, false, nullptr},
-    {"chamfer", "Chamfer", 3, nullptr, "key:S+F", "Pick an edge to bevel", 0x000000b2u, 1, 0, false, false, nullptr},
+    {"fillet", "Fillet", 3, "Shift+F", "btn:dress#0", "Pick an edge to round", 0x000000b2u, 1, 0, false, false, nullptr},
+    {"chamfer", "Chamfer", 3, nullptr, "btn:dress#1", "Pick an edge to bevel", 0x000000b2u, 1, 0, false, false, nullptr},
     {"draft", "Draft", 3, "Shift+D", "key:S+D", "Pick a face to taper", 0x0000000au, 1, 0, false, false, nullptr},
     {"surf_offset", "Surface Offset", 3, nullptr, "fly:surface#4", "target is not a sheet body", 0x00000100u, 0, 0, true, false, nullptr},
-    {"pattern", "Pattern", 4, "Shift+N", "key:S+N", "Create a solid body to pattern first", 0x00006082u, 1, 0, false, false, nullptr},
+    {"pattern", "Linear pattern", 4, "Shift+N", "btn:pat#0", "Create a solid body to pattern first", 0x00006082u, 1, 0, false, false, nullptr},
+    {"pattern_circular", "Circular pattern", 4, nullptr, "btn:pat#1", "Create a solid body to pattern first", 0x00006082u, 1, 0, false, false, nullptr},
     {"mirror", "Mirror", 4, "Shift+Z", "key:S+Z", "Mirror needs a body — add or import one first", 0x00000480u, 1, 0, false, false, nullptr},
     {"pat_curve", "Pattern on Curve", 4, nullptr, nullptr, "Pattern on curve needs a body and a curve", 0x00000090u, 1, 0, false, false, nullptr},
     {"transform", "Move", 5, "Shift+Y", "key:S+Y", "Transform needs a body — add or import one first", 0x00002180u, 1, 0, false, false, nullptr},
@@ -136,7 +139,14 @@ static const OfferVerb kOfferVerbs[] = {
     {"sk_ellipse", "Ellipse", 0, "E", "key:E", nullptr, 0x000f8000u, 0, 0, false, true, "Ellipse"},
     {"sk_ellipse_arc", "Elliptical arc", 0, nullptr, "fly:design_ellipse#1", nullptr, 0x000f8000u, 0, 0, false, true, "Ellipse"},
     {"sk_spline", "Spline", 0, "B", "key:B", nullptr, 0x000f8000u, 0, 0, false, true, nullptr},
-    {"sk_polygon", "Polygon", 0, "G", "key:G", nullptr, 0x000f8000u, 0, 0, false, true, nullptr},
+    {"sk_poly_3", "Triangle", 0, nullptr, "btn:poly#3", nullptr, 0x000f8000u, 0, 0, false, true, "Polygon"},
+    {"sk_poly_4", "Square", 0, nullptr, "btn:poly#4", nullptr, 0x000f8000u, 0, 0, false, true, "Polygon"},
+    {"sk_poly_5", "Pentagon", 0, nullptr, "btn:poly#5", nullptr, 0x000f8000u, 0, 0, false, true, "Polygon"},
+    {"sk_polygon", "Hexagon", 0, "G", "btn:poly#6", nullptr, 0x000f8000u, 0, 0, false, true, "Polygon"},
+    {"sk_poly_8", "Octagon", 0, nullptr, "btn:poly#8", nullptr, 0x000f8000u, 0, 0, false, true, "Polygon"},
+    {"sk_poly_12", "Dodecagon", 0, nullptr, "btn:poly#12", nullptr, 0x000f8000u, 0, 0, false, true, "Polygon"},
+    {"sk_poly_inscribed", "Inscribed", 0, nullptr, "btn:polyfit#0", nullptr, 0x000f8000u, 0, 0, false, true, "Polygon"},
+    {"sk_poly_circumscribed", "Circumscribed", 0, nullptr, "btn:polyfit#1", nullptr, 0x000f8000u, 0, 0, false, true, "Polygon"},
     {"sk_point_t", "Point", 0, "P", "key:P", nullptr, 0x000f8000u, 0, 0, false, true, nullptr},
     {"sk_offset", "Offset", 1, "O", "key:O", nullptr, 0x000b0000u, 0, 0, false, true, nullptr},
     {"sk_trim", "Trim", 2, "T", "key:T", nullptr, 0x000b0000u, 0, 0, false, true, nullptr},
@@ -154,7 +164,7 @@ static const OfferVerb kOfferVerbs[] = {
     {"sk_extend", "Extend", 7, "X", "key:X", nullptr, 0x000b0000u, 0, 0, false, true, nullptr},
     {"sk_delete", "Delete", 7, "Del", "btn:delete", nullptr, 0x000f0000u, 0, 0, false, true, nullptr},
 };
-static const int kOfferVerbCount = 74;
+static const int kOfferVerbCount = 84;
 
 }} // namespace Slic3r::GUI
 
