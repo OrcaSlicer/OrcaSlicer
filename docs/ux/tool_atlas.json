@@ -31,14 +31,14 @@
       "pos": "E",
       "angle": 0,
       "label": "Remove",
-      "why": "takes material away"
+      "why": "takes material away Shell lives here by decision of 2026-08-01, not by oversight."
     },
     {
       "id": "dressup",
       "pos": "SE",
       "angle": 45,
       "label": "Fillet / chamfer / draft",
-      "why": "finishes faces and edges without changing the shape's intent; named for the tools it holds, not for the trade word. NOTE: Shell sits in Remove and Delete Face in Modify, so this row is NOT the same set as the toolbar's dressup dropdown."
+      "why": "finishes faces and edges without changing the shape's intent; named for the tools it holds, not for the trade word. RATIFIED 2026-08-01: Shell stays in Remove and Delete Face in Modify — this row is deliberately NOT the same set as the toolbar's dressup dropdown, which groups all five. Shell hollows a solid, so it belongs with the verbs that take material away. Do not re-open: a verb's row is its address and reordering breaks learned reach."
     },
     {
       "id": "repeat",
