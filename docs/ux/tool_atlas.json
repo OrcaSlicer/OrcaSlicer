@@ -37,8 +37,8 @@
       "id": "dressup",
       "pos": "SE",
       "angle": 45,
-      "label": "Dress-up",
-      "why": "finishes faces and edges without changing the shape's intent"
+      "label": "Fillet / chamfer",
+      "why": "finishes faces and edges without changing the shape's intent; named for what it does, not for the trade word"
     },
     {
       "id": "repeat",

@@ -902,7 +902,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
 
         // Dress-up: finishing operations on the faces and edges of an existing solid — nothing
         // that moves a body (see the Placement drawer) and nothing that creates geometry.
-        feat_dropdown("dressup", "design_dressup", _L("Dress-up (fillet / chamfer / draft / shell / delete face)"), {
+        feat_dropdown("dressup", "design_dressup", _L("Fillet / chamfer / draft / shell / delete face"), {
             {"design_dressup", _L("Fillet / Chamfer"), _L("Round or bevel a picked edge"),
              [this] { open_tool(Tool::Dressup); }, SHIFT('F')},
             {"design_draft", _L("Draft (taper a face)"), _L("Tilt a picked face by a draft angle"),
@@ -1228,10 +1228,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
         // SHIFT() is a constructor-local helper, so resolve the codes here rather than inside
         // the stored lambdas, which outlive it.
         const int k_dress = SHIFT('F'), k_bool = SHIFT('B'), k_pat = SHIFT('N');
+        // Choose FIRST, then open: open_tool() titles the card from m_dressup_type, so setting
+        // it afterwards left the header reading "Fillet 1" over a chamfer. Nothing in the
+        // opener resets the combo, so this order is safe.
         m_verb_actions["btn:dress#0"] = [this, open_feature, k_dress] {
-            open_feature(k_dress); if (m_dressup_type) m_dressup_type->SetSelection(0); };
+            if (m_dressup_type) m_dressup_type->SetSelection(0); open_feature(k_dress); };
         m_verb_actions["btn:dress#1"] = [this, open_feature, k_dress] {
-            open_feature(k_dress); if (m_dressup_type) m_dressup_type->SetSelection(1); };
+            if (m_dressup_type) m_dressup_type->SetSelection(1); open_feature(k_dress); };
         for (int op = 0; op < 3; ++op)
             m_verb_actions["btn:bool#" + std::to_string(op)] = [this, open_feature, k_bool, op] {
                 open_feature(k_bool);
@@ -1598,7 +1601,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_dressup_type->Append(_L("Fillet"));
     m_dressup_type->Append(_L("Chamfer"));
     m_dressup_type->SetSelection(0);
-    dform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Dress-up")), 0, wxALIGN_CENTER_VERTICAL);
+    dform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Type")), 0, wxALIGN_CENTER_VERTICAL);
     dform->Add(m_dressup_type, 0, wxEXPAND);
 
     // The card can dress ONE picked edge or a whole face-group, and which one it will do is
