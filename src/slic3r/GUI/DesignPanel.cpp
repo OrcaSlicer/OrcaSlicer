@@ -1298,7 +1298,12 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_construction->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
             if (m_viewport && m_viewport->is_sketching())
                 m_viewport->set_sketch_construction(m_construction->GetValue()); });
-        sadd(m_construction);
+        // STAYS on the bar. Construction is not a tool, it is a persistent MODE — the same kind
+        // of thing as the Bed checkbox — and the sketch bar is already shown only in Sketch mode,
+        // so it appears exactly while it can apply. Hiding it left Q and the offer's Construction
+        // row still toggling a checkbox nobody could see: you could not tell whether the next
+        // line would be construction geometry. A stateful toggle has to show its state.
+        sadd_bar(m_construction);
         add_sep(m_tb_sketch);
         auto* b_del = icon_btn("design_delete", _L("Delete selected"));
         b_del->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
