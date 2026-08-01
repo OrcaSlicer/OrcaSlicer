@@ -131,6 +131,11 @@ private:
     // Fill m_bool_target / m_bool_tool / m_cut_target. as_of_feature < 0 = current bodies (add);
     // >= 0 = the bodies as they existed just before that feature index (Boolean re-edit, so a
     // consumed tool body still appears and its saved selection round-trips).
+    // Which body a tool should act on when it opens: the one picked in the VIEWPORT, else
+    // the first. Selection comes first and the tool consumes it — every body combo used to
+    // default to index 0, so picking body 3 and opening Mirror silently mirrored body 1.
+    // Clamped to the list, so it is safe to hand straight to SetSelection. snaporca-e1p.
+    int  selected_body_default() const;
     void populate_body_choices(int as_of_feature = -1);
     // Fill `c` with the bodies as they existed just before `as_of_feature` and select
     // `want`. Re-editing any feature that stores a body index needs this: the index was

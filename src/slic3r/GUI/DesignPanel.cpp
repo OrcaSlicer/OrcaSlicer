@@ -622,7 +622,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
                         const std::string& n = m_doc.bodies[i].name;
                         m_thicken_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
                     }
-                    if (m_thicken_body->GetCount() > 0) m_thicken_body->SetSelection(0);
+                    if (m_thicken_body->GetCount() > 0)
+                        m_thicken_body->SetSelection(std::min(selected_body_default(),
+                                                       int(m_thicken_body->GetCount()) - 1));
                 }
                 m_sel_solid_face = -1;
                 m_thicken_face_label->SetLabel(_L("(pick a solid face)"));
@@ -642,7 +644,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
                         const std::string& n = m_doc.bodies[i].name;
                         m_rib_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
                     }
-                    if (m_rib_body->GetCount() > 0) m_rib_body->SetSelection(0);
+                    if (m_rib_body->GetCount() > 0)
+                        m_rib_body->SetSelection(std::min(selected_body_default(),
+                                                       int(m_rib_body->GetCount()) - 1));
                 }
                 {
                     m_rib_sketch->Clear();
@@ -798,7 +802,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
                         const std::string& n = m_doc.bodies[i].name;
                         m_proj_source_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
                     }
-                    if (m_proj_source_body->GetCount() > 0) m_proj_source_body->SetSelection(0);
+                    if (m_proj_source_body->GetCount() > 0)
+                        m_proj_source_body->SetSelection(std::min(selected_body_default(),
+                                                       int(m_proj_source_body->GetCount()) - 1));
                 }
                 populate_plane_choices(m_proj_plane);
                 m_sel_solid_face = -1;
@@ -829,7 +835,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
                         const std::string& n = m_doc.bodies[i].name;
                         m_xf_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
                     }
-                    if (m_xf_body->GetCount() > 0) m_xf_body->SetSelection(0);
+                    if (m_xf_body->GetCount() > 0)
+                        m_xf_body->SetSelection(std::min(selected_body_default(),
+                                                       int(m_xf_body->GetCount()) - 1));
                 }
                 open_tool(Tool::Transform);
              }, SHIFT('Y')},
@@ -847,7 +855,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
                         const std::string& n = m_doc.bodies[i].name;
                         m_mirror_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
                     }
-                    if (m_mirror_body->GetCount() > 0) m_mirror_body->SetSelection(0);
+                    if (m_mirror_body->GetCount() > 0)
+                        m_mirror_body->SetSelection(std::min(selected_body_default(),
+                                                       int(m_mirror_body->GetCount()) - 1));
                 }
                 populate_plane_choices(m_mirror_plane);
                 open_tool(Tool::Mirror);
@@ -923,7 +933,9 @@ DesignPanel::DesignPanel(wxWindow* parent)
                         const std::string& n = m_doc.bodies[i].name;
                         m_del_face_body->Append(n.empty() ? wxString::Format(_L("Body %zu"), i + 1) : wxString::FromUTF8(n));
                     }
-                    if (m_del_face_body->GetCount() > 0) m_del_face_body->SetSelection(0);
+                    if (m_del_face_body->GetCount() > 0)
+                        m_del_face_body->SetSelection(std::min(selected_body_default(),
+                                                       int(m_del_face_body->GetCount()) - 1));
                 }
                 m_del_faces.clear();
                 m_del_face_list->SetLabel(_L("(none)"));
@@ -4850,6 +4862,13 @@ void DesignPanel::on_add_pattern()
     refresh_tree();
 }
 
+int DesignPanel::selected_body_default() const
+{
+    const int n = int(m_doc.bodies.size());
+    if (n <= 0) return 0;
+    return (m_sel_solid_body >= 0 && m_sel_solid_body < n) ? m_sel_solid_body : 0;
+}
+
 void DesignPanel::populate_body_choices(int as_of_feature)
 {
     // Re-editing a Boolean: list the bodies as they existed just before it ran, so a tool body
@@ -4873,9 +4892,12 @@ void DesignPanel::populate_body_choices(int as_of_feature)
         if (c->GetCount() > 0)
             c->SetSelection(std::min(def, int(c->GetCount()) - 1));   // selection index == body index
     };
-    fill(m_bool_target, 0);
-    fill(m_bool_tool, 1);   // default: combine body 0 (target) with body 1 (tool)
-    fill(m_cut_target, 0);  // Cut tool: default to the first body
+    const int picked = selected_body_default();
+    fill(m_bool_target, picked);
+    // …and the tool body is a DIFFERENT one: defaulting both to the same body is a no-op the
+    // user has to notice and undo. Fall back to the neighbour of whatever was picked.
+    fill(m_bool_tool, picked == 0 ? 1 : 0);
+    fill(m_cut_target, picked);
 }
 
 void DesignPanel::fill_body_choice(ComboBox* c, int as_of_feature, int want)
