@@ -624,6 +624,10 @@ private:
     std::map<std::string, std::function<void()>> m_verb_actions;
     // Append an offer row with its toolbar glyph. The bitmap must be set BEFORE Append —
     // wxGTK builds the GtkMenuItem there and only makes an image item if one is present.
+    // Every status write goes through here so long hints wrap instead of clipping.
+    void        set_status(const wxString& text);
+    wxString    idle_hint() const;   // what to say when nothing is selected
+
     wxMenuItem* append_offer_item(wxMenu* menu, int id, const wxString& text,
                                   const struct OfferVerb& v);
     void show_offer_menu(const wxPoint& screen_pos);

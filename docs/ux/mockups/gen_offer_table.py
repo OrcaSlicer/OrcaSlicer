@@ -93,6 +93,7 @@ def main():
         "    // grouping instead of flattening 19 create tools into one wall.",
         "    const char* family;",
         "    const char* icon;         // resources/images name, or nullptr — the offer draws it beside the row",
+        "    const char* hint;         // what the verb does / what to click; shown on hover",
         "};",
         "",
         "// Row labels, in ratified order.",
@@ -106,19 +107,23 @@ def main():
         "",
         "static const OfferVerb kOfferVerbs[] = {",
     ]
+    # A verb the user can PICK must say what it does. Fail loudly rather than ship a
+    # bare name — the offer is now the only door to these tools.
+    blind = [v["id"] for v in A["verbs"] if v.get("action") and not v.get("hint")]
+    assert not blind, f"wired verbs with no hint: {blind}"
     for v in A["verbs"]:
         mask = 0
         for a in v["accepts"]:
             mask |= 1 << sels.index(a)
         n = v.get("needs") or {}
         lines.append(
-            "    {%s, %s, %d, %s, %s, %s, 0x%08xu, %d, %d, %s, %s, %s, %s}," % (
+            "    {%s, %s, %d, %s, %s, %s, 0x%08xu, %d, %d, %s, %s, %s, %s, %s}," % (
                 cstr(v["id"]), cstr(v["name"]), slots.index(v["slot"]),
                 cstr(v.get("key")), cstr(v.get("action")), cstr(v.get("refusal")),
                 mask, n.get("bodies", 0), n.get("sketches", 0),
                 "true" if n.get("sheet") else "false",
                 "true" if v.get("mode") == "sketch" else "false",
-                cstr(v.get("family")), cstr(v.get("icon"))))
+                cstr(v.get("family")), cstr(v.get("icon")), cstr(v.get("hint"))))
     lines += [
         "};",
         f"static const int kOfferVerbCount = {len(A['verbs'])};",
