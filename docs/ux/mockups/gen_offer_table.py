@@ -87,6 +87,11 @@ def main():
         "    int         need_sketches;",
         "    bool        need_sheet;",
         "    bool        sketch_mode; // belongs to the sketch-mode vocabulary, not the model one",
+        "    // Second level INSIDE a row, for tools that come in variants: \"Rectangle\" holds corner,",
+        "    // centre, oblique and rounded. nullptr = sits directly in the row. Keeps the row's own",
+        "    // address fixed (L4.1) while the variants hang one level below it, mirroring the toolbar's",
+        "    // grouping instead of flattening 19 create tools into one wall.",
+        "    const char* family;",
         "};",
         "",
         "// Row labels, in ratified order.",
@@ -106,12 +111,13 @@ def main():
             mask |= 1 << sels.index(a)
         n = v.get("needs") or {}
         lines.append(
-            "    {%s, %s, %d, %s, %s, %s, 0x%08xu, %d, %d, %s, %s}," % (
+            "    {%s, %s, %d, %s, %s, %s, 0x%08xu, %d, %d, %s, %s, %s}," % (
                 cstr(v["id"]), cstr(v["name"]), slots.index(v["slot"]),
                 cstr(v.get("key")), cstr(v.get("action")), cstr(v.get("refusal")),
                 mask, n.get("bodies", 0), n.get("sketches", 0),
                 "true" if n.get("sheet") else "false",
-                "true" if v.get("mode") == "sketch" else "false"))
+                "true" if v.get("mode") == "sketch" else "false",
+                cstr(v.get("family"))))
     lines += [
         "};",
         f"static const int kOfferVerbCount = {len(A['verbs'])};",

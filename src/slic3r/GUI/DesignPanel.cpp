@@ -1077,6 +1077,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 fo->modes.push_back(v.mode);
                 fo->hints.push_back(v.hint);
                 fo->icon_names.emplace_back(v.icon);
+                // …and the offer reaches the same tool by its ratified address, exactly as
+                // feat_dropdown does for the model verbs. Without this the offer could name a
+                // family but only ever arm its FIRST tool: picking "Rectangle" ran key:R and
+                // gave you a corner rectangle, with oblique and rounded unreachable.
+                // Keyed on the icon id (already unique per family) so no call site grows an
+                // argument. snaporca-6vs.
+                const DesignSketchTool::Mode mode = v.mode;
+                const wxString               hint = v.hint;
+                m_verb_actions["fly:" + std::string(def_icon) + "#" +
+                               std::to_string(fo->modes.size() - 1)] =
+                    [mode, hint, select_tool] { select_tool(mode, hint); };
             }
             fo->btn = b;
             fo->drop.Create(b);
@@ -5140,9 +5151,28 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
                 ->Enable(live[0]->action != nullptr);
             bound.push_back(live[0]);
         } else {
+            // Two levels, not one. A verb with a `family` joins a nested submenu of that name
+            // (Rectangle -> corner / centre / oblique / rounded); one without sits directly in
+            // the row. Families keep the order of their first member, so the row's layout is
+            // stable across selections — the whole point of a fixed address.
             auto* sub = new wxMenu();
+            std::vector<std::pair<std::string, wxMenu*>> groups;   // insertion-ordered
             for (const OfferVerb* v : live) {
-                sub->Append(base + int(bound.size()), label(*v))->Enable(v->action != nullptr);
+                wxMenu* target = sub;
+                if (v->family && *v->family) {
+                    auto it = std::find_if(groups.begin(), groups.end(),
+                                           [&](const auto& g) { return g.first == v->family; });
+                    if (it == groups.end()) {
+                        auto* g = new wxMenu();
+                        groups.emplace_back(v->family, g);
+                        sub->AppendSubMenu(g, tr(v->family));
+                        target = g;
+                    } else {
+                        target = it->second;
+                    }
+                }
+                target->Append(base + int(bound.size()), label(*v))
+                    ->Enable(v->action != nullptr);
                 bound.push_back(v);
             }
             menu.AppendSubMenu(sub, fam);
