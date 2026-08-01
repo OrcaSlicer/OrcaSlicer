@@ -78,8 +78,14 @@ void host_bindings::register_app(py::module_& host)
         auto& app = GUI::wxGetApp();
         if (app.preset_bundle == nullptr)
             throw std::runtime_error("Preset bundle is not available");
-        app.preset_bundle->load_user_presets(DEFAULT_USER_FOLDER_NAME,
-                                             ForwardCompatibilitySubstitutionRule::Enable);
+        // Reload the active user's preset folder: a signed-in user's presets
+        // live under their user id, otherwise the default folder — same choice
+        // GUI_App makes when loading presets.
+        NetworkAgent* agent = app.getAgent();
+        const std::string user = (agent != nullptr && agent->is_user_login())
+                                     ? agent->get_user_id()
+                                     : DEFAULT_USER_FOLDER_NAME;
+        app.preset_bundle->load_user_presets(user, ForwardCompatibilitySubstitutionRule::Enable);
         if (app.mainframe != nullptr)
             app.mainframe->update_side_preset_ui();
     });
