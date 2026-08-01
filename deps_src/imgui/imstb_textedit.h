@@ -501,6 +501,14 @@ static void stb_textedit_click(STB_TEXTEDIT_STRING *str, STB_TexteditState *stat
          base_y += r.baseline_y_delta;
       }
 
+      // If the text ends with a newline, account for the empty trailing line
+      // so the cursor can be placed on it
+      if (n > 0 && STB_TEXTEDIT_GETCHAR(str, n - 1) == STB_TEXTEDIT_NEWLINE)
+      {
+         STB_TEXTEDIT_LAYOUTROW(&r, str, n);
+         y_max = base_y + r.ymax;
+      }
+
       // Subtract half the last line height to avoid rounding issues when the mouse
       // is just barely below the last line (keep cursor on the last line, not after the text)
       y_max -= (r.ymax - r.ymin) * 0.5f;
@@ -555,6 +563,14 @@ static void stb_textedit_drag(STB_TEXTEDIT_STRING *str, STB_TexteditState *state
          y_max = base_y + r.ymax;
          i += r.num_chars;
          base_y += r.baseline_y_delta;
+      }
+
+      // If the text ends with a newline, account for the empty trailing line
+      // so the cursor can be placed on it
+      if (n > 0 && STB_TEXTEDIT_GETCHAR(str, n - 1) == STB_TEXTEDIT_NEWLINE)
+      {
+         STB_TEXTEDIT_LAYOUTROW(&r, str, n);
+         y_max = base_y + r.ymax;
       }
 
       // Subtract half the last line height to avoid rounding issues when the mouse
