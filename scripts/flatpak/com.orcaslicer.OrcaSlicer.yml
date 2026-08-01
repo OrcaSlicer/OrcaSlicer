@@ -393,6 +393,9 @@ modules:
       - type: dir
         path: ../../localization
         dest: localization
+      - type: dir
+        path: ../../tools
+        dest: tools
 
       - type: file
         path: ../../CMakeLists.txt

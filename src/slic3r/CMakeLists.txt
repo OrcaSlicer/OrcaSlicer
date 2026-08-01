@@ -490,6 +490,7 @@ set(SLIC3R_GUI_SOURCES
     GUI/TabButton.hpp
     GUI/Tab.cpp
     GUI/Tab.hpp
+    GUI/TabLayoutExtra.cpp
     GUI/TaskManager.cpp
     GUI/TaskManager.hpp
     GUI/TextLines.cpp
@@ -829,6 +830,16 @@ else ()
     add_library(libslic3r_gui STATIC ${SLIC3R_GUI_SOURCES})
 endif ()
 target_include_directories(libslic3r_gui PRIVATE Utils ${CMAKE_CURRENT_BINARY_DIR})
+
+# Tab.cpp #includes GUI/generated/TabLayout_generated.cpp, so it must not be compiled
+# while the codegen is rewriting it (same contract as libslic3r's generated includes).
+if(TARGET codegen_config)
+    add_dependencies(libslic3r_gui codegen_config)
+    set_source_files_properties(
+        "${CMAKE_CURRENT_SOURCE_DIR}/GUI/Tab.cpp"
+        PROPERTIES OBJECT_DEPENDS "${CONFIG_GENERATED_SOURCES}"
+    )
+endif()
 
 if (WIN32)
     target_include_directories(libslic3r_gui SYSTEM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../deps/WebView2/include)

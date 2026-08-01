@@ -46,6 +46,11 @@ test.js
 internal_docs/
 *.flatpak
 /flatpak-repo/
+# Config codegen: descriptor set, generated C++ and the downloaded protoc /
+# bootstrap virtualenv. All of it is produced by tools/run_codegen.py.
+config.desc
+src/slic3r/GUI/generated/
+.codegen-tools/
 # Python bytecode
 __pycache__/
 *.pyc

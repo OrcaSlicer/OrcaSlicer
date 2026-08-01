@@ -1,0 +1,687 @@
+tabs:
+  - name: TabPrint
+    pages:
+      - name: "Quality"
+        icon: "custom-gcode_quality"
+        groups:
+          - name: "Layer height"
+            fields:
+              - layer_height
+              - initial_layer_print_height
+          - name: "Line width"
+            fields:
+              - line_width
+              - initial_layer_line_width
+              - outer_wall_line_width
+              - inner_wall_line_width
+              - top_surface_line_width
+              - sparse_infill_line_width
+              - internal_solid_infill_line_width
+              - bridge_line_width: quality_settings_line_width#bridge
+              - support_line_width
+          - name: "Seam"
+            fields:
+              - seam_position
+              - staggered_inner_seams
+              - seam_gap
+              - seam_slope_type
+              - seam_slope_conditional
+              - scarf_angle_threshold
+              - scarf_overhang_threshold
+              - scarf_joint_speed
+              - seam_slope_start_height
+              - seam_slope_entire_loop
+              - seam_slope_min_length
+              - seam_slope_steps
+              - scarf_joint_flow_ratio
+              - seam_slope_inner_walls
+              - role_based_wipe_speed
+              - wipe_speed
+              - wipe_on_loops
+              - wipe_before_external_loop
+          - name: "Precision"
+            fields:
+              - slice_closing_radius
+              - resolution
+              - enable_arc_fitting
+              - xy_hole_compensation
+              - xy_contour_compensation
+              - elefant_foot_compensation
+              - elefant_foot_layers_density
+              - elefant_foot_compensation_layers
+              - precise_outer_wall
+              - precise_z_height
+              - hole_to_polyhole
+              - hole_to_polyhole_threshold
+              - hole_to_polyhole_twisted
+              - hole_to_polyhole_max_edges
+          - name: "Ironing"
+            fields:
+              - ironing_type
+              - ironing_pattern
+              - ironing_flow
+              - ironing_spacing
+              - ironing_inset
+              - ironing_angle
+              - ironing_angle_fixed
+          - name: "Wall generator"
+            fields:
+              - wall_generator
+              - wall_transition_angle
+              - wall_transition_filter_deviation
+              - wall_transition_length
+              - wall_distribution_count
+              - initial_layer_min_bead_width
+              - min_bead_width
+              - min_feature_size
+              - min_length_factor
+              - wall_maximum_resolution
+              - wall_maximum_deviation
+          - name: "Walls and surfaces"
+            fields:
+              - wall_sequence
+              - is_infill_first
+              - wall_direction
+              - print_flow_ratio
+              - top_solid_infill_flow_ratio
+              - bottom_solid_infill_flow_ratio
+              - set_other_flow_ratios
+              - first_layer_flow_ratio
+              - outer_wall_flow_ratio
+              - inner_wall_flow_ratio
+              - overhang_flow_ratio
+              - sparse_infill_flow_ratio
+              - internal_solid_infill_flow_ratio
+              - gap_fill_flow_ratio
+              - support_flow_ratio
+              - support_interface_flow_ratio
+              - only_one_wall_first_layer
+              - only_one_wall_top
+              - min_width_top_surface
+              - reduce_crossing_wall
+              - max_travel_detour_distance
+              - small_area_infill_flow_compensation
+              - small_area_infill_flow_compensation_model
+          - name: "Bridging"
+            fields:
+              - bridge_flow
+              - internal_bridge_flow
+              - bridge_density
+              - internal_bridge_density
+              - thick_bridges
+              - thick_internal_bridges
+              - enable_extra_bridge_layer
+              - dont_filter_internal_bridges
+              - counterbore_hole_bridging
+          - name: "Overhangs"
+            fields:
+              - detect_overhang_wall
+              - make_overhang_printable
+              - make_overhang_printable_angle
+              - make_overhang_printable_hole_size
+              - extra_perimeters_on_overhangs
+              - overhang_reverse
+              - overhang_reverse_internal_only
+              - overhang_reverse_threshold
+      - name: "Strength"
+        icon: "custom-gcode_strength"
+        groups:
+          - name: "Walls"
+            fields:
+              - wall_loops
+              - alternate_extra_wall
+              - detect_thin_wall
+          - name: "Top/bottom shells"
+            fields:
+              - top_shell_layers
+              - top_shell_thickness
+              - top_surface_density
+              - top_surface_pattern
+              - top_layer_direction
+              - top_surface_expansion: strength_settings_top_bottom_shells#surface-expansion
+              - top_surface_expansion_margin: strength_settings_top_bottom_shells#surface-expansion-margin
+              - top_surface_expansion_direction: strength_settings_top_bottom_shells#surface-expansion-direction
+              - bottom_shell_layers
+              - bottom_shell_thickness
+              - bottom_surface_density
+              - bottom_surface_pattern
+              - bottom_layer_direction
+              - center_of_surface_pattern: strength_settings_top_bottom_shells#center-surface-pattern-on
+              - anisotropic_surfaces: strength_settings_top_bottom_shells#anisotropic-surfaces
+              - top_bottom_infill_wall_overlap
+          - name: "Infill"
+            fields:
+              - sparse_infill_density
+              - fill_multiline
+              - sparse_infill_pattern
+              - infill_direction
+              - sparse_infill_rotate_template
+              - skin_infill_density
+              - skeleton_infill_density
+              - infill_lock_depth
+              - skin_infill_depth
+              - skin_infill_line_width
+              - skeleton_infill_line_width
+              - symmetric_infill_y_axis
+              - infill_shift_step
+              - lateral_lattice_angle_1
+              - lateral_lattice_angle_2
+              - infill_overhang_angle
+              - infill_anchor_max
+              - infill_anchor
+              - internal_solid_infill_pattern
+              - solid_infill_direction
+              - solid_infill_rotate_template
+              - gap_fill_target
+              - filter_out_gap_fill
+              - separated_infills: strength_settings_infill#separated-infills
+              - infill_wall_overlap
+              - lightning_overhang_angle: strength_settings_patterns#lightning
+              - lightning_prune_angle: strength_settings_patterns#lightning
+              - lightning_straightening_angle: strength_settings_patterns#lightning
+          - name: "Advanced"
+            fields:
+              - align_infill_direction_to_model
+              - extra_solid_infills
+              - bridge_angle
+              - internal_bridge_angle
+              - relative_bridge_angle: strength_settings_advanced#relative-bridge-angle
+              - minimum_sparse_infill_area
+              - infill_combination
+              - infill_combination_max_layer_height
+              - detect_narrow_internal_solid_infill
+              - ensure_vertical_shell_thickness
+      - name: "Speed"
+        icon: "custom-gcode_speed"
+        groups:
+          - name: "First layer speed"
+            fields:
+              - initial_layer_speed
+              - initial_layer_infill_speed
+              - initial_layer_travel_speed
+              - slow_down_layers
+          - name: "Other layers speed"
+            fields:
+              - outer_wall_speed
+              - inner_wall_speed
+              - small_perimeter_speed
+              - small_perimeter_threshold
+              - sparse_infill_speed
+              - internal_solid_infill_speed
+              - top_surface_speed
+              - gap_infill_speed
+              - ironing_speed
+              - support_speed
+              - support_interface_speed
+              - small_support_perimeter_speed
+              - small_support_perimeter_threshold
+          - name: "Overhang speed"
+            fields:
+              - enable_overhang_speed
+              - slowdown_for_curled_perimeters
+              - [overhang_1_4_speed, overhang_2_4_speed, overhang_3_4_speed, overhang_4_4_speed]
+              - [bridge_speed, internal_bridge_speed]
+          - name: "Travel speed"
+            fields:
+              - travel_speed
+          - name: "Acceleration"
+            fields:
+              - default_acceleration
+              - outer_wall_acceleration
+              - inner_wall_acceleration
+              - bridge_acceleration
+              - sparse_infill_acceleration
+              - internal_solid_infill_acceleration
+              - initial_layer_acceleration
+              - initial_layer_travel_acceleration
+              - top_surface_acceleration
+              - travel_acceleration
+              - accel_to_decel_enable
+              - accel_to_decel_factor
+          - name: "Jerk(XY)"
+            fields:
+              - default_junction_deviation
+              - default_jerk
+              - outer_wall_jerk
+              - inner_wall_jerk
+              - infill_jerk
+              - top_surface_jerk
+              - initial_layer_jerk
+              - initial_layer_travel_jerk
+              - travel_jerk
+          - name: "Advanced"
+            fields:
+              - max_volumetric_extrusion_rate_slope
+              - max_volumetric_extrusion_rate_slope_segment_length
+              - extrusion_rate_smoothing_external_perimeter_only
+      - name: "Support"
+        icon: "custom-gcode_support"
+        groups:
+          - name: "Support"
+            fields:
+              - enable_support
+              - support_type
+              - support_style
+              - support_threshold_angle
+              - support_threshold_overlap
+              - raft_first_layer_density
+              - raft_first_layer_expansion
+              - support_on_build_plate_only
+              - support_critical_regions_only
+              - support_remove_small_overhang
+          - name: "Raft"
+            fields:
+              - raft_layers
+              - raft_contact_distance
+          - name: "Support filament"
+            fields:
+              - support_filament
+              - support_interface_filament
+              - support_interface_not_for_body
+          - name: "Support ironing"
+            fields:
+              - support_ironing
+              - support_ironing_pattern
+              - support_ironing_flow
+              - support_ironing_spacing
+          - name: "Advanced"
+            fields:
+              - support_top_z_distance
+              - support_bottom_z_distance
+              - tree_support_wall_count
+              - support_base_pattern
+              - support_base_pattern_spacing
+              - support_angle
+              - support_interface_top_layers
+              - support_interface_bottom_layers
+              - support_interface_pattern
+              - support_interface_spacing
+              - support_bottom_interface_spacing
+              - support_expansion
+              - support_object_xy_distance
+              - support_object_first_layer_gap
+              - bridge_no_support
+              - max_bridge_length
+              - independent_support_layer_height
+          - name: "Tree supports"
+            fields:
+              - tree_support_tip_diameter
+              - tree_support_branch_distance
+              - tree_support_branch_distance_organic
+              - tree_support_top_rate
+              - tree_support_branch_diameter
+              - tree_support_branch_diameter_organic
+              - tree_support_branch_diameter_angle
+              - tree_support_branch_angle
+              - tree_support_branch_angle_organic
+              - tree_support_angle_slow
+              - tree_support_auto_brim
+              - tree_support_brim_width
+      - name: "Multimaterial"
+        icon: "custom-gcode_multi_material"
+        groups:
+          - name: "Prime tower"
+            fields:
+              - enable_prime_tower
+              - prime_tower_skip_points
+              - enable_tower_interface_features
+              - enable_tower_interface_cooldown_during_tower
+              - prime_tower_enable_framework
+              - prime_tower_width
+              - prime_volume
+              - prime_tower_brim_width
+              - prime_tower_infill_gap
+              - wipe_tower_rotation_angle
+              - wipe_tower_bridging
+              - wipe_tower_extra_spacing
+              - wipe_tower_extra_flow
+              - wipe_tower_max_purge_speed
+              - wipe_tower_wall_type
+              - wipe_tower_cone_angle
+              - wipe_tower_extra_rib_length
+              - wipe_tower_rib_width
+              - wipe_tower_fillet_wall
+              - wipe_tower_no_sparse_layers
+              - single_extruder_multi_material_priming
+          - name: "Filament for Features"
+            fields:
+              - wall_filament
+              - sparse_infill_filament
+              - solid_infill_filament
+              - wipe_tower_filament
+          - name: "Ooze prevention"
+            fields:
+              - ooze_prevention
+              - standby_temperature_delta
+              - preheat_time
+              - preheat_steps
+          - name: "Flush options"
+            fields:
+              - flush_into_infill
+              - flush_into_objects
+              - flush_into_support
+          - name: "Advanced"
+            fields:
+              - interlocking_beam
+              - toolchange_ordering: multimaterial_settings_advanced#toolchange-ordering
+              - interface_shells
+              - mmu_segmented_region_max_width
+              - mmu_segmented_region_interlocking_depth
+              - interlocking_beam_width
+              - interlocking_orientation
+              - interlocking_beam_layer_count
+              - interlocking_depth
+              - interlocking_boundary_avoidance
+      - name: "Others"
+        icon: "custom-gcode_other"
+        groups:
+          - name: "Skirt"
+            fields:
+              - skirt_loops
+              - skirt_type
+              - min_skirt_length
+              - skirt_distance
+              - skirt_start_angle
+              - skirt_speed
+              - skirt_height
+              - draft_shield
+              - single_loop_draft_shield
+          - name: "Brim"
+            fields:
+              - brim_type
+              - brim_width
+              - brim_object_gap
+              - brim_flow_ratio
+              - brim_use_efc_outline
+              - combine_brims
+              - brim_ears_max_angle
+              - brim_ears_detection_length
+          - name: "Special mode"
+            fields:
+              - slicing_mode
+              - print_sequence
+              - print_order
+              - spiral_mode
+              - spiral_mode_smooth
+              - spiral_mode_max_xy_smoothing
+              - spiral_starting_flow_ratio
+              - spiral_finishing_flow_ratio
+              - timelapse_type
+              - enable_wrapping_detection
+          - name: "Fuzzy Skin"
+            fields:
+              - fuzzy_skin
+              - fuzzy_skin_mode
+              - fuzzy_skin_noise_type
+              - fuzzy_skin_point_distance
+              - fuzzy_skin_thickness
+              - fuzzy_skin_scale
+              - fuzzy_skin_octaves
+              - fuzzy_skin_persistence
+              - fuzzy_skin_first_layer
+          - name: "G-code output"
+            fields:
+              - reduce_infill_retraction
+              - gcode_add_line_number
+              - gcode_comments
+              - gcode_label_objects
+              - exclude_object
+              - filename_format
+          - name: "Change extrusion role G-code" # HOOK
+            fields:
+              - process_change_extrusion_role_gcode
+          - name: "Post-processing Scripts"
+            fields:
+              - post_process
+          - name: "Notes"
+            fields:
+              - notes
+  - name: TabFilament
+    pages:
+      - name: "Filament"
+        icon: "custom-gcode_filament"
+        groups:
+          - name: "Basic information" # HOOK
+            fields:
+              - filament_type
+              - filament_vendor
+              - filament_soluble
+              - filament_is_support
+              - filament_change_length
+              - required_nozzle_HRC
+              - default_filament_colour
+              - filament_diameter
+              - filament_adhesiveness_category
+              - filament_density
+              - filament_shrink
+              - filament_shrinkage_compensation_z
+              - filament_cost
+              - temperature_vitrification
+              - idle_temperature
+              - [nozzle_temperature_range_low, nozzle_temperature_range_high]
+          - name: "Flow ratio and Pressure Advance"
+            fields:
+              - pellet_flow_coefficient
+              - filament_flow_ratio
+              - enable_pressure_advance
+              - pressure_advance
+              - adaptive_pressure_advance
+              - adaptive_pressure_advance_overhangs
+              - adaptive_pressure_advance_bridges
+              - adaptive_pressure_advance_model
+          - name: "Print chamber temperature"
+            fields:
+              - activate_chamber_temp_control
+              - chamber_temperature
+          - name: "Print temperature"
+            fields:
+              - [nozzle_temperature_initial_layer, nozzle_temperature]
+          - name: "Bed temperature"
+            fields:
+              - [supertack_plate_temp_initial_layer, supertack_plate_temp]
+              - [cool_plate_temp_initial_layer, cool_plate_temp]
+              - [textured_cool_plate_temp_initial_layer, textured_cool_plate_temp]
+              - [eng_plate_temp_initial_layer, eng_plate_temp]
+              - [hot_plate_temp_initial_layer, hot_plate_temp]
+              - [textured_plate_temp_initial_layer, textured_plate_temp]
+          - name: "Volumetric speed limitation"
+            fields:
+              - filament_adaptive_volumetric_speed
+              - filament_max_volumetric_speed
+      - name: "Cooling"
+        icon: "custom-gcode_cooling_fan"
+        groups:
+          - name: "Cooling for specific layer"
+            fields:
+              - close_fan_the_first_x_layers
+              - full_fan_speed_layer
+              - initial_layer_fan_speed: material_cooling#first-layer-fan-speed
+          - name: "Part cooling fan"
+            fields:
+              - [fan_min_speed, fan_cooling_layer_time]
+              - [fan_max_speed, slow_down_layer_time]
+              - reduce_fan_stop_start_freq
+              - slow_down_for_layer_cooling
+              - dont_slow_down_outer_wall
+              - slow_down_min_speed
+              - enable_overhang_bridge_fan
+              - overhang_fan_threshold
+              - overhang_fan_speed
+              - internal_bridge_fan_speed
+              - support_material_interface_fan_speed
+              - ironing_fan_speed
+          - name: "Auxiliary part cooling fan"
+            fields:
+              - additional_cooling_fan_speed
+          - name: "Exhaust fan"
+            fields:
+              - activate_air_filtration
+              - [activate_air_filtration_during_print, during_print_exhaust_fan_speed]
+              - [activate_air_filtration_on_completion, complete_print_exhaust_fan_speed]
+      - name: "Advanced"
+        icon: "custom-gcode_advanced"
+        groups:
+          - name: "Filament start G-code" # HOOK
+            fields:
+              - filament_start_gcode
+          - name: "Change extrusion role G-code" # HOOK
+            fields:
+              - filament_change_extrusion_role_gcode
+          - name: "Filament end G-code" # HOOK
+            fields:
+              - filament_end_gcode
+      - name: "Multimaterial"
+        icon: "custom-gcode_multi_material"
+        groups:
+          - name: "Wipe tower parameters"
+            fields:
+              - filament_minimal_purge_on_wipe_tower
+              - filament_tower_interface_pre_extrusion_dist
+              - filament_tower_interface_pre_extrusion_length
+              - filament_tower_ironing_area
+              - filament_tower_interface_purge_volume
+              - filament_tower_interface_print_temp
+          - name: "Multi Filament"
+            fields:
+              - long_retractions_when_ec
+              - retraction_distances_when_ec
+          - name: "Tool change parameters with single extruder MM printers"
+            fields:
+              - filament_loading_speed_start
+              - filament_loading_speed
+              - filament_unloading_speed_start
+              - filament_unloading_speed
+              - filament_toolchange_delay
+              - filament_cooling_moves
+              - filament_cooling_initial_speed
+              - filament_cooling_final_speed
+              - filament_stamping_loading_speed
+              - filament_stamping_distance
+              - filament_ramming_parameters # HOOK
+          - name: "Tool change parameters with multi extruder MM printers"
+            fields:
+              - filament_multitool_ramming
+              - filament_multitool_ramming_volume
+              - filament_multitool_ramming_flow
+      - name: "Dependencies"
+        icon: "advanced"
+        groups:
+          - name: "Compatible printers"
+            fields:
+              - compatible_printers # HOOK
+              - compatible_printers_condition
+          - name: "Compatible process profiles"
+            fields:
+              - compatible_prints # HOOK
+              - compatible_prints_condition
+      - name: "Notes"
+        icon: "custom-gcode_note"
+        groups:
+          - name: "Notes"
+            fields:
+              - filament_notes
+  - name: TabPrinter
+    pages:
+      - name: "Basic information"
+        icon: "custom-gcode_object-info"
+        groups:
+          - name: "Printable space"
+            icon: "param_printable_space"
+            hook: true
+          - name: "Advanced"
+            icon: "param_advanced"
+            hook: true
+          - name: "Cooling Fan"
+            icon: "param_cooling_fan"
+            hook: true
+          - name: "Extruder Clearance"
+            icon: "param_extruder_clearance"
+            fields:
+              - extruder_clearance_radius: printer_basic_information_extruder_clearance#radius
+              - extruder_clearance_height_to_rod: printer_basic_information_extruder_clearance#height-to-rod
+              - extruder_clearance_height_to_lid: printer_basic_information_extruder_clearance#height-to-lid
+          - name: "Adaptive bed mesh"
+            icon: "param_adaptive_mesh"
+            fields:
+              - bed_mesh_min: printer_basic_information_adaptive_bed_mesh#bed-mesh
+              - bed_mesh_max: printer_basic_information_adaptive_bed_mesh#bed-mesh
+              - bed_mesh_probe_distance: printer_basic_information_adaptive_bed_mesh#probe-point-distance
+              - adaptive_bed_mesh_margin: printer_basic_information_adaptive_bed_mesh#mesh-margin
+          - name: "Accessory"
+            icon: "param_accessory"
+            fields:
+              - nozzle_type: printer_basic_information_accessory#nozzle-type
+              - nozzle_hrc: printer_basic_information_accessory#nozzle-hrc
+              - auxiliary_fan: printer_basic_information_accessory#auxiliary-part-cooling-fan
+              - support_chamber_temp_control: printer_basic_information_accessory#support-controlling-chamber-temperature
+              - support_air_filtration: printer_basic_information_accessory#support-air-filtration
+      - name: "Machine G-code"
+        icon: "custom-gcode_gcode"
+        groups:
+          - name: "File header G-code"
+            icon: "param_gcode"
+            gcode: true
+            fields:
+              - file_start_gcode: ""
+          - name: "Machine start G-code"
+            icon: "param_gcode"
+            gcode: true
+            fields:
+              - machine_start_gcode: printer_machine_gcode#machine-start-g-code
+          - name: "Machine end G-code"
+            icon: "param_gcode"
+            gcode: true
+            fields:
+              - machine_end_gcode: printer_machine_gcode#machine-end-g-code
+          - name: "Printing by object G-code"
+            icon: "param_gcode"
+            gcode: true
+            fields:
+              - printing_by_object_gcode: printer_machine_gcode#between-object-g-code
+          - name: "Before layer change G-code"
+            icon: "param_gcode"
+            gcode: true
+            fields:
+              - before_layer_change_gcode: printer_machine_gcode#before-layer-change-g-code
+          - name: "Layer change G-code"
+            icon: "param_gcode"
+            gcode: true
+            fields:
+              - layer_change_gcode: printer_machine_gcode#after-layer-change-g-code
+          - name: "Timelapse G-code"
+            icon: "param_gcode"
+            gcode: true
+            fields:
+              - time_lapse_gcode: printer_machine_gcode#time-lapse-g-code
+          - name: "Clumping Detection G-code"
+            icon: "param_gcode"
+            gcode: true
+            fields:
+              - wrapping_detection_gcode: printer_machine_gcode#clumping-detection-g-code
+          - name: "Change filament G-code"
+            icon: "param_gcode"
+            gcode: true
+            fields:
+              - change_filament_gcode: printer_machine_gcode#change-filament-g-code
+          - name: "Change extrusion role G-code"
+            icon: "param_gcode"
+            gcode: true
+            fields:
+              - change_extrusion_role_gcode: printer_machine_gcode#change-extrusion-role-g-code
+          - name: "Pause G-code"
+            icon: "param_gcode"
+            gcode: true
+            fields:
+              - machine_pause_gcode: printer_machine_gcode#pause-g-code
+          - name: "Template Custom G-code"
+            icon: "param_gcode"
+            gcode: true
+            fields:
+              - template_custom_gcode: printer_machine_gcode#template-custom-g-code
+      - name: "Notes"
+        icon: "custom-gcode_note"
+        groups:
+          - name: "Notes"
+            icon: "note"
+            fields:
+              - printer_notes: ""

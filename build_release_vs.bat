@@ -145,6 +145,16 @@ if "%1"=="deps" goto :done
 :slicer
 echo "building Orca Slicer..."
 cd %WP%
+
+echo "generating config sources from proto..."
+REM run_codegen.py resolves protoc and its python packages itself (grpcio-tools has
+REM no wheel on ARM64 and fails to build there).
+python tools/run_codegen.py
+if errorlevel 1 (
+    echo "ERROR: config codegen failed"
+    exit /b 1
+)
+
 mkdir %build_dir%
 cd %build_dir%
 

@@ -1,0 +1,967 @@
+// OrcaSlicer - PrinterSettings
+// Edit this file and re-run: python tools/run_codegen.py
+
+syntax = "proto3";
+
+import "config_metadata.proto";
+
+package orca;
+
+message PrinterSettings {
+
+  // ── Virtual keys: not in PrintConfigDef, but required in printer presets ──
+  // Printer identity / bed shape (handled by Preset/PrinterConfig directly)
+  option (virtual_preset_keys) = "bed_custom_model";
+  option (virtual_preset_keys) = "bed_custom_texture";
+  option (virtual_preset_keys) = "bed_exclude_area";
+  option (virtual_preset_keys) = "bbl_use_printhost";
+  option (virtual_preset_keys) = "default_print_profile";
+  option (virtual_preset_keys) = "extruder_printable_area";
+  option (virtual_preset_keys) = "extruder_variant_list";
+  option (virtual_preset_keys) = "grab_length";
+  option (virtual_preset_keys) = "head_wrap_detect_zone";
+  option (virtual_preset_keys) = "inherits";
+  option (virtual_preset_keys) = "physical_extruder_map";
+  option (virtual_preset_keys) = "printable_area";
+  option (virtual_preset_keys) = "printable_height";
+  option (virtual_preset_keys) = "extruder_printable_height";
+  option (virtual_preset_keys) = "printer_agent";
+  option (virtual_preset_keys) = "printer_extruder_id";
+  option (virtual_preset_keys) = "printer_extruder_variant";
+  option (virtual_preset_keys) = "printer_model";
+  option (virtual_preset_keys) = "printer_technology";
+  option (virtual_preset_keys) = "printer_variant";
+  option (virtual_preset_keys) = "silent_mode";
+  option (virtual_preset_keys) = "support_object_skip_flush";
+  // Print-host / connectivity
+  option (virtual_preset_keys) = "host_type";
+  option (virtual_preset_keys) = "print_host";
+  option (virtual_preset_keys) = "print_host_webui";
+  option (virtual_preset_keys) = "printhost_apikey";
+  option (virtual_preset_keys) = "printhost_authorization_type";
+  option (virtual_preset_keys) = "printhost_cafile";
+  option (virtual_preset_keys) = "printhost_port";
+  option (virtual_preset_keys) = "printhost_password";
+  option (virtual_preset_keys) = "printhost_ssl_ignore_revoke";
+  option (virtual_preset_keys) = "printhost_user";
+  // Cross-preset: defined in print.proto but also saved in printer presets
+  option (virtual_preset_keys) = "bed_temperature_formula";
+  option (virtual_preset_keys) = "cooling_tube_length";
+  option (virtual_preset_keys) = "cooling_tube_retraction";
+  option (virtual_preset_keys) = "default_bed_type";
+  option (virtual_preset_keys) = "default_nozzle_volume_type";
+  option (virtual_preset_keys) = "emit_machine_limits_to_gcode";
+  option (virtual_preset_keys) = "enable_filament_ramming";
+  option (virtual_preset_keys) = "enable_long_retraction_when_cut";
+  option (virtual_preset_keys) = "extra_loading_move";
+  option (virtual_preset_keys) = "extruder_type";
+  option (virtual_preset_keys) = "high_current_on_filament_swap";
+  option (virtual_preset_keys) = "long_retractions_when_cut";
+  option (virtual_preset_keys) = "machine_load_filament_time";
+  option (virtual_preset_keys) = "machine_tool_change_time";
+  option (virtual_preset_keys) = "machine_unload_filament_time";
+  option (virtual_preset_keys) = "manual_filament_change";
+  option (virtual_preset_keys) = "master_extruder_id";
+  option (virtual_preset_keys) = "nozzle_flush_dataset";
+  option (virtual_preset_keys) = "nozzle_height";
+  option (virtual_preset_keys) = "nozzle_volume";
+  option (virtual_preset_keys) = "parking_pos_retraction";
+  option (virtual_preset_keys) = "preferred_orientation";
+  option (virtual_preset_keys) = "purge_in_prime_tower";
+  option (virtual_preset_keys) = "retract_lift_enforce";
+  option (virtual_preset_keys) = "retraction_distances_when_cut";
+  option (virtual_preset_keys) = "single_extruder_multi_material";
+  option (virtual_preset_keys) = "thumbnails_format";
+  option (virtual_preset_keys) = "tool_change_on_wipe_tower";
+  option (virtual_preset_keys) = "travel_slope";
+  option (virtual_preset_keys) = "upward_compatible_machine";
+  option (virtual_preset_keys) = "wipe_tower_type";
+  option (virtual_preset_keys) = "wrapping_detection_layers";
+  option (virtual_preset_keys) = "wrapping_exclude_area";
+  option (virtual_preset_keys) = "z_hop_types";
+  // Printer keys with hand-written defs in init_common_params (not proto fields);
+  // declared here so they land in s_Preset_printer_options and vendor machine
+  // profiles that set them are not stripped on load.
+  option (virtual_preset_keys) = "use_3mf";
+  option (virtual_preset_keys) = "support_parallel_printheads";
+  option (virtual_preset_keys) = "parallel_printheads_count";
+  option (virtual_preset_keys) = "parallel_printheads_bed_exclude_areas";
+
+  float extruder_clearance_height_to_rod = 1 [
+    (label)     = "Height to rod",
+    (tooltip)     = "Distance of the nozzle tip to the lower rod. Used for collision avoidance in by-object printing.",
+    (category)     = "Printer/Basic information",
+    (sidetext)     = "mm",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Extruder Clearance",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "40",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  float extruder_clearance_height_to_lid = 2 [
+    (label)     = "Height to lid",
+    (tooltip)     = "Distance of the nozzle tip to the lid. Used for collision avoidance in by-object printing.",
+    (category)     = "Printer/Basic information",
+    (sidetext)     = "mm",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Extruder Clearance",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "120",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  float extruder_clearance_radius = 3 [
+    (label)     = "Radius",
+    (tooltip)     = "Clearance radius around extruder. Used for collision avoidance in by-object printing.",
+    (category)     = "Printer/Basic information",
+    (sidetext)     = "mm",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Extruder Clearance",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "40",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  Point2D bed_mesh_min = 4 [
+    (label)     = "Bed mesh min",
+    (tooltip)     = "This option sets the min point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (-99999, -99999), which means there are no limits, thus allowing probing across the entire bed.",
+    (category)     = "Printer/Basic information",
+    (sidetext)     = "mm",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Adaptive bed mesh",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "Vec2d(-99999, -99999)"
+  ];
+
+  Point2D bed_mesh_max = 5 [
+    (label)     = "Bed mesh max",
+    (tooltip)     = "This option sets the max point for the allowed bed mesh area. Due to the probe's XY offset, most printers are unable to probe the entire bed. To ensure the probe point does not go outside the bed area, the minimum and maximum points of the bed mesh should be set appropriately. OrcaSlicer ensures that adaptive_bed_mesh_min/adaptive_bed_mesh_max values do not exceed these min/max points. This information can usually be obtained from your printer manufacturer. The default setting is (99999, 99999), which means there are no limits, thus allowing probing across the entire bed.",
+    (category)     = "Printer/Basic information",
+    (sidetext)     = "mm",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Adaptive bed mesh",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "Vec2d(99999, 99999)"
+  ];
+
+  Point2D bed_mesh_probe_distance = 6 [
+    (label)     = "Probe point distance",
+    (tooltip)     = "This option sets the preferred distance between probe points (grid size) for the X and Y directions, with the default being 50mm for both X and Y.",
+    (category)     = "Printer/Basic information",
+    (sidetext)     = "mm",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Adaptive bed mesh",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "Vec2d(50, 50)"
+  ];
+
+  float adaptive_bed_mesh_margin = 7 [
+    (label)     = "Mesh margin",
+    (tooltip)     = "This option determines the additional distance by which the adaptive bed mesh area should be expanded in the XY directions.",
+    (category)     = "Printer/Basic information",
+    (sidetext)     = "mm",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Adaptive bed mesh",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "0"
+  ];
+
+  bool scan_first_layer = 8 [
+    (label)     = "Scan first layer",
+    (tooltip)     = "Enable this to enable the camera on printer to check the quality of first layer.",
+    (category)     = "Printer/Basic information",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Advanced",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "false"
+  ];
+
+  int32 enable_power_loss_recovery = 9 [
+    (label)     = "Power Loss Recovery",
+    (tooltip)     = "Choose how to control power loss recovery. When set to Printer configuration, the slicer will not emit power loss recovery G-code and will leave the printer's configuration unchanged. Applicable to Bambu Lab or Marlin 2 firmware based printers.",
+    (category)     = "Printer/Basic information",
+    (enum_keys_map_ref)     = "ConfigOptionEnum<PowerLossRecoveryMode>::get_enum_values()",
+    (co_type_hint)     = coEnum,
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Advanced",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "PowerLossRecoveryMode::PrinterConfiguration",
+    (enum_value_entries) = "printer_configuration",
+    (enum_value_entries) = "enable",
+    (enum_value_entries) = "disable",
+    (enum_label_entries) = "Printer configuration",
+    (enum_label_entries) = "Enable",
+    (enum_label_entries) = "Disable"
+  ];
+
+  repeated int32 nozzle_type = 10 [
+    (label)     = "Nozzle type",
+    (tooltip)     = "The metallic material of nozzle. This determines the abrasive resistance of nozzle, and what kind of filament can be printed.",
+    (category)     = "Printer/Basic information",
+    (enum_keys_map_ref)     = "ConfigOptionEnum<NozzleType>::get_enum_values()",
+    (co_type_hint)     = coEnums,
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Accessory",
+    (mode)        = MODE_ADVANCED,
+    (is_nullable)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "ntUndefine",
+    (enum_value_entries) = "undefine",
+    (enum_value_entries) = "hardened_steel",
+    (enum_value_entries) = "stainless_steel",
+    (enum_value_entries) = "tungsten_carbide",
+    (enum_value_entries) = "brass",
+    (enum_label_entries) = "Undefine",
+    (enum_label_entries) = "Hardened steel",
+    (enum_label_entries) = "Stainless steel",
+    (enum_label_entries) = "Tungsten carbide",
+    (enum_label_entries) = "Brass",
+    (list_membership) = LIST_EXTRUDER_OPTION_KEYS
+  ];
+
+  int32 nozzle_hrc = 11 [
+    (label)     = "Nozzle HRC",
+    (tooltip)     = "The nozzle's hardness. Zero means no checking for nozzle's hardness during slicing.",
+    (category)     = "Printer/Basic information",
+    (sidetext)     = "HRC",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Accessory",
+    (min_value)     = 0,
+    (max_value)     = 500,
+    (mode)        = MODE_DEVELOP,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "0",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  int32 printer_structure = 12 [
+    (label)     = "Printer structure",
+    (tooltip)     = "The physical arrangement and components of a printing device.",
+    (category)     = "Printer/Basic information",
+    (enum_keys_map_ref)     = "ConfigOptionEnum<PrinterStructure>::get_enum_values()",
+    (co_type_hint)     = coEnum,
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Advanced",
+    (mode)        = MODE_DEVELOP,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "psUndefine",
+    (enum_value_entries) = "undefine",
+    (enum_value_entries) = "corexy",
+    (enum_value_entries) = "i3",
+    (enum_value_entries) = "hbot",
+    (enum_value_entries) = "delta",
+    (enum_label_entries) = "Undefine",
+    (enum_label_entries) = "CoreXY",
+    (enum_label_entries) = "I3",
+    (enum_label_entries) = "Hbot",
+    (enum_label_entries) = "Delta"
+  ];
+
+  Point2D best_object_pos = 13 [
+    (label)     = "Best object position",
+    (tooltip)     = "Best auto arranging position in range [0,1] w.r.t. bed shape.",
+    (category)     = "Printer/Basic information",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Printable space",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "Vec2d(0.5, 0.5)"
+  ];
+
+  bool auxiliary_fan = 14 [
+    (label)     = "Auxiliary part cooling fan",
+    (tooltip)     = "Enable this option if machine has auxiliary part cooling fan. G-code command: M106 P2 S(0-255).",
+    (category)     = "Printer/Basic information",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Accessory",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "false"
+  ];
+
+  float fan_speedup_time = 15 [
+    (tooltip)     = "Start the fan this number of seconds earlier than its target start time (you can use fractional seconds). It assumes infinite acceleration for this time estimation, and will only take into account G1 and G0 moves (arc fitting is unsupported).\\nIt won't move fan commands from custom G-code (they act as a sort of 'barrier').\\nIt won't move fan commands into the start G-code if the 'only custom start G-code' is activated.\\nUse 0 to deactivate.",
+    (category)     = "Printer/Basic information",
+    (sidetext)     = "s",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Cooling Fan",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "0",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  bool fan_speedup_overhangs = 16 [
+    (label)     = "Only overhangs",
+    (tooltip)     = "Will only take into account the delay for the cooling of overhangs.",
+    (category)     = "Printer/Basic information",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Cooling Fan",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "true",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  float fan_kickstart = 17 [
+    (label)     = "Fan kick-start time",
+    (tooltip)     = "Emit a max fan speed command for this amount of seconds before reducing to target speed to kick-start the cooling fan.\\nThis is useful for fans where a low PWM/power may be insufficient to get the fan started spinning from a stop, or to get the fan up to speed faster.\\nSet to 0 to deactivate.",
+    (category)     = "Printer/Basic information",
+    (sidetext)     = "s",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Cooling Fan",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "0",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  int32 part_cooling_fan_min_pwm = 18 [
+    (label)     = "Minimum non-zero part cooling fan speed",
+    (tooltip)     = "Some part-cooling fans cannot start spinning when commanded below a certain PWM duty cycle. When set above 0, any non-zero part-cooling fan command will be raised to at least this percentage so the fan reliably starts. A fan command of 0 (fan off) is always honoured exactly. This clamp is applied after every other fan calculation (first-layer ramp, layer-time interpolation, overhang/bridge/support-interface/ironing overrides), so scaling still operates within the range [this value, 100%].\\nIf your firmware already disables the fan below a threshold (for example Klipper's [fan] off_below: 0.10 shuts the fan off whenever the commanded duty cycle is below 10%), this option and the firmware threshold should ideally be set to the same value. Matching them (e.g. off_below: 0.10 in Klipper and 10% here) guarantees the slicer never emits a non-zero value that the firmware would silently drop, and the fan never receives a value below the one you know it can actually spool at.\\nSet to 0 to deactivate.",
+    (category)     = "Printer/Basic information",
+    (sidetext)     = "%",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Cooling Fan",
+    (min_value)     = 0,
+    (max_value)     = 100,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "0",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  float time_cost = 19 [
+    (label)     = "Time cost",
+    (tooltip)     = "The printer cost per hour.",
+    (category)     = "Printer/Basic information",
+    (sidetext)     = "money/h",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Advanced",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "0"
+  ];
+
+  bool support_chamber_temp_control = 20 [
+    (label)     = "Support control chamber temperature",
+    (tooltip)     = "This option is enabled if machine support controlling chamber temperature\\nG-code command: M141 S(0-255)",
+    (category)     = "Printer/Basic information",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Accessory",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "true"
+  ];
+
+  bool support_air_filtration = 21 [
+    (label)     = "Support air filtration",
+    (tooltip)     = "Enable this if printer support air filtration\\nG-code command: M106 P3 S(0-255)",
+    (category)     = "Printer/Basic information",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Accessory",
+    (mode)        = MODE_DEVELOP,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "true"
+  ];
+
+  int32 gcode_flavor = 22 [
+    (label)     = "G-code flavor",
+    (tooltip)     = "What kind of G-code the printer is compatible with.",
+    (category)     = "Printer/Basic information",
+    (enum_keys_map_ref)     = "ConfigOptionEnum<GCodeFlavor>::get_enum_values()",
+    (co_type_hint)     = coEnum,
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Advanced",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "gcfMarlinLegacy",
+    (enum_value_entries) = "marlin",
+    (enum_value_entries) = "klipper",
+    (enum_value_entries) = "reprapfirmware",
+    (enum_value_entries) = "repetier",
+    (enum_value_entries) = "marlin2",
+    (enum_value_entries) = "reprap",
+    (enum_value_entries) = "teacup",
+    (enum_value_entries) = "makerware",
+    (enum_value_entries) = "sailfish",
+    (enum_value_entries) = "mach3",
+    (enum_value_entries) = "machinekit",
+    (enum_value_entries) = "smoothie",
+    (enum_value_entries) = "no-extrusion",
+    (enum_label_entries) = "Marlin(legacy)",
+    (enum_label_entries) = "Klipper",
+    (enum_label_entries) = "RepRapFirmware",
+    (enum_label_entries) = "Repetier",
+    (enum_label_entries) = "Marlin 2",
+    (enum_label_entries) = "RepRap/Sprinter",
+    (enum_label_entries) = "Teacup",
+    (enum_label_entries) = "MakerWare (MakerBot)",
+    (enum_label_entries) = "Sailfish (MakerBot)",
+    (enum_label_entries) = "Mach3/LinuxCNC",
+    (enum_label_entries) = "Machinekit",
+    (enum_label_entries) = "Smoothie",
+    (enum_label_entries) = "No extrusion",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+  bool pellet_modded_printer = 23 [
+    (label)     = "Pellet Modded Printer",
+    (tooltip)     = "Enable this option if your printer uses pellets instead of filaments.",
+    (category)     = "Printer/Basic information",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Advanced",
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "false"
+  ];
+
+  bool support_multi_bed_types = 24 [
+    (label)     = "Support multi bed types",
+    (tooltip)     = "Enable this option if you want to use multiple bed types.",
+    (category)     = "Printer/Basic information",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Printable space",
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+  bool use_firmware_retraction = 25 [
+    (label)     = "Use firmware retraction",
+    (tooltip)     = "This experimental setting uses G10 and G11 commands to have the firmware handle the retraction. This is only supported in recent Marlin.",
+    (category)     = "Printer/Basic information",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Advanced",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  bool disable_m73 = 26 [
+    (label)     = "Disable set remaining print time",
+    (tooltip)     = "Disable generating of the M73: Set remaining print time in the final G-code.",
+    (category)     = "Printer/Basic information",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Advanced",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  float z_offset = 27 [
+    (label)     = "Z offset",
+    (tooltip)     = "This value will be added (or subtracted) from all the Z coordinates in the output G-code. It is used to compensate for bad Z endstop position: for example, if your endstop zero actually leaves the nozzle 0.3mm far from the print bed, set this to -0.3 (or fix your endstop).",
+    (category)     = "Printer/Basic information",
+    (sidetext)     = "mm",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Printable space",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "0",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+  string thumbnails = 28 [
+    (label)     = "G-code thumbnails",
+    (tooltip)     = "Picture sizes to be stored into a .gcode and .sl1 / .sl1s files, in the following format: \\\"XxY, XxY, ...\\\"",
+    (category)     = "Printer/Basic information",
+    (gui_type)     = one_string,
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Advanced",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "\"48x48/PNG,300x300/PNG\"",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  bool use_relative_e_distances = 29 [
+    (label)     = "Use relative E distances",
+    (tooltip)     = "Relative extrusion is recommended when using \\\"label_objects\\\" option. Some extruders work better with this option unchecked (absolute extrusion mode). Wipe tower is only compatible with relative mode. It is recommended on most printers. Default is checked.",
+    (category)     = "Printer/Basic information",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Basic information",
+    (tab_optgroup)     = "Advanced",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "true",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  string before_layer_change_gcode = 30 [
+    (label)     = "Before layer change G-code",
+    (tooltip)     = "This G-code is inserted at every layer change before the Z lift.",
+    (category)     = "Printer/Machine G-code",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Machine G-code",
+    (tab_optgroup)     = "Before layer change G-code",
+    (height)     = 5,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  string machine_end_gcode = 31 [
+    (label)     = "End G-code",
+    (tooltip)     = "End G-code when finishing the entire print.",
+    (category)     = "Printer/Machine G-code",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Machine G-code",
+    (tab_optgroup)     = "Machine end G-code",
+    (height)     = 12,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "\"M104 S0 ; turn off temperature\nG28 X0  ; home X axis\nM84     ; disable motors\n\"",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  string printing_by_object_gcode = 32 [
+    (label)     = "Between Object G-code",
+    (tooltip)     = "Insert G-code between objects. This parameter will only come into effect when you print your models object by object.",
+    (category)     = "Printer/Machine G-code",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Machine G-code",
+    (tab_optgroup)     = "Printing by object G-code",
+    (height)     = 12,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  string layer_change_gcode = 33 [
+    (label)     = "Layer change G-code",
+    (tooltip)     = "This G-code is inserted at every layer change after the Z lift.",
+    (category)     = "Printer/Machine G-code",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Machine G-code",
+    (tab_optgroup)     = "Layer change G-code",
+    (height)     = 5,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  string time_lapse_gcode = 34 [
+    (label)     = "Timelapse G-code",
+    (category)     = "Printer/Machine G-code",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Machine G-code",
+    (tab_optgroup)     = "Timelapse G-code",
+    (height)     = 5,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  string wrapping_detection_gcode = 35 [
+    (label)     = "Clumping detection G-code",
+    (category)     = "Printer/Machine G-code",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Machine G-code",
+    (tab_optgroup)     = "Clumping Detection G-code",
+    (height)     = 5,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "\"\"",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  string machine_pause_gcode = 36 [
+    (label)     = "Pause G-code",
+    (tooltip)     = "This G-code will be used as a code for the pause print. Users can insert pause G-code in the G-code viewer.",
+    (category)     = "Printer/Machine G-code",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Machine G-code",
+    (tab_optgroup)     = "Pause G-code",
+    (height)     = 12,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = ""
+  ];
+
+  string template_custom_gcode = 37 [
+    (label)     = "Custom G-code",
+    (tooltip)     = "This G-code will be used as a custom code.",
+    (category)     = "Printer/Machine G-code",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Machine G-code",
+    (tab_optgroup)     = "Template Custom G-code",
+    (height)     = 12,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = ""
+  ];
+
+  string file_start_gcode = 38 [
+    (label)     = "File header G-code",
+    (tooltip)     = "G-code written at the very top of the output file, before any other content. Useful for adding metadata that printer firmware reads from the first lines of the file (e.g. estimated print time, filament usage). Supports placeholders like {print_time_sec} and {used_filament_length}.",
+    (category)     = "Printer/Machine G-code",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Machine G-code",
+    (tab_optgroup)     = "File header G-code",
+    (height)     = 8,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "\"\""
+  ];
+
+  string machine_start_gcode = 39 [
+    (label)     = "Start G-code",
+    (tooltip)     = "Start G-code when starting the entire print.",
+    (category)     = "Printer/Machine G-code",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Machine G-code",
+    (tab_optgroup)     = "Machine start G-code",
+    (height)     = 12,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "\"G28 ; home all axes\nG1 Z5 F5000 ; lift nozzle\n\"",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  string change_filament_gcode = 40 [
+    (label)     = "Change filament G-code",
+    (tooltip)     = "This G-code is inserted when filament is changed, including T commands to trigger tool change.",
+    (category)     = "Printer/Machine G-code",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Machine G-code",
+    (tab_optgroup)     = "Change filament G-code",
+    (height)     = 5,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+  string change_extrusion_role_gcode = 41 [
+    (label)     = "Change extrusion role G-code",
+    (tooltip)     = "This G-code is inserted when the extrusion role is changed.",
+    (category)     = "Printer/Machine G-code",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Machine G-code",
+    (tab_optgroup)     = "Change extrusion role G-code",
+    (height)     = 5,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = ""
+  ];
+
+  string printer_notes = 42 [
+    (label)     = "Printer notes",
+    (tooltip)     = "You can put your notes regarding the printer here.",
+    (category)     = "Printer/Notes",
+    (tab_type)     = "Printer",
+    (tab_page)     = "Notes",
+    (tab_optgroup)     = "Notes",
+    (height)     = 13,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_PRINTER,
+    (has_default)  = true,
+    (default_value) = "",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+
+  bool cooling_filter_enabled = 43 [
+    (label)     = "Use cooling filter",
+    (tooltip)     = "Enable this if printer support cooling filter",
+    (mode)     = MODE_ADVANCED,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "false"
+  ];
+
+
+  repeated float deretract_speed_extruder_change = 44 [
+    (label)     = "Deretraction speed (extruder change)",
+    (tooltip)     = "Speed for reloading filament into the nozzle when switching extruder.",
+    (sidetext)     = "mm/s",
+    (is_nullable)     = true,
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "0."
+  ];
+
+
+  bool enable_pre_heating = 45 [
+    (label)     = "enable_pre_heating",
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "false"
+  ];
+
+
+  repeated int32 extruder_max_nozzle_count = 46 [
+    (label)     = "extruder_max_nozzle_count",
+    (is_nullable)     = true,
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "1"
+  ];
+
+
+  repeated int32 extruder_nozzle_count = 47 [
+    (label)     = "extruder nozzle count",
+    (tooltip)     = "extruder nozzle count",
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "1"
+  ];
+
+
+  repeated string extruder_nozzle_stats = 48 [
+    (label)     = "Extruder nozzle stats",
+    (tooltip)     = "Physical nozzle counts per extruder, keyed by nozzle volume type.",
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = ""
+  ];
+
+
+  repeated int32 extruder_nozzle_volume_type = 49 [
+    (label)     = "Extruder nozzle volume type",
+    (tooltip)     = "Nozzle volume type per physical nozzle of an extruder.",
+    (co_type_hint)     = coEnums,
+    (enum_keys_map_ref)     = "ConfigOptionEnum<NozzleVolumeType>::get_enum_values()",
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "NozzleVolumeType::nvtStandard",
+    (enum_value_entries) = "Standard",
+    (enum_value_entries) = "High Flow",
+    (enum_value_entries) = "TPU High Flow",
+    (enum_label_entries) = "Standard",
+    (enum_label_entries) = "High Flow",
+    (enum_label_entries) = "TPU High Flow"
+  ];
+
+
+  int32 fan_direction = 50 [
+    (label)     = "Fan direction",
+    (tooltip)     = "Cooling fan direction of the printer",
+    (co_type_hint)     = coEnum,
+    (enum_keys_map_ref)     = "ConfigOptionEnum<FanDirection>::get_enum_values()",
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "fdUndefine",
+    (enum_value_entries) = "undefine",
+    (enum_value_entries) = "left",
+    (enum_value_entries) = "right",
+    (enum_value_entries) = "both",
+    (enum_label_entries) = "Undefined",
+    (enum_label_entries) = "Left",
+    (enum_label_entries) = "Right",
+    (enum_label_entries) = "Both"
+  ];
+
+
+  bool farthest_point_timelapse = 51 [
+    (label)     = "Farthest point timelapse",
+    (tooltip)     = "When enabled, the timelapse snapshot is taken at the farthest point from camera instead of traveling to the wipe tower or excess chute. Only effective in traditional timelapse mode on non-I3 printers.",
+    (mode)     = MODE_SIMPLE,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "false"
+  ];
+
+
+  bool group_algo_with_time = 52 [
+    (label)     = "group_algo_with_time",
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "false"
+  ];
+
+
+  bool handle_hotend_as_extruder = 53 [
+    (label)     = "handle_hotend_as_extruder",
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "false"
+  ];
+
+
+  repeated float hotend_cooling_rate = 54 [
+    (label)     = "hotend_cooling_rate",
+    (is_nullable)     = true,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "2"
+  ];
+
+
+  repeated float hotend_heating_rate = 55 [
+    (label)     = "hotend_heating_rate",
+    (is_nullable)     = true,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "2"
+  ];
+
+
+  float machine_hotend_change_time = 56 [
+    (label)     = "Hotend change time",
+    (tooltip)     = "Time to change hotend.",
+    (sidetext)     = "s",
+    (min_value)     = 0,
+    (mode)     = MODE_ADVANCED,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "0.0"
+  ];
+
+
+  float machine_prepare_compensation_time = 57 [
+    (label)     = "machine_prepare_compensation_time",
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "260"
+  ];
+
+
+  bool support_cooling_filter = 58 [
+    (label)     = "support_cooling_filter",
+    (mode)     = MODE_ADVANCED,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "false"
+  ];
+
+
+  bool support_fast_purge_mode = 59 [
+    (label)     = "Support fast purge mode",
+    (tooltip)     = "Whether this printer supports fast purge mode with optimized temperature and multiplier.",
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_PRINTER,
+    (has_default)     = true,
+    (default_value) = "false"
+  ];
+
+}

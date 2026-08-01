@@ -240,6 +240,11 @@ function verify_python_runtime() {
 }
 
 function build_slicer() {
+    echo "Generating config sources from proto..."
+    # Resolves protoc and its Python packages itself (into .codegen-tools/), so nothing
+    # is installed into the system interpreter.
+    python3 tools/run_codegen.py || { echo "ERROR: config codegen failed"; exit 1; }
+
     # iterate over two architectures: x86_64 and arm64
     for _ARCH in x86_64 arm64; do
         # if ARCH is universal or equal to _ARCH

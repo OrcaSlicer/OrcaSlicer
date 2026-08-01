@@ -57,6 +57,19 @@ jobs:
           useLocalCache: true         # <--= Use the local cache (default is 'false').
           useCloudCache: true
 
+      # run_codegen.py resolves its own toolchain (a pinned protoc plus protobuf/pyyaml in a
+      # cached virtualenv), so nothing has to be pip-installed around it. That is what makes it
+      # work on windows-11-arm, where `pip install grpcio-tools` has no wheel and fails building
+      # the grpcio C extension from source.
+      - name: Generate config sources
+        if: runner.os == 'Windows'
+        run: python tools/run_codegen.py
+        shell: pwsh
+
+      - name: Generate config sources
+        if: runner.os != 'Windows'
+        run: python3 tools/run_codegen.py
+        shell: bash
       - name: Install CMake 3.31.x (Windows ARM64)
         # windows-11-arm ships CMake 4.x, which removed pre-3.5 policy
         # compatibility AND has incomplete ASM_ARMASM linker modules

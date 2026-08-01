@@ -493,6 +493,21 @@ add_library(libslic3r STATIC ${lisbslic3r_sources}
     ${OpenVDBUtils_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${lisbslic3r_sources})
 
+# Ensure codegen runs before compiling libslic3r (PrintConfig.cpp, Preset.cpp, Print.cpp
+# all #include generated files — MSVC tracks the #include deps automatically after first build,
+# but this dependency ensures the generated files exist and are up-to-date before compilation).
+if(TARGET codegen_config)
+    add_dependencies(libslic3r codegen_config)
+    # Tell cmake that the three source files that #include generated code depend on them,
+    # so an incremental build recompiles them when protos change.
+    set_source_files_properties(
+        "${CMAKE_CURRENT_SOURCE_DIR}/PrintConfig.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/Preset.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/Print.cpp"
+        PROPERTIES OBJECT_DEPENDS "${CONFIG_GENERATED_SOURCES}"
+    )
+endif()
+
 if (SLIC3R_STATIC)
     set(CGAL_Boost_USE_STATIC_LIBS ON CACHE BOOL "" FORCE)
 endif ()

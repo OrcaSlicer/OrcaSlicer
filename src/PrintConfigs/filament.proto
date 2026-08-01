@@ -1,0 +1,2268 @@
+// OrcaSlicer - FilamentSettings
+// Edit this file and re-run: python tools/run_codegen.py
+
+syntax = "proto3";
+
+import "config_metadata.proto";
+
+package orca;
+
+message FilamentSettings {
+
+  // ── Virtual keys: not in PrintConfigDef, but required in filament presets ──
+  // Compatibility / inheritance metadata
+  option (virtual_preset_keys) = "compatible_prints";
+  option (virtual_preset_keys) = "compatible_printers";
+  option (virtual_preset_keys) = "filament_colour";
+  option (virtual_preset_keys) = "filament_flush_temp";
+  option (virtual_preset_keys) = "filament_ramming_parameters";
+  option (virtual_preset_keys) = "inherits";
+  option (virtual_preset_keys) = "volumetric_speed_coefficients";
+
+  repeated string filament_end_gcode = 1 [
+    (label)     = "End G-code",
+    (tooltip)     = "End G-code when finishing the printing of this filament.",
+    (category)     = "Filament/Advanced",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Advanced",
+    (tab_optgroup)     = "Filament end G-code",
+    (height)     = 120,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "\" \"",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated string filament_start_gcode = 2 [
+    (label)     = "Start G-code",
+    (tooltip)     = "Start G-code when starting the printing of this filament.",
+    (category)     = "Filament/Advanced",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Advanced",
+    (tab_optgroup)     = "Filament start G-code",
+    (height)     = 12,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "\" \"",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated string filament_change_extrusion_role_gcode = 3 [
+    (label)     = "Change extrusion role G-code (filament)",
+    (tooltip)     = "This G-code is inserted when the extrusion role is changed for the active filament.",
+    (category)     = "Filament/Advanced",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Advanced",
+    (tab_optgroup)     = "Change extrusion role G-code",
+    (height)     = 5,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "\"\""
+  ];
+
+
+  repeated bool enable_overhang_bridge_fan = 4 [
+    (label)     = "Force cooling for overhangs and bridges",
+    (tooltip)     = "Enable this option to allow adjustment of the part cooling fan speed for specifically for overhangs, internal and external bridges. Setting the fan speed specifically for these features can improve overall print quality and reduce warping.",
+    (category)     = "Filament/Cooling",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "true",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 overhang_fan_speed = 5 [
+    (label)     = "Overhangs and external bridges fan speed",
+    (tooltip)     = "Use this part cooling fan speed when printing bridges or overhang walls with an overhang threshold that exceeds the value set in the 'Overhangs cooling threshold' parameter above. Increasing the cooling specifically for overhangs and bridges can improve the overall print quality of these features.\\n\\nPlease note, this fan speed is clamped on the lower end by the minimum fan speed threshold set above. It is also adjusted upwards up to the maximum fan speed threshold when the minimum layer time threshold is not met.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "%",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (min_value)     = 0,
+    (max_value)     = 100,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "100",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 overhang_fan_threshold = 6 [
+    (label)     = "Overhang cooling activation threshold",
+    (tooltip)     = "When the overhang exceeds this specified threshold, force the cooling fan to run at the 'Overhang Fan Speed' set below. This threshold is expressed as a percentage, indicating the portion of each line's width that is unsupported by the layer beneath it. Setting this value to 0% forces the cooling fan to run for all outer walls, regardless of the overhang degree.",
+    (category)     = "Filament/Cooling",
+    (enum_keys_map_ref)     = "ConfigOptionEnum<OverhangFanThreshold>::get_enum_values()",
+    (co_type_hint)     = coEnums,
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "(int)Overhang_threshold_bridge",
+    (enum_value_entries) = "0%",
+    (enum_value_entries) = "10%",
+    (enum_value_entries) = "25%",
+    (enum_value_entries) = "50%",
+    (enum_value_entries) = "75%",
+    (enum_value_entries) = "95%",
+    (enum_label_entries) = "0%",
+    (enum_label_entries) = "10%",
+    (enum_label_entries) = "25%",
+    (enum_label_entries) = "50%",
+    (enum_label_entries) = "75%",
+    (enum_label_entries) = "95%",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated bool slow_down_for_layer_cooling = 7 [
+    (label)     = "Slow printing down for better layer cooling",
+    (tooltip)     = "Enable this option to slow printing speed down to make the final layer time not shorter than the layer time threshold in \\\"Max fan speed threshold\\\", so that layer can be cooled for longer time. This can improve the cooling quality for needle and small details.",
+    (category)     = "Filament/Cooling",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "true",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated bool activate_air_filtration = 8 [
+    (label)     = "Activate air filtration",
+    (tooltip)     = "Activate for better air filtration. G-code command: M106 P3 S(0-255)",
+    (category)     = "Filament/Cooling",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Exhaust fan",
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated bool activate_air_filtration_during_print = 9 [
+    (full_label)     = "During print",
+    (tooltip)     = "Enable this to override the fan speed set in custom G-code during print.",
+    (category)     = "Filament/Cooling",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Exhaust fan",
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "true",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated bool activate_air_filtration_on_completion = 10 [
+    (full_label)     = "On completion",
+    (tooltip)     = "Enable this to override the fan speed set in custom G-code after print completion.",
+    (category)     = "Filament/Cooling",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Exhaust fan",
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "true",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 during_print_exhaust_fan_speed = 11 [
+    (label)     = "Fan speed",
+    (tooltip)     = "Speed of exhaust fan during printing. This speed will override the speed in filament custom G-code.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "%",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Exhaust fan",
+    (min_value)     = 0,
+    (max_value)     = 100,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "60",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 complete_print_exhaust_fan_speed = 12 [
+    (label)     = "Fan speed",
+    (tooltip)     = "Speed of exhaust fan after printing completes.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "%",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Exhaust fan",
+    (min_value)     = 0,
+    (max_value)     = 100,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "80",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 close_fan_the_first_x_layers = 13 [
+    (label)     = "No cooling for the first",
+    (tooltip)     = "Turn off all cooling fans for the first few layers. This can be used to improve build plate adhesion.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "layers",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Cooling for specific layer",
+    (min_value)     = 0,
+    (max_value)     = 1000,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "1",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 initial_layer_fan_speed = 120 [
+    (label)     = "First layer fan speed",
+    (tooltip)     = "Sets an exact fan speed for the first layer, overriding all other cooling settings. Useful for protecting 3D-printed toolhead parts (e.g. Voron-style ABS/ASA ducts) from a hot bed. A small amount of airflow cools the ducts down, without using full cooling that may in certain conditions hurt first-layer adhesion.\\nFrom the second layer onwards, normal cooling resumes.\\nIf \\\"Full fan speed at layer\\\" is also set, the fan ramps smoothly from this value on the first layer up to your target by the chosen layer.\\nOnly available when \\\"No cooling for the first\\\" is 0.\\nSet to -1 to disable it.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "%",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Cooling for specific layer",
+    (min_value)     = -1,
+    (max_value)     = 100,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "-1",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated bool reduce_fan_stop_start_freq = 14 [
+    (label)     = "Keep fan always on",
+    (tooltip)     = "Enabling this setting means that the part cooling fan will never stop completely and will run at least at minimum speed to reduce the frequency of starting and stopping.",
+    (category)     = "Filament/Cooling",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated bool dont_slow_down_outer_wall = 15 [
+    (label)     = "Don't slow down outer walls",
+    (tooltip)     = "If enabled, this setting will ensure external perimeters are not slowed down to meet the minimum layer time. This is particularly helpful in the below scenarios:\\n1. To avoid changes in shine when printing glossy filaments\\n2. To avoid changes in external wall speed which may create slight wall artifacts that appear like Z banding\\n3. To avoid printing at speeds which cause VFAs (fine artifacts) on the external walls",
+    (category)     = "Filament/Cooling",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated float fan_cooling_layer_time = 16 [
+    (label)     = "Layer time",
+    (tooltip)     = "Part cooling fan will be enabled for layers of which estimated time is shorter than this value. Fan speed is interpolated between the minimum and maximum fan speeds according to layer printing time.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "s",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (min_value)     = 0,
+    (max_value)     = 1000,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "60.0f",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 full_fan_speed_layer = 17 [
+    (label)     = "Full fan speed at layer",
+    (tooltip)     = "Fan speed will be ramped up linearly from zero at layer \\\"close_fan_the_first_x_layers\\\" to maximum at layer \\\"full_fan_speed_layer\\\". \\\"full_fan_speed_layer\\\" will be ignored if lower than \\\"close_fan_the_first_x_layers\\\", in which case the fan will be running at maximum allowed speed at layer \\\"close_fan_the_first_x_layers\\\" + 1.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "layer",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Cooling for specific layer",
+    (min_value)     = 0,
+    (max_value)     = 1000,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 support_material_interface_fan_speed = 18 [
+    (label)     = "Support interface fan speed",
+    (tooltip)     = "This part cooling fan speed is applied when printing support interfaces. Setting this parameter to a higher than regular speed reduces the layer binding strength between supports and the supported part, making them easier to separate.\\nSet to -1 to disable it.\\nThis setting is overridden by disable_fan_first_layers.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "%",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (min_value)     = -1,
+    (max_value)     = 100,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "-1",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 internal_bridge_fan_speed = 19 [
+    (label)     = "Internal bridges fan speed",
+    (tooltip)     = "The part cooling fan speed used for all internal bridges. Set to -1 to use the overhang fan speed settings instead.\\n\\nReducing the internal bridges fan speed, compared to your regular fan speed, can help reduce part warping due to excessive cooling applied over a large surface for a prolonged period of time.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "%",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (min_value)     = -1,
+    (max_value)     = 100,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "-1",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 ironing_fan_speed = 20 [
+    (label)     = "Ironing fan speed",
+    (tooltip)     = "This part cooling fan speed is applied when ironing. Setting this parameter to a lower than regular speed reduces possible nozzle clogging due to the low volumetric flow rate, making the interface smoother.\\nSet to -1 to disable it.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "%",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (min_value)     = -1,
+    (max_value)     = 100,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "-1",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated float fan_max_speed = 21 [
+    (label)     = "Fan speed",
+    (tooltip)     = "Part cooling fan speed may be increased when auto cooling is enabled. This is the maximum speed for the part cooling fan.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "%",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (min_value)     = 0,
+    (max_value)     = 100,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "100",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated float fan_min_speed = 22 [
+    (label)     = "Fan speed",
+    (tooltip)     = "Minimum speed for part cooling fan.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "%",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (min_value)     = 0,
+    (max_value)     = 100,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "20",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 additional_cooling_fan_speed = 23 [
+    (label)     = "Fan speed",
+    (tooltip)     = "Speed of auxiliary part cooling fan. Auxiliary fan will run at this speed during printing except the first several layers which is defined by no cooling layers.\\nPlease enable auxiliary_fan in printer settings to use this feature. G-code command: M106 P2 S(0-255)",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "%",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Auxiliary part cooling fan",
+    (min_value)     = 0,
+    (max_value)     = 100,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated float slow_down_min_speed = 24 [
+    (label)     = "Min print speed",
+    (tooltip)     = "The minimum print speed to which the printer slows down to maintain the minimum layer time defined above when the slowdown for better layer cooling is enabled.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "mm/s",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "10.",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated float slow_down_layer_time = 25 [
+    (label)     = "Layer time",
+    (tooltip)     = "The printing speed in exported G-code will be slowed down when the estimated layer time is shorter than this value in order to get better cooling for these layers.",
+    (category)     = "Filament/Cooling",
+    (sidetext)     = "s",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Cooling",
+    (tab_optgroup)     = "Part cooling fan",
+    (min_value)     = 0,
+    (max_value)     = 1000,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "5.0f",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  string compatible_printers_condition = 26 [
+    (label)     = "Condition",
+    (tooltip)     = "A boolean expression using the configuration values of an active printer profile. If this expression evaluates to true, this profile is considered compatible with the active printer profile.",
+    (category)     = "Filament/Dependencies",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Dependencies",
+    (tab_optgroup)     = "Compatible printers",
+    (mode)        = MODE_ADVANCED,
+    (no_cli)     = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = ""
+  ];
+
+
+  string compatible_prints_condition = 27 [
+    (label)     = "Condition",
+    (tooltip)     = "A boolean expression using the configuration values of an active print profile. If this expression evaluates to true, this profile is considered compatible with the active print profile.",
+    (category)     = "Filament/Dependencies",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Dependencies",
+    (tab_optgroup)     = "Compatible process profiles",
+    (mode)        = MODE_ADVANCED,
+    (no_cli)     = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = ""
+  ];
+
+
+  repeated int32 supertack_plate_temp = 28 [
+    (label)     = "Other layers",
+    (full_label)     = "Bed temperature",
+    (tooltip)     = "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate SuperTack.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Bed temperature",
+    (min_value)     = 0,
+    (max_value)     = 120,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "35",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated int32 cool_plate_temp = 29 [
+    (label)     = "Other layers",
+    (full_label)     = "Bed temperature",
+    (tooltip)     = "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Cool Plate.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Bed temperature",
+    (min_value)     = 0,
+    (max_value)     = 300,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "35",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated int32 textured_cool_plate_temp = 30 [
+    (label)     = "Other layers",
+    (full_label)     = "Bed temperature",
+    (tooltip)     = "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured Cool Plate.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Bed temperature",
+    (min_value)     = 0,
+    (max_value)     = 300,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "40",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated int32 eng_plate_temp = 31 [
+    (label)     = "Other layers",
+    (full_label)     = "Bed temperature",
+    (tooltip)     = "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Engineering Plate.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Bed temperature",
+    (min_value)     = 0,
+    (max_value)     = 300,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "45",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated int32 hot_plate_temp = 32 [
+    (label)     = "Other layers",
+    (full_label)     = "Bed temperature",
+    (tooltip)     = "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the High Temp Plate.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Bed temperature",
+    (min_value)     = 0,
+    (max_value)     = 300,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "45",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated int32 textured_plate_temp = 33 [
+    (label)     = "Other layers",
+    (full_label)     = "Bed temperature",
+    (tooltip)     = "Bed temperature for layers except the initial one. A value of 0 means the filament does not support printing on the Textured PEI Plate.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Bed temperature",
+    (min_value)     = 0,
+    (max_value)     = 300,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "45",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated int32 supertack_plate_temp_initial_layer = 34 [
+    (label)     = "First layer",
+    (full_label)     = "First layer bed temperature",
+    (tooltip)     = "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate SuperTack.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Bed temperature",
+    (min_value)     = 0,
+    (max_value)     = 120,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "35",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 cool_plate_temp_initial_layer = 35 [
+    (label)     = "First layer",
+    (full_label)     = "First layer bed temperature",
+    (tooltip)     = "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Cool Plate.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Bed temperature",
+    (min_value)     = 0,
+    (max_value)     = 120,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "35",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 textured_cool_plate_temp_initial_layer = 36 [
+    (label)     = "First layer",
+    (full_label)     = "First layer bed temperature",
+    (tooltip)     = "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured Cool Plate.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Bed temperature",
+    (min_value)     = 0,
+    (max_value)     = 120,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "40",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 eng_plate_temp_initial_layer = 37 [
+    (label)     = "First layer",
+    (full_label)     = "First layer bed temperature",
+    (tooltip)     = "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Engineering Plate.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Bed temperature",
+    (min_value)     = 0,
+    (max_value)     = 300,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "45",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 hot_plate_temp_initial_layer = 38 [
+    (label)     = "First layer",
+    (full_label)     = "First layer bed temperature",
+    (tooltip)     = "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the High Temp Plate.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Bed temperature",
+    (max_value)     = 300,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "45",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 textured_plate_temp_initial_layer = 39 [
+    (label)     = "First layer",
+    (full_label)     = "First layer bed temperature",
+    (tooltip)     = "Bed temperature of the first layer. A value of 0 means the filament does not support printing on the Textured PEI Plate.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Bed temperature",
+    (min_value)     = 0,
+    (max_value)     = 300,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "45",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated float filament_flow_ratio = 40 [
+    (label)     = "Flow ratio",
+    (tooltip)     = "The material may have volumetric change after switching between molten and crystalline states. This setting changes all extrusion flow of this filament in G-code proportionally. The recommended value range is between 0.95 and 1.05. You may be able to tune this value to get a nice flat surface if there is slight overflow or underflow.",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Flow ratio and Pressure Advance",
+    (min_value)     = 0,
+    (max_value)     = 2,
+    (mode)        = MODE_ADVANCED,
+    (is_nullable)     = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "1.",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated bool enable_pressure_advance = 41 [
+    (label)     = "Enable pressure advance",
+    (tooltip)     = "Enable pressure advance, auto calibration result will be overwritten once enabled.",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Flow ratio and Pressure Advance",
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated float pressure_advance = 42 [
+    (label)     = "Pressure advance",
+    (tooltip)     = "Pressure advance (Klipper) AKA Linear advance factor (Marlin).",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Flow ratio and Pressure Advance",
+    (max_value)     = 2,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0.02",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated bool adaptive_pressure_advance = 43 [
+    (label)     = "Enable adaptive pressure advance (beta)",
+    (tooltip)     = "With increasing print speeds (and hence increasing volumetric flow through the nozzle) and increasing accelerations, it has been observed that the effective PA value typically decreases. This means that a single PA value is not always 100% optimal for all features and a compromise value is usually used that does not cause too much bulging on features with lower flow speed and accelerations while also not causing gaps on faster features.\\n\\nThis feature aims to address this limitation by modeling the response of your printer's extrusion system depending on the volumetric flow speed and acceleration it is printing at. Internally, it generates a fitted model that can extrapolate the needed pressure advance for any given volumetric flow speed and acceleration, which is then emitted to the printer depending on the current print conditions.\\n\\nWhen enabled, the pressure advance value above is overridden. However, a reasonable default value above is strongly recommended to act as a fallback and for when tool changing.\\n\\n",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Flow ratio and Pressure Advance",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false"
+  ];
+
+
+  repeated string adaptive_pressure_advance_model = 44 [
+    (label)     = "Adaptive pressure advance measurements (beta)",
+    (tooltip)     = "Add sets of pressure advance (PA) values, the volumetric flow speeds and accelerations they were measured at, separated by a comma. One set of values per line. For example\\n0.04,3.96,3000\\n0.033,3.96,10000\\n0.029,7.91,3000\\n0.026,7.91,10000\\n\\nHow to calibrate:\\n1. Run the pressure advance test for at least 3 speeds per acceleration value. It is recommended that the test is run for at least the speed of the external perimeters, the speed of the internal perimeters and the fastest feature print speed in your profile (usually its the sparse or solid infill). Then run them for the same speeds for the slowest and fastest print accelerations, and no faster than the recommended maximum acceleration as given by the Klipper input shaper\\n2. Take note of the optimal PA value for each volumetric flow speed and acceleration. You can find the flow number by selecting flow from the color scheme drop down and move the horizontal slider over the PA pattern lines. The number should be visible at the bottom of the page. The ideal PA value should be decreasing the higher the volumetric flow is. If it is not, confirm that your extruder is functioning correctly. The slower and with less acceleration you print, the larger the range of acceptable PA values. If no difference is visible, use the PA value from the faster test\\n3. Enter the triplets of PA values, Flow and Accelerations in the text box here and save your filament profile.",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Flow ratio and Pressure Advance",
+    (height)     = 15,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "\"0,0,0\n0,0,0\""
+  ];
+
+
+  repeated bool adaptive_pressure_advance_overhangs = 45 [
+    (label)     = "Enable adaptive pressure advance within features (beta)",
+    (tooltip)     = "Enable adaptive PA whenever there are flow changes in a feature, such as line width changes in a corner or overhangs.\\n\\nNot compatible with Prusa printers as they pause to process PA changes, which causes delays and defects.\\n\\nThis is an experimental option, as if the PA profile is not set accurately, it will cause uniformity issues.",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Flow ratio and Pressure Advance",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false"
+  ];
+
+
+  repeated float adaptive_pressure_advance_bridges = 46 [
+    (label)     = "Static pressure advance for bridges",
+    (tooltip)     = "Static pressure advance value for bridges. Set to 0 to apply the same pressure advance as \\nequivalent walls (using adaptive settings if enabled).\\n\\nA lower PA value when printing bridges helps reduce the appearance of slight under-extrusion immediately after bridges. This is caused by the pressure drop in the nozzle when printing in the air and a lower PA helps counteract this.",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Flow ratio and Pressure Advance",
+    (max_value)     = 2,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0.0"
+  ];
+
+
+  repeated string default_filament_colour = 47 [
+    (label)     = "Default color",
+    (tooltip)     = "Default filament color.\\nRight click to reset value to system default.",
+    (category)     = "Filament/Filament",
+    (gui_type)     = color,
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "\"\"",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 required_nozzle_HRC = 48 [
+    (label)     = "Required nozzle HRC",
+    (tooltip)     = "Minimum HRC of nozzle required to print the filament. Zero means no checking of nozzle's HRC.",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (min_value)     = 0,
+    (max_value)     = 500,
+    (mode)        = MODE_DEVELOP,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated float filament_max_volumetric_speed = 49 [
+    (label)     = "Max volumetric speed",
+    (tooltip)     = "This setting stands for how much volume of filament can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. Can't be zero.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "mm³/s",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Volumetric speed limitation",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "2.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_diameter = 50 [
+    (label)     = "Diameter",
+    (tooltip)     = "Filament diameter is used to calculate extrusion in G-code, so it is important and should be accurate.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "mm",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (min_value)     = 0,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "1.75",
+    (list_membership) = LIST_FILAMENT_OPTION_KEYS,
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated float pellet_flow_coefficient = 51 [
+    (label)     = "Pellet flow coefficient",
+    (tooltip)     = "Pellet flow coefficient is empirically derived and allows for volume calculation for pellet printers.\\n\\nInternally it is converted to filament_diameter. All other volume calculations remain the same.\\n\\nfilament_diameter = sqrt( (4 * pellet_flow_coefficient) / PI )",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Flow ratio and Pressure Advance",
+    (min_value)     = 0,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0.4157"
+  ];
+
+
+  repeated bool filament_adaptive_volumetric_speed = 52 [
+    (label)     = "Adaptive volumetric speed",
+    (tooltip)     = "When enabled, the extrusion flow is limited by the smaller of the fitted value (calculated from line width and layer height) and the user-defined maximum flow. When disabled, only the user-defined maximum flow is applied.\\n\\nNote: Experimental and incomplete feature imported from BBS. Functional for some profiles that already have the variable saved.",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Volumetric speed limitation",
+    (mode)        = MODE_DEVELOP,
+    (is_nullable)     = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_shrink = 53 [
+    (label)     = "Shrinkage (XY)",
+    (tooltip)     = "Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in XY to compensate. For multi-material prints, ensure filament shrinkage matches across all used filaments\\nBe sure to allow enough space between objects, as this compensation is done after the checks.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "%",
+    (co_type_hint)     = coPercents,
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (min_value)     = 50,
+    (max_value)     = 150,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "100",
+    (invalidates) = STEP_SLICE
+  ];
+
+
+  repeated float filament_shrinkage_compensation_z = 54 [
+    (label)     = "Shrinkage (Z)",
+    (tooltip)     = "Enter the shrinkage percentage that the filament will get after cooling (94% if you measure 94mm instead of 100mm). The part will be scaled in Z to compensate.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "%",
+    (co_type_hint)     = coPercents,
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (min_value)     = 50,
+    (max_value)     = 150,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "100",
+    (invalidates) = STEP_SLICE
+  ];
+
+
+  repeated int32 filament_adhesiveness_category = 55 [
+    (label)     = "Adhesiveness Category",
+    (tooltip)     = "Filament category.",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (min_value)     = 0,
+    (mode)        = MODE_DEVELOP,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_density = 56 [
+    (label)     = "Density",
+    (tooltip)     = "Filament density. For statistics only.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "g/cm³",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0.",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated string filament_type = 57 [
+    (label)     = "Type",
+    (tooltip)     = "The material type of filament.",
+    (category)     = "Filament/Filament",
+    (gui_type)     = f_enum_open,
+    (gui_flags)     = "show_value",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "\"PLA\"",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated bool filament_soluble = 58 [
+    (label)     = "Soluble material",
+    (tooltip)     = "Soluble material is commonly used to print supports and support interfaces.",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_SUPPORT,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_change_length = 59 [
+    (label)     = "Filament ramming length",
+    (tooltip)     = "When changing the extruder, it is recommended to extrude a certain length of filament from the original extruder. This helps minimize nozzle oozing.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "mm",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "10",
+    (invalidates) = STEP_SUPPORT,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated bool filament_is_support = 60 [
+    (label)     = "Support material",
+    (tooltip)     = "Support material is commonly used to print supports and support interfaces.",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_SUPPORT,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated int32 temperature_vitrification = 61 [
+    (label)     = "Softening temperature",
+    (tooltip)     = "The material softens at this temperature, so when the bed temperature is equal to or greater than this, it's highly recommended to open the front door and/or remove the upper glass to avoid clogging.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "100"
+  ];
+
+
+  repeated float filament_cost = 62 [
+    (label)     = "Price",
+    (tooltip)     = "Filament price. For statistics only.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "money/kg",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0.",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated string filament_vendor = 63 [
+    (label)     = "Vendor",
+    (tooltip)     = "Vendor of filament. For show only.",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (mode)        = MODE_ADVANCED,
+    (no_cli)     = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "L(\"(Undefined)\")"
+  ];
+
+
+  repeated int32 nozzle_temperature_initial_layer = 64 [
+    (label)     = "First layer",
+    (full_label)     = "First layer nozzle temperature",
+    (tooltip)     = "Nozzle temperature for printing the first layer when using this filament.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Print temperature",
+    (min_value)     = 0,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "200",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated bool activate_chamber_temp_control = 65 [
+    (label)     = "Activate temperature control",
+    (tooltip)     = "Enable this option for automated chamber temperature control. This option activates the emitting of an M191 command before the \\\"machine_start_gcode\\\"\\n which sets the chamber temperature and waits until it is reached. In addition, it emits an M141 command at the end of the print to turn off the chamber heater, if present.\\n\\nThis option relies on the firmware supporting the M191 and M141 commands either via macros or natively and is usually used when an active chamber heater is installed.",
+    (category)     = "Filament/Filament",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Print chamber temperature",
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 chamber_temperature = 66 [
+    (label)     = "Chamber temperature",
+    (full_label)     = "Chamber temperature",
+    (tooltip)     = "For high-temperature materials like ABS, ASA, PC, and PA, a higher chamber temperature can help suppress or reduce warping and potentially lead to higher interlayer bonding strength. However, at the same time, a higher chamber temperature will reduce the efficiency of air filtration for ABS and ASA.\\n\\nFor PLA, PETG, TPU, PVA, and other low-temperature materials, this option should be disabled (set to 0) as the chamber temperature should be low to avoid extruder clogging caused by material softening at the heat break.\\n\\nIf enabled, this parameter also sets a G-code variable named chamber_temperature, which can be used to pass the desired chamber temperature to your print start macro, or a heat soak macro like this: PRINT_START (other variables) CHAMBER_TEMP=[chamber_temperature]. This may be useful if your printer does not support M141/M191 commands, or if you desire to handle heat soaking in the print start macro if no active chamber heater is installed.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Print chamber temperature",
+    (min_value)     = 0,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER,
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated int32 nozzle_temperature = 67 [
+    (label)     = "Other layers",
+    (full_label)     = "Nozzle temperature",
+    (tooltip)     = "Nozzle temperature for layers after the initial one.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Print temperature",
+    (min_value)     = 0,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "200",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated int32 nozzle_temperature_range_low = 68 [
+    (label)     = "Min",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (min_value)     = 0,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "190"
+  ];
+
+
+  repeated int32 nozzle_temperature_range_high = 69 [
+    (label)     = "Max",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (min_value)     = 0,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "240"
+  ];
+
+
+  repeated int32 idle_temperature = 70 [
+    (label)     = "Idle temperature",
+    (tooltip)     = "Nozzle temperature when the tool is currently not used in multi-tool setups. This is only used when 'Ooze prevention' is active in Print Settings. Set to 0 to disable.",
+    (category)     = "Filament/Filament",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Filament",
+    (tab_optgroup)     = "Basic information",
+    (min_value)     = 0,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_loading_speed = 71 [
+    (label)     = "Loading speed",
+    (tooltip)     = "Speed used for loading the filament on the wipe tower.",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm/s",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Tool change parameters with single extruder MM printers",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "28.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_loading_speed_start = 72 [
+    (label)     = "Loading speed at the start",
+    (tooltip)     = "Speed used at the very beginning of loading phase.",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm/s",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Tool change parameters with single extruder MM printers",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "3.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_unloading_speed = 73 [
+    (label)     = "Unloading speed",
+    (tooltip)     = "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming).",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm/s",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Tool change parameters with single extruder MM printers",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "90.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_unloading_speed_start = 74 [
+    (label)     = "Unloading speed at the start",
+    (tooltip)     = "Speed used for unloading the tip of the filament immediately after ramming.",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm/s",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Tool change parameters with single extruder MM printers",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "100.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_toolchange_delay = 75 [
+    (label)     = "Delay after unloading",
+    (tooltip)     = "Time to wait after the filament is unloaded. May help to get reliable tool changes with flexible materials that may need more time to shrink to original dimensions.",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "s",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Tool change parameters with single extruder MM printers",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated int32 filament_cooling_moves = 76 [
+    (label)     = "Number of cooling moves",
+    (tooltip)     = "Filament is cooled by being moved back and forth in the cooling tubes. Specify desired number of these moves.",
+    (category)     = "Filament/Multimaterial",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Tool change parameters with single extruder MM printers",
+    (min_value)     = 0,
+    (max_value)     = 20,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "4",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_stamping_loading_speed = 77 [
+    (label)     = "Stamping loading speed",
+    (tooltip)     = "Speed used for stamping.",
+    (category)     = "Filament/Multimaterial",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Tool change parameters with single extruder MM printers",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_stamping_distance = 78 [
+    (label)     = "Stamping distance measured from the center of the cooling tube",
+    (tooltip)     = "If set to non-zero value, filament is moved toward the nozzle between the individual cooling moves (\\\"stamping\\\"). This option configures how long this movement should be before the filament is retracted again.",
+    (category)     = "Filament/Multimaterial",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Tool change parameters with single extruder MM printers",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_cooling_initial_speed = 79 [
+    (label)     = "Speed of the first cooling move",
+    (tooltip)     = "Cooling moves are gradually accelerating beginning at this speed.",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm/s",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Tool change parameters with single extruder MM printers",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "2.2",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_minimal_purge_on_wipe_tower = 80 [
+    (label)     = "Minimal purge on wipe tower",
+    (tooltip)     = "After a tool change, the exact position of the newly loaded filament inside the nozzle may not be known, and the filament pressure is likely not yet stable. Before purging the print head into an infill or a sacrificial object, Orca Slicer will always prime this amount of material into the wipe tower to produce successive infill or sacrificial object extrusions reliably.",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm³",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Wipe tower parameters",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "15.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_tower_interface_pre_extrusion_dist = 81 [
+    (label)     = "Interface layer pre-extrusion distance",
+    (tooltip)     = "Pre-extrusion distance for prime tower interface layer (where different materials meet).",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Wipe tower parameters",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "10.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_tower_interface_pre_extrusion_length = 82 [
+    (label)     = "Interface layer pre-extrusion length",
+    (tooltip)     = "Pre-extrusion length for prime tower interface layer (where different materials meet).",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Wipe tower parameters",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_tower_ironing_area = 83 [
+    (label)     = "Tower ironing area",
+    (tooltip)     = "Ironing area for prime tower interface layer (where different materials meet).",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm²",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Wipe tower parameters",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "4.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_tower_interface_purge_volume = 84 [
+    (label)     = "Interface layer purge length",
+    (tooltip)     = "Purge length for prime tower interface layer (where different materials meet).",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Wipe tower parameters",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "20.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated int32 filament_tower_interface_print_temp = 85 [
+    (label)     = "Interface layer print temperature",
+    (tooltip)     = "Print temperature for prime tower interface layer (where different materials meet). If set to -1, use max recommended nozzle temperature.",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "\\u2103",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Wipe tower parameters",
+    (min_value)     = -1,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "-1",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_cooling_final_speed = 86 [
+    (label)     = "Speed of the last cooling move",
+    (tooltip)     = "Cooling moves are gradually accelerating towards this speed.",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm/s",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Tool change parameters with single extruder MM printers",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "3.4",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated bool filament_multitool_ramming = 87 [
+    (label)     = "Enable ramming for multi-tool setups",
+    (tooltip)     = "Perform ramming when using multi-tool printer (i.e. when the 'Single Extruder Multimaterial' in Printer Settings is unchecked). When checked, a small amount of filament is rapidly extruded on the wipe tower just before the tool change. This option is only used when the wipe tower is enabled.",
+    (category)     = "Filament/Multimaterial",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Tool change parameters with multi extruder MM printers",
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_multitool_ramming_volume = 88 [
+    (label)     = "Multi-tool ramming volume",
+    (tooltip)     = "The volume to be rammed before the tool change.",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm³",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Tool change parameters with multi extruder MM printers",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "10.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated float filament_multitool_ramming_flow = 89 [
+    (label)     = "Multi-tool ramming flow",
+    (tooltip)     = "Flow used for ramming the filament before the tool change.",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm³/s",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Tool change parameters with multi extruder MM printers",
+    (min_value)     = 0,
+    (mode)        = MODE_ADVANCED,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "10.",
+    (invalidates) = STEP_SKIRT_BRIM,
+    (invalidates) = STEP_WIPE_TOWER
+  ];
+
+
+  repeated bool long_retractions_when_ec = 90 [
+    (label)     = "Long retraction when extruder change",
+    (category)     = "Filament/Multimaterial",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Multi Filament",
+    (mode)        = MODE_ADVANCED,
+    (is_nullable)     = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false"
+  ];
+
+
+  repeated float retraction_distances_when_ec = 91 [
+    (label)     = "Retraction distance when extruder change",
+    (category)     = "Filament/Multimaterial",
+    (sidetext)     = "mm",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Multimaterial",
+    (tab_optgroup)     = "Multi Filament",
+    (min_value)     = 0,
+    (max_value)     = 10,
+    (mode)        = MODE_ADVANCED,
+    (is_nullable)     = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "10"
+  ];
+
+
+  repeated string filament_notes = 92 [
+    (label)     = "Filament notes",
+    (tooltip)     = "You can put your notes regarding the filament here.",
+    (category)     = "Filament/Notes",
+    (tab_type)     = "Filament",
+    (tab_page)     = "Notes",
+    (tab_optgroup)     = "Notes",
+    (height)     = 13,
+    (mode)        = MODE_ADVANCED,
+    (multiline)     = true,
+    (full_width)     = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "\"\"",
+    (invalidates) = STEP_GCODE_EXPORT
+  ];
+
+
+  repeated float filament_ironing_flow = 93 [
+    (label)     = "Ironing flow",
+    (tooltip)     = "Filament-specific override for ironing flow. This allows you to customize the ironing flow for each filament type. Too high value results in overextrusion on the surface.",
+    (category)     = "Quality",
+    (sidetext)     = "%",
+    (co_type_hint)     = coPercents,
+    (min_value)     = 0,
+    (max_value)     = 100,
+    (mode)        = MODE_ADVANCED,
+    (is_nullable)     = true,
+    (has_default)  = true,
+    (default_value) = "ConfigOptionPercentsNullable::nil_value()",
+    (preset)     = PRESET_FILAMENT
+  ];
+
+
+  repeated float filament_ironing_spacing = 94 [
+    (label)     = "Ironing line spacing",
+    (tooltip)     = "Filament-specific override for ironing line spacing. This allows you to customize the spacing between ironing lines for each filament type.",
+    (category)     = "Quality",
+    (sidetext)     = "mm",
+    (min_value)     = 0,
+    (max_value)     = 1,
+    (mode)        = MODE_ADVANCED,
+    (is_nullable)     = true,
+    (has_default)  = true,
+    (default_value) = "ConfigOptionFloatsNullable::nil_value()",
+    (preset)     = PRESET_FILAMENT
+  ];
+
+
+  repeated float filament_ironing_inset = 95 [
+    (label)     = "Ironing inset",
+    (tooltip)     = "Filament-specific override for ironing inset. This allows you to customize the distance to keep from the edges when ironing for each filament type.",
+    (category)     = "Quality",
+    (sidetext)     = "mm",
+    (min_value)     = 0,
+    (max_value)     = 100,
+    (mode)        = MODE_ADVANCED,
+    (is_nullable)     = true,
+    (has_default)  = true,
+    (default_value) = "ConfigOptionFloatsNullable::nil_value()",
+    (preset)     = PRESET_FILAMENT
+  ];
+
+
+  repeated float filament_ironing_speed = 96 [
+    (label)     = "Ironing speed",
+    (tooltip)     = "Filament-specific override for ironing speed. This allows you to customize the print speed of ironing lines for each filament type.",
+    (category)     = "Speed",
+    (sidetext)     = "mm/s",
+    (min_value)     = 1,
+    (mode)        = MODE_ADVANCED,
+    (is_nullable)     = true,
+    (has_default)  = true,
+    (default_value) = "ConfigOptionFloatsNullable::nil_value()",
+    (preset)     = PRESET_FILAMENT
+  ];
+
+
+  repeated float filament_flush_volumetric_speed = 97 [
+    (label)     = "Flush volumetric speed",
+    (tooltip)     = "Volumetric speed when flushing filament. 0 indicates the max volumetric speed.",
+    (sidetext)     = "mm³/s",
+    (min_value)     = 0,
+    (max_value)     = 200,
+    (mode)        = MODE_ADVANCED,
+    (is_nullable)     = true,
+    (has_default)  = true,
+    (default_value) = "0",
+    (preset)     = PRESET_FILAMENT
+  ];
+
+
+  repeated float filament_cooling_before_tower = 98 [
+    (label)     = "Wipe tower cooling",
+    (tooltip)     = "Temperature drop before entering filament tower",
+    (sidetext)     = "\\u2103",
+    (mode)        = MODE_DEVELOP,
+    (is_nullable)     = true,
+    (has_default)  = true,
+    (default_value) = "10.",
+    (preset)     = PRESET_FILAMENT
+  ];
+
+
+  repeated int32 filament_printable = 99 [
+    (label)     = "Filament printable",
+    (tooltip)     = "The filament is printable in extruder.",
+    (mode)        = MODE_DEVELOP,
+    (has_default)  = true,
+    (default_value) = "3",
+    (invalidates) = STEP_SUPPORT,
+    (invalidates) = STEP_WIPE_TOWER,
+    (preset)     = PRESET_FILAMENT
+  ];
+
+
+  repeated int32 close_additional_fan_first_x_layers = 100 [
+    (label)     = "For the first",
+    (tooltip)     = "Set special auxiliary cooling fan for the first certain layers.",
+    (sidetext)     = "layers",
+    (min_value)     = 0,
+    (max_value)     = 1000,
+    (has_default)  = true,
+    (default_value) = "1",
+    (preset)     = PRESET_FILAMENT
+  ];
+
+
+  repeated int32 additional_fan_full_speed_layer = 101 [
+    (label)     = "Full fan speed at layer",
+    (tooltip)     = "Auxiliary fan speed will be ramped up linearly from layer \\\"For the first\\\" to maximum at layer \\\"Full fan speed at layer\\\".\\n\\\"Full fan speed at layer\\\" will be ignored if lower than \\\"For the first\\\", in which case the fan will run at maximum allowed speed at layer \\\"For the first\\\" + 1.",
+    (min_value)     = 0,
+    (max_value)     = 1000,
+    (has_default)  = true,
+    (default_value) = "0",
+    (preset)     = PRESET_FILAMENT
+  ];
+
+
+  repeated float first_x_layer_fan_speed = 102 [
+    (label)     = "Fan speed",
+    (tooltip)     = "Special auxiliary cooling fan speed, effective only for the first x layers.",
+    (sidetext)     = "%",
+    (min_value)     = 0,
+    (max_value)     = 100,
+    (has_default)  = true,
+    (default_value) = "0",
+    (preset)     = PRESET_FILAMENT
+  ];
+
+
+  repeated string filament_extruder_variant = 103 [
+    (label)     = "Filament's extruder variant",
+    (tooltip)     = "Filament's extruder variant.",
+    (no_cli)     = true,
+    (has_default)  = true,
+    (default_value) = "\"Direct Drive Standard\"",
+    (preset)     = PRESET_FILAMENT
+  ];
+
+  // Per-filament nullable overrides for extruder retraction settings.
+  // These allow filament profiles to override printer-level retraction values.
+  // is_nullable=true means the value can be unset (nil) to inherit from the printer.
+
+  repeated float filament_retraction_length = 104 [
+    (label)       = "Length",
+    (full_label)  = "Retraction Length",
+    (tooltip)     = "Some amount of material in extruder is pulled back to avoid ooze during long travel. Set zero to disable retraction.",
+    (sidetext)    = "mm",
+    (mode)        = MODE_SIMPLE,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0.8"
+  ];
+
+  repeated float filament_z_hop = 105 [
+    (label)       = "Z-hop height",
+    (tooltip)     = "Whenever the retraction is done, the nozzle is lifted a little to create clearance between nozzle and the print. It prevents nozzle from hitting the print when travel move. Using spiral lines to lift Z can prevent stringing.",
+    (sidetext)    = "mm",
+    (min_value)   = 0,
+    (max_value)   = 5,
+    (mode)        = MODE_SIMPLE,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0.4"
+  ];
+
+  repeated int32 filament_z_hop_types = 106 [
+    (label)       = "Z-hop type",
+    (tooltip)     = "Type of Z-hop.",
+    (enum_keys_map_ref) = "ConfigOptionEnum<ZHopType>::get_enum_values()",
+    (co_type_hint) = coEnums,
+    (mode)        = MODE_ADVANCED,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "ZHopType::zhtSlope",
+    (enum_value_entries) = "Auto Lift",
+    (enum_value_entries) = "Normal Lift",
+    (enum_value_entries) = "Slope Lift",
+    (enum_value_entries) = "Spiral Lift",
+    (enum_label_entries) = "Auto",
+    (enum_label_entries) = "Normal",
+    (enum_label_entries) = "Slope",
+    (enum_label_entries) = "Spiral"
+  ];
+
+  repeated float filament_retract_lift_above = 107 [
+    (label)       = "Only lift Z above",
+    (tooltip)     = "If you set this to a positive value, Z lift will only take place above the specified absolute Z.",
+    (sidetext)    = "mm",
+    (mode)        = MODE_ADVANCED,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0."
+  ];
+
+  repeated float filament_retract_lift_below = 108 [
+    (label)       = "Only lift Z below",
+    (tooltip)     = "If you set this to a positive value, Z lift will only take place below the specified absolute Z.",
+    (sidetext)    = "mm",
+    (mode)        = MODE_ADVANCED,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0."
+  ];
+
+  repeated int32 filament_retract_lift_enforce = 109 [
+    (label)       = "On surfaces",
+    (tooltip)     = "Enforce Z-Hop behavior. This setting is impacted by the above settings (Only lift Z above/below).",
+    (enum_keys_map_ref) = "ConfigOptionEnum<RetractLiftEnforceType>::get_enum_values()",
+    (co_type_hint) = coEnums,
+    (mode)        = MODE_ADVANCED,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "RetractLiftEnforceType ::rletAllSurfaces",
+    (enum_value_entries) = "All Surfaces",
+    (enum_value_entries) = "Top Only",
+    (enum_value_entries) = "Bottom Only",
+    (enum_value_entries) = "Top and Bottom",
+    (enum_label_entries) = "All Surfaces",
+    (enum_label_entries) = "Top Only",
+    (enum_label_entries) = "Bottom Only",
+    (enum_label_entries) = "Top and Bottom"
+  ];
+
+  repeated float filament_retraction_speed = 110 [
+    (label)       = "Retraction Speed",
+    (full_label)  = "Retraction Speed",
+    (tooltip)     = "Speed for retracting filament from the nozzle.",
+    (sidetext)    = "mm/s",
+    (mode)        = MODE_ADVANCED,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "30."
+  ];
+
+  repeated float filament_deretraction_speed = 111 [
+    (label)       = "De-retraction Speed",
+    (full_label)  = "De-retraction Speed",
+    (tooltip)     = "Speed for reloading filament into the nozzle. Zero means same speed of retraction.",
+    (sidetext)    = "mm/s",
+    (mode)        = MODE_ADVANCED,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0."
+  ];
+
+  repeated float filament_retract_restart_extra = 112 [
+    (label)       = "Extra length on restart",
+    (tooltip)     = "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed.",
+    (sidetext)    = "mm",
+    (mode)        = MODE_ADVANCED,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "0."
+  ];
+
+  repeated float filament_retraction_minimum_travel = 113 [
+    (label)       = "Travel distance threshold",
+    (tooltip)     = "Only trigger retraction when the travel distance is longer than this threshold.",
+    (sidetext)    = "mm",
+    (mode)        = MODE_ADVANCED,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "2."
+  ];
+
+  repeated float filament_wipe_distance = 114 [
+    (label)       = "Wipe Distance",
+    (tooltip)     = "Describe how long the nozzle will move along the last path when retracting.",
+    (sidetext)    = "mm",
+    (min_value)   = 0,
+    (mode)        = MODE_ADVANCED,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "1."
+  ];
+
+  repeated bool filament_retract_when_changing_layer = 115 [
+    (label)       = "Retract when change layer",
+    (tooltip)     = "Force a retraction when changes layer.",
+    (mode)        = MODE_ADVANCED,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false"
+  ];
+
+  repeated bool filament_wipe = 116 [
+    (label)       = "Wipe while retracting",
+    (tooltip)     = "Move nozzle along the last extrusion path when retracting to clean any leaked material on the nozzle. This can minimize blobs when printing a new part after traveling.",
+    (mode)        = MODE_ADVANCED,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false"
+  ];
+
+  repeated float filament_retract_before_wipe = 117 [
+    (label)       = "Retract amount before wipe",
+    (tooltip)     = "The length of fast retraction before wipe, relative to retraction length.",
+    (sidetext)    = "%",
+    (co_type_hint) = coPercents,
+    (mode)        = MODE_ADVANCED,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "100"
+  ];
+
+  repeated bool filament_long_retractions_when_cut = 118 [
+    (label)       = "Long retraction when cut (beta)",
+    (tooltip)     = "Experimental feature: Retracting and cutting off the filament at a longer distance during changes to minimize purge. While this reduces flush significantly, it may also raise the risk of nozzle clogs or other printing problems.",
+    (mode)        = MODE_SIMPLE,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "false"
+  ];
+
+  repeated float filament_retraction_distances_when_cut = 119 [
+    (label)       = "Retraction distance when cut",
+    (tooltip)     = "Experimental feature: Retraction length before cutting off during filament change.",
+    (min_value)   = 10,
+    (max_value)   = 18,
+    (mode)        = MODE_SIMPLE,
+    (is_nullable) = true,
+    (preset)      = PRESET_FILAMENT,
+    (has_default)  = true,
+    (default_value) = "18"
+  ];
+
+
+  repeated int32 chamber_minimal_temperature = 121 [
+    (label)     = "Minimal",
+    (tooltip)     = "This is the chamber temperature at which printing should start, while the chamber continues heating toward the \\\"Target\\\" chamber temperature. For example, set the Target to 60 and the Minimal to 50 to begin printing once the chamber reaches 50℃, without waiting for the full 60℃.\\n\\nIt sets a G-code variable named chamber_minimal_temperature, which can be passed to your print start macro or a heat soak macro, like this: PRINT_START (other variables) CHAMBER_MIN_TEMP=[chamber_minimal_temperature].\\n\\n",
+    (sidetext)     = "\\u2103",
+    (min_value)     = 0,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated float filament_change_length_nc = 122 [
+    (label)     = "Hotend change",
+    (tooltip)     = "When changing the hotend, it is recommended to extrude a certain length of filament from the original nozzle. This helps minimize nozzle oozing.",
+    (sidetext)     = "mm",
+    (min_value)     = 0,
+    (mode)     = MODE_ADVANCED,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "10"
+  ];
+
+
+  repeated string filament_dev_ams_drying_ams_limitations = 123 [
+    (label)     = "filament_dev_ams_drying_ams_limitations",
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = ""
+  ];
+
+
+  repeated float filament_dev_ams_drying_heat_distortion_temperature = 124 [
+    (label)     = "filament_dev_ams_drying_heat_distortion_temperature",
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated float filament_dev_ams_drying_temperature = 125 [
+    (label)     = "filament_dev_ams_drying_temperature",
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated float filament_dev_ams_drying_time = 126 [
+    (label)     = "filament_dev_ams_drying_time",
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated float filament_dev_chamber_drying_bed_temperature = 127 [
+    (label)     = "filament_dev_chamber_drying_bed_temperature",
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated float filament_dev_chamber_drying_time = 128 [
+    (label)     = "filament_dev_chamber_drying_time",
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated float filament_dev_drying_cooling_temperature = 129 [
+    (label)     = "filament_dev_drying_cooling_temperature",
+    (mode)     = MODE_SIMPLE,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated float filament_dev_drying_softening_temperature = 130 [
+    (label)     = "filament_dev_drying_softening_temperature",
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated int32 filament_extruder_compatibility = 131 [
+    (label)     = "Filament-extruder compatibility",
+    (tooltip)     = "A single 32-bit int encoding the compatibility level of a filament across all extruders (up to 10). Every 3 bits represent one extruder (bits [3*i, 3*i+2] for extruder i). 0: printable, 1: error, 2: critical warning, 3: warning, 4-7: reserved.",
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated int32 filament_flush_temp_fast = 132 [
+    (label)     = "Flush temperature",
+    (tooltip)     = "Flush temperature used in fast purge mode.",
+    (sidetext)     = "\\u2103",
+    (is_nullable)     = true,
+    (min_value)     = 0,
+    (mode)     = MODE_ADVANCED,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated int32 filament_map_2 = 133 [
+    (label)     = "Filament map plus for multi nozzle",
+    (tooltip)     = "Filament map to the index identified by extruder and nozzle_volume_type",
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "1"
+  ];
+
+
+  repeated float filament_max_temperature_drop_when_ec = 134 [
+    (label)     = "filament_max_temperature_drop_when_ec",
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated int32 filament_nozzle_map = 135 [
+    (label)     = "filament_nozzle_map",
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "1"
+  ];
+
+
+  repeated int32 filament_pre_cooling_temperature = 136 [
+    (label)     = "Extruder change",
+    (tooltip)     = "To prevent oozing, the nozzle temperature will be cooled during ramming. Therefore, the ramming time must be greater than the cooldown time. 0 means disabled.",
+    (sidetext)     = "\\u2103",
+    (is_nullable)     = true,
+    (min_value)     = 0,
+    (mode)     = MODE_ADVANCED,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated int32 filament_pre_cooling_temperature_nc = 137 [
+    (label)     = "Hotend change",
+    (tooltip)     = "To prevent oozing, the nozzle temperature will be cooled during ramming. Note: only a cooldown command and fan activation are triggered, reaching the target temperature is not guaranteed. 0 means disabled.",
+    (sidetext)     = "\\u2103",
+    (is_nullable)     = true,
+    (min_value)     = 0,
+    (mode)     = MODE_ADVANCED,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated float filament_preheat_temperature_delta = 138 [
+    (label)     = "Preheat temperature delta",
+    (tooltip)     = "Temperature delta applied during pre-heating before tool change.",
+    (sidetext)     = "\\u2103",
+    (is_nullable)     = true,
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated float filament_prime_volume = 139 [
+    (label)     = "Filament change",
+    (tooltip)     = "The volume of material required to prime the extruder on the tower, excluding a hotend change.",
+    (sidetext)     = "mm³",
+    (min_value)     = 1.0,
+    (mode)     = MODE_SIMPLE,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "45."
+  ];
+
+
+  repeated float filament_prime_volume_nc = 140 [
+    (label)     = "Hotend change",
+    (tooltip)     = "The volume of material required to prime the extruder for a hotend change on the tower.",
+    (sidetext)     = "mm³",
+    (min_value)     = 1.0,
+    (mode)     = MODE_SIMPLE,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "60."
+  ];
+
+
+  repeated float filament_ramming_travel_time = 141 [
+    (label)     = "Extruder change",
+    (tooltip)     = "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time.",
+    (sidetext)     = "s",
+    (is_nullable)     = true,
+    (min_value)     = 0,
+    (mode)     = MODE_ADVANCED,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated float filament_ramming_travel_time_nc = 142 [
+    (label)     = "Hotend change",
+    (tooltip)     = "To prevent oozing, the nozzle will perform a reverse travel movement for a certain period after the ramming is complete. The setting define the travel time.",
+    (sidetext)     = "s",
+    (is_nullable)     = true,
+    (min_value)     = 0,
+    (mode)     = MODE_ADVANCED,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  repeated float filament_ramming_volumetric_speed = 143 [
+    (label)     = "Extruder change",
+    (tooltip)     = "The maximum volumetric speed for ramming before extruder change, where -1 means using the maximum volumetric speed.",
+    (sidetext)     = "mm³/s",
+    (is_nullable)     = true,
+    (min_value)     = -1,
+    (max_value)     = 200,
+    (mode)     = MODE_ADVANCED,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "-1"
+  ];
+
+
+  repeated float filament_ramming_volumetric_speed_nc = 144 [
+    (label)     = "Hotend change",
+    (tooltip)     = "The maximum volumetric speed for ramming before a hotend change, where -1 means using the maximum volumetric speed.",
+    (sidetext)     = "mm³/s",
+    (is_nullable)     = true,
+    (min_value)     = -1,
+    (max_value)     = 200,
+    (mode)     = MODE_ADVANCED,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "-1"
+  ];
+
+
+  repeated float filament_retract_length_nc = 145 [
+    (label)     = "length when change hotend",
+    (tooltip)     = "When this retraction value is modified, it will be used as the amount of filament retracted inside the hotend before changing hotends.",
+    (sidetext)     = "mm",
+    (is_nullable)     = true,
+    (min_value)     = 0,
+    (max_value)     = 18,
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "10."
+  ];
+
+
+  repeated int32 filament_volume_map = 146 [
+    (label)     = "filament_volume_map",
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "(int)(NozzleVolumeType::nvtStandard)"
+  ];
+
+
+  float machine_bed_mass_Y = 147 [
+    (label)     = "machine_bed_mass_Y",
+    (tooltip)     = "The machine bed mass load of Y axis",
+    (category)     = "Machine limits",
+    (sidetext)     = "g",
+    (min_value)     = 0,
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  float machine_max_force_Y = 148 [
+    (label)     = "machine_max_force_Y",
+    (tooltip)     = "The allowed maximum output force of Y axis",
+    (category)     = "Machine limits",
+    (sidetext)     = "N",
+    (min_value)     = 0,
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+
+  float machine_max_printed_mass = 149 [
+    (label)     = "machine_max_printed_mass",
+    (tooltip)     = "The allowed max printed mass on a plate",
+    (category)     = "Machine limits",
+    (sidetext)     = "g",
+    (min_value)     = 0,
+    (mode)     = MODE_DEVELOP,
+    (preset)     = PRESET_FILAMENT,
+    (has_default)     = true,
+    (default_value) = "0"
+  ];
+
+}

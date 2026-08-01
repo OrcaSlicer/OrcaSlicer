@@ -101,329 +101,23 @@ bool Print::invalidate_state_by_config_options(const ConfigOptionResolver & /* n
     if (opt_keys.empty())
         return false;
 
-    // Cache the plenty of parameters, which influence the G-code generator only,
-    // or they are only notes not influencing the generated G-code.
-    static std::unordered_set<std::string> steps_gcode = {
-        //BBS
-        "additional_cooling_fan_speed",
-        "reduce_crossing_wall",
-        "max_travel_detour_distance",
-        "printable_area",
-        //BBS: add bed_exclude_area
-        "bed_exclude_area",
-        "thumbnail_size",
-        "before_layer_change_gcode",
-        "enable_pressure_advance",
-        "pressure_advance",
-        "enable_overhang_bridge_fan",
-        "overhang_fan_speed",
-        "overhang_fan_threshold",
-        "slow_down_for_layer_cooling",
-        "default_acceleration",
-        "deretraction_speed",
-        "close_fan_the_first_x_layers",
-        "machine_end_gcode",
-        "printing_by_object_gcode",
-        "filament_end_gcode",
-        "post_process",
-        // "plugins" is the derived manifest backing the plugin-picker options; on its own it only
-        // affects G-code export. The specific option (e.g. slicing_pipeline_plugin) drives any re-slice.
-        "plugins",
-        "extruder_clearance_height_to_rod",
-        "extruder_clearance_height_to_lid",
-        "extruder_clearance_radius",
-        "nozzle_height",
-        "extruder_colour",
-        "extruder_offset",
-        "filament_flow_ratio",
-        "reduce_fan_stop_start_freq",
-        "dont_slow_down_outer_wall",
-        "fan_cooling_layer_time",
-        "full_fan_speed_layer",
-        "initial_layer_fan_speed",
-        "fan_kickstart",
-        "part_cooling_fan_min_pwm",
-        "fan_speedup_overhangs",
-        "fan_speedup_time",
-        "filament_colour",
-        "default_filament_colour",
-        "filament_diameter",
-         "volumetric_speed_coefficients",
-        "filament_density",
-        "filament_cost",
-        "filament_notes",
-        "outer_wall_acceleration",
-        "inner_wall_acceleration",
-        "initial_layer_acceleration",
-        "top_surface_acceleration",
-        "bridge_acceleration",
-        "travel_acceleration",
-        "sparse_infill_acceleration",
-        "internal_solid_infill_acceleration",
-        // BBS
-        "supertack_plate_temp_initial_layer",
-        "cool_plate_temp_initial_layer",
-        "textured_cool_plate_temp_initial_layer",
-        "eng_plate_temp_initial_layer",
-        "hot_plate_temp_initial_layer",
-        "textured_plate_temp_initial_layer",
-        "gcode_add_line_number",
-        "layer_change_gcode",
-        "time_lapse_gcode",
-        "wrapping_detection_gcode",
-        "fan_min_speed",
-        "fan_max_speed",
-        "printable_height",
-        "slow_down_min_speed",
-        "max_volumetric_extrusion_rate_slope",
-        "max_volumetric_extrusion_rate_slope_segment_length",
-        "extrusion_rate_smoothing_external_perimeter_only",
-        "reduce_infill_retraction",
-        "filename_format",
-        "retraction_minimum_travel",
-        "retract_before_wipe",
-        // Orca:
-        "retract_after_wipe",
-        "retract_when_changing_layer",
-        "retraction_length",
-        "retract_length_toolchange",
-        "z_hop",
-        "travel_slope",
-        "retract_lift_above",
-        "retract_lift_below", 
-        "retract_lift_enforce",
-        "retract_restart_extra",
-        "retract_restart_extra_toolchange",
-        "retraction_speed",
-        "use_firmware_retraction",
-        "slow_down_layer_time",
-        "standby_temperature_delta",
-        "preheat_time",
-        "preheat_steps",
-        "machine_start_gcode",
-        "filament_start_gcode",
-        "change_filament_gcode",
-        "wipe",
-        // BBS
-        "wipe_distance",
-        "curr_bed_type",
-        "nozzle_volume",
-        "nozzle_hrc",
-        "required_nozzle_HRC",
-        "upward_compatible_machine",
-        "is_infill_first",
-        // Orca
-        "chamber_temperature",
-        "chamber_minimal_temperature",
-        "thumbnails",
-        "thumbnails_format",
-        "center_of_surface_pattern",
-        "separated_infills",
-        "seam_gap",
-        "role_based_wipe_speed",
-        "wipe_speed",
-        "use_relative_e_distances",
-        "accel_to_decel_enable",
-        "accel_to_decel_factor",
-        "wipe_on_loops",
-        "gcode_comments",
-        "gcode_label_objects", 
-        "exclude_object",
-        "support_material_interface_fan_speed",
-        "internal_bridge_fan_speed", // ORCA: Add support for separate internal bridge fan speed control
-        "ironing_fan_speed",
-        "single_extruder_multi_material_priming",
-        "activate_air_filtration",
-        "activate_air_filtration_during_print",
-        "activate_air_filtration_on_completion",
-        "during_print_exhaust_fan_speed",
-        "complete_print_exhaust_fan_speed",
-        "activate_chamber_temp_control",
-        "manual_filament_change",
-        "disable_m73",
-        "use_firmware_retraction",
-        "enable_long_retraction_when_cut",
-        "long_retractions_when_cut",
-        "retraction_distances_when_cut",
-        "filament_long_retractions_when_cut",
-        "filament_retraction_distances_when_cut",
-        "grab_length",
-        "bed_temperature_formula",
-        "filament_notes",
-        "process_notes",
-        "printer_notes",
-        "use_3mf"
-    };
+#include "../slic3r/GUI/generated/Invalidation_generated.cpp"
 
-    static std::unordered_set<std::string> steps_ignore;
-
-    std::vector<PrintStep> steps;
+    std::vector<PrintStep>       steps;
     std::vector<PrintObjectStep> osteps;
     bool invalidated = false;
 
     for (const t_config_option_key &opt_key : opt_keys) {
-        if (steps_gcode.find(opt_key) != steps_gcode.end()) {
-            // These options only affect G-code export or they are just notes without influence on the generated G-code,
-            // so there is nothing to invalidate.
-            steps.emplace_back(psGCodeExport);
-        } else if (steps_ignore.find(opt_key) != steps_ignore.end()) {
-            // These steps have no influence on the G-code whatsoever. Just ignore them.
-        } else if (
-               opt_key == "skirt_type"
-            || opt_key == "skirt_loops"
-            || opt_key == "skirt_speed"
-            || opt_key == "skirt_height"
-            || opt_key == "min_skirt_length"
-            || opt_key == "single_loop_draft_shield"
-            || opt_key == "draft_shield"
-            || opt_key == "skirt_distance"
-            || opt_key == "skirt_start_angle"
-            || opt_key == "ooze_prevention"
-            || opt_key == "wipe_tower_x"
-            || opt_key == "wipe_tower_y"
-            || opt_key == "wipe_tower_rotation_angle") {
-            steps.emplace_back(psSkirtBrim);
-        } else if (
-               opt_key == "slicing_pipeline_plugin"
-            || opt_key == "print_plugin_config_overrides"
-            || opt_key == "initial_layer_print_height"
-            || opt_key == "nozzle_diameter"
-            || opt_key == "filament_shrink"
-            || opt_key == "filament_shrinkage_compensation_z"
-            || opt_key == "resolution"
-            || opt_key == "precise_z_height"
-            // Spiral Vase forces different kind of slicing than the normal model:
-            // In Spiral Vase mode, holes are closed and only the largest area contour is kept at each layer.
-            // Therefore toggling the Spiral Vase on / off requires complete reslicing.
-            || opt_key == "spiral_mode") {
-            osteps.emplace_back(posSlice);
-        } else if (
-               opt_key == "print_sequence"
-            || opt_key == "filament_type"
-            || opt_key == "chamber_temperature"
-            || opt_key == "nozzle_temperature_initial_layer"
-            || opt_key == "filament_minimal_purge_on_wipe_tower"
-            || opt_key == "filament_max_volumetric_speed"
-            || opt_key == "filament_adaptive_volumetric_speed"
-            || opt_key == "filament_loading_speed"
-            || opt_key == "filament_loading_speed_start"
-            || opt_key == "filament_unloading_speed"
-            || opt_key == "filament_unloading_speed_start"
-            || opt_key == "filament_toolchange_delay"
-            || opt_key == "filament_cooling_moves"
-            || opt_key == "filament_stamping_loading_speed"
-            || opt_key == "filament_stamping_distance"
-            || opt_key == "filament_cooling_initial_speed"
-            || opt_key == "filament_cooling_final_speed"
-            || opt_key == "filament_ramming_parameters"
-            || opt_key == "filament_multitool_ramming"
-            || opt_key == "filament_multitool_ramming_volume"
-            || opt_key == "filament_multitool_ramming_flow"
-            || opt_key == "filament_max_volumetric_speed"
-            || opt_key == "gcode_flavor"
-            || opt_key == "single_extruder_multi_material"
-            || opt_key == "nozzle_temperature"
-            // BBS
-            || opt_key == "supertack_plate_temp"
-            || opt_key == "cool_plate_temp"
-            || opt_key == "textured_cool_plate_temp"
-            || opt_key == "eng_plate_temp"
-            || opt_key == "hot_plate_temp"
-            || opt_key == "textured_plate_temp"
-            || opt_key == "enable_prime_tower"
-            || opt_key == "enable_wrapping_detection"
-            || opt_key == "prime_tower_enable_framework"
-            || opt_key == "prime_tower_width"
-            || opt_key == "prime_tower_brim_width"
-            || opt_key == "wipe_tower_type"
-            || opt_key == "prime_tower_skip_points"
-            || opt_key == "prime_tower_flat_ironing"
-            || opt_key == "enable_tower_interface_features"
-            || opt_key == "first_layer_print_sequence"
-            || opt_key == "other_layers_print_sequence"
-            || opt_key == "other_layers_print_sequence_nums" 
-            || opt_key == "toolchange_ordering"
-            || opt_key == "extruder_ams_count"
-            || opt_key == "extruder_nozzle_stats"
-            || opt_key == "filament_map_mode"
-            || opt_key == "filament_map"
-            || opt_key == "filament_nozzle_map"
-            || opt_key == "filament_volume_map"
-            || opt_key == "filament_adhesiveness_category"
-            || opt_key == "filament_tower_interface_pre_extrusion_dist"
-            || opt_key == "filament_tower_interface_pre_extrusion_length"
-            || opt_key == "filament_tower_ironing_area"
-            || opt_key == "filament_tower_interface_purge_volume"
-            || opt_key == "filament_tower_interface_print_temp"
-            || opt_key == "wipe_tower_bridging"
-            || opt_key == "wipe_tower_extra_flow"
-            || opt_key == "wipe_tower_no_sparse_layers"
-            || opt_key == "flush_volumes_matrix"
-            || opt_key == "prime_volume"
-            || opt_key == "flush_into_infill"
-            || opt_key == "flush_into_support"
-            || opt_key == "initial_layer_infill_speed"
-            || opt_key == "travel_speed"
-            || opt_key == "travel_speed_z"
-            || opt_key == "initial_layer_speed"
-            || opt_key == "initial_layer_travel_speed"
-            || opt_key == "initial_layer_travel_acceleration"
-            || opt_key == "initial_layer_travel_jerk"
-            || opt_key == "slow_down_layers"
-            || opt_key == "idle_temperature"
-            || opt_key == "wipe_tower_cone_angle"
-            || opt_key == "wipe_tower_extra_spacing"
-            || opt_key == "wipe_tower_max_purge_speed"
-            || opt_key == "wipe_tower_wall_type"
-            || opt_key == "wipe_tower_extra_rib_length"
-            || opt_key == "wipe_tower_rib_width"
-            || opt_key == "wipe_tower_fillet_wall"
-            || opt_key == "wipe_tower_filament"
-            || opt_key == "wiping_volumes_extruders"
-            || opt_key == "enable_filament_ramming"
-            || opt_key == "tool_change_on_wipe_tower"
-            || opt_key == "purge_in_prime_tower"
-            || opt_key == "z_offset"
-            || opt_key == "support_multi_bed_types"
-            ) {
-            steps.emplace_back(psWipeTower);
-            steps.emplace_back(psSkirtBrim);
-        } else if (opt_key == "filament_soluble"
-                || opt_key == "filament_is_support"
-                || opt_key == "filament_printable"
-                || opt_key == "filament_change_length"
-                || opt_key == "independent_support_layer_height") {
-            steps.emplace_back(psWipeTower);
-            // Soluble support interface / non-soluble base interface produces non-soluble interface layers below soluble interface layers.
-            // Thus switching between soluble / non-soluble interface layer material may require recalculation of supports.
-            //FIXME Killing supports on any change of "filament_soluble" is rough. We should check for each object whether that is necessary.
-            osteps.emplace_back(posSupportMaterial);
-            osteps.emplace_back(posSimplifySupportPath);
-        } else if (
-               opt_key == "initial_layer_line_width"
-            || opt_key == "min_layer_height"
-            || opt_key == "max_layer_height"
-            //|| opt_key == "resolution"
-            //BBS: when enable arc fitting, we must re-generate perimeter
-            || opt_key == "enable_arc_fitting"
-            || opt_key == "print_order"
-            || opt_key == "wall_sequence") {
-            osteps.emplace_back(posPerimeters);
-            osteps.emplace_back(posEstimateCurledExtrusions);
-            osteps.emplace_back(posInfill);
-            osteps.emplace_back(posSupportMaterial);
-			osteps.emplace_back(posSimplifyPath);
-            osteps.emplace_back(posSimplifyInfill);
-            osteps.emplace_back(posSimplifySupportPath);
-            steps.emplace_back(psSkirtBrim);
-        }
-        else if (opt_key == "z_hop_types") {
-            osteps.emplace_back(posDetectOverhangsForLift);
+        auto it_ps = s_print_steps_map.find(opt_key);
+        auto it_os = s_object_steps_map.find(opt_key);
+        if (it_ps != s_print_steps_map.end() || it_os != s_object_steps_map.end()) {
+            if (it_ps != s_print_steps_map.end())
+                steps.insert(steps.end(), it_ps->second.begin(), it_ps->second.end());
+            if (it_os != s_object_steps_map.end())
+                osteps.insert(osteps.end(), it_os->second.begin(), it_os->second.end());
         } else {
-            // for legacy, if we can't handle this option let's invalidate all steps
-            //FIXME invalidate all steps of all objects as well?
+            // Unknown option вЂ” conservatively invalidate all steps
             invalidated |= this->invalidate_all_steps();
-            // Continue with the other opt_keys to possibly invalidate any object specific steps.
         }
     }
 
@@ -756,7 +450,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
 #if 0 //do not sort anymore, use the order in object list
     auto bed_points = get_bed_shape(print_config);
     float bed_width = bed_points[1].x() - bed_points[0].x();
-    // 如果扩大以后的多边形的距离小于这个值，就需要严格保证从左到右的打印顺序，否则会撞工具头右侧
+    // е¦‚жћњж‰©е¤§д»ҐеђЋзљ„е¤љиѕ№еЅўзљ„и·ќз¦»е°ЏдєЋиї™дёЄеЂјпјЊе°±йњЂи¦ЃдёҐж јдїќиЇЃд»Ће·¦е€°еЏізљ„ж‰“еЌ°йЎєеєЏпјЊеђ¦е€™дјљж’ће·Ґе…·е¤ґеЏідѕ§
     float unsafe_dist = scale_(print_config.extruder_clearance_max_radius.value - print_config.extruder_clearance_radius.value);
     struct VecHash
     {
@@ -790,7 +484,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                 auto inter_max = std::min(ly2, ry2);
                 auto inter_y   = inter_max - inter_min;
 
-                // 如果y方向的重合超过轮廓的膨胀量，说明两个物体在一行，应该先打左边的物体，即先比较二者的x坐标。
+                // е¦‚жћњyж–№еђ‘зљ„й‡Ќеђ€и¶…иї‡иЅ®е»“зљ„и†ЁиѓЂй‡ЏпјЊиЇґжЋдё¤дёЄз‰©дЅ“ењЁдёЂиЎЊпјЊеє”иЇҐе…€ж‰“е·¦иѕ№зљ„з‰©дЅ“пјЊеЌіе…€жЇ”иѕѓдєЊиЂ…зљ„xеќђж ‡гЂ‚
                 // If the overlap in the y direction exceeds the expansion of the contour, it means that the two objects are in a row and the object on the left should be hit first, that is, the x coordinates of the two should be compared first.
                 if (inter_y > scale_(0.5 * print.config().extruder_clearance_radius.value)) {
                     if (std::max(rx1 - lx2, lx1 - rx2) < unsafe_dist) {
@@ -806,13 +500,13 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
                     }
                 }
                 if (l.height > hc1 && r.height < hc1) {
-                    // 当前物体超过了顶盖高度，必须后打
+                    // еЅ“е‰Ќз‰©дЅ“и¶…иї‡дє†йЎ¶з›–й«еє¦пјЊеї…йЎ»еђЋж‰“
                     left_right_pair.insert({j, i});
                     BOOST_LOG_TRIVIAL(debug) << "height>hc1, print_instance " << r.print_instance->model_instance->get_object()->name << "(" << r.arrange_score << ")"
                                              << " -> " << l.print_instance->model_instance->get_object()->name << "(" << l.arrange_score << ")";
                 }
                 else if (l.height > hc2 && l.height > r.height && l.arrange_score<r.arrange_score) {
-                    // 如果当前物体的高度超过滑杆，且比r高，就给它加一点代价，尽量让高的物体后打（只有物体高度超过滑杆时才有必要按高度来）
+                    // е¦‚жћњеЅ“е‰Ќз‰©дЅ“зљ„й«еє¦и¶…иї‡ж»‘жќ†пјЊдё”жЇ”rй«пјЊе°±з»™е®ѓеЉ дёЂз‚№д»Јд»·пјЊе°Ѕй‡Џи®©й«зљ„з‰©дЅ“еђЋж‰“пј€еЏЄжњ‰з‰©дЅ“й«еє¦и¶…иї‡ж»‘жќ†ж—¶ж‰Ќжњ‰еї…и¦ЃжЊ‰й«еє¦жќҐпј‰
                     if (l.arrange_score < r.arrange_score)
                         l.arrange_score = r.arrange_score + 10;
                     BOOST_LOG_TRIVIAL(debug) << "height>hc2, print_instance " << inst.print_instance->model_instance->get_object()->name
@@ -822,8 +516,8 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
             }
         }
     }
-    // 多做几次代价传播，因为前一次有些值没有更新。
-    // TODO 更好的办法是建立一颗树，一步到位。不过我暂时没精力搞，先就这样吧
+    // е¤љеЃље‡ ж¬Ўд»Јд»·дј ж’­пјЊе› дёєе‰ЌдёЂж¬Ўжњ‰дє›еЂјжІЎжњ‰ж›ґж–°гЂ‚
+    // TODO ж›ґеҐЅзљ„еЉћжі•жЇе»єз«‹дёЂйў—ж ‘пјЊдёЂж­Ґе€°дЅЌгЂ‚дёЌиї‡ж€‘жљ‚ж—¶жІЎзІѕеЉ›жђћпјЊе…€е°±иї™ж ·еђ§
     for (int k=0;k<5;k++)
     for (auto p : left_right_pair) {
         auto &l = print_instance_with_bounding_box[p(0)];
@@ -891,7 +585,7 @@ StringObjectException Print::sequential_print_clearance_valid(const Print &print
         for (int k = 0; k < print_instance_count; k++)
         {
             auto inst = print_instance_with_bounding_box[k].print_instance;
-            // 只需要考虑喷嘴到滑杆的偏移量，这个比整个工具头的碰撞半径要小得多
+            // еЏЄйњЂи¦ЃиЂѓи™‘е–·еґе€°ж»‘жќ†зљ„еЃЏз§»й‡ЏпјЊиї™дёЄжЇ”ж•ґдёЄе·Ґе…·е¤ґзљ„зў°ж’ћеЌЉеѕ„и¦Ѓе°Џеѕ—е¤љ
             // Only the offset from the nozzle to the slide bar needs to be considered, which is much smaller than the collision radius of the entire tool head.
             auto bbox = print_instance_with_bounding_box[k].bounding_box.inflated(-scale_(0.5 * print.config().extruder_clearance_radius.value + object_skirt_offset));
             auto iy1 = bbox.min.y();

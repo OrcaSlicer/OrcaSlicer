@@ -590,6 +590,7 @@ private:
 
     void            add_filament_overrides_page();
     void            update_filament_overrides_page(const DynamicPrintConfig* printers_config);
+    void            build_extra_layout(); // TabLayoutExtra.cpp: toolchange/ramming/dependencies/notes
 	void 			update_volumetric_flow_preset_hints();
 
     std::map<std::string, ::CheckBox*> m_overrides_options;
@@ -663,6 +664,11 @@ public:
 	void		extruders_count_changed(size_t extruders_count);
 	PageShp		build_kinematics_page();
 	void		build_unregular_pages(bool from_initial_build = false);
+    void        build_fff_extra_layout(); // TabLayoutExtra.cpp: Basic info page with bed-shape widget
+    // Hook methods called from TabPrinter_build_basic_info_layout (TabLayout_generated.cpp)
+    void        layout_hook_printable_space(ConfigOptionsGroup* optgroup); // bed shape widget
+    void        layout_hook_advanced(ConfigOptionsGroup* optgroup);        // thumbnail m_on_change
+    void        layout_hook_cooling_fan(ConfigOptionsGroup* optgroup);     // multi-option line
 	void		on_preset_loaded() override;
 	void		init_options_list() override;
 	void		msw_rescale() override;

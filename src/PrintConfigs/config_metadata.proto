@@ -1,0 +1,174 @@
+// OrcaSlicer Print Config - Custom Field Options
+// This file defines the metadata annotations used on all config setting fields.
+// These annotations are read by the codegen tool to produce:
+//   - PrintConfigDef_generated.cpp (init_fff_params replacement)
+//   - PrintConfig_generated.hpp (struct definitions)
+//   - Preset_options_generated.cpp (preset option lists)
+//   - Invalidation_generated.cpp (invalidation map)
+//   - OptionKeys_generated.cpp (extruder/filament/variant key lists)
+
+syntax = "proto3";
+
+import "google/protobuf/descriptor.proto";
+
+package orca;
+
+// --- Enums for annotations ---
+
+enum ConfigMode {
+  MODE_SIMPLE   = 0;
+  MODE_ADVANCED = 1;
+  MODE_DEVELOP  = 2;
+  MODE_EXPERT   = 3;
+}
+
+enum PresetType {
+  PRESET_PRINT    = 0;
+  PRESET_FILAMENT = 1;
+  PRESET_PRINTER  = 2;
+}
+
+enum InvalidationStep {
+  STEP_GCODE_EXPORT = 0;
+  STEP_SKIRT_BRIM   = 1;
+  STEP_WIPE_TOWER   = 2;
+  STEP_SLICE        = 3;
+  STEP_PERIMETERS   = 4;
+  STEP_INFILL       = 5;
+  STEP_SUPPORT      = 6;
+  STEP_NONE         = 7;
+}
+
+enum OptionListMembership {
+  LIST_NONE                     = 0;
+  LIST_EXTRUDER_OPTION_KEYS     = 1;
+  LIST_FILAMENT_OPTION_KEYS     = 2;
+  LIST_VARIANT_OPTION_KEYS      = 3;
+}
+
+// C++ co_type override values, used when the proto wire type (float/int32) is
+// ambiguous about the real ConfigOption class. Each value name is the coXXX
+// identifier the codegen emits, and must have a matching entry in
+// hint_class_map (config_codegen.py). Making this an enum lets protoc reject a
+// typo'd hint (e.g. coFloar) at compile time instead of silently mis-typing a
+// setting. To add a new override: add a value here AND its hint_class_map entry.
+enum CoTypeHint {
+  CO_TYPE_HINT_UNSET = 0;
+  coPercent          = 1;
+  coPercents         = 2;
+  coEnum             = 3;
+  coEnums            = 4;
+}
+
+// Mirrors ConfigOptionDef::GUIType in src/libslic3r/Config.hpp. The codegen
+// emits ConfigOptionDef::GUIType::<name>, so each value name must match a C++
+// enumerator there. As an enum, a typo'd gui_type fails at protoc time.
+enum GuiType {
+  GUI_TYPE_UNSET = 0;
+  i_enum_open    = 1;
+  f_enum_open    = 2;
+  color          = 3;
+  select_open    = 4;
+  slider         = 5;
+  legend         = 6;
+  one_string     = 7;
+  plugin_picker  = 8;
+}
+
+// --- Custom field options ---
+
+extend google.protobuf.FieldOptions {
+  // Display metadata
+  string  label         = 50001;
+  string  full_label    = 50002;
+  string  tooltip       = 50003;
+  string  category      = 50004;
+  string  sidetext      = 50005;
+
+  // Numeric constraints
+  double  min_value     = 50006;
+  double  max_value     = 50007;
+  double  max_literal   = 50008;
+
+  // UI behavior
+  ConfigMode mode       = 50009;
+  string  ratio_over    = 50010;
+  bool    multiline     = 50013;
+  bool    full_width    = 50014;
+  int32   height        = 50015;
+
+  // Classification
+  PresetType preset                       = 50011;
+  repeated InvalidationStep invalidates   = 50012;
+  repeated OptionListMembership list_membership = 50018;
+
+  // Migration
+  string  legacy_name   = 50016;
+
+  // Nullable support (for ConfigOptionFloatsNullable, etc.)
+  bool    is_nullable   = 50017;
+
+  // GUI type override (e.g. i_enum_open, color, f_enum_open)
+  GuiType gui_type      = 50019;
+  string  gui_flags     = 50020;
+
+  // Enum metadata (key map reference for C++ enum binding)
+  string  enum_keys_map_ref = 50021;
+
+  // Whether this option should not appear in CLI
+  bool    no_cli        = 50022;
+
+  // ConfigOptionDef::readonly
+  bool    readonly      = 50023;
+
+  // Override the auto-detected co_type (e.g. coPercent, coEnum)
+  // Used when proto type (float, int32) is ambiguous
+  CoTypeHint co_type_hint = 50024;
+
+  // Default value — constructor args only (e.g. "1.0", "5000.0, 5000.0")
+  // Codegen reconstructs full C++ from co_type + this value
+  string  default_value     = 50025;
+
+  // Whether a default value is present (needed because proto3 can't
+  // distinguish "set to empty string" from "not set")
+  bool    has_default        = 50028;
+
+  // Enum values (string keys for coEnum options)
+  repeated string enum_value_entries  = 50026;
+
+  // Enum labels (display names for enum values)
+  repeated string enum_label_entries  = 50027;
+
+  // UI layout: where this option appears in Tab.cpp
+  // tab_type   = "Print" | "Filament" | "Printer"
+  // tab_page   = page title as shown in the UI (e.g. "Quality")
+  // tab_optgroup = optgroup title within that page (e.g. "Layer height")
+  string  tab_type     = 50029;
+  string  tab_page     = 50030;
+  string  tab_optgroup = 50031;
+}
+
+// --- Message-level options ---
+
+extend google.protobuf.MessageOptions {
+  // Virtual keys: preset option keys that belong to this preset type but have
+  // no ConfigOptionDef entry (printer metadata, host settings, compatibility
+  // flags, filament retraction overrides, cross-preset keys, etc.).
+  // The codegen emits these directly into s_Preset_*_options alongside the
+  // field-derived keys, so no hand-written extender is needed in Preset.cpp.
+  repeated string virtual_preset_keys = 60001;
+}
+
+// --- Wrapper messages for complex types ---
+
+// Represents ConfigOptionFloatOrPercent
+message FloatOrPercent {
+  double value   = 1;
+  bool   percent = 2;
+}
+
+// Represents ConfigOptionPoint (Vec2d)
+message Point2D {
+  double x = 1;
+  double y = 2;
+}
