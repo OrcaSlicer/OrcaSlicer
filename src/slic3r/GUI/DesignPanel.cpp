@@ -5155,6 +5155,28 @@ wxPoint DesignPanel::offer_anchor() const
     return wxPoint(r.x + r.width / 2, r.y + r.height / 2);
 }
 
+// Append a verb row carrying the same glyph its toolbar button shows. The icon name comes from
+// the atlas, so a verb and its icon are declared in one place; a null or unknown name leaves
+// the row text-only rather than drawing a blank square.
+//
+// THE BITMAP MUST BE SET BEFORE Append(). wxGTK builds the GtkMenuItem inside Append and reads
+// GetBitmap() right there (gtk/menu.cpp) — it makes a gtk_image_menu_item only if a bitmap is
+// already present, and a plain one otherwise. Setting it on the item Append() returns is too
+// late and silently does nothing, which is exactly how the first attempt failed. This is why
+// Orca's own append_menu_item() constructs, sets, then appends.
+wxMenuItem* DesignPanel::append_offer_item(wxMenu* menu, int id, const wxString& text,
+                                           const OfferVerb& v)
+{
+    auto* item = new wxMenuItem(menu, id, text);
+    if (v.icon != nullptr && *v.icon != '\0') {
+        const wxBitmap bmp = create_scaled_bitmap(v.icon, this, 16);
+        if (bmp.IsOk())
+            item->SetBitmap(bmp);
+    }
+    menu->Append(item);
+    return item;
+}
+
 void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
 {
     const int      kind = offer_selection_kind();
@@ -5225,7 +5247,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
             menu.Append(base + int(bound.size()), s)->Enable(false);
             bound.push_back(nullptr);
         } else if (live.size() == 1) {
-            menu.Append(base + int(bound.size()), label(*live[0]))
+            append_offer_item(&menu, base + int(bound.size()), label(*live[0]), *live[0])
                 ->Enable(live[0]->action != nullptr);
             bound.push_back(live[0]);
         } else {
@@ -5249,7 +5271,7 @@ void DesignPanel::show_offer_menu(const wxPoint& screen_pos)
                         target = it->second;
                     }
                 }
-                target->Append(base + int(bound.size()), label(*v))
+                append_offer_item(target, base + int(bound.size()), label(*v), *v)
                     ->Enable(v->action != nullptr);
                 bound.push_back(v);
             }

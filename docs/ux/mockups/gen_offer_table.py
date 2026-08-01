@@ -92,6 +92,7 @@ def main():
         "    // address fixed (L4.1) while the variants hang one level below it, mirroring the toolbar's",
         "    // grouping instead of flattening 19 create tools into one wall.",
         "    const char* family;",
+        "    const char* icon;         // resources/images name, or nullptr — the offer draws it beside the row",
         "};",
         "",
         "// Row labels, in ratified order.",
@@ -111,13 +112,13 @@ def main():
             mask |= 1 << sels.index(a)
         n = v.get("needs") or {}
         lines.append(
-            "    {%s, %s, %d, %s, %s, %s, 0x%08xu, %d, %d, %s, %s, %s}," % (
+            "    {%s, %s, %d, %s, %s, %s, 0x%08xu, %d, %d, %s, %s, %s, %s}," % (
                 cstr(v["id"]), cstr(v["name"]), slots.index(v["slot"]),
                 cstr(v.get("key")), cstr(v.get("action")), cstr(v.get("refusal")),
                 mask, n.get("bodies", 0), n.get("sketches", 0),
                 "true" if n.get("sheet") else "false",
                 "true" if v.get("mode") == "sketch" else "false",
-                cstr(v.get("family"))))
+                cstr(v.get("family")), cstr(v.get("icon"))))
     lines += [
         "};",
         f"static const int kOfferVerbCount = {len(A['verbs'])};",

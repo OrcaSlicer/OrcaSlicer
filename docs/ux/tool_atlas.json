@@ -225,7 +225,8 @@
       "needs": {},
       "refusal": "Click a face or a reference plane in the viewport, then a sketch tool",
       "gui": true,
-      "action": "key:S+S"
+      "action": "key:S+S",
+      "icon": "design_sketch"
     },
     {
       "id": "extrude",
@@ -241,7 +242,8 @@
       "needs": {},
       "refusal": "Create a sketch, or pick a solid face, first",
       "gui": true,
-      "action": "key:S+E"
+      "action": "key:S+E",
+      "icon": "design_extrude"
     },
     {
       "id": "revolve",
@@ -256,7 +258,8 @@
       "needs": {},
       "refusal": "Create a sketch profile to revolve first",
       "gui": true,
-      "action": "key:S+R"
+      "action": "key:S+R",
+      "icon": "design_revolve"
     },
     {
       "id": "sweep",
@@ -273,7 +276,8 @@
       },
       "refusal": "Create a profile sketch to sweep first",
       "gui": true,
-      "action": "key:S+W"
+      "action": "key:S+W",
+      "icon": "design_sweep"
     },
     {
       "id": "loft",
@@ -290,7 +294,8 @@
       },
       "refusal": "Create at least two profile sketches to loft",
       "gui": true,
-      "action": "key:S+L"
+      "action": "key:S+L",
+      "icon": "design_loft"
     },
     {
       "id": "thicken",
@@ -308,7 +313,8 @@
       },
       "refusal": "Thicken needs a solid body — add or import one first",
       "gui": true,
-      "action": "fly:material#4"
+      "action": "fly:material#4",
+      "icon": "design_thicken"
     },
     {
       "id": "rib",
@@ -325,7 +331,8 @@
       },
       "refusal": "Rib needs a solid body — add or import one first",
       "gui": true,
-      "action": "fly:material#5"
+      "action": "fly:material#5",
+      "icon": "design_rib"
     },
     {
       "id": "boolean",
@@ -342,7 +349,8 @@
       },
       "refusal": "Boolean needs two bodies — create or import a second solid",
       "gui": true,
-      "action": "btn:bool#0"
+      "action": "btn:bool#0",
+      "icon": "design_boolean"
     },
     {
       "id": "bool_subtract",
@@ -360,7 +368,8 @@
       "refusal": "Boolean needs two bodies — create or import a second solid",
       "gui": true,
       "action": "btn:bool#1",
-      "mode": null
+      "mode": null,
+      "icon": "design_boolean"
     },
     {
       "id": "bool_intersect",
@@ -378,7 +387,8 @@
       "refusal": "Boolean needs two bodies — create or import a second solid",
       "gui": true,
       "action": "btn:bool#2",
-      "mode": null
+      "mode": null,
+      "icon": "design_boolean"
     },
     {
       "id": "surf_extrude",
@@ -393,7 +403,8 @@
       "needs": {},
       "refusal": "Create a sketch first",
       "gui": true,
-      "action": "key:S+G"
+      "action": "key:S+G",
+      "icon": "design_extrude"
     },
     {
       "id": "surf_revolve",
@@ -408,7 +419,8 @@
       "needs": {},
       "refusal": "Create a sketch profile to revolve first",
       "gui": true,
-      "action": "fly:surface#1"
+      "action": "fly:surface#1",
+      "icon": "design_revolve"
     },
     {
       "id": "surf_loft",
@@ -425,7 +437,8 @@
       },
       "refusal": "Create at least two profile sketches to loft",
       "gui": true,
-      "action": "fly:surface#2"
+      "action": "fly:surface#2",
+      "icon": "design_loft"
     },
     {
       "id": "surf_fill",
@@ -440,7 +453,8 @@
       "needs": {},
       "refusal": "Create a closed sketch first",
       "gui": true,
-      "action": "fly:surface#3"
+      "action": "fly:surface#3",
+      "icon": "design_surface"
     },
     {
       "id": "thicken_surf",
@@ -457,7 +471,8 @@
       },
       "refusal": "target is not a sheet body",
       "gui": true,
-      "action": "fly:surface#5"
+      "action": "fly:surface#5",
+      "icon": "design_thicken"
     },
     {
       "id": "hole",
@@ -475,7 +490,8 @@
       },
       "refusal": "Pick a face or a plane to drill into",
       "gui": true,
-      "action": "key:S+H"
+      "action": "key:S+H",
+      "icon": "design_hole"
     },
     {
       "id": "thread",
@@ -493,7 +509,8 @@
       },
       "refusal": "Pick a cylindrical surface (bore / outer) or a circular edge for a thread",
       "gui": true,
-      "action": "key:S+T"
+      "action": "key:S+T",
+      "icon": "design_thread"
     },
     {
       "id": "shell",
@@ -511,7 +528,8 @@
       },
       "refusal": "Shell needs a solid body",
       "gui": true,
-      "action": "key:S+K"
+      "action": "key:S+K",
+      "icon": "design_shell"
     },
     {
       "id": "cut",
@@ -529,7 +547,8 @@
       },
       "refusal": "Create a solid body to cut first",
       "gui": true,
-      "action": "key:S+X"
+      "action": "key:S+X",
+      "icon": "design_cut"
     },
     {
       "id": "split",
@@ -546,7 +565,8 @@
       },
       "refusal": "Split needs a solid body",
       "gui": false,
-      "action": null
+      "action": null,
+      "icon": null
     },
     {
       "id": "fillet",
@@ -566,7 +586,8 @@
       },
       "refusal": "Pick an edge to round",
       "gui": true,
-      "action": "btn:dress#0"
+      "action": "btn:dress#0",
+      "icon": "design_filletedge"
     },
     {
       "id": "chamfer",
@@ -586,7 +607,8 @@
       },
       "refusal": "Pick an edge to bevel",
       "gui": true,
-      "action": "btn:dress#1"
+      "action": "btn:dress#1",
+      "icon": "design_chamfer"
     },
     {
       "id": "draft",
@@ -604,7 +626,8 @@
       },
       "refusal": "Pick a face to taper",
       "gui": true,
-      "action": "key:S+D"
+      "action": "key:S+D",
+      "icon": "design_draft"
     },
     {
       "id": "surf_offset",
@@ -621,7 +644,8 @@
       },
       "refusal": "target is not a sheet body",
       "gui": true,
-      "action": "fly:surface#4"
+      "action": "fly:surface#4",
+      "icon": "design_offset"
     },
     {
       "id": "pattern",
@@ -641,7 +665,8 @@
       },
       "refusal": "Create a solid body to pattern first",
       "gui": true,
-      "action": "btn:pat#0"
+      "action": "btn:pat#0",
+      "icon": "design_array"
     },
     {
       "id": "pattern_circular",
@@ -662,7 +687,8 @@
       "refusal": "Create a solid body to pattern first",
       "gui": true,
       "action": "btn:pat#1",
-      "mode": null
+      "mode": null,
+      "icon": "design_polararray"
     },
     {
       "id": "mirror",
@@ -680,7 +706,8 @@
       },
       "refusal": "Mirror needs a body — add or import one first",
       "gui": true,
-      "action": "key:S+Z"
+      "action": "key:S+Z",
+      "icon": "design_mirror"
     },
     {
       "id": "pat_curve",
@@ -698,7 +725,8 @@
       },
       "refusal": "Pattern on curve needs a body and a curve",
       "gui": false,
-      "action": null
+      "action": null,
+      "icon": null
     },
     {
       "id": "transform",
@@ -717,7 +745,8 @@
       },
       "refusal": "Transform needs a body — add or import one first",
       "gui": true,
-      "action": "key:S+Y"
+      "action": "key:S+Y",
+      "icon": "design_move"
     },
     {
       "id": "mate",
@@ -736,7 +765,8 @@
       },
       "refusal": "A mate needs two coordinate systems",
       "gui": true,
-      "action": "fly:placement#2"
+      "action": "fly:placement#2",
+      "icon": "design_c_coincident"
     },
     {
       "id": "align",
@@ -753,7 +783,8 @@
       },
       "refusal": "Align needs a body",
       "gui": false,
-      "action": null
+      "action": null,
+      "icon": null
     },
     {
       "id": "plane",
@@ -772,7 +803,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:S+P"
+      "action": "key:S+P",
+      "icon": "design_plane"
     },
     {
       "id": "axis",
@@ -791,7 +823,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:S+A"
+      "action": "key:S+A",
+      "icon": "design_line"
     },
     {
       "id": "coordsys_v",
@@ -808,7 +841,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:S+C"
+      "action": "key:S+C",
+      "icon": "design_point"
     },
     {
       "id": "helix",
@@ -825,7 +859,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "fly:plane#3"
+      "action": "fly:plane#3",
+      "icon": "design_thread"
     },
     {
       "id": "project",
@@ -844,7 +879,8 @@
       },
       "refusal": "Project needs a body — add or import one first",
       "gui": true,
-      "action": "fly:plane#4"
+      "action": "fly:plane#4",
+      "icon": "design_sketch"
     },
     {
       "id": "measure",
@@ -870,7 +906,8 @@
       "needs": {},
       "refusal": null,
       "gui": false,
-      "action": null
+      "action": null,
+      "icon": null
     },
     {
       "id": "mass_props",
@@ -887,7 +924,8 @@
       },
       "refusal": null,
       "gui": true,
-      "action": "btn:mass"
+      "action": "btn:mass",
+      "icon": "info"
     },
     {
       "id": "interference",
@@ -904,7 +942,8 @@
       },
       "refusal": null,
       "gui": false,
-      "action": null
+      "action": null,
+      "icon": null
     },
     {
       "id": "edit_feature",
@@ -928,7 +967,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "btn:edit"
+      "action": "btn:edit",
+      "icon": "design_edit"
     },
     {
       "id": "delete_face",
@@ -947,7 +987,8 @@
       },
       "refusal": "Delete Face needs a body — add or import one first",
       "gui": true,
-      "action": "fly:dressup#3"
+      "action": "fly:dressup#3",
+      "icon": "design_delete"
     },
     {
       "id": "colour",
@@ -965,7 +1006,8 @@
       },
       "refusal": null,
       "gui": true,
-      "action": "btn:colour"
+      "action": "btn:colour",
+      "icon": "color_palette"
     },
     {
       "id": "delete",
@@ -991,7 +1033,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "btn:delete"
+      "action": "btn:delete",
+      "icon": "design_delete"
     },
     {
       "id": "sk_line_t",
@@ -1012,7 +1055,8 @@
       "refusal": null,
       "gui": true,
       "action": "key:L",
-      "family": "Line"
+      "family": "Line",
+      "icon": "design_line"
     },
     {
       "id": "sk_polyline",
@@ -1033,7 +1077,8 @@
       "gui": true,
       "action": "fly:design_line#1",
       "mode": "sketch",
-      "family": "Line"
+      "family": "Line",
+      "icon": "design_polyline"
     },
     {
       "id": "sk_rect",
@@ -1054,7 +1099,8 @@
       "refusal": null,
       "gui": true,
       "action": "key:R",
-      "family": "Rectangle"
+      "family": "Rectangle",
+      "icon": "design_rect"
     },
     {
       "id": "sk_rect_center",
@@ -1075,7 +1121,8 @@
       "gui": true,
       "action": "fly:design_rect#1",
       "mode": "sketch",
-      "family": "Rectangle"
+      "family": "Rectangle",
+      "icon": "design_crect"
     },
     {
       "id": "sk_rect_oblique",
@@ -1096,7 +1143,8 @@
       "gui": true,
       "action": "fly:design_rect#2",
       "mode": "sketch",
-      "family": "Rectangle"
+      "family": "Rectangle",
+      "icon": "design_rect_oblique"
     },
     {
       "id": "sk_rect_rounded",
@@ -1117,7 +1165,8 @@
       "gui": true,
       "action": "fly:design_rect#3",
       "mode": "sketch",
-      "family": "Rectangle"
+      "family": "Rectangle",
+      "icon": "design_rect_rounded"
     },
     {
       "id": "sk_circle",
@@ -1138,7 +1187,8 @@
       "refusal": null,
       "gui": true,
       "action": "key:C",
-      "family": "Circle"
+      "family": "Circle",
+      "icon": "design_circle"
     },
     {
       "id": "sk_circle_2pt",
@@ -1159,7 +1209,8 @@
       "gui": true,
       "action": "fly:design_circle#1",
       "mode": "sketch",
-      "family": "Circle"
+      "family": "Circle",
+      "icon": "design_circle2pt"
     },
     {
       "id": "sk_circle_3pt",
@@ -1180,7 +1231,8 @@
       "gui": true,
       "action": "fly:design_circle#2",
       "mode": "sketch",
-      "family": "Circle"
+      "family": "Circle",
+      "icon": "design_circle3pt"
     },
     {
       "id": "sk_arc_t",
@@ -1201,7 +1253,8 @@
       "refusal": null,
       "gui": true,
       "action": "key:A",
-      "family": "Arc"
+      "family": "Arc",
+      "icon": "design_arc3pt"
     },
     {
       "id": "sk_arc_tangent",
@@ -1222,7 +1275,8 @@
       "gui": true,
       "action": "fly:design_arc3pt#1",
       "mode": "sketch",
-      "family": "Arc"
+      "family": "Arc",
+      "icon": "design_tangentarc"
     },
     {
       "id": "sk_arc_center",
@@ -1243,7 +1297,8 @@
       "gui": true,
       "action": "fly:design_arc3pt#2",
       "mode": "sketch",
-      "family": "Arc"
+      "family": "Arc",
+      "icon": "design_arc_center"
     },
     {
       "id": "sk_slot",
@@ -1264,7 +1319,8 @@
       "refusal": null,
       "gui": true,
       "action": "key:S",
-      "family": "Slot"
+      "family": "Slot",
+      "icon": "design_slot"
     },
     {
       "id": "sk_slot_arc",
@@ -1285,7 +1341,8 @@
       "gui": true,
       "action": "fly:design_slot#1",
       "mode": "sketch",
-      "family": "Slot"
+      "family": "Slot",
+      "icon": "design_slot_arc"
     },
     {
       "id": "sk_ellipse",
@@ -1306,7 +1363,8 @@
       "refusal": null,
       "gui": true,
       "action": "key:E",
-      "family": "Ellipse"
+      "family": "Ellipse",
+      "icon": "design_ellipse"
     },
     {
       "id": "sk_ellipse_arc",
@@ -1327,7 +1385,8 @@
       "gui": true,
       "action": "fly:design_ellipse#1",
       "mode": "sketch",
-      "family": "Ellipse"
+      "family": "Ellipse",
+      "icon": "design_ellipse_arc"
     },
     {
       "id": "sk_spline",
@@ -1347,7 +1406,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:B"
+      "action": "key:B",
+      "icon": "design_bspline"
     },
     {
       "id": "sk_poly_3",
@@ -1368,7 +1428,8 @@
       "gui": true,
       "action": "btn:poly#3",
       "mode": "sketch",
-      "family": "Polygon"
+      "family": "Polygon",
+      "icon": "design_polygon"
     },
     {
       "id": "sk_poly_4",
@@ -1389,7 +1450,8 @@
       "gui": true,
       "action": "btn:poly#4",
       "mode": "sketch",
-      "family": "Polygon"
+      "family": "Polygon",
+      "icon": "design_polygon"
     },
     {
       "id": "sk_poly_5",
@@ -1410,7 +1472,8 @@
       "gui": true,
       "action": "btn:poly#5",
       "mode": "sketch",
-      "family": "Polygon"
+      "family": "Polygon",
+      "icon": "design_polygon"
     },
     {
       "id": "sk_polygon",
@@ -1431,7 +1494,8 @@
       "refusal": null,
       "gui": true,
       "action": "btn:poly#6",
-      "family": "Polygon"
+      "family": "Polygon",
+      "icon": "design_polygon"
     },
     {
       "id": "sk_poly_8",
@@ -1452,7 +1516,8 @@
       "gui": true,
       "action": "btn:poly#8",
       "mode": "sketch",
-      "family": "Polygon"
+      "family": "Polygon",
+      "icon": "design_polygon"
     },
     {
       "id": "sk_poly_12",
@@ -1473,7 +1538,8 @@
       "gui": true,
       "action": "btn:poly#12",
       "mode": "sketch",
-      "family": "Polygon"
+      "family": "Polygon",
+      "icon": "design_polygon"
     },
     {
       "id": "sk_poly_inscribed",
@@ -1494,7 +1560,8 @@
       "gui": true,
       "action": "btn:polyfit#0",
       "mode": "sketch",
-      "family": "Polygon"
+      "family": "Polygon",
+      "icon": "design_polygon"
     },
     {
       "id": "sk_poly_circumscribed",
@@ -1515,7 +1582,8 @@
       "gui": true,
       "action": "btn:polyfit#1",
       "mode": "sketch",
-      "family": "Polygon"
+      "family": "Polygon",
+      "icon": "design_polygon"
     },
     {
       "id": "sk_point_t",
@@ -1535,7 +1603,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:P"
+      "action": "key:P",
+      "icon": "design_point"
     },
     {
       "id": "sk_text",
@@ -1555,7 +1624,8 @@
       "refusal": null,
       "gui": true,
       "action": "btn:text",
-      "mode": "sketch"
+      "mode": "sketch",
+      "icon": "design_text"
     },
     {
       "id": "sk_svg",
@@ -1575,7 +1645,8 @@
       "refusal": null,
       "gui": true,
       "action": "btn:svg",
-      "mode": "sketch"
+      "mode": "sketch",
+      "icon": "design_svg"
     },
     {
       "id": "sk_offset",
@@ -1593,7 +1664,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:O"
+      "action": "key:O",
+      "icon": "design_offset"
     },
     {
       "id": "sk_trim",
@@ -1611,7 +1683,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:T"
+      "action": "key:T",
+      "icon": "design_trim"
     },
     {
       "id": "sk_fillet",
@@ -1628,7 +1701,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:F"
+      "action": "key:F",
+      "icon": "design_filletedge"
     },
     {
       "id": "sk_chamfer",
@@ -1645,7 +1719,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:H"
+      "action": "key:H",
+      "icon": "design_chamfer"
     },
     {
       "id": "sk_array",
@@ -1664,7 +1739,8 @@
       "gui": true,
       "action": "fly:design_array#0",
       "mode": "sketch",
-      "family": "Array"
+      "family": "Array",
+      "icon": "design_array"
     },
     {
       "id": "sk_array_polar",
@@ -1683,7 +1759,8 @@
       "gui": true,
       "action": "fly:design_array#1",
       "mode": "sketch",
-      "family": "Array"
+      "family": "Array",
+      "icon": "design_polararray"
     },
     {
       "id": "sk_mirror",
@@ -1701,7 +1778,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:M"
+      "action": "key:M",
+      "icon": "design_mirror"
     },
     {
       "id": "sk_move",
@@ -1721,7 +1799,8 @@
       "refusal": null,
       "gui": true,
       "action": "fly:design_move#0",
-      "family": "Move"
+      "family": "Move",
+      "icon": "design_move"
     },
     {
       "id": "sk_rotate",
@@ -1741,7 +1820,8 @@
       "gui": true,
       "action": "fly:design_move#1",
       "mode": "sketch",
-      "family": "Move"
+      "family": "Move",
+      "icon": "design_rotate"
     },
     {
       "id": "sk_scale",
@@ -1761,7 +1841,8 @@
       "gui": true,
       "action": "fly:design_move#2",
       "mode": "sketch",
-      "family": "Move"
+      "family": "Move",
+      "icon": "design_scale"
     },
     {
       "id": "sk_dimension",
@@ -1781,7 +1862,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:D"
+      "action": "key:D",
+      "icon": "design_dimension"
     },
     {
       "id": "sk_constrain",
@@ -1800,7 +1882,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:K"
+      "action": "key:K",
+      "icon": "design_constrain"
     },
     {
       "id": "sk_construct",
@@ -1819,7 +1902,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:Q"
+      "action": "key:Q",
+      "icon": null
     },
     {
       "id": "sk_extend",
@@ -1837,7 +1921,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "key:X"
+      "action": "key:X",
+      "icon": "design_extend"
     },
     {
       "id": "sk_delete",
@@ -1856,7 +1941,8 @@
       "needs": {},
       "refusal": null,
       "gui": true,
-      "action": "btn:delete"
+      "action": "btn:delete",
+      "icon": "design_delete"
     }
   ],
   "chrome_only": {

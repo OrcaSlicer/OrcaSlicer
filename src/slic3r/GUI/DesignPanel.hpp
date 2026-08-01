@@ -622,6 +622,10 @@ private:
     // DesignOffer.hpp; this map is how a row reaches the code that already implements it, for
     // the verbs that have no keyboard shortcut to route through.
     std::map<std::string, std::function<void()>> m_verb_actions;
+    // Append an offer row with its toolbar glyph. The bitmap must be set BEFORE Append —
+    // wxGTK builds the GtkMenuItem there and only makes an image item if one is present.
+    wxMenuItem* append_offer_item(wxMenu* menu, int id, const wxString& text,
+                                  const struct OfferVerb& v);
     void show_offer_menu(const wxPoint& screen_pos);
     // Where the offer opens when no mouse press anchors it: the keyboard route, and the automatic
     // open on entering Sketch. The pointer if it is over the viewport, else the viewport's centre.
