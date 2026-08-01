@@ -2963,7 +2963,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_sel_solid_face = m_sel_solid_edge = -1;
         m_pick_face = m_pick_face_body = -1;   // chosen from the list, no face was pointed at
         m_status->SetForegroundColour(wxNullColour);
-        m_status->SetLabel(wxString::Format(_L("Body %d selected — next Extrude / Fillet acts on it"), b + 1));
+        m_status->SetLabel(wxString::Format(_L("Body %d selected — right-click for what applies to it"), b + 1));
         m_status->Refresh();
     });
 
@@ -3092,7 +3092,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_doc.add_sketch_profile(prof, plane, "Sketch" + std::to_string(m_feature_counter));
         m_doc.recompute();
         m_status->SetForegroundColour(wxNullColour);
-        m_status->SetLabel(_L("Sketch created — select it and Extrude"));
+        m_status->SetLabel(_L("Sketch created — select it, then right-click to Extrude"));
         refresh_tree();
     });
 
@@ -3133,8 +3133,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
             m_doc.recompute();
             m_status->SetForegroundColour(wxNullColour);
             m_status->SetLabel(cons.empty()
-                ? _L("Sketch created — select it and Extrude")
-                : wxString::Format(_L("Sketch created (%zu driving dims) — select it and Extrude"),
+                ? _L("Sketch created — select it, then right-click to Extrude")
+                : wxString::Format(_L("Sketch created (%zu driving dims) — select it, then right-click to Extrude"),
                                    cons.size()));
             refresh_tree();
             sync_sketch_display();   // keep the just-committed sketch visible as a face
@@ -3213,8 +3213,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
         set_tree_selection(feat);
         m_status->SetForegroundColour(wxNullColour);
         m_status->SetLabel(region >= 0
-            ? _L("Loop selected — Extrude it, or double-click to edit")
-            : _L("Sketch selected — Extrude it, or double-click to edit"));
+            ? _L("Loop selected — right-click to Extrude, or double-click to edit")
+            : _L("Sketch selected — right-click to Extrude, or double-click to edit"));
         m_status->Refresh();
     });
 
@@ -3358,7 +3358,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         const wxString bodytag = (nb > 1) ? wxString::Format(_L("Body %d "), body + 1) : wxString();
         m_status->SetLabel(level == 4 ? bodytag + _L("vertex selected")
                          : level == 1 ? bodytag + _L("selected (whole body)")
-                         : level == 2 ? bodytag + wxString::Format(_L("face %d selected — Extrude to push/pull it"), face)
+                         : level == 2 ? bodytag + wxString::Format(_L("face %d selected — right-click to push/pull it"), face)
                          : level == 3 ? bodytag + wxString::Format(_L("edge %d selected — Fillet/Chamfer to dress it"), edge)
                                       : _L("Nothing selected"));
         m_status->Refresh();
@@ -3422,12 +3422,13 @@ DesignPanel::DesignPanel(wxWindow* parent)
             }
             const char* nm = (base == 0) ? "XY" : (base == 1) ? "XZ" : (base == 2) ? "YZ" : "datum";
             m_status->SetForegroundColour(wxColour(120, 210, 120));
-            // The "press Sketch" half is only true in Feature mode, where that button exists.
-            // Inside sketch mode it told the user to press a button that isn't on screen; there
-            // the next step is arming a tool (toolbar flyout or its single-letter key). snaporca-d9i.
+            // Both halves named the TOOLBAR, which no longer carries either button: the tools
+            // moved to the offer. Name the gesture that actually works in each mode, and say
+            // what a plain click does, since the two are easy to confuse on a plane.
             m_status->SetLabel(m_ui_mode == UiMode::Sketch
-                ? wxString::Format(_L("%s plane selected — pick a sketch tool to draw on it"), nm)
-                : wxString::Format(_L("%s plane selected — press Sketch to draw on it"), nm));
+                ? wxString::Format(_L("%s plane selected — right-click for the drawing tools"), nm)
+                : wxString::Format(_L("%s plane selected — right-click to sketch on it, "
+                                      "or click an object to select it"), nm));
             m_status->Refresh();
         }
     });
@@ -4209,7 +4210,7 @@ void DesignPanel::on_add_sketch()
                      m_radius->GetValue(), "Sketch" + std::to_string(m_feature_counter));
     m_doc.recompute();  // a lone sketch yields an empty body; that is expected
     m_status->SetForegroundColour(wxNullColour);
-    m_status->SetLabel(wxString::Format(_L("Sketch added on %s — select it and Extrude"), where));
+    m_status->SetLabel(wxString::Format(_L("Sketch added on %s — select it, then right-click to Extrude"), where));
     refresh_tree();
 }
 
@@ -5920,7 +5921,12 @@ void DesignPanel::after_tree_edit(bool ok)
     if (m_doc.display_mesh.its.indices.empty()) {
         if (m_viewport != nullptr) m_viewport->clear_mesh();
         sync_sketch_display();   // empty body: show any un-consumed committed sketch
-        m_status->SetLabel(wxString());
+        // An empty document used to blank this line — no guidance at the one moment a newcomer
+        // has none. Name the three real ways in, in the order they are reachable on screen.
+        m_status->SetLabel(m_doc.features.empty()
+            ? _L("Nothing yet — import a STEP or a mesh from the toolbar,\n"
+                 "or click a reference plane and right-click it to start a sketch.")
+            : _L("No solid yet — select a sketch and right-click it to Extrude."));
     } else {
         // nde #19/20: a delete/reorder that leaves bodies behind must re-feed the per-body
         // GLVolumes — otherwise the viewport keeps showing the pre-edit solid (the deleted
