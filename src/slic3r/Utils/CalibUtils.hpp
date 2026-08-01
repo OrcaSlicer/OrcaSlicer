@@ -95,5 +95,8 @@ extern void get_tray_ams_and_slot_id(MachineObject* obj, int in_tray_id, int &am
 extern void get_default_k_n_value(const std::string &filament_id, float &k, float &n);
 extern wxString get_nozzle_volume_type_name(NozzleVolumeType type);
 
+extern void update_speed_parameter(const std::string &key);
+extern std::vector<double> generate_max_speed_parameter_value(const std::string &key, bool linear, int pass);
+
 }
 }

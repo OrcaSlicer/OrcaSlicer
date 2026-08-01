@@ -3,6 +3,7 @@
 	"name": "Flashforge PLA Luminous @FF G4P",
 	"inherits": "Flashforge Generic HS PLA",
 	"from": "system",
+	"setting_id": "Z1NCX8XMyIVlOlWn",
 	"instantiation": "true",
 	"activate_air_filtration": [
 		"1"

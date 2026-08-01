@@ -3,7 +3,7 @@
 	"name": "Creality K2 Pro 0.4 nozzle",
 	"inherits": "fdm_creality_common",
 	"from": "system",
-	"setting_id": "GM001",
+	"setting_id": "nEmGdfGXnsRqJa4a",
 	"instantiation": "true",
 	"printer_model": "Creality K2 Pro",
 	"gcode_flavor": "klipper",

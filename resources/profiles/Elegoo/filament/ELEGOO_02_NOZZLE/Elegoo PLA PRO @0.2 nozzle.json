@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA PRO @0.2 nozzle",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "EPLAPRO00020",
+	"setting_id": "ed7EP0Fx9X6WoP8q",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"3.2"

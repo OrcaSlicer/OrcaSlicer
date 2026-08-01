@@ -3,7 +3,7 @@
 	"name": "QIDI PA12-CF @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "QIDI PA12-CF",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "aaAKfscwITCW1cIY",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"fan_max_speed": [

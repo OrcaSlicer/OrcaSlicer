@@ -1,10 +1,10 @@
 {
 	"type": "filament",
-	"setting_id": "GFSL99",
 	"name": "QIDI PLA Basic @Qidi Q2C 0.6 nozzle",
-	"from": "system",
-	"instantiation": "true",
 	"inherits": "QIDI PLA Basic@Q2C-Series",
+	"from": "system",
+	"setting_id": "oxEN8DYf9kkKS8qg",
+	"instantiation": "true",
 	"pressure_advance": [
 		"0.016"
 	],

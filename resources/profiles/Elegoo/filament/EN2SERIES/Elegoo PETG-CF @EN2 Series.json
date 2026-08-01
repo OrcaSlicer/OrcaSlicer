@@ -3,7 +3,7 @@
 	"name": "Elegoo PETG-CF @EN2 Series",
 	"inherits": "Elegoo PETG @base",
 	"from": "system",
-	"setting_id": "EPETGCFEN2",
+	"setting_id": "xVvTmdiPx4DqsoSt",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.024"

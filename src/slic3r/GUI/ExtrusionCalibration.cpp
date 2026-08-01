@@ -86,7 +86,7 @@ void ExtrusionCalibration::create()
     select_sizer->Add(m_comboBox_filament, 0, wxEXPAND);
     select_sizer->Add(0, EXTRUSION_CALIBRATION_WIDGET_GAP, 0, 0);
 
-    auto bed_type_sel_text = new wxStaticText(m_step_1_panel, wxID_ANY, _L("Bed Type"), wxDefaultPosition, wxDefaultSize, 0);
+    auto bed_type_sel_text = new wxStaticText(m_step_1_panel, wxID_ANY, _L("Plate Type"), wxDefaultPosition, wxDefaultSize, 0);
     select_sizer->Add(bed_type_sel_text, 0, wxALIGN_LEFT);
     select_sizer->AddSpacer(FromDIP(4));
 
@@ -170,7 +170,7 @@ void ExtrusionCalibration::create()
     m_error_text->SetForegroundColour(wxColour(208, 27, 27));
     m_error_text->Hide();
 
-    m_button_cali = new Button(m_step_1_panel, _L("Start calibration"));
+    m_button_cali = new Button(m_step_1_panel, _L("Start"));
     m_button_cali->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_cali->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_cali, this);
 
@@ -239,7 +239,7 @@ void ExtrusionCalibration::create()
     m_button_save_result->SetStyle(ButtonStyle::Confirm, ButtonType::Choice);
     m_button_save_result->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_save, this);
 
-    m_button_last_step = new Button(m_step_2_panel, _L("Last Step")); // Back for english
+    m_button_last_step = new Button(m_step_2_panel, _L_CONTEXT("Back", "Navigation")); // Back for english
     m_button_last_step->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
     m_button_last_step->Bind(wxEVT_BUTTON, &ExtrusionCalibration::on_click_last, this);
 
@@ -261,7 +261,7 @@ void ExtrusionCalibration::create()
     top_sizer->Add(FromDIP(24), 0);
     top_sizer->Add(sizer_main, 1, wxEXPAND);
     top_sizer->Add(FromDIP(24), 0);
-    SetSizer(top_sizer);
+    SetSizerAndFit(top_sizer);
 
     // set default nozzle
     m_comboBox_nozzle_dia->SetSelection(1);
@@ -271,7 +271,6 @@ void ExtrusionCalibration::create()
     set_step(1);
 
     Layout();
-    Fit();
 
     m_k_val->GetTextCtrl()->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent& e) {
         input_value_finish();
@@ -712,12 +711,12 @@ void ExtrusionCalibration::post_select_event() {
 void ExtrusionCalibration::set_step(int step_index)
 {
     if (step_index == 2) {
-        wxString title_text = wxString::Format("%s - %s 2/2", _L("Dynamic flow Calibration"), _L("Step"));
+        wxString title_text = wxString::Format("%s - %s 2/2", _L("Dynamic flow calibration"), _L("Step"));
         SetTitle(title_text);
         m_step_1_panel->Hide();
         m_step_2_panel->Show();
     } else {
-        wxString title_text = wxString::Format("%s - %s 1/2", _L("Dynamic flow Calibration"), _L("Step"));
+        wxString title_text = wxString::Format("%s - %s 1/2", _L("Dynamic flow calibration"), _L("Step"));
         SetTitle(title_text);
         m_step_1_panel->Show();
         m_step_2_panel->Hide();

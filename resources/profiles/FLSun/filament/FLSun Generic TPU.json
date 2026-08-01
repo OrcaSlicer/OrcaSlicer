@@ -3,7 +3,7 @@
 	"name": "FLSun Generic TPU",
 	"inherits": "fdm_filament_tpu",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "hewisceC8FmSwzF4",
 	"filament_id": "GFU99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

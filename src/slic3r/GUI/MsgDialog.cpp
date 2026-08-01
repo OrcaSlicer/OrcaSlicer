@@ -19,6 +19,7 @@
 #include "I18N.hpp"
 //#include "ConfigWizard.hpp"
 #include "wxExtensions.hpp"
+#include "Widgets/Label.hpp"
 #include "slic3r/GUI/MainFrame.hpp"
 #include "GUI_App.hpp"
 #define MSG_DLG_MAX_SIZE wxSize(-1, FromDIP(464))//notice:ban setting the maximum width value
@@ -64,7 +65,7 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
     main_sizer->Add(btn_sizer, 0, wxBOTTOM | wxRIGHT | wxEXPAND | wxTOP, FromDIP(10));
 
     apply_style(style);
-	SetSizerAndFit(main_sizer);
+	SetSizer(main_sizer);
     wxGetApp().UpdateDlgDarkUI(this);
 }
 
@@ -220,6 +221,7 @@ void MsgDialog::apply_style(long style)
 
 void MsgDialog::finalize()
 {
+    GetSizer()->SetSizeHints(this);
     Layout();
     Fit();
     CenterOnParent();
@@ -546,7 +548,7 @@ DeleteConfirmDialog::DeleteConfirmDialog(wxWindow *parent, const wxString &title
     m_del_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { EndModal(wxID_OK); });
     m_cancel_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { EndModal(wxID_CANCEL); });
 
-    SetSizer(m_main_sizer);
+    SetSizerAndFit(m_main_sizer);
     Layout();
     Fit();
     wxGetApp().UpdateDlgDarkUI(this);
@@ -581,7 +583,7 @@ Newer3mfVersionDialog::Newer3mfVersionDialog(wxWindow *parent, const Semver *fil
     main_sizer->Add(content_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
     main_sizer->Add(get_btn_sizer(), 0, wxEXPAND | wxALL, FromDIP(5));
 
-    this->SetSizer(main_sizer);
+    this->SetSizerAndFit(main_sizer);
     Layout();
     Fit();
     wxGetApp().UpdateDlgDarkUI(this);
@@ -631,7 +633,7 @@ wxBoxSizer *Newer3mfVersionDialog::get_btn_sizer()
 
     bool       file_version_newer = (*m_file_version) > (*m_cloud_version);
     if (!file_version_newer) {
-        m_update_btn = new Button(this, _CTX(L_CONTEXT("Update", "Software"), "Software"));
+        m_update_btn = new Button(this, _L_CONTEXT(L_CONTEXT("Update", "Software"), "Software"));
         m_update_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         horizontal_sizer->Add(m_update_btn, 0, wxRIGHT, FromDIP(ButtonProps::ChoiceButtonGap()));
 
@@ -744,10 +746,50 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
     sizer_main->Add(sizer_button, 1, wxEXPAND | wxLEFT | wxRIGHT, 15);
     sizer_main->Add(0, 0, 0, wxTOP, 18);
 
-    SetSizer(sizer_main);
+    SetSizerAndFit(sizer_main);
     Layout();
-    sizer_main->Fit(this);
     Centre(wxBOTH);
+}
+
+
+FilamentWarningDialog::FilamentWarningDialog(wxWindow *parent, const wxString &title, std::vector<FilamentWarningInfo> infos)
+    : MsgDialog(parent, title.IsEmpty() ? wxString::Format(_L("%s warning"), SLIC3R_APP_FULL_NAME) : title, wxEmptyString, wxOK | wxICON_WARNING), m_messages(infos)
+{
+    BuildContent();
+    finalize();
+}
+
+void FilamentWarningDialog::BuildContent()
+{
+    wxBoxSizer *messages_sizer = new wxBoxSizer(wxVERTICAL);
+
+    int message_count = 0;
+    for (int i = 0; i < m_messages.size(); i++)
+    {
+        const wxString &message  = m_messages[i].info_msg;
+        const wxString &wiki_url = m_messages[i].wiki_url;
+        if (message_count > 0) { messages_sizer->AddSpacer(FromDIP(10)); }
+
+        if (wiki_url.IsEmpty()) {
+            // No wiki link - just display as regular text
+            Label *text = new Label(this, message);
+            text->SetFont(::Label::Body_12);
+            text->Wrap(FromDIP(400));
+            messages_sizer->Add(text, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
+        } else {
+            Label *link = new Label(this, message + " " + _L("Please refer to Wiki before use->"));
+            link->SetForegroundColour(wxColour(8, 153, 46));
+            link->SetFont(::Label::Body_12);
+            link->Wrap(FromDIP(400));
+            link->Bind(wxEVT_ENTER_WINDOW, [this](auto &e) { SetCursor(wxCURSOR_HAND); });
+            link->Bind(wxEVT_LEAVE_WINDOW, [this](auto &e) { SetCursor(wxCURSOR_ARROW); });
+            link->Bind(wxEVT_LEFT_DOWN, [wiki_url](auto &event) { wxLaunchDefaultBrowser(wiki_url); });
+            messages_sizer->Add(link, 0, wxEXPAND | wxLEFT | wxRIGHT, FromDIP(5));
+        }
+        message_count++;
+    }
+
+    content_sizer->Add(messages_sizer, 1, wxEXPAND | wxALL, FromDIP(5));
 }
 
 } // namespace GUI

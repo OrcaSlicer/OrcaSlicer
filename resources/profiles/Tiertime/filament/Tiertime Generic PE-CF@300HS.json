@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PE-CF@300HS",
 	"inherits": "fdm_filament_pe",
 	"from": "system",
+	"setting_id": "5ChSjqNjRn8QArJP",
 	"filament_id": "GFP98_01",
 	"instantiation": "true",
 	"filament_cost": [

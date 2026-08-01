@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PHA",
 	"inherits": "fdm_filament_pha",
 	"from": "system",
+	"setting_id": "tFuE7IEbeGEhCNnz",
 	"filament_id": "GFR98",
 	"instantiation": "true",
 	"compatible_printers": [

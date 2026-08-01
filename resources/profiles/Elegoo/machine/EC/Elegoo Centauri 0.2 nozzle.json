@@ -3,7 +3,7 @@
 	"name": "Elegoo Centauri 0.2 nozzle",
 	"inherits": "Elegoo Centauri 0.4 nozzle",
 	"from": "system",
-	"setting_id": "EC02",
+	"setting_id": "XoxhdPS9GunkuReP",
 	"instantiation": "true",
 	"nozzle_diameter": [
 		"0.2"
@@ -11,7 +11,7 @@
 	"printer_model": "Elegoo Centauri",
 	"printer_variant": "0.2",
 	"default_filament_profile": [
-		"Elegoo PLA @0.2 nozzle"
+		"Elegoo PLA @EC"
 	],
 	"default_print_profile": "0.10mm Standard @Elegoo C 0.2 nozzle",
 	"retraction_minimum_travel": [

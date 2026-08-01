@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA @EN3 Series",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "EPLAEN3",
+	"setting_id": "taDnu9cpJUbXdHoQ",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [
 		"9"

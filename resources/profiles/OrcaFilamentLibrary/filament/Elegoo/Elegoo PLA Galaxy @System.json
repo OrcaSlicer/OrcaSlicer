@@ -3,7 +3,7 @@
 	"name": "Elegoo PLA Galaxy @System",
 	"inherits": "Elegoo PLA @base",
 	"from": "system",
-	"setting_id": "OEPLAGALAXYS00",
+	"setting_id": "WXEEksjWsTbRyCPh",
 	"instantiation": "true",
 	"renamed_from": "Elegoo PLA Galaxy",
 	"fan_min_speed": [

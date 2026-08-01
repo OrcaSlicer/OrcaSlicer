@@ -3,10 +3,13 @@
 
 #include <wx/bitmap.h>
 #include <wx/bmpbuttn.h>
+#include <wx/sizer.h>
 #include <wx/timer.h>
 #include "libslic3r/PrintConfig.hpp"
 #include "Widgets/PopupWindow.hpp"
 #include "Widgets/Label.hpp"
+#include "Widgets/SwitchButton.hpp"
+#include "Widgets/StaticBox.hpp"
 
 namespace Slic3r { namespace GUI {
 
@@ -42,6 +45,10 @@ private:
     void Init();
     void UpdateButtonStatus(int hover_idx = -1);
     void DrawRoundedCorner(int radius);
+
+    void MakeSmartFilamentSection(wxSizer *top_sizer, int horizontal_margin, int vertical_padding);
+    void UpdateSmartFilamentSection();
+    void OnSmartFilamentToggle(wxCommandEvent &event);
 private:
     FilamentMapMode GetFilamentMapMode() const;
     void SetFilamentMapMode(const FilamentMapMode mode);
@@ -74,6 +81,10 @@ private:
 
     wxStaticText *wiki_link;
     wxStaticText *video_link;
+
+    StaticBox    *m_smart_filament_panel{nullptr};
+    wxSizerItem  *m_smart_filament_spacer{nullptr};
+    SwitchButton *m_smart_filament_switch{nullptr};
 
     PartPlate* partplate_ref{ nullptr };
     Plater* plater_ref{ nullptr };

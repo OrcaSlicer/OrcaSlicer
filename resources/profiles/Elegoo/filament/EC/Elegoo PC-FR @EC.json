@@ -3,7 +3,7 @@
 	"name": "Elegoo PC-FR @EC",
 	"inherits": "Elegoo PC @base",
 	"from": "system",
-	"setting_id": "EPCFREC",
+	"setting_id": "DOX4jdBlUuiFx27J",
 	"instantiation": "true",
 	"pressure_advance": [
 		"0.024"

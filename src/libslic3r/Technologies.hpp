@@ -24,8 +24,7 @@
 
 // Enable rendering of objects using environment map
 #define ENABLE_ENVIRONMENT_MAP 0
-// Enable smoothing of objects normals
-#define ENABLE_SMOOTH_NORMALS 0
+
 // Enable rendering markers for options in preview as fixed screen size points
 #define ENABLE_FIXED_SCREEN_SIZE_POINT_MARKERS 1
 
@@ -51,5 +50,10 @@
 #define ENABLE_NEW_GCODE_VIEWER_DEBUG 0
 // Enable extension of tool position imgui dialog to show actual speed profile
 #define ENABLE_ACTUAL_SPEED_DEBUG 1
+
+// Disable layout inspector for public release
+#if BBL_RELEASE_TO_PUBLIC
+#define WXINSPECTOR_DISABLE
+#endif
 
 #endif // _prusaslicer_technologies_h_

@@ -3,7 +3,7 @@
     "name": "Generic PET @K2 Pro-all",
     "inherits": "fdm_filament_pet",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "fIxga8QpAboN7reJ",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

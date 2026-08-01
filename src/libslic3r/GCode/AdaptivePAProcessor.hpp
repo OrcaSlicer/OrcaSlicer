@@ -54,6 +54,20 @@ public:
      */
     void resetPreviousPA(double PA){ m_last_predicted_pa = PA; };
     
+    /**
+     * @brief Validates an adaptive pressure advance model string.
+     *
+     * Checks that:
+     * - Each non-empty line has exactly 3 comma-separated values (PA, flow, accel)
+     * - PA value is less than 2
+     * - Flow value is greater than PA value
+     * - Accel value is greater than flow value
+     *
+     * @param model_str The model string to validate (typically from config)
+     * @return Empty string if valid, or an error message describing the first issue found
+     */
+    static std::string validate_adaptive_pa_model(const std::string& model_str);
+    
 private:
     GCode &m_gcodegen; ///< Reference to the GCode object.
     std::unordered_map<unsigned int, std::unique_ptr<AdaptivePAInterpolator>> m_AdaptivePAInterpolators; ///< Map between Interpolator objects and tool ID's

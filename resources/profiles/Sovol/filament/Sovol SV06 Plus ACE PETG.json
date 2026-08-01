@@ -3,7 +3,7 @@
 	"name": "Sovol SV06 Plus ACE PETG",
 	"inherits": "Generic PETG @System",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "ZrAm6Nm4FI7p4PgC",
 	"filament_id": "GFL99",
 	"instantiation": "true",
 	"filament_flow_ratio": [

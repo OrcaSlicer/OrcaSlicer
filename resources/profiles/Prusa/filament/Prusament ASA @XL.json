@@ -3,7 +3,7 @@
 	"name": "Prusament ASA @XL",
 	"inherits": "fdm_filament_asa",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "RaEoFoZdXkkOz9yh",
 	"instantiation": "true",
 	"nozzle_temperature_intial_layer": "260",
 	"nozzle_temperature": "260",

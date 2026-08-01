@@ -3,6 +3,7 @@
     "name": "FilAr PLA-mate Piel",
     "inherits": "FilAr PLA-mate @base",
     "from": "system",
+    "setting_id": "ifbCS3WypTUa1JHr",
     "filament_id": "FILAR0041",
     "instantiation": "true",
     "filament_vendor": [

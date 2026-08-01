@@ -3,7 +3,7 @@
 	"name": "Flashforge TPU 95A",
 	"inherits": "Flashforge Generic TPU",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "J4EaFhnpkLDcl5wH",
 	"instantiation": "true",
 	"filament_settings_id": [
 		"Flashforge TPU 95A"

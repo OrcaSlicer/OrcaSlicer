@@ -3,7 +3,7 @@
 	"name": "Anycubic Kobra X 0.4 nozzle",
 	"inherits": "fdm_machine_common",
 	"from": "system",
-	"setting_id": "GM040",
+	"setting_id": "tNXmqWS23vQPHt5Y",
 	"instantiation": "true",
 	"printer_technology": "FFF",
 	"printer_settings_id": "Anycubic Kobra X 0.4 nozzle",

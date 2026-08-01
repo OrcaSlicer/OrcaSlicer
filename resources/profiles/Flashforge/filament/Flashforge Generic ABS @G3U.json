@@ -3,7 +3,7 @@
 	"name": "Flashforge Generic ABS @G3U",
 	"inherits": "Flashforge Generic ABS",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "Cfd7Q1nGwqxI5Ngh",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_air_filtration": [

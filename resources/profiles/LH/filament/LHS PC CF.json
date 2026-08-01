@@ -3,7 +3,7 @@
 	"name": "LHS PC CF",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "LHF_S_pccf",
+	"setting_id": "FOQLD0UX6hUhJBQ0",
 	"filament_id": "LHF_pccf",
 	"instantiation": "true",
 	"compatible_printers": [

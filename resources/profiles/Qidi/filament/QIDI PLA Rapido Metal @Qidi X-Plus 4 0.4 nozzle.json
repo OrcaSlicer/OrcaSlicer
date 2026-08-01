@@ -3,7 +3,7 @@
 	"name": "QIDI PLA Rapido Metal @Qidi X-Plus 4 0.4 nozzle",
 	"inherits": "QIDI PLA Rapido Metal",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "9CsEnbzkLosi8Y4Y",
 	"filament_id": "QD_0_1_3",
 	"instantiation": "true",
 	"activate_air_filtration": [

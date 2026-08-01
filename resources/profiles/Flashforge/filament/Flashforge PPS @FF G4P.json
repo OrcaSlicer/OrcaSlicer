@@ -3,6 +3,7 @@
 	"name": "Flashforge PPS @FF G4P",
 	"inherits": "Flashforge Generic PLA-CF10",
 	"from": "system",
+	"setting_id": "vFMKqNjQjlNxwvDI",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"

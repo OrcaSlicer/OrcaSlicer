@@ -3,7 +3,7 @@
 	"name": "0.08mm Standard @Qidi XMax3 0.2 nozzle",
 	"inherits": "fdm_process_QIDI_0.08_nozzle_0.2",
 	"from": "system",
-	"setting_id": "GP025",
+	"setting_id": "L5T0e98ytPDI8cCg",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Qidi X-Max 3 0.2 nozzle"

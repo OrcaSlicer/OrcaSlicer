@@ -3,6 +3,7 @@
 	"name": "Flashforge PAHT-CF @FF C5P",
 	"inherits": "Generic PA-CF @System",
 	"from": "system",
+	"setting_id": "FSfGFl7FCutxXN2l",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [
 		"1"

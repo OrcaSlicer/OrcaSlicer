@@ -3,7 +3,7 @@
 	"name": "0.20mm Standard @Creality Ender5Pro (2019) 0.3",
 	"inherits": "fdm_process_creality_common_0_3",
 	"from": "system",
-	"setting_id": "GP004",
+	"setting_id": "dgypN1BMVnOqW926",
 	"instantiation": "true",
 	"bottom_shell_layers": "4",
 	"top_shell_layers": "5",

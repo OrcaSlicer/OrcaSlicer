@@ -3,7 +3,7 @@
 	"name": "Prusament PVB @CORE One",
 	"inherits": "fdm_filament_pvb",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "085dGkrnPhatF07x",
 	"filament_id": "Prusament PVB @CORE One",
 	"instantiation": "true",
 	"chamber_temperature": [

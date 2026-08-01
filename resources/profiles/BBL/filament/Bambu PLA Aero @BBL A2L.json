@@ -1,0 +1,44 @@
+{
+	"type": "filament",
+	"name": "Bambu PLA Aero @BBL A2L",
+	"inherits": "Bambu PLA Aero @base",
+	"from": "system",
+	"setting_id": "GFSA11_13",
+	"instantiation": "true",
+	"additional_cooling_fan_speed": [
+		"0"
+	],
+	"eng_plate_temp": [
+		"55"
+	],
+	"eng_plate_temp_initial_layer": [
+		"55"
+	],
+	"fan_cooling_layer_time": [
+		"80"
+	],
+	"fan_max_speed": [
+		"80"
+	],
+	"fan_min_speed": [
+		"60"
+	],
+	"filament_flush_temp_fast": [
+		"220"
+	],
+	"overhang_fan_threshold": [
+		"25%"
+	],
+	"pre_start_fan_time": [
+		"0"
+	],
+	"slow_down_layer_time": [
+		"8"
+	],
+	"compatible_printers": [
+		"Bambu Lab A2L 0.4 nozzle"
+	],
+	"filament_start_gcode": [
+		""
+	]
+}

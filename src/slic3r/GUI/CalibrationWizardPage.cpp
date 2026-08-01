@@ -601,7 +601,7 @@ PAPageHelpPanel::PAPageHelpPanel(wxWindow* parent, bool ground_panel, wxWindowID
     wxBoxSizer* top_sizer = new wxBoxSizer(wxVERTICAL);
     top_sizer->AddSpacer(FromDIP(10));
 
-    auto help_text_title = new Label(this, _L("How to use calibration result?"));
+    auto help_text_title = new Label(this, _L("How can I use calibration results\?"));
     help_text_title->SetFont(Label::Head_14);
     top_sizer->Add(help_text_title, 0, wxLEFT | wxRIGHT, left_align_padding);
 

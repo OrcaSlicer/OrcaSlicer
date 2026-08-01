@@ -3,6 +3,7 @@
 	"name": "Tiertime Generic PPS",
 	"inherits": "fdm_filament_pps",
 	"from": "system",
+	"setting_id": "2L1eOtxSeCJxW3RV",
 	"filament_id": "GFT97",
 	"instantiation": "true",
 	"compatible_printers": [

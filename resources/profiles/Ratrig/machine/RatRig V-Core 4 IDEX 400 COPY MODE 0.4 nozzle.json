@@ -3,7 +3,7 @@
 	"name": "RatRig V-Core 4 IDEX 400 COPY MODE 0.4 nozzle",
 	"inherits": "fdm_klipper_common",
 	"from": "system",
-	"setting_id": "GM002",
+	"setting_id": "JHZZbE0dzrFuFPq5",
 	"instantiation": "true",
 	"printer_model": "RatRig V-Core 4 IDEX 400 COPY MODE",
 	"printer_variant": "0.4",

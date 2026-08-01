@@ -80,9 +80,8 @@ ConnectPrinterDialog::ConnectPrinterDialog(wxWindow *parent, wxWindowID id, cons
 
     main_sizer->Add(sizer_top);
 
-    this->SetSizer(main_sizer);
+    this->SetSizerAndFit(main_sizer);
     this->Layout();
-    this->Fit();
     CentreOnParent();
 
     m_textCtrl_code->Bind(wxEVT_TEXT, &ConnectPrinterDialog::on_input_enter, this);
@@ -159,7 +158,7 @@ void ConnectPrinterDialog::on_button_confirm(wxCommandEvent &event)
     wxString code = m_textCtrl_code->GetTextCtrl()->GetValue();
     for (char c : code) {
         if (!(('0' <= c && c <= '9') || ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z'))) {
-            show_error(this, _L("Invalid input."));
+            show_error(this, _L("Invalid input"));
             return;
         }
     }

@@ -1,6 +1,6 @@
 {
 	"type": "process",
-	"setting_id": "GP004",
+	"setting_id": "nfaAKkhQ6yt2AC7o",
 	"name": "High performance VS30 - 0.10mm",
 	"from": "system",
 	"inherits": "fdm_process_volumic_common",

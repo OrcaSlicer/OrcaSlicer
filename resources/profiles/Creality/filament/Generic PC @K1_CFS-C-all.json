@@ -3,7 +3,7 @@
     "name": "Generic PC @K1_CFS-C-all",
     "inherits": "fdm_filament_pc",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "ZzPtJF9WrqfZa29N",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

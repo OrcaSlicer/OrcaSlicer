@@ -3,7 +3,7 @@
 	"name": "FlyingBear TPU @S1",
 	"inherits": "fdm_filament_tpu @S1",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "IVFpAlGo8KButueJ",
 	"filament_id": "GFU99",
 	"instantiation": "true",
 	"filament_max_volumetric_speed": [

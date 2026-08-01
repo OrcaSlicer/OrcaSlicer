@@ -1,8 +1,10 @@
 {
+	"type": "process",
 	"from": "system",
 	"inherits": "0.20mm Standard @Elegoo N4Plus 0.4 nozzle",
 	"name": "0.20mm Strength @Elegoo N4Plus 0.4 nozzle",
 	"wall_sequence": "inner-outer-inner wall",
+	"setting_id": "ad0UueKfT6sGUn0I",
 	"instantiation": "true",
 	"reduce_crossing_wall": "1",
 	"wall_loops": "6"

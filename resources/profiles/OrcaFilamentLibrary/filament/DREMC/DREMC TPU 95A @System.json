@@ -3,7 +3,6 @@
 	"name": "DREMC TPU 95A @System",
 	"inherits": "DREMC TPU 95A @base",
 	"from": "system",
-	"setting_id": "DREMC010",
 	"instantiation": "false",
 	"filament_max_volumetric_speed": [
 		"6"

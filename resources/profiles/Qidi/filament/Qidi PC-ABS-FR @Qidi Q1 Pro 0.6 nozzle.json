@@ -3,7 +3,7 @@
 	"name": "Qidi PC-ABS-FR @Qidi Q1 Pro 0.6 nozzle",
 	"inherits": "Qidi PC-ABS-FR",
 	"from": "system",
-	"setting_id": "GFSA04",
+	"setting_id": "CYzutFjZzD3tLXwM",
 	"filament_id": "GFB99",
 	"instantiation": "true",
 	"activate_chamber_temp_control": [

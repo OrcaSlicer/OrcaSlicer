@@ -3,7 +3,7 @@
 	"name": "Flashforge Generic PLA",
 	"inherits": "fdm_filament_pla",
 	"from": "system",
-	"setting_id": "FFGP01",
+	"setting_id": "DwAgYHepesazDUjN",
 	"filament_id": "FFG01",
 	"instantiation": "true",
 	"filament_flow_ratio": [

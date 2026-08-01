@@ -3,7 +3,7 @@
     "name": "CR-ABS @K1C-all",
     "inherits": "fdm_filament_abs",
     "from": "system",
-    "setting_id": "GFSA04",
+    "setting_id": "HaRbfdv0e9gKF3Qp",
     "instantiation": "true",
     "activate_air_filtration": [
         "0"

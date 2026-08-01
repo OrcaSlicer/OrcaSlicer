@@ -32,6 +32,9 @@
 #define wxMSW false
 #endif
 
+// Orca's styled button (Widgets/Button.hpp), used by PluginConfigField. It lives at global scope.
+class Button;
+
 namespace Slic3r { namespace GUI {
 
 class Field;
@@ -464,6 +467,95 @@ public:
 	wxWindow*		getWindow() override { return window; }
 
     void            suppress_scroll();
+};
+
+class PluginField : public Field {
+    using Field::Field;
+public:
+    PluginField(const ConfigOptionDef& opt, const t_config_option_key& id) : Field(opt, id) {}
+    PluginField(wxWindow* parent, const ConfigOptionDef& opt, const t_config_option_key& id) : Field(parent, opt, id) {}
+    ~PluginField() {}
+
+    void BUILD() override;
+
+    void set_selector(std::function<std::string()> selector);
+
+    void set_value(const boost::any& value, bool change_event = false) override;
+    boost::any& get_value() override;
+
+    void enable() override;
+    void disable() override;
+
+    // The rows live in one container panel (the base `window`), so the field exposes a window instead
+    // of a bare sizer and focus, sizing and teardown apply to the whole field.
+    wxWindow* getWindow() override { return window; }
+
+    void msw_rescale() override;
+
+private:
+    struct PluginRow {
+        ScalableButton* select_btn { nullptr };
+        wxTextCtrl*     display { nullptr };
+        ScalableButton* remove_btn { nullptr };
+        ScalableButton* add_btn { nullptr };
+        wxBoxSizer*     sizer { nullptr };
+    };
+
+    void rebuild_ui();
+    void add_empty_state_row();
+    void add_plugin_row(const wxString& value = wxEmptyString, bool is_last = false);
+    wxString display_name_for_value(const std::string& value) const;
+    void on_select_clicked(size_t index);
+    void on_add_clicked();
+    void on_remove_clicked(size_t index);
+    wxString get_row_value(size_t index) const;
+    void set_row_value(size_t index, const wxString& value);
+
+    wxWindow*               window { nullptr };  // container panel that hosts m_main_sizer
+    wxBoxSizer*             m_main_sizer { nullptr };
+    std::vector<PluginRow>  m_rows;
+    std::vector<std::string> m_values;
+    ScalableButton*         m_standalone_add_btn { nullptr };
+    std::function<std::string()> m_selector;
+};
+
+// A settings row whose value is a raw JSON document nobody types by hand: the button opens
+// PluginsConfigDialog and the document it hands back becomes the field's value. The edit goes through
+// the ordinary Field value/on_change_field path, so the row gets the same dirty state and revert arrow
+// as any other setting — the dialog never touches the preset.
+class PluginConfigField : public Field {
+    using Field::Field;
+public:
+    PluginConfigField(const ConfigOptionDef& opt, const t_config_option_key& id) : Field(opt, id) {}
+    PluginConfigField(wxWindow* parent, const ConfigOptionDef& opt, const t_config_option_key& id) : Field(parent, opt, id) {}
+    ~PluginConfigField() {}
+
+    void BUILD() override;
+
+    // Which preset's capabilities the dialog lists; set by the option group. An int for the same
+    // reason OptionsGroup::m_config_type is one: it keeps Preset.hpp out of this header.
+    void set_preset_type(int type) { m_preset_type = type; }
+
+    void set_value(const boost::any& value, bool change_event = false) override;
+    boost::any& get_value() override;
+
+    void enable() override;
+    void disable() override;
+
+    // The button is the whole field, so it is the window the option group sizes and positions (the
+    // ColourPicker idiom). A container panel would be sized but never laid out, collapsing the row.
+    wxWindow* getWindow() override { return window; }
+
+    void msw_rescale() override;
+
+private:
+    void open_dialog();
+    void update_button_label();
+
+    wxWindow*   window { nullptr };  // == m_button; the base class hands this to the option group
+    ::Button*   m_button { nullptr };
+    std::string m_json;              // the option's raw text; "" when the preset overrides nothing
+    int         m_preset_type { -1 };
 };
 
 class ColourPicker : public Field {

@@ -3,7 +3,7 @@
 	"name": "0.30 Draft @Snapmaker U1 (0.6 nozzle)",
 	"inherits": "fdm_process_U1_0.6_common",
 	"from": "system",
-	"setting_id": "GP004_06_030",
+	"setting_id": "Tk3tG3RGJ8dwXFKf",
 	"instantiation": "true",
 	"description": "Fast draft profile for the Snapmaker U1 with 0.6 mm nozzles. 0.3 mm layer height for quick prototypes and functional parts.",
 	"layer_height": "0.30",

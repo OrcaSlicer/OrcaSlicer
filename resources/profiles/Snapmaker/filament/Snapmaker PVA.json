@@ -3,7 +3,7 @@
 	"name": "Snapmaker PVA",
 	"inherits": "Snapmaker PVA @base",
 	"from": "system",
-	"setting_id": "3741816734",
+	"setting_id": "nPLHnAptDPHutpMg",
 	"instantiation": "true",
 	"compatible_printers": [
 		"Snapmaker A250 (0.4 nozzle)",
