@@ -5624,6 +5624,41 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionInt(INITIAL_RAFT_LAYERS));
 
+
+    def = this->add("raft_advanced_params", coBool);
+    def->label = L("Advanced raft parameters");
+    def->category = L("Support");
+    def->tooltip = L("Enable advanced raft parameters.");
+    def->set_default_value(new ConfigOptionBool(false));
+
+    def = this->add("raft_infill_density", coPercent);
+    def->label = L("Raft infill density");
+    def->category = L("Support");
+    def->tooltip = L("Raft line density in the infill layers.");
+    def->sidetext = "%";
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(50));
+
+    def = this->add("raft_interface_density", coPercent);
+    def->label = L("Raft interface density");
+    def->category = L("Support");
+    def->tooltip = L("Raft top layer interface line density.");
+    def->sidetext = "%";
+    def->min = 0;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(50));
+
+    def = this->add("raft_interface_layers", coInt);
+    def->label = L("Raft interface layers");
+    def->category = L("Support");
+    def->tooltip = L("Number of raft interface layers.");
+    def->sidetext = L("layers");
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionInt(3));
+
     def = this->add("resolution", coFloat);
     def->label = L("Resolution");
     def->tooltip = L("The G-code path is generated after simplifying the contour of models to avoid too many points and G-code lines. Smaller values mean higher resolution and more time required to slice.");

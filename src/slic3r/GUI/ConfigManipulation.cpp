@@ -821,6 +821,12 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
 
     bool have_raft = config->opt_int("raft_layers") > 0;
     bool have_support_material = config->opt_bool("enable_support") || have_raft;
+    bool is_advanced_raft = config->opt_bool("raft_advanced_params");
+    toggle_line("raft_advanced_params", have_raft);
+    toggle_line("raft_infill_density", have_raft && is_advanced_raft);
+    toggle_line("raft_interface_density", have_raft && is_advanced_raft);
+    toggle_line("raft_interface_layers", have_raft && is_advanced_raft);
+
 
     SupportType support_type = config->opt_enum<SupportType>("support_type");
     bool have_support_interface = config->opt_int("support_interface_top_layers") > 0 || config->opt_int("support_interface_bottom_layers") > 0;

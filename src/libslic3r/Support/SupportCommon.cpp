@@ -1489,7 +1489,8 @@ void generate_support_toolpaths(
                         // Regions to fill
                         tree_polygons.empty() ? to_infill_polygons : diff(to_infill_polygons, tree_polygons),
                         // Filler and its parameters
-                        filler, float(support_params.support_density),
+			            // If advanced raft parameters are enabled, use the raft base density; otherwise, use the original density.                        
+			            filler, config.raft_advanced_params ? float(config.raft_infill_density.value * 0.01) : float(support_params.support_density),
                         // Extrusion parameters
                         ExtrusionRole::erSupportMaterial, flow,
                         support_params, support_params.with_sheath, false);
@@ -1513,7 +1514,8 @@ void generate_support_toolpaths(
                 filler->spacing = support_params.support_material_flow.spacing();
                 assert(! raft_layer.bridging);
                 flow          = Flow(float(support_params.raft_interface_flow.width()), float(raft_layer.height), support_params.raft_interface_flow.nozzle_diameter());
-                density       = float(support_params.raft_interface_density);
+		        // If advanced raft parameters are enabled, use the raft interface density; otherwise, use the original interface density.
+                density       = config.raft_advanced_params ? float(config.raft_interface_density.value * 0.01) : float(support_params.raft_interface_density);
             } else
                 continue;
             filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / density));
@@ -1744,6 +1746,8 @@ void generate_support_toolpaths(
                     double density = raft_contact ? support_params.raft_interface_density :
                         interface_as_base ? support_params.support_density :
                         bottom_interface ? support_params.bottom_interface_density : support_params.top_interface_density;
+                    // if this layer is a raft contact layer and advanced raft parameters are enabled, use the raft interface density otherwise, use the normal interface density
+                    density = config.raft_advanced_params && raft_contact ? float(config.raft_interface_density.value * 0.01) : density;
                     filler->spacing = raft_contact ? support_params.raft_interface_flow.spacing() :
                         interface_as_base ? support_params.support_material_flow.spacing() : support_params.support_material_interface_flow.spacing();
                     filler->link_max_length = coord_t(scale_(filler->spacing * link_max_length_factor / density));
