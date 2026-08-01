@@ -1,7 +1,3 @@
-#include <algorithm>
-#include <array>
-#include <cmath>
-
 #include "../ClipperUtils.hpp"
 #include "../ShortestPath.hpp"
 #include "../Surface.hpp"
@@ -329,50 +325,35 @@ static void subdivide_bezier(const QuinticBezier &curve, QuinticBezier &left, Qu
     }
 }
 
-static bool is_bezier_flat_at_depth(const QuinticBezier &curve, const double deviation, const size_t depth)
-{
-    // Test all 2^depth equal-parameter subcurves against the same chordal-deviation bound. This lets
-    // flatten_bezier select one common depth instead of varying the depth along the curve.
-    if (depth == 0)
-        return is_bezier_flat(curve, deviation);
-
-    QuinticBezier left;
-    QuinticBezier right;
-    subdivide_bezier(curve, left, right);
-    return is_bezier_flat_at_depth(left, deviation, depth - 1) &&
-           is_bezier_flat_at_depth(right, deviation, depth - 1);
-}
-
-static void append_bezier_points(const QuinticBezier &curve, const size_t depth, std::vector<Vec2d> &output)
-{
-    // Visit the fixed-depth subdivision tree from left to right and append each leaf endpoint. The
-    // curve start is deliberately omitted so consecutive curve pieces can share it without duplication.
-    if (depth == 0) {
-        output.emplace_back(curve.back());
-        return;
-    }
-
-    QuinticBezier left;
-    QuinticBezier right;
-    subdivide_bezier(curve, left, right);
-    append_bezier_points(left, depth - 1, output);
-    append_bezier_points(right, depth - 1, output);
-}
-
 static void flatten_bezier(const QuinticBezier &curve, const double deviation, std::vector<Vec2d> &output)
 {
-    // Find the shallowest common subdivision depth at which every subcurve satisfies the requested
-    // deviation. The limit bounds the work required for extremely small deviation tolerances.
+    // Subdivide to at least depth 1 so a rounded corner cannot collapse to a single diagonal chord.
+    // A uniform subdivision depth keeps samples at equal parameter intervals t = k / 2^depth,
+    // avoiding abrupt segment-length jumps at adaptive-depth boundaries.
     static constexpr size_t max_depth = 16;
-    // Keep at least one interior sample so a rounded corner cannot collapse to a single diagonal chord.
-    size_t depth = 1;
-    while (depth < max_depth && !is_bezier_flat_at_depth(curve, deviation, depth))
-        ++depth;
 
-    // Applying that depth to the whole curve produces samples at uniform parameter intervals
-    // t = k / 2^depth and avoids abrupt segment-length jumps at adaptive-depth boundaries.
-    output.reserve(output.size() + (size_t{1} << depth));
-    append_bezier_points(curve, depth, output);
+    std::vector<QuinticBezier> subcurves(2);
+    subdivide_bezier(curve, subcurves[0], subcurves[1]);
+
+    for (size_t depth = 1; depth < max_depth; ++depth) {
+        bool all_flat = true;
+        for (const QuinticBezier &c : subcurves)
+            if (!is_bezier_flat(c, deviation)) {
+                all_flat = false;
+                break;
+            }
+        if (all_flat)
+            break;
+        std::vector<QuinticBezier> finer(subcurves.size() * 2);
+        for (size_t i = 0; i < subcurves.size(); ++i)
+            subdivide_bezier(subcurves[i], finer[i * 2], finer[i * 2 + 1]);
+        subcurves = std::move(finer);
+    }
+
+    // The curve start is deliberately omitted so consecutive curve pieces can share it without duplication.
+    output.reserve(output.size() + subcurves.size());
+    for (const QuinticBezier &c : subcurves)
+        output.emplace_back(c.back());
 }
 
 template<typename Output>

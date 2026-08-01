@@ -279,7 +279,7 @@ struct SurfaceFillParams
     bool gyroid_optimized = false;
 
     // Orca: corner smoothing factor in the range [0, 1].
-    float smooth_factor = 0.f;
+    double      smooth_factor { 0. };
 
     CenterOfSurfacePattern center_of_surface_pattern{CenterOfSurfacePattern::Each_Surface};
     bool                   separated_infills{false};
@@ -970,12 +970,10 @@ std::vector<SurfaceFill> group_fills(const Layer &layer, LockRegionParam &lock_p
                                                                    region_config.sparse_infill_rotate_template.value);
                     params.fixed_angle = !region_config.sparse_infill_rotate_template.value.empty();
 
-                    // Orca: special case; apply smoothing factor only for Hilbert Curve sparseinfill
-                    if (params.pattern == ipHilbertCurve) {
-                        const double configured_smooth_factor = 0.01 * region_config.sparse_infill_smooth_factor.value;
-                        params.smooth_factor = float(std::isfinite(configured_smooth_factor) 
-                            ? std::clamp(configured_smooth_factor, 0., 1.) : 0.);
-                    }
+                    // Orca: special case; apply smoothing factor only for Hilbert Curve sparse infill.
+                    // FillHilbertCurve::generate clamps and validates the value itself.
+                    if (params.pattern == ipHilbertCurve)
+                        params.smooth_factor = 0.01 * region_config.sparse_infill_smooth_factor.value;
                 } else {
                     const bool top_layer_direction_set    = surface.is_top() && region_config.top_layer_direction.value >= 0.;
                     const bool bottom_layer_direction_set = surface.is_bottom() && region_config.bottom_layer_direction.value >= 0.;
