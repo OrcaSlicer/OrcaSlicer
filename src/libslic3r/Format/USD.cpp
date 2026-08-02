@@ -17,7 +17,12 @@
 #include <pxr/usd/usd/prim.h>
 #include <pxr/usd/usd/primRange.h>
 #include <pxr/usd/usd/stage.h>
+#include <pxr/usd/usdGeom/cone.h>
+#include <pxr/usd/usdGeom/cube.h>
+#include <pxr/usd/usdGeom/cylinder.h>
+#include <pxr/usd/usdGeom/gprim.h>
 #include <pxr/usd/usdGeom/mesh.h>
+#include <pxr/usd/usdGeom/sphere.h>
 #include <pxr/usd/usdGeom/metrics.h>
 #include <pxr/usd/usdGeom/tokens.h>
 #include <pxr/usd/usdGeom/xformCache.h>
@@ -123,6 +128,81 @@ UsdTimeCode read_time(const UsdStageRefPtr &stage)
     return UsdTimeCode::EarliestTime();
 }
 
+// UsdGeomCube, Sphere, Cylinder and Cone are geometry in their own right, not
+// meshes -- a stage may contain nothing else. Apple's ModelIO tessellates them,
+// so skipping them left this importer behind the path it replaces: measured over
+// 3142 published USD files, 351 held only intrinsic shapes and were refused
+// outright, and another 59 lost the shapes from a stage that also had meshes.
+// `def Sphere "sphere" {}` is the simplest valid USD file there is.
+//
+// Built with Slic3r's own primitive builders at the facet angle Orca uses for
+// shapes added from its own menu -- PI/90, two degrees, per GUI_ObjectList.cpp
+// -- so an imported sphere is exactly as round as one Orca makes itself.
+//
+// USD centres all four on the prim origin, while its_make_cube() starts at a
+// corner and its_make_cylinder()/its_make_cone() start at z = 0, so each is
+// re-centred. `axis` lays a cylinder or cone along X or Y instead of Z.
+//
+// Capsule and Plane are deliberately absent: a capsule needs composing from a
+// cylinder and two hemispheres, and a plane is a zero-thickness sheet that
+// encloses no volume. Both are counted and named rather than passed over.
+bool tessellate_gprim(const UsdPrim &prim, const UsdTimeCode when, indexed_triangle_set &its)
+{
+    const double facet = PI / 90.0;
+
+    auto recentre = [&its](float dx, float dy, float dz) {
+        for (Vec3f &v : its.vertices) v += Vec3f(dx, dy, dz);
+    };
+    // Slic3r builds along +Z; rotate that axis onto X or Y as the prim asks.
+    auto orient = [&its](const TfToken &axis) {
+        if (axis == UsdGeomTokens->x)
+            for (Vec3f &v : its.vertices) v = Vec3f(v.z(), v.y(), -v.x());
+        else if (axis == UsdGeomTokens->y)
+            for (Vec3f &v : its.vertices) v = Vec3f(v.x(), v.z(), -v.y());
+    };
+
+    if (UsdGeomCube cube = UsdGeomCube(prim)) {
+        double size = 2.0;
+        cube.GetSizeAttr().Get(&size, when);
+        if (!(size > 0.0)) return false;
+        its = its_make_cube(size, size, size);
+        recentre(float(-0.5 * size), float(-0.5 * size), float(-0.5 * size));
+        return true;
+    }
+    if (UsdGeomSphere sphere = UsdGeomSphere(prim)) {
+        double radius = 1.0;
+        sphere.GetRadiusAttr().Get(&radius, when);
+        if (!(radius > 0.0)) return false;
+        its = its_make_sphere(radius, facet);   // already centred on the origin
+        return true;
+    }
+    if (UsdGeomCylinder cylinder = UsdGeomCylinder(prim)) {
+        double radius = 1.0, height = 2.0;
+        TfToken axis = UsdGeomTokens->z;
+        cylinder.GetRadiusAttr().Get(&radius, when);
+        cylinder.GetHeightAttr().Get(&height, when);
+        cylinder.GetAxisAttr().Get(&axis, when);
+        if (!(radius > 0.0) || !(height > 0.0)) return false;
+        its = its_make_cylinder(radius, height, facet);
+        recentre(0.f, 0.f, float(-0.5 * height));
+        orient(axis);
+        return true;
+    }
+    if (UsdGeomCone cone = UsdGeomCone(prim)) {
+        double radius = 1.0, height = 2.0;
+        TfToken axis = UsdGeomTokens->z;
+        cone.GetRadiusAttr().Get(&radius, when);
+        cone.GetHeightAttr().Get(&height, when);
+        cone.GetAxisAttr().Get(&axis, when);
+        if (!(radius > 0.0) || !(height > 0.0)) return false;
+        its = its_make_cone(radius, height, facet);
+        recentre(0.f, 0.f, float(-0.5 * height));
+        orient(axis);
+        return true;
+    }
+    return false;
+}
+
 // One mesh per USD prim, so a stage's structure survives into Orca's model
 // rather than being flattened on the way in.
 struct NamedMesh
@@ -143,6 +223,8 @@ struct SkipCounts
     size_t bad_topology = 0; // counts and indices disagree, or an index is out of range
     size_t holes = 0;        // authored holeIndices, which are not honoured
     size_t degenerate = 0;   // fewer than two triangles, so not a printable solid
+    size_t nonfinite = 0;    // a point coordinate is NaN or infinite
+    size_t gprim = 0;        // an intrinsic shape this does not tessellate
 };
 
 std::string describe(const SkipCounts &s)
@@ -159,6 +241,8 @@ std::string describe(const SkipCounts &s)
     add(s.bad_topology, "skipped with inconsistent topology");
     add(s.holes,        "skipped for authored holeIndices");
     add(s.degenerate,   "skipped as single triangles");
+    add(s.nonfinite,    "skipped for non-finite coordinates");
+    add(s.gprim,        "skipped as untessellated intrinsic shapes");
     return out.empty() ? out : "USD import: " + out + ".";
 }
 
@@ -323,6 +407,29 @@ bool read_stage(const char *path, std::vector<NamedMesh> &out, std::string &mess
                 continue;
             }
 
+            // USD permits inf and nan in a point array, and OpenUSD reads them
+            // back faithfully. Nothing downstream does: the bounding box, the
+            // volume and every slicing decision become nan, and the object
+            // reports a successful import with no size. Apple's ModelIO refuses
+            // such a file outright, so accepting it would be strictly worse than
+            // the path this replaces. OpenUSD's own test suite ships one
+            // (testUsdviewInfGeom/infGeom.usda), a pentagon with one vertex at
+            // infinity.
+            bool finite = true;
+            for (const GfVec3f &p : points)
+                if (!std::isfinite(p[0]) || !std::isfinite(p[1]) || !std::isfinite(p[2])) {
+                    finite = false;
+                    break;
+                }
+            if (!finite) {
+                BOOST_LOG_TRIVIAL(error)
+                    << "load_usd: " << prim.GetPath().GetString()
+                    << " has a non-finite point coordinate (nan or inf), which"
+                       " would give the imported object no measurable size.";
+                ++ skipped.nonfinite;
+                continue;
+            }
+
             // Every index value must address a point of THIS mesh. Checking only
             // the cursor against the array length leaves the values unchecked,
             // and they land in an indexed_triangle_set whose consumers index
@@ -429,6 +536,49 @@ bool read_stage(const char *path, std::vector<NamedMesh> &out, std::string &mess
                         << "; importing its control mesh without subdividing.";
                 ++ cages;
             }
+        }
+
+        // Second pass: geometry that is not a Mesh. Kept separate from the loop
+        // above because none of that loop's validation applies -- these shapes
+        // are generated, not read, so their topology is correct by construction.
+        for (const UsdPrim &prim : UsdPrimRange::Stage(stage, UsdTraverseInstanceProxies())) {
+            if (prim.IsA<UsdGeomMesh>() || !prim.IsA<UsdGeomGprim>())
+                continue;
+            if (!is_renderable(prim, when, skipped))
+                continue;
+
+            indexed_triangle_set its;
+            if (!tessellate_gprim(prim, when, its)) {
+                // Named, not merely counted: "a Capsule was skipped" is
+                // actionable, "something was skipped" is not.
+                BOOST_LOG_TRIVIAL(error)
+                    << "load_usd: " << prim.GetPath().GetString() << " is a "
+                    << prim.GetTypeName().GetString()
+                    << ", which this importer does not tessellate; skipping it.";
+                ++ skipped.gprim;
+                continue;
+            }
+
+            TfToken orientation = UsdGeomTokens->rightHanded;
+            UsdGeomGprim(prim).GetOrientationAttr().Get(&orientation, when);
+            bool flip = (orientation == UsdGeomTokens->leftHanded);
+
+            const GfMatrix4d world = xf_cache.GetLocalToWorldTransform(prim);
+            if (world.GetDeterminant() < 0.0)
+                flip = !flip;
+
+            for (Vec3f &v : its.vertices) {
+                GfVec3d w = world.Transform(GfVec3d(v.x(), v.y(), v.z()));
+                double x = w[0], y = w[1], z = w[2];
+                if (y_up) { double t = y; y = -z; z = t; }
+                v = Vec3f(float(x * scale), float(y * scale), float(z * scale));
+            }
+            if (flip)
+                for (stl_triangle_vertex_indices &t : its.indices)
+                    std::swap(t[1], t[2]);
+
+            out.push_back({prim.GetPath().GetString(), std::move(its)});
+            ++ mesh_count;
         }
 
         // Anything skipped is stated, whether or not the import goes on to
