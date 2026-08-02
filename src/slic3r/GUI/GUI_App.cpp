@@ -323,7 +323,7 @@ public:
 		
         this->SetPosition(pos);
         this->CenterOnScreen();
-		
+
         scale_font(m_font_version, 1.65f); // only scale this one since it hasnt a preloaded font like Label::Body_24;
 
         m_bg_color = StateColor::darkModeColorFor(wxColour("#FFFFFF"));
