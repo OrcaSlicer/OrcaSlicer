@@ -2971,9 +2971,9 @@ void TabPrint::build()
         optgroup->append_single_option_line("support_interface_spacing", "support_settings_advanced#interface-spacing");
         optgroup->append_single_option_line("support_bottom_interface_spacing", "support_settings_advanced#interface-spacing");
         optgroup->append_single_option_line("support_expansion", "support_settings_advanced#normal-support-expansion");
-        optgroup->append_single_option_line("support_conical_enabled", "support_settings_advanced");
         optgroup->append_single_option_line("support_conical_angle", "support_settings_advanced");
         optgroup->append_single_option_line("support_conical_min_width", "support_settings_advanced");
+        optgroup->append_single_option_line("support_conical_max_column_width", "support_settings_advanced");
         //optgroup->append_single_option_line("support_interface_loop_pattern", "support_settings_advanced");
 
         optgroup->append_single_option_line("support_object_xy_distance", "support_settings_advanced#supportobject-xy-distance");
@@ -3203,7 +3203,7 @@ void TabPrint::toggle_options()
     auto   support_type = m_config->opt_enum<SupportType>("support_type");
     if (auto choice = dynamic_cast<Choice*>(field)) {
         auto def = print_config_def.get("support_style");
-        std::vector<int> enum_set_normal = {smsDefault, smsGrid, smsSnug };
+        std::vector<int> enum_set_normal = { smsDefault, smsGrid, smsSnug, smsConical };
         std::vector<int> enum_set_tree   = { smsDefault, smsTreeSlim, smsTreeStrong, smsTreeHybrid, smsTreeOrganic };
         auto &           set             = is_tree(support_type) ? enum_set_tree : enum_set_normal;
         auto &           opt             = const_cast<ConfigOptionDef &>(field->m_opt);

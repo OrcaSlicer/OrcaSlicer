@@ -650,6 +650,7 @@ public:
         m_support_material_closing_radius(params.support_closing_radius)
     {
         if (m_style == smsDefault) m_style = smsGrid;
+        if (m_style == smsConical) m_style = smsSnug;
         if (std::set<SupportMaterialStyle>{smsTreeSlim, smsTreeStrong, smsTreeHybrid, smsTreeOrganic}.count(m_style))
             m_style = smsGrid;
         switch (m_style) {
@@ -1301,7 +1302,7 @@ std::vector<Polygons> PrintObjectSupportMaterial::buildplate_covered(const Print
     // Build support on a build plate only? If so, then collect and union all the surfaces below the current layer.
     // Unfortunately this is an inherently serial process.
     const bool            buildplate_only = this->build_plate_only();
-    const bool            conical_support = m_object_config->support_conical_enabled.value &&
+    const bool            conical_support = m_object_config->support_style.value == smsConical &&
                                             m_object_config->support_conical_angle.value != 0.;
     const coordf_t         conical_slope = conical_support ?
         std::abs(std::tan(Geometry::deg2rad(std::clamp(
@@ -1863,7 +1864,7 @@ static inline void fill_contact_layer(
 {
     SupportGridParams grid_params(object_config, support_material_flow);
     const bool conical_support = object_config.enable_support.value &&
-                                 object_config.support_conical_enabled.value &&
+                                 object_config.support_style.value == smsConical &&
                                  object_config.support_conical_angle.value != 0.;
     if (conical_support)
         grid_params.style = smsSnug;
@@ -2636,26 +2637,66 @@ static Polygons apply_conical_support_offset(
     const Polygons &polygons,
     coordf_t        layer_delta_z,
     coordf_t        angle_degrees,
-    coordf_t        minimum_width)
+    coordf_t        minimum_width,
+    coordf_t        maximum_column_width)
 {
     if (polygons.empty() || layer_delta_z <= 0. || angle_degrees == 0.)
         return polygons;
 
     const coordf_t bounded_angle = std::clamp(angle_degrees, coordf_t(-89.), coordf_t(89.));
     const float offset_scaled = float(scale_(-std::tan(Geometry::deg2rad(bounded_angle)) * layer_delta_z));
-    Polygons tapered = offset(polygons, offset_scaled);
+    auto taper = [offset_scaled, minimum_width](const Polygons &input) {
+        Polygons tapered = offset(input, offset_scaled);
+        if (offset_scaled >= 0.f || minimum_width <= 0.)
+            return tapered;
 
-    if (offset_scaled < 0.f && minimum_width > 0.) {
         const float half_minimum_width = float(scale_(0.5 * minimum_width));
-        Polygons inset = offset(polygons, -half_minimum_width);
+        Polygons inset = offset(input, -half_minimum_width);
         // The tiny extra expansion avoids retaining boundary slivers produced
         // by the two inverse offsets.
-        Polygons small_parts = diff(polygons, offset(inset, half_minimum_width + 20.f));
+        Polygons small_parts = diff(input, offset(inset, half_minimum_width + 20.f));
         polygons_append(tapered, std::move(small_parts));
-        tapered = union_(tapered);
+        return union_(tapered);
+    };
+
+    if (offset_scaled >= 0.f || maximum_column_width <= minimum_width)
+        return taper(polygons);
+
+    const coord_t maximum_width_scaled = scale_(maximum_column_width);
+    if (maximum_width_scaled <= 0)
+        return taper(polygons);
+
+    Polygons tapered;
+    for (const ExPolygon &component : union_ex(polygons)) {
+        const BoundingBox bbox = get_extents(component);
+        const Point       size = bbox.size();
+        const size_t columns_x = std::max<size_t>(1, (size.x() + maximum_width_scaled - 1) / maximum_width_scaled);
+        const size_t columns_y = std::max<size_t>(1, (size.y() + maximum_width_scaled - 1) / maximum_width_scaled);
+        const Polygons component_polygons = to_polygons(component);
+
+        if (columns_x == 1 && columns_y == 1) {
+            polygons_append(tapered, taper(component_polygons));
+            continue;
+        }
+
+        // Divide the component evenly so edge columns cannot become narrow
+        // remnants. Once tapered, the cells are disconnected and retain their
+        // identity naturally while they continue toward the build plate.
+        for (size_t y = 0; y < columns_y; ++ y) {
+            const coord_t y0 = bbox.min.y() + coord_t(int64_t(size.y()) * int64_t(y) / int64_t(columns_y));
+            const coord_t y1 = bbox.min.y() + coord_t(int64_t(size.y()) * int64_t(y + 1) / int64_t(columns_y));
+            for (size_t x = 0; x < columns_x; ++ x) {
+                const coord_t x0 = bbox.min.x() + coord_t(int64_t(size.x()) * int64_t(x) / int64_t(columns_x));
+                const coord_t x1 = bbox.min.x() + coord_t(int64_t(size.x()) * int64_t(x + 1) / int64_t(columns_x));
+                const Polygon cell = BoundingBox(Point(x0, y0), Point(x1, y1)).polygon();
+                const Polygons clipped = intersection(component_polygons, cell);
+                if (! clipped.empty())
+                    polygons_append(tapered, taper(clipped));
+            }
+        }
     }
 
-    return tapered;
+    return union_(tapered);
 }
 
 // Generate bottom contact layers supporting the top contact layers.
@@ -2692,7 +2733,7 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
     // Only used if "supports on build plate only" is enabled and both automatic and support enforcers are enabled.
     Polygons  enforcers_projection;
     const bool conical_support = m_object_config->enable_support.value &&
-                                 m_object_config->support_conical_enabled.value &&
+                                 m_object_config->support_style.value == smsConical &&
                                  m_object_config->support_conical_angle.value != 0.;
     // Last top contact layer visited when collecting the projection of contact areas.
     int       contact_idx = int(top_contacts.size()) - 1;
@@ -2705,12 +2746,14 @@ SupportGeneratorLayersPtr PrintObjectSupportMaterial::bottom_contact_layers_and_
                 overhangs_projection = apply_conical_support_offset(
                     overhangs_projection, layer_delta_z,
                     m_object_config->support_conical_angle.value,
-                    m_object_config->support_conical_min_width.value);
+                    m_object_config->support_conical_min_width.value,
+                    m_object_config->support_conical_max_column_width.value);
             if (! enforcers_projection.empty())
                 enforcers_projection = apply_conical_support_offset(
                     enforcers_projection, layer_delta_z,
                     m_object_config->support_conical_angle.value,
-                    m_object_config->support_conical_min_width.value);
+                    m_object_config->support_conical_min_width.value,
+                    m_object_config->support_conical_max_column_width.value);
         }
         // Collect projections of all contact areas above or at the same level as this top surface.
 #ifdef SLIC3R_DEBUG

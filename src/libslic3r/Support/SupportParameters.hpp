@@ -194,7 +194,8 @@ struct SupportParameters {
         support_style = object_config.support_style;
         support_interface_pattern = object_config.support_interface_pattern;
         if (support_style != smsDefault) {
-            if ((support_style == smsSnug || support_style == smsGrid) && is_tree(object_config.support_type)) support_style = smsDefault;
+            if ((support_style == smsSnug || support_style == smsGrid || support_style == smsConical) && is_tree(object_config.support_type))
+                support_style = smsDefault;
             if ((support_style == smsTreeSlim || support_style == smsTreeStrong || support_style == smsTreeHybrid || support_style == smsTreeOrganic) &&
                 !is_tree(object_config.support_type))
                 support_style = smsDefault;

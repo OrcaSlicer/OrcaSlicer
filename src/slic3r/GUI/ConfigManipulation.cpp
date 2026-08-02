@@ -521,7 +521,7 @@ void ConfigManipulation::update_print_fff_config(DynamicPrintConfig* config, con
     if (config->opt_bool("enable_support")) {
         auto   support_type = config->opt_enum<SupportType>("support_type");
         auto   support_style = config->opt_enum<SupportMaterialStyle>("support_style");
-        std::set<int> enum_set_normal = { smsDefault, smsGrid, smsSnug };
+        std::set<int> enum_set_normal = { smsDefault, smsGrid, smsSnug, smsConical };
         std::set<int> enum_set_tree   = { smsDefault, smsTreeSlim, smsTreeStrong, smsTreeHybrid, smsTreeOrganic };
         auto &           set             = is_tree(support_type) ? enum_set_tree : enum_set_normal;
         if (set.find(support_style) == set.end()) {
@@ -827,7 +827,7 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool have_support_soluble = have_support_material && config->opt_float("support_top_z_distance") == 0;
     auto support_style = config->opt_enum<SupportMaterialStyle>("support_style");
     for (auto el : { "support_style", "support_base_pattern",
-        "support_base_pattern_spacing", "support_expansion", "support_angle", "support_conical_enabled",
+        "support_base_pattern_spacing", "support_expansion", "support_angle",
         "support_interface_pattern", "support_interface_top_layers", "support_interface_bottom_layers",
         "bridge_no_support", "max_bridge_length", "support_top_z_distance", "support_bottom_z_distance",
         "support_type", "support_on_build_plate_only", "support_critical_regions_only", "support_interface_not_for_body",
@@ -840,13 +840,13 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     bool support_is_tree = config->opt_bool("enable_support") && is_tree(support_type);
     bool support_is_organic = support_is_tree && (support_style == smsTreeOrganic || support_style == smsDefault);
     bool support_is_normal_tree = support_is_tree && !support_is_organic;
-    const bool conical_support_available = config->opt_bool("enable_support") && !support_is_tree;
-    toggle_field("support_conical_enabled", conical_support_available);
-    const bool conical_support_enabled = conical_support_available && config->opt_bool("support_conical_enabled");
+    const bool conical_support_enabled = config->opt_bool("enable_support") && ! support_is_tree && support_style == smsConical;
     toggle_field("support_conical_angle", conical_support_enabled);
     toggle_field("support_conical_min_width", conical_support_enabled && config->opt_float("support_conical_angle") > 0.);
-    for (auto el : { "support_conical_enabled", "support_conical_angle", "support_conical_min_width" })
-        toggle_line(el, !support_is_tree);
+    toggle_field("support_conical_max_column_width", conical_support_enabled && config->opt_float("support_conical_angle") > 0.);
+    toggle_line("support_conical_angle", conical_support_enabled);
+    toggle_line("support_conical_min_width", conical_support_enabled && config->opt_float("support_conical_angle") > 0.);
+    toggle_line("support_conical_max_column_width", conical_support_enabled && config->opt_float("support_conical_angle") > 0.);
 
     // hide settings that are not used by tree supports
     toggle_line("support_threshold_overlap", !support_is_tree); // ORCA: tree supports do not use Threshold Overlap

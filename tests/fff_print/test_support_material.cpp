@@ -36,7 +36,7 @@ TEST_CASE("Enforced support layers are generated", "[SupportMaterial]")
     REQUIRE(enforced.objects().front()->support_layers().size() > 0);
 }
 
-TEST_CASE("Conical grid support narrows toward the build plate", "[SupportMaterial]")
+TEST_CASE("Conical support narrows and subdivides wide areas toward the build plate", "[SupportMaterial]")
 {
     // Model the same broad slab on a narrow central pillar used for manual
     // verification. Grid support used to erase each small per-layer offset.
@@ -56,31 +56,54 @@ TEST_CASE("Conical grid support narrows toward the build plate", "[SupportMateri
     };
 
     const std::initializer_list<ConfigBase::SetDeserializeItem> common_config {
-        { "enable_support",                1 },
-        { "layer_height",                  0.2 },
-        { "support_on_build_plate_only",   1 },
-        { "support_remove_small_overhang", 0 },
-        { "support_conical_angle",         30 },
-        { "support_conical_min_width",     5 }
+        { "enable_support",                     1 },
+        { "layer_height",                       0.2 },
+        { "support_on_build_plate_only",        1 },
+        { "support_remove_small_overhang",      0 },
+        { "support_conical_angle",              30 },
+        { "support_conical_min_width",          5 },
+        { "support_conical_max_column_width",   0 }
     };
 
     DynamicPrintConfig straight_config = DynamicPrintConfig::full_print_config();
     straight_config.set_deserialize_strict(common_config);
-    straight_config.set_key_value("support_conical_enabled", new ConfigOptionBool(false));
+    straight_config.set_key_value("support_style", new ConfigOptionEnum<SupportMaterialStyle>(smsGrid));
     Print straight;
     init_and_process_print({ pedestal }, straight, straight_config);
 
     DynamicPrintConfig conical_config = straight_config;
-    conical_config.set_key_value("support_conical_enabled", new ConfigOptionBool(true));
+    conical_config.set_key_value("support_style", new ConfigOptionEnum<SupportMaterialStyle>(smsConical));
     Print conical;
     init_and_process_print({ pedestal }, conical, conical_config);
+    REQUIRE(straight.objects().front()->config().support_style.value == smsGrid);
+    REQUIRE(conical.objects().front()->config().support_style.value == smsConical);
+
+    DynamicPrintConfig subdivided_config = conical_config;
+    // Each original support region is wider than this limit and should become
+    // multiple independently tapered columns.
+    subdivided_config.set_key_value("support_conical_max_column_width", new ConfigOptionFloat(12));
+    Print subdivided;
+    init_and_process_print({ pedestal }, subdivided, subdivided_config);
+
+    DynamicPrintConfig inactive_limit_config = conical_config;
+    inactive_limit_config.set_key_value("support_conical_max_column_width", new ConfigOptionFloat(100));
+    Print inactive_limit;
+    init_and_process_print({ pedestal }, inactive_limit, inactive_limit_config);
 
     const SupportLayer *straight_low = support_layer_near_z(straight, 2.);
     const SupportLayer *conical_low  = support_layer_near_z(conical, 2.);
     const SupportLayer *conical_high = support_layer_near_z(conical, 58.);
+    const SupportLayer *subdivided_low = support_layer_near_z(subdivided, 2.);
+    const SupportLayer *subdivided_contact = support_layer_near_z(subdivided, 62.);
+    const SupportLayer *conical_contact = support_layer_near_z(conical, 62.);
+    const SupportLayer *inactive_limit_low = support_layer_near_z(inactive_limit, 2.);
     REQUIRE(straight_low != nullptr);
     REQUIRE(conical_low != nullptr);
     REQUIRE(conical_high != nullptr);
+    REQUIRE(subdivided_low != nullptr);
+    REQUIRE(subdivided_contact != nullptr);
+    REQUIRE(conical_contact != nullptr);
+    REQUIRE(inactive_limit_low != nullptr);
 
     const double straight_area_low = area(straight_low->support_islands);
     const double conical_area_low  = area(conical_low->support_islands);
@@ -92,6 +115,13 @@ TEST_CASE("Conical grid support narrows toward the build plate", "[SupportMateri
     REQUIRE(conical_area_low < conical_area_high);
     REQUIRE(unscaled(unscaled(conical_area_low)) < 500.);
     REQUIRE(conical_low->support_islands.size() == 2);
+    REQUIRE(subdivided_low->support_islands.size() > conical_low->support_islands.size());
+    REQUIRE(subdivided_contact->support_islands.size() == conical_contact->support_islands.size());
+    REQUIRE_THAT(area(subdivided_contact->support_islands),
+        Catch::Matchers::WithinRel(area(conical_contact->support_islands), 0.01));
+    REQUIRE(inactive_limit_low->support_islands.size() == conical_low->support_islands.size());
+    REQUIRE_THAT(area(inactive_limit_low->support_islands),
+        Catch::Matchers::WithinRel(conical_area_low, 0.001));
 
     size_t sampled_layers = 0;
     size_t changing_layers = 0;
@@ -143,14 +173,15 @@ TEST_CASE("Conical build plate support reaches around lower geometry", "[Support
 
     DynamicPrintConfig everywhere_config = DynamicPrintConfig::full_print_config();
     everywhere_config.set_deserialize_strict({
-        { "enable_support",                1 },
-        { "layer_height",                  0.2 },
-        { "support_on_build_plate_only",   0 },
-        { "support_remove_small_overhang", 0 },
-        { "support_threshold_angle",       45 },
-        { "support_conical_enabled",       1 },
-        { "support_conical_angle",         30 },
-        { "support_conical_min_width",     5 }
+        { "enable_support",                     1 },
+        { "layer_height",                       0.2 },
+        { "support_on_build_plate_only",        0 },
+        { "support_remove_small_overhang",      0 },
+        { "support_threshold_angle",            45 },
+        { "support_style",                      "conical" },
+        { "support_conical_angle",              30 },
+        { "support_conical_min_width",          5 },
+        { "support_conical_max_column_width",   0 }
     });
     Print everywhere;
     init_and_process_print({ model }, everywhere, everywhere_config);
