@@ -2574,6 +2574,8 @@ void Print::process(long long *time_cost_with_cache, bool use_cache)
         m_has_shared_per_object_skirt = false;
         m_skirt_convex_hull.clear();
         m_objectBrimAreasByInstance.clear();
+        m_ear_brim_centroids_outer.clear();
+        m_ear_brim_centroids_inner.clear();
         m_first_layer_convex_hull.points.clear();
         for (PrintObject *object : m_objects)  object->m_skirt.clear();
 

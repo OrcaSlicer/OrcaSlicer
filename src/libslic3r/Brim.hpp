@@ -17,7 +17,8 @@ class PrintTryCancel;
 
 // Produce brim lines around those objects, that have the brim enabled.
 // Collect islands_area to be merged into the final 1st layer convex hull.
-void make_brim(const Print& print, PrintTryCancel try_cancel,
+// Non-const Print& to store ear centroids (btEar) and bounding box.
+void make_brim(Print& print, PrintTryCancel try_cancel,
     Polygons& islands_area, std::map<ObjectID, ExtrusionEntityCollection>& brimMap,
     std::map<ObjectInstanceID, ExtrusionEntityCollection>& brimMapByInstance,
     std::vector<std::pair<ObjectID, unsigned int>>& objPrintVec,
