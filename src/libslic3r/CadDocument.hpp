@@ -400,6 +400,12 @@ struct CadBody {
     // falls back to the auto body-index palette. Carried across recompute() by body index.
     bool         has_color{false};
     ColorRGBA    color;
+    // Index into `features` of the feature that CREATED this body, or -1. A body is a
+    // recomputed result, so without this there is no way back to its maker and "delete this
+    // body" cannot be expressed at all — the GUI could only answer "select the FEATURE that
+    // created this body". Stamped in one place, the recompute loop; see the note there for
+    // why a single "still unset?" test is sufficient and stays correct for new feature types.
+    int          source_feature{-1};
 };
 
 // OCCT-only feature tree backing the Design tab. No GUI dependencies (lives in libslic3r).

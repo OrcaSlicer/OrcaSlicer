@@ -3208,15 +3208,27 @@ bool CadDocument::recompute()
         for (CadFeature& f : features)
             for (const auto& [field, e] : f.expr)
                 assign_field(f, field, eval_expr(e, varvals));
-        for (CadFeature& f : features) {
+        for (size_t fi = 0; fi < features.size(); ++fi) {
+            CadFeature& f = features[fi];
             if (!f.enabled) continue;
             if (f.type == CadFeatureType::Sketch) continue; // consumed by an extrude
             if (f.type == CadFeatureType::Helix)  continue; // consumed by Sweep as a path
             if (f.type == CadFeatureType::Plane)   continue; // datum: no solid, derived on demand
             if (f.type == CadFeatureType::Axis)    continue; // datum axis
             if (f.type == CadFeatureType::CoordSys) continue; // datum coordinate system
-            if (f.type == CadFeatureType::Project) { apply_project(built, f); continue; }
-            route_feature(built, f);
+            if (f.type == CadFeatureType::Project) { apply_project(built, f); }
+            else                                   { route_feature(built, f); }
+            // Record which feature made each body. "Still unset?" is the whole rule, and it is
+            // sufficient because of an invariant worth stating: NO feature ever replaces a whole
+            // CadBody. Every in-place op writes only `.shape` (boolean, cut, mirror-fuse,
+            // transform, dress-up — checked, all 8 sites), so an existing body keeps the stamp it
+            // was born with; a consumed body is erased outright, taking its stamp with it; and
+            // the only bodies still at -1 here are the ones THIS feature just pushed. That also
+            // means a feature type added later needs no change here, as long as it keeps to the
+            // same invariant.
+            for (CadBody& b : built)
+                if (b.source_feature < 0)
+                    b.source_feature = int(fi);
         }
     } catch (const Standard_Failure& e) {
         // OCCT raises Standard_Failure (NOT a std::exception) — must be caught

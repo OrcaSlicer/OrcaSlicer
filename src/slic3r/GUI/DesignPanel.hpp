@@ -175,6 +175,10 @@ private:
 
     // Feature-tree editing (Onshape-style): act on the selected tree row.
     void on_delete_feature();
+    // "Delete Body" — the geometry-first counterpart, reached by pointing at a body or any of
+    // its faces. Resolves the body to the feature that created it and removes THAT, because a
+    // body is a recomputed result and has nothing else to delete.
+    void on_delete_body();
     void on_new_design();
     void on_move_feature(int delta);   // -1 = up, +1 = down
     void on_toggle_visibility();       // show/hide the selected feature (CadFeature::enabled)

@@ -123,7 +123,8 @@ static const OfferVerb kOfferVerbs[] = {
     {"edit_feature", "Edit", 7, nullptr, "btn:edit", nullptr, 0x00007d8eu, 0, 0, false, false, nullptr, "design_edit", "Reopen the selected feature to change what it was made from"},
     {"delete_face", "Delete Face", 7, nullptr, "fly:dressup#3", "Delete Face needs a body — add or import one first", 0x0000000eu, 1, 0, false, false, nullptr, "design_delete", "Remove faces from a body and heal the solid"},
     {"colour", "Colour", 7, nullptr, "btn:colour", nullptr, 0x00000180u, 1, 0, false, false, nullptr, "color_palette", "Set the selected body's display colour"},
-    {"delete", "Delete", 7, "Del", "btn:delete", nullptr, 0x000f7f80u, 0, 0, false, false, nullptr, "design_delete", "Delete what is selected"},
+    {"delete", "Delete", 7, "Del", "btn:delete", nullptr, 0x000f7c00u, 0, 0, false, false, nullptr, "design_delete", "Delete what is selected"},
+    {"delete_body", "Delete Body", 7, nullptr, "btn:delete_body", nullptr, 0x000001feu, 1, 0, false, false, nullptr, "design_delete", "Delete this whole body — removes the feature it was made from"},
     {"sk_line_t", "Line", 0, "L", "key:L", nullptr, 0x000f8000u, 0, 0, false, true, "Line", "design_line", "Line — click start, then end"},
     {"sk_polyline", "Polyline", 0, nullptr, "fly:design_line#1", nullptr, 0x000f8000u, 0, 0, false, true, "Line", "design_polyline", "Click points; click first / right-click to close the loop"},
     {"sk_rect", "Corner rectangle", 0, "R", "key:R", nullptr, 0x000f8000u, 0, 0, false, true, "Rectangle", "design_rect", "Rectangle — click two opposite corners"},
@@ -168,7 +169,7 @@ static const OfferVerb kOfferVerbs[] = {
     {"sk_extend", "Extend", 7, "X", "key:X", nullptr, 0x000b0000u, 0, 0, false, true, nullptr, "design_extend", "Extend — click a line/arc to extend it"},
     {"sk_delete", "Delete", 7, "Del", "btn:delete", nullptr, 0x000f0000u, 0, 0, false, true, nullptr, "design_delete", "Delete the selected sketch entities"},
 };
-static const int kOfferVerbCount = 86;
+static const int kOfferVerbCount = 87;
 
 }} // namespace Slic3r::GUI
 

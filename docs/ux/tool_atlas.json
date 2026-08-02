@@ -1059,14 +1059,11 @@
       "feature": null,
       "mcp": null,
       "accepts": [
-        "body_solid",
-        "body_sheet",
         "sk_loop",
         "art",
         "datum_plane",
         "datum_axis",
         "coordsys",
-        "bodies_2",
         "sk_line",
         "sk_arc",
         "sk_point",
@@ -1078,6 +1075,31 @@
       "action": "btn:delete",
       "icon": "design_delete",
       "hint": "Delete what is selected"
+    },
+    {
+      "id": "delete_body",
+      "name": "Delete Body",
+      "slot": "modify",
+      "key": null,
+      "action": "btn:delete_body",
+      "refusal": null,
+      "accepts": [
+        "body_solid",
+        "body_sheet",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
+      ],
+      "needs": {
+        "bodies": 1
+      },
+      "mode": "model",
+      "family": null,
+      "icon": "design_delete",
+      "hint": "Delete this whole body — removes the feature it was made from"
     },
     {
       "id": "sk_line_t",

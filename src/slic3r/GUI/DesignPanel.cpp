@@ -938,6 +938,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
         fadd("color", b_color);
         m_verb_actions["btn:colour"] = [this] { on_set_body_color(); };
         m_verb_actions["btn:delete"] = [this] { on_delete_feature(); };
+        m_verb_actions["btn:delete_body"] = [this] { on_delete_body(); };
         m_verb_actions["btn:edit"]   = [this] { on_edit_feature(); };
         m_verb_actions["btn:mass"]   = [this] { on_mass_properties(); };
 
@@ -6057,6 +6058,49 @@ void DesignPanel::on_new_design()
     after_tree_edit(true);         // rebuild the (now empty) tree + clear the viewport
     update_action_bar();
     set_status_ok();
+}
+
+// The verb the offer names when you point at a body, or at any face/edge/vertex of one. A body
+// is a recomputed RESULT, so what actually gets deleted is the feature that created it
+// (CadBody::source_feature). That is an edit to the recipe and can take other features with it,
+// so it asks first and NAMES the feature: a body disappearing from the viewport is not by itself
+// evidence of which feature went, and this is the one action here that cannot be eyeballed.
+void DesignPanel::on_delete_body()
+{
+    const int nb = int(m_doc.bodies.size());
+    if (m_sel_solid_body < 0 || m_sel_solid_body >= nb) {
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        set_status(_L("Select a body first"));
+        m_status->Refresh();
+        return;
+    }
+    const int src = m_doc.bodies[m_sel_solid_body].source_feature;
+    if (src < 0 || src >= int(m_doc.features.size())) {
+        // Only reachable for a body no feature claims — a stale recipe, or a feature type that
+        // broke the "never replace a whole CadBody" invariant recompute() relies on.
+        m_status->SetForegroundColour(wxColour(235, 110, 110));
+        set_status(_L("This body has no feature to delete — use New Design to start over"));
+        m_status->Refresh();
+        return;
+    }
+    const std::string& raw = m_doc.features[src].name;
+    const wxString fname = raw.empty() ? wxString::Format(_L("feature %d"), src + 1)
+                                       : wxString::FromUTF8(raw);
+    if (wxMessageBox(wxString::Format(
+                         _L("Delete %s?\n\nThat is the feature this body was made from. "
+                            "Features built on it may be removed or stop working."), fname),
+                     _L("Delete body"), wxYES_NO | wxNO_DEFAULT | wxICON_QUESTION, this) != wxYES)
+        return;
+    // A card left open over a feature that is about to vanish goes stale — same reason
+    // on_delete_feature() closes it.
+    if (m_active != Tool::None || m_edit_index >= 0) {
+        reset_edit_state();
+        close_tool();
+    }
+    m_doc.checkpoint();   // undo boundary: deleting a body's feature
+    m_sel_solid_body = m_sel_solid_face = m_sel_solid_edge = -1;   // the selection is about to
+    m_sel_solid_vertex = false;                                    // name a body that is gone
+    after_tree_edit(m_doc.remove_feature(src));
 }
 
 void DesignPanel::on_delete_feature()
