@@ -558,7 +558,13 @@
       "mcp": null,
       "accepts": [
         "body_solid",
-        "datum_plane"
+        "datum_plane",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
       ],
       "needs": {
         "bodies": 1
@@ -577,7 +583,13 @@
       "feature": "Cut",
       "mcp": "split",
       "accepts": [
-        "body_solid"
+        "body_solid",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
       ],
       "needs": {
         "bodies": 1
@@ -725,7 +737,13 @@
       "mcp": "mirror",
       "accepts": [
         "body_solid",
-        "datum_plane"
+        "datum_plane",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
       ],
       "needs": {
         "bodies": 1
@@ -766,7 +784,13 @@
       "accepts": [
         "body_solid",
         "body_sheet",
-        "art"
+        "art",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
       ],
       "needs": {
         "bodies": 1
@@ -954,7 +978,13 @@
       "feature": null,
       "mcp": "mass_properties",
       "accepts": [
-        "body_solid"
+        "body_solid",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
       ],
       "needs": {
         "bodies": 1
@@ -1040,7 +1070,13 @@
       "mcp": null,
       "accepts": [
         "body_solid",
-        "body_sheet"
+        "body_sheet",
+        "face_planar",
+        "face_cyl",
+        "face_other",
+        "edge_str",
+        "edge_circ",
+        "vertex"
       ],
       "needs": {
         "bodies": 1
