@@ -67,12 +67,47 @@ void FillConcentric::_fill_surface_single(
     if (spiralized) {
         Polyline spiral;
         Point current_pos(0, 0);
-        // Threshold distance to detect jumps between islands.
         const double jump_threshold = 3.0 * double(distance);
+
+        auto find_sharpest_corner = [](const Polygon& loop) -> int {
+            size_t n = loop.points.size();
+            if (n < 3)
+                return 0;
+
+            double max_cos = -2.0;
+            int best_idx   = 0;
+            for (size_t i = 0; i < n; ++i) {
+                const Point& p_prev = loop.points[(i - 1 + n) % n];
+                const Point& p      = loop.points[i];
+                const Point& p_next = loop.points[(i + 1) % n];
+
+                Vec2d v1    = (p_prev - p).cast<double>();
+                Vec2d v2    = (p_next - p).cast<double>();
+                double len1 = v1.norm();
+                double len2 = v2.norm();
+                if (len1 < 1e-6 || len2 < 1e-6)
+                    continue;
+
+                double cos_val = v1.dot(v2) / (len1 * len2);
+                if (cos_val > max_cos) {
+                    max_cos  = cos_val;
+                    best_idx = (int) i;
+                }
+            }
+            return best_idx;
+        };
 
         for (size_t i = 0; i < loops.size(); ++i) {
             const Polygon& loop = loops[i];
-            int idx = current_pos.nearest_point_index(loop.points);
+
+            int idx;
+            if (spiral.empty()) {
+                idx = find_sharpest_corner(loop);
+            } else {
+                idx = current_pos.nearest_point_index(loop.points);
+            }
+
+
             Polyline loop_path(loop.split_at_index(idx));
             loop_path.points = loop_points_opened(std::move(loop_path));
             if (loop_path.size() < 2)
@@ -84,10 +119,10 @@ void FillConcentric::_fill_surface_single(
                 if (dist_to_new_start > jump_threshold) {
                     if (!spiral.empty())
                         polylines_out.emplace_back(std::move(spiral));
-                    
+
                     spiral.clear();
-                    current_pos      = Point(0, 0);
-                    idx              = current_pos.nearest_point_index(loop.points);
+                    current_pos = Point(0, 0);
+                    idx              = find_sharpest_corner(loop);
                     loop_path        = Polyline(loop.split_at_index(idx));
                     loop_path.points = loop_points_opened(std::move(loop_path));
                     if (loop_path.size() < 2)
@@ -120,7 +155,7 @@ void FillConcentric::_fill_surface_single(
     } else {
         // split paths using a nearest neighbor search
         Point last_pos(0, 0);
-        for (const Polygon &loop : loops) {
+        for (const Polygon& loop : loops) {
             polylines_out.emplace_back(loop.split_at_index(last_pos.nearest_point_index(loop.points)));
             last_pos = polylines_out.back().last_point();
         }
