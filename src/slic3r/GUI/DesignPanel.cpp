@@ -2970,21 +2970,48 @@ DesignPanel::DesignPanel(wxWindow* parent)
     // tree rebuild — until then an empty box would sit under the header.
     m_parts->Hide();
     m_parts_label->Hide();
-    m_parts->Bind(wxEVT_TREE_SEL_CHANGED, [this](wxTreeEvent&) {
-        if (!m_viewport) return;
-        const int b = tree_body_selection();
-        if (b < 0) return;
+    // Taking a body from the list means the SAME state change however it was asked for, so the
+    // normalisation lives here and not inside a selection handler. That distinction is not
+    // pedantry: SelectItem() on a row that is ALREADY selected fires no SEL_CHANGED at all, so a
+    // version of this that only ran on selection left a stale vertex/edge from an earlier
+    // viewport pick in place — and offer_selection_kind() tests vertex FIRST, so right-clicking
+    // the body row served the VERTEX offer (Fillet greyed, Mirror in place of Repeat) while the
+    // row sat highlighted. Measured on the rig 2026-08-02; it is invisible from the code alone.
+    auto apply_body_row = [this](int b) {
+        if (!m_viewport || b < 0) return;
         // One selection at a time: a body row and a feature row mean different things to the
         // op bar, so clear the feature tree's highlight when a body takes over.
         if (m_tree) m_tree->UnselectAll();
         m_viewport->set_body_highlight(false);   // the per-body overlay does the tint
-        m_viewport->select_body(b);
-        m_sel_solid_body = b;
-        m_sel_solid_face = m_sel_solid_edge = -1;
+        m_viewport->select_body(b);              // also drops the vertex/edge marker
+        m_sel_solid_body   = b;
+        m_sel_solid_face   = m_sel_solid_edge = -1;
+        m_sel_solid_vertex = false;
         m_pick_face = m_pick_face_body = -1;   // chosen from the list, no face was pointed at
         m_status->SetForegroundColour(wxNullColour);
         set_status(wxString::Format(_L("Body %d selected — right-click for what applies to it"), b + 1));
         m_status->Refresh();
+    };
+    m_parts->Bind(wxEVT_TREE_SEL_CHANGED, [this, apply_body_row](wxTreeEvent&) {
+        apply_body_row(tree_body_selection());
+    });
+    // The third door onto the offer, after the viewport right-click and the Menu key. A body ROW
+    // is an unambiguous body, so the offer reports BodySolid and the body verbs act on the row you
+    // can see highlighted. That is the confirmation a face pick cannot give: pointing at a face
+    // lights the face, never the body the verb will actually change. The status line above has
+    // been promising this right-click since before it existed.
+    m_parts->Bind(wxEVT_TREE_ITEM_MENU, [this, apply_body_row](wxTreeEvent& e) {
+        if (e.GetItem().IsOk())
+            m_parts->SelectItem(e.GetItem());   // the row under the cursor, never a stale one
+        apply_body_row(tree_body_selection());  // unconditional — see above, SelectItem on an
+                                                // already-selected row raises no event
+        // GetPoint() is tree-client; it is (-1,-1) when the KEYBOARD menu key raised this, so fall
+        // back to the shared anchor rather than popping the menu at a garbage coordinate.
+        const wxPoint p = e.GetPoint();
+        const wxPoint screen = (p.x >= 0 && p.y >= 0) ? m_parts->ClientToScreen(p) : offer_anchor();
+        // Let the modal menu take the loop after this handler returns — same CallAfter as the
+        // sketch path, which learned it the hard way.
+        CallAfter([this, screen] { show_offer_menu(screen); });
     });
 
     // --- Variables (document-scope named expressions) ---
