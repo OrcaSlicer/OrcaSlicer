@@ -20,9 +20,6 @@ constexpr double caged_layer_height     = 0.2;  // mm
 constexpr double caged_wall_width       = 0.42; // mm, outer wall line width
 constexpr double caged_outer_wall_speed = 200.; // mm/s
 constexpr double caged_slow_speed       = 100.; // mm/s, between every configured overhang speed (<= 50) and the wall speed
-// A move that was not slowed at all runs at the full outer wall speed. Comparing against 90% of it
-// keeps the assertion about "was not slowed" rather than about an exact feed rate.
-constexpr double caged_unslowed_speed = 0.9 * caged_outer_wall_speed; // mm/s
 
 // A 40 x 20 x 20 mm box with a 45 degree overhang cut into the y = 0 side. The sloped face spans
 // x = 5.086 .. 34.914 only, so the full-height walls of the box cage both ends of every overhang
@@ -175,11 +172,11 @@ void info_feed_rates(const char* span, const std::vector<double>& feed_rates)
 
 } // namespace
 
-// Classic is what reproduces the caged-overhang bug: it emits the span as one long move whose two
-// endpoints both read as supported, so endpoint-only sampling never slows it. Arachne is covered as
-// a non-regression guard only. It places the perimeter ends slightly further out, so its endpoints
-// already read as overhanging and ordinary segmentation handles the span - it was never observed to
-// reproduce the bug, with or without the midpoint pass.
+// Classic reproduces the endpoint-sampling bug: it emits the span as one long move whose endpoints
+// both read as supported, so endpoint-only sampling never slows it. Arachne's endpoints already read
+// as overhanging, but their placement near the cage makes the inferred support vary by layer. Arachne
+// parity is therefore part of this regression's scope: both generators must classify the unsupported
+// interior of the same 45-degree span consistently.
 TEST_CASE("Caged external overhangs are slowed along their span", "[ExtrusionProcessor][Regression]")
 {
     const char* wall_generator = GENERATE("classic", "arachne");
@@ -190,14 +187,11 @@ TEST_CASE("Caged external overhangs are slowed along their span", "[ExtrusionPro
 
     REQUIRE_FALSE(feed_rates.empty());
 
-    // The bug left the whole span at the full outer wall speed, so the binding assertion is that
-    // nothing on it ran unslowed - not merely that something somewhere got slower.
+    // The endpoint bug left Classic at the full wall speed, while Arachne's cage-adjacent endpoint
+    // samples selected much faster bands on some layers. The whole span must stay in the slowed range
+    // for both generators, without requiring their different path segmentations to match.
     const double fastest = *std::max_element(feed_rates.begin(), feed_rates.end());
-    REQUIRE(fastest < caged_unslowed_speed * MM_PER_MIN);
-
-    // And the span has to reach a genuine overhang speed rather than being nudged just under it.
-    const double slowest = *std::min_element(feed_rates.begin(), feed_rates.end());
-    REQUIRE(slowest < caged_slow_speed * MM_PER_MIN);
+    REQUIRE(fastest < caged_slow_speed * MM_PER_MIN);
 }
 
 // The other side of the fix: the midpoint probe fires on every long external perimeter, so a
@@ -215,4 +209,14 @@ TEST_CASE("Supported vertical walls keep their normal speed", "[ExtrusionProcess
 
     const double slowest = *std::min_element(feed_rates.begin(), feed_rates.end());
     REQUIRE(slowest >= caged_slow_speed * MM_PER_MIN);
+}
+
+TEST_CASE("Benchmark caged overhang midpoint sampling", "[ExtrusionProcessor][!benchmark]")
+{
+    const char* wall_generator = GENERATE("classic", "arachne");
+
+    BENCHMARK(wall_generator)
+    {
+        return caged_overhang_gcode(wall_generator);
+    };
 }

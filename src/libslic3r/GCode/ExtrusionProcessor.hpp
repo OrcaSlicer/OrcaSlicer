@@ -121,9 +121,9 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
     }
 
     // ORCA: Midpoint sampling
-    // Segmentation below only interpolates from the endpoint distances, so a boundary close to both
-    // endpoints hides a less supported span between them - for example where vertical walls cage an
-    // overhang. Probe the middle of long segments to expose it, at one extra query per segment.
+    // Segmentation below only interpolates from endpoint distances, so nearby geometry can hide or
+    // misrepresent the support under a long span. Probe its midpoint to classify the interior itself,
+    // at one extra query per segment.
     if (PREV_LAYER_BOUNDARY_OFFSET && ADD_INTERSECTIONS && min_distance > 0) {
         std::vector<ExtendedPoint<L::Dim>> sampled_points; // Populated lazily, on the first insertion
         for (size_t point_idx = 0; point_idx + 1 < points.size(); ++point_idx) {
@@ -131,9 +131,7 @@ std::vector<ExtendedPoint<L::Dim>> estimate_points_properties(const POINTS&     
             const ExtendedPoint<L::Dim>& next = points[point_idx + 1];
             const double line_len = (next.position - curr.position).norm();
 
-            if (line_len >= 2.f &&
-                std::abs(curr.distance) <= min_distance &&
-                std::abs(next.distance) <= min_distance) {
+            if (line_len >= 2.f) {
                 const Vec midpoint = 0.5 * (curr.position + next.position);
                 auto [midpoint_dist, midpoint_near_l, midpoint_x] =
                     unscaled_prev_layer.template distance_from_lines_extra<SIGNED_DISTANCE>(midpoint.template cast<AABBScalar>());
