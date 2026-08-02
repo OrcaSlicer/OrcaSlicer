@@ -338,6 +338,25 @@ TEST_CASE("G-code lists the resolved extrusion-width settings", "[Print]")
     CHECK(with_first_layer.find("; first layer extrusion width") != std::string::npos);
 }
 
+// bed_temperature_formula serializes to an enum name, and firmware that prefix-matches
+// "bed_temperature" while scanning the config block (Anycubic Kobra) reports that name as the
+// bed temperature. The key is only read at slice time, so it is dropped from the block for
+// non-BBL printers. BBL printers have carried it in the block since it was added, so they keep
+// it and their output stays unchanged.
+TEST_CASE("The G-code config block omits bed_temperature_formula for non-BBL printers", "[Print]")
+{
+    Print print;
+    Model model;
+    Slic3r::Test::init_print({cube(20)}, print, model);
+    CHECK(Slic3r::Test::gcode(print).find("; bed_temperature_formula") == std::string::npos);
+
+    Print bbl_print;
+    Model bbl_model;
+    Slic3r::Test::init_print({cube(20)}, bbl_print, bbl_model);
+    bbl_print.is_BBL_printer() = true;
+    CHECK(Slic3r::Test::gcode(bbl_print).find("; bed_temperature_formula") != std::string::npos);
+}
+
 // Custom G-code templates substitute placeholders during export.
 TEST_CASE("Custom G-code placeholders are substituted", "[Print]")
 {
