@@ -113,6 +113,7 @@ bool GLGizmoMmuSegmentation::on_init()
     m_desc["tool_smart_fill"]  = _L("Smart fill");
     m_desc["tool_bucket_fill"] = _L("Bucket fill");
     m_desc["smart_fill_angle"] = _L("Smart fill angle");
+    m_desc["smooth_edges"]     = _L("Smooth edges");
     m_desc["height_range"]     = _L("Height range");
     m_desc["toggle_wireframe"] = _L("Toggle Wireframe");
     m_desc["perform_remap"]    = _u8L("Remap filaments");
@@ -127,7 +128,7 @@ bool GLGizmoMmuSegmentation::on_init()
     m_shortcuts_brush = {
         paint_shortcut,
         erase_shortcut,
-        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]},
+        {ctrl + _L("Mouse wheel") + " / [ ]", m_desc["cursor_size"]},
         clipping_shortcut,
         toggle_wireframe_shortcut
     };
@@ -135,13 +136,13 @@ bool GLGizmoMmuSegmentation::on_init()
     m_shortcuts_bucket_fill = {
         paint_shortcut,
         erase_shortcut,
-        {ctrl + _L("Mouse wheel"), m_desc["smart_fill_angle"]},
+        {ctrl + _L("Mouse wheel") + " / [ ]", m_desc["smart_fill_angle"]},
         clipping_shortcut,
         toggle_wireframe_shortcut
     };
 
     m_shortcuts_gap_fill = {
-        {ctrl + _L("Mouse wheel"), m_desc["gap_area"]},
+        {ctrl + _L("Mouse wheel") + " / [ ]", m_desc["gap_area"]},
         toggle_wireframe_shortcut
     };
 
@@ -589,7 +590,13 @@ void GLGizmoMmuSegmentation::on_render_input_window(float x, float y, float bott
         }
                 
         m_imgui->bbl_checkbox(m_desc["edge_detection"], m_detect_geometry_edge);
-    } 
+
+        if (m_imgui->bbl_checkbox(m_desc["smooth_edges"], m_smart_fill_smooth_edges))
+            for (auto &triangle_selector : m_triangle_selectors) {
+                triangle_selector->seed_fill_unselect_all_triangles();
+                triangle_selector->request_update_render_data();
+            }
+    }
     else if (m_current_tool == ImGui::HeightRangeIcon) {
         m_tool_type   = ToolType::BRUSH;
         m_cursor_type = TriangleSelector::CursorType::HEIGHT_RANGE;

@@ -90,6 +90,7 @@ bool GLGizmoFdmSupports::on_init()
     m_desc["clipping_of_view"]   = _L("Section view");
     m_desc["cursor_size"]        = _L("Brush size");
     m_desc["smart_fill_angle"]   = _L("Smart fill angle");
+    m_desc["smooth_edges"]       = _L("Smooth edges");
     m_desc["gap_area"]           = _L("Gap area");
 
 
@@ -106,20 +107,20 @@ bool GLGizmoFdmSupports::on_init()
         enforce_shortcut, 
         block_shortcut, 
         remove_shortcut,
-        {ctrl + _L("Mouse wheel"), m_desc["cursor_size"]},
+        {ctrl + _L("Mouse wheel") + " / [ ]", m_desc["cursor_size"]},
         clipping_shortcut
     };
 
     m_shortcuts_bucket_fill = {
-        enforce_shortcut, 
-        block_shortcut, 
+        enforce_shortcut,
+        block_shortcut,
         remove_shortcut,
-        {ctrl + _L("Mouse wheel"),  m_desc["smart_fill_angle"]},
+        {ctrl + _L("Mouse wheel") + " / [ ]",  m_desc["smart_fill_angle"]},
         clipping_shortcut
     };
 
     m_shortcuts_gap_fill = {
-        {ctrl + _L("Mouse wheel"), _L("Gap area")}
+        {ctrl + _L("Mouse wheel") + " / [ ]", _L("Gap area")}
     };
 
     memset(&m_print_instance, 0, sizeof(m_print_instance));
@@ -369,6 +370,12 @@ void GLGizmoFdmSupports::on_render_input_window(float x, float y, float bottom_l
         ImGui::SameLine(drag_left_width + sliders_left_width);
         ImGui::PushItemWidth(1.5 * slider_icon_width);
         ImGui::BBLDragFloat("##smart_fill_angle_input", &m_smart_fill_angle, 0.05f, 0.0f, 0.0f, "%.2f");
+
+        if (m_imgui->bbl_checkbox(m_desc["smooth_edges"], m_smart_fill_smooth_edges))
+            for (auto& triangle_selector : m_triangle_selectors) {
+                triangle_selector->seed_fill_unselect_all_triangles();
+                triangle_selector->request_update_render_data();
+            }
     } else if (m_current_tool == ImGui::GapFillIcon) {
         m_tool_type = ToolType::GAP_FILL;
         m_cursor_type = TriangleSelector::CursorType::POINTER;

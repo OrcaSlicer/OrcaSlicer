@@ -317,14 +317,23 @@ public:
                                     const ClippingPlane &clp,                         // Clipping plane to limit painting to not clipped facets only
                                     float               seed_fill_angle,              // the maximal angle between two facets to be painted by the same color
                                     float               highlight_by_angle_deg = 0.f, // The maximal angle of overhang. If it is set to a non-zero value, it is possible to paint only the triangles of overhang defined by this angle in degrees.
-                                    bool                force_reselection = false);   // force reselection of the triangle mesh even in cases that mouse is pointing on the selected triangle
+                                    bool                force_reselection = false,    // force reselection of the triangle mesh even in cases that mouse is pointing on the selected triangle
+                                    // Orca: majority-vote smoothing pass applied to the selection boundary afterwards, to remove
+                                    // single-triangle jagged spikes/holes left along the Smart Fill edge. Purely a selection-mask
+                                    // cleanup; it never changes mesh topology, so it can't produce a boundary smoother than the mesh itself.
+                                    bool                smooth_boundary = false);
 
     void bucket_fill_select_triangles(const Vec3f         &hit,                        // point where to start
                                       int                  facet_start,                // facet of the original mesh (unsplit) that the hit point belongs to
                                       const ClippingPlane &clp,                        // Clipping plane to limit painting to not clipped facets only
                                       float                seed_fill_angle,            // BBS: the maximal angle between two facets to be painted by the same color
                                       bool                 propagate,                  // if bucket fill is propagated to neighbor faces or if it fills the only facet of the modified mesh that the hit point belongs to.
-                                      bool                 force_reselection = false); // force reselection of the triangle mesh even in cases that mouse is pointing on the selected triangle
+                                      bool                 force_reselection = false,  // force reselection of the triangle mesh even in cases that mouse is pointing on the selected triangle
+                                      // Orca: same boundary-smoothing cleanup as seed_fill_select_triangles()'s smooth_boundary, but leaf-aware
+                                      // (a bucket fill can select only some children of an already-split triangle, unlike Smart Fill) and never
+                                      // flips a triangle into the selection unless it's still painted with the color being replaced, so smoothing
+                                      // can't bleed the new color across into an adjacent, differently-colored region.
+                                      bool                 smooth_boundary = false);
 
     bool                 has_facets(EnforcerBlockerType state) const;
     static bool          has_facets(const TriangleSplittingData &data, EnforcerBlockerType test_state);
@@ -538,6 +547,22 @@ private:
     void get_facets_split_by_tjoints(const Vec3i32 &vertices, const Vec3i32 &neighbors, std::vector<stl_triangle_vertex_indices> &out_triangles) const;
 
     void get_seed_fill_contour_recursive(int facet_idx, const Vec3i32 &neighbors, const Vec3i32 &neighbors_propagated, std::vector<Vec2i32> &edges_out) const;
+
+    // Orca: helpers for seed_fill_select_triangles()'s optional boundary-smoothing pass. A (possibly split)
+    // original triangle's split children are always selected/unselected uniformly by seed fill, so checking/
+    // setting the first leaf descendant is enough to read/write the state of the whole original triangle.
+    bool is_seed_fill_selected_recursive(int facet_idx) const;
+    void set_seed_fill_selected_recursive(int facet_idx, bool select);
+    void smooth_seed_fill_boundary(int iterations = 2);
+
+    // Orca: leaf-level counterpart used by bucket_fill_select_triangles()'s smoothing pass, since a bucket fill
+    // can select only some children of an already-split triangle (unlike Smart Fill, where a split triangle's
+    // children are always selected together). required_state gates which triangles smoothing may pull INTO the
+    // selection: only ones still painted with the color being replaced, so smoothing can't bleed the fill across
+    // into an adjacent, differently-colored region. Deselecting is always allowed, since that never touches
+    // another region's paint.
+    std::vector<int> get_all_touching_triangles(int facet_idx, const Vec3i32 &neighbors, const Vec3i32 &neighbors_propagated) const;
+    void smooth_bucket_fill_boundary(EnforcerBlockerType required_state, int iterations = 2);
 
     int m_free_triangles_head { -1 };
     int m_free_vertices_head { -1 };
