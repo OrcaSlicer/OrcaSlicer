@@ -3056,6 +3056,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
     const int cm = FromDIP(SidebarProps::ContentMargin());
 
     m_status = new wxStaticText(m_form, wxID_ANY, "");
+    m_status->Hide();   // storage only — the line is drawn over the viewport, see set_status()
+    m_status_default_fg = m_status->GetForegroundColour();   // capture BEFORE any caller writes
     root->Add(m_status, 0, wxLEFT | wxRIGHT | wxBOTTOM, 12);
 
     // DoF / constraint-state readout (P3). Dedicated line so it never clobbers the
@@ -3413,10 +3415,21 @@ DesignPanel::DesignPanel(wxWindow* parent)
         m_status->SetForegroundColour(wxNullColour);
         const int nb = int(m_doc.bodies.size());
         const wxString bodytag = (nb > 1) ? wxString::Format(_L("Body %d "), body + 1) : wxString();
-        set_status(level == 4 ? bodytag + _L("vertex selected")
-                         : level == 1 ? bodytag + _L("selected (whole body)")
-                         : level == 2 ? bodytag + wxString::Format(_L("face %d selected — right-click to push/pull it"), face)
-                         : level == 3 ? bodytag + wxString::Format(_L("edge %d selected — Fillet/Chamfer to dress it"), edge)
+        // Each sub-element line ends by naming the NEXT click (snaporca-gem). Escalation to the
+        // whole body is a gesture nothing on screen would otherwise reveal, and the status line
+        // is the only surface that can teach it at the moment it applies. It REPLACES the old
+        // per-level verb hints ("right-click to push/pull it", "Fillet/Chamfer to dress it")
+        // rather than joining them: the line is clipped at the panel edge past ~55 characters
+        // (set_status's Wrap() does not take effect — snaporca-8cc), and those verbs are shown
+        // with their icons in the offer anyway, while this gesture is shown nowhere else.
+        // Both clauses fit now that the line is drawn over the viewport instead of squeezed
+        // into the panel. Say "what applies to it", never "verbs" — that is this codebase's
+        // word for a tool-offer entry, not a word the drawing office uses, and the plane and
+        // bodies-list lines already say it the right way.
+        set_status(level == 4 ? bodytag + _L("vertex selected — click again for the whole body")
+                         : level == 1 ? bodytag + _L("selected (whole body) — right-click for what applies to it")
+                         : level == 2 ? bodytag + wxString::Format(_L("face %d selected — right-click to push/pull it, or click again for the whole body"), face)
+                         : level == 3 ? bodytag + wxString::Format(_L("edge %d selected — Fillet/Chamfer to dress it, or click again for the whole body"), edge)
                                       : _L("Nothing selected"));
         m_status->Refresh();
     });
@@ -5285,9 +5298,22 @@ void DesignPanel::set_status(const wxString& text)
 {
     if (m_status == nullptr) return;
     m_status->SetLabel(text);   // the ONE place that may call SetLabel directly
-    const int w = m_status->GetParent() ? m_status->GetParent()->GetClientSize().x - 24 : 420;
-    m_status->Wrap(w > 120 ? w : 420);
-    m_status->Refresh();
+    // m_status is HIDDEN and kept only as the owner of the text and its colour — every caller
+    // sets the colour on it just before calling here, so this stays the one place that knows
+    // both. What the user reads is drawn along the BASE OF THE VIEWPORT: in the panel the line
+    // was clipped at ~73 characters with no warning and no wrap (Wrap() never took effect —
+    // snaporca-8cc), which silently length-limited every hint in the tab. The viewport's bottom
+    // margin has the whole window width, so a sentence can be a sentence.
+    if (m_viewport != nullptr) {
+        // wxNullColour means "no opinion", and the dark default text colour is nearly invisible
+        // on the dark HUD; only a colour a caller actually chose (the error red, the plane-pick
+        // green) is carried over. Compared against the colour the label was CREATED with —
+        // comparing against the parent's foreground instead reported "chosen" for every line,
+        // and the neutral text came out the panel's grey.
+        const wxColour fg = m_status->GetForegroundColour();
+        m_viewport->set_status_text(text, fg != m_status_default_fg ? fg
+                                                                    : wxColour(0xDD, 0xE1, 0xE6));
+    }
 }
 
 wxMenuItem* DesignPanel::append_offer_item(wxMenu* menu, int id, const wxString& text,

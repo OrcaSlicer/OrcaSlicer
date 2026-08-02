@@ -779,6 +779,10 @@ private:
     static int tree_icon_for(CadFeatureType t);
 
     wxStaticText*     m_status{nullptr};
+    // m_status's foreground as created, captured before any caller touches it. Callers signal
+    // "no opinion" by setting wxNullColour, which restores exactly this — so it is the only
+    // reliable way to tell a chosen colour (the error red) from the default. See set_status().
+    wxColour          m_status_default_fg;
     wxStaticText*     m_dof_status{nullptr};   // DoF / constraint-state readout (P3)
     int               m_feature_counter{0};
 

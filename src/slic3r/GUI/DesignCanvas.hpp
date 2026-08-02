@@ -2,6 +2,7 @@
 #define slic3r_DesignCanvas_hpp_
 
 #include <wx/panel.h>
+#include <wx/popupwin.h>
 
 #include <functional>
 #include <memory>
@@ -181,6 +182,10 @@ public:
     void set_datum_planes(std::vector<SketchPlane> planes,
                            std::vector<Vec2d> sizes = {});     // draw datum/reference planes (u/v extents)
     void set_body_highlight(bool on);   // tint the solid when its feature is tree-selected
+    // The status line, shown along the BASE OF THE VIEWPORT rather than in the side panel:
+    // the panel clips it at ~73 characters with no warning (snaporca-8cc), the viewport's
+    // bottom margin has the whole window width to spare. Empty text hides it.
+    void set_status_text(const wxString& text, const wxColour& colour);
     void set_operand_bodies(int target_body, int tool_body);  // -1,-1 clears
     void set_body_translucent(bool on); // render the solid see-through (fillet/chamfer preview)
     void set_body_hidden(bool on);      // preview-only: hide base bodies, show only the result ghost
@@ -300,6 +305,16 @@ private:
     wxStaticText* m_hud_label{nullptr};
     std::string   m_hud_last;
     void set_readout(const std::string& text);
+
+    // Bottom-LEFT viewport HUD: the selection / tool status line, written by DesignPanel.
+    // A wxPopupWindow, NOT the wxFrame the readout HUD uses: a frame accepts keyboard focus,
+    // and this one is on screen permanently and re-raised on every status change, so it stole
+    // the keyboard from the canvas and killed every sketch shortcut in the tab.
+    wxPopupWindow* m_status_hud{nullptr};
+    wxStaticText* m_status_hud_label{nullptr};
+    wxString      m_status_hud_last;
+    wxColour      m_status_hud_colour;
+    void place_status_hud();          // re-anchors to the canvas corner (also on resize)
     std::function<void(const SketchProfile&, const SketchPlane&)> m_on_sketch_commit;
     std::function<void(const std::vector<SketchEntity>&,
                        const std::vector<SketchEntityConstraintDef>&,

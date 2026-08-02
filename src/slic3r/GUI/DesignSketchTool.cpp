@@ -3007,17 +3007,17 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
         return std::hypot(wx - t * vx, wy - t * vy);
     };
 
+    // What was selected BEFORE this pick — the escalation below is the only thing that reads
+    // it, and everything from here on overwrites it.
+    const SolidSel prev_kind = m_solid_sel;
+    const int      prev_body = m_sel_body, prev_face = m_sel_face, prev_edge = m_sel_edge;
+    const Vec3d    prev_vtx  = m_sel_vertex_pt;
+
     m_sel_body = best_body;
     m_sel_face = best_face;
     m_sel_edge = -1;
     m_sel_edge_pts.clear();
 
-    // WHOLE-BODY selection is deliberately NOT bound here. Double-click is already zoom-to-fit
-    // (see the LeftDClick branch at the top of on_mouse) and this pick runs on LeftUp, where
-    // LeftDClick() is never true — a double-click branch here would be dead code that reads as
-    // a working feature. The body gesture is the rubber band, which is its own piece of work;
-    // until it lands, bodies are selected from the Bodies list. Written down rather than
-    // half-done, because a selection model with a silent hole in it is how we got the cycle.
     {
         const TopoDS_Shape& bshape = (*m_solid_bodies)[m_sel_body].shape;
         const TopoDS_Face  face    = GeometryEngine::face_by_index(bshape, m_sel_face);
@@ -3058,6 +3058,26 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
         } else {
             m_solid_sel = SolidSel::Face;
         }
+    }
+    // CLICK AGAIN ON THE SAME THING -> THE WHOLE BODY (snaporca-gem). Pointing at a face and
+    // pointing at its body are different intents, and until now only the rubber band could
+    // express the second one — so the status line said "face 0 selected" while the user
+    // believed they had taken the body, and every body verb had to opt into the face kinds to
+    // stay reachable. One more click on the SAME sub-element escalates.
+    //
+    // This is not the pick cycle that was removed (bc2b741ce9). That one was silent and three
+    // deep, so no click had a predictable meaning. Here the escalation is announced by the
+    // status line BEFORE you make the click, and a further click just takes the face under the
+    // cursor again — the ordinary meaning of clicking a face, which needs no teaching.
+    //
+    // Double-click is safe: wx sends Down/Up/DClick/Up, and only the first Up carries a
+    // pending press, so a fast double-click zooms to fit and picks ONCE. Escalation needs two
+    // separate clicks, the same "click, pause, click" distinction a file manager uses.
+    if (m_solid_sel == prev_kind && m_sel_body == prev_body && m_sel_face == prev_face
+        && m_sel_edge == prev_edge
+        && (m_solid_sel != SolidSel::Vertex || (m_sel_vertex_pt - prev_vtx).norm() < 1e-9)) {
+        select_body(m_sel_body);   // clears face/edge/vertex, tints the whole body
+        dp_pick_trace("re-pick -> escalated to whole body %d", m_sel_body);
     }
     dp_pick_trace("pick -> sel=%d body=%d face=%d edge=%d",
                   int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);

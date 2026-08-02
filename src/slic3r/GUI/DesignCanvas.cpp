@@ -132,6 +132,36 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     }
     m_sketch_tool.on_readout = [this](const std::string& s) { set_readout(s); };
 
+    // Bottom-LEFT twin, carrying the status line. Top-level for the same reason as the readout
+    // (a child widget is hidden by the GL surface) but a wxPopupWindow rather than a wxFrame,
+    // because a popup cannot take keyboard focus. The readout gets away with a frame only
+    // because it appears mid-gesture and the next input is the mouse; this one is up
+    // permanently and is re-raised on every status change. As a frame it took the WM's focus
+    // each time and the canvas stopped receiving keys at all — every sketch shortcut silently
+    // dead, which reads as a broken tool. Do not "simplify" it back to a wxFrame.
+    // Its colour is set per message — the panel decides whether a line is neutral or an error.
+    {
+        wxWindow* top = wxGetTopLevelParent(m_canvas_widget);
+        m_status_hud = new wxPopupWindow(top, wxBORDER_NONE);
+        m_status_hud->SetBackgroundColour(wxColour(28, 30, 34));
+        m_status_hud_label = new wxStaticText(m_status_hud, wxID_ANY, wxEmptyString);
+        auto* ss = new wxBoxSizer(wxHORIZONTAL);
+        // The line never wraps — there is a whole window's width down here — so the chip is
+        // ONE LINE tall. Spacers rather than a wxALL border because the two axes want
+        // different numbers: roomy at the sides so it reads as a label, and just enough top
+        // and bottom to clear the descenders. Zero vertical clips the glyphs; 6 (what the
+        // readout chip uses) makes it look like a two-line box.
+        ss->AddSpacer(10);
+        ss->Add(m_status_hud_label, 0, wxTOP | wxBOTTOM, 3);
+        ss->AddSpacer(10);
+        m_status_hud->SetSizerAndFit(ss);
+        m_status_hud->Hide();
+    }
+    // A floating frame does not follow its parent, so the anchor has to be recomputed whenever
+    // the canvas changes size. The readout HUD gets away without this because it is transient;
+    // the status line is on screen almost permanently and would visibly detach.
+    m_canvas_widget->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) { place_status_hud(); e.Skip(); });
+
     refresh_bed();
 
     m_canvas->bind_event_handlers();
@@ -922,6 +952,35 @@ void DesignCanvas::set_readout(const std::string& text)
     if (!m_hud->IsShown()) m_hud->Show();           // Show before Move (GTK ignores pre-map Move)
     m_hud->Move(br);
     m_hud->Raise();
+}
+
+void DesignCanvas::set_status_text(const wxString& text, const wxColour& colour)
+{
+    if (!m_status_hud || !m_status_hud_label || !m_canvas_widget) return;
+    if (text == m_status_hud_last && colour == m_status_hud_colour) return;
+    m_status_hud_last   = text;
+    m_status_hud_colour = colour;
+    if (text.IsEmpty()) { m_status_hud->Hide(); return; }
+    m_status_hud_label->SetForegroundColour(colour);
+    m_status_hud_label->SetLabel(text);
+    m_status_hud->Fit();
+    place_status_hud();
+}
+
+void DesignCanvas::place_status_hud()
+{
+    if (!m_status_hud || !m_canvas_widget || m_status_hud_last.IsEmpty()) return;
+    const wxSize cs = m_canvas_widget->GetClientSize();
+    const wxSize hs = m_status_hud->GetSize();
+    // Clear of the view cube and the two round view buttons, which own the bottom-left corner.
+    const int kLeftInset = m_canvas_widget->FromDIP(190);
+    const wxPoint bl = m_canvas_widget->ClientToScreen(
+        wxPoint(kLeftInset, cs.GetHeight() - hs.GetHeight() - 12));
+    // No Raise() and no focus juggling: a popup neither takes focus nor falls behind. This was
+    // caught with SNAPORCA_KEYTRACE — shift+S logged a line, the following R logged nothing, and
+    // the only thing between them was the first status update showing this window.
+    if (!m_status_hud->IsShown()) m_status_hud->Show();   // Show before Move (GTK ignores pre-map Move)
+    m_status_hud->Move(bl);
 }
 
 void DesignCanvas::set_body_highlight(bool on)
