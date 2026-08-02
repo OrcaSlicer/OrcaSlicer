@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -4171,6 +4171,10 @@ msgstr "Rangschikken..."
 
 msgid "Arranging"
 msgstr "Rangschikken"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Rangschikken "
 
 msgid "Arranging canceled."
 msgstr "Rangschikken geannuleerd."
@@ -10076,6 +10080,21 @@ msgstr "Onderliggende lagen dimmen"
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "Bij het verschuiven van de laagschuifregelaar in de slicevoorvertoning worden de lagen onder de huidige laag verduisterd weergegeven, zodat alleen de bekeken laag op volle helderheid wordt getoond."
 
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Helderheid van gedimde lagen"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Hoe helder de gedimde lagen worden weergegeven wanneer \"Onderliggende lagen dimmen\" is ingeschakeld.\n"
+"99% is nauwelijks donkerder, 0% maakt ze zwart. Beperkt tot 99%, omdat 100% hetzelfde zou zijn als de optie uitschakelen."
+
 msgid "Login region"
 msgstr "Inlogregio"
 
@@ -14544,12 +14563,36 @@ msgid "Intra-layer order"
 msgstr "Volgorde binnen een laag"
 
 # AI Translated
-msgid "Print order within a single layer."
-msgstr "Printvolgorde binnen één laag."
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"De volgorde waarin objectinstanties binnen één laag worden bezocht, wat bepaalt hoeveel verplaatsing er nodig is om ertussen te bewegen.\n"
+"\n"
+"Standaard: aaneenschakeling via de dichtstbijzijnde buur, verfijnd met 2-opt en het verwijderen van kruisingen. Een goede algemene keuze.\n"
+"Zoals de objectlijst: instanties worden afgedrukt in dezelfde volgorde als de objectlijst, zonder enige padoptimalisatie. Gebruik dit wanneer je een voorspelbare, handmatig bepaalde volgorde nodig hebt.\n"
+"Beste van allemaal (kortste pad): elke strategie wordt beoordeeld en de kortste wordt gebruikt. De volgorde van de objectinstanties wordt eenmalig voor de hele print bepaald, terwijl de volgorde van de afzonderlijke eilanden per laag wordt bepaald, waardoor verschillende lagen uiteindelijk verschillende strategieën kunnen gebruiken. Het slicen duurt iets langer.\n"
+"Slingerend: slingerend traject, rij voor rij, verfijnd met 2-opt. Zeer geschikt voor regelmatige rasters van veel kleine onderdelen.\n"
+"\n"
+"Bij meerdere filamenten of gereedschappen in dezelfde laag heeft het beperken van het aantal gereedschapswissels voorrang: objecten worden eerst per filament gegroepeerd en deze instelling bepaalt alleen de volgorde van de instanties binnen elke filamentgroep, waardoor de totale volgorde er niet uitziet als het kortste pad over het printbed."
 
 # AI Translated
 msgid "As object list"
 msgstr "Zoals de objectlijst"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "Beste van allemaal (kortste pad)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Slingerend"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Printsnelheid omlaag brengen zodat de laag beter kan koelen"
@@ -20593,6 +20636,20 @@ msgstr ""
 "Er zijn meerdere IP-adressen die verwijzen naar hostname %1%.\n"
 "Selecteer er een die gebruikt moet worden."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Automatisch schalen naar mondstuk"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Dit model is ontworpen voor een mondstuk van 0,4 mm met een laaghoogte van 0,2 mm. \n"
+"Wanneer de schaaloptie is ingeschakeld (aanbevolen), wordt het model dynamisch aangepast aan je huidige mondstukdiameter en een passende laaghoogte, waardoor de test zowel nauwkeurig als goed afleesbaar is.\n"
+"Schakel het schalen alleen uit als je het referentiemodel precies zo wilt printen als het is."
+
 msgid "PA Calibration"
 msgstr "PA-kalibratie"
 
@@ -20737,6 +20794,14 @@ msgid "End speed: "
 msgstr "Eindsnelheid:"
 
 # AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Automatisch aanpassen aan max. volumetrische snelheid"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Als de eindsnelheid de maximale volumetrische snelheid van het filament zou overschrijden, wordt de laaghoogte automatisch verlaagd (met behoud van standaardwaarden en binnen de limieten van de machine) om die snelheid te halen. Als zelfs de minimale laaghoogte niet volstaat, wordt in plaats daarvan de eindsnelheid verlaagd."
+
+# AI Translated
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -20747,6 +20812,57 @@ msgstr ""
 "start > 10\n"
 "stap >= 0\n"
 "einde > start + stap"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"De eindsnelheid (%.0f mm/s) overschrijdt de maximale volumetrische snelheid van het filament (%.1f mm³/s), waardoor de buitenste wand bij deze lijndikte en laaghoogte beperkt wordt tot ongeveer %.0f mm/s.\n"
+" Hogere snelheden worden begrensd, waardoor de bovenste blokken van de toren niet op de gevraagde snelheid worden geprint.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"De eindsnelheid (%.0f mm/s) overschrijdt de maximale volumetrische snelheid van het filament (%.1f mm³/s) bij de standaard laaghoogte (%.2f mm).\n"
+"\n"
+"De laaghoogte is verlaagd naar %.2f mm (een waarde die door de profielen van deze printer wordt gebruikt), zodat de toren de gevraagde snelheid kan halen."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"Zelfs bij de kleinste laaghoogte die door de profielen van deze printer wordt gebruikt (%.2f mm) overschrijdt de eindsnelheid (%.0f mm/s) de maximale volumetrische snelheid van het filament (%.1f mm³/s).\n"
+"\n"
+"De laaghoogte wordt ingesteld op %.2f mm en de eindsnelheid verlaagd naar %.0f mm/s.\n"
+"\n"
+"Doorgaan?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "Toch doorgaan?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "\"Automatisch aanpassen\" inschakelen om dit automatisch op te lossen, of toch doorgaan?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "\"Automatisch schalen naar mondstuk\" en \"Automatisch aanpassen\" inschakelen om dit automatisch op te lossen, of toch doorgaan?"
 
 msgid "Start retraction length: "
 msgstr "Begin terugtreklengte:"
@@ -23665,6 +23781,10 @@ msgstr ""
 "Kromtrekken voorkomen\n"
 "Wist je dat bij het printen van materialen die gevoelig zijn voor kromtrekken, zoals ABS, een juiste verhoging van de temperatuur van het warmtebed de kans op kromtrekken kan verkleinen?"
 
+# AI Translated
+#~ msgid "Print order within a single layer."
+#~ msgstr "Printvolgorde binnen één laag."
+
 #~ msgid "Bottom"
 #~ msgstr "Onderkant"
 
@@ -23706,9 +23826,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgctxt "Sync_Nozzle_AMS"
 #~ msgid "Cancel"

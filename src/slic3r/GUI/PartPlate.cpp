@@ -2298,6 +2298,7 @@ arrangement::ArrangePolygon PartPlate::estimate_wipe_tower_polygon(const Dynamic
 	bool enable_wrapping = (wrapping_opt != nullptr) && wrapping_opt->value;
 	wt_size = estimate_wipe_tower_size(config, w, v, extruder_count, plate_extruder_size, use_global_objects, enable_wrapping);
 	int plate_width=m_width, plate_depth=m_depth;
+	w = wt_size(0); // effective width; differs from prime_tower_width when the rib wall squares the tower
 	float depth = wt_size(1);
 	float margin = WIPE_TOWER_MARGIN + tower_brim_width, wp_brim_width = 0.f;
 	const ConfigOption* wipe_tower_brim_width_opt = config.option("prime_tower_brim_width");

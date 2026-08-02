@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: 2025-06-02 17:12+0900\n"
 "Last-Translator: crwusiz <crwusiz@gmail.com>\n"
 "Language-Team: \n"
@@ -3863,6 +3863,10 @@ msgstr "정렬 중..."
 
 msgid "Arranging"
 msgstr "정렬 중"
+
+# AI Translated
+msgid "Arranging "
+msgstr "정렬 중 "
 
 msgid "Arranging canceled."
 msgstr "정렬 취소됨."
@@ -9324,6 +9328,21 @@ msgstr "아래 레이어 어둡게 표시"
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "슬라이스된 미리보기에서 레이어 슬라이더를 움직일 때 현재 레이어보다 아래에 있는 레이어를 어둡게 렌더링하여, 보고 있는 레이어만 완전한 밝기로 표시합니다."
 
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "어둡게 표시된 레이어의 밝기"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"\"아래 레이어 어둡게 표시\"를 활성화했을 때 어둡게 표시되는 레이어의 밝기입니다.\n"
+"99%는 거의 어두워지지 않고, 0%는 완전히 검게 표시됩니다. 100%는 이 옵션을 비활성화한 것과 같으므로 최대 99%로 제한됩니다."
+
 msgid "Login region"
 msgstr "로그인 지역"
 
@@ -13539,11 +13558,36 @@ msgstr "객체별"
 msgid "Intra-layer order"
 msgstr "레이어 내 순서"
 
-msgid "Print order within a single layer."
-msgstr "단일 레이어 내의 출력 순서"
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"단일 레이어 내에서 객체 인스턴스를 방문하는 순서로, 인스턴스 사이를 오가는 이동량을 결정합니다.\n"
+"\n"
+"기본값: 최근접 이웃 방식으로 경로를 연결하고 2-opt와 교차 제거로 개선합니다. 일반적으로 무난한 선택입니다.\n"
+"객체 목록으로: 경로 최적화 없이 객체 목록과 동일한 순서로 인스턴스를 출력합니다. 예측 가능하고 수동으로 제어되는 순서가 필요할 때 사용하십시오.\n"
+"전체 비교(최단 경로): 모든 전략을 평가하여 가장 짧은 것을 사용합니다. 객체 인스턴스 순서는 출력 전체에 대해 한 번만 결정되고 개별 아일랜드의 순서는 레이어마다 결정되므로, 레이어에 따라 서로 다른 전략이 사용될 수 있습니다. 슬라이싱이 약간 느려집니다.\n"
+"사행형: 행 단위로 앞뒤를 오가며 사행하듯 순회하고 2-opt로 개선합니다. 작은 부품이 규칙적인 격자로 배치된 경우에 적합합니다.\n"
+"\n"
+"같은 레이어에서 여러 필라멘트나 툴을 사용하는 경우에는 툴 교체 최소화가 우선합니다. 객체를 먼저 필라멘트별로 그룹화하며 이 설정은 각 필라멘트 그룹 내의 인스턴스 순서만 결정하므로, 전체 순서가 플레이트 전체의 최단 경로처럼 보이지 않을 수 있습니다."
 
 msgid "As object list"
 msgstr "객체 목록으로"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "전체 비교(최단 경로)"
+
+# AI Translated
+msgid "Snake"
+msgstr "사행형"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "레이어 냉각 향상을 위한 감속"
@@ -14248,7 +14292,7 @@ msgstr "플러시 체적 속도"
 
 # AI Translated
 msgid "Volumetric speed when flushing filament. 0 indicates the max volumetric speed."
-msgstr "필라멘트를 플러시할 때의 체적 속도입니다. 0은 최대 체적 속도를 의미합니다."
+msgstr "필라멘트를 플러시할 때의 압출 속도입니다. 0은 최대 압출 속도를 의미합니다."
 
 msgid "This setting is the volume of filament that can be melted and extruded per second. Printing speed is limited by max volumetric speed, in case of too high and unreasonable speed setting. This value cannot be zero."
 msgstr "이 설정은 초당 얼마나 많은 양의 필라멘트를 녹이고 압출할 수 있는지를 나타냅니다. 너무 높고 부적절한 속도 설정의 경우 출력 속도는 최대 압출 속도에 의해 제한됩니다. 0이 될 수 없습니다"
@@ -18715,7 +18759,7 @@ msgstr ""
 "이제 다양한 필라멘트에 대한 자동 교정 기능이 추가되었습니다. 완전히 자동으로 수행되며 결과는 나중에 사용할 수 있도록 프린터에 저장됩니다. 다음과 같은 제한된 경우에만 교정을 수행하면 됩니다:\n"
 "1. 다른 브랜드/모델의 새 필라멘트를 사용하거나 필라멘트가 눅눅해진 경우\n"
 "2. 노즐이 마모되었거나 새 노즐로 교체한 경우\n"
-"3. 필라멘트 설정에서 최대 체적 속도나 출력 온도를 변경한 경우."
+"3. 필라멘트 설정에서 최대 압출 속도나 출력 온도를 변경한 경우."
 
 msgid "About this calibration"
 msgstr "교정 정보"
@@ -19033,6 +19077,20 @@ msgstr ""
 "호스트 이름 %1%으로 확인되는 IP 주소가 여러 개 있습니다.\n"
 "사용 할 IP를 선택해 주세요."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "노즐에 맞춰 자동 크기 조정"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"이 모델은 0.4 mm 노즐과 0.2 mm 레이어 높이를 기준으로 설계되었습니다. \n"
+"크기 조정 옵션을 활성화하면(권장) 현재 노즐 직경과 적절한 레이어 높이에 맞춰 크기가 동적으로 조정되어 테스트가 정확하고 읽기 쉬워집니다.\n"
+"참조 모델을 있는 그대로 출력하려는 경우에만 크기 조정을 끄십시오."
+
 msgid "PA Calibration"
 msgstr "PA 교정"
 
@@ -19171,6 +19229,14 @@ msgstr "시작 속도: "
 msgid "End speed: "
 msgstr "종료 속도: "
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "최대 압출 속도에 맞춰 자동 조정"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "종료 속도가 필라멘트의 최대 압출 속도를 초과하는 경우, 해당 속도에 도달할 수 있도록 레이어 높이를 자동으로 낮춥니다(표준 값을 유지하고 장비의 한계 내에서 조정). 최소 레이어 높이로도 부족하면 대신 종료 속도를 낮춥니다."
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -19181,6 +19247,57 @@ msgstr ""
 "시작 > 10\n"
 "단계 >= 0\n"
 "끝 > 시작 + 단계)"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"종료 속도(%.0f mm/s)가 필라멘트의 최대 압출 속도(%.1f mm³/s)를 초과합니다. 현재 선 너비와 레이어 높이에서는 외벽이 약 %.0f mm/s로 제한됩니다.\n"
+" 이보다 빠른 속도는 제한되므로 타워의 상단 블록은 요청한 속도로 출력되지 않습니다.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"종료 속도(%.0f mm/s)가 필라멘트의 최대 압출 속도(%.1f mm³/s)를 초과합니다(기본 레이어 높이 %.2f mm 기준).\n"
+"\n"
+"타워가 요청한 속도에 도달할 수 있도록 레이어 높이를 %.2f mm(이 프린터의 프로파일에서 사용하는 값)로 낮췄습니다."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"이 프린터의 프로파일에서 사용하는 가장 작은 레이어 높이(%.2f mm)에서도 종료 속도(%.0f mm/s)가 필라멘트의 최대 압출 속도(%.1f mm³/s)를 초과합니다.\n"
+"\n"
+"레이어 높이를 %.2f mm로 설정하고 종료 속도를 %.0f mm/s로 낮춥니다.\n"
+"\n"
+"계속하시겠습니까?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "그래도 계속하시겠습니까?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "\"자동 조정\"을 활성화하면 자동으로 해결됩니다. 그래도 계속하시겠습니까?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "\"노즐에 맞춰 자동 크기 조정\"과 \"자동 조정\"을 활성화하면 자동으로 해결됩니다. 그래도 계속하시겠습니까?"
 
 msgid "Start retraction length: "
 msgstr "후퇴 시작 길이: "
@@ -21289,7 +21406,7 @@ msgstr "채워넣기 전혀 없음"
 
 # AI Translated
 msgid "Volumetric speed"
-msgstr "체적 속도"
+msgstr "압출 속도"
 
 msgid "Step file import parameters"
 msgstr "스텝 파일 가져오기 매개변수"
@@ -21940,6 +22057,9 @@ msgstr ""
 "뒤틀림 방지\n"
 "ABS와 같이 뒤틀림이 발생하기 쉬운 소재를 출력할 때, 히트베드 온도를 적절하게 높이면 뒤틀림 가능성을 줄일 수 있다는 사실을 알고 계셨나요?"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "단일 레이어 내의 출력 순서"
+
 #~ msgid "Bottom"
 #~ msgstr "아래"
 
@@ -22007,9 +22127,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "Continue to sync filaments"
 #~ msgstr "필라멘트 동기화 계속하기"

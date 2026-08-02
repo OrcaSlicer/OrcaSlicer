@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: 2025-11-28 13:48-0600\n"
 "Last-Translator: tntchn <15895303+tntchn@users.noreply.github.com>\n"
 "Language-Team: \n"
@@ -3795,6 +3795,10 @@ msgstr "自動擺放中..."
 msgid "Arranging"
 msgstr "自動擺放"
 
+# AI Translated
+msgid "Arranging "
+msgstr "自動擺放 "
+
 msgid "Arranging canceled."
 msgstr "已取消自動擺放。"
 
@@ -4675,7 +4679,7 @@ msgid ""
 "Too small max volumetric speed.\n"
 "Value was reset to 0.5"
 msgstr ""
-"最大體積速度設定過小\n"
+"最大體積流量設定過小\n"
 "重設為 0.5"
 
 #, c-format, boost-format
@@ -9151,6 +9155,21 @@ msgstr "使下方層變暗"
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "在切片預覽中拖曳層滑桿時，將目前層以下的各層算繪為變暗，如此只有正在檢視的層以全亮度顯示。"
 
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "變暗層的亮度"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"啟用「使下方層變暗」時，變暗的層以多高的亮度顯示。\n"
+"99% 幾乎不會變暗，0% 會顯示為全黑。上限為 99%，因為 100% 與停用此選項的效果相同。"
+
 msgid "Login region"
 msgstr "登入區域"
 
@@ -13162,11 +13181,36 @@ msgstr "逐件"
 msgid "Intra-layer order"
 msgstr "單層順序"
 
-msgid "Print order within a single layer."
-msgstr "每一層的列印順序"
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"在同一層內走訪各物件實例的順序，這會決定在實例之間移動所花費的空駛量。\n"
+"\n"
+"預設：以最近鄰方式串接，並以 2-opt 與交叉消除進行改善。通常是不錯的選擇。\n"
+"按照物件清單排序：不做任何路徑最佳化，依照物件清單的順序列印各實例。需要可預測、手動控制的順序時使用。\n"
+"全部比較（最短路徑）：評估所有策略並採用最短的一種。物件實例的順序在整個列印工作中只決定一次，而個別島嶼的排序則逐層決定，因此不同層可能採用不同的策略。切片速度略慢。\n"
+"蛇形：逐行往復的蛇形走訪，並以 2-opt 進行改善。非常適合由大量小零件組成的規則陣列。\n"
+"\n"
+"當同一層中使用多種線材或工具時，會優先減少換料次數：物件會先依線材分組，此設定僅決定每個線材群組內實例的順序，因此整體順序看起來可能不是整個列印板上的最短路徑。"
 
 msgid "As object list"
 msgstr "按照物件清單排序"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "全部比較（最短路徑）"
+
+# AI Translated
+msgid "Snake"
+msgstr "蛇形"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "降低列印速度 以得到更好的冷卻"
@@ -18461,6 +18505,20 @@ msgstr ""
 "有多個 IP 位址解析到主機名稱 %1%。\n"
 "請選擇一個要使用的 IP 位址。"
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "依噴嘴自動縮放"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"此模型是以 0.4 mm 噴嘴與 0.2 mm 層高為基準設計的。 \n"
+"啟用縮放選項後（建議），模型會依目前的噴嘴直徑與合適的層高動態調整尺寸，使測試既準確又容易判讀。\n"
+"只有在您想完全按原樣列印參考模型時，才關閉縮放。"
+
 msgid "PA Calibration"
 msgstr "PA 校正"
 
@@ -18597,6 +18655,14 @@ msgstr "起始速度："
 msgid "End speed: "
 msgstr "結束速度："
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "自動調整以符合最大體積流量"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "如果結束速度會超過線材的最大體積流量，則自動降低層高（維持標準數值並處於機器限制範圍內）以達到該速度。如果連最小層高也不夠，則改為降低結束速度。"
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -18607,6 +18673,57 @@ msgstr ""
 "開始 > 10\n"
 "步距 >= 0\n"
 "結束 > 開始 + 步距）"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"結束速度（%.0f mm/s）超過線材的最大體積流量（%.1f mm³/s），在目前的線寬與層高下，外牆被限制在約 %.0f mm/s。\n"
+" 超過該值的速度會被箝制，因此塔的上部區塊不會以要求的速度列印。\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"結束速度（%.0f mm/s）超過線材的最大體積流量（%.1f mm³/s）（預設層高 %.2f mm 時）。\n"
+"\n"
+"層高已降至 %.2f mm（此印表機的設定檔中使用的數值），以便塔能夠達到要求的速度。"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"即使採用此印表機的設定檔中使用的最小層高（%.2f mm），結束速度（%.0f mm/s）仍超過線材的最大體積流量（%.1f mm³/s）。\n"
+"\n"
+"層高將設為 %.2f mm，結束速度將降至 %.0f mm/s。\n"
+"\n"
+"是否繼續？"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "仍要繼續嗎？"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "啟用「自動調整」可自動解決此問題，或者仍要繼續？"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "啟用「依噴嘴自動縮放」和「自動調整」可自動解決此問題，或者仍要繼續？"
 
 msgid "Start retraction length: "
 msgstr "起始回抽長度："
@@ -21206,6 +21323,9 @@ msgstr ""
 "避免翹曲\n"
 "您知道嗎？當列印容易翹曲的材料（如 ABS）時，適當提高熱床溫度可以降低翹曲的機率。"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "每一層的列印順序"
+
 #~ msgid "Bottom"
 #~ msgstr "底部"
 
@@ -21297,9 +21417,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "Renders cast shadows on the plate in realistic view."
 #~ msgstr "在擬真檢視中於列印板上算繪投射陰影。"

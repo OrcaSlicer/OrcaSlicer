@@ -1937,6 +1937,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionFloat(1));
 
+    def = this->add("brim_ears_outer_only", coBool);
+    def->label = L("Brim ears outer only");
+    def->category = L("Support");
+    def->tooltip = L("Generate mouse ears only on the outer contour of the model, excluding holes and enclosed sections.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
     def = this->add("compatible_printers", coStrings);
     def->label = L("Select printers");
     def->mode = comAdvanced;
@@ -3456,6 +3463,18 @@ void PrintConfigDef::init_fff_params()
     def->enum_labels.push_back(L("Archimedean Chords"));
     def->enum_labels.push_back(L("Octagram Spiral"));
     def->set_default_value(new ConfigOptionEnum<InfillPattern>(ipCrossHatch));
+
+    def = this->add("sparse_infill_smooth_factor", coPercent);
+    def->label = L("Sparse infill smooth factor");
+    def->category = L("Strength");
+    def->tooltip = L("Controls how strongly sparse infill corners are rounded. 0% keeps the original right-angle path, "
+                     "while 100% produces the largest possible curves between adjacent infill lines. "
+                     "Currently applies only to the Hilbert Curve.");
+    def->sidetext = "%";
+    def->min = 0;
+    def->max = 100;
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionPercent(0));
 
     def = this->add("top_surface_acceleration", coFloats);
     def->label = L("Top surface");
@@ -10516,6 +10535,44 @@ int DynamicPrintConfig::get_extruder_nozzle_volume_count(int extruder_count, std
     return count;
 }
 
+// Orca: BBL system profiles ship full-width print_extruder_id/print_extruder_variant columns, but
+// custom multi-extruder printers only ever get the machine-scope columns synthesized for them (see
+// extend_extruder_variant); the process scope keeps the length-1 defaults, both in presets and in
+// 3mf project configs. Expanding with that degenerate map makes every per-extruder lookup fail, and
+// because both keys are themselves in print_options_with_variant, the expansion then latches a
+// full-width-but-wrong [1,1,...] map that also defeats the generated_extruder_id fallback in
+// get_index_for_extruder. Synthesize the process columns from the printer's extruder_variant_list
+// (same token walk as extend_extruder_variant) before expanding.
+static void ensure_process_variant_columns(DynamicPrintConfig &config, const DynamicPrintConfig &printer_config)
+{
+    auto id_opt      = dynamic_cast<ConfigOptionInts *>(config.option("print_extruder_id"));
+    auto variant_opt = dynamic_cast<ConfigOptionStrings *>(config.option("print_extruder_variant"));
+    auto list_opt    = dynamic_cast<const ConfigOptionStrings *>(printer_config.option("extruder_variant_list"));
+    if (!id_opt || !variant_opt || !list_opt)
+        return;
+    if (id_opt->values.size() != 1 || variant_opt->values.size() != 1)
+        return;
+
+    std::vector<int>         ids;
+    std::vector<std::string> variants;
+    for (int i = 0; i < int(list_opt->values.size()); ++i) {
+        std::vector<std::string> tokens;
+        boost::split(tokens, list_opt->get_at(i), boost::is_any_of(","), boost::token_compress_on);
+        for (std::string &token : tokens) {
+            boost::trim(token);
+            if (token.empty())
+                continue;
+            ids.push_back(i + 1);
+            variants.push_back(token);
+        }
+    }
+    // A single column is the legitimate single-extruder layout, not a degenerate one.
+    if (ids.size() <= 1)
+        return;
+    id_opt->values      = std::move(ids);
+    variant_opt->values = std::move(variants);
+}
+
 std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicPrintConfig& printer_config, int extruder_count, int extruder_nozzle_volume_count, std::vector<std::vector<NozzleVolumeType>>& nv_types,
     std::set<std::string>& key_set, std::string id_name, std::string variant_name, unsigned int stride, unsigned int extruder_id, NozzleVolumeType filament_nvt)
 {
@@ -10557,6 +10614,8 @@ std::vector<int> DynamicPrintConfig::update_values_to_printer_extruders(DynamicP
         variant_count = 1;
     }
     else {
+        if (id_name == "print_extruder_id")
+            ensure_process_variant_columns(*this, printer_config);
         // Orca: emit the slots first, then size variant_count from what was actually
         // emitted. extruder_nozzle_volume_count only equals the emitted total when every
         // extruder carries per-type stats; an extruder with an empty stats entry combined
