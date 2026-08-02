@@ -649,9 +649,17 @@ DesignPanel::DesignPanel(wxWindow* parent)
                         m_thicken_body->SetSelection(std::min(selected_body_default(),
                                                        int(m_thicken_body->GetCount()) - 1));
                 }
-                m_sel_solid_face = -1;
-                m_thicken_face_label->SetLabel(_L("(pick a solid face)"));
-                open_tool(Tool::Thicken);
+                // KEEP a face the user has already picked. Clearing it unconditionally was right
+                // when the only door was a toolbar button, which carries no selection: you pressed
+                // Thicken and were then asked to point at something. Reached from the offer the
+                // verb is invoked ON a face, so discarding it opened the card reading "(pick a
+                // solid face)" over an immediate "thicken: face not found" — the user pointed at
+                // the face and the card said it could not find one. snaporca-y7q.
+                // The index is per-body, so it only survives if the body combo landed on the body
+                // it came from; selected_body_default() above returns exactly that when valid.
+                if (m_thicken_body->GetSelection() != m_sel_solid_body)
+                    m_sel_solid_face = -1;
+                open_tool(Tool::Thicken);   // syncs m_thicken_face_label from m_sel_solid_face
              }, 0},
             {"design_rib", _L("Rib"), _L("Grow a thin wall from an open sketch line, fused to a body"),
              [this] {
@@ -3282,6 +3290,16 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 ? wxString::Format(_L("Face %d"), m_sel_solid_face)
                 : _L("(all faces — closed hollow)"));
             refresh_preview();   // rebuilds the shell ghost + re-anchors the thickness gizmo
+        }
+        // Thicken card open: the face pick IS the feature's input, and until now nothing here
+        // wrote its label — the value reached m_sel_solid_face and Confirm worked, but the card
+        // read "(pick a solid face)" however many faces you had picked. Invisible because the
+        // ghost did update, so the card looked wrong while behaving right.
+        if (m_active == Tool::Thicken) {
+            m_thicken_face_label->SetLabel(m_sel_solid_face >= 0
+                ? wxString::Format(_L("Face %d"), m_sel_solid_face)
+                : _L("(pick a solid face)"));
+            refresh_preview();
         }
         // Draft card open: a face pick chooses the face to taper; update label + ghost live.
         if (m_active == Tool::Draft) {
@@ -9142,6 +9160,22 @@ void DesignPanel::open_tool(Tool t)
     case Tool::Mate:        m_hdr_mate->SetLabel(title(_L("Mate")));             break;
     case Tool::Insert:  break;   // header set by open_insert_card()
     case Tool::None:    break;
+    }
+
+    // A card that consumes a face must say WHICH face the moment it appears. These labels used to
+    // be written only by the pick handler, which runs while a card is already open — so a card
+    // opened FROM a selection (the offer's whole premise) showed the previous pick, or the "(pick
+    // one)" placeholder over a face it was in fact about to use. Same law as the Construction
+    // toggle: a control that carries state has to show it. One writer, on open, for all three.
+    {
+        const bool have = m_sel_solid_face >= 0;
+        const wxString face_name = have ? wxString::Format(_L("Face %d"), m_sel_solid_face) : wxString();
+        if (t == Tool::Thicken && m_thicken_face_label)
+            m_thicken_face_label->SetLabel(have ? face_name : _L("(pick a solid face)"));
+        if (t == Tool::Shell && m_shell_face_label)
+            m_shell_face_label->SetLabel(have ? face_name : _L("(all faces — closed hollow)"));
+        if (t == Tool::Draft && m_draft_face_label)
+            m_draft_face_label->SetLabel(have ? face_name : _L("(pick a side face)"));
     }
 
     if (editing) {
