@@ -67,17 +67,33 @@ void FillConcentric::_fill_surface_single(
     if (spiralized) {
         Polyline spiral;
         Point current_pos(0, 0);
+        // Threshold distance to detect jumps between islands.
+        const double jump_threshold = 3.0 * double(distance);
 
         for (size_t i = 0; i < loops.size(); ++i) {
             const Polygon& loop = loops[i];
-
             int idx = current_pos.nearest_point_index(loop.points);
-
             Polyline loop_path(loop.split_at_index(idx));
             loop_path.points = loop_points_opened(std::move(loop_path));
-
             if (loop_path.size() < 2)
                 continue;
+
+            // Island detection:
+            if (!spiral.empty()) {
+                double dist_to_new_start = spiral.last_point().distance_to(loop_path.points.front());
+                if (dist_to_new_start > jump_threshold) {
+                    if (!spiral.empty())
+                        polylines_out.emplace_back(std::move(spiral));
+                    
+                    spiral.clear();
+                    current_pos      = Point(0, 0);
+                    idx              = current_pos.nearest_point_index(loop.points);
+                    loop_path        = Polyline(loop.split_at_index(idx));
+                    loop_path.points = loop_points_opened(std::move(loop_path));
+                    if (loop_path.size() < 2)
+                        continue;
+                }
+            }
 
             const bool last_loop = (i + 1 == loops.size());
 
@@ -90,7 +106,11 @@ void FillConcentric::_fill_surface_single(
                 loop_path.clip_end(distance);
             }
 
-            spiral.append(std::move(loop_path));
+            if (spiral.empty()) {
+                spiral = std::move(loop_path);
+            } else {
+                spiral.append(std::move(loop_path));
+            }
             current_pos = spiral.last_point();
         }
 
