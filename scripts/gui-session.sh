@@ -53,6 +53,10 @@ status() {
     else echo "vnc     : DOWN"; fi
     local p; p="$(app_pid || true)"
     echo "app     : ${p:-DOWN}"
+    # WHICH binary is on screen, not just that something is. A pid alone cannot tell you whether
+    # you are looking at the build you just linked or one from last week, and that is precisely
+    # the question every rig verification is asking.
+    [ -n "${p:-}" ] && echo "binary  : $(readlink -f "/proc/$p/exe" 2>/dev/null || echo unknown)"
     [ -n "${p:-}" ] && echo "windows : $(xdotool search --name . getwindowname %@ 2>/dev/null | paste -sd'|' -)"
     return 0
 }
@@ -73,7 +77,15 @@ if ! pgrep -x x11vnc >/dev/null && command -v x11vnc >/dev/null; then
 fi
 
 # --- app ------------------------------------------------------------------------------------
-pkill -9 -f "$BIN" 2>/dev/null || true
+# Kill by BASENAME, not by "$BIN". The app enforces a single instance, so an older copy launched
+# from a DIFFERENT path (the packaged build/package/bin/ one, say, when BIN points at the freshly
+# linked build/src/Release/ one) survives a path-matched pkill, keeps the instance lock, and the
+# new process exits seconds after loading fonts — leaving no error anywhere. app_pid() below has
+# always matched by basename, so status then reported that stale process as a healthy session:
+# the launch looked green while the window on screen was days old. Measured 2026-08-02, where it
+# nearly passed a UI change against a Jul-30 binary. The killer and the reporter must agree on
+# what counts as "the app".
+pkill -9 -f "$(basename "$BIN")" 2>/dev/null || true
 sleep 2
 nohup "$BIN" >"$LOG" 2>&1 &
 echo "launched $(basename "$BIN") pid $!"

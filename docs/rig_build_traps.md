@@ -121,3 +121,31 @@ invisible and the session hunts a phantom. Pass `BIN` explicitly:
 Note also that the GUI containers do **not** mount `scripts/`: `/OrcaSlicer/scripts` inside them
 is the baked copy, so a local edit to `gui-session.sh` has no effect until you
 `docker cp scripts/gui-session.sh <container>:/OrcaSlicer/scripts/`.
+
+---
+
+## Trap 6 — `src/Release/` resolves resources to `build/resources`, which may not exist
+
+The binary derives `resources_dir()` from its own location, so the `src/Release/` one looks in
+`/OrcaSlicer/build/resources` while the packaged one looks inside `build/package/`. Only the
+packaging step creates the latter; nothing creates the former. Without it the app fails every
+`Failed to add custom font ".../build/resources/fonts/…"`, logs `Health check is not running`,
+and **exits 255 with nothing on stdout** — which reads exactly like a crash in whatever you just
+changed. Measured 2026-08-02: an hour was nearly spent bisecting a GUI change that was fine.
+
+`build/` is the shared cache volume, so one symlink fixes it permanently, and pointing it at the
+bind-mounted repo tree means the rig also picks up new `resources/images/*.svg` without a rebuild:
+
+    docker exec <fork>-gui ln -sfn /OrcaSlicer/resources /OrcaSlicer/build/resources
+
+Tell the two apart before debugging: a resource failure dies in the first second with no window;
+a real fault in your code gets past the version banner. Compare
+`~/.config/<App>/log/<newest>.log.0` against a known-good run — 47 lines versus 340 is the tell.
+
+## Trap 7 — a single-instance app plus a path-matched `pkill`
+
+`gui-session.sh` used to kill by `"$BIN"`, while its own `app_pid()` matched by BASENAME. Launch
+with a `BIN` that differs from the running instance's path and the old process survives, keeps
+the single-instance lock, and the new one exits seconds after loading fonts — then `status`
+reports the *stale* pid as a healthy session. Fixed by killing on the basename; `status` now also
+prints `binary : $(readlink -f /proc/<pid>/exe)`. **Read that line before trusting a screenshot.**

@@ -8,8 +8,10 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/log/trivial.hpp>          // the offer/atlas join check reports on the log
 #include <Standard_Failure.hxx>
 
+#include <cassert>
 #include <map>
 #include <set>
 #include <wx/sizer.h>
@@ -477,6 +479,21 @@ DesignPanel::DesignPanel(wxWindow* parent)
             FeatFlyout() : drop(items) {}
         };
         auto feat_dropdown = [&](const char* id, const char* def_icon, const wxString& grp, std::vector<FeatVar> vars) {
+            // REGISTER FIRST, BUILD SECOND. A verb's two addresses — "fly:<family>#<row>" for the
+            // offer and its Shift+key — are data. The widget is one door onto them, not their
+            // owner. Doing this before any wxWindow exists is what lets the build below be skipped
+            // outright for a family the bar no longer carries. It used to sit INSIDE the build
+            // loop, so a retired family still had to be constructed and then Hide()n: skipping it
+            // would have deleted 42 verbs from the offer while their rows still rendered and did
+            // nothing when picked. snaporca-7ih.
+            // Keyed on "fly:<family>#<row>" so the generated table can name a variant without the
+            // item struct growing a field at 26 call sites.
+            for (size_t i = 0; i < vars.size(); ++i) {
+                if (vars[i].key) m_keys_feature[vars[i].key] = vars[i].action;   // key runs the same action
+                m_verb_actions["fly:" + std::string(id) + "#" + std::to_string(i)] = vars[i].action;
+            }
+            if (kBarKeep.count(id) == 0)
+                return;   // reached from the offer alone — no button, no chevron, no popup
             auto* b = icon_btn(def_icon, grp);
             b->SetFont(Label::Body_14);   // measure popup labels in the popup's font (no truncation)
             auto fo = std::make_shared<FeatFlyout>();
@@ -488,12 +505,6 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 fo->items.push_back(it);
                 fo->actions.push_back(std::move(v.action));
                 fo->icon_names.emplace_back(v.icon);
-                if (v.key) m_keys_feature[v.key] = fo->actions.back();   // key runs the same action
-                // …and the offer reaches the same action by its ratified address. Keyed on
-                // "fly:<family>#<row>" so the generated table can name it without the item
-                // struct growing a field at 26 call sites.
-                m_verb_actions["fly:" + std::string(id) + "#" +
-                               std::to_string(fo->actions.size() - 1)] = fo->actions.back();
             }
             fo->btn = b;
             fo->drop.Create(b);
@@ -524,7 +535,6 @@ DesignPanel::DesignPanel(wxWindow* parent)
             chev->SetForegroundColour(dp_sec_text());
             chev->SetFont(Label::Body_9);
             fadd(id, chev);
-            return b;
         };
 
         auto* b_sketch = icon_btn("design_sketch", _L("Sketch"));
@@ -1088,6 +1098,19 @@ DesignPanel::DesignPanel(wxWindow* parent)
             ToolFlyout() : drop(items) {}
         };
         auto dropdown = [&](const char* def_icon, const wxString& grp, std::vector<SkVar> vars) {
+            // Register first, build second — the same law as feat_dropdown, for the same reason.
+            // The offer reaches each tool by its ratified address; without these the offer could
+            // name a family but only ever arm its FIRST tool: picking "Rectangle" ran key:R and
+            // gave you a corner rectangle, with oblique and rounded unreachable. Keyed on the icon
+            // id (already unique per family) so no call site grows an argument. snaporca-6vs.
+            for (size_t i = 0; i < vars.size(); ++i) {
+                const DesignSketchTool::Mode mode = vars[i].mode;
+                const wxString               hint = vars[i].hint;
+                m_verb_actions["fly:" + std::string(def_icon) + "#" + std::to_string(i)] =
+                    [mode, hint, select_tool] { select_tool(mode, hint); };
+            }
+            if (kBarKeep.count(def_icon) == 0)
+                return;   // the drawing tools live in the offer; nothing of this family is built
             auto* b = icon_btn(def_icon, grp);
             // messureSize() measures labels with the PARENT's font (this button) but the
             // popup draws them in Body_14 — so an under-sized button font truncates rows.
@@ -1104,17 +1127,6 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 fo->modes.push_back(v.mode);
                 fo->hints.push_back(v.hint);
                 fo->icon_names.emplace_back(v.icon);
-                // …and the offer reaches the same tool by its ratified address, exactly as
-                // feat_dropdown does for the model verbs. Without this the offer could name a
-                // family but only ever arm its FIRST tool: picking "Rectangle" ran key:R and
-                // gave you a corner rectangle, with oblique and rounded unreachable.
-                // Keyed on the icon id (already unique per family) so no call site grows an
-                // argument. snaporca-6vs.
-                const DesignSketchTool::Mode mode = v.mode;
-                const wxString               hint = v.hint;
-                m_verb_actions["fly:" + std::string(def_icon) + "#" +
-                               std::to_string(fo->modes.size() - 1)] =
-                    [mode, hint, select_tool] { select_tool(mode, hint); };
             }
             fo->btn = b;
             fo->drop.Create(b);
@@ -1148,7 +1160,6 @@ DesignPanel::DesignPanel(wxWindow* parent)
             chev->SetForegroundColour(dp_sec_text());
             chev->SetFont(Label::Body_9);
             sadd(chev);   // follows its button off the bar
-            return b;
         };
         skbtn("design_select",    DesignSketchTool::Mode::Select,           _L("Select"),
               _L("Click to select; Shift to add; double-click for a whole loop"));
@@ -3659,6 +3670,41 @@ DesignPanel::DesignPanel(wxWindow* parent)
     outer->Add(new wxStaticLine(this, wxID_ANY), 0, wxEXPAND);
     outer->Add(body, 1, wxEXPAND);
     SetSizer(outer);
+
+    // The atlas says a verb is wired; the registrations above say what it runs. Nothing checks
+    // that the two agree, and a broken join is INVISIBLE — the row renders, is enabled, and does
+    // nothing when picked. That defect has shipped three times (edit_feature and sk_move carrying
+    // action:null, then a whole flyout family the moment its widget stopped being built), and it
+    // cannot be seen by reading either side alone. Verify the join once, here, where every
+    // registration is complete. Cheap: 86 map lookups, once per panel.
+    {
+        std::vector<std::string> dead;
+        for (int i = 0; i < kOfferVerbCount; ++i) {
+            const OfferVerb& v = kOfferVerbs[i];
+            if (v.action == nullptr || *v.action == '\0')
+                continue;               // kernel support, no GUI path — the row shows disabled
+            const std::string a(v.action);
+            bool ok = false;
+            if (a.rfind("key:", 0) == 0) {   // resolved exactly as run_offer_action() resolves it
+                const std::string k = a.substr(4);
+                if (k.size() >= 3 && k[0] == 'S' && k[1] == '+') {
+                    auto it = m_keys_feature.find(int(k[2]) | SC_SHIFT);
+                    ok = it != m_keys_feature.end() && bool(it->second);
+                } else if (!k.empty()) {
+                    auto it = m_keys_sketch.find(int(k[0]));
+                    ok = it != m_keys_sketch.end() && bool(it->second);
+                }
+            } else {
+                auto it = m_verb_actions.find(a);
+                ok = it != m_verb_actions.end() && bool(it->second);
+            }
+            if (!ok)
+                dead.emplace_back(std::string(v.id) + " -> " + a);
+        }
+        for (const std::string& d : dead)
+            BOOST_LOG_TRIVIAL(error) << "Design offer: wired verb has no action: " << d;
+        assert(dead.empty());   // debug builds stop here; release ships the log line
+    }
 
     set_ui_mode(UiMode::Feature);
 }

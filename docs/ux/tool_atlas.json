@@ -567,7 +567,7 @@
       "gui": true,
       "action": "key:S+X",
       "icon": "design_cut",
-      "hint": "Split the body with a plane; set the offset in the card"
+      "hint": "Trim the body with a plane — drag the offset arrow; keep one half or both"
     },
     {
       "id": "split",
@@ -586,7 +586,7 @@
       "gui": false,
       "action": null,
       "icon": null,
-      "hint": "Split the body into separate solids"
+      "hint": "Split the body along a picked face into two solids"
     },
     {
       "id": "fillet",
