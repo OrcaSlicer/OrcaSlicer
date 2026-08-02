@@ -929,14 +929,19 @@ ExPolygons make_brim_area_for_layer(const Print &print, const PrintObject &objec
                 ExPolygons layer0_inner = offset_ex(layer0_islands, brim_offset, jtRound, SCALED_RESOLUTION);
                 ExPolygons layer0_ears = make_brim_ears_auto(layer0_inner, size_ear, ear_detection_length, brim_ears_max_angle, true);
                 // Project each layer-0 ear center to the current layer outline.
+                // Drop ears whose closest point is too far away (shape changed too much).
                 ExPolygons projected_ears;
+                coord_t max_shift = brim_width + brim_offset + size_ear + flow.scaled_spacing();
                 for (const ExPolygon &ear : layer0_ears) {
                     Point center = ear.contour.bounding_box().center();
                     Point projected = center;
                     if (!islands.empty()) {
                         Point closest;
-                        if (closest_point_on_expolygons(islands, center, closest))
-                            projected = closest;
+                        if (closest_point_on_expolygons(islands, center, closest)) {
+                            if (center.distance_to(closest) <= double(max_shift))
+                                projected = closest;
+                            // else: ear dropped — shape changed too much at this location
+                        }
                     }
                     Polygon ear_shape;
                     for (size_t i = 0; i < POLY_SIDE_COUNT; i++) {
