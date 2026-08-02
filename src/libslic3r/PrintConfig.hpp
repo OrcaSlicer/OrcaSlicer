@@ -1252,6 +1252,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionEnum<InfillPattern>,  bottom_surface_pattern))
     ((ConfigOptionEnum<SurfaceFillOrder>, top_surface_fill_order))
     ((ConfigOptionEnum<SurfaceFillOrder>, bottom_surface_fill_order))
+    ((ConfigOptionBool,                 spiralized))
     ((ConfigOptionEnum<InfillPattern>, internal_solid_infill_pattern))
     ((ConfigOptionFloatOrPercent,       outer_wall_line_width))
     ((ConfigOptionFloatsNullable,       outer_wall_speed))

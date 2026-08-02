@@ -6,8 +6,23 @@
 
 #include "FillConcentric.hpp"
 #include <libslic3r/ShortestPath.hpp>
+#include <algorithm>
 
 namespace Slic3r {
+
+static bool should_spiralize_concentric(const FillParams &params)
+{
+    return params.config != nullptr &&
+           params.config->spiralized.value &&
+           (params.extrusion_role == erTopSolidInfill || params.extrusion_role == erBottomSurface);
+}
+
+static Points loop_points_opened(Polyline loop_path)
+{
+    if (loop_path.points.size() > 1 && loop_path.points.front() == loop_path.points.back())
+        loop_path.points.pop_back();
+    return std::move(loop_path.points);
+}
 
 void FillConcentric::_fill_surface_single(
     const FillParams                &params, 
@@ -42,16 +57,53 @@ void FillConcentric::_fill_surface_single(
     // adhesion problems of the first central tiny loops
     loops = union_pt_chained_outside_in(loops);
 
+    const bool spiralized = should_spiralize_concentric(params);
+
     // Orca: an outward fill order prints the innermost loops first instead.
     if (params.fill_order == SurfaceFillOrder::Outward)
         std::reverse(loops.begin(), loops.end());
     
-    // split paths using a nearest neighbor search
     size_t iPathFirst = polylines_out.size();
-    Point last_pos(0, 0);
-    for (const Polygon &loop : loops) {
-        polylines_out.emplace_back(loop.split_at_index(last_pos.nearest_point_index(loop.points)));
-        last_pos = polylines_out.back().last_point();
+    if (spiralized) {
+        Polyline spiral;
+        Point current_pos(0, 0);
+
+        for (size_t i = 0; i < loops.size(); ++i) {
+            const Polygon& loop = loops[i];
+
+            int idx = current_pos.nearest_point_index(loop.points);
+
+            Polyline loop_path(loop.split_at_index(idx));
+            loop_path.points = loop_points_opened(std::move(loop_path));
+
+            if (loop_path.size() < 2)
+                continue;
+
+            const bool last_loop = (i + 1 == loops.size());
+
+            if (last_loop) {
+                // Close the innermost loop normally.
+                loop_path.points.push_back(loop_path.points.front());
+            } else {
+                // Add the virtual closing segment and trim it to create the spiral transition.
+                loop_path.points.push_back(loop_path.points.front());
+                loop_path.clip_end(distance);
+            }
+
+            spiral.append(std::move(loop_path));
+            current_pos = spiral.last_point();
+        }
+
+        if (!spiral.empty())
+            polylines_out.emplace_back(std::move(spiral));
+
+    } else {
+        // split paths using a nearest neighbor search
+        Point last_pos(0, 0);
+        for (const Polygon &loop : loops) {
+            polylines_out.emplace_back(loop.split_at_index(last_pos.nearest_point_index(loop.points)));
+            last_pos = polylines_out.back().last_point();
+        }
     }
 
     // Apply multiline offset if needed
@@ -87,6 +139,13 @@ void FillConcentric::_fill_surface_single(const FillParams& params,
     // no rotation is supported for this infill pattern
     Point   bbox_size = expolygon.contour.bounding_box().size();
     coord_t min_spacing = scaled<coord_t>(this->spacing);
+
+    if (should_spiralize_concentric(params)) {
+        Polylines polylines;
+        this->_fill_surface_single(params, thickness_layers, direction, std::move(expolygon), polylines);
+        append(thick_polylines_out, to_thick_polylines(std::move(polylines), min_spacing));
+        return;
+    }
 
     if (params.density > 0.9999f && !params.dont_adjust) {
         coord_t                loops_count = std::max(bbox_size.x(), bbox_size.y()) / min_spacing + 1;

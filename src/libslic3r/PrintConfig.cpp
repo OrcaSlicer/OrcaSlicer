@@ -2412,6 +2412,13 @@ void PrintConfigDef::init_fff_params()
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionEnum<SurfaceFillOrder>(SurfaceFillOrder::Default));
 
+    def = this->add("spiralized", coBool);
+    def->label = L("Spiralized concentric solid infill");
+    def->category = L("Strength");
+    def->tooltip = L("When enabled, top and bottom solid surfaces using the Concentric pattern are generated as a single continuous spiral-like path from outside to inside.");
+    def->mode = comAdvanced;
+    def->set_default_value(new ConfigOptionBool(false));
+
 	def                = this->add("internal_solid_infill_pattern", coEnum);
     def->label         = L("Internal solid infill pattern");
     def->category      = L("Strength");

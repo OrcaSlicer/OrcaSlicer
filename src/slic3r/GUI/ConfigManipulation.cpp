@@ -789,6 +789,9 @@ void ConfigManipulation::toggle_print_fff_options(DynamicPrintConfig *config, in
     auto is_centered_fill = [](InfillPattern p) { return p == ipConcentric || p == ipArchimedeanChords || p == ipOctagramSpiral; };
     toggle_line("top_surface_fill_order", has_top_shell && is_centered_fill(config->opt_enum<InfillPattern>("top_surface_pattern")));
     toggle_line("bottom_surface_fill_order", has_bottom_shell && is_centered_fill(config->opt_enum<InfillPattern>("bottom_surface_pattern")));
+    const bool top_concentric = has_top_shell && config->opt_enum<InfillPattern>("top_surface_pattern") == ipConcentric;
+    const bool bottom_concentric = has_bottom_shell && config->opt_enum<InfillPattern>("bottom_surface_pattern") == ipConcentric;
+    toggle_line("spiralized", top_concentric || bottom_concentric);
 
     for (auto el : { "infill_direction", "sparse_infill_line_width", "gap_fill_target","filter_out_gap_fill","infill_wall_overlap",
         "bridge_angle", "internal_bridge_angle", "relative_bridge_angle",
