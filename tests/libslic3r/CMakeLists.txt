@@ -43,6 +43,15 @@ if (TARGET OpenVDB::openvdb)
 endif()
 
 target_link_libraries(${_TEST_NAME}_tests test_common libslic3r Catch2::Catch2WithMain)
+target_sources(${_TEST_NAME}_tests PRIVATE test_usd.cpp)
+target_link_libraries(${_TEST_NAME}_tests usd_whole_archive)
+
+# The CI test job unpacks build/**/tests and nothing else, so deps/ is not
+# there; stage the tree inside what gets packed.
+add_custom_command(TARGET ${_TEST_NAME}_tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${ORCA_USD_PLUGIN_DIR}" "$<TARGET_FILE_DIR:${_TEST_NAME}_tests>/usd"
+    COMMENT "Staging OpenUSD plugInfo tree beside the test binary")
 target_include_directories(${_TEST_NAME}_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 set_property(TARGET ${_TEST_NAME}_tests PROPERTY FOLDER "tests")
 

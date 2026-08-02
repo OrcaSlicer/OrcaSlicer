@@ -91,6 +91,7 @@ void CopyrightsDialog::fill_entries()
         { "Clipper",                                        "",      "http://www.angusj.co" },
         { "libcurl",                                        "",      "https://curl.se/libcurl" },
         { "Draco",                                          "",      "https://google.github.io/draco/" },
+        { "OpenUSD",                                        "",      "https://openusd.org/" },
         { "Eigen3",                                         "",      "http://eigen.tuxfamily.org" },
         { "Expat",                                          "",      "http://www.libexpat.org" },
         { "fast_float",                                     "",      "https://github.com/fastfloat/fast_float" },

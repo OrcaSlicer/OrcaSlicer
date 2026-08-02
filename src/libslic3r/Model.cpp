@@ -16,6 +16,7 @@
 #include "Format/svg.hpp"
 #include "Format/bbs_3mf.hpp"
 #include "Format/DRC.hpp"
+#include "Format/USD.hpp"
 // BBS
 #include "FaceDetector.hpp"
 
@@ -315,6 +316,9 @@ Model Model::read_from_file(const std::string&                                  
     //else if (boost::algorithm::iends_with(input_file, ".amf") || boost::algorithm::iends_with(input_file, ".amf.xml"))
     else if (boost::algorithm::iends_with(input_file, ".drc"))
         result = load_drc(input_file.c_str(), &model);
+    else if (boost::algorithm::iends_with(input_file, ".usd") || boost::algorithm::iends_with(input_file, ".usda") ||
+             boost::algorithm::iends_with(input_file, ".usdc") || boost::algorithm::iends_with(input_file, ".usdz"))
+        result = load_usd(input_file.c_str(), &model, message);
     else if (boost::algorithm::iends_with(input_file, ".amf"))
         //BBS: is_xxx is used for is_inches when load amf
         result = load_amf(input_file.c_str(), config, config_substitutions, &model, is_xxx);
@@ -325,9 +329,10 @@ Model Model::read_from_file(const std::string&                                  
         //BBS: is_xxx is used for is_bbs_3mf when load 3mf
         result = load_bbs_3mf(input_file.c_str(), config, config_substitutions, &model, plate_data, project_presets, is_xxx, nullptr, file_version, proFn, options, project, plate_id);
 #ifdef __APPLE__
-    else if (boost::algorithm::iends_with(input_file, ".usd") || boost::algorithm::iends_with(input_file, ".usda") ||
-             boost::algorithm::iends_with(input_file, ".usdc") || boost::algorithm::iends_with(input_file, ".usdz") ||
-             boost::algorithm::iends_with(input_file, ".abc") || boost::algorithm::iends_with(input_file, ".ply")) {
+    // ModelIO also reads USD, but the arm above claims those four extensions
+    // first, so listing them here would be dead code. .abc and .ply remain
+    // ModelIO's alone.
+    else if (boost::algorithm::iends_with(input_file, ".abc") || boost::algorithm::iends_with(input_file, ".ply")) {
         std::string temp_stl = make_temp_stl_with_modelio(input_file);
         if (temp_stl.empty()) {
             throw Slic3r::RuntimeError("Failed to convert asset to STL via ModelIO.");

@@ -1,0 +1,13 @@
+#usda 1.0
+(
+    metersPerUnit = 0.001
+    upAxis = "Y"
+)
+
+def Mesh "cube"
+{
+    int[] faceVertexCounts = [4, 4, 4, 4, 4, 4]
+    int[] faceVertexIndices = [1, 2, 3, 0, 7, 6, 5, 4, 4, 5, 1, 0, 6, 7, 3, 2, 5, 6, 2, 1, 7, 4, 0, 3]
+    point3f[] points = [(-5, 0, -5), (5, 0, -5), (5, 0, 5), (-5, 0, 5), (-5, 10, -5), (5, 10, -5), (5, 10, 5), (-5, 10, 5)]
+    uniform token subdivisionScheme = "none"
+}

@@ -198,6 +198,13 @@ modules:
         sha256: 4f47379064f99cc50da8dde85e27651d3609ac6c3e0941b1c728a1b2dd1e4b68
         dest: external-packages/TBB
 
+      # OpenUSD v26.08 -- the Flatpak sandbox has no network, so every archive
+      # the deps build fetches has to be staged here by URL and hash first.
+      - type: file
+        url: https://github.com/PixarAnimationStudios/OpenUSD/archive/refs/tags/v26.08.zip
+        sha256: fbf509e8292055a0be7801f56218ed5d15a3c9022e24636fcc9ca8587345c760
+        dest: external-packages/OpenUSD
+
       # Cereal v1.3.0
       - type: file
         url: https://github.com/USCiLab/cereal/archive/refs/tags/v1.3.0.zip

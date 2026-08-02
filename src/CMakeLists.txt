@@ -158,6 +158,9 @@ if (NOT WIN32 AND NOT APPLE)
 endif ()
 
 target_link_libraries(OrcaSlicer libslic3r cereal::cereal)
+# OpenUSD's file formats and asset resolver register through static
+# initialisers, which a normal link discards. See src/libslic3r/CMakeLists.txt.
+target_link_libraries(OrcaSlicer usd_whole_archive)
 # target_include_directories(OrcaSlicer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/slic3r)
 if (APPLE)
 #    add_compile_options(-stdlib=libc++)
@@ -279,6 +282,11 @@ if (WIN32)
         COMMENT "Copying Python runtime into the build tree"
         VERBATIM)
 
+    # TARGET_FILE_DIR anchors on the DLL, but the executable lands beside it.
+    add_custom_command(TARGET OrcaSlicer POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${ORCA_USD_PLUGIN_DIR}" "$<TARGET_FILE_DIR:OrcaSlicer>/usd"
+        COMMENT "Copying the OpenUSD plugin tree into the build tree"
+        VERBATIM)
 
 else ()
     if (APPLE AND NOT CMAKE_MACOSX_BUNDLE)
@@ -325,6 +333,12 @@ else ()
         COMMAND ${CMAKE_COMMAND} -E rm -rf "${BIN_DIR}/python"
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_PREFIX_PATH}/libpython" "${BIN_DIR}/python"
         COMMENT "Copying Python runtime into the build tree"
+        VERBATIM)
+    # Beside the binary, not BIN_RESOURCES_DIR: that is a symlink back to the
+    # source resources/, so copying there writes into the checkout.
+    add_custom_command(TARGET OrcaSlicer POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${ORCA_USD_PLUGIN_DIR}" "${BIN_DIR}/usd"
+        COMMENT "Copying the OpenUSD plugin tree into the build tree"
         VERBATIM)
     # Stage uv next to the binary for the build-tree/.app flows, which never
     # run install() -- see the layout map above; lookup is bundled_uv_path().
