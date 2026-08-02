@@ -654,7 +654,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 // Thicken and were then asked to point at something. Reached from the offer the
                 // verb is invoked ON a face, so discarding it opened the card reading "(pick a
                 // solid face)" over an immediate "thicken: face not found" — the user pointed at
-                // the face and the card said it could not find one. snaporca-y7q.
+                // the face and the card said it could not find one. snaporca-kgx.
                 // The index is per-body, so it only survives if the body combo landed on the body
                 // it came from; selected_body_default() above returns exactly that when valid.
                 if (m_thicken_body->GetSelection() != m_sel_solid_body)
