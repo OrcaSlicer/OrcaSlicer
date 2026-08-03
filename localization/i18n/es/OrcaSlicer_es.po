@@ -3,7 +3,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Orca Slicer\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-26 21:59-0300\n"
+"POT-Creation-Date: 2026-07-29 17:40-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: Ian A. Bassi <>\n"
 "Language-Team: \n"
@@ -3685,6 +3685,10 @@ msgstr "Organizando..."
 
 msgid "Arranging"
 msgstr "Organizando"
+
+# AI Translated
+msgid "Arranging "
+msgstr "Organizando "
 
 msgid "Arranging canceled."
 msgstr "Organización cancelada."
@@ -8931,6 +8935,21 @@ msgstr "Atenuar las capas inferiores"
 msgid "When scrubbing the layer slider in the sliced preview, render the layers below the current one darkened so that only the layer being viewed is shown at full brightness."
 msgstr "Al desplazar el control deslizante de capas en la vista previa laminada, oscurece las capas inferiores a la actual para que solo la capa visualizada se muestre a pleno brillo."
 
+# AI Translated
+msgid "Dimmed layer brightness"
+msgstr "Brillo de las capas atenuadas"
+
+msgid "%"
+msgstr "%"
+
+# AI Translated
+msgid ""
+"How brightly the dimmed layers are rendered when \"Dim lower layers\" is enabled.\n"
+"99% is barely darkened, 0% renders them black. Capped at 99% because 100% would be the same as disabling the option."
+msgstr ""
+"Con qué brillo se muestran las capas atenuadas cuando \"Atenuar las capas inferiores\" está activado.\n"
+"99% apenas se oscurece y 0% las muestra en negro. Está limitado al 99% porque el 100% equivaldría a desactivar la opción."
+
 msgid "Login region"
 msgstr "Región de inicio de sesión"
 
@@ -12881,11 +12900,36 @@ msgstr "Por objeto"
 msgid "Intra-layer order"
 msgstr "Orden dentro de la capa"
 
-msgid "Print order within a single layer."
-msgstr "Orden de impresión dentro de cada capa."
+# AI Translated
+msgid ""
+"Order in which object instances are visited within a single layer, which controls how much travel is spent moving between them.\n"
+"\n"
+"Default: nearest-neighbor chaining, refined with 2-opt and crossing removal. A good general choice.\n"
+"As object list: instances are printed in the same order as the object list, without any path optimization. Use it when you need a predictable, manually controlled order.\n"
+"Best of all (shortest path): every strategy is evaluated and the shortest one is used. The object instance order is decided once for the whole print, while the ordering of individual islands is decided per layer, so different layers may end up using different strategies. Slightly slower to slice.\n"
+"Snake: serpentine row-by-row traversal, refined with 2-opt. Well suited to regular grids of many small parts.\n"
+"\n"
+"With multiple filaments or tools in the same layer, minimizing tool changes takes priority: objects are grouped by filament first and this setting only orders the instances within each filament group, so the overall sequence may not look like the shortest path across the plate."
+msgstr ""
+"Orden en el que se recorren las instancias de objeto dentro de una misma capa, lo que determina cuánto desplazamiento se emplea para moverse entre ellas.\n"
+"\n"
+"Por defecto: encadenado por vecino más cercano, refinado con 2-opt y eliminación de cruces. Una buena opción general.\n"
+"Como lista de objetos: las instancias se imprimen en el mismo orden que la lista de objetos, sin ninguna optimización de trayectoria. Úselo cuando necesite un orden predecible y controlado manualmente.\n"
+"La mejor de todas (trayectoria más corta): se evalúan todas las estrategias y se utiliza la más corta. El orden de las instancias de objeto se decide una sola vez para toda la impresión, mientras que el orden de las islas individuales se decide capa por capa, por lo que distintas capas pueden acabar usando estrategias diferentes. El laminado es algo más lento.\n"
+"Serpentina: recorrido serpenteante fila por fila, refinado con 2-opt. Muy adecuado para rejillas regulares de muchas piezas pequeñas.\n"
+"\n"
+"Con varios filamentos o herramientas en la misma capa, minimizar los cambios de herramienta tiene prioridad: los objetos se agrupan primero por filamento y este ajuste solo ordena las instancias dentro de cada grupo de filamento, por lo que la secuencia global puede no parecer la trayectoria más corta a lo largo de la cama."
 
 msgid "As object list"
 msgstr "Como lista de objetos"
+
+# AI Translated
+msgid "Best of all (shortest path)"
+msgstr "La mejor de todas (trayectoria más corta)"
+
+# AI Translated
+msgid "Snake"
+msgstr "Serpentina"
 
 msgid "Slow printing down for better layer cooling"
 msgstr "Reducir la velocidad de impresión para mejorar la refrigeración de las capas"
@@ -18122,6 +18166,20 @@ msgstr ""
 "Hay varias direcciones IP resueltas del nombre del host  %1%.\n"
 "Por favor, seleccione la que debe usarse."
 
+# AI Translated
+msgid "Auto-scale for nozzle"
+msgstr "Escalar automáticamente para la boquilla"
+
+# AI Translated
+msgid ""
+"This model is designed around a 0.4 mm nozzle with a 0.2 mm layer height. \n"
+"When the scaling option is enabled (recommended), it dynamically resizes to match your current nozzle diameter and an appropriate layer height, making the test both accurate and easy to read.\n"
+"Turn scaling off only if you wish to print the reference model exactly as-is."
+msgstr ""
+"Este modelo está diseñado para una boquilla de 0,4 mm con una altura de la capa de 0,2 mm. \n"
+"Cuando la opción de escalado está activada (recomendado), el modelo se redimensiona dinámicamente para adaptarse al diámetro de boquilla actual y a una altura de capa adecuada, lo que hace que la prueba sea precisa y fácil de leer.\n"
+"Desactive el escalado solo si desea imprimir el modelo de referencia exactamente tal cual."
+
 msgid "PA Calibration"
 msgstr "Calibración PA"
 
@@ -18258,6 +18316,14 @@ msgstr "Velocidad inicial: "
 msgid "End speed: "
 msgstr "Velocidad final: "
 
+# AI Translated
+msgid "Auto-adjust to max volumetric speed"
+msgstr "Ajustar automáticamente a la velocidad volumétrica máxima"
+
+# AI Translated
+msgid "If the end speed would exceed the filament's maximum volumetric speed, automatically lower the layer height (keeping standard values and staying within the machine's limits) to reach it. If even the minimum layer height is not enough, lower the end speed instead."
+msgstr "Si la velocidad final superara la velocidad volumétrica máxima del filamento, se reduce automáticamente la altura de la capa (manteniendo valores estándar y dentro de los límites de la máquina) para alcanzarla. Si ni siquiera la altura de capa mínima es suficiente, se reduce la velocidad final."
+
 msgid ""
 "Please input valid values:\n"
 "start > 10\n"
@@ -18268,6 +18334,57 @@ msgstr ""
 "inicio > 10\n"
 "incremento >=0\n"
 "final > inicio + paso"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s), which limits the outer wall to about %.0f mm/s at this line width and layer height.\n"
+" Speeds above this will be clamped, so the upper blocks of the tower will not print at the requested speed.\n"
+"\n"
+"%s"
+msgstr ""
+"La velocidad final (%.0f mm/s) supera la velocidad volumétrica máxima del filamento (%.1f mm³/s), lo que limita el perímetro externo a unos %.0f mm/s con este ancho de línea y esta altura de capa.\n"
+" Las velocidades superiores se recortarán, por lo que los bloques superiores de la torre no se imprimirán a la velocidad solicitada.\n"
+"\n"
+"%s"
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"The end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s) at the default layer height (%.2f mm).\n"
+"\n"
+"The layer height has been reduced to %.2f mm (a value used by this printer's profiles) so the tower can reach the requested speed."
+msgstr ""
+"La velocidad final (%.0f mm/s) supera la velocidad volumétrica máxima del filamento (%.1f mm³/s) con la altura de capa predeterminada (%.2f mm).\n"
+"\n"
+"La altura de la capa se ha reducido a %.2f mm (un valor usado por los perfiles de esta impresora) para que la torre pueda alcanzar la velocidad solicitada."
+
+# AI Translated
+#, c-format, boost-format
+msgid ""
+"Even at the smallest layer height used by this printer's profiles (%.2f mm) the end speed (%.0f mm/s) exceeds the filament's maximum volumetric speed (%.1f mm³/s).\n"
+"\n"
+"The layer height will be set to %.2f mm and the end speed lowered to %.0f mm/s.\n"
+"\n"
+"Continue?"
+msgstr ""
+"Incluso con la altura de capa más pequeña usada por los perfiles de esta impresora (%.2f mm), la velocidad final (%.0f mm/s) supera la velocidad volumétrica máxima del filamento (%.1f mm³/s).\n"
+"\n"
+"La altura de la capa se establecerá en %.2f mm y la velocidad final se reducirá a %.0f mm/s.\n"
+"\n"
+"¿Continuar?"
+
+# AI Translated
+msgid "Continue anyway?"
+msgstr "¿Continuar de todos modos?"
+
+# AI Translated
+msgid "Enable \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "¿Activar \"Ajuste automático\" para corregir esto automáticamente o continuar de todos modos?"
+
+# AI Translated
+msgid "Enable \"Auto-scale for nozzle\" and \"Auto-adjust\" to fix this automatically, or continue anyway?"
+msgstr "¿Activar \"Escalar automáticamente para la boquilla\" y \"Ajuste automático\" para corregir esto automáticamente o continuar de todos modos?"
 
 msgid "Start retraction length: "
 msgstr "Longitud de retracción inicial: "
@@ -20744,6 +20861,9 @@ msgstr ""
 "Evita la deformación\n"
 "¿Sabías que al imprimir materiales propensos a la deformación como el ABS, aumentar adecuadamente la temperatura de la cama térmica puede reducir la probabilidad de deformaciones?"
 
+#~ msgid "Print order within a single layer."
+#~ msgstr "Orden de impresión dentro de cada capa."
+
 #~ msgid "Bottom"
 #~ msgstr "Inferior"
 
@@ -20836,9 +20956,6 @@ msgstr ""
 
 #~ msgid "°C"
 #~ msgstr "°C"
-
-#~ msgid "%"
-#~ msgstr "%"
 
 #~ msgid "Anisotropic surfaces"
 #~ msgstr "Superficies anisótropas"

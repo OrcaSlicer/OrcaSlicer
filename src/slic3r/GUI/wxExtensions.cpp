@@ -1022,6 +1022,10 @@ ScalableButton::ScalableButton( wxWindow *          parent,
         m_width = size.x * 10 / em;
         m_height= size.y * 10 / em;
     }
+
+#ifdef __WXGTK__
+    Slic3r::GUI::RemoveButtonBorder(this);
+#endif
 }
 
 

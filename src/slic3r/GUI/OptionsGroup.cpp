@@ -386,6 +386,7 @@ void OptionsGroup::activate_line(Line& line)
             }
             if (label != nullptr && line.label_tooltip != "")
                 label->SetToolTip(line.label_tooltip);
+            line.label_widget = label;
         }
     }
 
@@ -574,6 +575,7 @@ void OptionsGroup::clear(bool destroy_custom_ctrl)
     for (Line& line : m_lines) {
         if (line.near_label_widget_win)
             line.near_label_widget_win = nullptr;
+        line.label_widget = nullptr;
 
         if (line.widget_sizer) {
             line.widget_sizer->Clear(true);

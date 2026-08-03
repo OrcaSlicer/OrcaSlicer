@@ -11,6 +11,7 @@ add_executable(${_TEST_NAME}_tests
 	test_gcodewriter.cpp
 	test_model.cpp
 	test_multifilament.cpp
+	test_perimeters.cpp
 	test_print.cpp
 	test_printobject.cpp
 	test_skirt_brim.cpp
