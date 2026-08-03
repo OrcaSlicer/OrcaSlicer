@@ -5694,8 +5694,20 @@ wxString DesignPanel::idle_hint() const
         : _L("No solid yet — select a sketch and right-click it to Extrude.");
 }
 
+// The Design tab is no longer the visible page (snaporca-dlj). The status line is a popup floating
+// over the GL canvas, so it does NOT go away when this page does — it stayed up over Prepare and
+// over the home screen, still reading like a live Design selection ("selected (whole body) —
+// right-click for what applies to it") on a tab that has no such selection and no such menu.
+// Nothing else in the panel needs to know: the popup keeps its text and comes straight back.
+void DesignPanel::on_tab_hidden()
+{
+    if (m_viewport) m_viewport->show_status_hud(false);
+}
+
 void DesignPanel::on_tab_shown()
 {
+    if (m_viewport) m_viewport->show_status_hud(true);   // ...and back on the way in
+
     if (m_active == Tool::None && m_doc.display_mesh.its.indices.empty())
         set_status(idle_hint());   // first paint: the tab has never been edited
 

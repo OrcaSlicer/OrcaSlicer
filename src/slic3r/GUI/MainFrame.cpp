@@ -1290,6 +1290,11 @@ void MainFrame::init_tabpanel() {
         else if (panel == m_monitor) {
             //monitor
         }
+#ifdef SLIC3R_CAD
+        // Any page that is not Design takes the Design status line down with it — see
+        // DesignPanel::on_tab_hidden for why the popup does not follow the page on its own.
+        if (m_design_panel != nullptr && panel != m_design_panel) m_design_panel->on_tab_hidden();
+#endif
 #ifndef __APPLE__
         if (sel == tp3DEditor) {
             m_topbar->EnableUndoRedoItems();

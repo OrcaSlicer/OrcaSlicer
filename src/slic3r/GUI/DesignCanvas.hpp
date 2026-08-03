@@ -186,6 +186,10 @@ public:
     // the panel clips it at ~73 characters with no warning (snaporca-8cc), the viewport's
     // bottom margin has the whole window width to spare. Empty text hides it.
     void set_status_text(const wxString& text, const wxColour& colour);
+    // Take the status line down / bring it back when the Design page leaves and re-enters view.
+    // A popup is a TOP-LEVEL window: hiding the page it belongs to does not hide it. Keeps the
+    // text, so coming back needs no re-selection.
+    void show_status_hud(bool on);
     void set_operand_bodies(int target_body, int tool_body);  // -1,-1 clears
     void set_body_translucent(bool on); // render the solid see-through (fillet/chamfer preview)
     void set_body_hidden(bool on);      // preview-only: hide base bodies, show only the result ghost

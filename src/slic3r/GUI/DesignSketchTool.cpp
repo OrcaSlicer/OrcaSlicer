@@ -8068,6 +8068,27 @@ bool DesignSketchTool::on_mouse_impl(wxMouseEvent& evt, GLCanvas3D& canvas)
             return true;
         }
         m_display_pick = -1; m_display_pick_region = -1;  // clicked bare plate -> drop highlight
+        // ...and the SOLID selection goes with it (snaporca-od0). A click that hits nothing has to
+        // mean what a rubber band that sweeps nothing already means — pick_bodies_in_rectangle
+        // clears on an empty sweep, and the two gestures cannot disagree about the same outcome.
+        // Until now the face survived a click on bare plate, so "click away, then click the face
+        // again" arrived here as the SECOND click on the same face and escalated to the whole
+        // body, when the click away was the user letting go of it.
+        //
+        // The cost is real and is the intended trade: Thicken / Shell / Draft hold their input
+        // face in the panel's m_sel_solid_face, so a stray click on empty canvas with one of
+        // those cards open gives that face back. Their handlers already write the "(pick a solid
+        // face)" placeholder and rebuild the ghost at level 0, so the card SAYS it lost the pick
+        // rather than confirming against a face the viewport has stopped highlighting.
+        //
+        // Guarded on there being something to clear: this runs on every click that misses, and
+        // the callback re-renders the open card's preview.
+        if (m_solid_sel != SolidSel::None) {
+            clear_solid_selection();
+            dp_pick_trace("clicked empty space -> selection cleared");
+            if (on_solid_selection_changed)
+                on_solid_selection_changed(int(m_solid_sel), m_sel_body, m_sel_face, m_sel_edge);
+        }
         // Last resort: a click that hit no geometry but landed on a reference/base plane picks it.
         if (m_dbp_active) {
             const int h = hit_test_base_pick(canvas, evt);

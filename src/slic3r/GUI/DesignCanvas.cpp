@@ -970,6 +970,10 @@ void DesignCanvas::set_status_text(const wxString& text, const wxColour& colour)
 void DesignCanvas::place_status_hud()
 {
     if (!m_status_hud || !m_canvas_widget || m_status_hud_last.IsEmpty()) return;
+    // The canvas has a client size even while its page is hidden, and it is not the size the
+    // page will have when shown — anchoring against it put the chip up on the tab bar, where it
+    // then stayed until the next status change moved it. Nothing to anchor to: stay down.
+    if (!m_canvas_widget->IsShownOnScreen()) { m_status_hud->Hide(); return; }
     const wxSize cs = m_canvas_widget->GetClientSize();
     const wxSize hs = m_status_hud->GetSize();
     // Clear of the view cube and the two round view buttons, which own the bottom-left corner.
@@ -981,6 +985,13 @@ void DesignCanvas::place_status_hud()
     // the only thing between them was the first status update showing this window.
     if (!m_status_hud->IsShown()) m_status_hud->Show();   // Show before Move (GTK ignores pre-map Move)
     m_status_hud->Move(bl);
+}
+
+void DesignCanvas::show_status_hud(bool on)
+{
+    if (!m_status_hud) return;
+    if (on) place_status_hud();      // re-anchors first: the page may have been resized while away
+    else    m_status_hud->Hide();
 }
 
 void DesignCanvas::set_body_highlight(bool on)
