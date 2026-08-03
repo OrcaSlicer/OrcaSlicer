@@ -153,6 +153,7 @@ class Mouse3DController
     mutable State 		m_state;
     std::atomic<bool> 	m_connected { false };
     std::string 		m_device_str;
+    bool                m_disabled { false };
 
 #if ! __APPLE__
     // Worker thread for enumerating devices, connecting, reading data from the device and closing the device.

@@ -248,8 +248,8 @@ void AppConfig::set_defaults()
     if (get("reverse_mouse_wheel_zoom").empty())
         set_bool("reverse_mouse_wheel_zoom", false);
 
-    if (get("skip_3dmouse_detect").empty())
-        set_bool("skip_3dmouse_detect", false);
+    if (get("disable_3dmouse").empty())
+        set_bool("disable_3dmouse", false);
 
     if (get("enable_append_color_by_sync_ams").empty())
         set_bool("enable_append_color_by_sync_ams", true);
