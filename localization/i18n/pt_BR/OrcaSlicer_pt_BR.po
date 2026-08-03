@@ -8026,21 +8026,21 @@ msgstr "Diretório para substituição não foi selecionado"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Substituído por arquivos 3D do diretório:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ %1% Ignorados: mesmo arquivo.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ %s Ignorados: mesmo arquivo.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ %1% Ignorados: arquivo não existe.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ %s Ignorados: arquivo não existe.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ %1% Ignorados: falha ao substituir.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ %s Ignorados: falha ao substituir.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ %1% Substituídos.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ %s Substituídos.\n"
 
 msgid "Replaced volumes"
 msgstr "Volumes substiruídos"

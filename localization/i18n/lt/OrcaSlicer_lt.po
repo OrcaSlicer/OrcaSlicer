@@ -8239,21 +8239,21 @@ msgstr ""
 "Pakeista 3D failais iš katalogo:\n"
 "\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Praleistas %1%: tas pats failas.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Praleistas %s: tas pats failas.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Praleistas %1%: failas neegzistuoja.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Praleistas %s: failas neegzistuoja.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Praleistas %1%: nepavyko pakeisti.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Praleistas %s: nepavyko pakeisti.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Pakeistas %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Pakeistas %s.\n"
 
 msgid "Replaced volumes"
 msgstr "Pakeisti tūriai"

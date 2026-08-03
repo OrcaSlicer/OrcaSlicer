@@ -8120,21 +8120,21 @@ msgstr "Le répertoire pour le remplacement n'a pas été sélectionné"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Remplacé par des fichiers 3D depuis le répertoire :\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Ignoré %1% : même fichier.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Ignoré %s : même fichier.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Ignoré %1% : le fichier n'existe pas.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Ignoré %s : le fichier n'existe pas.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Ignoré %1% : échec du remplacement.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Ignoré %s : échec du remplacement.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Remplacé %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Remplacé %s.\n"
 
 msgid "Replaced volumes"
 msgstr "Volumes remplacés"

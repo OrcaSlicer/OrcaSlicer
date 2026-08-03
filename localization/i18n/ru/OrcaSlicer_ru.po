@@ -8413,21 +8413,21 @@ msgstr "Расположение для замены не указано"
 msgid "Replaced with 3D files from directory:\n"
 msgstr "Заменено файлами из расположения:\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: same file.\n"
-msgstr "✖ Пропущен %1%: идентичный файл.\n"
+#, c-format
+msgid "✖ Skipped %s: same file.\n"
+msgstr "✖ Пропущен %s: идентичный файл.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: file does not exist.\n"
-msgstr "✖ Пропущен %1%: файл не существует.\n"
+#, c-format
+msgid "✖ Skipped %s: file does not exist.\n"
+msgstr "✖ Пропущен %s: файл не существует.\n"
 
-#, boost-format
-msgid "✖ Skipped %1%: failed to replace.\n"
-msgstr "✖ Пропущен %1%: не удалось заменить.\n"
+#, c-format
+msgid "✖ Skipped %s: failed to replace.\n"
+msgstr "✖ Пропущен %s: не удалось заменить.\n"
 
-#, boost-format
-msgid "✔ Replaced %1%.\n"
-msgstr "✔ Заменён %1%.\n"
+#, c-format
+msgid "✔ Replaced %s.\n"
+msgstr "✔ Заменён %s.\n"
 
 msgid "Replaced volumes"
 msgstr "Модели заменены"
