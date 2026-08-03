@@ -161,6 +161,22 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
     // the canvas changes size. The readout HUD gets away without this because it is transient;
     // the status line is on screen almost permanently and would visibly detach.
     m_canvas_widget->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) { place_status_hud(); e.Skip(); });
+    // ...and it does not follow the WINDOW either. A popup is override-redirect: the window
+    // manager does not own it, so minimising the app leaves the chip sitting on the bare desktop
+    // (seen on the rig: whole screen black, chip still there), and it stacks above other
+    // applications rather than behind them. IsShownOnScreen does not catch this — an iconised
+    // frame still counts as shown — so the frame has to say so itself. Deactivating the app is
+    // the same case one step weaker: the chip belongs to a viewport the user is no longer
+    // looking at. Showing it back is safe because a popup cannot take focus, so neither event
+    // can be re-triggered by our own Show().
+    if (wxWindow* top = wxGetTopLevelParent(m_canvas_widget)) {
+        top->Bind(wxEVT_ICONIZE, [this](wxIconizeEvent& e) {
+            show_status_hud(!e.IsIconized()); e.Skip();
+        });
+        top->Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& e) {
+            show_status_hud(e.GetActive()); e.Skip();
+        });
+    }
 
     refresh_bed();
 
