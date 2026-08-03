@@ -3784,12 +3784,14 @@ void PresetCollection::update_library_profile_excluded_from()
     }
 
     // Check all presets that has the same alias as the filament presets with empty compatible_printers in Orca Filament Library.
+    // A printer specific profile supersedes the generic one, no matter whether it lives in a vendor bundle or in the
+    // library itself.
     for (const Preset& preset : m_presets) {
-        if (preset.vendor == nullptr || preset.vendor->name == PresetBundle::ORCA_FILAMENT_LIBRARY)
+        if (preset.vendor == nullptr)
             continue;
 
         const auto* compatible_printers = dynamic_cast<const ConfigOptionStrings*>(preset.config.option("compatible_printers"));
-        // All profiles in concrete vendor profile shouldn't have empty compatible_printers, but here we check it for safety.
+        // Profiles with empty compatible_printers are the generic ones, they never supersede anything.
         if (compatible_printers == nullptr || compatible_printers->values.empty())
             continue;
         auto itr = excluded_froms.find(preset.alias);
