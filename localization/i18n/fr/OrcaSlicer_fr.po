@@ -9283,22 +9283,22 @@ msgid "DEV host: api-dev.bambu-lab.com/v1"
 msgstr "Hôte DEV : api-dev.bambu-lab.com/v1"
 
 msgid "QA  host: api-qa.bambu-lab.com/v1"
-msgstr "Hôte AQ : api-qa.bambu-lab.com/v1"
+msgstr "Hôte QA : api-qa.bambu-lab.com/v1"
 
 msgid "PRE host: api-pre.bambu-lab.com/v1"
-msgstr "Hébergeur PRE : api-pre.bambu-lab.com/v1"
+msgstr "Hôte PRE : api-pre.bambu-lab.com/v1"
 
 msgid "Product host"
 msgstr "Hôte du produit"
 
 msgid "Debug save button"
-msgstr "bouton d'enregistrement de débogage"
+msgstr "Bouton d'enregistrement de debugage"
 
 msgid "Save debug settings"
-msgstr "enregistrer les paramètres de débogage"
+msgstr "Enregistrer les paramètres de debugage"
 
 msgid "Debug settings have been saved successfully!"
-msgstr "Les paramètres DEBUG ont été enregistrés avec succès !"
+msgstr "Les paramètres de debug ont été enregistrés avec succès !"
 
 msgid "Cloud environment switched; please login again!"
 msgstr "L'environnement Cloud a changé, veuillez vous reconnecter !"
