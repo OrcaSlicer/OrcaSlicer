@@ -266,9 +266,9 @@ static std::string format_parser_error_html(const std::string &msg)
         if (!out.empty()) out += "<br>"; // join, not trail; a trailing <br> forces a scrollbar
         std::string escaped = xml_escape(text);
         if (is_code) {
-            // Inline <tt> (fixed face, no block margin) with &nbsp; to hold the caret's columns.
+            // Inline <code> (fixed face, no block margin) with &nbsp; to hold the caret's columns.
             boost::replace_all(escaped, " ", "&nbsp;");
-            out += "<tt>" + escaped + "</tt>";
+            out += "<code>" + escaped + "</code>";
         } else {
             out += escaped;
         }
