@@ -985,6 +985,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_hole_on_face   = false;
                 m_hole_face_body = -1;
                 m_hole_has_bounds = false;
+                set_hole_target_label(-1);
                 // Use the explicitly-picked face; otherwise default to the top face of the
                 // selected (or first) body so the hole lands on the surface being viewed, not
                 // the z=0 datum under the model. The XY/XZ/YZ dropdown still overrides.
@@ -1000,6 +1001,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                         m_hole_face_plane = face_plane_inward(face);
                         m_hole_on_face    = true;
                         m_hole_face_body  = hb;
+                        set_hole_target_label(hf);   // may be the top-face default, not a pick
                         // Face (u,v) extents so the hole dims read from the sides (#2 Part B).
                         m_hole_has_bounds = GeometryEngine::face_plane_bounds(
                             face, m_hole_face_plane.origin, m_hole_face_plane.x_axis,
@@ -1021,11 +1023,14 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 // the user never types a radius. The diameter field shows what was derived.
                 m_thread_on_face   = false;
                 m_thread_face_body = -1;
+                set_thread_target_label(-1, -1);
                 GeometryEngine::CylinderFace cf;
+                bool from_face = false;   // which of the two the cylinder actually came from
                 if (m_sel_solid_body >= 0 && m_sel_solid_body < int(m_doc.bodies.size())) {
                     const TopoDS_Shape& shape = m_doc.bodies[m_sel_solid_body].shape;
                     if (m_sel_solid_face >= 0)
                         cf = GeometryEngine::cylinder_of_face(GeometryEngine::face_by_index(shape, m_sel_solid_face));
+                    from_face = cf.ok;
                     if (!cf.ok && m_sel_solid_edge >= 0)
                         cf = GeometryEngine::circle_of_edge(GeometryEngine::edge_by_index(shape, m_sel_solid_edge));
                 }
@@ -1039,6 +1044,8 @@ DesignPanel::DesignPanel(wxWindow* parent)
                     m_thread_face_plane = p;
                     m_thread_on_face    = true;
                     m_thread_face_body  = m_sel_solid_body;
+                    set_thread_target_label(from_face ? m_sel_solid_face : -1,
+                                            from_face ? -1 : m_sel_solid_edge);
                     infer_thread_spec(2.0 * cf.radius);   // M diameter + pitch + depth from the cylinder
                     if (m_thread_height && cf.height > 1e-6) m_thread_height->SetValue(cf.height);
                     if (m_thread_internal) m_thread_internal->SetValue(cf.internal);
@@ -1719,6 +1726,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_hole_plane->Bind(wxEVT_COMBOBOX, [this](wxCommandEvent& e) {
         m_hole_on_face    = false;
         m_hole_has_bounds = false;
+        set_hole_target_label(-1);
         update_hole_gizmo();
         refresh_preview();
         e.Skip();
@@ -1746,6 +1754,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
     m_hole_through->SetValue(true);
     hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Through")), 0, wxALIGN_CENTER_VERTICAL);
     hform->Add(m_hole_through, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+
+    m_hole_target_label = new wxStaticText(m_cards, wxID_ANY, _L("(none — uses Hole plane)"));
+    hform->Add(new wxStaticText(m_cards, wxID_ANY, _L("On face")), 0, wxALIGN_CENTER_VERTICAL);
+    hform->Add(m_hole_target_label, 0, wxALIGN_CENTER_VERTICAL);
 
     m_box_hole = new wxBoxSizer(wxVERTICAL);
     m_box_hole->Add(card_header(m_cards, "design_hole", _L("Hole"), m_hdr_hole), 0, wxLEFT | wxRIGHT | wxTOP, 12);
@@ -1811,6 +1823,10 @@ DesignPanel::DesignPanel(wxWindow* parent)
     });
     tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("Internal")), 0, wxALIGN_CENTER_VERTICAL);
     tform->Add(m_thread_internal, 0, wxALIGN_LEFT | wxALIGN_CENTER_VERTICAL);
+
+    m_thread_target_label = new wxStaticText(m_cards, wxID_ANY, _L("(none — uses Thread plane)"));
+    tform->Add(new wxStaticText(m_cards, wxID_ANY, _L("On face")), 0, wxALIGN_CENTER_VERTICAL);
+    tform->Add(m_thread_target_label, 0, wxALIGN_CENTER_VERTICAL);
 
     m_box_thread = new wxBoxSizer(wxVERTICAL);
     m_box_thread->Add(card_header(m_cards, "design_thread", _L("Thread"), m_hdr_thread), 0, wxLEFT | wxRIGHT | wxTOP, 12);
@@ -3348,6 +3364,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_hole_face_plane = face_plane_inward(fc);
                 m_hole_on_face    = true;
                 m_hole_face_body  = body;
+                set_hole_target_label(face);
                 m_hole_has_bounds = GeometryEngine::face_plane_bounds(
                     fc, m_hole_face_plane.origin, m_hole_face_plane.x_axis,
                     m_hole_face_plane.y_axis, m_hole_umin, m_hole_umax, m_hole_vmin, m_hole_vmax);
@@ -3363,6 +3380,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
             GeometryEngine::CylinderFace cf;
             if (face >= 0)
                 cf = GeometryEngine::cylinder_of_face(GeometryEngine::face_by_index(shape, face));
+            const bool from_face = cf.ok;   // which of the two the cylinder actually came from
             if (!cf.ok && edge >= 0)
                 cf = GeometryEngine::circle_of_edge(GeometryEngine::edge_by_index(shape, edge));
             if (cf.ok) {
@@ -3373,6 +3391,7 @@ DesignPanel::DesignPanel(wxWindow* parent)
                 m_thread_face_plane = p;
                 m_thread_on_face    = true;
                 m_thread_face_body  = m_sel_solid_body;
+                set_thread_target_label(from_face ? face : -1, from_face ? -1 : edge);
                 infer_thread_spec(2.0 * cf.radius);   // M diameter + pitch + depth from the cylinder
                 if (m_thread_height && cf.height > 1e-6) m_thread_height->SetValue(cf.height);
                 if (m_thread_internal) m_thread_internal->SetValue(cf.internal);
@@ -4407,6 +4426,32 @@ void DesignPanel::on_add_dressup()
         set_status_ok();
 
     refresh_tree();
+}
+
+// Hole and Thread LATCH the geometry they were opened or picked on; Thicken / Shell / Draft read
+// the live selection instead. Both models are right for what they are — a placement tool with its
+// own plane state, versus an operation whose operand IS the selected face — and the latch is the
+// kinder of the two now that a click on empty canvas clears the selection (snaporca-od0): a stray
+// click costs a Thicken pick, and costs a Hole nothing. What was missing is that nothing in the
+// Hole/Thread card NAMED the latched face, so after such a click the only words on screen were
+// the viewport's "Nothing selected" — over a ghost still drawn on the face Confirm would drill.
+// That reads as a contradiction and was filed as one (snaporca-200). The card now says what it
+// holds, the way the other three cards already do. Pass -1 for "none, using the plane dropdown".
+void DesignPanel::set_hole_target_label(int face)
+{
+    if (m_hole_target_label)
+        m_hole_target_label->SetLabel(face >= 0 ? wxString::Format(_L("Face %d"), face)
+                                                : _L("(none — uses Hole plane)"));
+}
+
+// Thread also latches onto a circular EDGE (a cylinder's rim), so it has two kinds to name.
+void DesignPanel::set_thread_target_label(int face, int edge)
+{
+    if (!m_thread_target_label) return;
+    m_thread_target_label->SetLabel(
+        face >= 0 ? wxString::Format(_L("Face %d"), face)
+      : edge >= 0 ? wxString::Format(_L("Edge %d"), edge)
+                  : _L("(none — uses Thread plane)"));
 }
 
 SketchPlane DesignPanel::hole_plane() const

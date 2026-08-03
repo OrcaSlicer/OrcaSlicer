@@ -235,6 +235,10 @@ private:
     SketchPlane hole_plane() const;
     // The plane the Thread tool builds on: a picked cylindrical face (axis) or the dropdown.
     SketchPlane thread_plane() const;
+    // Name the geometry the card has LATCHED, so it never has to be inferred from the viewport.
+    // Pass -1 for "none, falling back to the plane dropdown". See snaporca-200.
+    void        set_hole_target_label(int face);
+    void        set_thread_target_label(int face, int edge);
     CadFeature build_candidate(Tool t) const;
     int        resolve_extrude_sketch() const;
     // Plane pickers: fill a choice with XY/XZ/YZ + the document's datum planes, and
@@ -674,6 +678,10 @@ private:
     // dims read as distance from the face sides (umin/vmin edges) rather than from the centre.
     bool              m_hole_has_bounds{false};
     double            m_hole_umin{0}, m_hole_umax{0}, m_hole_vmin{0}, m_hole_vmax{0};
+    // Says which face the latch above is holding. Thicken/Shell/Draft show theirs because their
+    // face IS the live selection; this one has to be shown precisely BECAUSE it is not, and the
+    // status line goes on saying "Nothing selected" while the ghost keeps drilling. snaporca-200.
+    wxStaticText*     m_hole_target_label{nullptr};
 
     ComboBox*         m_thread_plane{nullptr};
     ComboBox*         m_thread_std{nullptr};   // standard designation (M6, 1/4-20 UNC, ...)
@@ -689,6 +697,7 @@ private:
     bool              m_thread_on_face{false};
     SketchPlane       m_thread_face_plane;
     int               m_thread_face_body{-1};
+    wxStaticText*     m_thread_target_label{nullptr};   // the latched face/edge — see m_hole_target_label
 
     wxSpinCtrlDouble* m_shell_thickness{nullptr};
     wxStaticText*     m_shell_face_label{nullptr};   // shows the picked face to remove
