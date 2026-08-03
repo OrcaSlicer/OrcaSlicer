@@ -5025,7 +5025,7 @@ public:
         if (m_n_rows >= 2)
             instructions += " " + _L("Span (yellow) marks a tool on the Primary's gantry as the "
                                      "multicolor partner — required to enable multi-color printing in "
-                                     "paired-gantry IDEX/IQEX modes.");
+                                     "paired-gantry IMEX modes.");
         auto* inst = new wxStaticText(info_panel, wxID_ANY, instructions);
         inst->Wrap(FromDIP(620));
         info_sizer->Add(inst, 0, wxBOTTOM, FromDIP(6));
@@ -6180,7 +6180,7 @@ if (is_marlin_flavor)
         optgroup->append_single_option_line("machine_tool_change_time", "printer_multimaterial_advanced#tool-change-time");
 
         // IDEX/IQEX (IMEX) parallel printing configuration
-        optgroup = page->new_optgroup(L("IDEX/IQEX Configuration"), L"param_advanced");
+        optgroup = page->new_optgroup(L("IMEX Configuration"), L"param_advanced");
         optgroup->append_single_option_line("is_imex");
         optgroup->append_single_option_line("imex_firmware_managed_zones");
         optgroup->append_single_option_line("imex_gantry_count");
@@ -6201,7 +6201,7 @@ if (is_marlin_flavor)
             // activate_line to return early before build_field.
             ConfigOptionDef placeholder_def;
             placeholder_def.label   = L("Pre-slice warnings");
-            placeholder_def.tooltip = L("Show a warning dialog before slicing if IDEX/IQEX parallel mode "
+            placeholder_def.tooltip = L("Show a warning dialog before slicing if IMEX parallel mode "
                                         "concerns are detected (bed temperature conflicts, filament type "
                                         "mismatches, multi-material conflicts). Can be suppressed from the "
                                         "dialog itself. Re-enable here if suppressed accidentally.");
@@ -6222,7 +6222,7 @@ if (is_marlin_flavor)
         }
         optgroup->append_single_option_line("imex_viz_theme");
         {
-            auto modes_og = page->new_optgroup(L("IDEX/IQEX Parallel Modes"), L"param_advanced");
+            auto modes_og = page->new_optgroup(L("IMEX Parallel Modes"), L"param_advanced");
             auto line = Line{ L("Modes"), L("") };
             line.full_width = 1;
             line.widget = [this](wxWindow* parent) -> wxSizer* {

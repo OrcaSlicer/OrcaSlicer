@@ -2353,7 +2353,7 @@ void PartPlate::render_icons(bool bottom, bool only_name, int hover_id)
                         render_icon_texture(m_imex_mode_icon.model, m_partplate_list->m_imex_mode_hovered_texture);
                         std::string cur = get_imex_mode();
                         if (cur == kImexPrimaryMode) cur = _u8L("Primary");
-                        show_tooltip(_u8L("IDEX/IQEX mode: ") + cur + _u8L(" (left-click to cycle, right-click for menu)"));
+                        show_tooltip(_u8L("IMEX mode: ") + cur + _u8L(" (left-click to cycle, right-click for menu)"));
                     } else {
                         render_icon_texture(m_imex_mode_icon.model, m_partplate_list->m_imex_mode_texture);
                     }

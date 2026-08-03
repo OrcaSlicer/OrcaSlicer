@@ -70,7 +70,7 @@ std::string imex_multicolor_block_reason(const std::string& parallel_mode,
             if (filament < 0 || filament >= (int)pem.values.size()) continue;
             const int phys = pem.get_at(filament);
             if (!seen_physicals.insert(phys).second) {
-                return "Multi-color prints in IDEX/IQEX parallel modes require each filament "
+                return "Multi-color prints in IMEX parallel modes require each filament "
                        "to have its own dedicated physical extruder. Two or more of the active "
                        "filaments are routed to the same physical head via the printer's "
                        "physical extruder map (an MMU/AFC manifold), which the slaved gantry "
@@ -82,8 +82,8 @@ std::string imex_multicolor_block_reason(const std::string& parallel_mode,
     // Determine which physical head is the primary in this mode.
     const int primary_physical = imex_primary_tool_for_mode(active_tools_str);
     if (primary_physical < 0) {
-        return "The active IDEX/IQEX mode does not define a primary tool, so multi-color "
-               "printing cannot be scheduled. Open the printer settings IDEX/IQEX Modes "
+        return "The active IMEX mode does not define a primary tool, so multi-color "
+               "printing cannot be scheduled. Open the printer settings IMEX Modes "
                "editor and assign a Primary role to one tool.";
     }
 
@@ -113,7 +113,7 @@ std::string imex_multicolor_block_reason(const std::string& parallel_mode,
         return "Multi-color in this mode isn't a parallel-print scenario — all of the "
                "active tools sit on a single gantry, so there's no second gantry being "
                "copied or mirrored to. Switch the plate to Primary mode for multi-color "
-               "printing on a single gantry, or define an IDEX/IQEX mode that includes "
+               "printing on a single gantry, or define an IMEX mode that includes "
                "tools on a second gantry.";
     }
 
@@ -123,10 +123,10 @@ std::string imex_multicolor_block_reason(const std::string& parallel_mode,
     // copies (each gantry tool prints its own object) which is incompatible with
     // mid-print multicolor in a parallel mode.
     if (!span_on_primary_gantry) {
-        return "Multi-color prints in IDEX/IQEX parallel modes require a Span tool on the "
+        return "Multi-color prints in IMEX parallel modes require a Span tool on the "
                "primary's gantry — without one, the mode doesn't declare a within-gantry "
                "multicolor partner. Either reduce the print to a single filament, switch to "
-               "Primary mode, or open the printer settings IDEX/IQEX Modes editor and mark a "
+               "Primary mode, or open the printer settings IMEX Modes editor and mark a "
                "tool on the primary's gantry as Span.";
     }
     return {};

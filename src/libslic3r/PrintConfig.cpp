@@ -6522,8 +6522,8 @@ void PrintConfigDef::init_fff_params()
 
     // IDEX/IQEX (independent X extruder) — parallel printing support for IDEX/IQEX printers
     def = this->add("is_imex", coBool);
-    def->label = L("IDEX/IQEX Printer");
-    def->tooltip = L("Enable IDEX/IQEX (independent X extruder) support for IDEX/IQEX printers with multiple independent carriages.");
+    def->label = L("IMEX Printer");
+    def->tooltip = L("Enable IMEX parallel printing for printers with multiple independent carriages (IDEX, IQEX, and similar).");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionBool(false));
 
@@ -6604,7 +6604,7 @@ void PrintConfigDef::init_fff_params()
 
     def = this->add("imex_viz_theme", coEnum);
     def->label = L("Visualization Theme");
-    def->tooltip = L("Color theme for IDEX/IQEX bed zone visualization. Choose a colorblind-friendly theme if needed.");
+    def->tooltip = L("Color theme for IMEX bed zone visualization. Choose a colorblind-friendly theme if needed.");
     def->mode = comAdvanced;
     def->enum_keys_map = &ConfigOptionEnum<ImexVizTheme>::get_enum_values();
     def->enum_values.push_back("standard");
@@ -6618,8 +6618,8 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionEnum<ImexVizTheme>(ImexVizTheme::Standard));
 
     def = this->add("imex_parallel_mode", coString);
-    def->label = L("IDEX/IQEX Print Mode");
-    def->tooltip = L("Name of the active IDEX/IQEX parallel print mode, or \"primary\" for single-carriage printing. Requires IDEX/IQEX Printer enabled in the Printer preset (Printer \u2192 IDEX/IQEX tab).");
+    def->label = L("IMEX Print Mode");
+    def->tooltip = L("Name of the active IMEX parallel print mode, or \"primary\" for single-carriage printing. Requires IMEX Printer enabled in the Printer preset (Printer \u2192 Multimaterial \u2192 IMEX Configuration).");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionString("primary"));
 
@@ -6631,19 +6631,19 @@ void PrintConfigDef::init_fff_params()
     def->set_default_value(new ConfigOptionString(""));
 
     def = this->add("imex_mode_names", coStrings);
-    def->label = L("IDEX/IQEX Mode Names");
-    def->tooltip = L("Display names for each user-defined IDEX/IQEX parallel print mode.");
+    def->label = L("IMEX Mode Names");
+    def->tooltip = L("Display names for each user-defined IMEX parallel print mode.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
 
     def = this->add("imex_mode_active_tools", coStrings);
-    def->label = L("IDEX/IQEX Mode Active Tools");
-    def->tooltip = L("Tool role assignments for each mode. Format: \"idx:P,idx:C,idx:M\" where P=Primary, C=Copy, M=Mirror (e.g. \"0:P,1:C,2:M,3:M\"). Managed by the IDEX/IQEX Modes editor in the Printer preset.");
+    def->label = L("IMEX Mode Active Tools");
+    def->tooltip = L("Tool role assignments for each mode. Format: \"idx:P,idx:C,idx:M\" where P=Primary, C=Copy, M=Mirror (e.g. \"0:P,1:C,2:M,3:M\"). Managed by the IMEX Modes editor in the Printer preset.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
 
     def = this->add("imex_mode_gcodes", coStrings);
-    def->label = L("IDEX/IQEX Mode G-codes");
+    def->label = L("IMEX Mode G-codes");
     def->tooltip = L("G-code or macro call to inject at print start for each mode.");
     def->mode = comAdvanced;
     def->set_default_value(new ConfigOptionStrings());
