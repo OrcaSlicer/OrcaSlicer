@@ -3073,9 +3073,21 @@ bool DesignSketchTool::handle_solid_click(GLCanvas3D& canvas, const wxMouseEvent
     // Double-click is safe: wx sends Down/Up/DClick/Up, and only the first Up carries a
     // pending press, so a fast double-click zooms to fit and picks ONCE. Escalation needs two
     // separate clicks, the same "click, pause, click" distinction a file manager uses.
-    if (m_solid_sel == prev_kind && m_sel_body == prev_body && m_sel_face == prev_face
-        && m_sel_edge == prev_edge
-        && (m_solid_sel != SolidSel::Vertex || (m_sel_vertex_pt - prev_vtx).norm() < 1e-9)) {
+    //
+    // "The same thing" is compared AT THE LEVEL THAT WAS PICKED, and nothing else. Requiring
+    // every field to match looked stricter and was simply wrong: an edge pick leaves m_sel_face
+    // set to whichever face the ray happened to hit, and a shared edge is reached through a
+    // different face depending on which side of the body you are looking from. So picking an
+    // edge, orbiting, and clicking that same edge from the other side left m_sel_edge equal and
+    // m_sel_face different, and the escalation the status line had just promised did not happen.
+    // The edge id here is already the STABLE GLOBAL one (edge_index_of, a few lines up) — it
+    // identifies the edge on its own and does not need the face to disambiguate it.
+    const bool same_pick = m_solid_sel == prev_kind && m_sel_body == prev_body
+        && (m_solid_sel == SolidSel::Vertex ? (m_sel_vertex_pt - prev_vtx).norm() < 1e-9
+          : m_solid_sel == SolidSel::Edge   ? m_sel_edge == prev_edge
+          : m_solid_sel == SolidSel::Face   ? m_sel_face == prev_face
+                                            : true);
+    if (same_pick) {
         select_body(m_sel_body);   // clears face/edge/vertex, tints the whole body
         dp_pick_trace("re-pick -> escalated to whole body %d", m_sel_body);
     }

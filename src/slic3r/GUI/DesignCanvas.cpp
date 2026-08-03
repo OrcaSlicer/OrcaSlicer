@@ -176,6 +176,12 @@ DesignCanvas::DesignCanvas(wxWindow* parent)
         top->Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& e) {
             show_status_hud(e.GetActive()); e.Skip();
         });
+        // The anchor is an ABSOLUTE SCREEN position (ClientToScreen below), so moving the window
+        // moves the canvas out from under a chip that stays where it was. Dragging the frame by
+        // its title bar left the chip stranded mid-viewport until the next size, status or tab
+        // change happened to re-place it. Nothing on the canvas fires for a move that does not
+        // also resize, so it has to come from the frame.
+        top->Bind(wxEVT_MOVE, [this](wxMoveEvent& e) { place_status_hud(); e.Skip(); });
     }
 
     refresh_bed();
