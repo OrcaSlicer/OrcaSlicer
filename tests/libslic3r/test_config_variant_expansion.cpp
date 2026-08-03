@@ -43,18 +43,67 @@ TEST_CASE("apply_override fills nil entries from the 0-based default index", "[C
         REQUIRE(resolved.values == std::vector<double>({30., 42.}));
     }
 
-    SECTION("an index past the machine slots falls back to the first slot") {
+    SECTION("an index past the machine slots keeps the slot's own value") {
         std::vector<int> slot_index{5, 0};
         ConfigOptionFloats resolved(machine);
         REQUIRE(resolved.apply_override(&filament, slot_index));
         REQUIRE(resolved.values == std::vector<double>({10., 42.}));
     }
 
-    SECTION("a negative index (unresolved slot) falls back to the first slot") {
-        std::vector<int> slot_index{-1, 0};
+    SECTION("a negative index (unresolved slot) keeps the slot's own value") {
+        ConfigOptionFloatsNullable all_nil;
+        all_nil.values = {ConfigOptionFloatsNullable::nil_value(), ConfigOptionFloatsNullable::nil_value(),
+                          ConfigOptionFloatsNullable::nil_value()};
+        std::vector<int> slot_index{2, -1, 0};
         ConfigOptionFloats resolved(machine);
-        REQUIRE(resolved.apply_override(&filament, slot_index));
-        REQUIRE(resolved.values == std::vector<double>({10., 42.}));
+        REQUIRE(!resolved.apply_override(&all_nil, slot_index));
+        REQUIRE(resolved.values == std::vector<double>({30., 20., 10.}));
+    }
+
+    SECTION("all-nil overrides keyed by unresolved slots leave the machine values intact") {
+        // The failed-lookup map a degenerate print_extruder_id used to produce; the negative
+        // slots must not collapse the machine array to its first value.
+        ConfigOptionFloats per_extruder({100., 70., 70., 70., 100.});
+        ConfigOptionFloatsNullable all_nil;
+        all_nil.values.assign(5, ConfigOptionFloatsNullable::nil_value());
+        std::vector<int> slot_index{0, -1, -1, -1, 0};
+        ConfigOptionFloats resolved(per_extruder);
+        REQUIRE(!resolved.apply_override(&all_nil, slot_index));
+        REQUIRE(resolved.values == std::vector<double>({100., 70., 70., 70., 100.}));
+    }
+}
+
+TEST_CASE("support_different_extruders is true only when the printer defines more than one variant column", "[Config]")
+{
+    int extruder_count = 0;
+
+    SECTION("a non-Bambu dual-nozzle printer with one variant column reports false") {
+        DynamicPrintConfig config;
+        config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = {0.4, 0.4};
+        // Both extruders resolve to the same default variant, so there is only one column.
+        config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {"Direct Drive Standard",
+                                                                                     "Direct Drive Standard"};
+        REQUIRE(config.support_different_extruders(extruder_count) == false);
+        REQUIRE(extruder_count == 2);
+    }
+
+    SECTION("a Bambu H2D-style printer with distinct variants reports true") {
+        DynamicPrintConfig config;
+        config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = {0.4, 0.4};
+        config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {
+            "Direct Drive Standard,Direct Drive High Flow",
+            "Direct Drive Standard,Direct Drive High Flow,Direct Drive TPU High Flow"};
+        REQUIRE(config.support_different_extruders(extruder_count) == true);
+        REQUIRE(extruder_count == 2);
+    }
+
+    SECTION("a many-toolhead printer that never opts into variants reports false") {
+        // A Snapmaker U1 has four identical toolheads and never defines extruder_variant_list,
+        // so the config falls back to a single default variant token.
+        DynamicPrintConfig config;
+        config.option<ConfigOptionFloats>("nozzle_diameter", true)->values = {0.4, 0.4, 0.4, 0.4};
+        REQUIRE(config.support_different_extruders(extruder_count) == false);
+        REQUIRE(extruder_count == 4);
     }
 }
 
@@ -235,6 +284,102 @@ TEST_CASE("update_values_to_printer_extruders expands one slot per (extruder x v
 
         REQUIRE(variant_index == expected_index);
         REQUIRE(config.option<ConfigOptionFloats>("outer_wall_speed")->values == std::vector<double>({30., 500.}));
+    }
+}
+
+TEST_CASE("update_values_to_printer_extruders synthesizes degenerate process variant columns", "[Config]")
+{
+    // Non-BBL process presets and 3mf project configs keep the length-1 defaults for
+    // print_extruder_id/print_extruder_variant; only BBL system presets ship full-width columns.
+    auto add_degenerate_print_columns = [](DynamicPrintConfig &config) {
+        config.option<ConfigOptionInts>("print_extruder_id", true)->values = {1};
+        config.option<ConfigOptionStrings>("print_extruder_variant", true)->values = {"Direct Drive Standard"};
+        config.option<ConfigOptionFloats>("outer_wall_speed", true)->values = {30.};
+    };
+
+    SECTION("a single-column pair on a multi-extruder machine expands to one column per extruder") {
+        DynamicPrintConfig config;
+        config.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = {etDirectDrive, etDirectDrive};
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = {nvtStandard, nvtStandard};
+        config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {"Direct Drive Standard", "Direct Drive Standard"};
+        add_degenerate_print_columns(config);
+
+        std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
+        int extruder_count = 2;
+        int count = config.get_extruder_nozzle_volume_count(extruder_count, nozzle_volume_types);
+
+        std::vector<int> variant_index = config.update_values_to_printer_extruders(config, extruder_count, count, nozzle_volume_types,
+            print_options_with_variant, "print_extruder_id", "print_extruder_variant");
+
+        REQUIRE(variant_index == std::vector<int>({0, 1}));
+        REQUIRE(config.option<ConfigOptionInts>("print_extruder_id")->values == std::vector<int>({1, 2}));
+        REQUIRE(config.option<ConfigOptionStrings>("print_extruder_variant")->values ==
+                std::vector<std::string>({"Direct Drive Standard", "Direct Drive Standard"}));
+        // width-1 data arrays replicate their only column into every slot
+        REQUIRE(config.option<ConfigOptionFloats>("outer_wall_speed")->values == std::vector<double>({30., 30.}));
+    }
+
+    SECTION("a multi-variant list synthesizes one column per (extruder x variant)") {
+        DynamicPrintConfig config = make_hybrid_printer_config();
+        add_degenerate_print_columns(config);
+
+        std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
+        int extruder_count = 2;
+        int count = config.get_extruder_nozzle_volume_count(extruder_count, nozzle_volume_types);
+        REQUIRE(count == 3);
+
+        std::vector<int> variant_index = config.update_values_to_printer_extruders(config, extruder_count, count, nozzle_volume_types,
+            print_options_with_variant, "print_extruder_id", "print_extruder_variant");
+
+        // same slot resolution as the explicit BBL-style 4-column layout
+        REQUIRE(variant_index == std::vector<int>({0, 2, 3}));
+        REQUIRE(config.option<ConfigOptionInts>("print_extruder_id")->values == std::vector<int>({1, 2, 2}));
+        REQUIRE(config.option<ConfigOptionStrings>("print_extruder_variant")->values ==
+                std::vector<std::string>({"Direct Drive Standard", "Direct Drive Standard", "Direct Drive High Flow"}));
+        REQUIRE(config.option<ConfigOptionFloats>("outer_wall_speed")->values == std::vector<double>({30., 30., 30.}));
+    }
+
+    SECTION("a single-extruder single-column layout is not treated as degenerate") {
+        DynamicPrintConfig config;
+        config.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = {etDirectDrive};
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = {nvtStandard};
+        config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {"Direct Drive Standard"};
+        add_degenerate_print_columns(config);
+
+        std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
+        int extruder_count = 1;
+        int count = config.get_extruder_nozzle_volume_count(extruder_count, nozzle_volume_types);
+
+        config.update_values_to_printer_extruders(config, extruder_count, count, nozzle_volume_types,
+            print_options_with_variant, "print_extruder_id", "print_extruder_variant");
+
+        REQUIRE(config.option<ConfigOptionInts>("print_extruder_id")->values == std::vector<int>({1}));
+        REQUIRE(config.option<ConfigOptionFloats>("outer_wall_speed")->values == std::vector<double>({30.}));
+    }
+
+    SECTION("a second expansion leaves the synthesized layout unchanged") {
+        DynamicPrintConfig config;
+        config.option<ConfigOptionEnumsGeneric>("extruder_type", true)->values = {etDirectDrive, etDirectDrive};
+        config.option<ConfigOptionEnumsGeneric>("nozzle_volume_type", true)->values = {nvtStandard, nvtStandard};
+        config.option<ConfigOptionStrings>("extruder_variant_list", true)->values = {"Direct Drive Standard", "Direct Drive Standard"};
+        add_degenerate_print_columns(config);
+
+        std::vector<std::vector<NozzleVolumeType>> nozzle_volume_types;
+        int extruder_count = 2;
+        int count = config.get_extruder_nozzle_volume_count(extruder_count, nozzle_volume_types);
+
+        config.update_values_to_printer_extruders(config, extruder_count, count, nozzle_volume_types,
+            print_options_with_variant, "print_extruder_id", "print_extruder_variant");
+        DynamicPrintConfig once = config;
+        config.update_values_to_printer_extruders(config, extruder_count, count, nozzle_volume_types,
+            print_options_with_variant, "print_extruder_id", "print_extruder_variant");
+
+        REQUIRE(config.option<ConfigOptionInts>("print_extruder_id")->values ==
+                once.option<ConfigOptionInts>("print_extruder_id")->values);
+        REQUIRE(config.option<ConfigOptionStrings>("print_extruder_variant")->values ==
+                once.option<ConfigOptionStrings>("print_extruder_variant")->values);
+        REQUIRE(config.option<ConfigOptionFloats>("outer_wall_speed")->values ==
+                once.option<ConfigOptionFloats>("outer_wall_speed")->values);
     }
 }
 

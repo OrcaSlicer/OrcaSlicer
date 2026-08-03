@@ -214,6 +214,8 @@ enum class PrintOrder
 {
     Default,
     AsObjectList,
+    BestOfStrategies,    // run all custom strategies, pick the shortest total path
+    Snake,               // snake-like row traversal (back-and-forth) + 2-opt
     Count,
 };
 
@@ -1080,6 +1082,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionFloat,               brim_width))
     ((ConfigOptionFloat,               brim_ears_detection_length))
     ((ConfigOptionFloat,               brim_ears_max_angle))
+    ((ConfigOptionBool,                brim_ears_outer_only))
     ((ConfigOptionFloat,               skirt_start_angle))
     ((ConfigOptionBool,                bridge_no_support))
     ((ConfigOptionFloat,               elefant_foot_compensation))
@@ -1262,6 +1265,7 @@ PRINT_CONFIG_CLASS_DEFINE(
     ((ConfigOptionString,               sparse_infill_rotate_template))
     ((ConfigOptionPercent,              sparse_infill_density))
     ((ConfigOptionEnum<InfillPattern>,  sparse_infill_pattern))
+    ((ConfigOptionPercent,              sparse_infill_smooth_factor))
     ((ConfigOptionFloat,                lateral_lattice_angle_1))
     ((ConfigOptionFloat,                lateral_lattice_angle_2))
     ((ConfigOptionFloat,                infill_overhang_angle))
@@ -1780,6 +1784,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     ((ConfigOptionString,             filename_format))
     ((ConfigOptionStrings,            post_process))
     ((ConfigOptionStrings,            slicing_pipeline_plugin))
+    ((ConfigOptionString,             print_plugin_config_overrides))
     ((ConfigOptionString,             printer_model))
     ((ConfigOptionFloat,              resolution))
     ((ConfigOptionFloats,             retraction_minimum_travel))
@@ -1841,6 +1846,7 @@ PRINT_CONFIG_CLASS_DERIVED_DEFINE(
     // BBS: wipe tower is only used for priming
     ((ConfigOptionFloat,              prime_volume))
     // Nozzle-change (nc) prime volume + pre-heat delta
+    ((ConfigOptionFloats,             filament_prime_volume))
     ((ConfigOptionFloats,             filament_prime_volume_nc))
     ((ConfigOptionFloatsNullable,     filament_preheat_temperature_delta))
     ((ConfigOptionFloats,             flush_multiplier))

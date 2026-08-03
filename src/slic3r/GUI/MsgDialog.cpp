@@ -65,7 +65,7 @@ MsgDialog::MsgDialog(wxWindow *parent, const wxString &title, const wxString &he
     main_sizer->Add(btn_sizer, 0, wxBOTTOM | wxRIGHT | wxEXPAND | wxTOP, FromDIP(10));
 
     apply_style(style);
-	SetSizerAndFit(main_sizer);
+	SetSizer(main_sizer);
     wxGetApp().UpdateDlgDarkUI(this);
 }
 
@@ -221,6 +221,7 @@ void MsgDialog::apply_style(long style)
 
 void MsgDialog::finalize()
 {
+    GetSizer()->SetSizeHints(this);
     Layout();
     Fit();
     CenterOnParent();
@@ -547,7 +548,7 @@ DeleteConfirmDialog::DeleteConfirmDialog(wxWindow *parent, const wxString &title
     m_del_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { EndModal(wxID_OK); });
     m_cancel_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent &e) { EndModal(wxID_CANCEL); });
 
-    SetSizer(m_main_sizer);
+    SetSizerAndFit(m_main_sizer);
     Layout();
     Fit();
     wxGetApp().UpdateDlgDarkUI(this);
@@ -582,7 +583,7 @@ Newer3mfVersionDialog::Newer3mfVersionDialog(wxWindow *parent, const Semver *fil
     main_sizer->Add(content_sizer, 0, wxEXPAND | wxALL, FromDIP(5));
     main_sizer->Add(get_btn_sizer(), 0, wxEXPAND | wxALL, FromDIP(5));
 
-    this->SetSizer(main_sizer);
+    this->SetSizerAndFit(main_sizer);
     Layout();
     Fit();
     wxGetApp().UpdateDlgDarkUI(this);
@@ -632,7 +633,7 @@ wxBoxSizer *Newer3mfVersionDialog::get_btn_sizer()
 
     bool       file_version_newer = (*m_file_version) > (*m_cloud_version);
     if (!file_version_newer) {
-        m_update_btn = new Button(this, _CTX(L_CONTEXT("Update", "Software"), "Software"));
+        m_update_btn = new Button(this, _L_CONTEXT(L_CONTEXT("Update", "Software"), "Software"));
         m_update_btn->SetStyle(ButtonStyle::Regular, ButtonType::Choice);
         horizontal_sizer->Add(m_update_btn, 0, wxRIGHT, FromDIP(ButtonProps::ChoiceButtonGap()));
 
@@ -745,9 +746,8 @@ NetworkErrorDialog::NetworkErrorDialog(wxWindow* parent)
     sizer_main->Add(sizer_button, 1, wxEXPAND | wxLEFT | wxRIGHT, 15);
     sizer_main->Add(0, 0, 0, wxTOP, 18);
 
-    SetSizer(sizer_main);
+    SetSizerAndFit(sizer_main);
     Layout();
-    sizer_main->Fit(this);
     Centre(wxBOTH);
 }
 

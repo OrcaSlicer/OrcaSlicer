@@ -771,6 +771,7 @@ CustomGCode::Info CalibPressureAdvancePattern::generate_custom_gcodes(const Dyna
         }
     }
 
+    gcode << m_writer.reset_e();
     gcode << m_writer.set_pressure_advance(m_params.start);
     gcode << "; end pressure advance pattern for layer\n";
 

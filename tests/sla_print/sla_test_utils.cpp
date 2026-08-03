@@ -47,8 +47,9 @@ void test_support_model_collision(const std::string          &obj_filename,
         notouch = notouch && area(intersections) < PI * pinhead_r * pinhead_r;
     }
     
-    /*if (!notouch) */export_failed_case(support_slices, byproducts);
-    
+    if (!notouch)
+        export_failed_case(support_slices, byproducts);
+
     REQUIRE(notouch);
 }
 
@@ -62,11 +63,11 @@ void export_failed_case(const std::vector<ExPolygons> &support_slices, const Sup
         std::stringstream ss;
         if (!intersections.empty()) {
             ss << byproducts.obj_fname << std::setprecision(4) << n << ".svg";
-            SVG svg(ss.str());
-            svg.draw(sup_slice, "green");
-            svg.draw(mod_slice, "blue");
-            svg.draw(intersections, "red");
-            svg.Close();
+            write_debug_svg("sla/" + ss.str(), [&](SVG &svg) {
+                svg.draw(sup_slice, "green");
+                svg.draw(mod_slice, "blue");
+                svg.draw(intersections, "red");
+            });
         }
     }
 
@@ -74,8 +75,8 @@ void export_failed_case(const std::vector<ExPolygons> &support_slices, const Sup
     byproducts.supporttree.retrieve_full_mesh(its);
     TriangleMesh m{its};
     m.merge(byproducts.input_mesh);
-    m.WriteOBJFile((Catch::getResultCapture().getCurrentTestName() + "_" +
-                    byproducts.obj_fname).c_str());
+    write_debug_obj("sla/" + Catch::getResultCapture().getCurrentTestName() +
+                    "_" + byproducts.obj_fname, m);
 }
 
 void test_supports(const std::string          &obj_filename,
@@ -350,13 +351,11 @@ void check_raster_transformations(sla::RasterBase::Orientation o, sla::RasterBas
     REQUIRE((w < res.width_px && h < res.height_px));
     
     auto px = raster.read_pixel(w, h);
-    
-    if (px != FullWhite) {
-        std::fstream outf("out.png", std::ios::out);
-        
-        outf << raster.encode(sla::PNGRasterEncoder());
-    }
-    
+
+    if (px != FullWhite)
+        write_debug_stream("sla/raster_transform_mismatch.png",
+                           [&] { return raster.encode(sla::PNGRasterEncoder()); });
+
     REQUIRE(px == FullWhite);
 }
 

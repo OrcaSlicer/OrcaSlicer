@@ -1109,6 +1109,10 @@ class Print;
         std::vector<ExtruderPreHeating::ExtruderUsageBlcok>  m_extruder_blocks;
         unsigned int m_machine_start_gcode_end_line_id{ (unsigned int) (-1) };
         unsigned int m_machine_end_gcode_start_line_id{ (unsigned int) (-1) };
+        // Set when the MACHINE_END_GCODE_START tag is seen during the streaming parse; tells
+        // process_M400 to skip post-print end-gcode dwells (air purification, timelapse, sound)
+        // so they don't inflate the M73 estimate. BBS excludes them in calculate_time(is_final).
+        bool m_skip_end_gcode_delays{ false };
         // Tracks, during the stream, which filament sits in each physical nozzle and which nozzle each
         // extruder currently carries. Written by both branches of the two-arg process_filament_change
         // (the fallback branch does occupancy bookkeeping only); read by the richer change-time model

@@ -578,6 +578,7 @@ namespace Slic3r
             }
             else
             {
+                Slic3r::GUI::wxGetApp().reset_unsigned_plugin_warning();
                 if (m_agent)
                 {
                     if (it->second->connection_type() != "lan" || it->second->connection_type().empty())
@@ -611,6 +612,7 @@ namespace Slic3r
         }
 
         selected_machine = dev_id;
+        record_user_last_machine(selected_machine);
         return true;
     }
 
@@ -875,20 +877,38 @@ namespace Slic3r
         }
     }
 
+    void DeviceManager::record_user_last_machine(const std::string& dev_id)
+    {
+        if (Slic3r::GUI::wxGetApp().app_config) {
+            Slic3r::GUI::wxGetApp().app_config->set("user_last_selected_machine", dev_id);
+        }
+    }
+
+    std::string DeviceManager::get_user_last_machine() const
+    {
+        if (Slic3r::GUI::wxGetApp().app_config) {
+            const auto& user_last_machine = Slic3r::GUI::wxGetApp().app_config->get("user_last_selected_machine");
+            if (!user_last_machine.empty()) {
+                return user_last_machine;
+            } else if (m_agent) {
+                return m_agent->get_user_selected_machine();
+            }
+        }
+
+        return "";
+    }
+
     void DeviceManager::load_last_machine()
     {
-        // Get all available machines, include cloud machines and lan machines that have access right
-        auto all_machines = get_my_machine_list();
-        if (all_machines.empty())
+        // Only reconnect the remembered cloud machine. Do not select an arbitrary
+        // first machine: agent swaps intentionally leave the selection empty until
+        // the new agent explicitly selects its configured printer.
+        if (userMachineList.empty())
             return;
-        
-        // Reconnect the machine the user last selected, if it's still available.
-        // why: no first-available fallback - auto-connecting an arbitrary machine
-        // fights the agent-swap reset, which intentionally leaves nothing selected.
-        const std::string last_monitor_machine = m_agent ? m_agent->get_user_selected_machine() : "";
-        const auto        last_machine = all_machines.find(last_monitor_machine);
-        if (last_machine != all_machines.end())
-            this->set_selected_machine(last_machine->second->get_dev_id());
+
+        const auto& last_monitor_machine = get_user_last_machine();
+        if (userMachineList.find(last_monitor_machine) != userMachineList.end())
+            set_selected_machine(last_monitor_machine);
     }
 
     void DeviceManager::OnMachineBindStateChanged(MachineObject* obj, const std::string& new_state)

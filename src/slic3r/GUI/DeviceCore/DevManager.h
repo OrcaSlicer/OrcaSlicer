@@ -52,6 +52,9 @@ public:
     // swap path can reuse it instead of duplicating the two sidebar calls.
     void OnSelectedMachineLost();
 
+    void record_user_last_machine(const std::string& dev_id);
+    std::string get_user_last_machine() const;
+
     // local machine
     void           set_local_selected_machine(std::string dev_id) { local_selected_machine = dev_id; };
     MachineObject* get_local_selected_machine() const { return get_local_machine(local_selected_machine); }

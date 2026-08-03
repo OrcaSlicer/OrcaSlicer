@@ -343,6 +343,7 @@ private:
 public:
     //try again when subscription fails
     void            on_start_subscribe_again(std::string dev_id);
+    void            reset_unsigned_plugin_warning() { m_unsigned_plugin_warning_shown = false; }
     std::string     get_local_models_path();
     bool            OnInit() override;
     int             OnExit() override;
